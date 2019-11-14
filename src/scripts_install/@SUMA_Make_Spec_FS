@@ -21,10 +21,13 @@
 #      labeling
 # [Aug 20, 2019] PT : indent properly, for readability
 # [Aug 20, 2019] PT : update help
-# [Sep 4,  2019] RCR: check for valid 'mris_convert --help' output
-# [Sep 4,  2019] PT : add in new opt: '-extra_fs_dsets ..'
+# [Sep  4, 2019] RCR: check for valid 'mris_convert --help' output
+# [Sep  4, 2019] PT : add in new opt: '-extra_fs_dsets ..'
 #    + so more $fsdsets can be created with surfs (for F. Lalonde)
-#
+# [Nov 14, 2019] PT : new default: *rank* dsets will not be output
+#    + have new option to create rank dsets:  -make_rank_dsets
+
+set ver = 2.1
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -75,6 +78,7 @@ goto L_GOOD_END   # finished, woohooo!
 
 L_INIT_VARS:
 
+    set DO_MAKE_RANK_DSETS = 0   # [PT: Nov 14, 2019] the new normal
     set USING_NIFTI = 0
     set prog_name = $0:t
     set endstr = "$prog_name ... finished"
@@ -129,6 +133,8 @@ goto L_CHECK_USAGE_DONE
 # parse the command line
 
 L_PARSE_COMMAND:
+
+    echo "++ Running @SUMA_Make_Spec_FS version: $ver"
 
     # init command line arg values
 
@@ -236,6 +242,17 @@ L_PARSE_COMMAND:
                 set sex = 'gii'
                 set stp = 'GIFTI'
                 set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
+
+            breaksw
+
+            # ----------------------------------------------------------
+            # [PT: Nov 14, 2019] the *rank* dsets have been superceded
+            # by the safer/more uniform *REN* ones;  now only make the former
+            # if users explicitly ask for it
+            # usage : -make_rank_dsets 
+            case "-make_rank_dsets":
+
+                set DO_MAKE_RANK_DSETS = 1
 
             breaksw
 
@@ -1228,38 +1245,43 @@ L_CREATE_BRICK:
                 # put atlas labels into FreeSurfer segmentation datasets
                 # first use generic FS table that's the same for all datasets
                 # [PT]  ??? Put parentheses here???
-                if -e $start_dir/$suma_dir/fs_table.niml.lt then
+                if ( -e $start_dir/$suma_dir/fs_table.niml.lt ) then
                     3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
                         "${other:t:r}.nii"
                     @MakeLabelTable -replace                      \
                         -atlasize_labeled_dset "${other:t:r}.nii"
                 endif
 
+                if ( $DO_MAKE_RANK_DSETS ) then
 
-                # now ranked datasets-removing empty indices - easier
-                # to color in AFNI
-                3dmerge -1rank -prefix "${other:t:r}_rank.nii" \
-                    ${other:t:r}".nii"
-                if (0) then
-                    # kill this block soon.
-                    set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
-                    mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+                    echo "++ Caveat emptor:  *rank* dsets coming your way"
+                    # now ranked datasets-removing empty indices - easier
+                    # to color in AFNI
+                    3dmerge -1rank -prefix "${other:t:r}_rank.nii" \
+                        ${other:t:r}".nii"
+                    if (0) then
+                        # kill this block soon.
+                        set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
+                        mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+                    endif
+                    @FS_roi_label                             \
+                        -name ALL                             \
+                        -rankmap ${other:t:r}_rank.rankmap.1D \
+                        -labeltable ${other:t:r}_rank         \
+                        > ${other:t:r}_rank.niml.lt.log
+                    if ($status) then
+                        echo "Failed to make roi labels for $other"
+                    else
+                        3drefit \
+                            -labeltable ${other:t:r}_rank.niml.lt \
+                            "${other:t:r}_rank.nii"
+                        @MakeLabelTable \
+                            -replace    \
+                            -atlasize_labeled_dset "${other:t:r}_rank.nii"
+                    endif
+
                 endif
-                @FS_roi_label                             \
-                    -name ALL                             \
-                    -rankmap ${other:t:r}_rank.rankmap.1D \
-                    -labeltable ${other:t:r}_rank         \
-                    > ${other:t:r}_rank.niml.lt.log
-                if ($status) then
-                    echo "Failed to make roi labels for $other"
-                else
-                    3drefit \
-                        -labeltable ${other:t:r}_rank.niml.lt \
-                        "${other:t:r}_rank.nii"
-                    @MakeLabelTable \
-                        -replace    \
-                        -atlasize_labeled_dset "${other:t:r}_rank.nii"
-                endif
+
             endif
             cd - 
         end
@@ -1382,7 +1404,10 @@ This script goes through the following steps:
     + renumbered data sets output, to replace old '*rank*' file data
       sets. Also new tissue maps based on FS functions and
       labels. Collectively, these are the '*REN*' dsets in the output
-      directory.
+      directory.  (Rank dsets are no longer output by default, from
+      Nov, 2019; instead, use -make_rank_dsets if really needed.)
+    + convenience dsets for afni_proc.py processing with tissue-based
+      regressors (fs_ap_* files: subset of ventricle and WM maps)
 
     + all created files are stored in a new SUMA directory
 
@@ -1426,6 +1451,17 @@ OPTIONS ~1~
           This option allows the user to list *other* dsets to include,
           as well.  Ones that users have selected are, for example:
                 volume   area   area.pial   curv.pial
+
+    -make_rank_dsets : before Nov 14, 2019, *rank* dsets used to be
+          created by this command by default; these dsets mapped the
+          FreeSurfer ROI numbering to a 1..N set of labels, where N
+          was the number of ROIs.  Because this number might *not* be
+          constant across a group (though, the ROI string labels in
+          each would be), we don't recommend using these; the *REN*
+          dsets are renumbered in a consistent, mapped way, and so
+          those are more useful.  The present option is purely for
+          backward compatability, for Zome Special Scientists out
+          there who might still use these dsets.
 
     -use_mgz        : use MGZ volumes even if COR volumes are there
 

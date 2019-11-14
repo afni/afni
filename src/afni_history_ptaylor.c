@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, Nov , 2019 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_GENERAL,
+   "New output: fs_ap* dsets for tissue-based reg in afni_proc.py;.",
+   "New output: *REN_gmrois* dsets for tracking/corr mats in FATCAT.\n"
+},
+
+{ 14, Nov , 2019 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "New opt:  '-make_rank_dsets ..', bc *rank* dsets no longer make by def.",
+   "The *REN* dsets should be used instead; opt just for back compatability.\n"
+},
+
 { 23, Oct , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_PROG,
    "Script to check properties of a dset, see if suitable for FS's recon-all.",
    "The check criteria have been built over time, empirically.\n"
