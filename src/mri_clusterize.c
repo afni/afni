@@ -279,28 +279,25 @@ ENTRY("mri_clusterize_detailize") ;
      }
    }
    if( vsum > 0.0f ){
-     cld.xcm = xcm / vsum; cld.ycm = ycm / vsum; cld.zcm = zcm / vsum;
+     xcm = cld.xcm = xcm / vsum;
+     ycm = cld.ycm = ycm / vsum;
+     zcm = cld.zcm = zcm / vsum;
    }
    cld.xpk = xpk; cld.ypk = ypk; cld.zpk = zpk;
-   
+
    /* return early if icent not needed - avoid slow process below*/
-   if(!icent_flag){
-       cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
-       RETURN(cld);
-   } 
+   if( !icent_flag ){
+     cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
+     RETURN(cld);
+   }
 
    /* find internal center [08 May 2019] */
    if( vsum > 0.0f ){
      wbest = 1.e+37f ; xmi=ymi=zmi = 0.0f ;
      for( kk=0 ; kk < cl->num_pt ; kk++ ){
        xqq = cl->i[kk] ; yqq = cl->j[kk] ; zqq = cl->k[kk] ;
-       for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
-		 /* removed weighting by overlay magnitude value - DRG,MER,13 Nov 2019 */ 
-         vsum +=  sqrtf( SQR(xqq - cl->i[ii])
-                        +SQR(yqq - cl->j[ii])
-                        +SQR(zqq - cl->k[ii]) ) ;
-       }
-       if( vsum < wbest ){ wbest = vsum; xmi = xqq; ymi = yqq; zmi = zqq; }
+       vsum =   SQR(xqq-xcm) + SQR(yqq-ycm) + SQR(zqq-zcm) ;
+       if( vsum < wbest ){ xmi = xqq; ymi = yqq; zmi = zqq; wbest=vsum; }
      }
    }
    cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
