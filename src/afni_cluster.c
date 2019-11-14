@@ -895,10 +895,10 @@ ENTRY("AFNI_clus_make_widgets") ;
                             "Choose whether to show the Peak, or\n"
                             "Center-of-Mass, or Internal Center\n"
                             "X Y Z coordinates, for each cluster.\n"
-                            "* Unlike CMass, ICent is a weighted\n"
+                            "* Unlike CMass, ICent is an unweighted \n"
                             "   location that is always inside its\n"
                             "   cluster.\n"
-                            "* The weights that define these\n"
+                            "* The weights that define the Cmass & Peak\n"
                             "   locations are taken from the\n"
                             "   'OLay' sub-brick of the Overlay\n"
                             "   dataset - NOT the 'Thr' sub-brick.\n"
@@ -1541,7 +1541,8 @@ ENTRY("AFNI_clus_viewpoint_CB") ;
 static void AFNI_clus_makedetails( Three_D_View *im3d )
 {
    MCW_cluster_array *clar ;
-   int ii , nclu ;
+   AFNI_clu_widgets *cwid ;
+   int ii , nclu, icent_flag ;
 
 ENTRY("AFNI_clus_makedetails") ;
 
@@ -1551,12 +1552,20 @@ ENTRY("AFNI_clus_makedetails") ;
      im3d->vwid->func->clu_num = 0 ;
      free((void *)im3d->vwid->func->clu_det); im3d->vwid->func->clu_det=NULL;
    } else {
+     cwid = im3d->vwid->func->cwid ;
+     icent_flag = 0 ;
+     if( cwid ) {
+        if(cwid->coord_mode == ICENT_MODE)
+			icent_flag = 1;
+     }			
+
      im3d->vwid->func->clu_num = nclu = clar->num_clu ;
      im3d->vwid->func->clu_det = (mri_cluster_detail *)
                                  realloc( (void *)im3d->vwid->func->clu_det ,
                                           sizeof(mri_cluster_detail)*nclu    );
      for( ii=0 ; ii < nclu ; ii++ )
-       im3d->vwid->func->clu_det[ii] = mri_clusterize_detailize(clar->clar[ii]);
+       im3d->vwid->func->clu_det[ii] = 
+              mri_clusterize_detailize(clar->clar[ii], icent_flag);
    }
 
    EXRETURN ;
