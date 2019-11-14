@@ -8990,8 +8990,13 @@ g_help_examples = """
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
            * This adds a lot of processing time.
-           * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz
-             (just use the resulting datasets here via -tlrc_NL_warped_dsets).
+           * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
+             Then use the resulting datasets in the afni_proc.py command below
+             via -tlrc_NL_warped_dsets.
+                  @SSwarper -input FT_anat_FSprep+orig \\
+                            -subid FT                  \\
+                            -odir  FT_anat_warped      \\
+                            -base  MNI152_2009_template_SSW.nii.gz
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -8999,8 +9004,11 @@ g_help_examples = """
              - ANATICOR white matter mask (for local white matter regression)
            * For details on how these masks were created, see "FREESURFER NOTE"
              in the help, as it refers to this "Example 11".
-         o Input anat is from FreeSurfer (meaning it is aligned with FS masks).
+         o Input anat was prepared for and given to FreeSurfer, so it should be
+           aligned with the FS results and masks.
              - output from FS is usually not quite aligned with input
+             - run "3dZeropad -pad2evens" and 3dresample before FreeSurfer
+             - check anat input to FS using check_dset_for_fs.py
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
@@ -10099,9 +10107,11 @@ g_help_notes = """
     help provides some details on this.
 
     The exact 3dZeropad command depends on the grid output by 3dresample.
+    Test with check_dset_for_fs.py.
 
         3dresample -inset FT_anat+orig -dxyz 1 1 1 -prefix FT.1 -rmode Cu
-        3dZeropad -L 1 -prefix FT.1.z.nii FT.1+orig
+        3dZeropad -pad2evens -prefix FT.1.z.nii FT.1+orig
+        check_dset_for_fs.py -input FT.1.z.nii -verbose
         recon-all -all -subject FT -i FT.1.z.nii
         @SUMA_Make_Spec_FS -sid FT -NIFTI
 
