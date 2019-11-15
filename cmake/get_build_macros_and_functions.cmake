@@ -1,3 +1,11 @@
+# Macro to turn a list into a string (why doesn't CMake have this built-in?)
+macro(list_TO_STRING _string _list)
+  set(${_string})
+  foreach(_item ${_list})
+    set(${_string} "${${_string}} ${_item}")
+  endforeach(_item)
+endmacro(list_TO_STRING)
+
 macro(optional_bundle name)
   string(TOUPPER ${name} upper)
 
@@ -134,12 +142,12 @@ macro(add_afni_target_properties target)
   endif()
 
   install(
-  TARGETS ${target}
-  RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-  LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
-)
+    TARGETS ${target}
+    RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+    LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+    ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+    PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
+  )
 
   # INSTALL_RPATH_USE_LINK_PATH ON SKIP_BUILD_RPATH OFF BUILD_WITH_INSTALL_RPATH OFF
 endmacro()

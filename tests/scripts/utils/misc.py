@@ -19,6 +19,7 @@ def run_x_prog(cmd):
         stdout=sp.PIPE,
         stderr=sp.STDOUT,
     )
+    res.check_returncode()
     return res.stdout.decode("utf")
 
 

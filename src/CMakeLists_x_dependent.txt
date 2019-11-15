@@ -25,8 +25,7 @@ set_target_properties(
 target_link_libraries(
   mrix
   PUBLIC AFNI::mri
-  PRIVATE AFNI::coxplot XMHTML ${X11_LIBRARIES} ${MOTIF_LIBRARIES} ${X11_Xt_LIB}
-          libheaders
+  PRIVATE AFNI::coxplot ${MOTIF_LIBRARIES} ${X11_Xt_LIB} AFNI::XmHTML ${X11_LIBRARIES}
 )
 add_afni_target_properties(mrix)
 add_library(AFNI::mrix ALIAS mrix)

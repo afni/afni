@@ -412,11 +412,16 @@ target_link_libraries(
   1dsound PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf AFNI::audio
 )
 
-add_executable(get_afni_model_PRF_6_BAD get_afni_model_PRF_6_BAD.c)
-set_target_properties(
-  get_afni_model_PRF_6_BAD PROPERTIES PRIVATE_HEADER model_conv_PRF_6_BAD.c
-)
-target_link_libraries(get_afni_model_PRF_6_BAD AFNI::mri)
+
+# AFNI models
+foreach(mod PRF;PRF_6;PRF_6_BAD)
+  set(target get_afni_model_${mod})
+  add_executable(${target} get_afni_model_${mod}.c)
+  set_target_properties(
+    ${target} PROPERTIES PRIVATE_HEADER model_conv_${mod}.c
+  )
+  target_link_libraries(${target} PRIVATE AFNI::mri)
+endforeach()
 
 # 3dTSgem won't be built
 # add_executable(3dTSgen 3dTSgen.c) set_target_properties( 3dTSgen PROPERTIES
