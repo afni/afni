@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
 include(get_git_repo_version)
 include(get_build_macros_and_functions)
 include(CMakeDependentOption)
+include(afni_cmake_build_options)
 
 # ##### Project info
 project(
@@ -20,38 +21,8 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
-set(CMAKE_LINK_WHAT_YOU_USE $<$<CXX_COMPILER_ID:GNU>:ON>)
+set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-option(BUILD_SHARED_LIBS "Toggle building shared libraries" ON)
-
-option(AFNI_BUILD_CORELIBS_ONLY
-       "Only build core libraries, no SUMA, plugins or programs" OFF
-)
-cmake_dependent_option(
-  BUILD_BINARIES "Build a large portion of the C executables" ON
-  "NOT AFNI_BUILD_CORELIBS_ONLY" OFF
-)
-cmake_dependent_option(
-  DO_NOT_INSTALL_SCRIPTS "Omits script installation" OFF "NOT AFNI_BUILD_CORELIBS_ONLY"
-  OFF
-)
-mark_as_advanced(DO_NOT_INSTALL_SCRIPTS)
-cmake_dependent_option(
-  BUILD_X_DEPENDENT_GUI_PROGS "Build GUI applications with plugins." OFF
-  "NOT AFNI_BUILD_CORELIBS_ONLY" OFF
-)
-cmake_dependent_option(
-  BUILD_PLUGINS "Build plugins for AFNI GUI." OFF "BUILD_X_DEPENDENT_GUI_PROGS;" OFF
-)
-mark_as_advanced(BUILD_PLUGINS)
-cmake_dependent_option(
-  BUILD_OPENGL_DEPENDENT_GUI_PROGS
-  "Build OPEN_GL dependent GUI applications with plugins." OFF
-  "NOT AFNI_BUILD_CORELIBS_ONLY;BUILD_X_DEPENDENT_GUI_PROGS" OFF
-)
-option(SHOW_UNBUILT_PROGS "Display missing progs during config" OFF)
-mark_as_advanced(SHOW_UNBUILT_PROGS)
-option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 # set(CMAKE_C_FLAGS_DEBUG
 #     "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
 # )
@@ -61,13 +32,6 @@ option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 # elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
 #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
 # endif()
-
-set(ALTERNATIVE_INSTALL_ROOT
-    ""
-    CACHE
-      PATH
-      "Directory to install into (with appropriate sub directory bin,lib, or include)"
-)
 
 set_if_not_defined(INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -90,8 +54,9 @@ set(AFNI_INSTALL_PICS_DIR "${INSTALL_PREFIX}/funstuff")
 include(afni_project_dependencies)
 
 # Other details of dependencies and configuration
+
 set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG -Wl,--no-undefined"
 )
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING -DHAVE_ZLIB") # XXX not in default cflags
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -114,7 +79,7 @@ quotize("${CMAKE_CURRENT_SOURCE_DIR}/afni_papers.txt" afni_papers)
 add_subdirectory(src)
 
 # ##### Tests
-option(ENABLE_TESTS "Enable tests" OFF)
+
 if(${ENABLE_TESTS})
   enable_testing()
 endif()

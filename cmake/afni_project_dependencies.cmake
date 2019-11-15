@@ -22,10 +22,7 @@ include(get_nifti_and_gifti_targets)
 
 # set(Python_FIND_VIRTUALENV FIRST)
 set(CMAKE_FIND_FRAMEWORK LAST)
-find_package(Python 3 
-  REQUIRED COMPONENTS Interpreter
-  )
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 if(NOT ${Python_FOUND})
   message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
 endif()
-

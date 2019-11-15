@@ -1,5 +1,6 @@
 set_os_flags(plug_threshold.c)
 set_os_flags(plug_maskcalc.c)
+string(REPLACE "-Wl,--no-undefined" "" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 foreach(
   target
   model_beta
@@ -87,7 +88,7 @@ foreach(
             AFNI::mri
             afni_all_objects
             AFNI::coxplot
-            XMHTML
+            XmHTML
             AFNI::f2cdir
             ${X11_LIBRARIES}
             ${MOTIF_LIBRARIES}

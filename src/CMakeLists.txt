@@ -55,7 +55,7 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
 endif()
 
 # ##### Add suma
-if(BUILD_OPENGL_DEPENDENT_PROGRAMS)
+if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
   add_subdirectory(SUMA)
 endif()
 
