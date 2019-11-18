@@ -1430,6 +1430,9 @@ OPTIONS ~1~
           e.g. -debug 1
           the default level is 0, max is 2
 
+          Debug level 2 will set echo, causing the script to echo commands
+          to the terminal before running them.
+
     -fspath PATH    : path to 'surf' and 'orig' directories
           e.g. -fspath subject1/surface_info
           the default PATH value is './', the current directory
