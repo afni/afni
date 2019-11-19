@@ -26,6 +26,7 @@
 #    + so more $fsdsets can be created with surfs (for F. Lalonde)
 # [Nov 14, 2019] PT : new default: *rank* dsets will not be output
 #    + have new option to create rank dsets:  -make_rank_dsets
+# [Nov 19, 2019] RCR: new option: -fs_setup
 
 set ver = 2.1
 
@@ -194,6 +195,36 @@ L_PARSE_COMMAND:
                     set endstr = "failure: directory not found - '$fs_dir'"
                     goto L_BAD_END
                 endif
+
+            breaksw
+
+            # ----------------------------------------------------------
+            # usage: -fs_setup          : source SetUpFreeSurfer.csh
+        
+            case "-fs_setup":
+
+                # if $FREESURFER_HOME is set
+                # and $FREESURFER_HOME/SetUpFreeSurfer.csh exists,
+                # source it
+
+                if ( ! $?FREESURFER_HOME ) then
+                   echo '** -fs_setup requires $FREESURFER_HOME to be set'
+                   set endstr = "failure: cannot apply -fs_setup"
+                   goto L_BAD_END
+                endif
+
+                set fs_setupstr  = '$FREESURFER_HOME/SetUpFreeSurfer.csh'
+                set fs_setupfile = $FREESURFER_HOME/SetUpFreeSurfer.csh
+
+                if ( ! -f $fs_setupfile ) then
+                   echo "** missing $fs_setupstr"
+                   set endstr = "failure: cannot apply -fs_setup"
+                   goto L_BAD_END
+                endif
+
+                # do the deed
+                echo "++ sourcing $fs_setupstr"
+                source $fs_setupfile
 
             breaksw
 
@@ -468,6 +499,10 @@ L_VERIFY_PROGRAMS:
                 echo "   $test_command --help starts with:"
                 echo ""
                 $test_command --help |& head -n 10
+                echo ""
+                echo "---------------------------------------------------------"
+                echo "** if this requires SetUpFreeSurfer.csh, consider option:"
+                echo "     -fs_setup"
                 echo ""
                 @ failed_pgms ++
                 continue                # in case more checks are added
@@ -1430,8 +1465,15 @@ OPTIONS ~1~
           e.g. -debug 1
           the default level is 0, max is 2
 
-          Debug level 2 will set echo, causing the script to echo commands
-          to the terminal before running them.
+    -fs_setup       : source \$FREESURFER_HOME/SetUpFreeSurfer.csh
+
+          This might be useful on OS X, as FreeSurfer uses DYLD_LIBRARY_PATH,
+          which does not propagate to child shells.  Then this program would
+          require them to source SetUpFreeSurfer.csh from .cshrc, which might
+          happen too often and could be irrirating.
+
+          With -fs_setup, that will happen from within this script, so it is
+          not necessary to do from the .cshrc file.
 
     -fspath PATH    : path to 'surf' and 'orig' directories
           e.g. -fspath subject1/surface_info

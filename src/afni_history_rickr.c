@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2019, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -fs_setup, to optionally source $FREESURFER_HOME/SetUpFreeSurfer.csh",
+   NULL
+ } ,
+
  { 13, Nov, 2019, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "omit any final PyQt4 warnings unless asked for",
    "Done to appease the mighty P Taylor."
