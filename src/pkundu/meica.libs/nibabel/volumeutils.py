@@ -499,7 +499,11 @@ def array_from_file(shape, in_dtype, infile, offset=0, order='F'):
         # worrying, but others we can't. 
         if isfileobj(infile) or isinstance(infile, (gzip.GzipFile,
                                                     bz2.BZ2File)):
-            arr.flags.writeable = True
+            # a bit naughty, but add a failsafe [19 Nov 2019 rickr]
+            try:
+               arr.flags.writeable = True
+            except:
+               arr = arr.copy()
         else:
             arr = arr.copy()
     return arr

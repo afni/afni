@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2019, RCR, "tedana.py", MICRO, TYPE_BUG_FIX,
+   "add arr.flags.writeable fallback in volumeutils.py:array_from_file()",
+   "Done for L Sepeta, for CentoOS 6."
+ } ,
+
  { 19, Nov, 2019, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
    "add -fs_setup, to optionally source $FREESURFER_HOME/SetUpFreeSurfer.csh",
    NULL
