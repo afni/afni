@@ -492,7 +492,9 @@ goto GOOD_EXIT
 SHOW_HELP:
 
 cat << EOF
----------------------------------------------------------------------
+
+
+    OVERVIEW ~1~
 
     This script is now run at the end of modern @SUMA_Make_Spec_FS
     commands, or it can be run separately for data that had been
@@ -504,7 +506,8 @@ cat << EOF
 
     Written by PA Taylor (NIMH, NIH; 2016-7).
 
-    PURPOSE:
+
+    OUTPUTS ~1~
 
     This program will take the aparc+aseg.nii.gz and
     aparc.a2009s+aseg.nii.gz parcellation files produced by FreeSurfer
@@ -552,7 +555,8 @@ cat << EOF
           This labeltable is attached to each of the *_REN_*.nii.gz
           files.
 
-    RUNNING:
+
+    RUNNING ~1~
 
     At the moment, the function just takes a single, required
     argument, which is the location of the 'SUMA/' directory created
@@ -566,10 +570,15 @@ cat << EOF
     where SUMA_DIR is either the full or relative path to the 'SUMA/'
     directory (including that directory name).
 
-    EXAMPLE:
+    But again, note that this program will mainly just be run by
+    @SUMA_Make_Spec_FS.
+
+
+    EXAMPLE ~1~
     
         \$ @SUMA_renumber_FS /data/study/SUBJ_01/FS/SUMA
-___________________________________________________________________________
+
+
 
 EOF
 
