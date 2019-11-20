@@ -25,16 +25,14 @@ jobs:
       - run:
           name: Build using standard AFNI build system
           command: |
-            docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6}  \
-            --build-arg AFNI_WITH_COVERAGE=1                                    \
+            docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6}  \
             -f .docker/make_build.dockerfile                                    \
             .
       - run:
           no_output_timeout: 2h
-          name: Run tests with coverage on standard AFNI build 
+          name: Run tests on standard AFNI build 
           command: |
-            ci_env=`bash <(curl -s https://codecov.io/env)`
-            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
+            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
 
       - run:
           name: AFNI account should upload successful builds
@@ -43,10 +41,6 @@ jobs:
             if [ $DOCKER_USER == 'afni' ]
             then
               docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker tag afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni_dev:latest
-              docker push afni/afni_dev
-              # Build and push an image without coverage:
-              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} .
               docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
               docker push afni/afni
             fi
@@ -202,6 +196,7 @@ workflows:
       - build_and_test_makebuild:
           requires:
             - cache_src_and_data_repo
+            - test_cmake_build
           filters:
             branches:
               ignore: /doc\/.*/
