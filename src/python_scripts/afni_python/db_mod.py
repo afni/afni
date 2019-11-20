@@ -10068,51 +10068,61 @@ g_help_notes = """
     atlas purposes, aligned with the result), though the white matter and
     ventricle masks are based instead on aparc+aseg.nii.
 
-        # run (complete) FreeSurfer on FT.nii
-        recon-all -all -subject FT -i FT.nii
+        # run (complete) FreeSurfer on FT_2_pad.nii
+        # (see below for 3dAllineate/3dZeropad commands to prepare FT_2_pad.nii)
+        recon-all -all -subject FT -i FT_2_pad.nii
 
         # import to AFNI, in NIFTI format
         @SUMA_Make_Spec_FS -sid FT -NIFTI
 
-        # create ventricle and white matter masks
-        #
-        # ** warning: it would be good to convert these indices to labels
-        #             in case the output from FreeSurfer is changed
 
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \\
-               -expr 'amongst(a,4,43)'
-        3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \\
-               -expr 'amongst(a,2,7,41,46,251,252,253,254,255)'
+      * Note, @SUMA_Make_Spec_FS now (as of 14 Nov, 2019) outputs ventricle
+        and white matter masks, for possible use with afni_proc.py:
 
-        # note: 16 (brainstem) was incorrectly included from @ANATICOR
-        #       and then in this help through 2016
-
-    After this, FT_SurfVol.nii, FT_vent.nii and FT_WM.nii (along with the
+            SUMA/fs_ap_vent.nii.gz
+            SUMA/fs_ap_wm.nii.gz
+    
+    Then FT_2_pad.nii, fs_ap_vent.nii.gz and fs_ap_wm.nii.gz (along with the
     basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
 
 
-  * Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
-    usually not quite align with the input (e.g. FT.nii).  So parcellation
-    datasets will also not quite align with the input (FT.nii).  Therefore,
-    when passing parcellation volumes to afni_proc.py for tissue-based
-    regression, it is important to use the anatomy output from FreeSurfer
-    as the subject anatomy (input to afni_proc.py).  That way, the anatomy
-    and parcellation datasets will be in register, and therefore the EPI
-    will eventually align with the parcellation datasets.
+  * Preparation for running FreeSurfer
 
-    If it is important to have the FreeSurfer output align with the input,
-    it might help to pass a modified volume to FreeSurfer.  Use 3dresample
-    and then 3dZeropad (if necessary) to make a volume with 1 mm^3 voxels
-    and an even number voxels in each direction.  The @SUMA_Make_Spec_FS
-    help provides some details on this.
+    Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
+    often not quite align with the input (e.g. FT.nii).  It is preferable
+    to have 1 mm^3 isotropic voxels, with even numbers of voxels in each
+    direction (FreeSurfer has options to handle slightly higher resolution,
+    too).  Particularly without the even numbers of voxels, the output might
+    be slightly shifted (0.5 mm, or perhaps 1/2 voxel).
 
-    The exact 3dZeropad command depends on the grid output by 3dresample.
-    Test with check_dset_for_fs.py.
+    While the corresponding anatomy output by FreeSurfer might be sufficient
+    for some uses, the original input is more generally useful.  And without
+    keeping the two aligned, the surface and parcellation datasets would also
+    not quite align with the original input (FT.nii), corrupting tissue-based
+    regressors.  Clearly, we prefer good alignment.
 
-        3dresample -inset FT_anat+orig -dxyz 1 1 1 -prefix FT.1 -rmode Cu
-        3dZeropad -pad2evens -prefix FT.1.z.nii FT.1+orig
-        check_dset_for_fs.py -input FT.1.z.nii -verbose
-        recon-all -all -subject FT -i FT.1.z.nii
+
+    To have the FreeSurfer output align with the input, it might help to pass a
+    modified volume to FreeSurfer.  Start with check_dset_for_fs.py, to find
+    out what needs to be fixed (voxel size and voxel count parity), though the
+    subsequent commands should work in any case.
+
+    Use 3dAllineate to make a volume with 1 mm^3 voxels (3dAllineate allows
+    for wsinc5 interpolation), and use 3dZeropad to ensure an even number
+    voxels in each direction.
+
+    Consider these sample commands, converting ANAT+orig to ...
+
+        # note what is off, just to be aware
+        check_dset_for_fs.py -input FT.nii -verb
+
+        # resample to 1 mm^3 voxels, then pad to even numbers of voxels
+        3dAllineate -1Dmatrix_apply IDENTITY -mast_dxyz 1 -final wsinc5 \\
+            -source FT.nii -prefix FT_1_1mm.nii
+        3dZeropad -pad2evens -prefix FT_2_pad.nii FT_1_1mm.nii
+
+        # run FreeSurfer and import into SUMA-land
+        recon-all -all -subject FT -i FT_2_pad.nii
         @SUMA_Make_Spec_FS -sid FT -NIFTI
 
     --------------------------------------------------
