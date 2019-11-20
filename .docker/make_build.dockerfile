@@ -95,11 +95,11 @@ RUN \
     && cd src \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     # Clean in case there are some stray object files
-    && make cleanest \
-    && make itall  | tee /build_log.txt \
-    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
+    && make cleanest 
 
-ENV PATH="$AFNI_ROOT/abin:$PATH"
+RUN  /bin/bash -oc pipefail   make itall 2>1 | tee /build_log.txt 
+
+ENV PATH="$AFNI_ROOT/src:$PATH"
 
 # set non interactive backend for matplotlib
 RUN mkdir -p /root/.config/matplotlib \

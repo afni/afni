@@ -14,6 +14,7 @@ RUN apt-get update && \
     freeglut3-dev \
     g++ \
     gcc \
+    gdb \
     git \
     git-annex-standalone \
     libglew-dev \
@@ -47,6 +48,8 @@ RUN apt-get update && \
     r-base \
     rsync \
     tcsh \
+    tree \
+    valgrind \
     vim \
     wget \
     xvfb \
@@ -81,6 +84,10 @@ ENV AFNI_ROOT=/opt/afni
 ENV INSTALL_DIR=/opt/abin
 
 # Copy AFNI source code. This will likely invalidate the build cache.
+RUN apt-get update && \
+    eatmydata apt-get install -y --no-install-recommends \
+    mesa-utils
+
 COPY . $AFNI_ROOT/
 
 RUN  mkdir -p /build
@@ -90,16 +97,14 @@ RUN  cmake \
     -GNinja \
     -DBUILD_BINARIES=ON \
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
+    -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=ON \
     -DBUILD_PLUGINS=ON \
     -DUSE_OMP=ON \
     -DUSE_SYSTEM_GLW=OFF \
-    -DUSE_OMP=ON \
-    -DUSE_SYSTEM_GLW=ON \
     -DUSE_SYSTEM_XMHTML=OFF \
-    -DALTERNATIVE_INSTALL_ROOT=$INSTALL_DIR \
     $AFNI_ROOT
 
-RUN /bin/bash -oc pipefail \
-ninja -v | tee -a verbose_build.log
+ENV PATH=/build/src:/opt/afni/src/scripts_install:/opt/afni/src/python_scripts/afni_python:/opt/afni/src/R_scripts:/opt/afni/src/jzosky:/opt/afni/src/jzosky/lib_RetroTS:$PATH
+RUN /bin/bash -c 'set -o pipefail; ninja -v | tee -a verbose_build.log'
 
 # RUN apsearch -update_all_afni_help
