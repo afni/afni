@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2019, RCR, "3dRank", MINOR, TYPE_BUG_FIX,
+   "fix storage_mode handling (re-allow niml.dset output)",
+   "Thanks to dmoracze on the Message Board for noting the problem."
+ } ,
+
  { 19, Nov, 2019, RCR, "tedana.py", MICRO, TYPE_BUG_FIX,
    "add arr.flags.writeable fallback in volumeutils.py:array_from_file()",
    "Done for L Sepeta, for CentoOS 6."

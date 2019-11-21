@@ -280,13 +280,14 @@ int main( int argc , char * argv[] )
          snprintf(stmp, sizeof(char)*THD_MAX_PREFIX, 
                   "rank.%s", DSET_PREFIX(dsets_in[ib]));
       }
+
       EDIT_dset_items( dsets_in[ib] ,
                        ADN_prefix   , stmp ,
                        ADN_none ) ;
       
-      /* change storage mode, this way prefix will determine
-         format of output dset */
-      dsets_in[ib]->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
+      /* storage_mode was set in EDIT_dset_items(), based on the prefix,
+         do not reset it here                        [21 Nov 2019 rickr] */
+      /* dsets_in[ib]->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;   */
       
       tross_Make_History( "3dRank" , argc, argv , dsets_in[ib] ) ;
       if (DSET_IS_MASTERED(dsets_in[ib])) {
