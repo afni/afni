@@ -11,11 +11,6 @@ install(
   PATTERN "*" PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
-# A stray tcsh file
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/../Audio/@sound_to_header.csh
-        DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-)
-
 # R scripts
 install(
   DIRECTORY ../R_scripts/
