@@ -8993,7 +8993,7 @@ g_help_examples = """
            * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
              Then use the resulting datasets in the afni_proc.py command below
              via -tlrc_NL_warped_dsets.
-                  @SSwarper -input FT_anat_FSprep+orig \\
+                  @SSwarper -input FT_anat_FSprep.nii  \\
                             -subid FT                  \\
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
@@ -9007,7 +9007,7 @@ g_help_examples = """
          o Input anat was prepared for and given to FreeSurfer, so it should be
            aligned with the FS results and masks.
              - output from FS is usually not quite aligned with input
-             - run "3dZeropad -pad2evens" and 3dresample before FreeSurfer
+             - run "3dZeropad -pad2evens" and 3dAllineate before FreeSurfer
              - check anat input to FS using check_dset_for_fs.py
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
@@ -9030,11 +9030,11 @@ g_help_examples = """
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask         \\
                           scale regress                                      \\
-                  -copy_anat FT_SurfVol.nii                                  \\
+                  -copy_anat FT_anat_FSPprep.nii                             \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI FSvent epi FT_vent.nii                  \\
-                  -anat_follower_ROI FSWe epi FT_white.nii                   \\
+                  -anat_follower_ROI FSvent epi fs_ap_vent.nii.gz            \\
+                  -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                \\
                   -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
@@ -10044,6 +10044,7 @@ g_help_notes = """
     FreeSurfer output can be used for a few things in afni_proc.py:
 
         - simple skull stripping (i.e. instead of 3dSkullStrip)
+             *** we now prefer @SSwarper ***
         - running a surface-based analysis
         - using parcellation datasets for:
            - tissue-based regression
@@ -10068,9 +10069,9 @@ g_help_notes = """
     atlas purposes, aligned with the result), though the white matter and
     ventricle masks are based instead on aparc+aseg.nii.
 
-        # run (complete) FreeSurfer on FT_2_pad.nii
-        # (see below for 3dAllineate/3dZeropad commands to prepare FT_2_pad.nii)
-        recon-all -all -subject FT -i FT_2_pad.nii
+        # run (complete) FreeSurfer on FT_anat_FSprep.nii
+        # (see below for commands to prepare FT_anat_FSprep.nii)
+        recon-all -all -subject FT -i FT_anat_FSprep.nii
 
         # import to AFNI, in NIFTI format
         @SUMA_Make_Spec_FS -sid FT -NIFTI
@@ -10082,14 +10083,14 @@ g_help_notes = """
             SUMA/fs_ap_vent.nii.gz
             SUMA/fs_ap_wm.nii.gz
     
-    Then FT_2_pad.nii, fs_ap_vent.nii.gz and fs_ap_wm.nii.gz (along with the
-    basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
+    Then FT_anat_FSprep.nii, fs_ap_vent.nii.gz and fs_ap_wm.nii.gz (along with
+    the basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
 
 
   * Preparation for running FreeSurfer
 
     Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
-    often not quite align with the input (e.g. FT.nii).  It is preferable
+    often not quite align with the input (e.g. FT_anat+orig).  It is preferable
     to have 1 mm^3 isotropic voxels, with even numbers of voxels in each
     direction (FreeSurfer has options to handle slightly higher resolution,
     too).  Particularly without the even numbers of voxels, the output might
@@ -10098,8 +10099,8 @@ g_help_notes = """
     While the corresponding anatomy output by FreeSurfer might be sufficient
     for some uses, the original input is more generally useful.  And without
     keeping the two aligned, the surface and parcellation datasets would also
-    not quite align with the original input (FT.nii), corrupting tissue-based
-    regressors.  Clearly, we prefer good alignment.
+    not quite align with the original input (FT_anat+orig), corrupting
+    tissue-based regressors.  Clearly, we prefer good alignment.
 
 
     To have the FreeSurfer output align with the input, it might help to pass a
@@ -10111,19 +10112,22 @@ g_help_notes = """
     for wsinc5 interpolation), and use 3dZeropad to ensure an even number
     voxels in each direction.
 
-    Consider these sample commands, converting ANAT+orig to ...
+    Consider these sample commands, converting ANAT+orig to FT_anat_FSprep.nii
+    before running FreeSurfer and importing into AFNI/SUMA.
 
         # note what is off, just to be aware
-        check_dset_for_fs.py -input FT.nii -verb
+        check_dset_for_fs.py -input FT_anat+orig
 
-        # resample to 1 mm^3 voxels, then pad to even numbers of voxels
+        # resample to 1 mm^3 voxels ...
         3dAllineate -1Dmatrix_apply IDENTITY -mast_dxyz 1 -final wsinc5 \\
-            -source FT.nii -prefix FT_1_1mm.nii
-        3dZeropad -pad2evens -prefix FT_2_pad.nii FT_1_1mm.nii
+            -source FT_anat+orig FT_1mm.nii
+        # ... then pad to even numbers of voxels
+        3dZeropad -pad2evens -prefix FT_anat_FSprep.nii FT_1mm.nii
 
-        # run FreeSurfer and import into SUMA-land
-        recon-all -all -subject FT -i FT_2_pad.nii
-        @SUMA_Make_Spec_FS -sid FT -NIFTI
+        # run FreeSurfer
+        recon-all -all -subject FT -i FT_anat_FSprep.nii
+        # big finish: import FreeSurfer output into SUMA-land
+        @SUMA_Make_Spec_FS -sid FT -NIFTI -fspath ./FT
 
     --------------------------------------------------
     TIMING FILE NOTE: ~2~

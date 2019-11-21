@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "update babble about FreeSurfer in help",
+   NULL
+ } ,
+
  { 21, Nov, 2019, RCR, "@auto_tlrc", MINOR, TYPE_BUG_FIX,
    "add 'endif' for if( $warpdrive_method == '3dWarpDrive'",
    "Thanks to T Holroyd for reporting and fixing this."
