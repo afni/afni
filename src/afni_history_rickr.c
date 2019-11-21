@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2019, RCR, "@auto_tlrc", MINOR, TYPE_BUG_FIX,
+   "add 'endif' for if( $warpdrive_method == '3dWarpDrive'",
+   "Thanks to T Holroyd for reporting and fixing this."
+ } ,
+
  { 21, Nov, 2019, RCR, "3dRank", MINOR, TYPE_BUG_FIX,
    "fix storage_mode handling (re-allow niml.dset output)",
    "Thanks to dmoracze on the Message Board for noting the problem."

@@ -1400,6 +1400,7 @@ APAR_MODE:
          APCW:    
       if($warpdrive_method == "3dWarpDrive") then   
          3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
+      endif
    endif
    
    # reset the space of the output to match the template space
