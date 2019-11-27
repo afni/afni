@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2019, RCR, "ROIgrow", MICRO, TYPE_BUG_FIX,
+   "if PER_NODE, also process label == 0",
+   "Thanks to K Dembny for noting the problem."
+ } ,
+
  { 21, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "update babble about FreeSurfer in help",
    NULL

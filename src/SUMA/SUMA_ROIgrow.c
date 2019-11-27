@@ -400,6 +400,7 @@ int main (int argc,char *argv[])
    int N_Spec=0, *nodeind = NULL, N_nodeind, i, cnt, j;
    int *nodeind_tmp=NULL, N_nodeind_tmp, free_nodeind = 1;
    int  *nodelabels = NULL, N_nodelabels, *lbls=NULL, N_lbls=0;
+   int  per_node=0;  /* if PER_NODE, accept label==0  [27 Nov 2019 rickr] */
    char *outname = NULL;
    SUMA_DSET *inds_dset=NULL, *lbls_dset=NULL;
    SUMA_SurfaceObject *SO = NULL;
@@ -494,6 +495,7 @@ int main (int argc,char *argv[])
    if (Opt->in_name) {
       SUMA_DSET_FORMAT form=SUMA_NO_DSET_FORMAT;
       if (!strcmp(Opt->in_name,"PER_NODE")) {
+         per_node = 1;
          if (nodeind) {
             /* user already specified the nodes */
             SUMA_S_Note("Will grow each of %d nodes from %s\n",
@@ -552,7 +554,8 @@ int main (int argc,char *argv[])
       SUMA_LHv("Have %d unique labels...\n", N_lbls);
       /* Now do the deeds */
       for (i=0; i<N_lbls; ++i) {
-         if (lbls[i]) {
+         /* if per_node, process label 0  [27 Nov 2019 rickr] */
+         if (lbls[i] || per_node ) {
             /* make a copy of nodeind */
             if (!(nodeind_tmp = 
                   (int *)SUMA_calloc(N_nodelabels, sizeof(int)))) {
