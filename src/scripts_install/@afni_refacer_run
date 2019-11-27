@@ -153,7 +153,7 @@ cat_matvec -ONELINE junk_refacer.A12.1D -I > junk_refacer.I12.1D
 if ( $deface == 1 ) then
   3dcalc -a $jset                        -c junk_refacer.MM.nii  \
          -expr "iszero(c)*a*step(a)"                             \
-         -prefix $ppp.refacer.RESULT.nii -datum float
+         -prefix $ppp.refacer.RESULT.nii -datum float -isola
 
 # the re-facing code of yore
 
@@ -181,7 +181,7 @@ else
 
   3dcalc -a $jset                        -c junk_refacer.MM.nii  \
          -expr "step(c)*c*${ifac}+iszero(c)*a*step(a)"           \
-         -prefix $ppp.refacer.RESULT.nii -datum float
+         -prefix $ppp.refacer.RESULT.nii -datum float -isola -isola
 
 endif
 

@@ -69,6 +69,8 @@ static int                CALC_fdrize  = 0 ; /* 17 Jan 2008 */
 static int                CALC_sort    = 0 ; /* 22 Jan 2008 */
 #endif
 
+static int             CALC_do_isolas  = 0 ; /* 27 Nov 2019 */
+
 /*---------- dshift stuff [22 Nov 1999] ----------*/
 
 #define DSHIFT_MODE_STOP  0
@@ -176,6 +178,8 @@ void CALC_Syntax(void) ;
 int  TS_reader( int , char * ) ;
 int  IJKAR_reader( int , char * ) ;
 
+int remove_isolated_stuff( int nnx, int nny, int nnz, float *far, int maxite ) ;
+
 /*--------------------------------------------------------------------
   Read a time series file into TS variable number ival.
   Returns -1 if an error occured, 0 otherwise.
@@ -257,6 +261,12 @@ void CALC_read_opts( int argc , char * argv[] )
       if (!strcmp(argv[nopt], "-help")) {
          CALC_Syntax();
          exit(0);
+      }
+
+      /**** -isola [27 Nov 2019] ****/
+
+      if( strncasecmp(argv[nopt],"-isola",6) == 0 ){
+        CALC_do_isolas++ ; nopt++ ; continue ;
       }
 
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
@@ -921,166 +931,166 @@ void CALC_Syntax(void)
    printf(
     "Program: 3dcalc                                                         \n"
     "Author:  RW Cox et al                                                   \n"
-    "                                                                        \n"
+    "\n"
     "3dcalc - AFNI's calculator program ~1~                                  \n"
-    "                                                                        \n"
+    "\n"
     "     This program does voxel-by-voxel arithmetic on 3D datasets         \n"
     "     (only limited inter-voxel computations are possible).              \n"
-    "                                                                        \n"
+    "\n"
     "     The program assumes that the voxel-by-voxel computations are being \n"
     "     performed on datasets that occupy the same space and have the same \n"
     "     orientations.                                                      \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc has a lot of input options, as its capabilities have grown  \n"
     "     over the years.  So this 'help' output has gotten kind of long.    \n"
-    "                                                                        \n"
+    "\n"
     "     For simple voxel-wise averaging of datasets:    cf. 3dMean         \n"
     "     For averaging along the time axis:              cf. 3dTstat        \n"
     "     For smoothing in time:                          cf. 3dTsmooth      \n"
     "     For statistics from a region around each voxel: cf. 3dLocalstat    \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "Usage: ~1~                                                              \n"
     "-----                                                                   \n"
     "       3dcalc -a dsetA [-b dsetB...] \\                                 \n"
     "              -expr EXPRESSION       \\                                 \n"
     "              [options]                                                 \n"
-    "                                                                        \n"
+    "\n"
     "Examples: ~1~                                                           \n"
     "--------                                                                \n"
     "1. Average datasets together, on a voxel-by-voxel basis:                \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a fred+tlrc -b ethel+tlrc -c lucy+tlrc \\\n"
     "            -expr '(a+b+c)/3' -prefix subjects_mean                     \n"
-    "                                                                        \n"
+    "\n"
     "   Averaging datasets can also be done by programs 3dMean and 3dmerge.  \n"
     "   Use 3dTstat to averaging across sub-bricks in a single dataset.      \n"
-    "                                                                        \n"
+    "\n"
     "2. Perform arithmetic calculations between the sub-bricks of a single   \n"
     "   dataset by noting the sub-brick number on the command line:          \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a 'func+orig[2]' -b 'func+orig[4]' -expr 'sqrt(a*b)'       \n"
-    "                                                                        \n"
+    "\n"
     "3. Create a simple mask that consists only of values in sub-brick #0    \n"
     "   that are greater than 3.14159:                                       \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a 'func+orig[0]' -expr 'ispositive(a-3.14159)' \\\n"
     "            -prefix mask                                                \n"
-    "                                                                        \n"
+    "\n"
     "4. Normalize subjects' time series datasets to percent change values in \n"
     "   preparation for group analysis:                                      \n"
-    "                                                                        \n"
+    "\n"
     "   Voxel-by-voxel, the example below divides each intensity value in    \n"
     "   the time series (epi_r1+orig) with the voxel's mean value (mean+orig)\n"
     "   to get a percent change value. The 'ispositive' command will ignore  \n"
     "   voxels with mean values less than 167 (i.e., they are labeled as     \n"
     "  'zero' in the output file 'percent_change+orig') and are most likely  \n"
     "   background/noncortical voxels.                                       \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a epi_run1+orig -b mean+orig     \\\n"
     "            -expr '100 * a/b * ispositive(b-167)' -prefix percent_chng  \n"
-    "                                                                        \n"
+    "\n"
     "5. Create a compound mask from a statistical dataset, where 3 stimuli   \n"
     "   show activation.                                                     \n"
     "      NOTE: 'step' and 'ispositive' are identical expressions that can  \n"
     "            be used interchangeably:                                    \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a 'func+orig[12]' -b 'func+orig[15]' -c 'func+orig[18]' \\\n"
     "            -expr 'step(a-4.2)*step(b-2.9)*step(c-3.1)'              \\\n"
     "            -prefix compound_mask                                       \n"
-    "                                                                        \n"
+    "\n"
     "   In this example, all 3 statistical criteria must be met at once for  \n"
     "   a voxel to be selected (value of 1) in this mask.                    \n"
-    "                                                                        \n"
+    "\n"
     "6. Same as example #5, but this time create a mask of 8 different values\n"
     "   showing all combinations of activations (i.e., not only where        \n"
     "   everything is active, but also each stimulus individually, and all   \n"
     "   combinations).  The output mask dataset labels voxel values as such: \n"
-    "                                                                        \n"
+    "\n"
     "        0 = none active    1 = A only active    2 = B only active       \n"
     "        3 = A and B only   4 = C only active    5 = A and C only        \n"
     "        6 = B and C only   7 = all A, B, and C active                   \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a 'func+orig[12]' -b 'func+orig[15]' -c 'func+orig[18]' \\\n"
     "            -expr 'step(a-4.2)+2*step(b-2.9)+4*step(c-3.1)'          \\\n"
     "            -prefix mask_8                                              \n"
-    "                                                                        \n"
+    "\n"
     "   In displaying such a binary-encoded mask in AFNI, you would probably \n"
     "   set the color display to have 8 discrete levels (the '#' menu).      \n"
-    "                                                                        \n"
+    "\n"
     "7. Create a region-of-interest mask comprised of a 3-dimensional sphere.\n"
     "   Values within the ROI sphere will be labeled as '1' while values     \n"
     "   outside the mask will be labeled as '0'. Statistical analyses can    \n"
     "   then be done on the voxels within the ROI sphere.                    \n"
-    "                                                                        \n"
+    "\n"
     "   The example below puts a solid ball (sphere) of radius 3=sqrt(9)     \n"
     "   about the point with coordinates (x,y,z)=(20,30,70):                 \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a anat+tlrc                                              \\\n"
     "            -expr 'step(9-(x-20)*(x-20)-(y-30)*(y-30)-(z-70)*(z-70))' \\\n"
     "            -prefix ball                                                \n"
-    "                                                                        \n"
+    "\n"
     "   The spatial meaning of (x,y,z) is discussed in the 'COORDINATES'     \n"
     "   section of this help listing (far below).                            \n"
-    "                                                                        \n"
+    "\n"
     "8. Some datsets are 'short' (16 bit) integers with a scalar attached,   \n"
     "   which allow them to be smaller than float datasets and to contain    \n"
     "   fractional values.                                                   \n"
-    "                                                                        \n"
+    "\n"
     "   Dataset 'a' is always used as a template for the output dataset. For \n"
     "   the examples below, assume that datasets d1+orig and d2+orig consist \n"
     "   of small integers.                                                   \n"
-    "                                                                        \n"
+    "\n"
     "   a) When dividing 'a' by 'b', the result should be scaled, so that a  \n"
     "      value of 2.4 is not truncated to '2'. To avoid this truncation,   \n"
     "      force scaling with the -fscale option:                            \n"
-    "                                                                        \n"
+    "\n"
     "        3dcalc -a d1+orig -b d2+orig -expr 'a/b' -prefix quot -fscale   \n"
-    "                                                                        \n"
+    "\n"
     "   b) If it is preferable that the result is of type 'float', then set  \n"
     "      the output data type (datum) to float:                            \n"
-    "                                                                        \n"
+    "\n"
     "        3dcalc -a d1+orig -b d2+orig -expr 'a/b' -prefix quot \\\n"
     "                -datum float                                            \n"
-    "                                                                        \n"
+    "\n"
     "   c) Perhaps an integral division is desired, so that 9/4=2, not 2.24. \n"
     "      Force the results not to be scaled (opposite of example 8a) using \n"
     "      the -nscale option:                                               \n"
-    "                                                                        \n"
+    "\n"
     "        3dcalc -a d1+orig -b d2+orig -expr 'a/b' -prefix quot -nscale   \n"
-    "                                                                        \n"
+    "\n"
     "9. Compare the left and right amygdala between the Talairach atlas,     \n"
     "   and the CA_N27_ML atlas.  The result will be 1 if TT only, 2 if CA   \n"
     "   only, and 3 where they overlap.                                      \n"
-    "                                                                        \n"
+    "\n"
     "     3dcalc -a 'TT_Daemon::amygdala' -b 'CA_N27_ML::amygdala' \\\n"
     "            -expr 'step(a)+2*step(b)'  -prefix compare.maps             \n"
-    "                                                                        \n"
+    "\n"
     "   (see 'whereami -help' for more information on atlases)               \n"
-    "                                                                        \n"
+    "\n"
     "10. Convert a dataset from AFNI short format storage to NIfTI-1 floating\n"
     "    point (perhaps for input to an non-AFNI program that requires this):\n"
-    "                                                                        \n"
+    "\n"
     "      3dcalc -a zork+orig -prefix zfloat.nii -datum float -expr 'a'     \n"
-    "                                                                        \n"
+    "\n"
     "    This operation could also be performed with program 3dAFNItoNIFTI.  \n"
-    "                                                                        \n"
+    "\n"
     "11. Compute the edge voxels of a mask dataset.  An edge voxel is one    \n"
     "    that shares some face with a non-masked voxel.  This computation    \n"
     "    assumes 'a' is a binary mask (particularly for 'amongst').          \n"
-    "                                                                        \n"
+    "\n"
     "      3dcalc -a mask+orig -prefix edge                     \\\n"
     "             -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k     \\\n"
     "             -expr 'a*amongst(0,b,c,d,e,f,g)'                           \n"
-    "                                                                        \n"
+    "\n"
     "    consider similar erode or dilate operations:                        \n"
     "        erosion:  -expr 'a*(1-amongst(0,b,c,d,e,f,g))'                  \n"
     "        dilation: -expr 'amongst(1,a,b,c,d,e,f,g)'                      \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "ARGUMENTS for 3dcalc (must be included on command line): ~1~            \n"
     "---------                                                               \n"
-    "                                                                        \n"
+    "\n"
     " -a dname    = Read dataset 'dname' and call the voxel values 'a' in the\n"
     "               expression (-expr) that is input below. Up to 26 dnames  \n"
     "               (-a, -b, -c, ... -z) can be included in a single 3dcalc  \n"
@@ -1111,51 +1121,51 @@ void CALC_Syntax(void)
     "                  to have the program create and use a dataset          \n"
     "                  with a 3D 64x64x16 grid, with 40 time points,         \n"
     "                  filled with random numbers (uniform on [-1,1]).       \n"
-    "                                                                        \n"
+    "\n"
     " -expr       = Apply the expression - within quotes - to the input      \n"
     "               datasets (dnames), one voxel at time, to produce the     \n"
     "               output dataset.                                          \n"
     "               ** You must use 1 and only 1 '-expr' option!             \n"
-    "                                                                        \n"
+    "\n"
     " NOTE: If you want to average or sum up a lot of datasets, programs     \n"
     "       3dTstat and/or 3dMean and/or 3dmerge are better suited for these \n"
     "       purposes.  A common request is to increase the number of input   \n"
     "       datasets beyond 26, but in almost all cases such users simply    \n"
     "       want to do simple addition!                                      \n"
-    "                                                                        \n"
+    "\n"
     " NOTE: If you want to include shell variables in the expression (or in  \n"
     "       the dataset sub-brick selection), then you should use double     \n"
     "       \"quotes\" and the '$' notation for the shell variables; this    \n"
     "       example uses csh notation to set the shell variable 'z':         \n"
-    "                                                                        \n"
+    "\n"
     "         set z = 3.5                                                    \n"
-    "         3dcalc -a moose.nii -prefix goose.nii -expr \"a*$z\"           \n"
-    "                                                                        \n"
+    "         3dcalc -a moose.nii -prefix goose.nii -expr \"a*$z\"\n"
+    "\n"
     "       The shell will not expand variables inside single 'quotes',      \n"
     "       and 3dcalc's parser will not understand the '$' character.       \n"
-    "                                                                        \n"
+    "\n"
     " NOTE: You can use the ccalc program to play with the expression        \n"
     "       evaluator, in order to get a feel for how it works and           \n"
     "       what it accepts.                                                 \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
    ) ;
    printf(
     " OPTIONS for 3dcalc: ~1~                                                \n"
     " -------                                                                \n"
-    "                                                                        \n"
+    "\n"
     "  -help      = Show this help.\n"
-    "                                                                        \n"
+    "\n"
     "  -verbose   = Makes the program print out various information as it    \n"
     "               progresses.                                              \n"
-    "                                                                        \n"
+    "\n"
     "  -datum type= Coerce the output data to be stored as the given type,   \n"
     "               which may be byte, short, or float.                      \n"
     "               [default = datum of first input dataset]                 \n"
     "  -float }                                                              \n"
     "  -short }   = Alternative options to specify output data format.       \n"
     "  -byte  }                                                              \n"
-    "                                                                        \n"
+    "\n"
     "  -fscale    = Force scaling of the output to the maximum integer       \n"
     "               range. This only has effect if the output datum is byte  \n"
     "               or short (either forced or defaulted). This option is    \n"
@@ -1164,7 +1174,7 @@ void CALC_Syntax(void)
     "                 [The default is to scale only if the computed values   \n"
     "                  seem to need it -- are all <= 1.0 or there is at      \n"
     "                  least one value beyond the integer upper limit.]      \n"
-    "                                                                        \n"
+    "\n"
     "                ** In earlier versions of 3dcalc, scaling (if used) was \n"
     "                   applied to all sub-bricks equally -- a common scale  \n"
     "                   factor was used.  This would cause trouble if the    \n"
@@ -1172,26 +1182,26 @@ void CALC_Syntax(void)
     "                   different scales. In this version, each sub-brick    \n"
     "                   gets its own scale factor. To override this behavior,\n"
     "                   use the '-gscale' option.                            \n"
-    "                                                                        \n"
+    "\n"
     "  -gscale    = Same as '-fscale', but also forces each output sub-brick \n"
     "               to get the same scaling factor.  This may be desirable   \n"
     "               for 3D+time datasets, for example.                       \n"
     "            ** N.B.: -usetemp and -gscale are incompatible!!            \n"
-    "                                                                        \n"
+    "\n"
     "  -nscale    = Don't do any scaling on output to byte or short datasets.\n"
     "               This may be especially useful when operating on mask     \n"
     "               datasets whose output values are only 0's and 1's.       \n"
     "                  ** Only use this option if you are sure you           \n"
     "                     want the output dataset to be integer-valued!      \n"
-    "                                                                        \n"
+    "\n"
     "  -prefix pname = Use 'pname' for the output dataset prefix name.       \n"
     "                  [default='calc']                                      \n"
-    "                                                                        \n"
+    "\n"
     "  -session dir  = Use 'dir' for the output dataset session directory.   \n"
     "                  [default='./'=current working directory]              \n"
     "                  You can also include the output directory in the      \n"
     "                  'pname' parameter to the -prefix option.              \n"
-    "                                                                        \n"
+    "\n"
     "  -usetemp      = With this option, a temporary file will be created to \n"
     "                  hold intermediate results.  This will make the program\n"
     "                  run slower, but can be useful when creating huge      \n"
@@ -1200,11 +1210,11 @@ void CALC_Syntax(void)
     "                  file; if 3dcalc crashes, you might have to delete     \n"
     "                  this file manually.                                   \n"
     "               ** N.B.: -usetemp and -gscale are incompatible!!         \n"
-    "                                                                        \n"
+    "\n"
     "  -dt tstep     = Use 'tstep' as the TR for \"manufactured\" 3D+time    \n"
     "    *OR*          datasets.                                             \n"
     "  -TR tstep     = If not given, defaults to 1 second.                   \n"
-    "                                                                        \n"
+    "\n"
     "  -taxis N      = If only 3D datasets are input (no 3D+time or .1D files),\n"
     "    *OR*          then normally only a 3D dataset is calculated.  With  \n"
     "  -taxis N:tstep: this option, you can force the creation of a time axis\n"
@@ -1215,7 +1225,7 @@ void CALC_Syntax(void)
     "                  identical. For example:                               \n"
     "                  '-taxis 121:0.1' will produce 121 points in time,     \n"
     "                  spaced with TR 0.1.                                   \n"
-    "                                                                        \n"
+    "\n"
     "            N.B.: You can also specify the TR using the -dt option.     \n"
     "            N.B.: You can specify 1D input datasets using the           \n"
     "                  '1D:n@val,n@val' notation to get a similar effect.    \n"
@@ -1225,11 +1235,11 @@ void CALC_Syntax(void)
     "                     -taxis 121:0.1\n"
     "            N.B.: For both '-dt' and '-taxis', the 'tstep' value is in \n"
     "                  seconds.                                             \n"
-    "                                                                        \n"
+    "\n"
     "  -rgbfac A B C = For RGB input datasets, the 3 channels (r,g,b) are    \n"
     "                  collapsed to one for the purposes of 3dcalc, using the\n"
     "                  formula value = A*r + B*g + C*b                       \n"
-    "                                                                        \n"
+    "\n"
     "                  The default values are A=0.299 B=0.587 C=0.114, which \n"
     "                  gives the grayscale intensity.  To pick out the Green \n"
     "                  channel only, use '-rgbfac 0 1 0', for example.  Note \n"
@@ -1237,7 +1247,7 @@ void CALC_Syntax(void)
     "                  range 0..255.  Thus, '-rgbfac 0.001173 0.002302 0.000447'\n"
     "                  will compute the intensity rescaled to the range 0..1.0\n"
     "                  (i.e., 0.001173=0.299/255, etc.)                      \n"
-    "                                                                        \n"
+    "\n"
     "  -cx2r METHOD  = For complex input datasets, the 2 channels must be    \n"
     "                  converted to 1 real number for calculation.  The      \n"
     "                  methods available are:  REAL  IMAG  ABS  PHASE        \n"
@@ -1266,109 +1276,114 @@ void CALC_Syntax(void)
     "                * 3dcalc cannot be used to CREATE a complex dataset!    \n"
     "                    [See program 3dTwotoComplex for that purpose.]      \n"
 #ifdef ALLOW_SORT
-    "                                                                        \n"
+    "\n"
     "  -sort         = Sort each output brick separately, before output:     \n"
     "  -SORT           'sort' ==> increasing order, 'SORT' ==> decreasing.   \n"
     "                  [This is useful only under unusual circumstances!]    \n"
     "                  [Sorting is done in spatial indexes, not in time.]    \n"
     "                  [Program 3dTsort will sort voxels along time axis]    \n"
 #endif
-    "                                                                        \n"
+    "\n"
+    "  -isola        = After computation, remove isolated non-zero voxels.   \n"
+    "                  This option can be repeated to iterate the process;   \n"
+    "                  each copy of '-isola' will cause the isola removal    \n"
+    "                  process to be repeated one more time.\n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "DATASET TYPES: ~1~                                                      \n"
     "-------------                                                           \n"
-    "                                                                        \n"
+    "\n"
     " The most common AFNI dataset types are 'byte', 'short', and 'float'.   \n"
-    "                                                                        \n"
+    "\n"
     " A byte value is an 8-bit signed integer (0..255), a short value ia a   \n"
     " 16-bit signed integer (-32768..32767), and a float value is a 32-bit   \n"
     " real number.  A byte value has almost 3 decimals of accuracy, a short  \n"
     " has almost 5, and a float has approximately 7 (from a 23+1 bit         \n"
     " mantissa).                                                             \n"
-    "                                                                        \n"
+    "\n"
     " Datasets can also have a scalar attached to each sub-brick. The main   \n"
     " use of this is allowing a short type dataset to take on non-integral   \n"
     " values, while being half the size of a float dataset.                  \n"
-    "                                                                        \n"
+    "\n"
     " As an example, consider a short dataset with a scalar of 0.0001. This  \n"
     " could represent values between -32.768 and +32.767, at a resolution of \n"
     " 0.001.  One could represnt the difference between 4.916 and 4.917, for \n"
     " instance, but not 4.9165. Each number has 15 bits of accuracy, plus a  \n"
     " sign bit, which gives 4-5 decimal places of accuracy. If this is not   \n"
     " enough, then it makes sense to use the larger type, float.             \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "3D+TIME DATASETS: ~1~                                                   \n"
     "----------------                                                        \n"
-    "                                                                        \n"
+    "\n"
     " This version of 3dcalc can operate on 3D+time datasets.  Each input    \n"
     " dataset will be in one of these conditions:                            \n"
-    "                                                                        \n"
+    "\n"
     "   (A) Is a regular 3D (no time) dataset; or                            \n"
     "   (B) Is a 3D+time dataset with a sub-brick index specified ('[3]'); or\n"
     "   (C) Is a 3D+time dataset with no sub-brick index specified ('-b').   \n"
-    "                                                                        \n"
+    "\n"
     " If there is at least one case (C) dataset, then the output dataset will\n"
     " also be 3D+time; otherwise it will be a 3D dataset with one sub-brick. \n"
     " When producing a 3D+time dataset, datasets in case (A) or (B) will be  \n"
     " treated as if the particular brick being used has the same value at each\n"
     " point in time.                                                         \n"
-    "                                                                        \n"
+    "\n"
     " Multi-brick 'bucket' datasets may also be used.  Note that if multi-brick\n"
     " (bucket or 3D+time) datasets are used, the lowest letter dataset will  \n"
     " serve as the template for the output; that is, '-b fred+tlrc' takes    \n"
     " precedence over '-c wilma+tlrc'.  (The program 3drefit can be used to  \n"
     " alter the .HEAD parameters of the output dataset, if desired.)         \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     MASTER_HELP_STRING
-    "                                                                        \n"
+    "\n"
     CATENATE_HELP_STRING
 
 #ifdef SHOW_B3
-    "                                                                        \n"
+    "\n"
     "** WARNING: you cannot combine sub-brick selection of the form          \n"
     "               -b3 bambam+orig       (the old method)                   \n"
     "            with sub-brick selection of the form                        \n"
     "               -b  'bambam+orig[3]'  (the new method)                   \n"
     "            If you try, the Doom of Mandos will fall upon you!          \n"
 #endif
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "1D TIME SERIES: ~1~                                                     \n"
     "--------------                                                          \n"
-    "                                                                        \n"
+    "\n"
     " You can also input a '*.1D' time series file in place of a dataset.    \n"
     " In this case, the value at each spatial voxel at time index n will be  \n"
     " the same, and will be the n-th value from the time series file.        \n"
     " At least one true dataset must be input.  If all the input datasets    \n"
     " are 3D (single sub-brick) or are single sub-bricks from multi-brick    \n"
     " datasets, then the output will be a 'manufactured' 3D+time dataset.    \n"
-    "                                                                        \n"
+    "\n"
     " For example, suppose that 'a3D+orig' is a 3D dataset:                  \n"
-    "                                                                        \n"
-    "   3dcalc -a a3D+orig -b b.1D -expr \"a*b\"                             \n"
-    "                                                                        \n"
+    "\n"
+    "   3dcalc -a a3D+orig -b b.1D -expr \"a*b\"\n"
+    "\n"
     " The output dataset will 3D+time with the value at (x,y,z,t) being      \n"
     " computed by a3D(x,y,z)*b(t).  The TR for this dataset will be set      \n"
     " to 'tstep' seconds -- this could be altered later with program 3drefit.\n"
     " Another method to set up the correct timing would be to input an       \n"
     " unused 3D+time dataset -- 3dcalc will then copy that dataset's time    \n"
     " information, but simply do not use that dataset's letter in -expr.     \n"
-    "                                                                        \n"
+    "\n"
     " If the *.1D file has multiple columns, only the first read will be     \n"
     " used in this program.  You can select a column to be the first by      \n"
     " using a sub-vector selection of the form 'b.1D[3]', which will         \n"
     " choose the 4th column (since counting starts at 0).                    \n"
-    "                                                                        \n"
+    "\n"
     " '{...}' row selectors can also be used - see the output of '1dcat -help'\n"
     " for more details on these.  Note that if multiple timeseries or 3D+time\n"
     " or 3D bucket datasets are input, they must all have the same number of \n"
     " points along the 'time' dimension.                                     \n"
-    "                                                                        \n"
+    "\n"
     " N.B.: To perform calculations ONLY on .1D files, use program 1deval.   \n"
     "       3dcalc takes .1D files for use in combination with 3D datasets!  \n"
-    "                                                                        \n"
+    "\n"
     " N.B.: If you auto-transpose a .1D file on the command line, (by ending \n"
     "       the filename with \\'), then 3dcalc will NOT treat it as the     \n"
     "       special case described above, but instead will treat it as       \n"
@@ -1376,29 +1391,29 @@ void CALC_Syntax(void)
     "       'voxel' time series.  This would allow you to do differential    \n"
     "       subscripts on 1D time series, which program 1deval does not      \n"
     "       implement.  For example:                                         \n"
-    "                                                                        \n"
+    "\n"
     "        3dcalc -a '1D: 3 4 5 6'\\' -b a+l -expr 'sqrt(a+b)' -prefix -   \n"
-    "                                                                        \n"
+    "\n"
     "       This technique allows expression evaluation on multi-column      \n"
     "       .1D files, which 1deval also does not implement.  For example:   \n"
-    "                                                                        \n"
+    "\n"
     "        3dcalc -a '1D: 3 4 5 | 1 2 3'\\' -expr 'cbrt(a)' -prefix -      \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "'1D:' INPUT: ~1~                                                        \n"
     "-----------                                                             \n"
-    "                                                                        \n"
+    "\n"
     " You can input a 1D time series 'dataset' directly on the command line, \n"
     " without an external file.  The 'filename for such input takes the      \n"
     " general format                                                         \n"
-    "                                                                        \n"
+    "\n"
     "   '1D:n_1@val_1,n_2@val_2,n_3@val_3,...'                               \n"
-    "                                                                        \n"
+    "\n"
     " where each 'n_i' is an integer and each 'val_i' is a float.  For       \n"
     " example                                                                \n"
-    "                                                                        \n"
+    "\n"
     "    -a '1D:5@0,10@1,5@0,10@1,5@0'                                       \n"
-    "                                                                        \n"
+    "\n"
     " specifies that variable 'a' be assigned to a 1D time series of 35,     \n"
     " alternating in blocks between values 0 and value 1.                    \n"
     "\n"
@@ -1408,35 +1423,35 @@ void CALC_Syntax(void)
     "    3dcalc -a AllZero_A+orig -b '1D: 100@' -expr 0 -prefix AllZero_B    \n"
     " If you replace the '0' expression with 'gran(0,1)', you'd get a        \n"
     " random 3D+time dataset, which might be useful for testing purposes.    \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT: ~1~                           \n"
     "----------------------------------------                                \n"
-    "                                                                        \n"
+    "\n"
     " You can input a 1D time series 'dataset' to be defined as spatially    \n"
     " dependent instead of time dependent using a syntax like:               \n"
-    "                                                                        \n"
+    "\n"
     "   -c I:fred.1D                                                         \n"
-    "                                                                        \n"
+    "\n"
     " This indicates that the n-th value from file fred.1D is to be associated\n"
     " with the spatial voxel index i=n (respectively j=n and k=n for 'J: and \n"
     " K: input dataset names).  This technique can be useful if you want to  \n"
     " scale each slice by a fixed constant; for example:                     \n"
-    "                                                                        \n"
+    "\n"
     "   -a dset+orig -b K:slicefactor.1D -expr 'a*b'                         \n"
-    "                                                                        \n"
+    "\n"
     " In this example, the '-b' value only varies in the k-index spatial     \n"
     " direction.                                                             \n"
-    "                                                                        \n"
+    "\n"
     "------------------------------------------------------------------------\n"
     "COORDINATES and PREDEFINED VALUES: ~1~                                  \n"
     "---------------------------------                                       \n"
-    "                                                                        \n"
+    "\n"
     " If you don't use '-x', '-y', or '-z' for a dataset, then the voxel     \n"
     " spatial coordinates will be loaded into those variables.  For example, \n"
     " the expression 'a*step(x*x+y*y+z*z-100)' will zero out all the voxels  \n"
     " inside a 10 mm radius of the origin x=y=z=0.                           \n"
-    "                                                                        \n"
+    "\n"
     " Similarly, the '-t' value, if not otherwise used by a dataset or *.1D  \n"
     " input, will be loaded with the voxel time coordinate, as determined    \n"
     " from the header file created for the OUTPUT.  Please note that the units\n"
@@ -1446,36 +1461,36 @@ void CALC_Syntax(void)
     " 3dinfo to find out the structure of your datasets, if you are not sure.\n"
     " If no input datasets are 3D+time, then the effective value of TR is    \n"
     " tstep in the output dataset, with t=0 at the first sub-brick.          \n"
-    "                                                                        \n"
+    "\n"
     " Similarly, the '-i', '-j', and '-k' values, if not otherwise used,     \n"
     " will be loaded with the voxel spatial index coordinates.  The '-l'     \n"
     " (letter 'ell') value will be loaded with the temporal index coordinate.\n"
-    "                                                                        \n"
+    "\n"
     " The '-n' value, if not otherwise used, will be loaded with the overall \n"
     " voxel 1D index.  For a 3D dataset, n = i + j*NX + k*NX*NY, where       \n"
     " NX, NY, NZ are the array dimensions of the 3D grid.  [29 Jul 2010]     \n"
-    "                                                                        \n"
+    "\n"
     " Otherwise undefined letters will be set to zero.  In the future, new   \n"
     " default values for other letters may be added.                         \n"
-    "                                                                        \n"
+    "\n"
     " NOTE WELL: By default, the coordinate order of (x,y,z) is the order in \n"
     " *********  which the data array is stored on disk; this order is output\n"
     "            by 3dinfo.  The options below control can change this order:\n"
-    "                                                                        \n"
+    "\n"
     " -dicom }= Sets the coordinates to appear in DICOM standard (RAI) order,\n"
     " -RAI   }= (the AFNI standard), so that -x=Right, -y=Anterior , -z=Inferior,\n"
     "                                        +x=Left , +y=Posterior, +z=Superior.\n"
-    "                                                                        \n"
+    "\n"
     " -SPM   }= Sets the coordinates to appear in SPM (LPI) order,           \n"
     " -LPI   }=                      so that -x=Left , -y=Posterior, -z=Inferior,\n"
     "                                        +x=Right, +y=Anterior , +z=Superior.\n"
-    "                                                                        \n"
+    "\n"
     " The -LPI/-RAI behavior can also be achieved via the AFNI_ORIENT        \n"
     " environment variable (27 Aug, 2014).                                   \n"
     "------------------------------------------------------------------------\n"
     "DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]: ~1~                              \n"
     "-----------------------                                                 \n"
-    "                                                                        \n"
+    "\n"
     " Normal calculations with 3dcalc are strictly on a per-voxel basis:\n"
     " there is no 'cross-talk' between spatial or temporal locations.\n"
     " The differential subscript feature allows you to specify variables\n"
@@ -1595,7 +1610,7 @@ int main( int argc , char *argv[] )
    THD_ivec3 iv ;
    THD_fvec3 fv ;
    float xxx[VSIZE], yyy[VSIZE], zzz[VSIZE] ;
-   int   iii,jjj,kkk , nx,nxy ;
+   int   iii,jjj,kkk , nx,ny,nz,nxy ;
    THD_dataxes * daxes ;
 
    size_t tempnum , tempsiz ;
@@ -1734,8 +1749,10 @@ int main( int argc , char *argv[] )
 
    /*** loop over time steps ***/
 
-   nx  =      DSET_NX(new_dset) ;
-   nxy = nx * DSET_NY(new_dset) ; daxes = new_dset->daxes ;
+   nx  = DSET_NX(new_dset) ;
+   ny  = DSET_NY(new_dset) ;
+   nz  = DSET_NZ(new_dset) ;
+   nxy = nx * ny ; daxes = new_dset->daxes ;
 
    buf = (float **) malloc(sizeof(float *) * ntime_max);
 
@@ -2169,6 +2186,14 @@ int main( int argc , char *argv[] )
            }
          }
 
+         /* 27 Nov 2019: remove isolas? */
+
+         if( CALC_do_isolas ){
+           int ntot = remove_isolated_stuff( nx,ny,nz , buf[kt] , CALC_do_isolas ) ;
+           if( ntot > 0 )
+             ININFO_message("removed %d isolas from volume %d",ntot,kt) ;
+         }
+
          /* 18 Oct 2005: write to a temp file? */
 
          if( tempfile != NULL ){
@@ -2367,3 +2392,141 @@ int main( int argc , char *argv[] )
 
    exit(0) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/* Remove isolated stuff in-place from a 2D or 3D image. [Nov 2019 - RWCox]   */
+/*----------------------------------------------------------------------------*/
+
+#define FF(i,j,k) far[(i)+(j)*nx+(k)*nxy]
+#define QQ(i,j,k) qar[(i)+(j)*nx+(k)*nxy]
+
+int remove_isolated_stuff( int nnx, int nny, int nnz, float *far, int maxite )
+{
+   int nx,ny,nz ,nxy,nxyz , ii,jj,kk,ll,cc , nblast,nite,ntot=0 ;
+   float nb[27] ;  /* temp data */
+   float *qar ;
+
+ENTRY("remove_isolated_stuff") ;
+
+   if( maxite < 1 || far == NULL ) RETURN(0) ;
+
+   nx  = nnx ;
+   ny  = nny ;
+   nz  = nnz ;
+   nxy = nx*ny ; nxyz = nx*ny*nz ;
+
+   ii = (nx < 5) + (ny < 5) + (nz < 5) ;  /* how many small dimensions */
+   if( ii > 1 ) RETURN(0) ;
+
+   qar = (float *)malloc(sizeof(float)*nxyz) ;
+
+   nblast = 666 ;
+   for( nite=0 ; nite < maxite && nblast > 0 ; nite++ ){
+       nblast = 0 ;
+       memcpy( qar , far , sizeof(float)*nxyz ) ;
+
+       /* edit 3x3x3 volumes */
+
+       for( kk=1 ; kk < nz-1 ; kk++ ){
+        for( jj=1 ; jj < ny-1 ; jj++ ){
+          for( ii=1 ; ii < nx-1 ; ii++ ){
+            if( FF(ii,jj,kk) != 0.0f ){       /* must have at least 3 nonzero   */
+               nb[ 0] = FF(ii-1,jj-1,kk-1) ;  /* voxels in a 3x3x3 neighborhood */
+               nb[ 1] = FF(ii  ,jj-1,kk-1) ;
+               nb[ 2] = FF(ii+1,jj-1,kk-1) ;
+               nb[ 3] = FF(ii-1,jj  ,kk-1) ;
+               nb[ 4] = FF(ii  ,jj  ,kk-1) ;
+               nb[ 5] = FF(ii+1,jj  ,kk-1) ;
+               nb[ 6] = FF(ii-1,jj+1,kk-1) ;
+               nb[ 7] = FF(ii  ,jj+1,kk-1) ;
+               nb[ 8] = FF(ii+1,jj+1,kk-1) ;
+               nb[ 9] = FF(ii-1,jj-1,kk  ) ;
+               nb[10] = FF(ii  ,jj-1,kk  ) ;
+               nb[11] = FF(ii+1,jj-1,kk  ) ;
+               nb[12] = FF(ii-1,jj  ,kk  ) ;
+               nb[13] = FF(ii  ,jj  ,kk  ) ;
+               nb[14] = FF(ii+1,jj  ,kk  ) ;
+               nb[15] = FF(ii-1,jj-1,kk  ) ;
+               nb[16] = FF(ii  ,jj-1,kk  ) ;
+               nb[17] = FF(ii+1,jj-1,kk  ) ;
+               nb[18] = FF(ii-1,jj+1,kk+1) ;
+               nb[19] = FF(ii  ,jj+1,kk+1) ;
+               nb[20] = FF(ii+1,jj+1,kk+1) ;
+               nb[21] = FF(ii-1,jj  ,kk+1) ;
+               nb[22] = FF(ii  ,jj  ,kk+1) ;
+               nb[23] = FF(ii+1,jj  ,kk+1) ;
+               nb[24] = FF(ii-1,jj+1,kk+1) ;
+               nb[25] = FF(ii  ,jj+1,kk+1) ;
+               nb[26] = FF(ii+1,jj+1,kk+1) ;
+
+               for( ll=cc=0 ; ll < 27 ; ll++ ) if( nb[ll] != 0.0f ) cc++ ;
+               if( cc < 4 ){ QQ(ii,jj,kk) = 0.0f ; nblast++ ; }
+            }
+       } } }
+
+       /* edit 3x3 areas in each 2D orientation */
+
+       for( kk=0 ; kk < nz ; kk++ ){
+        for( jj=1 ; jj < ny-1 ; jj++ ){
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( QQ(ii,jj,kk) != 0.0f ){     /* must have at least 2 nonzero */
+              nb[ 0] = FF(ii-1,jj-1,kk) ;  /* voxels in a 3x3 neighborhood */
+              nb[ 1] = FF(ii  ,jj-1,kk) ;
+              nb[ 2] = FF(ii+1,jj-1,kk) ;
+              nb[ 3] = FF(ii-1,jj  ,kk) ;
+              nb[ 4] = FF(ii  ,jj  ,kk) ;
+              nb[ 5] = FF(ii+1,jj  ,kk) ;
+              nb[ 6] = FF(ii-1,jj+1,kk) ;
+              nb[ 7] = FF(ii  ,jj+1,kk) ;
+              nb[ 8] = FF(ii+1,jj+1,kk) ;
+              for( ll=cc=0 ; ll < 9 ; ll++ ) if( nb[ll] != 0.0f ) cc++ ;
+              if( cc < 2 ){ QQ(ii,jj,kk) = 0.0f ; nblast++ ; }
+           }
+       } } }
+
+       for( jj=0 ; jj < ny ; jj++ ){
+        for( kk=1 ; kk < nz-1 ; kk++ ){
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( QQ(ii,jj,kk) != 0.0f ){     /* must have at least 2 nonzero */
+              nb[ 0] = FF(ii-1,jj,kk-1) ;  /* voxels in a 3x3 neighborhood */
+              nb[ 1] = FF(ii  ,jj,kk-1) ;
+              nb[ 2] = FF(ii+1,jj,kk-1) ;
+              nb[ 3] = FF(ii-1,jj,kk  ) ;
+              nb[ 4] = FF(ii  ,jj,kk  ) ;
+              nb[ 5] = FF(ii+1,jj,kk  ) ;
+              nb[ 6] = FF(ii-1,jj,kk+1) ;
+              nb[ 7] = FF(ii  ,jj,kk+1) ;
+              nb[ 8] = FF(ii+1,jj,kk+1) ;
+              for( ll=cc=0 ; ll < 9 ; ll++ ) if( nb[ll] != 0.0f ) cc++ ;
+              if( cc < 2 ){ QQ(ii,jj,kk) = 0.0f ; nblast++ ; }
+           }
+       } } }
+
+       for( ii=0 ; ii < nx ; ii++ ){
+        for( jj=1 ; jj < ny-1 ; jj++ ){
+         for( kk=1 ; kk < nz-1 ; kk++ ){
+           if( QQ(ii,jj,kk) != 0.0f ){     /* must have at least 2 nonzero */
+              nb[ 0] = FF(ii,jj-1,kk-1) ;  /* voxels in a 3x3 neighborhood */
+              nb[ 1] = FF(ii,jj  ,kk-1) ;
+              nb[ 2] = FF(ii,jj+1,kk-1) ;
+              nb[ 3] = FF(ii,jj-1,kk  ) ;
+              nb[ 4] = FF(ii,jj  ,kk  ) ;
+              nb[ 5] = FF(ii,jj+1,kk  ) ;
+              nb[ 6] = FF(ii,jj-1,kk+1) ;
+              nb[ 7] = FF(ii,jj  ,kk+1) ;
+              nb[ 8] = FF(ii,jj+1,kk+1) ;
+              for( ll=cc=0 ; ll < 9 ; ll++ ) if( nb[ll] != 0.0f ) cc++ ;
+              if( cc < 2 ){ QQ(ii,jj,kk) = 0.0f ; nblast++ ; }
+           }
+       } } }
+
+       if( nblast > 0 ) memcpy( far , qar , sizeof(float)*nxyz) ;
+       ntot += nblast ;
+   }
+
+   free(qar) ;
+   RETURN(ntot) ;
+}
+
+#undef FF
+#undef QQ
