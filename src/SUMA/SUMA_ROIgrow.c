@@ -117,14 +117,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
    Opt->cog[0]=-1; Opt->cog[1]=0.0; Opt->cog[2]=0.0;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_ROIgrow(ps);
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_ROIgrow(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -226,15 +226,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
          brk = YUP;
       }
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood.\n"
                   "Try -help for usage\n", FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         suggest_best_prog_option(argv[0], argv[kar]);
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("ROIgrow"); 
@@ -399,7 +399,7 @@ int main (int argc,char *argv[])
    SUMA_SurfSpecFile *Spec = NULL;
    int N_Spec=0, *nodeind = NULL, N_nodeind, i, cnt, j;
    int *nodeind_tmp=NULL, N_nodeind_tmp, free_nodeind = 1;
-	int  *nodelabels = NULL, N_nodelabels, *lbls=NULL, N_lbls=0;
+   int  *nodelabels = NULL, N_nodelabels, *lbls=NULL, N_lbls=0;
    char *outname = NULL;
    SUMA_DSET *inds_dset=NULL, *lbls_dset=NULL;
    SUMA_SurfaceObject *SO = NULL;
@@ -407,10 +407,10 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-t;-s;");
    
    if (argc < 2) {
