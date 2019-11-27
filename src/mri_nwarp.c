@@ -145,13 +145,15 @@ static char * wans(void)
 #define WARP_CODE_STRING(wc)                         \
           (  (wc == MRI_QUINTIC)       ? "quint81"   \
            : (wc == MRI_QUINTIC_LITE)  ? "quint30"   \
+           : (wc == MRI_SINCC)         ? "sincomp"   \
            : (wc == MRI_CUBIC_PLUS_1 ) ? "cubic30"   \
            : (wc == MRI_CUBIC_PLUS_2 ) ? "cubic60"   \
            : (wc == MRI_CUBIC_PLUS_3 ) ? "cubc105"   \
            : (wc == MRI_CUBIC_LITE   ) ? "cubic12" : "cubic24" )
 
+#define WARP_IS_SINCC(wc)     (wc == MRI_SINCC)
 #define WARP_IS_QUINTIC(wc) ( (wc == MRI_QUINTIC) || (wc == MRI_QUINTIC_LITE) )
-#define WARP_IS_CUBIC(wc)   ( !WARP_IS_QUINTIC(wc) )
+#define WARP_IS_CUBIC(wc)   ( !WARP_IS_QUINTIC(wc) && !WARP_IS_SINCC(wc) )
 
 /*--- 'lite' warps are the default now ---*/
 
@@ -2498,11 +2500,11 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 #undef  PIF
 #define PIF 3.1415927f /* PI in float */
 
-/* sinc function = sin(PI*x)/(PI*x) [N.B.: x will always be >= 0] */
+/* sinc function = sin(PI*x)/(PI*x) -- x is always >= 0 */
 
 #undef  sinc
-#define sinc(x) ( ((x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
-                              : 1.0f - 1.6449341f*(x)*(x) )
+#define sinc(x) ( (x>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
+                            : 1.0f - 1.6449341f*(x)*(x) )
 
 /* Weight (taper) function, declining from wtap(WCUT)=1 to wtap(1)=0 */
 /* Note that the input to wtap will always be between WCUT and 1.   */
@@ -7937,8 +7939,9 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
 /*--- Hermite polynomial basis arrays for each direction: x,y,z. ---*/
       /* ('c' for cubic, 'q' for quintic) */
 
-static int nbcx=0, nbcy=0, nbcz=0 , nbcxy ;  /* dimensions of patch */
-static int nbqx=0, nbqy=0, nbqz=0 , nbqxy ;  /* dimensions of patch */
+static int nbcx=0, nbcy=0, nbcz=0 , nbcxy=0 ;  /* dimensions of patch */
+static int nbqx=0, nbqy=0, nbqz=0 , nbqxy=0 ;  /* dimensions of patch */
+static int nbsx=0, nbsy=0, nbsz=0 , nbsxy=0 ;
 
 /* 1D basis arrays for 2 cubics (#0 and #1) */
 
@@ -7950,6 +7953,10 @@ static float *bc2x=NULL, *bc3x=NULL, *bc4x=NULL ;  /* 05 Nov 2015 */
 static float *bc2y=NULL, *bc3y=NULL, *bc4y=NULL ;
 static float *bc2z=NULL, *bc3z=NULL, *bc4z=NULL ;
 static float *bcxx[5]  , *bcyy[5]  , *bczz[5] ;
+
+/* for compact sinc */
+
+static float *bs0x=NULL , *bs0y=NULL , *bs0z=NULL , dxsi=0.0f,dysi=0.0f,dzsi=0.0f ;
 
 /* 1D basis arrays for 3 quintics (#0, #1, and #2) */
 
@@ -7964,6 +7971,9 @@ static int    nbbbcar = 0 ;
 static float **bbbcar = NULL ;
 static int    nbbqxyz = 0 ;
 static float **bbbqar = NULL ;
+
+static int    nbbsxyz = 0 ;
+static float *bbbsar  = NULL ;
 
 #undef  MEGA
 #define MEGA 1048576   /* 2^20 = definition of 'small' */
@@ -7996,6 +8006,8 @@ static int Hbasis_code  = 0 ;  /* quintic or cubic patches? */
 #define MRI_CUBIC_PLUS_1  301  /* 05 Nov 2015 -- extra basis function codes */
 #define MRI_CUBIC_PLUS_2  302                    /* for the BASIS5 methods  */
 #define MRI_CUBIC_PLUS_3  303
+
+#define MRI_SINCC         311  /* 05 Nov 2019 -- 3 basis funcs (sinc compact) */
 
                                /* Reduced rank basis funcs (from Guangzhou) */
 #define MRI_CUBIC_LITE    398  /* 06 Dec 2018 -- 12 instead of 24 */
@@ -8135,6 +8147,9 @@ static int Hqfinal  = 0 ;  /* do quintic at the final level? */
 static int Hqonly   = 0 ;  /* do quintic at all levels? (very slow) */
 static int Hqhard   = 0 ;  /* do quintic in second pass of 'workhard'? */
 
+static int Huse_sincc = 0 ;  /* use sincc mode after lev=0 */
+#define MIN_SINCC  59319     /* smallest patch size for sincc mode [3D voxels] */
+
 #undef  WORKHARD  /* work hard at level #lll? */
 #define WORKHARD(lll) ( (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
 
@@ -8143,7 +8158,7 @@ static int Hqhard   = 0 ;  /* do quintic in second pass of 'workhard'? */
 
 static float Hcost  = 666.666f ;  /* current 'correlation' cost */
 static float Hpenn  = 0.0f ;
-static float Hcostt = 0.0f ;
+static float Hcostt = 0.0f ;      /* 'pure' cost */
 
 #undef  SRCIM /* macro for which source image to use */
 #define SRCIM ( (Hsrcim_blur != NULL ) ? Hsrcim_blur : Hsrcim )
@@ -8249,6 +8264,17 @@ static INLINE float_pair HCwarp_eval_basis( float x )
      ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
    }
    return ee ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Sinc compact basis function [05 Nov 2019] -- sinc() is defined far above
+*//*--------------------------------------------------------------------------*/
+
+static INLINE float HSCwarp_eval_basis( float x )
+{
+   float aa = fabsf(x) ;
+   if( aa >= 1.0f ) return 0.0f ;
+   return ( 0.5f * ( 1 + sinc(aa) - sinc(1.0f-aa) ) ) ;
 }
 
 #ifdef ALLOW_BASIS5
@@ -8952,6 +8978,114 @@ ENTRY("HQwarp_setup_basis") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Setup sinc compact basis arrays for patch = nx X ny X nz [05 Nov 2019] */
+
+void HSCwarp_setup_basis( int nx , int ny , int nz , int flags )
+{
+   int ii ; float ca,cb,ccc ;
+
+ENTRY("HSCwarp_setup_basis") ;
+
+   Hflags = IW3D_munge_flags(nx,ny,nz,flags) ;
+   FREEIFNN(Hparmap) ;
+
+   if( (Hflags & NWARP_NODISP_FLAG) != 0 ){  /* not all params being used */
+     int pm = 0 ;
+     Hparmap = (int *)calloc(sizeof(int),3) ;
+     if( !(Hflags & NWARP_NOXDIS_FLAG) ) Hparmap[pm++] ++ ; /* x param */
+     if( !(Hflags & NWARP_NOYDIS_FLAG) ) Hparmap[pm++] ++ ; /* y param */
+     if( !(Hflags & NWARP_NOYDIS_FLAG) ) Hparmap[pm++] ++ ; /* z param */
+     Hnparmap = pm ;
+     if( Hnparmap == 3 ){ free(Hparmap) ; Hparmap = NULL ; }
+   } else {
+     Hnparmap = 3 ;
+     Hparmap  = NULL ;                   /* no index translation needed */
+   }
+
+   if( nx == nbsx      && ny == nbsy      && nz == nbsz      &&
+       Hwarp != NULL   && AHwarp != NULL  &&
+       nx == Hwarp->nx && ny == Hwarp->ny && nz == Hwarp->nz   ){
+     IW3D_zero_fill(Hwarp) ; IW3D_zero_fill(AHwarp) ; EXRETURN ;
+   }
+
+   if(  Hwarp != NULL ){ IW3D_destroy( Hwarp);  Hwarp = NULL; }
+   if( AHwarp != NULL ){ IW3D_destroy(AHwarp); AHwarp = NULL; }
+
+   FREEIFNN(bs0x); nbsx=0;
+   FREEIFNN(bs0y); nbsy=0;
+   FREEIFNN(bs0z); nbsz=0;
+
+   if( bbbsar != NULL ){ free(bbbsar) ; nbbsxyz = 0 ; bbbsar = NULL ; }
+
+   if( Hflags < 0 ) EXRETURN ;  /* this should not happen */
+
+   nbsx = nx ;
+   bs0x = (float *)malloc(sizeof(float)*nbsx) ;  /* 1D basis arrays */
+   nbsy = ny ;
+   bs0y = (float *)malloc(sizeof(float)*nbsy) ;
+   nbsz = nz ;
+   bs0z = (float *)malloc(sizeof(float)*nbsz) ;
+
+   nbsxy = nbsx*nbsy ;  /* for indexing */
+
+   if( Hflags & NWARP_NOXDEP_FLAG ){
+     dxsi = 0.0f ;
+     for( ii=0 ; ii < nbsx ; ii++ ){
+       bs0x[ii] = 1.0f ;
+     }
+   } else {
+     COMPUTE_CAB(nbsx) ; dxsi = 1.0f/cb ;   /* dxsi = half-width of patch */
+     for( ii=0 ; ii < nbsx ; ii++ ){
+       ccc = ca + ii*cb ; bs0x[ii] = HSCwarp_eval_basis(ccc) ;
+     }
+   }
+
+   if( Hflags & NWARP_NOYDEP_FLAG ){
+     dysi = 0.0f ;
+     for( ii=0 ; ii < nbsy ; ii++ ){
+       bs0y[ii] = 1.0f ;
+     }
+   } else {
+     COMPUTE_CAB(nbsy) ; dysi = 1.0f/cb ;
+     for( ii=0 ; ii < nbsy ; ii++ ){
+       ccc = ca + ii*cb ; bs0y[ii] = HSCwarp_eval_basis(ccc) ;
+     }
+   }
+
+   if( Hflags & NWARP_NOZDEP_FLAG ){
+     dzsi = 0.0f ;
+     for( ii=0 ; ii < nbsz ; ii++ ){
+       bs0z[ii] = 1.0f ;
+     }
+   } else {
+     COMPUTE_CAB(nbsz) ; dzsi = 1.0f/cb ;
+     for( ii=0 ; ii < nbsz ; ii++ ){
+       ccc = ca + ii*cb ; bs0z[ii] = HSCwarp_eval_basis(ccc) ;
+     }
+   }
+
+   nbbsxyz = nbsx * nbsy * nbsz ;     /* array size of 3D patch */
+   if( sizeof(float)*nbbsxyz/GIGA <= HmaxmemG ){ /* max size of 3D patch storage */
+     int jj , kk , qq ;
+     bbbsar = (float *)malloc(sizeof(float)*nbbsxyz) ;
+     for( qq=kk=0 ; kk < nbsz ; kk++ ){
+      for( jj=0 ; jj < nbsy ; jj++ ){
+#pragma ivdep  /* for Intel icc compiler */
+        for( ii=0 ; ii < nbsx ; ii++,qq++ ){
+          bbbsar[qq] = bs0z[kk]*bs0y[jj]*bs0x[ii] ;
+     }}}
+   }
+
+   /* create empty patch warp, to be populated in HCwarp_load,
+      given these basis function arrays and the warp parameters */
+
+   Hwarp  = IW3D_create(nbsx,nbsy,nbsz) ; /* incremental patch warp */
+   AHwarp = IW3D_create(nbsx,nbsy,nbsz) ; /* global warp(patch warp) in patch */
+
+   EXRETURN ;
+}
+
 #endif /*(Q2)*/ /*############################################################*/
 
 #if 1
@@ -9107,6 +9241,40 @@ void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
    if( Hdoz ) *zz = dzci *
                   (  b0zb0yb0x*Hzpar[0] + b1zb0yb0x*Hzpar[1]
                    + b0zb1yb0x*Hzpar[2] + b0zb0yb1x*Hzpar[3] ) ; else *zz = 0.0f ;
+   return ;
+}
+
+/*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
+/* evaluate sinc compact 3D warp the slower way (from 1D basis arrays) */
+
+void HSCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
+{
+   int ii,jj,kk ;
+   float b0zb0yb0x ;
+
+   ii = qq % nbsx ; kk = qq / nbsxy ; jj = (qq-kk*nbsxy) / nbsx ;
+
+   b0zb0yb0x = bs0z[kk]*bs0y[jj]*bs0x[ii];
+
+   /* multiply by parameters and sum up */
+
+   if( Hdox ) *xx = dxsi * b0zb0yb0x*Hxpar[0] ; else *xx = 0.0f ;
+   if( Hdoy ) *yy = dysi * b0zb0yb0x*Hypar[0] ; else *yy = 0.0f ;
+   if( Hdoz ) *zz = dzsi * b0zb0yb0x*Hzpar[0] ; else *zz = 0.0f ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* evaluate sinc compact 3D warp the faster way (using 3D basis arrays) */
+
+void HSCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
+{
+   float b0zb0yb0x ;
+
+   b0zb0yb0x = bbbsar[qq] ;
+   if( Hdox ) *xx = dxsi * b0zb0yb0x*Hxpar[0] ; else *xx = 0.0f ;
+   if( Hdoy ) *yy = dysi * b0zb0yb0x*Hypar[0] ; else *yy = 0.0f ;
+   if( Hdoz ) *zz = dzsi * b0zb0yb0x*Hzpar[0] ; else *zz = 0.0f ;
    return ;
 }
 
@@ -9460,8 +9628,9 @@ ENTRY("Hwarp_apply") ;
 
    /* decide if this is a cubic or quintic warp, load patch grid sizes */
 
-   if( WARP_IS_QUINTIC(Hbasis_code) ){ nbx = nbqx ; nby = nbqy ; nbz = nbqz ; }
-   else                              { nbx = nbcx ; nby = nbcy ; nbz = nbcz ; }
+        if( WARP_IS_QUINTIC(Hbasis_code) ){ nbx = nbqx ; nby = nbqy ; nbz = nbqz ; }
+   else if( WARP_IS_CUBIC(Hbasis_code)   ){ nbx = nbcx ; nby = nbcy ; nbz = nbcz ; }
+   else                                   { nbx = nbsx ; nby = nbsy ; nbz = nbsz ; }
 
    nbxy = nbx*nby ; nbxyz = nbxy*nbz ;
 
@@ -9475,6 +9644,8 @@ ENTRY("Hwarp_apply") ;
      Heval = (bbbqar == NULL) ? HQwarp_eval_A : HQwarp_eval_B ;
    } else if( Hbasis_code == MRI_QUINTIC_LITE ){
      Heval = (bbbqar == NULL) ? HQwarp_eval_AMM : HQwarp_eval_BMM ;
+   } else if( Hbasis_code == MRI_SINCC ){
+     Heval = (bbbsar == NULL) ? HSCwarp_eval_A : HSCwarp_eval_B ;
 #ifdef ALLOW_BASIS5
    } else if( Hbasis_code == MRI_CUBIC_PLUS_1 ){
      Heval = HCwarp_eval_B_basis345 ;
@@ -10502,11 +10673,20 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0257*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;
+       Hbasis_parmax = 0.0267*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
+     break ;
+
+     case MRI_SINCC:                                              /* Nov 2018 */
+       Hbasis_code   = MRI_SINCC ;
+       Hbasis_parmax = 0.1666*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.2345*Hfactor ;
+       Hnpar         = 3 ;                 /* number of params for local warp */
+       prad          = 0.333 ;                       /* NEWUOA initial radius */
+       HSCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;     /* setup HCwarp_load */
      break ;
 
 #ifdef ALLOW_BASIS5  /* 05 Nov 2015 */
@@ -10774,16 +10954,18 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=NGMIN , levdone=0 , pcon , do_qfinal=0 ;
    int zmode=MRI_CUBIC , zmode2=MRI_CUBIC , zmodeX , nlevr , nsup,isup , itnum ;
-   int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
+   int cmode=MRI_CUBIC , qmode=MRI_QUINTIC , smode=MRI_SINCC ;
    IndexWarp3D *OutWarp ;  /* the return value */
    char warplab[64] ;      /* 02 Jan 2015 */
    int xwid0,ywid0,zwid0 ; /* 04 Jan 2019 */
+   int64_t num_xyz ;       /* number of voxels in a patch [06 Nov 2019] */
 
 ENTRY("IW3D_warpomatic") ;
 
    Hfirsttime = 1 ;  /* for fun printouts on first pass */
 
-   if( Huse_cubic_lite   ){ cmode = zmode = zmode2 = MRI_CUBIC_LITE  ; } /* Dec 2018 */
+   if( Huse_sincc        ){ cmode = zmode = zmode2 = MRI_SINCC ; }      /* Nov 2019 */
+   if( Huse_cubic_lite   ){ cmode = zmode = zmode2 = MRI_CUBIC_LITE ; } /* Dec 2018 */
    if( Huse_quintic_lite ){ qmode = MRI_QUINTIC_LITE ; }
 
    /* set up a lot of things (mostly in global H... variables) */
@@ -10852,13 +11034,6 @@ ENTRY("IW3D_warpomatic") ;
      /* step A = lite cubic */
      (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-#if 0
-     if( nlevr ){  /* maybe again? */
-       BALLOPT ;
-       (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
-       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-     }
-#endif
      /* step B: heavy cubic */
      BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
@@ -11040,6 +11215,14 @@ ENTRY("IW3D_warpomatic") ;
      do_qfinal = (Hfinal && Hqfinal) ;
      if( do_qfinal || Hqonly ){ zmode = zmode2 = qmode ; }
      else if( Hqhard         ){ zmode2 = qmode ; }
+
+     num_xyz = ((int64_t)xwid) * ((int64_t)ywid) * ((int64_t)zwid) ;  /* 06 Nov 2019 */
+
+     if( Huse_sincc ){
+       if( num_xyz >= MIN_SINCC ){ cmode = zmode = zmode2 = MRI_SINCC ;      }
+       else                      { cmode = zmode = zmode2 = MRI_CUBIC_LITE ; }
+     }
+
      if( xwid < NGMIN_Q || ywid < NGMIN_Q || zwid < NGMIN_Q )  /* 28 Oct 2015 */
        zmode = zmode2 = cmode ;
 #if 0 && defined(ALLOW_BASIS5)
@@ -11066,6 +11249,8 @@ ENTRY("IW3D_warpomatic") ;
      if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
      mri_free(Haasrcim) ;  /* re-create the warped source image Haasrcim */
      Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
+
+     if( cmode == MRI_SINCC ){ nlevr = 2 ; nsup = 1 ; } /* sincc mode ==> must work hard */
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
@@ -11709,8 +11894,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0257*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;
+       Hbasis_parmax = 0.0267*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */

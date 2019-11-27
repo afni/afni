@@ -386,7 +386,7 @@ if ( ${DO_GIANT} ) then
         -source $odir/anatUA."$SubID".nii                 \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
-        -workhard:3:5                                     \
+        -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"                         \
         -allopt '-twobest 11 -twopass -maxrot 45 -maxshf 40 -source_automask+2 -cmass'
 else
@@ -396,7 +396,7 @@ else
         -source $odir/anatUA."$SubID".nii                 \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
-        -workhard:3:5                                     \
+        -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"
 endif
 

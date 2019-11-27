@@ -44,6 +44,20 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , NOV , 2019 , RWC , "@afni_refacer_run" , MAJOR , TYPE_ENHANCE ,
+   "Modify shell dataset to avoid some brain clipping" ,
+   "Mostly by eroding the inside of the brain shell.\n"
+   "Also a couple little tweaks to the script." } ,
+
+ { 26 , NOV , 2019 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Allow user to supply an affine matrix with -resample" ,
+   "To re-use a matrix from a previous 3dAllineate run, for speedup" } ,
+
+ { 26 , NOV , 2019 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Add hidden -sincc option for speedup" ,
+   "Doesn't seem to help much - faster at large patches but not at smaller\n"
+   "patches." } ,
+
  { 25 , OCT , 2019 , RWC , "afni GUI driver" , MINOR , TYPE_ENHANCE ,
    "butpress commands to image viewer" ,
    "butpress=Colr or Swap or Norm to simulate button presses\n"

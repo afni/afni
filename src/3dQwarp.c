@@ -703,8 +703,8 @@ void Qhelp(void)
     "                 happen, and you won't EVER get any Christmas presents again!\n"
     "\n"
     " -resample    = This option simply resamples the source dataset to match the\n"
-    "                base dataset grid. You can use this if the two datasets\n"
-    "                overlap well (as seen in the AFNI GUI), but are not on the\n"
+    "   *OR*         base dataset grid. You can use this if the two datasets\n"
+    " -resample mm   overlap well (as seen in the AFNI GUI), but are not on the\n"
     "                same 3D grid.\n"
     "               * If they don't overlap very well, use '-allineate' instead.\n"
     "               * As with -allineate, the final output dataset is warped\n"
@@ -720,6 +720,22 @@ void Qhelp(void)
     "                 together if you need to re-start a warp job from the\n"
     "                 output of '-allsave'.\n"
     "               * Unless you are in a hurry, '-allineate' is better.\n"
+    "             *** After '-resample', you can supply an affine transformation\n"
+    "                 matrix to apply during the resampling. This feature is\n"
+    "                 useful if you already have the affine transformation\n"
+    "                 from source to base pre-computed by some other program\n"
+    "                 -- for example, from 3dAllineate.\n"
+    "                 The command line argument that follows '-resample',\n"
+    "                 if it does not start with a '-', is taken to be\n"
+    "                 a filename with 12 values in one row: the usual\n"
+    "                 affine matrix representation from 3dAllineate and\n"
+    "                 other AFNI programs (in DICOM order coordinates);\n"
+    "                 for example '-resample ZharkRules.aff12.1D'\n"
+    "                 You can also use the following form to supply the\n"
+    "                 matrix directly on the command line:\n"
+    "                   '1D: 1 2 3 4 5 6 7 8 9 10 11 12'\n"
+    "                 where the numbers after the initial '1D: ' are\n"
+    "                 to be replaced by the actual matrix entries!\n"
     "\n"
     "++++++++++ Computing the 'cost' functional = how datasets are matched ++++++++++\n"
     "\n"
@@ -1627,28 +1643,44 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 /* Just use 3dAllineate for resampling (no registration) */
 /*---------------------------------------------------------------------------*/
 
-void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
+static mat44 resam_matrix ;
+
+void Qallin_resample( char *basname , char *srcname , MRI_IMAGE *rmat )  /* 17 Jul 2013 */
 {
    char *cmd ; int ss ;
+   float *mar ;
 
    ss  = strlen(basname)+strlen(srcname)+2048 ;
    cmd = (char *)malloc(ss) ;
 
    Qunstr = UNIQ_idcode() ;
 
+   if( rmat == NULL ){
+     mar = (float *)calloc(12,sizeof(float)) ;
+     mar[0] = mar[5] = mar[10] = 1.0f ;
+   } else {
+     mar = MRI_FLOAT_PTR(rmat) ;
+     LOAD_MAT44(resam_matrix,
+                mar[0],mar[1],mar[2],mar[3],mar[4],mar[5],
+                mar[6],mar[7],mar[8],mar[9],mar[10],mar[11] ) ;
+   }
+
    sprintf( cmd , "3dAllineate"
                   " -master %s"
                   " -source %s"
                   " -prefix %s.nii"
-                  " -final wsinc5 -float -quiet -1Dparam_apply '1D: 12@0'\\'" ,
-            basname , srcname , Qunstr ) ;
+                  " -final wsinc5 -float -quiet"
+                  " -1Dmatrix_apply '1D: %g %g %g %g %g %g %g %g %g %g %g %g'" ,
+            basname , srcname , Qunstr ,
+            mar[0],mar[1],mar[2],mar[3],mar[4],mar[5],
+            mar[6],mar[7],mar[8],mar[9],mar[10],mar[11] ) ;
 
    INFO_message("###############################################################") ;
    INFO_message("Starting 3dAllineate (resample only) command:\n\n  %s\n ",cmd) ;
    INFO_message("###############################################################") ;
    ss = system(cmd) ;
    if( ss != 0 ) ERROR_exit("3dQwarp: 3dAllineate command failed :-(") ;
-   free(cmd) ;
+   free(cmd) ; if( rmat == NULL ) free(mar) ;
    return ;
 }
 
@@ -1777,6 +1809,7 @@ int main( int argc , char *argv[] )
    int do_pmbase=0 ;
    IndexWarp3D *pmbase_warp=NULL ; MRI_IMAGE *pmbase_imag=NULL ;
    int xyzm_num=0 ; MRI_IMAGE *xyzm_bas=NULL , *xyzm_src=NULL ;
+   MRI_IMAGE *resmat=NULL ; /* 06 Nov 2019 */
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -1817,7 +1850,8 @@ int main( int argc , char *argv[] )
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
    LOAD_IDENT_MAT44(allin_matrix);        /* Just to quiet initialization warning */
-   LOAD_IDENT_MAT44(allin_adjust_matrix); /* Just to quiet initialization warning */
+   LOAD_IDENT_MAT44(allin_adjust_matrix);
+   LOAD_IDENT_MAT44(resam_matrix);
 
    saved_argc = argc ; saved_argv = argv ; /* 13 Mar 2018 */
 
@@ -1992,7 +2026,18 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-resample") == 0 ||
          strcasecmp(argv[nopt],"-resam"   ) == 0   ){      /* 17 Jul 2013 */
-       do_resam = 1 ; nopt++ ; continue ;
+       do_resam = 1 ; do_allin = 0 ; nopt++ ;
+       if( nopt < argc && argv[nopt][0] != '-' ){          /* 06 Nov 2019 */
+         resmat = mri_read_1D(argv[nopt]) ;
+         if( resmat == NULL ){
+           WARNING_message("Can't read resampling matrix from '%s'",argv[nopt]) ;
+         } else if( resmat->nvox < 12 ){
+           WARNING_message("Resampling matrix from '%s' is too small!",argv[nopt]) ;
+           mri_free(resmat) ; resmat = NULL ;
+         }
+         nopt++ ;
+       }
+       continue ;
      }
 
      /*---------------*/
@@ -2190,7 +2235,7 @@ int main( int argc , char *argv[] )
        Hqfinal = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
-       INFO_message("Using 81 parameter quintic polynomials for patch warps") ;
+       INFO_message("Using quintic polynomials for patch warps") ;
        Hqonly = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
 
@@ -2216,6 +2261,18 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-nolite") == 0 ){
        Huse_cubic_lite = Huse_quintic_lite = 0 ; nopt++ ; continue ;
      }
+
+     /*--------------------------------------------------------------*/
+     /** this option is [SECRET] since it doesn't seem to help with **/
+     /** with speed - it is faster at larger patches but slows down **/
+     /** at the finer patches, making it pretty much a wash :(      **/
+     /** I'll probably remove the code at some point - RWCox        **/
+
+     if( strcasecmp(argv[nopt],"-sincc") == 0 ){   /* Nov 2019 [SECRET] */
+       Huse_sincc = 1 ; Hznoq = 1 ;          /* use sinc compact basis */
+       nopt++ ; continue ;                   /* functions for speedup */
+     }     /* does not seem to help: faster at first, then slower :( */
+     /*--------------------------------------------------------------*/
 
 #ifdef ALLOW_BASIS5
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
@@ -2824,7 +2881,7 @@ STATUS("3dAllineate coming up next") ;
      if( do_allin )
        Qallineate( bsname , ssname , esname , allopt ) ;  /* run 3dAllineate */
      else /* do_resam */
-       Qallin_resample( bsname , ssname ) ;           /* just for resampling */
+       Qallin_resample( bsname , ssname , resmat ) ;      /* just for resampling */
 
      fprintf(stderr,"\n") ;
 
@@ -2855,29 +2912,35 @@ STATUS("3dAllineate coming up next") ;
 
      /*-- load alignment matrix, to be used after warping --*/
 
-     if( do_allin ){
+     if( do_allin || resmat != NULL ){
        MRI_IMAGE *zim ; float *qar ;
-       sprintf(qs,"%s.aff12.1D",Qunstr) ;
-       zim = mri_read_1D(qs) ;           /* get the 3dAllineate output matrix */
-       if( zim == NULL )
-         ERROR_exit("Can't open 3dAllineate's matrix file '%s'",qs) ;
-       if( zim->nvox < 12 )
-         ERROR_exit("3dAllineate's .aff12.1D file has incorrect format??") ;
-       qar = MRI_FLOAT_PTR(zim) ;
-       LOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],  /* load matrix */
-                               qar[4],qar[5],qar[ 6],qar[ 7],
-                               qar[8],qar[9],qar[10],qar[11] ) ;
-         /* save the magnitude of the shifts (needed for zero pad guesstimate */
-       dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
-       if( !keep_allin ){
-         remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
-         if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
+       if( resmat != NULL ){
+         qar = MRI_FLOAT_PTR(resmat) ;
+         allin_matrix = resam_matrix ;
+         dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
        } else {
-         sprintf(ns,"%s_Allin.aff12.1D",prefix_clean) ; rename(qs,ns) ;
-         if( Hverb ) ININFO_message("3dAllineate output files have been renamed") ;
+         sprintf(qs,"%s.aff12.1D",Qunstr) ;
+         zim = mri_read_1D(qs) ;           /* get the 3dAllineate output matrix */
+         if( zim == NULL )
+           ERROR_exit("Can't open 3dAllineate's matrix file '%s'",qs) ;
+         if( zim->nvox < 12 )
+           ERROR_exit("3dAllineate's .aff12.1D file has incorrect format??") ;
+         qar = MRI_FLOAT_PTR(zim) ;
+         LOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],  /* load matrix */
+                                 qar[4],qar[5],qar[ 6],qar[ 7],
+                                 qar[8],qar[9],qar[10],qar[11] ) ;
+         /* save the magnitude of the shifts (needed for zero pad guesstimate */
+         dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
+         if( !keep_allin ){
+           remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
+           if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
+         } else {
+           sprintf(ns,"%s_Allin.aff12.1D",prefix_clean) ; rename(qs,ns) ;
+           if( Hverb ) ININFO_message("3dAllineate output files have been renamed") ;
+         }
+         if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
+         mri_free(zim) ;
        }
-       if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
-       mri_free(zim) ;
      }
 
      free(qs) ; free(ns) ;
@@ -3479,7 +3542,7 @@ STATUS("construct weight/mask volume") ;
                           pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
                           "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
 
-   if( do_allin ){ /* make warp adjustment matrix [13 Mar 2018] */
+   if( do_allin || resmat != NULL ){ /* make warp adjustment matrix [13 Mar 2018] */
      mat44 tmat,smat,qmat , cmat,imat ;
      cmat = adset->daxes->ijk_to_dicom ;
      imat = MAT44_INV(cmat) ;
@@ -3528,7 +3591,9 @@ STATUS("construct weight/mask volume") ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
-   INFO_message("========== total number of parameters 'optimized' = %d",Hnpar_sum) ;
+     INFO_message("========== total number of parameters 'optimized' = %d",Hnpar_sum) ;
+   ININFO_message("           final unpenalized cost = %g",Hcostt) ;
+   ININFO_message("           final penalized   cost = %g",Hcost ) ;
 
    mri_free(wbim) ; wbim = NULL ;  /* not needed after here [17 Oct 2013] */
    mri_free(bim)  ; bim  = NULL ;
@@ -3617,7 +3682,7 @@ STATUS("output awarp") ;
      /* adjust warp for 3dAllineate matrix that came earlier */
      /* (don't have to adjust plusminus warp since can't be run with -allin) */
 
-     if( do_allin ){
+     if( do_allin || resmat != NULL ){
        IndexWarp3D *tarp ; int ii ;
 STATUS("adjust for 3dAllineate matrix") ;
        tarp = IW3D_compose_w1m2(oiw->warp,allin_adjust_matrix,MRI_WSINC5) ;  /* adjust warp */
@@ -3733,7 +3798,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
-     if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+     if( do_allin || resmat != NULL ){  /* save copy of 3dAllineate matrix into header */
        float qar[12] ;
        UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
                                  qar[4],qar[5],qar[ 6],qar[ 7],
