@@ -1966,6 +1966,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
     apply_uopt_to_block('-volreg_get_allcostX', user_opts, block)
+    apply_uopt_to_block('-volreg_opts_ewarp', user_opts, block)
 
     if block.opts.find_opt('-volreg_pvra_base_index') and not \
        block.opts.find_opt('-volreg_post_vr_allin'):
