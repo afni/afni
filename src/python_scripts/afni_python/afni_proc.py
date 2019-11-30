@@ -1345,6 +1345,8 @@ class SubjProcSream:
                         helpstr='do not restrict warped EPI to extents')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
+        self.valid_opts.add_opt('-volreg_opts_ewarp', -1, [],
+                        helpstr='additional opts for epi warp (allin/Nwarp)')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
                         helpstr='apply separate motion regressors per run')
         self.valid_opts.add_opt('-volreg_tlrc_adwarp', 0, [],
