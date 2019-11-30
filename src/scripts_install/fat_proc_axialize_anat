@@ -1167,10 +1167,13 @@ cat << EOF
                     added, if desired.
 
   -workdir WWW     :the name of the working subdirectory in the output
-                    directory can be specified (default: ${wdir}).
+                    directory can be specified 
+                    (default: ${wdir}).
 
   -no_clean        :is an optional switch to NOT remove working 
-                    directory '$wdir'; (default: remove working dir).
+                    directory '$wdir'; 
+                    (default: remove working dir).
+
   -no_cmd_out      :by default, a copy of the command and file location
                     from which it is run is dumped into the WORKDIR 
                     (file name: 'PREFIX*_cmd.txt'). 
