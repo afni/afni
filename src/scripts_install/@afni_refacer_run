@@ -135,7 +135,7 @@ set jset = junk_refacer.INPUT.nii
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
             -source junk_refacer.U.nii -prefix NULL               \
             -warp shift_rotate_scale -cost ls -cmass -conv 0.5    \
-            -source_automask+4 -fineblur 3 -norefinal -twobest 4  \
+            -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
             -num_rtb 33 -1Dmatrix_save junk_refacer.A12.1D
 
 # compute the inverse matrix, to transform from MNI back to orig space
@@ -167,9 +167,9 @@ else
 #   dataset, but that would be somewhat more work.
 
   set ibar = `3dBrickStat -non-zero -mean \
-               "3dcalc( -a junk_refacer.MM.nii -b $jset -expr step(a)*b )"`
+               "3dcalc( -a junk_refacer.MM.nii -b $jset -expr step(a-99)*b )"`
   set mbar = `3dBrickStat -non-zero -mean \
-               "3dcalc( -a junk_refacer.MM.nii          -expr step(a)*a )"`
+               "3dcalc( -a junk_refacer.MM.nii          -expr step(a-99)*a )"`
   set ifac = `ccalc "1.222*${ibar}/${mbar}"`
 
 #   plop the scaled refacer shell 'c' on top of the input 'a':
