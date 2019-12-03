@@ -12264,6 +12264,18 @@ g_help_options = """
             See also -volreg_motsim.
             Please see '@simulate_motion -help' for more information.
 
+        -volreg_opts_ewarp OPTS ... : specify extra options for EPI warp steps
+
+                e.g. -volreg_opts_ewarp -short
+
+            This option allows the user to add extra options to the commands
+            used to apply combined transformations to EPI data, warping it to
+            its final grid space (currently via either 3dAllineate or 
+            3dNwarpApply).
+
+            Please see '3dAllineate -help' for more information.
+            Please see '3dNwarpApply -help' for more information.
+
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
                 e.g. -volreg_opts_vr -twopass
