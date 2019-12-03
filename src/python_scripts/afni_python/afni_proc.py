@@ -668,9 +668,10 @@ g_history = """
     7.02 Oct 30, 2019: 3dcopy tedana results using current view
     7.03 Nov  1, 2019: create out.mask_at_corr.txt
     7.04 Nov 21, 2019: added more current FreeSurfer babble to help
+    7.05 Nov 29, 2019: added option -volreg_opts_ewarp
 """
 
-g_version = "version 7.04, November 21, 2019"
+g_version = "version 7.05, November 29, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1345,6 +1346,8 @@ class SubjProcSream:
                         helpstr='do not restrict warped EPI to extents')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
+        self.valid_opts.add_opt('-volreg_opts_ewarp', -1, [],
+                        helpstr='additional opts for epi warp (allin/Nwarp)')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
                         helpstr='apply separate motion regressors per run')
         self.valid_opts.add_opt('-volreg_tlrc_adwarp', 0, [],

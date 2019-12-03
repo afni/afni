@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_opts_ewarp, to pass additional volreg EPI warp options",
+   "Added for L Fernandino."
+ } ,
+
  { 27, Nov, 2019, RCR, "ROIgrow", MICRO, TYPE_BUG_FIX,
    "if PER_NODE, also process label == 0",
    "Thanks to K Dembny for noting the problem."

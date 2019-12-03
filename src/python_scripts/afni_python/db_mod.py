@@ -118,7 +118,7 @@ def warp_item(desc='', wtype='', warpset=''):
    return vo
 
 def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
-                          dim=0, NN=0, NLinterp='', istr=''):
+                          dim=0, NN=0, NLinterp='', ewopts='', istr=''):
    """For now, warp_list should consist of an outer to inner list of warps.
       If any are non-linear, use 3dNwarpApply to apply them.  Otherwise,
       use 3dAllineate.
@@ -129,6 +129,8 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
 
       if NLinterp: apply corresponding interp option to NL case
                    (speed-up for computing warps of all-1 dsets)
+
+      ewopts: extra EPI warp opts
 
       allow for proc.vr_warp_fint to alter final interpolation
 
@@ -169,6 +171,9 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       elif finterp:
                    clist.append('             -ainterp %s \\\n'%finterp)
 
+      # extra options
+      if ewopts: clist.append('             %s \\\n' % ewopts)
+
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
@@ -205,6 +210,9 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       # separate, since we cannot include empty lines
       if dimstr or nstr:
          clist.append(mastline)
+
+      # extra options
+      if ewopts: clist.append('%s%s \\\n' % (indent, ewopts))
 
       clist.append('%s-prefix %s\n' % (indent, prefix))
 
@@ -1958,6 +1966,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
     apply_uopt_to_block('-volreg_get_allcostX', user_opts, block)
+    apply_uopt_to_block('-volreg_opts_ewarp', user_opts, block)
 
     if block.opts.find_opt('-volreg_pvra_base_index') and not \
        block.opts.find_opt('-volreg_post_vr_allin'):
@@ -2121,6 +2130,11 @@ def db_cmd_volreg(proc, block):
     opt = block.opts.find_opt('-volreg_opts_vr')
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = ' '.join(opt.parlist)
+
+    # maybe there are extra options to append to the command
+    opt = block.opts.find_opt('-volreg_opts_ewarp')
+    if not opt or not opt.parlist: ewarp_opts = ''
+    else: ewarp_opts = ' '.join(opt.parlist)
 
     if basevol: vr_base_str = basevol
     else:       vr_base_str = "%s'[%d]'" % (base,sub)
@@ -2513,7 +2527,7 @@ def db_cmd_volreg(proc, block):
         if dowarp and proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
-        # if ME, wrap per echo
+        # if ME, warp per echo
         ime = ''
         if proc.use_me:
            mcmd = '%s# (apply warps per echo - warps are fixed, per run)\n' \
@@ -2524,7 +2538,7 @@ def db_cmd_volreg(proc, block):
 
         st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
                       source=prev_prefix, prefix=wprefix, dim=dim,
-                      istr=(indent+ime))
+                      ewopts=ewarp_opts, istr=(indent+ime))
         if st: return
         wcmd += wtmp
 
@@ -2535,7 +2549,8 @@ def db_cmd_volreg(proc, block):
            all1_prefix = 'rm.epi.1.r$run'
            st, wtmp = apply_catenated_warps(proc, all1_warps, base=allinbase,
                          source=all1_input.shortinput(), prefix=all1_prefix,
-                         dim=dim, NN=1, NLinterp='cubic', istr=indent)
+                         dim=dim, NN=1, NLinterp='cubic', ewopts=ewarp_opts,
+                         istr=indent)
            if st: return
            wcmd += '\n%s# warp the all-1 dataset for extents masking \n%s' \
                    % (indent, wtmp)
@@ -2663,7 +2678,7 @@ def db_cmd_volreg(proc, block):
         proc.epi_final = proc.vr_base_dset.new(new_pref=wprefix)
         proc.epi_final.new_view(proc.view)
         st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
-                      source=basevol, prefix=wprefix, dim=dim)
+                     source=basevol, prefix=wprefix, dim=dim, ewopts=ewarp_opts)
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
@@ -12248,6 +12263,18 @@ g_help_options = """
 
             See also -volreg_motsim.
             Please see '@simulate_motion -help' for more information.
+
+        -volreg_opts_ewarp OPTS ... : specify extra options for EPI warp steps
+
+                e.g. -volreg_opts_ewarp -short
+
+            This option allows the user to add extra options to the commands
+            used to apply combined transformations to EPI data, warping it to
+            its final grid space (currently via either 3dAllineate or 
+            3dNwarpApply).
+
+            Please see '3dAllineate -help' for more information.
+            Please see '3dNwarpApply -help' for more information.
 
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
