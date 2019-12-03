@@ -198,6 +198,7 @@ endif
 # push output up to the input level (over-writing any existing output)
 
 \mv -f $ppp.refacer.RESULT.nii ..
+# \mv -f junk_refacer.MM.nii     ..
 cd ..
 
 # trash the junk, vamoose the ranch
