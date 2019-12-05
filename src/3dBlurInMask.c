@@ -226,7 +226,7 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     ERROR_exit("Uknown option '%s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
 

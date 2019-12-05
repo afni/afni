@@ -364,7 +364,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     ERROR_exit("Uknown option '%s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
 

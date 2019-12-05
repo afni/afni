@@ -133,7 +133,7 @@ set jset = junk_refacer.INPUT.nii
 # Align to the MNI template - save only the transform matrix
 
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
-            -source junk_refacer.U.nii -prefix NULL               \
+            -source junk_refacer.U.nii -prefix NULL  -verb        \
             -warp shift_rotate_scale -cost ls -cmass -conv 0.5    \
             -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
             -num_rtb 33 -1Dmatrix_save junk_refacer.A12.1D
@@ -145,7 +145,11 @@ cat_matvec -ONELINE junk_refacer.A12.1D -I > junk_refacer.I12.1D
 # transform the refacer shell from MNI back to subject original space and grid
 
 3dAllineate -1Dmatrix_apply junk_refacer.I12.1D -source $mset \
-            -final linear -prefix junk_refacer.MM.nii -master $jset -float
+            -final linear -prefix junk_refacer.AA.nii -master $jset -float
+
+3dcalc -a junk_refacer.AA.nii -prefix junk_refacer.MM.nii \
+       -expr 'ifelse(ispositive(a)*isnegative(a-248),0,a)' -ISOLA
+
 3drefit -space ORIG junk_refacer.MM.nii
 
 # Just remove the 'face' rather than replace it [08 Jan 2019]
@@ -153,7 +157,7 @@ cat_matvec -ONELINE junk_refacer.A12.1D -I > junk_refacer.I12.1D
 if ( $deface == 1 ) then
   3dcalc -a $jset                        -c junk_refacer.MM.nii  \
          -expr "iszero(c)*a*step(a)"                             \
-         -prefix $ppp.refacer.RESULT.nii -datum float -isola
+         -prefix $ppp.refacer.RESULT.nii -datum float -ISOLA
 
 # the re-facing code of yore
 
@@ -181,7 +185,12 @@ else
 
   3dcalc -a $jset                        -c junk_refacer.MM.nii  \
          -expr "step(c)*c*${ifac}+iszero(c)*a*step(a)"           \
-         -prefix $ppp.refacer.RESULT.nii -datum float -isola -isola
+         -prefix junk.refacer.QQ.nii     -datum float -ISOLA
+
+  3dcalc -a junk_refacer.MM.nii -expr 'step(a)' -datum byte -nscale -prefix junk.refacer.NN.nii
+
+  3dBlurInMask -input junk.refacer.QQ.nii -FWHM 2.666 -mask junk.refacer.NN.nii -preserve \
+               -prefix $ppp.refacer.RESULT.nii
 
 endif
 
@@ -198,7 +207,7 @@ endif
 # push output up to the input level (over-writing any existing output)
 
 \mv -f $ppp.refacer.RESULT.nii ..
-# \mv -f junk_refacer.MM.nii     ..
+\mv -f junk_refacer.MM.nii     ..
 cd ..
 
 # trash the junk, vamoose the ranch

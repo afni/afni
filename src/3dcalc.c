@@ -266,7 +266,9 @@ void CALC_read_opts( int argc , char * argv[] )
       /**** -isola [27 Nov 2019] ****/
 
       if( strncasecmp(argv[nopt],"-isola",6) == 0 ){
-        CALC_do_isolas++ ; nopt++ ; continue ;
+        if( strstr(argv[nopt],"-ISOLA") == 0 ) CALC_do_isolas = 99 ;
+        else                                   CALC_do_isolas++    ;
+        nopt++ ; continue ;
       }
 
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/

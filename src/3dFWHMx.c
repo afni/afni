@@ -440,7 +440,7 @@ int main( int argc , char *argv[] )
        newprefix = argv[++iarg] ; iarg++ ; continue ;
      }
 
-     ERROR_exit("Uknown option '%s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
 
