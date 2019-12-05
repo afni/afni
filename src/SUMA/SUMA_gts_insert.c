@@ -7,7 +7,8 @@ inserting them via:
 #include "../../SUMA_gts_insert.c" 
 gts's surface.c works just fine
 */
-
+#include <stdlib.h>
+#include "gts.h"
 static int debug;
 
 void gts_set_debug_suma(int val) { debug = val; return;}
