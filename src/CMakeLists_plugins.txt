@@ -1,6 +1,5 @@
 set_os_flags(plug_threshold.c)
 set_os_flags(plug_maskcalc.c)
-string(REPLACE "-Wl,--no-undefined" "" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 foreach(
   target
   model_beta
@@ -84,17 +83,11 @@ foreach(
   add_library(${target} ${target}.c)
   target_link_libraries(
     ${target}
-    PRIVATE AFNI::mrix
+    PRIVATE 
             afni_all_objects
-            AFNI::coxplot
-            XmHTML
-            Motif::Motif
-            ${X11_Xt_LIB}
             AFNI::f2cdir
-            ${X11_LIBRARIES}
             ${NETCDF_LIBRARIES_C}
             NIFTI::nifti2
-            libheaders
   )
 endforeach(target)
 
@@ -105,28 +98,30 @@ add_library(plug_retroicor plug_retroicor.c retroicor.c)
 foreach(target plug_drealtime plug_maxima plug_retroicor) 
   target_link_libraries(${target}
     PRIVATE
-      AFNI::mrix
+      afni_all_objects
       NIFTI::nifti2
       NIFTI::nifticdf
       ) 
 endforeach()
 
-add_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
-svm/plug_3dsvm.c) 
-target_link_libraries(plug_3dsvm 
-  PRIVATE
-    AFNI::mri
-    )
+# add_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
+# svm/plug_3dsvm.c) 
+# target_link_libraries(plug_3dsvm 
+#   PRIVATE
+#     afni_all_objects
+#     AFNI::mri
+#     )
 
-foreach(target plug_scatplot plug_nlfit)
-  add_library(${target} ${target}.c)
-  target_link_libraries(${target} 
-    PRIVATE
-      AFNI::mri
-      NIFTI::nifti2
-      NIFTI::nifticdf
-  )
-endforeach(target)
+# foreach(target plug_scatplot plug_nlfit)
+#   add_library(${target} ${target}.c)
+#   target_link_libraries(${target} 
+#     PRIVATE
+#       afni_all_objects
+#       AFNI::mri
+#       NIFTI::nifti2
+#       NIFTI::nifticdf
+#   )
+# endforeach(target)
 
 foreach(target afni_open aiv Xphace)
   add_executable(${target} ${target}.c)
