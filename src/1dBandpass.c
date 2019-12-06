@@ -9,7 +9,7 @@ int main( int argc , char * argv[] )
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dBandpass [options] fbot ftop infile\n"
+     printf("Usage: 1dBandpass [options] fbot ftop infile ~1~\n"
             "\n"
             " * infile is an AFNI *.1D file; each column is processed\n"
             " * fbot = lowest frequency in the passband, in Hz\n"
@@ -23,19 +23,19 @@ int main( int argc , char * argv[] )
             " * The actual FFT length used will be printed, and may be larger\n"
             "   than the input time series length for the sake of efficiency.\n"
             "\n"
-            "Options:\n"
+            "Options: ~1~\n"
             "  -dt dd     = set time step to 'dd' sec [default = 1.0]\n"
             "  -ort f.1D  = Also orthogonalize input to columns in f.1D\n"
             "               [only one '-ort' option is allowed]\n"
             "  -nodetrend = Skip the quadratic detrending of the input\n"
             "  -norm      = Make output time series have L2 norm = 1\n"
             "\n"
-            "Example:\n"
+            "Example: ~1~\n"
             "  1deval -num 1000 -expr 'gran(0,1)' > r1000.1D\n"
             "  1dBandpass 0.025 0.20 r1000.1D  > f1000.1D\n"
             "  1dfft f1000.1D - | 1dplot -del 0.000977 -stdin -plabel 'Filtered |FFT|'\n"
             "\n"
-            "Goal:\n"
+            "Goal: ~1~\n"
             " * Mostly to test the functions in thd_bandpass.c -- RWCox -- May 2009\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
