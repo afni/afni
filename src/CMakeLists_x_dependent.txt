@@ -78,7 +78,15 @@ add_library(
   mcw_graf.c
   pbar.c
 )
-target_link_libraries(afni_all_objects PUBLIC coxplot libheaders)
+target_link_libraries(afni_all_objects 
+  PUBLIC
+    AFNI::mrix
+    libheaders
+    Motif::Motif
+    ${X11_Xt_LIB}
+    ${X11_LIBRARIES}
+    ${CMAKE_DL_LIBS}
+    )
 
 add_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 
@@ -86,11 +94,6 @@ target_link_libraries(
   afni
   PRIVATE
     afni_all_objects
-    AFNI::mrix
-    Motif::Motif
-    ${X11_Xt_LIB}
-    ${X11_LIBRARIES}
     NIFTI::nifti2
     NIFTI::nifticdf
-    ${CMAKE_DL_LIBS}
 )
