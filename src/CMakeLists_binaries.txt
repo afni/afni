@@ -423,9 +423,10 @@ foreach(mod PRF;PRF_6;PRF_6_BAD)
 endforeach()
 
 # 3dTSgem won't be built
-# add_executable(3dTSgen 3dTSgen.c) set_target_properties( 3dTSgen PROPERTIES
-# PRIVATE_HEADER "NLfit.h;NLfit_model.h;NLfit.c;NLfit_model.c" )
-# target_link_libraries(3dTSgen AFNI::mri)
+add_executable(3dTSgen 3dTSgen.c)
+set_target_properties( 3dTSgen PROPERTIES
+PRIVATE_HEADER "NLfit.h;NLfit_model.h;NLfit.c;NLfit_model.c" )
+target_link_libraries(3dTSgen AFNI::mri ${CMAKE_DL_LIBS})
 
 
 
@@ -436,6 +437,13 @@ add_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
 target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir m)
 
+add_executable(3dECM sparse_array.c)
+target_link_libraries(3dECM 
+  PRIVATE
+    AFNI::mri
+    NIFTI::nifti2
+    NIFTI::nifticdf
+  )
 
 if(BUILD_X_DEPENDENT_GUI_PROGS)
   add_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
