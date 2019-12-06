@@ -1,6 +1,6 @@
 include(CPack)
 include(CMakePackageConfigHelpers)
-include(FindMotif)
+find_package(Motif REQUIRED)
 include(FindNetCDF)
 include(FindX11)
 include(FindStandardMathLibrary)

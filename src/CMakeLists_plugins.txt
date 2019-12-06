@@ -88,8 +88,7 @@ foreach(
             afni_all_objects
             AFNI::coxplot
             XmHTML
-            -Wl,--no-as-needed
-            ${MOTIF_LIBRARIES}
+            Motif::Motif
             ${X11_Xt_LIB}
             AFNI::f2cdir
             ${X11_LIBRARIES}
@@ -134,8 +133,7 @@ foreach(target afni_open aiv Xphace)
   target_link_libraries(${target} 
     PRIVATE
       AFNI::mrix
-      -Wl,--no-as-needed
-      ${MOTIF_LIBRARIES}
+      Motif::Motif
       ${X11_Xt_LIB}
       NIFTI::nifti2
       NIFTI::nifticdf

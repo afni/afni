@@ -32,7 +32,7 @@ target_include_directories(
                  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
 )
 target_link_libraries(
-  XmHTML PRIVATE ${MOTIF_LIBRARIES} ${X11_Xt_LIB} ${X11_Xpm_LIB} ${X11_LIBRARIES} JPEG::JPEG
+  XmHTML PRIVATE Motif::Motif ${X11_Xt_LIB} ${X11_Xpm_LIB} ${X11_LIBRARIES} JPEG::JPEG
 )
 add_afni_target_properties(XmHTML)
 

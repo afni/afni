@@ -73,7 +73,7 @@ target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
   PRIVATE AFNI::mrix
-          ${MOTIF_LIBRARIES}
+          Motif::Motif
           ${X11_Xt_LIB}
           ${X11_LIBRARIES}
           AFNI::mri
@@ -92,8 +92,7 @@ target_link_libraries(
   suma
   PRIVATE SUMA
           AFNI::mrix
-          -Wl,--no-as-needed
-          ${MOTIF_LIBRARIES}
+          Motif::Motif
           ${X11_Xt_LIB}
           ${X11_LIBRARIES}
           AFNI::track_tools
@@ -164,7 +163,7 @@ foreach(program ${PROGRAMS})
   target_link_libraries(
     ${program}
     PRIVATE SUMA
-            ${MOTIF_LIBRARIES}
+            Motif::Motif
             ${X11_Xt_LIB}
             ${X11_LIBRARIES}
             AFNI::mrix
@@ -185,7 +184,7 @@ foreach(prog_with_name_as_source prompt_popup)
                  ${prog_with_name_as_source}.c)
   target_link_libraries(
     ${prog_with_name_as_source}
-    PRIVATE ${MOTIF_LIBRARIES}
+    PRIVATE Motif::Motif
             ${X11_Xt_LIB}
             ${X11_LIBRARIES}
             SUMA
@@ -208,8 +207,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
     ${target_with_suma}
     PRIVATE SUMA
             AFNI::mri
-            -Wl,--no-as-needed
-            ${MOTIF_LIBRARIES}
+            Motif::Motif
             ${X11_Xt_LIB}
             ${X11_LIBRARIES}
             NIFTI::nifti2
