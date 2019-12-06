@@ -471,7 +471,7 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
 
   add_executable(to3d to3d.c)
   target_link_libraries(
-    to3d PRIVATE AFNI::mrix ${MOTIF_LIBRARIES} ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
+    to3d PRIVATE AFNI::mrix Motif::Motif ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
                  NIFTI::nifti2
   )
 
