@@ -130,9 +130,9 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n"
-      "Usage: 3dETC [options] inputdataset\n"
+      "Usage: 3dETC [options] inputdataset ~1~\n"
       "\n"
-      "Options:\n"
+      "Options: ~1~\n"
       "========\n"
       " -input dset  = alternative way to input the dataset\n"
       " -prefix ppp  = output prefix\n"
