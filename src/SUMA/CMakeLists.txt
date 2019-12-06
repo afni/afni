@@ -62,7 +62,7 @@ target_compile_definitions(SUMA PUBLIC SUMA_COMPILED)
 # afni/src/other_builds/OS_notes.linux_fedora_25_64.txt).
 # Otherwise the c files are included directly in the library
 if(USE_SYSTEM_GLW)
-  find_library(GLW_LIBRARY GLw)
+  find_package(GLw REQUIRED)
 else()
   target_sources(SUMA PRIVATE GLw_local/GLwDrawA.c)
   target_include_directories(
