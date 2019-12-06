@@ -81,7 +81,6 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           track_tools
           segtools
-          ${X11_LIBRARIES}
           AFNI::3DEdge
           NIFTI::nifti2
           NIFTI::nifticdf)
@@ -163,15 +162,15 @@ foreach(program ${PROGRAMS})
   target_link_libraries(
     ${program}
     PRIVATE SUMA
-            Motif::Motif
-            ${X11_Xt_LIB}
-            ${X11_LIBRARIES}
             AFNI::mrix
             AFNI::track_tools
             AFNI::segtools
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
             $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
             $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>
+            Motif::Motif
+            ${X11_Xt_LIB}
+            ${X11_LIBRARIES}
             NIFTI::nifti2
             NIFTI::nifticdf)
 endforeach(program)
@@ -184,16 +183,17 @@ foreach(prog_with_name_as_source prompt_popup)
                  ${prog_with_name_as_source}.c)
   target_link_libraries(
     ${prog_with_name_as_source}
-    PRIVATE Motif::Motif
-            ${X11_Xt_LIB}
-            ${X11_LIBRARIES}
-            SUMA
-            AFNI::mri
-            NIFTI::nifti2
-            NIFTI::nifticdf
-            $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
-            $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
-            $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
+    PRIVATE 
+      SUMA
+      AFNI::mrix
+      Motif::Motif
+      ${X11_Xt_LIB}
+      ${X11_LIBRARIES}
+      NIFTI::nifti2
+      NIFTI::nifticdf
+      $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
+      $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
+        $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
 endforeach()
 
 # targets with suma prepended
@@ -206,7 +206,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
   target_link_libraries(
     ${target_with_suma}
     PRIVATE SUMA
-            AFNI::mri
+            AFNI::mrix
             Motif::Motif
             ${X11_Xt_LIB}
             ${X11_LIBRARIES}
