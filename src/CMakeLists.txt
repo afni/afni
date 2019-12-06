@@ -22,7 +22,6 @@ add_library(rio R_io.c)
 target_include_directories(
   rio
   PRIVATE ${LIBR_INCLUDE_DIRS}
-  PUBLIC $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
 add_afni_target_properties(rio)

@@ -334,20 +334,17 @@ add_executable(3dresample rickr/3dresample.c)
 target_link_libraries(Dimon1 PRIVATE AFNI::mri NIFTI::niftiio)
 target_link_libraries(Dimon PRIVATE AFNI::mri NIFTI::nifti2)
 
-target_include_directories(
-  3dresample PRIVATE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
-                     $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-)
-target_link_libraries(3dresample AFNI::mri libheaders AFNI::audio AFNI::eispack)
+
+target_link_libraries(3dresample AFNI::mri AFNI::audio NIFTI::nifti2)
 
 
 
 add_executable(3dBrainSync 3dBrainSync.c)
-target_link_libraries(3dBrainSync mri libheaders)
+target_link_libraries(3dBrainSync AFNI::mri)
 
 add_executable(3dExchange 3dExchange.c)
 target_include_directories(3dExchange PRIVATE ${X11_INCLUDE_DIR})
-target_link_libraries(3dExchange AFNI::mri libheaders ${X11_LIBRARIES})
+target_link_libraries(3dExchange AFNI::mri ${X11_LIBRARIES})
 
 add_executable(3dMaskToASCII 3dMaskToASCII.c)
 target_include_directories(3dMaskToASCII PRIVATE ${X11_INCLUDE_DIR})
@@ -403,10 +400,6 @@ target_link_libraries(3dGrayplot AFNI::mri)
 
 add_executable(1dsound 1dsound.c)
 set_target_properties(1dsound PROPERTIES PRIVATE_HEADER "cs_playsound.c;despike_inc.c")
-target_include_directories(
-  1dsound PRIVATE $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
-                  $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
-)
 target_link_libraries(
   1dsound PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf AFNI::audio
 )
@@ -431,11 +424,11 @@ target_link_libraries(3dTSgen AFNI::mri ${CMAKE_DL_LIBS})
 
 
 add_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
-target_link_libraries(3dDeconvolve PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir m)
+target_link_libraries(3dDeconvolve PRIVATE AFNI::mri AFNI::f2cdir m)
 
 add_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
-target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir m)
+target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri AFNI::f2cdir m)
 
 add_executable(3dECM sparse_array.c)
 target_link_libraries(3dECM 
@@ -456,12 +449,6 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
   )
 
   add_executable(1dgrayplot 1dgrayplot.c)
-  target_include_directories(
-    1dgrayplot
-    PRIVATE $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
-  )
   target_link_libraries(
     1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB}
   )
