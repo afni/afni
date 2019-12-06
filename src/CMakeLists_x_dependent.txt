@@ -25,7 +25,8 @@ set_target_properties(
 target_link_libraries(
   mrix
   PUBLIC AFNI::mri
-  PRIVATE AFNI::coxplot ${MOTIF_LIBRARIES} ${X11_Xt_LIB} AFNI::XmHTML ${X11_LIBRARIES}
+  PRIVATE AFNI::coxplot AFNI::XmHTML ${MOTIF_LIBRARIES} ${X11_Xt_LIB} 
+          ${X11_LIBRARIES}
 )
 add_afni_target_properties(mrix)
 add_library(AFNI::mrix ALIAS mrix)
@@ -77,24 +78,20 @@ add_library(
   mcw_graf.c
   pbar.c
 )
-target_link_libraries(afni_all_objects PUBLIC libheaders coxplot)
-
+target_link_libraries(afni_all_objects PUBLIC coxplot libheaders)
 
 add_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 
 target_link_libraries(
   afni
-  PRIVATE ${CMAKE_DL_LIBS}
-          afni_all_objects
-          AFNI::mrix
-          ${MOTIF_LIBRARIES}
-          ${X11_Xt_LIB}
-          ${X11_LIBRARIES}
-          AFNI::mri
-          AFNI::coxplot
-          AFNI::f2cdir
-          ${NETCDF_LIBRARIES_C}
-          NIFTI::nifti2
-          libheaders
-          m
+  PRIVATE
+    afni_all_objects
+    AFNI::mrix
+    # -Wl,--no-as-needed
+    ${MOTIF_LIBRARIES}
+    ${X11_Xt_LIB}
+    ${X11_LIBRARIES}
+    NIFTI::nifti2
+    NIFTI::nifticdf
+    ${CMAKE_DL_LIBS}
 )
