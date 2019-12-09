@@ -14,12 +14,21 @@ def run_x_prog(cmd):
     import subprocess as sp
 
     res = sp.run(
-        "scripts/utils/xvfb-driver -- " + cmd,
+        cmd,
         shell=True,
         stdout=sp.PIPE,
         stderr=sp.STDOUT,
     )
     res.check_returncode()
+    if "ERROR" in res.stdout.decode():
+
+        raise ValueError(
+            f"""
+        {cmd}
+        Command executed, but output contains an error {res.stdout}
+        """
+        )
+
     return res.stdout.decode("utf")
 
 
