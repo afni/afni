@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Dec, 2019, RCR, "3dTagalign", MINOR, TYPE_NEW_OPT,
+   "add -tagset",
+   "Coded by T Holroyd."
+ } ,
+
  { 29, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -volreg_opts_ewarp, to pass additional volreg EPI warp options",
    "Added for L Fernandino."

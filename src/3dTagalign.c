@@ -297,7 +297,8 @@ int main( int argc , char * argv[] )
          if( !THD_filename_ok(tfile) )         ERREX("-tagset string is illegal") ;
 
          if( mytagset != NULL )                ERREX("Can only have one -tagset option") ;
-         mytagset = myXtNew(THD_usertaglist) ;
+         mytagset = (THD_usertaglist *)calloc(1, sizeof(THD_usertaglist)) ;
+         if( !mytagset ) ERREX("insufficient RAM for taglist") ;
          TAG_read(tfile) ;
 
          iarg++ ; continue ;
@@ -346,19 +347,22 @@ int main( int argc , char * argv[] )
    dset = THD_open_dataset( argv[iarg] ) ;
 
    if( dset == NULL )                    ERREX("Can't open input dataset") ;
+
+   /* if user specified one, unceremoniously overwrite the dset's tagset */
    if( mytagset != NULL )
-      dset->tagset = mytagset ;          /* unceremoniously overwrite the dset's tagset */
-   else
-      if( dset->tagset == NULL )         ERREX("No tags in input dataset") ;
-   if( TAGLIST_COUNT(dset->tagset) !=
-       TAGLIST_COUNT(mset->tagset)   )   ERREX("Tag counts don't match in -master and input") ;
+      dset->tagset = mytagset ;
+
+   if( dset->tagset == NULL )            ERREX("No tags in input dataset") ;
+
+   if( TAGLIST_COUNT(dset->tagset) != TAGLIST_COUNT(mset->tagset) )
+      ERREX("Tag counts don't match in -master and input") ;
 
    /* check if set tags match exactly */
 
    for( ii=0 ; ii < TAGLIST_COUNT(mset->tagset) ; ii++ ){
       if( TAG_SET(TAGLIST_SUBTAG(mset->tagset,ii)) !=
-          TAG_SET(TAGLIST_SUBTAG(dset->tagset,ii))    )
-                                         ERREX("Set tags don't match in -master and input") ;
+          TAG_SET(TAGLIST_SUBTAG(dset->tagset,ii)) )
+         ERREX("Set tags don't match in -master and input") ;
    }
 
    /*-- load vector lists: xx=master, yy=input --*/
@@ -369,10 +373,11 @@ int main( int argc , char * argv[] )
    for( ii=jj=0 ; ii < nvec ; ii++ ){
       if( TAG_SET(TAGLIST_SUBTAG(mset->tagset,ii)) ){
 
-         LOAD_DFVEC3( xx[jj] ,                                      /* N.B.:     */
-                     TAG_X( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* these are */
-                     TAG_Y( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* in Dicom  */
-                     TAG_Z( TAGLIST_SUBTAG(mset->tagset,ii) )  ) ;  /* order now */
+         /* N.B.: these are in Dicom order now */
+         LOAD_DFVEC3( xx[jj] ,
+                     TAG_X( TAGLIST_SUBTAG(mset->tagset,ii) ) ,
+                     TAG_Y( TAGLIST_SUBTAG(mset->tagset,ii) ) ,
+                     TAG_Z( TAGLIST_SUBTAG(mset->tagset,ii) )  ) ;
 
          LOAD_DFVEC3( yy[jj] ,
                      TAG_X( TAGLIST_SUBTAG(dset->tagset,ii) ) ,
@@ -659,7 +664,8 @@ int main( int argc , char * argv[] )
      if( keeptags ){
         THD_dfvec3 rv ;
 
-        oset->tagset = myXtNew(THD_usertaglist) ;
+        oset->tagset = (THD_usertaglist *)calloc(1, sizeof(THD_usertaglist)) ;
+        if( !oset->tagset ) ERREX("insufficient RAM to copy taglist") ;
         *(oset->tagset) = *(dset->tagset) ;    /* swell foop */
 
         dsum = 0.0 ;
@@ -757,7 +763,8 @@ static void TAG_read( char * str )        /* copied from plug_tag.c */
    cpt = strstr( str , ".tag" ) ;
    if( cpt == NULL ){
       ii = strlen(str) ;
-      cpt = XtMalloc(ii+8) ;
+      cpt = (char *)malloc(ii+8) ;
+      if( !cpt ) ERREX("insufficient RAM to append .tag to tag file name") ;
       strcpy(cpt,str) ;
       if( cpt[ii-1] != '.' ) strcat( cpt , "." ) ;
       strcat( cpt , "tag" ) ;
