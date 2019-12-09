@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , DEC , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Replace mpeg_encode with ffmpeg in imseq.c" ,
+   "From Michael Hanke. He gets the credit and/or blame, as needed.\n"
+   "Submitted via github (pull request #39, from 2016). At last!" } ,
+
  { 26 , NOV , 2019 , RWC , "@afni_refacer_run" , MAJOR , TYPE_ENHANCE ,
    "Modify shell dataset to avoid some brain clipping" ,
    "Mostly by eroding the inside of the brain shell.\n"
