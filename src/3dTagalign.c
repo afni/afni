@@ -12,10 +12,13 @@
 #define ERREX(str) (fprintf(stderr,"** %s\n",str),exit(1))
 
 THD_dmat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
+static void TAG_read( char * tfile ) ;
 
 #define ROTATION  1  /* matrix_type options */
 #define AFFINE    2
 #define ROTSCL    3
+
+static THD_usertaglist * mytagset = NULL ;  /* to hold a tagset from -tagset */
 
 void usage_3dTagalign(int detail) {
    printf("Usage: 3dTagalign [options] dset\n"
@@ -35,6 +38,8 @@ void usage_3dTagalign(int detail) {
        "                   If you use weights, a larger weight means to\n"
        "                   count aligning that tag as more important.\n"
 #endif
+       "\n"
+       " -tagset tfile = Use the tagset in the .tag file instead of dset.\n"
        "\n"
        " -nokeeptags   = Don't put transformed locations of dset's tags\n"
        "                   into the output dataset [default = keep tags]\n"
@@ -115,7 +120,7 @@ int main( int argc , char * argv[] )
    double *ww=NULL ;
    int     nww=0 ;
    int keeptags=1 , wtval=0 , verb=0 , dummy=0 ;
-   char * prefix = "tagalign" , *mfile=NULL ;
+   char * prefix = "tagalign" , *mfile=NULL , *tfile=NULL;
 
    float *fvol , cbot,ctop , dsum ;
    int nval , nvox , clipit , ival, RMETH=MRI_CUBIC;
@@ -284,6 +289,20 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-tagset") == 0 ){
+         if( ++iarg >= argc )                  ERREX("Need an argument after -tagset") ;
+         tfile = argv[iarg] ;
+         if( !THD_filename_ok(tfile) )         ERREX("-tagset string is illegal") ;
+
+         if( mytagset != NULL )                ERREX("Can only have one -tagset option") ;
+         mytagset = myXtNew(THD_usertaglist) ;
+         TAG_read(tfile) ;
+
+         iarg++ ; continue ;
+      }
+
 
       /*-----*/
 
@@ -327,7 +346,10 @@ int main( int argc , char * argv[] )
    dset = THD_open_dataset( argv[iarg] ) ;
 
    if( dset == NULL )                    ERREX("Can't open input dataset") ;
-   if( dset->tagset == NULL )            ERREX("No tags in input dataset") ;
+   if( mytagset != NULL )
+      dset->tagset = mytagset ;          /* unceremoniously overwrite the dset's tagset */
+   else
+      if( dset->tagset == NULL )         ERREX("No tags in input dataset") ;
    if( TAGLIST_COUNT(dset->tagset) !=
        TAGLIST_COUNT(mset->tagset)   )   ERREX("Tag counts don't match in -master and input") ;
 
@@ -638,7 +660,7 @@ int main( int argc , char * argv[] )
         THD_dfvec3 rv ;
 
         oset->tagset = myXtNew(THD_usertaglist) ;
-        *(oset->tagset) = *(dset->tagset) ;
+        *(oset->tagset) = *(dset->tagset) ;    /* swell foop */
 
         dsum = 0.0 ;
         for( jj=ii=0 ; ii < TAGLIST_COUNT(oset->tagset) ; ii++ ){
@@ -718,3 +740,96 @@ THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
 
    return tod ;
 }
+
+/*--------------------------------------------------------------------------*/
+
+static void TAG_read( char * str )        /* copied from plug_tag.c */
+{
+   char * cpt , buf[256] , quote ;
+   int ii , jj , ntog , lbuf , kk ;
+   FILE * fp ;
+   char  new_label[MAX_TAG_LABEL] ;
+   float new_x , new_y , new_z , new_val ;
+   int   new_ti , new_set ;
+
+   /*-- check for suffix on filename --*/
+
+   cpt = strstr( str , ".tag" ) ;
+   if( cpt == NULL ){
+      ii = strlen(str) ;
+      cpt = XtMalloc(ii+8) ;
+      strcpy(cpt,str) ;
+      if( cpt[ii-1] != '.' ) strcat( cpt , "." ) ;
+      strcat( cpt , "tag" ) ;
+      str = cpt ;
+   }
+
+   /*-- open file --*/
+
+   fp = fopen( str , "r" ) ;
+   if( fp == NULL )                       ERREX( "Can't open input file!" ) ;
+
+   /*-- scan each line for a tag definition --*/
+
+   ntog = 0 ;
+   while( ntog < MAX_TAG_NUM ){
+      cpt = afni_fgets( buf , 256 , fp ); /* read line from disk */
+      if( cpt == NULL ) break ;           /* nothing => exit */
+      if( buf[0] == '#'  ) continue ;     /* comment => skip this line */
+      if( buf[0] == '\n' ) continue ;
+      if( buf[0] == '\0' ) continue ;
+
+      lbuf = strlen(buf) ;                /* skip whitespace at start */
+      jj = 0 ;
+      while( jj < lbuf && isspace(buf[jj]) ) jj++ ;
+      if( jj == lbuf ) continue ;         /* was a blank line => skip */
+      if( buf[jj] == '#'  ) continue ;    /* comment */
+
+      /* scan for new label */
+
+      if( buf[jj] == '\'' || buf[jj] == '\"' ){  /* scan to matching quote */
+         quote = buf[jj] ; jj++ ; kk = jj ;
+         while( kk < lbuf && buf[kk] != quote ) kk++ ;
+         if( kk == lbuf ) kk-- ;
+      } else {                                   /* scan to nonblank */
+         kk = jj+1 ;
+         while( kk < lbuf && !isspace(buf[kk]) ) kk++ ;
+      }
+      for( ii=0 ; ii < MAX_TAG_LABEL-1 && jj < kk ; ii++,jj++ )
+         new_label[ii] = buf[jj] ;
+      new_label[ii] = '\0' ;
+      if( strlen(new_label) == 0 ) continue ;  /* error => skip */
+      jj = kk+1 ;
+
+      /* scan for x y z val ti */
+
+      new_set = new_ti = 0 ;
+      new_x   = new_y  = new_z = new_val = 0.0 ;
+      if( jj < lbuf-4 ){
+         kk = sscanf( buf+jj , "%f %f %f %f %d" ,
+                      &new_x , &new_y , &new_z , &new_val , &new_ti ) ;
+         if( kk >= 3 ) new_set = 1 ;  /* got x y z, at least */
+      }
+
+      /* set values */
+
+      strcpy( mytagset->tag[ntog].label , new_label ) ;
+      mytagset->tag[ntog].set = new_set ;
+      mytagset->tag[ntog].ti  = new_ti  ;
+      mytagset->tag[ntog].x   = new_x   ;
+      mytagset->tag[ntog].y   = new_y   ;
+      mytagset->tag[ntog].z   = new_z   ;
+      mytagset->tag[ntog].val = new_val ;
+      ntog++ ;
+   }
+
+   fclose(fp) ;  /* done with file */
+
+   if( ntog == 0 ){                                 /* no tags ==> error */
+      sprintf(buf , "Couldn't read tagset from file %s" , str ) ;
+      ERREX(buf) ;
+   }
+
+   mytagset->num = ntog ;
+}
+
