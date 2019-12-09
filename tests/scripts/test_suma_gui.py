@@ -17,6 +17,7 @@ data_paths = {
 def test_suma(data):
 
     cmd = """
+    set -e;
     export SUMA_DriveSumaMaxWait=5;
     xvfb-run suma -niml &
     sleep 3;
@@ -30,5 +31,5 @@ def test_suma(data):
     sleep 3 ;
     DriveSuma -com kill_suma
            """
-
+    cmd = cmd.format(**locals())
     res = misc.run_x_prog(cmd)
