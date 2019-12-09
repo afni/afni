@@ -6,16 +6,16 @@ macro(list_TO_STRING _string _list)
   endforeach(_item)
 endmacro(list_TO_STRING)
 
-macro(optional_bundle name)
+function(optional_bundle name)
   string(TOUPPER ${name} upper)
 
-  option(USE_SYSTEM_${upper} "use system ${name} instead of bundled")
+  option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
   if(USE_SYSTEM_${upper})
     find_package(${name} REQUIRED)
   else(USE_SYSTEM_${upper})
     add_subdirectory(${name})
   endif(USE_SYSTEM_${upper})
-endmacro(optional_bundle)
+endfunction()
 
 function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   # ##### Read list of makefile programs that are built by this project.

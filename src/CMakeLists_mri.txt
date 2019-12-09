@@ -499,7 +499,7 @@ target_link_libraries(
   PRIVATE 
           AFNI::3DEdge
           AFNI::eispack
-          AFNI::volpack
+          $<TARGET_NAME_IF_EXISTS:volpack>
           NIFTI::nifti2
           NIFTI::nifticdf
           ${NETCDF_LIBRARIES_C}

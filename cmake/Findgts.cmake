@@ -2,7 +2,7 @@
 Findgts
 ---------
 
-Find the native XmTML headers and library.
+Find the native gts headers and library.
 
 Imported Targets
 ^^^^^^^^^^^^^^^^

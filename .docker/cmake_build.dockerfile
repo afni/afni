@@ -34,15 +34,18 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libglu1-mesa-dev \
     libglw1-mesa-dev \
     libgsl-dev \
+    libgts-dev \
     libjpeg62 \
     libmotif-dev \
     libnetcdf-dev \
+    libqhull-dev \
     libtool \
     libxi-dev \
     libxmhtml-dev \
     libxmu-dev \
     libxpm-dev \
     libxt-dev \
+    libvolpack1-dev \
     m4 \
     ncurses-dev \
     ninja-build \
