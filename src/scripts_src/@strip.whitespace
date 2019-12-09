@@ -87,7 +87,7 @@ foreach file ( $filelist )
    # if no diff, just move on
    if ( ! $status ) continue
 
-   echo "==== diffs ====================  $file "
+   echo "========== diffs for: $file"
 
    # show?
    if ( $show ) then
