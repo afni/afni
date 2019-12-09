@@ -299,7 +299,7 @@ foreach(
   target_compile_definitions(${target} PRIVATE "REPLACE_XT")
   target_link_libraries(${target} PRIVATE AFNI::mri m)
 endforeach(target)
-target_link_libraries(3dproject PRIVATE AFNI::volpack)
+target_link_libraries(3dproject PRIVATE $<TARGET_NAME_IF_EXISTS:volpack>)
 
 add_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
 add_executable(

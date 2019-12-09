@@ -2,13 +2,12 @@ project(SUMA)
 
 # Check for and configure for external dependencies
 find_package(OpenGL REQUIRED)
-find_package(GLUT REQUIRED)
-find_library(GLw REQUIRED)
+optional_bundle(GLUT)
 
 # Certain binaries will not be built if the following are
 # not found
 find_package(GLib2)
-find_package(gts)
+optional_bundle(gts)
 
 # SUMA library
 add_library(
