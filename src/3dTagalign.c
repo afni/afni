@@ -103,7 +103,7 @@ void usage_3dTagalign(int detail) {
        "\n"
        "Author: RWCox - 16 Jul 2000, etc.\n"
             ) ;
-      PRINT_COMPILE_DATE ; 
+      PRINT_COMPILE_DATE ;
       return;
 }
 /*-------------------------------------------------------------------------*/
@@ -130,7 +130,7 @@ int main( int argc , char * argv[] )
    int use_3dWarp=1 , matrix_type=ROTATION ;
 
    mainENTRY("3dTagalign main");
-   
+
    /*--- help? ---*/
 
    /*- scan args -*/
@@ -144,7 +144,7 @@ int main( int argc , char * argv[] )
         usage_3dTagalign(strlen(argv[iarg]) > 3 ? 2:1);
         exit(0);
       }
-      
+
      /*-----*/
 
      if( strcmp(argv[iarg],"-NN")     == 0 ){
@@ -157,7 +157,7 @@ int main( int argc , char * argv[] )
        RMETH = MRI_CUBIC ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-quintic") == 0 ){
-       RMETH = MRI_QUINTIC ; iarg++ ; continue ;  
+       RMETH = MRI_QUINTIC ; iarg++ ; continue ;
      }
 
       /*-----*/
@@ -307,7 +307,7 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; 
+      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1) ;
 
@@ -515,7 +515,7 @@ int main( int argc , char * argv[] )
                          ADN_label1 , prefix ,
                       ADN_none ) ;
 
-     if( !THD_ok_overwrite() && 
+     if( !THD_ok_overwrite() &&
          (THD_deathcon() && THD_is_file(dset->dblk->diskptr->header_name) )){
         fprintf(stderr,
                 "** Output file %s already exists -- cannot continue!\n",
