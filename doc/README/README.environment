@@ -523,7 +523,14 @@ on the Define Datamode panel.
 Variable: AFNI_TIME_LOCK
 --------------------------
 Setting this YES/NO variable to YES tells AFNI to start up with
-Time Lock turned on. The Time Lock feature is can be set manually
+Time lock turned on. The Time Lock feature can be set manually
+from the Lock menu on the Define Datamode panel.
+
+--------------------------
+Variable: AFNI_ZOOM_LOCK
+--------------------------
+Setting this YES/NO variable to YES tells AFNI to start up with
+Zoom lock turned on. The Zoom Lock feature can be set manually
 from the Lock menu on the Define Datamode panel.
 
 ------------------------

@@ -308,7 +308,7 @@ static char *  gimp_path          = NULL ;  /* 27 Oct 2017 */
 
 #define GIFSICLE_SUFFIX    "-O2 -d %d -k 127 -l %%s > %%s"
 #define WHIRLGIF_SUFFIX    "-time %d -loop %%s > %%s"
-#define MPEG_ENCODE_SUFFIX "-realquiet %s"
+#define FFMPEG_SUFFIX "-loglevel quiet -y"
 
 #define DO_AGIF(sq) ((sq)->opt.save_agif)
 #define DO_MPEG(sq) ((sq)->opt.save_mpeg)
@@ -390,15 +390,15 @@ void ISQ_setup_ppmto_filters(void)
 
       ppmto_ppm_filter = str ;  /* save this filter string */
 
-      pg = THD_find_executable( "mpeg_encode" ) ;
+      pg = THD_find_executable( "ffmpeg" ) ;  /* ffmpeg replaces mpeg_encode [09 Dec 2019] */
       if( pg != NULL ){
          str = AFMALL( char, strlen(pg)+64) ;
-         sprintf(str,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
+         sprintf(str,"%s %s",pg,FFMPEG_SUFFIX) ;
          ppmto_mpeg_filter = str ;
          if( dbg ) fprintf(stderr,"IMSAVE: animation filter '%s' for suffix '%s'\n",
                            str , "mpg" ) ;
       }
-      else CANT_FIND("mpeg_encode","MPEG-1") ;
+      else CANT_FIND("ffmpeg","MPEG-1") ;
    }
    else CANT_FIND("cat","PPM") ;  /* this is the end of the world! */
 
@@ -2394,6 +2394,7 @@ ENTRY("ISQ_zoom_av_CB") ;
    /* must redisplay image totally */
 
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   ZOOM_CHANGE(seq) ; /* 10 Dec 2019 */
 
    EXRETURN ;
 }
@@ -2460,6 +2461,7 @@ ENTRY("ISQ_actually_pan") ;
    seq->zoom_hor_off = hh ;                    /* changes! */
    seq->zoom_ver_off = vv ;
    ISQ_show_zoom( seq ) ;                      /* redraw */
+   ZOOM_CHANGE(seq) ;      /* 10 Dec 2019 */
    EXRETURN ;
 }
 
@@ -4480,63 +4482,33 @@ ENTRY("ISQ_saver_CB") ;
             /* MPEG-1 */
 
             else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
-               int alen ; char *alf , *oof , *par , *frate ;
-               char *qscale , *pattrn ; int mpar=0 ;
-               FILE *fpar ;
+               int alen ; char *alf , *oof , *frate ;
+               char *qscale , *pattrn ;
 
-               /* write mpeg_encode parameter file */
-
-               par = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* param fname */
-               sprintf(par,"%s%s.PARAM",seq->saver_prefix,tsuf) ;
-
-               if( dbg ) fprintf(stderr,"  creating MPEG parameter file %s\n",par) ;
-               fpar = fopen( par , "w" ) ;
-               if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
+               /* compose ffmpeg parameters */
                oof = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
                sprintf(oof,"%smpg",seq->saver_prefix) ;
                qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11" ;
                frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24" ;
                pattrn=getenv("AFNI_MPEG_PATTERN")  ;
                if( pattrn == NULL ){                  /* 07 Apr 2009 */
-                 if( adup <= 1 ) pattrn="IIIII";
-                 else {
-                   pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
-                   pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
-                 }
+                 /* by default use only I-frames */
+                 if( adup <= 1 ) pattrn="-intra";
+                 /* otherwise go with ffmpegs default */
+                 else pattrn="";
                }
-               fprintf(fpar,
-                          "OUTPUT %s\n"             /* oof */
-                          "GOP_SIZE          5\n"
-                          "SLICES_PER_FRAME  1\n"
-                          "FRAME_RATE        %s\n"  /* frate */
-                          "BASE_FILE_FORMAT  PPM\n"
-                          "INPUT_CONVERT     *\n"
-                          "INPUT_DIR         .\n"
-                          "PATTERN           %s\n"  /* pattrn */
-                          "IQSCALE           %s\n"  /* qscale */
-                          "PQSCALE           10\n"
-                          "BQSCALE           25\n"
-                          "PIXEL             HALF\n"
-                          "RANGE             10 4\n"
-                          "PSEARCH_ALG       LOGARITHMIC\n"
-                          "BSEARCH_ALG       SIMPLE\n"
-                          "REFERENCE_FRAME   ORIGINAL\n"
-                          "INPUT\n"
-                          "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
-                          "END_INPUT\n"
-                       , oof , frate , pattrn , qscale ,
-                         seq->saver_prefix,tsuf,0,akk-1 ) ;
-               fclose(fpar) ;
-               if( mpar ) free(pattrn) ;
-
                /* make command to run */
-
-               alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+               alen = strlen(seq->saver_prefix) + strlen(ppmto_mpeg_filter)
+                      +1000 ;
                alf  = AFMALL( char, alen) ;
-               sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+               /* output fps default to 25 */
+               sprintf(alf,
+                 "%s -r %s -f image2 -i %s%s.%%06d.ppm -b 400k -qscale %s %s %s",
+                 ppmto_mpeg_filter, frate, seq->saver_prefix, tsuf, qscale,
+                 pattrn, oof) ; /* command to run */
                INFO_message("Running '%s' to produce %s\n",alf,oof) ;
                system(alf) ;                            /* so run it!    */
-               remove(par); free(alf); free(oof); free(par); /* free trash   */
+               free(alf); free(oof); /* free trash   */
             }
 
             /* animation is done, for good or for ill */
@@ -5271,7 +5243,7 @@ STATUS("creating new pixmap") ;
 
       if( xwasbad ){
         fprintf(stderr,"** Can't zoom - out of memory! **\n\a");
-        AV_assign_ival( seq->zoom_val_av , 1 ) ;
+        AV_assign_ival( seq->zoom_val_av , ZOOM_BOT ) ;
         ISQ_zoom_av_CB( seq->zoom_val_av , seq ) ;
         busy = 0 ; RETURN(-1) ;
       }
@@ -5381,8 +5353,10 @@ ENTRY("ISQ_show_image") ;
        seq->mont_nx   == 1    &&
        seq->mont_ny   == 1      ){    /* show a zoomed image instead */
 
-      int ss = ISQ_show_zoom( seq ) ;
-      if( ss > 0 ) EXRETURN ;         /* if it failed, fall through */
+      int ss = ISQ_show_zoom( seq ) ;  /* ss > 0 is good zoom */
+      if( ss > 0 ){        /* if failed, fall through to code farther below */
+        EXRETURN ;
+      }
    }
 
    if( seq->given_xim != NULL && seq->sized_xim == NULL ){
@@ -6636,7 +6610,7 @@ ENTRY("ISQ_but_disp_CB") ;
                                  "* This takes precedence over 'Save One',\n"
                                  "    if it is also turned on.\n"
                                  "* GIF animations require gifsicle.\n"
-                                 "* MPEG-1 animations require mpeg_encode.\n"
+                                 "* MPEG-1 animations require ffmpeg.\n"
                                ) ;
            MCW_reghint_children( seq->save_agif_bbox->wrowcol ,
                                  "Save image sequence to animation" ) ;
@@ -7679,6 +7653,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_get_crop        (int *) 4 ints that specify current crop status
 *    isqDR_set_crop        (int *) 4 ints to change current crop status
+*    isqDR_get_zoom        (int *) 1 int to receive zoom level (1-4)
+*    isqDR_set_zoom        (int *) 1 int to set zoom level (1-4)
+*    isqDR_get_panoff      (float *) 2 floats = panning offsets
+*    isqDR_set_panoff      (float *) 2 floats to set panning offsets
 
 *    isqDR_allowmerger     (ignored) allows the 3,4,5,6 'merger' buttons
 
@@ -8072,6 +8050,67 @@ static unsigned char record_bits[] = {
         if( seq->ov_opacity_av == NULL || val == NULL ) RETURN( False ) ;
         *val = seq->ov_opacity_av->ival ;
         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- get zoom data [10 Dec 2019] -----------*/
+
+      case isqDR_get_zoom:{
+        int *iar = (int *)drive_data ;
+        if( iar != NULL ){
+          iar[0] = seq->zoom_fac ;
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- set zoom data [10 Dec 2019] -----------*/
+
+      case isqDR_set_zoom:{
+        int *val = (int *)drive_data ;
+        if( val != NULL && *val >= ZOOM_BOT && *val <= ZOOM_TOP      &&
+                                               *val != seq->zoom_fac   ){
+          AV_assign_ival( seq->zoom_val_av , *val ) ;
+          ISQ_zoom_av_CB( seq->zoom_val_av , seq ) ;
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- set the panning offsets [10 Dec 2019] ----------*/
+
+      case isqDR_set_panoff:{
+        float *val = (float *)drive_data , zlev = seq->zoom_fac ;;
+        if( val != NULL && zlev > 1.0f ){
+          float hoff = val[0] , voff = val[1] , mh = (zlev-1.001f)/zlev ;
+               if( hoff > mh  ) hoff = mh  ;
+          else if( hoff < 0.0 ) hoff = 0.0 ;
+               if( voff > mh  ) voff = mh  ;
+          else if( voff < 0.0 ) voff = 0.0 ;
+          if( hoff != seq->zoom_hor_off || voff != seq->zoom_ver_off ){
+            seq->zoom_hor_off = hoff ;
+            seq->zoom_ver_off = voff ;
+            ISQ_show_zoom( seq ) ;  /* no visible panning widgets to alter */
+            ZOOM_CHANGE(seq) ;
+          }
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- get the panning offsets [10 Dec 2019] ----------*/
+
+      case isqDR_get_panoff:{
+        float *val = (float *)drive_data , zlev = seq->zoom_fac ;
+        if( val != NULL ){
+          if( zlev > 1.0f ){
+            val[0] = seq->zoom_hor_off ;
+            val[1] = seq->zoom_ver_off ;
+          } else {
+            val[0] = val[1] = 0.0f ;
+          }
+        }
+        RETURN(True) ;
       }
       break ;
 
@@ -9723,6 +9762,7 @@ INFO_message("Start Montagizing") ;
          if( seq->mont_mode > 0 ){
            nim = seq->im_nr ;
            div = (seq->mont_skip + 1) * (ij - ijcen) ;
+if( AFNI_yesenv("TMONT") )
 ININFO_message("set deltival=%d  nim=%d",div,nim) ;
            ISQ_set_deltival( seq , div ) ;
          } else {
@@ -13926,64 +13966,33 @@ ENTRY("ISQ_save_anim") ;
       /* MPEG-1 */
 
       case MPEG_MODE:{
-        int alen ; char *alf , *oof , *par , *frate ;
-        char *qscale , *pattrn ; int mpar=0 ;
-        FILE *fpar ;
+        int alen ; char *alf , *oof , *frate ;
+        char *qscale , *pattrn ;
 
-        /* write mpeg_encode parameter file */
-
-        par = AFMALL( char, strlen(ppo)+32 ) ; /* param fname */
-        sprintf(par,"%s%s.PARAM",ppo,tsuf) ;
-
-        fpar = fopen( par , "w" ) ;
-        if( fpar == NULL ){ free(par) ; break ; }
+        /* compose ffmpeg parameters */
         oof = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
         sprintf(oof,"%smpg",prefix) ;
         qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11";
         frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24";
         pattrn=getenv("AFNI_MPEG_PATTERN")  ;
         if( pattrn == NULL ){
-          if( adup <= 1 ) pattrn="IIIII";
-          else {
-            pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
-            pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
-          }
+            /* by default use only I-frames */
+            if( adup <= 1 ) pattrn="-intra";
+            /* otherwise go with ffmpegs default */
+            else pattrn="";
         }
-        fprintf(fpar,
-                  "OUTPUT %s\n"             /* oof */
-                  "GOP_SIZE          5\n"
-                  "SLICES_PER_FRAME  1\n"
-                  "FRAME_RATE        %s\n"  /* frate */
-                  "BASE_FILE_FORMAT  PPM\n"
-                  "INPUT_CONVERT     *\n"
-                  "INPUT_DIR         .\n"
-                  "PATTERN           %s\n"  /* pattrn */
-                  "IQSCALE           %s\n"  /* qscale */
-                  "PQSCALE           10\n"
-                  "BQSCALE           25\n"
-                  "PIXEL             HALF\n"
-                  "RANGE             10 4\n"
-                  "PSEARCH_ALG       LOGARITHMIC\n"
-                  "BSEARCH_ALG       SIMPLE\n"
-                  "REFERENCE_FRAME   ORIGINAL\n"
-                  "INPUT\n"
-                  "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
-                  "END_INPUT\n"
-               , oof , frate , pattrn , qscale ,
-                 /* akk is 1 too big, was corrected elsewhere  27 Nov 2017 */
-                 ppo,tsuf,0,akk-1) ;
-        fclose(fpar) ;
-        if( mpar ) free(pattrn) ;
-
         /* make command to run */
-
-        alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+        alen = strlen(seq->saver_prefix) + strlen(ppmto_mpeg_filter)
+                      +1000 ;
         alf  = AFMALL( char, alen) ;
-        sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+        sprintf(alf,
+          "%s -r %s -f image2 -i %s%s.%%06d.ppm -b 400k -qscale %s %s %s",
+          ppmto_mpeg_filter, frate, seq->saver_prefix, tsuf, qscale,
+          pattrn, oof) ; /* command to run */
         INFO_message("Running '%s' to produce %s",alf,oof) ;
         if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
         system(alf) ;                            /* so run it!    */
-        remove(par); free(alf); free(oof); free(par); /* free trash   */
+        free(alf); free(oof); /* free trash   */
       }
       break ;
      }

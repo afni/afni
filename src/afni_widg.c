@@ -6847,9 +6847,9 @@ void AFNI_lock_button( Three_D_View *im3d )
       "Lock [P]", "Lock [Q]", "Lock [R]", "Lock [S]", "Lock [T]",
       "Lock [U]", "Lock [V]", "Lock [W]", "Lock [X]", "Lock [Y]", "Lock [Z]" } ;
 
-   static char *tlabel[] = { "Time Lock" } ;
-
-   static char *ijklabel[] = { "IJK lock" } ;
+   static char *tlabel[]   = { "Time lock" } ;
+   static char *ijklabel[] = { "IJK lock"  } ;
+   static char *zplabel[]  = { "Zoom lock" } ;
 
 ENTRY("AFNI_lock_button") ;
 
@@ -6950,9 +6950,7 @@ ENTRY("AFNI_lock_button") ;
                                          1 , tlabel ,
                                          MCW_BB_check , MCW_BB_noframe ,
                                          AFNI_time_lock_change_CB , (XtPointer)im3d ) ;
-
    MCW_set_bbox( dmode->time_lock_bbox , GLOBAL_library.time_lock ) ;
-
    MCW_reghint_children( dmode->time_lock_bbox->wrowcol ,
                          "Lock time index as well?" ) ;
 
@@ -6960,11 +6958,19 @@ ENTRY("AFNI_lock_button") ;
                                         1 , ijklabel ,
                                         MCW_BB_check , MCW_BB_noframe ,
                                         AFNI_ijk_lock_change_CB , (XtPointer)im3d ) ;
-
    MCW_set_bbox( dmode->ijk_lock_bbox , GLOBAL_library.ijk_lock ) ;
-
    MCW_reghint_children( dmode->ijk_lock_bbox->wrowcol ,
-                         "Lock using voxel indices?" ) ;
+                         "Space lock using voxel indices?" ) ;
+
+    /* zoom/pan locking [10 Dec 2019] */
+
+    dmode->zoompan_lock_bbox = new_MCW_bbox( menu ,
+                                          1 , zplabel ,
+                                          MCW_BB_check , MCW_BB_noframe ,
+                                          AFNI_zoompan_lock_change_CB , (XtPointer)im3d ) ;
+    MCW_set_bbox( dmode->zoompan_lock_bbox , GLOBAL_library.zoompan_lock ) ;
+    MCW_reghint_children( dmode->zoompan_lock_bbox->wrowcol ,
+                          "Lock zooming/panning?" ) ;
 
    /*** button box to control the threshold lock ***/
 

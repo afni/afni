@@ -964,6 +964,17 @@ ENTRY("AFNI_drive_open_window") ;
         ms += 100 ;
       }
 
+      /* zoom [10 Dec 2019] */
+
+      cpt = strstr(cmd,"zoom=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"zoom:") ;
+      if( cpt != NULL ){
+        int val=-666 ;  /* a beastly thing to do */
+        sscanf(cpt+5,"%d",&val) ;
+        drive_MCW_imseq( isq , isqDR_set_zoom , &val ) ;
+        ms += 100 ;
+      }
+
       /* range [15 Oct 2012] */
 
       cpt = strstr(cmd,"range=") ;

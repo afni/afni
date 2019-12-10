@@ -107,7 +107,7 @@ void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
 
 ENTRY("AFNI_lock_enforce_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   AFNI_lock_carryout( im3d ) ;
+   AFNI_space_lock_carryout( im3d ) ;
    AFNI_time_lock_carryout( im3d ) ;  /* 03 Nov 1998 */
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -201,7 +201,7 @@ ENTRY("AFNI_lock_setall_CB") ;
 /*------------------------------------------------------------------------*/
 /* Do the locking of spatial coordinates */
 
-void AFNI_lock_carryout( Three_D_View *im3d )
+void AFNI_space_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    int ii,jj,kk , cc , glock ;
@@ -210,7 +210,7 @@ void AFNI_lock_carryout( Three_D_View *im3d )
    THD_dataxes *qaxes , *daxes ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
 
-ENTRY("AFNI_lock_carryout") ;
+ENTRY("AFNI_space_lock_carryout") ;
 
    /* first, determine if there is anything to do */
 
@@ -830,6 +830,129 @@ ENTRY("AFNI_func_pbarlock_change_CB") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------
+    10 Dec 2019: zoom/pan locking on or off
+-------------------------------------------------------------------------*/
+
+void AFNI_zoompan_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   Three_D_View *qq3d ;
+   int           bval , ii , bold ;
+
+ENTRY("AFNI_zoompan_lock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   /* get current global setting and compare to changed lock box */
+
+   bold = GLOBAL_library.zoompan_lock ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->zoompan_lock_bbox ) ;
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   /* new value --> save in global setting */
+
+   GLOBAL_library.zoompan_lock = bval ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+
+     MCW_set_bbox( qq3d->vwid->dmode->zoompan_lock_bbox , bval ) ;
+   }
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/* Locking for the zoom+pan image viewers [10 Dec 2019] */
+
+void AFNI_zoompan_lock_carryout( Three_D_View *im3d )
+{
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+   Three_D_View *qq3d ;
+   MCW_imseq *seq ;
+   int ii,jj,kk , cc , glock ;
+   int axi_zlev=0 ; float axi_poff[2] ;
+   int sag_zlev=0 ; float sag_poff[2] ;
+   int cor_zlev=0 ; float cor_poff[2] ;
+
+ENTRY("AFNI_zoompan_locks_carryout") ;
+
+   if( busy || !IM3D_VALID(im3d)    ) EXRETURN ;
+   if( GLOBAL_library.ignore_lock   ) EXRETURN ;
+   if( !GLOBAL_library.zoompan_lock ) EXRETURN ;
+   if( !IM3D_IMAGIZED(im3d)         ) EXRETURN ;
+
+   glock = GLOBAL_library.controller_lock ;      /* not a handgun */
+   if( glock == 0 )                   EXRETURN ; /* nothing to do */
+
+   ii = AFNI_controller_index(im3d) ;            /* which one am I? */
+
+   if( ii < 0 )                       EXRETURN ; /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 )       EXRETURN ; /* input not locked */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   /* find the zoom and pan parameters for the current image viewers */
+
+   seq = IM3D_AXIALIMAGE(im3d) ;
+   if( seq != NULL ){
+     drive_MCW_imseq( seq, isqDR_get_zoom  , &axi_zlev ) ;
+     drive_MCW_imseq( seq, isqDR_get_panoff, axi_poff  ) ;
+   }
+
+   seq = IM3D_SAGITTALIMAGE(im3d) ;
+   if( seq != NULL ){
+     drive_MCW_imseq( seq, isqDR_get_zoom  , &sag_zlev ) ;
+     drive_MCW_imseq( seq, isqDR_get_panoff, sag_poff  ) ;
+   }
+
+   seq = IM3D_CORONALIMAGE(im3d) ;
+   if( seq != NULL ){
+     drive_MCW_imseq( seq, isqDR_get_zoom  , &cor_zlev ) ;
+     drive_MCW_imseq( seq, isqDR_get_panoff, cor_poff  ) ;
+   }
+
+   /* loop through other controllers:
+        for those that ARE open, ARE NOT the current one,
+        and ARE locked, set zoom and pan to match
+        this controller's corresponding image viewers */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+
+       seq = IM3D_AXIALIMAGE(qq3d) ;
+       if( seq != NULL ){
+         drive_MCW_imseq( seq, isqDR_set_zoom  , &axi_zlev ) ;
+         drive_MCW_imseq( seq, isqDR_set_panoff, axi_poff  ) ;
+       }
+
+       seq = IM3D_SAGITTALIMAGE(qq3d) ;
+       if( seq != NULL ){
+         drive_MCW_imseq( seq, isqDR_set_zoom  , &sag_zlev ) ;
+         drive_MCW_imseq( seq, isqDR_set_panoff, sag_poff  ) ;
+       }
+
+       seq = IM3D_CORONALIMAGE(qq3d) ;
+       if( seq != NULL ){
+         drive_MCW_imseq( seq, isqDR_set_zoom  , &cor_zlev ) ;
+         drive_MCW_imseq( seq, isqDR_set_panoff, cor_poff  ) ;
+       }
+     }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
 /*------------------------------------------------------------------------*/
 /* Enforce all locks at the same time [03 Jul 2014] */
 
@@ -846,11 +969,12 @@ ENTRY("AFNI_all_locks_carryout") ;
 INFO_message("AFNI_all_locks_carryout: im3d index = %d",AFNI_controller_index(im3d)) ;
 #endif
 
-   AFNI_lock_carryout       ( im3d ) ;
-   AFNI_time_lock_carryout  ( im3d ) ;
-   AFNI_thresh_lock_carryout( im3d ) ;
-   AFNI_pbar_lock_carryout  ( im3d ) ;
-   AFNI_range_lock_carryout ( im3d ) ;
+   AFNI_space_lock_carryout  ( im3d ) ;
+   AFNI_time_lock_carryout   ( im3d ) ;
+   AFNI_thresh_lock_carryout ( im3d ) ;
+   AFNI_pbar_lock_carryout   ( im3d ) ;
+   AFNI_range_lock_carryout  ( im3d ) ;
+   AFNI_zoompan_lock_carryout( im3d ) ; /* 10 Dec 2019 */
 
    AFNI_sleep(1) ; busy = 0 ; EXRETURN ;
 }
