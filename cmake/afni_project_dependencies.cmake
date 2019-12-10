@@ -1,7 +1,7 @@
 include(CPack)
 include(CMakePackageConfigHelpers)
-include(FindMotif)
-include(FindNetCDF)
+find_package(Motif REQUIRED)
+find_package(NetCDF REQUIRED)
 include(FindX11)
 include(FindStandardMathLibrary)
 include(FindLibR)
@@ -17,6 +17,8 @@ if(NOT USE_OMP)
 endif()
 
 set_if_not_defined(USE_SYSTEM_F2C ON)
+set_if_not_defined(USE_SYSTEM_QHULL ON)
+
 # Find or fetch nifti_clib a prefix can be used to avoid collisions with pre-existing
 # installations of the nifti libraries
 include(get_nifti_and_gifti_targets)
