@@ -888,7 +888,8 @@ typedef struct {
       Widget         misc_vcheck_pb, misc_purge_pb, misc_tracing_pb,
                      misc_showmalloc_pb , misc_dumpmalloc_pb ;
 
-      MCW_bbox     * time_lock_bbox ;  /* 03 Nov 1998 */
+      MCW_bbox     * time_lock_bbox ;    /* 03 Nov 1998 */
+      MCW_bbox     * zoompan_lock_bbox ; /* 10 Dec 2019 */
 
       Widget         misc_writeownsize_pb ;   /* 01 Aug 1999 */
       MCW_bbox     * misc_writeownsize_bbox ;
@@ -1491,6 +1492,16 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 #define IM3D_IMAGIZED(iq) \
  ( (iq)->s123 != NULL || (iq)->s231 != NULL || (iq)->s312 != NULL )
 
+/* Friendlier names for viewers [10 Dec 2019] */
+
+#define IM3D_AXIALIMAGE(iq)    (iq)->s123
+#define IM3D_SAGITTALIMAGE(iq) (iq)->s231
+#define IM3D_CORONALIMAGE(iq)  (iq)->s312
+
+#define IM3D_AXIALGRAPH(iq)    (iq)->g123
+#define IM3D_SAGITTALGRAPH(iq) (iq)->g231
+#define IM3D_CORONALGRAPH(iq)  (iq)->g312
+
 /*! Is any graph viewer window open? */
 
 #define IM3D_GRAPHIZED(iq) \
@@ -1704,6 +1715,7 @@ typedef struct {
 
    int ijk_lock ;                                /* 11 Sep 2000 */
    int thr_lock ;
+   int zoompan_lock ;                            /* 10 Dec 2019 */
 
    THD_session *session ;                        /* 20 Dec 2001 */
 
@@ -1838,12 +1850,15 @@ extern void AFNI_lock_enforce_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_change_CB ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_clear_CB  ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_setall_CB ( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_lock_carryout  ( Three_D_View * ) ;
+extern void AFNI_space_lock_carryout  ( Three_D_View * ) ; /* (name change) */
 
 extern void AFNI_all_locks_carryout( Three_D_View *im3d ) ; /* 03 Jul 2014 */
 
-extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
+extern void AFNI_time_lock_carryout( Three_D_View * ) ;     /* 03 Nov 1998 */
 extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void AFNI_zoompan_lock_carryout( Three_D_View * ) ;  /* 10 Dec 2019 */
+extern void AFNI_zoompan_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_thresh_lock_carryout( Three_D_View * ) ; /* 06 Feb 2004 */
 extern void AFNI_pbar_lock_carryout  ( Three_D_View * ) ; /* 07 Feb 2004 */

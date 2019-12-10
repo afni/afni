@@ -2363,6 +2363,7 @@ int main( int argc , char *argv[] )
    GLOBAL_library.controller_lock = 0 ; ENABLE_LOCK ;
    GLOBAL_library.time_lock = 0 ;                      /* 03 Nov 1998 */
    GLOBAL_library.ijk_lock  = 0 ;                      /* 11 Sep 2000 */
+   GLOBAL_library.zoompan_lock = 0 ;                   /* 10 Dec 2019 */
    SET_FIM_bkthr(10.0) ;                               /* 02 Jun 1999 */
 
    GLOBAL_library.hints_on  = 0 ;                      /* 07 Aug 1999 */
@@ -2655,6 +2656,10 @@ int main( int argc , char *argv[] )
 
    if( AFNI_yesenv("AFNI_TIME_LOCK") ){
        GLOBAL_library.time_lock = 1 ;
+   }
+
+   if( AFNI_yesenv("AFNI_ZOOM_LOCK") ){    /* 10 Dec 2019 */
+       GLOBAL_library.zoompan_lock = 1 ;
    }
 
    /* default opacity [06 Jun 2019] */
@@ -5734,6 +5739,13 @@ if(PRINT_TRACING)
       }
       break ; /* end of opacity change */
 
+      /*--- 10 Dec 2019: zoom change ---*/
+
+      case isqCR_zoomchange:{
+        AFNI_zoompan_lock_carryout(im3d) ;
+      }
+      break ; /* end of opacity change */
+
       /*--- 26 Apr 2007: time indexing ---*/
 
       case isqCR_setindex:{
@@ -8418,7 +8430,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    }
 
    if( do_lock && !doflash )        /* 11 Nov 1996 */
-      AFNI_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
+      AFNI_space_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
 
    /** Feb 1998: if desired, send coordinates to receiver **/
    /** Mar 1999: do it in an external routine, not here.  **/

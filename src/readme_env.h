@@ -525,7 +525,14 @@ static char *readme_env[] = {
    "Variable: AFNI_TIME_LOCK\n" ,
    "--------------------------\n" ,
    "Setting this YES/NO variable to YES tells AFNI to start up with\n" ,
-   "Time Lock turned on. The Time Lock feature is can be set manually\n" ,
+   "Time lock turned on. The Time Lock feature can be set manually\n" ,
+   "from the Lock menu on the Define Datamode panel.\n" ,
+   "\n" ,
+   "--------------------------\n" ,
+   "Variable: AFNI_ZOOM_LOCK\n" ,
+   "--------------------------\n" ,
+   "Setting this YES/NO variable to YES tells AFNI to start up with\n" ,
+   "Zoom lock turned on. The Zoom Lock feature can be set manually\n" ,
    "from the Lock menu on the Define Datamode panel.\n" ,
    "\n" ,
    "------------------------\n" ,
@@ -4447,4 +4454,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4446
+#define NUM_readme_env 4453

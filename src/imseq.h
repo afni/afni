@@ -299,6 +299,7 @@ typedef struct {
 #define isqCR_globalrange       605 /* 03 Feb 2013 */
 #define isqCR_resetglobalrange  606
 #define isqCR_opacitychange     607 /* 06 Jun 2019 */
+#define isqCR_zoomchange        608 /* 10 Dec 2019 */
 
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
@@ -328,6 +329,19 @@ typedef struct {
          } else {                                                    \
             KILL_2XIM( (sq)->given_xbar , (sq)->sized_xbar ) ;       \
             ISQ_redisplay( (sq) , -1 , isqDR_display ) ;             \
+         }                                                           \
+    } } while(0)
+
+#define ZOOM_CHANGE(sq)                                              \
+  do{ if( ISQ_REALZ((sq)) ){                                         \
+         if( (sq)->status->send_CB != NULL ){                        \
+            ISQ_cbs cbs ;                                            \
+            cbs.reason = isqCR_zoomchange ;                          \
+            cbs.nim    = 0 ;                                         \
+            AFNI_CALL_VOID_3ARG( (sq)->status->send_CB      ,        \
+                                 MCW_imseq * , (sq)         ,        \
+                                 XtPointer   , (sq)->getaux ,        \
+                                 ISQ_cbs *   , &cbs          ) ;     \
          }                                                           \
     } } while(0)
 
@@ -716,6 +730,10 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_penbbox         610  /* 18 Jul 2003 */
 #define isqDR_get_crop        611  /* 03 May 2007 */
 #define isqDR_set_crop        612  /* 03 May 2007 */
+#define isqDR_get_zoom        613  /* 10 Dec 2019 */
+#define isqDR_set_zoom        614  /* 10 Dec 2019 */
+#define isqDR_get_panoff      615  /* 10 Dec 2019 */
+#define isqDR_set_panoff      616  /* 10 Dec 2019 */
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */

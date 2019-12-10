@@ -336,6 +336,9 @@ OPEN_WINDOW [c.]windowname [options]
     crop=x1:x2,y1:y2 -> crop images from voxels x1 to x2, and y1 to y2
                         (inclusive) -- mostly for use in .afni.startup_script;
                         use x1=x2=0 and y1=y2=0 to turn cropping off.
+    zoom=Z           -> set the zoom factor for this image window to Z,
+                        which must be an integer from 1-4 (inclusive);
+                        note that zooming and montaging do NOT work together!
 
     overlay_label="some string"
                      -> This option sets the "Label Append String";

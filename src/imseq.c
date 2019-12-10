@@ -390,7 +390,7 @@ void ISQ_setup_ppmto_filters(void)
 
       ppmto_ppm_filter = str ;  /* save this filter string */
 
-      pg = THD_find_executable( "ffmpeg" ) ;
+      pg = THD_find_executable( "ffmpeg" ) ;  /* ffmpeg replaces mpeg_encode [09 Dec 2019] */
       if( pg != NULL ){
          str = AFMALL( char, strlen(pg)+64) ;
          sprintf(str,"%s %s",pg,FFMPEG_SUFFIX) ;
@@ -2394,6 +2394,7 @@ ENTRY("ISQ_zoom_av_CB") ;
    /* must redisplay image totally */
 
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   ZOOM_CHANGE(seq) ; /* 10 Dec 2019 */
 
    EXRETURN ;
 }
@@ -2460,6 +2461,7 @@ ENTRY("ISQ_actually_pan") ;
    seq->zoom_hor_off = hh ;                    /* changes! */
    seq->zoom_ver_off = vv ;
    ISQ_show_zoom( seq ) ;                      /* redraw */
+   ZOOM_CHANGE(seq) ;      /* 10 Dec 2019 */
    EXRETURN ;
 }
 
@@ -5241,7 +5243,7 @@ STATUS("creating new pixmap") ;
 
       if( xwasbad ){
         fprintf(stderr,"** Can't zoom - out of memory! **\n\a");
-        AV_assign_ival( seq->zoom_val_av , 1 ) ;
+        AV_assign_ival( seq->zoom_val_av , ZOOM_BOT ) ;
         ISQ_zoom_av_CB( seq->zoom_val_av , seq ) ;
         busy = 0 ; RETURN(-1) ;
       }
@@ -5351,8 +5353,10 @@ ENTRY("ISQ_show_image") ;
        seq->mont_nx   == 1    &&
        seq->mont_ny   == 1      ){    /* show a zoomed image instead */
 
-      int ss = ISQ_show_zoom( seq ) ;
-      if( ss > 0 ) EXRETURN ;         /* if it failed, fall through */
+      int ss = ISQ_show_zoom( seq ) ;  /* ss > 0 is good zoom */
+      if( ss > 0 ){        /* if failed, fall through to code farther below */
+        EXRETURN ;
+      }
    }
 
    if( seq->given_xim != NULL && seq->sized_xim == NULL ){
@@ -7649,6 +7653,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_get_crop        (int *) 4 ints that specify current crop status
 *    isqDR_set_crop        (int *) 4 ints to change current crop status
+*    isqDR_get_zoom        (int *) 1 int to receive zoom level (1-4)
+*    isqDR_set_zoom        (int *) 1 int to set zoom level (1-4)
+*    isqDR_get_panoff      (float *) 2 floats = panning offsets
+*    isqDR_set_panoff      (float *) 2 floats to set panning offsets
 
 *    isqDR_allowmerger     (ignored) allows the 3,4,5,6 'merger' buttons
 
@@ -8042,6 +8050,67 @@ static unsigned char record_bits[] = {
         if( seq->ov_opacity_av == NULL || val == NULL ) RETURN( False ) ;
         *val = seq->ov_opacity_av->ival ;
         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- get zoom data [10 Dec 2019] -----------*/
+
+      case isqDR_get_zoom:{
+        int *iar = (int *)drive_data ;
+        if( iar != NULL ){
+          iar[0] = seq->zoom_fac ;
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- set zoom data [10 Dec 2019] -----------*/
+
+      case isqDR_set_zoom:{
+        int *val = (int *)drive_data ;
+        if( val != NULL && *val >= ZOOM_BOT && *val <= ZOOM_TOP      &&
+                                               *val != seq->zoom_fac   ){
+          AV_assign_ival( seq->zoom_val_av , *val ) ;
+          ISQ_zoom_av_CB( seq->zoom_val_av , seq ) ;
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- set the panning offsets [10 Dec 2019] ----------*/
+
+      case isqDR_set_panoff:{
+        float *val = (float *)drive_data , zlev = seq->zoom_fac ;;
+        if( val != NULL && zlev > 1.0f ){
+          float hoff = val[0] , voff = val[1] , mh = (zlev-1.001f)/zlev ;
+               if( hoff > mh  ) hoff = mh  ;
+          else if( hoff < 0.0 ) hoff = 0.0 ;
+               if( voff > mh  ) voff = mh  ;
+          else if( voff < 0.0 ) voff = 0.0 ;
+          if( hoff != seq->zoom_hor_off || voff != seq->zoom_ver_off ){
+            seq->zoom_hor_off = hoff ;
+            seq->zoom_ver_off = voff ;
+            ISQ_show_zoom( seq ) ;  /* no visible panning widgets to alter */
+            ZOOM_CHANGE(seq) ;
+          }
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- get the panning offsets [10 Dec 2019] ----------*/
+
+      case isqDR_get_panoff:{
+        float *val = (float *)drive_data , zlev = seq->zoom_fac ;
+        if( val != NULL ){
+          if( zlev > 1.0f ){
+            val[0] = seq->zoom_hor_off ;
+            val[1] = seq->zoom_ver_off ;
+          } else {
+            val[0] = val[1] = 0.0f ;
+          }
+        }
+        RETURN(True) ;
       }
       break ;
 
@@ -9693,6 +9762,7 @@ INFO_message("Start Montagizing") ;
          if( seq->mont_mode > 0 ){
            nim = seq->im_nr ;
            div = (seq->mont_skip + 1) * (ij - ijcen) ;
+if( AFNI_yesenv("TMONT") )
 ININFO_message("set deltival=%d  nim=%d",div,nim) ;
            ISQ_set_deltival( seq , div ) ;
          } else {
