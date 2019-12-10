@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Dec, 2019, RCR, "uber_proc.py", MINOR, TYPE_MODIFY,
+   "separate into main/lib/gui, so one can run -help w/out PyQt4",
+   NULL
+ } ,
+
  {  9, Dec, 2019, RCR, "3dTagalign", MINOR, TYPE_NEW_OPT,
    "add -tagset",
    "Coded by T Holroyd."
