@@ -32,8 +32,9 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   add_subdirectory(crorden)
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
   # DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}  RENAME woohoo)
-
-  add_subdirectory(qhulldir)
+  if(NOT USE_SYSTEM_QHULL)
+    add_subdirectory(qhulldir)
+  endif()
   add_subdirectory(avovk)
 endif()
 
