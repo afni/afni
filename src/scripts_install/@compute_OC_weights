@@ -443,9 +443,16 @@ $prog           - compute optimally combined weights dataset
    the echoes into a single dataset.  The same echoes can be applied to
    all runs.
 
-    3dcalc -a echo1+tlrc        -b echo2+tlrc        -c echo3+tlrc        \
-           -d weights+tlrc'[0]' -e weights+tlrc'[1]' -f weights+tlrc'[2]' \
-           -expr 'a*d+b*e+c*f'  -prefix opt.combined
+       3dMean -weightset weights+tlrc -prefix opt.combined \
+              echo1+tlrc echo2+tlrc echo3+tlrc
+
+   For clarity, a similar 3dcalc computation would look like:
+
+       3dcalc -a echo1+tlrc        -b echo2+tlrc        -c echo3+tlrc        \
+              -d weights+tlrc'[0]' -e weights+tlrc'[1]' -f weights+tlrc'[2]' \
+              -expr 'a*d+b*e+c*f'  -prefix opt.combined
+
+   
 
    ----------------------------------------------------------------------
 
@@ -500,14 +507,18 @@ $prog           - compute optimally combined weights dataset
 
       1. basic
 
-         @compute_OC_weights -echo_times_file etimes.1D \\
+         @compute_OC_weights -echo_times_file etimes.1D \
                 -echo_dsets pb02*r01*volreg*.HEAD
   
-      2. specify working directory and resulting weights dataset prefix
+      2. Specify working directory and resulting weights dataset prefix.
+         Then use the weight dataset to combine the echoes.
 
-         @compute_OC_weights -echo_times_file etimes.1D \\
-                -echo_dsets pb02*r01*volreg*.HEAD       \\
-                -prefix OC.run1 -work_dir OC.work.run1
+         @compute_OC_weights -echo_times_file etimes.1D \
+                -echo_dsets pb02*r01*volreg*.HEAD       \
+                -prefix OC.weights.run1 -work_dir OC.work.run1
+
+         3dMean -weightset OC.weights.run1+tlrc -prefix epi_run1_OC \
+                pb02*r01*volreg*.HEAD
 
    ----------------------------------------------------------------------
 
@@ -653,6 +664,7 @@ modification history for $prog :
                     - help updates
    0.2  21 Feb 2018 : more babble; apply T2* < 0 as T2* limit
    0.3  23 Feb 2018 : added -echo_times, to list on command line
+   0.4  10 Dec 2019 : added 3dMean -weightset example
 
 EOF
 exit
