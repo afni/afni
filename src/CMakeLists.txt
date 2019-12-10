@@ -1,7 +1,11 @@
 # ##### Add core targets from elsewhere
+if(USE_SYSTEM_F2C)
+  find_package(f2c REQUIRED)
+else()
+  add_subdirectory(f2cdir)
+endif()
 add_subdirectory(rickr)
 add_subdirectory(coxplot)
-add_subdirectory(f2cdir)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)

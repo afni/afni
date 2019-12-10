@@ -243,7 +243,7 @@ foreach(
 
   add_executable(${target} ${target}.c)
   target_include_directories(${target} PRIVATE NIFTI::nifti2)
-  target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 m)
+  target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
 endforeach(target)
 
 
@@ -425,11 +425,11 @@ target_link_libraries(3dTSgen AFNI::mri ${CMAKE_DL_LIBS})
 
 
 add_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
-target_link_libraries(3dDeconvolve PRIVATE AFNI::mri AFNI::f2cdir m)
+target_link_libraries(3dDeconvolve PRIVATE AFNI::mri $<TARGET_NAME_IF_EXISTS:f2c> NIFTI::nifticdf m)
 
 add_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
-target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri AFNI::f2cdir m)
+target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri $<TARGET_NAME_IF_EXISTS:f2c> NIFTI::nifticdf m)
 
 add_executable(3dECM sparse_array.c)
 target_link_libraries(3dECM 
