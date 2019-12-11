@@ -236,7 +236,6 @@ foreach(
   uncomment
   uniq_images
   unu
-  warping_test
   whereami
   whirlgif
 )
