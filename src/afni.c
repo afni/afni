@@ -2456,24 +2456,37 @@ int main( int argc , char *argv[] )
 
 #ifdef DARWIN
    { char *eee = getenv("DYLD_LIBRARY_PATH") ;
-     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+     char *fff = getenv("AFNI_SKIP_DYLD_WARNING") ;
+     if( (fff == NULL || toupper(*fff) != 'Y') &&
+         (eee == NULL || strstr(eee,"flat_namespace") == NULL) ){
        int vmajor=0, vminor=0 , vmicro=0 ;
+#if 0
        eee = get_XQuartz_version() ;  /* Check XQuartz version [27 Jan 2017] */
        if( eee != NULL && isdigit(*eee) ){
          sscanf(eee,"%d.%d.%d",&vmajor,&vminor,&vmicro) ;
          /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
        }
+#endif
        if( vmajor == 0 || vminor == 0 || vmajor > 2                   ||
            (vmajor == 2 && vminor >  7)                               ||
            (vmajor == 2 && vminor == 7 && (vmicro > 9 || vmicro == 0))  ){
          fprintf(stderr,
           "\n"
+          "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
           "++ If you are using XQuartz 2.7.10 (or later), and AFNI crashes when\n"
           " + opening windows, or you cannot type text into AFNI popup windows,\n"
           " + you might need to set an environment variable to solve this problem:\n"
-          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace    # tcsh\n"
+          " +   export DYLD_LIBRARY_PATH = /opt/X11/lib/flat_namespace  # bash\n"
           " + This command is best put in your startup ~/.cshrc file, so that\n"
-          " + it will be invoked for every (t)csh shell you open.\n\n"
+          " + it will be invoked for every (t)csh shell you open (mutatis mutandis\n"
+          " + for the bash shell, of course).\n"
+          " +\n"
+          " + If things are OK and you want to avoid having this warning message\n"
+          " + pollute your terminal, use this:\n"
+          " +   setenv AFNI_SKIP_DYLD_WARNING YES                       # tcsh\n"
+          " +   export AFNI_SKIP_DYLD_WARNING = YES                     # bash\n\n"
+          "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
          ) ;
        }
      }
