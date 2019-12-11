@@ -118,7 +118,6 @@ add_library(parser OBJECT parser.c parser_int.c)
 target_include_directories(
   parser PRIVATE $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )
-# target_link_libraries(parser PRIVATE  AFNI::f2cdir)
 
 set_source_files_properties(
   thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
