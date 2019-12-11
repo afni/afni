@@ -1,3 +1,14 @@
+set(CORE_PLUGINS model_beta model_constant model_conv_PRF model_conv_PRF_6
+model_conv_PRF_DOG model_conv_cosine4 model_conv_diffgamma model_convgamma
+model_convgamma2a model_demri_3 model_diffexp model_diffusion model_exp
+model_expMEMRI model_expMEMRI3 model_expr2 model_gammavar model_linear
+model_linplusort model_michaelis_menton model_null model_quadratic
+model_sinewave_ap model_sinewave_apf model_squarewave_ap model_squarewave_apf
+model_trnglwave_ap model_trnglwave_apf model_zero plug_afnihistory plug_crender
+plug_drawdset plug_histog plug_histog_multi plug_notes plug_nth_dataset
+plug_nudge plug_null plug_realtime plug_render plug_second_dataset plug_tag
+plug_ttget plug_vol2sur)
+
 set_os_flags(plug_threshold.c)
 set_os_flags(plug_maskcalc.c)
 foreach(
@@ -80,6 +91,14 @@ foreach(
   plug_wavelets
   plug_zeropad
 )
+  # Filter plugins if requested
+  if(BUILD_COREPLUGINS)
+    if(NOT ${target} IN_LIST CORE_PLUGINS)
+      continue()
+    endif()
+  endif()
+
+  # Add plugin to build
   add_library(${target} ${target}.c)
   target_link_libraries(
     ${target}
