@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , DEC , 2019 , RWC , "3dTcorrelate" , MINOR , TYPE_NEW_OPT ,
+   "Add -zcensor option" ,
+   "Remove from consideration any time point t where xset(t) OR yset(t) is\n"
+   "identically zero (in the mask). For Peter Molfese and Emily Finn.\n"
+   "Merry X!" } ,
+
  { 10 , DEC , 2019 , RWC , "AFNI GUI" , MINOR , TYPE_NEW_ENV ,
    "Add 'Zoom lock' to the locking capability" ,
    "Also a new environment variable AFNI_ZOOM_LOCK to turn this on at\n"

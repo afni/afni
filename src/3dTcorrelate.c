@@ -65,6 +65,25 @@ void usage_3dTcorrelate(int detail)
 "               high-intensity (presumably brain) voxels.  The\n"
 "               intensity level is determined the same way that\n"
 "               3dClipLevel works.\n"
+"           ** At present, this program does not have a '-mask'\n"
+"              option. Maybe someday?\n"
+"\n"
+"  -zcensor  = Omit (censor out) any time points where the xset\n"
+"               volume is all zero OR where the yset volume is all\n"
+"               zero (in mask). Please note that using -zcensor\n"
+"               with any detrending is unlikely to be useful.\n"
+"           ** That is, you should use '-polort -1' with this\n"
+"               option, and NOT use '-ort'.\n"
+"           ** Since correlation is calculated from the sum\n"
+"               of the point-by-point products xset(t)*yset(t),\n"
+"               why censor out points where xset or yset is 0?\n"
+"               Because the denominator of correlation is from\n"
+"               the sum of xset(t)*xset(t) and yset(t)*yset(t)\n"
+"               and unless the t-points where the datasets are\n"
+"               censored are BOTH zero at the same time, the\n"
+"               denominator will be incorrect.\n"
+"           ** [RWCox - Dec 2019, day of Our Lady of Guadalupe]\n"
+"              [for P Molfese and E Finn]\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p'\n"
 "               [default prefix is 'Tcorr'].\n"
@@ -112,13 +131,16 @@ int main( int argc , char *argv[] )
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii , polort=1 ;
    MRI_IMAGE *xsim , *ysim , *psim;
-   float     *xsar , *ysar , *car , *psar;
+   float     *xsar , *ysar , *car , *psar=NULL;
    char *prefix = "Tcorr" ;
    char *psetFile = NULL ;
    byte *mmm=NULL ;
    MRI_IMAGE *im_ort=NULL ;            /* 13 Mar 2003 */
    int nort=0 ; float **fort=NULL ;
    int do_atanh = 0 ;                  /* 12 Jan 2018 */
+
+   int do_zcens=0 , nzcens=0 , ngood , *zcens=NULL ;  /* 12 Dec 2019 */
+   float *xcens=NULL , *ycens=NULL , *pcens=NULL ;
 
    /*----*/
 
@@ -130,10 +152,16 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-       if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
-         usage_3dTcorrelate(strlen(argv[nopt]) > 3 ? 2:1);
-         exit(0);
-       }
+
+      if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
+        usage_3dTcorrelate(strlen(argv[nopt]) > 3 ? 2:1);
+        exit(0);
+      }
+
+      if( strcmp(argv[nopt],"-zcensor") == 0 ){       /* 12 Dec 2019 */
+        do_zcens = 1 ;
+        nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-ort") == 0 ){           /* 13 Mar 2003 */
         if( im_ort != NULL ){
@@ -160,10 +188,10 @@ int main( int argc , char *argv[] )
       if( strcasecmp(argv[nopt],"-pearson") == 0 ){
          method = PEARSON ; nopt++ ; continue ;
       }
-      
+
       if( strcasecmp(argv[nopt],"-partial") == 0 )
       {
-         method = PARTIAL ; nopt++ ; 
+         method = PARTIAL ; nopt++ ;
          //name the covariate dataset
          psetFile = argv[nopt];
          INFO_message("Performing Partial Correlation with: %s\n", psetFile);
@@ -284,7 +312,7 @@ int main( int argc , char *argv[] )
 
    /*-- compute mask array, if desired --*/
 
-   nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
+   nvox = DSET_NVOX(xset) ; ngood = nvals = DSET_NVALS(xset) ;
 
    if( do_autoclip ){
       byte *xmm , *ymm ;
@@ -297,6 +325,40 @@ int main( int argc , char *argv[] )
       ii = THD_countmask( nvox , mmm ) ;
       fprintf(stderr,"++ %d voxels survive -autoclip\n",ii) ;
       if( ii == 0 ) exit(1) ;
+   }
+
+   /*-- compute censoring, if desired [12 Dec 2019] --*/
+
+   if( do_zcens ){  /* make list of time points to keep */
+
+     zcens = (int *)calloc(sizeof(int),nvals) ;
+     for( ii=0 ; ii < nvals ; ii++ ){
+       if( mri_nonzero_count_inmask(DSET_BRICK(xset,ii),mmm) > 0 &&    /* keep only */
+           mri_nonzero_count_inmask(DSET_BRICK(yset,ii),mmm) > 0   ){    /* if BOTH */
+              zcens[ii] = 1; nzcens++;                    /* have some nonzero data */
+       }
+     }
+     if( nzcens == 0 )
+       ERROR_exit("-zcensor keeps 0 data volumes to process, out of %d input :(",nvals) ;
+     else if( nzcens == 1 )
+       ERROR_exit("-zcensor keeps only 1 data volume to process, out of %d input :(",nvals) ;
+     else if( nzcens == nvals )
+       INFO_message("-zcensor keeps ALL %d data volumes to process",nvals) ;
+     else
+       INFO_message("-zcensor omits %d data volumes, and keeps %d",nvals-nzcens,nzcens) ;
+
+     ngood = nzcens ;  /* number of good time points */
+
+     if( ngood < nvals ){
+       xcens = (float *)malloc(sizeof(float)*nzcens) ;
+       ycens = (float *)malloc(sizeof(float)*nzcens) ;
+       pcens = (float *)malloc(sizeof(float)*nzcens) ;
+
+       if( polort >= 0 || nort > 0 )
+         WARNING_message("Using -zcensor with detrending is dangerous!") ;
+     } else {
+       do_zcens = 0 ;
+     }
    }
 
    /*-- create output dataset --*/
@@ -321,7 +383,7 @@ int main( int argc , char *argv[] )
    switch( method ){                                   /* looks nice  */
       default:
       case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ;
-          EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
+          EDIT_BRICK_TO_FICO(cset,0,ngood,1,polort+1+nort) ;  /* stat params */
                                                                break ;
       case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr."  ) ; break ;
       case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr."  ) ; break ;
@@ -340,9 +402,10 @@ int main( int argc , char *argv[] )
 
    /* loop over voxels, correlate */
    /* fprintf(stderr,"have %d voxels to work with, %d values/time series\n",nvox,nvals);*/
+
    for( ii=0 ; ii < nvox ; ii++ ){
 
-      if( mmm != NULL && mmm[ii] == 0 ){  /* the easy case */
+      if( mmm != NULL && mmm[ii] == 0 ){  /* the simple case */
          car[ii] = 0.0 ; continue ;
       }
 
@@ -350,7 +413,7 @@ int main( int argc , char *argv[] )
 
       xsim = THD_extract_series(ii,xset,0) ; xsar = MRI_FLOAT_PTR(xsim) ;
       ysim = THD_extract_series(ii,yset,0) ; ysar = MRI_FLOAT_PTR(ysim) ;
-      
+
       if ( method == PARTIAL ) {
         psim = THD_extract_series(ii,pset,0); psar = MRI_FLOAT_PTR(psim);
       }
@@ -358,18 +421,33 @@ int main( int argc , char *argv[] )
       (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
       (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
 
+      if( do_zcens ){  /* 12 Dec 2019 */
+        int jj , kk ;
+        for( kk=jj=0 ; jj < nvals ; jj++ ){
+          if( zcens[jj] ){
+            xcens[kk] = xsar[jj] ;
+            ycens[kk] = ysar[jj] ;
+            if( psar != NULL ) pcens[kk] = psar[jj] ;
+            kk++;
+          }
+        }
+      } else {
+        xcens = xsar ; ycens = ysar ; pcens = psar ;
+      }
+
 #undef  DAT
 #define DAT if(do_atanh)car[ii]=MYatanh(car[ii])
 
       switch( method ){                    /* correlate */
          default:
-         case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); DAT; break;
-         case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ysar ); DAT; break;
-         case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); DAT; break;
-         case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); DAT; break;
-         case COVAR:    car[ii] = THD_covariance   ( nvals,xsar,ysar ); break;
-         case YCOEF:    car[ii] = THD_ycoef        ( nvals,xsar,ysar ); break;
-         case PARTIAL:  car[ii] = THD_pearson_partial_corr( nvals,xsar,ysar, psar ); DAT; break;
+         case PEARSON:  car[ii] = THD_pearson_corr ( ngood,xcens,ycens ); DAT; break;
+         case SPEARMAN: car[ii] = THD_spearman_corr( ngood,xcens,ycens ); DAT; break;
+         case QUADRANT: car[ii] = THD_quadrant_corr( ngood,xcens,ycens ); DAT; break;
+         case KTAUB:    car[ii] = THD_ktaub_corr   ( ngood,xcens,ycens ); DAT; break;
+         case COVAR:    car[ii] = THD_covariance   ( ngood,xcens,ycens );      break;
+         case YCOEF:    car[ii] = THD_ycoef        ( ngood,xcens,ycens );      break;
+
+         case PARTIAL:  car[ii] = THD_pearson_partial_corr( ngood,xcens,ycens,pcens ); DAT; break;
       }
 
       mri_free(xsim) ; mri_free(ysim) ;    /* toss time series */
@@ -379,10 +457,15 @@ int main( int argc , char *argv[] )
    /* toss the other trash */
 
    DSET_unload(xset); DSET_unload(yset); if( mmm != NULL ) free(mmm);
+   if( do_zcens ){
+     if( xcens != NULL ) free(xcens) ; /* 12 Dec 2019 */
+     if( ycens != NULL ) free(ycens) ;
+     if( pcens != NULL ) free(pcens) ;
+   }
 
-   /* finito */
+   /* e finito */
 
    DSET_write(cset) ;
-   fprintf(stderr,"++ Wrote dataset: %s\n",DSET_BRIKNAME(cset)) ;
+   INFO_message("Wrote dataset: %s",DSET_BRIKNAME(cset)) ;
    exit(0) ;
 }

@@ -879,7 +879,8 @@ extern char *      mri_dicom_hdrinfo_full( char *fname, int natt, char **att ,
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
 
 extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
-extern int mri_nonzero_count( MRI_IMAGE *im ) ; /* 28 Dec 2015 */
+extern int mri_nonzero_count( MRI_IMAGE *im ) ;                   /* 28 Dec 2015 */
+extern int mri_nonzero_count_inmask( MRI_IMAGE *im, byte *mmm ) ; /* 12 Dec 2019 */
 
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_valpad_2D( int,int,int,int, MRI_IMAGE *, byte val ) ;
