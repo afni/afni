@@ -13,11 +13,11 @@ cmake_dependent_option(
 )
 mark_as_advanced(DO_NOT_INSTALL_SCRIPTS)
 cmake_dependent_option(
-  BUILD_X_DEPENDENT_GUI_PROGS "Build GUI applications with plugins." ON
+  BUILD_X_DEPENDENT_GUI_PROGS "Build GUI applications with plugins." OFF
   "NOT AFNI_BUILD_CORELIBS_ONLY" OFF
 )
 cmake_dependent_option(
-  BUILD_PLUGINS "Build plugins for AFNI GUI." OFF "BUILD_X_DEPENDENT_GUI_PROGS;" ON
+  BUILD_PLUGINS "Build plugins for AFNI GUI." OFF "BUILD_X_DEPENDENT_GUI_PROGS;" OFF
 )
 mark_as_advanced(BUILD_PLUGINS)
 set_if_not_defined(BUILD_COREPLUGINS "By default a core set of plugins are built." ON)
