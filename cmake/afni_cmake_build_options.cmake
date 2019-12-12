@@ -23,7 +23,7 @@ mark_as_advanced(BUILD_PLUGINS)
 set_if_not_defined(BUILD_COREPLUGINS "By default a core set of plugins are built." ON)
 cmake_dependent_option(
   BUILD_OPENGL_DEPENDENT_GUI_PROGS
-  "Build OPEN_GL dependent GUI applications with plugins." OFF
+  "Build OPEN_GL dependent GUI applications with plugins." ON
   "NOT AFNI_BUILD_CORELIBS_ONLY;BUILD_X_DEPENDENT_GUI_PROGS" OFF
 )
 # Define options to customize the build-process
