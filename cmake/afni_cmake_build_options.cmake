@@ -29,7 +29,6 @@ cmake_dependent_option(
 # Define options to customize the build-process
 option(USE_SYSTEM_GLW "Build and use AFNI's local copy of libGLw" ON)
 
-option(SHOW_UNBUILT_PROGS "Display missing progs during config" OFF)
-mark_as_advanced(SHOW_UNBUILT_PROGS)
+
 option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 option(ENABLE_TESTS "Enable tests" OFF)
