@@ -32,4 +32,16 @@ def test_suma(data):
     DriveSuma -com kill_suma
            """
     cmd = cmd.format(**locals())
-    res = misc.run_x_prog(cmd)
+
+    import subprocess as sp
+
+    res = sp.run(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+    res.check_returncode()
+    if "ERROR" in res.stdout.decode():
+
+        raise ValueError(
+            f"""
+        {cmd}
+        Command executed, but output contains an error {res.stdout}
+        """
+        )

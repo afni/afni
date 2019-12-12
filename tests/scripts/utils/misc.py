@@ -13,7 +13,7 @@ import pytest
 def run_x_prog(cmd):
     import subprocess as sp
 
-    res = sp.run(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+    res = sp.run("xvfb-run " + cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
     res.check_returncode()
     if "ERROR" in res.stdout.decode():
 
