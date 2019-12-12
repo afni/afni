@@ -2085,7 +2085,7 @@ afni_src.tgz:
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
 	$(CP) -pr XmHTML html other_builds Audio                                 ./afni_src
@@ -2859,28 +2859,28 @@ plugout_graph:plugout_graph.o
 # Stuff that was originally in Fortran
 
 f2c:
-	( cd f2cdir ;                                                         \
+	( cd f2c ;                                                         \
 	  $(MAKE) f2c clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' 'CCMIN=$(CCMIN)' \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ;  \
 	  $(MV) f2c .. ; )
 
 libf2c.a:
-	( cd f2cdir ;                                                        \
+	( cd f2c ;                                                        \
 	  $(MAKE) libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.a .. ; )
 
 libf2c.so:
-	( cd f2cdir ;                                                        \
+	( cd f2c ;                                                        \
 	  $(MAKE) libf2c.so clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.so .. ; )
 
 f2c.h:
-	$(CP) f2cdir/f2c.h ./
+	$(CP) f2c/f2c.h ./
 
 f2c.tgz:
-	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
+	$(TAR) cf - ./f2c | $(GZIP) -9v > f2c.tgz
 
 #######
 # dlcompat
