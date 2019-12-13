@@ -50,6 +50,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, DEC, 2019, DRG, "@measure_erosion_thick", MINOR, TYPE_MODIFY,
+    "More centers - find deepest near voxel closest to Center of Mass",
+    "Came from CodeConvergence idea by Meghan Robinson\n"
+    "Voxel closest to center of mass is similar to latest ICent\n"
+    "in Clusterize GUI"
+},
 { 13, NOV, 2019, DRG, "AFNI Clusterize", MINOR, TYPE_BUG_FIX,
     "ICent error",
     "Couple bugs in ICent location computation - thx to Meghan Robinson"
