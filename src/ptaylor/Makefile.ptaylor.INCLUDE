@@ -13,7 +13,7 @@ PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
                   -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
-                 -I../ -I../niml/ -Igts/src -I../SUMA/ 
+                 -I../ -I../niml/ -Igts/src -I../SUMA/ -I../f2c
 
 PTAYLOR_LINK_PATH = -L.. ${LFLAGS} -L/usr/lib -L/usr/local/lib 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri

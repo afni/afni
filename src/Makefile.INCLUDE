@@ -2876,9 +2876,6 @@ libf2c.so:
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.so .. ; )
 
-f2c.h:
-	$(CP) f2c/f2c.h ./
-
 f2c.tgz:
 	$(TAR) cf - ./f2c | $(GZIP) -9v > f2c.tgz
 
