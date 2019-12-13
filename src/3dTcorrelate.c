@@ -74,6 +74,9 @@ void usage_3dTcorrelate(int detail)
 "               with any detrending is unlikely to be useful.\n"
 "           ** That is, you should use '-polort -1' with this\n"
 "               option, and NOT use '-ort'.\n"
+"            *  In fact, using '-zcensor' will set polort = -1,\n"
+"               and if you insist on using detrending, you will\n"
+"               have to put the '-polort' option AFTER '-zcensor.\n"
 "           ** Since correlation is calculated from the sum\n"
 "               of the point-by-point products xset(t)*yset(t),\n"
 "               why censor out points where xset or yset is 0?\n"
@@ -102,12 +105,13 @@ void usage_3dTcorrelate(int detail)
 "   in a dataset xset with a single 1D time series file, instead of\n"
 "   separately with time series from another 3D+time dataset.\n"
 "\n"
-"* http://en.wikipedia.org/wiki/Correlation\n"
-"* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
-"* http://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
-"* http://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
+"* https://en.wikipedia.org/wiki/Correlation\n"
+"* https://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
+"* https://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
+"* https://en.wikipedia.org/wiki/Kendall_tau_rank_correlation_coefficient\n"
+"* https://en.wikipedia.org/wiki/Partial_correlation\n"
 "\n"
-"-- RWCox - Aug 2001\n"
+"-- RWCox - Aug 2001++\n"
             ) ;
       PRINT_COMPILE_DATE ;
    return;
@@ -160,16 +164,19 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-zcensor") == 0 ){       /* 12 Dec 2019 */
         do_zcens = 1 ;
+        if( polort >= 0 ){
+          INFO_message("-zcensor sets polort = -1") ; polort = -1 ;
+        }
         nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-ort") == 0 ){           /* 13 Mar 2003 */
         if( im_ort != NULL ){
-          fprintf(stderr,"** Can't have multiple -ort options!\n"); exit(1);
+          ERROR_exit("Can't have multiple -ort options!") ;
         }
         im_ort = mri_read_1D( argv[++nopt] ) ;
         if( im_ort == NULL ){
-          fprintf(stderr,"** Can't read 1D file %s\n",argv[nopt]); exit(1);
+          ERROR_exit("Can't read 1D file %s",argv[nopt]) ;
         }
         nort = im_ort->ny ;
         fort = (float **) malloc( sizeof(float *)*nort ) ;
@@ -198,7 +205,7 @@ int main( int argc , char *argv[] )
          pset = THD_open_dataset( argv[nopt++] ) ;
          if( pset == NULL )
          {
-             fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
+           ERROR_exit("-partial Can't open dataset %s",argv[nopt]) ;
          }
          continue ;
       }
@@ -230,7 +237,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          prefix = argv[++nopt] ;
          if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"** Illegal value after -prefix!\n");exit(1);
+            ERROR_exit("Illegal value after -prefix") ;
          }
          nopt++ ; continue ;
       }
@@ -239,9 +246,12 @@ int main( int argc , char *argv[] )
          char *cpt ;
          int val = strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 9 ){
-           fprintf(stderr,"** Illegal value '%s' after -polort!",argv[nopt]);exit(1);
+           ERROR_exit("Illegal value '%s' after -polort",argv[nopt]) ;
          }
-         polort = val ; nopt++ ; continue ;
+         polort = val ;
+         if( polort >=0 && do_zcens )
+           WARNING_message("-polort %d is combined with -zcensor",polort) ;
+         nopt++ ; continue ;
       }
 
       ERROR_message("Illegal option %s\n", argv[nopt]);
@@ -263,33 +273,29 @@ int main( int argc , char *argv[] )
    /*-- open datasets, check for legality --*/
 
    if( nopt+1 >= argc ){
-      fprintf(stderr,"*** Need 2 datasets on command line!?\n"); exit(1);
+      ERROR_exit("Need 2 input datasets on command line") ;
    }
 
    xset = THD_open_dataset( argv[nopt] ) ;
    if( xset == NULL ){
-      fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
+      ERROR_exit("Can't open input dataset %s",argv[nopt]) ;
    }
    if( DSET_NVALS(xset) < 2 ){
-      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]);
-      exit(1);
+      ERROR_exit("Input dataset %s does not have multiple time points",argv[nopt]) ;
    }
    yset = THD_open_dataset( argv[++nopt] ) ;
    if( yset == NULL ){
-      fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
+      ERROR_exit("Can't open input dataset %s",argv[nopt]) ;
    }
    if( DSET_NVALS(yset) != DSET_NVALS(xset) ){
-      fprintf(stderr,"** Input dataset %s is different length than %s\n",
-              argv[nopt],argv[nopt-1]) ;
-      exit(1) ;
+      ERROR_exit("Input dataset %s is different length than %s\n",argv[nopt],argv[nopt-1]) ;
    }
    if( DSET_NVOX(yset) != DSET_NVOX(xset) ){
-      fprintf(stderr,"** Input dataset %s is different size than %s\n",
-              argv[nopt],argv[nopt-1]) ;
-      exit(1) ;
+      ERROR_exit("Input dataset %s is different size than %s\n",
+                 argv[nopt],argv[nopt-1]) ;
    }
    if( im_ort != NULL && im_ort->nx < DSET_NVALS(xset) ){
-      fprintf(stderr,"** Input datsets are longer than -ort file!\n"); exit(1);
+      ERROR_exit("Input datsets are longer than -ort file") ;
    }
    if( !EQUIV_GRIDS(xset,yset) )
      WARNING_message("Grid mismatch between input datasets!") ;
@@ -301,9 +307,8 @@ int main( int argc , char *argv[] )
         if( DSET_NVALS(pset) != DSET_NVALS(xset) )
         {
             //assume that if it doesn't match xset, then it doesn't match yset
-            fprintf(stderr,"** Input dataset %s is different length than %s\n",
-            psetFile,argv[nopt-1]) ;
-            exit(1) ;
+            ERROR_exit("-parital input dataset %s is different length than %s\n",
+                       psetFile,argv[nopt-1]) ;
         }
         if( !EQUIV_GRIDS(xset,pset) )
             WARNING_message("Grid mismatch between input datasets & partial dataset!") ;
@@ -323,7 +328,7 @@ int main( int argc , char *argv[] )
          mmm[ii] = ( xmm[ii] && ymm[ii] ) ;
       free(xmm) ; free(ymm) ;
       ii = THD_countmask( nvox , mmm ) ;
-      fprintf(stderr,"++ %d voxels survive -autoclip\n",ii) ;
+      INFO_message("%d voxels survive -autoclip",ii) ;
       if( ii == 0 ) exit(1) ;
    }
 
@@ -373,9 +378,7 @@ int main( int argc , char *argv[] )
                     ADN_none ) ;
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) ){
-      fprintf(stderr,"** Output dataset %s already exists!\n",
-              DSET_HEADNAME(cset)) ;
-      exit(1) ;
+      ERROR_exit("Output dataset %s already exists\n",DSET_HEADNAME(cset)) ;
    }
 
    EDIT_BRICK_FACTOR(cset,0,0.0) ;                     /* to be safe  */
@@ -401,7 +404,7 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */
-   /* fprintf(stderr,"have %d voxels to work with, %d values/time series\n",nvox,nvals);*/
+   /* INFO_message("have %d voxels to work with, %d values/time series\n",nvox,ngood);*/
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
