@@ -3624,7 +3624,7 @@ void mri_clear_1D_stdin(void)
 MRI_IMAGE * mri_read_1D_stdin(void)
 {
 #if 1
-   return ( mri_read_1D_pipe(stdin) ) ;  /* the new way [26 Aug 2019]
+   return ( mri_read_1D_pipe(stdin) ) ;  /* the new way [26 Aug 2019] */
 
 #else               /*---------- the olden way (stdin specific) ----------*/
 #define SIN_NLBUF 131072
