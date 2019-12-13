@@ -74,7 +74,7 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
               Laconte Lisinski Clark Johnson Julia  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
-              Vovk Zosky Torres Schmidt                )
+              Vovk Zosky Torres Schmidt Novak Hanke    )
 
 # list of authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
