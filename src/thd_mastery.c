@@ -116,7 +116,7 @@ ENTRY("THD_open_dataset") ;
    if( pathname[0] == '~' && pathname[1] == '/' ){
      char *eee = getenv("HOME") ;
      if( eee != NULL ){
-       (char *)malloc( sizeof(char) * (strlen(pathname)+strlen(eee)+222) ) ;
+       qname = (char *)malloc(sizeof(char)*(strlen(pathname)+strlen(eee)+222));
        strcpy(qname,eee); strcat(qname,pathname+1);
        pathname = qname ;
      }
