@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     ca-certificates \
     curl \
     cython3 \
+    f2c \
     freeglut3-dev \
     g++ \
     gcc \
