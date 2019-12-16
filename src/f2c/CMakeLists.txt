@@ -189,4 +189,4 @@ target_link_libraries(
   PRIVATE m
 )
 add_afni_target_properties(f2cdir)
-add_library(AFNI::f2cdir ALIAS f2cdir)
+add_library($<TARGET_NAME_IF_EXISTS:f2c> ALIAS f2cdir)

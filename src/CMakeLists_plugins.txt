@@ -104,7 +104,7 @@ foreach(
     ${target}
     PRIVATE 
             afni_all_objects
-            AFNI::f2cdir
+            $<TARGET_NAME_IF_EXISTS:f2c>
             ${NETCDF_LIBRARIES_C}
             NIFTI::nifti2
   )
