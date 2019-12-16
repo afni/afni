@@ -64,11 +64,7 @@ AFNI_version.h
 *.lo
 *.libs
 *.deps
-SUMA/gts/examples
 
-#GLw builds
-src/SUMA/GLw_local/GL
-src/SUMA/GLw_local/GLw
 
 #netcdf
 netcdf-3.5.0/src/libsrc/putget.c
