@@ -1,5 +1,8 @@
 FROM afni/afni_dev_base
 
+# Remove f2c dev header to ensure within repo f2c.h is used
+RUN apt-get remove -y libf2c2-dev
+
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
 COPY [".", "$AFNI_ROOT/"]
