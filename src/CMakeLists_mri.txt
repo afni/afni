@@ -44,9 +44,10 @@ target_include_directories(
   INTERFACE 
             $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::3DEdge,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:$<TARGET_NAME_IF_EXISTS:f2c>,INTERFACE_INCLUDE_DIRECTORIES>
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
@@ -114,7 +115,22 @@ endfunction(configure_pcor)
 configure_pcor(pcor "REF_FLOAT_SINGLE")
 configure_pcor(pcorsh "REF_FLOAT_SINGLE;VOX_SHORT")
 
-add_library(parser OBJECT parser.c parser_int.c)
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/parser.c)
+  # Copy or generate parser.c in the build tree
+  if (USE_F2C)
+    configure_file(parser.f ${CMAKE_CURRENT_BINARY_DIR}/parser.f COPYONLY)
+    configure_file(parser.inc ${CMAKE_CURRENT_BINARY_DIR}/parser.inc COPYONLY)
+    execute_process(
+    COMMAND
+      "${F2C_EXECUTABLE}" "-A" parser.f
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  else()
+    configure_file(parser.c ${CMAKE_CURRENT_BINARY_DIR}/parser.c COPYONLY)
+  endif()
+endif()
+add_library(parser OBJECT ${CMAKE_CURRENT_BINARY_DIR}/parser.c parser_int.c)
 target_include_directories(
   parser PRIVATE $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )

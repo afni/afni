@@ -6,13 +6,26 @@ add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 optional_bundle(volpack)
+optional_bundle(f2c)
 add_subdirectory(3DEdge)
 add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
 include(CMakeLists_mri.txt)
 
+# f2c.h is required for some libraries (local or system f2c library can likely
+# be used). Additionally, parser.f is sometimes modified and reconverted to c
+# source code. In this case the header needs to match that of the f2c used for
+# conversion. This build system system supports the latter in an integrated
+# manner if a system f2c library and binary are found. This configuration can
+# be triggered by calling cmake with the definitions -DUSE_SYSTEM_F2C=ON and
+# -DUSE_F2C=ON
+
+if (USE_F2C AND NOT F2C_EXECUTABLE)
+  message(FATAL_ERROR "f2c should be found: ${F2C_EXECUTABLE}")
+endif()
+
 # 3dinfo should be in the binaries cmake file but provides a test of linking in corelibs
-# configuration
+# configuration and so is placed here instead
 add_executable(3dinfo 3dinfo.c)
 target_link_libraries(3dinfo AFNI::mri)
 
