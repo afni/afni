@@ -172,7 +172,7 @@ foreach ifff ( `count -dig 1 1 $nfff $nblame` )
   set junk = ( `find . -maxdepth 1 -name 'gitsum.junk*.txt'` )
   if( $#junk == 0 ) continue
 
-  cat gitsum.junk*.txt > gitsum.junk.txt
+  cat gitsum.junk?*.txt > gitsum.junk.txt
 
  # count total lines in this file, sum them up
   set aa = `wc -l < gitsum.junk.txt` ; @ tsum += $aa
