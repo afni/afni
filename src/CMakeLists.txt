@@ -1,7 +1,6 @@
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
 add_subdirectory(coxplot)
-add_subdirectory(f2c)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
