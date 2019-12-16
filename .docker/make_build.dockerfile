@@ -27,8 +27,9 @@ RUN \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     # Clean in case there are some stray object files
     && make cleanest \
-    && make itall  | tee /build_log.txt \
-    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
+    && /bin/bash -c \
+    'make itall 2>&1 | tee build_log.txt && test ${PIPESTATUS[0]} -eq 0' 
+
 
 ENV PATH="$AFNI_ROOT/abin:$PATH"
 
