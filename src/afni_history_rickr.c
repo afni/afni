@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Dec, 2019, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow labels as column selectors when reading xmat.1D files",
+   "Done for G Chen."
+ } ,
+
  { 10, Dec, 2019, RCR, "uber_proc.py", MINOR, TYPE_MODIFY,
    "separate into main/lib/gui, so one can run -help w/out PyQt4",
    NULL
