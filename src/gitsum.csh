@@ -161,8 +161,8 @@ foreach ifff ( `count -dig 1 1 $nfff $nblame` )
     if ( ! -f $fff || -z $fff ) continue
     set aa = `file --mime $fff | grep ascii | wc -l`
     if( $aa == 0 ) continue
-    # get and save the list of blamees for this file (grep out blank lines)
-    git blame $fff | grep -v '[0-9]) $' > gitsum.junk$jfff.txt &
+    # get and save the list of blamees for this file (also grep out blank lines)
+    git blame $fff | grep -v '[0-9]) *$' > gitsum.junk$jfff.txt &
     @ nn ++
     echo $fff >> gitsum.list.txt
   end
