@@ -47,6 +47,7 @@ else if ( 1 ) then
                      -e volpack/  -e maple/   -e poems/    -e gifsicledir/  \
                      -e XmHTML/   -e libglut/ -e mpegtoppm_dir              \
                      -e netcdf-3.5.0/                                         )
+  
   set qlist = ( `echo $flist | xargs -n1 echo | grep $exclude` )
   unset flist
   echo "File count (pruned) = $#qlist"

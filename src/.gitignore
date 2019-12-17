@@ -49,11 +49,8 @@ octave-workspace
 
 #From AFNI builds
 Makefile.back.*
-volpack.h
 jconfig.h
-niml.h
 macros.make
-Makefile
 Makevars
 Makefile.R.INCLUDE
 Makefile.R.INCLUDE.BACK

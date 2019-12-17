@@ -28,6 +28,14 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+/* preferentially include f2c header from local directory, otherwise use system
+ header */
+#include "f2c.h"
+/* The following was added to harmonize with system f2c header. Subsequent
+typedef for complex is now ignored */
+#define TYPEDEF_complex
+
+
 /*****---------------------------------------------------*****/
 
 /* This is suppose to be defined in stddef.h, but

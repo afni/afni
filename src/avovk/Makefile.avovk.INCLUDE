@@ -10,7 +10,7 @@ AVOVK_OBJS = ${AVOVK_SRCS:.c=.o}
 AVOVK_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
                 -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
-                 -I../ -I../niml/ -Igts/src  
+                 -I../ -I../niml/ -Igts/src -I../f2c
 
 AVOVK_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
 AVOVK_LINK_LIB = ${LLIBS} -lmri
