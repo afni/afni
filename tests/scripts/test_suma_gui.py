@@ -25,6 +25,7 @@ def test_suma(data):
       -com show_surf -surf_label {data.cubo_curv_niml_dset} \
       -i_ply {data.cubo_ply} -surf_winding cw \
       -surf_state elcubo &&
+      CreateIcosahedron -rd 4 &&
     DriveSuma -echo_edu   \
       -com show_surf -label ICO \
       -i_fs CreateIco.asc &&
@@ -35,7 +36,7 @@ def test_suma(data):
 
     import subprocess as sp
 
-    res = sp.run(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+    res = sp.run(cmd, cwd=data.outdir, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
     res.check_returncode()
     if "ERROR" in res.stdout.decode():
 
