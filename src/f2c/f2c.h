@@ -8,8 +8,11 @@
 #define F2C_INCLUDE
 
 #define NON_UNIX_STDIO     /* RWCox */
+/*
+Removed to harmonize with system f2c header
 #undef complex
 #define complex complexxx
+*/
 
 typedef long int integer;
 typedef unsigned long uinteger;
@@ -227,6 +230,9 @@ typedef doublereal E_f;	/* real function with -R not specified */
 
 #include <math.h>
 
+/*
+Removed to harmonize with system f2c header
 #undef complex
 #define complex complexxx
+*/
 #endif  /* F2C_INCLUDE */

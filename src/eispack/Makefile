@@ -1,10 +1,10 @@
 # Unix Makefile for eispack
 
 .c.o:
-	$(CC) -c $<
+	$(CC) -I../f2c -c $<
 
 eis_svd_slow.o:
-	$(CCSVD) -DFUNCNAME=svd_slow_ -c eis_svd.c
+	$(CCSVD) -I../f2c -DFUNCNAME=svd_slow_ -c eis_svd.c
 	mv -f eis_svd.o eis_svd_slow.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \

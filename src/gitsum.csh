@@ -47,6 +47,7 @@ else if ( 1 ) then
                      -e volpack/  -e maple/   -e poems/    -e gifsicledir/  \
                      -e XmHTML/   -e libglut/ -e mpegtoppm_dir              \
                      -e netcdf-3.5.0/                                         )
+  
   set qlist = ( `echo $flist | xargs -n1 echo | grep $exclude` )
   unset flist
   echo "File count (pruned) = $#qlist"
@@ -161,8 +162,8 @@ foreach ifff ( `count -dig 1 1 $nfff $nblame` )
     if ( ! -f $fff || -z $fff ) continue
     set aa = `file --mime $fff | grep ascii | wc -l`
     if( $aa == 0 ) continue
-    # get and save the list of blamees for this file (grep out blank lines)
-    git blame $fff | grep -v '[0-9]) $' > gitsum.junk$jfff.txt &
+    # get and save the list of blamees for this file (also grep out blank lines)
+    git blame $fff | grep -v '[0-9]) *$' > gitsum.junk$jfff.txt &
     @ nn ++
     echo $fff >> gitsum.list.txt
   end
