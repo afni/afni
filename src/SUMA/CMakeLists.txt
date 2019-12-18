@@ -295,6 +295,6 @@ if(GTS_FOUND)
 else()
   message(
     STATUS
-      "GTS library not found - compiling without SurfMesh, and other binaries"
+      "GTS library not found - not compiling SurfMesh, BrainSkin, and IsoSurface"
   )
 endif()
