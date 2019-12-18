@@ -29,15 +29,15 @@ find_path(
   VOLPACK_INCLUDE_DIR
   NAMES volpack.h
 )
-message("!!! FOUND DIRS2 ${VOLPACK_INCLUDE_DIR}  CMAKE Setting
-BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ")
+# message("!!! FOUND DIRS2 ${VOLPACK_INCLUDE_DIR}  CMAKE Setting
+# BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ")
 
 # Look for the library.
 find_library(
   VOLPACK_LIBRARY
   NAMES volpack
 )
-message("!!! FOUND LIB ${VOLPACK_LIBRARY}")
+# message("!!! FOUND LIB ${VOLPACK_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
