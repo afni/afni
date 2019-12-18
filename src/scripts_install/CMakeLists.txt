@@ -8,7 +8,8 @@ install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
   FILES_MATCHING
-  PATTERN "*" PERMISSIONS ${SCRIPT_PERMISSIONS}
+  PATTERN "*" 
+  PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
 
@@ -27,6 +28,7 @@ install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py
 install(
   DIRECTORY ../jzosky/lib_RetroTS
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+  PATTERN "__pycache__" EXCLUDE
 )
 
 # The following should be replaced by a pip install with console entrypoints:
