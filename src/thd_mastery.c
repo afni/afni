@@ -148,9 +148,11 @@ ENTRY("THD_open_dataset") ;
 
    /*-- 04 Mar 2003: allow input of .1D files, which deals with [] itself --*/
    /*-- 19 May 2012: [rickr] moved after spaces check (allow space cat)   --*/
-   /*-- 16 Dec 2019: [rickr] strstr -> STRING_HAS_SUFFIX                  --*/
+   /*-- 18 Dec 2019: [rickr] tried, but cannot simply check suffix, as
+                     there might be a single quote at the end or similar
+                     - let this whine if .1D is the middle of a name?     --*/
 
-   if( STRING_HAS_SUFFIX(pathname,".1D") || strncmp(pathname,"1D:",3) == 0 ){
+   if( strstr(pathname,".1D") != NULL || strncmp(pathname,"1D:",3) == 0 ){
      dset = THD_open_1D( pathname ) ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
