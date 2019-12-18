@@ -6,7 +6,8 @@ macro(list_TO_STRING _string _list)
   endforeach(_item)
 endmacro(list_TO_STRING)
 
-function(optional_bundle name)
+macro(optional_bundle name)
+  # this must be a macro for scoping reasons. Otherwise LIB_FOUND is not set
   string(TOUPPER ${name} upper)
 
   option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
@@ -15,7 +16,7 @@ function(optional_bundle name)
   else(USE_SYSTEM_${upper})
     add_subdirectory(${name})
   endif(USE_SYSTEM_${upper})
-endfunction()
+endmacro()
 
 function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   # ##### Read list of makefile programs that are built by this project.
