@@ -3302,6 +3302,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    if( ! IM3D_OPEN(im3d) || w == (Widget)NULL ) EXRETURN ;
 
+   sesstrail = (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ||
+               AFNI_yesenv("AFNI_USE_SESSTRAIL") ;
+
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
      im3d->vinfo->arang_func_ok =
