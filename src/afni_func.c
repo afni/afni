@@ -3277,7 +3277,7 @@ static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" , "Dataset" } 
 /** max size of strings in the list **/
 
 #define STRLIST_SIZE      (THD_MAX_PREFIX+256)
-#define MAX_SESSTRAIL_LEN 48
+#define MAX_SESSTRAIL_LEN 96
 
 void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
 {
