@@ -239,10 +239,9 @@ int main( int argc , char *argv[] )
 
      /*-- WTF? --*/
 
-     ERROR_message("Unknown option: %s",argv[iarg]) ;
+     ERROR_exit("Unknown option: %s",argv[iarg]) ;
    }
    if (!quiet) { PRINT_VERSION("aiv") ; }
-
 
    /* glob filenames, read images */
 
