@@ -58,9 +58,10 @@ endif
 
 # make sure list doesn't have duplicates or other undesirable files
 
-set flist = ( `echo $qlist | xargs -n1 echo |                                       \
-              grep -v -i -e '\.jpg' -e '\.jpeg' -e '\.png' -e '\.html' -e '\.pdf'   \
-                         -e '\.xbm' -e '\.tex'                                    | \
+set flist = ( `echo $qlist | xargs -n1 echo |                                        \
+              grep -v -i -e '\.jpg' -e '\.jpeg' -e '\.png'  -e '\.html' -e '\.pdf'   \
+                         -e '\.xbm' -e '\.tex'  -e '\.ps'   -e '\.tif'  -e '\.nii'   \
+                         -e '\.1D$' -e '\.BRIK' -e '\.HEAD' -e '\.dset'            | \
               sort | uniq` )
 
 echo "File count (finito) = $#flist"
