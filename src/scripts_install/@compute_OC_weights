@@ -422,9 +422,20 @@ cd $root_dir
 3dNotes -h "$prog $argv" $prefix$view
 
 if ( $status ) then
-   echo "** failed to create $prefix"
-else if ( $verb ) then
-   echo "++ output written to $prefix"
+   echo "** failed to create $prefix$view"
+else
+   echo ""
+   echo "============================================================"
+   echo ""
+   echo "++ final output is $prefix$view"
+   echo ""
+   echo "   consider the command:"
+   echo ""
+   echo "   3dMean -weightset $prefix$view -prefix opt.combined \\"
+   echo "          $echo_dsets"
+   echo ""
+   echo "============================================================"
+   echo ""
 endif
 
 exit 0
@@ -665,6 +676,7 @@ modification history for $prog :
    0.2  21 Feb 2018 : more babble; apply T2* < 0 as T2* limit
    0.3  23 Feb 2018 : added -echo_times, to list on command line
    0.4  10 Dec 2019 : added 3dMean -weightset example
+   0.5  20 Dec 2019 : added 3dMean hint at end of execution
 
 EOF
 exit
