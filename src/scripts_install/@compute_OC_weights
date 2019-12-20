@@ -141,6 +141,15 @@ while ( $ac <= $#argv )
       endif
       set prefix = $argv[$ac]
 
+      # if there is a view, whine
+      set vstr = `@parse_afni_name $prefix | awk '{print $3}'`
+      set vchr = `echo $vstr | cut -b 1`
+      if ( "$vchr" == "+" ) then
+         echo "** please remove the view ($vstr) from the -prefix param"
+         echo "   at the end of: -prefix $prefix"
+         exit 1
+      endif
+
    else if ( "$argv[$ac]" == "-sum_weight_tolerance" ) then
       @ ac ++
       if ( $ac > $#argv ) then
