@@ -654,6 +654,12 @@ int main( int argc , char *argv[] )
       "    more accurate than those from 3dDeconvolve, since the underlying\n"
       "    variance estimate should be more accurate (less biased).\n"
       "\n"
+      "* When there is significant temporal correlation, and you are using\n"
+      "    'IM' regression (estimated individual betas for each event),\n"
+      "    the REML GLSQ regression can be superior to OLSQ beta\n"
+      "    estimates -- in the sense that the resulting betas\n"
+      "    have somewhat less variance with GLSQ than with OLSQ.\n"
+      "\n"
       "-------------------------------------------\n"
       "Input Options (the first two are mandatory)  ~1\n"
       "-------------------------------------------\n"
@@ -832,8 +838,12 @@ int main( int argc , char *argv[] )
       "                   since a new matrix and GLT set must be built up and torn down\n"
       "                   for each voxel separately.\n"
 #ifdef USE_OMP
-      "                   -- And at this time, the GLSQ loop is not OpenMP-ized.\n"
+      "              -- At this time, the GLSQ loop is not OpenMP-ized.\n"
 #endif
+      "             +++ This voxel-wise regression capability is NOT implemented in\n"
+      "                   3dDeconvolve, so you'll have to use 3dREMLfit if you want\n"
+      "                   to use this method, even if you only want ordinary least\n"
+      "                   squares regression.\n"
       "               + The motivation for -dsort is to apply ANATICOR to task-based\n"
       "                   FMRI analyses.  You might be clever and have a better idea!?\n"
       "                  http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2897154/\n"
@@ -2015,7 +2025,7 @@ STATUS("options done") ;
      if( usetemp ){
        maxthr = 1 ;
        WARNING_message("-usetemp disables OpenMP multi-CPU usage") ;
-     } else if( nvox < 999 ){
+     } else if( nvox < maxthr*33 ){
        maxthr = 1 ;
        WARNING_message("only %d voxels: disables OpenMP multi-CPU usage in voxel loop",
                        nvox) ;
@@ -2953,7 +2963,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
 #ifdef USE_OMP
-   if( maxthr > 1 && nmask < 99*maxthr ){
+   if( maxthr > 1 && nmask < 33*maxthr ){
      maxthr = 1 ;
      WARNING_message(
       "only %d voxels in mask: disables OpenMP multi-CPU usage for voxel loop",
@@ -4238,3 +4248,103 @@ STATUS("ALL_GLTS") ;
 #endif
    exit(0) ;
 }
+
+/******************************************************************************/
+/******************************************************************************/
+#if 0
+/*--- The shell script below is for testing this ARMA/REML implementation. ---*/
+
+#!/bin/tcsh
+
+### Script to test REML GLSQ vs OLSQ regression
+
+# B      = signal amplitude for all repetitions
+# P      = signal period (TRs)
+# nstim  = number of signals (IM regression)
+# numvox = number of voxels to simulate
+# so there is a total of $nstim * $numvox stimuli being simulated
+
+set B      = 2
+set P      = 12
+set nstim  = 20
+set numvox = 400
+
+# ARMA(1,1) parameters for this test/simulation
+
+set AA  = 0.8
+set LAM = 0.5
+
+# D = number of time points (TR=1)
+
+@ D = $P * $nstim
+
+# create stimulus timing
+
+1deval -num $nstim -expr "i*${P}"  > stim.1D
+
+# create the voxel time series = simulated data
+
+1deval -num $D -expr "${B}*sin(PI*t/${P})^2"  > signal.1D
+foreach ii ( `count -dig 4 1 $numvox` )
+  1dgenARMA11 -num $D -a $AA -lam $LAM               > noise.1D
+  1deval      -a noise.1D -b signal.1D -expr 'a+b'   > data${ii}.1D
+end
+
+# glue them together into one file
+
+1dcat data0*.1D > data.1D
+\rm -f data0*.1D noise.1D signal.1D
+
+# create the regression matrix
+
+3dDeconvolve -num_stimts 1                                            \
+             -stim_times_IM 1 stim.1D "EXPR(0,${P}) sin(PI*t/${P})^2" \
+             -stim_label    1 'sinsq'                                 \
+             -nodata $D 1 -x1D_stop -polort 2 -x1D test.xmat.1D
+
+# analyses
+
+3dREMLfit -matrix test.xmat.1D \
+          -input data.1D\'     \
+          -Rvar  test.Rvar.1D  \
+          -Rbeta test.Rbeta.1D \
+          -Obeta test.Obeta.1D \
+          -nobout -Grid 5 -MAXa 0.9 -MAXb 0.9 -NEGcor
+
+# extract the betas for each voxel into one long single column 1D file
+# instead of the multi-column file output by 3dREMLfit
+
+@ ns1 = $nstim - 1
+if( -f test.Rbeta.all.1D ) \rm test.Rbeta.all.1D
+if( -f test.Obeta.all.1D ) \rm test.Obeta.all.1D
+foreach ii ( `count -dig 1 0 $ns1` )
+  1dcat test.Rbeta.1D"[$ii]" >> test.Rbeta.all.1D
+  1dcat test.Obeta.1D"[$ii]" >> test.Obeta.all.1D
+end
+
+# compute the mean and stdev of the GLSQ and OLSQ betas
+# (means should be about B, or something weird happened)
+
+3dTstat -mean -stdev -prefix test.Rbeta.stat.1D test.Rbeta.all.1D\'
+3dTstat -mean -stdev -prefix test.Obeta.stat.1D test.Obeta.all.1D\'
+
+# compute the ratio of the stdevs
+# srat > 1 means OLSQ stdev was bigger than GLSQ (what we expect)
+
+set Rsig = `1dcat test.Rbeta.stat.1D'[1]'`
+set Osig = `1dcat test.Obeta.stat.1D'[1]'`
+set srat = `ccalc "$Osig/$Rsig"`
+
+# print out these results
+
+echo "======================="
+echo "a = $AA  lam = $LAM"
+echo "REML mean stdev = " `1dcat test.Rbeta.stat.1D`
+echo "OLSQ mean stdev = " `1dcat test.Obeta.stat.1D`
+echo "Osig/Rsig       =  $srat"
+echo "======================="
+
+time ; exit 0
+#endif
+/******************************************************************************/
+/******************************************************************************/
