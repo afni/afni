@@ -105,7 +105,11 @@ class AfniTiming(LD.AfniData):
       """return a 2D array of [start, finish] times (so 3D object)"""
       sftimes = []
       for row in self.mdata:
-         times = [[e[0],e[0]+e[2]] for e in row]
+         # if married, include modulators
+         if self.married:
+            times = [[e[0],e[0]+e[2], e[1]] for e in row]
+         else:
+            times = [[e[0],e[0]+e[2]] for e in row]
          if sort: times.sort()
          sftimes.append(times)
       return sftimes
@@ -494,7 +498,8 @@ class AfniTiming(LD.AfniData):
 
       return 0
 
-   def timing_to_1D(self, run_len, tr, min_frac, per_run=0, allow_warns=0):
+   def timing_to_1D(self, run_len, tr, min_frac, per_run=0, allow_warns=0,
+                    write_mods=0):
       """return a 0/1 array of trs surviving min_frac cutoff
 
                 run_len   : list of run durations, in seconds
@@ -504,6 +509,7 @@ class AfniTiming(LD.AfniData):
                             for a set value in output array
                             (must be in [0.0, 1.0])
                 per_run   : if set, result is list of runs, else catenated
+                write_mods: if set, do not write 1.0, but the modulator
 
          return an error string and the 0/1 array
                 (on success, the error string is '')
@@ -513,17 +519,24 @@ class AfniTiming(LD.AfniData):
       if self.nrows > 0 and len(run_len) == 1:
          run_len = [run_len[0]] * self.nrows
 
-      errstr, result = self.timing_to_tr_frac(run_len, tr, per_run,
-                                              allow_warns=allow_warns)
+      errstr, result, modres = self.timing_to_tr_frac(run_len, tr, per_run,
+                               allow_warns=allow_warns, write_mods=write_mods)
 
       if errstr != '' or len(result) < 1: return errstr, result
 
       if per_run:
          new_res = []
          for row in result:
-            new_res.append(self.get_threshold_list(row, min_frac))
+            thr_res = self.get_threshold_list(row, min_frac)
+            # if write_mods, convert binary to modulator
+            if write_mods and len(modres) == len(thr_res):
+               for ind in range(len(thr_res)): thr_res[ind] *= modres[ind]
+            new_res.append(thr_res)
       else:
          new_res = self.get_threshold_list(result, min_frac)
+         # if write_mods, convert binary to modulator
+         if write_mods and len(modres) == len(new_res):
+            for ind in range(len(new_res)): new_res[ind] *= modres[ind]
 
       del(result)
 
@@ -536,7 +549,8 @@ class AfniTiming(LD.AfniData):
          if val >= min_val: result[ind] = 1
       return result
 
-   def timing_to_tr_frac(self, run_len, tr, per_run=0, allow_warns=0):
+   def timing_to_tr_frac(self, run_len, tr, per_run=0, allow_warns=0,
+                         write_mods=0):
       """return an array of stim fractions, where is value is the fraction
          of the current TR occupied by stimulus
 
@@ -559,10 +573,11 @@ class AfniTiming(LD.AfniData):
                 tr              : time resolution of output 1D file
                 per_run         : make a list of results (else all one)
                 allow_warns     : make some issues non-fatal
+                write_mods      : write out mod vals rather than 1.0
 
          On success, the error string should be empty and stim_list should not.
 
-         return error string, stim list
+         return error string, stim list, mod list (if write_mods)
 
          ** testing **
 
@@ -575,27 +590,36 @@ class AfniTiming(LD.AfniData):
       """
 
       if not self.ready:
-         return '** M Timing: nothing to compute ISI stats from', []
+         return '** M Timing: nothing to compute ISI stats from', [], []
 
       #if not self.mtype & LD.MTYPE_DUR:
       #   return '** M Timing: cannot compute stats without stim duration', []
 
       if self.nrows != len(self.data):
          return '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
-               (self.nrows, len(self.data)), []
+               (self.nrows, len(self.data)), [], []
 
       if self.nrows != len(run_len):
          return '** run_len list is %d of %d runs in timing_to_1D: %s'   \
-               % (len(run_len), self.nrows, run_len), []
+               % (len(run_len), self.nrows, run_len), [], []
 
       if tr <= 0.0:
-         return '** timing_to_tr, illegal TR <= 0: %g' % tr, []
+         return '** timing_to_tr, illegal TR <= 0: %g' % tr, [], []
+
+      if write_mods and not self.married:
+         print("** to1D: asking for modulatros, but times are not married")
+         write_mods = 0
 
       # make a sorted copy of format run x stim x [start,end], i.e. is 3-D
       tdata = self.get_start_end_timing(sort=1)
 
       if self.verb > 1:
-         print('timing_to_tr_fr, tr = %g, nruns = %d' % (tr,len(run_len)))
+         if write_mods:
+            mstr = ', will write mods'
+         else:
+            mstr = ''
+         print('timing_to_tr_fr, tr = %g, nruns = %d%s' \
+               % (tr,len(run_len),mstr))
 
       # need to check each run for being empty
       for ind, data in enumerate(tdata):
@@ -603,9 +627,9 @@ class AfniTiming(LD.AfniData):
           if data[-1][1] > run_len[ind] or run_len[ind] < 0:
              entry = data[-1]
              if entry[0] > run_len[ind] or run_len[ind] < 0:
-                return '** run %d, stim starts after end of run' % (ind+1), []
+                return '** run %d, stim starts after end of run' % (ind+1),[],[]
              elif not allow_warns:
-                return '** run %d, stim ends after end of run' % (ind+1), []
+                return '** run %d, stim ends after end of run' % (ind+1), [],[]
              else:
                 # entry[1] > run_len[ind]
                 print('** WARNING: run %d stim ends after end of run'%(ind+1))
@@ -615,6 +639,7 @@ class AfniTiming(LD.AfniData):
                 entry[1] = entry[0] + 0.99*(run_len[ind]-entry[0])
           
       result = []
+      modres = []   # for modulated results
       # process one run at a time, first converting to TR indices
       for rind, data in enumerate(tdata):
          if self.verb > 4:
@@ -631,7 +656,7 @@ class AfniTiming(LD.AfniData):
                          % (rind, tind))
                else:
                   return '** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind), []
+                         % (rind, tind), [], []
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
             print(data)
@@ -644,7 +669,8 @@ class AfniTiming(LD.AfniData):
          num_trs = int(math.ceil(run_len[rind]/float(tr)))
          if self.verb>2: print('-- TR frac: have %d TRs and %d events over run'\
                                % (num_trs, len(data)))
-         rdata = [0 for i in range(num_trs)]
+         rdata = [0] * num_trs
+         mdata = [0] * num_trs
          for sind in range(len(data)):
             start  = data[sind][0]      # initial TR (fractional) time
             end    = data[sind][1]      # end TR time
@@ -660,20 +686,43 @@ class AfniTiming(LD.AfniData):
 
             # startp, intermediates (between startp, endp, exclusive), endp
             rdata[startp] = round(1-(start-startp),3)
+            modval = 0.0
+            if write_mods:
+               if len(data[sind]) < 3:
+                  print("** married but missing mods to write in %d: %s" \
+                        % (sind, data[sind]))
+                  write_mods = 0
+               elif len(data[sind][2]) == 0:
+                  print("** married but no mods to write in %d: %s" \
+                        % (sind, data[sind]))
+                  write_mods = 0
+               else:
+                  modval = data[sind][2][0]
+               print('=== modval = %g' % modval)
             for tind in range(startp+1,endp): rdata[tind] = 1.0
             rdata[endp] = round(end-endp, 3)
+            if write_mods:
+               for tind in range(startp+1,endp): mdata[tind] = modval
+               mdata[endp] = modval
 
          if self.verb > 4:
             print('\n++ timing_to_tr_fr, result for run %d:' % (rind+1))
-            print(' '.join(["%g" % rdata[ind] for ind in range(len(rdata))]))
+            print(' '.join(["%g" % r for r in rdata]))
+            if write_mods:
+               print(' '.join(["%g" % r for r in mdata]))
 
-         if per_run: result.append(rdata)
-         else:       result.extend(rdata)
+         if per_run:
+            result.append(rdata)
+            modres.append(mdata)
+         else:
+            result.extend(rdata)
+            modres.extend(mdata)
 
       del(tdata)
       del(rdata)
+      del(mdata)
 
-      return '', result
+      return '', result, modres
 
    def show_isi_stats(self, mesg='', run_len=[], tr=0, rest_file=''):
       """display ISI timing statistics
