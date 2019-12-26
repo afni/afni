@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Dec , 2019 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Simpler list of uvar dependencies for indiv stim plotting.",
+   "... ergo, see indiv stims even if not censoring.\n"
+},
+
 { 26, Dec , 2019 , PT , "check_dset_for_fs.py" , MINOR , TYPE_BUG_FIX,
    "Fix one of the test criteria (-is_mat_even).",
    "Thanks, S. Torrisi, for pointing this out.\n"
