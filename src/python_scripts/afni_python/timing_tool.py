@@ -898,6 +898,13 @@ action options (apply to single timing element, only): ~1~
 
             Consider example 6a or 6c.
 
+   -timing_to_1D_mods           : write amp modulators to 1D, not binary ~2~
+
+        For -timing_to_1D, instead of writing a binary 0/1 file, write the
+        (first) amplitude modulators to the 1D file.
+
+        This only applies to -timing_to_1D.
+
    -timing_to_1D_warn_ok        : make some conversion issues non-fatal ~2~
 
         Conditions from -timing_to_1D that this makes non-fatal:
@@ -1404,13 +1411,14 @@ g_history = """
    3.09 Jul 23, 2019 - added help and examples -tsv_labels
    3.10 Jul 24, 2019 - added -show_tsv_label_details
    3.11 Jul 29, 2019 - formatted -help for sphinx conversion
-   3.12 Aug  8, 2019 -
+   3.12 Aug  8, 2019
         - ISI stats: allow and adjust for stim overlap
         - dur stats: show file/condition with stats
         - match output between python2 and python3
+   3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
 """
 
-g_version = "timing_tool.py version 3.12, August 8, 2019"
+g_version = "timing_tool.py version 3.13, December 26, 2019"
 
 
 
