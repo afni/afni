@@ -300,6 +300,12 @@ examples: ~1~
 
       timing_tool.py -multi_timing stim.* -multi_timing_to_event_list GE:ALL -
 
+      Note: for convenience, one can also use -show_events, as in:
+
+        timing_tool.py -multi_timing stim.* -show_events
+
+      This is much easier to remember, and it is a very common option.
+
    Example 13b. like 13a, but restrict the output ~2~
 
       Restrict global events list to:
@@ -452,7 +458,7 @@ examples: ~1~
                         -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
                         -show_tsv_label_details
 
-      Consider "-multi_timing_to_event_list GE:ALL -" to view event list.
+      Consider "-show_events" to view event list.
 
 --------------------------------------------------------------------------
 Notes: ~1~
@@ -1022,6 +1028,9 @@ action options (apply to multi timing elements, only): ~1~
                  o : offset from previous event (including previous duration)
                  f : event class file name
 
+      * note: -show_events is short for '-multi_timing_to_event_list GE:ALL -'
+        See also -show_events.
+
 ------------------------------------------
 general options: ~1~
 
@@ -1152,6 +1161,17 @@ general options: ~1~
         The run durations only matter for displaying ISI statistics.
 
             Consider '-show_isi_stats' and '-multi_show_isi_stats'.
+
+   -show_events                 : see -multi_timing_to_event_list GE:ALL - ~2~
+
+        This option, since it is so useful, it shorthand for
+
+            -multi_timing_to_event_list GE:ALL -
+
+        This option works for both -timing and -multi_timing.
+        It is terminal.
+
+        See also -multi_timing_to_event_list.
 
    -tr TR                       : specify the time resolution in 1D output ~2~
                                   (in seconds)
@@ -1697,6 +1717,9 @@ class ATInterface:
       self.valid_opts.add_opt('-show_duration_stats', 0, [], 
                          helpstr='display min/mean/max/stdev of event durs')
 
+      self.valid_opts.add_opt('-show_events', 0, [], 
+                         helpstr='display events list')
+
       self.valid_opts.add_opt('-show_timing', 0, [], 
                          helpstr='display timing contents')
 
@@ -2217,6 +2240,18 @@ class ATInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return 1
             self.multi_timing_to_event_list(val[1], style=val[0])
+
+         # ** a convenience option, because the above is soooo useful
+         elif opt.name == '-show_events':
+            # if -timing, cheat and use multi_timing
+            if self.timing and not self.m_timing:
+               if self.multi_set_timing([self.fname]): return 1
+            if not self.m_timing:
+               print("** '%s' requires -multi_timing" % opt.name)
+               return 1
+            self.multi_timing_to_event_list('-', style='GE:ALL')
+            # terminal
+            return 0
 
          elif opt.name == '-transpose':
             if not self.timing:
