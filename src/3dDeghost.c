@@ -498,10 +498,10 @@ byte * DEG_automask_image( MRI_IMAGE *im )
    iar  = MRI_FLOAT_PTR(im) ;
    cval = THD_cliplevel(im,CLFRAC) ;
 
-   THD_mask_dilate(nx,ny,nz,cmask,3) ;  /* embiggen the mask */
-   THD_mask_dilate(nx,ny,nz,cmask,3) ;
-   THD_mask_dilate(nx,ny,nz,cmask,3) ;
-   THD_mask_dilate(nx,ny,nz,cmask,3) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3,2) ;  /* embiggen the mask */
+   THD_mask_dilate(nx,ny,nz,cmask,3,2) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3,2) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3,2) ;
    for( ii=0 ; ii < nvox ; ii++ )       /* enlittle it now (cromulently) */
      if( !bmask[ii] && cmask[ii] && iar[ii] < cval ) cmask[ii] = 0 ;
 

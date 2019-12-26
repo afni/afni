@@ -216,7 +216,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        if( Hverb > 1 ) ININFO_message("  dilating") ;
        for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
        for( ii=0 ; ii < ndil ; ii++ ){
-         THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
+         THD_mask_dilate     ( nx,ny,nz , mmm , 3, 2 ) ;
          THD_mask_fillin_once( nx,ny,nz , mmm , 2 ) ;
        }
        for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = (float)mmm[ii] ;

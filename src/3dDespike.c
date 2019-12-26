@@ -526,7 +526,7 @@ int main( int argc , char *argv[] )
        ERROR_exit("Nothing to process -- automask is empty :(") ;
 
      for( ii=0 ; ii < dilate ; ii++ )
-       THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
+       THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3, 2 ) ;
 
      ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
      if( verb )

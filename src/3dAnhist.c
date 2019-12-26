@@ -186,7 +186,7 @@ int main( int argc , char * argv[] )
         ii = rint(0.032*ny) ; nmm = MAX(nmm,ii) ;
         ii = rint(0.032*nz) ; nmm = MAX(nmm,ii) ;
         for( dd=0 ; dd < dilate ; dd++ ){
-          THD_mask_dilate           ( nx,ny,nz , mask, 3   ) ;
+          THD_mask_dilate           ( nx,ny,nz , mask, 3, 2 ) ;
           THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
         }
         for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;

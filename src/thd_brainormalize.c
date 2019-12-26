@@ -1059,7 +1059,7 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
    kk = mask_count(nxyz,ppp) ;
    if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
    if( verb ) fprintf(stderr," + Initial peel mask has %d voxels\n",kk ) ;
-   THD_mask_erode( nx,ny,nz, ppp, 1 ) ;
+   THD_mask_erode( nx,ny,nz, ppp, 1, 2 ) ; /* NN2 */
    THD_mask_clust( nx,ny,nz, ppp ) ;
    kk = mask_count(nxyz,ppp) ;
    if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
@@ -1331,8 +1331,8 @@ ENTRY("mri_brainormalize") ;
    /* fill in any isolated holes in mask */
 
    (void) THD_mask_fillin_once( nx,ny,nz , mask , 2 ) ;  /* thd_automask.c */
-          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
-          THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
+          THD_mask_dilate     ( nx,ny,nz , mask , 5, 2 ) ;
+          THD_mask_dilate     ( nx,ny,nz , mask , 5, 2 ) ;
 
    kk = mask_count(nxyz,mask) ;
    if( verb > 1)

@@ -816,7 +816,7 @@ STATUS("no data left after cluster edit!") ;
                                        nx, nxy);
                   mask[ijk] = 1 ;
                }
-             if (!THD_mask_depth ( nx, ny, nz, mask, 1, depth)) {
+             if (!THD_mask_depth ( nx, ny, nz, mask, 1, depth,2)) {
                ERROR_message("Failed in mask depth");
                break;
              }

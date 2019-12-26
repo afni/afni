@@ -3059,7 +3059,7 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
          SUMA_S_Note("Dilating %d", dilate);
          for (tt=0; tt<dilate; ++tt) {
             THD_mask_dilate(DSET_NX(aset), DSET_NY(aset), DSET_NZ(aset), 
-                               b, 1);
+                               b, 1, 2);
          }
       }
       SUMA_S_Note("Filling with %f", val);

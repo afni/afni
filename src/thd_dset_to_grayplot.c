@@ -192,7 +192,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
          case ORDER_PEEL:{
            short *depth=NULL ; int kk ;
            depth = THD_mask_depth( DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ,
-                                   tmask , 1 , NULL ) ;
+                                   tmask , 1 , NULL, 2 ) ;
            if( depth != NULL ){
              int    *idepth = (int *)calloc(sizeof(int),cmval) ;
              int       *kim = (int *)calloc(sizeof(int),cmval) ;

@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 25, DEC, 2019, DRG, "erosion/dilation neighborhoods", MINOR, TYPE_MODIFY,
+    "Allow for NN1,NN2,NN3 neighborhoods for erosion and dilation",
+    "3dAutomask and other programs use these functions\n"
+    "the depth option in 3dAutomask gives a depth of automask NN1,2,3"
+},
 { 12, DEC, 2019, DRG, "@measure_erosion_thick", MINOR, TYPE_MODIFY,
     "More centers - find deepest near voxel closest to Center of Mass",
     "Came from CodeConvergence idea by Meghan Robinson\n"

@@ -3352,7 +3352,7 @@ int main( int argc , char *argv[] )
      mri_fix_data_pointer( mmm , im_tmask ) ;
      if( ndil > 0 ){
        for( ii=0 ; ii < ndil ; ii++ ){
-         THD_mask_dilate     ( nx_targ,ny_targ,nz_targ , mmm , 3 ) ;
+         THD_mask_dilate     ( nx_targ,ny_targ,nz_targ , mmm , 3, 2 ) ;
          THD_mask_fillin_once( nx_targ,ny_targ,nz_targ , mmm , 2 ) ;
        }
      }
@@ -4387,7 +4387,7 @@ STATUS("zeropad weight dataset") ;
        mri_fix_data_pointer( mmm , bsm ) ;
        if( ndil > 0 ){
          for( ii=0 ; ii < ndil ; ii++ ){
-           THD_mask_dilate     ( nx_base,ny_base,nz_base , mmm , 3 ) ;
+           THD_mask_dilate     ( nx_base,ny_base,nz_base , mmm , 3, 2 ) ;
            THD_mask_fillin_once( nx_base,ny_base,nz_base , mmm , 2 ) ;
          }
        }
@@ -5882,7 +5882,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
+   THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c NN2 */
    THD_mask_clust( nx,ny,nz, mmm ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
    free((void *)mmm) ;
@@ -5916,7 +5916,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        if( verb > 1 ) ININFO_message("Weightize: dilating") ;
        for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
        for( ii=0 ; ii < ndil ; ii++ ){
-         THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
+         THD_mask_dilate     ( nx,ny,nz , mmm , 3, 2 ) ;
          THD_mask_fillin_once( nx,ny,nz , mmm , 2 ) ;
        }
        for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = (float)mmm[ii] ;
