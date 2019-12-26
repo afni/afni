@@ -515,6 +515,10 @@ class AfniTiming(LD.AfniData):
                 (on success, the error string is '')
       """
 
+      if self.verb > 2:
+         print("-- t21D: per_run %s, allow_wars %s, write_mods %s" \
+               % (per_run, allow_warns, write_mods) )
+
       # maybe the user provided only one run length
       if self.nrows > 0 and len(run_len) == 1:
          run_len = [run_len[0]] * self.nrows
@@ -526,11 +530,13 @@ class AfniTiming(LD.AfniData):
 
       if per_run:
          new_res = []
-         for row in result:
+         for rind, row in enumerate(result):
             thr_res = self.get_threshold_list(row, min_frac)
             # if write_mods, convert binary to modulator
-            if write_mods and len(modres) == len(thr_res):
-               for ind in range(len(thr_res)): thr_res[ind] *= modres[ind]
+            if write_mods:
+               mrow = modres[rind]
+               if len(mrow) == len(thr_res):
+                  for ind in range(len(thr_res)): thr_res[ind] *= mrow[ind]
             new_res.append(thr_res)
       else:
          new_res = self.get_threshold_list(result, min_frac)
@@ -539,6 +545,7 @@ class AfniTiming(LD.AfniData):
             for ind in range(len(new_res)): new_res[ind] *= modres[ind]
 
       del(result)
+      del(modres)
 
       return '', new_res
 
@@ -573,7 +580,7 @@ class AfniTiming(LD.AfniData):
                 tr              : time resolution of output 1D file
                 per_run         : make a list of results (else all one)
                 allow_warns     : make some issues non-fatal
-                write_mods      : write out mod vals rather than 1.0
+                write_mods      : return mod values along with tr fractions
 
          On success, the error string should be empty and stim_list should not.
 
@@ -614,11 +621,9 @@ class AfniTiming(LD.AfniData):
       tdata = self.get_start_end_timing(sort=1)
 
       if self.verb > 1:
-         if write_mods:
-            mstr = ', will write mods'
-         else:
-            mstr = ''
-         print('timing_to_tr_fr, tr = %g, nruns = %d%s' \
+         if write_mods: mstr = ', will write mods'
+         else:          mstr = ''
+         print('-- timing_to_tr_fr, tr = %g, nruns = %d%s' \
                % (tr,len(run_len),mstr))
 
       # need to check each run for being empty
@@ -657,6 +662,7 @@ class AfniTiming(LD.AfniData):
                else:
                   return '** run %d, index %d, stimulus overlap with next' \
                          % (rind, tind), [], []
+
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
             print(data)
@@ -672,20 +678,13 @@ class AfniTiming(LD.AfniData):
          rdata = [0] * num_trs
          mdata = [0] * num_trs
          for sind in range(len(data)):
+            # note the first and last time indices
             start  = data[sind][0]      # initial TR (fractional) time
             end    = data[sind][1]      # end TR time
             startp = int(start)         # initial TR index
             endp   = int(end)           # end TR index
 
-            # deal with easy case, else: startp, intermediates, endp
-
-            # easy case : quick process of single TR result
-            if endp == startp:
-               rdata[startp] = end-start
-               continue
-
-            # startp, intermediates (between startp, endp, exclusive), endp
-            rdata[startp] = round(1-(start-startp),3)
+            # and decide on any modval, in case of write_mods
             modval = 0.0
             if write_mods:
                if len(data[sind]) < 3:
@@ -698,14 +697,26 @@ class AfniTiming(LD.AfniData):
                   write_mods = 0
                else:
                   modval = data[sind][2][0]
-               print('=== modval = %g' % modval)
-            for tind in range(startp+1,endp): rdata[tind] = 1.0
-            rdata[endp] = round(end-endp, 3)
-            if write_mods:
-               for tind in range(startp+1,endp): mdata[tind] = modval
-               mdata[endp] = modval
 
-         if self.verb > 4:
+            # deal with easy case : quick process of single TR result
+            if endp == startp:
+               rdata[startp] = end-start
+               mdata[startp] = modval
+               continue
+
+            # otherwise, fill startp, intermediate, and endp fractions
+            # (start and end are probably < 1, intermediates are 1)
+            rdata[startp] = round(1-(start-startp),3)
+            for tind in range(startp+1,endp):
+               rdata[tind] = 1.0
+            rdata[endp] = round(end-endp, 3)
+
+            # if mods, just write all startp through endp as modval
+            if write_mods:
+               for tind in range(startp,endp+1):
+                  mdata[tind] = modval
+
+         if self.verb > 3:
             print('\n++ timing_to_tr_fr, result for run %d:' % (rind+1))
             print(' '.join(["%g" % r for r in rdata]))
             if write_mods:

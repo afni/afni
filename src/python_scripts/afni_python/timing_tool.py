@@ -160,9 +160,20 @@ examples: ~1~
 
           1dplot -sepscl sfile.1D waver.1D X.xmat.1D
 
-   Example 6c.  do this per run, but leave each run in a separate file ~2~
+   Example 6c. like 6a, but per run; leave each run in a separate file ~2~
+
+       Add option -per_run_file.
 
           timing_tool.py -timing timing.txt -timing_to_1D sfile.1D      \\
+                         -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
+                         -run_len 360 360 400 -per_run_file
+
+   Example 6d. like 6c, but write amplitude modulators ~2~
+
+       Add option -timing_to_1D_mods.
+
+          timing_tool.py -timing timing.txt -timing_to_1D smods.1D      \\
+                         -timing_to_1D_mods                             \\
                          -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
                          -run_len 360 360 400 -per_run_file
 
@@ -1403,6 +1414,7 @@ class ATInterface:
       self.per_run         = 0          # conversions done per run
       self.part_init       = 'INIT'     # default for -part_init
       self.t21D_warn_ok    = 0          # some timing_to_1D issues are non-fatal
+      self.t21D_mods       = 0          # write modulators, rather than binary
       self.write_married   = 0          # for -write_as_married
 
       # user options - single var
@@ -1697,6 +1709,9 @@ class ATInterface:
       self.valid_opts.add_opt('-timing_to_1D', 1, [], 
                          helpstr='convert stim_times to 0/1 stim_file')
 
+      self.valid_opts.add_opt('-timing_to_1D_mods', 0, [], 
+                         helpstr='write amplitude modulators, not binary')
+
       self.valid_opts.add_opt('-timing_to_1D_warn_ok', 0, [], 
                          helpstr='make some conversion issues non-fatal')
 
@@ -1905,6 +1920,11 @@ class ATInterface:
          val, err = uopts.get_type_list(float, '-run_len')
          if type(val) == type([]) and not err:
             self.run_len = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-timing_to_1D_mods')
+      if oind >= 0:
+         if uopts.find_opt('-timing_to_1D_mods'): self.t21D_mods = 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-timing_to_1D_warn_ok')
@@ -2628,7 +2648,8 @@ class ATInterface:
 
       errstr, result = self.timing.timing_to_1D(self.run_len, self.tr,
                             self.min_frac, self.per_run,
-                            allow_warns=self.t21D_warn_ok)
+                            allow_warns=self.t21D_warn_ok,
+                            write_mods=self.t21D_mods)
       if errstr:
          print(errstr)
          return 1
