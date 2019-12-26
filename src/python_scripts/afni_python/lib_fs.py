@@ -4,10 +4,14 @@
 #ver='1.0' ; date='Oct 22, 2019'
 # + [PT] start
 #
-ver='1.2' ; date='Oct 23, 2019'
+#ver='1.2' ; date='Oct 23, 2019'
 # + [PT] helpful helpfile
 #      - also updating way prog works: can have finer-grained criteria
 #        calling
+#
+ver='1.3' ; date='Dec 26, 2019'
+# + [PT] fix "-is_mat_even" test
+#      - thanks, S. Torrisi, for pointing this out!
 #
 #
 ###############################################################################
@@ -452,7 +456,7 @@ class iopts_this_prog:
       
         '''
         for x in self.mat_dim:
-            if not(x % 2) :  
+            if x % 2 : 
                 self.stat_mat_even = 0
                 return self.stat_mat_even
 
