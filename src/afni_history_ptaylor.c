@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Dec , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_OPT,
+   "New option(s) to not just *check* a dset for FS-ability, but to correct it.",
+   "The '-fix_all' and accompanying options control this.  Bonne idee, DRG!\n"
+},
+
 { 26, Dec , 2019 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
    "Simpler list of uvar dependencies for indiv stim plotting.",
    "... ergo, see indiv stims even if not censoring.\n"
