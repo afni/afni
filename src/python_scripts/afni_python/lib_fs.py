@@ -277,14 +277,15 @@ help_string_this_prog = '''
                  -is_vox_iso                 \\
                  -verb
     
-    4. Today's special.  Run the check, AND output a fixed dset.
+    4. Today's special.  Run the check, AND output a fixed dset (and don't
+       forget to save the helpful check text).
 
              check_dset_for_fs.py            \\
                  -input DSET                 \\
                  -fix_all                    \\
                  -fix_out_prefix  DSET_FIXED \\
                  -fix_out_vox_dim 1          \\
-                 -verb 
+                 -verb > record_the_check_text.txt
 
 '''.format( **help_dict )
 
