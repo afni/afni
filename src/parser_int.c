@@ -984,7 +984,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
                        float *parbot, float *partop, float *parout,
                        int meth , float *wtar )
 {
-   int jind ; char cind ;
+   int jind=0 ; char cind ;
    int jj,aa ; char cjj ;
    int nbad=0 ;
    double pval[26] ;

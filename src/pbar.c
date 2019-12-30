@@ -839,7 +839,7 @@ ENTRY("PBAR_big_menu_CB") ;
 
    } else if( w == pbar->big_picktopbot_pb ){
      Three_D_View *im3d=(Three_D_View *)pbar->parent ;
-     Widget wtop ;
+     Widget wtop=(Widget)NULL ;
      if( ISVALID_IM3D(im3d) ){
        wtop = im3d->vwid->func->inten_label ;
      } else {

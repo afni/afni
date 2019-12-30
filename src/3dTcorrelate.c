@@ -131,7 +131,7 @@ float THD_ycoef( int npt , float *xx , float *yy )  /* 20 Feb 2014 */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset , *yset , *cset, *pset ;
+   THD_3dim_dataset *xset , *yset , *cset, *pset=NULL ;
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii , polort=1 ;
    MRI_IMAGE *xsim , *ysim , *psim;

@@ -197,7 +197,7 @@ int compute_results(options_t * opts)
 /* this computes the mean abs first (backwards) diff */
 int compute_meandiff(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean, mdiff;
+   double * dwork, dscale=1.0, gmean, mdiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
@@ -391,7 +391,7 @@ int compute_4095(options_t * opts, int method)
  */
 int compute_enorm(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean, mdiff;
+   double * dwork, dscale=1.0, gmean, mdiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;

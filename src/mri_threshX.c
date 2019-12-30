@@ -597,7 +597,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster_cimar( MRI_IMAGE *fim ,
    MRI_IMAGE *tfim , *qfim=NULL , *cim0,*cim1,*cim2 ;
    float *tfar , *far , *qfar=NULL , cth,cval,thr ;
    int ii,nvox , kth , jhp , hm ;
-   Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
+   Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt=0, *ijkar ;
    int do_mask = (flags & XTHRESH_OUTPUT_MASK) ;
    byte *qbyt=NULL ;
    MRI_IMARR *amask=NULL; MRI_IMAGE *afim=NULL; byte *abyt=NULL;
@@ -766,7 +766,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster_fomth( MRI_IMAGE *fim ,
    MRI_IMAGE *tfim , *qfim=NULL ;
    float *tfar , *far , *qfar=NULL , cth,cval,thr ;
    int ii,nvox , kth , jhp , hm ;
-   Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
+   Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt=0, *ijkar ;
    int do_mask = (flags & XTHRESH_OUTPUT_MASK) ;
    byte *qbyt=NULL ;
    MRI_IMARR *amask=NULL; MRI_IMAGE *afim=NULL; byte *abyt=NULL;
