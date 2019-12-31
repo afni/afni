@@ -409,7 +409,8 @@ echo "TRs removed (per run)     : $value"
 echo "num stim classes provided : $num_stim"
 """
 
-g_mot_n_trs_str = """
+# g_mot_n_trs_str = 
+g_mot_str = """
 # ------------------------------------------------------------
 # report motion limit, average motion and number of TRs exceeding limit
 
@@ -442,26 +443,34 @@ if ( $?motion_dset ) then
         echo "max censored displacement : $disp"
     endif
 endif
+"""
 
+g_outlier_str = """
 # ------------------------------------------------------------
 # report outlier limit, average and number of TRs exceeding limit
 # also, report any flip guess
 
-echo "outlier limit             : $out_limit"
+if ( $?out_limit ) then
+   echo "outlier limit             : $out_limit"
+endif
 
 set mmean = `3dTstat -prefix - -mean $outlier_dset\\' | & tail -n 1`
 echo "average outlier frac (TR) : $mmean"
 
-set mcount = `1deval -a $outlier_dset -expr "step(a-$out_limit)"      \\
-                        | awk '$1 != 0 {print}' | wc -l`
-echo "num TRs above out limit   : $mcount"
+if ( $?out_limit ) then
+   set mcount = `1deval -a $outlier_dset -expr "step(a-$out_limit)"      \\
+                           | awk '$1 != 0 {print}' | wc -l`
+   echo "num TRs above out limit   : $mcount"
+endif
 
 if ( $?flip_guess ) then
    echo "flip guess                : $flip_guess"
 endif
 
 echo ""
+"""
 
+g_trs_str = """
 # ------------------------------------------------------------
 # note number of runs, TRs per run, and possibly censored TRs per run
 set nruns = ( `1d_tool.py -infile X.xmat.1D -show_num_runs` )
@@ -897,9 +906,10 @@ g_history = """
    1.16 Jul  3, 2019: let X.stim.xmat.1D be empty for non-task case
    1.17 Jul 18, 2019: accept multi-echo data in find_tcat
    1.18 Nov  1, 2019: track mask_anat_templ_corr_dset
+   1.19 Dec 31, 2019: do not require out_limit (if unset, no uvar)
 """
 
-g_version = "gen_ss_review_scripts.py version 1.18, November 1, 2019"
+g_version = "gen_ss_review_scripts.py version 1.19, December 31, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2539,9 +2549,9 @@ class MyInterface:
             - warn if no mot/cen limit (and set to defaults)
       """
 
-      # if empty, init the limits
+      # if empty, init the limits (rcr - in the future, do not do this)
       if self.uvars.is_empty('mot_limit'): self.uvars.mot_limit = 0.3
-      if self.uvars.is_empty('out_limit'): self.uvars.out_limit = 0.1
+      # if self.uvars.is_empty('out_limit'): self.uvars.out_limit = 0.1
 
       # check if censor dset already set
       if self.uvar_already_set('censor_dset'): return 0
@@ -2662,7 +2672,8 @@ class MyInterface:
       if resvar != '': 
          sstr += 'echo "final voxel resolution    : `3dinfo -ad3 %s`"\n'%resvar
 
-      txt = g_overview_str + astr + sstr + 'echo ""\n' + g_mot_n_trs_str
+      txt = g_overview_str + astr + sstr + 'echo ""\n' \
+            + g_mot_str + g_outlier_str + g_trs_str
 
       txt += \
         '# ------------------------------------------------------------\n'   \
@@ -2727,7 +2738,8 @@ class MyInterface:
                   'num_stim', 'mot_limit', 'out_limit', 'final_view']:
          if uvars.valid(var):
             txt += form % (var,self.uvars.val(var))
-         elif var in ['rm_trs', 'afni_ver', 'afni_package']: # non-fatal
+         # check for non-fatal vars
+         elif var in ['rm_trs', 'afni_ver', 'afni_package', 'out_limit']:
             if self.cvars.verb > 1:
                print('** warning: basic script, missing variable %s' % var)
          else:
@@ -3237,7 +3249,13 @@ class MyInterface:
       else: xmat = self.dsets.xmat_ad
       nt = xmat.nt
       mlimit = self.uvars.mot_limit
-      olimit = self.uvars.out_limit
+
+      # for now, force a default out_limit
+      # (rcr - in the future, will not require mot/out limits)
+      if self.uvars.is_not_empty('out_limit'):
+         olimit = self.uvars.out_limit
+      else:
+         olimit = 0.1
 
       colorstr = '(colored TRs are censored):'
       if self.dsets.is_empty('censor_dset'):

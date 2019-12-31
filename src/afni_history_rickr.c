@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Dec, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "Do not require out_limit.  Currently will still show in driver.",
+   "Done for P Taylor."
+ } ,
+
  { 26, Dec, 2019, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
    "add -timing_to_1D_mods and -show_events",
    "Done for A Gorka."
