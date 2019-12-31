@@ -109,8 +109,12 @@ auth = 'PA Taylor'
 #    + put in censoring to the 1dplot.py command when showing VR6 -
 #      also known as the 'Molfese approach'
 #
-ver = '3.11' ; date = 'Sep 9, 2019' 
+#ver = '3.11' ; date = 'Sep 9, 2019' 
 # [PT] spacing fix in VR6 with censoring
+#
+ver = '3.12' ; date = 'Dec 26, 2019' 
+# [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
+#      as a dependency, so remove it from the list
 #
 #########################################################################
 
@@ -536,7 +540,7 @@ if __name__ == "__main__":
     # if there is no stats dset or its value is NO_STATS, then there
     # *are no* regressors of interest, so we won't try to plot them.
     # At some point, we will add in different info to put here, though.
-    ldep = ['xmat_stim', 'xmat_uncensored', 'stats_dset']
+    ldep = ['xmat_stim', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         # additional checks here for possible other uvars to use
         HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])

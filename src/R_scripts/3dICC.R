@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.5, Aug 26, 2019
+Version 0.0.6, Dec 17, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -782,7 +782,7 @@ if(is.na(lop$tStat)) { # no tStat input
       lop$dataStr$eff <- inData[ii, jj, kk,]
       options(warn=-1)
       try(fm <- lmer(lop$model, data=lop$dataStr), silent=TRUE)
-      fm <- 1
+      #fm <- 1
       if(!is.null(fm))  {
          print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
       } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {

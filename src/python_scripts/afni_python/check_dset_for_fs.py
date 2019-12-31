@@ -23,16 +23,16 @@ if __name__ == "__main__" :
         print("{:30s} : {}".format( 'AFNI ver and package',
                                     iopts.afni_ver))
         if iopts.rep_vox_iso or iopts.rep_vox_1mm_max or iopts.rep_vox_05mm_min:
-            print("{:30s} : {}".format( 'Voxel dims',
+            print("{:30s} : {}".format( 'Voxel dims (mm)',
                                         iopts.vox_dim_str))
         if iopts.rep_mat_even :
             print("{:30s} : {}".format( 'Matrix dims',
                                         iopts.mat_dim_str))
         if iopts.rep_vox_iso :
-            print("{:30s} : {}".format( 'Voxel isotropy tolerance',
+            print("{:30s} : {}".format( 'Voxel isotropy tolerance (mm)',
                                         iopts.eps_iso))
         if iopts.rep_vox_1mm_max or iopts.rep_vox_05mm_min:
-            print("{:30s} : {}".format( 'Voxel size tolerance',
+            print("{:30s} : {}".format( 'Voxel size tolerance (mm)',
                                         iopts.eps_size))
             
         print("")
@@ -55,6 +55,27 @@ if __name__ == "__main__" :
 
     else:
         print( iopts.stat_fs_safe )
+
+    if iopts.fix_all :
+        iopts.run_fix_all()
+        
+    # and then a bit more output
+    if iopts.is_verbose :
+        print("")
+        print("{:30s} : {}".format( 'Do try to fix all',
+                                    iopts.fix_all))
+        if iopts.fix_make_changes :
+            print("{:30s} : {}".format( 'Do need changes', 
+                                        iopts.fix_make_changes ))
+        if iopts.fix_out_prefix :
+            print("{:30s} : {}".format( 'Output (fixed) dset', 
+                                        iopts.fix_out_prefix ))
+        if iopts.fix_out_vox_dim_str :
+            print("{:30s} : {}".format( 'Output voxel dims (mm)', 
+                                        iopts.fix_out_vox_dim_str ))
+        if iopts.fix_out_mat_dim_str :
+            print("{:30s} : {}".format( 'Output matrix dims', 
+                                        iopts.fix_out_mat_dim_str ))
 
     sys.exit(0)
 

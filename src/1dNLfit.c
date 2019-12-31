@@ -9,7 +9,7 @@ static double atoz[26] ;
 
 static float_pair parse_parameter( char *parg )
 {
-   PARSER_code *pcode ;
+   PARSER_code *pcode=NULL ;
    char *expr , *cpt ;
    float_pair fp = {0.0f,0.0f} ;
 
@@ -151,7 +151,7 @@ void print_1dNLfit_help(void)
 int main( int argc , char *argv[] )
 {
    int nopt=1 , nbad=0 ;
-   char *expr=NULL ; PARSER_code *pcode ;
+   char *expr=NULL ; PARSER_code *pcode=NULL ;
    char cind='\0' , ccc ; int jind=-1 , meth=2 , jj,kk ;
    MRI_IMAGE *indvar_im=NULL , *depvar_im=NULL ; int nx,ny,qq ;
    float     *indvar=NULL    , *depvar=NULL , *dv ;

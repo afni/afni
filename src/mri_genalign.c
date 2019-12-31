@@ -3055,6 +3055,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
  { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLCUBI] ;
+   memset( pv , 0 , sizeof(float)*NPOLCUBI ) ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 

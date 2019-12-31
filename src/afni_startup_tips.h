@@ -1037,6 +1037,7 @@ static char *gby[] = {
      "Experience is the name people give to their mistakes"                    ,
      "There is no mistake so great as being right ahead of time"               , /* Wilde */
      "I thought I was wrong, but I was only mistaken"                          , /* Vinai */
+     "I made a mistake once: I thought I was mistaken"                         ,
 
      /* bastardizations of Shakespeare */
 

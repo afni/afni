@@ -4,10 +4,18 @@
 #ver='1.0' ; date='Oct 22, 2019'
 # + [PT] start
 #
-ver='1.2' ; date='Oct 23, 2019'
+#ver='1.2' ; date='Oct 23, 2019'
 # + [PT] helpful helpfile
 #      - also updating way prog works: can have finer-grained criteria
 #        calling
+#
+#ver='1.3' ; date='Dec 26, 2019'
+# + [PT] fix "-is_mat_even" test
+#      - thanks, S. Torrisi, for pointing this out!
+#
+ver='1.4' ; date='Dec 27, 2019'
+# + [PT] new options for '-fix_all' functionality
+#      - can output new/fixed dsets.  Bonne idee, D Glen!
 #
 #
 ###############################################################################
@@ -23,10 +31,11 @@ import lib_info_dict  as lid
 # ----------------------------------------------------------------------------
 
 ddefs = {
-    'DEF_ver'        : ver,
-    'DEF_date'       : date,
-    'DEF_eps_iso'    : 1.0*10**-2,
-    'DEF_eps_size'   : 1.0*10**-2,
+    'DEF_ver'           : ver,
+    'DEF_date'          : date,
+    'DEF_eps_iso'       : 1.0*10**-2,
+    'DEF_eps_size'      : 1.0*10**-2,
+    'DEF_dset_tmp_base' : '__tmp_fs_check_vox',
 }
 
 # ----------------------------------------------------------------------------
@@ -41,8 +50,12 @@ all_opts = {
     'is_vox_1mm_max'     : '-is_vox_1mm_max',
     'is_vox_05mm_min'    : '-is_vox_05mm_min',
     'check_all'          : '-check_all',
+    'fix_all'            : '-fix_all',
+    'fix_out_vox_dim'    : '-fix_out_vox_dim',
+    'fix_out_prefix'     : '-fix_out_prefix',
     'eps_iso'            : '-eps_iso',
     'eps_size'           : '-eps_size',
+    'overwrite'          : '-overwrite',
     'date'               : '-date',
     'h'                  : '-h',
     'help'               : '-help',
@@ -115,7 +128,7 @@ help_string_this_prog = '''
 
   RUNNING ~1~
 
-  {input}               : (req) input file name
+  {input}  INP          : (req) input file name
 
   {verbose}             : output colon-separated table of info, including:
                           dset information (voxel size and matrix dims);
@@ -142,19 +155,39 @@ help_string_this_prog = '''
                           combined with others for final omnibus):
                             is each voxel edge >0.5 mm (within tolerance)?
 
-  {check_all}           : Specify that *all* currently available criteria
+  {check_all}           : specify that *all* currently available criteria
                           should be employed.  This option should be 
                           unnecessary to use, because this is in fact default
                           behavior of the program. 
 
-  {eps_iso}             : specify tolerance for defining isotropy of voxels;
+  {fix_all}             : flag to tell program to output a dset with fixed
+                          properties;  will output a dset *even if there is
+                          nothing to be fixed*, for ease of scripting.
+                          Must also provide output file name, see 
+                          '{fix_out_prefix}'
+
+  {fix_out_prefix} FFF  : if using '{fix_all}', you must provide output name
+                          for fixed dset; again, this file will be written
+                          even if no changes were necessary.
+
+  {fix_out_vox_dim} LL  : if using '{fix_all}', you can specify edge length of
+                          voxels in output dset (dimensions will be isotropic).
+                          Otherwise, the minimum voxel dimension of input dset
+                          will be used (if resampling is needed); if this opt
+                          is NOT used and min voxel dimension is <0.5mm, then
+                          output voxel size will be 0.5mm; or, if this opt
+                          is NOT used and min voxel dimension is >1mm, then
+                          output voxel size will be 1mm.  Probably safest to 
+                          just specify LL, if using '{fix_all}'.
+
+  {eps_iso} EI          : specify tolerance for defining isotropy of voxels;
                           since the values are floating point numbers, exact
                           equality is not tested, but instead pairwise checks
                           of: 
                               abs(dx - dy) < eps_iso,
                           etc., are made. (def: eps_iso = {DEF_eps_iso})
 
-  {eps_size}            : specify tolerance for defining size of
+  {eps_size}  ES        : specify tolerance for defining size of
                           voxels; as noted above, exact equality is
                           not tested, but instead pairwise checks of:
                               dx < 1 + eps_size, 
@@ -174,6 +207,10 @@ help_string_this_prog = '''
   the check failed (which can be seen in detail by running with
   '{verb}' or '{verbose}'.  Here we provide a table of suggestions.
                             
+  ... but note that you can also use the '{fix_all}' option (with
+  accompanying specifications) to output a fixed dataset
+  automatically, too.
+
   "Are voxels isotropic" 
   ----------------------
       Consider resampling the data.  In order to introduce a minimal
@@ -222,20 +259,33 @@ help_string_this_prog = '''
 
   EXAMPLES ~1~
 
-    # 1. Vanilla mode.  Output is just a number: 1 (pass) or 0 (fail).
-             check_dset_for_fs.py  -input DSET
-        
-    # 2. Spicier mode.  Output is a table of values and criteria; the 
-    #    'omnibus' line carries the final evaluation.
-             check_dset_for_fs.py  -input DSET -verbose
+    1. Vanilla mode.  Output is just a number: 1 (pass) or 0 (fail).
 
-    # 3. Mirchi mode.  Check just a subset of criteria AND control the 
-    #    fineness of the test tolerance.
-             check_dset_for_fs.py  \\
-                 -input DSET       \\
-                 -eps_iso 0.001    \\
-                 -is_vox_iso       \\
+           check_dset_for_fs.py  -input DSET
+      
+    2. Spicier mode.  Output is a table of values and criteria; the 
+       'omnibus' line carries the final evaluation.
+
+           check_dset_for_fs.py  -input DSET -verbose
+
+    3. Mirchi mode.  Check just a subset of criteria AND control the 
+       fineness of the test tolerance.
+
+             check_dset_for_fs.py            \\
+                 -input DSET                 \\
+                 -eps_iso 0.001              \\
+                 -is_vox_iso                 \\
                  -verb
+    
+    4. Today's special.  Run the check, AND output a fixed dset (and don't
+       forget to save the helpful check text).
+
+             check_dset_for_fs.py            \\
+                 -input DSET                 \\
+                 -fix_all                    \\
+                 -fix_out_prefix  DSET_FIXED \\
+                 -fix_out_vox_dim 1          \\
+                 -verb > record_the_check_text.txt
 
 '''.format( **help_dict )
 
@@ -302,6 +352,18 @@ class iopts_this_prog:
         self.afni_ver       = ''
         self.is_verbose     = False
 
+        self.fix_all         = False
+        self.fix_out_vox_dim = None
+        self.fix_out_prefix  = None
+        self.fix_mat         = False
+        self.fix_vox         = False
+        self.fix_tmp_fname   = ''
+        self.fix_overwrite   = ''
+        self.fix_make_changes = None
+        self.fix_out_info        = None
+        self.fix_out_vox_dim_str = ''
+        self.fix_out_mat_dim_str = ''
+
         self.dset            = ''
         self.dset_info       = ''
         self.rep_vox_iso     = False
@@ -314,6 +376,7 @@ class iopts_this_prog:
         self.mat_dim_str     = ''
         self.eps_iso         = ddefs['DEF_eps_iso']
         self.eps_size        = ddefs['DEF_eps_size']
+        self.vox_dim_min     = -1.
 
         self.check_all         = -1        # def: do all 
         self.stat_mat_even     = -1        # status
@@ -371,8 +434,16 @@ class iopts_this_prog:
         self.vox_dim   = [ float(x) for x in self.dset_info['-ad3'] ]
         self.mat_dim   = [   int(x) for x in self.dset_info['-n4'][:3] ]
 
+        self.vox_dim_min = min(self.vox_dim)
+
         self.vox_dim_str = '  '.join(self.dset_info['-ad3'])
         self.mat_dim_str = '  '.join(self.dset_info['-n4'][:3])
+
+    def set_fix_out_info( self ):
+        self.fix_out_info = lid.get_all_3dinfo_dset_neatly(self.fix_out_prefix)
+
+        self.fix_out_vox_dim_str = '  '.join(self.fix_out_info['-ad3'])
+        self.fix_out_mat_dim_str = '  '.join(self.fix_out_info['-n4'][:3])
 
     def is_vox_1mm_max(self):
         '''
@@ -452,7 +523,7 @@ class iopts_this_prog:
       
         '''
         for x in self.mat_dim:
-            if not(x % 2) :  
+            if x % 2 : 
                 self.stat_mat_even = 0
                 return self.stat_mat_even
 
@@ -501,15 +572,147 @@ class iopts_this_prog:
         return self.stat_fs_safe
 
     def set_check_all_val(self, ii):
-        # set everything true or false, all in one swell foop
-        # should be one of: -1, 0, 1
+        ''' Set everything true or false, all in one swell foop.
+        Should be one of: -1, 0, 1.
+        '''
         self.check_all = ii
+
+    def set_fix_all_val(self, bb):
+        ''' Turn on/off switch to output a fixed dset.
+        Should be one of: True, False.
+        '''
+        self.fix_all = bb
+
+    def set_fix_out_vox_dim(self, bb):
+        ''' Set output vox dimension, if fixing all.
+        Should be in allowed range...  
+        '''
+        self.fix_out_vox_dim = float(bb)
+
+    def set_fix_out_prefix(self, ss):
+        ''' Set output dset prefix, if fixing all.
+        Will output even if nothing changed (easier for scripting?)
+        '''
+        self.fix_out_prefix = ss
+
+    def set_fix_overwrite(self, ss):
+        self.fix_overwrite = ss
 
     def do_check_all(self):
         self.set_rep_vox_05mm_min(True)
         self.set_rep_vox_1mm_max(True)
         self.set_rep_mat_even(True)
         self.set_rep_vox_iso(True)
+
+    def run_fix_all(self):
+
+        # all tests for resampling voxel size
+        if self.stat_vox_iso      == False or \
+           self.stat_vox_1mm_max  == False or \
+           self.stat_vox_05mm_min == False :
+            self.fix_vox = True
+
+        # all tests for changing matrix dims-- note that if we
+        # resample the vox sizes, then we will also do the
+        # pad_to_evens, just to be sure the grid hasn't changed (and
+        # to have consistent output naming); so, leave this check
+        # after the 'fix_vox' one.
+        if self.stat_mat_even == False or \
+           self.fix_vox == True :
+            self.fix_mat = True
+
+        # have this be a bool, for verbose output
+        if self.fix_mat or self.fix_vox :
+            self.fix_make_changes = True
+        else: 
+            self.fix_make_changes = False
+
+        # determine output voxel size; user might have entered a value
+        # (and that will have already been checked for validity at input)
+        if self.fix_vox :
+            if self.fix_out_vox_dim == None :   # then it hasn't been set by user
+                if self.vox_dim_min < 0.5 :
+                    self.fix_out_vox_dim = 0.5
+                elif 1.0 < self.vox_dim_min :
+                    self.fix_out_vox_dim = 1.0
+                else:
+                    self.fix_out_vox_dim = self.vox_dim_min
+        
+        # do resampling and/or matrix padding, in that order:
+        if self.fix_vox :
+            # generate name with random string for fix_vox
+            # use this function here, because this file won't exist yet!
+            pp = os.path.dirname(self.fix_out_prefix)
+            if not(pp) :
+                pp = '.' # the above returns '' for local dir-- not cool
+            cmd = '''3dnewid -fun11'''
+            com = BASE.shell_com(cmd, capture=1, save_hist=0)
+            com.run()
+            check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+            self.fix_tmp_fname = pp + '/' + ddefs['DEF_dset_tmp_base'] 
+            self.fix_tmp_fname+= com.so[0] + '.nii'
+
+            # resampling to iso vox
+            cmd = '''3dAllineate {ow} \
+            -1Dmatrix_apply  IDENTITY \
+            -mast_dxyz       {dxyz}   \
+            -final           wsinc5   \
+            -source          {src}    \
+            -prefix          {pref}
+            '''.format( ow=self.fix_overwrite,
+                        dxyz=self.fix_out_vox_dim, 
+                        src=self.dset,
+                        pref=self.fix_tmp_fname )
+            com = BASE.shell_com(cmd, capture=1, save_hist=0)
+            com.run()
+            check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+
+        # any fixing will lead to having this performed
+        if self.fix_mat :
+            # decide if we already did one correction step or not
+            if self.fix_tmp_fname :
+                input_dset = self.fix_tmp_fname
+            else:
+                input_dset = self.dset
+
+            # resampling to iso vox
+            cmd = '''3dZeropad {ow} \
+            -pad2evens              \
+            -prefix          {pref} \
+            {src}  
+            '''.format( ow=self.fix_overwrite,
+                        src=input_dset,
+                        pref=self.fix_out_prefix)
+            com = BASE.shell_com(cmd, capture=1, save_hist=0)
+            com.run()
+            check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+
+        # clean up, if intermed dset exists
+        if self.fix_vox :
+            cmd = '''\\rm {pref}
+            '''.format( pref=self.fix_tmp_fname )
+            com = BASE.shell_com(cmd, capture=1, save_hist=0)
+            com.run()
+            check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+
+
+        if not(self.fix_make_changes) :
+            # no changes, but output a dset with the correct file name
+            cmd = '''3dcalc {ow} \
+            -a      {src}        \
+            -expr   'a'          \
+            -prefix {pref} 
+            '''.format( ow=self.fix_overwrite,
+                        src=self.dset,
+                        pref=self.fix_out_prefix)
+            com = BASE.shell_com(cmd, capture=1, save_hist=0)
+            com.run()
+            check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+
+        # get info about output set
+        self.set_fix_out_info()
+
+
 
     # ---------- fill in vals ----------------
 
@@ -531,9 +734,18 @@ class iopts_this_prog:
         MISS = 0
 
         if not(self.dset) :
+            print("")
             print("** ERROR: missing '{input}' dset"
                   "".format(**all_opts))
             MISS+=1
+            
+        if self.fix_all :
+            if not(self.fix_out_prefix) :
+                print("")
+                print("** ERROR: you want to output a fixed dset, but you\n"
+                      "   did not provide a '{fix_out_prefix} ..' filename"
+                      "".format(**all_opts))
+                MISS+=1
 
         return MISS
 
@@ -627,6 +839,32 @@ def parse_args_this_prog(full_argv):
         # default behavior; and/or will supercede indiv opts
         elif argv[i] == "{check_all}".format(**all_opts) :
             iopts.set_check_all_val( 1 )
+
+        elif argv[i] == "{fix_all}".format(**all_opts) :
+            iopts.set_fix_all_val( True )
+
+        # if not entered, will use min vox dim, floored at min allowed val
+        elif argv[i] == "{fix_out_vox_dim}".format(**all_opts) :
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            fovd = float(argv[i])
+            if fovd < 0.5 or 1.0 < fovd :
+                print("** ERROR: value for output voxel size ({}) is"
+                      "   outside the allowed range [0.5, 1.0]"
+                      "".format(fovd))
+                sys.exit(3)
+            else:
+                iopts.set_fix_out_vox_dim( fovd )
+
+        elif argv[i] == "{fix_out_prefix}".format(**all_opts) :
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_fix_out_prefix(argv[i])
+
+        elif argv[i] == "{overwrite}".format(**all_opts) :
+            iopts.set_fix_overwrite( '-overwrite' )
 
         elif argv[i] == "{verbose}".format(**all_opts) or \
              argv[i] == "{verb}".format(**all_opts) :

@@ -49,6 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Dec, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "Do not require out_limit.  Currently will still show in driver.",
+   "Done for P Taylor."
+ } ,
+
+ { 26, Dec, 2019, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "add -timing_to_1D_mods and -show_events",
+   "Done for A Gorka."
+ } ,
+
+ { 20, Dec, 2019, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "add more help details for advanced usage",
+   NULL
+ } ,
+
+ { 17, Dec, 2019, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow labels as column selectors when reading xmat.1D files",
+   "Done for G Chen."
+ } ,
+
  { 10, Dec, 2019, RCR, "uber_proc.py", MINOR, TYPE_MODIFY,
    "separate into main/lib/gui, so one can run -help w/out PyQt4",
    NULL

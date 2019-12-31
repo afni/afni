@@ -20,8 +20,8 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
-ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB)
+INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI) -If2c
+ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB) -I../f2c
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
@@ -274,7 +274,7 @@ DISCO_SCRIPTS = ClustExp_HistTable.py ClustExp_StatParse.py                 \
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h     \
-             thd_compress.h afni_warp.h coxplot.h f2c.h           mcw_malloc.h \
+             thd_compress.h afni_warp.h coxplot.h f2c/f2c.h mcw_malloc.h       \
              multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h \
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h     \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h         \
@@ -2085,7 +2085,7 @@ afni_src.tgz:
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
 	$(CP) -pr XmHTML html other_builds Audio                                 ./afni_src
@@ -2576,7 +2576,7 @@ mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
 # same thing, but pre-processed
 
 mrilib_raw.c: mrilib_all.c
-	gcc -E $(INFLAGS) -Iniml -Igifti mrilib_all.c | uniq > mrilib_raw.c
+	gcc -E $(INFLAGS) -Iniml -Igifti -If2c mrilib_all.c | uniq > mrilib_raw.c
 
 # ---------------------------------------------------------------------------
 # the library of libraries
@@ -2859,28 +2859,25 @@ plugout_graph:plugout_graph.o
 # Stuff that was originally in Fortran
 
 f2c:
-	( cd f2cdir ;                                                         \
+	( cd f2c ;                                                         \
 	  $(MAKE) f2c clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' 'CCMIN=$(CCMIN)' \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ;  \
 	  $(MV) f2c .. ; )
 
 libf2c.a:
-	( cd f2cdir ;                                                        \
+	( cd f2c ;                                                        \
 	  $(MAKE) libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.a .. ; )
 
 libf2c.so:
-	( cd f2cdir ;                                                        \
+	( cd f2c ;                                                        \
 	  $(MAKE) libf2c.so clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.so .. ; )
 
-f2c.h:
-	$(CP) f2cdir/f2c.h ./
-
 f2c.tgz:
-	$(TAR) cf - ./f2cdir | $(GZIP) -9v > f2c.tgz
+	$(TAR) cf - ./f2c | $(GZIP) -9v > f2c.tgz
 
 #######
 # dlcompat
@@ -3217,7 +3214,7 @@ parser.c:
 
 ## expression parsing and evaluation functions
 
-parser.o:parser.c f2c.h $(LIBF2C_OBJ)
+parser.o:parser.c $(LIBF2C_OBJ)
 	$(CCFAST) -c parser.c $(INFLAGS)
 
 ## programs that user parser.c functions
@@ -3620,8 +3617,8 @@ jzosky_install:
 # roopchansinghv directory
 
 roopchansinghv_install:
-	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py     \
-                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniInterfaceRT \
+	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py \
+                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniRTI     \
                  $(INSTALLDIR)
 
 #############

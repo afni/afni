@@ -34,8 +34,14 @@ purpose: ~1~
 examples (very basic for now): ~1~
 
    Example 1.  Select by rows and columns, akin to 1dcat. ~2~
+               Note: columns can be X-matrix labels.
 
          1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
+
+            or using column labels:
+
+         1d_tool.py -infile 'data/X.xmat.1D[Run#1Pol#0,,Run#1Pol#3]' \\
+                    -write run0_polorts.1D
 
    Example 2.  Compare with selection by separate options. ~2~
 
@@ -1163,9 +1169,10 @@ g_history = """
    2.05 Jun 27, 2019 - added -write_with_header and -write_xstim
    2.06 Jul  3, 2019 - allow writing of empty stim files
    2.07 Aug  9, 2019 - tiny: make formatting more specific
+   2.08 Dec 17, 2019 - allow labels as column selectors when reading xmat.1D
 """
 
-g_version = "1d_tool.py version 2.07, August 9, 2019"
+g_version = "1d_tool.py version 2.08, December 17, 2019"
 
 
 class A1DInterface:
@@ -2117,7 +2124,7 @@ class A1DInterface:
 
       if self.select_cols:
          ilist=UTIL.decode_1D_ints(self.select_cols, verb=self.verb,
-                                                     imax=self.adata.nvec-1)
+                          imax=self.adata.nvec-1, labels=self.adata.labels)
          if ilist == None: return 1
          if self.adata.reduce_by_vec_list(ilist): return 1
 

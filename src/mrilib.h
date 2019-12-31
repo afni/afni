@@ -109,6 +109,14 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #include "Amalloc.h"     /* 09 Dec 2003 addition */
 #include "Aomp.h"
 
+/* preferentially include f2c header from local directory, otherwise use system
+ header */
+#include "f2c.h"
+/* The following was added to harmonize with system f2c header. Subsequent
+typedef for complex is now ignored */
+#define TYPEDEF_complex
+
+
 /*----------------------------------------------------------------------------*/
 
 #ifndef PI
@@ -246,7 +254,9 @@ static float MRI_TYPE_maxval[9] =
 
 #ifndef TYPEDEF_complex
 #define TYPEDEF_complex
+#ifndef complex
 typedef struct complex { float r , i ; } complex ;
+#endif
 #endif
 
 #ifndef TYPEDEF_float_pair

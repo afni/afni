@@ -1858,7 +1858,7 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
     # the big finish
     return 0, [dlist[ind] for ind in clist]
 
-def decode_1D_ints(istr, verb=1, imax=-1):
+def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'imax'.
@@ -1870,22 +1870,24 @@ def decode_1D_ints(istr, verb=1, imax=-1):
     if len(slist) == 0:
         if verb > 1: print("-- empty 1D_ints from string '%s'" % istr)
         return []
-    elif verb > 3: print("-- decoding stripped list '%s'" % newstr)
+    elif verb > 3:
+       print("-- decoding stripped list '%s' (nlabs = %d)" \
+             % (newstr,len(labels)))
     ilist = []                  # init return list
     for s in slist:
         try:
             if s.find('@') >= 0:        # then expect "A@B"
                 [N, val] = [n for n in s.split('@')]
                 N = int(N)
-                val = to_int_special(val, '$', imax)
+                val = to_int_special(val, '$', imax, labels)
                 ilist.extend([val for i in range(N)])
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', imax)
+                   v1 = to_int_special(v1, '$', imax, labels)
                    [v2, step] = v2.split('(')
-                   v2 = to_int_special(v2, '$', imax)
+                   v2 = to_int_special(v2, '$', imax, labels)
                    # have start and end values, get step
                    step, junk = step.split(')')
                    step = int(step)
@@ -1897,13 +1899,13 @@ def decode_1D_ints(istr, verb=1, imax=-1):
                    ilist.extend([i for i in range(v1, v2+inc, step)])
                 else:
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', imax)
-                   v2 = to_int_special(v2, '$', imax)
+                   v1 = to_int_special(v1, '$', imax, labels)
+                   v2 = to_int_special(v2, '$', imax, labels)
                    if v1 < v2 : step = 1
                    else:        step = -1
                    ilist.extend([i for i in range(v1, v2+step, step)])
             else:
-                ilist.extend([int(s)])
+                ilist.extend([to_int_special(s, '$', imax, labels)])
         except:
             print("** cannot decode_1D '%s' in '%s'" % (s, istr))
             return []
@@ -1911,14 +1913,20 @@ def decode_1D_ints(istr, verb=1, imax=-1):
     del(newstr)
     return ilist
 
-def to_int_special(cval, spec, sint):
+def to_int_special(cval, spec, sint, labels=[]):
    """basically return int(cval), but if cval==spec, return sint
 
-        cval: int as character string
+      if labels were passed, allow cval to be one
+
+        cval: int as character string, or a label
         spec: special value as string
         sint: special value as int"""
-   if cval == spec: return sint
-   else:            return int(cval)
+   if cval == spec:
+      return sint
+   elif cval[0].isalpha() and cval in labels:
+      return labels.index(cval)
+   else:
+      return int(cval)
 
 def extract_subbrick_selection(sstring):
    """search sstring for something like: [DIGITS*($|DIGITS)]
@@ -1932,24 +1940,27 @@ def extract_subbrick_selection(sstring):
 
 def strip_list_brackets(istr, verb=1):
    """strip of any [], {}, <> or ## surrounding this string
+        - can only be surrounded by whitespace
         - assume only one pair
         - allow the trailing character to be missing
       return the remaining string"""
 
+   if len(istr) < 1: return istr
+
+   icopy = istr.strip()
+
    # strip any of these pairs
    for pairs in [ ['[',']'],  ['{','}'],  ['<','>'],  ['#','#'] ]:
-
-      ind0 = istr.find(pairs[0])
-      if ind0 >= 0:
-         ind1 = istr.find(pairs[1], ind0+1)
+      if icopy[0] == pairs[0]:
+         ind1 = icopy.find(pairs[1], 1)
          if verb > 1: print('-- stripping %s%s at %d,%d in %s' % \
-                            (pairs[0],pairs[1],ind0,ind1,istr))
-         if ind1 > ind0: return istr[ind0+1:ind1]
-         else:           return istr[ind0+1:]
+                            (pairs[0],pairs[1],0,ind1,icopy))
+         if ind1 > 0: return icopy[1:ind1]
+         else:        return icopy[1:]
 
-   if verb > 2: print("-- nothing to strip from '%s'" % istr)
+   if verb > 2: print("-- nothing to strip from '%s'" % icopy)
 
-   return istr
+   return icopy
 
 def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr

@@ -2928,8 +2928,13 @@ class Afni1D:
 
       # apply column and/or row selectors
       if aname.colsel:
+         if self.nvec == len(self.labels):
+            labels = self.labels
+         else:
+            labels = []
+
          ilist = UTIL.decode_1D_ints(aname.colsel, verb=self.verb,
-                                     imax=self.nvec-1)
+                                     imax=self.nvec-1, labels=labels)
          if ilist == None: return 1
          if self.reduce_by_vec_list(ilist): return 1
       if aname.rowsel:

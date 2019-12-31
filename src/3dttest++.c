@@ -2209,7 +2209,7 @@ int main( int argc , char *argv[] )
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
-   float *maxar , *minar ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
+   float *maxar=NULL , *minar=NULL ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
    float *t_minmax=NULL ; MRI_IMAGE *im_minmax=NULL ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;

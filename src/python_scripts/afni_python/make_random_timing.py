@@ -854,7 +854,15 @@ Advanced usage (make_random_timing.py) ~1~
    distributions (min, mean, max and distribution type), which can be applied
    to stimulus events or to rest events.
 
-   overview of timing classes: ~2~
+   In the advanced usage, all events are composed of a stimulus period followed
+   by a rest period.  This allows the distribution of the rest to be specific
+   to each given stimulus class.  Some stimuli might be followed by no rest
+   (a zero-second rest event), some might be followed by exactly 1.25 s rest,
+   some might be followed by random rest, distributed between 1 and 8 s, with
+   a mean of 2.5s, for example.
+
+
+   Overview of Timing Classes: ~2~
 
    When specifying a timing class, one can provide:
 
@@ -880,27 +888,99 @@ Advanced usage (make_random_timing.py) ~1~
                   uniform_grid: durations spread evenly across grid
                   fixed:        one duration is specified
                   INSTANT:      duration = 0
-        t_grid  : all durations are fixed on this grid (default=0.01s)
+        t_gran  : all durations are fixed on this granularity (default=0.01s)
 
    One can provide subsets:
 
         min                             : implies fixed
-        min, mean, max                  : implies decay on default t_grid
-        min, mean, max, dtype           : implies default t_grid
-        min, mean, max, dtype, t_grid
+        min  mean  max                  : implies decay on default t_gran
+        min  mean  max  dtype           : implies default t_gran
+        min  mean  max  dtype  t_gran
 
-   NOTE: dtype and t_grid are specified as named parameters, e.g.
+   NOTE: dtype and t_gran are specified as named parameters, e.g.
 
             dtype=decay_fixed
-            t_grid=0.001
+            t_gran=0.001
 
+   ============================================================
+   Examples of -add_timing_class, and their purposes: ~2~
+
+      This is taken from "Advance Example 2".  We show many examples of how to
+      define timing classes, some for stimuli, some for rest.
+
+         a. -add_timing_class stima 0.5 3 10 ~3~
+
+            Class 'stima' will have events randomly distributed between 0.5 s
+            and 10 s, with a mean of 3 s.  The default distribution type of
+            'decay' applies.
+
+            Note that as the mean becomes closer to the average (min+max)/2,
+            the decay curve gets flatter, becoming uniform when they are equal.
+
+         b. -add_timing_class stimc 2 ~3~
+
+            Class 'stimc' will always be 2 seconds.
+
+         c. -add_timing_class stimd 1 2 6 dist=decay_fixed ~3~
+
+            Class 'stimd' will have events between 1 and 6 s, with a mean of 2.
+            They will follow a "decay_fixed" curve, which is made by sampling
+            an appropriate 'decay' curve (the same shape as 'decay') on a
+            regular interval such the the mean comes out as specified.
+        
+         d. -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand  ~3~
+
+            Class 'resta' is on a uniform grid, where the mean of 0.7 s is
+            indeed the average of the min (0.2 s) and the max (1.2 s).  Times
+            from this distribution will be sampled randomly (dist=uniform_rand).
+
+         e. -add_timing_class restb 0.5 1  1.5 dist=uniform_grid t_gran=0.25 ~3~
+
+            This option from Example 2 has t_gran=0.25 included, to discuss.
+
+            Class 'restb' events are on a uniform grid, in [0.5,1.5], with a
+            mean of 1 s, but also where every time is a multiple of 0.25 s
+            (from t_gran).  Since they are on a fixed list (dist=uniform_grid),
+            times should be uniformly sampled from {0.5, 0.75, 1.0, 1.25, 1.5},
+            with nothing else possible.
+
+         f. -add_timing_class restc 0 -1 -1 ~3~
+
+            This rest class has no minimum, no mean and no maximum.  So it will
+            eat up all remaining run time, randomly.
+
+         g. -add_timing_class restd 1 -1 8 ~3~
+
+            This rest class (that is not part of Example 2) has a minimum
+            duration of 1 s, and a max duration of 8 s (so the subject is not
+            idle for too long in the scanner).  But the mean is unspecified
+            (using -1), it will basically consume all "remaining" run time.
+
+         h. -add_timing_class resti INSTANT
+
+            This rest class (also not from Example 2) is considered to be
+            instantaneous, of duration zero.  It is effectively something that
+            does not happen, e.g. if there should be no ISI rest after a 
+            certain type of stimulus.
+
+   Once all timing classes (stim and rest) have been defined, one should define
+   stimulus classes.  Each stimulus class type is defined as a pair of timing
+   classes, one for the stimulus, one for the rest (ISI).  The rest portion
+   happens after the stim portion.
 
    Every stimulus class type is followed by a fixed rest class type.  So rest
    periods are "attached" to the preceding stimulus periods.  For example, the
-   'faces' class events might last for 0.5 - 1.5 seconds, and be uniformly
-   distributed (so average = 1s).  Those face events might then be followed by
-   0.5 - 8.5 seconds of rest with a 'decay' distribution (so shorter durations
-   are more probable than longer durations).
+   'pizza' class events might last for exactly 2 seconds (see timing class
+   'stimb', above).  The pizza events might each be followed by 1 to 8 seconds
+   of rest with a 'decay' distribution (so shorter durations are more probable
+   than longer durations).  This might match timing class 'restd', above.
+
+   So to specify a stim class called 'pizza' that has 20 events per run, with
+   the distribution of stimulus time to be defined by timing class 'stimb',
+   and the distribution of ISI rest time to be defined by timing class 'restd',
+   one could apply the option:
+
+            -add_stim_class pizza 20 stimb restd
 
    The 'decay' distribution type matches that of the basic (non-advanced) use
    this program.  See "NOTE: distribution of ISI" in the -help output.
@@ -1056,10 +1136,47 @@ options (specific to the advanced usage): ~2~
     -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
+
     -add_timing_class           : create a new timing class (stim or rest)
+
+         e.g. -add_timing_class cow    2
+              -add_timing_class eat    0.1 0.5 3
+              -add_timing_class laugh  0.1 2.5 10 dist=decay_grid t_gran=0.1
+                                  ^--- warning: not advisable in the scanner
+
+              -add_timing_class napA   2 5 8 dist=uniform_grid
+              -add_timing_class napB   3.25
+              -add_timing_class zero   INSTANT
+
+         Create a timing class, for either stimulus or rest.  Note that in the
+         examples here, class names are just labels.  They can be used for
+         stimulus or rest times.
+
+         See "Overview of Timing Classes", above.
+         See "Examples of -add_timing_class", above.
+
     -add_stim_class             : describe a new stimulus class (timing, etc.)
-    -rand_post_stim_rest yes/no : allow rest after final stimulus
+
+         e.g. -add_stim_class pizza 20 eat napA
+
+         Create a stimulus class, by specifying its name, the number of events
+         per run, and the stim and rest timing classes that make it up.
+
+         The specified example shows 20 pizza events per run, consisting of an
+         'eat' phase for the stimulus and a 'napA' phase for ISI rest.
+
+         See also the examples in option -add_timing_class, above.
+         See "Examples of -add_timing_class", above.
+
+    -rand_post_stim_rest yes/no : allow random rest after final stimulus
+
+         To some degree, it might make sense to have a fixed amount of rest at
+         the end of each run, enough for the BOLD effect to start to drop off
+         (e.g. 5-10 s).  Given this, one might not want to add any additional
+         rest the comes from the prior stimulus event.
+
     -show_rest_events           : show details of rest timing, per type
+
     -write_event_list FILE      : create FILE listing all events and times
 
 ----------------------------------------------------------------------
@@ -1321,9 +1438,10 @@ g_history = """
          - block unlimited decay stim dur
     3.4  Nov  5, 2018: make some insufficient time failures more descriptive
     3.5  Aug  9, 2019: format text output for better python consistency
+    3.6  Dec 20, 2019: add more advanced usage help
 """
 
-g_version = "version 3.5 August 9, 2019"
+g_version = "version 3.6 December 20, 2019"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -1927,7 +2045,7 @@ class RandTiming:
              -add_timing_class stimA 3 
              -add_timing_class stimA 3 5 10
              -add_timing_class stimA 3 5 10 dist=decay
-             -add_timing_class stimA 1 3  9 dist=decay t_grid=0.1
+             -add_timing_class stimA 1 3  9 dist=decay t_gran=0.1
        """
 
        params = opt.parlist
