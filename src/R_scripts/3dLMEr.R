@@ -23,9 +23,9 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================          
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Dec 30, 2019
+Version 0.0.1, Dec 31, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - 
+Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -45,19 +45,23 @@ Introduction
  3dLME, all the main effects and interactions are automatically available in the
  output while simple effects that tease apart those main effects and interactions
  would have to be requested through options -gltCode or -glfCode. Also, the 3dLMEr
- interface is largely similar to 3dLME except 1) the random-effects components
- are incorporated as part of the model specification, and thus the user is fully
- responsible in properly formulating the model structure through \'-model ...\'
- (option -ranEeff in 3dLME is no longer necessary for 3dLMEr); 2) the specifications
- for simple and composite effects through -gltCode and -glfCode are slightly
- simplified (the lable for each effect is part of -gltCode and -glfCode, and no
- more -gltLabel is needed); and 3) all the statistic values for simple effects
- (specified through -gltCode) are stored in the output as Z-statisc while main
- effects, interactions and the composite effects (specified through -gltCode) are
- represented in the output as chi-square with 2 degrees of freedom. The fixed
- number of DFs (i.e., 2) for the chi-square statistic, regardless of the specific
- situation, is adopted for convenience because of the varying DFs due to the
- Satterthwaite approximation.
+ interface is largely similar to 3dLME except
+
+ 1) the random-effects components are incorporated as part of the model
+ specification, and thus the user is fully responsible in properly formulating the
+ model structure through \'-model ...\' (option -ranEeff in 3dLME is no longer
+ necessary for 3dLMEr);
+
+ 2) the specifications for simple and composite effects through -gltCode and
+ -glfCode are slightly simplified (the lable for each effect is part of -gltCode
+ and -glfCode, and no more -gltLabel is needed); and
+
+ 3) all the statistic values for simple effects (specified through -gltCode) are
+ stored in the output as Z-statisc while main effects, interactions and the
+ composite effects (specified through -gltCode) are represented in the output as
+ chi-square with 2 degrees of freedom. The fixed number of DFs (i.e., 2) for the
+ chi-square statistic, regardless of the specific situation, is adopted for
+ convenience because of the varying DFs due to the Satterthwaite approximation.
 
  If you want to cite the analysis approach, use the following reference:
  
@@ -77,18 +81,18 @@ Introduction
  shoulder, so familiarize yourself with the following FAQ in case you want some
  clarifications: https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html
 
- Whenever a quantitative variable is involved, it is required to be explicitly
- declared through option -qVars. In addition, be mindful about the centering issue
- of each quantitive quantitative variable: you have to decide which makes
- more sense in the research context - global centering or within-condition (or
- within-group) centering? Here is some background and discussion about the issue:
+ Whenever a quantitative variable is involved, it is required to explicitly
+ declare the variable through option -qVars. In addition, be mindful about the
+ centering issue of each quantitive quantitative variable: you have to decide
+ which makes more sense in the research context - global centering or within-
+ condition (or within-group) centering? Here is some background and discussion
+ about the issue:
  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/center.html
 
  The following exemplifying scripts are good demonstrations. More examples will
  be added in the future if I could crowdsource more scenarios from the users
- (including you the reader). In case you find one or two of them that are similar
- to your data structure, use the example(s) as a template and then build up your
- own script.
+ (including you the reader). In case you find one example similar to your data
+ structure, use the example(s) as a template and then build up your own script.
  
  In addition to R installtion, the following R packages need to be installed
  first before running 3dLMEr: "lmerTest", "phia" and "snow". To install these R
@@ -153,12 +157,12 @@ Introduction
    \n"
 
    ex2 <-  
-"Example 2 --- Simplest case: LME analysis for one group of subjects each of
-  which has three effects associated with three emotions (pos, neg and neu), 
-  and the effects of interest are the comparisons among the three emotions
-  at the populaton level. In addition, reaction time (RT) is avaible per 
-  emotion from each subject. An LME model can be formulated to include both
-  random intercept and random slope. Be careful about the centering issue
+"Example 2 --- LME analysis for one group of subjects each of  which has 
+  three effects associated with three emotions (pos, neg and neu), and the 
+  effects of interest are the comparisons among the three emotions  at the 
+  populaton level. In addition, reaction time (RT) is avaible per emotion 
+  from each subject. An LME model can be formulated to include both random 
+  intercept and random slope. Be careful about the centering issue
   about any quantitive quantitative variable: you have to decide which makes
   more sense - global centering or within-condition (or within-group)
   centering?
@@ -192,12 +196,12 @@ Introduction
    \n"
 
    ex3 <-  
-"Example 3 --- Simplest case: LME analysis for one group of subjects each of
-  which has three effects associated with three emotions (pos, neg and neu), 
-  and the effects of interest are the comparisons among the three emotions
-  at the populaton level. As the data were acquired across 12 scanning sites,
-  we set up an LME model with a crossed random-effects structure, one for
-  cross-subjects and one for cross-sites variability.
+"Example 3 --- LME analysis for one group of subjects each of which has three 
+  effects associated with three emotions (pos, neg and neu), and the effects 
+  of interest are the comparisons among the three emotions  at the populaton 
+  level. As the data were acquired across 12 scanning sites,  we set up an LME 
+  model with a crossed random-effects structure, one for cross-subjects and one 
+  for cross-sites variability.
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                       \\
