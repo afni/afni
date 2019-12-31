@@ -1733,7 +1733,7 @@ class MyInterface:
                % self.uvars.final_view)
 
       # do a basic test of the subject ID and view
-      gform = 'pb*%s?r01+%s.HEAD' \
+      gform = 'pb*%s?r01*+%s.HEAD' \
               % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gform)
 

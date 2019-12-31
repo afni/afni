@@ -3617,8 +3617,8 @@ jzosky_install:
 # roopchansinghv directory
 
 roopchansinghv_install:
-	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py     \
-                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniInterfaceRT \
+	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py \
+                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniRTI     \
                  $(INSTALLDIR)
 
 #############

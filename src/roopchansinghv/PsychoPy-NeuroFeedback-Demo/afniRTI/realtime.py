@@ -158,7 +158,7 @@ class RTInterface(object):
 
       # TODO: might be TOO verbose
       log.debug("++ read %d bytes from socket: %s" %
-                (nbytes, data_to_hex_str([ord(v) for v in data])))
+                (nbytes, data_to_hex_str([v for v in data])))
 
       if len(data) != nbytes:
          log.error('** read only %d of %d bytes from data socket' % (len(data), nbytes))
@@ -262,7 +262,7 @@ class RTInterface(object):
       if not data:
          return 1
 
-      odata = [ord(v) for v in data]
+      odata = [v for v in data]
       log.debug('++ recieved as magic_hi: %s' % data_to_hex_str(odata))
 
       # test whether we have magic, start by ignoring the last byte
@@ -399,7 +399,7 @@ class RTInterface(object):
          log.warning('** socket has gone dead, restarting...')
          return True
 
-      odata = [ord(v) for v in data]
+      odata = [v for v in data]
       log.debug('++ testing as magic_bye: %s' % data_to_hex_str(odata))
 
       # if not magic bye, return a negative

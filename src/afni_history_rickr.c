@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 26, Dec, 2019, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
    "add -timing_to_1D_mods and -show_events",
-   "DOne for A Gorka."
+   "Done for A Gorka."
  } ,
 
  { 20, Dec, 2019, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
