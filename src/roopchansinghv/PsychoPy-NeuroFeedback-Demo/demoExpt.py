@@ -9,8 +9,8 @@
 # with the old toolkit.
 #
 # This will serve as a basis or a template to build neuro-feedback type
-# of experiment that can get data from AFNI (through the 'afniInterfaceRT'
-# module, also distributed here).
+# of experiment that can get data from AFNI (through the 'afniRTI' module,
+# also distributed here).
 
 import sys
 import logging
@@ -18,7 +18,7 @@ from   optparse import OptionParser
 
 import numpy as np
 
-import afniInterfaceRT as nf
+import afniRTI as nf
 
 try:
    from   psychopy import visual, core # , sound
