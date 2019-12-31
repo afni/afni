@@ -1,7 +1,7 @@
 
 import sys
 import signal
-import realtime as rt
+from . import realtime as rt
 import logging
 import platform
 # import datetime
