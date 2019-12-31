@@ -7,5 +7,5 @@ PARAM:   -show_data yes
 PARAM:   -show_demo_gui yes
 PARAM:   -data_choice diff_ratio
 # PARAM:   --display 127.0.0.1:1  # example from another expt.
-                                  # what can use remote GUIs
+                                  # which can use remote GUIs
 
