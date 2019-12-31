@@ -455,83 +455,63 @@ static char helpstring[] =
    " See program Dimon for another example of how to send realtime data.\n"
    "\n"
 ;
-
 /** variables encoding the state of options from the plugin interface **/
-
 static char root[THD_MAX_PREFIX] = "rt." ;  /* default prefix */
 static int  update               = 1  ;     /* default update frequency */
-
 #define NFUNC  2
 static char * FUNC_strings[NFUNC] = { "None" , "FIM" } ;
 static int func_code = 0 ;
-
 static int image_mode = 0 ;  /* 28 Apr 2000 */
-
 #define FUNC_NONE  0  /* symbolic values for the func_code */
 #define FUNC_RTFIM 1
-
 #define INIT_MODE     -1  /* modes for RT_fim_recurse (AKA func_func) */
 #define UPDATE_MODE   -2
 #define FINAL_MODE    -3
-
 int RT_fim_recurse( RT_input * , int ) ;
-
 int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
-
 #define NYESNO 2
 #define NVERB  3
 static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
-
   static int regtime  = 3 ;  /* index of base time for registration */
   static int regmode  = 0 ;  /* index into REG_strings */
   static int reggraph = 0 ;  /* graphing mode */
-
   static int g_reg_src_chan = 0 ;  /* chan for reg source 27 Oct 2016 [rcr] */
-
   /* registriation base globals to apply in RT_main     27 Aug 2009 [rickr] */
   static int g_reg_base_mode = 0 ;           /* index into REG_BASE_strings */
   static THD_3dim_dataset * g_reg_base_dset = NULL ;  /* single volume dset */
   static THD_3dim_dataset * g_t2star_ref_dset = NULL ;  /* also a single volume dset */
-
   static int reg_resam = 1 ;    /* index into REG_resam_strings */
   static int   reg_nr  = 100 ;  /* units of TR */
   static float reg_yr  = 1.0 ;  /* mm and degrees */
-
 #define NGRAPH 3
 static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
-
 #define NRESAM 5
   static char * REG_resam_strings[NRESAM] = {
      "Cubic" , "Quintic" , "Heptic" , "Fourier" , "Hept+Four" } ;
   static int REG_resam_ints[NRESAM] = {
      MRI_CUBIC , MRI_QUINTIC , MRI_HEPTIC , MRI_FOURIER , -666 } ;
-
 # define NREG 6
   static char * REG_strings[NREG] = {
     "None" , "2D: realtime" , "2D: at end"
            , "3D: realtime" , "3D: at end" , "3D: estimate" } ;
-
   static char * REG_strings_ENV[NREG] = { /* ' ' -> '_'  17 May 2005 [rickr] */
     "None" , "2D:_realtime" , "2D:_at_end"
            , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
-
 # define RT_RBASE_MODE_CUR      0
 # define RT_RBASE_MODE_CUR_KEEP 1
 # define RT_RBASE_MODE_EXTERN   2
 # define NREG_BASE 3
   static char * REG_BASE_strings[NREG_BASE] = {
     "Current Run", "Current Run & Keep", "External Dataset" } ;
-
   static char * REG_BASE_strings_ENV[NREG_BASE] = {
     "Current_Run", "Current_Run_Keep", "External_Dataset" } ;
-
-#define N_RT_MASK_METHODS 4     /* 15 Jul 2008 [rickr] */
+#define N_RT_MASK_METHODS 5     /* 15 Jul 2008 [rickr] */
   static char * RT_mask_strings[N_RT_MASK_METHODS] = {
-    "None" , "Motion Only", "ROI means" , "All Data" } ;
+    "None" , "Motion Only", "ROI means" , "All Data (heavy)" , "All Data (light)"} ;
 
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
-    "None" , "Motion_Only", "ROI_means" , "All_Data" } ;
+    "None" , "Motion_Only", "ROI_means" , "All_Data", "All_Data_light" } ;
 
 /* Variables to enable writing individual time-point volumes to disk */
 #define RT_WRITE_NOTHING       0
@@ -707,6 +687,7 @@ static int  RT_mp_check_env_for_mask( void );
 static int  RT_mp_rm_env_mask   ( void );
 static int  RT_mp_get_mask_aves ( RT_input * rtin, int sub );
 static int  RT_mp_set_mask_data ( RT_input * rtin, float * data, int sub );
+static int  RT_mp_set_mask_data_light ( RT_input * rtin, float * data, int sub );
 static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 
 static int  RT_mp_getenv        ( void );
@@ -1520,7 +1501,6 @@ void cleanup_rtinp( int keep_ioc_data )
   Real time routine called every so often by Xt.
   This handles connections from other processes that want to
   send AFNI data.
-
   This is a work process -- it returns False if it wants to be
   called again, and return True if it is done.  For real-time
   AFNI-izing, this should always return False.
@@ -1911,7 +1891,6 @@ void RT_process_xevents( RT_input * rtin ){}  /* doesn't do much */
    Will read from the control channel, which will tell it what data
    channel to open, and if it needs to fork a child process to gather
    header info.
-
    10 Dec 2002: new input ioc_data is a pointer to an IOCHAN that
                 should be used for data acquisition:
                   - if this is not NULL, then the control channel is NOT used
@@ -2576,10 +2555,8 @@ static int RT_mp_comm_alive(int sock, int verb, char * mesg)
 
 /*---------------------------------------------------------------------------
    Close the socket connection.                        30 Mar 2004 [rickr]
-
    new_tcp_use should be set to either 0 or -1, where -1 means not
    to allow any init again (this run)
-
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
@@ -2640,9 +2617,7 @@ static int RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt)
 
 /*---------------------------------------------------------------------------
    Send the current motion params.                        30 Mar 2004 [rickr]
-
    if masks are set, pass masked averages from sub-brick 'sub' of dset[0]
-
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
@@ -2675,6 +2650,9 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
     } else if( g_mask_dset && g_mask_val_type == 3 ) {
         bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
         tr_vals = bsize;
+    } else if( g_mask_dset && g_mask_val_type == 4) {
+        bsize   = 6 + rtin->mask_nset;          /* motion plus all vals (light-weight) */
+        tr_vals = bsize; 
     } else {
         fprintf(stderr,"** need mask to send data\n");
         RT_mp_comm_close(rtin, 0);
@@ -2721,6 +2699,12 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
                     RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
+            } else if( g_mask_dset && g_mask_val_type == 4 ) {
+                dind = bsize*c+6;  /* note initial offset */
+                if( RT_mp_set_mask_data_light(rtin, data+dind, sub+mpindex) ) {
+                    RT_mp_comm_close(rtin, 0);
+                    return -1;
+                }
             }
 
             mpindex++;  /* that was one TR */
@@ -2761,7 +2745,6 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
 /*---------------------------------------------------------------------------
    for each set mask voxel, fill data with 8 floats:
         index  i  j  k  x  y  z  dset_value
-
    return 0 on success
 -----------------------------------------------------------------------------*/
 static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
@@ -2834,10 +2817,87 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 
     return 0;
 }
+/*---------------------------------------------------------------------------
+   for each set mask voxel, fill data with 8 floats:
+        index  i  j  k  x  y  z  dset_value
+        ----- -- -- -- -- -- --
+   return 0 on success
+-----------------------------------------------------------------------------*/
+static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
+{
+    //THD_fvec3   fvec;
+    //THD_ivec3   ivec;
+    void      * dptr;
+    float       ffac;
+    int         dind, nvox, iv, vind;
+    //int         vind, iv, nvox;
+    //int         i, j, k;
+    int         nx, nxy;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+       fprintf(stderr,"** RT_mp_set_mask_data: not set for sub-brick %d\n",sub);
+       return -1;
+    }
+
+    if( sub < 0 ) return 0;
+
+    if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
+       fprintf(stderr,"** RT_mp_set_mask_data: no mask information to apply\n");
+       return -1;
+    }
+
+    /* note dimensions */
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mp_mask_free(rtin);
+    }
+    nx = DSET_NX(g_mask_dset);
+    nxy = nx * DSET_NY(g_mask_dset);
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 0.0 ) ffac = 1.0;
+
+    dind = 0;   /* index into output data array */
+    vind = 0;   /* mask counter */
+    dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
+    for( iv=0 ; iv < nvox ; iv++ ) {
+       if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
+
+       /* we have a good voxel, fill everything but value, first */
+       vind++;
+
+       //IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
+       //LOAD_IVEC3(ivec,i,j,k);
+       //data[dind++] = (float)iv;        /* set index and i,j,k */
+       //data[dind++] = (float)i;
+       //data[dind++] = (float)j;
+       //data[dind++] = (float)k;
+
+       /* convert ijk to dicom xyz */
+       //fvec = THD_3dind_to_3dmm_no_wod(g_mask_dset, ivec);
+       //fvec = THD_3dmm_to_dicomm(g_mask_dset, fvec);
+
+       //data[dind++] = fvec.xyz[0];      /* set x,y,z coords */
+       //data[dind++] = fvec.xyz[1];
+       //data[dind++] = fvec.xyz[2];
+
+       if( rtin->datum == MRI_short )   /* and finally set data value */
+           data[dind++] = ((short *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_float )
+           data[dind++] = ((float *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_byte )
+           data[dind++] = ((byte *)dptr)[iv]*ffac;
+    }
+
+    return 0;
+}
 
 /*---------------------------------------------------------------------------
    Compute averages over mask ROIs for this sub-brick.    10 Nov 2006 [rickr]
-
    return 0 on success
 -----------------------------------------------------------------------------*/
 static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
@@ -3031,13 +3091,10 @@ static int RT_mp_show_time( char * mesg )
 
 /*---------------------------------------------------------------------------
    Check env vars for MP communication.
-
    NOTE: anything applied here that is also in the interface needs to
          be set as an env var if the interface is applied (so the most
          recent action is effective).
-
          currently includes: AFNI_REALTIME_Mask_Vals
-
    return 0 on success
 -----------------------------------------------------------------------------*/
 static int RT_mp_getenv( void )
@@ -3073,7 +3130,6 @@ static int RT_mp_getenv( void )
 
 /*---------------------------------------------------------------------------
    Initialize the motion parameter communications.        30 Mar 2004 [rickr]
-
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
@@ -3108,7 +3164,10 @@ static int RT_mp_comm_init( RT_input * rtin )
         } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 2;
-        } else {                                            /* bad combo */
+        } else if( g_mask_val_type == 4 && g_mask_dset ) {  /* all data */
+            send_nvals = rtin->mask_nset;
+            magic_hi[3] += 3;
+        }else {                                            /* bad combo */
             fprintf(stderr,"** RTM init: mask is required with type %d\n",
                     g_mask_val_type);
             rtin->mp_tcp_use = -1;
@@ -3187,9 +3246,7 @@ static int RT_mp_comm_init( RT_input * rtin )
 
 /*---------------------------------------------------------------------------
    Initialize the motion parameter communication variables. 30 Mar 2004 [rickr]
-
    We are expecting AFNI_REALTIME_MP_HOST_PORT to read "hostname:port".
-
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
@@ -3309,7 +3366,6 @@ static int RT_mp_init_mask( RT_input * rtin )
 /*---------------------------------------------------------------------------
    If AFNI_REALTIME_Mask_Dset is set, make sure g_mask_dset points to it.
    Let NONE mean the same as not being set.
-
    return   0 : on success
           < 0 : on error                              14 Mar 2011 [rickr]
 -----------------------------------------------------------------------------*/
@@ -3379,7 +3435,6 @@ int RT_mp_rm_env_mask( void )
 
 /*---------------------------------------------------------------------------
    Initialize the parser fields from the user expression.  12 Feb 2004 [rickr]
-
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
@@ -6082,7 +6137,6 @@ void RT_finish_dataset( RT_input * rtin )
 
 /*---------------------------------------------------------------------------
   Set the sizes of any open graph windows.
-
   Moved Bob's code to its own function.                  2004 Jan 28  [rickr]
 -----------------------------------------------------------------------------*/
 
@@ -6606,7 +6660,6 @@ void RT_registration_3D_atend( RT_input * rtin )
 
 /*-----------------------------------------------------------------------
    Verify and possibly store the volume registration base dataset.
-
    The global g_reg_base_dset variable will be set anytime the base needs
    to be stored, which is:
         1. EXTERN: the base/index is from an External dataset
@@ -6802,7 +6855,6 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
         Registration SourceChan -1..(Nchan-1)
            - -1 means last channel (since possibly unknown?)
            - 0 is default in 0-based list
-
         have g_reg_src_chan from AFNI_REALTIME_Reg_Source_Chan & GUI
         set RT_chmrg_reg_mode
         trace references to reg_chan_mode and RT_CM_RMODE_NONE
@@ -7042,9 +7094,7 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
              INIT_MODE:   create a new dataset, and initialize workspaces
              UPDATE_MODE: put values into dataset bricks
              FINAL_MODE:  clean up workspaces
-
   The return value is 1 if all is OK, -1 if something bad happens.
-
   Adapted 27 Apr 1997 from AFNI_fimmer_compute in afni_fimmer.c -- only
   the computational stuff is left; the display stuff is relegated to
   another routine.
@@ -7853,31 +7903,25 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
            for (ii=0 ; ii < nvox ; ii++)
            {
                /* def make_optcom(data,t2s,tes):
-
                    """
                    Generates the optimally combined time series. 
-
                    Parameters:
                    -----------
                    data: this is the original ME dataset with the mean in a (Nv,Ne,Nt) array.
                    t2s:  this is the static T2s map in a (Nv,) array.
                    tes:  echo times in a (Ne,) array.
-
                    Returns:
                    --------
                    octs: optimally combined time series in a (Nv,Nt) array.    
                    """
-
                    Nv,Ne,Nt = data.shape
                    ft2s  = t2s[:,np.newaxis]
                    alpha = tes * np.exp(-tes /ft2s)
                    alpha = np.tile(alpha[:,:,np.newaxis],(1,1,Nt))
                    octs  = np.average(data,axis = 1,weights=alpha)
                    return octs
-
                weight (T2*)[i] = TE[i] * exp (-TE[i]/T2*(fit)) /
                                  Sum ( TE[i] * exp(-TE[i]/T2*(fit)) )
-
                */
 
              if( t2star_ref[ii] != 0.0 ) {
@@ -9297,4 +9341,3 @@ void RT_detrend( RT_input * rtin, int mode )
     EXRETURN;
 }
 /* CC end */
-
