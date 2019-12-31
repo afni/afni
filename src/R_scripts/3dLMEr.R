@@ -41,11 +41,17 @@ Introduction
  that the former is much more flexible in specifying the random-effects components
  than the latter. Also, 3dLMEr uses the R package \'lmerTest\' while 3dLME was
  written  with the R package \'nlme\', and the statistic values for main effects
- and interactions are approximated with the Satterthwaite\'s approach. Similar to
- 3dLME, all the main effects and interactions are automatically available in the
- output while simple effects that tease apart those main effects and interactions
- would have to be requested through options -gltCode or -glfCode. Also, the 3dLMEr
- interface is largely similar to 3dLME except
+ and interactions are approximated with the Satterthwaite\'s approach. The greater
+ flexibility of 3dLMEr lies in its adoption of random-effects notations by the R
+ package 'lme4', as nicely summarized in the following table:
+
+ http://afni.nimh.nih.gov/sscc/staff/gangc/pub/lmerNotations.pdf
+ (adopted from https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html)
+
+ Similar to 3dLME, all the main effects and interactions are automatically available
+ in the output while simple effects that tease apart those main effects and
+ interactions would have to be requested through options -gltCode or -glfCode. Also,
+ the 3dLMEr interface is largely similar to 3dLME except
 
  1) the random-effects components are incorporated as part of the model
  specification, and thus the user is fully responsible in properly formulating the
