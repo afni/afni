@@ -181,7 +181,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    /* get biggest cluster, erode it, re-cluster that */
    THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
+   THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
    THD_mask_clust( nx,ny,nz, mmm ) ;
    /* kill anyone not in the surviving cluster */
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;

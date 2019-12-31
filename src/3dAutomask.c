@@ -17,8 +17,10 @@ int main( int argc , char * argv[] )
    int   verb=1 ;
    float clfrac=0.5 ;      /* 20 Mar 2006 */
    int peels=1, nbhrs=17 ; /* 24 Oct 2006 */
-   nbhrs = 18;             /* 23 Dec 2019 DRG */
-   int nn = 2;             /* edge neighbors 23 Dec 2019 DRG */
+   byte NN = 2;             /* edge neighbors 23 Dec 2019 DRG */
+   byte new_NN = 0;        /* flag user settings for neighbors and NNx*/
+   int new_nbhrs = 0;
+   int max_nbhrs = 18;     /* maximum neighbors for NN2 */
    int apply_mask = 0;     /* 17 Nov 2009 */
    char *apply_prefix = NULL, *depthprefix=NULL;
    short *depth=NULL, dodepth=0;      /* 02 March 2010 ZSS */ 
@@ -60,17 +62,21 @@ int main( int argc , char * argv[] )
  "                 To use a fixed clip level, use '-nograd'.\n"
  "                 [Change to gradual clip level made 24 Oct 2006.]\n"
  "\n"
- "  -peels pp   = Peel the mask 'pp' times, then unpeel.  Designed\n"
- "                 to clip off protuberances less than 2*pp voxels\n"
- "                 thick. [Default == 1]\n"
+ "  -peels pp   = Peel (erode) the mask 'pp' times, \n"
+"                  then unpeel (dilate). Using NN2 neighborhoods,\n"
+ "                 clips off protuberances less than 2*pp voxels\n"
+ "                 thick. Turn off by setting to 0. [Default == 1]\n"
  "\n"
  "  -NN1 -NN2 -NN3 = Erode and dilate using different neighbor definitions\n"
- "                 NN1=faces, NN2=edges, NN3= corners\n" 
+ "                 NN1=faces, NN2=edges, NN3= corners [Default=NN2]\n"
+ "                 Applies to erode and dilate options, if present.\n"    
+ "                 Note the default peeling processes still use NN2\n"
+ "                 unless the peels are set to 0\n"
+ "\n" 
  "  -nbhrs nn   = Define the number of neighbors needed for a voxel\n"
- "                 NOT to be peeled.  The 18 nearest neighbors in\n"
+ "                 NOT to be eroded.  The 18 nearest neighbors in\n"
  "                 the 3D lattice are used, so 'nn' should be between\n"
- "                 9 and 18.  [Default == 18]\n"
- "                 (not compatible with NNx options\n"
+ "                 6 and 26. [Default == 17]\n"
  "\n"
  "  -q          = Don't write progress messages (i.e., be quiet).\n"
  "\n"
@@ -145,17 +151,17 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-NN1") == 0 ){           /* 23 Dec 2019 */
-        nn = 1 ;
+        new_NN = 1 ;
         iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-NN2") == 0 ){
-        nn = 2 ;
+        new_NN = 2 ;
         iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-NN3") == 0 ){
-        nn = 3 ;
+        new_NN = 3 ;
         iarg++ ; continue ;
       }
 
@@ -247,15 +253,40 @@ int main( int argc , char * argv[] )
    }
 
    // nearest neighbor mode changes override neighbor choices
-   if(nn==1)
-      nbhrs = 8;
-   if(nn==3)
-      nbhrs = 26;
+   if(new_NN)
+     NN = new_NN;
+ 
+   switch(NN){
+       case(1):
+          max_nbhrs = 6;
+          break;
+       case(3):
+          max_nbhrs = 26;
+          break; 
 
+       case(2):
+       default:
+          max_nbhrs = 18;
+   }
+   
+   if(new_NN) /* keep historic default of 17 for NN2
+                 unless changed via NNx or nbhrs options */
+      nbhrs = max_nbhrs;
+
+   /*  check for valid number of neighbors */
+   if(new_nbhrs){
+      if((new_nbhrs< max_nbhrs) && (new_nbhrs>0))  
+         nbhrs = new_nbhrs;
+      else
+         ERROR_exit("-nbhrs %d is illegal (choose between 1 and %d)!\n",
+           new_nbhrs, max_nbhrs);
+   }
+
+   /* set default number of peels (erosions/dilations combo, neighbors) */
    THD_automask_set_peelcounts(peels,nbhrs) ;
 
    if((dilate_flag+erode_flag)>1)
-     WARNING_message("Combining dilate and erode options is probably not useful here");
+     WARNING_message("Combining dilate,erode options is like peels option");
 
    /*-- read data --*/
 
@@ -279,7 +310,7 @@ int main( int argc , char * argv[] )
    if (dodepth) {       /* ZSS March 02 2010 */
       if (!(depth = THD_mask_depth( DSET_NX(dset), 
                                     DSET_NY(dset),  
-                                    DSET_NZ(dset), mask, 1, NULL, nn))) {
+                                    DSET_NZ(dset), mask, 1, NULL, NN))) {
          ERROR_exit("Failed to get depth vector!\n");
       }
    }
@@ -296,14 +327,14 @@ int main( int argc , char * argv[] )
 
      if( verb && dilate) INFO_message("Dilating automask\n") ;
      for( dd=0 ; dd < dilate ; dd++ ){
-       THD_mask_dilate           ( nx,ny,nz , mask, 3, nn ) ;
+       THD_mask_dilate           ( nx,ny,nz , mask, 3, NN ) ;
        THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
      }
 
      /* 3 May 2006 - drg- eroding option added */
      if( verb && erode) INFO_message("Eroding automask\n") ;
      for( dd=0 ; dd < erode ; dd++ ){
-       THD_mask_erode           ( nx,ny,nz , mask, 0, nn) ;
+       THD_mask_erode           ( nx,ny,nz , mask, 0, NN) ;
        THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
      }
 

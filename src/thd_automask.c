@@ -42,7 +42,7 @@ static int peelthr   = 17 ;
 void THD_automask_set_peelcounts( int p , int t )
 {
   peelcount = (p > 0)             ? p :  1 ;
-  peelthr   = (t >= 9 && t <= 18) ? t : 17 ;
+  peelthr   = (t >= 6 && t <= 26) ? t : 17 ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -932,11 +932,11 @@ ENTRY("THD_mask_clust") ;
 /*! Erode away nonzero voxels that aren't neighbored by mostly other
     nonzero voxels.  Then (maybe) restore those that were eroded that
     are neighbors of survivors.  
-    The neighbors are the 8,18,26 voxels closest
-    in 3D (facing, edge and corner neighbors).
+    The neighbors are the 6,18,26 voxels closest
+    in 3D (facing, edge and corner neighbors) by specifying NN=1,2 or 3.
     The byte array passed here is returned with voxel elements zeroed
 ----------------------------------------------------------------------------*/
-void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte nn )
+void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte NN )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
    int nxy=nx*ny , nxyz=nxy*nz ;
@@ -949,7 +949,7 @@ ENTRY("THD_mask_erode") ;
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
    if( nnn == NULL ) EXRETURN ;               /* WTF? */
-//   nn = 1;
+
    /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
    STATUS("marking to erode") ;
    for( kk=0 ; kk < nz ; kk++ ){
@@ -983,7 +983,7 @@ ENTRY("THD_mask_erode") ;
                               + mmm[ii+jy+kp];
             if(num<6) nnn[ii+jykz] = 1 ;
             else {
-             if(nn>=2) {   //consider NN2,3 with 18,26 neighbors
+             if(NN>=2) {   //consider NN2,3 with 18,26 neighbors
                  // first NN2 case
                  num +=               mmm[im+jy+km]
                   + mmm[ii+jm+km]                + mmm[ii+jp+km]
@@ -998,7 +998,7 @@ ENTRY("THD_mask_erode") ;
                  if( num < 18 ) nnn[ii+jykz] = 1 ;  /* mark to erode */
                  else {
                      // if enough neighbors for NN1,2 - might not be enough for NN3 
-                     if(nn==3) {
+                     if(NN==3) {
                          num +=  mmm[im+jm+km]           + mmm[im+jp+km]
                                + mmm[ip+jm+km]           + mmm[ip+jp+km]
                                + mmm[im+jm+kp]           + mmm[im+jp+kp]
@@ -1007,8 +1007,8 @@ ENTRY("THD_mask_erode") ;
                      }
     
                  }
-             } // end if nn>=2
-            } // end else num<6 for nn1 case
+             } // end if NN>=2
+            } // end else num<6 for NN1 case
        }  // end non-edge box (ii,jj,kk=0,...)
       } // end if in mask 
    } } }
@@ -1050,8 +1050,8 @@ ENTRY("THD_mask_erode") ;
                                 || mmm[ii+jy+kp])
                  (void) 0;
               else { 
-                if(nn>=2)
-                  if (nnn[ii+jy+kz] =      // if nn2 neighbors (also with if nnn=)
+                if(NN>=2)
+                  if (nnn[ii+jy+kz] =      // if NN2 neighbors (also with if nnn=)
                                    mmm[im+jy+km]
                || mmm[ii+jm+km]                  || mmm[ii+jp+km]
                                 || mmm[ip+jy+km]
@@ -1063,7 +1063,7 @@ ENTRY("THD_mask_erode") ;
                                 || mmm[ip+jy+kp])
                    (void) 0; 
                   else {
-                     if(nn==3)   // consider corners (corners of -1,+1 slices)
+                     if(NN==3)   // consider corners (corners of -1,+1 slices)
                         nnn[ii+jy+kz] = 
                                  mmm[im+jm+km]           + mmm[im+jp+km]
                                + mmm[ip+jm+km]           + mmm[ip+jp+km]
@@ -1071,7 +1071,7 @@ ENTRY("THD_mask_erode") ;
                                + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
 
                   }
-              } // end else nn2,3 cases 
+              } // end else NN2,3 cases 
             } // end if in mask
       }}} /* end of ii,jj,kk loops */
 
@@ -1177,10 +1177,14 @@ void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel )
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num , pp ;
    int nxy=nx*ny , nxyz=nxy*nz ;
    byte *nnn,*qqq , bpp , bth ;
+   int realpeelthr;
 
 ENTRY("THD_mask_erodemany") ;
 
    if( mmm == NULL || npeel < 1 || nxyz < 27 ) EXRETURN ;
+
+   /* until allowing for NN1,3 below, allow for NN2 max */
+   realpeelthr = MIN(18,peelthr);
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
    if( nnn == NULL ) EXRETURN ;               /* WTF? */
@@ -1216,7 +1220,7 @@ ENTRY("THD_mask_erodemany") ;
                 + mmm[im+jy+kp]
                 + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
                 + mmm[ip+jy+kp] ;
-           if( num < peelthr ) nnn[ii+jy+kz] = bpp ;  /* mark to erode */
+           if( num < realpeelthr ) nnn[ii+jy+kz] = bpp ;  /* mark to erode */
          }
      }}}
      for( ii=0 ; ii < nxyz ; ii++ )             /* actually erode */
@@ -1271,22 +1275,21 @@ ENTRY("THD_mask_erodemany") ;
 /*--------------------------------------------------------------------------*/
 /*! Dilate a mask - that is, fill in zero voxels that have at least ndil
     neighbors in the mask.  The neighbors are the 8/18/26 voxels closest
-    in 3D defined by the nn Nearest Neighbor mode NN1=facing,NN2=edge,NN3=corners
+    in 3D defined by the NN Nearest Neighbor mode NN1=facing,NN2=edge,NN3=corners
     Past default has been NN2.
     * not sure about usefulness of ndil threshold, but keeping it
     because it's used across many programs now  [DRG]
     Return value is number of voxels added to the mask.
 ----------------------------------------------------------------------------*/
 
-int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil, byte nn )
+int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil, byte NN )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
    int nxy=nx*ny , nxyz=nxy*nz , nadd ;
    byte *nnn ;
 
    if( mmm == NULL ) return 0 ;
-        if( ndil < 1  ) ndil =  1 ;
-   else if( ndil > 17 ) ndil = 17 ;
+   if( ndil < 1  ) ndil =  1 ;
 
    nnn = (byte*)calloc(sizeof(byte),nxyz) ;  /* mask of dilated voxels */
 
@@ -1307,31 +1310,32 @@ int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil, byte nn )
          im = ii-1 ; ip = ii+1 ;
          if( ii == 0    ) im = 0 ;
          if( ii == nx-1 ) ip = ii ;
-          if (nnn[ii+jy+kz] =              /* see if= has any nbhrs */
-                               mmm[ii+jy+km]
-                            || mmm[im+jy+kz]
-           || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
-                            || mmm[ip+jy+kz] 
-                            || mmm[ii+jy+kp])
-             (void) 0;
-           if(nn>=2)
-              if (num +=      // if nn2 neighbors (also with if nnn=)
-                               mmm[im+jy+km]
-           || mmm[ii+jm+km]                  || mmm[ii+jp+km]
-                            || mmm[ip+jy+km]
-           || mmm[im+jm+kz]                  || mmm[im+jp+kz]
+           num =              /* count non-zero nbhrs */
+                              mmm[ii+jy+km]
+                            + mmm[im+jy+kz]
+           + mmm[ii+jm+kz]                  + mmm[ii+jp+kz]
+                            + mmm[ip+jy+kz] 
+                            + mmm[ii+jy+kp];
+             
+           if(NN>=2)
+              num +=      // count nn2 neighbors 
+                              mmm[im+jy+km]
+           + mmm[ii+jm+km]                  + mmm[ii+jp+km]
+                            + mmm[ip+jy+km]
+           + mmm[im+jm+kz]                  + mmm[im+jp+kz]
     
-           || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
-                            || mmm[im+jy+kp]
-           || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
-                            || mmm[ip+jy+kp])
-               (void) 0; 
-           if(nn==3)   // consider corners (corners of -1,+1 slices)
-                    num += 
+           + mmm[ip+jm+kz]                  + mmm[ip+jp+kz]
+                            + mmm[im+jy+kp]
+           + mmm[ii+jm+kp]                  + mmm[ii+jp+kp]
+                            + mmm[ip+jy+kp];
+               
+           if(NN==3)   // consider corners (corners of -1,+1 slices)
+              num += 
                              mmm[im+jm+km]           + mmm[im+jp+km]
                            + mmm[ip+jm+km]           + mmm[ip+jp+km]
                            + mmm[im+jm+kp]           + mmm[im+jp+kp]
                            + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
+
            if( num >= ndil ) nnn[ii+jy+kz] = 1 ;  /* mark to dilate */    
         } // end if voxel not already in mask
        
@@ -1586,7 +1590,7 @@ int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
    nn is 1,2 or 3 for nearest neighbor mode NN1, NN2, NN3
 */
 short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
-                        byte preservemask, short *usethisdepth, byte nn)
+                        byte preservemask, short *usethisdepth, byte NN)
 {
    int ii, np, niter, ncpmask, nxyz;
    byte *cpmask=NULL;
@@ -1630,7 +1634,7 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
          if (cpmask[ii]) ++depth[ii];
       }
       /* peel it */
-      THD_mask_erode( nx, ny, nz, cpmask, 0, nn ) ;
+      THD_mask_erode( nx, ny, nz, cpmask, 0, NN ) ;
       np = ncpmask - THD_countmask( nxyz , cpmask );
       if (verb) INFO_message("Peeled %d voxels from mask of %d (now %d)\n",
                               np, ncpmask,

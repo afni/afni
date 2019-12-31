@@ -59,7 +59,7 @@ int mri_interior_edgeize( MRI_IMAGE *inim , int erode , float frac )
    ii  = rint(0.032*nz) ; nmm = MAX(nmm,ii) ;
 
    for( ii=0 ; ii < erode ; ii++ ){
-     THD_mask_erode            ( nx,ny,nz , mask, 0 ) ;
+     THD_mask_erode            ( nx,ny,nz , mask, 0, 2 ) ;
      THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
    }
 

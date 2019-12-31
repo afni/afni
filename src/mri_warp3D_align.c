@@ -559,7 +559,7 @@ ENTRY("mri_warp3D_align_setup") ;
    { byte *mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;
      THD_mask_clust( nx,ny,nz, mmm ) ;
-     THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
+     THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
      THD_mask_clust( nx,ny,nz, mmm ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
      free((void *)mmm) ;
