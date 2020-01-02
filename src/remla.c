@@ -503,6 +503,23 @@ ENTRY("reml_setup_restoremat") ;
 }
 
 /****************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+/* Funcs for user to set allow ARMA(1,1) parameter ranges */
+
+static int allow_negative_cor         = 0 ;
+static int allow_only_pos_white_noise = 0 ;
+
+void REML_allow_negative_correlations( int i ){
+  allow_negative_cor = i ;
+  if( i ) allow_only_pos_white_noise = 0 ;
+}
+
+void REML_allow_only_pos_white_noise( int i ){
+   allow_only_pos_white_noise = i ;
+   if( i ) allow_negative_cor = 0 ;
+}
+
 /*--------------------------------------------------------------------------*/
 /*! Setup sparse banded correlation matrix (as an rcmat struct):
       [ 1 lam lam*rho lam*rho^2 lam*rho^3 ... ]
@@ -614,6 +631,13 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
      if( verb ) ERROR_message("setup_arma11_reml: bad inputs?!") ;
      return NULL ;
    }
+
+   /* check if matrix parameters are allowed [02 Jan 2020] */
+
+   if( ! allow_negative_cor && ( rho < 0.0 || lam < 0.0 ) ) return NULL ;
+
+   if( allow_only_pos_white_noise &&
+       ( rho < 0.0 || lam < 0.0 || lam > rho ) ) return NULL ;
 
    mm = X->cols ;  /* number of regression parameters */
    if( mm >= nt || mm <= 0 ){
@@ -1043,11 +1067,6 @@ void reml_collection_destroy( reml_collection *rcol , int zsave )
 
 /*--------------------------------------------------------------------------*/
 
-static int allow_negative_cor = 0 ;
-void REML_allow_negative_correlations( int i ){ allow_negative_cor = i ; }
-
-/*--------------------------------------------------------------------------*/
-
 reml_collection * REML_setup_all( matrix *X , int *tau ,
                                   int nlev , MTYPE atop , MTYPE btop )
 {
@@ -1114,6 +1133,12 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
      rrcol->nab   = 2 ;
      rrcol->istwo = 1 ;
    }
+
+   /* allocate REML matrix setups:
+       all are NULL to start, and if a matrix setup (rs) element
+       is never computed, then it will be skipped later in the
+       optimizing function REML_find_best_case */
+
    rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),rrcol->nab) ;
 
    rrcol->abot = abot ; rrcol->da = da ; rrcol->na = na ; rrcol->pna = pna ;
