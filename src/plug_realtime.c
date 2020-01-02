@@ -526,12 +526,12 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   static char * REG_BASE_strings_ENV[NREG_BASE] = {
     "Current_Run", "Current_Run_Keep", "External_Dataset" } ;
 
-#define N_RT_MASK_METHODS 4     /* 15 Jul 2008 [rickr] */
+#define N_RT_MASK_METHODS 5     /* 15 Jul 2008 [rickr] */
   static char * RT_mask_strings[N_RT_MASK_METHODS] = {
-    "None" , "Motion Only", "ROI means" , "All Data" } ;
+    "None" , "Motion Only", "ROI means" , "All Data (heavy)" , "All Data (light)"} ;
 
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
-    "None" , "Motion_Only", "ROI_means" , "All_Data" } ;
+    "None" , "Motion_Only", "ROI_means" , "All_Data", "All_Data_light" } ;
 
 /* Variables to enable writing individual time-point volumes to disk */
 #define RT_WRITE_NOTHING       0
@@ -707,6 +707,7 @@ static int  RT_mp_check_env_for_mask( void );
 static int  RT_mp_rm_env_mask   ( void );
 static int  RT_mp_get_mask_aves ( RT_input * rtin, int sub );
 static int  RT_mp_set_mask_data ( RT_input * rtin, float * data, int sub );
+static int  RT_mp_set_mask_data_light ( RT_input * rtin, float * data, int sub );
 static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 
 static int  RT_mp_getenv        ( void );
@@ -2675,6 +2676,9 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
     } else if( g_mask_dset && g_mask_val_type == 3 ) {
         bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
         tr_vals = bsize;
+    } else if( g_mask_dset && g_mask_val_type == 4) {
+        bsize   = 6 + rtin->mask_nset;          /* motion plus all vals (light-weight) */
+        tr_vals = bsize; 
     } else {
         fprintf(stderr,"** need mask to send data\n");
         RT_mp_comm_close(rtin, 0);
@@ -2718,6 +2722,12 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
             } else if( g_mask_dset && g_mask_val_type == 3 ) {
                 dind = bsize*c+6;  /* note initial offset */
                 if( RT_mp_set_mask_data(rtin, data+dind, sub+mpindex) ) {
+                    RT_mp_comm_close(rtin, 0);
+                    return -1;
+                }
+            } else if( g_mask_dset && g_mask_val_type == 4 ) {
+                dind = bsize*c+6;  /* note initial offset */
+                if( RT_mp_set_mask_data_light(rtin, data+dind, sub+mpindex) ) {
                     RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
@@ -2823,6 +2833,84 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
        data[dind++] = fvec.xyz[0];      /* set x,y,z coords */
        data[dind++] = fvec.xyz[1];
        data[dind++] = fvec.xyz[2];
+
+       if( rtin->datum == MRI_short )   /* and finally set data value */
+           data[dind++] = ((short *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_float )
+           data[dind++] = ((float *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_byte )
+           data[dind++] = ((byte *)dptr)[iv]*ffac;
+    }
+
+    return 0;
+}
+/*---------------------------------------------------------------------------
+   for each set mask voxel, fill data with 8 floats:
+        index  i  j  k  x  y  z  dset_value
+        ----- -- -- -- -- -- --
+   return 0 on success
+-----------------------------------------------------------------------------*/
+static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
+{
+    //THD_fvec3   fvec;
+    //THD_ivec3   ivec;
+    void      * dptr;
+    float       ffac;
+    int         dind, nvox, iv, vind;
+    //int         vind, iv, nvox;
+    //int         i, j, k;
+    int         nx, nxy;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+       fprintf(stderr,"** RT_mp_set_mask_data: not set for sub-brick %d\n",sub);
+       return -1;
+    }
+
+    if( sub < 0 ) return 0;
+
+    if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
+       fprintf(stderr,"** RT_mp_set_mask_data: no mask information to apply\n");
+       return -1;
+    }
+
+    /* note dimensions */
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mp_mask_free(rtin);
+    }
+    nx = DSET_NX(g_mask_dset);
+    nxy = nx * DSET_NY(g_mask_dset);
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 0.0 ) ffac = 1.0;
+
+    dind = 0;   /* index into output data array */
+    vind = 0;   /* mask counter */
+    dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
+    for( iv=0 ; iv < nvox ; iv++ ) {
+       if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
+
+       /* we have a good voxel, fill everything but value, first */
+       vind++;
+
+       //IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
+       //LOAD_IVEC3(ivec,i,j,k);
+       //data[dind++] = (float)iv;        /* set index and i,j,k */
+       //data[dind++] = (float)i;
+       //data[dind++] = (float)j;
+       //data[dind++] = (float)k;
+
+       /* convert ijk to dicom xyz */
+       //fvec = THD_3dind_to_3dmm_no_wod(g_mask_dset, ivec);
+       //fvec = THD_3dmm_to_dicomm(g_mask_dset, fvec);
+
+       //data[dind++] = fvec.xyz[0];      /* set x,y,z coords */
+       //data[dind++] = fvec.xyz[1];
+       //data[dind++] = fvec.xyz[2];
 
        if( rtin->datum == MRI_short )   /* and finally set data value */
            data[dind++] = ((short *)dptr)[iv]*ffac;
@@ -3108,7 +3196,10 @@ static int RT_mp_comm_init( RT_input * rtin )
         } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 2;
-        } else {                                            /* bad combo */
+        } else if( g_mask_val_type == 4 && g_mask_dset ) {  /* all data */
+            send_nvals = rtin->mask_nset;
+            magic_hi[3] += 3;
+        }else {                                            /* bad combo */
             fprintf(stderr,"** RTM init: mask is required with type %d\n",
                     g_mask_val_type);
             rtin->mp_tcp_use = -1;
