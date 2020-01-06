@@ -165,7 +165,7 @@ set(CHAR s_cat.c s_cmp.c s_copy.c)
 set(F90BIT lbitbits.c lbitshft.c)
 
 add_library(
-  f2cdir
+  f2c
   ${OBJ}
   ${MISC}
   ${POW}
@@ -181,12 +181,12 @@ add_library(
   ${F90BIT}
 )
 
-target_include_directories(f2cdir PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(f2cdir PROPERTIES PUBLIC_HEADER f2c.h)
+target_include_directories(f2c PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(f2c PROPERTIES PUBLIC_HEADER f2c.h)
 target_link_libraries(
-  f2cdir
+  f2c
   PUBLIC NIFTI::nifticdf
   PRIVATE m
 )
-add_afni_target_properties(f2cdir)
-add_library($<TARGET_NAME_IF_EXISTS:f2c> ALIAS f2cdir)
+add_afni_target_properties(f2c)
+add_library($<TARGET_NAME_IF_EXISTS:f2c> ALIAS f2c)
