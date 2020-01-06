@@ -7,6 +7,9 @@ inserting them via:
 #include "../../SUMA_gts_insert.c" 
 gts's surface.c works just fine
 */
+/* For building with either local or sytem gts, add includes
+   that might not come via src/surface.c (the local way).
+   [6 Jan 2020 rickr/leej3] */
 #include <stdlib.h>
 #include "gts.h"
 static int debug;
