@@ -2845,31 +2845,27 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     return 0;
 }
 /*---------------------------------------------------------------------------
-   for each set mask voxel, fill data with 8 floats:
-        index  i  j  k  x  y  z  dset_value
-        ----- -- -- -- -- -- --
+   Like RT_mp_set_mask_data, but for each masked voxel, send only that voxel
+   data value (so no index, i,j,k, x,y,z).
+
    return 0 on success
 -----------------------------------------------------------------------------*/
 static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
 {
-    //THD_fvec3   fvec;
-    //THD_ivec3   ivec;
     void      * dptr;
     float       ffac;
     int         dind, nvox, iv, vind;
-    //int         vind, iv, nvox;
-    //int         i, j, k;
     int         nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
-       fprintf(stderr,"** RT_mp_set_mask_data: not set for sub-brick %d\n",sub);
+       fprintf(stderr,"** RT_mp_SMDL: not set for sub-brick %d\n",sub);
        return -1;
     }
 
     if( sub < 0 ) return 0;
 
     if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
-       fprintf(stderr,"** RT_mp_set_mask_data: no mask information to apply\n");
+       fprintf(stderr,"** RT_mp_SMDL: no mask information to apply\n");
        return -1;
     }
 
@@ -2894,25 +2890,11 @@ static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
     for( iv=0 ; iv < nvox ; iv++ ) {
        if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
 
-       /* we have a good voxel, fill everything but value, first */
+       /* we have a good voxel */
        vind++;
 
-       //IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
-       //LOAD_IVEC3(ivec,i,j,k);
-       //data[dind++] = (float)iv;        /* set index and i,j,k */
-       //data[dind++] = (float)i;
-       //data[dind++] = (float)j;
-       //data[dind++] = (float)k;
-
-       /* convert ijk to dicom xyz */
-       //fvec = THD_3dind_to_3dmm_no_wod(g_mask_dset, ivec);
-       //fvec = THD_3dmm_to_dicomm(g_mask_dset, fvec);
-
-       //data[dind++] = fvec.xyz[0];      /* set x,y,z coords */
-       //data[dind++] = fvec.xyz[1];
-       //data[dind++] = fvec.xyz[2];
-
-       if( rtin->datum == MRI_short )   /* and finally set data value */
+       /* set the data value (convert to float) */
+       if( rtin->datum == MRI_short )
            data[dind++] = ((short *)dptr)[iv]*ffac;
        else if( rtin->datum == MRI_float )
            data[dind++] = ((float *)dptr)[iv]*ffac;
@@ -3196,7 +3178,7 @@ static int RT_mp_comm_init( RT_input * rtin )
         } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 2;
-        } else if( g_mask_val_type == 4 && g_mask_dset ) {  /* all data */
+        } else if( g_mask_val_type == 4 && g_mask_dset ) {  /* data only */
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 3;
         }else {                                            /* bad combo */
@@ -5019,7 +5001,7 @@ void RT_process_image( RT_input * rtin )
       /** 02 Jun 2009: merger operations?
                        if have completed a full set of channels, that is **/
 
-      /* rcr OC - check for pre-reg merge */
+      /* rcr OC - check for pre-reg merge (after last channel is acquired) */
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
         RT_merge( rtin, cc, -1);
