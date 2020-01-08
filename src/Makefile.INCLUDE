@@ -349,6 +349,13 @@ prog_list: prog_list_bin prog_list_scripts
                 | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
 		>> prog_list.txt
 
+echo_plugs_n_models:
+	echo $(PMLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort
+
+plugin_list:
+	echo $(PMLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort > plugin_list.txt
+
+
 # Create .gitignore under src/
 gitignore: prog_list
 	echo '##              DO NOT EDIT   ' > .gitignore
@@ -2681,7 +2688,15 @@ shared_objs: $(INSTALLDIR) libmri.so libmrix.so
 
 SO = $(PLUGIN_SUFFIX)
 
-plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
+# Use lists for plugins and models, so that we can output a list of
+# expected shared objects for them (different from libraries).
+
+# list of all plugin and model targets
+PMLIST_ALL = $(PLIST_BASE) $(PLIST_CONTRIB) $(MODELLIST)
+
+# make lists and dependencies based on them
+PLIST_BASE =                                                           \
+        plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_tag.$(SO)      plug_power.$(SO)    plug_stats.$(SO)       \
         plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)        \
         plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
@@ -2694,9 +2709,11 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_roiplot.$(SO)  plug_ttget.$(SO)    plug_L1fit.$(SO)       \
         plug_3ddup.$(SO)    plug_histog_multi.$(SO)                    \
         plug_afnihistory.$(SO)                                         \
-        models contrib_plugins
 
-models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
+plugins: $(PLIST_BASE) models contrib_plugins
+
+MODELLIST =                                                            \
+        model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_null.$(SO) model_diffusion.$(SO) model_beta.$(SO)        \
         model_sinewave_ap.$(SO) model_sinewave_apf.$(SO)               \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO)           \
@@ -2710,32 +2727,72 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)                    \
         model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)
 
+models: $(MODELLIST)
+
+# --------------------------------------------------------------
 # Contributed plugins go last, since they might not compile well
 
+# For a new user list, define a PLIST of actual plugins, a USER_plugin target,
+# and add the PLIST to $PLIST_CONTRIB.
+
+PLIST_CONTRIB = $(PLIST_ZIAD) $(PLIST_BIRN) $(PLIST_KUMMER) $(PLIST_LACONTE) \
+                $(PLIST_RICKR) $(PLIST_TROSS) $(PLIST_BELMONTE)              \
+                $(PLIST_FREDTAM) $(PLIST_DAVIDSHIN)
+
+
+# Really, contrib_plugins and related targets are not needed.  It might be
+# cleaner to just use $PLIST_CONTRIB as a dependency of the plugins target.
 contrib_plugins: ziad_plugins birn_plugins kummer_plugins laconte_plugins \
                  rickr_plugins tross_plugins belmonte_plugins fredtam_plugins \
                  davidshin_plugins
 
-ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
+PLIST_ZIAD =  plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
 
-fredtam_plugins: plug_retroicor.$(SO)
+ziad_plugins: $(PLIST_ZIAD)
 
-davidshin_plugins: plug_aslA3D3.$(SO)
 
-birn_plugins: plug_stavg.$(SO)
+PLIST_FREDTAM = plug_retroicor.$(SO)
 
-kummer_plugins: plug_reorder.$(SO)
+fredtam_plugins: $(PLIST_FREDTAM)
 
-rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
+
+PLIST_DAVIDSHIN = plug_aslA3D3.$(SO)
+
+davidshin_plugins: $(PLIST_DAVIDSHIN)
+
+
+PLIST_BIRN = plug_stavg.$(SO)
+
+birn_plugins: $(PLIST_BIRN)
+
+
+PLIST_KUMMER = plug_reorder.$(SO)
+
+kummer_plugins: $(PLIST_KUMMER)
+
+
+PLIST_RICKR =  plug_roiedit.$(SO) plug_hemisub.$(SO) \
                plug_maskcalc.$(SO) plug_maxima.$(SO) \
                plug_crender.$(SO) plug_vol2surf.$(SO)
 
-tross_plugins: plug_fourier.$(SO)
+rickr_plugins: $(PLIST_RICKR)
 
-belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 
-laconte_plugins: plug_3dsvm.$(SO)
+PLIST_TROSS = plug_fourier.$(SO)
+
+tross_plugins: $(PLIST_TROSS)
+
+
+PLIST_BELMONTE = plug_threshold.$(SO) plug_permtest.$(SO)
+
+belmonte_plugins: $(PLIST_BELMONTE)
+
+
+PLIST_LACONTE = plug_3dsvm.$(SO)
+
+laconte_plugins: $(PLIST_LACONTE)
+
 
 install_plugins: $(INSTALLDIR)
 	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
