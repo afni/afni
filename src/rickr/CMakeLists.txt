@@ -13,10 +13,4 @@ add_executable(column_cat column_cat.c)
 target_link_libraries(file_tool PUBLIC NIFTI::nifti2 m)
 # target_link_libraries(Imon m)
 
-install(
-  TARGETS column_cat serial_helper tokens file_tool
-  RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-  LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
-)
+
