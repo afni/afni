@@ -8643,6 +8643,8 @@ g_help_examples = """
            So use the given -blocks option, plus 2 extra volreg warps to #3 via
            '-volreg_align_e2a', '-volreg_tlrc_warp'.
 
+           A 4 mm blur is applied, to keep it light.
+
            As an added bonus, censor TR pairs where the Euclidean Norm of the
            motion derivative exceeds 0.3.  Also, regress motion parameters
            separately for each run.
@@ -8659,6 +8661,7 @@ g_help_examples = """
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -blur_size 4                                       \\
                         -mask_epi_anat yes                                 \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
@@ -8738,6 +8741,7 @@ g_help_examples = """
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
                         -mask_epi_anat yes                                 \\
+                        -blur_size 4                                       \\
                         -blur_in_automask                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_types times times times              \\
@@ -8887,6 +8891,7 @@ g_help_examples = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -mask_epi_anat yes                                         \\
+                  -blur_size 4                                               \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
@@ -8914,6 +8919,7 @@ g_help_examples = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -mask_epi_anat yes                                         \\
+                  -blur_size 4                                               \\
                   -regress_anaticor                                          \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.05                              \\
@@ -8954,6 +8960,7 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -blur_size 4                                               \\
                   -mask_epi_anat yes                                         \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
@@ -9062,9 +9069,11 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -blur_size 4                                               \\
                   -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC FSvent 3                                   \\
+                  -regress_ROI_PC_per_run FSvent                             \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
@@ -9114,6 +9123,7 @@ g_help_examples = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -volreg_warp_dxyz 2.5                                      \\
+                  -blur_size 4                                               \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
@@ -9211,6 +9221,7 @@ g_help_examples = """
                   -volreg_tlrc_warp                             \\
                   -mask_epi_anat yes                            \\
                   -combine_method OC                            \\
+                  -blur_size 4                                  \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
                   -regress_censor_outliers 0.05                 \\
@@ -9242,6 +9253,7 @@ g_help_examples = """
                   -volreg_tlrc_warp                             \\
                   -mask_epi_anat yes                            \\
                   -combine_method tedana                        \\
+                  -blur_size 4                                  \\
                   -blur_in_mask yes                             \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
@@ -9264,6 +9276,10 @@ g_help_examples = """
             - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
             - QC: @radial_correlate on tcat and volreg block results
             - QC: pythonic html report
+
+         Minor aspects:
+
+            - a FWHM=6mm blur is applied, since blur on surface is TO is size
 
          Note: lacking good sample data for this example, it is simply faked
                for demonstration (echoes are identical, fake ricor parameters
