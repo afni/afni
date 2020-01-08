@@ -109,14 +109,16 @@ endforeach()
 #   )
 # endforeach(target)
 
-foreach(target afni_open aiv Xphace)
-  add_executable(${target} ${target}.c)
-  target_link_libraries(${target} 
-    PRIVATE
-      AFNI::mrix
-      Motif::Motif
-      ${X11_Xt_LIB}
-      NIFTI::nifti2
-      NIFTI::nifticdf
-  )
-endforeach(target)
+if(BUILD_BINARIES)
+  foreach(target afni_open aiv Xphace)
+    add_executable(${target} ${target}.c)
+    target_link_libraries(${target} 
+      PRIVATE
+        AFNI::mrix
+        Motif::Motif
+        ${X11_Xt_LIB}
+        NIFTI::nifti2
+        NIFTI::nifticdf
+    )
+  endforeach(target)
+endif()

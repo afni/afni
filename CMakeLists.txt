@@ -145,3 +145,10 @@ add_custom_target(
   USES_TERMINAL
 )
 
+
+# Generate packaging if this is the top level project
+if(USE_CPACK)
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    include(CMakeCPack.cmake)
+  endif()
+endif()
