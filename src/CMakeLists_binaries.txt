@@ -1,6 +1,3 @@
-# The targets are roughly organized as follows:
-# Somewhat unique compilations that need additional details about includes or compile definitions
-
 add_executable(1dSEM 1dSEM.c matrix.c sqrmat.c)
 set_target_properties(1dSEM PROPERTIES PUBLIC_HEADER "matrix.h")
 target_link_libraries(1dSEM AFNI::mri m)
@@ -72,6 +69,7 @@ foreach(
   3dFriedman
   3dGetrow
   3dGroupInCorr
+  3dinfo
   3dIntracranial
   3dInvFMRI
   3dKruskalWallis
