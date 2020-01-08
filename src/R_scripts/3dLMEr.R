@@ -875,6 +875,9 @@ while(is.null(fm)) {
    }
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+      lop$nF      <- nrow(anova(fm))    # total number of F-stat
+      nT          <- 2*lop$num_glt
+      lop$NoBrick <- lop$nF + nT + lop$num_glf
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
@@ -890,9 +893,6 @@ while(is.null(fm)) {
       cat('would cause grief for 3dLMEr.\n')
       errex.AFNI("Quitting due to model test failure...")
    }
-   lop$nF      <- nrow(anova(fm))    # total number of F-stat
-   nT      <- 2*lop$num_glt
-   lop$NoBrick <- lop$nF + nT + lop$num_glf
 }
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
