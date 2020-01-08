@@ -1046,6 +1046,7 @@ static char *gby[] = {
      "Not from the stars do I my statisticks pluck"                  ,
      "No more be grieved at that which thou hast computed"           ,
      "Is it thy will thy brain image should stay open?"              ,
+     "A tale coded by an idiot, full of sound and fury, signifying p > 0.05" ,
 
      /* Innocence */
 

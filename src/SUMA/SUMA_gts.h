@@ -20,7 +20,16 @@
 #include "gts/config.h"
 #endif
 #include "gts.h"
-#include "gts-private.h"
+
+/* To allow for either local or system gts library:
+      1. remove #include "gts-private"
+         This has one macro and a few debug prototypes, which are not
+         used in our build.
+      2. define USE_ROBUST_PREDICATES
+         This seems to be used in the local build, but not in the
+         system one.   [6 Jan 2020 rickr/leej3]
+ */
+#define USE_ROBUST_PREDICATES
 
 #include "SUMA_suma.h"
 
