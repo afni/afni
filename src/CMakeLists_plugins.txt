@@ -73,19 +73,21 @@ foreach(
             ${NETCDF_LIBRARIES_C}
             NIFTI::nifti2
   )
+  add_afni_target_properties(${target})
 endforeach(target)
 
-add_library(plug_drealtime plug_realtime.c)
+
 add_library(plug_maxima maxima.c plug_maxima.c)
 add_library(plug_retroicor plug_retroicor.c retroicor.c)
 
-foreach(target plug_drealtime plug_maxima plug_retroicor) 
+foreach(target plug_maxima plug_retroicor) 
   target_link_libraries(${target}
     PRIVATE
       afni_all_objects
       NIFTI::nifti2
       NIFTI::nifticdf
-      ) 
+      )
+  add_afni_target_properties(${target})
 endforeach()
 
 # add_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
