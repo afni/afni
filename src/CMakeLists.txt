@@ -28,15 +28,17 @@ endif()
 add_executable(3dinfo 3dinfo.c)
 target_link_libraries(3dinfo AFNI::mri)
 
-# ##### Add rio
-set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
-add_library(rio R_io.c)
-target_include_directories(
-  rio
-  PRIVATE ${LIBR_INCLUDE_DIRS}
-)
-target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
-add_afni_target_properties(rio)
+if(ADD_RSTATS)
+  # ##### Add rio
+  set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
+  add_library(rio R_io.c)
+  target_include_directories(
+    rio
+    PRIVATE ${LIBR_INCLUDE_DIRS}
+  )
+  target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
+endif()
+
 
 # ##### Add models
 foreach(

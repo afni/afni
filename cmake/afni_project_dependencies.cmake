@@ -1,4 +1,3 @@
-include(CPack)
 include(CMakePackageConfigHelpers)
 find_package(Motif REQUIRED)
 find_package(NetCDF REQUIRED)
