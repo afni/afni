@@ -38,6 +38,8 @@ install(
   DIRECTORY ../jzosky/lib_RetroTS
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
   PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE
+  PATTERN "__init__.py" EXCLUDE
 )
 
 # The following should be replaced by a pip install with console entrypoints:
