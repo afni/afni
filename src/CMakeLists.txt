@@ -98,8 +98,8 @@ if(BUILD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# ##### Add scripts
-if(NOT DO_NOT_INSTALL_SCRIPTS)
+# ##### Add script
+if(NOT (DO_NOT_INSTALL_SCRIPTS))
   add_subdirectory(scripts_install)
 endif()
 
