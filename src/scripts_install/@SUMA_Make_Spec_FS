@@ -1465,6 +1465,9 @@ OPTIONS ~1~
           e.g. -debug 1
           the default level is 0, max is 2
 
+          A debug level of 2 will "set echo", so one can follow the actual
+          commands executed in the script.
+
     -fs_setup       : source \$FREESURFER_HOME/SetUpFreeSurfer.csh
 
           This might be useful on OS X, as FreeSurfer uses DYLD_LIBRARY_PATH,
