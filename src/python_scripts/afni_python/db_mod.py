@@ -9055,7 +9055,7 @@ g_help_examples = """
                   -copy_anat FT_anat_FSPprep.nii                             \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI FSvent epi fs_ap_vent.nii.gz            \\
+                  -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
                   -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                \\
                   -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
@@ -10111,11 +10111,12 @@ g_help_notes = """
       * Note, @SUMA_Make_Spec_FS now (as of 14 Nov, 2019) outputs ventricle
         and white matter masks, for possible use with afni_proc.py:
 
-            SUMA/fs_ap_vent.nii.gz
+            SUMA/fs_ap_latvent.nii.gz
             SUMA/fs_ap_wm.nii.gz
     
-    Then FT_anat_FSprep.nii, fs_ap_vent.nii.gz and fs_ap_wm.nii.gz (along with
-    the basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
+    Then FT_anat_FSprep.nii, fs_ap_latvent.nii.gz and fs_ap_wm.nii.gz
+    (along with the basically unused aparc.a2009s+aseg.nii) are passed
+    to afni_proc.py.
 
 
   * Preparation for running FreeSurfer
