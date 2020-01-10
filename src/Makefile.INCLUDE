@@ -373,10 +373,10 @@ gitignore: prog_list
    fi
 	echo "" >> .gitignore
 	echo "" >> .gitignore
-    echo '## Ignore the build directory created by the make build'
-    echo '$(INSTALLDIR)' >> .gitignore
-    echo "" >> .gitignore
-    echo "" >> .gitignore
+	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '$(INSTALLDIR)' >> .gitignore
+	echo "" >> .gitignore
+	echo "" >> .gitignore
 	echo "##Ignore all the programs and scripts" >> .gitignore
 	echo "##List obtained from AFNI/src/prog_list_bin.txt" >> .gitignore
 	cat prog_list_bin.txt >> .gitignore
