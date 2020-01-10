@@ -23,8 +23,8 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================          
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Jan 6, 2020
-Author: Gang Chen (gangchen@mail.nih.gov)
+Version 0.0.1, Jan 10, 2020
+Author: Gang Chen (gangchen@mail.nih.gov)https://scholarblogs.emory.edu/smi2020/
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -656,6 +656,7 @@ runLME <- function(myData, DM, tag) {
    Stat <- rep(0, lop$NoBrick)
    if(!all(myData == 0)) {     
       DM$yy <- myData
+      fm <- NULL
       options(warn=-1)
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
