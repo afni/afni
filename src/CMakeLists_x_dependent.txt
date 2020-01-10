@@ -1,7 +1,7 @@
 # ##### Build X dependent programs...
 
 add_subdirectory(svm)
-add_subdirectory(XmHTML)
+optional_bundle(XmHTML)
 
 add_library(
   mrix
@@ -22,14 +22,11 @@ add_afni_target_properties(mrix)
 set_target_properties(
   mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h"
 )
-target_include_directories(
-  mrix PUBLIC $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES>
-)
 target_link_libraries(
   mrix
   PUBLIC AFNI::mri
-  PRIVATE AFNI::coxplot AFNI::XmHTML ${X11_LIBRARIES} ${MOTIF_LIBRARIES} ${X11_Xt_LIB}
-          libheaders
+  PRIVATE AFNI::coxplot $<TARGET_NAME_IF_EXISTS:XmHTML> Motif::Motif ${X11_Xt_LIB} 
+          ${X11_LIBRARIES}
 )
 add_afni_target_properties(mrix)
 add_library(AFNI::mrix ALIAS mrix)
@@ -81,24 +78,22 @@ add_library(
   mcw_graf.c
   pbar.c
 )
-target_link_libraries(afni_all_objects PUBLIC libheaders coxplot)
-
+target_link_libraries(afni_all_objects 
+  PUBLIC
+    AFNI::mrix
+    libheaders
+    Motif::Motif
+    ${X11_Xt_LIB}
+    ${X11_LIBRARIES}
+    ${CMAKE_DL_LIBS}
+    )
 
 add_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 
 target_link_libraries(
   afni
-  PRIVATE ${CMAKE_DL_LIBS}
-          afni_all_objects
-          AFNI::mrix
-          ${MOTIF_LIBRARIES}
-          ${X11_Xt_LIB}
-          ${X11_LIBRARIES}
-          AFNI::mri
-          AFNI::coxplot
-          AFNI::f2cdir
-          ${NETCDF_LIBRARIES_C}
-          NIFTI::nifti2
-          libheaders
-          m
+  PRIVATE
+    afni_all_objects
+    NIFTI::nifti2
+    NIFTI::nifticdf
 )

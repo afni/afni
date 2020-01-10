@@ -53,6 +53,33 @@ foreach(
 endforeach(target)
 
 
+add_executable(3dZipperZapper 3dZipperZapper.c)
+target_link_libraries(3dZipperZapper 
+  PRIVATE
+    AFNI::mri
+    GSL::gsl
+    )
+
+add_executable(3dSliceNDice 3dSliceNDice.c)
+target_link_libraries(3dSliceNDice 
+  PRIVATE
+    AFNI::mri
+    track_tools
+    )
+
+add_executable(3dClusterize 3dClusterize.c)
+target_link_libraries(3dClusterize 
+  PRIVATE
+    AFNI::mri
+    track_tools
+    )
+
+add_executable(3dProbTrackID 3dProbTrackID.c)
+target_link_libraries(3dProbTrackID 
+  PRIVATE
+    AFNI::mri
+    )
+
 if(OPENMP_FOUND)
   foreach(target 3dEigsToDT 3dDWUncert)
     add_executable(${target} ${target}.c)

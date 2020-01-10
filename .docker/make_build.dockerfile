@@ -1,11 +1,20 @@
 FROM afni/afni_dev_base
 
+# Remove f2c dev header to ensure within repo f2c.h is used
+RUN apt-get remove -y libf2c2-dev
+
+
+# set non interactive backend for matplotlib
+RUN mkdir -p /root/.config/matplotlib \
+    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
+
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
 COPY [".", "$AFNI_ROOT/"]
 
 ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
 ARG AFNI_WITH_COVERAGE="0"
+ENV PATH="/opt/abin:$PATH"
 
 WORKDIR "$AFNI_ROOT/src"
 RUN \
@@ -27,13 +36,12 @@ RUN \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     # Clean in case there are some stray object files
     && make cleanest \
-    && make itall  | tee /build_log.txt \
-    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
+    && /bin/bash -c \
+    'make itall 2>&1 | tee build_log.txt && test ${PIPESTATUS[0]} -eq 0' \
+    && mv $AFNI_MAKEFILE_SUFFIX /opt/abin
 
-ENV PATH="$AFNI_ROOT/abin:$PATH"
 
-# set non interactive backend for matplotlib
-RUN mkdir -p /root/.config/matplotlib \
-    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
+
+
 
 WORKDIR "$AFNI_ROOT"
