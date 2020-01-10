@@ -362,10 +362,9 @@ gitignore: prog_list
 	echo '##This file is created with "$(MAKE) gitignore". ' >> .gitignore
 	echo '##Changes should be made to sources used to create it:' >> .gitignore
 	echo '##                            AFNI/.gitignore '>> .gitignore
-	echo '##                            AFNI/src/gitignore.src.txt '>> .gitignore
 	echo '##and/or the variables listing all programs in src/Makefile.INCLUDE ' \
                                                                   >> .gitignore
-	echo '##targets echo_progs, and prog_list.'  >> .gitignore
+	echo '##targets echo_progs, and prog_list_bin.'  >> .gitignore
 	echo '##Run "$(MAKE) gitignore" to recreate src/.gitignore ' >> .gitignore
 	if [ -f ../.gitignore ]; then \
       echo "" >> .gitignore; \
@@ -373,12 +372,10 @@ gitignore: prog_list
       cat ../.gitignore >> .gitignore; \
    fi
 	echo "" >> .gitignore
-	echo "##Contents of gitignore.src.txt" >> .gitignore
-	cat gitignore.src.txt >> .gitignore
 	echo "" >> .gitignore
 	echo "##Ignore all the programs and scripts" >> .gitignore
-	echo "##List obtained from AFNI/src/prog_list.txt" >> .gitignore
-	cat prog_list.txt >> .gitignore
+	echo "##List obtained from AFNI/src/prog_list_bin.txt" >> .gitignore
+	cat prog_list_bin.txt >> .gitignore
 
 # CYGWIN: variations on totality and vastness above
 
