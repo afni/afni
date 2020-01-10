@@ -43,3 +43,27 @@ __pycache__
 .coverage
 output_of_tests
 sample_output_of_tests
+
+# .gitignore file created as a build target
+src/.gitignore
+
+#From AFNI builds
+Makefile.back.*
+volpack.h
+jconfig.h
+niml.h
+macros.make
+Makefile
+Makevars
+Makefile.R.INCLUDE
+Makefile.R.INCLUDE.BACK
+AFNI_version.txt
+AFNI_version.h
+
+#Python
+*.pyc
+
+#From SUMA/gts
+*.lo
+*.libs
+*.deps
