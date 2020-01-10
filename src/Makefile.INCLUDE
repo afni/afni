@@ -264,6 +264,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
 
 R_DIR = R_scripts
+R_TCSH_DIR = scripts_for_r
 
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
@@ -2092,7 +2093,7 @@ afni_src.tgz:
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
-	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
+	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -2131,7 +2132,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
@@ -2148,7 +2149,7 @@ install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
@@ -2162,7 +2163,7 @@ install_exe: $(INSTALLDIR)
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 ###################################################################

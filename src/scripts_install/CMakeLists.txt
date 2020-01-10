@@ -20,6 +20,12 @@ install(
   FILES_MATCHING
   PATTERN "*R" PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
+install(
+  DIRECTORY ../scripts_for_r/
+  DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+  FILES_MATCHING
+  PATTERN "*" PERMISSIONS ${SCRIPT_PERMISSIONS}
+)
 
 # RetroTS python files
 install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py 
