@@ -49,9 +49,6 @@ src/.gitignore
 
 #From AFNI builds
 Makefile.back.*
-volpack.h
-jconfig.h
-niml.h
 macros.make
 Makefile
 Makevars
