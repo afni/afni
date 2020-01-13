@@ -8,13 +8,10 @@ install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
   FILES_MATCHING
-  PATTERN "*" PERMISSIONS ${SCRIPT_PERMISSIONS}
+  PATTERN "*" 
+  PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
-# A stray tcsh file
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/../Audio/@sound_to_header.csh
-        DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-)
 
 # R scripts
 install(
@@ -31,6 +28,7 @@ install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py
 install(
   DIRECTORY ../jzosky/lib_RetroTS
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+  PATTERN "__pycache__" EXCLUDE
 )
 
 # The following should be replaced by a pip install with console entrypoints:

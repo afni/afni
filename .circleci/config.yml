@@ -23,6 +23,13 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
+          name: Pull and possibly rebuild base image
+          command: |
+            docker pull afni/afni_dev_base; \
+            docker build -t afni/afni_dev_base  \
+            -f .docker/afni_dev_base.dockerfile                                    \
+            .
+      - run:
           name: Build using standard AFNI build system
           command: |
             docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6}  \
@@ -59,10 +66,11 @@ jobs:
             apk add --no-cache pigz python3
       - setup_remote_docker
       - run:
-          name: Fetch latest release image
-          no_output_timeout: 10m
+          name: Pull and possibly rebuild base image
           command: |
-            docker pull afni/afni_cmake_build:latest
+            docker pull afni/afni_dev_base; \
+            docker build -t afni/afni_dev_base  \
+            -f .docker/afni_dev_base.dockerfile .
       - run:
           name: Build image
           no_output_timeout: 30m
@@ -71,7 +79,6 @@ jobs:
             echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
             docker build \
               -f .docker/cmake_build.dockerfile \
-              --cache-from=afni/afni_cmake_build \
               --rm=false \
               --tag afni/afni_cmake_build:latest \
               --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
@@ -89,7 +96,8 @@ jobs:
           paths:
             - /tmp/cache/docker.tar.gz
 
-
+  # Using caching between build and test jobs instead of making it all part of
+  # the same job is useful for restarting with ssh support upon tests failure.
   test_cmake_build:
     machine:
       image: circleci/classic:201711-01
