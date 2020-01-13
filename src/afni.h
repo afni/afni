@@ -2484,9 +2484,11 @@ extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
 #define AFNI_register_1D_funcstr(cc,ff)  \
    AFNI_register_nD_function(1,(char *)(cc),(generic_func *)(ff),RETURNS_STRING)
 
+#if 0
 extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
 extern int  AFNI_needs_dset_ijk(void) ;
 extern int  AFNI_needs_dset_tin(void) ;
+#endif
 
 extern int AFNI_gcd( int m , int n ) ;
 extern int AFNI_find_relprime_random( int n ) ;
