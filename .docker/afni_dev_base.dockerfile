@@ -15,20 +15,13 @@ RUN wget  -O- http://neuro.debian.net/lists/bionic.us-nh.full > /etc/apt/sources
 RUN TZ=Europe/Minsk \
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Prepare environment
+# Install runtime and basic dependencies
 RUN apt-get update && apt-get install -y eatmydata && \
     eatmydata apt-get install -y --no-install-recommends \
-    build-essential \
-    bzip2 \
     ca-certificates \
     curl \
-    cython3 \
     freeglut3-dev \
-    g++ \
-    gcc \
-    gdb \
     git \
-    git-annex-standalone \
     libf2c2-dev \
     libglew-dev \
     libglib2.0-dev \
@@ -39,21 +32,13 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libjpeg62 \
     libmotif-dev \
     libnetcdf-dev \
-    libtool \
     libxi-dev \
     libxmhtml-dev \
     libxmu-dev \
     libxpm-dev \
     libxt-dev \
     libvolpack1-dev \
-    m4 \
-    ncurses-dev \
-    ninja-build \
-    pkg-config \
     python-dev \
-    python-matplotlib \
-    python-mpltoolkits.basemap \
-    python-numpy \
     python-qt4 \
     python-rpy2 \
     python-scipy \
@@ -62,15 +47,44 @@ RUN apt-get update && apt-get install -y eatmydata && \
     python3.6-dev \
     qhull-bin \
     r-base \
-    rsync \
     tcsh \
-    tree \
-    valgrind \
-    vim \
     wget \
     xvfb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+
+# Install development dependencies
+RUN apt-get update && apt-get install -y eatmydata && \
+    eatmydata apt-get install -y --no-install-recommends \
+    build-essential \
+    bzip2 \
+    cython3 \
+    f2c \
+    g++ \
+    gcc \
+    git-annex-standalone \
+    libtool \
+    m4 \
+    ncurses-dev \
+    ninja-build \
+    pkg-config \
+    python-matplotlib \
+    python-mpltoolkits.basemap \
+    python-numpy \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+
+# Install test dependencies and some useful tools
+RUN apt-get update && apt-get install -y eatmydata && \
+    eatmydata apt-get install -y --no-install-recommends \
+    gdb \
+    rsync \
+    tree \
+    valgrind \
+    vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+
 
 ENV CMAKE_VER=cmake-3.13.0-Linux-x86_64
 RUN wget -P /cmake  https://github.com/Kitware/CMake/releases/download/v3.13.0/${CMAKE_VER}.tar.gz \
@@ -79,7 +93,7 @@ RUN wget -P /cmake  https://github.com/Kitware/CMake/releases/download/v3.13.0/$
   ;rm -fr ${CMAKE_VER}.tar.gz 
 ENV PATH="/cmake/${CMAKE_VER}/bin:$PATH"
 
-
+# Add some more test dependencies
 RUN \
  curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
   && pip3 install --no-cache-dir \

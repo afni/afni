@@ -11,7 +11,6 @@ WORKDIR /build
 
 RUN  cmake \
     -GNinja \
-    -DALTERNATIVE_INSTALL_ROOT=$INSTALL_DIR \
     -DBUILD_BINARIES=ON \
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
     -DBUILD_PLUGINS=ON \
@@ -19,6 +18,6 @@ RUN  cmake \
     $AFNI_ROOT
 
 RUN /bin/bash -oc pipefail \
-ninja -v | tee -a verbose_build.log
+ninja -v | tee -a verbose_build.log 2>&1
 
 # RUN apsearch -update_all_afni_help

@@ -21,5 +21,5 @@ TESTING_PATHS="$(< TESTING_PATHS.txt)"
 
 # Run tests
 export PATH="$TESTING_PATHS:$PATH"
-export ARGS="scripts --runveryslow --testpython2 -vv"
+export ARGS="scripts --runveryslow --testpython2 -vv --showlocals"
 ARGS=$ARGS ninja pytest

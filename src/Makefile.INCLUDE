@@ -264,6 +264,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
 
 R_DIR = R_scripts
+R_TCSH_DIR = scripts_for_r
 
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
@@ -362,10 +363,9 @@ gitignore: prog_list
 	echo '##This file is created with "$(MAKE) gitignore". ' >> .gitignore
 	echo '##Changes should be made to sources used to create it:' >> .gitignore
 	echo '##                            AFNI/.gitignore '>> .gitignore
-	echo '##                            AFNI/src/gitignore.src.txt '>> .gitignore
 	echo '##and/or the variables listing all programs in src/Makefile.INCLUDE ' \
                                                                   >> .gitignore
-	echo '##targets echo_progs, and prog_list.'  >> .gitignore
+	echo '##targets echo_progs, and prog_list_bin.'  >> .gitignore
 	echo '##Run "$(MAKE) gitignore" to recreate src/.gitignore ' >> .gitignore
 	if [ -f ../.gitignore ]; then \
       echo "" >> .gitignore; \
@@ -373,12 +373,14 @@ gitignore: prog_list
       cat ../.gitignore >> .gitignore; \
    fi
 	echo "" >> .gitignore
-	echo "##Contents of gitignore.src.txt" >> .gitignore
-	cat gitignore.src.txt >> .gitignore
+	echo "" >> .gitignore
+	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '$(INSTALLDIR)' >> .gitignore
+	echo "" >> .gitignore
 	echo "" >> .gitignore
 	echo "##Ignore all the programs and scripts" >> .gitignore
-	echo "##List obtained from AFNI/src/prog_list.txt" >> .gitignore
-	cat prog_list.txt >> .gitignore
+	echo "##List obtained from AFNI/src/prog_list_bin.txt" >> .gitignore
+	cat prog_list_bin.txt >> .gitignore
 
 # CYGWIN: variations on totality and vastness above
 
@@ -2091,7 +2093,7 @@ afni_src.tgz:
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
-	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
+	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -2130,7 +2132,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
@@ -2147,7 +2149,7 @@ install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
@@ -2161,7 +2163,7 @@ install_exe: $(INSTALLDIR)
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 ###################################################################
