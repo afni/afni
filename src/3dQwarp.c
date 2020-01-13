@@ -739,6 +739,10 @@ void Qhelp(void)
     "\n"
     "++++++++++ Computing the 'cost' functional = how datasets are matched ++++++++++\n"
     "\n"
+    " ** If '-allineate' is used, AND one of these options is given, then the      **\n"
+    " ** corresponding option is also passed to 3dAllineate for its optimization.  **\n"
+    " ** Otherwise, 3dAllineate will use its default optimization cost functional. **\n"
+    "\n"
     " -pcl         = clipped Pearson correlation [default method]; clipping reduces\n"
     "                the impact of outlier values.\n"
     " -pear        = Use strict Pearson correlation for matching.\n"
@@ -757,8 +761,8 @@ void Qhelp(void)
     "               * In particular, nonlinear warping of low resolution EPI\n"
     "                 data to T1 data is a difficult task, and can introduce\n"
     "                 more distortions to the result than it fixes.\n"
-    "                By default, 'maxlev' will be set to 0 when using option \n"
-    "                (change that with '-maxlev ...').\n"
+    "                By default, 'maxlev' will be set to 0 when using option '-lpc'\n"
+    "                or '-lpa' (change that with '-maxlev ...' AFTER '-lp? option).\n"
     "\n"
     " -noneg       = Replace negative values in either input volume with 0.\n"
     " -zclip        * If there ARE negative input values, and you do NOT use -noneg,\n"
@@ -1717,7 +1721,7 @@ THD_3dim_dataset * Qcrop_dataset( THD_3dim_dataset *iset , char *prefix )
 /* Function for writing out intermediate saved warps during optimization. */
 /* Actually is invoked in mri_nwarp.c, not in any code in 3dQwarp.c       */
 
-static int do_allin=0 ; char *allopt=NULL ;
+static int do_allin=0 ; char *allopt=NULL ; char *allmeth=NULL ;
 static mat44 allin_matrix, allin_adjust_matrix ;
 static THD_3dim_dataset *adset=NULL , *bset=NULL ;
 static char *prefix = "Qwarp" ;
@@ -2555,40 +2559,45 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
+       allmeth = strdup("-hel") ;
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-mi") == 0 ){
+       allmeth = strdup("-mi") ;
        meth = GA_MATCH_KULLBACK_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-nmi") == 0 ){
+       allmeth = strdup("-nmi") ;
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pcl") == 0 ){
+       allmeth = strdup("-ls") ;
        meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pear") == 0 ){
+       allmeth = strdup("-ls") ;
        meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpc") == 0 ){
+       allmeth = strdup("-lpc") ;
        meth = GA_MATCH_PEARSON_LOCALS ;
        Hzeasy = meth_is_lpc = 1 ; mlev = 0 ; nopt++ ; continue ;
      }
@@ -2596,6 +2605,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
+       allmeth = strdup("-lpa") ;
        Hzeasy = meth_is_lpc = 1 ; mlev = 0 ;
        meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
@@ -2872,6 +2882,11 @@ STATUS("3dAllineate coming up next") ;
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+64);
        else                 allopt = (char *)calloc(64,1) ;
        strcat(allopt," -onepass -conv 0.2") ;
+     }
+     if( do_allin && allmeth != NULL ){   /* 09 Jan 2020 */
+       if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+128);
+       else                 allopt = (char *)calloc(128,1) ;
+       strcat(allopt," ") ; strcat(allopt,allmeth) ;
      }
 
      DSET_unload(sstrue) ;                /* de-allocate orig source dataset */
