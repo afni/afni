@@ -38,8 +38,51 @@ target_include_directories(
 target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
 add_afni_target_properties(rio)
 
-# ##### Add libraries outside of corelibs
+# ##### Add models
+foreach(
+  target
+  model_beta
+  model_constant
+  model_conv_PRF
+  model_conv_PRF_6
+  model_conv_PRF_DOG
+  model_conv_cosine4
+  model_conv_diffgamma
+  model_convgamma
+  model_convgamma2a
+  model_demri_3
+  model_diffexp
+  model_diffusion
+  model_exp
+  model_expMEMRI
+  model_expMEMRI3
+  model_expr2
+  model_gammavar
+  model_linear
+  model_linplusort
+  model_michaelis_menton
+  model_null
+  model_quadratic
+  model_sinewave_ap
+  model_sinewave_apf
+  model_squarewave_ap
+  model_squarewave_apf
+  model_trnglwave_ap
+  model_trnglwave_apf
+  model_zero
+  )
+  add_library(${target} ${target}.c)
+  target_link_libraries(
+    ${target}
+    PRIVATE
+            AFNI::mri
+            NIFTI::nifti2
+            NIFTI::nifticdf
+  )
+  add_afni_target_properties(${target})
+  endforeach()
 
+# ##### Add libraries and programs outside of corelibs
 if(NOT AFNI_BUILD_CORELIBS_ONLY)
   add_subdirectory(crorden)
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
