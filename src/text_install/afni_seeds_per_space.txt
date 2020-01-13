@@ -1,0 +1,12 @@
+# List of seed locations for APQC (and possibly other applications).
+# Coordinate locations are in DICOM order, what AFNI calls 'RAI':
+#          x<0 --> R,   y<0 --> A,   z<0 --> I,  
+#          x>0 --> L,   y>0 --> P,   z>0 --> S.
+# --------------------------------------------------------------------------------
+# ver  = 1.0  ;  date = Jan 13, 2020
+# --------------------------------------------------------------------------------
+#    x       y      z       space                roi_label                netw
+# --------------------------------------------------------------------------------
+     5      49     40       MNI                  lh-PCC                   DMN
+    -4      91     -3       MNI                  rh-vis-cort              Vis
+    64      12      2       MNI                  rh-aud-cort              Aud
