@@ -352,7 +352,8 @@ prog_list: prog_list_bin prog_list_scripts
 
 list_lists:
 	echo list_afni_progs list_suma_progs list_libraries list_headers \
-	     list_models list_plugins list_scripts list_py_scripts
+	     list_models list_plugins list_scripts list_py_scripts       \
+	     list_r_scripts list_scripts_for_r
 
 list_afni_progs:
 	echo $(PROGRAMS) | tr ' ' '\n' | LC_COLLATE=C sort
@@ -381,6 +382,13 @@ list_scripts:
 list_py_scripts:
 	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
+list_r_scripts:
+	echo "`\ls $(R_DIR) | \grep -v CMakeLists.txt`"         \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_scripts_for_r:
+	echo "`\ls $(R_TCSH_DIR) | \grep -v CMakeLists.txt`"         \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 # Create .gitignore under src/
 gitignore: prog_list
