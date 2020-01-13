@@ -23,23 +23,6 @@ if (USE_F2C AND NOT F2C_EXECUTABLE)
   message(FATAL_ERROR "f2c should be found: ${F2C_EXECUTABLE}")
 endif()
 
-# 3dinfo should be in the binaries cmake file but provides a test of linking in corelibs
-# configuration and so is placed here instead
-add_executable(3dinfo 3dinfo.c)
-target_link_libraries(3dinfo AFNI::mri)
-
-if(ADD_RSTATS)
-  # ##### Add rio
-  set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
-  add_library(rio R_io.c)
-  target_include_directories(
-    rio
-    PRIVATE ${LIBR_INCLUDE_DIRS}
-  )
-  target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
-endif()
-
-
 # ##### Add models
 foreach(
   target
@@ -95,30 +78,41 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   add_subdirectory(avovk)
 endif()
 
-# ##### Add many other binaries
+# Add majority of binaries
 if(BUILD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# ##### Add script
+# Add scripts (includes shell, python, and R scripts)
 if(NOT (DO_NOT_INSTALL_SCRIPTS))
   add_subdirectory(scripts_install)
 endif()
 
-# ##### Add targets with a dependency on X
+# Add targets with a dependency on X
 if(BUILD_X_DEPENDENT_GUI_PROGS)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
 
-# ##### Add suma
+# Add suma
 if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
   add_subdirectory(SUMA)
 endif()
 
-# ##### Add_plugin targets
+# Add_plugin targets
 if(BUILD_PLUGINS)
   include(CMakeLists_plugins.txt)
+endif()
+
+if(ADD_RSTATS)
+  # Add rio
+  set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
+  add_library(rio R_io.c)
+  target_include_directories(
+    rio
+    PRIVATE ${LIBR_INCLUDE_DIRS}
+  )
+  target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
 endif()
 
 # ##### Create list of programs built
