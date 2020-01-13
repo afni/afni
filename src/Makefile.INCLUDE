@@ -350,11 +350,36 @@ prog_list: prog_list_bin prog_list_scripts
                 | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
 		>> prog_list.txt
 
-echo_plugs_n_models:
-	echo $(PMLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort
+list_lists:
+	echo list_afni_progs list_suma_progs list_libraries list_headers \
+	     list_models list_plugins list_scripts list_py_scripts
 
-plugin_list:
-	echo $(PMLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort > plugin_list.txt
+list_afni_progs:
+	echo $(PROGRAMS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_suma_progs:
+	echo $(SUMA_PROGS) $(SUMA_GTS_PROGS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_libraries:
+	echo $(LIBRARY_LIST) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_headers:
+	echo $(LIBHEADERS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_models:
+	echo $(MODELLIST) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_plugins:
+	echo $(PLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort
+
+# $(DISCO_SCRIPTS) is a mix, and should be partitioned
+list_scripts:
+	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`    \
+             $(DISCO_SCRIPTS)"                                  \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_py_scripts:
+	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 
 # Create .gitignore under src/
@@ -393,7 +418,10 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 programs_exe:$(PROGRAMS_EXE)
 
-libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) $(EXLIBS)
+# keep s list of compiled libraries
+LIBRARY_LIST = $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) $(EXLIBS)
+
+libraries: $(LIBRARY_LIST)
 
 ### rules for individual programs
 
@@ -2694,7 +2722,7 @@ SO = $(PLUGIN_SUFFIX)
 # expected shared objects for them (different from libraries).
 
 # list of all plugin and model targets
-PMLIST_ALL = $(PLIST_BASE) $(PLIST_CONTRIB) $(MODELLIST)
+PLIST_ALL = $(PLIST_BASE) $(PLIST_CONTRIB)
 
 # make lists and dependencies based on them
 PLIST_BASE =                                                           \
