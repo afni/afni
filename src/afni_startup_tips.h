@@ -1456,6 +1456,10 @@ static char *gby[] = {
      "Crippled but free, I was blind all the time I was learning to see"                                ,
 
      /* Multi-line quotes */
+
+     "\n  One clear result from FMRI resting state connectivity:\n"
+     " Some people have their brains together, and some people do not"   ,
+
      "\n  A journey of a thousand miles begins with a single stride,\n"
      "  and then continues on and on and on and on and on,\n"
      "  with a million more plodding steps to trudge through endlessly"  ,
