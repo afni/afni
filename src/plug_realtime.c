@@ -1,4 +1,4 @@
- /*****************************************************************************
+/*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
@@ -81,8 +81,12 @@
 /** 15 Mar 2012: added AR_Mask_Dset, for per-run mask control        [rickr] **/
 /**  2 Jan 2020: added All_Data_light method                         [JGC]   **/
 /** 13 Jan 2020: merged reorder of ROI average operation             [rickr] **/
+/** 14 Jan 2020: apply regtime to ext reg dset; fix pre-merge align  [rickr]
+               * dx,y,z were used for multiple things, corrupting the
+                 channel merge values
+                                                                             **/
 
-#define RT_VERSION_STR "13 Jan 2020: Javier and merge"
+#define RT_VERSION_STR "14 Jan 2020: regtime, reg_chan"
 
 
 /**************************************************************************/
@@ -1186,6 +1190,7 @@ char * RT_main( PLUGIN_interface * plint )
                       "RT_opts: choose Reg Base 'Extern Dset'\n"
                       "**************************************" ;
             g_reg_base_dset = THD_copy_one_sub(g_reg_base_dset, regtime);
+            regtime = 0;
             if( ! g_reg_base_dset ) {
                sprintf(buf, /* rely on being static */
                 "*********************************************\n"
@@ -1560,11 +1565,14 @@ Boolean RT_worker( XtPointer elvis )
          nerr++ ; iochan_sleep(1) ;
          return (nerr > 9) ? True : False; /* 12 Oct 2000: if a lot of errors */
       }
+
       nerr = 0 ;                           /* reset error count */
       if( jj == 0 ) return False ;         /* try later if no connection now */
       rtinp = new_RT_input(NULL) ;         /* try to make a new input struct */
       IOCHAN_CLOSENOW( ioc_control ) ;     /* not needed any more */
       if( rtinp == NULL ) return False ;   /* try later (?) */
+
+      /* rcr - here : add details     if (verbose > 1) */
    }
 
    /**---------------------------------------------------------------**/
@@ -2242,13 +2250,13 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
        }
        if( bset == NULL ){
          bset = THD_open_dataset(dname) ;
-        
        }
+
+       /* could apply later THD_copy_one_sub(g_reg_base_dset, regtime) here */
        if( bset != NULL ){
          INFO_message("env.var. sets registration base: %s=%s",RBENV,dname) ;
          g_reg_base_dset = bset ;
          g_reg_base_mode = RT_RBASE_MODE_EXTERN ;
-         regtime         = 0 ;
        } else {
          WARNING_message("env.var. fails to find dataset: %s=%s",RBENV,dname) ;
        }
@@ -2277,8 +2285,18 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->chan_list      = NULL;
 
    /* if dset to copy, dupe one vol                  04 Sep 2009 [rickr] */
-   if(g_reg_base_dset) rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset,0);
-   else                rtin->reg_base_dset=NULL;
+   if(g_reg_base_dset) {
+      /* be sure regtime makes sense */
+      if( regtime < 0 || regtime >= DSET_NVALS(g_reg_base_dset) ) {
+         fprintf(stderr,"** bad regtime %d for g_reg_base_dset\n", regtime);
+         regtime = 0;
+      }
+      rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset, regtime);
+      regtime = 0;
+      rtin->reg_base_index = regtime;
+   } else
+      rtin->reg_base_dset=NULL;
+
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
@@ -3302,6 +3320,8 @@ static int RT_mp_comm_init_vars( RT_input * rtin )
     ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;  /* 09 Oct 2000 */
     if( ept == NULL ) {
         rtin->mp_tcp_use = -1;
+        if( verbose > 1 )
+           fprintf(stderr,"RTM: no MP_HOST_PORT, shutting down mp_tcp_use\n");
         return 0;
     }
 
@@ -5024,6 +5044,8 @@ void RT_process_image( RT_input * rtin )
       /* rcr OC - check for pre-reg merge (after last channel is acquired) */
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
+        if( verbose > 1 )
+           fprintf(stderr,"++ about to pre-reg merge\n");
         RT_merge( rtin, cc, -1);
       }
 
@@ -5052,7 +5074,7 @@ void RT_process_image( RT_input * rtin )
 
          for( tt = rtin->mrg_nvol; tt < ntt && tt < rtin->reg_nvol; tt++ ) {
             if( verbose > 1 )
-               fprintf(stderr,"++ about to merge time index %d\n", tt);
+               fprintf(stderr,"++ about to post-reg merge time index %d\n", tt);
             RT_merge( rtin, cc, tt);
          }
       }
@@ -6928,10 +6950,16 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    */
 
    if( RT_will_register_merged_dset(rtin) ) {
-      if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
+      if(verbose && !tt)   /* chat at time point 0 */
+         fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
    }
-   else source = rtin->dset[g_reg_src_chan] ; /* 0 -> g_reg_src_chan */
+   else {
+      if(verbose && !tt) /* chat at time point 0 */
+         fprintf(stderr,"RT: use chan[%d] dset as reg source\n",
+                 g_reg_src_chan);
+      source = rtin->dset[g_reg_src_chan] ; /* 0 -> g_reg_src_chan */
+   }
 
    if( source == NULL ) return ;
 
@@ -6969,12 +6997,20 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN ) {
       /* align mrg_dset and all channels as followers  27 May 2010 [rickr] */
       /* input imarr should have source image and then each channel        */
+      if(verbose>1 && !tt) { /* chat at time point 0 */
+         fprintf(stderr,"RTCM: applying align params to %d channels\n",
+                 rtin->num_chan);
+         fprintf(stderr,"RTCM init motion [%d]: %f %f %f %f %f %f\n",
+                 tt, roll, pitch, yaw, dx, dy, dz);
+      }
       INIT_IMARR(imarr);
-      dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   /* store for channels */
+      /* is this needed (aaaa5555)?  if so, needs alt var names
+         dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   * store for channels */
 
       for( cc = 0; cc < rtin->num_chan; cc++ ) {
          tim = DSET_BRICK(rtin->dset[cc],tt) ;
-         tim->dx = dx ; tim->dy = dy ; tim->dz = dz ;  /* from qim */
+         /* is this needed (aaaa5555)?
+            tim->dx = dx ; tim->dy = dy ; tim->dz = dz ;  * from qim */
          ADDTO_IMARR(imarr, tim);
       }
 
@@ -6997,21 +7033,21 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    yaw   *= R2DFAC ; if( rtin->hax3 < 0 ) yaw   = -yaw   ;
 
    switch( source->daxes->xxorient ){
-      case ORI_R2L_TYPE: ddy =  dx; break ; case ORI_L2R_TYPE: ddy = -dx; break ;
-      case ORI_P2A_TYPE: ddz = -dx; break ; case ORI_A2P_TYPE: ddz =  dx; break ;
-      case ORI_I2S_TYPE: ddx =  dx; break ; case ORI_S2I_TYPE: ddx = -dx; break ;
+      case ORI_R2L_TYPE: ddy =  dx; break; case ORI_L2R_TYPE: ddy = -dx; break;
+      case ORI_P2A_TYPE: ddz = -dx; break; case ORI_A2P_TYPE: ddz =  dx; break;
+      case ORI_I2S_TYPE: ddx =  dx; break; case ORI_S2I_TYPE: ddx = -dx; break;
    }
 
    switch( source->daxes->yyorient ){
-      case ORI_R2L_TYPE: ddy =  dy; break ; case ORI_L2R_TYPE: ddy = -dy; break ;
-      case ORI_P2A_TYPE: ddz = -dy; break ; case ORI_A2P_TYPE: ddz =  dy; break ;
-      case ORI_I2S_TYPE: ddx =  dy; break ; case ORI_S2I_TYPE: ddx = -dy; break ;
+      case ORI_R2L_TYPE: ddy =  dy; break; case ORI_L2R_TYPE: ddy = -dy; break;
+      case ORI_P2A_TYPE: ddz = -dy; break; case ORI_A2P_TYPE: ddz =  dy; break;
+      case ORI_I2S_TYPE: ddx =  dy; break; case ORI_S2I_TYPE: ddx = -dy; break;
    }
 
    switch( source->daxes->zzorient ){
-      case ORI_R2L_TYPE: ddy =  dz; break ; case ORI_L2R_TYPE: ddy = -dz; break ;
-      case ORI_P2A_TYPE: ddz = -dz; break ; case ORI_A2P_TYPE: ddz =  dz; break ;
-      case ORI_I2S_TYPE: ddx =  dz; break ; case ORI_S2I_TYPE: ddx = -dz; break ;
+      case ORI_R2L_TYPE: ddy =  dz; break; case ORI_L2R_TYPE: ddy = -dz; break;
+      case ORI_P2A_TYPE: ddz = -dz; break; case ORI_A2P_TYPE: ddz =  dz; break;
+      case ORI_I2S_TYPE: ddx =  dz; break; case ORI_S2I_TYPE: ddx = -dz; break;
    }
 
    nest = rtin->reg_nest ;
