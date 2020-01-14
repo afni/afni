@@ -100,7 +100,7 @@ RUN \
         autopep8 \
         black \
         codecov \
-        datalad==0.11.8 \
+        datalad \
         nibabel \
         numpy \
         pandas \

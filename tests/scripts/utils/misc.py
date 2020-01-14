@@ -6,7 +6,7 @@ import shutil
 import logging
 import contextlib
 import os
-import datalad
+import datalad.api as datalad
 import pytest
 
 
@@ -133,14 +133,14 @@ def process_path_obj(path_obj, test_data_dir):
         Path or iterable of Paths: path_obj appropriately converted to pathlib Paths
         objects with files in test_data_dir data fetched as required.
     """
-
+    dl_dset = datalad.Dataset(str(test_data_dir))
     if type(path_obj) == str:
         path_obj = Path(path_obj)
 
     if isinstance(path_obj, Path):
         check_file_exists(path_obj, test_data_dir)
         file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
-        datalad.api.get(dataset=str(test_data_dir), path=file_fetch_list)
+        dl_dset.get(path=file_fetch_list)
         return test_data_dir / path_obj
     elif iter(path_obj):
         file_fetch_list = []
@@ -151,7 +151,7 @@ def process_path_obj(path_obj, test_data_dir):
                 input_file, test_data_dir
             )
 
-        datalad.api.get(dataset=str(test_data_dir), path=file_fetch_list)
+        dl_dset.get(path=file_fetch_list)
 
         return [test_data_dir / p for p in path_obj]
     else:
