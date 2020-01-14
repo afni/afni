@@ -566,7 +566,7 @@ generating images automatically. This can make it easier to view
 individual subject results during processing, as well as to make
 matrices of images across subjects for group analysis and/or
 presentations.  Examples using AFNI Bootcamp datasets (for
-@chauffeur_afni and imcat so far) are now available here:
+@chauffeur_afni and 2dcat so far) are now available here:
 https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/auto_image/main_toc.html
 
 01) Ubuntu 18.04 installation instructions.

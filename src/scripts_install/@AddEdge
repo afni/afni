@@ -655,11 +655,11 @@ while ($cnt < $#olist)
             set flr = '_all_norand'
          endif
          #auto_stitch
-         imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
+         2dcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
                -zero_wrap \
                -prefix at${uname}${dd}axi${flr} \
                at${uname}*${dd}axi*.jpg
-         imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
+         2dcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
                -zero_wrap  \
                -prefix at${uname}${dd}sag${flr} \
                at${uname}*${dd}sag*.jpg

@@ -154,7 +154,7 @@
 //       The maximum resolution is set by the GL_MAX_VIEWPORT_DIMS of your
 //       graphics card. I have 4096 pixels.
 //       If you exceed this number, SUMA will make adjustments automatically.
-//       Assemble images with program imcat.
+//       Assemble images with program 2dcat.
 //     default:   SUMA_SnapshotOverSampling = 1
    SUMA_SnapshotOverSampling = 1
 // 030-SUMA_NoDuplicatesInRecorder:

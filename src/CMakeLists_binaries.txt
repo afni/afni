@@ -25,6 +25,7 @@ foreach(
   1dsvd
   1dtranspose
   24swap
+  2dcat
   2dImReg
   2perm
   2swap
@@ -198,7 +199,6 @@ foreach(
   imand
   imaver
   imcalc
-  imcat
   imcutup
   imdump
   immask

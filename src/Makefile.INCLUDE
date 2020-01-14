@@ -494,8 +494,11 @@ impdif:impdif.c
 imcutup:imcutup.c
 	$(CC) -o imcutup imcutup.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
-imcat:imcat.c
-	$(CC) -o imcat imcat.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+2dcat:2dcat.c
+	$(CC) -o 2dcat 2dcat.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+imcat:2dcat
+	$(CP)  2dcat imcat
 
 images_equal:images_equal.c
 	$(CC) -o images_equal images_equal.c $(INFLAGS) $(LFLAGS) $(LLIBS)
