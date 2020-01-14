@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 13, Jan , 2020 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+   "New function to read in seed list text file.",
+   "Returns list of seed objs for APQC.\n"
+},
+
+{ 13, Jan , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "New pieces of QC:  first, seedbased corr maps for non-task data.",
+   "Second, censor-based warnings (general and per-stim).\n"
+},
+
+{ 13, Jan , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Couple new options.",
+   "Can specify colorbar and center coords now.\n"
+},
+
 { 27, Dec , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_OPT,
    "New option(s) to not just *check* a dset for FS-ability, but to correct it.",
    "The '-fix_all' and accompanying options control this.  Bonne idee, DRG!\n"

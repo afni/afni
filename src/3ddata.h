@@ -6130,4 +6130,9 @@ typedef struct {
 extern char * THD_clustsim_atr_mask_dset_idcode( THD_3dim_dataset *dset ) ;
 extern float_triple THD_clustsim_atr_fwhmxyz( THD_3dim_dataset *dset ) ;
 
+/*------ Moved here from afni.h [13 Jan 2020] ------*/
+extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
+extern int  AFNI_needs_dset_ijk(void) ;
+extern int  AFNI_needs_dset_tin(void) ;
+
 #endif /* _MCW_3DDATASET_ */
