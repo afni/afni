@@ -4310,6 +4310,128 @@ def test_tent_vecs(val, freq, length):
 
     return correlation_p(a,b)
 
+
+
+
+# ----------------------------------------------------------------------
+# [PT: Jan 13, 2020] Pieces for dealing with files of AFNI seed points
+
+class afni_seeds:
+
+    def __init__(self, file_line=[]):
+        '''Make an object for seed-based correlation.
+
+        Use the optional 'file_line' input to read a (non-split) line
+        from a file easily.
+
+        '''
+
+        self.xyz        = []
+        self.space      = ''
+        self.roi_label  = ''
+        self.netw       = None
+
+        # these for future/other use;  cannot be changed at the moment
+        self.rad    = None
+        self.shape  = 'sphere'
+
+        # use this to read a (non-split) line from a file easily
+        if file_line :
+            self.set_all_info_from_file(file_line)
+
+    def set_space(self, x):
+        self.space = x
+
+    def set_xyz(self, xlist):
+        '''Input a list of strings or floats to be a list of float coords.
+        '''
+        if len(xlist) != 3:
+            print("** ERROR: need 3 items input, not {}:\n"
+                  "      '{}'".format(len(xlist), xlist))
+            sys.exit(3)
+        self.xyz = [float(x) for x in xlist]
+
+    def set_roi_label(self, x):
+        self.roi_label = x
+
+    def set_netw(self, x):
+        self.netw = x
+
+    def set_rad(self, x):
+        self.rad = float(x)
+
+    def set_shape(self, x):
+        self.shape = x
+
+    def set_all_info_from_file(self, line):
+        '''Read in an unsplit line from a file, and save all the information
+        appropriately.  Column order matters!
+
+        '''
+        y    = line.split()
+        Ny   = len(y)
+        if Ny < 5 :
+            print("** ERROR: too few columns ({}) in this line:\n"
+                  "   {}\n"
+                  "   e.g., did you forget something?".format(Ny, line))
+            sys.exit(2)
+
+        elif Ny > 6 :
+            print("** ERROR: too many columns ({}) in this line:\n"
+                  "   {}\n"
+                  "   e.g., did you put spaces in names?".format(Ny, line))
+            sys.exit(2)
+
+        xyz  = [ float(y[j]) for j in range(3) ]
+
+        self.set_xyz(xyz)
+        self.set_space(y[3])
+        self.set_roi_label(y[4])
+
+        if len(y) == 6 :
+            self.set_netw(y[5])
+
+# [PT: Jan 13, 2020] for APQC (and maybe other purposes later), read
+# in a simple text file that contains both numbers and strings.
+# See text file:  afni_seeds_per_space.txt
+def read_afni_seed_file(fname, only_from_space=None):
+    '''Read in a file of columns of info, and return list of seed objs.
+
+    Input
+    -----
+    fname           : (req) text file of seed point information.
+    only_from_space : (opt) can choose to only attach seeds from a given space
+                      (which is entered here); otherwise, all seeds are output.
+    
+    Output: list of seed objects.
+
+    '''
+
+    # expected/allowed cols ('netw' is opt)
+    cols  = ['x', 'y', 'z', 'space', 'roi_label', 'netw']
+    Ncols = len(cols)
+
+    # input data, ignore blank lines
+    x   = read_text_file( fname, noblank=1 )
+    Nx  = len(x)
+
+    dat = []
+
+    for i in range(Nx):
+        row = x[i]
+        if row[0] != '#': 
+            seed_obj = afni_seeds(file_line=row)
+            if not(only_from_space) :
+                dat.append( seed_obj )
+            else:
+                if seed_obj.space == only_from_space :
+                    dat.append( seed_obj )
+
+    return dat
+
+# ----------------------------------------------------------------------
+
+
 _g_main_help = """
 afni_util.py: not really intended as a main program
 

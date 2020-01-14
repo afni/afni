@@ -13720,6 +13720,7 @@ void AFNI_register_nD_func_init( int nd , generic_func *fin )
    return ;
 }
 
+#if 0
 /*---------- 18 May 2000: save/get dataset index for function calls -------*/
 
 static int dset_ijk=-1 , dset_tin=-1 ;
@@ -13731,6 +13732,7 @@ void AFNI_store_dset_index( int ijk , int tin )
 
 int AFNI_needs_dset_ijk(void){ return dset_ijk ; }
 int AFNI_needs_dset_tin(void){ return dset_tin ; }
+#endif
 
 /*-----------------------------------------------------------------------*/
 /*!  Add a timeseries to the global library.

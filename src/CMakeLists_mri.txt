@@ -340,6 +340,7 @@ add_library(
   thd_shear3d.c
   thd_shift2.c
   thd_statpval.c
+  thd_store_index.c
   thd_strfunc.c
   thd_svdblur.c
   thd_table.c
