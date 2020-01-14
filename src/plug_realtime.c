@@ -1,4 +1,4 @@
-/*****************************************************************************
+ /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
@@ -79,6 +79,10 @@
 /** 02 Jun 2010: added ability to register merged data, and to align
                  channels via the same merge registration parameters [rickr] **/
 /** 15 Mar 2012: added AR_Mask_Dset, for per-run mask control        [rickr] **/
+/**  2 Jan 2020: added All_Data_light method                         [JGC]   **/
+/** 13 Jan 2020: merged reorder of ROI average operation             [rickr] **/
+
+#define RT_VERSION_STR "13 Jan 2020: Javier and merge"
 
 
 /**************************************************************************/
@@ -921,6 +925,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
    PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0),TRUE);
 
+   /* see AFNI_REALTIME_Mask_Dset for setting Mask dset */
+
    /* try to set the mask vals option from the env */
    ept = getenv("AFNI_REALTIME_Mask_Vals")  ;  /* 15 Jul 2008 [rickr] */
    if( ept != NULL ){
@@ -930,7 +936,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /* but if no HOST_PORT, it must be cleared */
    ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;
-   if( ept == NULL ) g_mask_val_type = 0;
+   if( ept == NULL && g_mask_val_type ) {
+      fprintf(stderr,"** RTM: clearing Mask_Vals setting from %s\n"
+                     "        as AFNI_REALTIME_MP_HOST_PORT is unset\n",
+              (g_mask_val_type >= 0 && g_mask_val_type <= N_RT_MASK_METHODS) ?
+              RT_mask_strings_ENV[g_mask_val_type] : "INVALID");
+      g_mask_val_type = 0;
+   }
 
    /* mask dataset option line   10 Nov 2006 [rickr] */
    PLUTO_add_option( plint , "" , "Masking" , FALSE ) ;
@@ -1928,10 +1940,15 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    int ii , cc ;
    Three_D_View *im3d ;
 
+   if( verbose > 0 ) fprintf(stderr,"RT: version %s\n", RT_VERSION_STR);
+
    if( ioc_data == NULL ){ /*** THE OLD WAY: get info from control channel ***/
 
      int ncon ;
      char *con , *ptr ;
+
+     if( verbose > 0 )
+        fprintf(stderr,"RT: init RT input via control channel\n");
 
      /** wait until data can be read, or something terrible happens **/
 
@@ -2039,6 +2056,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    } else {  /*** THE NEW WAY: directly connect to ioc_data channel [10 DEC 2002] ***/
 
      /** make new structure **/
+
+     if( verbose > 0 )
+        fprintf(stderr,"RT: init RT input via data channel\n");
 
      rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
      if( rtin == NULL ){
@@ -7929,6 +7949,13 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 
            DSET_load(rtin->t2star_ref_dset);
            t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
+
+           /* warn on bad (probably unset) TEs */
+           for (cc=0 ; cc < ndsets ; cc++)
+              if( rtin->TE[cc] <= 0.0 ) {
+                 fprintf(stderr,"** RT OC: bad TE[%d] = %f\n",
+                         cc, rtin->TE[cc]);
+              }
 
            for (ii=0 ; ii < nvox ; ii++)
            {
