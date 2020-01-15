@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 14, Jan , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Change text of animal_outs.txt.",
+   "Add in a couple new dsets to be listed.\n"
+},
+
 { 13, Jan , 2020 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
    "New function to read in seed list text file.",
    "Returns list of seed objs for APQC.\n"

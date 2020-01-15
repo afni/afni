@@ -6232,10 +6232,11 @@ def db_cmd_tproject(proc, block, insets, maskstr='', censtr='', cmode='ZERO',
     else:     dstr = ''
 
     cmd = '%s# -- use 3dTproject to project out regression matrix --\n' \
+          '%s#    (make errts like 3dDeconvolve, but more quickly)\n'   \
           '%s3dTproject -polort 0 -input %s \\\n'                       \
           '%s%s%s'                                                      \
           '%s           -ort %s -prefix %s\n\n'                         \
-          % (istr, istr, insets, mstr, cstr, dstr, istr, xmat, prefix)
+          % (istr, istr, istr, insets, mstr, cstr, dstr, istr, xmat, prefix)
 
     proc.errts_pre = prefix
 
