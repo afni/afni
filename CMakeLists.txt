@@ -50,6 +50,14 @@ endif()
 set(AFNI_INSTALL_ATLAS_DIR "${INSTALL_PREFIX}/atlases")
 set(AFNI_INSTALL_PICS_DIR "${INSTALL_PREFIX}/funstuff")
 
+# Get mapping between each target name and it's installation component
+set(COMPONENTS_MAPFILE ${CMAKE_SOURCE_DIR}/packaging/installation_components.txt )
+file(READ 
+  /opt/afni/packaging/installation_components.txt
+  CMPNT_MAPPING)
+list(TRANSFORM CMPNT_MAPPING REPLACE "\n" ";")
+
+
 # ##### Dependencies
 include(afni_project_dependencies)
 
