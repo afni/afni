@@ -2507,7 +2507,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                         SUMA_S_Notev(  "Resampling factor of %d\n"
                                     "If using this feature, the\n"
                                     " sequence of %d images is saved\n"
-                                    " temporarily to disk and 'imcat'\n"
+                                    " temporarily to disk and '2dcat'\n"
                                     " is then used to put the images together.\n"
                                     "(Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
                                     " and max dims needed of %d.)\n",
@@ -2629,7 +2629,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 0);
                /* use explicit tcsh to avoid sh syntax  25 Apr 2017 [rickr] */
                system(  "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
-                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
+                        "2dcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
                         "rm -f HighRes_Photo___tmp*");
             }
          }

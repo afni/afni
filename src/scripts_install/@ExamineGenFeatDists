@@ -86,7 +86,7 @@ DOAC:
       if ( $iend >= $#alljpg) set iend = $#alljpg
       echo "Images ${istart}-${iend}"
       if ($parts) set pp = ".`printf %02d $part`"
-      imcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
+      2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                `ParseName -out RelName $odir/h.ALL.${suff}${pp}.jpg`)
@@ -172,7 +172,7 @@ DOEC:
       if ( $iend >= $#alljpg) set iend = $#alljpg
       echo "Images ${istart}-${iend}"
       if ($parts) set pp = ".`printf %02d $part`"
-      imcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
+      2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL_COND.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                   `ParseName -out RelName $odir/h.ALL_COND.${suff}${pp}.jpg`)

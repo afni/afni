@@ -1309,7 +1309,7 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
    }
    sprintf(sbuf, "h.%s", Opt->uid[0] != '\0' ? Opt->uid:"test");
    fprintf(scrout,"\n"
-            "imcat -crop 0 0 100 0 -nx 4 -prefix %s.ALL.jpg $alljpg\n",
+            "2dcat -crop 0 0 100 0 -nx 4 -prefix %s.ALL.jpg $alljpg\n",
             sbuf);
    if (scrout) fclose(scrout); scrout=NULL;
    SUMA_RETURN(YUP);
