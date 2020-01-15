@@ -1229,6 +1229,7 @@ static char *gby[] = {
 
      /* Longer quotes */
 
+     "Where did the time go? I thought growing old would take longer"                 ,
      "I'll say this:  Often bumpy roads lead to beautiful places"                     ,
      "Never pay attention to criticism from someone you wouldn't take advice from"    ,
      "80% of our problems would go away if we'd just sit down and wait"               ,

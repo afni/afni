@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jan, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add some make lists ; see 'make list_lists'",
+   NULL
+ } ,
+
+ {  2, Jan, 2020, RCR, "plug_realtime", MICRO, TYPE_GENERAL,
+   "updates corresponding with Javier's new All_Data_light method",
+   NULL
+ } ,
+
  { 31, Dec, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
    "Do not require out_limit.  Currently will still show in driver.",
    "Done for P Taylor."
