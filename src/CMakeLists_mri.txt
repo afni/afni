@@ -507,7 +507,7 @@ target_sources(
   rickr/r_misc.c
   rickr/r_new_resam_dset.c
 )
-
+set_target_properties(mri PROPERTIES PUBLIC_HEADER $<TARGET_OBJECTS:libheaders>)
 target_link_libraries(
   mri
   PUBLIC  m 
