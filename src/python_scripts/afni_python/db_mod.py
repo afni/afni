@@ -6299,35 +6299,45 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
 
     # Do not handle surface until we have both hemispheres at once.
 
-    gcor_file = 'out.gcor.1D'
-    gu_mean   = 'gmean.errts.unit.1D'
-    uset      = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    gcor_file  = 'out.gcor.1D'
+    gu_mean    = 'mean.errts.unit.1D'
+    uset       = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    errts_dset = '%s%s' % (errts_pre, proc.view)
 
     cmd = '# ---------------------------------------------------\n'     \
           '# compute and store GCOR (global correlation average)\n'     \
           '# (sum of squares of global mean of unit errts)\n'           \
-          '3dTnorm -norm2 -prefix %s %s%s\n'                            \
+          '3dTnorm -norm2 -prefix %s %s\n'                              \
           '3dmaskave -quiet -mask %s %s \\\n'                           \
           '          > %s\n'                                            \
-          % (uset.prefix, errts_pre, proc.view, proc.mask_epi.pv(),
+          % (uset.prefix, errts_dset, proc.mask_epi.pv(),
              uset.pv(), gu_mean)
 
     cmd += "3dTstat -sos -prefix - %s\\' > %s\n"                        \
            'echo "-- GCOR = `cat %s`"\n\n'                              \
             % (gu_mean, gcor_file, gcor_file)
 
-    gcor_dset = 'corr_brain'
+    corset = 'corr_brain'
+    gmean  = 'mean.errts.1D'
     cmd += '# ---------------------------------------------------\n'    \
            "# compute correlation volume\n"                             \
-           "# (per voxel: average correlation across masked brain)\n"   \
-           "# (now just dot product with average unit time series)\n"   \
-           "3dTcorr1D -dot -prefix %s %s %s\n\n"                        \
-           % (gcor_dset, uset.pv(), gu_mean)
+           "# (per voxel: correlation with masked brain average)\n"     \
+           "3dmaskave -quiet -mask %s %s \\\n"                          \
+           "          > %s\n"                                           \
+           "3dTcorr1D -prefix %s %s%s %s\n\n"                           \
+           % (proc.mask_epi.pv(), errts_dset, gmean,
+              corset, errts_pre, proc.view, gmean)
 
     # compute extra correlation volumes (assuming EPI grid ROIs followers):
+    #   - This WAS average correlation ('ave unit' dot 'unit errts'),
+    #     but that was basically scaled results for correlation with
+    #     average, so prefer the latter.
+    #
+    #   unit errts -> errts, remove -dot
+    #
     #   3dcalc -a ROI -b full_mask -expr 'a*b' -prefix ROI.FM
-    #   3dmaskave -quiet -mask ROI.FM rm.errts.unit+tlrc > mean.ROI.1D
-    #   3dTcorr1D -dot -prefix corr_ROI rm.errts.unit+tlrc mean.ROI.1D
+    #   3dmaskave -quiet -mask ROI.FM errts+tlrc > mean.ROI.1D
+    #   3dTcorr1D -prefix corr_ROI errts+tlrc mean.ROI.1D
     oname = '-regress_make_corr_vols'
     roilist, rv = block.opts.get_string_list(oname)
     if roilist:
@@ -6339,17 +6349,18 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
              return
 
           mpre = 'rm.fm.%s' % roi
-          meants = 'mean.unit.%s.1D' % roi
+          meants = 'mean.ROI.%s.1D' % roi
           cvol = 'corr_af_%s' % roi
 
           rstr += '# create correlation volume %s\n' % cvol
           rstr += "3dcalc -a %s -b %s -expr 'a*b' \\\n"         \
                   "       -prefix %s\n" \
                   % (mset.pv(), proc.mask_epi.pv(), mpre)
-          rstr += "3dmaskave -q -mask %s%s %s > %s\n"           \
-                  % (mpre, proc.view, uset.pv(), meants)
-          rstr += "3dTcorr1D -dot -prefix %s %s %s\n\n"         \
-                  % (cvol, uset.pv(), meants)
+          rstr += "3dmaskave -q -mask %s%s %s \\\n"             \
+                  "          > %s\n"                            \
+                  % (mpre, proc.view, errts_dset, meants)
+          rstr += "3dTcorr1D -prefix %s %s %s\n\n"              \
+                  % (cvol, errts_dset, meants)
 
        cmd += rstr
 

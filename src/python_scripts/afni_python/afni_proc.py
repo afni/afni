@@ -669,9 +669,11 @@ g_history = """
     7.03 Nov  1, 2019: create out.mask_at_corr.txt
     7.04 Nov 21, 2019: added more current FreeSurfer babble to help
     7.05 Nov 29, 2019: added option -volreg_opts_ewarp
+    7.06 Jan 15, 2020: corr_* dsets are now correlations with ROI averages,
+                       rather than average correlations across ROIs
 """
 
-g_version = "version 7.05, November 29, 2019"
+g_version = "version 7.06, January 15, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -706,6 +708,8 @@ Miscellaneous older changes:
    17 Aug 2016 : blur estimates change from FWHM to ACF
       - FWHM values are now zero, to discourage use
 
+   15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
+                 average correlations (maps are similar by have better scales)
 
 More detailed changes, starting May, 2018.
 

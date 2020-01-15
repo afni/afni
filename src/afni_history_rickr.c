@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Jan, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "corr_* dsets are now correlations with ROI averages",
+   "They were previously average correlations with each ROI voxel.  The new\n"
+   "maps look similar, but are probably more natural and have nicer scales.\n"
+   "Requested by P Taylor."
+ } ,
+
  { 13, Jan, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add some make lists ; see 'make list_lists'",
    NULL
