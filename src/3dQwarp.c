@@ -117,12 +117,12 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 #undef  WW
 #define WW(i,j,k) wf[(i)+(j)*nx+(k)*nxy]
 
-   xfade = (int)(0.05*qim->nx+3.0) ;                 /* number of points */
-   yfade = (int)(0.05*qim->ny+3.0) ;                 /* along each face */
-   zfade = (int)(0.05*qim->nz+3.0) ;                 /* to set to zero */
-   if( 5*xfade >= qim->nx ) xfade = (qim->nx-1)/5 ;
-   if( 5*yfade >= qim->ny ) yfade = (qim->ny-1)/5 ;
-   if( 5*zfade >= qim->nz ) zfade = (qim->nz-1)/5 ;
+   xfade = (int)(0.04*qim->nx+2.0) ;                 /* number of points */
+   yfade = (int)(0.04*qim->ny+2.0) ;                 /* along each face */
+   zfade = (int)(0.04*qim->nz+2.0) ;                 /* to set to zero */
+   if( 6*xfade >= qim->nx ) xfade = (qim->nx-1)/6 ;
+   if( 6*yfade >= qim->ny ) yfade = (qim->ny-1)/6 ;
+   if( 6*zfade >= qim->nz ) zfade = (qim->nz-1)/6 ;
    if( Hverb > 1 )
      ININFO_message("  xfade=%d yfade=%d zfade=%d",xfade,yfade,zfade);
    for( jj=0 ; jj < ny ; jj++ )
@@ -391,12 +391,8 @@ void Qhelp(void)
     "      '-lpc' for Local Pearson minimization (i.e., EPI-T1 registration)\n"
     "      '-lpa' for Local Pearson maximization (i.e., T1-FA registration)\n"
     "    However, the '+ZZ' modifier is not available for these cost functions,\n"
-    "    unlike in program 3dAllineate.\n"
-    "    These advanced cost options have not been tested very much.\n"
-    " ** If you use '-lpc' or '-lpa', then '-maxlev 0' is automatically set. \n"
-    "    If you want to go to more refined levels, you can set '-maxlev' \n"
-    "    AFTER '-lpc' on the command line. Using maxlev > 1 is has not been\n"
-    "    tested for EPI-T1 alignment.\n"
+    "    unlike in program 3dAllineate :(\n"
+    "    These advanced cost options will slow 3dQwarp down significantly.\n"
     " ** For aligning EPI to T1, the '-lpc' option can be used; my advice\n"
     "    would be to do something like the following:\n"
     "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
@@ -408,7 +404,7 @@ void Qhelp(void)
     "      3dQwarp -source SUBJ_anatSS+orig.HEAD   \\\n"
     "              -base   SUBJ_epiz_al+orig       \\\n"
     "              -prefix SUBJ_anatSSQ            \\\n"
-    "              -lpc -verb -iwarp -blur 0 3\n"
+    "              -lpc -maxlev 0 -verb -iwarp -blur 0 3\n"
     "      3dNwarpApply -nwarp  SUBJ_anatSSQ_WARPINV+orig  \\\n"
     "                   -source SUBJ_epiz_al+orig          \\\n"
     "                   -prefix SUBJ_epiz_alQ\n"
@@ -691,16 +687,18 @@ void Qhelp(void)
     " -allopt         command to be run by 3dQwarp. Normally, you won't need\n"
     "                 to do this.\n"
     "               * Note that the default cost functional in 3dAllineate is\n"
-    "                 the Hellinger metric ('-hel'); some people prefer '-lpa+ZZ',\n"
+    "                 the Hellinger metric ('-hel'); many people prefer '-lpa+ZZ',\n"
     "                 and so should use something like this:\n"
     "                     -allopt '-cost lpa+ZZ'\n"
     "                 to ensure 3dAllineate uses the desired cost functional.\n"
+    "              -> Note that if you use '-lpa' in 3dQwarp, then 3dAllineate\n"
+    "                 will automatically be supplied with '-cost lpa+ZZ'.\n"
     "               * If '-emask' is used in 3dQwarp, the same option will be\n"
     "                 passed to 3dAllineate automatically, so you don't have to\n"
     "                 do that yourself.\n"
     "             *** Do NOT attempt to use the (obsolescent) '-nwarp' option in\n"
     "                 3dAllineate from inside 3dQwarp -- bad things will probably\n"
-    "                 happen, and you won't EVER get any Christmas presents again!\n"
+    "                 happen, and you won't EVER get any birthday presents again!\n"
     "\n"
     " -resample    = This option simply resamples the source dataset to match the\n"
     "   *OR*         base dataset grid. You can use this if the two datasets\n"
@@ -753,16 +751,20 @@ void Qhelp(void)
     " -hel         = Hellinger metric\n"
     " -mi          = Mutual information\n"
     " -nmi         = Normalized mutual information\n"
-    " -lpc         = Local Pearson correlation (signed); by default, 'maxlev' will\n"
-    "                be set to 0 when using option (change that with '-maxlev ...').\n"
+    " -lpc         = Local Pearson correlation (signed).\n"
     " -lpa         = Local Pearson correlation (absolute value)\n"
-    "               * These options mirror those in 3dAllineate, and have not\n"
-    "                 been tested much. They may not be very useful.\n"
+    "               * These options mirror those in 3dAllineate.\n"
     "               * In particular, nonlinear warping of low resolution EPI\n"
     "                 data to T1 data is a difficult task, and can introduce\n"
     "                 more distortions to the result than it fixes.\n"
-    "                By default, 'maxlev' will be set to 0 when using option '-lpc'\n"
-    "                or '-lpa' (change that with '-maxlev ...' AFTER '-lp? option).\n"
+    "               * If you use one of these 5 options, and also use '-allineate' or\n"
+    "                 '-allinfast', then the corresponding option is passed to\n"
+    "                 3dAllineate: '-hel' => '-cost hel'\n"
+    "                              '-mi'  => '-cost mi'\n"
+    "                              '-nmi' => '-cost nmi'\n"
+    "                              '-lpc' => '-cost lpc+ZZ'\n"
+    "                              '-lpa' => '-cost lpa+ZZ'\n"
+    "                    '-pcl' or -pear' => '-cost ls'\n"
     "\n"
     " -noneg       = Replace negative values in either input volume with 0.\n"
     " -zclip        * If there ARE negative input values, and you do NOT use -noneg,\n"
@@ -805,6 +807,14 @@ void Qhelp(void)
     "                by the intensity of the (blurred) base image. This makes\n"
     "                white matter count more in T1-weighted volumes, for example.\n"
     "           -->>* [24 Mar 2014] This option is is now the default.\n"
+    "\n"
+    " -wtgaus G    = This option lets you define the amount of Gaussian smoothing\n"
+    "                applied to the base image when creating the weight volume.\n"
+    "                The default value of G is 4.5 (FWHM voxels). See the 'WEIGHT'\n"
+    "                section (far below) for details on how the automatic\n"
+    "                weight volume is calculated. Using '-wtgaus 0' means that\n"
+    "                no Gaussian blurring is applied in creating the weight.\n"
+    "               * [15 Jan 2020] This option is really just for fooling around.\n"
     "\n"
     " -noweight    = If you want a binary weight (the old default), use this option.\n"
     "                That is, each voxel in the base volume automask will be\n"
@@ -883,7 +893,7 @@ void Qhelp(void)
     " -inedge      = Enhance interior edges in the base and source volumes, to\n"
     "                make the cost functional give more weight to these edges.\n"
     "               * This option MIGHT produce slightly better alignments, but\n"
-    "                 its effect is small.\n"
+    "                 its effect is usually small.\n"
     "               * The output transformed source dataset will NOT have these\n"
     "                 enhanced edges; the enhancement is done internally on the\n"
     "                 volume image copies that are being matched.\n"
@@ -1555,6 +1565,33 @@ void Qhelp(void)
     "(warp), the 'machine' that calculates this value is a 'functional'. It also\n"
     "gets the word 'cost' attached as it is something the program is trying to\n"
     "reduce, and everyone wants to reduce the cost of what they are buying, right?\n"
+    "\n"
+    "\n"
+    "-------------------\n"
+    "WEIGHT construction  ~1~\n"
+    "-------------------\n"
+    "The cost functional is computed giving (potentially) different weights to\n"
+    "different voxels. The default weight 3D volume is constructed from the\n"
+    "base dataset as follows (i.e., this is what '-useweight' does):\n"
+    "  (0) Take absolute value of each voxel value.\n"
+    "  (1) Zero out voxels within 4%% of each edge\n"
+    "      (i.e., 10 voxels in a 256x256x256 dataset).\n"
+    "  (2) Define L by applying the '3dClipLevel -mfrac 0.5' algorithm\n"
+    "      and then multiplying the result by 3. Then, any values over this\n"
+    "      L value are reduced to L -- i.e., spikes are squashed.\n"
+    "  (3) A 3D median filter over a ball with radius 2.25 voxels is applied\n"
+    "      to further squash any weird stuff. (This radius is fixed.)\n"
+    "  (4) A Gaussian blur of FWHM '-wtgaus' is applied (default = 4.5 voxels).\n"
+    "  (5) Define L1 = 0.05 times the maximum of the result from (4).\n"
+    "      Define L2 = 0.33 times '3dClipLevel -mfrac 0.33' applied to (4).\n"
+    "      Define L  = max(L1,L2).\n"
+    "      Create a binary mask of all voxels from (4) that are >= L.\n"
+    "      Find the largest contiguous cluster in that mask, erode it\n"
+    "      a little, and then again find the largest cluster in what remains.\n"
+    "      (The purpose of this to is guillotine off any small 'necks'.)\n"
+    "      Zero out all voxels in (4) that are NOT in this surviving cluster.\n"
+    "  (6) Scale the result from (5) to the range 0..1. This is the weight\n"
+    "      volume, which can be saved via option '-wtprefix'.\n"
     "\n"
     "-------------------------------------------------------------------------------\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
@@ -2467,12 +2504,19 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strncasecmp(argv[nopt],"-useweight",10) == 0 ||
-         strcasecmp (argv[nopt],"-use_weight"  ) == 0   ){
+     if( strncasecmp(argv[nopt],"-useweight",10) == 0 ){
        auto_weight = 1 ;
        if( argv[nopt][10] == '*' && argv[nopt][11] == '*' && isnumeric(argv[nopt][12]) )
          auto_wpow = (float)strtod(argv[nopt]+12,NULL) ;
        if( Hverb && auto_wpow != 1.0f ) INFO_message("-useweight is now the default") ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strncasecmp(argv[nopt],"-wtgaus",7) == 0 ){        /* 15 Jan 2020 */
+       if( ++nopt >= argc ) ERROR_exit("need an argument after -wtgaus") ;
+       wt_gausmooth = (float)strtod(argv[nopt],NULL) ;
        nopt++ ; continue ;
      }
 
@@ -2562,51 +2606,51 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
-       allmeth = strdup("-hel") ;
+       allmeth = strdup("hel") ;
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-mi") == 0 ){
-       allmeth = strdup("-mi") ;
+       allmeth = strdup("mi") ;
        meth = GA_MATCH_KULLBACK_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-nmi") == 0 ){
-       allmeth = strdup("-nmi") ;
+       allmeth = strdup("nmi") ;
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pcl") == 0 ){
-       allmeth = strdup("-ls") ;
+       allmeth = strdup("ls") ;
        meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pear") == 0 ){
-       allmeth = strdup("-ls") ;
+       allmeth = strdup("ls") ;
        meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpc") == 0 ){
-       allmeth = strdup("-lpc") ;
+       allmeth = strdup("lpc+ZZ") ;
        meth = GA_MATCH_PEARSON_LOCALS ;
-       Hzeasy = meth_is_lpc = 1 ; mlev = 0 ; nopt++ ; continue ;
+       Hzeasy = meth_is_lpc = 1 ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
-       allmeth = strdup("-lpa") ;
-       Hzeasy = meth_is_lpc = 1 ; mlev = 0 ;
+       allmeth = strdup("lpa+ZZ") ;
+       Hzeasy = meth_is_lpc = 1 ;
        meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
 
@@ -2740,11 +2784,6 @@ STATUS("check for errors") ;
      WARNING_message("-awarp given without -allineate -- turning -awarp off") ;
      do_awarp = 0 ;
    }
-
-#if 0
-   if( meth_is_lpc && mlev > 0 )
-     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc' or 'lpa'") ;
-#endif
 
    if( !do_plusminus && do_pmbase ){  /* 12 Aug 2014 */
      WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;
@@ -2886,7 +2925,7 @@ STATUS("3dAllineate coming up next") ;
      if( do_allin && allmeth != NULL ){   /* 09 Jan 2020 */
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+128);
        else                 allopt = (char *)calloc(128,1) ;
-       strcat(allopt," ") ; strcat(allopt,allmeth) ;
+       strcat(allopt," -cost ") ; strcat(allopt,allmeth) ;
      }
 
      DSET_unload(sstrue) ;                /* de-allocate orig source dataset */

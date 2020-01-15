@@ -8173,7 +8173,7 @@ static float Hcostt = 0.0f ;      /* 'pure' cost */
 #ifdef ALLOW_INEDGE
 # include "mri_intedge.c"
   static int   Hinedge_erode = 4 ;
-  static float Hinedge_frac  = 0.222f ;
+  static float Hinedge_frac  = 0.333f ;
   static int   Hinedge_doit  = 0 ;
 #endif
 
