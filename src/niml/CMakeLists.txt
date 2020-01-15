@@ -31,5 +31,4 @@ target_include_directories(
                  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
 )
 target_link_libraries(niml libheaders)
-add_afni_target_properties(niml)
 add_library(AFNI::niml ALIAS niml)
