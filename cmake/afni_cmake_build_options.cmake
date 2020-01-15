@@ -25,6 +25,11 @@
 # includes programs that have more extensive dependencies associated with
 # graphical processing.
 
+# The installed files associated in the above components are stored in 
+# packaging/installation_components.txt. This should be modified when new programs
+# are added to the build. Alternatively it can be generated (or at least should be able to be generated)
+# by using the script packaging/define_installation_components.py
+
 
 option(BUILD_SHARED_LIBS "Toggle building shared libraries" ON)
 
@@ -71,7 +76,9 @@ cmake_dependent_option(
   "BUILD_X_DEPENDENT_GUI_PROGS" OFF
 )
 
+
 # Define other customizations to the build-process
+set_if_not_defined(GENERATE_PACKAGING_COMPONENTS "For internal use only" OFF)
 set_if_not_defined(BUILD_COREPLUGINS "By default a core set of plugins are built." ON)
 option(USE_SYSTEM_GLW "Build and use AFNI's local copy of libGLw" ON)
 option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
