@@ -18,20 +18,40 @@ macro(optional_bundle name)
   endif(USE_SYSTEM_${upper})
 endmacro()
 
+function(get_expected_target_list mapping targets_label)
+# TODO filter out components not used in current build...
+list(FILTER mapping EXCLUDE REGEX ", python$")
+list(FILTER mapping EXCLUDE REGEX ", tcsh$")
+list(FILTER mapping EXCLUDE REGEX ", rstats$")
+list(TRANSFORM mapping REPLACE ", .*" "" )
+set(${targets_label} "${mapping}" PARENT_SCOPE)
+endfunction()
+
 function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
-  # ##### Read list of makefile programs that are built by this project.
+  
+  # Filter expected targets based on build configuration
+  get_expected_target_list("${CMPNT_MAPPING}" expected_targets)
+
+  # Get list of installed targets from this project build...
+  get_property(installed_targets GLOBAL PROPERTY INSTALLED_PROGS)
+  # message("Installed:${installed_targets}")
+  list(REMOVE_ITEM expected_targets ${installed_targets})
+  message("Missing: ${expected_targets}")
+  # message("Additional targets not expected when comparing with make build: ${?}")
+  
+  # ##### assessing parity with the make build
   execute_process(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND bash "-c" "make -s -f Makefile.INCLUDE prog_list_bin"
   )
 
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list_bin.txt ALL_PROGRAMS)
-  string(STRIP ${ALL_PROGRAMS} ALL_PROGRAMS)
-  string(REPLACE "\n" " " ALL_PROGRAMS ${ALL_PROGRAMS})
-  separate_arguments(ALL_PROGRAMS)
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list_bin.txt ALL_PROGRAMS_MAKE_BUILD)
+  string(STRIP ${ALL_PROGRAMS_MAKE_BUILD} ALL_PROGRAMS_MAKE_BUILD)
+  string(REPLACE "\n" " " ALL_PROGRAMS_MAKE_BUILD ${ALL_PROGRAMS_MAKE_BUILD})
+  separate_arguments(ALL_PROGRAMS_MAKE_BUILD)
   set(PROGRAMS_BUILT "")
   set(NOT_BUILT "")
-  set(installable_targets ${ALL_PROGRAMS})
+  set(installable_targets ${ALL_PROGRAMS_MAKE_BUILD})
 
   # remove some programs that should not be here
   foreach(other_project_target gifti_tool giftiio gifti_test nifti_tool niftiio)
@@ -43,15 +63,18 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   foreach(program ${installable_targets})
     if(TARGET ${program})
       list(APPEND PROGRAMS_BUILT ${program})
-      add_afni_target_properties(${program})
     else()
       list(APPEND NOT_BUILT ${program})
     endif()
   endforeach()
 
+  # TODO: Compute CMAKE_LESS_MAKE_BUILT
+
   if(SHOW_UNBUILT_PROGS)
+    message("Comparison with build using the make system:")
     message("programs not built: '${NOT_BUILT}'")
-    message("programs built: '${PROGRAMS_BUILT}'")
+    message("extra programs built: '${CMAKE_LESS_MAKE_BUILT}'")
+    # message("programs built: '${PROGRAMS_BUILT}'")
   endif()
 endfunction()
 
@@ -121,7 +144,7 @@ endmacro()
 function(get_component_name component cmpnt_mapping targ_in)
   set(${component} "not found" PARENT_SCOPE)
   # Escape "+" character for regex
-  string(REGEX REPLACE "([+])" [[\\+]] regex_pat ${targ_in})
+  get_target_regex(${targ_in} regex_pat)
   # Filter for current target
   list(FILTER cmpnt_mapping INCLUDE REGEX "^${regex_pat},")
 
@@ -142,6 +165,19 @@ function(get_component_name component cmpnt_mapping targ_in)
    endif()
 endfunction()
 
+function(get_target_regex target pattern)
+# convert target string to regex pattern
+string(REGEX REPLACE "([+])" [[\\+]] with_subs "${target}")
+set(${pattern} "${with_subs}" PARENT_SCOPE)
+endfunction()
+
+function(log_target_as_installed target)
+  GET_PROPERTY(temp_list GLOBAL PROPERTY INSTALLED_PROGS)
+  get_target_regex(${target} regex_pat)
+  list(APPEND temp_list "${target}")
+  SET_PROPERTY(GLOBAL PROPERTY INSTALLED_PROGS "${temp_list}")
+endfunction()
+
 function(add_afni_library target_in)
   add_library(${ARGV})
   add_library(AFNI::${target_in} ALIAS ${target_in})
@@ -153,21 +189,13 @@ function(add_afni_executable target_in)
   add_afni_target_properties(${target_in})
 endfunction()
 
-function(check_for_component_generation val)
-  if(GENERATE_PACKAGING_COMPONENTS)
-    set(${val} ON PARENT_SCOPE)
-  else()
-    set(${val} OFF PARENT_SCOPE)
-  endif()
-endfunction()
-
 function(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
   get_target_property(TARGET_TYPE ${target} TYPE)
   get_afni_rpath()
-  check_for_component_generation(GEN_COMP)
   if(NOT (GENERATE_PACKAGING_COMPONENTS))
     get_component_name(component "${CMPNT_MAPPING}" ${target})
+    log_target_as_installed(${target})
   endif()
   # message("${target} -------${component}")
   
@@ -198,7 +226,7 @@ function(add_afni_target_properties target)
     LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
     ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
     PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
-    PRIVATE_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
+    # PRIVATE_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
   )
 endfunction()
 
