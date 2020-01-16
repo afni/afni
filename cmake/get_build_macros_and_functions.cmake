@@ -146,19 +146,26 @@ function(add_afni_library target_in)
   add_library(${ARGV})
   add_library(AFNI::${target_in} ALIAS ${target_in})
   add_afni_target_properties(${target_in})
-  # message("target added: ${target_in}")
-  message("targets : ${CMPNT_MAPPING}")
+endfunction()
+
+function(check_for_component_generation val)
+  if(GENERATE_PACKAGING_COMPONENTS)
+    set(${val} ON PARENT_SCOPE)
+  else()
+    set(${val} OFF PARENT_SCOPE)
+  endif()
 endfunction()
 
 function(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
   get_target_property(TARGET_TYPE ${target} TYPE)
   get_afni_rpath()
-  set(component "not found")
-  get_component_name(component "${CMPNT_MAPPING}" ${target})
+  check_for_component_generation(GEN_COMP)
+  if(NOT (GENERATE_PACKAGING_COMPONENTS))
+    get_component_name(component "${CMPNT_MAPPING}" ${target})
+  endif()
   # message("${target} -------${component}")
   
-
   # Set the target properties
   if(NOT DEFINED ENV{CONDA_BUILD})
     set_target_properties(
@@ -188,9 +195,6 @@ function(add_afni_target_properties target)
     PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
     PRIVATE_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
   )
-
-
-  # INSTALL_RPATH_USE_LINK_PATH ON SKIP_BUILD_RPATH OFF BUILD_WITH_INSTALL_RPATH OFF
 endfunction()
 
 function(check_header_has_been_created HEADER_PATH)
