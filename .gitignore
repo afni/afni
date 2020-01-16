@@ -44,10 +44,10 @@ __pycache__
 output_of_tests
 sample_output_of_tests
 
-# .gitignore file created as a build target
-src/.gitignore
-
 #From AFNI builds
+src/.gitignore
+src/prog_list.txt
+src/prog_list_bin.txt
 Makefile.back.*
 macros.make
 Makefile
