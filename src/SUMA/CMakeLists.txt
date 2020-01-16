@@ -85,7 +85,7 @@ target_link_libraries(
           NIFTI::nifticdf)
 
 # suma GUI:
-add_executable(suma SUMA_suma.c)
+add_afni_executable(suma SUMA_suma.c)
 target_link_libraries(
   suma
   PRIVATE SUMA
@@ -156,7 +156,7 @@ set(PROGRAMS
     # Load_Surface_Object Homer
 )
 foreach(program ${PROGRAMS})
-  add_executable(${program} SUMA_${program}.c)
+  add_afni_executable(${program} SUMA_${program}.c)
 
   target_link_libraries(
     ${program}
@@ -178,7 +178,7 @@ set_target_properties(
 
 # Targets where name matches source file name
 foreach(prog_with_name_as_source prompt_popup)
-  add_executable(${prog_with_name_as_source}
+  add_afni_executable(${prog_with_name_as_source}
                  ${prog_with_name_as_source}.c)
   target_link_libraries(
     ${prog_with_name_as_source}
@@ -200,7 +200,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
   # the following might be desired for paperplane:
   # add_definitions(-DSUMA_COMPILED -DnoGLwidget)
   set(target_with_suma SUMA_${suma_target})
-  add_executable(${target_with_suma} ${target_with_suma}.c)
+  add_afni_executable(${target_with_suma} ${target_with_suma}.c)
 
   target_link_libraries(
     ${target_with_suma}
@@ -218,20 +218,20 @@ endforeach()
 
 # The following is a jumbled list of programs that are
 # possibly accidentally excluded:
-# add_executable(SumaProgramTemplate SUMA_ProgramTemplate.c)
+# add_afni_executable(SumaProgramTemplate SUMA_ProgramTemplate.c)
 # target_link_libraries( SumaProgramTemplate PRIVATE SUMA
 # AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
 # $<TARGET_NAME_IF_EXISTS:GLUT::GLUT> )
 #
-# # Source files missing add_executable(resolvitivity
+# # Source files missing add_afni_executable(resolvitivity
 # SUMA_resolvitivity.c) list(APPEND # PROGRAMS
-# resolvitivity) add_executable(3dfilter SUMA_3dfilter.c) #
+# resolvitivity) add_afni_executable(3dfilter SUMA_3dfilter.c) #
 # error: too few arguments to function 'Debug_Move'
-# add_executable(toy_circle # SUMA_toy_circle.c
+# add_afni_executable(toy_circle # SUMA_toy_circle.c
 # SUMA_SurfWarp.c)
 
 # Some other programs:
-add_executable(SUMA_Read_SpecFile
+add_afni_executable(SUMA_Read_SpecFile
                SUMA_Load_Surface_Object.c)
 target_link_libraries(
   SUMA_Read_SpecFile
@@ -243,20 +243,20 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
-add_executable(CompareSurfaces SUMA_compare_surfaces.c)
+add_afni_executable(CompareSurfaces SUMA_compare_surfaces.c)
 target_link_libraries(
   CompareSurfaces
   PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
 
-add_executable(Surf2VolCoord SUMA_Surf2VolCoord_demo.c)
+add_afni_executable(Surf2VolCoord SUMA_Surf2VolCoord_demo.c)
 target_link_libraries(
   Surf2VolCoord
   PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
-add_executable(path_optimize SUMA_path_optimize.c
+add_afni_executable(path_optimize SUMA_path_optimize.c
                              SUMA_SurfWarp.c)
 target_link_libraries(
   path_optimize
@@ -274,7 +274,7 @@ if(GTS_FOUND)
             NIFTI::nifti2 NIFTI::nifticdf
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
-  add_executable(SurfMesh SUMA_coarsen.c)
+  add_afni_executable(SurfMesh SUMA_coarsen.c)
   target_link_libraries(
     SurfMesh
     PRIVATE suma_gts AFNI::mri NIFTI::nifti2
@@ -282,7 +282,7 @@ if(GTS_FOUND)
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
   foreach(program BrainSkin IsoSurface)
-    add_executable(${program} SUMA_${program}.c)
+    add_afni_executable(${program} SUMA_${program}.c)
     target_link_libraries(
       ${program}
       PRIVATE suma_gts

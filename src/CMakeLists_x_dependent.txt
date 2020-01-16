@@ -85,7 +85,7 @@ target_link_libraries(afni_all_objects
     ${CMAKE_DL_LIBS}
     )
 
-add_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
+add_afni_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 
 target_link_libraries(
   afni
