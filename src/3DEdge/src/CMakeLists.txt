@@ -1,5 +1,5 @@
 # currently not included: test-hyster-pnm.c test-edges-pnm.c test-edges.c
-add_library(
+add_afni_library(
   3DEdge
   connexe.c
   convert.c
@@ -21,5 +21,3 @@ target_include_directories(
   PRIVATE $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_link_libraries(3DEdge PRIVATE NIFTI::nifti2 NIFTI::nifticdf m)
-add_afni_target_properties(3DEdge)
-add_library(AFNI::3DEdge ALIAS 3DEdge)

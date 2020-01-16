@@ -3,7 +3,7 @@
 add_subdirectory(svm)
 optional_bundle(XmHTML)
 
-add_library(
+add_afni_library(
   mrix
   bbox.c
   coxplot/plot_motif.c
@@ -18,7 +18,6 @@ add_library(
   xutil.c
   xutil_webber.c
 )
-add_afni_target_properties(mrix)
 set_target_properties(
   mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h"
 )
@@ -28,8 +27,6 @@ target_link_libraries(
   PRIVATE AFNI::coxplot $<TARGET_NAME_IF_EXISTS:XmHTML> Motif::Motif ${X11_Xt_LIB} 
           ${X11_LIBRARIES}
 )
-add_afni_target_properties(mrix)
-add_library(AFNI::mrix ALIAS mrix)
 
 set_source_files_properties(
   afni.c afni_version.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"

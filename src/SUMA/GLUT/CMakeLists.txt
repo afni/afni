@@ -1,4 +1,4 @@
-# add_library(GLUT glut_8x13.c glut_9x15.c glut_bitmap.c glut_bwidth.c
+# add_afni_library(GLUT glut_8x13.c glut_9x15.c glut_bitmap.c glut_bwidth.c
 # glut_cindex.c glut_cursor.c glut_dials.c glut_event.c glut_ext.c
 # glut_fullscrn.c glut_get.c glut_hel10.c glut_hel12.c glut_hel18.c glut_init.c
 # glut_input.c glut_menu.c glut_modifier.c glut_mroman.c glut_overlay.c

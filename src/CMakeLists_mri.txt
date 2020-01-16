@@ -488,7 +488,7 @@ add_library(
 )
 target_link_libraries(mri_objs PRIVATE libheaders)
 
-add_library(mri "")
+add_afni_library(mri "")
 target_sources(
   mri
   PRIVATE
@@ -521,5 +521,3 @@ target_link_libraries(
           NIFTI::nifticdf
           ${NETCDF_LIBRARIES_C}
 )
-add_afni_target_properties(mri)
-add_library(AFNI::mri ALIAS mri)

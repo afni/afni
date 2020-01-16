@@ -10,7 +10,7 @@ find_package(GLib2)
 optional_bundle(gts)
 
 # SUMA library
-add_library(
+add_afni_library(
   SUMA
   MarchingCubes/MarchingCubes.c
   PLY/obj_io.c
@@ -265,7 +265,7 @@ target_link_libraries(
 
 # gts dependent programs
 if(GTS_FOUND)
-  add_library(suma_gts SUMA_gts.c SUMA_gts_insert.c)
+  add_afni_library(suma_gts SUMA_gts.c SUMA_gts_insert.c)
 
   target_link_libraries(
     suma_gts

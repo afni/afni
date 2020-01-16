@@ -1,6 +1,6 @@
 project(ptaylor)
 find_package(GSL REQUIRED)
-add_library(
+add_afni_library(
   track_tools
   3dcanvas.c
   basic_boring.c
@@ -19,8 +19,6 @@ add_library(
 target_link_libraries(track_tools 
   PUBLIC AFNI::mri 
   PRIVATE AFNI::3DEdge NIFTI::nifti2 GSL::gsl)
-add_afni_target_properties(track_tools)
-add_library(AFNI::track_tools ALIAS track_tools)
 
 
 if(BUILD_BINARIES)

@@ -17,7 +17,7 @@ set(CMAKE_C_FLAGS
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG")
 
 # Construct XmHTML  library
-add_library(XmHTML "")
+add_afni_library(XmHTML "")
 target_compile_definitions(
   XmHTML PRIVATE "VERSION=${XMHTML_VERSION}" Motif HAVE_LIBJPEG HAVE_REGEX_H
 )
@@ -34,7 +34,6 @@ target_include_directories(
 target_link_libraries(
   XmHTML PRIVATE Motif::Motif ${X11_Xt_LIB} ${X11_Xpm_LIB} ${X11_LIBRARIES} JPEG::JPEG
 )
-add_afni_target_properties(XmHTML)
 
 # TODO: need to install include to XmHTML
 install(
@@ -45,4 +44,3 @@ install(
   ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
   PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
 )
-add_library(AFNI::XmHTML ALIAS XmHTML)
