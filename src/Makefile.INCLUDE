@@ -119,7 +119,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat  \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
-           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd
+           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd 2dcat
 
 PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
@@ -195,7 +195,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
                   uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
                   3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict            \
-                  3dTto1D 3dExchange                                                \
+                  3dTto1D 3dExchange 2dcat                                         \
                   get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD  \
                   $(EXTRAS)
 
@@ -233,7 +233,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
                images_equal uniq_images stimband 1dNLfit 3dExchange               \
-               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict
+               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat
 
 # put all scripts to install here (no SCRIPTS variable)
 SCRIPTS_DIR = scripts_install
