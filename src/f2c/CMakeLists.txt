@@ -164,7 +164,7 @@ set(EFL ef1asc_.c ef1cmc_.c)
 set(CHAR s_cat.c s_cmp.c s_copy.c)
 set(F90BIT lbitbits.c lbitshft.c)
 
-add_library(
+add_afni_library(
   f2c
   ${OBJ}
   ${MISC}
@@ -188,5 +188,4 @@ target_link_libraries(
   PUBLIC NIFTI::nifticdf
   PRIVATE m
 )
-add_afni_target_properties(f2c)
-add_library(f2c ALIAS f2c)
+add_afni_library(f2c ALIAS f2c)

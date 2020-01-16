@@ -1,15 +1,13 @@
 project(avovk)
 find_package(GSL REQUIRED)
 
-add_library(segtools cluster_floatNOMASK.c thd_segtools_fNM.c) # cluster.o
+add_afni_library(segtools cluster_floatNOMASK.c thd_segtools_fNM.c) # cluster.o
 target_include_directories(
   segtools INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
 )
 set_target_properties(segtools PROPERTIES PUBLIC_HEADER "thd_segtools_fNM.h;cluster_floatNOMASK.h")
 target_link_libraries(segtools PRIVATE AFNI::mri ${GSL_LIBRARIES})
-add_afni_target_properties(segtools)
-add_library(AFNI::segtools ALIAS segtools)
 
 if(BUILD_BINARIES)
   # cluster_floatNOMASK.o

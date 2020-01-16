@@ -3,7 +3,7 @@ configure_file(eis_svd.c ${SVD_SLOW} COPYONLY)
 set_source_files_properties(
   ${SVD_SLOW} PROPERTIES COMPILE_DEFINITIONS "FUNCNAME=svd_slow_"
 )
-add_library(
+add_afni_library(
   eispack
   ${SVD_SLOW}
   eis_bakvec.c
@@ -84,5 +84,3 @@ add_library(
   eis_tsturm.c
 )
 target_link_libraries(eispack $<TARGET_NAME_IF_EXISTS:f2c> m)
-add_afni_target_properties(eispack)
-add_library(AFNI::eispack ALIAS eispack)

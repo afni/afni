@@ -1,4 +1,4 @@
-add_library(
+add_afni_library(
   volpack
   makeopts.c
   vp_check.c
@@ -48,7 +48,6 @@ add_library(
   vp_warpA331N.c
   vp_warpA331R.c
 )
-add_afni_target_properties(volpack)
 target_link_libraries(volpack m)
 
 install(
@@ -59,4 +58,3 @@ install(
   ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
   PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
 )
-add_library(AFNI::volpack ALIAS volpack)
