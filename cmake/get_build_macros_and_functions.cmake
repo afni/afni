@@ -36,7 +36,7 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   get_property(installed_targets GLOBAL PROPERTY INSTALLED_PROGS)
   # message("Installed:${installed_targets}")
   list(REMOVE_ITEM expected_targets ${installed_targets})
-  message("Missing: ${expected_targets}")
+  message("Missing (TODO, this should raise an error if not empty): ${expected_targets}")
   # message("Additional targets not expected when comparing with make build: ${?}")
   
   # ##### assessing parity with the make build
