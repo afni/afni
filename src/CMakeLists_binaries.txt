@@ -1,4 +1,4 @@
-add_executable(1dSEM 1dSEM.c matrix.c sqrmat.c)
+add_afni_executable(1dSEM 1dSEM.c matrix.c sqrmat.c)
 set_target_properties(1dSEM PROPERTIES PUBLIC_HEADER "matrix.h")
 target_link_libraries(1dSEM AFNI::mri m)
 
@@ -238,13 +238,13 @@ foreach(
   whirlgif
 )
 
-  add_executable(${target} ${target}.c)
+  add_afni_executable(${target} ${target}.c)
   target_include_directories(${target} PRIVATE NIFTI::nifti2)
   target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 m)
 endforeach(target)
 
 
-add_executable(  3dClustSim 3dClustSim.c)
+add_afni_executable(  3dClustSim 3dClustSim.c)
 target_include_directories(  3dClustSim PRIVATE NIFTI::nifti2)
 target_link_libraries(  3dClustSim PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
 if(USE_OMP)
@@ -252,29 +252,29 @@ target_compile_definitions(3dClustSim PRIVATE USE_OMP)
 target_link_libraries(3dClustSim PRIVATE OpenMP::OpenMP_C)
 endif()
 
-add_executable(3dDespike 3dDespike.c)
+add_afni_executable(3dDespike 3dDespike.c)
 target_include_directories(3dDespike PRIVATE NIFTI::nifti2)
 target_link_libraries(3dDespike PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
 
-add_executable(AlphaSim AlphaSim.c)
+add_afni_executable(AlphaSim AlphaSim.c)
 target_include_directories(AlphaSim PRIVATE NIFTI::nifti2)
 target_link_libraries(AlphaSim PRIVATE AFNI::mri NIFTI::nifticdf m)
 
-add_executable(3dRegAna 3dRegAna.c)
+add_afni_executable(3dRegAna 3dRegAna.c)
 target_include_directories(3dRegAna PRIVATE NIFTI::nifti2)
 target_link_libraries(3dRegAna PRIVATE AFNI::mri NIFTI::nifticdf m)
 
-add_executable(3dQwarp 3dQwarp.c)
+add_afni_executable(3dQwarp 3dQwarp.c)
 target_include_directories(3dQwarp PRIVATE NIFTI::nifti2)
 target_link_libraries(3dQwarp PRIVATE AFNI::mri AFNI::3DEdge NIFTI::nifti2 m)
 
 foreach(i "" 2 3)
   set(target 3dANOVA${i})
-  add_executable(${target} ${target}.c 3dANOVA.lib)
+  add_afni_executable(${target} ${target}.c 3dANOVA.lib)
   target_link_libraries(${target} PRIVATE AFNI::mri m)
 endforeach(i)
 
-add_executable(3dmerge 3dmerge.c)
+add_afni_executable(3dmerge 3dmerge.c)
 target_link_libraries(3dmerge PRIVATE AFNI::mri m)
 
 foreach(
@@ -293,32 +293,32 @@ foreach(
   ccalc
   waver
 )
-  add_executable(${target} ${target}.c)
+  add_afni_executable(${target} ${target}.c)
   target_compile_definitions(${target} PRIVATE "REPLACE_XT")
   target_link_libraries(${target} PRIVATE AFNI::mri m)
 endforeach(target)
 target_link_libraries(3dproject PRIVATE $<TARGET_NAME_IF_EXISTS:volpack>)
 
-add_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
-add_executable(
+add_afni_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
+add_afni_executable(
   3dfim "${CMAKE_CURRENT_BINARY_DIR}/configured_pcor/afni_pcor_float.c" 3dfim.c ts.c
 )
 
-add_executable(fim2 $<TARGET_OBJECTS:pcor> fim2.c ts.c)
+add_afni_executable(fim2 $<TARGET_OBJECTS:pcor> fim2.c ts.c)
 
-add_executable(3danisosmooth 3danisosmooth.c DWIstructtensor.c)
+add_afni_executable(3danisosmooth 3danisosmooth.c DWIstructtensor.c)
 target_link_libraries(3danisosmooth AFNI::mri m)
 
-add_executable(gwarp mri_gwarp.c)
-add_executable(3dmaxima 3dmaxima.c maxima.c)
+add_afni_executable(gwarp mri_gwarp.c)
+add_afni_executable(3dmaxima 3dmaxima.c maxima.c)
 
-add_executable(3dMSE 3dMSE.c sparse_array.c)
+add_afni_executable(3dMSE 3dMSE.c sparse_array.c)
 target_link_libraries(3dMSE AFNI::mri m)
 
-add_executable(3dttest 3dttest.c)
+add_afni_executable(3dttest 3dttest.c)
 target_link_libraries(3dttest AFNI::mri m)
 
-add_executable(3dretroicor 3dretroicor.c retroicor.c)
+add_afni_executable(3dretroicor 3dretroicor.c retroicor.c)
 target_link_libraries(3dretroicor PRIVATE AFNI::mri m)
 
 foreach(target 3dfim 3dTfitter fim2 gwarp 3dmaxima)
@@ -326,9 +326,9 @@ foreach(target 3dfim 3dTfitter fim2 gwarp 3dmaxima)
 endforeach(target)
 
 # link remaining executables from rickr
-add_executable(Dimon rickr/Dimon.c rickr/realtime.c)
-add_executable(Dimon1 rickr/Dimon1.c rickr/realtime1.c)
-add_executable(3dresample rickr/3dresample.c)
+add_afni_executable(Dimon rickr/Dimon.c rickr/realtime.c)
+add_afni_executable(Dimon1 rickr/Dimon1.c rickr/realtime1.c)
+add_afni_executable(3dresample rickr/3dresample.c)
 target_link_libraries(Dimon1 PRIVATE AFNI::mri NIFTI::niftiio)
 target_link_libraries(Dimon PRIVATE AFNI::mri NIFTI::nifti2)
 
@@ -337,42 +337,42 @@ target_link_libraries(3dresample AFNI::mri AFNI::audio NIFTI::nifti2)
 
 
 
-add_executable(3dBrainSync 3dBrainSync.c)
+add_afni_executable(3dBrainSync 3dBrainSync.c)
 target_link_libraries(3dBrainSync AFNI::mri)
 
-add_executable(3dExchange 3dExchange.c)
+add_afni_executable(3dExchange 3dExchange.c)
 target_include_directories(3dExchange PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(3dExchange AFNI::mri ${X11_LIBRARIES})
 
-add_executable(3dMaskToASCII 3dMaskToASCII.c)
+add_afni_executable(3dMaskToASCII 3dMaskToASCII.c)
 target_include_directories(3dMaskToASCII PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(3dMaskToASCII AFNI::mri NIFTI::nifti2 NIFTI::nifticdf)
 
-add_executable(3dTto1D 3dTto1D.c)
+add_afni_executable(3dTto1D 3dTto1D.c)
 target_link_libraries(3dTto1D AFNI::mri NIFTI::nifti2 NIFTI::nifticdf)
 
-add_executable(3dedge3 3dedge3.c)
+add_afni_executable(3dedge3 3dedge3.c)
 target_include_directories(3dedge3 PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(3dedge3 AFNI::mri AFNI::3DEdge)
 
-add_executable(3dfractionize 3dfractionize.c)
+add_afni_executable(3dfractionize 3dfractionize.c)
 target_link_libraries(3dfractionize AFNI::mri)
 
-add_executable(3dmaskSVD 3dmaskSVD.c)
+add_afni_executable(3dmaskSVD 3dmaskSVD.c)
 target_link_libraries(3dmaskSVD AFNI::mri)
 
-add_executable(3dmask_tool 3dmask_tool.c)
+add_afni_executable(3dmask_tool 3dmask_tool.c)
 target_link_libraries(3dmask_tool AFNI::mri)
 
-add_executable(3dmaskave 3dmaskave.c)
+add_afni_executable(3dmaskave 3dmaskave.c)
 target_link_libraries(3dmaskave AFNI::mri)
 
-add_executable(3dmatmult 3dmatmult.c)
+add_afni_executable(3dmatmult 3dmatmult.c)
 target_link_libraries(3dmatmult AFNI::mri)
 
-add_executable(afni_check_omp afni_check_omp.c)
+add_afni_executable(afni_check_omp afni_check_omp.c)
 
-add_executable(
+add_afni_executable(
   afni_history
   afni_history.c
   afni_history_bpittman.c
@@ -388,15 +388,15 @@ add_executable(
 
 # optional external dep: cjpeg and djpeg are external dependencies. what needs them?
 
-add_executable(3dPVmap 3dPVmap.c)
+add_afni_executable(3dPVmap 3dPVmap.c)
 set_target_properties(3dPVmap PROPERTIES PRIVATE_HEADER "mri_pvmap.c;despike_inc.c")
 target_link_libraries(3dPVmap AFNI::mri NIFTI::nifti2)
 
-add_executable(3dGrayplot 3dGrayplot.c)
+add_afni_executable(3dGrayplot 3dGrayplot.c)
 set_target_properties(3dGrayplot PROPERTIES PRIVATE_HEADER thd_dset_to_grayplot.c)
 target_link_libraries(3dGrayplot AFNI::mri)
 
-add_executable(1dsound 1dsound.c)
+add_afni_executable(1dsound 1dsound.c)
 set_target_properties(1dsound PROPERTIES PRIVATE_HEADER "cs_playsound.c;despike_inc.c")
 target_link_libraries(
   1dsound PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf AFNI::audio
@@ -406,7 +406,7 @@ target_link_libraries(
 # AFNI models
 foreach(mod PRF;PRF_6;PRF_6_BAD)
   set(target get_afni_model_${mod})
-  add_executable(${target} get_afni_model_${mod}.c)
+  add_afni_executable(${target} get_afni_model_${mod}.c)
   set_target_properties(
     ${target} PROPERTIES PRIVATE_HEADER model_conv_${mod}.c
   )
@@ -414,21 +414,21 @@ foreach(mod PRF;PRF_6;PRF_6_BAD)
 endforeach()
 
 # 3dTSgem won't be built
-add_executable(3dTSgen 3dTSgen.c)
+add_afni_executable(3dTSgen 3dTSgen.c)
 set_target_properties( 3dTSgen PROPERTIES
 PRIVATE_HEADER "NLfit.h;NLfit_model.h;NLfit.c;NLfit_model.c" )
 target_link_libraries(3dTSgen AFNI::mri ${CMAKE_DL_LIBS})
 
 
 
-add_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
+add_afni_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_link_libraries(3dDeconvolve PRIVATE AFNI::mri $<TARGET_NAME_IF_EXISTS:f2c> NIFTI::nifticdf m)
 
-add_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
+add_afni_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
 target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri $<TARGET_NAME_IF_EXISTS:f2c> NIFTI::nifticdf m)
 
-add_executable(3dECM sparse_array.c)
+add_afni_executable(3dECM sparse_array.c)
 target_link_libraries(3dECM 
   PRIVATE
     AFNI::mri
@@ -437,21 +437,21 @@ target_link_libraries(3dECM
   )
 
 if(BUILD_X_DEPENDENT_GUI_PROGS)
-  add_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
-  add_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
-  add_executable(1dplot 1dplot.c display.c)
+  add_afni_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
+  add_afni_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
+  add_afni_executable(1dplot 1dplot.c display.c)
   target_include_directories(1dplot PRIVATE AFNI::mri)
   target_link_libraries(
     1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB}
                    ${X11_LIBRARIES}
   )
 
-  add_executable(1dgrayplot 1dgrayplot.c)
+  add_afni_executable(1dgrayplot 1dgrayplot.c)
   target_link_libraries(
     1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB}
   )
 
-  add_executable(3dAllineate 3dAllineate.c )
+  add_afni_executable(3dAllineate 3dAllineate.c )
   if(USE_OMP)
     target_compile_definitions(3dAllineate PRIVATE USE_OMP)
     target_link_libraries(3dAllineate PRIVATE OpenMP::OpenMP_C)
@@ -464,10 +464,10 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
     )
   endforeach(target)
 
-  add_executable(3dNLfim 3dNLfim.c)
+  add_afni_executable(3dNLfim 3dNLfim.c)
   target_link_libraries(3dNLfim PRIVATE AFNI::mrix NIFTI::nifti2 ${CMAKE_DL_LIBS})
 
-  add_executable(to3d to3d.c)
+  add_afni_executable(to3d to3d.c)
   target_link_libraries(
     to3d PRIVATE AFNI::mrix Motif::Motif ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
                  NIFTI::nifti2

@@ -35,7 +35,7 @@ if(BUILD_BINARIES)
     3dTORTOISEtoHere
     3dVecRGB_to_HSL
   )
-    add_executable(${target} ${target}.c)
+    add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} track_tools)
   endforeach(target)
 
@@ -48,33 +48,33 @@ if(BUILD_BINARIES)
     3dTrackID
     map_TrackID
   )
-    add_executable(${target} ${target}.c)
+    add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} track_tools GSL::gsl)
   endforeach(target)
 
 
-  add_executable(3dZipperZapper 3dZipperZapper.c)
+  add_afni_executable(3dZipperZapper 3dZipperZapper.c)
   target_link_libraries(3dZipperZapper 
     PRIVATE
       AFNI::mri
       GSL::gsl
       )
 
-  add_executable(3dSliceNDice 3dSliceNDice.c)
+  add_afni_executable(3dSliceNDice 3dSliceNDice.c)
   target_link_libraries(3dSliceNDice 
     PRIVATE
       AFNI::mri
       track_tools
       )
 
-  add_executable(3dClusterize 3dClusterize.c)
+  add_afni_executable(3dClusterize 3dClusterize.c)
   target_link_libraries(3dClusterize 
     PRIVATE
       AFNI::mri
       track_tools
       )
 
-  add_executable(3dProbTrackID 3dProbTrackID.c)
+  add_afni_executable(3dProbTrackID 3dProbTrackID.c)
   target_link_libraries(3dProbTrackID 
     PRIVATE
       AFNI::mri
@@ -82,7 +82,7 @@ if(BUILD_BINARIES)
 
   if(OPENMP_FOUND)
     foreach(target 3dEigsToDT 3dDWUncert)
-      add_executable(${target} ${target}.c)
+      add_afni_executable(${target} ${target}.c)
       target_link_libraries(${target} track_tools GSL::gsl OpenMP::OpenMP_C)
     endforeach(target)
   endif()

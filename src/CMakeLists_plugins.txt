@@ -109,7 +109,7 @@ foreach(target plug_maxima plug_retroicor)
 
 if(BUILD_BINARIES)
   foreach(target afni_open aiv Xphace)
-    add_executable(${target} ${target}.c)
+    add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} 
       PRIVATE
         AFNI::mrix
