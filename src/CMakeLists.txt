@@ -1,3 +1,6 @@
+# ##### Create global entity in which to store installed targets
+set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
+
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
 add_subdirectory(coxplot)
