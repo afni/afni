@@ -17,6 +17,8 @@
 
     - initial 3dAllineate phase (-allineate or -resample)        [DONE]
 
+    - initial 3danisosmooth phase (-aniso)                       [DONE]
+
     - symmetric mapping,                                         [very slow]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
       -- plusminus is nearly the same, and much simpler!
@@ -104,7 +106,8 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    byte *mmm ;
    MRI_IMAGE *qim , *wim ;
 
-   if( Hverb ) INFO_message("Weightizing the base image") ;
+   if( Hverb )
+     INFO_message("Weightizing the base image: FWHM = %.3g (vox)",wt_gausmooth) ;
 
    /*-- copy input image so we can mangle it --*/
 
@@ -671,8 +674,7 @@ void Qhelp(void)
     "                 original source dataset, NOT from the substitute source.\n"
     "               * The intermediate files from 3dAllineate (the substitute source\n"
     "                 dataset and the affine matrix) are saved, using 'prefix_Allin'\n"
-    "                 in the filenames. If you wish to have them deleted, use the\n"
-    "                 option '-allinkill' in addition to '-allineate'.\n"
+    "                 in the filenames.\n"
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
     "               * The '-awarp' option will output the computed warp from the\n"
@@ -734,6 +736,20 @@ void Qhelp(void)
     "                   '1D: 1 2 3 4 5 6 7 8 9 10 11 12'\n"
     "                 where the numbers after the initial '1D: ' are\n"
     "                 to be replaced by the actual matrix entries!\n"
+    "\n"
+    " -aniso       = Before aligning, do a little bit of anisotropic smoothing\n"
+    "                (see 3danisosmooth) on the source dataset.\n"
+    "               * Note that the final output dataset is warped directly\n"
+    "                 from the input dataset, NOT this smoothed dataset.\n"
+    "                 If you want the warped output dataset to be from the\n"
+    "                 smoothed dataset, you'll have to use 3danisosmooth\n"
+    "                 separately before 3dQwarp, and supply that result\n"
+    "                 as the source dataset.\n"
+    "               * The purpose of '-aniso' is just to smooth out the noise\n"
+    "                 a little before other processing, and maybe make things\n"
+    "                 work a little betterer.\n"
+    "               * Anisotropic smoothing comes before 3dAllineate, if both\n"
+    "                 are used together.\n"
     "\n"
     "++++++++++ Computing the 'cost' functional = how datasets are matched ++++++++++\n"
     "\n"
@@ -1592,6 +1608,10 @@ void Qhelp(void)
     "      Zero out all voxels in (4) that are NOT in this surviving cluster.\n"
     "  (6) Scale the result from (5) to the range 0..1. This is the weight\n"
     "      volume, which can be saved via option '-wtprefix'.\n"
+    "  (X) Remember you can save the computed weight volume to a dataset by\n"
+    "      using the '-wtprefix' option.\n"
+    "Where did this scheme come from? A mixture of experimentation, intuition,\n"
+    "and plain old SWAG.\n"
     "\n"
     "-------------------------------------------------------------------------------\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
@@ -1612,12 +1632,38 @@ void Qhelp(void)
 }
 
 /*---------------------------------------------------------------------------*/
-/* Run 3dAllineate; result is stored in Qunstr.nii and Qunstr.aff12.1D */
+/* Run 3danisosmooth [17 Jan 2020] */
 /*---------------------------------------------------------------------------*/
 
-static char *Qunstr=NULL ;  /* will be generated as a random unique string */
+void Qaniso( char *ssname , char *apref ){
+   char *cmd ; int ss ;
 
-void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
+   cmd = (char *)malloc(sizeof(char)*(1024+strlen(ssname))) ;
+   sprintf( cmd ,
+            "3danisosmooth"
+            " -iters 1"
+            " -3D"
+            " -automask"
+            " -noneg"
+            " -prefix %s.nii"
+            " %s" ,
+            apref , ssname ) ;
+
+     INFO_message("###############################################################") ;
+   ININFO_message("Starting 3danisosmooth command:\n\n  %s",cmd);
+   ININFO_message("###############################################################") ;
+
+   ss = system(cmd) ;
+   if( ss != 0 ) ERROR_exit("3dQwarp: 3danisosmooth command failed :-(") ;
+   free(cmd) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Run 3dAllineate */
+/*---------------------------------------------------------------------------*/
+
+void Qallineate( char *basname , char *srcname , char *emkname , char *allopt , char *apref )
 {
    char *cmd ; int ss ;
 
@@ -1628,8 +1674,6 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
    if( emkname != NULL ) ss += strlen(emkname) ;
    cmd = (char *)malloc(ss) ;
 
-   Qunstr = UNIQ_idcode() ;  /* create unique prefix for output filenames */
-
    /* setup the basic command to do some hard work */
 
    sprintf( cmd , "3dAllineate"
@@ -1638,7 +1682,7 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
                   " -prefix %s.nii"
                   " -1Dmatrix_save %s"
                   " -cmass -final wsinc5 -float -master BASE -twobest 7" ,
-            basname , srcname , Qunstr , Qunstr ) ;
+            basname , srcname , apref , apref ) ;
 
    /* add options to the command string */
 
@@ -1686,15 +1730,13 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
 static mat44 resam_matrix ;
 
-void Qallin_resample( char *basname , char *srcname , MRI_IMAGE *rmat )  /* 17 Jul 2013 */
+void Qallin_resample( char *basname , char *srcname , MRI_IMAGE *rmat , char *apref )  /* 17 Jul 2013 */
 {
    char *cmd ; int ss ;
    float *mar ;
 
    ss  = strlen(basname)+strlen(srcname)+2048 ;
    cmd = (char *)malloc(ss) ;
-
-   Qunstr = UNIQ_idcode() ;
 
    if( rmat == NULL ){
      mar = (float *)calloc(12,sizeof(float)) ;
@@ -1712,7 +1754,7 @@ void Qallin_resample( char *basname , char *srcname , MRI_IMAGE *rmat )  /* 17 J
                   " -prefix %s.nii"
                   " -final wsinc5 -float -quiet"
                   " -1Dmatrix_apply '1D: %g %g %g %g %g %g %g %g %g %g %g %g'" ,
-            basname , srcname , Qunstr ,
+            basname , srcname , apref ,
             mar[0],mar[1],mar[2],mar[3],mar[4],mar[5],
             mar[6],mar[7],mar[8],mar[9],mar[10],mar[11] ) ;
 
@@ -1763,6 +1805,8 @@ static mat44 allin_matrix, allin_adjust_matrix ;
 static THD_3dim_dataset *adset=NULL , *bset=NULL ;
 static char *prefix = "Qwarp" ;
 static int saved_argc=0 ; static char **saved_argv=NULL ;
+
+static int do_aniso=0 ; /* 17 Jan 2020 */
 
 #ifdef USE_NEW_HSAVE
 void save_intermediate_warp( IndexWarp3D *hwarp , char *nam )
@@ -1825,7 +1869,7 @@ STATUS("write warp") ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
-   char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
+   char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL , *suname=NULL ;
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix_clean=NULL ; int nopt , nevox=0 ;
@@ -1836,7 +1880,7 @@ int main( int argc , char *argv[] )
    int qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
    float dxal=0.0f,dyal=0.0f,dzal=0.0f ; int have_dxyzal=0 ;
-   int do_resam=0 ; int keep_allin=1 ;
+   int do_resam=0 ;
    int flags=0 , nbad=0 ;
    double cput=0.0 ;
    Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
@@ -2023,28 +2067,22 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-aniso") == 0 ){  /* 17 Jan 2020 */
+       do_aniso = 1 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
          strcasecmp(argv[nopt],"-allin"    ) == 0   ){
-       do_allin =  1 ; nopt++ ; continue ;
+       do_allin = 1 ; nopt++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-NOallineate") == 0 ||     /* 17 Mar 2015 */
          strcasecmp(argv[nopt],"-NOallin"    ) == 0   ){
-       do_allin =  0 ; nopt++ ; continue ;
-     }
-
-     /*---------------*/
-
-     if( strcasecmp(argv[nopt],"-allinkeep") == 0 ){       /* 27 Aug 2013 */
-       keep_allin = 1 ; nopt++ ; continue ;
-     }
-
-     /*---------------*/
-
-     if( strcasecmp(argv[nopt],"-allinkill") == 0 ){       /* 27 Aug 2013 */
-       keep_allin = 0 ; nopt++ ; continue ;
+       do_allin = 0 ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -2377,6 +2415,7 @@ int main( int argc , char *argv[] )
        sset = THD_open_dataset(argv[nopt]) ;
        if( sset == NULL ) ERROR_exit("Can't open %s '%s'",argv[nopt-1],argv[nopt]) ;
        ssname = strdup(argv[nopt]) ; sstrue = sset ; DSET_COPYOVER_REAL(sset) ;
+       suname = strdup(ssname) ;
        nopt++ ; continue ;
      }
 
@@ -2713,6 +2752,7 @@ int main( int argc , char *argv[] )
 
    { char *ns ;
      prefix_clean = strdup(prefix) ;
+     ns = strstr(prefix_clean,".HEAD" ); if( ns != NULL ) *ns = '\0' ;
      ns = strstr(prefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(prefix_clean,"+orig") ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(prefix_clean,"+acpc") ; if( ns != NULL ) *ns = '\0' ;
@@ -2722,6 +2762,7 @@ int main( int argc , char *argv[] )
    if(wtprefix!=NULL)
    { char *ns ;
      wtprefix_clean = strdup(wtprefix) ;
+     ns = strstr(wtprefix_clean,".HEAD" ); if( ns != NULL ) *ns = '\0' ;
      ns = strstr(wtprefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(wtprefix_clean,"+orig") ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(wtprefix_clean,"+acpc") ; if( ns != NULL ) *ns = '\0' ;
@@ -2871,6 +2912,7 @@ STATUS("base dataset opened") ;
      sset = THD_open_dataset(argv[nopt++]) ; DSET_COPYOVER_REAL(sset) ;
      if( sset == NULL ) ERROR_exit("Can't open source dataset '%s'",argv[nopt-1]) ;
      ssname = strdup(argv[nopt-1]) ; sstrue = sset ;
+     suname = strdup(ssname) ;
 STATUS("source dataset opened") ;
    }
    if( DSET_NVALS(sset) > 1 )
@@ -2900,6 +2942,41 @@ STATUS("source dataset opened") ;
                        nx-ngood , nx ) ;
    }
 
+   /*---- Run 3danisomooth first, replace source dataset [17 Jan 2020] --------*/
+
+   if( do_aniso ){
+     char *qs , *ns , *ap ; /* temp stuff */
+STATUS("3danisosmooth coming up next") ;
+
+     qs = (char *)malloc(2*strlen(prefix)+64) ;
+     ns = (char *)malloc(2*strlen(prefix)+64) ;
+     ap = (char *)malloc(2*strlen(prefix)+64) ;
+     sprintf(ap,"%s_aniso",prefix_clean) ;
+
+     DSET_unload(sset) ;                   /* de-allocate orig source dataset */
+     Qaniso(suname,ap) ;
+
+     fprintf(stderr,"\n") ;
+
+     /*-- try to load the results --*/
+
+     sprintf(qs,"%s.nii",ap) ;                            /* dataset filename */
+     if( !THD_is_file(qs) ){                   /* check for compressed output */
+       strcpy(ns,qs) ; strcat(ns,".gz") ;
+       if( !THD_is_file(ns) )
+         ERROR_exit("Can't find 3danisosmooth output file '%s' or '%s' :-(",qs,ns) ;
+       else
+         strcpy(qs,ns) ;
+     }
+     free(suname) ; suname = strdup(qs) ;
+     INFO_message("3dQwarp: replacing source dataset with 3danisosmooth result %s",suname) ;
+     sset = THD_open_dataset(suname) ;                 /* get the dataset */
+     if( sset == NULL ) ERROR_exit("Can't open replacement source dataset %s :-(",suname) ;
+     DSET_load(sset); CHECK_LOAD_ERROR(sset); DSET_lock(sset); DSET_COPYOVER_REAL(sset);
+     free(qs) ; free(ns) ; free(ap) ;
+
+   } /*--- end of 3danisosmooth prefatory remarks  -----------------------------------*/
+
    /*---- Run 3dAllineate first, replace source dataset [15 Jul 2013] --------*/
 
    if( !do_allin && allopt != NULL ){
@@ -2908,9 +2985,14 @@ STATUS("source dataset opened") ;
    }
 
    if( do_allin || do_resam ){   /* here is where 3dAllineate is invoked */
-     char *qs , *ns , *rs ; /* temp stuff */
+     char *qs , *ns , *ap ; /* temp stuff */
 
 STATUS("3dAllineate coming up next") ;
+
+     qs = (char *)malloc(2*strlen(prefix)+64) ;
+     ns = (char *)malloc(2*strlen(prefix)+64) ;
+     ap = (char *)malloc(2*strlen(prefix)+64) ;
+     sprintf(ap,"%s_Allin",prefix_clean) ;
 
      if( do_allin && noneg ){
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+32);
@@ -2928,41 +3010,32 @@ STATUS("3dAllineate coming up next") ;
        strcat(allopt," -cost ") ; strcat(allopt,allmeth) ;
      }
 
-     DSET_unload(sstrue) ;                /* de-allocate orig source dataset */
+     DSET_unload(sset) ;                /* de-allocate orig source dataset */
 
      /*--- run 3dAllineate now now now ---*/
 
      if( do_allin )
-       Qallineate( bsname , ssname , esname , allopt ) ;  /* run 3dAllineate */
+       Qallineate( bsname, suname, esname, allopt, ap ) ;  /* run 3dAllineate */
      else /* do_resam */
-       Qallin_resample( bsname , ssname , resmat ) ;      /* just for resampling */
+       Qallin_resample( bsname, suname, resmat, ap ) ;     /* just resampling */
 
      fprintf(stderr,"\n") ;
 
      /*-- try to load the results: dataset first (in NIfTI format) --*/
 
-     qs = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
-     ns = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
-     sprintf(qs,"%s.nii",Qunstr) ;                        /* dataset filename */
+     sprintf(qs,"%s.nii",ap) ;                            /* dataset filename */
      if( !THD_is_file(qs) ){     /* check for compressed output [07 Feb 2014] */
        strcpy(ns,qs) ; strcat(ns,".gz") ;
        if( !THD_is_file(ns) )
-         ERROR_message("Can't find 3dAllineate output '%s' or '%s' :-(",qs,ns) ;
+         ERROR_exit("Can't find 3dAllineate output '%s' or '%s' :-(",qs,ns) ;
        else
          strcpy(qs,ns) ;
      }
-     if( keep_allin ){    /* if keeping 3dAllineate output, make a nicer name */
-       sprintf(ns,"%s_Allin.nii",prefix_clean) ;
-       if( STRING_HAS_SUFFIX(qs,".gz") ) strcat(ns,".gz") ;    /* 07 Feb 2014 */
-       rename(qs,ns) ; rs = ns ;
-     } else {
-       rs = qs ;
-     }
-     INFO_message("3dQwarp: replacing source dataset with 3dAllineate result %s",rs) ;
-     sset = THD_open_dataset(rs) ;                 /* get its output dataset */
-     if( sset == NULL ) ERROR_exit("Can't open replacement source dataset %s :-(",rs) ;
+     free(suname) ; suname = strdup(qs) ;
+     INFO_message("3dQwarp: replacing source dataset with 3dAllineate result %s",suname) ;
+     sset = THD_open_dataset(suname) ;                 /* get its output dataset */
+     if( sset == NULL ) ERROR_exit("Can't open replacement source dataset %s :-(",suname) ;
      DSET_load(sset); CHECK_LOAD_ERROR(sset); DSET_lock(sset); DSET_COPYOVER_REAL(sset);
-     if( !keep_allin ) remove(qs) ;  /* erase the 3dAllineate dataset from disk */
 
      /*-- load alignment matrix, to be used after warping --*/
 
@@ -2973,7 +3046,7 @@ STATUS("3dAllineate coming up next") ;
          allin_matrix = resam_matrix ;
          dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
        } else {
-         sprintf(qs,"%s.aff12.1D",Qunstr) ;
+         sprintf(qs,"%s.aff12.1D",ap) ;
          zim = mri_read_1D(qs) ;           /* get the 3dAllineate output matrix */
          if( zim == NULL )
            ERROR_exit("Can't open 3dAllineate's matrix file '%s'",qs) ;
@@ -2985,19 +3058,12 @@ STATUS("3dAllineate coming up next") ;
                                  qar[8],qar[9],qar[10],qar[11] ) ;
          /* save the magnitude of the shifts (needed for zero pad guesstimate */
          dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
-         if( !keep_allin ){
-           remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
-           if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
-         } else {
-           sprintf(ns,"%s_Allin.aff12.1D",prefix_clean) ; rename(qs,ns) ;
-           if( Hverb ) ININFO_message("3dAllineate output files have been renamed") ;
-         }
          if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
          mri_free(zim) ;
        }
      }
 
-     free(qs) ; free(ns) ;
+     free(qs) ; free(ns) ; free(ap) ;
 
    } /*--- end of 3dAllineate prolegomenon -----------------------------------*/
 

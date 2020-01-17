@@ -77,6 +77,11 @@ afni_history_struct ptaylor_history[] = {
    "Returns list of seed objs for APQC.\n"
 },
 
+{ 17, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New pieces of QC:  corr brain image in regr block.",
+   "Shows corr of mean residual with everything.  Have a nice day.\n"
+},
+
 { 13, Jan , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "New pieces of QC:  first, seedbased corr maps for non-task data.",
    "Second, censor-based warnings (general and per-stim).\n"
