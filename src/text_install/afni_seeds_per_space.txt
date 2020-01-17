@@ -8,5 +8,5 @@
 #    x       y      z       space                roi_label                netw
 # --------------------------------------------------------------------------------
      5      49     40       MNI                  lh-PCC                   DMN
-    -4      91     -3       MNI                  rh-vis-cort              Vis
-    64      12      2       MNI                  rh-aud-cort              Aud
+    -4      91     -3       MNI                  rh-cort-vis              Vis
+    64      12      2       MNI                  rh-cort-aud              Aud
