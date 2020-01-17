@@ -472,6 +472,7 @@ if __name__ == "__main__":
                 focusbox = '${templ_vol}'
             else:
                 focusbox = '${final_anat}'
+
         elif lat.check_dep(ap_ssdict, alt_ldep) :
             DO_VSTAT_SEED_REST = 1
             ulay     = '${vr_base_dset}'
@@ -683,8 +684,6 @@ if __name__ == "__main__":
 
     # !!! make uvar for this??
 
-    DO_REGR_CORR_ERRTS = 0
-
     ldep     = ['errts_dset', 'final_anat']
     ldep2    = ['template']                                # 2ary consid
     alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
@@ -705,8 +704,11 @@ if __name__ == "__main__":
 
     #ldep  = ['xmat_regress']
     #if lat.check_dep(ap_ssdict, ldep) :
-    corr_brain = 'corr_brain+tlrc.HEAD'
-    if os.path.isfile(corr_brain) and DO_REGR_CORR_ERRTS :
+
+    list_corr_brain = glob.glob('corr_brain+*.HEAD')
+    if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
+
+        corr_brain = list_corr_brain[0]
 
         ban      = lat.bannerize('check ave errts corr through brain')
         obase    = 'qc_{:02d}'.format(idx)

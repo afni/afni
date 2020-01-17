@@ -1851,8 +1851,8 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     -olay  ${{olay_dset}}  
     -cbar {cbar}
     -ulay_range 0% 120%  
-    -func_range 0.1
-    -thr_olay 0.05
+    -func_range 0.5
+    -thr_olay 0.2
     -olay_alpha Yes
     -olay_boxed Yes
     -set_subbricks 0 0 0
