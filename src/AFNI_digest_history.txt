@@ -1,3 +1,28 @@
+Contents:
+00) AFNI Bootcamp advert: at NIH campus, March 30 - April 3, 2020.
+
+00) AFNI Bootcamp advert: at NIH campus, March 30 - April 3, 2020.
+The next AFNI Bootcamp at NIH (Bethesda, MD, USA) is open for
+registration!  The main session runs Mar 30-Apr 3, and there is
+an optional/alternative DTI session, also on Friday, Apr 3. There
+is no registration fee for the Bootcamp, but attendees must pay
+all their own expenses (e.g., lodging, travel, food, fancy
+coffees). The main Bootcamp info page is here, with a link to the
+registration form:
+https://afni.nimh.nih.gov/bootcamp/
+along with preliminary schedules and logistic information.
+
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
 AFNI Digest, week of 2019/08/28.
 
 Contents:
