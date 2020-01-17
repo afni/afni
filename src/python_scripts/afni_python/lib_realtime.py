@@ -83,7 +83,9 @@ class RTInterface:
    def open_incoming_socket(self):
       """create a server port to listen for connections from AFNI"""
 
-      if self.verb>2: print('-- make server socket, port %d...'%self.server_port)
+      if self.verb > 2:
+         print("-- make server socket, port %d, timeout %s" \
+               % (self.server_port, socket.getdefaulttimeout()))
       elif self.verb>0: print('waiting for connection...')
 
       errs = 0
