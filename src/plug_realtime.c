@@ -542,7 +542,7 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
     "None" , "Motion_Only", "ROI_means" ,
-    "All_Data", "All_Data_light", "ROIs_and_data} ;
+    "All_Data", "All_Data_light", "ROIs_and_data}"} ;
 
 /* Variables to enable writing individual time-point volumes to disk */
 #define RT_WRITE_NOTHING       0
@@ -2840,7 +2840,7 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     THD_ivec3   ivec;
     void      * dptr;
     float       ffac;
-    int         dind, vind, iv, nvox;
+    int         dind, iv, nvox;
     int         i, j, k, nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
@@ -2871,13 +2871,11 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     if( ffac == 0.0 ) ffac = 1.0;
 
     dind = 0;   /* index into output data array */
-    vind = 0;   /* mask counter */
     dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
     for( iv=0 ; iv < nvox ; iv++ ) {
        if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
 
        /* we have a good voxel, fill everything but value, first */
-       vind++;
 
        IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
        LOAD_IVEC3(ivec,i,j,k);
@@ -2917,7 +2915,7 @@ static int RT_mp_set_mask_aves_n_data( RT_input * rtin, float * data, int sub )
 {
     void      * dptr;
     float       ffac;
-    int         dind, nvox, iv, vind;
+    int         dind, nvox, iv;
     int         nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
@@ -2949,7 +2947,6 @@ static int RT_mp_set_mask_aves_n_data( RT_input * rtin, float * data, int sub )
 
     /* init counters */
     dind = 0;   /* index into output data array */
-    vind = 0;   /* mask counter */
     dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
 
     /* start by setting non-1 mask aves (skip first iv) */
@@ -2961,7 +2958,6 @@ static int RT_mp_set_mask_aves_n_data( RT_input * rtin, float * data, int sub )
        if( rtin->mask[iv] != 1 ) continue;
 
        /* we have a good voxel */
-       vind++;
 
        /* set the data value (convert to float) */
        if( rtin->datum == MRI_short )
@@ -2985,7 +2981,7 @@ static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
 {
     void      * dptr;
     float       ffac;
-    int         dind, nvox, iv, vind;
+    int         dind, nvox, iv;
     int         nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
@@ -3016,13 +3012,11 @@ static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
     if( ffac == 0.0 ) ffac = 1.0;
 
     dind = 0;   /* index into output data array */
-    vind = 0;   /* mask counter */
     dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
     for( iv=0 ; iv < nvox ; iv++ ) {
        if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
 
        /* we have a good voxel */
-       vind++;
 
        /* set the data value (convert to float) */
        if( rtin->datum == MRI_short )
