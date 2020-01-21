@@ -188,4 +188,3 @@ target_link_libraries(
   PUBLIC NIFTI::nifticdf
   PRIVATE m
 )
-add_afni_library(f2c ALIAS f2c)
