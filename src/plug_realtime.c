@@ -2725,7 +2725,13 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
         tr_vals = bsize; 
     } else if( g_mask_dset && g_mask_val_type == 5) {
                         /* motion plus non-1 mask averages plus all-1 voxels */
-        bsize   = 6 + rtin->mask_nvals-1 + rtin->mask_nones;
+        if( rtin->mask_nvals <= 0 ) {
+           /* do we allow this? */
+           fprintf(stderr,"** RTM: no mask to send data for\n");
+           bsize = 6;
+        } else {
+           bsize = 6 + rtin->mask_nvals-1 + rtin->mask_nones;
+        }
         tr_vals = bsize; 
     } else {
         fprintf(stderr,"** need mask to send data\n");
