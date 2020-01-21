@@ -3375,7 +3375,7 @@ STATUS("labelizing Rvar") ;
      if( LJ_hh == 0 ){              /* set the max lag parameter now */
        int h1 = min_run/8 , h2 = (int)rintf(3.0f*logf((float)min_run)) ;
        LJ_hh = nrega+2+MIN(h1,h2) ; if( LJ_hh > min_run/2 ) LJ_hh = min_run/2 ;
-       INFO_message("Ljung-Box max lag parameter h = %d (%d DOF)",LJ_hh,LJ_hh-2) ;
+       INFO_message("Ljung-Box max lag parameter h = %d (%d chi-squared DOF)",LJ_hh,LJ_hh-2) ;
      }
      EDIT_BRICK_TO_FICT( Rvar_dset , 5 , (LJ_hh-2.0f) ) ;
 
