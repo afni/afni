@@ -92,9 +92,13 @@ auth = 'PA Taylor'
 # [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
 #      as a dependency, so remove it from the list
 #
-ver = '3.2' ; date = 'Jan 9, 2019' 
+#ver = '3.2' ; date = 'Jan 9, 2019' 
 # [PT] new warning block: censor fraction
 #    + seed point plotting introduced (vstat section for resting state)
+#
+ver = '3.21' ; date = 'Jan 9, 2019' 
+# [PT] raise the thresholds in the vstat_seedcorr regr_corr plots
+#    + so much above threshold otherwise, including noise
 #
 #########################################################################
 
@@ -1851,8 +1855,8 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     -olay  ${{olay_dset}}  
     -cbar {cbar}
     -ulay_range 0% 120%  
-    -func_range 0.5
-    -thr_olay 0.2
+    -func_range 0.6
+    -thr_olay 0.3
     -olay_alpha Yes
     -olay_boxed Yes
     -set_subbricks 0 0 0
@@ -2011,8 +2015,8 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     -olay  ${{tcorrvol}}  
     -cbar {cbar}
     -ulay_range 0% 120%  
-    -func_range 0.5
-    -thr_olay 0.2
+    -func_range 0.6
+    -thr_olay 0.3
     -olay_alpha Yes
     -olay_boxed Yes
     -set_subbricks 0 0 0
