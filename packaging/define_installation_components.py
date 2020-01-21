@@ -147,6 +147,33 @@ ninja install  > components/6_rstats.txt
 print("Built full build")
 
 
+# full with external, the full build and the external libraries that can be
+# built using the cmake build system:
+# e.g. nifti,gifti,jpeg,xmhtml,gts,glut,volpack,qhull,dcm2niix,f2c,netcdf
+sp.check_output(
+    """
+ninja uninstall
+cmake /opt/afni \
+    -DADD_RTATS=ON \
+    -DUSE_SYSTEM_NIFTI=OFF \
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DUSE_SYSTEM_JPEG=OFF \
+    -DUSE_SYSTEM_XMHTML=OFF \
+    -DUSE_SYSTEM_GTS=OFF \
+    -DUSE_SYSTEM_GLUT=OFF \
+    -DUSE_SYSTEM_VOLPACK=OFF \
+    -DUSE_SYSTEM_QHULL=OFF \
+    -DUSE_SYSTEM_DCM2NIIX=OFF \
+    -DUSE_SYSTEM_F2C=OFF \
+    -DUSE_SYSTEM_NETCDF=OFF
+ninja
+ninja install  > components/7_external_dependencies.txt
+""",
+    shell=True,
+)
+print("Built full build")
+
+
 line_pats = ["Installing", "Up-to-date"]
 # generate useful diff files
 cumulative = set()
