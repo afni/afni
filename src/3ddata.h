@@ -6003,6 +6003,8 @@ extern MRI_IMAGE *build_byteized_vectors( int n ,              /* 02 Mar 2009 */
                                           float xbot,float xtop,float *x ,
                                           float ybot,float ytop,float *y  ) ;
 
+extern double ljung_box_uneven( int nval, int hh, double *val, int *tau ) ; /* 21 Jan 2020 */
+
 /*------------------------------------------------------------------------*/
 /* Stuff for compression via zlib - see zfun.c - 02 Mar 2009 == snow day! */
 
