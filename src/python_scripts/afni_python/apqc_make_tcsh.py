@@ -495,6 +495,8 @@ if __name__ == "__main__":
                     seed_list = UTIL.read_afni_seed_file(SPECIAL_FILE, 
                                                          only_from_space=tspace)
                     Nseed = len(seed_list)
+                else:
+                    Nseed = 0
             else:
                 Nseed = 0
 

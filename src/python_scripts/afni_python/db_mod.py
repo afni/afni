@@ -9019,10 +9019,13 @@ g_help_examples = """
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
-           than the default lpc one.
+           than the default lpc one.  Apply -giant_move, in case the datasets
+           do not start off well-aligned.  Include -check_flip for good measure.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
+           * NOTE: prepare for FreeSurfer before running @SSwarper, so that the
+                   FS output will stay aligned with the input.
            * This adds a lot of processing time.
            * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
              Then use the resulting datasets in the afni_proc.py command below
@@ -9031,6 +9034,9 @@ g_help_examples = """
                             -subid FT                  \\
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
+
+            - The SS (skull-stripped) can be given via -copy_anat, and the 
+              with-skull unifized anatU can be given as a follower.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -9060,11 +9066,12 @@ g_help_examples = """
                  reasonable to stick with epits.  They will likely be almost
                  identical.
 
-
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask         \\
                           scale regress                                      \\
-                  -copy_anat FT_anat_FSPprep.nii                             \\
+                  -copy_anat anatSS.FT.nii                                   \\
+                  -anat_has_skull no                                         \\
+                  -anat_follower anat_w_skull anatU.FT.nii                   \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
@@ -9072,7 +9079,7 @@ g_help_examples = """
                   -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
-                  -align_opts_aea -cost lpc+ZZ                               \\
+                  -align_opts_aea -cost lpc+ZZ -giant_move -check_flip       \\
                   -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
                   -tlrc_NL_warp                                              \\
                   -tlrc_NL_warped_dsets anatQQ.FT.nii                        \\
@@ -9093,7 +9100,8 @@ g_help_examples = """
                   -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts
+                  -regress_est_blur_errts                                    \\
+                  -html_review_style pythonic
 
        Example 11b. Similar to 11, but without FreeSurfer. ~2~
 
@@ -9127,10 +9135,8 @@ g_help_examples = """
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
+                  -tlrc_base TT_N27+tlrc                                     \\
                   -tlrc_NL_warp                                              \\
-                  -tlrc_NL_warped_dsets                                      \\
-                      anatQQ.FT.nii anatQQ.FT.aff12.1D anatQQ.FT_WARP.nii    \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
@@ -9288,6 +9294,8 @@ g_help_examples = """
             - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
             - QC: @radial_correlate on tcat and volreg block results
             - QC: pythonic html report
+
+            * since this is a surface-based example, the are no tlrc options
 
          Minor aspects:
 
