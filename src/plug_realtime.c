@@ -85,8 +85,9 @@
                * dx,y,z were used for multiple things, corrupting the
                  channel merge values
                                                                              **/
+/** 22 Jan 2020: added ROIs_and_data mask method for JGC             [rickr] **/
 
-#define RT_VERSION_STR "14 Jan 2020: regtime, reg_chan"
+#define RT_VERSION_STR "22 Jan 2020: ROIs_and_data"
 
 
 /**************************************************************************/
@@ -540,9 +541,20 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
     "None" , "Motion Only", "ROI means" ,
     "All Data (heavy)" , "All Data (light)", "ROIs and data"} ;
 
+/* RT mask mechods:
+
+   None                 : nothing sent
+   Motion_Only          : 6 motion parameters, per time point
+   ROI_means            : 6 motion, plus the mean over each ROI index
+   All_Data             : big: 6 motion plus index, ijk, xyz, value for each vox
+   All_Data_light       : 6 motion, plus each voxel value (over mask)
+   ROIs_and_data        : 6 motion,
+                          each ROI average (for ROI index > 1)
+                          each voxel value (for ROI index == 1)
+*/
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
     "None" , "Motion_Only", "ROI_means" ,
-    "All_Data", "All_Data_light", "ROIs_and_data}"} ;
+    "All_Data", "All_Data_light", "ROIs_and_data"} ;
 
 /* Variables to enable writing individual time-point volumes to disk */
 #define RT_WRITE_NOTHING       0
@@ -3250,8 +3262,9 @@ static int RT_mp_getenv( void )
     if( estr != NULL ){
         int ii = PLUTO_string_index(estr,N_RT_MASK_METHODS,RT_mask_strings_ENV);
         if( ii >= 0 && ii < N_RT_MASK_METHODS ) g_mask_val_type = ii;
-        if(verbose>1) fprintf(stderr,"++ RTM getenv: mvals = %s\n",
+        if(verbose) fprintf(stderr,"++ RTM getenv: mvals = %s\n",
                               RT_mask_strings_ENV[g_mask_val_type]);
+        if(verbose>1) fprintf(stderr,"-- RTM getenv, set from %s\n", estr);
     }
 
     if( ! g_mask_val_type ) return 0;
@@ -3284,7 +3297,7 @@ static int RT_mp_comm_init( RT_input * rtin )
     struct sockaddr_in   sin;
     struct hostent     * hostp;
     char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
-    int                  sd, send_nvals = 0, rv;
+    int                  sd, send_nvals = 0, rv, mask_req;
 
      /* if error or not in use, return */
     if( RT_mp_getenv() || ! g_mask_val_type) {
@@ -3300,25 +3313,41 @@ static int RT_mp_comm_init( RT_input * rtin )
      * if we are prepared to send mask info, and hello mode is set, then
      * note to also send mask_nvals (or mask_nset)
      */
+    mask_req = 0; /* note separately whether a mask is required */
     if( g_MP_send_ver ) {  /* send VERSION info */
         if ( g_mask_val_type == 1 ) {                       /* motion only */
             send_nvals = 0;
             magic_hi[3] += 1;
-        } else if ( g_mask_val_type == 2 && g_mask_dset ) { /* averages */
+        } else if ( g_mask_val_type == 2 ) {                /* averages */
+            mask_req = 1;
             send_nvals = rtin->mask_nvals;
             magic_hi[3] += 1;
-        } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
+        } else if( g_mask_val_type == 3 ) {                 /* all data */
+            mask_req = 1;
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 2;
-        } else if( g_mask_val_type == 4 && g_mask_dset ) {  /* data only */
+        } else if( g_mask_val_type == 4 ) {                 /* data only */
+            mask_req = 1;
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 3;
-        }else {                                            /* bad combo */
-            fprintf(stderr,"** RTM init: mask is required with type %d\n",
+        } else if( g_mask_val_type == 5 ) {         /* ROI aves and data */
+            mask_req = 1;
+            send_nvals = rtin->mask_nvals-1 + rtin->mask_nones;
+            magic_hi[3] += 1;  /* treat like aves */
+        } else {                                            /* bad combo */
+            fprintf(stderr,"** RTM init: unprepared for mask_val type %d\n",
                     g_mask_val_type);
             rtin->mp_tcp_use = -1;
             return -1;
         }
+    }
+
+    /* check the mask separately */
+    if( mask_req && ! g_mask_dset ) {
+       fprintf(stderr,"** RTM init: mask is required with mask_val type %d\n",
+               g_mask_val_type);
+       rtin->mp_tcp_use = -1;
+       return -1;
     }
 
     if ( rtin->mp_tcp_sd != 0 )
