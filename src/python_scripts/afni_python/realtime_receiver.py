@@ -204,9 +204,10 @@ g_history = """
    0.5  Jan 16, 2013 : added -dc_params
    0.6  Sep 16, 2016 : proceed even if requested GUI fails to load
    1.0  Jan 01, 2018 : python3 compatible, added -write_text_data
+   1.1  Jan 22, 2020 : added handling of magic version 3 (all data light)
 """
 
-g_version = "realtime_receiver.py version 1.0, January 1, 2018"
+g_version = "realtime_receiver.py version 1.1, January 22, 2020"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 

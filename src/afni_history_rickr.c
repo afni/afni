@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 3 (all data light)",
+   NULL
+ } ,
+
  { 15, Jan, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "corr_* dsets are now correlations with ROI averages",
    "They were previously average correlations with each ROI voxel.  The new\n"

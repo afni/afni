@@ -241,7 +241,7 @@ class RTInterface:
 
       if self.version == 0: pass        # we're good to go
 
-      elif self.version == 1 or self.version == 2:
+      elif self.version >= 1 and self.version <= 3:
          # ------------------------------------------------------------
          # read the next 4-byte int to determine the number of extra data
          # values received each TR
@@ -254,8 +254,10 @@ class RTInterface:
          if ilist[0] < 0: print('** received invalid num_extra = %d' % ilist[0])
          elif self.version == 1:
             self.nextra = ilist[0]
-         else: # version = 2
+         elif self.version == 2:
             self.nextra = ilist[0] * 8
+         else: # version = 2
+            self.nextra = ilist[0]
 
          if self.verb > 2:
             print('-- num extra = %d' % self.nextra)
@@ -318,6 +320,7 @@ class RTInterface:
       mprefix = "++ recv motion:     "
       if self.version==1:   eprefix = "++ recv %d extras:   "%self.nextra
       elif self.version==2: eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
+      elif self.version==3: eprefix = "++ recv %d extras: "  %(self.nextra)
 
       print(UTIL.float_list_string([self.motion[i][tr] for i in range(6)],
                            nchar=9, ndec=5, nspaces=2, mesg=mprefix, left=1))
@@ -327,7 +330,7 @@ class RTInterface:
          print(UTIL.gen_float_list_string([self.extras[i][tr] for i in
                            range(self.nextra)], mesg=eprefix, nchar=10, left=1))
       # version 2, each voxel on one line
-      elif self.version == 2 and self.nextra > 0:
+      elif self.version in [2,3] and self.nextra > 0:
          print(eprefix, end=' ')
          elen = len(eprefix)+1
          print(UTIL.gen_float_list_string([self.extras[i][tr]
