@@ -3309,9 +3309,11 @@ static int RT_mp_comm_init( RT_input * rtin )
      *    0 : original magic_hi
      *    1 : magic_hi[3] += 1   -> also send num_extra as int
      *    2 : magic_hi[3] += 2   -> also send num_extra as int for ALL_DATA
+     *    3 : magic_hi[3] += 3   -> also send num_extra for ALL_DATA light
+     *    4 : magic_hi[3] += 4   -> also send num_extra for nROIs and nones
      *
      * if we are prepared to send mask info, and hello mode is set, then
-     * note to also send mask_nvals (or mask_nset)
+     * note to also send mask_nvals (or mask_nset) and possibly nones
      */
     mask_req = 0; /* note separately whether a mask is required */
     if( g_MP_send_ver ) {  /* send VERSION info */
@@ -3332,8 +3334,9 @@ static int RT_mp_comm_init( RT_input * rtin )
             magic_hi[3] += 3;
         } else if( g_mask_val_type == 5 ) {         /* ROI aves and data */
             mask_req = 1;
-            send_nvals = rtin->mask_nvals-1 + rtin->mask_nones;
-            magic_hi[3] += 1;  /* treat like aves */
+            send_nvals = rtin->mask_nvals-1;
+            /* NOTE: we will also send rtin->mask_nones, below */
+            magic_hi[3] += 4;
         } else {                                            /* bad combo */
             fprintf(stderr,"** RTM init: unprepared for mask_val type %d\n",
                     g_mask_val_type);
@@ -3406,6 +3409,23 @@ static int RT_mp_comm_init( RT_input * rtin )
         }
         if( verbose )
             fprintf(stderr,"RTM: sent nextra = %d with hello\n", send_nvals);
+
+        /* in the case of ROIs_and_data, also send rtin->nones */
+        if( g_mask_val_type == 5 ) {
+            send_nvals = rtin->mask_nones;
+            if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
+            {
+                perror("** RT_mp_comm send hello nones");
+                RT_mp_comm_close(rtin, -1);
+                return -1;
+            } else if ( rv != sizeof(int) ) {
+                fprintf(stderr,"** RT nones: sent only %d of 4 bytes\n", rv);
+                RT_mp_comm_close(rtin, -1);
+                return -1;
+            }
+            if( verbose )
+                fprintf(stderr,"RTM: sent nones = %d with hello\n", send_nvals);
+        }
     }
 
     fprintf(stderr,"RTM: opened motion param socket to %s:%d\n",
