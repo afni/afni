@@ -179,7 +179,7 @@ ENTRY("create_float_dataset") ;
 /*! Save a series of floats into a dataset,
     either directly into the bricks, or to a temp file to be restored later. */
 
-char sslab[256] = "\0" ;
+char sslab[256] = "\0" ;  /* purely for debugging purposes */
 
 void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp )
 {
@@ -582,6 +582,9 @@ int main( int argc , char *argv[] )
 
    int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
+   int LJ_hh = 0 ; /* Ljung-Box lag parameter [21 Jan 2020] */
+   int min_run = 0 , max_run = 0 ; /* shortest and longest runs */
+
    /**------------ Get by with a little help from your friends? ------------**/
 
    set_obliquity_report(0); /* silence obliquity */
@@ -968,20 +971,26 @@ int main( int argc , char *argv[] )
       "------------------------------------------------------------------------\n"
       " -Rvar  ppp  = dataset for saving REML variance parameters\n"
       "               * See the 'What is ARMA(1,1)' section, far below.\n"
-      "               * This dataset has 5 volumes:\n"
-      "                 [0] = 'a'       = ARMA parameter\n"
-      "                                 = decay rate of correlations with lag\n"
-      "                 [1] = 'b'       = ARMA parameter\n"
-      "                 [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
-      "                                 = correlation at lag=1\n"
-      "                                   correlation at lag=k is lam * a^(k-1) (k>0)\n"
-      "                 [3] = 'StDev'   = standard deviation of prewhitened\n"
-      "                                   residuals (used in computing statistics\n"
-      "                                   in '-Rbuck' and in GLTs)\n"
-      "                 [4] = '-LogLik' = negative of the REML log-likelihood\n"
-      "                                   function (see the math notes)\n"
+      "               * This dataset has 6 volumes:\n"
+      "                [0] = 'a'       = ARMA parameter\n"
+      "                                = decay rate of correlations with lag\n"
+      "                [1] = 'b'       = ARMA parameter\n"
+      "                [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
+      "                                = correlation at lag=1\n"
+      "                                  correlation at lag=k is lam * a^(k-1) (k>0)\n"
+      "                [3] = 'StDev'   = standard deviation of prewhitened\n"
+      "                                  residuals (used in computing statistics\n"
+      "                                  in '-Rbuck' and in GLTs)\n"
+      "                [4] = '-LogLik' = negative of the REML log-likelihood\n"
+      "                                  function (see the math notes)\n"
+      "                [5] = 'LjungBox'= Ljung-Box statistic of the pre-whitened\n"
+      "                                  residuals, an indication of how much\n"
+      "                                  temporal correlation is left-over.\n"
+      "                                + See the 'Other Commentary' section far below\n"
+      "                                  for a little more information on the LB\n"
+      "                                  statistic.\n"
       "               * The main purpose of this dataset is to check when weird\n"
-      "                   things happen in the calculations.\n"
+      "                   things happen in the calculations. Or just to have fun.\n"
       " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
       "                 [similar to the -cbucket output from 3dDeconvolve]\n"
       "               * This dataset will contain all the beta weights, for\n"
@@ -1427,6 +1436,10 @@ int main( int argc , char *argv[] )
       "    The 4th term depends only on X, and is not actually used herein, since\n"
       "    we don't include a model for varying X as well as R.\n"
       "\n"
+      "* The method for estimating (a,b) does not require the time series data to be\n"
+      "    perfectly uniform in time. Gaps due to censoring and run break are allowed\n"
+      "    for properly.\n"
+      "\n"
       "* Again, see the math notes for more fun fun algorithmic details:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
       "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
@@ -1453,7 +1466,7 @@ int main( int argc , char *argv[] )
       "* The '-matrix' file must be from 3dDeconvolve; besides the regression\n"
       "    matrix itself, the header contains the stimulus labels, the GLTs,\n"
       "    the censoring information, etc.\n"
-      "  ++ Although you can put in a 'raw' matrix using the '-matim' option,\n"
+      "  + Although you can put in a 'raw' matrix using the '-matim' option,\n"
       "     described earlier.\n"
       "\n"
       "* If you don't actually want the OLSQ results from 3dDeconvolve, you can\n"
@@ -1496,18 +1509,41 @@ int main( int argc , char *argv[] )
       "    carefully to make sure they are reasonable (e.g., look at\n"
       "    the fitted model overlay on the input time series).\n"
       "\n"
-      "* Despite my best efforts, this program is somewhat slow.\n"
-      "    Partly because it solves many linear systems for each voxel,\n"
-      "    trying to find the 'best' ARMA(1,1) prewhitening matrix.\n"
-      "  ++ However, a careful choice of algorithms for solving the linear\n"
-      "     systems (QR method, sparse matrix operations, etc.) and some\n"
-      "     other code optimizations should make running 3dREMLfit tolerable.\n"
-      "  ++ Depending on the matrix and the options, you might expect CPU time\n"
-      "     to be about 2..4 times that of the corresponding 3dDeconvolve run.\n"
-      "     (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
-      "  ++ Nowadays [2019], computers are so much faster that the olden\n"
-      "     times that this 'slow' comment is probably pointless, except\n"
-      "     perhaps for very large (in time) datasets.\n"
+      "* The Ljung-Box (LB) statistic computed via the '-Rvar' option is a\n"
+      "    measure of how correlated the ARMA(1,1) pre-whitened residuals are\n"
+      "    in time. A 'small' value indicates that the pre-whitening was\n"
+      "    reasonably successful (e.g., small LB = 'good').\n"
+      "  + The LB volume will be marked as a chi-squared statistic with h-2 degrees\n"
+      "     of freedom, where 'h' is the semi-arbitrarily chosen maximum lag used.\n"
+      "     A large LB value indicates noticeable temporal correlation in the\n"
+      "     pre-whitened residuals (e.g., that the ARMA(1,1) model wasn't adequate).\n"
+      "  + If a voxel has LB statistic = 0, this means that the LB value could not\n"
+      "     be computed for some reason (e.g., residuals are all zero).\n"
+      "  + For yet more information, see this article:\n"
+      "      On a measure of lack of fit in time series models.\n"
+      "      GM Ljung, GEP Box. Biometrika, 1978.\n"
+      "      https://www.jstor.org/stable/2335207\n"
+      "      https://academic.oup.com/biomet/article/65/2/297/236869\n"
+      "  + The calculation of the LB statistic is adjusted to allow for gaps in\n"
+      "     the time series (e.g., censoring, run gaps).\n"
+      "  + Note that the LB statistic is computed if and only if you give the\n"
+      "     '-Rvar' option. You don't have to give the '-Rwherr' option, which is\n"
+      "     used to save the pre-whitened residuals to a dataset.\n"
+      "  + If you want to test the LB statistic calculation under the null\n"
+      "     hypothesis (i.e., that the ARMA(1,1) model is correct), then\n"
+      "     you can use program 3dSimARMA11 to create a time series dataset,\n"
+      "     then run that through 3dREMLfit, then peruse the histogram\n"
+      "     of the resulting LB statistic. Have fun!\n"
+      "\n"
+      "* Depending on the matrix and the options, you might expect CPU time\n"
+      "    to be about 2..4 times that of the corresponding 3dDeconvolve run.\n"
+      "  + A careful choice of algorithms for solving the multiple linear\n"
+      "     systems required (e.g., QR method, sparse matrix operations,\n"
+      "     bordering, etc.) and some other code optimizations make\n"
+      "     running 3dREMLfit tolerable.\n"
+      "  + Especially on modern fast CPUs. Kids these days have NO idea\n"
+      "     about how we used to suffer waiting for computer runs, and\n"
+      "     how we passed the time by walking uphill through the snow.\n"
       "\n"
       "---------------------------------------------------------------\n"
       "How 3dREMLfit handles all zero columns in the regression matrix\n"
@@ -2361,6 +2397,22 @@ STATUS("process matrix") ;
        INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run = no time discontinuities");
      Nruns = 1 ; runs = calloc(sizeof(int),1) ;
    }
+   if( Nruns == 1 ){  /* 21 Jan 2020 */
+     min_run = max_run = ntime ;
+   } else {
+     min_run = 666666 ; max_run = -666666 ;
+     for( jj=1 ; jj < Nruns ; jj++ ){
+       rnum = runs[jj] - runs[jj-1] ;
+       if( min_run > rnum ) min_run = rnum ;
+       if( max_run < rnum ) max_run = rnum ;
+     }
+     rnum = nfull - runs[Nruns-1] ;
+     if( min_run > rnum ) min_run = rnum ;
+     if( max_run < rnum ) max_run = rnum ;
+     INFO_message("shortest run = %d   longest run = %d",min_run,max_run) ;
+     if( min_run > 555555 || min_run < 6 || max_run < 6 )
+       ERROR_exit("Matrix attribute 'RunStart' has bad values") ;
+   }
 
    /*----- set up pseudo-time tau[] vector for R matrix formation -----*/
 
@@ -2981,7 +3033,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-   niv = (nvals+nregda+glt_num+9)*2 ;
+   niv = (nvals+nregda+glt_num+99)*2 ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ; /* temp vectors */
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
@@ -3328,7 +3380,7 @@ STATUS("labelizing Rbeta") ;
        EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[betaset[ii]] ) ;
    }
 
-   Rvar_dset  = create_float_dataset( inset , 5    , Rvar_prefix,1 , NULL,NULL ) ;
+   Rvar_dset  = create_float_dataset( inset , 6    , Rvar_prefix,1 , NULL,NULL ) ;
    if( Rvar_dset != NULL ){
      float abar[3] ;
 STATUS("labelizing Rvar") ;
@@ -3337,6 +3389,15 @@ STATUS("labelizing Rvar") ;
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 4 , "-LogLik") ;
+
+     EDIT_BRICK_LABEL( Rvar_dset , 5 , "LjungBox") ;  /* 21 Jan 2020 */
+     if( LJ_hh == 0 ){              /* set the max lag parameter now */
+       int h1 = min_run/8 , h2 = (int)rintf(3.0f*logf((float)min_run)) ;
+       LJ_hh = nrega+2+MIN(h1,h2) ; if( LJ_hh > min_run/2 ) LJ_hh = min_run/2 ;
+       INFO_message("Ljung-Box max lag parameter h = %d (%d chi-squared DOF)",LJ_hh,LJ_hh-2) ;
+     }
+     EDIT_BRICK_TO_FICT( Rvar_dset , 5 , (LJ_hh-2.0f) ) ;
+
      abar[0] = rhomax ; abar[1] = bmax ; abar[2] = (float)nlevab ;
      THD_set_float_atr( Rvar_dset->dblk , "REMLFIT_abmax" , 3 , abar ) ;
    }
@@ -3503,6 +3564,7 @@ STATUS("setting up Rglt") ;
 
      last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
 
+     /* make some space for vectors */
      for( ii=0 ; ii < 7 ; ii++ )
        bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
@@ -3652,7 +3714,7 @@ STATUS("setting up Rglt") ;
                 bb2 = whitened residuals    (ntime)
                       (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
-         sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ;
+         sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ; /* debugging */
 #if 1
          (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
 #else
@@ -3664,7 +3726,7 @@ STATUS("setting up Rglt") ;
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
-           sprintf(sslab,"%s %d", "Rfitts" ,vv);
+           sprintf(sslab,"%s %d", "Rfitts" ,vv); /* debugging */
            save_series( vv , Rfitts_dset , nfull , iv , Rfitts_fp ) ;
          }
 
@@ -3672,7 +3734,7 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
-           sprintf(sslab,"%s %d", "Rerrts" ,vv);
+           sprintf(sslab,"%s %d", "Rerrts" ,vv); /* debugging */
            save_series( vv , Rerrts_dset , nfull , iv , Rerrts_fp ) ;
          }
 
@@ -3680,22 +3742,28 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = bb2[ii] ;
-           sprintf(sslab,"%s %d", "Rwherr" ,vv);
+           sprintf(sslab,"%s %d", "Rwherr" ,vv); /* debugging */
            save_series( vv , Rwherr_dset , nfull , iv , Rwherr_fp ) ;
          }
 
          if( Rbeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
-           sprintf(sslab,"%s %d", "Rbeta" ,vv);
+           sprintf(sslab,"%s %d", "Rbeta" ,vv); /* debugging */
            save_series( vv , Rbeta_dset , nbetaset , iv , Rbeta_fp ) ;
          }
 
          if( Rvar_dset != NULL ){
+           int h1,h2 ;
+
            iv[0] = my_rset->rho ; iv[1] = my_rset->barm ;
            iv[2] = my_rset->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
-           sprintf(sslab,"%s %d", "Rvar" ,vv);
-           save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
+
+           /* Ljung-Box statistic (cf. thd_ljungbox.c) [21 Jan 2020] */
+           iv[5] = (float)ljung_box_uneven( ntime, LJ_hh, bb2, tau ) ;
+
+           sprintf(sslab,"%s %d", "Rvar" ,vv); /* debugging */
+           save_series( vv , Rvar_dset , 6 , iv , Rvar_fp ) ;
          }
 
          AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
@@ -3724,7 +3792,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
-           sprintf(sslab,"%s %d", "Rbuckt glt" ,vv);
+           sprintf(sslab,"%s %d", "Rbuckt glt" ,vv); /* debugging */
            save_series( vv , Rbuckt_dset , nbuckt , iv , Rbuckt_fp ) ;
          }
 
@@ -3752,7 +3820,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
-           sprintf(sslab,"%s %d", "Rglt" ,vv);
+           sprintf(sslab,"%s %d", "Rglt" ,vv); /* debugging */
            save_series( vv , Rglt_dset , neglt , iv , Rglt_fp ) ;
          }
 
@@ -4088,7 +4156,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
-           sprintf(sslab,"%s %d", "Ofitts" ,vv);
+           sprintf(sslab,"%s %d", "Ofitts" ,vv); /* debugging */
            save_series( vv , Ofitts_dset , nfull , iv , Ofitts_fp ) ;
          }
 
@@ -4096,19 +4164,19 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
-           sprintf(sslab,"%s %d", "Oerrts" ,vv);
+           sprintf(sslab,"%s %d", "Oerrts" ,vv); /* debugging */
            save_series( vv , Oerrts_dset , nfull , iv , Oerrts_fp ) ;
          }
 
          if( Obeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
-           sprintf(sslab,"%s %d", "Obeta" ,vv);
+           sprintf(sslab,"%s %d", "Obeta" ,vv); /* debugging */
            save_series( vv , Obeta_dset , nbetaset , iv , Obeta_fp ) ;
          }
 
          if( Ovar_dset != NULL ){
            iv[0] = sqrt( bbsumq / ddof ) ;
-           sprintf(sslab,"%s %d", "Ovar" ,vv);
+           sprintf(sslab,"%s %d", "Ovar" ,vv); /* debugging */
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
@@ -4137,7 +4205,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
                }
              }
            }
-           sprintf(sslab,"%s %d", "Obuckt glt" ,vv);
+           sprintf(sslab,"%s %d", "Obuckt glt" ,vv); /* debugging */
            save_series( vv , Obuckt_dset , nbuckt , iv , Obuckt_fp ) ;
          }
 
@@ -4165,7 +4233,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
                }
              }
            }
-           sprintf(sslab,"%s %d", "Oglt" ,vv);
+           sprintf(sslab,"%s %d", "Oglt" ,vv); /* debugging */
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
          }
 

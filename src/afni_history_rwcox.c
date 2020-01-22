@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , JAN , 2020 , RWC , "3dREMLfit" , MAJOR , TYPE_ENHANCE ,
+   "Compute Ljung-Box statistic for -Rvar dataset." ,
+   "Provides a measure of how temporally correlated each voxel's\n"
+   "pre-whitened residuals are. Small LB value = good fit by the ARMA(1,1)\n"
+   "model. Sub-brick is coded as a chi-squared statistic for use in\n"
+   "thresholding in the AFNI GUI." } ,
+
  { 12 , DEC , 2019 , RWC , "3dTcorrelate" , MINOR , TYPE_NEW_OPT ,
    "Add -zcensor option" ,
    "Remove from consideration any time point t where xset(t) OR yset(t) is\n"

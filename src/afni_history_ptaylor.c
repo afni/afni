@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 21, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Increase thresholds and cbar range in vstat_seedcorr and regr_corr dsets.",
+   "Clearer QC, methinks, based on several different group dsets.\n"
+},
+
 { 14, Jan , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Change text of animal_outs.txt.",
    "Add in a couple new dsets to be listed.\n"
