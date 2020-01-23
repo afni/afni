@@ -54,9 +54,9 @@ afni_history_struct rickr_history[] = {
    "Done for J Gonzalez-Castillo."
  } ,
 
- { 22, Jan, 2020, RCR, "plug_realtime", MINOR, TYPE_GENERAL,
+ { 22, Jan, 2020, RCR, "plug_realtime", MAJOR, TYPE_GENERAL,
    "add ROIs and data mask method",
-   NULL
+   "Added corresponding demo: AFNI_data6/realtime.demos/demo_3_ROIs_n_data\n"
  } ,
 
  { 22, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
@@ -198,8 +198,8 @@ afni_history_struct rickr_history[] = {
    "Undo removal of strcasestr."
  } ,
 
- { 17, Oct, 2019, RCR, "Makefile.*", MICRO, TYPE_BUG_FIX,
-   "for strcasestr, we need to define _GNU_SOURCE",
+ { 17, Oct, 2019, RCR, "Makefile", MICRO, TYPE_BUG_FIX,
+   "for strcasestr, we need to define _GNU_SOURCE in Makefile.*",
    NULL
  } ,
 
@@ -851,7 +851,9 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5, Feb, 2019, RCR, "demoExpt.py", MICRO, TYPE_GENERAL,
-   "add roopchansinghv to afni_src.tgz targe",
+   "add roopchansinghv to afni_src.tgz target",
+   "This is a realtime neurofeedback framework, built on top of afni and\n"
+   "realtime_receiver.py, using PsychoPy for feedback and presentation.\n"
    "Also, set demoExpt.py mode as 755."
  } ,
 
