@@ -352,11 +352,11 @@ class RTInterface:
          self.print_floats_one_line(self.extras, self.nextra, tr, eprefix)
 
       # version 2, each voxel on one line
-      elif self.version in [2,3,4] and self.nextra > 0:
+      elif self.version in [2,3] and self.nextra > 0:
          self.print_floats_multi_line(self.extras, self.nextra, tr, eprefix)
 
       # version 4, ADDITIONALLY show extras2
-      if self.version == 4 and (self.nextra > 0 or self.nextra2 > 0):
+      elif self.version == 4 and (self.nextra > 0 or self.nextra2 > 0):
          ep2 = "++ recv %d extra2:   "%(self.nextra2)
          self.print_floats_multi_line(self.extras, self.nextra,  tr, eprefix)
          self.print_floats_multi_line(self.extra2, self.nextra2, tr, ep2)
@@ -414,7 +414,7 @@ class RTInterface:
       for ind in range(6):
          self.motion[ind].append(values[ind])
 
-      if self.verb > 4: print('%% current motion[0]: %s' % self.motion[0])
+      if self.verb > 4: print('== current motion[0]: %s' % self.motion[0])
 
       # read and append extra values
       if self.nextra > 0:
@@ -423,6 +423,8 @@ class RTInterface:
             print('** failed to read %d extras for TR %d' \
                   % (self.nextra, self.nread+1))
             return 1
+         if self.verb > 4:
+            print('== extras[%d]: %s' % (self.nextra, values))
          for ind in range(self.nextra): self.extras[ind].append(values[ind])
 
       # read and append extra2 values
@@ -432,6 +434,8 @@ class RTInterface:
             print('** failed to read %d extra2 for TR %d' \
                   % (self.nextra2, self.nread+1))
             return 1
+         if self.verb > 4:
+            print('== extras2[%d]: %s' % (self.nextra2, values))
          for ind in range(self.nextra2): self.extra2[ind].append(values[ind])
 
       # possibly display TR data
