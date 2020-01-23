@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 4 (ROIs and mask==1 data)",
+   "Done for J Gonzalez-Castillo."
+ } ,
+
+ { 22, Jan, 2020, RCR, "plug_realtime", MINOR, TYPE_GENERAL,
+   "add ROIs and data mask method",
+   NULL
+ } ,
+
  { 22, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
    "add handling of magic version 3 (all data light)",
    NULL
