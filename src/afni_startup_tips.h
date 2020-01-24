@@ -1258,6 +1258,7 @@ static char *gby[] = {
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
      "In a billion years, the sun gets so hot Earth will be fried. Are you ready?"    ,
+     "May your results be like the Velvet Hammer:  strong flavor, smooth finish!"     ,
 
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
