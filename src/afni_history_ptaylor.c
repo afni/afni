@@ -67,6 +67,21 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master" , MICRO , TYPE_GENERAL,
+   "Updated with notes to look at @afni_refacer_make_master_addendum.",
+   "The addendum program just tweaks the output of this prog.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master_addendum" , MAJOR , TYPE_GENERAL,
+   "This program just records additional tweaks to refacer ref vol.",
+   "Not really meant to be run on its own; for future reference only.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program has been revamped and updated, including having a new ref vol.",
+   "Syntax for running this has totally changed (options exist).\n"
+},
+
 { 21, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Increase thresholds and cbar range in vstat_seedcorr and regr_corr dsets.",
    "Clearer QC, methinks, based on several different group dsets.\n"
