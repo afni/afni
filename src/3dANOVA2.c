@@ -493,7 +493,14 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
-     CHECK_OPEN_ERROR(dset,argv[nopt]) ;
+          /* give more info about where we are in the opt list */
+          if( !dset && nopt > 4 ) {
+             fprintf(stderr,"** bad dset at opt #%d, '%s'\n",
+                     nopt, argv[nopt]);
+             fprintf(stderr,"   follows options: %s %s %s %s\n",
+                     argv[nopt-4], argv[nopt-3], argv[nopt-2], argv[nopt-1]);
+          }
+          CHECK_OPEN_ERROR(dset,argv[nopt]) ;
 
 	  /*--- check number of selected sub-bricks ---*/
 	  if (DSET_NVALS(dset) != 1)
@@ -863,6 +870,10 @@ void get_options (int argc, char ** argv, anova_options * option_data)
    }
 
       /*----- unknown command -----*/
+      fprintf(stderr,"** bad option #%d, '%s'\n", nopt, argv[nopt]);
+      if( nopt > 4 )
+         fprintf(stderr,"   follows options: %s %s %s %s\n",
+                 argv[nopt-4], argv[nopt-3], argv[nopt-2], argv[nopt-1]);
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
       ERROR_message (message);
       suggest_best_prog_option(argv[0], argv[nopt]);
