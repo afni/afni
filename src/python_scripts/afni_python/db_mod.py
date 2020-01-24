@@ -12167,7 +12167,11 @@ g_help_options = """
             global vr_base, say, which may or may not be one of the per-run
             vr_base datasets).
 
-            See also -volreg_pvra_base_index.
+          * Consider use of -volreg_warp_dxyz, for cases when the voxel size
+            might vary across runs.  It would ensure that the final grids are
+            the same.
+
+            See also -volreg_pvra_base_index, -volreg_warp_dxyz.
 
         -volreg_pvra_base_index INDEX : specify per run INDEX for post_vr_allin
 
