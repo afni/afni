@@ -3765,7 +3765,7 @@ STATUS("making func->rowcol") ;
        if( eee == NULL ) eee = getenv("AFNI_COLOR_SCALE_DEFAULT") ;
        if( eee == NULL || strcmp(eee,"NO") != 0 ){
          PBAR_set_bigmode( func->inten_pbar , 1 , pmin,pmax ) ;
-         PBAR_set_bigmap( func->inten_pbar , eee ) ;
+         PBAR_set_bigmap( func->inten_pbar , eee , 0) ;
          im3d->cont_pbar_index = func->inten_pbar->bigmap_index;
          im3d->int_pbar_index = PBAR_get_bigmap_index("ROI_i256");
        }
@@ -7792,18 +7792,11 @@ char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
       return("ROI_i128" ) ;
    } else if (mxset <= 256) {
       return("ROI_i256" ) ;
-   } else if (mxset > 256) {
-      if (!(warn % 10)) {
-         /* You might want to override the automatic setting of the
-         range with a call to
-            AFNI_set_func_range_nval(pbar->parent,
-                           THD_dset_max(dset, 1));
-            after all the bigmap setup is done ... */
-         WARNING_message("Distinct values might map to the same color"
-                      "in %s\n", DSET_PREFIX(dset));
-      } ++ warn;
-      return("ROI_i256" ) ;
    }
+      /* max is high - use the ROI_i256 colorbar -
+ *         user should use -XXXnpane option*/
+      return("ROI_i256" ) ;
+   
 
    return("ROI_i256" ) ;
 }
@@ -7824,12 +7817,12 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 /*   if (!AFNI_yesenv("AFNI_CMAP_AUTO")) RETURN(0);*/
 
    if( AFNI_noenv("AFNI_CMAP_AUTO") || AFNI_noenv("AFNI_PBAR_AUTO") ) RETURN(0);
-
    im3d = (Three_D_View *)vp_im3d;
    if( !IM3D_OPEN(im3d) ) RETURN(0) ;
 
    if ((atr = THD_find_string_atr( im3d->fim_now->dblk ,
                               "VALUE_LABEL_DTABLE" ))) {
+
       /* switch to an ROI colormap */
       if (!(nel = NI_read_element_fromstring(atr->ch))) {
          fprintf(stderr,"** WARNING: Poorly formatted VALUE_LABEL_DTABLE\n");
@@ -7839,11 +7832,15 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
          icmap = PBAR_get_bigmap_index(pbar_name);
       }
       if (icmap >=0 ) {
-         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
-      } else {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name,
+                            THD_dset_max(im3d->fim_now, 1) ) ;
+/*         AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
+                           THD_dset_max(im3d->fim_now, 1));
+*/      } else {
          if (1) { /* one approach */
             PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
-                             AFNI_smallest_intpbar(im3d->fim_now) ) ;
+                             AFNI_smallest_intpbar(im3d->fim_now),
+                             THD_dset_max(im3d->fim_now, 1) ) ;
          } else { /* another perhaps */
             PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
                               im3d->int_pbar_index ) ;
@@ -7871,12 +7868,18 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       }
 
       if (icmap >=0 ) {
-         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name) ;
-      } else {
+         PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,  pbar_name,
+             THD_dset_max(im3d->fim_now, 1)) ;
+/*         AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
+                           THD_dset_max(im3d->fim_now, 1));
+*/      } else {
          if (1) { /* one approach */
             PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
-                             AFNI_smallest_intpbar(im3d->fim_now) ) ;
-         } else { /* another perhaps */
+                             AFNI_smallest_intpbar(im3d->fim_now),
+                             THD_dset_max(im3d->fim_now, 1) ) ;
+/*            AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
+                           THD_dset_max(im3d->fim_now, 1));
+*/         } else { /* another perhaps */
             PBAR_set_bigmap_index( im3d->vwid->func->inten_pbar ,
                               im3d->int_pbar_index ) ;
          }
@@ -7894,10 +7897,12 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
       if(im3d->fim_now->int_cmap) {
          if (1) { /* one approach */
             PBAR_set_bigmap( im3d->vwid->func->inten_pbar ,
-                             AFNI_smallest_intpbar(im3d->fim_now) );
-         } else { /* or perhaps */
-            PBAR_set_bigmap( im3d->vwid->func->inten_pbar , "ROI_i256" ) ;
-         }
+                             AFNI_smallest_intpbar(im3d->fim_now),
+                             THD_dset_max(im3d->fim_now, 1) );
+/*            AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
+                           THD_dset_max(im3d->fim_now, 1));
+*/
+         }  
       }
       else {
 #if 0

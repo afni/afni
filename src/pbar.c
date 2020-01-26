@@ -13,7 +13,8 @@
 #endif
 
 static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
-static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
+static void PBAR_bigmap_finalize( Widget w, XtPointer cd, 
+    MCW_choose_cbs *cbs, int max );
 static void PBAR_big_menu_CB( Widget , XtPointer , XtPointer ) ;
 
 static void PBAR_define_bigmap_float( int ncol, float *rgb, char *nam ) ;
@@ -857,17 +858,19 @@ ENTRY("PBAR_big_menu_CB") ;
 
 /*--------------------------------------------------------------------*/
 
-static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+static void PBAR_bigmap_finalize( Widget w, XtPointer cd, 
+   MCW_choose_cbs *cbs, int max )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    int ii , ind=cbs->ival , bigthree ;
+   float fmax;
 
 ENTRY("PBAR_bigmap_finalize") ;
 
    if( ind < 0 || ind >= bigmap_num || !pbar->bigmode ){
      XBell(pbar->dc->display,100); POPDOWN_strlist_chooser; EXRETURN;
    }
-
+   fmax = (float) max; 
    bigthree = pbar->big31 ;
 
    pbar->bigflip      = 0 ;                 /* 07 Feb 2004 */
@@ -878,20 +881,20 @@ ENTRY("PBAR_bigmap_finalize") ;
 
    /* If colormap is meant for ROI data, set range
      parameters automatically          ZSS Feb 15 2010 */
-
    if( pbar->parent != NULL ){
      if (strstr(pbar->bigname,"i32")) {
-        AFNI_set_func_range_nval(pbar->parent, 32.0f);
+        AFNI_set_func_range_nval(pbar->parent, MAX(32.0f, fmax));
      } else if (strstr(pbar->bigname,"i64")) {
-        AFNI_set_func_range_nval(pbar->parent, 64.0f);
+        AFNI_set_func_range_nval(pbar->parent, MAX(64.0f, fmax));
      } else if (strstr(pbar->bigname,"i128")) {
-        AFNI_set_func_range_nval(pbar->parent, 128.0f);
+        AFNI_set_func_range_nval(pbar->parent, MAX(128.0f, fmax));
      } else if (strstr(pbar->bigname,"i255")) {
-        AFNI_set_func_range_nval(pbar->parent, 255.0f);
+        AFNI_set_func_range_nval(pbar->parent, MAX(255.0f, fmax));
      } else if (strstr(pbar->bigname,"i256")) {
-        AFNI_set_func_range_nval(pbar->parent, 256.0f);
+        AFNI_set_func_range_nval(pbar->parent, MAX(256.0f, fmax));
      }
    }
+
    pbar->bigmap_index = ind ;
 
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
@@ -918,7 +921,7 @@ int PBAR_get_bigmap_index( char *bnam ) /* 26 Feb. 2010 ZSS */
 
 /*--------------------------------------------------------------------*/
 
-void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam )  /* 03 Feb 2003 */
+void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam, int max )  /* 03 Feb 2003 */
 {
    int ii ;
 
@@ -930,7 +933,7 @@ ENTRY("PBAR_set_bigmap") ;
    if( ii < bigmap_num ){
      MCW_choose_cbs cbs ;
      cbs.ival = ii ;
-     PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
+     PBAR_bigmap_finalize( NULL , pbar , &cbs, max ) ;
    }
    EXRETURN ;
 }
@@ -948,7 +951,7 @@ ENTRY("PBAR_set_bigmap_index") ;
 
    if( pbar == NULL  || pbar_index > bigmap_num ) EXRETURN ;
    cbs.ival = pbar_index ;
-   PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
+   PBAR_bigmap_finalize( NULL , pbar , &cbs, 0 ) ;
 
    EXRETURN ;
 }

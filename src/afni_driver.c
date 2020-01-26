@@ -2366,7 +2366,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      pbar->bigset = 0 ;
      pmax = val ; pmin = wal ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
-     PBAR_set_bigmap( pbar , str ) ;
+     PBAR_set_bigmap( pbar , str , 0) ;
      rotate_MCW_pbar( pbar , rota ) ;  /* 07 Feb 2004 */
      if( flip ) PBAR_flip( pbar ) ;    /* 07 Feb 2004 */
      POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
