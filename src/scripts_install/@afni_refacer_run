@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/tcsh 
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -17,11 +17,15 @@
 
 # ============================================================================
 # 
-set version   = "2.0"; set rev_dat   = "Jan 23, 2020"
+#set version   = "2.0"; set rev_dat   = "Jan 23, 2020"
 #   + [PT] put in real option parsing
 #        + also allow user to input fname in truer AFNI-style as
 #          "SOMETHING+orig" and not just SOMETHING+orig.HEAD
 #        + new shell has been created+used here
+#
+set version   = "2.1"; set rev_dat   = "Jan 26, 2020"
+#   + [PT] choose modes of running differently
+#        + also be able to output all versions of re/defacing at once
 #
 # ============================================================================
 
@@ -29,7 +33,7 @@ set iset     = ""              # name of input dset
 set impref   = ""              # need a prefix now
 set odir     = '.'
 
-set run_mode = "REFACE_FULL"   # also, "REFACE_FACE", "DEFACE"
+set run_mode = ""              # also, "REFACE_FACE", "DEFACE"
 set DO_CLEAN = 1
 set owrite   = ""
 
@@ -62,17 +66,21 @@ while ( $ac <= $#argv )
         set impref = `basename "$argv[$ac]"`
         set odir   = `dirname  "$argv[$ac]"`
 
+    # need one of these
+    else if ( "$argv[$ac]" == "-mode_deface" ) then
+        set run_mode = "deface"
+    else if ( "$argv[$ac]" == "-mode_reface" ) then
+        set run_mode = "reface"
+    else if ( "$argv[$ac]" == "-mode_reface_plus" ) then
+        set run_mode = "reface_plus"
+    else if ( "$argv[$ac]" == "-mode_all" ) then
+        set run_mode = "ALL"
+
     # ------------------------------------------------------
     # opt
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
-
-    else if ( "$argv[$ac]" == "-deface" ) then
-        set run_mode = "DEFACE"
-
-    else if ( "$argv[$ac]" == "-only_face_ears" ) then
-        set run_mode = "REFACE_FACE"
 
     else if ( "$argv[$ac]" == "-overwrite" ) then
         set owrite = "-overwrite"
@@ -88,6 +96,13 @@ while ( $ac <= $#argv )
 end
 
 # ------------------ parse/verify inputs ---------------------------
+
+if ( "${run_mode}" == "" ) then
+    echo "** ERROR: need to specify a refacing mode with one of the '-mode_*'"
+    echo "   opts"
+    goto BAD_EXIT
+endif
+
 
 # check main input
 if ( "${iset}" == "" ) then
@@ -111,11 +126,10 @@ if ( "${Basedset}" == '' ) then
     goto BAD_EXIT
 endif
 
-##### Find AFNI refacer shell (to replace subject face)
-### [PT: Jan 23, 2020] New shell(if) in town: this one is symmetric,
-### without gaps in the skull, and more tightly bounded by -1s.
+# Find AFNI refacer shell (to replace subject face); this is a newer
+# shell than original: this one is symmetric, without gaps in the
+# skull, and more tightly bounded by -1s.
 set ref_shell = "afni_refacer_shell_sym_1.0.nii.gz"
-#set ref_shell = afni_refacer_shell.nii.gz"
 set mset      = `@FindAfniDsetPath -full_path -append_file "${ref_shell}"`
 if ( "${mset}" == '' ) then
     echo "** ERROR: Failed to find refacer shell ${ref_shell} -- exiting :("
@@ -142,7 +156,7 @@ endif
 
 # if we got to here:  good to continue.  Brag a bit first.
 echo ""
-echo "++ AFNI {re|de}facer; ver     = ${version}"
+echo "++ AFNI refacer, version      = ${version}"
 echo "++ AFNI MNI template dataset  = $Basedset"
 echo "++ AFNI refacer shell dataset = $mset"
 echo "++ Mode for running           = $run_mode"
@@ -178,7 +192,7 @@ cd ${wdir}
 # Align to the MNI template - save only the transform matrix
 
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
-            -source tmp.01.uni.nii -prefix NULL  -verb     \
+            -source tmp.01.uni.nii -prefix NULL  -verb            \
             -warp shift_rotate_scale -cost ls -cmass -conv 0.5    \
             -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
             -num_rtb 33 -1Dmatrix_save tmp.02.mat_a2t.1D
@@ -187,15 +201,14 @@ cd ${wdir}
 
 cat_matvec                      \
     -ONELINE                    \
-    tmp.02.mat_a2t.1D -I   \
+    tmp.02.mat_a2t.1D -I        \
     > tmp.03.mat_t2a.1D
 
-# transform the refacer shell from MNI back to subject original space and grid
+# transform the refacer shell from MNI back to subject original space
+# and grid
 
-### [PT: Jan 23, 2020] I think NN interp would be better here--
-### less/no gap outside shell?
-#3dAllineate -1Dmatrix_apply tmp.03.mat_t2a.1D -source $mset \
-#            -final linear -prefix tmp.04.sh_t2a.nii -master $dset_orig -float
+# [PT: Jan 23, 2020] Using NN interp would be better here-- less/no
+# gap outside shell than using linear
 3dAllineate                                    \
     -1Dmatrix_apply tmp.03.mat_t2a.1D          \
     -source $mset                              \
@@ -216,100 +229,168 @@ cat_matvec                      \
 
 3drefit -space ORIG tmp.05.sh_t2a_thr.nii
 
-# Just remove the 'face' rather than replace it [08 Jan 2019]
-if ( "${run_mode}" == "DEFACE" ) then
+# ------------------ hard work done; prep for output -------------------
 
-    set subbr_mode = 1
+# scale factor for refacer shell to be about the same intensity as
+# the input:
+#   ibar = mean of input over refacer shell
+#   mbar = mean of refacer shell
+#   ifac = scale factor for refacer shell to match input (sort of)
+# This method doesn't allow for duplicating shading artifacts in
+# the input dataset, but that would be somewhat more work.
+
+# (always calculate these things, even if they aren't needed)
+set ibar = `3dBrickStat -non-zero -mean \
+          "3dcalc( -a tmp.05.sh_t2a_thr.nii -b $dset_orig -expr step(a-99)*b )"`
+set mbar = `3dBrickStat -non-zero -mean \
+           "3dcalc( -a tmp.05.sh_t2a_thr.nii -expr step(a-99)*a )"`
+set ifac = `ccalc "1.222*${ibar}/${mbar}"`
+
+# -------------------------- make output dsets ----------------------------
+
+### REFACE: replace face+ears
+### REFACE_PLUS: replace face+ears+skull
+
+#   plop the scaled refacer shell 'c' on top of the input 'a':
+#   -- where the shell is positive = step(c)*c
+#   -- zero out anything where the shell is negative = iszero(c)*a
+#   -- since the master shell is negative in the outer volume,
+#      is zero in the 'brain' region, and is positive in the
+#      parts of the volume to be replaced.
+
+# entries here are indexed by use_subbr entries for first two, but not
+# for defacing
+set reface_type = ( "reface_plus" "reface" "deface" )
+
+set use_subbr = ( )
+if ( "${run_mode}" == "ALL" || "${run_mode}" == "reface_plus" ) then
+    set use_subbr = ( ${use_subbr} 0 )
+endif
+
+if ( "${run_mode}" == "ALL" || "${run_mode}" == "reface" ) then
+    set use_subbr = ( ${use_subbr} 1 )
+endif
+
+foreach subbr ( ${use_subbr} )
+
+    @ idx = ${subbr} + 1
+
+    echo "+++ Proc for ${reface_type[${idx}]}"
+    echo "    with subbrick ${subbr} and list index ${idx}"
 
     3dcalc                                                      \
         -a ${dset_orig}                                         \
-        -c tmp.05.sh_t2a_thr.nii"[${subbr_mode}]"               \
-        -expr "a*not(bool(c))"                                  \
-        -prefix tmp.99.refacer.RESULT.nii                       \
-        -datum float                                            \
-        -ISOLA
-
-else if ( "${run_mode}" == "REFACE_FULL" || \
-          "${run_mode}" == "REFACE_FACE" ) then
-    # the re-facing code of yore
-
-    # scale factor for refacer shell to be about the same intensity as
-    # the input:
-    #   ibar = mean of input over refacer shell
-    #   mbar = mean of refacer shell
-    #   ifac = scale factor for refacer shell to match input (sort of)
-    # This method doesn't allow for duplicating shading artifacts in
-    # the input dataset, but that would be somewhat more work.
-
-    set ibar = `3dBrickStat -non-zero -mean \
-              "3dcalc( -a tmp.05.sh_t2a_thr.nii -b $dset_orig -expr step(a-99)*b )"`
-    set mbar = `3dBrickStat -non-zero -mean \
-               "3dcalc( -a tmp.05.sh_t2a_thr.nii -expr step(a-99)*a )"`
-    set ifac = `ccalc "1.222*${ibar}/${mbar}"`
-
-    #   plop the scaled refacer shell 'c' on top of the input 'a':
-    #   -- where the shell is positive = step(c)*c
-    #   -- zero out anything where the shell is negative = iszero(c)*a
-    #   -- since the master shell is negative in the outer volume,
-    #      is zero in the 'brain' region, and is positive in the
-    #      parts of the volume to be replaced.
-
-    if ( "${run_mode}" == "REFACE_FULL" ) then
-        set subbr_mode = 0
-    else if ( "${run_mode}" == "REFACE_FACE" ) then
-        set subbr_mode = 1
-    endif
-
-    3dcalc                                                      \
-        -a ${dset_orig}                                         \
-        -c tmp.05.sh_t2a_thr.nii"[${subbr_mode}]"               \
+        -c tmp.05.sh_t2a_thr.nii"[${subbr}]"                    \
         -expr "step(c)*c*${ifac}+iszero(c)*a*step(a)"           \
-        -prefix tmp.06.orig_mskd.nii                            \
+        -prefix tmp.06.${reface_type[${idx}]}.orig_mskd.nii     \
         -datum float -ISOLA
 
     3dcalc                                                      \
-        -a tmp.05.sh_t2a_thr.nii"[${subbr_mode}]"               \
+        -a tmp.05.sh_t2a_thr.nii"[${subbr}]"                    \
         -expr 'step(a)'                                         \
         -datum byte -nscale                                     \
-        -prefix tmp.07.sh_t2a_thr_mskd.nii
+        -prefix tmp.07.${reface_type[${idx}]}.sh_t2a_thr_mskd.nii
 
     3dBlurInMask                                                \
-        -input tmp.06.orig_mskd.nii                             \
-        -mask  tmp.07.sh_t2a_thr_mskd.nii                       \
+        -input tmp.06.${reface_type[${idx}]}.orig_mskd.nii      \
+        -mask  tmp.07.${reface_type[${idx}]}.sh_t2a_thr_mskd.nii \
         -FWHM  2.666                                            \
         -preserve                                               \
-        -prefix tmp.99.refacer.RESULT.nii
+        -prefix tmp.99.result.${reface_type[${idx}]}.nii
 
-else
-    echo "** ERROR: unrecognized run mode.  Should not get here??"
-    goto BAD_EXIT
+end
+
+# DEFACE: just remove the 'face' rather than replace it
+
+if ( "${run_mode}" == "ALL" || "${run_mode}" == "deface" ) then
+
+    set subbr = 1 
+    set idx   = 3
+
+    echo "+++ Proc for ${reface_type[${idx}]}"
+    echo "    with subbrick ${subbr} and list index ${idx}"
+
+    3dcalc                                                      \
+        -a ${dset_orig}                                         \
+        -c tmp.05.sh_t2a_thr.nii"[${subbr}]"                    \
+        -expr "a*not(bool(c))"                                  \
+        -prefix tmp.99.result.${reface_type[${idx}]}.nii        \
+        -datum float                                            \
+        -ISOLA
+
 endif
 
-# also make a short-valued copy of the result, if practicable
 
-set mmm = `3dBrickStat -max tmp.99.refacer.RESULT.nii`
-@   mmm = `ccalc -int $mmm`
+# ----- also make a short-valued copy of the result, if practicable ------
 
-if ( "$idatum" == "short" && $mmm < 32000 ) then
-    \mv tmp.99.refacer.RESULT.nii tmp.90.nonshort_result.nii
+if ( "$idatum" == "short" ) then
 
-    3dcalc                                                     \
-        -a     tmp.90.nonshort_result.nii                      \
-        -expr  a                                               \
-        -datum short -nscale                                   \
-        -prefix tmp.99.refacer.RESULT.nii
+    set all_results = `\ls tmp.99.result.*`
+
+    foreach rr ( ${all_results} )
+
+        set mmm = `3dBrickStat -max ${rr}`
+        @   mmm = `ccalc -int $mmm`
+
+        if ( $mmm < 32000 ) then
+            \mv ${rr} tmp.80.nonshort_result.nii
+
+            3dcalc                                                     \
+                -a     tmp.80.nonshort_result.nii                      \
+                -expr  a                                               \
+                -datum short -nscale                                   \
+                -prefix ${rr}
+
+            \rm tmp.80.nonshort_result.nii
+        endif
+    end
 endif
+
 
 # push output up to the input level (over-writing any existing output)
 
-3dcopy ${owrite}                   \
-    tmp.99.refacer.RESULT.nii      \
-    ../${impref}
+echo "\n++ Output final dsets\n"
 
-3dcalc ${owrite}                               \
-    -a  tmp.05.sh_t2a_thr.nii"[${subbr_mode}]" \
-    -expr 'a'                                  \
-    -prefix ../${opref}.unface.nii.gz
+if ( "${run_mode}" == "ALL" ) then
+    
+    # each of the deface/reface/reface_plus dsets
+    foreach tt ( ${reface_type} )
+        3dcopy -echo_edu ${owrite}                 \
+            tmp.99.result.${tt}.nii                \
+            ../${opref}.${tt}.nii.gz
+    end
+
+    # the face and face_plus themselves
+    3dcalc ${owrite}                               \
+        -a  tmp.05.sh_t2a_thr.nii"[0]"             \
+        -expr 'a'                                  \
+        -prefix ../${opref}.face_plus.nii.gz
+
+    3dcalc ${owrite}                               \
+        -a  tmp.05.sh_t2a_thr.nii"[1]"             \
+        -expr 'a'                                  \
+        -prefix ../${opref}.face.nii.gz
+
+else
+    # only outputting one main vol: use the user's choice name
+    3dcopy -echo_edu ${owrite}                     \
+        tmp.99.result.${run_mode}.nii              \
+        ../${impref}
+
+    # output either face or face_plus mask in subj space
+    if ( "${run_mode}" == "deface" || "${run_mode}" == "reface" ) then
+        3dcalc ${owrite}                               \
+            -a  tmp.05.sh_t2a_thr.nii"[1]"             \
+            -expr 'a'                                  \
+            -prefix ../${opref}.face.nii.gz
+    else if ( "${run_mode}" == "reface_plus" ) then
+        3dcalc ${owrite}                               \
+            -a  tmp.05.sh_t2a_thr.nii"[0]"             \
+            -expr 'a'                                  \
+            -prefix ../${opref}.face_plus.nii.gz
+    endif
+
+endif
 
 cd ..
 
@@ -318,6 +399,8 @@ cd ..
 if ( $DO_CLEAN ) then
     \rm -rf ${wdir0}
 endif
+
+echo "\n++ Done.\n"
 
 exit 0
 
@@ -348,39 +431,49 @@ ver = ${version}
 
 OUTPUTS ~1~
 
-There will be two files output:
+When running with '-mode_all', then 5 datasets will be output, all in
+the same space as the input volume:
 
-  + The main refaced/defaced file (named by the user with '-prefix ..).
+    + Three refaced/defaced volumes:
+      1) a "defaced" volume (face+ears replaced with zeros)
+      2) a "refaced" volume (face+ears replaced with artifical values) 
+      3) a "reface_plused" volume (face+ears+skull replaced with artifical
+         values)
 
-  + A volume showing just the replacement face information (i.e., that dset
-    which was applied to replace/remove the face).
+    + Two face-replacing volumes:
+      4) the face+ears used to replace or remove subject data
+      5) the face+ears+skull used to replace subject data
 
 A temporary working directory is also created.  This will be cleaned
 (=deleted) by default, but the user can choose to save it.
 
 USAGE ~1~
 
-  @afni_refacer_run               \
-    -input  DSET                  \
-    {-prefix PPP}                 \
-    {-deface}                     \
-    {-no_clean}
+  @afni_refacer_run                         \
+    -input  DSET                            \
+    -mode_{reface|reface_plus|deface|all}   \
+    -prefix PPP                             \
+    {-overwrite}                            \
+    {-no_clean}      
 
 where:
 
  -input DSET  : (req) name of input dset; can contain path information.
 
- -prefix PPP  : (opt) name of output dset 
-                (def: 'input prefix'.refacer.RESULT.nii)
-
- -deface      : (opt) replace the computed 'face' voxels with all zeros
+     ... and one of the following modes MUST be chosen:
+ -mode_deface : replace the computed face+ears voxels with all zeros
                 instead of the artificial face (ears are also removed).
+ -mode_reface : replace the subject's face+ears with a scaled set of
+                artificial values.
+ -mode_reface_plus : replace the subject's face+ears+skull with a scaled
+                set of artificial values (i.e., like 'refacing', but
+                replacing a more complete shell around the subject's
+                brain).
+ -mode_all    : output three volumes: one defaced, one refaced and one
+                reface_plused.  
 
- -only_face_ears : (opt) by default, refacing will replace the
-                subject's face, skull, ears, etc. with a (scaled set
-                of) artificial values.  This option allows one to just
-                replace the face+ears (i.e., the same parts that would
-                be zeroed out with '-deface')
+ -prefix PPP  : (req) name of output dset (see NOTES for info about
+                about file names, particularly when "-mode_all" is used).
 
  -no_clean    : (opt) don't delete temp working dir (def: remove working
                 dir).
@@ -391,15 +484,41 @@ where:
 
 NOTES ~1~
 
-This is NOT a 'defacer' since it replaces the face instead of removing it!
+Output file names ~2~
 
-This script relies on two datasets that are included with AFNI binaries:
+If the user implements one of the individual modes for either
+refacing, reface_plusing or defacing, then the main output file of
+interest is simply specified by their "-prefix .." choice.
+Additionally, the the replacement volume in subject space will be
+output, with the same name plus a suffix (either 'face' or
+'face_plus').
+
+Elif the user implements '-mode_all', then three output volumes are
+created, each with the same prefix specified by their "-prefix .."
+choice, with identifying suffixes and *.nii.gz extensions:  
+    PREFIX.deface.nii.gz 
+    PREFIX.reface.nii.gz
+    PREFIX.reface_plus.nii.gz
+Additionally, both replacement volumes will be output, having the
+same prefix and relevant suffix:
+    PREFIX.face.nii.gz 
+    PREFIX.face_plus.nii.gz 
+
+Requisite data sets ~2~
+
+This script relies on having two datasets that should already be
+included with AFNI binaries:
     MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template
     afni_refacer_shell.nii.gz       = dataset to replace face region
 The latter dataset was made with the script @afni_refacer_make_master.
 
-NB: Here, 'face' also includes part of the skull, so the head will be
-reshaped and the ears replaced.
+If you are missing these datasets for some reason (e.g., you build
+your own AFNI binaries on your computer), you can download these from
+the current/atlases directory.  Or just ask for more info on the
+Message Board.
+
+
+
 
 Author  - The Face of Imperial Zhark, Who is Terrible to Behold!
 Modifer - PA Taylor
@@ -410,21 +529,29 @@ EXAMPLES ~1~
 
     @afni_refacer_run                     \
         -input anat+orig.                 \
-        -prefix FULL_REFACE.nii.gz
+        -mode_reface_plus                 \
+        -prefix anat_reface_plus.nii.gz
     
 2) reface smaller volume (replace face+ears only)
 
     @afni_refacer_run                     \
         -input anat+orig.                 \
-        -only_face_ears                   \
-        -prefix REFACE FACE_ONLY.nii.gz
+        -mode_reface                      \
+        -prefix anat_reface.nii.gz
 
 3) deface = replace face+ears with zeros
 
     @afni_refacer_run                     \
         -input anat+orig.                 \
-        -deface                           \
-        -prefix DEFACE.nii.gz
+        -mode_deface                      \
+        -prefix anat_deface.nii.gz
+
+3) ALL = output all versions of vol: refaced, reface_plused, defaced
+
+    @afni_refacer_run                     \
+        -input anat+orig.                 \
+        -mode_all                         \
+        -prefix anat
 
 EOF
 

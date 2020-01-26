@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program now requires specifying a mode for re/defacing.",
+   "One can also output all types of re/defacing simultaneously.\n"
+},
+
 { 24, Jan , 2020 , PT , "@afni_refacer_make_master" , MICRO , TYPE_GENERAL,
    "Updated with notes to look at @afni_refacer_make_master_addendum.",
    "The addendum program just tweaks the output of this prog.\n"
