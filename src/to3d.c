@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-
+#define AFNI_DEBUG 1
 #include "to3d.h"
 /*#define DEBUG_PRINT 1*/
 
@@ -29,7 +29,7 @@ static THD_dataxes      * daxes   = NULL ;
 static THD_diskptr      * dkptr   = NULL ;
 static THD_marker_set   * markers = NULL ;
 static THD_string_array * imnames = NULL ;  /* name for each slice */
-
+static char * user_orient = NULL; /* orientation code if user sets orient */
 static int outliers_checked = 0 ;     /* 15 Aug 2001 */
 static char * outliers_fname = NULL ; /* 26 Aug 2001 */
 
@@ -2052,6 +2052,7 @@ ENTRY("T3D_initialize_user_data") ;
    user_inputs.t_then_z = 0 ;
    user_inputs.tpattern = NULL ;
    user_inputs.tunits   = UNITS_MSEC_TYPE ;  /* bad default */
+   user_orient          = NULL;
 
    /*-- 05 Feb 2000: zpad environment --*/
 
@@ -2246,6 +2247,7 @@ ENTRY("T3D_initialize_user_data") ;
          acod = toupper(Argv[nopt][0]) ; user_inputs.xorient = ORCODE(acod) ;
          acod = toupper(Argv[nopt][1]) ; user_inputs.yorient = ORCODE(acod) ;
          acod = toupper(Argv[nopt][2]) ; user_inputs.zorient = ORCODE(acod) ;
+         user_orient = Argv[nopt];
          nopt++ ; continue ;
       }
 
@@ -3585,7 +3587,7 @@ void Syntax()
 
    printf(
     "\n"
-    "OTHER NEW OPTIONS:\n"
+    "OTHER OPTIONS:\n"
     "  -assume_dicom_mosaic\n"
     "    If present, this tells the program that any Siemens DICOM file\n"
     "    is a potential MOSAIC image, even without the indicator string.\n"
@@ -5082,7 +5084,50 @@ void T3D_save_file_CB( Widget w ,
    /*   overriding all the previous selections - GUI or command-line */
    if(use_oblique_origin)
       Obliquity_to_coords(dset);
+   else {
+      /* checking for orientation and origin consistency now - 01/26/2020 DRG */ 
+      THD_3dim_dataset * dout = NULL;
+      dout = EDIT_empty_copy(dset);
+      if(dout == NULL) {
+         WARNING_message("Could not create temporary dataset to check orientation");
+      }
+      else {
+         Obliquity_to_coords(dout);
+         if(THD_dataset_mismatch( dset , dout )){
+            char ostr[4] ;   
+            THD_fill_orient_str_3(dout->daxes, ostr);
+            /* if the user has set the orientation or using the GUI
+               just warn them about this funny business */
+            if((user_orient) || ( wset.topshell != NULL && wset.good )) {
+               if(strcmp(ostr,user_orient)) {
+                 if(!wset.topshell)
+                   WARNING_message("user orientation %s does not match oblique orientation", user_orient);
+                 else {
+#if 0
+                   wmsg = MCW_popup_message( wset.save_file_pb ,
+                                   "***************************************************\n"
+                                   "*  WARNING:                                        \n"
+                                   "*  Orientation does not match oblique calculation *\n"
+                                   "***************************************************" ,
+                                MCW_USER_KILL ) ;
+#endif
 
+                 }
+               }
+            }
+            else
+               ERROR_exit(
+                       "Information from obliquity does not match cardinal orientation and origin\n"
+                       "This may result in the dataset being upside-down or worse - LEFT-RIGHT flipped.\n"
+                       " This is difficult to see for typical brains without major lesions or surgery on a known side.\n"
+                       "Use -oblique_origin to enforce equivalence\n"
+                       " or set orientation with -orient to what you KNOW to be true\n"
+          " or use NIFTI output by setting prefix to end in .nii or .nii.gz to only use oblique settings\n"
+                       "The oblique calculations show the closest cardinal orientation to be %s", ostr);
+         }
+         DSET_delete(dout);
+      }
+   }
    dset->taxis = NULL ;
 
    if( user_inputs.ntt > 0 ){

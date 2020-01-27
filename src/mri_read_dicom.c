@@ -1538,6 +1538,10 @@ ENTRY("mri_imcount_dicom") ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
      ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
      if( ddd != NULL ) nz = SINT(ddd+2) ;
+     if( nz >= 2 ){ 
+         ERROR_message("Multi-frame enhanced DICOM not supported yet");
+         free(ppp) ; RETURN(-1);
+     }
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
 
@@ -2232,10 +2236,13 @@ static float *ComputeObliquity(oblique_info *obl_info)
       vec5 = NORMALIZE_FVEC3(vec4);
       vec6 = NORMALIZE_FVEC3(dc3);
       fac = DOT_FVEC3(vec5, vec6);
-      if(fac==0){
-	 WARNING_message(
-          "Bad DICOM header - assuming oblique scaling direction!");
-	 fac = 1;
+      if((fac==0) || (obl_info_set != 2)) {
+         WARNING_message(
+                 "Bad DICOM header - assuming oblique scaling direction!");
+         if(obl_info_set != 2)
+            WARNING_message("Could not read two slices. Check z orientation!"
+                  " - may have left-right flipping or upside-down images");
+         fac = 1;
       }
       else {
          if(ALMOST(fac, 1.0))
@@ -2243,17 +2250,17 @@ static float *ComputeObliquity(oblique_info *obl_info)
          if(ALMOST(fac, -1.0))
             fac = -1.0;
 
-	 if((fac!=1)&&(fac!=-1)) {
-           WARNING_message("Image Positions do not lie in same direction as"
-            " cross product vector: %f", fac);
-	  }
-
-	 if(fac >0) fac = 1;
-	 else fac = -1;
+         if((fac!=1)&&(fac!=-1)) {
+                  WARNING_message("Image Positions do not lie in same direction as"
+                   " cross product vector: %f", fac);
+          }
+       
+         if(fac >0) fac = 1;
+         else fac = -1;
       }
     }
     else fac = 1;
-    /* switch direction of normal vector by factor */
+    /* switch direction of normal vector by factor +/-1 */
     dc4 = SCALE_FVEC3(dc3, fac);
 
     if( g_dicom_ctrl.verb > 3 ) {

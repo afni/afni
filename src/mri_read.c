@@ -1553,8 +1553,12 @@ ENTRY("mri_imcount") ;
    nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
    mri_dicom_seterr(1) ;
    if( nz > 0 ){ free(new_fname); RETURN(nz); }
+   if( nz < 0 ){                          /* error condition - mod drg 01/27/2020 */
+     free(new_fname); RETURN(0);
+   }
 
-   /*** not recognized ***/
+
+   /*** not recognized (not sure what this fall-through case is for? DRG)***/
 
    free(new_fname) ; RETURN(1) ;    /* assume it has 1 image in it, somewhere */
 }
