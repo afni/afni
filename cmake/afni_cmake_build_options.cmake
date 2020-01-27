@@ -80,7 +80,14 @@ cmake_dependent_option(
 # Define other customizations to the build-process
 set_if_not_defined(BUILD_COREPLUGINS "By default a core set of plugins are built." ON)
 option(GENERATE_PACKAGING_COMPONENTS "For internal use only" OFF)
-option(USE_SYSTEM_GLW "Build and use AFNI's local copy of libGLw" ON)
 option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 option(USE_CPACK "CPack can be used to generate source and binary distributions" OFF)
 option(ENABLE_TESTS "Enable tests" OFF)
+
+
+
+# Defining "external" dependencies i.e. anything that can be installed as a system install
+option(USE_SYSTEM_GLW "Build and use AFNI's local copy of libGLw" ON)
+option(USE_SYSTEM_GIFTI "Link against a system installed gifti library." ON)
+set(USE_SYSTEM_NIFTI ${USE_SYSTEM_GIFTI})
+
