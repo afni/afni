@@ -51,9 +51,9 @@ set(AFNI_INSTALL_ATLAS_DIR "${INSTALL_PREFIX}/atlases")
 set(AFNI_INSTALL_PICS_DIR "${INSTALL_PREFIX}/funstuff")
 
 # Get mapping between each target name and it's installation component
-set(COMPONENTS_MAPFILE ${CMAKE_SOURCE_DIR}/packaging/installation_components.txt )
+set(COMPONENTS_MAPFILE ${CMAKE_CURRENT_SOURCE_DIR}/packaging/installation_components.txt )
 file(READ 
-  /opt/afni/packaging/installation_components.txt
+  ${COMPONENTS_MAPFILE}
   CMPNT_MAPPING)
 list(TRANSFORM CMPNT_MAPPING REPLACE "\n" ";")
 
@@ -138,14 +138,14 @@ set(J_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/jzosky)
 set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
 set(TESTING_PATHS "${BUILD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
 set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
-file(WRITE ${CMAKE_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
 
 # Create test target for running tests within the build tree
 add_custom_target(
   pytest
   DEPENDS test_setup
-  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/afni_tests"
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/afni_tests"
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND echo Running tests with modified path to use build binaries and scripts in the source tree...
   COMMAND echo Prepending ${TESTING_PATHS}
   COMMAND echo When using 'ninja test' one can define "ARGS" to pass additional arguments to pytest...
@@ -156,7 +156,7 @@ add_custom_target(
 
 # Generate packaging if this is the top level project
 if(USE_CPACK)
-  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     include(CMakeCPack.cmake)
   endif()
 endif()
