@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14.7 FATAL_ERROR)
 
 # ##### Set policies
 cmake_policy(SET CMP0048 NEW)
