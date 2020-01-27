@@ -8,6 +8,9 @@ import re
 import shutil
 
 build_dir = Path("/build")
+src_dir = Path("/opt/src/afni")
+nifti_dir = src_dir.parent / 'nifti_clib'
+gifti_dir = src_dir.parent / 'gifti_clib'
 components = Path("components")
 
 
@@ -31,8 +34,8 @@ if not components.exists():
 
 # Perform a full build initially
 sp.check_output(
-    """
-cmake -GNinja /opt/afni \
+    f"""
+cmake -GNinja {src_dir} \
     -DGENERATE_PACKAGING_COMPONENTS=ON \
     -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=ON \
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
@@ -50,8 +53,8 @@ sp.check_output("ninja")
 
 # without afni_binaries, just corelibs
 sp.check_output(
-    """
-cmake /opt/afni \
+    f"""
+cmake {src_dir}\
     -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=OFF \
     -DBUILD_X_DEPENDENT_GUI_PROGS=OFF \
     -DADD_RSTATS=OFF \
@@ -67,9 +70,9 @@ print("Built without binaries")
 
 # without afni_python, just corelibs and core binaries
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake {src_dir}\
     -DDO_NOT_INSTALL_SCRIPTS=ON \
     -DBUILD_BINARIES=ON
 ninja
@@ -81,9 +84,9 @@ print("Built without tcsh scripts")
 
 # without afni_gui, libs;binaries;tcsh
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake {src_dir}\
     -DDO_NOT_INSTALL_SCRIPTS=OFF
     -DADD_PYTHON=OFF
 ninja
@@ -95,9 +98,9 @@ print("Built without python")
 
 # without afni_scripts, libs;binaries;tcsh;python
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake {src_dir}\
     -DADD_PYTHON=ON
 ninja
 ninja install  > components/3_python.txt
@@ -109,9 +112,9 @@ print("Built without gui")
 
 # without afni_suma, libs;binaries;tcsh;afni
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake {src_dir}\
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON
 ninja
 ninja install  > components/4_gui.txt
@@ -122,9 +125,9 @@ print("Built without suma")
 
 # without rstats, libs;binaries;tcsh;afni;suma
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake -GNinja /opt/afni \
+cmake -GNinja {src_dir}\
     -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=ON
 ninja install  > components/5_suma.txt
 """,
@@ -135,9 +138,9 @@ print("Built without rstats")
 # full, libs;binaries;tcsh;afni;suma;rstats
 # rstats component dependent on corelibs and R packages from CRAN
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake {src_dir}\
     -DADD_RSTATS=ON
 ninja
 ninja install  > components/6_rstats.txt
@@ -151,16 +154,17 @@ print("Built full build")
 # built using the cmake build system:
 # e.g. nifti,gifti,jpeg,xmhtml,gts,glut,volpack,qhull,dcm2niix,f2c,netcdf
 sp.check_output(
-    """
+    f"""
 ninja uninstall
-cmake /opt/afni \
+cmake /opt/src/afni \
     -DADD_RTATS=ON \
     -DUSE_SYSTEM_NIFTI=OFF \
     -DUSE_SYSTEM_GIFTI=OFF \
+    -DFETCHCONTENT_SOURCE_DIR_FETCH_NIFTI_CLIB_GIT_REPO={nifti_dir} -DUSE_SYSTEM_NIFTI=OFF -DFETCHCONTENT_SOURCE_DIR_GIFTI_CLIB={gifti_dir} \
     -DUSE_SYSTEM_JPEG=OFF \
     -DUSE_SYSTEM_XMHTML=OFF \
-    -DUSE_SYSTEM_GTS=OFF \
-    -DUSE_SYSTEM_GLUT=OFF \
+    -DUSE_SYSTEM_GTS=ON \
+    -DUSE_SYSTEM_GLUT=ON \
     -DUSE_SYSTEM_VOLPACK=OFF \
     -DUSE_SYSTEM_QHULL=OFF \
     -DUSE_SYSTEM_DCM2NIIX=OFF \
@@ -201,3 +205,4 @@ for f in sorted(components.glob("[0-9]*txt")):
 
 
 (components / "components.txt").write_text("\n".join(all_outvals))
+    

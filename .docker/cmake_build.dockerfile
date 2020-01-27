@@ -1,6 +1,6 @@
 FROM afni/afni_dev_base
 
-ENV AFNI_ROOT=/opt/afni
+ENV AFNI_ROOT=/opt/src/afni
 ENV INSTALL_DIR=/opt/abin
 
 # Copy AFNI source code. This will likely invalidate the build cache.
@@ -12,6 +12,8 @@ WORKDIR /build
 RUN  cmake \
     -GNinja \
     -DBUILD_BINARIES=ON \
+    -DUSE_SYSTEM_NIFTI=OFF \
+    -DUSE_SYSTEM_GIFTI=OFF \
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
     -DBUILD_PLUGINS=ON \
     -DUSE_OMP=ON \
