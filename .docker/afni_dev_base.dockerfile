@@ -89,12 +89,12 @@ RUN apt-get update && apt-get install -y eatmydata && \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
 
-ENV CMAKE_VER=cmake-3.13.0-Linux-x86_64
-RUN wget -P /cmake  https://github.com/Kitware/CMake/releases/download/v3.13.0/${CMAKE_VER}.tar.gz \
+ENV CMAKE_VER=3.14.7
+RUN wget -P /cmake  https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
   ; cd /cmake \
-  ; tar xzvf ${CMAKE_VER}.tar.gz \
-  ;rm -fr ${CMAKE_VER}.tar.gz 
-ENV PATH="/cmake/${CMAKE_VER}/bin:$PATH"
+  ; tar xzvf cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
+  ;rm -fr cmake-${CMAKE_VER}-Linux-x86_64.tar.gz 
+ENV PATH="/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
 
 # Add some more test dependencies
 RUN \
