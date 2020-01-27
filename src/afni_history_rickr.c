@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_ENHANCE,
+   "gzip SUMA/*.nii, except for SurfVol",
+   NULL
+ } ,
+
  { 27, Jan, 2020, RCR, "@diff.tree", MINOR, TYPE_NEW_OPT,
    "add -show_list_comp, to do pairwise comparison of file names",
    NULL

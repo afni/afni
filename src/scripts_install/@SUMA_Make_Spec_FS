@@ -27,6 +27,7 @@
 # [Nov 14, 2019] PT : new default: *rank* dsets will not be output
 #    + have new option to create rank dsets:  -make_rank_dsets
 # [Nov 19, 2019] RCR: new option: -fs_setup
+# [Jan 27, 2020] RCR: compress *.nii, but not SV, new opt: -no_compress
 
 set ver = 2.1
 
@@ -71,6 +72,10 @@ goto L_TEST_SURF_VOL
 goto L_RENUMBER_ROIS
      L_RENUMBER_ROIS_DONE:
 
+# [27 Jan 2020 rickr]
+goto L_COMPRESS_FILES
+     L_COMPRESS_FILES_DONE:
+
 goto L_GOOD_END   # finished, woohooo!
 
 
@@ -85,6 +90,7 @@ L_INIT_VARS:
     set endstr = "$prog_name ... finished"
     set debug     = 0
     set ldlist = (141 60)
+    set do_compress = 1
     #set fsdsets = (thickness.gii.dset)
     #set fsdsets = (thickness curv sulc $fsdsets_extra ) 
     set inflates = ()
@@ -239,6 +245,14 @@ L_PARSE_COMMAND:
                 endif
 
                 set neuro_ori = 1
+            breaksw
+
+            # ----------------------------------------------------------
+            # usage : -no_compress                    27 Jan 2020 [rickr]
+            case "-no_compress":
+
+                # then turn off compression
+                set do_compress = 0
             breaksw
 
             # ----------------------------------------------------------
@@ -1412,6 +1426,41 @@ L_RENUMBER_ROIS:
     @SUMA_renumber_FS $suma_dir
 
 goto L_RENUMBER_ROIS_DONE
+
+####################################################################
+# [27 Jan 2020 rickr]
+# compress SUMA/*.nii, except for SurfVol
+
+L_COMPRESS_FILES:
+
+    # maybe the user does not want to compress
+    if ( ! $do_compress ) then
+        if ( $debug ) echo "-- skipping NIFTI compression"
+        goto L_COMPRESS_FILES_DONE
+    endif
+
+    # be sure gzip is in the path
+    (which gzip) >& /dev/null
+    if ( $status ) then
+        echo "program not found in path: gzip, skipping compress"
+        goto L_COMPRESS_FILES_DONE
+    endif
+
+    cd $suma_dir
+
+    # do this very simply, for clarity
+    # first zip everything, then unzip SurfVol
+    if ( -f $afni_dataset.nii ) then
+       echo "\n\n++ Compressing all remaining .nii files, except for SurfVol.\n"
+
+       gzip *.nii
+       gunzip $afni_dataset.nii.gz
+    endif
+
+    cd -
+
+
+goto L_COMPRESS_FILES_DONE
 
 ####################################################################
 # display help and exit
