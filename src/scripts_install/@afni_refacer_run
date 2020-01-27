@@ -23,9 +23,12 @@
 #          "SOMETHING+orig" and not just SOMETHING+orig.HEAD
 #        + new shell has been created+used here
 #
-set version   = "2.1"; set rev_dat   = "Jan 26, 2020"
+#set version   = "2.1"; set rev_dat   = "Jan 26, 2020"
 #   + [PT] choose modes of running differently
 #        + also be able to output all versions of re/defacing at once
+#
+set version   = "2.11"; set rev_dat   = "Jan 27, 2020"
+#   + [PT] include QC images now
 #
 # ============================================================================
 
@@ -34,7 +37,9 @@ set impref   = ""              # need a prefix now
 set odir     = '.'
 
 set run_mode = ""              # also, "REFACE_FACE", "DEFACE"
+set verb_allin = ""            # don't need this verbose, by def (can with opt)
 set DO_CLEAN = 1
+set DO_CHAUFF = 1              # of COURSE users want images
 set owrite   = ""
 
 # ------------------------ read in + interpret cmd line opts -----------------
@@ -79,8 +84,14 @@ while ( $ac <= $#argv )
     # ------------------------------------------------------
     # opt
 
+    else if ( "$argv[$ac]" == "-no_images" ) then
+        set DO_CHAUFF = 0
+
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-verb_allin" ) then
+        set verb_allin = "-verb"
 
     else if ( "$argv[$ac]" == "-overwrite" ) then
         set owrite = "-overwrite"
@@ -148,6 +159,8 @@ else
     set opref = `basename ${opref} .gz`
     set opref = `basename ${opref} .nii`    # final output prefix base
 
+    set opref_qc = ${opref}_QC              # for auto images
+
     # make output dir and working dir
     set wdir0 = __work_refacer.${opref}.`3dnewid -fun11`
     set wdir  = ${odir}/${wdir0}
@@ -192,7 +205,7 @@ cd ${wdir}
 # Align to the MNI template - save only the transform matrix
 
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
-            -source tmp.01.uni.nii -prefix NULL  -verb            \
+            -source tmp.01.uni.nii -prefix NULL  ${verb_allin}    \
             -warp shift_rotate_scale -cost ls -cmass -conv 0.5    \
             -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
             -num_rtb 33 -1Dmatrix_save tmp.02.mat_a2t.1D
@@ -358,6 +371,25 @@ if ( "${run_mode}" == "ALL" ) then
         3dcopy -echo_edu ${owrite}                 \
             tmp.99.result.${tt}.nii                \
             ../${opref}.${tt}.nii.gz
+
+        # make purdy images: input as ulay, re/defaced vol as olay
+        if ( ${DO_CHAUFF} ) then
+
+            @chauffeur_afni                        \
+                -ulay ${dset_orig}                 \
+                -ulay_range "2%" "98%"             \
+                -olay ../${opref}.${tt}.nii.gz     \
+                -func_range_perc_nz 95             \
+                -cbar "Plasma"                     \
+                -pbar_posonly                      \
+                -opacity 9                         \
+                -prefix  ../${opref_qc}/${opref}.${tt} \
+                -montx 5 -monty 3                  \
+                -montgap 3                         \
+                -set_xhairs OFF                    \
+                -label_mode 1 -label_size 3  
+
+        endif
     end
 
     # the face and face_plus themselves
@@ -371,11 +403,62 @@ if ( "${run_mode}" == "ALL" ) then
         -expr 'a'                                  \
         -prefix ../${opref}.face.nii.gz
 
+    # make purdy images: input as ulay, re/defaced vol as olay
+    if ( ${DO_CHAUFF} ) then
+
+        @chauffeur_afni                         \
+            -ulay ${dset_orig}                  \
+            -ulay_range "2%" "98%"              \
+            -olay ../${opref}.face_plus.nii.gz  \
+            -func_range_perc_nz 95              \
+            -cbar "Reds_and_Blues_Inv"          \
+            -opacity 5                          \
+            -prefix  ../${opref_qc}/${opref}.face_plus      \
+            -montx 5 -monty 3                   \
+            -montgap 3                          \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3  
+
+        @chauffeur_afni                         \
+            -ulay ${dset_orig}                  \
+            -ulay_range "2%" "98%"              \
+            -olay ../${opref}.face.nii.gz       \
+            -func_range_perc_nz 95              \
+            -cbar "Reds_and_Blues_Inv"          \
+            -opacity 5                          \
+            -prefix  ../${opref_qc}/${opref}.face           \
+            -montx 5 -monty 3                   \
+            -montgap 3                          \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3  
+    endif
+
 else
     # only outputting one main vol: use the user's choice name
     3dcopy -echo_edu ${owrite}                     \
         tmp.99.result.${run_mode}.nii              \
         ../${impref}
+
+    # make purdy images: input as ulay, re/defaced vol as olay
+    if ( ${DO_CHAUFF} ) then
+
+        # easier to know the name of the current tmp file for the
+        # olay!  don't know if output is NII or BRIK/HEAD
+        @chauffeur_afni                         \
+            -ulay ${dset_orig}                  \
+            -ulay_range "2%" "98%"              \
+            -olay tmp.99.result.${run_mode}.nii \
+            -func_range_perc_nz 95              \
+            -cbar "Plasma"                      \
+            -pbar_posonly                       \
+            -opacity 9                          \
+            -prefix  ../${opref_qc}/${opref}    \
+            -montx 5 -monty 3                   \
+            -montgap 3                          \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3  
+
+    endif
 
     # output either face or face_plus mask in subj space
     if ( "${run_mode}" == "deface" || "${run_mode}" == "reface" ) then
@@ -383,13 +466,43 @@ else
             -a  tmp.05.sh_t2a_thr.nii"[1]"             \
             -expr 'a'                                  \
             -prefix ../${opref}.face.nii.gz
+
+        if ( ${DO_CHAUFF} ) then
+            @chauffeur_afni                         \
+                -ulay ${dset_orig}                  \
+                -ulay_range "2%" "98%"              \
+                -olay ../${opref}.face.nii.gz       \
+                -func_range_perc_nz 95              \
+                -cbar "Reds_and_Blues_Inv"          \
+                -opacity 5                          \
+                -prefix  ../${opref_qc}/${opref}.face \
+                -montx 5 -monty 3                   \
+                -montgap 3                          \
+                -set_xhairs OFF                     \
+                -label_mode 1 -label_size 3  
+        endif
+
     else if ( "${run_mode}" == "reface_plus" ) then
         3dcalc ${owrite}                               \
             -a  tmp.05.sh_t2a_thr.nii"[0]"             \
             -expr 'a'                                  \
             -prefix ../${opref}.face_plus.nii.gz
-    endif
 
+        if ( ${DO_CHAUFF} ) then
+            @chauffeur_afni                         \
+                -ulay ${dset_orig}                  \
+                -ulay_range "2%" "98%"              \
+                -olay ../${opref}.face_plus.nii.gz  \
+                -func_range_perc_nz 95              \
+                -cbar "Reds_and_Blues_Inv"          \
+                -opacity 5                          \
+                -prefix  ../${opref_qc}/${opref}.face_plus \
+                -montx 5 -monty 3                   \
+                -montgap 3                          \
+                -set_xhairs OFF                     \
+                -label_mode 1 -label_size 3  
+        endif
+    endif
 endif
 
 cd ..
@@ -444,6 +557,9 @@ the same space as the input volume:
       4) the face+ears used to replace or remove subject data
       5) the face+ears+skull used to replace subject data
 
+Automatic images of the re/defaced volume(s) will be created with
+@chauffeur_afni, so the user can quickly evaluate results visually.
+
 A temporary working directory is also created.  This will be cleaned
 (=deleted) by default, but the user can choose to save it.
 
@@ -454,7 +570,9 @@ USAGE ~1~
     -mode_{reface|reface_plus|deface|all}   \
     -prefix PPP                             \
     {-overwrite}                            \
-    {-no_clean}      
+    {-no_clean}                             \
+    {-no_images}                            \
+    {-verb_allin}      
 
 where:
 
@@ -478,9 +596,15 @@ where:
  -no_clean    : (opt) don't delete temp working dir (def: remove working
                 dir).
 
+ -no_images   : (opt) don't make pretty images to automatically view the 
+                results of re/defacing;  but why wouldn't you want those?
+
  -overwrite   : (opt) final two file outputs will overwrite any existing
                 files of the same name (def: don't do this).  NB: this 
                 option does not apply to the working directory.
+
+ -verb_allin  : (opt) run the 3dAllineate part herein with '-verb' (for
+                verbosity)
 
 NOTES ~1~
 
@@ -504,6 +628,11 @@ same prefix and relevant suffix:
     PREFIX.face.nii.gz 
     PREFIX.face_plus.nii.gz 
 
+A directory of QC images will be made by default, called:
+    PREFIX_QC/
+This will contain images of each of the new anatomical volumes and the
+replacement volumes over the original anatomical.
+
 Requisite data sets ~2~
 
 This script relies on having two datasets that should already be
@@ -516,8 +645,6 @@ If you are missing these datasets for some reason (e.g., you build
 your own AFNI binaries on your computer), you can download these from
 the current/atlases directory.  Or just ask for more info on the
 Message Board.
-
-
 
 
 Author  - The Face of Imperial Zhark, Who is Terrible to Behold!
@@ -556,7 +683,7 @@ EXAMPLES ~1~
 EOF
 
     goto GOOD_EXIT
-
+ 
 # ---------------------------------- 
 
 FAIL_MISSING_ARG:

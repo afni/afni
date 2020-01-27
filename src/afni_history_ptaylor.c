@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 27, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "Program now outputs QC images automatically.",
+   "These are output into a PREFIX_QC directory each run.\n"
+},
+
 { 27, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Fixed bug in QC.",
    "Broke when there was one stim used (bad scalar -> list conv).\n"
