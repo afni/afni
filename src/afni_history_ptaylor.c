@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 27, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug in QC.",
+   "Broke when there was one stim used (bad scalar -> list conv).\n"
+},
+
 { 26, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
    "This program now requires specifying a mode for re/defacing.",
    "One can also output all types of re/defacing simultaneously.\n"

@@ -92,13 +92,16 @@ auth = 'PA Taylor'
 # [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
 #      as a dependency, so remove it from the list
 #
-#ver = '3.2' ; date = 'Jan 9, 2019' 
+#ver = '3.2' ; date = 'Jan 9, 2020' 
 # [PT] new warning block: censor fraction
 #    + seed point plotting introduced (vstat section for resting state)
 #
-ver = '3.21' ; date = 'Jan 9, 2019' 
+#ver = '3.21' ; date = 'Jan 9, 2020' 
 # [PT] raise the thresholds in the vstat_seedcorr regr_corr plots
 #    + so much above threshold otherwise, including noise
+#
+ver = '3.22' ; date = 'Jan , 2020' 
+# [PT] fix type conversion error of scalars -> lists
 #
 #########################################################################
 
@@ -2822,10 +2825,11 @@ def apqc_warns_cen_stim( obase, qcb, qci,
         nruns = len(ntr_init_per_stim)
     except:
         # convert to lists, for simpler scripting, with indexing
+        # [PT: Jan 27, 2020] fixed this section; silly type conversion error
         nruns = 1
-        ntr_init_per_stim = list(ntr_init_per_stim)
-        ntr_cen_per_stim  = list(ntr_cen_per_stim)
-        frac_tr_cen       = list(frac_tr_cen)
+        ntr_init_per_stim = [ntr_init_per_stim]
+        ntr_cen_per_stim  = [ntr_cen_per_stim]
+        frac_tr_cen       = [frac_tr_cen]
 
     if len(label_list) != nruns :
         print("** ERROR: generating censor fraction\n"
