@@ -1,3 +1,32 @@
+AFNI Digest, week of 2020/01/27.
+
+Contents:
+00) 2 AFNI-TORTOISE DTI workshops in India (Feb, 2020).
+
+00) We are pleased to announce the upcoming AFNI-TORTOISE DTI workshop,
+"India Brain Connectivity Bootcamp: Diffusion Tensor Imaging 2020."
+Each 3-day workshop will be a combination of lecture and hands-on data
+investigation, with speakers including Drs. Carlo Pierpaoli, Amritha
+Nayak, Paul Taylor, Rose Dawn Bharath and Bharath Holla.
+
+These will take place at NIMHANS in Bengaluru from Feb 8-10 and at
+PGIMER in Chandigarh from Feb 13-15. For more details and
+registration, please see the PDF advert here:
+https://afni.nimh.nih.gov/pub/sscc/staff/ptaylor/Flyer_India_Brain_Connectivity_Bootcamp_2020.pdf
+Circulate to any interested colleagues. See you there!
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+AFNI Digest, week of 2020/01/14.
+
 Contents:
 00) AFNI Bootcamp advert: at NIH campus, March 30 - April 3, 2020.
 
