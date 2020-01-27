@@ -76,6 +76,7 @@ typedef struct {
    int     rescale;             /* AFNI_DICOM_RESCALE              */
    int     window;              /* AFNI_DICOM_WINDOW              */
    int     use_last_elem;       /* AFNI_DICOM_USE_LAST_ELEMENT   */
+   int     allow_multiframe;    /* allow for multiframe data */
 } dicom_globals_t;
 extern dicom_globals_t g_dicom_ctrl;
 

@@ -352,16 +352,18 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
 
 int disp_dicom_globals(char * mesg)
 {
-   fprintf(stderr,"-- dicom_globals_t : %s\n"
-                  "   init            = %d\n"
-                  "   read_data       = %d\n"
-                  "   verb            = %d\n"
-                  "   rescale         = %d\n"
-                  "   window          = %d\n"
-                  "   use_last_elem   = %d\n",
+   fprintf(stderr,"-- dicom_globals_t :  %s\n"
+                  "   init             = %d\n"
+                  "   read_data        = %d\n"
+                  "   verb             = %d\n"
+                  "   rescale          = %d\n"
+                  "   window           = %d\n"
+                  "   use_last_elem    = %d\n"
+                  "   allow_multiframe = %d\n",
           mesg ? mesg : "",
           g_dicom_ctrl.init, g_dicom_ctrl.read_data, g_dicom_ctrl.verb,
-          g_dicom_ctrl.rescale, g_dicom_ctrl.window,g_dicom_ctrl.use_last_elem);
+          g_dicom_ctrl.rescale, g_dicom_ctrl.window,g_dicom_ctrl.use_last_elem,
+          g_dicom_ctrl.allow_multiframe);
 
    return 0;
 }

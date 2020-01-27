@@ -3035,6 +3035,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /* allow multi-frame data, default is don't allow */ /* 27 Jan 2020 [DRG] */
+      if( strcmp(Argv[nopt],"-allow_multiframe") == 0 ){
+         g_dicom_ctrl.allow_multiframe = 1;  /* global in mri_read_dicom.c */
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
+
       /*----- -use_old_mosaic_code -----*/  /* 23 Dec 2010 [rickr] */
 
       if( strcmp(Argv[nopt],"-use_old_mosaic_code") == 0 ){

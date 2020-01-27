@@ -35,8 +35,8 @@ static void Clear_obl_info(oblique_info *obl_info);
 static void Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem);
 void mri_read_dicom_reset_obliquity();
 void mri_read_dicom_get_obliquity(float *);
+void mri_dicom_allow_multiframe(int allow);
 static int init_dicom_globals(dicom_globals_t * info);
-
 static float get_dz(  char **epos);
 
 static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2, float yc3);
@@ -55,6 +55,7 @@ int   g_ge_nim_acq = -1;               /* number of images in acquisition */
 int   g_ge_me_index = -1;
 int   g_sop_iuid_maj = -1;             /* ID SOP Instanced UID (major)    */
 int   g_sop_iuid_min = -1;             /* ID SOP Instanced UID (minor)    */
+int   allow_multiframe = 0;            /* allow multi-frame DICOM even though we don't read it properly */
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
@@ -1539,8 +1540,16 @@ ENTRY("mri_imcount_dicom") ;
      ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
      if( ddd != NULL ) nz = SINT(ddd+2) ;
      if( nz >= 2 ){ 
-         ERROR_message("Multi-frame enhanced DICOM not supported yet");
-         free(ppp) ; RETURN(-1);
+         if(!g_dicom_ctrl.allow_multiframe) {
+            ERROR_message("Multi-frame enhanced DICOM not supported yet");
+            ERROR_message("Override with to3d -allow_multiframe");
+            free(ppp) ; RETURN(-1);
+         }
+         else {  /* for backward compatibility - just to let this pass through */
+            WARNING_message("Allowing Multi-frame enhanced DICOM, but not supported yet");
+            WARNING_message("Check if data is upside-down, backward or LEFT-RIGHT flipped");
+            WARNING_message("Consider using dcm2niix_afni or dcm2niix instead");
+         }
      }
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
@@ -2558,6 +2567,7 @@ static int init_dicom_globals(dicom_globals_t * info)
    if( my_getenv("AFNI_DICOM_USE_LAST_ELEMENT") )
       info->use_last_elem = AFNI_yesenv("AFNI_DICOM_USE_LAST_ELEMENT");
 
+   info->allow_multiframe = 0;
    info->init = 1;
 
    if( info->verb > 1 ) disp_dicom_globals("globals from env :");
