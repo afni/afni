@@ -195,8 +195,8 @@ function(add_afni_target_properties target)
   get_afni_rpath()
   if(NOT (GENERATE_PACKAGING_COMPONENTS))
     get_component_name(component "${CMPNT_MAPPING}" ${target})
-    log_target_as_installed(${target})
   endif()
+  log_target_as_installed(${target})
   # message("${target} -------${component}")
   
   # Set the target properties
