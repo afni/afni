@@ -10,6 +10,7 @@ set do_diffs  = 1
 set ignore_missing = 0
 set showfiles = 1
 set showdiffs = 0
+set showlcomp = 0
 set savediffs = 0
 set verb      = 1
 set xxdiff    = 0
@@ -44,6 +45,8 @@ while ( $narg <= $amax )
     else if ( "$argv[$narg]" == "-show" ) then
         set showdiffs = 1
         set showfiles = 0
+    else if ( "$argv[$narg]" == "-show_list_comp" ) then
+        set showlcomp = 1
     else if ( "$argv[$narg]" == "-skip_data" ) then
         set skip_data = 1
     else if ( "$argv[$narg]" == "-verb" ) then
@@ -108,8 +111,38 @@ endif
 cd -
 
 set use_files = ()
-if ( $#new_files != $#old_files ) then
-    echo different number of files found: $#new_files vs. $#old_files
+# are the lists of nammes identical?
+set identical = 0
+if ( $#new_files == $#old_files ) then
+   set identical = 1
+   foreach index ( `count -digits 1 1 $#new_files` )
+      if ( $new_files[$index] != $old_files[$index] ) then
+         set identical = 0
+         break
+      endif
+   end
+endif
+
+# maybe the user wants to see the list comparison
+if ( ! $identical && ( $showlcomp || \
+       ($verb > 1 && ($#new_files == $#old_files)) ) ) then
+
+   if ( ! $showlcomp ) then
+      echo ""
+      echo "++ pairwise file name comparison:"
+      echo ""
+   endif
+   foreach index ( `count -digits 1 1 $#new_files` )
+      if ( $new_files[$index] != $old_files[$index] ) then
+         printf "%30s  vs.  %-30s\n" $new_files[$index] $old_files[$index]
+      endif
+   end
+   if ( $showlcomp ) exit 0
+   echo ""
+endif
+
+if ( ! $identical ) then
+    echo different file lists found: $#new_files vs. $#old_files
     # okay, where is the difference ?
     foreach file ( $new_files )
         if ( $ignore_missing ) then
@@ -244,6 +277,7 @@ cat << EOF
       -quiet                 : only list files with diffs
       -save                  : save actual file differences (txt and pdf)
       -show                  : show actual file differences
+      -show_list_comp        : show any pairwise differences in file lists
       -skip_data             : skip binary diff of select data files
                                (.BRIK, .dcm, .BRIK.gz)
       -verb LEVEL            : set verbosity level (0,1,2)
@@ -254,6 +288,9 @@ cat << EOF
 
    ----------------------------------------------------------------------
    examples:
+
+        @diff.tree here/this.dir ../../../there/that.dir
+        @diff.tree -show_list_comp test1/FT/SUMA test2/FT/SUMA
 
    ----------------------------------------------------------------------
    R Reynolds    written ages ago, but added 10 Jun, 2015

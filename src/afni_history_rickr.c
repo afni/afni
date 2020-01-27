@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2020, RCR, "@diff.tree", MINOR, TYPE_NEW_OPT,
+   "add -show_list_comp, to do pairwise comparison of file names",
+   NULL
+ } ,
+
  { 27, Jan, 2020, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
    "add basis=BASIS parameter when defining timing class",
    "Done for geenaianni on MB."
