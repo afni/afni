@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 27, Jan , 2020 , PT , "@SSwarper" , MAJOR , TYPE_GENERAL,
+   "Large set of updates; many new opts added, too; generally much improved warps.",
+   "Heavily tested on 178 subj across studies; output fnames are same, though.\n"
+},
+
 { 27, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
    "Program now outputs QC images automatically.",
    "These are output into a PREFIX_QC directory each run.\n"

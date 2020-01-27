@@ -56,9 +56,30 @@
 #   + [PT] fixed help file for sphinxification: got rid of some
 #          wandering "+" symbols in subheading titles
 # 
-set version   = "1.52"; set rev_dat   = "June 18, 2019"
+#set version   = "1.52"; set rev_dat   = "June 18, 2019"
 #   + [RWC] add 3dAutomask step to clean up some of the
 #           little junk at the edge of the brain
+# 
+#set version   = "1.6"; set rev_dat   = "Jan 7, 2020"
+#   + [PT] put ceiling (98%ile of non-zero vals) after 3danisosmooth
+#        + also, use lpa+ZZ and lpa cost function for all rounds of align
+#          -> should give better results, but is also slower (slightly)...
+#        + add in options for putting in cost function values (backwards
+#          compatibility): -cost_*
+#        + opt for turn ceiling off: -ceil_off (backward compat)
+#
+#set version   = "1.61"; set rev_dat   = "Jan 20, 2020"
+#   + [PT] new opt for deobliquing a la 3drefit-- probably would be more
+#          useful than 3dWarp-style?
+# 
+set version   = "2.0"; set rev_dat   = "Jan 27, 2020"
+#   + [PT] This is a majorly new version of @SSwarper.
+#        + final set of options from testing a loooot of things with
+#          the mixed groups of 178 subj from different studies. This
+#          set of options performed the best: fewest weird things,
+#          sharpest mean across groups, and smallest stdev (both
+#          inside and outside the brain).
+#        + several opts have been added for additional control, as well
 # 
 # ----------------------------------------------------------------
 
@@ -96,12 +117,22 @@ set tightness = 0
 set doclean   = 1
 set verbopt   = ""
 set skipwarp  = 0
-
+ 
 set DO_UNIFIZE = 1
 set DO_SKULLST = 1
 set DO_ANISO   = 1
+set DO_CEIL    = 1       # have a ceiling value on anat
 set DO_GIANT   = 0
-set DO_DEOB    = 0
+set DO_DEOB    = 0       # 3dWarp-style
+set DO_DEOB_REF = 0      # 3drefit-style
+
+set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
+set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
+set cost_nlf   = "-pcl"     # used in:  3dQwarp, final rounds
+
+set gaus_wt    = 4.5    # def for 3dQwarp
+
+set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
 
 set SSopt      = " "
 
@@ -166,6 +197,10 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-deoblique" ) then
         set DO_DEOB = 1
 
+    # [PT: Jan 14, 2020] be able to purge obliquity info, too
+    else if ( "$argv[$ac]" == "-deoblique_refitly" ) then
+        set DO_DEOB_REF = 1
+
     # [Jan 2019 - RWC]
 
     else if ( "$argv[$ac]" == "-skipwarp" ) then
@@ -183,8 +218,41 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-aniso_off" ) then
         set DO_ANISO = 0
 
-    # [Jan 2019 - RWC]
+    # [PT: Feb 11, 2019]
+    else if ( "$argv[$ac]" == "-ceil_off" ) then
+        set DO_CEIL = 0
 
+    else if ( "$argv[$ac]" == "-saveall" ) then
+        set saveall = "-saveall"
+
+
+    # [PT: Jan 14, 2020] probably only for backwards compatibility:
+    # default will be lpa+ZZ (could be 'hel' for back-compat)
+    else if ( "$argv[$ac]" == "-cost_aff" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_aff = "$argv[$ac]"
+
+    # [PT: Jan 14, 2020] probably just for backwards compatability:
+    # default will be lpa hereafter  (could be '-pcl' for back-compat)
+    else if ( "$argv[$ac]" == "-cost_nl_init" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_nli = "-$argv[$ac]"
+
+    # [PT: Jan 15, 2020] separate early and later rounds of NL
+    # warping, because using LPA for later rounds can be slooow
+    else if ( "$argv[$ac]" == "-cost_nl_final" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cost_nlf = "-$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-wtgaus" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set gaus_wt = "$argv[$ac]"
+
+    # [Jan 2019 - RWC]
     else if ( "$argv[$ac]" == "-verb" ) then
         set verbopt = "-verb"
 
@@ -307,7 +375,7 @@ endif
 
 ## start the work
 
-## Step #0: Deoblique
+## Step #0: Deoblique, either in style of 3dWarp or 3drefit
 if ( ${DO_DEOB} ) then
     set dset_do = $odir/anatDO."${SubID}".nii
     3dWarp                        \
@@ -317,9 +385,24 @@ if ( ${DO_DEOB} ) then
         "$Adataset"
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
+else if ( ${DO_DEOB_REF} ) then
+    set dset_do = $odir/anatDO."${SubID}".nii
+    # copy
+    3dcalc                        \
+        -a "$Adataset"            \
+        -expr 'a'                 \
+        -prefix "${dset_do}"
+    # purge obliquity info
+    3drefit                       \
+        -deoblique                \
+        "${dset_do}"
+
+    # ... and this will be new "input" dset
+    set Adataset = "${dset_do}"
 endif
 
 ## Step #1: Unifize the input T1
+echo "++ SSW Step 1"
 
 # [PT: Feb 11, 2019] now allows for option *not* to unifize
 # [PT: Feb 21, 2019] use Urad=30 when unifizing (better for final output)
@@ -357,50 +440,83 @@ if( ! -f $odir/anatUA."${SubID}".nii ) then
     endif
 endif
 
+# [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
+# 98%ile of non-zero vox
+if( ! -f $odir/anatUAC."${SubID}".nii ) then
+    if ( ${DO_CEIL} ) then
+        set vvv = `3dBrickStat                  \
+                    -percentile 98 1 98         \
+                    -non-zero                   \
+                    $odir/anatUA."${SubID}".nii`
+        # apply ceiling
+        3dcalc                                  \
+            -a $odir/anatUA."${SubID}".nii      \
+            -expr "maxbelow(${vvv[2]},a)"       \
+            -prefix $odir/anatUAC."${SubID}".nii
+
+    else
+        echo "++ NOT anisosmoothing dset."
+        3dcopy                                   \
+            $odir/anatUA."$SubID".nii            \
+            $odir/anatUAC."$SubID".nii
+    endif
+endif
+
+
 # Step #2: Strip Skull (Ziad's way)
+echo "++ SSW Step 2"
 
 # [PT: Feb 11, 2019] now allows for option *not* to skullstrip (e.g.,
 # for macaque data)
 if( ! -f $odir/anatS."${SubID}".nii ) then
     if ( ${DO_SKULLST} ) then
         3dSkullStrip \
-            -input  $odir/anatUA."$SubID".nii \
-            -prefix $odir/anatS."$SubID".nii  \
-            -debug 1 -ld 33 -niter 777        \
-            -shrink_fac_bot_lim 0.777         \
-            -exp_frac 0.0666 -orig_vol        \
+            -input  $odir/anatUAC."$SubID".nii \
+            -prefix $odir/anatS."$SubID".nii   \
+            -debug 1 -ld 33 -niter 777         \
+            -shrink_fac_bot_lim 0.777          \
+            -exp_frac 0.0666 -orig_vol         \
             $SSopt
     else
         echo "++ NOT pre-skullstripping dset."
-        3dcopy                                \
-            $odir/anatUA."$SubID".nii         \
+        3dcopy                                 \
+            $odir/anatUAC."$SubID".nii         \
             $odir/anatS."$SubID".nii
     endif
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
+echo "++ SSW Step 3"
+
 if ( ${DO_GIANT} ) then
-    3dQwarp -echo_edu                                     \
+    3dQwarp -echo_edu        ${saveall}                   \
         $liteopt $verbopt                                 \
         -base   "${Basedset}[1]"                          \
-        -source $odir/anatUA."$SubID".nii                 \
+        ${cost_nli}                                       \
+        -source $odir/anatUAC."$SubID".nii                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
+        -wtgaus ${gaus_wt}                                \
+        -inedge                                           \
         -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"                         \
         -allopt '-twobest 11 -twopass -maxrot 45 -maxshf 40 -source_automask+2 -cmass'
 else
-    3dQwarp -echo_edu                                     \
+    3dQwarp -echo_edu           ${saveall}                \
         $liteopt $verbopt                                 \
         -base   "${Basedset}[1]"                          \
-        -source $odir/anatUA."$SubID".nii                 \
+        ${cost_nli}                                       \
+        -source $odir/anatUAC."$SubID".nii                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
+        -wtgaus ${gaus_wt}                                \
+        -inedge                                           \
         -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"
 endif
 
 ## Step #4: mask off the skull using the template (second skull-strip)
+echo "++ SSW Step 4"
 
 3dmask_tool                        \
     -input "${Basedset}[3]"        \
@@ -414,8 +530,9 @@ endif
     -prefix "${pref}TAL5mm.nii"
 
 ## Step #5: warp this masked dataset back to original space
+echo "++ SSW Step 5"
 
-3dNwarpApply \
+3dNwarpApply -echo_edu                 \
     -nwarp "${pref}TAL5_WARPINV.nii"   \
     -master $odir/anatS."$SubID".nii   \
     -source "${pref}TAL5mm.nii"        \
@@ -424,7 +541,7 @@ endif
 ## warp the mask itself (dilated) back to orig space
 
 \rm -f "${pref}MASK.nii"
-3dmask_tool                      \
+3dmask_tool  -echo_edu           \
     -input "${Basedset}[3]"      \
     -dilate_input 3              \
     -prefix "${pref}MASK.nii"
@@ -457,7 +574,9 @@ endif
 
 # Throw in an automask step to clean up the outer edges [18 Jun 2019]
 \rm -f ${pref}de3.nii "$odir/anatSS.${SubID}.nii"
-3dAutomask -apply_prefix "$odir/anatSSd.${SubID}.nii" "$odir/anatSSc.${SubID}.nii"
+3dAutomask                                            \
+    -apply_prefix "$odir/anatSSd.${SubID}.nii"        \
+    "$odir/anatSSc.${SubID}.nii"
 \mv -f "$odir/anatSSd.${SubID}.nii" "$odir/anatSS.${SubID}.nii"
 \rm -f "$odir/anatSSc.${SubID}.nii"
 
@@ -466,11 +585,17 @@ endif
 if( $skipwarp ) goto CLEANUP
 
 ## Step #6: affine transform that result to template space
+echo "++ SSW Step 6"
 
+# [PT: Jan 7, 2019] use lpa+ZZ cost func by default; also add in -twopass
+echo "++ SSW Step 6 ... piece 0"
 3dAllineate \
     -1Dmatrix_apply "${pref}TAL5_Allin.aff12.1D"   \
     -source $odir/anatSS."${SubID}".nii            \
     -master "${pref}TAL5mm.nii"                    \
+    -cost ${cost_aff}                              \
+    -twopass                                       \
+    -autoweight -source_automask                   \
     -final wsinc5                                  \
     -prefix "${pref}AffSS.nii"
 
@@ -483,52 +608,79 @@ if( $skipwarp ) goto CLEANUP
 #  into pieces will (I hope) elide this annoyance - RWC :(
 
 # Piece number 1
-3dQwarp $liteopt $verbopt                \
+echo "++ SSW Step 6 ... piece 1"
+3dQwarp -echo_edu        ${saveall}      \
+    $liteopt $verbopt                    \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
+    ${cost_nli}                          \
     -inilev 1 -maxlev 5                  \
+    -wtgaus ${gaus_wt}                   \
+    -inedge                              \
     -pblur -workhard:5:5                 \
     -nodset -prefix "${pref}QQ5.nii"
 
 # Piece number 2
-3dQwarp $liteopt $verbopt                \
+echo "++ SSW Step 6 ... piece 2"
+3dQwarp -echo_edu      ${saveall}        \
+    $liteopt $verbopt                    \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}QQ5_WARP.nii"       \
+    ${cost_nlf}                          \
     -inilev 6 -maxlev 7 -workhard:6:7    \
+    -wtgaus ${gaus_wt}                   \
+    -inedge                              \
     -pblur                               \
     -nodset -prefix "${pref}QQ7.nii"
 
 if( $minp > 13 )then
-# Final piece for coarse final patch size
-  3dQwarp $liteopt $verbopt                \
+  # Final piece for coarse final patch size
+  echo "++ SSW Step 6 ... piece 3"
+  3dQwarp -echo_edu      ${saveall}        \
+      $liteopt $verbopt                    \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
+      ${cost_nlf}                          \
       -inilev 8                            \
+      -wtgaus ${gaus_wt}                   \
+      -inedge                              \
       -pblur -minpatch $minp               \
       -Qfinal                              \
       -prefix $odir/anatQQ."${SubID}".nii
 else
-# Penultimate piece for refined final patch size
+  # Penultimate piece for refined final patch size
+  echo "++ SSW Step 6 ... piece 3a"
   @ mpp = $minp + 6
-  3dQwarp $liteopt $verbopt                \
+  3dQwarp  -echo_edu       ${saveall}      \
+      $liteopt $verbopt                    \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
+      ${cost_nlf}                          \
       -inilev 8 -minpatch $mpp             \
+      -wtgaus ${gaus_wt}                   \
+      -inedge                              \
       -pblur                               \
       -nodset -prefix "${pref}QQ9.nii"
-# Ultimate piece for refined final patch size
-  3dQwarp $liteopt $verbopt                \
+  # Ultimate piece for refined final patch size
+  echo "++ SSW Step 6 ... piece 3b"
+  3dQwarp  -echo_edu       ${saveall}      \
+      $liteopt $verbopt                    \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ9_WARP.nii"       \
+      ${cost_nlf}                          \
       -inilev 10                           \
+      -wtgaus ${gaus_wt}                   \
+      -inedge                              \
       -pblur -minpatch $minp               \
       -prefix $odir/anatQQ."${SubID}".nii
 endif
+
+echo "++ SSW: done warping.  Finalize."
 
 # DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
 3dmask_tool                             \
@@ -545,6 +697,7 @@ endif
 \mv -f $odir/anatQQc."${SubID}".nii $odir/anatQQ."${SubID}".nii
 
 ## Step #7: Make two pretty pictures, and scram
+echo "++ SSW Step 7"
 
 @snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
 @snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
@@ -554,6 +707,7 @@ endif
 CLEANUP:
 
 ## Rename affine warp matrix
+echo "++ SSW cleanup"
 
 \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
 
@@ -591,22 +745,28 @@ Authorship      = RW Cox
 
 USAGE ~1~
 
-    ${this_prog}          \
-        -input  AA        \
-        -base   BB        \
-        -subid  SS        \
-       {-odir   OD}       \
-       {-minp   MP}       \
-       {-nolite}          \
-       {-skipwarp}        \
-       {-unifize_off}     \
+    ${this_prog}             \
+        -input  AA           \
+        -base   BB           \
+        -subid  SS           \
+       {-odir   OD}          \
+       {-minp   MP}          \
+       {-nolite}             \
+       {-skipwarp}           \
+       {-unifize_off}        \
        {-init_skullstr_off}  \
-       {-SSopt 'strings'  \
-       {-aniso_off}       \
-       {-verb}            \
+       {-cost_aff CA}        \
+       {-cost_nl_init CNI}   \
+       {-cost_nl_final CNF}  \
+       {-SSopt 'strings'     \
+       {-aniso_off}          \
+       {-ceil_off}           \
+       {-verb}               \
        {-noclean}
 
-where:
+where (note: many of the options with 'no' and 'off' in their name are
+really just included for backwards compatibility, as this program has
+grown/improved over time):
 
   -input  AA :(req) an anatomical dataset, *not* skull-stripped, with
               resolution about 1 mm.
@@ -643,11 +803,17 @@ where:
               result in original coordinates, without the warping
               to the template space (anatQQ). The script will run faster.
 
-  -deoblique :apply obliquity information to deoblique the input
+  -deoblique :(opt) apply obliquity information to deoblique the input
               volume ('3dWarp -deoblique -wsinc5 ...'), as an initial step.
-              This might help when data sets are very... oblique.
+              This might introduce the need to overcome a large rotation
+              during the alignment, though!
 
-  -giant_move :when starting the initial alignment to the template,
+  -deoblique_refitly :(opt) purge obliquity information to deoblique
+              the input volume (copy, and then '3drefit -deoblique ...'), 
+              as an initial step.  This might help when data sets are
+              very... oblique.
+
+  -giant_move :(opt) when starting the initial alignment to the template,
               apply the same parameter expansions to 3dAllineate that
               align_epi_anat.py does with the same option flag.  This
               might be useful if the brain has a very large angle away
@@ -663,9 +829,38 @@ where:
               sense).  Possible that this will never be used in the
               history of running this program.
 
+  -ceil_off  :(opt) by default, after anisosmoothing, this program
+              will apply put a ceiling on values in the dset, to get rid
+              of possible outliers (ceil = 98%ile of non-zero voxels in
+              the whole volume).  This option will turn that off.
+
   -init_skullstr_off :(opt) don't preprocess with a 3dSkullstrip command
               to roughly isolated brain in the beginning.  This might
               be useful with macaque dsets.
+
+  -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
+              part of alignment.  Here, 'CA' would be just the name of
+              the cost function to be provided after '-cost ..' (def:
+              is now "lpa+ZZ").  This is probably only here for
+              backwards compatability to older @SSwarper (where def
+              was 'hel').
+
+  -cost_nl_init CNI 
+
+             :(opt) specify cost function for initial nonlinear
+              (3dQwarp) part of alignment.  Here, 'CNI' would be the
+              cost function name to be provided (def: is now "lpa").
+              This is probably only here for backwards compatability
+              to older @SSwarper (where def was 'pcl').
+
+  -cost_nl_final CNF 
+             :(opt) specify cost function for final nonlinear
+              (3dQwarp) parts of alignment.  Here, 'CNF' would be the
+              cost function to be provided (def: is now "pcl").  This
+              is separate from the initial nonlinear warp cost values
+              '-cost_nl_init ..', because using those here might be
+              pretty slow; however, using "lpa" here might help
+              results.
 
   -SSopt 'strings' :(opt) The content of 'strings' (which should be
               in quotes if there are any blanks) is copied to the
@@ -712,15 +907,18 @@ Then the outputs from this script will be"
                             (or, if '-unifize_off' used, a copy of orig dset);
   anatUA.sub007.nii       = anisotropically smoothed version of the above
                             (or, if '-aniso_off' used, a copy of anatU.*.nii)
+  anatUAC.sub007.nii      = ceiling-capped ver of the above (at 98%ile of 
+                            non-zero values)
+                            (or, if '-ceil_off' used, a copy of anatUA.*.nii)
   anatS.sub007.nii        = first pass skull-stripped original dataset
                             (or, if '-init_skullstr_off' used, a copy of
-                            anatUA.*.nii);
+                            anatUAC.*.nii);
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
                             * note that anatS and anatSS are 'original'
                               in the sense that they are aligned with
                               the input dataset - however, they have been
                               unifized and weakly smoothed: they are
-                              stripped versions of anatUA; if you want
+                              stripped versions of anatUAC; if you want
                               a skull-stripped copy of the input with
                               no other processing, use a command like
                                 3dcalc -a INPUTDATASET        \
