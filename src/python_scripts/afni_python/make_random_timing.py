@@ -872,7 +872,11 @@ Advanced usage (make_random_timing.py) ~1~
                 * for a uniform distribution, the mean or max implies
                   the other, while that is not true for decay
         max     : -1 means unspecified, likely meaning no limit for decay class
-        dtype   : distribution type (default=decay)
+
+    and optional parameters in form (param=VALUE):
+
+        dtype   : distribution type (default: dtype=decay)
+
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
                               * new method, as of Feb 3, 2017
@@ -888,7 +892,22 @@ Advanced usage (make_random_timing.py) ~1~
                   uniform_grid: durations spread evenly across grid
                   fixed:        one duration is specified
                   INSTANT:      duration = 0
-        t_gran  : all durations are fixed on this granularity (default=0.01s)
+
+        t_gran  : all durations are fixed on this time granularity, i.e. they
+                  are multiples of if (default: t_gran=0.01s)
+
+        basis   : specify the basis function to be used in any 3dDeconvolve
+                  command where this timing class is used for the stimulus
+
+                  the default depends on the stimulus duration:
+                     if it varies,           the default is basis=dmUBLOCK
+                     else if duration <= 1s, the default is basis=GAM
+                     else (duration > 1s),   the default is basis='BLOCK(d,1)'
+                                             (where d=duration)
+
+                  the user may override the default, e.g.
+                    basis='BLOCK(3)'  or  basis='MION(2)'
+
 
    One can provide subsets:
 
@@ -897,10 +916,11 @@ Advanced usage (make_random_timing.py) ~1~
         min  mean  max  dtype           : implies default t_gran
         min  mean  max  dtype  t_gran
 
-   NOTE: dtype and t_gran are specified as named parameters, e.g.
+   NOTE: named parameters are specified as in the form param=VALUE, e.g.
 
             dtype=decay_fixed
             t_gran=0.001
+            basis='MION(2)'
 
    ============================================================
    Examples of -add_timing_class, and their purposes: ~2~
@@ -920,6 +940,11 @@ Advanced usage (make_random_timing.py) ~1~
          b. -add_timing_class stimc 2 ~3~
 
             Class 'stimc' will always be 2 seconds.
+
+         b2. -add_timing_class stimc 2 2 2 basis='MION(2)' ~3~
+
+            Class 'stimc' will always be 2 seconds, but specify an alternate
+            basis function for any generated 3dDeconvolve command.
 
          c. -add_timing_class stimd 1 2 6 dist=decay_fixed ~3~
 
@@ -1077,6 +1102,8 @@ Advanced usage (make_random_timing.py) ~1~
      - The stimc timing class has durations on a grid of 0.1s, rather
        than the default of 0.01s.
      - Write a corresponding 3dDeconvolve script, cmd.3dd.eg3.txt.
+     - In the 3dDeconvolve command, model the 3 pizza responses
+       using the MION(2) basis function.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
             -pre_stim_rest 10 -post_stim_rest 10                 \\
@@ -1084,7 +1111,7 @@ Advanced usage (make_random_timing.py) ~1~
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 0.1 2.5 10 t_gran=0.1        \\
-            -add_timing_class stimd 2                            \\
+            -add_timing_class stimd 2 2 2 basis='MION(2)'        \\
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
@@ -1146,6 +1173,7 @@ options (specific to the advanced usage): ~2~
 
               -add_timing_class napA   2 5 8 dist=uniform_grid
               -add_timing_class napB   3.25
+              -add_timing_class admin  2 2 2 basis='MION(2)'
               -add_timing_class zero   INSTANT
 
          Create a timing class, for either stimulus or rest.  Note that in the
@@ -1439,11 +1467,13 @@ g_history = """
     3.4  Nov  5, 2018: make some insufficient time failures more descriptive
     3.5  Aug  9, 2019: format text output for better python consistency
     3.6  Dec 20, 2019: add more advanced usage help
+    3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
 """
 
-g_version = "version 3.6 December 20, 2019"
+g_version = "version 3.7 January 27, 2020"
 
 g_todo = """
+   - specify basis function in stim class (can now do it in timing class)
    - add -show_consec_stats option?
    - c23 shows small post-stim rest...
    - reconcile t_grid as global vs per class (init/pass as single parameters)
@@ -2035,7 +2065,12 @@ class RandTiming:
     def apply_opt_timing_class(self, opt):
        """apply all -add_timing_class options
 
-          usage: -add_timing_class label mindur [[mean max] [dtype [tgran]]]
+          usage: -add_timing_class label mindur [[mean max] PARAMS
+
+                 PARAMS entries can look like:
+                    dist=DIST_TYPE
+                    t_gran=TIME_GRANULARITY
+                    basis=3dD_BASIS_FUNC
 
           required: label mindur
           more:     label mindur meandur maxdur
@@ -2046,6 +2081,7 @@ class RandTiming:
              -add_timing_class stimA 3 5 10
              -add_timing_class stimA 3 5 10 dist=decay
              -add_timing_class stimA 1 3  9 dist=decay t_gran=0.1
+             -add_timing_class stimA 3 3  3 basis='BLOCK(3)'
        """
 
        params = opt.parlist
@@ -2083,6 +2119,7 @@ class RandTiming:
        elif nparm == 3:
           print(error_string)
           print("   either supply a fixed duration or 'min mean max'")
+          print("   (any parameters must follow 'min mean max')")
           return 1
 
        # get all 3
@@ -2093,6 +2130,8 @@ class RandTiming:
           except:
              print(error_string)
              print('   not all 3 durations convert to float')
+             if params[2].find('=') > 0 or params[3].find('=') > 0:
+                print("   (parameters must follow 'min mean max')")
              return 1
 
        # ------------------------------------------------------------
@@ -4258,6 +4297,14 @@ class RandTiming:
             return
 
 def adv_basis_from_time(sclass):
+    """There might be a basis function attached to the class.  If so use it.
+       Otherwise, choose based on random """
+    # if the stim timing class has a basis function, return it
+    basis = sclass.basis_function()
+    if basis != '':
+       return basis
+
+    # otherwise, make one based on the timing
     const, cdur = sclass.adata.check_constant_duration()
     if const:
        if cdur > 1: return "'BLOCK(%g,1)'" % cdur

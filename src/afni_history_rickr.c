@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2020, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "add basis=BASIS parameter when defining timing class",
+   "Done for geenaianni on MB."
+ } ,
+
  { 23, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
    "add handling of magic version 4 (ROIs and mask==1 data)",
    "Done for J Gonzalez-Castillo."
