@@ -375,19 +375,19 @@ list_plugins:
 
 # $(DISCO_SCRIPTS) is a mix, and should be partitioned
 list_scripts:
-	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`    \
-             $(DISCO_SCRIPTS)"                                  \
+	echo `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`    \
+             $(DISCO_SCRIPTS)                                  \
 	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_py_scripts:
 	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_r_scripts:
-	echo "`\ls $(R_DIR) | \grep -v CMakeLists.txt`"         \
+	echo `\ls $(R_DIR) | \grep -v CMakeLists.txt`         \
 	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_scripts_for_r:
-	echo "`\ls $(R_TCSH_DIR) | \grep -v CMakeLists.txt`"         \
+	echo `\ls $(R_TCSH_DIR) | \grep -v CMakeLists.txt`    \
 	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 # Create .gitignore under src/
@@ -2498,7 +2498,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
            thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
-           thd_remove_allzero.o thd_store_index.o thd_ljungbox.o
+           thd_remove_allzero.o thd_store_index.o
 
 # these are now included in NIML
 
