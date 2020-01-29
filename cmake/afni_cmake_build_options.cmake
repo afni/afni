@@ -2,7 +2,7 @@
 # The cmake build partitions the programs/libraries/files into several
 # components:
 
-# afni_corelibs: Always built. Many of the shared object libraries in this
+# corelibs: Always built. Many of the shared object libraries in this
 # repo as well as the model files.
 
 # afni_corebinaries: Built if BUILD_BINARIES is set. Many of the c binaries

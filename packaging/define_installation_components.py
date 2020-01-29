@@ -41,8 +41,10 @@ cmake -GNinja {src_dir} \
     -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
     -DADD_RSTATS=ON \
     -DDO_NOT_INSTALL_SCRIPTS=OFF \
+    -DUSE_SYSTEM_NIFTI=ON       \
     -DBUILD_BINARIES=ON
 """,
+    # using system nifti should be removed              !!!!!! \
     shell=True,
 )
 sp.check_output("ninja")
@@ -87,7 +89,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DDO_NOT_INSTALL_SCRIPTS=OFF
+    -DDO_NOT_INSTALL_SCRIPTS=OFF \
     -DADD_PYTHON=OFF
 ninja
 ninja install  > components/2_tcsh.txt
