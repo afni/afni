@@ -117,7 +117,7 @@ if(ADD_RSTATS)
     rio
     PRIVATE ${LIBR_INCLUDE_DIRS}
   )
-  target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
+  target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
 
 # ##### Create list of programs built
