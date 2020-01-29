@@ -80,13 +80,24 @@ endif()
 message(STATUS "CPack generators: ${CPACK_GENERATOR}")
 
 # Add some manual add_dependencies
+
 # neurodebian
-set(CPACK_DEBIAN_CORELIBS_PACKAGE_DEPENDS "qhull-bin (>= 2015.2-4), libopengl0")
-set(CPACK_DEBIAN_EXTERNAL_DEPENDENCIES_PACKAGE_DEPENDS "libnetcdf13 (>= 3.6.1)")
-set(CPACK_DEBIAN_RSTATS_PACKAGE_DEPENDS "libnetcdf13 (>= 3.6.1)")
-set(CPACK_COMPONENT_RSTATS_DEPENDS "corelibs;corebinaries")
-set(CPACK_COMPONENT_PYTHON_DEPENDS "afni-corelibs;afni-corebinaries;afni_tcsh")
+set(CPACK_DEBIAN_CORELIBRARIES_PACKAGE_DEPENDS "")
+set(CPACK_DEBIAN_COREBINARIES_PACKAGE_DEPENDS "dcm2niix, xvfb, tcsh, qhull-bin, afni-corelibs")
+set(CPACK_DEBIAN_TCSH_PACKAGE_DEPENDS "afni-corelibs, afni-corebinaries")
+set(CPACK_DEBIAN_RSTATS_PACKAGE_DEPENDS "r-base, afni-corelibs")
+set(CPACK_DEBIAN_PYTHON_PACKAGE_DEPENDS "python3.6 | python3.7 | python3.8, python-qt4, python-scipy, python-tk, python-wxgtk3.0")
+set(CPACK_DEBIAN_GUI_PACKAGE_DEPENDS "afni-corelibs, afni-corebinaries, afni-tcsh, afni-python")
+set(CPACK_COMPONENT_SUMA_DEPENDS "afni-gui")
+
+# Component dependencies
+set(CPACK_COMPONENT_CORELIBRARIES_DEPENDS "")
+set(CPACK_COMPONENT_COREBINARIES_DEPENDS "corelibs")
+set(CPACK_COMPONENT_TCSH_DEPENDS "corelibs;corebinaries")
+set(CPACK_COMPONENT_RSTATS_DEPENDS "corelibs")
+set(CPACK_COMPONENT_PYTHON_DEPENDS "corelibs;corebinaries;tcsh")
 set(CPACK_COMPONENT_GUI_DEPENDS "corelibs;corebinaries;tcsh;python")
+set(CPACK_COMPONENT_SUMA_DEPENDS "gui")
 
 include(CPack)
 if(CMAKE_SYSTEM_NAME MATCHES Linux)
