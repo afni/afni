@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 29, Jan , 2020 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
+   "Couldn't deal with volumes that had RGB type, which happens for DEC maps.",
+   "Has been fixed now.\n"
+},
+
 { 29, Jan , 2020 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_GENERAL,
    "Try to make a couple output images (dwi*b0*.png) a bit clearer.",
    "Make olay use 95%ile value as cbar max, rather than 100%.\n"
