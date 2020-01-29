@@ -77,3 +77,59 @@ if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
     find_package(GLw REQUIRED)
   endif()
 endif()
+
+# Add AFNI atlases (they're not really just atlases but for legacy reasons
+# we'll call them that)
+if(ADD_ATLASES)
+  find_program(DATALAD datalad)
+  if(DATALAD_NOT_FOUND)
+    message(FATAL_ERROR "The datalad executable could not be found. This is required for installation of atlases")
+  endif()
+  find_program(RSYNC rsync)
+  if(RSYNC_NOT_FOUND)
+    message(FATAL_ERROR "The rsync executable could not be found. This is required for installation of atlases")
+  endif()
+
+
+
+  # add_custom_target(
+  #   fetch_atlases 
+  #   ALL
+  #   DEPENDS ${CMAKE_BINARY_DIR}/afni_data 
+  #   COMMAND "echo" "Atlases/distribution data is present"
+  #   )
+
+file(
+  GENERATE 
+  OUTPUT ${CMAKE_BINARY_DIR}/fetch_atlases.sh
+  CONTENT "\
+    \n${DATALAD} install https://afni.nimh.nih.gov/pub/dist/data/afni_data\
+    \ncd ${CMAKE_BINARY_DIR}/afni_data\
+    \n${DATALAD} get .\
+    \n${DATALAD} unlock .\
+  "
+  )
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/afni_data 
+    DEPENDS ${CMAKE_BINARY_DIR}/fetch_atlases.sh
+    COMMAND "bash" "fetch_atlases.sh"
+    USES_TERMINAL
+    )
+
+    add_custom_target(
+      atlases_dir 
+      ALL
+      VERBATIM
+      COMMAND echo Data for distribution has been downloaded (ADD_ATLASES has been set to ON)
+      DEPENDS ${CMAKE_BINARY_DIR}/afni_data 
+      )
+
+  install(
+    DIRECTORY ${CMAKE_BINARY_DIR}/afni_data/atlases/
+    COMPONENT atlases
+    DESTINATION ${AFNI_INSTALL_ATLAS_DIR}
+    PATTERN '*'
+    PERMISSIONS "WORLD_READ"
+  )
+
+endif()
