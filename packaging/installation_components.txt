@@ -282,6 +282,7 @@ ccalc, corebinaries
 cdf, corebinaries
 column_cat, corebinaries
 count, corebinaries
+dcm2niix, corebinaries
 dicom_hdr, corebinaries
 dicom_hinfo, corebinaries
 dicom_to_raw, corebinaries
@@ -796,4 +797,3 @@ unix, external_dependencies
 volpack, external_dependencies
 znz, external_dependencies
 znzlib.h, external_dependencies
-dcm2niix, external_dependencies
