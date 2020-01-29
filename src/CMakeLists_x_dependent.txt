@@ -1,8 +1,6 @@
 # ##### Build X dependent programs...
 
 add_subdirectory(svm)
-optional_bundle(XmHTML)
-
 add_afni_library(
   mrix
   bbox.c

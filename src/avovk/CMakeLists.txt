@@ -1,5 +1,4 @@
 project(avovk)
-find_package(GSL REQUIRED)
 
 add_afni_library(segtools cluster_floatNOMASK.c thd_segtools_fNM.c) # cluster.o
 target_include_directories(

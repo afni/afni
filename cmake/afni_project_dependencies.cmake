@@ -1,27 +1,48 @@
 include(CMakePackageConfigHelpers)
 include(FetchContent)
-
 find_package(Motif REQUIRED)
 find_package(NetCDF REQUIRED)
-include(FindX11)
 include(FindStandardMathLibrary)
-include(FindLibR)
 include(BuildType)
 find_package(ZLIB REQUIRED)
+find_package(GSL REQUIRED)
+optional_bundle(src/volpack)
+optional_bundle(src/f2c)
+set_if_not_defined(USE_SYSTEM_QHULL ON)
 
 if(USE_OMP)
   find_package(OpenMP REQUIRED)
 endif()
 
-if(NOT USE_OMP)
-  message(FATAL_ERROR REQUIRED)
+if(ADD_RSTATS)
+  include(FindLibR)
 endif()
 
-set_if_not_defined(USE_SYSTEM_QHULL ON)
+# set(Python_FIND_VIRTUALENV FIRST)
+set(CMAKE_FIND_FRAMEWORK LAST)
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
+if(NOT ${Python_FOUND})
+  message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
+endif()
+
+
+if(NOT AFNI_BUILD_CORELIBS_ONLY)
+  if(NOT USE_SYSTEM_QHULL)
+    # Perhaps an error should be raised if the appropriate binaries are missing
+    add_subdirectory(src/qhulldir)
+  endif()
+endif()
+
+if(BUILD_X_DEPENDENT_GUI_PROGS)
+  find_package(JPEG 62 REQUIRED)
+  find_package(X11 REQUIRED)
+  optional_bundle(src/XmHTML)
+endif()
 
 # Declare the direct dependencies. Can be used to avoid collisions with pre-existing
 # installations of the nifti libraries
 if(USE_SYSTEM_NIFTI)
+
   find_package(NIFTI REQUIRED)
 else()
 FetchContent_Declare(
@@ -44,9 +65,15 @@ FetchContent_MakeAvailable(gifti_clib)
 endif()
 
 
-# set(Python_FIND_VIRTUALENV FIRST)
-set(CMAKE_FIND_FRAMEWORK LAST)
-find_package(Python 3 REQUIRED COMPONENTS Interpreter)
-if(NOT ${Python_FOUND})
-  message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
+# SUMA dependency management
+if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
+  # Check for and configure for external dependencies
+  find_package(OpenGL REQUIRED)
+  find_package(GLib2)
+  optional_bundle(src/SUMA/GLUT)
+  optional_bundle(src/SUMA/gts)
+
+  if(USE_SYSTEM_GLW)
+    find_package(GLw REQUIRED)
+  endif()
 endif()

@@ -1,5 +1,4 @@
 project(ptaylor)
-find_package(GSL REQUIRED)
 add_afni_library(
   track_tools
   3dcanvas.c
