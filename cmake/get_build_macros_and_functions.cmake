@@ -19,14 +19,86 @@ macro(optional_bundle subdir_path)
   endif(USE_SYSTEM_${upper})
 endmacro()
 
+function(filter_out_components mapping components  targets out_var)
+  # get all targets associated with the components
+  set(comp_targs "")
+  foreach(component ${components})
+    set(temp_mapping ${mapping})
+    list(FILTER temp_mapping INCLUDE REGEX ", ${component}$")
+    list(APPEND comp_targs ${temp_mapping})
+  endforeach()
+  list(TRANSFORM comp_targs REPLACE ", .*" "" )
+
+  # Filter out targets associated with components
+  list(REMOVE_ITEM targets ${comp_targs})
+  # message(" targets: ${targets}")
+  
+
+  # Set input variable to the filtered list
+  set(${out_var} "${targets}" PARENT_SCOPE)
+endfunction()
+  
 function(get_expected_target_list mapping targets_label)
-# TODO filter out components not used in current build...
-list(FILTER mapping EXCLUDE REGEX ", python$")
-list(FILTER mapping EXCLUDE REGEX ", tcsh$")
-list(FILTER mapping EXCLUDE REGEX ", rstats$")
-list(FILTER mapping EXCLUDE REGEX ", external_dependencies$")
-list(TRANSFORM mapping REPLACE ", .*" "" )
-set(${targets_label} "${mapping}" PARENT_SCOPE)
+  set(filtered_list "${mapping}")
+  list(TRANSFORM filtered_list REPLACE ", .*" "" )
+  if(AFNI_BUILD_CORELIBS_ONLY)
+    # only corelibs will be installed
+    filter_for_components(mapping "corelibs" "${filtered_list}" filtered_list)
+  endif()
+
+  # Remove components that are largely scripts or external
+  filter_out_components(
+    "{${mapping}}"
+    "python;tcsh;rstats;external_dependencies"
+    "${filtered_list}"
+    filtered_list
+    )
+
+  if(NOT (BUILD_BINARIES))
+    filter_out_components( mapping "corebinaries" "${filtered_list}" filtered_list)
+  endif()
+
+
+  if(NOT (BUILD_X_DEPENDENT_GUI_PROGS))
+    filter_out_components( mapping "gui" "${filtered_list}" filtered_list)
+  endif()
+
+  if(NOT (BUILD_OPENGL_DEPENDENT_GUI_PROGS))
+    filter_out_components( mapping "suma" "${filtered_list}" filtered_list)
+  endif()
+
+  set(${targets_label} "${filtered_list}" PARENT_SCOPE)
+endfunction()
+
+function(append_make_component component varlabel var)
+  set(out_list ${var})
+
+  execute_process(
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND bash "-c" "make -sf Makefile.INCLUDE list_${component}"
+      OUTPUT_VARIABLE comp_list
+      RESULT_VARIABLE status
+    )
+  if(NOT status STREQUAL "0")
+    message(FATAL_ERROR "Failed attempting to get the component \
+      '${component}' from the make build")
+  endif()
+  # message(${comp_list})
+  # string(STRIP ${comp_list} comp_list)
+  # string(REGEX REPLACE "\n" ";" comp_list ${comp_list})
+  string(REGEX REPLACE "\n" ";" comp_list ${comp_list})
+  # Filter out lib prefixes and library extensions
+  list(
+    TRANSFORM comp_list 
+    REPLACE "lib(.*)(.so|.a)$" "\\1"
+    REGEX "lib.*(.so|.a)")
+  # Filter out library extension stubs
+  list(
+    TRANSFORM comp_list 
+    REPLACE "\.$" ""
+    REGEX ".*[.]$")
+  list(APPEND out_list ${comp_list})
+  set(${varlabel} ${out_list} PARENT_SCOPE)
 endfunction()
 
 function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
@@ -42,46 +114,38 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
     message(FATAL_ERROR "The build has not built all the targets expected. It is\
      missing the following targets:${expected_targets}!!!!")
   endif()
-  # message("Additional targets not expected when comparing with make build: ${?}")
   
   # ##### assessing parity with the make build
-  execute_process(
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND bash "-c" "make -s -f Makefile.INCLUDE prog_list_bin"
-  )
+  set(make_targ_list "")
+  append_make_component("plugins" make_targ_list "${make_targ_list}")
+  append_make_component("models" make_targ_list "${make_targ_list}")
+  append_make_component("afni_progs" make_targ_list "${make_targ_list}")
+  append_make_component("libraries" make_targ_list "${make_targ_list}")
+  append_make_component("suma_progs" make_targ_list "${make_targ_list}")
+  filter_out_components(
+      "{${CMPNT_MAPPING}}"
+      "external_dependencies"
+      "${make_targ_list}"
+      make_targ_list
+      )
 
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list_bin.txt ALL_PROGRAMS_MAKE_BUILD)
-  string(STRIP ${ALL_PROGRAMS_MAKE_BUILD} ALL_PROGRAMS_MAKE_BUILD)
-  string(REPLACE "\n" " " ALL_PROGRAMS_MAKE_BUILD ${ALL_PROGRAMS_MAKE_BUILD})
-  separate_arguments(ALL_PROGRAMS_MAKE_BUILD)
-  set(PROGRAMS_BUILT "")
-  set(NOT_BUILT "")
-  set(installable_targets ${ALL_PROGRAMS_MAKE_BUILD})
 
-  # remove some programs that should not be here
-  foreach(other_project_target gifti_tool giftiio gifti_test nifti_tool niftiio)
-    # message("Removing ${other_project_target} because it is not built by this
-    # project")
-    list(REMOVE_ITEM installable_targets ${other_project_target})
-  endforeach()
+  # Compute targets not present in the make build
+  set(CMAKE_LESS_MAKE_BUILT ${installed_targets})
+  list(REMOVE_ITEM CMAKE_LESS_MAKE_BUILT ${make_targ_list})
 
-  foreach(program ${installable_targets})
-    if(TARGET ${program})
-      list(APPEND PROGRAMS_BUILT ${program})
-    else()
-      list(APPEND NOT_BUILT ${program})
-    endif()
-  endforeach()
+  # Compute targets only in the make build
+  set(MAKE_BUILD_LESS_CMAKE ${make_targ_list})
+  list(REMOVE_ITEM MAKE_BUILD_LESS_CMAKE ${installed_targets})
 
-  # TODO: Compute CMAKE_LESS_MAKE_BUILT
 
-  if(SHOW_UNBUILT_PROGS)
-    message("Comparison with build using the make system:")
-    message("programs not built: '${NOT_BUILT}'")
-    message("extra programs built: '${CMAKE_LESS_MAKE_BUILT}'")
-    # message("programs built: '${PROGRAMS_BUILT}'")
-  endif()
+  # Provide feedback on difference between the builds
+  message("Comparison with build using the make system:")
+  message("programs not built: '${MAKE_BUILD_LESS_CMAKE}'")
+  message("extra programs built: '${CMAKE_LESS_MAKE_BUILT}'")
+  
 endfunction()
+
 
 macro(set_os_flags src_file)
   # sets os specific compile definintions for source files. This is currently
