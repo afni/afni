@@ -1,14 +1,5 @@
 project(SUMA)
 
-# Check for and configure for external dependencies
-find_package(OpenGL REQUIRED)
-optional_bundle(GLUT)
-
-# Certain binaries will not be built if the following are
-# not found
-find_package(GLib2)
-optional_bundle(gts)
-
 # SUMA library
 add_afni_library(
   SUMA
@@ -60,9 +51,7 @@ target_compile_definitions(SUMA PUBLIC SUMA_COMPILED)
 # patch. See
 # afni/src/other_builds/OS_notes.linux_fedora_25_64.txt).
 # Otherwise the c files are included directly in the library
-if(USE_SYSTEM_GLW)
-  find_package(GLw REQUIRED)
-else()
+if(NOT (USE_SYSTEM_GLW))
   target_sources(SUMA PRIVATE GLw_local/GLwDrawA.c)
   target_include_directories(
     SUMA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/GLw_local)

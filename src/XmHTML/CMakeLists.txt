@@ -5,10 +5,6 @@ set(CMAKE_BUILD_TYPE "Release")
 
 set(XMHTML_VERSION "1107")
 set(XMHTML_ARCHIVE "1.1.7")
-if(NOT ${X11_FOUND})
-  find_package(X11 REQUIRED)
-endif()
-find_package(JPEG 62 REQUIRED)
 
 # TODO: set target specific compile_definitions
 set(CMAKE_C_FLAGS

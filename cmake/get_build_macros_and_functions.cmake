@@ -6,7 +6,8 @@ macro(list_TO_STRING _string _list)
   endforeach(_item)
 endmacro(list_TO_STRING)
 
-macro(optional_bundle name)
+macro(optional_bundle subdir_path)
+  get_filename_component(name ${subdir_path} NAME)
   # this must be a macro for scoping reasons. Otherwise LIB_FOUND is not set
   string(TOUPPER ${name} upper)
 
@@ -14,7 +15,7 @@ macro(optional_bundle name)
   if(USE_SYSTEM_${upper})
     find_package(${name} REQUIRED)
   else(USE_SYSTEM_${upper})
-    add_subdirectory(${name})
+    add_subdirectory(${subdir_path})
   endif(USE_SYSTEM_${upper})
 endmacro()
 
