@@ -69,7 +69,15 @@ foreach(
 
 # ##### Add libraries and programs outside of corelibs
 if(NOT AFNI_BUILD_CORELIBS_ONLY)
-  add_subdirectory(crorden)
+  if(USE_SYSTEM_DCM2NIIX)
+    # Hack to bypass, target checks because this should be a symlink to a the
+    # runtime dependency dcm2niix
+    log_target_as_installed(dcm2niix)
+  else()
+    add_subdirectory(crorden)
+    set_target_properties(dcm2niix PROPERTIES OUTPUT_NAME dcm2niix_afni)
+    add_afni_target_properties(dcm2niix)
+  endif()
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
   # DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}  RENAME woohoo)
   add_subdirectory(avovk)
