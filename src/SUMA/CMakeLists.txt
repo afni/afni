@@ -64,7 +64,10 @@ target_link_libraries(
           Motif::Motif
           ${X11_Xt_LIB}
           ${X11_LIBRARIES}
+          ${X11_Xmu_LIB}
+          ${X11_Xi_LIB}
           AFNI::mri
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           track_tools
@@ -84,6 +87,7 @@ target_link_libraries(
           ${X11_LIBRARIES}
           AFNI::track_tools
           AFNI::segtools
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
@@ -153,6 +157,7 @@ foreach(program ${PROGRAMS})
             AFNI::mrix
             AFNI::track_tools
             AFNI::segtools
+            $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
             $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
             $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>
@@ -180,6 +185,7 @@ foreach(prog_with_name_as_source prompt_popup)
       NIFTI::nifti2
       NIFTI::nifticdf
       $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
+      $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
       $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
         $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
 endforeach()
@@ -198,9 +204,11 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
             Motif::Motif
             ${X11_Xt_LIB}
             ${X11_LIBRARIES}
+            ${X11_Xmu_LIB}
             NIFTI::nifti2
             NIFTI::nifticdf
             $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
+            $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
             $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
 endforeach()
@@ -210,6 +218,7 @@ endforeach()
 # add_afni_executable(SumaProgramTemplate SUMA_ProgramTemplate.c)
 # target_link_libraries( SumaProgramTemplate PRIVATE SUMA
 # AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+# $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
 # $<TARGET_NAME_IF_EXISTS:GLUT::GLUT> )
 #
 # # Source files missing add_afni_executable(resolvitivity
@@ -230,12 +239,14 @@ target_link_libraries(
           NIFTI::nifticdf
           ${X11_LIBRARIES}
           $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
 add_afni_executable(CompareSurfaces SUMA_compare_surfaces.c)
 target_link_libraries(
   CompareSurfaces
   PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::OpenGL>)
 
@@ -243,6 +254,7 @@ add_afni_executable(Surf2VolCoord SUMA_Surf2VolCoord_demo.c)
 target_link_libraries(
   Surf2VolCoord
   PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
 add_afni_executable(path_optimize SUMA_path_optimize.c
@@ -250,7 +262,9 @@ add_afni_executable(path_optimize SUMA_path_optimize.c
 target_link_libraries(
   path_optimize
   PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
-          ${X11_Xt_LIB} $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
+          ${X11_Xt_LIB} 
+          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
+          $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
 # gts dependent programs
 if(GTS_FOUND)
@@ -261,6 +275,7 @@ if(GTS_FOUND)
     PUBLIC SUMA gts GLib2::glib
     PRIVATE $<TARGET_NAME_IF_EXISTS:OpenGL::GL> AFNI::mri
             NIFTI::nifti2 NIFTI::nifticdf
+            $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
   add_afni_executable(SurfMesh SUMA_coarsen.c)
@@ -268,6 +283,7 @@ if(GTS_FOUND)
     SurfMesh
     PRIVATE suma_gts AFNI::mri NIFTI::nifti2
             NIFTI::nifticdf
+            $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
             $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
   foreach(program BrainSkin IsoSurface)
@@ -278,6 +294,7 @@ if(GTS_FOUND)
               AFNI::mri
               NIFTI::nifti2
               NIFTI::nifticdf
+              $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
               $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
               $<TARGET_NAME_IF_EXISTS:OpenGL::GL>)
   endforeach()
