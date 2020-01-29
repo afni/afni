@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 29, Jan , 2020 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_GENERAL,
+   "Try to make a couple output images (dwi*b0*.png) a bit clearer.",
+   "Make olay use 95%ile value as cbar max, rather than 100%.\n"
+},
+
 { 27, Jan , 2020 , PT , "@SSwarper" , MAJOR , TYPE_GENERAL,
    "Large set of updates; many new opts added, too; generally much improved warps.",
    "Heavily tested on 178 subj across studies; output fnames are same, though.\n"
