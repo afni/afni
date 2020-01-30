@@ -3,8 +3,8 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-/*#define AFNI_DEBUG 1 */
 #include "to3d.h"
+#define AFNI_DEBUG
 /*#define DEBUG_PRINT 1*/
 
 extern void mri_read_dicom_reset_obliquity();
@@ -4718,7 +4718,9 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    mri_read_dicom_get_obliquity(&(daxes->ijk_to_dicom_real.m[0][0])); /*pass 16 element float */
 
    /*--- 15 Dec 2005: set the coordinate matrices in the header as well ---*/
-
+#ifdef AFNI_DEBUG
+   printf("Setting axes\n");
+#endif
    THD_set_daxes_to_dicomm(daxes) ;
  
    if( !ISVALID_MAT44(daxes->ijk_to_dicom) ) THD_daxes_to_mat44(daxes) ;
@@ -5089,7 +5091,11 @@ void T3D_save_file_CB( Widget w ,
 
    /* if user has selected, get origin from obliquity */
    /*   overriding all the previous selections - GUI or command-line */
-   if(use_oblique_origin)
+#ifdef AFNI_DEBUG
+   printf("Prefix is %s. self_name is %s, Is output NIFTI %d\n", user_inputs.output_filename,
+         dset->self_name, PREFIX_IS_NIFTI(user_inputs.output_filename)); 
+#endif
+   if((use_oblique_origin) ||PREFIX_IS_NIFTI(user_inputs.output_filename))
       Obliquity_to_coords(dset);
    else {
       /* checking for orientation and origin consistency now - 01/26/2020 DRG */ 
@@ -5099,16 +5105,31 @@ void T3D_save_file_CB( Widget w ,
          WARNING_message("Could not create temporary dataset to check orientation");
       }
       else {
+         char ostr[4], costr[4] ;   
+#ifdef AFNI_DEBUG
+   printf("Orientation check between cardinal and oblique\n");
+#endif
+
          Obliquity_to_coords(dout);
-         if(THD_dataset_mismatch( dset , dout )){
-            char ostr[4] ;   
-            THD_fill_orient_str_3(dout->daxes, ostr);
+         THD_fill_orient_str_3(dout->daxes, ostr);
+         THD_fill_orient_str_3(dset->daxes, costr);
+         /* check if cardinal and oblique orientations match */
+/*         if(THD_dataset_mismatch( dset , dout ) & MISMATCH_ORIENT ){*/
+         if(strcmp(ostr,costr)){
             /* if the user has set the orientation or using the GUI
                just warn them about this funny business */
+#ifdef AFNI_DEBUG
+   printf("Orientations do not match\n");
+#endif
+
             if((user_orient) || ( wset.topshell != NULL && wset.good )) {
-               if(strcmp(ostr,user_orient)) {
+#ifdef AFNI_DEBUG
+   printf("user_orient check\n");
+#endif
+               if(user_orient && strcmp(ostr,user_orient)) {
+
                  if(!wset.topshell)
-                   WARNING_message("user orientation %s does not match oblique orientation", user_orient);
+                   WARNING_message("user orientation %s does not match oblique orientation %s", user_orient, ostr);
                  else {
 #if 0
                    wmsg = MCW_popup_message( wset.save_file_pb ,
@@ -5122,15 +5143,23 @@ void T3D_save_file_CB( Widget w ,
                  }
                }
             }
-            else
-               ERROR_exit(
-                       "Information from obliquity does not match cardinal orientation and origin\n"
+            else {
+#ifdef AFNI_DEBUG
+   printf("Orientations do not match\n");
+#endif
+               if(!user_orient) {
+                  ERROR_exit(
+                       "The orientation from obliquity calculations does not match cardinal orientation\n"
                        "This may result in the dataset being upside-down or worse - LEFT-RIGHT flipped.\n"
                        " This is difficult to see for typical brains without major lesions or surgery on a known side.\n"
                        "Use -oblique_origin to enforce equivalence\n"
                        " or set orientation with -orient to what you KNOW to be true\n"
-          " or use NIFTI output by setting prefix to end in .nii or .nii.gz to only use oblique settings\n"
-                       "The oblique calculations show the closest cardinal orientation to be %s", ostr);
+                       " or use NIFTI output by setting prefix to end\n"
+                       " in .nii or .nii.gz to only use oblique settings\n"
+                       "The oblique calculations show the closest cardinal orientation to be %s\n"
+                       "and the cardinal calculations show the orientation to be %s\n", ostr, costr);
+               }
+            }   
          }
          DSET_delete(dout);
       }
