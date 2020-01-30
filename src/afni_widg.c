@@ -1275,6 +1275,9 @@ STATUS("making imag->xhair_rowcol") ;
 
    /*--- arrowval to control crosshair visibility ---*/
 
+   if( AFNI_yesenv("AFNI_CROSSHAIRS_OFF") )
+     im3d->vinfo->crosshair_visible = False ;
+
    if( im3d->vinfo->crosshair_visible )
       ii = (im3d->vinfo->xhairs_show_montage) ? AFNI_XHAIRS_MULTI
                                               : AFNI_XHAIRS_SINGLE ;
