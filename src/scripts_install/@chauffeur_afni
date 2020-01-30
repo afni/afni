@@ -2197,7 +2197,7 @@ COMMAND OPTIONS ~1~
 
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
-                   non-zero values.
+                   non-zero values (def: 100).
 
 -obliquify  OBL    :the ulay and/or the olay may have been acquired
                     with oblique coordinate axes; by default, the

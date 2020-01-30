@@ -209,8 +209,12 @@ end
 
 # ----------------- convert IJK to XYZ -----------------------------
 
-# Convert ijk -> xyz: the first three elements of $mdumpout are xyz
-set mdumpout = `3dmaskdump -ibox $coors -noijk -xyz "${ulay}"`
+### Convert ijk -> xyz: the first three elements of $mdumpout are xyz
+# [PT: Jan 29, 2020] Now use a 3dcalc expr in case the ${ulay} dset
+# has RGB type, which would make 3dmaskdump whine (and the value
+# doesn't matter here---we just want ijk->xyz conversion for coords).
+set mdumpout = `3dmaskdump -ibox $coors -noijk -xyz \
+                "3dcalc -a ${ulay}[0] -expr a -byte"`
 
 if ( "$OUT_TYPE" == "IJK" ) then
     echo $coors

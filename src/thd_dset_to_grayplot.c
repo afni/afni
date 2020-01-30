@@ -104,21 +104,27 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    /* find voxels in each mmask 'level' */
 
    nvim  = 0 ; vim = NULL ;
-   tmask = (byte *)malloc(sizeof(byte)*nxyz) ;
+   tmask = (byte *)malloc(sizeof(byte)*nxyz) ;           /* binary mask */
+
    if( polort >= 0 ){
-     fit = (float *)malloc(sizeof(float)*(polort+1)) ;
+     fit = (float *)malloc(sizeof(float)*(polort+1)) ; /* setup polorts */
    }
-   for( ii=1 ; ii <= 255 ; ii++ ){
+
+   for( ii=1 ; ii <= 255 ; ii++ ){            /* loop over mmask levels */
+
+     /* create binary mask for this level */
      mm = (byte)ii ;
      memset( tmask , 0 , sizeof(byte)*nxyz ) ;
      for( cmval=jj=0 ; jj < nxyz ; jj++ ){
        if( mmask[jj] == mm ){ cmval++ ; tmask[jj] = 1 ; }
      }
-     if( cmval > 9 ){ /* extract voxels at this level into a vectim */
+
+     /* extract voxels at this level into a vectim */
+     if( cmval > 9 ){
        vim = (MRI_vectim **)realloc( vim , sizeof(MRI_vectim *)*(nvim+1) ) ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
        if( polort >= 0 ){
-         for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* detrend */
+         for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){          /* detrend */
            tsar = VECTIM_PTR( vim[nvim] , jj ) ; fit[0] = 0.0f ;
            THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,fit ) ;
            if( do_percent && fit[0] > 0.0f ){
@@ -127,6 +133,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
            }
          }
        }
+
        switch( norming ){  /* normalize */
 
          case NORM_RMS:
@@ -175,17 +182,21 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
            ININFO_message("  Computing PV order for mask partition #%d - %d voxels",
                           ii,cmval) ;
 #endif
+           /* copy data into temporary image */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
-             kim[jj] = jj ;
+             kim[jj] = jj ;  /* source index */
            }
+           /* make the PVmap */
            pim = mri_vec_to_pvmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
+           /* sort so largest are first, keeping track of whence they came */
            for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
            qsort_floatint( cmval , par , kim ) ;
+           /* copy from temp image back to vectim, in the right order */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
            }
-           mri_free(tim) ; free(kim) ; mri_free(pim) ;
+           mri_free(tim) ; free(kim) ; mri_free(pim) ; /* toss the trash */
          }
          break ;
 

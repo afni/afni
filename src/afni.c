@@ -3001,6 +3001,8 @@ STATUS("call 14") ;
           putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
 #endif
         }
+        if( AFNI_yesenv("AFNI_CROSSHAIRS_OFF") )
+          MAIN_im3d->vinfo->crosshair_visible = False ;
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */

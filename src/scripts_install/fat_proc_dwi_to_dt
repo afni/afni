@@ -81,9 +81,13 @@
 #set version   = "3.0";  set rev_dat   = "July 31, 2018"
 #   + add in 1dDW_Grad_o_Mat++'s "-check_abs_min .." opt
 #
-set version   = "3.1";   set rev_dat   = "Feb 12, 2019"
+#set version   = "3.1";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "3.2";   set rev_dat   = "Jan 29, 2020"
+#     + [PT] make output images with olay=b0 have 95%ile (in volume)
+#            value for top of colorbar: easier to see structure.
 #
 # ----------------------------------------------------------------
 
@@ -707,10 +711,13 @@ if ( "$iref" != "" ) then
         echo "++ QC image 00 ($isetinref on $iref): $vpref0"
         echo "\n\n"
         # need to put '[0]' on $iref?
+        # [PT: Jan 29, 2020] make the perc range of olay to be 95, to
+        # be more useful in output img
         $my_viewer                            \
             -ulay "$iref"                     \
             -ulay_range "2%" "98%"            \
             -olay "$isetinref"                \
+            -func_range_perc 95               \
             -pbar_posonly                     \
             -opacity 4                        \
             -prefix "$odirqc/$vpref0"         \
