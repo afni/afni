@@ -182,9 +182,10 @@ if "3dttest++" in hist_all:
     ## assumptions of defaults
     labelB = "NA"
 
-    ## setA
+    ## setA read until next argument ("-")
     setA = hist_all.split("-setA")[1]
     setA = setA.split("-")[0]
+    setA = setA.split("\n")[0]   ## split to next command in history
     setA = setA.split()
 
     ## check for long form
@@ -209,7 +210,9 @@ if "3dttest++" in hist_all:
         ## setB
         if "-setB" in hist_all:
             setB = hist_all.split("-setB")[1]
-            setB = setB.split("-")[0]
+
+            setB = setB.split("-")[0]   ## split to next argument
+            setB = setB.split("\n")[0]   ## split to next command in history
             setB = setB.split()
 
             ## chop off the label

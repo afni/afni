@@ -7,15 +7,15 @@
 ######################################################################################
 ## code for server for input and output
 shinyServer(function(input,output,session) {
-
+  
   options(warn = -1)
   session$onSessionEnded(function() {
     afni_close()
     cat('\nAll done!\n')
     stopApp
   })
-
-
+  
+  
   ## change the cluster list ##############################
   observe({
     if(input$mean_peak == 'Mean'){
@@ -24,16 +24,16 @@ shinyServer(function(input,output,session) {
       updateSelectInput(session,"clusters",choices=clust.pk.list)
     }
   })   ## end update cluster list
-
+  
   ## change the color list ##############################
   observe({
-    if(SI.df$test == 'Ttest'){
+    if(SI.df$test %in% c('Ttest','Zscore')){
       col.list <-  c('Red/Blue'='RedBlue','Dark2','Set1','Set2','Set3',
                      'Accent','Paired','Pastel1','Pastel2')
       updateSelectInput(session,"col_pal",choices=col.list)
     }
   })   ## end update color list
-
+  
   ## set the slider range ##############################
   observe({
     if(input$mean_peak == 'Mean'){
@@ -48,10 +48,10 @@ shinyServer(function(input,output,session) {
     updateSliderInput(session,"custom_range",min=max.range[1],max=max.range[2],
                       value=set.range)
   })   ## end update cluster list
-
+  
   ## change the coordinate location of selected cluster #############
   observeEvent(input$clusters,{
-
+    
     ## xyz for drive afni and data and name
     if(input$mean_peak == 'Mean' & !is.null(input$clusters)){
       clust.x <- clust_all.df$x_cm[clust_all.df$x_y_z_cm == input$clusters]
@@ -68,9 +68,9 @@ shinyServer(function(input,output,session) {
     }
     ## go to the xyz
     afni_move(clust.x,clust.y,clust.z)
-
+    
   })   ## end go to cluster
-
+  
   ## cluster plot ##############################
   clustPlot <- reactive({
     clust.in <- clustData()
@@ -85,7 +85,7 @@ shinyServer(function(input,output,session) {
                     input$box_scatter,input$jit_sel,input$error_y_sel)
     }
   })   ## end clust_plot
-
+  
   ## cluster stats ##############################
   clustStat <- reactive({
     clust.in <- clustData()
@@ -94,7 +94,7 @@ shinyServer(function(input,output,session) {
              clust.in[["vox.vol"]],input$qVars_sel,input$wsVars_sel,
              input$orig_stat,input$split_bs_ws,input$box_scatter)
   })   ## end clustStat
-
+  
   ## cluster descriptive ##############################
   clustDesc <- reactive({
     clust.in <- clustData()
@@ -104,13 +104,13 @@ shinyServer(function(input,output,session) {
               input$custom_range,input$qVars_sel,
               input$OverPlot,input$col_pal,input$marker_size)
   })   ## end clustStat
-
+  
   ## load the selected cluster data ##############################
   clustData <- reactive({
-
+    
     ## make sure something is selected
     if(!is.null(input$clusters)){
-
+      
       ## xyz for drive afni and data and name
       if(input$mean_peak == 'Mean'){
         clust.x <- clust_all.df$x_cm[clust_all.df$x_y_z_cm == input$clusters]
@@ -134,19 +134,19 @@ shinyServer(function(input,output,session) {
       return(clust.out)
     }   ## end input$clusters check
   })   ## end clustData reactive
-
+  
   ## outputs ##############################
-
+  
   DT.options <- list(paging=FALSE,info=FALSE,searching=FALSE)
   DT.options2 <- list(paging=TRUE,info=FALSE,searching=FALSE,scrollX=TRUE,
                       pageLength=25)
-
+  
   output$clust_plot_orig <- renderPlotly({clustPlot()})
   output$clust_stat_orig <- reactivePrint(function(){clustStat()})
   # output$clust_stat_desc <- renderDataTable({clustDesc()},options=DT.options)
   output$clust_stat_desc <- renderTable({clustDesc()})
   output$stat_info_table <- renderTable({t(SI.df)},rownames=TRUE,colnames=FALSE)
-
+  
   output$data_table <- renderTable({
     clust.in <- clustData()
     return(clust.in[["clust.df"]])
@@ -156,7 +156,7 @@ shinyServer(function(input,output,session) {
     clust.df <- clust.in[["clust.df"]]
     summary(clust.df)
   })
-
+  
   ## make or update some UI #########################################
   output$qVars_input <- renderUI({
     if(!is.na(qVars)){
@@ -167,7 +167,7 @@ shinyServer(function(input,output,session) {
                        choices=c('Box','Interaction','Scatter'),
                        selected='Scatter')
   }
-  if(SI.df$test == "Ttest"){
+  if(SI.df$test %in% c('Ttest','Zscore')){
     updateRadioButtons(session,'box_scatter',inline=TRUE,
                        choices='Box',selected='Box')
     updateRadioButtons(session,'split_bs_ws','Factor by:',
@@ -180,8 +180,8 @@ shinyServer(function(input,output,session) {
       selectInput('wsVars_sel','Within subject factor:',wsVars,multiple=TRUE,
                   selected=wsVars[1])
     } })
-
-  if(SI.df$test != "Ttest"){
+  
+  if( !(SI.df$test %in% c('Ttest','Zscore')) ){
     if(!("None" %in% catVars) & !is.na(wsVars)){
       updateRadioButtons(session,'split_bs_ws','Factor by:',
                          c('Between','Within','Both'),inline=TRUE)
@@ -197,5 +197,5 @@ shinyServer(function(input,output,session) {
                          choices=c('Scatter'),selected='Scatter')
     }
   }
-
+  
 })   ## end server
