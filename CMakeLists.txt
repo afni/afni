@@ -64,7 +64,7 @@ include(afni_project_dependencies)
 # Other details of dependencies and configuration
 
 set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG -Wl,--no-undefined"
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG -Wl,--as-needed"
 )
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING -DHAVE_ZLIB") # XXX not in default cflags
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
