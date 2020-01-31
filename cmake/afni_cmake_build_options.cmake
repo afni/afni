@@ -71,6 +71,12 @@ cmake_dependent_option(
 mark_as_advanced(BUILD_PLUGINS)
 
 cmake_dependent_option(
+  BUILD_COREPLUGINS
+  "Build all plugins." ON
+  "BUILD_PLUGINS" OFF
+)
+
+cmake_dependent_option(
   BUILD_OPENGL_DEPENDENT_GUI_PROGS
   "Build OPEN_GL dependent GUI applications with plugins." ON
   "BUILD_X_DEPENDENT_GUI_PROGS" OFF

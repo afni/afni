@@ -261,6 +261,15 @@ function(add_afni_executable target_in)
   add_afni_target_properties(${target_in})
 endfunction()
 
+function(add_afni_plugin target_in)
+  set(CMAKE_C_FLAGS_DEBUG
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
+)
+  add_library(${ARGV})
+  add_afni_target_properties(${target_in})
+  # target_link_options(${target_in} PRIVATE LINKER:-as-needed)
+endfunction()
+
 function(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
   get_target_property(TARGET_TYPE ${target} TYPE)

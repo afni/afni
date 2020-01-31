@@ -64,11 +64,11 @@ foreach(
   endif()
 
   # Add plugin to build
-  add_afni_library(${target} ${target}.c)
+  add_afni_plugin(${target} ${target}.c)
   target_link_libraries(
     ${target}
     PRIVATE 
-            afni_all_objects
+            libheaders
             $<TARGET_NAME_IF_EXISTS:f2c>
             ${NETCDF_LIBRARIES_C}
             NIFTI::nifti2
@@ -76,19 +76,19 @@ foreach(
   endforeach(target)
 
 
-add_afni_library(plug_maxima maxima.c plug_maxima.c)
-add_afni_library(plug_retroicor plug_retroicor.c retroicor.c)
+add_afni_plugin(plug_maxima maxima.c plug_maxima.c)
+add_afni_plugin(plug_retroicor plug_retroicor.c retroicor.c)
 
 foreach(target plug_maxima plug_retroicor) 
   target_link_libraries(${target}
     PRIVATE
-      afni_all_objects
+      libheaders
       NIFTI::nifti2
       NIFTI::nifticdf
       )
   endforeach()
 
-# add_afni_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
+# add_afni_plugin(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
 # svm/plug_3dsvm.c) 
 # target_link_libraries(plug_3dsvm 
 #   PRIVATE
@@ -97,7 +97,7 @@ foreach(target plug_maxima plug_retroicor)
 #     )
 
 # foreach(target plug_scatplot plug_nlfit)
-#   add_afni_library(${target} ${target}.c)
+#   add_afni_plugin(${target} ${target}.c)
 #   target_link_libraries(${target} 
 #     PRIVATE
 #       afni_all_objects
