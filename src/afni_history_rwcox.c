@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 02 , FEB , 2020 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "Add -qval option to 3dPVAL [for GC]." ,
+   "Merry Groundhog Day!" } ,
+
  { 22 , JAN , 2020 , RWC , "3dREMLfit" , MAJOR , TYPE_ENHANCE ,
    "Compute Ljung-Box statistic for -Rvar dataset." ,
    "Provides a measure of how temporally correlated each voxel's\n"

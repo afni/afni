@@ -196,6 +196,7 @@ STATUS("convert p to q") ;
 
     if( mone > 0.0f && !AFNI_yesenv("AFNI_DONT_ADJUST_FDR") ){
       qfac = (nq-mone)/(float)nq; if( qfac < 0.5f ) qfac = 0.25f+qfac*qfac ;
+ININFO_message("FDR: using mone = %g  qfac = %g",mone,qfac) ;
       if( PRINT_TRACING ){
         char str[256] ; sprintf(str,"Adjust q by %.3f",qfac) ; STATUS(str) ;
       }
