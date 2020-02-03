@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 3, Feb , 2020 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
+   "Can anonymize output dsets:  -anonymize_output.",
+   "Fairly self-explanatory opt.\n"
+},
+
 { 3, Feb , 2020 , PT , "@djunct_anonymize" , MINOR , TYPE_NEW_PROG,
    "Anonymize files, and maybe add a note.",
    "Can either edit input directly, or make a copy + edit that.\n"
