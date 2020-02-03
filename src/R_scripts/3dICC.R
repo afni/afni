@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, Dec 17, 2019
+Version 0.0.7, Feb 3, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -136,7 +136,7 @@ Usage:
 -------------------------------------------------------------------------
     3dICC -prefix ICC2a -jobs 12                                     \\
           -model  '1+age+(1|session)+(1|Subj)'                       \\
-          -Subj   'subjct'                                           \\
+          -Subj   'subject'                                           \\
           -tStat 'tFile'                                             \\
           -dataTable                                                 \\
        subject age session       tFile                    InputFile                          \\
@@ -707,8 +707,8 @@ tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
 cat('Reading input files for effect estimates: Done!\n\n')
 
 if(!is.na(lop$tStat)) {
-   lop$dataStr[,lop$tStat] <-  as.character(lop$dataStr[,lop$tStat])
-   inDataV <- unlist(lapply(lapply(lop$dataStr[,lop$tStat], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+   lop$dataStr[,'Tstat'] <-  as.character(lop$dataStr[,'Tstat'])
+   inDataV <- unlist(lapply(lapply(lop$dataStr[,'Tstat'], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
    tryCatch(dim(inDataV) <- c(dimx, dimy, dimz, NoFile), error=function(e)
       errex.AFNI(c("At least one of the input files has different dimensions!\n",
       "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
@@ -849,34 +849,98 @@ print("and estimate the total run time as shown below.")
 print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 ###############################
-#options(warn = -1) # suppress warnings!
-#getOption('warn')
 
-#for(ii in 1:dimx) for(jj in 1:dimy) 
-#   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
-# test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
 options(contrasts = c("contr.sum", "contr.poly"))
 
-# with metafor
+if(dimy == 1 & dimz == 1) {  # 1D scenarios
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   #dimx_n <- ifelse(dimx%%nSeg==0, dimx%/%nSeg, dimx%/%nSeg + 1)
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
 
-#comArr <- inData
+   if(lop$nNodes==1) for (kk in 1:dimz) {  # no parallel computation
+   
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      if(is.na(lop$tStat)) {  # without t-stat as input
+	 inData <- inData[, , ,]
+	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[4])))
+	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[4])
+         # declare output receiver
+         for (kk in 1:nSeg) {
+            Stat[,,kk,] <- aperm(apply(inData[,kk,], 1, runLME, ModelForm=lop$model,
+                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(dimx_n,1)) 
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } 
+      } else {  # with t-stat as input
+	 comArr <- comArr[, , ,]
+	 comArr <- rbind(comArr, array(0, dim=c(fill, dim(comArr)[2])))
+	 dim(comArr) <- c(dimx_n, nSeg, dim(comArr)[2])
+         for (kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(apply(comArr[,kk,], 1, runMME, dataframe=lop$dataStr, fe=lop$fe, re=lop$re,
+                        nBrk=lop$NoBrick, tag=0), dim=c(2,1)) 
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         }
+      }
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailing 0s (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]     
+      
+   } else {   # parallel computation    
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      if(is.na(lop$tStat)) {  # without t-stat as input
+         clusterEvalQ(cl, library(lme4))
+	 inData <- inData[, , ,]
+	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[4])))
+	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[4])
+         # declare output receiver
+         for (kk in 1:nSeg) {
+            Stat[,,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, ModelForm=lop$model,
+                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(dimx_n,1)) 
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } 
+      } else {  # with t-stat as input
+         clusterEvalQ(cl, library(metafor))
+	 comArr <- comArr[, , ,]
+	 comArr <- rbind(comArr, array(0, dim=c(fill, dim(comArr)[2])))
+	 dim(comArr) <- c(dimx_n, nSeg, dim(comArr)[2])
+         for (kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(parApply(cl, comArr[,kk,], 1, runMME, dataframe=lop$dataStr, fe=lop$fe, re=lop$re,
+                        nBrk=lop$NoBrick, tag=0), dim=c(2,1)) 
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         }
+      }
+      stopCluster(cl)
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailing 0s (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]     
+  }
+} else {  # 3D scenarios
 
-
-# test
-# runMeta(comArr[ii,jj,kk,], dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0)
-# ww <- aperm(apply(comArr[,,kk,], c(1,2), runMeta, dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1))
-
-   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
-
-   if (lop$nNodes==1) for (kk in 1:dimz) {
-      # 2/9/2016: for 1D input files. Should do this for other scenarios
-      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, ranFormMeta=lop$ranFormMeta, nBrk=lop$NoBrick, tag=0), c(2,1)) else
-      Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runMeta, dataframe=lop$dataStr, ranFormMeta=lop$ranFormMeta, nBrk=lop$NoBrick, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }         
-   # runMeta(drop(comArr[10,10,10,]), dataframe=lop$dataStr, ranFormMeta=lop$ranFormMeta, nBrk=lop$NoBrick, tag=0)
-   if (lop$nNodes>1) {
+   if (lop$nNodes==1) for (kk in 1:dimz) { # no parallel computation
+      if(is.na(lop$tStat)) {
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
+	                dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1)) 
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         } 
+      } else {
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runMME, dataframe=lop$dataStr, fe=lop$fe, re=lop$re,
+	                nBrk=lop$NoBrick, tag=0), c(2,3,1)) 
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         } 
+      }
+   } else {  # parallel computation
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
@@ -899,17 +963,17 @@ options(contrasts = c("contr.sum", "contr.poly"))
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          } 
       }
-  }
+   }
+}  
 
 Top <- 100
 Stat[is.nan(Stat)] <- 0
 Stat[Stat > Top] <- Top  
 Stat[Stat < (-Top)] <- -Top  
 
-   outLabel <- c("ICC", "ICC F")
-   statsym <- NULL
-   statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
-
+outLabel <- c("ICC", "ICC F")
+statsym <- NULL
+statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
