@@ -298,6 +298,7 @@ add_library(
   thd_iochan.c
   thd_lasso.c
   thd_linecount.c
+  thd_ljungbox.c
   thd_loaddblk.c
   thd_logafni.c
   thd_makefbuc.c

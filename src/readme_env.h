@@ -1681,6 +1681,11 @@ static char *readme_env[] = {
    "This variable was introduced in March 2015 for Corianne (if there is\n" ,
    "such a person).\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_CROSSHAIRS_OFF\n" ,
+   "-----------------------------\n" ,
+   "Set this variable to YES to turn off crosshairs for AFNI startup.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_CROP_ZOOMSAVE (editable)\n" ,
    "----------------------------\n" ,
@@ -4454,4 +4459,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4453
+#define NUM_readme_env 4458

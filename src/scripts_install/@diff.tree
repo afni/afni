@@ -52,6 +52,7 @@ while ( $narg <= $amax )
     else if ( "$argv[$narg]" == "-verb" ) then
         @ narg ++
         set verb = $argv[$narg]
+        if ( $verb > 2 ) set echo
     else if ( "$argv[$narg]" == "-xxdiff" ) then
         set xxdiff    = 1
         set showdiffs = 1
@@ -111,7 +112,7 @@ endif
 cd -
 
 set use_files = ()
-# are the lists of nammes identical?
+# are the lists of names identical?
 set identical = 0
 if ( $#new_files == $#old_files ) then
    set identical = 1
@@ -124,9 +125,22 @@ if ( $#new_files == $#old_files ) then
 endif
 
 # maybe the user wants to see the list comparison
-if ( ! $identical && ( $showlcomp || \
-       ($verb > 1 && ($#new_files == $#old_files)) ) ) then
+# (if user wants it, but it is not appropriate, let them know why)
+if ( $showlcomp ) then
+   if ( $identical ) then
+      if( $verb > 1 ) echo "-- showcomp: lists are identical"
+      exit 0
+   else if ( $#new_files != $#old_files ) then
+      echo "-- showcomp: no pairwise list difference"
+      echo "           : ignoring -show_list_comp"
+      echo ""
+      set showlcomp = 0
+   endif
+endif
 
+set ndiffs = 0
+if ( ! $identical && ($#new_files == $#old_files)  \
+                  && ( $showlcomp || ($verb > 1) ) ) then
    if ( ! $showlcomp ) then
       echo ""
       echo "++ pairwise file name comparison:"
@@ -134,12 +148,17 @@ if ( ! $identical && ( $showlcomp || \
    endif
    foreach index ( `count -digits 1 1 $#new_files` )
       if ( $new_files[$index] != $old_files[$index] ) then
+         @ ndiffs += 1
          printf "%30s  vs.  %-30s\n" $new_files[$index] $old_files[$index]
       endif
    end
-   if ( $showlcomp ) exit 0
+   if ( $showlcomp )
+      if ( $verb > 1 ) echo "-- found $ndiffs diffs"
+      exit 0
+   endif
    echo ""
 endif
+
 
 if ( ! $identical ) then
     echo different file lists found: $#new_files vs. $#old_files
@@ -278,6 +297,7 @@ cat << EOF
       -save                  : save actual file differences (txt and pdf)
       -show                  : show actual file differences
       -show_list_comp        : show any pairwise differences in file lists
+                               (terminate after showing comparison)
       -skip_data             : skip binary diff of select data files
                                (.BRIK, .dcm, .BRIK.gz)
       -verb LEVEL            : set verbosity level (0,1,2)

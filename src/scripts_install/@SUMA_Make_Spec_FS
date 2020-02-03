@@ -28,6 +28,7 @@
 #    + have new option to create rank dsets:  -make_rank_dsets
 # [Nov 19, 2019] RCR: new option: -fs_setup
 # [Jan 27, 2020] RCR: compress *.nii, but not SV, new opt: -no_compress
+# [Feb  3, 2020] RCR: add -extra_annot_labels
 
 set ver = 2.1
 
@@ -157,6 +158,7 @@ L_PARSE_COMMAND:
     set set_space = ''
     set args     = $#argv
     set count    = 1
+    set extra_annot_labels = ( )        #  3 Feb 2020 [rickr]
     set fsdsets_extra  = ( )
 
     while ( $count <= $args )
@@ -358,6 +360,40 @@ L_PARSE_COMMAND:
 
             breaksw
 
+
+            # ----------------------------------------------------------
+            # usage : -extra_annot_labels AA BB CC ...
+            case "-extra_annot_labels":
+
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -extra_annot_labels AA BB CC ..."
+                    goto L_BAD_END
+                endif
+
+                @ i0   = $count + 1    # $i0 will always lead $count by one
+
+                # keep track of first char of next arg (not '-')
+                set c0 = `echo $argv[$i0] | cut -b 1`
+
+                while ( ( $i0 <= $#argv ) && ( "$c0" != "-" ) )
+                    set extra_annot_labels = ($extra_annot_labels "$argv[$i0]")
+
+                    @ i0 ++
+                    @ count ++ 
+                    if ( $i0 <= $#argv ) then
+                        # get first char of next arg, to be check in while()
+                        set c0 = `echo $argv[$i0] | cut -b 1`
+                    endif
+                end
+
+                if ( $#extra_annot_labels == 0 ) then
+                    echo "** ERROR: need at least one dset after $argv[$count]"
+                    goto BAD_EXIT
+                else
+                    echo "++ will track $#extra_annot_labels extra annot labels"
+                endif
+
+            breaksw
 
             # ----------------------------------------------------------
             # usage : -extra_fs_dsets AA BB CC ...
@@ -845,6 +881,22 @@ L_CONVERT_SURFACES:
     if ( -d $label_dir) then
         cd $label_dir
         foreach hand ( lh rh )
+            # also look for user-specified annot files
+            foreach exlab ( $extra_annot_labels )
+               set efile = ${hand}.$exlab.annot
+               if ( -f $efile ) then
+                   set ddd = $start_dir/$suma_dir
+                   FSread_annot   -input $efile                     \
+                       -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
+                       -dset    $ddd/${hand}.$exlab.annot.niml.dset \
+                       -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
+               else
+                   echo ""
+                   echo "** annot label '$exlab', missing file: $efile"
+                   echo ""
+               endif
+            end
+        
             if ( -f ${hand}.aparc.a2005s.annot ) then
                 set ddd = $start_dir/$suma_dir
                 FSread_annot   -input ${hand}.aparc.a2005s.annot       \
@@ -1537,6 +1589,23 @@ OPTIONS ~1~
 
           Note: when this option is provided, all file/path
           messages will be with respect to this directory.
+
+    -extra_annot_labels L1 L2 ...  : convert extra annot files into ROI dsets
+          e.g. -extra_annot_labels aparc
+
+          FS typically outputs annotaion files:
+                lh.aparc.a2005s.annot
+                rh.aparc.a2005s.annot
+                lh.aparc.a2009s.annot
+                rh.aparc.a2009s.annot
+          from each of which Make_Spec extracts a colormap, ROI and a
+          displayable surface dataset.
+
+          Use this option to specify other labels to extract.
+
+          If LABEL is specified, then expected annotation files will be:
+                lh.LABEL.annot
+                rh.LABEL.annot
 
     -extra_fs_dsets AA BB CC ...
                     : FS calculates many types of data on the surface,

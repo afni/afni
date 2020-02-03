@@ -1679,6 +1679,11 @@ range is 0 .. 0.05 (which will be very thick lines, I assure you).
 This variable was introduced in March 2015 for Corianne (if there is
 such a person).
 
+-----------------------------
+Variable: AFNI_CROSSHAIRS_OFF
+-----------------------------
+Set this variable to YES to turn off crosshairs for AFNI startup.
+
 ----------------------------
 Variable: AFNI_CROP_ZOOMSAVE (editable)
 ----------------------------
