@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -extra_annot_labels",
+   NULL
+ } ,
+
  { 27, Jan, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_ENHANCE,
    "gzip SUMA/*.nii, except for SurfVol",
    NULL
