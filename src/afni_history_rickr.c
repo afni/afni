@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2020, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "show CSA data on high debug",
+   NULL
+ } ,
+
  {  3, Feb, 2020, RCR, "dicom_hdr", MICRO, TYPE_NEW_OPT,
    "add -siemens_csa_data",
    "Same as 3 -slice_times_verb opts."
