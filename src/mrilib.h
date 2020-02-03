@@ -1048,8 +1048,6 @@ extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
 extern byte      *mri_to_bytemask( MRI_IMAGE *, float,float ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
-extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
-extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
 
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
@@ -1473,6 +1471,10 @@ extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+
+extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_qval( MRI_IMAGE * , floatvec * ) ; /* 01 Feb 2020 */
 
 /*-----------------------------------------------------*/
 

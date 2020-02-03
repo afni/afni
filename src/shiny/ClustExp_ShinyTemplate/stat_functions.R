@@ -1,4 +1,4 @@
-#####################################
+## top ###################################
 ## 09/2017 Justin Rajendra
 ## Cluster Explorer
 ## plot and stat functions
@@ -8,10 +8,8 @@ library(RColorBrewer)
 library(afex)
 library(plotly)
 
-################################################
-## helper functions
+## helper functions ##############################################
 
-################
 ## make a vector of variable depending on the split
 ## takes some categorical variables and how to combine them
 varCombine <- function(bsVars.in,wsVars.in,bs_ws.split){
@@ -40,7 +38,6 @@ varCombine <- function(bsVars.in,wsVars.in,bs_ws.split){
   return(model.final)
 }   ## end varCombine
 
-################
 ## return data frame of categorical interaction models
 ## takes the data, some categorical variables and how to combine them
 InteractionFrame <- function(data.in,bsVars.in,wsVars.in,bs_ws.split){
@@ -68,7 +65,6 @@ InteractionFrame <- function(data.in,bsVars.in,wsVars.in,bs_ws.split){
   return(data.in)
 }   ## end InteractionFrame
 
-################
 ## return data frame with summary stats for by level
 ## takes a data frame, the continuous variable and a categorical variable
 InteractionCalc <- function(data.in,cont.var,fact.var){
@@ -85,9 +81,7 @@ InteractionCalc <- function(data.in,cont.var,fact.var){
   return(out.df)
 }  ## end InteractionCalc
 
-
-
-################################################
+## main plotting function ##############################################
 stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
                           bsVarsCat.sel,vox.vol,fixed.range,custom.range,
                           qVars.sel,wsVars.sel,one.plot,col.pal,marker.size,
@@ -111,7 +105,7 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
   }
 
   ## make color list for everything but ttest
-  if(stat.info != "Ttest"){
+  if( !(stat.info %in% c("Ttest","Zscore")) ){
     if(is.null(col.pal)){
       col.list <- brewer.pal(200,"Dark2")
     } else {
@@ -123,8 +117,8 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
   plotly.layout <- list("toImage","hoverCompareCartesian",
                         "hoverClosestCartesian", "toggleSpikelines")
 
-  ################################################
-  if(stat.info == "Ttest"){
+  ## ttests ##############################################
+  if(stat.info %in% c("Ttest","Zscore")){
 
     ## make color list
     if(is.null(col.pal)){
@@ -143,8 +137,7 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
            yaxis=y.axis,margin=list(t=80)) %>%
       config(displaylogo=FALSE,modeBarButtonsToRemove=plotly.layout)
 
-    ################################################
-    ## box plots
+    ## box plots anovas ##############################################
   } else if(stat.info == "3dMVM" & box.scatter == "Box"){
 
     ## return empty if nothing here
@@ -174,8 +167,7 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
       config(displaylogo=FALSE,modeBarButtonsToRemove=plotly.layout)
 
 
-    ################################################
-    ## interaction plots
+    ## interaction plots ##############################################
   } else if(stat.info == "3dMVM" & box.scatter == "Interaction"){
 
     ## return empty if nothing here
@@ -236,7 +228,8 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
       config(displaylogo=FALSE,modeBarButtonsToRemove=plotly.layout)
 
     ## end interaction
-    ################################################
+    
+    ## scatter ##############################################
     ## has categorical and quantitative variables
   } else if(stat.info == "3dMVM" & box.scatter == "Scatter"){
 
@@ -307,8 +300,8 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
              yaxis=y.axis,xaxis=x.axis,margin=list(t=80)) %>%
         config(displaylogo=FALSE,modeBarButtonsToRemove=plotly.layout)
 
-      ################################################
-    } else {   ## subplots
+      ## subplots ##############################################
+    } else { 
       ## make a list to save all of the plots
       plot.list <- list()
 
@@ -354,8 +347,7 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
   }   ## end different plots
 }   ## end stat_plot_fun
 
-################################################
-## function for statistics summary
+## statistics summary ##############################################
 stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
                      bsVarsCat.sel,vox.vol,qVars.sel,wsVars.sel,orig.plot,
                      bs_ws.split,box.scatter){
@@ -364,7 +356,7 @@ stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
   if(nrow(plot.df) == 0){ return("please wait") }
 
   ## return ttest for paired or not (same format as the anova summary)
-  if(stat.info == "Ttest"){
+  if(stat.info %in% c("Ttest","Zscore")){
     if(t.paired){
       return(summary(aov(value ~ Group + Error(Subj),plot.df)))
     } else {
@@ -380,8 +372,7 @@ stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
     model.final <- paste0("value ~ ",mvm.model," + Error(Subj)")
   }
 
-  #####################
-  ## stats for box plots as selected
+  ## stats for box plots as selected ###################
   if(orig.plot == 'plot' & box.scatter == "Box"){
     if(bs_ws.split == "Between"){
       if(is.null(bsVarsCat.sel)){
@@ -412,8 +403,7 @@ stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
     }
   }   ## end box
 
-  #####################
-  ## stats for interaction plots as selected
+  ## stats for interaction plots as selected ###################
   if(orig.plot == 'plot' & box.scatter == "Interaction"){
     if(bs_ws.split == "Between"){
       if(length(bsVarsCat.sel) != 2){
@@ -444,8 +434,7 @@ stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
     }
   }   ## end interaction
 
-  #####################
-  ## stats for scatter plots as selected
+  ## stats for scatter plots as selected ###################
 
   ## check for qVars and center them to mean or specified
   if(stat.info == "3dMVM" & !is.na(qVars)){
@@ -497,7 +486,7 @@ stat_fun <- function(plot.df,prefix,p_val,stat.info,t.paired,clust.lab,
   return(anova(anova.aov))
 }   ## end stat_fun
 
-## function for statistics table
+## statistics table ###############################
 stat_desc <- function(plot.df,prefix,p_val,stat.info,clust.lab,
                       bsVarsCat.sel,vox.vol,fixed.range,custom.range,
                       qVars.sel,one.plot,col.pal,marker.size){
@@ -509,7 +498,7 @@ stat_desc <- function(plot.df,prefix,p_val,stat.info,clust.lab,
   if(nrow(plot.df) == 0){ return("Please wait.") }
   table.out <- data.frame(message="Please wait.")
 
-  if(stat.info == "Ttest"){
+  if(stat.info %in% c("Ttest","Zscore")){
     plot.df <- model.frame(value ~ Group,data=plot.df)
     table.out <- describeBy(plot.df$value,plot.df$Group,digits=5,mat=TRUE)
     table.out <- subset(table.out,
@@ -517,14 +506,19 @@ stat_desc <- function(plot.df,prefix,p_val,stat.info,clust.lab,
 
   } else if(stat.info == "3dMVM" & bsVarsCat.sel != "None"){
 
-    ## make the model as text and do the anova
-    bsVarsCat.sel <- as.formula(paste0("value ~ ",bsVarsCat.sel))
+    ## combine all selected vars
+    model.vars <- combn_paste_fun(bsVarsCat.sel,"*") 
+    model.vars <- model.vars[length(model.vars)]
+    
+    ## make the model as text
+    bsVarsCat.sel <- as.formula(paste0("value ~ ",model.vars))
 
     ## get the data frame by the model
     plot.df <- model.frame(bsVarsCat.sel,data=plot.df)
 
     ## get summary stats by list of grouping variables
     grp.names <- names(plot.df[2:length(plot.df)])
+  
     grp.list <- as.list(plot.df[2:length(plot.df)])
     table.out <- describeBy(plot.df$value,grp.list,digits=5,mat=TRUE)
     table.out <- subset(table.out,
