@@ -69,9 +69,6 @@ foreach(
     ${target}
     PRIVATE 
             libheaders
-            $<TARGET_NAME_IF_EXISTS:f2c>
-            ${NETCDF_LIBRARIES_C}
-            NIFTI::nifti2
   )
   endforeach(target)
 
@@ -83,8 +80,6 @@ foreach(target plug_maxima plug_retroicor)
   target_link_libraries(${target}
     PRIVATE
       libheaders
-      NIFTI::nifti2
-      NIFTI::nifticdf
       )
   endforeach()
 
