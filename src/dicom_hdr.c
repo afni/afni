@@ -28,6 +28,7 @@ int main(int argc, char **argv)
             " -slice_times      = Show slice times from Siemens mosaic images.\n"
             " -slice_times_verb = Same, but be more verbose about it.\n"
             "                     (multiple uses increases verbosity)\n"
+            "                     (can dump CSA data)\n"
             " -siemens_csa_data = same as 3 -slice_times_verb opts\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
