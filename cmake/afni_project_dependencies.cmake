@@ -1,7 +1,6 @@
 include(CMakePackageConfigHelpers)
 include(FetchContent)
 find_package(Motif REQUIRED)
-find_package(NetCDF REQUIRED)
 include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
@@ -37,31 +36,6 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
   find_package(JPEG 62 REQUIRED)
   find_package(X11 REQUIRED)
   optional_bundle(src/XmHTML)
-endif()
-
-# Declare the direct dependencies. Can be used to avoid collisions with pre-existing
-# installations of the nifti libraries
-if(USE_SYSTEM_NIFTI)
-
-  find_package(NIFTI REQUIRED)
-else()
-FetchContent_Declare(
-  fetch_nifti_clib_git_repo   
-  GIT_REPOSITORY https://github.com/leej3/nifti_clib.git 
-  GIT_TAG 2b61eb8960341f64d349b03c78c8dd609fa3cc09
-  )
-FetchContent_MakeAvailable(fetch_nifti_clib_git_repo)
-endif()
-
-if(USE_SYSTEM_GIFTI)
-  find_package(GIFTI REQUIRED)
-else()
-FetchContent_Declare(
-  gifti_clib   
-  GIT_REPOSITORY https://github.com/leej3/gifti_clib.git 
-  GIT_TAG 075b5933c29b259fff5ac8dddf5ce72d3f0f3f5c
-  )
-FetchContent_MakeAvailable(gifti_clib)
 endif()
 
 
@@ -132,4 +106,43 @@ file(
     PERMISSIONS "WORLD_READ"
   )
 
+endif()
+
+
+
+# Declare the direct dependencies. Can be used to avoid collisions with pre-existing
+# installations of the nifti libraries
+if(USE_SYSTEM_NIFTI)
+
+  find_package(NIFTI REQUIRED)
+else()
+FetchContent_Declare(
+  fetch_nifti_clib_git_repo   
+  GIT_REPOSITORY https://github.com/leej3/nifti_clib.git 
+  GIT_TAG 2b61eb8960341f64d349b03c78c8dd609fa3cc09
+  )
+FetchContent_MakeAvailable(fetch_nifti_clib_git_repo)
+endif()
+
+if(USE_SYSTEM_GIFTI)
+  find_package(GIFTI REQUIRED)
+else()
+FetchContent_Declare(
+  gifti_clib   
+  GIT_REPOSITORY https://github.com/leej3/gifti_clib.git 
+  GIT_TAG 075b5933c29b259fff5ac8dddf5ce72d3f0f3f5c
+  )
+FetchContent_MakeAvailable(gifti_clib)
+endif()
+
+if(USE_SYSTEM_NETCDF)
+  find_package(NetCDF REQUIRED)
+else()
+message(FATAL_ERROR "building netcdf not currently supported")
+FetchContent_Declare(
+  netcdf_lib   
+  GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
+  GIT_TAG 2a34eb2ac5996dc23339bdb72918eb5503393d77
+  )
+FetchContent_MakeAvailable(netcdf_lib)
 endif()
