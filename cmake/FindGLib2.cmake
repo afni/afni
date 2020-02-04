@@ -57,19 +57,21 @@ function(_glib2_add_target TARGET LIBRARY)
     )
 
     set(_target GLib2::${TARGET})
-    add_library(${_target} UNKNOWN IMPORTED)
-    set_property(
-      TARGET ${_target}
-      APPEND
-      PROPERTY IMPORTED_LOCATION ${GLIB2_${LIBRARY}_LIBRARY}
-    )
-    foreach(_include ${ARGN})
+    if(NOT TARGET ${_target})
+      add_library(${_target} UNKNOWN IMPORTED)
       set_property(
         TARGET ${_target}
         APPEND
-        PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GLIB2_${_include}_INCLUDE_DIR}
+        PROPERTY IMPORTED_LOCATION ${GLIB2_${LIBRARY}_LIBRARY}
       )
-    endforeach()
+      foreach(_include ${ARGN})
+        set_property(
+          TARGET ${_target}
+          APPEND
+          PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GLIB2_${_include}_INCLUDE_DIR}
+        )
+      endforeach()
+    endif()
   endif()
 endfunction()
 
