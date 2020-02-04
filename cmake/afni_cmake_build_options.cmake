@@ -93,7 +93,8 @@ option(ENABLE_TESTS "Enable tests" OFF)
 
 
 # Defining "external" dependencies i.e. anything that can be installed as a system install
-option(USE_SYSTEM_GLW "Build and use AFNI's local copy of libGLw" ON)
+option(USE_SYSTEM_GLW "Do not build and use AFNI's local copy of libGLw" ON)
+option(USE_SYSTEM_NETCDF "Do not build and use AFNI's local copy of netcdf" ON)
 option(USE_SYSTEM_GIFTI "Link against a system installed gifti library." ON)
 option(USE_SYSTEM_DCM2NIIX "Omit build and installation of dcm2niix_afni." OFF)
 set(USE_SYSTEM_NIFTI ${USE_SYSTEM_GIFTI})
