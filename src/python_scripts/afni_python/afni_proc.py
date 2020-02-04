@@ -671,9 +671,10 @@ g_history = """
     7.05 Nov 29, 2019: added option -volreg_opts_ewarp
     7.06 Jan 15, 2020: corr_* dsets are now correlations with ROI averages,
                        rather than average correlations across ROIs
+    7.07 Feb  4, 2020: added help for some esoteric options
 """
 
-g_version = "version 7.06, January 15, 2019"
+g_version = "version 7.07, February 4, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for a few esoteric options",
+   NULL
+ } ,
+
  {  3, Feb, 2020, RCR, "Dimon", MICRO, TYPE_ENHANCE,
    "show CSA data on high debug",
    NULL

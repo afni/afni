@@ -8248,7 +8248,7 @@ def block_header(hname, maxlen=74, hchar='=', endchar=''):
 def show_program_help(section=''):
    # maybe print them all
    if section == '':
-      print(g_help_string)
+      print(g_help_intro)
       print(g_help_examples)
       print(g_help_notes)
       print(g_help_options)
@@ -8270,7 +8270,7 @@ def show_program_help(section=''):
 # global help string (see end global help string)
 # -- this is long, get it out of the main library
 
-g_help_string = """
+g_help_intro = """
     ===========================================================================
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
@@ -10797,7 +10797,19 @@ g_help_options = """
         -----------------------------------------------------------------
         Informational/terminal options  ~3~
 
-        -help                   : show this help
+        -help                   : show the complete help
+
+        -help_section SECTION   : show help for given SECTION
+
+            The help is divided into sections, an any one of these can be
+            displayed individually by providing the given SECTION:
+
+                  intro         - introduction
+                  examples      - afni_proc.py command examples
+                  notes         - NOTE_* entries
+                  options       - descriptions of options
+                  trailer       - final trailer
+
         -hist                   : show the module history
 
         -requires_afni_version  : show AFNI date required by processing script
@@ -11164,6 +11176,32 @@ g_help_options = """
 
                 tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
+        -exit_on_error yes/no   : set whether proc script should exit on error
+
+                e.g.     -exit_on_error no
+                default: -exit_on_error yes
+
+            This option affects how the program will suggest running any
+            created proc script, as well as how one would be run if -execute
+            is provided.
+
+            If the choice is 'yes' (the default), the help for how to run the
+            proc script (terminal and in script, itself) will show running it
+            via "tcsh -xef", where the 'e' parameter says to exit on error.
+            For example (using tcsh notation):
+
+                tcsh -xef proc.sb23 |& tee output.proc.sb23
+
+            If the choice is 'no', then it will suggest using simply "tcsh -x".
+            For example (using tcsh notation):
+
+                tcsh -x proc.sb23 |& tee output.proc.sb23
+
+            This is also applied when using -execute, where afni_proc.py itself 
+            runs the given system command.
+
+            See also -execute.
+
         -gen_epi_review SCRIPT_NAME : specify script for EPI review
 
                 e.g. -gen_epi_review review_orig_EPI.txt
@@ -11239,6 +11277,11 @@ g_help_options = """
             would be given names with prefix 'rm.'.  By default, those files
             are deleted at the end of the script.  This option blocks that
             deletion.
+
+        -keep_script_on_err     : do not remove proc script if AP command fails
+
+            When there is a fatal error in the afni_proc.py command, it will
+            delete any incomplete proc script, unless this option is applied.
 
         -move_preproc_files     : move preprocessing files to preproc.data dir
 
@@ -13920,6 +13963,10 @@ g_help_options = """
 
                 See also -regress_censor_motion.
 
+        -regress_no_stim_times  : do not use
+
+            OBSOLETE: please see -regress_use_stim_files
+
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
                 e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
@@ -14154,6 +14201,20 @@ g_help_options = """
 
             The user is encouraged to check the 3dDeconvolve command in the
             processing script, to be sure they are applied correctly.
+
+        -regress_show_df_info yes/no    : set whether to report DoF information
+
+                e.g.     -regress_show_df_info no
+                default: -regress_show_df_info yes
+
+            This option is used to specify whether get QC information about
+            degrees of freedom using:
+
+                1d_tool.py -show_df_info
+
+            By default, that will be run, saving output to out.df_info.txt.
+
+            Please see '1d_tool.py -help' for more information.
 
         -regress_stim_labels LAB1 ...   : specify labels for stimulus classes
 
