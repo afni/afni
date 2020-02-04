@@ -45,12 +45,12 @@ if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
   find_package(OpenGL REQUIRED)
   find_package(GLib2)
   optional_bundle(src/SUMA/GLUT)
-  optional_bundle(src/SUMA/gts)
 
   if(USE_SYSTEM_GLW)
     find_package(GLw REQUIRED)
   endif()
 endif()
+
 
 # Add AFNI atlases (they're not really just atlases but for legacy reasons
 # we'll call them that)
@@ -145,4 +145,15 @@ FetchContent_Declare(
   GIT_TAG 2a34eb2ac5996dc23339bdb72918eb5503393d77
   )
 FetchContent_MakeAvailable(netcdf_lib)
+endif()
+
+if(USE_SYSTEM_GTS)
+  find_package(GTS REQUIRED)
+else()
+FetchContent_Declare(
+  gts   
+  GIT_REPOSITORY https://github.com/leej3/gts
+  GIT_TAG 7fa7f51633b607b03d65f51f5f696651615d680a
+  )
+FetchContent_MakeAvailable(gts)
 endif()

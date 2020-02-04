@@ -267,12 +267,15 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>)
 
 # gts dependent programs
-if(GTS_FOUND)
+if(TARGET gts)
   add_afni_library(suma_gts SUMA_gts.c SUMA_gts_insert.c)
 
   target_link_libraries(
     suma_gts
-    PUBLIC SUMA gts GLib2::glib
+    PUBLIC 
+      SUMA 
+      $<TARGET_NAME_IF_EXISTS:gts>
+      GLib2::glib
     PRIVATE $<TARGET_NAME_IF_EXISTS:OpenGL::GL> AFNI::mri
             NIFTI::nifti2 NIFTI::nifticdf
             $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
