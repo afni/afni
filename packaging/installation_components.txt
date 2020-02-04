@@ -797,3 +797,4 @@ unix, external_dependencies
 volpack, external_dependencies
 znz, external_dependencies
 znzlib.h, external_dependencies
+gts, external_dependencies
