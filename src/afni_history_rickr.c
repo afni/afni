@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2020, RCR, "option_list.py", MINOR, TYPE_NEW_OPT,
+   "list all global options via 'PROG.py -optlist_show_global_opts'",
+   "Also, add -optlist_show_argv_array to display afni_proc.py options\n"
+   "in python dictionary format.\n"
+   "This could be done with any OptionList-based python program."
+ } ,
+
  {  4, Feb, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for a few esoteric options",
    NULL
