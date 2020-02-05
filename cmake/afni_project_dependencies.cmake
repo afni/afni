@@ -13,7 +13,7 @@ if(USE_OMP)
   find_package(OpenMP REQUIRED)
 endif()
 
-if(ADD_RSTATS)
+if(COMP_ADD_RSTATS)
   include(FindLibR)
 endif()
 
@@ -25,14 +25,14 @@ if(NOT ${Python_FOUND})
 endif()
 
 
-if(NOT AFNI_BUILD_CORELIBS_ONLY)
+if(NOT COMP_CORELIBS_ONLY)
   if(NOT USE_SYSTEM_QHULL)
     # Perhaps an error should be raised if the appropriate binaries are missing
     add_subdirectory(src/qhulldir)
   endif()
 endif()
 
-if(BUILD_X_DEPENDENT_GUI_PROGS)
+if(COMP_X_DEPENDENT_GUI_PROGS)
   find_package(JPEG 62 REQUIRED)
   find_package(X11 REQUIRED)
   optional_bundle(src/XmHTML)
@@ -40,7 +40,7 @@ endif()
 
 
 # SUMA dependency management
-if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
+if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # Check for and configure for external dependencies
   find_package(OpenGL REQUIRED)
   find_package(GLib2)

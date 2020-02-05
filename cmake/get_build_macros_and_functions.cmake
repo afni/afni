@@ -41,7 +41,7 @@ endfunction()
 function(get_expected_target_list mapping targets_label)
   set(filtered_list "${mapping}")
   list(TRANSFORM filtered_list REPLACE ", .*" "" )
-  if(AFNI_BUILD_CORELIBS_ONLY)
+  if(COMP_CORELIBS_ONLY)
     # only corelibs will be installed
     filter_for_components(mapping "corelibs" "${filtered_list}" filtered_list)
   endif()
@@ -54,16 +54,16 @@ function(get_expected_target_list mapping targets_label)
     filtered_list
     )
 
-  if(NOT (BUILD_BINARIES))
+  if(NOT (COMP_ADD_BINARIES))
     filter_out_components( mapping "corebinaries" "${filtered_list}" filtered_list)
   endif()
 
 
-  if(NOT (BUILD_X_DEPENDENT_GUI_PROGS))
+  if(NOT (COMP_X_DEPENDENT_GUI_PROGS))
     filter_out_components( mapping "gui" "${filtered_list}" filtered_list)
   endif()
 
-  if(NOT (BUILD_OPENGL_DEPENDENT_GUI_PROGS))
+  if(NOT (COMP_OPENGL_DEPENDENT_GUI_PROGS))
     filter_out_components( mapping "suma" "${filtered_list}" filtered_list)
   endif()
 

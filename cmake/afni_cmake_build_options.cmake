@@ -5,11 +5,11 @@
 # corelibs: Always built. Many of the shared object libraries in this
 # repo as well as the model files.
 
-# afni_corebinaries: Built if BUILD_BINARIES is set. Many of the c binaries
+# afni_corebinaries: Built if COMP_ADD_BINARIES is set. Many of the c binaries
 # have few dependencies outside of this codebase and are packaged with this
 # component
 
-# afni_tcsh: Built if DO_NOT_INSTALL_SCRIPTS is set to OFF. Tcsh scripts that
+# afni_tcsh: Built if COMP_ADD_TCSH is set to OFF. Tcsh scripts that
 # make use of AFNI's core functionality.
 
 # afni_python: This includes executables and modules for importing AFNI
@@ -33,58 +33,58 @@
 
 option(BUILD_SHARED_LIBS "Toggle building shared libraries" ON)
 
-option(AFNI_BUILD_CORELIBS_ONLY
+option(COMP_CORELIBS_ONLY
        "Only build core libraries, no SUMA, plugins or programs" OFF
 )
 cmake_dependent_option(
-  BUILD_BINARIES "Build a large portion of the C executables" ON
-  "NOT AFNI_BUILD_CORELIBS_ONLY" OFF
+  COMP_ADD_BINARIES "Build a large portion of the C executables" ON
+  "NOT COMP_CORELIBS_ONLY" OFF
 )
 
 cmake_dependent_option(
-  DO_NOT_INSTALL_SCRIPTS "Omits script installation" OFF
-  "NOT AFNI_BUILD_CORELIBS_ONLY;BUILD_BINARIES" ON
+  COMP_ADD_TCSH "Include tcsh scripts in installation" ON
+  "NOT COMP_CORELIBS_ONLY;COMP_ADD_BINARIES" OFF
 )
-mark_as_advanced(DO_NOT_INSTALL_SCRIPTS)
+mark_as_advanced(COMP_ADD_TCSH)
 
 cmake_dependent_option(
-  ADD_PYTHON "Includes scripts and modules for imports in python." ON 
-  "NOT AFNI_BUILD_CORELIBS_ONLY;BUILD_BINARIES" OFF
+  COMP_ADD_PYTHON "Includes scripts and modules for imports in python." ON 
+  "NOT COMP_CORELIBS_ONLY;COMP_ADD_BINARIES" OFF
 )
-mark_as_advanced(ADD_PYTHON)
+mark_as_advanced(COMP_ADD_PYTHON)
 
 cmake_dependent_option(
-  ADD_RSTATS "Includes scripts and libraries only used for statistics in R." ON 
-  "NOT AFNI_BUILD_CORELIBS_ONLY;" OFF
+  COMP_ADD_RSTATS "Includes scripts and libraries only used for statistics in R." ON 
+  "NOT COMP_CORELIBS_ONLY;" OFF
 )
-mark_as_advanced(ADD_RSTATS)
+mark_as_advanced(COMP_ADD_RSTATS)
 
 cmake_dependent_option(
-  BUILD_X_DEPENDENT_GUI_PROGS "Build GUI applications with plugins." ON
-  "NOT AFNI_BUILD_CORELIBS_ONLY;BUILD_BINARIES" OFF
+  COMP_X_DEPENDENT_GUI_PROGS "Build GUI applications with plugins." ON
+  "NOT COMP_CORELIBS_ONLY;COMP_ADD_BINARIES" OFF
 )
 
 cmake_dependent_option(
-  BUILD_PLUGINS "Build plugins for AFNI GUI." ON 
-  "BUILD_X_DEPENDENT_GUI_PROGS;" OFF
+  COMP_ADD_PLUGINS "Build plugins for AFNI GUI." ON 
+  "COMP_X_DEPENDENT_GUI_PROGS;" OFF
 )
-mark_as_advanced(BUILD_PLUGINS)
+mark_as_advanced(COMP_ADD_PLUGINS)
 
 cmake_dependent_option(
-  BUILD_COREPLUGINS
+  COMP_ADD_ALL_PLUGINS
   "Build all plugins." ON
-  "BUILD_PLUGINS" OFF
+  "COMP_ADD_PLUGINS" OFF
 )
 
 cmake_dependent_option(
-  BUILD_OPENGL_DEPENDENT_GUI_PROGS
+  COMP_OPENGL_DEPENDENT_GUI_PROGS
   "Build OPEN_GL dependent GUI applications with plugins." ON
-  "BUILD_X_DEPENDENT_GUI_PROGS" OFF
+  "COMP_X_DEPENDENT_GUI_PROGS" OFF
 )
 
 
 # Define other customizations to the build-process
-set_if_not_defined(BUILD_COREPLUGINS "By default a core set of plugins are built." ON)
+set_if_not_defined(COMP_ADD_ALL_PLUGINS "By default a core set of plugins are built." ON)
 option(GENERATE_PACKAGING_COMPONENTS "For internal use only" OFF)
 option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 option(USE_CPACK "CPack can be used to generate source and binary distributions" OFF)
