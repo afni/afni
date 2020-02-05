@@ -153,7 +153,7 @@ else()
 FetchContent_Declare(
   gts   
   GIT_REPOSITORY https://github.com/leej3/gts
-  GIT_TAG 5c55c77cfd954b50ebe42918a24537aae30dd648
+  GIT_TAG 962155a01f5a1b87bd64e3e3d880b4dbc2347ac7
   )
 FetchContent_MakeAvailable(gts)
 endif()
