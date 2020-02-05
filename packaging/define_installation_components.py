@@ -36,13 +36,14 @@ if not components.exists():
 sp.check_output(
     f"""
 cmake -GNinja {src_dir} \
+    -DUSE_SYSTEM_GIFTI=OFF \
     -DGENERATE_PACKAGING_COMPONENTS=ON \
-    -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=ON \
-    -DBUILD_X_DEPENDENT_GUI_PROGS=ON \
-    -DADD_RSTATS=ON \
-    -DDO_NOT_INSTALL_SCRIPTS=OFF \
+    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON \
+    -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
+    -DCOMP_ADD_RSTATS=ON \
+    -DCOMP_ADD_TCSH=ON \
     -DUSE_SYSTEM_NIFTI=ON       \
-    -DBUILD_BINARIES=ON
+    -DCOMP_ADD_BINARIES=ON
 """,
     # using system nifti should be removed              !!!!!! \
     shell=True,
@@ -57,12 +58,13 @@ sp.check_output("ninja")
 sp.check_output(
     f"""
 cmake {src_dir}\
-    -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=OFF \
-    -DBUILD_X_DEPENDENT_GUI_PROGS=OFF \
-    -DADD_RSTATS=OFF \
-    -DADD_PYTHON=OFF \
-    -DDO_NOT_INSTALL_SCRIPTS=ON \
-    -DBUILD_BINARIES=OFF
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=OFF \
+    -DCOMP_X_DEPENDENT_GUI_PROGS=OFF \
+    -DCOMP_ADD_RSTATS=OFF \
+    -DCOMP_ADD_PYTHON=OFF \
+    -DCOMP_ADD_TCSH=OFF \
+    -DCOMP_ADD_BINARIES=OFF
 ninja
 ninja install  > components/0_corelibs.txt
 """,
@@ -75,8 +77,9 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DDO_NOT_INSTALL_SCRIPTS=ON \
-    -DBUILD_BINARIES=ON
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_ADD_TCSH=OFF \
+    -DCOMP_ADD_BINARIES=ON
 ninja
 ninja install  > components/1_corebinaries.txt
 """,
@@ -89,8 +92,9 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DDO_NOT_INSTALL_SCRIPTS=OFF \
-    -DADD_PYTHON=OFF
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_ADD_TCSH=ON \
+    -DCOMP_ADD_PYTHON=OFF
 ninja
 ninja install  > components/2_tcsh.txt
 """,
@@ -103,7 +107,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DADD_PYTHON=ON
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_ADD_PYTHON=ON
 ninja
 ninja install  > components/3_python.txt
 """,
@@ -117,7 +122,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DBUILD_X_DEPENDENT_GUI_PROGS=ON
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_X_DEPENDENT_GUI_PROGS=ON
 ninja
 ninja install  > components/4_gui.txt
 """,
@@ -130,7 +136,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake -GNinja {src_dir}\
-    -DBUILD_OPENGL_DEPENDENT_GUI_PROGS=ON
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON
 ninja install  > components/5_suma.txt
 """,
     shell=True,
@@ -143,7 +150,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DADD_RSTATS=ON
+    -DUSE_SYSTEM_GIFTI=OFF \
+    -DCOMP_ADD_RSTATS=ON
 ninja
 ninja install  > components/6_rstats.txt
 """,
@@ -171,7 +179,7 @@ cmake /opt/src/afni \
     -DUSE_SYSTEM_QHULL=OFF \
     -DUSE_SYSTEM_DCM2NIIX=OFF \
     -DUSE_SYSTEM_F2C=OFF \
-    -DUSE_SYSTEM_NETCDF=OFF
+    -DUSE_SYSTEM_NETCDF=ON # not currently supported
 ninja
 ninja install  > components/7_external_dependencies.txt
 """,
@@ -205,6 +213,8 @@ for f in sorted(components.glob("[0-9]*txt")):
     all_outvals += sorted(outvals)
     cumulative = cumulative.union(t_names)
 
-
+# Modify targets
+targs_to_remove = ['dcm2niix']
+cumulative = {entry for entry in cumulative if entry not in targs_to_remove}
 (components / "components.txt").write_text("\n".join(all_outvals))
     

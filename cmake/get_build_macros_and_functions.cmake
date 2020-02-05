@@ -19,8 +19,9 @@ macro(optional_bundle subdir_path)
   endif(USE_SYSTEM_${upper})
 endmacro()
 
-function(filter_out_components mapping components  targets out_var)
-  # get all targets associated with the components
+function(filter_for_components mapping components  targets out_var)
+  # get all targets associated with the components. Append all targets
+  # to the comp_targs list and return it.
   set(comp_targs "")
   foreach(component ${components})
     set(temp_mapping ${mapping})
@@ -29,11 +30,18 @@ function(filter_out_components mapping components  targets out_var)
   endforeach()
   list(TRANSFORM comp_targs REPLACE ", .*" "" )
 
-  # Filter out targets associated with components
-  list(REMOVE_ITEM targets ${comp_targs})
-  # message(" targets: ${targets}")
-  
+  # Set input variable to the filtered list
+  set(${out_var} "${comp_targs}" PARENT_SCOPE)
+endfunction()
 
+function(filter_out_components mapping components  targets out_var)
+  # get all targets associated with the components
+  filter_for_components("${mapping}" "${components}" "${targets}" comp_targs)
+  # Filter out targets associated with components
+  if(NOT ("" STREQUAL "${comp_targs}"))
+    # message(" components that have been filtered for: ${comp_targs}")
+    list(REMOVE_ITEM targets ${comp_targs})
+  endif()
   # Set input variable to the filtered list
   set(${out_var} "${targets}" PARENT_SCOPE)
 endfunction()
@@ -43,7 +51,9 @@ function(get_expected_target_list mapping targets_label)
   list(TRANSFORM filtered_list REPLACE ", .*" "" )
   if(COMP_CORELIBS_ONLY)
     # only corelibs will be installed
-    filter_for_components(mapping "corelibs" "${filtered_list}" filtered_list)
+    filter_for_components("${mapping}" "corelibs" "${filtered_list}" filtered_list)
+    set(${targets_label} "${filtered_list}" PARENT_SCOPE)
+    return()
   endif()
 
   # Remove components that are largely scripts or external
@@ -53,18 +63,23 @@ function(get_expected_target_list mapping targets_label)
     "${filtered_list}"
     filtered_list
     )
+  # message(" filtered_list: ${filtered_list}")
 
   if(NOT (COMP_ADD_BINARIES))
-    filter_out_components( mapping "corebinaries" "${filtered_list}" filtered_list)
+    filter_out_components( "${mapping}" "corebinaries" "${filtered_list}" filtered_list)
   endif()
 
 
   if(NOT (COMP_X_DEPENDENT_GUI_PROGS))
-    filter_out_components( mapping "gui" "${filtered_list}" filtered_list)
+    filter_out_components( "${mapping}" "gui" "${filtered_list}" filtered_list)
   endif()
 
   if(NOT (COMP_OPENGL_DEPENDENT_GUI_PROGS))
-    filter_out_components( mapping "suma" "${filtered_list}" filtered_list)
+    filter_out_components( "${mapping}" "suma" "${filtered_list}" filtered_list)
+  endif()
+
+  if(NOT (COMP_ADD_PLUGINS))
+    filter_out_components( "${mapping}" "plugins" "${filtered_list}" filtered_list)
   endif()
 
   set(${targets_label} "${filtered_list}" PARENT_SCOPE)
