@@ -9071,7 +9071,7 @@ g_help_examples = """
                           scale regress                                      \\
                   -copy_anat anatSS.FT.nii                                   \\
                   -anat_has_skull no                                         \\
-                  -anat_follower anat_w_skull anatU.FT.nii                   \\
+                  -anat_follower anat_w_skull anat anatU.FT.nii              \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
