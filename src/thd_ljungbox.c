@@ -6,7 +6,7 @@
    However, if tau==NULL, code asssumes tau[i] = i (no censoring).
    See the next function ljung_box_zcens() if you are interested
    in censoring via input val[i] = 0.0 instead of supplying tau.
-     -- RWCox - 21 Jan 2020 
+     -- RWCox - 21 Jan 2020
 *//*--------------------------------------------------------------------------*/
 
 double ljung_box_uneven( int nval , int hh , double *val , int *tau )
@@ -17,8 +17,11 @@ double ljung_box_uneven( int nval , int hh , double *val , int *tau )
    /* check for irrational inputs */
 
    if( nval < 10 || val == NULL ) return 0.0 ;
-        if( hh > nval/2 ) hh = nval/2 ;
-   else if( hh < 2      ) hh = 2+(int)rintf(3.0f*logf((float)nval)) ;
+
+   if( hh < 2 || hh > nval/2 ){
+     int h1 = nval/8 , h2 = (int)rintf(3.0f*logf((float)nval)) ;
+     hh = 2+MIN(h1,h2) ; if( hh > nval/2 ) hh = nval/2 ;
+   }
 
    /* compute denominator sum */
 
@@ -103,4 +106,33 @@ double ljung_box_zcens( int nval , int hh , double *val )
    gg = ljung_box_uneven( nnz , hh , vnz , tau ) ;
    free(tau) ; free(vnz) ;
    return gg ;
+}
+
+/*----------------------------------------------------------------*/
+
+MRI_IMAGE * mri_vec_to_ljmap( MRI_IMAGE *inim )  /* 05 Feb 2020 */
+{
+   int nx , ny , ii , jj ;
+   MRI_IMAGE *outim ;
+   float     *outar , *iar , *qar ;
+   double *dar ;
+
+   if( inim == NULL || inim->kind != MRI_float ) return NULL ;
+
+   nx = inim->nx ; if( nx < 9 ) return NULL ;
+   ny = inim->ny ; if( ny < 9 ) return NULL ;
+
+   outim = mri_new( ny , 1 , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+   dar   = (double *)malloc(sizeof(double)*nx) ;
+   iar   = MRI_FLOAT_PTR(inim) ;
+
+   for( ii=0 ; ii < ny ; ii++ ){
+     qar = iar + ii*nx ;
+     for( jj=0 ; jj < nx ; jj++ ) dar[jj] = qar[jj] ;
+     outar[ii] = ljung_box_zcens( nx , 0 , dar ) ;
+   }
+
+   free(dar) ;
+   return outim ;
 }
