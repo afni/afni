@@ -3,7 +3,7 @@
 
 set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
 
-# tcsh scripts (R related scripts are ignored if ADD_RSTATS is not set)
+# tcsh scripts (R related scripts are ignored if COMP_ADD_RSTATS is not set)
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
@@ -13,7 +13,7 @@ install(
   PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
-if(ADD_RSTATS)
+if(COMP_ADD_RSTATS)
 # R scripts
 install(
   DIRECTORY ../R_scripts/
@@ -32,7 +32,7 @@ install(
 )
 endif()
 
-if(ADD_PYTHON)
+if(COMP_ADD_PYTHON)
   # RetroTS python files
   install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py 
           DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}

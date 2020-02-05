@@ -57,7 +57,7 @@ foreach(
   plug_zeropad
 )
   # Filter plugins if requested
-  if(BUILD_COREPLUGINS)
+  if(COMP_ADD_ALL_PLUGINS)
     if(NOT ${target} IN_LIST CORE_PLUGINS)
       continue()
     endif()
@@ -102,7 +102,7 @@ foreach(target plug_maxima plug_retroicor)
 #   )
 # endforeach(target)
 
-if(BUILD_BINARIES)
+if(COMP_ADD_BINARIES)
   foreach(target afni_open aiv Xphace)
     add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} 

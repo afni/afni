@@ -68,7 +68,7 @@ foreach(
     endforeach()
 
 # ##### Add libraries and programs outside of corelibs
-if(NOT AFNI_BUILD_CORELIBS_ONLY)
+if(NOT COMP_CORELIBS_ONLY)
   if(USE_SYSTEM_DCM2NIIX)
     # Hack to bypass, target checks because this should be a symlink to a the
     # runtime dependency dcm2niix
@@ -84,32 +84,32 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
 endif()
 
 # Add majority of binaries
-if(BUILD_BINARIES)
+if(COMP_ADD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
 # Add scripts (includes shell, python, and R scripts)
-if(NOT (DO_NOT_INSTALL_SCRIPTS))
+if(COMP_ADD_TCSH)
   add_subdirectory(scripts_install)
 endif()
 
 # Add targets with a dependency on X
-if(BUILD_X_DEPENDENT_GUI_PROGS)
+if(COMP_X_DEPENDENT_GUI_PROGS)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
 
 # Add suma
-if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
+if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   add_subdirectory(SUMA)
 endif()
 
 # Add_plugin targets
-if(BUILD_PLUGINS)
+if(COMP_ADD_PLUGINS)
   include(CMakeLists_plugins.txt)
 endif()
 
-if(ADD_RSTATS)
+if(COMP_ADD_RSTATS)
   # Add rio
   set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
   add_afni_library(rio R_io.c)

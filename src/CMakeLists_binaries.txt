@@ -436,7 +436,7 @@ target_link_libraries(3dECM
     NIFTI::nifticdf
   )
 
-if(BUILD_X_DEPENDENT_GUI_PROGS)
+if(COMP_X_DEPENDENT_GUI_PROGS)
   add_afni_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
   add_afni_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
   add_afni_executable(1dplot 1dplot.c display.c)
