@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , FEB , 2020 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
+   "Add -LJorder option" ,
+   "To order voxels by their Ljung-Box statistics." } ,
+
  { 02 , FEB , 2020 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
    "Add -qval option to 3dPVAL [for GC]." ,
    "Merry Groundhog Day!" } ,

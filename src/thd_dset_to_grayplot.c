@@ -16,6 +16,7 @@ static int lev_siz[256] ;
 #define ORDER_IJK  0
 #define ORDER_PV   1
 #define ORDER_PEEL 2
+#define ORDER_LJ   3
 
 static int ordering = 0 ;
 
@@ -28,12 +29,18 @@ static void grayplot_order_by_peels( int yesno ){
 static void grayplot_order_by_ijk( int yesno ){
   ordering = 0 ;
 }
+static void grayplot_order_by_lj( int yesno ){   /* 05 Feb 2020 */
+  ordering = (yesno) ? ORDER_LJ : 0 ;
+}
 
-static int grayplot_is_ordered_by_peels( void ){   /* [18 Jun 2019 rickr] */
+static int grayplot_is_ordered_by_peels( void ){ /* [18 Jun 2019 rickr] */
   return (ordering == ORDER_PEEL);
 }
 static int grayplot_is_ordered_by_pvmap( void ){
   return (ordering == ORDER_PV);
+}
+static int grayplot_is_ordered_by_lj( void ){    /* 05 Feb 2020 */
+  return (ordering == ORDER_LJ);
 }
 
 /*----- how time series are normalized [30 Jul 2018] -----*/
@@ -174,7 +181,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
        switch( ordering ){
          default: break ;  /* == IJK */
 
-         case ORDER_PV:{
+         case ORDER_PV:{   /* == by coherence with 1st 2 principal vectors */
            MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
            int       *kim = (int *)malloc(sizeof(int)*cmval) ;
            float     *tar = MRI_FLOAT_PTR(tim), *par ;
@@ -200,7 +207,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
          }
          break ;
 
-         case ORDER_PEEL:{
+         case ORDER_PEEL:{ /* == by order of peeling from outside */
            short *depth=NULL ; int kk ;
            depth = THD_mask_depth( DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ,
                                    tmask , 1 , NULL, 2 ) ;
@@ -226,6 +233,32 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
              }
              mri_free(tim) ; free(kim) ; free(idepth) ; free(depth) ;
            }
+         }
+         break ;
+
+         case ORDER_LJ:{   /* == by Ljung-Box statistic [05 Feb 2020] */
+           MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
+           int       *kim = (int *)malloc(sizeof(int)*cmval) ;
+           float     *tar = MRI_FLOAT_PTR(tim), *par ;
+#if 0
+           ININFO_message("  Computing LJ order for mask partition #%d - %d voxels",
+                          ii,cmval) ;
+#endif
+           /* copy data into temporary image */
+           for( jj=0 ; jj < cmval ; jj++ ){
+             memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
+             kim[jj] = jj ;  /* source index */
+           }
+           /* make the PVmap */
+           pim = mri_vec_to_ljmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
+           /* sort so largest are first, keeping track of whence they came */
+           for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
+           qsort_floatint( cmval , par , kim ) ;
+           /* copy from temp image back to vectim, in the right order */
+           for( jj=0 ; jj < cmval ; jj++ ){
+             memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
+           }
+           mri_free(tim) ; free(kim) ; mri_free(pim) ; /* toss the trash */
          }
          break ;
 
