@@ -267,6 +267,16 @@ function(add_afni_plugin target_in)
 )
   add_library(${ARGV})
   add_afni_target_properties(${target_in})
+  if(ADD_PLUGIN_CHECK)
+      add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
+      target_link_libraries(
+          checking_${target_in}
+          PUBLIC
+          afni_all_objects
+          mri
+          mrix
+        )
+  endif()
   # target_link_options(${target_in} PRIVATE LINKER:-as-needed)
 endfunction()
 
