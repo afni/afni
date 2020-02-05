@@ -80,7 +80,6 @@ if(NOT COMP_CORELIBS_ONLY)
   endif()
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
   # DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}  RENAME woohoo)
-  add_subdirectory(avovk)
 endif()
 
 # Add majority of binaries
@@ -101,6 +100,8 @@ endif()
 
 # Add suma
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
+  # segtools/avovk only used by suma so add it here
+  add_subdirectory(avovk)
   add_subdirectory(SUMA)
 endif()
 

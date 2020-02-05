@@ -69,6 +69,10 @@ cmake_dependent_option(
   "COMP_X_DEPENDENT_GUI_PROGS;" OFF
 )
 mark_as_advanced(COMP_ADD_PLUGINS)
+if(NOT (COMP_ADD_PLUGINS) AND (COMP_X_DEPENDENT_GUI_PROGS))
+  message(FATAL_ERROR "Building the plugins is currently a mandatory part of add the AFNI GUI to the build")
+endif()
+
 
 cmake_dependent_option(
   COMP_ADD_ALL_PLUGINS

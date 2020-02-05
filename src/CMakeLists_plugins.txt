@@ -57,7 +57,7 @@ foreach(
   plug_zeropad
 )
   # Filter plugins if requested
-  if(COMP_ADD_ALL_PLUGINS)
+  if(NOT (COMP_ADD_ALL_PLUGINS))
     if(NOT ${target} IN_LIST CORE_PLUGINS)
       continue()
     endif()
@@ -68,7 +68,7 @@ foreach(
   target_link_libraries(
     ${target}
     PRIVATE 
-            libheaders
+    libheaders
   )
   endforeach(target)
 
@@ -79,28 +79,26 @@ add_afni_plugin(plug_retroicor plug_retroicor.c retroicor.c)
 foreach(target plug_maxima plug_retroicor) 
   target_link_libraries(${target}
     PRIVATE
-      libheaders
-      )
+    libheaders
+    )
   endforeach()
 
-# add_afni_plugin(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
-# svm/plug_3dsvm.c) 
-# target_link_libraries(plug_3dsvm 
-#   PRIVATE
-#     afni_all_objects
-#     AFNI::mri
-#     )
+add_afni_plugin(
+  plug_3dsvm
+  svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c svm/plug_3dsvm.c
+ ) 
+target_link_libraries(plug_3dsvm 
+  PRIVATE
+  libheaders
+  )
 
-# foreach(target plug_scatplot plug_nlfit)
-#   add_afni_plugin(${target} ${target}.c)
-#   target_link_libraries(${target} 
-#     PRIVATE
-#       afni_all_objects
-#       AFNI::mri
-#       NIFTI::nifti2
-#       NIFTI::nifticdf
-#   )
-# endforeach(target)
+foreach(target plug_scatplot plug_nlfit)
+  add_afni_plugin(${target} ${target}.c)
+  target_link_libraries(${target} 
+    PRIVATE
+    libheaders
+    )
+endforeach(target)
 
 if(COMP_ADD_BINARIES)
   foreach(target afni_open aiv Xphace)
