@@ -8250,14 +8250,18 @@ def show_program_help(section=''):
    # maybe print them all
    if section == '':
       print(g_help_intro)
-      # print(g_help_examples)
-      show_help_examples()
+      show_help_examples()      # will start printing from dictionaries
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
 
       return 0
 
+   # examples are now "special"
+   if section == 'examples':
+      show_help_examples()
+
+   # and the rest...
    rv = 0
    try:
       shelp = eval('g_help_%s' % section)
@@ -8269,7 +8273,11 @@ def show_program_help(section=''):
    return rv
 
 def show_help_examples():
-   EGS.populate_examples()
+   """just print the main string, until we are ready for """
+   print(g_help_examples)
+
+   # EGS.populate_examples()
+   # EGS.show_AP_examples()
    return
 
 # ----------------------------------------------------------------------
