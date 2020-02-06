@@ -1648,11 +1648,11 @@ class SubjProcSream:
             return 1  # failure
 
         # rcr - test
-        print("==== populating examples ...")
-        EGS.populate_examples()
+        # print("==== populating examples ...")
+        # EGS.populate_examples()
         # EGS.display_eg_one(EGS.ap.examples[3])
-        EGS.display_eg_all(aphelp=1, verb=2)
-        exit(0)
+        # EGS.display_eg_all(aphelp=1, verb=2)
+        # exit(0)
 
         # maybe the users justs wants a complete option list
         if self.user_opts.find_opt('-show_valid_opts'):
