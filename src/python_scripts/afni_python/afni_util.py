@@ -1990,7 +1990,36 @@ def replace_n_squeeze(instr, oldstr, newstr):
 # ----------------------------------------------------------------------
 # line wrapper functions
 
-# add line wrappers ('\'), and align them all
+def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
+    """return a string that is a 'cname' command, indented by
+         nindent, with nextra indentation for option continuation
+
+       This function taks a command and a list of options with parameters,
+       and furnishes a wrapped command, where each option entry is on its
+       own line, and any option entry line wraps includes nextra indentation.
+
+           - wrap each option line without indentation
+           - split across \\\n; ==> have good indentation
+           - keep all in array
+           
+           - join array with indentation and \\\n
+           - finally, align the \\\n wrappers
+    """
+    ntot = nindent + nextra
+    isind = ' '*nindent
+    istot = ' '*ntot
+    jstr  = ' \\\n' + istot
+
+    clist = [cname]
+    for line in llist:
+       wline = add_line_wrappers(line, maxlen=(maxlen-ntot))
+       wlist = wline.split('\\\n')
+       clist.extend(wlist)
+
+    return align_wrappers(isind + jstr.join(clist))
+
+
+# MAIN wrapper: add line wrappers ('\'), and align them all
 def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
        if '\\\n', align all wrapstr strings"""

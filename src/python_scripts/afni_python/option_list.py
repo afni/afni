@@ -65,7 +65,7 @@ class OptionList:
         self.show_argv_array='' # show found arguments and exit (method name)
 
         # parameters for terminal options
-        self.argv_array_types = ['dict', 'pretty', 'nested']
+        self.argv_array_types = ['arglist', 'dict', 'pretty', 'nested']
 
     def add_opt(self, name, npar, deflist=[], acplist=[], req=0, setpar=0,  \
                 helpstr = "", okdash=1):
@@ -113,12 +113,16 @@ class OptionList:
                print("    %-24s%s" % (self.olist[index].name, hs))
 
     def show_as_array(self, mesg='', atype='pretty', verb=0):
-        """atype    pretty      - enumerated options with params
+        """atype    
+                    arglist     - forget opts, just show the option list
+                    pretty      - enumerated options with params
                     nested      - show as nested array
         """
         if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
                                      (mesg, self.label, len(self.olist)))
-        if atype == 'dict':
+        if atype == 'arglist':
+           print("%s" % [opt.name for opt in self.olist])
+        elif atype == 'dict':
            print("{")
            for ind, opt in enumerate(self.olist):
                print("  %-28s: %s," % ("'%s'"%opt.name, opt.parlist))
