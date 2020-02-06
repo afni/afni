@@ -13,6 +13,7 @@ import math, os
 import afni_base as BASE, afni_util as UTIL
 import option_list as OL
 import lib_afni1D as LD
+import lib_ap_examples as EGS
 import lib_vars_object as VO
 
 # types of motion simulated datasets that can be created
@@ -8249,7 +8250,8 @@ def show_program_help(section=''):
    # maybe print them all
    if section == '':
       print(g_help_intro)
-      print(g_help_examples)
+      # print(g_help_examples)
+      show_help_examples()
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -8265,6 +8267,10 @@ def show_program_help(section=''):
       rv = 1
 
    return rv
+
+def show_help_examples():
+   EGS.populate_examples()
+   return
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)

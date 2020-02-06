@@ -16,6 +16,7 @@ from afni_util import *
 from option_list import *
 from db_mod import *
 import lib_vars_object as VO
+import lib_ap_examples as EGS
 import ask_me
 
 # ----------------------------------------------------------------------
@@ -1650,6 +1651,13 @@ class SubjProcSream:
         if self.user_opts.find_opt('-show_valid_opts'):
             self.valid_opts.show('', 1)
             return 0  # gentle termination
+
+        # rcr - here
+        print("== populating examples...")
+        EGS.populate_examples()
+        # EGS.display_eg_one(EGS.ap_examples[3])
+        EGS.display_eg_all()
+        sys.exit(0)
         
         # apply the user options
         rv = self.apply_initial_opts(self.user_opts)
