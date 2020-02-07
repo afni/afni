@@ -27,8 +27,9 @@ ap_examples = []
 class APExample:
    def __init__(self, name, odict, olist=[], aphelp=0, source='', descrip='',
                 header='', trailer=''):
-      self.name     = name          # used to refernce example
+      self.name     = name          # used to reference example
       self.aphelp   = aphelp        # flag: shown as part of afni_proc.py -help
+                                    # a bit redundant with source, but quicker
       self.source   = source        # from AP help, AD6, etc.
       self.descrip  = descrip       # very short description
       self.header   = header        # shown before example (in -help)
@@ -37,6 +38,9 @@ class APExample:
 
       self.optlist  = olist         # ordered list of options
       self.odict    = odict         # dict of options {opt:[params]}
+
+   def compare_vs_():
+      pass
 
    def wrapped_ap_cmd(self, nindent=10, nextra=3):
       """return a string that is an afni_proc.py command, indented by
@@ -53,6 +57,40 @@ class APExample:
       clist = ['%s %s' % (key, ' '.join(self.odict[key])) for key in keys]
       return UTIL.list_to_wrapped_command('afni_proc.py', clist,
                                           nindent=14, maxlen=75)
+
+   def display(self, verb=0):
+      """display a single example
+         verb: verbosity level
+           0: only show example
+           1: include name, source, descrip
+           2: full verbosity: as ap -help: include descrip, header, trailer
+              - terminate descrip with ~2~, for sphinxificaiton
+
+         ponder indentation
+      """
+      cmd = self.wrapped_ap_cmd()
+
+      indent = ' '*8
+
+      # possibly show the name/description line,
+      # (with trailing ~2~ for sphinx help)
+      if verb > 0:
+         print("%s%s. %s  ~2~" % (indent, self.name, self.descrip))
+
+      # header
+      if verb > 1:
+         print("%s" % self.header)
+      else:
+         print("")
+
+      # print the actual example
+      print("%s" % cmd)
+
+      # any trailer
+      if verb > 1 and self.trailer != '': 
+         print("%s" % self.trailer)
+
+      print("")
 
  
 def populate_examples():
@@ -703,57 +741,21 @@ def populate_examples():
 
 def display_eg_all(aphelp=1, source='', verb=0):
    """display the examples array if someone wants it
-      if aphelp is set, limit the list to those
-      if source is set, restrict to matching
-      verb: verbosity level: pass on to display_eg_one
+         aphelp :  1   show only AP help examples
+                   0   show only others
+                  -1   show all (leaving higher numbers for other cases)
+         source : if set, restrict to matching
+         verb   : verbosity level, pass on to eg.display
    """
    global ap_examples
+
    for eg in ap_examples:
       # skip what we do not want to show
-      if aphelp != eg.aphelp:
+      if aphelp >= 0 and aphelp != eg.aphelp:
          continue
       if source != '' and source != eg.source:
          continue
-      display_eg_one(eg, verb=verb)
-
-def display_eg_one(eg, verb=0):
-   """display a single example
-      verb: verbosity level
-        0: only show example
-        1: include name, source, descrip
-        2: full verbosity: as ap -help: include descrip, header, trailer
-           - terminate descrip with ~2~, for sphinxificaiton
-
-      ponder indentation
-   """
-   cmd = eg.wrapped_ap_cmd()
-
-   #  self.name     = name          # used to refernce example
-   #  self.aphelp   = aphelp        # flag: shown as part of afni_proc.py -help
-   #  self.source   = source        # from AP help, AD6, etc.
-   #  self.descrip  = descrip       # very short description
-   #  self.header   = header        # shown before example (in -help)
-   #  self.trailer  = trailer       # shown after example (in -help)
-
-   indent = ' '*8
-
-   # possibly show the name/description line
-   if verb > 0:
-      print("%s%s. %s  ~2~" % (indent, eg.name, eg.descrip))
-
-   # header
-   if verb > 1:
-      print("%s" % eg.header)
-   else:
-      print("")
-
-   print("%s" % cmd)
-
-   # trailer
-   if verb > 1 and eg.trailer != '': 
-      print("%s" % eg.trailer)
-
-   print("")
+      eg.display(verb=verb)
 
 if __name__ == '__main__':
    print('** this is not a main module')
