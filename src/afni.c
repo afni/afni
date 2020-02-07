@@ -2477,7 +2477,7 @@ int main( int argc , char *argv[] )
           " + opening windows, or you cannot type text into AFNI popup windows,\n"
           " + you might need to set an environment variable to solve this problem:\n"
           " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace    # tcsh\n"
-          " +   export DYLD_LIBRARY_PATH = /opt/X11/lib/flat_namespace  # bash\n"
+          " +   export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace    # bash\n"
           " + This command is best put in your startup ~/.cshrc file, so that\n"
           " + it will be invoked for every (t)csh shell you open (mutatis mutandis\n"
           " + for the bash shell, of course).\n"
@@ -2485,7 +2485,7 @@ int main( int argc , char *argv[] )
           " + If things are OK and you want to avoid having this warning message\n"
           " + pollute your terminal, use this:\n"
           " +   setenv AFNI_SKIP_DYLD_WARNING YES                       # tcsh\n"
-          " +   export AFNI_SKIP_DYLD_WARNING = YES                     # bash\n\n"
+          " +   export AFNI_SKIP_DYLD_WARNING=YES                       # bash\n\n"
           "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
          ) ;
        }
