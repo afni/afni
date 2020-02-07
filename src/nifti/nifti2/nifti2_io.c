@@ -479,8 +479,8 @@ static int  nifti_fill_extension(nifti1_extension * ext, const char * data,
 static void compute_strides(int64_t *strides,const int64_t *size,int nbyper);
 
 /* NBL routines */
-static int  nifti_load_NBL_bricks(nifti_image * nim , int64_t * slist,
-                       int64_t * sindex, nifti_brick_list * NBL, znzFile fp );
+static int  nifti_load_NBL_bricks(nifti_image * nim , const int64_t * slist,
+                       const int64_t * sindex, nifti_brick_list * NBL, znzFile fp );
 static int  nifti_alloc_NBL_mem(  nifti_image * nim, int64_t nbricks,
                                   nifti_brick_list * nbl);
 static int  nifti_copynsort(int64_t nbricks, const int64_t *blist,
@@ -492,7 +492,7 @@ static int  nifti_NBL_matches_nim(const nifti_image *nim,
 static int  rci_read_data(nifti_image *nim, int *pivots, int64_t *prods,
                           int nprods, const int64_t dims[], char *data,
                           znzFile fp, int64_t base_offset);
-static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper);
+static int rci_alloc_mem(void **data, const int64_t prods[8], int nprods, int nbyper);
 static int  make_pivot_list(nifti_image * nim, const int64_t dims[],
                             int pivots[], int64_t prods[], int * nprods );
 
@@ -902,8 +902,8 @@ void nifti_free_NBL( nifti_brick_list * NBL )
  *
  * return 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
-                        int64_t * sindex, nifti_brick_list * NBL, znzFile fp )
+static int nifti_load_NBL_bricks( nifti_image * nim , const int64_t * slist,
+                        const int64_t * sindex, nifti_brick_list * NBL, znzFile fp )
 {
    int64_t oposn, fposn;      /* orig and current file positions */
    int64_t rv, test;
@@ -1015,7 +1015,7 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int64_t nbricks,
    }
 
    for( c = 0; c < nbl->nbricks; c++ ){
-      nbl->bricks[c] = (void *)malloc(nbl->bsize);
+      nbl->bricks[c] = malloc(nbl->bsize);
       if( ! nbl->bricks[c] ){
          fprintf(stderr,"** NIFTI NANM: failed to alloc %" PRId64
                  " bytes for brick %" PRId64 "\n", nbl->bsize, c);
@@ -1317,6 +1317,7 @@ char const * nifti_datatype_string( int dt )
      case DT_COMPLEX256: return "COMPLEX256" ;
      case DT_RGB24:      return "RGB24"      ;
      case DT_RGBA32:     return "RGBA32"     ;
+     default:            break               ;
    }
    return "**ILLEGAL**" ;
 }
@@ -1349,6 +1350,7 @@ int nifti_is_inttype( int dt )
      case DT_COMPLEX256: return 0 ;
      case DT_RGB24:      return 1 ;
      case DT_RGBA32:     return 1 ;
+     default:            break    ;
    }
    return 0 ;
 }
@@ -1377,6 +1379,7 @@ char const *nifti_units_string( int uu )
      case NIFTI_UNITS_HZ:     return "Hz" ;
      case NIFTI_UNITS_PPM:    return "ppm" ;
      case NIFTI_UNITS_RADS:   return "rad/s" ;
+     default:                 break ;
    }
    return "Unknown" ;
 }
@@ -1400,6 +1403,7 @@ char const *nifti_xform_string( int xx )
      case NIFTI_XFORM_ALIGNED_ANAT:  return "Aligned Anat" ;
      case NIFTI_XFORM_TALAIRACH:     return "Talairach" ;
      case NIFTI_XFORM_MNI_152:       return "MNI_152" ;
+     default:                        break ;
    }
    return "Unknown" ;
 }
@@ -1456,6 +1460,7 @@ char const *nifti_intent_string( int ii )
      case NIFTI_INTENT_QUATERNION: return "Quaternion" ;
 
      case NIFTI_INTENT_DIMLESS:    return "Dimensionless number" ;
+     default:                      break ;
    }
    return "Unknown" ;
 }
@@ -1481,6 +1486,7 @@ char const *nifti_slice_string( int ss )
      case NIFTI_SLICE_ALT_DEC:  return "alternating_decreasing"   ;
      case NIFTI_SLICE_ALT_INC2: return "alternating_increasing_2" ;
      case NIFTI_SLICE_ALT_DEC2: return "alternating_decreasing_2" ;
+     default: break;
    }
    return "Unknown" ;
 }
@@ -1506,6 +1512,7 @@ char const *nifti_orientation_string( int ii )
      case NIFTI_A2P: return "Anterior-to-Posterior" ;
      case NIFTI_I2S: return "Inferior-to-Superior" ;
      case NIFTI_S2I: return "Superior-to-Inferior" ;
+     default:        break;
    }
    return "Unknown" ;
 }
@@ -1551,10 +1558,10 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
      case DT_COMPLEX128:  nb = 16 ; ss =  8 ; break ;
 
      case DT_COMPLEX256:  nb = 32 ; ss = 16 ; break ;
+     default:             break;
    }
 
-   ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
-}
+   ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; }
 
 
 /*-----------------------------------------------------------------*/
@@ -1853,7 +1860,6 @@ void nifti_dmat44_to_quatern(nifti_dmat44 R ,
    }
 
    ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
-   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1993,7 +1999,6 @@ void nifti_mat44_to_quatern( mat44 R ,
    }
 
    ASSIF(qb,(float)b) ; ASSIF(qc,(float)c) ; ASSIF(qd,(float)d) ;
-   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2766,6 +2771,7 @@ void nifti_dmat44_to_orientation( nifti_dmat44 R ,
      case -2: i = NIFTI_A2P ; break ;
      case  3: i = NIFTI_I2S ; break ;
      case -3: i = NIFTI_S2I ; break ;
+     default: break;
    }
 
    switch( jbest*qbest ){
@@ -2775,6 +2781,7 @@ void nifti_dmat44_to_orientation( nifti_dmat44 R ,
      case -2: j = NIFTI_A2P ; break ;
      case  3: j = NIFTI_I2S ; break ;
      case -3: j = NIFTI_S2I ; break ;
+     default: break;
    }
 
    switch( kbest*rbest ){
@@ -2784,10 +2791,10 @@ void nifti_dmat44_to_orientation( nifti_dmat44 R ,
      case -2: k = NIFTI_A2P ; break ;
      case  3: k = NIFTI_I2S ; break ;
      case -3: k = NIFTI_S2I ; break ;
+     default: break;
    }
 
-   *icod = i ; *jcod = j ; *kcod = k ; return ;
-}
+   *icod = i ; *jcod = j ; *kcod = k ; }
 
 /*---------------------------------------------------------------------------*/
 /*! compute the (closest) orientation from a 4x4 ijk->xyz tranformation matrix
@@ -2947,6 +2954,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: i = NIFTI_A2P ; break ;
      case  3: i = NIFTI_I2S ; break ;
      case -3: i = NIFTI_S2I ; break ;
+     default: break;
    }
 
    switch( jbest*qbest ){
@@ -2956,6 +2964,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: j = NIFTI_A2P ; break ;
      case  3: j = NIFTI_I2S ; break ;
      case -3: j = NIFTI_S2I ; break ;
+     default: break;
    }
 
    switch( kbest*rbest ){
@@ -2965,10 +2974,10 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -2: k = NIFTI_A2P ; break ;
      case  3: k = NIFTI_I2S ; break ;
      case -3: k = NIFTI_S2I ; break ;
+     default: break;
    }
 
-   *icod = i ; *jcod = j ; *kcod = k ; return ;
-}
+   *icod = i ; *jcod = j ; *kcod = k ; }
 
 /*---------------------------------------------------------------------------*/
 /* Routines to swap byte arrays in various ways:
@@ -2997,8 +3006,7 @@ void nifti_swap_2bytes( int64_t n , void *ar )    /* 2 bytes at a time */
        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
        cp1 += 2;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
@@ -3016,8 +3024,7 @@ void nifti_swap_4bytes( int64_t n , void *ar )    /* 4 bytes at a time */
        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
        cp0 += 4;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 8 bytes at a time from the given list of n sets of 8 bytes
@@ -3039,8 +3046,7 @@ void nifti_swap_8bytes( int64_t n , void *ar )    /* 8 bytes at a time */
        }
        cp0 += 8;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
@@ -3060,8 +3066,7 @@ void nifti_swap_16bytes( int64_t n , void *ar )    /* 16 bytes at a time */
        }
        cp0 += 16;
    }
-   return ;
-}
+   }
 
 #if 0  /* not important: save for version update     6 Jul 2010 [rickr] */
 
@@ -3103,8 +3108,7 @@ void nifti_swap_Nbytes( int64_t n , int siz , void *ar )  /* subsuming case */
         fprintf(stderr,"** NIfTI: cannot swap in %d byte blocks\n", siz);
         break ;
    }
-   return ;
-}
+   }
 
 
 /*-------------------------------------------------------------------------*/
@@ -3323,8 +3327,7 @@ void old_swap_nifti_header( nifti_1_header *h , int is_nifti )
      nifti_swap_4bytes(4,h->srow_y);
      nifti_swap_4bytes(4,h->srow_z);
    }
-   return ;
-}
+   }
 
 
 #define USE_STAT
@@ -4153,6 +4156,8 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
       }
    }
    /* ignore any other nifti_type */
+
+   if( errs ) return 0;   /* types do not match */
 
    return 1;
 }
@@ -6727,7 +6732,7 @@ int nifti_image_load( nifti_image *nim )
 
    if( nim->data == NULL )
    {
-     nim->data = (void *)calloc(1,ntot) ;  /* create image memory */
+     nim->data = calloc(1,ntot) ;  /* create image memory */
      if( nim->data == NULL ){
         if( g_opts.debug > 0 )
            fprintf(stderr,"** NIFTI: failed to alloc %d bytes for image data\n",
@@ -6836,6 +6841,7 @@ int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
       }
       break ;
 
+
   }
 
   if( g_opts.debug > 1 )
@@ -6854,8 +6860,7 @@ void nifti_image_unload( nifti_image *nim )
    if( nim != NULL && nim->data != NULL ){
      free(nim->data) ; nim->data = NULL ;
    }
-   return ;
-}
+   }
 
 /*--------------------------------------------------------------------------*/
 /*! free 'everything' about a nifti_image struct (including the passed struct)
@@ -6874,8 +6879,7 @@ void nifti_image_free( nifti_image *nim )
    if( nim->iname != NULL ) free(nim->iname) ;
    if( nim->data  != NULL ) free(nim->data ) ;
    (void)nifti_free_extensions( nim ) ;
-   free(nim) ; return ;
-}
+   free(nim) ; }
 
 
 /*--------------------------------------------------------------------------*/
@@ -6921,8 +6925,7 @@ void nifti_image_infodump( const nifti_image *nim )
    char *str = nifti_image_to_ascii( nim ) ;
    /* stdout -> stderr   2 Dec 2004 [rickr] */
    if( str != NULL ){ fputs(str,stderr) ; free(str) ; }
-   return ;
-}
+   }
 
 
 /*--------------------------------------------------------------------------
@@ -6944,7 +6947,7 @@ int64_t nifti_write_buffer(znzFile fp, const void *buffer, int64_t numbytes)
       fprintf(stderr,"** ERROR: nifti_write_buffer: null file pointer\n");
       return 0;
    }
-   ss = znzwrite( (const void*)buffer , 1 , numbytes , fp ) ;
+   ss = znzwrite( buffer , 1 , numbytes , fp ) ;
    return ss;
 }
 
@@ -8972,8 +8975,8 @@ compute_strides(int64_t *strides,const int64_t *size,int nbyper)
         nifti_image_load, nifti_read_collapsed_image
 *//*-------------------------------------------------------------------------*/
 int64_t nifti_read_subregion_image( nifti_image * nim,
-                                int64_t *start_index,
-                                int64_t *region_size,
+                                const int64_t *start_index,
+                                const int64_t *region_size,
                                 void ** data )
 {
   znzFile fp;                   /* file to read */
@@ -9041,7 +9044,7 @@ int64_t nifti_read_subregion_image( nifti_image * nim,
   for(i = 0; i < nim->ndim; i++) total_alloc_size *= region_size[i];
 
   /* allocate buffer, if necessary */
-  if(! *data) *data = (void *)malloc(total_alloc_size);
+  if(! *data) *data = malloc(total_alloc_size);
 
   if(! *data) {
     if(g_opts.debug > 1)
@@ -9193,7 +9196,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int64_t * prods,
 
    return total size on success, and < 0 on failure
 */
-static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper )
+static int rci_alloc_mem(void **data, const int64_t prods[8], int nprods, int nbyper )
 {
    int64_t size;
    int     memindex;

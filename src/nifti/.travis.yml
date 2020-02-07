@@ -1,4 +1,8 @@
-dist: xenial
+#Ubuntu bionic 18.04
+#Ubuntu xenial 16.04 default
+#Ubuntu trusty 14.04
+#Ubuntu precise 12.04
+dist: bionic
 language: cpp # sets both CXX and CC envirionmental variables
 # Use the faster container-based infrastructure.
 #sudo: false
@@ -6,16 +10,17 @@ language: cpp # sets both CXX and CC envirionmental variables
 sudo: true
 env:
   global:
-
+    - PROJECT_NAME=NIFTI_CLIB
 addons:
   apt:
-    packages: cmake
-    packages: valgrind
+    packages:
+      - cmake
+      - valgrind
   homebrew:
-    packages: cmake
-    packages: sed
+    packages:
+      - cmake
+      - sed
 
-# -m32 is not supported 
 # no poppler, openjpeg, uuid, json
 # no swig
 matrix:
@@ -24,6 +29,7 @@ matrix:
     - compiler: gcc
       os: linux
       env:
+        - BLDPREFIX=coverage
         - PARALLEL_LEVEL=3
         - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
         - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
@@ -44,6 +50,7 @@ matrix:
     - compiler: gcc
       os: linux
       env:
+        - BLDPREFIX=valgrind
         - PARALLEL_LEVEL=3
         - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
         - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
@@ -64,6 +71,7 @@ matrix:
     - compiler: clang
       os: linux
       env:
+        - BLDPREFIX=sanitize
         - PARALLEL_LEVEL=3
         - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
         - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
@@ -86,6 +94,7 @@ matrix:
     - compiler: clang
       os: osx
       env:
+        - BLDPREFIX=rel
         - PARALLEL_LEVEL=3
         - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
         - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
@@ -109,7 +118,7 @@ matrix:
 before_install:
   #- env
   - cd ${TRAVIS_BUILD_DIR}
-  
+
 install: true
 before_script: true
 script:

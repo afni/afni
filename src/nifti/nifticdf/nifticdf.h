@@ -70,61 +70,61 @@ double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3);
 
 /** Prototypes for cdflib functions **/
 
-double algdiv(double*,double*);
-double alngam(double*);
-double alnrel(double*);
-double apser(double*,double*,double*,double*);
-double basym(double*,double*,double*,double*);
-double bcorr(double*,double*);
-double betaln(double*,double*);
-double bfrac(double*,double*,double*,double*,double*,double*);
-void bgrat(double*,double*,double*,double*,double*,double*,int*i);
-double bpser(double*,double*,double*,double*);
-void bratio(double*,double*,double*,double*,double*,double*,int*);
-double brcmp1(int*,double*,double*,double*,double*);
-double brcomp(double*,double*,double*,double*);
-double bup(double*,double*,double*,double*,int*,double*);
-void cdfbet(int*,double*,double*,double*,double*,double*,double*,
+double algdiv(const double*,const double*);
+double alngam(const double*);
+double alnrel(const double*);
+double apser(const double*,double*,const double*,const double*);
+double basym(double*,double*,const double*,const double*);
+double bcorr(const double*,const double*);
+double betaln(const double*,const double*);
+double bfrac(double*,double*,double*,double*,const double*,const double*);
+void bgrat(double*,double*,const double*,const double*,double*,double*,int*ierr);
+double bpser(double*,double*,const double*,const double*);
+void bratio(const double*,const double*,const double*,const double*,double*,double*,int*);
+double brcmp1(int*,double*,double*,const double*,const double*);
+double brcomp(double*,double*,const double*,const double*);
+double bup(double*,double*,double*,double*,const int*,const double*);
+void cdfbet(const int*,double*,double*,double*,double*,double*,double*,
                    int*,double*);
-void cdfbin(int*,double*,double*,double*,double*,double*,double*,
+void cdfbin(const int*,double*,double*,double*,double*,double*,double*,
                    int*,double*);
-void cdfchi(int*,double*,double*,double*,double*,int*,double*);
-void cdfchn(int*,double*,double*,double*,double*,double*,int*,double*);
-void cdff(int*,double*,double*,double*,double*,double*,int*,double*);
-void cdffnc(int*,double*,double*,double*,double*,double*,double*,
-                   int*s,double*);
-void cdfgam(int*,double*,double*,double*,double*,double*,int*,double*);
+void cdfchi(const int*,double*,double*,double*,double*,int*,double*);
+void cdfchn(const int*,double*,double*,double*,double*,double*,int*,double*);
+void cdff(const int*,double*,double*,double*,double*,double*,int*,double*);
+void cdffnc(const int*,double*,double*,double*,double*,double*,double*,
+                   int*status,double*);
+void cdfgam(const int*,double*,double*,double*,double*,double*,int*,double*);
 #if defined(__COMPILE_UNUSED_FUNCTIONS__)
 void cdfnbn(int*,double*,double*,double*,double*,double*,double*,
                    int*,double*);
 void cdfnor(int*,double*,double*,double*,double*,double*,int*,double*);
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
-void cdfpoi(int*,double*,double*,double*,double*,int*,double*);
-void cdft(int*,double*,double*,double*,double*,int*,double*);
+void cdfpoi(const int*,double*,double*,double*,double*,int*,double*);
+void cdft(const int*,double*,double*,double*,double*,int*,double*);
 void cumbet(double*,double*,double*,double*,double*,double*);
-void cumbin(double*,double*,double*,double*,double*,double*);
-void cumchi(double*,double*,double*,double*);
-void cumchn(double*,double*,double*,double*,double*);
-void cumf(double*,double*,double*,double*,double*);
-void cumfnc(double*,double*,double*,double*,double*,double*);
+void cumbin(const double*,const double*,double*,double*,double*,double*);
+void cumchi(const double*,const double*,double*,double*);
+void cumchn(double*,double*,const double*,double*,double*);
+void cumf(const double*,const double*,const double*,double*,double*);
+void cumfnc(double*,double*,double*,const double*,double*,double*);
 void cumgam(double*,double*,double*,double*);
 #if defined(__COMPILE_UNUSED_FUNCTIONS__)
 void cumnbn(double*,double*,double*,double*,double*,double*);
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
-void cumnor(double*,double*,double*);
-void cumpoi(double*,double*,double*,double*);
-void cumt(double*,double*,double*,double*);
+void cumnor(const double*,double*,double*);
+void cumpoi(const double*,const double*,double*,double*);
+void cumt(const double*,const double*,double*,double*);
 #if defined(__COMPILE_UNUSED_FUNCTIONS__)
 double dbetrm(double*,double*);
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
-double devlpl(double [],int*,double*);
+double devlpl(const double [],const int*,const double*);
 #if defined(__COMPILE_UNUSED_FUNCTIONS__)
 double dexpm1(double*);
-double dinvnr(double *p,double *q);
+double dinvnr(const double *p,const double *q);
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 void E0000(int,int*,double*,double*,unsigned long*,
-                  unsigned long*,double*,double*,double*,
-                  double*,double*,double*,double*);
+                  unsigned long*,const double*,const double*,const double*,
+                  const double*,const double*,const double*,const double*);
 void dinvr(int*,double*,double*,unsigned long*,unsigned long*);
 void dstinv(double*,double*,double*,double*,double*,double*,
                    double*);
@@ -136,33 +136,33 @@ double dlnbet(double*,double*);
 double dlngam(double*);
 double dstrem(double*);
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
-double dt1(double*,double*,double*);
-void E0001(int,int*,double*,double*,double*,double*,
-                  unsigned long*,unsigned long*,double*,double*,
-                  double*,double*);
+double dt1(double*,double*,const double*);
+void E0001(int,int*,double*,const double*,double*,double*,
+                  unsigned long*,unsigned long*,const double*,const double*,
+                  const double*,const double*);
 void dzror(int*,double*,double*,double*,double *,
                   unsigned long*,unsigned long*);
 void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl);
-double erf1(double*);
-double erfc1(int*,double*);
-double esum(int*,double*);
-double exparg(int*);
-double fpser(double*,double*,double*,double*);
-double gam1(double*);
-void gaminv(double*,double*,double*,double*,double*,int*);
+double erf1(const double*);
+double erfc1(const int*,const double*);
+double esum(const int*,const double*);
+double exparg(const int*);
+double fpser(const double*,const double*,const double*,const double*);
+double gam1(const double*);
+void gaminv(double*,double*,const double*,const double*,const double*,int*);
 double gamln(double*);
-double gamln1(double*);
-double Xgamm(double*);
-void grat1(double*,double*,double*,double*,double*,double*);
-void gratio(double*,double*,double*,double*,int*);
-double gsumln(double*,double*);
-double psi(double*);
-double rcomp(double*,double*);
-double rexp(double*);
-double rlog(double*);
-double rlog1(double*);
-double spmpar(int*);
-double stvaln(double*);
+double gamln1(const double*);
+double Xgamm(const double*);
+void grat1(double*,const double*,const double*,double*,double*,const double*);
+void gratio(double*,const double*,double*,double*,const int*);
+double gsumln(const double*,const double*);
+double psi(const double*);
+double rcomp(double*,const double*);
+double rexp(const double*);
+double rlog(const double*);
+double rlog1(const double*);
+double spmpar(const int*);
+double stvaln(const double*);
 double fifdint(double);
 double fifdmax1(double,double);
 double fifdmin1(double,double);
@@ -170,6 +170,6 @@ double fifdsign(double,double);
 long fifidint(double);
 long fifmod(long,long);
 void ftnstop(const char*);
-int ipmpar(int*);
+int ipmpar(const int*);
 
 /** end: prototypes for cdflib functions **/

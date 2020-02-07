@@ -22,8 +22,7 @@ void _PrintTest(const int line,const char * message,const int FailureOccured, co
       exit( *ErrorAccum);
       }
     }
-  return;
-}
+  }
 #define PrintTest(message,failure,isfailure,errorcount) \
   _PrintTest(__LINE__,message,failure,isfailure,errorcount)
 
@@ -166,7 +165,6 @@ void compare_reference_image_values(nifti_image const * const reference_image, n
   PrintTest("Checking intent_code",(reference_image->intent_code!=reloaded_image->intent_code),NIFTITEST_FALSE,Errors);
   PrintTest("Checking intent_name",(strncmp(reference_image->intent_name,reloaded_image->intent_name,16) )!=0,NIFTITEST_FALSE,Errors);
   PrintTest("Checking description",(strncmp(reference_image->descrip,reloaded_image->descrip,80))!=0,NIFTITEST_FALSE,Errors);
-  return ;
 }
 
 int main (int argc, char *argv[])

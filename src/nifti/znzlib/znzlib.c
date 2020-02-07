@@ -80,7 +80,7 @@ znzFile znzopen(const char *path, const char *mode, int use_compression)
   return file;
 }
 
-
+#ifdef COMPILE_NIFTIUNUSED_CODE
 znzFile znzdopen(int fd, const char *mode, int use_compression)
 {
   znzFile file;
@@ -106,6 +106,7 @@ znzFile znzdopen(int fd, const char *mode, int use_compression)
 #endif
   return file;
 }
+#endif
 
 
 int Xznzclose(znzFile * file)
@@ -239,7 +240,7 @@ int znzputs(const char * str, znzFile file)
   return fputs(str,file->nzfptr);
 }
 
-
+#ifdef COMPILE_NIFTIUNUSED_CODE
 char * znzgets(char* str, int size, znzFile file)
 {
   if (file==NULL) { return NULL; }
@@ -317,5 +318,6 @@ int znzprintf(znzFile stream, const char *format, ...)
   va_end(va);
   return retval;
 }
+#endif
 
 #endif

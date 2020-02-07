@@ -1,6 +1,6 @@
 # NIFTI C Libraries
 
-Nifti_clib is a set of i/o libraries for reading and writing files in the nifti-1,
+`Nifti_clib` is a set of i/o libraries for reading and writing files in the nifti-1,
 nifti-2, and (to some degree) cifti file formats.  These libraries provide api's
 for binary file format for storing medical image data, e.g. magnetic resonance
 image (MRI) and functional MRI (fMRI) brain images.
@@ -8,12 +8,12 @@ image (MRI) and functional MRI (fMRI) brain images.
 This repository contains the C implementations. ( See other repositories at
 [github](https://github.com/NIFTI-Imaging) for Java, MATLAB, and Python libraries).
 
-Nifti_clib has been developed by members of the NIFTI DFWG and volunteers in the
+`Nifti_clib` has been developed by members of the NIFTI DFWG and volunteers in the
 neuroimaging community and serves as a reference implementation of the nifti-1
 and nifti-2 file formats. In addition to being a reference implementation, we
 hope it is also a useful i/o library. 
 
-Nifti_clib code is released into the public domain,
+`Nifti_clib` code is released into the public domain,
 developers are encouraged to incorporate niftilib code into their applications,
 and, to contribute changes and enhancements to niftilib. Please contact us if
 you would like to contribute additonal functionality to the i/o library.
