@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "reduce X11 program deps",
+   "Possibly define LLIBS_X11 in top-level Makefile (as current LLIBS) and\n"
+   "then remove X libs from LLIBS.  M.INCLUDE will define LLIBS if not set.\n"
+   "Move suma_help to IMOBJS."
+ } ,
+
  {  5, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add inital new library for processing example, lib_ap_examples.py",
    NULL

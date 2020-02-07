@@ -6,6 +6,9 @@
 # be sure MAKE is defined      c/o J Bacon 22 May 2019
 MAKE ?= make
 
+# LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
+LLIBS_X11 ?= $(LLIBS)
+
 # for compiling with OpenMP, if available
 
 CCOMP   = $(CCFAST) $(OMPFLAG)
@@ -28,7 +31,8 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o \
+          suma_help.o
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -584,7 +588,7 @@ FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o FD2_inc.c
 
 dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@
-	$(CC) -o dFD2 dFD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS)
+	$(CC) -o dFD2 dFD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS_X11)
 
 fim:fim.c
 	$(RM) $@
@@ -1793,33 +1797,33 @@ afni_version.o:afni_version.c
 
 afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a $(EXLIBS) libjpeg.a libXmHTML.a coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS) -lm -lc
+	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS_X11) -lm -lc
 
 motiftoy: afni motiftoy.c
 	$(RM) $@
-	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS) -lm -lc
+	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS_X11) -lm -lc
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
 afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a $(EXLIBS) $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS_X11)
 
 ### If you have Purify
 
 # pafni:$(AFOBJS) libcoxplot.a
 # 	$(RM) $@
-# 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot $(LLIBS)
+# 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot $(LLIBS_X11)
 
 ### This program is only used with XFree86 4.0 and above
 
 xiner:xiner.o
 	$(RM) $@
-	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS)
+	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS_X11)
 
 cat_matvec:cat_matvec.o
 	$(RM) $@
@@ -1827,7 +1831,7 @@ cat_matvec:cat_matvec.o
 
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 cs_playsound.o:cs_playsound.c
 	$(RM) $@
@@ -1843,15 +1847,15 @@ cs_playsound.o:cs_playsound.c
 
 1dplot:libcoxplot.a 1dplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS)
+	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS_X11)
 
 1dgrayplot:libcoxplot.a 1dgrayplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS)
+	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
 
 1dsigplot:libcoxplot.a 1dsigplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS)
+	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
 
 1dtranspose:1dtranspose.o
 	$(RM) $@
@@ -2597,10 +2601,10 @@ NETSCR_SRCS = $(NETCDF_DIR)/attr.c   $(NETCDF_DIR)/dim.c    $(NETCDF_DIR)/error.
               $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c
 
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
-            suma_string_manip.o suma_algorithms.o suma_help.o
+            suma_string_manip.o suma_algorithms.o
 
 SUMA_SRCS = suma_afni_surface.c suma_datasets.c suma_utils.c \
-            suma_string_manip.c suma_algorithms.c suma_help.c
+            suma_string_manip.c suma_algorithms.c
 
 MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
@@ -2705,7 +2709,8 @@ LIBMRI_LINUX: niml.h mrilib.h                                                \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                          \
                 $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
-                -lmrix -lcoxplot $(LEXLIBS)
+
+  #             -lmrix -lcoxplot $(LEXLIBS)
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
@@ -3447,7 +3452,7 @@ qqq.o:qqq.c
 	$(CCFAST) -c qqq.c $(INFLAGS)
 
 qqq:qqq.o
-	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS_X11)
 
 warping_test.o:warping_test.c
 	$(CCFAST) -c warping_test.c $(INFLAGS)
@@ -3480,7 +3485,7 @@ unu:unu.o
 	$(CC) -o unu unu.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Xphace:Xphace.o
-	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS_X11)
 
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(INFLAGS) $(LFLAGS) $(LLIBS)
@@ -3537,7 +3542,7 @@ niccc:niccc.o
 
 aiv:aiv.o
 	$(RM) $@
-	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 test_powell:test_powell.o
 	$(RM) $@
@@ -3545,7 +3550,7 @@ test_powell:test_powell.o
 
 asnap:asnap.o
 	$(RM) $@
-	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 galler:galler.o
 	$(RM) $@
