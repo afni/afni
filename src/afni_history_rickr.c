@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
+   "build main non-X11, non-SUMA AFNI program without X deps",
+   "Set LLIBS_X11 to current LLIBS, and give it to SUMA_LINK_LIB.\n"
+   "Remove all X11 libs from LLIBS.  Add -DREPLACE_XT to CEXTRA.\n"
+   "Note: without REPLACE_XT, LLIBS could still just use Xt and X11."
+ } ,
+
  {  7, Feb, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "reduce X11 program deps",
    "Possibly define LLIBS_X11 in top-level Makefile (as current LLIBS) and\n"
