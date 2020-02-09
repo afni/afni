@@ -13,7 +13,6 @@ import math, os
 import afni_base as BASE, afni_util as UTIL
 import option_list as OL
 import lib_afni1D as LD
-import lib_ap_examples as EGS
 import lib_vars_object as VO
 
 # types of motion simulated datasets that can be created

@@ -1694,7 +1694,13 @@ class SubjProcSream:
         
         if opt_list.find_opt('-help_section'):     # just print help
             section, rv = opt_list.get_string_opt('-help_section')
-            show_program_help(section=section)
+            # temporary section to test APExamples vs g_helP_examples
+            if section == 'EGS':
+               EGS = self.egs()
+               EGS.populate_examples()
+               EGS.display_eg_all(verb=2)
+            else:
+               show_program_help(section=section)
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history
