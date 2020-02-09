@@ -16,7 +16,6 @@ from afni_util import *
 from option_list import *
 from db_mod import *
 import lib_vars_object as VO
-import lib_ap_examples as EGS
 import ask_me
 
 # ----------------------------------------------------------------------
@@ -828,6 +827,18 @@ stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 # apply to apqc_make_tcsh.py
 g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
+g_eg_dset_opts = [ '-align_epi_ext_dset', 
+   '-anat_follower', '-anat_follower_ROI', 
+   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
+   '-surf_anat', '-tlrc_base', 
+   '-volreg_base_dset', '-volreg_warp_master', 
+   '-regress_censor_extern', '-regress_extra_stim_files', 
+   '-regress_make_ideal_sum', '-regress_motion_file', 
+   '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
+   '-ricor_regs'
+   ] 
+
 # --------------------------------------------------------------------------
 # data processing stream class
 class SubjProcSream:
@@ -838,6 +849,7 @@ class SubjProcSream:
         self.valid_opts = None          # list of possible user options
         self.user_opts  = None          # list of given user options
         self.sep_char   = '.'           # filename separator character
+        self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
@@ -1105,6 +1117,10 @@ class SubjProcSream:
                         helpstr="show current todo list")
         self.valid_opts.add_opt('-ver', 0, [],
                         helpstr="show module version")
+
+        # compare options
+        self.valid_opts.add_opt('-compare_opts', 1, [],
+                        helpstr="compare options against specified example")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -1647,13 +1663,6 @@ class SubjProcSream:
             else: print("** have invalid trailing args: %s" % opt.parlist)
             return 1  # failure
 
-        # rcr - test
-        # print("==== populating examples ...")
-        # EGS.populate_examples()
-        # EGS.display_eg_one(EGS.ap.examples[3])
-        # EGS.display_eg_all(aphelp=1, verb=2)
-        # exit(0)
-
         # maybe the users justs wants a complete option list
         if self.user_opts.find_opt('-show_valid_opts'):
             self.valid_opts.show('', 1)
@@ -1715,6 +1724,12 @@ class SubjProcSream:
         if opt_list.find_opt('-ver'):      # show the version string
             print(g_version)
             return 0  # gentle termination
+
+        # "compare" options - to compare option lists
+        if opt_list.find_opt('-compare_opts'):
+           comp, rv = opt_list.get_string_opt('-compare_opts')
+           self.compare_vs_opts(opt_list.olist, comp)
+           return 0
         
         # options which are NO LONGER VALID
 
@@ -3621,6 +3636,37 @@ class SubjProcSream:
        if af.dgrid == 'epi': return 1
 
        return 0
+
+    # ----------------------------------------------------------------------
+    # APExample functions, based on EGS
+    def egs(self):
+        """return imported EGS library, so it is hidden if not used"""
+        if self.EGS == None:
+           import lib_ap_examples as EGS
+           self.EGS = EGS
+           self.EGS.populate_examples()
+        return self.EGS
+
+    def make_ap_eg(self):
+        pass
+        
+    def compare_vs_opts(self, olist, comp):
+        """compare given option list (list of BASE.comopt elements)
+           vs. comp (some APExample name)
+
+           - remove any -compare* options
+        """
+        EGS = self.egs()
+        onames = [o.name for o in olist if not o.name.startswith('-compare')]
+        odict = {}
+        for entry in olist:
+            if entry.name.startswith('-compare'):
+               continue
+            odict[entry.name] = entry.parlist
+        eg = EGS.APExample('command', odict, keys=onames)
+        eg.display()
+        # can pass a noelemnt list, of opts not to compare elements of
+        eg.compare(comp, eskip=g_eg_dset_opts, verb=self.verb)
 
     # ----------------------------------------------------------------------
     # PPI regression script functions

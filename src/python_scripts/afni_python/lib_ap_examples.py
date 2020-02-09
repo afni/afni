@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import afni_util as UTIL
+import copy
 
 # ----------------------------------------------------------------------
 # This is a library for storing basic infomation regarding options and
@@ -25,7 +26,7 @@ ap_examples = []
 # ----------------------------------------------------------------------
 # class definition for instances in ap_examples array
 class APExample:
-   def __init__(self, name, odict, olist=[], aphelp=0, source='', descrip='',
+   def __init__(self, name, odict, keys=[], aphelp=0, source='', descrip='',
                 header='', trailer=''):
       self.name     = name          # used to reference example
       self.aphelp   = aphelp        # flag: shown as part of afni_proc.py -help
@@ -36,11 +37,143 @@ class APExample:
       self.trailer  = trailer       # shown after example (in -help)
       # self.keywords = keywords
 
-      self.optlist  = olist         # ordered list of options
+      self.keys     = keys          # ordered list of dict keys
       self.odict    = odict         # dict of options {opt:[params]}
 
-   def compare_vs_():
-      pass
+   def copy(self, keys=1, quotize=0):
+      """return a deep copy
+            keys    - if set, make sure keys is filled
+            quotize - if set, quotize any needed option parameters
+      """
+      cc = copy.deepcopy(self)
+
+      if keys and len(cc.keys) != len(cc.odict.keys()):
+         cc.keys = cc.odict.keys()
+         cc.keys.sort()
+
+      if quotize:
+         for k in cc.keys:
+            cc.odict[k] = UTIL.quotize_list(cc.odict[k])
+
+      return cc
+
+   def compare(self, target, eskip=[], verb=1):
+      """compare against some target, which can be a 'name' string
+         or another APExample instance
+
+         for any key in eskip, do not print all details of element differences
+      """
+      if isinstance(target, APExample):
+         return self.compare_v_instance(target, eskip=eskip, verb=verb)
+
+      if type(target) != str:
+         print("** APExample.compare: target is neither instance nor string")
+         return 
+
+      # otherwise, try to find an instance in the ap_examples list
+      for eg in ap_examples:
+         if eg.name.lower() == target.lower():
+            return self.compare_v_instance(eg, eskip=eskip, verb=verb)
+
+      print("** comp : failed to find instance for target '%s'" % target)
+      return
+
+   def compare_v_instance(self, target, eskip=[], verb=1):
+      """compare against another APExample instance
+
+            -show missing, extra and different categories
+
+            target  can be name (string) or APExample instance
+            eskip list of keys for which elements should not be compared
+            verb    0 - use short list notation
+                    1 - show missing, extra and diffs
+                    2 - include all parameter lists
+      """
+      print("=== comparing '%s' vs '%s' ..." % (self.name, target.name))
+    
+      # use copied versions in case we modify, and for keys and quotes
+      csource = self.copy(keys=1, quotize=1)
+      ctarget = target.copy(keys=1, quotize=1)
+
+      # first look for missing and extra
+      kmiss = [key for key in ctarget.keys if key not in csource.keys]
+      kextra = [key for key in csource.keys if key not in ctarget.keys]
+
+      # diffs are where both keys exist, but elements differ
+      kdiff = []
+      ncommon = 0
+      for key in ctarget.keys:
+         if key not in csource.keys: continue
+         ncommon += 1
+         # have valid key to compare
+         if csource.odict[key] != ctarget.odict[key]:
+            kdiff.append(key)
+
+      nindent = 4
+      ind1 = ' '*nindent
+      ind2 = ' '*(2*nindent)
+
+      # possibly print compact output
+      if verb == 0:
+         print("-- missing (%d): %s\n" % (len(kmiss), kmiss))
+         print("-- extra (%d): %s\n" % (len(kextra), kextra))
+         print("-- diffs (%d of %d): %s\n" % (len(kdiff), ncommon, kdiff))
+         return
+
+      # more verbose output allows for full printing
+      if verb > 1: lmax = 0
+      else:        lmax = 50
+
+      print("-- missing %d option(s)" % len(kmiss))
+      maxk = max([len(key) for key in kmiss])
+      for key in kmiss:
+          kstr = ' '.join(ctarget.odict[key])
+          self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
+      print("")
+      
+      print("-- have %d extra option(s)" % len(kextra))
+      maxk = max([len(key) for key in kextra])
+      for key in kextra:
+          kstr = ' '.join(csource.odict[key])
+          self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
+      print("")
+      
+      print("-- have %d differing option(s)" % len(kdiff))
+      maxk = max([len(key) for key in kdiff])
+      for key in kdiff:
+          print("%s%-*s : differnces" % (ind1, maxk, key))
+          # typically skip details of data inputs
+          if key in eskip and verb < 2:
+             continue
+          ksstr = ' '.join(csource.odict[key])
+          ktstr = ' '.join(ctarget.odict[key])
+          self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+          self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
+      print("")
+
+   def _print_key_line(self, indent, key, maxk, keystr, lmax=50):
+       """if lmax > 0: restrict keystr to given length, plus elipsis
+       """
+       estr = ''
+       kprint = keystr
+       if lmax > 0:
+          if len(keystr) > lmax:
+             kprint = keystr[0:lmax]
+             estr = ' ...'
+
+       print("%s%-*s   %s%s" % (indent, maxk, key, kprint, estr))
+
+   def _print_diff_line(self, indent, tstr, keystr, lmax=50):
+       """if lmax > 0: restrict keystr to given length, plus elipsis
+       """
+       estr = ''
+       kprint = keystr
+       if lmax > 0:
+          if len(keystr) > lmax:
+             kprint = keystr[0:lmax]
+             estr = ' ...'
+
+       print("%s%-8s : %s%s" % (indent, tstr, kprint, estr))
 
    def wrapped_ap_cmd(self, nindent=10, nextra=3):
       """return a string that is an afni_proc.py command, indented by
@@ -48,8 +181,8 @@ class APExample:
       """
      
       # if the instance might has an option list, let it define the order
-      if len(self.optlist) > 0:
-         keys = self.optlist
+      if len(self.keys) > 0:
+         keys = self.keys
       else:
          keys = list(self.odict.keys())
 
@@ -59,7 +192,7 @@ class APExample:
                                           nindent=14, maxlen=75)
 
    def display(self, verb=0):
-      """display a single example
+      """display a single example - use a copy for quoting
          verb: verbosity level
            0: only show example
            1: include name, source, descrip
@@ -68,18 +201,19 @@ class APExample:
 
          ponder indentation
       """
-      cmd = self.wrapped_ap_cmd()
+      cc = self.copy(keys=1, quotize=1)
+      cmd = cc.wrapped_ap_cmd()
 
       indent = ' '*8
 
       # possibly show the name/description line,
       # (with trailing ~2~ for sphinx help)
       if verb > 0:
-         print("%s%s. %s  ~2~" % (indent, self.name, self.descrip))
+         print("%s%s. %s  ~2~" % (indent, cc.name, cc.descrip))
 
       # header
       if verb > 1:
-         print("%s" % self.header)
+         print("%s" % cc.header)
       else:
          print("")
 
@@ -87,10 +221,12 @@ class APExample:
       print("%s" % cmd)
 
       # any trailer
-      if verb > 1 and self.trailer != '': 
-         print("%s" % self.trailer)
+      if verb > 1 and cc.trailer != '': 
+         print("%s" % cc.trailer)
 
       print("")
+
+      del(cc)
 
  
 def populate_examples():
@@ -115,7 +251,7 @@ def populate_examples():
        '-dsets'                    : ['epiRT*.HEAD'],
        '-regress_stim_files'       : ['stims.1D'],
        },
-     olist = [ '-dsets', '-regress_stim_files' ]
+     keys = [ '-dsets', '-regress_stim_files' ]
      ))
 
    ap_examples.append( APExample('Example 2', aphelp=1,
@@ -131,9 +267,9 @@ def populate_examples():
        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
        '-tcat_remove_first_trs'    : ['3'],
        '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-       '-regress_basis'            : ["'BLOCK(30,1)'"],
+       '-regress_basis'            : ['BLOCK(30,1)'],
        },
-     olist = [
+     keys = [
        '-subj_id', '-dsets', '-tcat_remove_first_trs',
        '-regress_stim_times', '-regress_basis'
        ]
@@ -159,16 +295,16 @@ def populate_examples():
        '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
                                       'eneu', 'fneg', 'fpos', 'fneu'],
        '-regress_basis'            : ['BLOCK(30,1)'],
-       '-regress_opts_3dD'         : ['-gltsym', "'SYM: +eneg -fneg'",
+       '-regress_opts_3dD'         : ['-gltsym', 'SYM: +eneg -fneg',
             '-glt_label', '1', 'eneg_vs_fneg', '-gltsym',
-            "'SYM: 0.5*fneg 0.5*fpos -1.0*fneu'", '-glt_label', '2',
+            'SYM: 0.5*fneg 0.5*fpos -1.0*fneu', '-glt_label', '2',
             'face_contrast', '-gltsym',
-            "'SYM: tpos epos fpos -tneg -eneg -fneg'",
+            'SYM: tpos epos fpos -tneg -eneg -fneg',
             '-glt_label', '3', 'pos_vs_neg'],
        '-regress_est_blur_epits'   : [],
        '-regress_est_blur_errts'   : [],
        },
-     olist = [ '-subj_id', '-dsets', '-copy_anat', '-tcat_remove_first_trs',
+     keys = [ '-subj_id', '-dsets', '-copy_anat', '-tcat_remove_first_trs',
         '-volreg_align_to', '-regress_stim_times', '-regress_stim_labels',
         '-regress_basis', '-regress_opts_3dD', '-regress_est_blur_epits',
         '-regress_est_blur_errts'
@@ -193,11 +329,11 @@ def populate_examples():
         '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
         '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
                                        'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ["'BLOCK(30,1)'"],
+        '-regress_basis'            : ['BLOCK(30,1)'],
         '-regress_est_blur_epits'   : [],
         '-regress_est_blur_errts'   : [],
        },
-     olist = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
+     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
         '-tcat_remove_first_trs', '-regress_stim_times',
         '-regress_stim_labels', '-regress_basis', '-regress_est_blur_epits',
         '-regress_est_blur_errts']
@@ -239,7 +375,7 @@ def populate_examples():
         '-ricor_regs'               : ['sb23/RICOR/r*.slibase.1D'],
         '-regress_motion_per_run'   : [],
        },
-     olist = ['-subj_id', '-dsets', '-do_block', '-tcat_remove_first_trs',
+     keys = ['-subj_id', '-dsets', '-do_block', '-tcat_remove_first_trs',
         '-ricor_regs_nfirst', '-ricor_regs', '-regress_motion_per_run']
      ))
 
@@ -269,11 +405,11 @@ def populate_examples():
         '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
         '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
                                        'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ['"BLOCK(30,1)"'],
+        '-regress_basis'            : ['BLOCK(30,1)'],
         '-regress_est_blur_epits'   : [],
         '-regress_est_blur_errts'   : [],
        },
-     olist = ['-subj_id', '-dsets', '-do_block', '-copy_anat',
+     keys = ['-subj_id', '-dsets', '-do_block', '-copy_anat',
         '-tcat_remove_first_trs', '-ricor_regs_nfirst', '-ricor_regs',
         '-ricor_regress_method', '-volreg_align_to', '-regress_stim_times',
         '-regress_stim_labels', '-regress_basis', '-regress_est_blur_epits',
@@ -326,7 +462,7 @@ def populate_examples():
         '-regress_est_blur_epits'   : [],
         '-regress_est_blur_errts'   : [],
        },
-     olist = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
+     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
         '-tcat_remove_first_trs', '-ricor_regs_nfirst', '-ricor_regs',
         '-volreg_align_e2a', '-volreg_tlrc_warp', '-blur_size',
         '-regress_motion_per_run', '-regress_censor_motion',
@@ -391,16 +527,16 @@ def populate_examples():
         '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
         '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
                                        'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ["'BLOCK(30,1)'"],
+        '-regress_basis'            : ['BLOCK(30,1)'],
         '-regress_motion_per_run'   : [],
         '-regress_censor_motion'    : ['0.3'],
         '-regress_reml_exec'        : [],
-        '-regress_opts_3dD'         : ['-gltsym', "'SYM: +eneg -fneg'",
+        '-regress_opts_3dD'         : ['-gltsym', 'SYM: +eneg -fneg',
                                        '-glt_label', '1', 'eneg_vs_fneg'],
         '-regress_est_blur_epits'   : [],
         '-regress_est_blur_errts'   : [],
        },
-     olist = ['-subj_id', '-copy_anat', '-dsets', '-blocks',
+     keys = ['-subj_id', '-copy_anat', '-dsets', '-blocks',
         '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
         '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
         '-volreg_tlrc_warp', '-blur_size', '-mask_epi_anat',
@@ -479,23 +615,23 @@ def populate_examples():
                                        'AM2', 'AM2', 'times', 'times', 'times'],
         '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
                                        'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis_multi'      : ["'BLOCK(30,1)'", "'TENT(0,45,16)'",
-                      "'BLOCK(30,1)'", "'BLOCK(30,1)'", "'TENT(0,45,16)'",
-                      "'BLOCK(30,1)'", "'BLOCK(30,1)'", "'TENT(0,45,16)'",
-                      "'BLOCK(30,1)'"],
+        '-regress_basis_multi'      : ['BLOCK(30,1)', 'TENT(0,45,16)',
+                      'BLOCK(30,1)', 'BLOCK(30,1)', 'TENT(0,45,16)',
+                      'BLOCK(30,1)', 'BLOCK(30,1)', 'TENT(0,45,16)',
+                      'BLOCK(30,1)'],
         '-regress_apply_mot_types'  : ['demean', 'deriv'],
         '-regress_motion_per_run'   : [],
         '-regress_censor_motion'    : ['0.3'],
         '-regress_censor_outliers'  : ['0.1'],
         '-regress_compute_fitts'    : [],
-        '-regress_opts_3dD'         : ['-bout', '-gltsym', "'SYM: +eneg -fneg'",
+        '-regress_opts_3dD'         : ['-bout', '-gltsym', 'SYM: +eneg -fneg',
                                        '-glt_label', '1', 'eneg_vs_fneg',
                                        '-jobs', '4'],
         '-regress_run_clustsim'     : ['no'],
         '-regress_est_blur_epits'   : [],
         '-regress_est_blur_errts'   : [],
        },
-     olist = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
+     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
         '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
         '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
         '-volreg_tlrc_warp', '-mask_epi_anat', '-blur_size',
@@ -602,7 +738,7 @@ def populate_examples():
        '-regress_est_blur_errts'   : [],
        '-html_review_style'        : ['pythonic'],
        },
-     olist = [ '-subj_id', '-blocks', '-copy_anat', '-anat_has_skull',
+     keys = [ '-subj_id', '-blocks', '-copy_anat', '-anat_has_skull',
        '-anat_follower', '-anat_follower_ROI', '-anat_follower_ROI',
        '-anat_follower_ROI', '-anat_follower_ROI', '-anat_follower_erode',
        '-dsets', '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
@@ -653,8 +789,8 @@ def populate_examples():
                                       'volreg', 'mask', 'combine', 'surf',
                                       'blur', 'scale', 'regress'],
        '-radial_correlate_blocks'  : ['tcat', 'volreg'],
-       '-blip_forward_dset'        : ['"FT/FT_epi_r1+orig.HEAD[0]"'],
-       '-blip_reverse_dset'        : ['"FT/FT_epi_r1+orig.HEAD[0]"'],
+       '-blip_forward_dset'        : ['FT/FT_epi_r1+orig.HEAD[0]'],
+       '-blip_reverse_dset'        : ['FT/FT_epi_r1+orig.HEAD[0]'],
        '-copy_anat'                : ['FT/FT_anat+orig'],
        '-anat_follower_ROI'        : ['FSvent', 'epi', 'FT/SUMA/FT_vent.nii'],
        '-anat_follower_erode'      : ['FSvent'],
@@ -687,7 +823,7 @@ def populate_examples():
        '-regress_apply_mot_types'  : ['demean', 'deriv'],
        '-html_review_style'        : ['pythonic'],
        },
-     olist = [ '-subj_id', '-blocks', '-radial_correlate_blocks',
+     keys = [ '-subj_id', '-blocks', '-radial_correlate_blocks',
        '-blip_forward_dset', '-blip_reverse_dset', '-copy_anat',
        '-anat_follower_ROI', '-anat_follower_erode', '-regress_ROI_PC',
        '-regress_ROI_PC_per_run', '-regress_make_corr_vols',
@@ -727,9 +863,9 @@ def populate_examples():
        '-regress_motion_per_run'   : [],
        '-regress_censor_motion'    : ['0.3'],
        '-regress_opts_3dD'         : ['-jobs', '2', '-gltsym',
-            "'SYM: vis -aud'", '-glt_label', '1', 'V-A'],
+            'SYM: vis -aud', '-glt_label', '1', 'V-A'],
        },
-     olist = [ '-subj_id', '-blocks', '-copy_anat', '-dsets', '-surf_anat',
+     keys = [ '-subj_id', '-blocks', '-copy_anat', '-dsets', '-surf_anat',
        '-surf_spec', '-tcat_remove_first_trs', '-volreg_align_to',
        '-volreg_align_e2a', '-blur_size', '-regress_stim_times',
        '-regress_stim_labels', '-regress_basis', '-regress_motion_per_run',
