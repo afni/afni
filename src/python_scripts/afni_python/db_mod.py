@@ -8256,11 +8256,13 @@ def show_program_help(section=''):
 
       return 0
 
-   # examples are now "special"
-   # if section == 'examples':
-   #    show_help_examples()
+   # new examples (EGS) are currently "special"
+   # if section == 'EGS':
+   #    EGS.populate_examples()
+   #    EGS.display_eg_all(verb=2)
+   #    return 0
 
-   # and the rest...
+   # and individual sections
    rv = 0
    try:
       shelp = eval('g_help_%s' % section)
@@ -8272,11 +8274,8 @@ def show_program_help(section=''):
    return rv
 
 def show_help_examples():
-   """just print the main string, until we are ready for """
+   """just print the main string, until we are ready for more"""
    print(g_help_examples)
-
-   # EGS.populate_examples()
-   # EGS.show_AP_examples()
    return
 
 # ----------------------------------------------------------------------

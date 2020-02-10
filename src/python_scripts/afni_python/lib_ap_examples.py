@@ -107,7 +107,8 @@ class APExample:
                     1 - show missing, extra and diffs
                     2 - include all parameter lists
       """
-      print("=== comparing '%s' vs '%s' ..." % (self.name, target.name))
+      print("="*75)
+      print("==== comparing '%s' vs '%s' ...\n" % (self.name, target.name))
     
       # use more generic name
       source = self
@@ -123,7 +124,6 @@ class APExample:
       ncommon = 0
       for key in target.keys:
          if key not in source.keys: continue
-         ncommon += 1
 
          ksource = [ind for ind, e in enumerate(source.olist) if e[0]==key]
          ktarget = [ind for ind, e in enumerate(target.olist) if e[0]==key]
@@ -140,6 +140,7 @@ class APExample:
 
          # get matching e[0]'s where e[1]'s differ
          ncomp = min(nsource, ntarget)
+         ncommon += ncomp
          for ind in range(ncomp):
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                pdiff.append([ksource[ind], ktarget[ind]])
@@ -148,74 +149,104 @@ class APExample:
       ind1 = ' '*nindent
       ind2 = ' '*(2*nindent)
 
-      emiss =  [e for e in target.olist if e[0] not in source.keys]
-      eextra = [e for e in source.olist if e[0] not in target.keys]
-      efewer = []   # fewer of keys than target
-      emore = []    # more than keys than target
-      pdiff = []    # index pairs, where keys are the same
-
       # possibly print compact output
       if verb == 0:
-         print("-- missing (%d): %s\n" % (len(emiss),  [e[0] for e in emiss ]))
-         print("-- extra   (%d): %s\n" % (len(eextra), [e[0] for e in eextra]))
-         print("-- fewer   (%d): %s\n" % (len(efewer), [e[0] for e in efewer]))
-         print("-- more    (%d): %s\n" % (len(emore),  [e[0] for e in emore ]))
-         print("-- diffs   (%d): %s\n" % (len(pdiff),
-                                         [source.olist[p[0]] for p in pdiff ]))
+         print("== missing (%d): %s\n" % (len(emiss),  [e[0] for e in emiss ]))
+         print("== extra   (%d): %s\n" % (len(eextra), [e[0] for e in eextra]))
+         print("== fewer   (%d): %s\n" % (len(efewer), [e[0] for e in efewer]))
+         print("== more    (%d): %s\n" % (len(emore),  [e[0] for e in emore ]))
+         print("== common  (%d)\n"     % (ncommon))
+         print("== diffs   (%d): %s\n" % (len(pdiff),
+                                       [source.olist[p[0]][0] for p in pdiff ]))
          return
 
-      return
       # more verbose output allows for full printing
       if verb > 1: lmax = 0
-      else:        lmax = 50
+      else:        lmax = 45
 
-      print("-- missing %d option(s)" % len(kmiss))
-      maxk = max([len(key) for key in kmiss])
-      for key in kmiss:
-          kstr = ' '.join(target.odict[key])
-          self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
+      print("==========  missing option(s) : %d" % len(emiss))
+      if len(emiss) > 0:
+         maxk = max([len(e[0]) for e in emiss])
+         for e in emiss:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
       
-      print("-- have %d extra option(s)" % len(kextra))
-      maxk = max([len(key) for key in kextra])
-      for key in kextra:
-          kstr = ' '.join(source.odict[key])
-          self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
+      print("==========  extra option(s) : %d" % len(eextra))
+      if len(eextra) > 0:
+         maxk = max([len(e[0]) for e in eextra])
+         for e in eextra:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
       
-      print("-- have %d differing option(s)" % len(kdiff))
-      maxk = max([len(key) for key in kdiff])
-      for key in kdiff:
-          print("%s%-*s : differnces" % (ind1, maxk, key))
-          # typically skip details of data inputs
-          if key in eskip and verb < 2:
-             continue
-          ksstr = ' '.join(source.odict[key])
-          ktstr = ' '.join(target.odict[key])
-          self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
-          self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
+      print("==========  fewer applied option(s) : %d" % len(efewer))
+      if len(efewer) > 0:
+         maxk = max([len(e[0]) for e in efewer])
+         for e in efewer:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
+      print("")
+      
+      print("==========  more applied option(s) : %d" % len(emore))
+      if len(emore) > 0:
+         maxk = max([len(e[0]) for e in emore])
+         for e in emore:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
+      print("")
+      
+      print("==========  differing option(s) : %d" % len(pdiff))
+      if len(pdiff) > 0:
+         skips = []
+         maxs = max([len(source.olist[pair[0]][0]) for pair in pdiff])
+         maxt = max([len(target.olist[pair[1]][0]) for pair in pdiff])
+         maxk = max(maxs, maxt)
+         for pair in pdiff:
+             oname = source.olist[pair[0]][0]
+             if oname in eskip and verb < 2:
+                # only show skipping details once
+                if oname in skips:
+                   continue
+                skips.append(oname)
+
+                skip = 1
+                sstr = ' (skipping details - will not repeat)'
+             else:
+                skip = 0
+                sstr = ''
+             print("%s%-*s : differences%s" % (ind1, maxk, oname, sstr))
+             # typically skip details of data inputs
+             if skip:
+                continue
+             ksstr = ' '.join(source.olist[pair[0]][1])
+             ktstr = ' '.join(target.olist[pair[1]][1])
+             self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+             self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
+             print("")
+
       print("")
 
-   def _print_key_line(self, indent, key, maxk, keystr, lmax=50):
-       """if lmax > 0: restrict keystr to given length, plus elipsis
+   def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
+       """if lmax > 0: restrict parstr to given length, plus elipsis
        """
        estr = ''
-       kprint = keystr
+       kprint = parstr
        if lmax > 0:
-          if len(keystr) > lmax:
-             kprint = keystr[0:lmax]
+          if len(parstr) > lmax:
+             kprint = parstr[0:lmax]
              estr = ' ...'
 
-       print("%s%-*s   %s%s" % (indent, maxk, key, kprint, estr))
+       print("%s%-*s   %s%s" % (indent, maxlen, oname, kprint, estr))
 
-   def _print_diff_line(self, indent, tstr, keystr, lmax=50):
-       """if lmax > 0: restrict keystr to given length, plus elipsis
+   def _print_diff_line(self, indent, tstr, parstr, lmax=50):
+       """if lmax > 0: restrict parstr to given length, plus elipsis
        """
        estr = ''
-       kprint = keystr
+       kprint = parstr
        if lmax > 0:
-          if len(keystr) > lmax:
-             kprint = keystr[0:lmax]
+          if len(parstr) > lmax:
+             kprint = parstr[0:lmax]
              estr = ' ...'
 
        print("%s%-8s : %s%s" % (indent, tstr, kprint, estr))
