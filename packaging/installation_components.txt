@@ -666,6 +666,7 @@ mrix, gui
 plug_3Ddump_V2, gui
 plug_3ddot, gui
 plug_3ddup, gui
+plug_3dsvm, gui
 plug_4Ddump, gui
 plug_L1fit, gui
 plug_afnihistory, gui
@@ -690,6 +691,7 @@ plug_lsqfit, gui
 plug_maskave, gui
 plug_maskcalc, gui
 plug_maxima, gui
+plug_nlfit, gui
 plug_notes, gui
 plug_nth_dataset, gui
 plug_nudge, gui
@@ -703,6 +705,7 @@ plug_reorder, gui
 plug_retroicor, gui
 plug_roiedit, gui
 plug_roiplot, gui
+plug_scatplot, gui
 plug_second_dataset, gui
 plug_stats, gui
 plug_stavg, gui
