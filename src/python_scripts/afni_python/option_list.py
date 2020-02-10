@@ -133,7 +133,7 @@ class OptionList:
         elif atype == 'nested':
            print("[")
            for opt in self.olist:
-               print("%-24s %s," % ("'%s'"%opt.name, opt.parlist))
+               print("  [%-25s %s]," % ("'%s',"%opt.name, opt.parlist))
            print("]")
 
     def find_opt(self, name, nth=1):    # find nth occurance of option name

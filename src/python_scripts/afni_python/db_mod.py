@@ -9223,8 +9223,6 @@ g_help_examples = """
                   -volreg_tlrc_warp
 
        Example 12b. Multi-echo data processing - OC resting state. ~2~
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
-                  -tlrc_NL_warp                                              \\
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.

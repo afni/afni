@@ -26,7 +26,7 @@ ap_examples = []
 # ----------------------------------------------------------------------
 # class definition for instances in ap_examples array
 class APExample:
-   def __init__(self, name, odict, keys=[], aphelp=0, source='', descrip='',
+   def __init__(self, name, olist, aphelp=0, source='', descrip='',
                 header='', trailer=''):
       self.name     = name          # used to reference example
       self.aphelp   = aphelp        # flag: shown as part of afni_proc.py -help
@@ -37,50 +37,43 @@ class APExample:
       self.trailer  = trailer       # shown after example (in -help)
       # self.keywords = keywords
 
-      self.keys     = []            # ordered list of dict keys
-      self.odict    = odict         # dict of options {opt:[params]}
+      self.keys     = []            # convenience: olist[][0] entries
+      self.olist    = olist         # list of options [opt, [params]]
 
-      # get keys, but just a unique list
-      if len(keys) > 0:
-         if len(keys) == len(odict.keys()):
-            self.keys = keys
-         else:
-            self.keys = UTIL.get_unique_sublist(keys)
-
-      if len(self.keys) > 0 and (len(self.keys) != len(odict.keys())):
-         print("** APExample %s: %d keys do not match %d dict keys" \
-               % (name, len(self.keys), len(odict.keys())))
-         self.compare_key_lists(self.keys, odict.keys())
+      if not self.valid_olist():
          return None
 
-   def copy(self, keys=1, quotize=0):
+      self.keys = [o[0] for o in olist]
+
+   def valid_olist(self):
+      valid = 1
+      for oind, opt in enumerate(self.olist):
+         if len(opt) != 2:
+            print("** APExample '%s' olist #%d needs opt and list, have:\n" \
+                  "   %s" % (self.name, oind, opt))
+            valid = 0
+            continue
+         if type(opt[0]) != str:
+            print("** APExample '%s' olist #%d should start with string:\n" \
+                  "   %s" % (self.name, oind, opt))
+            valid = 0
+         if type(opt[1]) != list:
+            print("** APExample '%s' olist #%d should have a list:\n" \
+                  "   %s" % (self.name, oind, opt))
+            valid = 0
+      return valid
+
+   def copy(self, quotize=0):
       """return a deep copy
-            keys    - if set, make sure keys is filled
             quotize - if set, quotize any needed option parameters
       """
       cc = copy.deepcopy(self)
 
-      if keys and len(cc.keys) != len(cc.odict.keys()):
-         cc.keys = cc.odict.keys()
-         cc.keys.sort()
-
       if quotize:
-         for k in cc.keys:
-            cc.odict[k] = UTIL.quotize_list(cc.odict[k])
+         for entry in cc.olist:
+            entry[1] = UTIL.quotize_list(entry[1])
 
       return cc
-
-   def compare_key_lists(self, keys1, keys2):
-      k1 = copy.deepcopy(keys1)
-      k2 = copy.deepcopy(keys2)
-      k1.sort()
-      k2.sort()
-      for key in k1:
-          if not key in k2:
-             print("   latter is missing key %s" % key)
-      for key in k2:
-          if not key in k1:
-             print("   latter is missing key %s" % key)
 
    def compare(self, target, eskip=[], verb=1):
       """compare against some target, which can be a 'name' string
@@ -116,35 +109,62 @@ class APExample:
       """
       print("=== comparing '%s' vs '%s' ..." % (self.name, target.name))
     
-      # use copied versions in case we modify, and for keys and quotes
-      csource = self.copy(keys=1, quotize=1)
-      ctarget = target.copy(keys=1, quotize=1)
+      # use more generic name
+      source = self
 
       # first look for missing and extra
-      kmiss = [key for key in ctarget.keys if key not in csource.keys]
-      kextra = [key for key in csource.keys if key not in ctarget.keys]
+      emiss =  [e for e in target.olist if e[0] not in source.keys]
+      eextra = [e for e in source.olist if e[0] not in target.keys]
 
-      # diffs are where both keys exist, but elements differ
-      kdiff = []
+      # common keys, might be fewer, more, and/or have diffs
+      efewer = []   # fewer of keys than target
+      emore = []    # more than keys than target
+      pdiff = []    # index pairs, where keys are the same but lists differ
       ncommon = 0
-      for key in ctarget.keys:
-         if key not in csource.keys: continue
+      for key in target.keys:
+         if key not in source.keys: continue
          ncommon += 1
-         # have valid key to compare
-         if csource.odict[key] != ctarget.odict[key]:
-            kdiff.append(key)
+
+         ksource = [ind for ind, e in enumerate(source.olist) if e[0]==key]
+         ktarget = [ind for ind, e in enumerate(target.olist) if e[0]==key]
+
+         # how many of each?  both must be positive
+         nsource = len(ksource)
+         ntarget = len(ktarget)
+
+         # get any efewer or emore entries
+         if nsource < ntarget:
+            efewer.extend([target.olist[ind] for ind in range(nsource,ntarget)])
+         elif ntarget < nsource:
+            eextra.extend([source.olist[ind] for ind in range(ntarget,nsource)])
+
+         # get matching e[0]'s where e[1]'s differ
+         ncomp = min(nsource, ntarget)
+         for ind in range(ncomp):
+            if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
+               pdiff.append([ksource[ind], ktarget[ind]])
 
       nindent = 4
       ind1 = ' '*nindent
       ind2 = ' '*(2*nindent)
 
+      emiss =  [e for e in target.olist if e[0] not in source.keys]
+      eextra = [e for e in source.olist if e[0] not in target.keys]
+      efewer = []   # fewer of keys than target
+      emore = []    # more than keys than target
+      pdiff = []    # index pairs, where keys are the same
+
       # possibly print compact output
       if verb == 0:
-         print("-- missing (%d): %s\n" % (len(kmiss), kmiss))
-         print("-- extra (%d): %s\n" % (len(kextra), kextra))
-         print("-- diffs (%d of %d): %s\n" % (len(kdiff), ncommon, kdiff))
+         print("-- missing (%d): %s\n" % (len(emiss),  [e[0] for e in emiss ]))
+         print("-- extra   (%d): %s\n" % (len(eextra), [e[0] for e in eextra]))
+         print("-- fewer   (%d): %s\n" % (len(efewer), [e[0] for e in efewer]))
+         print("-- more    (%d): %s\n" % (len(emore),  [e[0] for e in emore ]))
+         print("-- diffs   (%d): %s\n" % (len(pdiff),
+                                         [source.olist[p[0]] for p in pdiff ]))
          return
 
+      return
       # more verbose output allows for full printing
       if verb > 1: lmax = 0
       else:        lmax = 50
@@ -152,14 +172,14 @@ class APExample:
       print("-- missing %d option(s)" % len(kmiss))
       maxk = max([len(key) for key in kmiss])
       for key in kmiss:
-          kstr = ' '.join(ctarget.odict[key])
+          kstr = ' '.join(target.odict[key])
           self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
       print("")
       
       print("-- have %d extra option(s)" % len(kextra))
       maxk = max([len(key) for key in kextra])
       for key in kextra:
-          kstr = ' '.join(csource.odict[key])
+          kstr = ' '.join(source.odict[key])
           self._print_key_line(ind1, key, maxk, kstr, lmax=lmax)
       print("")
       
@@ -170,8 +190,8 @@ class APExample:
           # typically skip details of data inputs
           if key in eskip and verb < 2:
              continue
-          ksstr = ' '.join(csource.odict[key])
-          ktstr = ' '.join(ctarget.odict[key])
+          ksstr = ' '.join(source.odict[key])
+          ktstr = ' '.join(target.odict[key])
           self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
           self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
       print("")
@@ -205,14 +225,7 @@ class APExample:
          nindent, with nextra indentation for option continuation
       """
      
-      # if the instance might has an option list, let it define the order
-      if len(self.keys) > 0:
-         keys = self.keys
-      else:
-         keys = list(self.odict.keys())
-
-      nkeys = len(keys)
-      clist = ['%s %s' % (key, ' '.join(self.odict[key])) for key in keys]
+      clist = ['%s %s' % (e[0], ' '.join(e[1])) for e in self.olist]
       return UTIL.list_to_wrapped_command('afni_proc.py', clist,
                                           nindent=14, maxlen=75)
 
@@ -226,7 +239,7 @@ class APExample:
 
          ponder indentation
       """
-      cc = self.copy(keys=1, quotize=1)
+      cc = self.copy(quotize=1)
       cmd = cc.wrapped_ap_cmd()
 
       indent = ' '*8
@@ -272,11 +285,10 @@ def populate_examples():
            columns is given, where the script to changes it to stim_times files.
            """,
      trailer='',
-     odict = {
-       '-dsets'                    : ['epiRT*.HEAD'],
-       '-regress_stim_files'       : ['stims.1D'],
-       },
-     keys = [ '-dsets', '-regress_stim_files' ]
+     olist = [
+        ['-dsets',                 ['epiRT*.HEAD']],
+        ['-regress_stim_files',    ['stims.1D']],
+       ],
      ))
 
    ap_examples.append( APExample('Example 2', aphelp=1,
@@ -287,17 +299,13 @@ def populate_examples():
            function BLOCK(30,1).  The default basis function is GAM.
             """,
      trailer='',
-     odict = {
-       '-subj_id'                  : ['sb23.e2.simple'],
-       '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-       '-tcat_remove_first_trs'    : ['3'],
-       '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-       '-regress_basis'            : ['BLOCK(30,1)'],
-       },
-     keys = [
-       '-subj_id', '-dsets', '-tcat_remove_first_trs',
-       '-regress_stim_times', '-regress_basis'
-       ]
+     olist = [
+        ['-subj_id',               ['sb23.e2.simple']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_basis',         ['BLOCK(30,1)']],
+       ],
      ))
                                       
    ap_examples.append( APExample('Example 3', aphelp=1,
@@ -310,30 +318,25 @@ def populate_examples():
            ignored after this, as they take up too many lines.
             """,
      trailer='',
-     odict = {
-       '-subj_id'                  : ['sb23.blk'],
-       '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-       '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-       '-tcat_remove_first_trs'    : ['3'],
-       '-volreg_align_to'          : ['last'],
-       '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-       '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                      'eneu', 'fneg', 'fpos', 'fneu'],
-       '-regress_basis'            : ['BLOCK(30,1)'],
-       '-regress_opts_3dD'         : ['-gltsym', 'SYM: +eneg -fneg',
-            '-glt_label', '1', 'eneg_vs_fneg', '-gltsym',
-            'SYM: 0.5*fneg 0.5*fpos -1.0*fneu', '-glt_label', '2',
-            'face_contrast', '-gltsym',
-            'SYM: tpos epos fpos -tneg -eneg -fneg',
-            '-glt_label', '3', 'pos_vs_neg'],
-       '-regress_est_blur_epits'   : [],
-       '-regress_est_blur_errts'   : [],
-       },
-     keys = [ '-subj_id', '-dsets', '-copy_anat', '-tcat_remove_first_trs',
-        '-volreg_align_to', '-regress_stim_times', '-regress_stim_labels',
-        '-regress_basis', '-regress_opts_3dD', '-regress_est_blur_epits',
-        '-regress_est_blur_errts'
-       ]
+     olist = [
+        ['-subj_id',               ['sb23.blk']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-volreg_align_to',       ['last']],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
+                                    'eneu', 'fneg', 'fpos', 'fneu']],
+        ['-regress_basis',         ['BLOCK(30,1)']],
+        ['-regress_opts_3dD',      ['-gltsym', 'SYM: +eneg -fneg',
+                '-glt_label', '1', 'eneg_vs_fneg', '-gltsym',
+                'SYM: 0.5*fneg 0.5*fpos -1.0*fneu', '-glt_label', '2',
+                'face_contrast', '-gltsym',
+                'SYM: tpos epos fpos -tneg -eneg -fneg',
+                '-glt_label', '3', 'pos_vs_neg']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
                                       
    ap_examples.append( APExample( 'Example 4', aphelp=1,
@@ -344,24 +347,20 @@ def populate_examples():
            the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
            """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['sb23.e4.blocks'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-blocks'                   : ['despike', 'volreg', 'blur', 'mask',
-                                       'scale', 'regress', 'tlrc'],
-        '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-        '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                       'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ['BLOCK(30,1)'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
-        '-tcat_remove_first_trs', '-regress_stim_times',
-        '-regress_stim_labels', '-regress_basis', '-regress_est_blur_epits',
-        '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['sb23.e4.blocks']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-blocks',                ['despike', 'volreg', 'blur', 'mask',
+                                    'scale', 'regress', 'tlrc']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
+                                    'eneu', 'fneg', 'fpos', 'fneu']],
+        ['-regress_basis',         ['BLOCK(30,1)']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample( 'Example 5a', aphelp=1,
@@ -391,17 +390,15 @@ def populate_examples():
            the -do_block option with an explicit list of blocks:
 
                 -blocks despike ricor volreg regress""",
-     odict = {
-        '-subj_id'                  : ['sb23.e5a.ricor'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-do_block'                 : ['despike', 'ricor'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-ricor_regs_nfirst'        : ['3'],
-        '-ricor_regs'               : ['sb23/RICOR/r*.slibase.1D'],
-        '-regress_motion_per_run'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-do_block', '-tcat_remove_first_trs',
-        '-ricor_regs_nfirst', '-ricor_regs', '-regress_motion_per_run']
+     olist = [
+        ['-subj_id',               ['sb23.e5a.ricor']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-do_block',              ['despike', 'ricor']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-ricor_regs_nfirst',     ['3']],
+        ['-ricor_regs',            ['sb23/RICOR/r*.slibase.1D']],
+        ['-regress_motion_per_run', []],
+       ],
      ))
 
    ap_examples.append( APExample( 'Example 5b', aphelp=1,
@@ -417,28 +414,23 @@ def populate_examples():
            """,
      trailer="""
            Also consider adding -regress_bandpass.""",
-     odict = {
-        '-subj_id'                  : ['sb23.e5b.ricor'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-do_block'                 : ['despike', 'ricor'],
-        '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-ricor_regs_nfirst'        : ['3'],
-        '-ricor_regs'               : ['sb23/RICOR/r*.slibase.1D'],
-        '-ricor_regress_method'     : ['across-runs'],
-        '-volreg_align_to'          : ['last'],
-        '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-        '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                       'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ['BLOCK(30,1)'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-do_block', '-copy_anat',
-        '-tcat_remove_first_trs', '-ricor_regs_nfirst', '-ricor_regs',
-        '-ricor_regress_method', '-volreg_align_to', '-regress_stim_times',
-        '-regress_stim_labels', '-regress_basis', '-regress_est_blur_epits',
-        '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['sb23.e5b.ricor']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-do_block',              ['despike', 'ricor']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-ricor_regs_nfirst',     ['3']],
+        ['-ricor_regs',            ['sb23/RICOR/r*.slibase.1D']],
+        ['-ricor_regress_method',  ['across-runs']],
+        ['-volreg_align_to',       ['last']],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
+                                    'eneu', 'fneg', 'fpos', 'fneu']],
+        ['-regress_basis',         ['BLOCK(30,1)']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample( 'Example 5c', aphelp=1,
@@ -466,34 +458,26 @@ def populate_examples():
            Also, align EPI to anat and warp to standard space.
            """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['sb23.e5a.ricor'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-blocks'                   : ['despike', 'ricor', 'tshift', 'align',
-                                       'tlrc', 'volreg', 'blur', 'mask',
-                                       'regress'],
-        '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-ricor_regs_nfirst'        : ['3'],
-        '-ricor_regs'               : ['sb23/RICOR/r*.slibase.1D'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-blur_size'                : ['6'],
-        '-regress_motion_per_run'   : [],
-        '-regress_censor_motion'    : ['0.2'],
-        '-regress_bandpass'         : ['0.01', '0.1'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_run_clustsim'     : ['no'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
-        '-tcat_remove_first_trs', '-ricor_regs_nfirst', '-ricor_regs',
-        '-volreg_align_e2a', '-volreg_tlrc_warp', '-blur_size',
-        '-regress_motion_per_run', '-regress_censor_motion',
-        '-regress_bandpass', '-regress_apply_mot_types',
-        '-regress_run_clustsim', '-regress_est_blur_epits',
-        '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['sb23.e5a.ricor']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-blocks',                ['despike', 'ricor', 'tshift', 'align',
+                            'tlrc', 'volreg', 'blur', 'mask', 'regress']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-ricor_regs_nfirst',     ['3']],
+        ['-ricor_regs',            ['sb23/RICOR/r*.slibase.1D']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-blur_size',             ['6']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_run_clustsim',  ['no']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample( 'Example 6', aphelp=1,
@@ -534,41 +518,33 @@ def populate_examples():
 
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
            in the case of -reml_exec.""",
-     odict = {
-        '-subj_id'                  : ['sb23.e6.align'],
-        '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-blocks'                   : ['tshift', 'align', 'tlrc', 'volreg',
-                                       'blur', 'mask', 'scale', 'regress'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-align_opts_aea'           : ['-cost', 'lpc+ZZ'],
-        '-tlrc_base'                : ['MNI152_T1_2009c+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_to'          : ['MIN_OUTLIER'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-blur_size'                : ['4'],
-        '-mask_epi_anat'            : ['yes'],
-        '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-        '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                       'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis'            : ['BLOCK(30,1)'],
-        '-regress_motion_per_run'   : [],
-        '-regress_censor_motion'    : ['0.3'],
-        '-regress_reml_exec'        : [],
-        '-regress_opts_3dD'         : ['-gltsym', 'SYM: +eneg -fneg',
-                                       '-glt_label', '1', 'eneg_vs_fneg'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-copy_anat', '-dsets', '-blocks',
-        '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
-        '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
-        '-volreg_tlrc_warp', '-blur_size', '-mask_epi_anat',
-        '-regress_stim_times', '-regress_stim_labels', '-regress_basis',
-        '-regress_motion_per_run', '-regress_censor_motion',
-        '-regress_reml_exec', '-regress_opts_3dD', '-regress_est_blur_epits',
-        '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['sb23.e6.align']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'blur', 'mask', 'scale', 'regress']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-blur_size',             ['4']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
+                                    'eneu', 'fneg', 'fpos', 'fneu']],
+        ['-regress_basis',         ['BLOCK(30,1)']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_reml_exec',     []],
+        ['-regress_opts_3dD',      ['-gltsym', 'SYM: +eneg -fneg',
+                                    '-glt_label', '1', 'eneg_vs_fneg']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample( 'Example 7', aphelp=1,
@@ -619,54 +595,43 @@ def populate_examples():
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
            """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['sb23.e7.esoteric'],
-        '-dsets'                    : ['sb23/epi_r??+orig.HEAD'],
-        '-blocks'                   : ['tshift', 'align', 'tlrc', 'volreg',
-                                       'blur', 'mask', 'scale', 'regress'],
-        '-copy_anat'                : ['sb23/sb23_mpra+orig'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-align_opts_aea'           : ['-cost', 'lpc+ZZ'],
-        '-tlrc_base'                : ['MNI152_T1_2009c+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_to'          : ['MIN_OUTLIER'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-mask_epi_anat'            : ['yes'],
-        '-blur_size'                : ['4'],
-        '-blur_in_automask'         : [],
-        '-regress_stim_times'       : ['sb23/stim_files/blk_times.*.1D'],
-        '-regress_stim_types'       : ['times', 'times', 'times', 'AM2',
-                                       'AM2', 'AM2', 'times', 'times', 'times'],
-        '-regress_stim_labels'      : ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                       'eneu', 'fneg', 'fpos', 'fneu'],
-        '-regress_basis_multi'      : ['BLOCK(30,1)', 'TENT(0,45,16)',
-                      'BLOCK(30,1)', 'BLOCK(30,1)', 'TENT(0,45,16)',
-                      'BLOCK(30,1)', 'BLOCK(30,1)', 'TENT(0,45,16)',
-                      'BLOCK(30,1)'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_motion_per_run'   : [],
-        '-regress_censor_motion'    : ['0.3'],
-        '-regress_censor_outliers'  : ['0.1'],
-        '-regress_compute_fitts'    : [],
-        '-regress_opts_3dD'         : ['-bout', '-gltsym', 'SYM: +eneg -fneg',
-                                       '-glt_label', '1', 'eneg_vs_fneg',
-                                       '-jobs', '4'],
-        '-regress_run_clustsim'     : ['no'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-blocks', '-copy_anat',
-        '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
-        '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
-        '-volreg_tlrc_warp', '-mask_epi_anat', '-blur_size',
-        '-blur_in_automask', '-regress_stim_times', '-regress_stim_types',
-        '-regress_stim_labels', '-regress_basis_multi',
-        '-regress_apply_mot_types', '-regress_motion_per_run',
-        '-regress_censor_motion', '-regress_censor_outliers',
-        '-regress_compute_fitts', '-regress_opts_3dD',
-        '-regress_run_clustsim', '-regress_est_blur_epits',
-        '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['sb23.e7.esoteric']],
+        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'blur', 'mask', 'scale', 'regress']],
+        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4']],
+        ['-blur_in_automask',      []],
+        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
+        ['-regress_stim_types',    ['times', 'times', 'times',
+                                    'AM2', 'AM2', 'AM2',
+                                    'times', 'times', 'times']],
+        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu',
+                                    'eneg', 'epos', 'eneu',
+                                    'fneg', 'fpos', 'fneu']],
+        ['-regress_basis_multi',['BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)',
+                                 'BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)',
+                                 'BLOCK(30,1)', 'TENT(0,45,16)','BLOCK(30,1)']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.1']],
+        ['-regress_compute_fitts', []],
+        ['-regress_opts_3dD',      ['-bout', '-gltsym', 'SYM: +eneg -fneg',
+                            '-glt_label', '1', 'eneg_vs_fneg', '-jobs', '4']],
+        ['-regress_run_clustsim',  ['no']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample('Example 8', aphelp=1,
@@ -708,33 +673,27 @@ def populate_examples():
                  This example will be updated with them in the future.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['FT.surf'],
-        '-blocks'                   : ['tshift', 'align', 'volreg', 'surf',
-                                       'blur', 'scale', 'regress'],
-        '-copy_anat'                : ['FT/FT_anat+orig'],
-        '-dsets'                    : ['FT/FT_epi_r?+orig.HEAD'],
-        '-surf_anat'                : ['FT/SUMA/FTmb_SurfVol+orig'],
-        '-surf_spec'                : ['FT/SUMA/FTmb_?h.spec'],
-        '-tcat_remove_first_trs'    : ['2'],
-        '-align_opts_aea'           : ['-cost', 'lpc+ZZ'],
-        '-volreg_align_to'          : ['third'],
-        '-volreg_align_e2a'         : [],
-        '-blur_size'                : ['6'],
-        '-regress_stim_times'       : ['FT/AV1_vis.txt', 'FT/AV2_aud.txt'],
-        '-regress_stim_labels'      : ['vis', 'aud'],
-        '-regress_basis'            : ['BLOCK(20,1)'],
-        '-regress_motion_per_run'   : [],
-        '-regress_censor_motion'    : ['0.3'],
-        '-regress_opts_3dD'         : ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
-                                       '-glt_label', '1', 'V-A'],
-       },
-     keys = [ '-subj_id', '-blocks', '-copy_anat', '-dsets',
-              '-surf_anat', '-surf_spec', '-tcat_remove_first_trs',
-              '-align_opts_aea', '-volreg_align_to', '-volreg_align_e2a',
-              '-blur_size', '-regress_stim_times', '-regress_stim_labels',
-              '-regress_basis', '-regress_motion_per_run',
-              '-regress_censor_motion', '-regress_opts_3dD' ]
+     olist = [
+        ['-subj_id',               ['FT.surf']],
+        ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
+                                    'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
+        ['-surf_anat',             ['FT/SUMA/FTmb_SurfVol+orig']],
+        ['-surf_spec',             ['FT/SUMA/FTmb_?h.spec']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-volreg_align_to',       ['third']],
+        ['-volreg_align_e2a',      []],
+        ['-blur_size',             ['6']],
+        ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
+        ['-regress_stim_labels',   ['vis', 'aud']],
+        ['-regress_basis',         ['BLOCK(20,1)']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
+                                    '-glt_label', '1', 'V-A']],
+       ],
      ))
                                       
    ap_examples.append( APExample('Example 9', aphelp=1,
@@ -796,33 +755,26 @@ def populate_examples():
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['subj123'],
-        '-dsets'                    : ['epi_run1+orig.HEAD'],
-        '-copy_anat'                : ['anat+orig'],
-        '-blocks'                   : ['despike', 'tshift', 'align', 'tlrc',
-                                       'volreg', 'blur', 'mask', 'scale',
-                                       'regress'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-tlrc_base'                : ['MNI152_T1_2009c+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-mask_epi_anat'            : ['yes'],
-        '-blur_size'                : ['4'],
-        '-regress_censor_motion'    : ['0.2'],
-        '-regress_censor_outliers'  : ['0.05'],
-        '-regress_bandpass'         : ['0.01', '0.1'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-copy_anat', '-blocks',
-             '-tcat_remove_first_trs', '-tlrc_base', '-tlrc_NL_warp',
-             '-volreg_align_e2a', '-volreg_tlrc_warp', '-mask_epi_anat',
-             '-blur_size', '-regress_censor_motion', '-regress_censor_outliers',
-             '-regress_bandpass', '-regress_apply_mot_types',
-             '-regress_est_blur_epits', '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['subj123']],
+        ['-dsets',                 ['epi_run1+orig.HEAD']],
+        ['-copy_anat',             ['anat+orig']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
+                          'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
 
    ap_examples.append( APExample('Example 9b', aphelp=1,
@@ -837,35 +789,27 @@ def populate_examples():
            -mask_segment_erode.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['subj123'],
-        '-dsets'                    : ['epi_run1+orig.HEAD'],
-        '-copy_anat'                : ['anat+orig'],
-        '-blocks'                   : ['despike', 'tshift', 'align', 'tlrc',
-                                       'volreg', 'blur', 'mask', 'scale',
-                                       'regress'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-tlrc_base'                : ['MNI152_T1_2009c+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-mask_epi_anat'            : ['yes'],
-        '-blur_size'                : ['4'],
-        '-regress_anaticor'         : [],
-        '-regress_censor_motion'    : ['0.2'],
-        '-regress_censor_outliers'  : ['0.05'],
-        '-regress_bandpass'         : ['0.01', '0.1'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-copy_anat', '-blocks',
-             '-tcat_remove_first_trs', '-tlrc_base', '-tlrc_NL_warp',
-             '-volreg_align_e2a', '-volreg_tlrc_warp', '-mask_epi_anat',
-             '-blur_size', '-regress_anaticor', '-regress_censor_motion',
-             '-regress_censor_outliers', '-regress_bandpass',
-             '-regress_apply_mot_types', '-regress_est_blur_epits',
-             '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['subj123']],
+        ['-dsets',                 ['epi_run1+orig.HEAD']],
+        ['-copy_anat',             ['anat+orig']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
+                          'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4']],
+        ['-regress_anaticor',      []],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
                                       
    ap_examples.append( APExample('Example 10', aphelp=1,
@@ -891,39 +835,31 @@ def populate_examples():
                  included here.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['subj123'],
-        '-dsets'                    : ['epi_run1+orig.HEAD'],
-        '-copy_anat'                : ['anat+orig'],
-        '-blocks'                   : ['despike', 'tshift', 'align', 'tlrc',
-                             'volreg', 'blur', 'mask', 'scale', 'regress'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-align_opts_aea'           : ['-cost', 'lpc+ZZ'],
-        '-tlrc_base'                : ['MNI152_T1_2009c+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_to'          : ['MIN_OUTLIER'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-blur_size'                : ['4'],
-        '-mask_epi_anat'            : ['yes'],
-        '-mask_segment_anat'        : ['yes'],
-        '-mask_segment_erode'       : ['yes'],
-        '-regress_censor_motion'    : ['0.2'],
-        '-regress_censor_outliers'  : ['0.05'],
-        '-regress_bandpass'         : ['0.01', '0.1'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_ROI'              : ['WMe'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-copy_anat', '-blocks',
-             '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
-             '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
-             '-volreg_tlrc_warp', '-blur_size', '-mask_epi_anat',
-             '-mask_segment_anat', '-mask_segment_erode',
-             '-regress_censor_motion', '-regress_censor_outliers',
-             '-regress_bandpass', '-regress_apply_mot_types', '-regress_ROI',
-             '-regress_est_blur_epits', '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['subj123']],
+        ['-dsets',                 ['epi_run1+orig.HEAD']],
+        ['-copy_anat',             ['anat+orig']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
+                                'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-blur_size',             ['4']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-mask_segment_anat',     ['yes']],
+        ['-mask_segment_erode',    ['yes']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_ROI',           ['WMe']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
                                       
    ap_examples.append( APExample('Example 10b', aphelp=1,
@@ -943,31 +879,25 @@ def populate_examples():
             going to standard space is an option.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['subj123'],
-        '-dsets'                    : ['epi_run1+orig.HEAD'],
-        '-copy_anat'                : ['anat+orig'],
-        '-blocks'                   : ['despike', 'tshift', 'align', 'volreg',
-                                       'blur', 'mask', 'scale', 'regress'],
-        '-tcat_remove_first_trs'    : ['3'],
-        '-volreg_align_e2a'         : [],
-        '-blur_size'                : ['6.0'],
-        '-mask_apply'               : ['epi'],
-        '-mask_segment_anat'        : ['yes'],
-        '-mask_segment_erode'       : ['yes'],
-        '-regress_bandpass'         : ['0.01', '0.1'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_ROI'              : ['WMe'],
-        '-regress_RSFC'             : [],
-        '-regress_run_clustsim'     : ['no'],
-        '-regress_est_blur_errts'   : [],
-       },
-     keys = ['-subj_id', '-dsets', '-copy_anat', '-blocks',
-             '-tcat_remove_first_trs', '-volreg_align_e2a', '-blur_size',
-             '-mask_apply', '-mask_segment_anat', '-mask_segment_erode',
-             '-regress_bandpass', '-regress_apply_mot_types', '-regress_ROI',
-             '-regress_RSFC', '-regress_run_clustsim',
-             '-regress_est_blur_errts']
+     olist = [
+        ['-subj_id',               ['subj123']],
+        ['-dsets',                 ['epi_run1+orig.HEAD']],
+        ['-copy_anat',             ['anat+orig']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'volreg',
+                                    'blur', 'mask', 'scale', 'regress']],
+        ['-tcat_remove_first_trs', ['3']],
+        ['-volreg_align_e2a',      []],
+        ['-blur_size',             ['6.0']],
+        ['-mask_apply',            ['epi']],
+        ['-mask_segment_anat',     ['yes']],
+        ['-mask_segment_erode',    ['yes']],
+        ['-regress_bandpass',      ['0.01', '0.1']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_ROI',           ['WMe']],
+        ['-regress_RSFC',          []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-regress_est_blur_errts', []],
+       ],
      ))
                                       
    ap_examples.append( APExample( 'Example 11', aphelp=1,
@@ -1024,58 +954,44 @@ def populate_examples():
                  identical.
             """,
      trailer='',
-     odict = {
-       '-subj_id'                  : ['FT.11.rest'],
-       '-blocks'                   : ['despike', 'tshift', 'align', 'tlrc',
-                                      'volreg', 'blur', 'mask', 'scale',
-                                      'regress'],
-       '-copy_anat'                : ['anatSS.FT.nii'],
-       '-anat_has_skull'           : ['no'],
-       '-anat_follower'            : ['anat_w_skull', 'anat', 'anatU.FT.nii'],
-       '-anat_follower_ROI'        : ['aaseg','anat','aparc.a2009s+aseg.nii'],
-       '-anat_follower_ROI'        : ['aeseg','epi', 'aparc.a2009s+aseg.nii'],
-       '-anat_follower_ROI'        : ['FSvent','epi', 'fs_ap_latvent.nii.gz'],
-       '-anat_follower_ROI'        : ['FSWe', 'epi', 'fs_ap_wm.nii.gz'],
-       '-anat_follower_erode'      : ['FSvent', 'FSWe'],
-       '-dsets'                    : ['FT_epi_r?+orig.HEAD'],
-       '-tcat_remove_first_trs'    : ['2'],
-       '-align_opts_aea'           : ['-cost', 'lpc+ZZ', '-giant_move',
-                                      '-check_flip'],
-       '-tlrc_base'                : ['MNI152_2009_template_SSW.nii.gz'],
-       '-tlrc_NL_warp'             : [],
-       '-tlrc_NL_warped_dsets'     : ['anatQQ.FT.nii', 'anatQQ.FT.aff12.1D',
-                                      'anatQQ.FT_WARP.nii'],
-       '-volreg_align_to'          : ['MIN_OUTLIER'],
-       '-volreg_align_e2a'         : [],
-       '-volreg_tlrc_warp'         : [],
-       '-blur_size'                : ['4'],
-       '-mask_epi_anat'            : ['yes'],
-       '-regress_motion_per_run'   : [],
-       '-regress_ROI_PC'           : ['FSvent', '3'],
-       '-regress_ROI_PC_per_run'   : ['FSvent'],
-       '-regress_make_corr_vols'   : ['aeseg', 'FSvent'],
-       '-regress_anaticor_fast'    : [],
-       '-regress_anaticor_label'   : ['FSWe'],
-       '-regress_censor_motion'    : ['0.2'],
-       '-regress_censor_outliers'  : ['0.05'],
-       '-regress_apply_mot_types'  : ['demean', 'deriv'],
-       '-regress_est_blur_epits'   : [],
-       '-regress_est_blur_errts'   : [],
-       '-html_review_style'        : ['pythonic'],
-       },
-     keys = [ '-subj_id', '-blocks', '-copy_anat', '-anat_has_skull',
-       '-anat_follower', '-anat_follower_ROI', '-anat_follower_ROI',
-       '-anat_follower_ROI', '-anat_follower_ROI', '-anat_follower_erode',
-       '-dsets', '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
-       '-tlrc_NL_warp', '-tlrc_NL_warped_dsets', '-volreg_align_to',
-       '-volreg_align_e2a', '-volreg_tlrc_warp', '-blur_size',
-       '-mask_epi_anat', '-regress_motion_per_run', '-regress_ROI_PC',
-       '-regress_ROI_PC_per_run', '-regress_make_corr_vols',
-       '-regress_anaticor_fast', '-regress_anaticor_label',
-       '-regress_censor_motion', '-regress_censor_outliers',
-       '-regress_apply_mot_types', '-regress_est_blur_epits',
-       '-regress_est_blur_errts', '-html_review_style'
-       ]
+     olist = [
+        ['-subj_id',               ['FT.11.rest']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
+                          'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-copy_anat',             ['anatSS.FT.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.FT.nii']],
+        ['-anat_follower_ROI',     ['aaseg', 'anat', 'aparc.a2009s+aseg.nii']],
+        ['-anat_follower_ROI',     ['aeseg', 'epi', 'aparc.a2009s+aseg.nii']],
+        ['-anat_follower_ROI',     ['FSvent', 'epi', 'fs_ap_latvent.nii.gz']],
+        ['-anat_follower_ROI',     ['FSWe', 'epi', 'fs_ap_wm.nii.gz']],
+        ['-anat_follower_erode',   ['FSvent', 'FSWe']],
+        ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.FT.nii', 'anatQQ.FT.aff12.1D',
+                                    'anatQQ.FT_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-blur_size',             ['4']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-regress_motion_per_run', []],
+        ['-regress_ROI_PC',        ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run', ['FSvent']],
+        ['-regress_make_corr_vols', ['aeseg', 'FSvent']],
+        ['-regress_anaticor_fast', []],
+        ['-regress_anaticor_label', ['FSWe']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-html_review_style',     ['pythonic']],
+       ],
      ))
 
    ap_examples.append( APExample('Example 11b', aphelp=1,
@@ -1106,49 +1022,38 @@ def populate_examples():
          o Run the cluster simulation.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['FT.11b.rest'],
-        '-blocks'                   : ['despike', 'tshift', 'align', 'tlrc',
-                             'volreg', 'blur', 'mask', 'scale', 'regress'],
-        '-copy_anat'                : ['FT_anat+orig'],
-        '-dsets'                    : ['FT_epi_r?+orig.HEAD'],
-        '-tcat_remove_first_trs'    : ['2'],
-        '-align_opts_aea'           : ['-cost', 'lpc+ZZ'],
-        '-tlrc_base'                : ['TT_N27+tlrc'],
-        '-tlrc_NL_warp'             : [],
-        '-volreg_align_to'          : ['MIN_OUTLIER'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-        '-volreg_warp_dxyz'         : ['2.5'],
-        '-blur_size'                : ['4'],
-        '-mask_segment_anat'        : ['yes'],
-        '-mask_segment_erode'       : ['yes'],
-        '-mask_import'              : ['Tvent','template_ventricle_2.5mm+tlrc'],
-        '-mask_intersect'           : ['Svent', 'CSFe', 'Tvent'],
-        '-mask_epi_anat'            : ['yes'],
-        '-regress_motion_per_run'   : [],
-        '-regress_ROI_PC'           : ['Svent', '3'],
-        '-regress_ROI_PC_per_run'   : ['Svent'],
-        '-regress_make_corr_vols'   : ['WMe', 'Svent'],
-        '-regress_anaticor_fast'    : [],
-        '-regress_censor_motion'    : ['0.2'],
-        '-regress_censor_outliers'  : ['0.05'],
-        '-regress_apply_mot_types'  : ['demean', 'deriv'],
-        '-regress_est_blur_epits'   : [],
-        '-regress_est_blur_errts'   : [],
-        '-regress_run_clustsim'     : ['yes'],
-       },
-     keys = ['-subj_id', '-blocks', '-copy_anat', '-dsets',
-             '-tcat_remove_first_trs', '-align_opts_aea', '-tlrc_base',
-             '-tlrc_NL_warp', '-volreg_align_to', '-volreg_align_e2a',
-             '-volreg_tlrc_warp', '-volreg_warp_dxyz', '-blur_size',
-             '-mask_segment_anat', '-mask_segment_erode', '-mask_import',
-             '-mask_intersect', '-mask_epi_anat', '-regress_motion_per_run',
-             '-regress_ROI_PC', '-regress_ROI_PC_per_run',
-             '-regress_make_corr_vols', '-regress_anaticor_fast',
-             '-regress_censor_motion', '-regress_censor_outliers',
-             '-regress_apply_mot_types', '-regress_est_blur_epits',
-             '-regress_est_blur_errts', '-regress_run_clustsim']
+     olist = [
+        ['-subj_id',               ['FT.11b.rest']],
+        ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
+                          'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['TT_N27+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-volreg_warp_dxyz',      ['2.5']],
+        ['-blur_size',             ['4']],
+        ['-mask_segment_anat',     ['yes']],
+        ['-mask_segment_erode',    ['yes']],
+        ['-mask_import',           ['Tvent', 'template_ventricle_2.5mm+tlrc']],
+        ['-mask_intersect',        ['Svent', 'CSFe', 'Tvent']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-regress_motion_per_run', []],
+        ['-regress_ROI_PC',        ['Svent', '3']],
+        ['-regress_ROI_PC_per_run', ['Svent']],
+        ['-regress_make_corr_vols', ['WMe', 'Svent']],
+        ['-regress_anaticor_fast', []],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['yes']],
+       ],
      ))
 
    ap_examples.append( APExample('Example 12', aphelp=1,
@@ -1167,18 +1072,16 @@ def populate_examples():
          An afni_proc.py command might be updated to include something like:
             """,
      trailer='',
-     odict = {
-        '-blocks'                   : ['tshift', 'align', 'tlrc', 'volreg',
-                               'mask', 'combine', 'blur', 'scale', 'regress'],
-        '-dsets_me_echo'            : ['epi_run*_echo_01.nii'],
-        '-dsets_me_echo'            : ['epi_run*_echo_02.nii'],
-        '-dsets_me_echo'            : ['epi_run*_echo_03.nii'],
-        '-echo_times'               : ['15', '30.5', '41'],
-        '-mask_epi_anat'            : ['yes'],
-        '-combine_method'           : ['OC'],
-       },
-     keys = ['-blocks', '-dsets_me_echo', '-dsets_me_echo', '-dsets_me_echo',
-             '-echo_times', '-mask_epi_anat', '-combine_method']
+     olist = [
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                            'mask', 'combine', 'blur', 'scale', 'regress']],
+        ['-dsets_me_echo',         ['epi_run*_echo_01.nii']],
+        ['-dsets_me_echo',         ['epi_run*_echo_02.nii']],
+        ['-dsets_me_echo',         ['epi_run*_echo_03.nii']],
+        ['-echo_times',            ['15', '30.5', '41']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-combine_method',        ['OC']],
+       ],
      ))
 
    ap_examples.append( APExample('Example 12a', aphelp=1,
@@ -1198,23 +1101,54 @@ def populate_examples():
             - Note that the 'regress' block is not valid for multiple echoes.
             """,
      trailer='',
-     odict = {
-        '-subj_id'                  : ['FT.12a.ME'],
-        '-blocks'                   : ['tshift', 'align', 'tlrc', 'volreg',
-                                       'mask', 'blur'],
-        '-copy_anat'                : ['FT_anat+orig'],
-        '-dsets_me_run'             : ['epi_run1_echo*.nii'],
-        '-reg_echo'                 : ['2'],
-        '-tcat_remove_first_trs'    : ['2'],
-        '-volreg_align_to'          : ['MIN_OUTLIER'],
-        '-volreg_align_e2a'         : [],
-        '-volreg_tlrc_warp'         : [],
-       },
-     keys = ['-subj_id', '-blocks', '-copy_anat', '-dsets_me_run', '-reg_echo',
-             '-tcat_remove_first_trs', '-volreg_align_to', '-volreg_align_e2a',
-             '-volreg_tlrc_warp']
+     olist = [
+        ['-subj_id',               ['FT.12a.ME']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets_me_run',          ['epi_run1_echo*.nii']],
+        ['-reg_echo',              ['2']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+       ],
      ))
 
+   ap_examples.append( APExample('Example 12b', aphelp=1,
+     source='afni_proc.py -help',
+     descrip='Multi-echo data processing - OC resting state.',
+     header="""
+           Use all defaults, except remove 3 TRs and use basis
+           function BLOCK(30,1).  The default basis function is GAM.
+            """,
+     trailer='',
+     olist = [
+        ['-subj_id',               ['FT.12a.ME']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                            'mask', 'combine', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets_me_run',          ['epi_run1_echo*.nii']],
+        ['-echo_times',            ['15', '30.5', '41']],
+        ['-reg_echo',              ['2']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-combine_method',        ['OC']],
+        ['-blur_size',             ['4']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+       ]
+     ))
+                                      
    ap_examples.append( APExample( 'Example 13', aphelp=1,
      source='afni_proc.py -help',
      descrip='Complicated ME, surface-based resting state example.',
@@ -1245,59 +1179,45 @@ def populate_examples():
               set data_dir = FT
             """,
      trailer='',
-     odict = {
-       '-subj_id'                  : ['FT.complicated'],
-       '-blocks'                   : ['despike', 'ricor', 'tshift', 'align',
-                                      'volreg', 'mask', 'combine', 'surf',
-                                      'blur', 'scale', 'regress'],
-       '-radial_correlate_blocks'  : ['tcat', 'volreg'],
-       '-blip_forward_dset'        : ['FT/FT_epi_r1+orig.HEAD[0]'],
-       '-blip_reverse_dset'        : ['FT/FT_epi_r1+orig.HEAD[0]'],
-       '-copy_anat'                : ['FT/FT_anat+orig'],
-       '-anat_follower_ROI'        : ['FSvent', 'epi', 'FT/SUMA/FT_vent.nii'],
-       '-anat_follower_erode'      : ['FSvent'],
-       '-regress_ROI_PC'           : ['FSvent', '3'],
-       '-regress_ROI_PC_per_run'   : ['FSvent'],
-       '-regress_make_corr_vols'   : ['FSvent'],
-       '-dsets_me_echo'            : ['FT/FT_epi_r?+orig.HEAD'],
-       '-dsets_me_echo'            : ['FT/FT_epi_r?+orig.HEAD'],
-       '-dsets_me_echo'            : ['FT/FT_epi_r?+orig.HEAD'],
-       '-echo_times'               : ['11', '22.72', '34.44'],
-       '-combine_method'           : ['OC'],
-       '-tcat_remove_first_trs'    : ['2'],
-       '-tshift_interp'            : ['-wsinc9'],
-       '-mask_epi_anat'            : ['yes'],
-       '-ricor_regs_nfirst'        : ['2'],
-       '-ricor_regs'               : ['FT/fake.slibase.FT.r?.1D'],
-       '-ricor_regress_method'     : ['per-run'],
-       '-align_opts_aea'           : ['-cost', 'lpc+ZZ', '-giant_move'],
-       '-volreg_align_to'          : ['MIN_OUTLIER'],
-       '-volreg_align_e2a'         : [],
-       '-volreg_post_vr_allin'     : ['yes'],
-       '-volreg_pvra_base_index'   : ['MIN_OUTLIER'],
-       '-volreg_warp_final_interp' : ['wsinc5'],
-       '-surf_anat'                : ['FT/SUMA/FT_SurfVol.nii'],
-       '-surf_spec'                : ['FT/SUMA/std.141.FT_?h.spec'],
-       '-blur_size'                : ['6'],
-       '-regress_censor_motion'    : ['0.2'],
-       '-regress_censor_outliers'  : ['0.05'],
-       '-regress_motion_per_run'   : [],
-       '-regress_apply_mot_types'  : ['demean', 'deriv'],
-       '-html_review_style'        : ['pythonic'],
-       },
-     keys = [ '-subj_id', '-blocks', '-radial_correlate_blocks',
-       '-blip_forward_dset', '-blip_reverse_dset', '-copy_anat',
-       '-anat_follower_ROI', '-anat_follower_erode', '-regress_ROI_PC',
-       '-regress_ROI_PC_per_run', '-regress_make_corr_vols',
-       '-dsets_me_echo', '-dsets_me_echo', '-dsets_me_echo',
-       '-echo_times', '-combine_method', '-tcat_remove_first_trs',
-       '-tshift_interp', '-mask_epi_anat', '-ricor_regs_nfirst', '-ricor_regs',
-       '-ricor_regress_method', '-align_opts_aea', '-volreg_align_to',
-       '-volreg_align_e2a', '-volreg_post_vr_allin', '-volreg_pvra_base_index',
-       '-volreg_warp_final_interp', '-surf_anat', '-surf_spec', '-blur_size',
-       '-regress_censor_motion', '-regress_censor_outliers',
-       '-regress_motion_per_run', '-regress_apply_mot_types',
-       '-html_review_style'
+     olist = [
+        ['-subj_id',               ['FT.complicated']],
+        ['-blocks',                ['despike', 'ricor', 'tshift', 'align',
+                                    'volreg', 'mask', 'combine', 'surf',
+                                    'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-blip_forward_dset',     ['FT/FT_epi_r1+orig.HEAD[0]']],
+        ['-blip_reverse_dset',     ['FT/FT_epi_r1+orig.HEAD[0]']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-anat_follower_ROI',     ['FSvent', 'epi', 'FT/SUMA/FT_vent.nii']],
+        ['-anat_follower_erode',   ['FSvent']],
+        ['-regress_ROI_PC',        ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run', ['FSvent']],
+        ['-regress_make_corr_vols', ['FSvent']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-dsets_me_echo',         ['FT/FT_epi_r?+orig.HEAD']],
+        ['-echo_times',            ['11', '22.72', '34.44']],
+        ['-combine_method',        ['OC']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-tshift_interp',         ['-wsinc9']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-ricor_regs_nfirst',     ['2']],
+        ['-ricor_regs',            ['FT/fake.slibase.FT.r?.1D']],
+        ['-ricor_regress_method',  ['per-run']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_post_vr_allin',  ['yes']],
+        ['-volreg_pvra_base_index', ['MIN_OUTLIER']],
+        ['-volreg_warp_final_interp', ['wsinc5']],
+        ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
+        ['-surf_spec',             ['FT/SUMA/std.141.FT_?h.spec']],
+        ['-blur_size',             ['6']],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-html_review_style',     ['pythonic']],
        ]
      ))
 
@@ -1307,31 +1227,25 @@ def populate_examples():
      header="""
             """,
      trailer='',
-     odict = {
-       '-subj_id'                  : ['FT.surf'],
-       '-blocks'                   : ['tshift', 'align', 'volreg', 'surf',
-                                      'blur', 'scale', 'regress'],
-       '-copy_anat'                : ['FT/FT_anat+orig'],
-       '-dsets'                    : ['FT/FT_epi_r?+orig.HEAD'],
-       '-surf_anat'                : ['FT/SUMA/FT_SurfVol.nii'],
-       '-surf_spec'                : ['FT/SUMA/std.60.FT_?h.spec'],
-       '-tcat_remove_first_trs'    : ['2'],
-       '-volreg_align_to'          : ['MIN_OUTLIER'],
-       '-volreg_align_e2a'         : [],
-       '-blur_size'                : ['6'],
-       '-regress_stim_times'       : ['FT/AV1_vis.txt', 'FT/AV2_aud.txt'],
-       '-regress_stim_labels'      : ['vis', 'aud'],
-       '-regress_basis'            : ['BLOCK(20,1)'],
-       '-regress_motion_per_run'   : [],
-       '-regress_censor_motion'    : ['0.3'],
-       '-regress_opts_3dD'         : ['-jobs', '2', '-gltsym',
-            'SYM: vis -aud', '-glt_label', '1', 'V-A'],
-       },
-     keys = [ '-subj_id', '-blocks', '-copy_anat', '-dsets', '-surf_anat',
-       '-surf_spec', '-tcat_remove_first_trs', '-volreg_align_to',
-       '-volreg_align_e2a', '-blur_size', '-regress_stim_times',
-       '-regress_stim_labels', '-regress_basis', '-regress_motion_per_run',
-       '-regress_censor_motion', '-regress_opts_3dD'
+     olist = [
+        ['-subj_id',               ['FT.surf']],
+        ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
+                                    'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
+        ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
+        ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-blur_size',             ['6']],
+        ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
+        ['-regress_stim_labels',   ['vis', 'aud']],
+        ['-regress_basis',         ['BLOCK(20,1)']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
+                                    '-glt_label', '1', 'V-A']],
        ]
      ))
 
