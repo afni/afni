@@ -672,6 +672,7 @@ g_history = """
     7.06 Jan 15, 2020: corr_* dsets are now correlations with ROI averages,
                        rather than average correlations across ROIs
     7.07 Feb  4, 2020: added help for some esoteric options
+    7.08 Feb  9, 2020: initial -compare_opts functionality
 """
 
 g_version = "version 7.07, February 4, 2019"
@@ -1694,7 +1695,6 @@ class SubjProcSream:
         
         if opt_list.find_opt('-help_section'):     # just print help
             section, rv = opt_list.get_string_opt('-help_section')
-            # temporary section to test APExamples vs g_helP_examples
             if section == 'EGS':
                EGS = self.egs()
                EGS.populate_examples()
@@ -3663,14 +3663,9 @@ class SubjProcSream:
            - remove any -compare* options
         """
         EGS = self.egs()
-        onames = [o.name for o in olist if not o.name.startswith('-compare')]
-        odict = {}
-        for entry in olist:
-            if entry.name.startswith('-compare'):
-               continue
-            odict[entry.name] = entry.parlist
-        eg = EGS.APExample('command', odict, keys=onames)
-        eg.display()
+        olist = [ [opt.name, opt.parlist]
+                  for opt in olist if not opt.name.startswith('-compare')]
+        eg = EGS.APExample('command', olist)
         # can pass a noelemnt list, of opts not to compare elements of
         eg.compare(comp, eskip=g_eg_dset_opts, verb=self.verb)
 
