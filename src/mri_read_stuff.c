@@ -15,7 +15,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    static char *pnm_filter  = NULL ;  /* cat */
    static char *heic_filter = NULL ;  /* magick [10 Feb 2020] */
 
-   char *pg , *pg2 , *filt=NULL ;
+   char *pg , *pg2 , *mg , *filt=NULL ;
    int nf , nbuf , ipos , nx,ny,maxval=255 , bper,nbim, pbm=0 ;
    FILE *fp ;
    MRI_IMAGE *im ;
@@ -69,10 +69,17 @@ ENTRY("mri_read_stuff") ;
        sprintf( png_filter , "%s %%s" , pg ) ;
      }
 
-     pg = THD_find_executable( "magick" ) ;    /* 10 Feb 2020 */
-     if( pg != NULL ){
-       heic_filter = AFMALL(char,strlen(pg)+32) ;
-       sprintf( heic_filter , "%s %%s ppm:-" , pg ) ;
+     /* this filter can do lots of format conversion [10 Feb 2020] */
+
+     mg = THD_find_executable( "magick" ) ;
+     if( mg != NULL ){
+       heic_filter = AFMALL(char,strlen(mg)+32) ;
+       sprintf( heic_filter , "%s %%s ppm:-" , mg ) ;
+       if( png_filter  == NULL ) png_filter  = strdup(heic_filter) ;
+       if( tiff_filter == NULL ) tiff_filter = strdup(heic_filter) ;
+       if( jpeg_filter == NULL ) jpeg_filter = strdup(heic_filter) ;
+       if( gif_filter  == NULL ) gif_filter  = strdup(heic_filter) ;
+       if( bmp_filter  == NULL ) bmp_filter  = strdup(heic_filter) ;
      }
    }
 
