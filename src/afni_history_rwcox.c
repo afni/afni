@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , FEB , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add reading Apple .heic images (via magick tool)" ,
+   NULL } ,
+
  { 5 , FEB , 2020 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
    "Add -LJorder option" ,
    "To order voxels by their Ljung-Box statistics." } ,

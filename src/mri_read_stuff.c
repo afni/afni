@@ -13,6 +13,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    static char *bmp_filter  = NULL ;  /* bmptoppm  */
    static char *png_filter  = NULL ;  /* pngtopnm  */
    static char *pnm_filter  = NULL ;  /* cat */
+   static char *heic_filter = NULL ;  /* magick [10 Feb 2020] */
 
    char *pg , *pg2 , *filt=NULL ;
    int nf , nbuf , ipos , nx,ny,maxval=255 , bper,nbim, pbm=0 ;
@@ -67,6 +68,12 @@ ENTRY("mri_read_stuff") ;
        png_filter = AFMALL(char, strlen(pg)+32) ;
        sprintf( png_filter , "%s %%s" , pg ) ;
      }
+
+     pg = THD_find_executable( "magick" ) ;    /* 10 Feb 2020 */
+     if( pg != NULL ){
+       heic_filter = AFMALL(char,strlen(pg)+32) ;
+       sprintf( heic_filter , "%s %%s ppm:-" , pg ) ;
+     }
    }
 
    /*--- determine filter based on file suffix ---*/
@@ -102,6 +109,9 @@ ENTRY("mri_read_stuff") ;
 
    else if( strcmp(pg ,".png" ) == 0 ||
             strcmp(pg ,".PNG" ) == 0   ) filt = png_filter  ;
+
+   else if( strcmp(pg2,".heic") == 0 ||
+            strcmp(pg2,".HEIC") == 0   ) filt = heic_filter  ;
 
    if( filt == NULL ) RETURN(NULL);  /* didn't match, or no filter */
 

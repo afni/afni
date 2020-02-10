@@ -391,6 +391,8 @@ ENTRY("mri_read") ;
        strstr(fname,".TIF" ) != NULL ||
        strstr(fname,".tiff") != NULL ||
        strstr(fname,".TIFF") != NULL ||
+       strstr(fname,".heic") != NULL ||
+       strstr(fname,".HEIC") != NULL ||
        strstr(fname,".bmp" ) != NULL ||
        strstr(fname,".BMP" ) != NULL ||
        strstr(fname,".pbm" ) != NULL ||
@@ -399,6 +401,8 @@ ENTRY("mri_read") ;
        strstr(fname,".PGM" ) != NULL ||
        strstr(fname,".ppm" ) != NULL ||
        strstr(fname,".PPM" ) != NULL ||
+       strstr(fname,".heic") != NULL ||
+       strstr(fname,".HEIC") != NULL ||
        strstr(fname,".png" ) != NULL ||
        strstr(fname,".PNG" ) != NULL   ){
 
@@ -1311,6 +1315,8 @@ ENTRY("mri_read_file") ;
               strstr(new_fname,".TIF" ) != NULL ||
               strstr(new_fname,".tiff") != NULL ||
               strstr(new_fname,".TIFF") != NULL ||
+              strstr(new_fname,".heic") != NULL ||
+              strstr(new_fname,".HEIC") != NULL ||
               strstr(new_fname,".bmp" ) != NULL ||
               strstr(new_fname,".BMP" ) != NULL ||
               strstr(new_fname,".pbm" ) != NULL ||
