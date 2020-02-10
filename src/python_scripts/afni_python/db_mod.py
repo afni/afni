@@ -8257,8 +8257,8 @@ def show_program_help(section=''):
       return 0
 
    # examples are now "special"
-   if section == 'examples':
-      show_help_examples()
+   # if section == 'examples':
+   #    show_help_examples()
 
    # and the rest...
    rv = 0
