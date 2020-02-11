@@ -673,6 +673,7 @@ g_history = """
                        rather than average correlations across ROIs
     7.07 Feb  4, 2020: added help for some esoteric options
     7.08 Feb  9, 2020: initial -compare_opts functionality
+       - added -compare_opts, -show_example, -show_example_names
 """
 
 g_version = "version 7.07, February 4, 2019"
@@ -1108,6 +1109,10 @@ class SubjProcSream:
                         helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-requires_afni_hist', 0, [],
                         helpstr='show history of -requires_afni_version')
+        self.valid_opts.add_opt('-show_example', 1, [],
+                        helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_names', 0, [],
+                        helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1731,10 +1736,19 @@ class SubjProcSream:
             print(g_version)
             return 0  # gentle termination
 
-        # "compare" options - to compare option lists
+        # example and "compare" options - to compare option lists
         if opt_list.find_opt('-compare_opts'):
            comp, rv = opt_list.get_string_opt('-compare_opts')
            self.compare_vs_opts(opt_list.olist, comp)
+           return 0
+        
+        if opt_list.find_opt('-show_example'):
+           eg, rv = opt_list.get_string_opt('-show_example')
+           self.show_example(eg, verb=self.verb)
+           return 0
+        
+        if opt_list.find_opt('-show_example_names'):
+           self.show_example_names(verb=self.verb)
            return 0
         
         # options which are NO LONGER VALID
@@ -3653,8 +3667,14 @@ class SubjProcSream:
            self.EGS.populate_examples()
         return self.EGS
 
-    def make_ap_eg(self):
-        pass
+    def show_example(self, ename, verb=1):
+        EGS = self.egs()
+        eg = EGS.find_eg(ename)
+        eg.display(verb=verb, sphinx=0)
+        
+    def show_example_names(self, verb=1):
+        EGS = self.egs()
+        EGS.show_enames(verb=verb)
         
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)

@@ -89,9 +89,9 @@ class APExample:
          return 
 
       # otherwise, try to find an instance in the ap_examples list
-      for eg in ap_examples:
-         if eg.name.lower() == target.lower():
-            return self.compare_v_instance(eg, eskip=eskip, verb=verb)
+      eg = find_eg(target)
+      if eg != None:
+         return self.compare_v_instance(eg, eskip=eskip, verb=verb)
 
       print("** comp : failed to find instance for target '%s'" % target)
       return
@@ -260,7 +260,7 @@ class APExample:
       return UTIL.list_to_wrapped_command('afni_proc.py', clist,
                                           nindent=14, maxlen=75)
 
-   def display(self, verb=0):
+   def display(self, verb=0, sphinx=1):
       """display a single example - use a copy for quoting
          verb: verbosity level
            0: only show example
@@ -275,10 +275,13 @@ class APExample:
 
       indent = ' '*8
 
+      if sphinx: sstr = ' ~2~'
+      else:      sstr = ''
+
       # possibly show the name/description line,
       # (with trailing ~2~ for sphinx help)
       if verb > 0:
-         print("%s%s. %s ~2~" % (indent, cc.name, cc.descrip))
+         print("%s%s. %s%s" % (indent, cc.name, cc.descrip, sstr))
 
       # header
       if verb > 1:
@@ -1280,7 +1283,175 @@ def populate_examples():
        ]
      ))
 
+   ap_examples.append( APExample('NARPS', aphelp=1,
+     source='eventually mention paper reference?',
+     descrip='Applied NARPS example from AFNI.',
+     header="""
+           An amplitude modulation task analysis.
+            """,
+     trailer='',
+     olist = [
+        ['-subj_id',               ['sid']],
+        ['-script',                ['proc.sid']],
+        ['-scr_overwrite',         []],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['anatSS.sid.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.sid.nii']],
+        ['-anat_follower_ROI',     ['FS_wm_e', 'epi',
+                                    'SUMA/mask.aseg.wm.e1.nii.gz']],
+        ['-anat_follower_ROI',     ['FS_REN_epi', 'epi',
+                                    'SUMA/aparc+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',     ['FS_REN_anat', 'anat',
+                                    'SUMA/aparc+aseg_REN_all.nii.gz']],
+        ['-anat_follower_erode',   ['FS_wm_e']],
+        ['-dsets',                 ['func/sid_task-MGT_run-01_bold.nii.gz',
+                                    'func/sid_task-MGT_run-02_bold.nii.gz',
+                                    'func/sid_task-MGT_run-03_bold.nii.gz',
+                                    'func/sid_task-MGT_run-04_bold.nii.gz']],
+        ['-tcat_remove_first_trs', ['0']],
+        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
+        ['-radial_correlate',      ['yes']],
+        ['-align_opts_aea',        ['-giant_move', '-cost', 'lpc+ZZ',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.sid.nii', 'anatQQ.sid.aff12.1D',
+                                    'anatQQ.sid_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['5']],
+        ['-test_stim_files',       ['no']],
+        ['-regress_stim_times',    ['timing/times.Resp.txt',
+                                    'timing/times.NoResp.txt']],
+        ['-regress_stim_labels',   ['Resp', 'NoResp']],
+        ['-regress_stim_types',    ['AM2', 'AM1']],
+        ['-regress_basis_multi',   ['dmBLOCK']],
+        ['-regress_anaticor_fast', []],
+        ['-regress_anaticor_fwhm', ['20']],
+        ['-regress_anaticor_label', ['FS_wm_e']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_compute_fitts', []],
+        ['-regress_opts_3dD',      ['-jobs', '8',
+                        '-gltsym', 'SYM: Resp[1] -Resp[2]',
+                        '-glt_label', '1', 'gain-loss', '-GOFORIT', '10']],
+        ['-regress_opts_reml',     ['-GOFORIT']],
+        ['-regress_3dD_stop',      []],
+        ['-regress_reml_exec',     []],
+        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
+        ['-regress_make_corr_vols', ['FS_wm_e']],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
+   ap_examples.append( APExample('pamenc', aphelp=1,
+     source='AFNI_demos',
+     descrip='ds000030.v16 parametric encoding task analysis.',
+     header="""
+           original analysis was from:
+               Gorgolewski KJ, Durnez J and Poldrack RA.
+               Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
+               F1000Research 2017, 6:1262
+               https://doi.org/10.12688/f1000research.11964.2
+
+           downloadable from https://legacy.openfmri.org/dataset/ds000030
+            """,
+     trailer='',
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-scr_overwrite',         []],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['anatSS.SID.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
+        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
+        ['-tcat_remove_first_trs', ['0']],
+        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
+        ['-radial_correlate',      ['yes']],
+        ['-align_opts_aea',        ['-giant_move', '-cost', 'lpc+ZZ',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.SID.nii', 'anatQQ.SID.aff12.1D',
+                                    'anatQQ.SID_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['6']],
+        ['-blur_in_mask',          ['yes']],
+        ['-regress_stim_times',    ['timing/times.CONTROL.txt',
+                                    'timing/times.TASK.txt']],
+        ['-regress_stim_labels',   ['CONTROL', 'TASK']],
+        ['-regress_stim_types',    ['AM1']],
+        ['-regress_basis_multi',   ['dmBLOCK']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_compute_fitts', []],
+        ['-regress_fout',          ['no']],
+        ['-regress_opts_3dD',      ['-jobs', '8']],
+        ['-regress_3dD_stop',      []],
+        ['-regress_reml_exec',     []],
+        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
    return
+
+def find_eg(name):
+   """try to find a matching ap_examples instance
+
+      consider things like:
+        if failure, and if 'name' is substring of only 1 example, return it
+
+      return None on failure
+   """
+   global ap_examples
+   populate_examples()
+
+   for eg in ap_examples:
+      if eg.name.lower() == name.lower():
+         return eg
+
+   return None
+
+def show_enames(verb=1):
+   """list all ap_example names
+   """
+   global ap_examples
+   populate_examples()
+
+   nlist = [eg.name for eg in ap_examples]
+
+   # basic: show list
+   if verb == 0:
+      print("%s" % nlist)
+      return
+
+   # nicer: show pretty list
+   if verb == 1:
+      istr = ' '*3
+      jstr = '\n%s' % istr
+      print("%s%s\n" % (istr, jstr.join(nlist)))
+      return
+
+   maxn = max([len(name) for name in nlist])
+   indent = ' '*4
+   for eg in ap_examples:
+      print("%s%-*s : %s" % (indent, maxn, eg.name, eg.descrip))
 
 def display_eg_all(aphelp=1, source='', verb=0):
    """display the examples array if someone wants it
