@@ -375,6 +375,8 @@ void ISQ_setup_ppmto_filters(void)
 #ifdef DARWIN
    else if( THD_is_directory("/Applications/GIMP.app") )
      gimp_path = strdup("open -a /Applications/GIMP.app") ;
+   else if( THD_is_directory("/Applications/MacPorts/GIMP.app") )
+     gimp_path = strdup("open -a /Applications/MacPorts/GIMP.app") ;
 #endif
 
    /*-- the cheap way to write PPM  --*/
