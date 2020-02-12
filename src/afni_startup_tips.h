@@ -1019,7 +1019,7 @@ static char *gby[] = {
      "If a turtle loses its shell, is it naked or homeless?"         ,
      "We give you tools; You build things with them"                 ,
      "Do not take life too seriously. You won't get out of it alive" ,
-     "For great justice. Move ZIG."                                  ,
+     "For great justice. Move ZIG"                                   ,
      "You look familiar - Do you come here often?"                   ,
      "After all, tomorrow is another day"                            ,
      "People are quick to believe that which they wish to be true"   ,
@@ -1144,12 +1144,51 @@ static char *gby[] = {
 
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
-     "Is not existence revealed to us in thought, if at all?"                            ,
-     "Is there or is there not an absolute justice?"                                     ,
-     "Is there an absolute beauty and absolute good?"                                    ,
-     "Attains to knowledge in highest purity with mind (and statistics) alone"           ,
-     "The wise person will want to be ever with her who is better than himself"          ,
-     "There is no greater evil one can suffer than to hate reasonable discourse"         ,
+     "Is not existence revealed to us in thought, if at all?"                         ,
+     "Is there or is there not an absolute justice?"                                  ,
+     "Is there an absolute beauty and absolute good?"                                 ,
+     "Attains to knowledge in highest purity with mind (and statistics) alone"        ,
+     "The wise person will want to be ever with her who is better than himself"       ,
+     "There is no greater evil one can suffer than to hate reasonable discourse"      ,
+
+     /* from Annihilation by Jeff VanderMeer */
+
+     "\n"
+     "  Where lies the strangling fruit that came from the hand of the sinner I\n"
+     "  shall bring forth the seeds of the dead to share with the worms that\n"
+     "  gather in the darkness and surround the world with the power of their\n"
+     "  lives while from the dimlit halls of other places forms that never were\n"
+     "  and never could be writhe for the impatience of the few who never saw\n"
+     "  what could have been"                                                         ,
+
+     "\n"
+     "  In the black water with the sun shining at midnight, those fruit shall\n"
+     "  come ripe and in the darkness of that which is golden shall split open\n"
+     "  to reveal the revelation of the fatal softness in the earth"                  ,
+
+     "\n"
+     "  The shadows of the abyss are like the petals of a monstrous flower that\n"
+     "  shall blossom within the skull and expand the mind beyond what any man\n"
+     "  can bear, but whether it decays under the earth or above on green fields,\n"
+     "  or out to sea or in the very air, all shall come to revelation,\n"
+     "  and to revel, in the knowledge of the strangling fruit — and the hand of\n"
+     "  the sinner shall rejoice, for there is no sin in shadow or in light that\n"
+     "  the seeds of the dead cannot forgive"                                         ,
+
+     "\n"
+     "  And there shall be in the planting in the shadows a grace and a mercy\n"
+     "  from which shall blossom dark flowers, and their teeth shall devour\n"
+     "  and sustain and herald the passing of an age"                                 ,
+
+     "\n"
+     "  That which dies shall still know life in death for all that decays is\n"
+     "  not forgotten and reanimated it shall walk the world in the bliss\n"
+     "  of not-knowing"                                                               ,
+
+     "\n"
+     "  And then there shall be a fire that knows the naming of you, and in the\n"
+     "  presence of the strangling fruit, its dark flame shall acquire every\n"
+     "  part of you that remains"                                                     ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1166,6 +1205,16 @@ static char *gby[] = {
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
      "If you have any questions about AFNI, ask ... Justin Rajendra :)"        ,
      "AFNI user's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"      ,
+
+     /* Other random thoughts from the BOB */
+
+     "Have you ever thought that maybe we have TOO MUCH data about the brain?"     ,
+
+     " Answer me this:\n"
+     "  How is it that you can evaluate and judge another person in 30 seconds,\n"
+     "  but that you cannot evaluate and judge your own self in 30 years?"         ,
+
+     "The story of life - Too soon old, too late smart ..."                        ,
 
      /* The Manchurian Candidate */
 
@@ -1216,10 +1265,10 @@ static char *gby[] = {
      "   it is always from the noblest motives"                                 ,
 
      "\n Although education is a fine thing, we would be well to remind ourselves\n"
-     "   from time to time that nothing worth knowing can actually be taught."  ,
+     "   from time to time that nothing worth knowing can actually be taught"   ,
 
      "\n Experience is an effective but cruel teacher,\n"
-     "   for it gives the test first and the lesson afterward."                 ,
+     "   for it gives the test first and the lesson afterward"                  ,
 
      "\n Good decisions come from experience ...\n"
      "   and experience mostly comes from from bad decisions"                   ,
@@ -1408,7 +1457,7 @@ static char *gby[] = {
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "Those are my statistics, and if you don't like them... well, I have others"             ,
      "When you come to a fork in the road -- take it"                                         ,
-     "Remember: computers do what you *tell* them to do, not what you *want* them to do."     ,
+     "Remember: computers do what you *tell* them to do, not what you *want* them to do"      ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1544,9 +1593,10 @@ static char *gby[] = {
 
      // Galois
      "Apres cela, il y aura, j'espere, des gens qui\n"
-     "  trouveront leur profit a dechiffrer tout ce gachis."                                  ,
+     "  trouveront leur profit a dechiffrer tout ce gachis"                                   ,
+
      "Later there will be, I hope, some people who\n"
-     "  will find it to their advantage to decipher all this mess."                           ,
+     "  will find it to their advantage to decipher all this mess"                            ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
@@ -1668,7 +1718,7 @@ static char *gby[] = {
      "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
      "  moving of the water. For an angel went down at a certain season into the\n"
      "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had." ,
+     "  of the water stepped in was made whole of whatsoever disease he had" ,
 
      /* From https://www.thesaurus.com/browse/wonderful */
 
