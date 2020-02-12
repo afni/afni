@@ -108,7 +108,11 @@ class APExample:
                     2 - include all parameter lists
       """
       print("="*75)
-      print("==== comparing '%s' vs '%s' ...\n" % (self.name, target.name))
+      print("==== comparing (current) '%s' vs (target) '%s'" \
+            % (self.name, target.name))
+      if verb == 1:
+         print('     (for more detail, consider "-verb 2")')
+      print("")
     
       # use more generic name
       source = self
@@ -155,7 +159,7 @@ class APExample:
          print("== extra   (%d): %s\n" % (len(eextra), [e[0] for e in eextra]))
          print("== fewer   (%d): %s\n" % (len(efewer), [e[0] for e in efewer]))
          print("== more    (%d): %s\n" % (len(emore),  [e[0] for e in emore ]))
-         print("== common  (%d)\n"     % (ncommon))
+         print("== common  (%d - with %d differing)\n" % (ncommon, len(pdiff)))
          print("== diffs   (%d): %s\n" % (len(pdiff),
                                        [source.olist[p[0]][0] for p in pdiff ]))
          return
@@ -176,22 +180,6 @@ class APExample:
       if len(eextra) > 0:
          maxk = max([len(e[0]) for e in eextra])
          for e in eextra:
-             estr = ' '.join(e[1])
-             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
-      print("")
-      
-      print("==========  fewer applied option(s) : %d" % len(efewer))
-      if len(efewer) > 0:
-         maxk = max([len(e[0]) for e in efewer])
-         for e in efewer:
-             estr = ' '.join(e[1])
-             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
-      print("")
-      
-      print("==========  more applied option(s) : %d" % len(emore))
-      if len(emore) > 0:
-         maxk = max([len(e[0]) for e in emore])
-         for e in emore:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
       print("")
@@ -225,6 +213,22 @@ class APExample:
              self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              print("")
 
+      print("==========  fewer applied option(s) : %d" % len(efewer))
+      if len(efewer) > 0:
+         maxk = max([len(e[0]) for e in efewer])
+         for e in efewer:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
+      print("")
+      
+      print("==========  more applied option(s) : %d" % len(emore))
+      if len(emore) > 0:
+         maxk = max([len(e[0]) for e in emore])
+         for e in emore:
+             estr = ' '.join(e[1])
+             self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
+      print("")
+      
       print("")
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
