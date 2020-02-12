@@ -672,11 +672,12 @@ g_history = """
     7.06 Jan 15, 2020: corr_* dsets are now correlations with ROI averages,
                        rather than average correlations across ROIs
     7.07 Feb  4, 2020: added help for some esoteric options
-    7.08 Feb  9, 2020: initial -compare_opts functionality
-       - added -compare_opts, -show_example, -show_example_names
+    7.08 Feb 12, 2020: initial -compare_opts functionality:
+       - added -compare_opts, -compare_example_pair,
+               -show_example, -show_example_names
 """
 
-g_version = "version 7.07, February 4, 2019"
+g_version = "version 7.08, February 12, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -725,9 +726,11 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
+  - when replacing 'examples' help section, move -ask_me EXAMPLES secion
   - ME:
      - handle MEICA tedana methods
         - m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        * WAS done, but soon-to-come tedana JSON output must be handled by AP
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
@@ -1127,6 +1130,8 @@ class SubjProcSream:
         # compare options
         self.valid_opts.add_opt('-compare_opts', 1, [],
                         helpstr="compare options against specified example")
+        self.valid_opts.add_opt('-compare_example_pair', 2, [],
+                        helpstr="compare the specified pair of examples")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -1742,13 +1747,23 @@ class SubjProcSream:
            self.compare_vs_opts(opt_list.olist, comp)
            return 0
         
+        if opt_list.find_opt('-compare_example_pair'):
+           pair, rv = opt_list.get_string_list('-compare_example_pair')
+           self.compare_example_pair(pair)
+           return 0
+        
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
            return 0
         
         if opt_list.find_opt('-show_example_names'):
-           self.show_example_names(verb=self.verb)
+           # if -verb was passed, use it, else let default apply
+           # (ugly, but lets the default be more of what would be expected)
+           if opt_list.find_opt('-verb'):
+              self.show_example_names(verb=self.verb)
+           else:
+              self.show_example_names()
            return 0
         
         # options which are NO LONGER VALID
@@ -3672,7 +3687,7 @@ class SubjProcSream:
         eg = EGS.find_eg(ename)
         eg.display(verb=verb, sphinx=0)
         
-    def show_example_names(self, verb=1):
+    def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
         
@@ -3688,6 +3703,15 @@ class SubjProcSream:
         eg = EGS.APExample('command', olist)
         # can pass a noelemnt list, of opts not to compare elements of
         eg.compare(comp, eskip=g_eg_dset_opts, verb=self.verb)
+
+    def compare_example_pair(self, pair):
+        """compare given the given pair of known examples
+        """
+        EGS = self.egs()
+        if len(pair) != 2:
+           print("** compare_example_pair: needs to example names")
+        EGS.compare_eg_pair(pair[0], pair[1],
+                            eskip=g_eg_dset_opts, verb=self.verb)
 
     # ----------------------------------------------------------------------
     # PPI regression script functions

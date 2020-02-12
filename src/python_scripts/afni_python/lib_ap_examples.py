@@ -255,19 +255,24 @@ class APExample:
 
        print("%s%-8s : %s%s" % (indent, tstr, kprint, estr))
 
-   def wrapped_ap_cmd(self, nindent=10, nextra=3):
-      """return a string that is an afni_proc.py command, indented by
-         nindent, with nextra indentation for option continuation
+   def command_string(self, wrap=0, windent=10):
+      """return a string that is an afni_proc.py command
+            if wrap: - return indented command
+                     - indent by windent
       """
      
       clist = ['%s %s' % (e[0], ' '.join(e[1])) for e in self.olist]
-      return UTIL.list_to_wrapped_command('afni_proc.py', clist,
-                                          nindent=14, maxlen=75)
+      if wrap:
+         return UTIL.list_to_wrapped_command('afni_proc.py', clist,
+                                             nindent=14, maxlen=75)
+      else:
+         clist.insert(0, 'afni_proc.py')
+         return ' '.join(clist)
 
    def display(self, verb=0, sphinx=1):
       """display a single example - use a copy for quoting
          verb: verbosity level
-           0: only show example
+           0: only show example, with no wrap or formatting
            1: include name, source, descrip
            2: full verbosity: as ap -help: include descrip, header, trailer
               - terminate descrip with ~2~, for sphinxificaiton
@@ -275,7 +280,13 @@ class APExample:
          ponder indentation
       """
       cc = self.copy(quotize=1)
-      cmd = cc.wrapped_ap_cmd()
+
+      # handle verb 0 right away, as the command string will differ
+      if verb == 0:
+         print("%s" % cc.command_string())
+         return
+
+      cmd = cc.command_string(wrap=1)
 
       indent = ' '*8
 
@@ -1456,6 +1467,23 @@ def show_enames(verb=1):
    indent = ' '*4
    for eg in ap_examples:
       print("%s%-*s : %s" % (indent, maxn, eg.name, eg.descrip))
+
+def compare_eg_pair(eg1, eg2, eskip=[], verb=1):
+   """similar to compare(), above, but compare 2 known examples"""
+
+   # set names and get an instance for the first entry, eg1
+   if isinstance(eg1, APExample):
+      n1 = eg1.name
+      eg = eg1
+   else:
+      n1 = eg1
+      eg = find_eg(eg1)
+      if not isinstance(eg, APExample):
+         print("** compare_eg_pair: failed to find example named '%s'" % n1)
+         return
+      
+   # so eg is the instance of eg1, just use it
+   return eg.compare(eg2, eskip=eskip, verb=verb)
 
 def display_eg_all(aphelp=1, source='', verb=0):
    """display the examples array if someone wants it

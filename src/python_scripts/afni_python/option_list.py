@@ -115,8 +115,9 @@ class OptionList:
     def show_as_array(self, mesg='', atype='pretty', verb=0):
         """atype    
                     arglist     - forget opts, just show the option list
-                    pretty      - enumerated options with params
+                    dict        - show as a dictionary
                     nested      - show as nested array
+                    pretty      - enumerated options with params
         """
         if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
                                      (mesg, self.label, len(self.olist)))
@@ -129,7 +130,8 @@ class OptionList:
            print("}")
         elif atype == 'pretty':
            for ind, opt in enumerate(self.olist):
-               print("%5s %-24s : %s" % ('[%d]'%ind, opt.name, opt.parlist))
+               print("%5s %-24s : %s" % ('[%d]'%ind, opt.name,
+                                         ' '.join(opt.parlist)))
         elif atype == 'nested':
            print("[")
            for opt in self.olist:
