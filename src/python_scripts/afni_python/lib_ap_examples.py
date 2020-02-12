@@ -117,6 +117,11 @@ class APExample:
       # use more generic name
       source = self
 
+      # get global max key len
+      maxs = max([len(key) for key in source.keys])
+      maxt = max([len(key) for key in target.keys])
+      maxk = max(maxs, maxt)
+
       # first look for missing and extra
       emiss =  [e for e in target.olist if e[0] not in source.keys]
       eextra = [e for e in source.olist if e[0] not in target.keys]
@@ -149,7 +154,7 @@ class APExample:
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                pdiff.append([ksource[ind], ktarget[ind]])
 
-      nindent = 4
+      nindent = 3
       ind1 = ' '*nindent
       ind2 = ' '*(2*nindent)
 
@@ -170,7 +175,6 @@ class APExample:
 
       print("==========  missing option(s) : %d" % len(emiss))
       if len(emiss) > 0:
-         maxk = max([len(e[0]) for e in emiss])
          for e in emiss:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -178,7 +182,6 @@ class APExample:
       
       print("==========  extra option(s) : %d" % len(eextra))
       if len(eextra) > 0:
-         maxk = max([len(e[0]) for e in eextra])
          for e in eextra:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -187,9 +190,6 @@ class APExample:
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
          skips = []
-         maxs = max([len(source.olist[pair[0]][0]) for pair in pdiff])
-         maxt = max([len(target.olist[pair[1]][0]) for pair in pdiff])
-         maxk = max(maxs, maxt)
          for pair in pdiff:
              oname = source.olist[pair[0]][0]
              if oname in eskip and verb < 2:
@@ -198,24 +198,20 @@ class APExample:
                    continue
                 skips.append(oname)
 
-                skip = 1
-                sstr = ' (skipping details - will not repeat)'
+                print("%s%-*s  (verb=1; skipping details)" \
+                      % (ind1, maxk, oname))
              else:
-                skip = 0
-                sstr = ''
-             print("%s%-*s : differences%s" % (ind1, maxk, oname, sstr))
-             # typically skip details of data inputs
-             if skip:
-                continue
-             ksstr = ' '.join(source.olist[pair[0]][1])
-             ktstr = ' '.join(target.olist[pair[1]][1])
-             self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
-             self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
+                # full details
+                print("%s%-*s" % (ind1, maxk, oname))
+
+                ksstr = ' '.join(source.olist[pair[0]][1])
+                ktstr = ' '.join(target.olist[pair[1]][1])
+                self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+                self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              print("")
 
       print("==========  fewer applied option(s) : %d" % len(efewer))
       if len(efewer) > 0:
-         maxk = max([len(e[0]) for e in efewer])
          for e in efewer:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -223,7 +219,6 @@ class APExample:
       
       print("==========  more applied option(s) : %d" % len(emore))
       if len(emore) > 0:
-         maxk = max([len(e[0]) for e in emore])
          for e in emore:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -241,7 +236,7 @@ class APExample:
              kprint = parstr[0:lmax]
              estr = ' ...'
 
-       print("%s%-*s   %s%s" % (indent, maxlen, oname, kprint, estr))
+       print("%s%-*s  %s%s" % (indent, maxlen, oname, kprint, estr))
 
    def _print_diff_line(self, indent, tstr, parstr, lmax=50):
        """if lmax > 0: restrict parstr to given length, plus elipsis
