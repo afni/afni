@@ -57,7 +57,7 @@ afni_history_struct rickr_history[] = {
    "   afni_proc.py -show_example 'Example 11b'\n"
    "   afni_proc.py -show_example_names\n"
    "   afni_proc.py ... my options here ... -compare_opts 'Example 11'\n"
-   "Motivated by C Caillard and P Taylor."
+   "Motivated by C Gaillard and P Taylor."
  } ,
 
  {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
