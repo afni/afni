@@ -18,7 +18,7 @@ if( $do_help )then
   echo "        to run. If those programs are not found, this script will fail."
   echo
   echo "Will produce a plot for each dataset whose name fits the wildcard"
-  echo "  errts.*+tlrc.HEAD"
+  echo "  *errts.*+tlrc.HEAD"
   echo "including errts.SUBJECT+tlrc and errts.SUBJECT_REML+tlrc,"
   echo "if both datasets were computed. Dataset errts.SUBJECT_REMLwh+tlrc"
   echo "will also be plotted, if option"
@@ -296,7 +296,7 @@ endif
 
 # grayplot diverse errts files
 
-set elist = ( errts.*+${spac}.HEAD )
+set elist = ( *errts.*+${spac}.HEAD )
 
 foreach iii ( `count -dig 1 1 $num_order` )
   set order = $order_list[$iii]

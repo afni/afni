@@ -27,6 +27,9 @@ int main(int argc, char **argv)
             " -no_length        = Skip lengths and offsets (helps diffs).\n"
             " -slice_times      = Show slice times from Siemens mosaic images.\n"
             " -slice_times_verb = Same, but be more verbose about it.\n"
+            "                     (multiple uses increases verbosity)\n"
+            "                     (can dump CSA data)\n"
+            " -siemens_csa_data = same as 3 -slice_times_verb opts\n"
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -91,6 +94,11 @@ int main(int argc, char **argv)
 
      if( strcmp(argv[iarg],"-noname") == 0 ){
        mri_dicom_noname(1) ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-siemens_csa_data") == 0 ){ /* 3 Feb 2020 */
+       do_stimes++ ;    /* redundant, but for complete output */
+       do_stimes_verb = 3; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-slice_times") == 0 ){  /* 14 Apr 2010 [rickr] */

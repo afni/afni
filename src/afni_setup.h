@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 #ifndef _AFNI_SETUP_HEADER_
-#define _AFNI_SETUP_HEADER
+#define _AFNI_SETUP_HEADER_
 
 #include "mcw_malloc.h"
 

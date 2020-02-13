@@ -6010,6 +6010,10 @@ extern MRI_IMAGE *build_byteized_vectors( int n ,              /* 02 Mar 2009 */
                                           float xbot,float xtop,float *x ,
                                           float ybot,float ytop,float *y  ) ;
 
+extern double ljung_box_uneven( int nval, int hh, double *val, int *tau ) ; /* 21 Jan 2020 */
+extern double ljung_box_zcens ( int nval, int hh, double *val ) ;
+extern MRI_IMAGE * mri_vec_to_ljmap( MRI_IMAGE *inim ) ;                    /* 05 Feb 2020 */
+
 /*------------------------------------------------------------------------*/
 /* Stuff for compression via zlib - see zfun.c - 02 Mar 2009 == snow day! */
 
@@ -6136,5 +6140,10 @@ typedef struct {
 
 extern char * THD_clustsim_atr_mask_dset_idcode( THD_3dim_dataset *dset ) ;
 extern float_triple THD_clustsim_atr_fwhmxyz( THD_3dim_dataset *dset ) ;
+
+/*------ Moved here from afni.h [13 Jan 2020] ------*/
+extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
+extern int  AFNI_needs_dset_ijk(void) ;
+extern int  AFNI_needs_dset_tin(void) ;
 
 #endif /* _MCW_3DDATASET_ */

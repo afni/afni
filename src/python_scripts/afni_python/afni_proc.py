@@ -669,9 +669,15 @@ g_history = """
     7.03 Nov  1, 2019: create out.mask_at_corr.txt
     7.04 Nov 21, 2019: added more current FreeSurfer babble to help
     7.05 Nov 29, 2019: added option -volreg_opts_ewarp
+    7.06 Jan 15, 2020: corr_* dsets are now correlations with ROI averages,
+                       rather than average correlations across ROIs
+    7.07 Feb  4, 2020: added help for some esoteric options
+    7.08 Feb 12, 2020: initial -compare_opts functionality:
+       - added -compare_opts, -compare_example_pair,
+               -show_example, -show_example_names
 """
 
-g_version = "version 7.05, November 29, 2019"
+g_version = "version 7.08, February 12, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -706,6 +712,8 @@ Miscellaneous older changes:
    17 Aug 2016 : blur estimates change from FWHM to ACF
       - FWHM values are now zero, to discourage use
 
+   15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
+                 average correlations (maps are similar by have better scales)
 
 More detailed changes, starting May, 2018.
 
@@ -718,9 +726,11 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
+  - when replacing 'examples' help section, move -ask_me EXAMPLES secion
   - ME:
      - handle MEICA tedana methods
         - m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        * WAS done, but soon-to-come tedana JSON output must be handled by AP
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
@@ -822,6 +832,18 @@ stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 # apply to apqc_make_tcsh.py
 g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
+g_eg_dset_opts = [ '-align_epi_ext_dset', 
+   '-anat_follower', '-anat_follower_ROI', 
+   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
+   '-surf_anat', '-tlrc_base', 
+   '-volreg_base_dset', '-volreg_warp_master', 
+   '-regress_censor_extern', '-regress_extra_stim_files', 
+   '-regress_make_ideal_sum', '-regress_motion_file', 
+   '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
+   '-ricor_regs'
+   ] 
+
 # --------------------------------------------------------------------------
 # data processing stream class
 class SubjProcSream:
@@ -832,6 +854,7 @@ class SubjProcSream:
         self.valid_opts = None          # list of possible user options
         self.user_opts  = None          # list of given user options
         self.sep_char   = '.'           # filename separator character
+        self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
@@ -1089,6 +1112,10 @@ class SubjProcSream:
                         helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-requires_afni_hist', 0, [],
                         helpstr='show history of -requires_afni_version')
+        self.valid_opts.add_opt('-show_example', 1, [],
+                        helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_names', 0, [],
+                        helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1099,6 +1126,12 @@ class SubjProcSream:
                         helpstr="show current todo list")
         self.valid_opts.add_opt('-ver', 0, [],
                         helpstr="show module version")
+
+        # compare options
+        self.valid_opts.add_opt('-compare_opts', 1, [],
+                        helpstr="compare options against specified example")
+        self.valid_opts.add_opt('-compare_example_pair', 2, [],
+                        helpstr="compare the specified pair of examples")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -1672,7 +1705,12 @@ class SubjProcSream:
         
         if opt_list.find_opt('-help_section'):     # just print help
             section, rv = opt_list.get_string_opt('-help_section')
-            show_program_help(section=section)
+            if section == 'EGS':
+               EGS = self.egs()
+               EGS.populate_examples()
+               EGS.display_eg_all(verb=2)
+            else:
+               show_program_help(section=section)
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history
@@ -1702,6 +1740,31 @@ class SubjProcSream:
         if opt_list.find_opt('-ver'):      # show the version string
             print(g_version)
             return 0  # gentle termination
+
+        # example and "compare" options - to compare option lists
+        if opt_list.find_opt('-compare_opts'):
+           comp, rv = opt_list.get_string_opt('-compare_opts')
+           self.compare_vs_opts(opt_list.olist, comp)
+           return 0
+        
+        if opt_list.find_opt('-compare_example_pair'):
+           pair, rv = opt_list.get_string_list('-compare_example_pair')
+           self.compare_example_pair(pair)
+           return 0
+        
+        if opt_list.find_opt('-show_example'):
+           eg, rv = opt_list.get_string_opt('-show_example')
+           self.show_example(eg, verb=self.verb)
+           return 0
+        
+        if opt_list.find_opt('-show_example_names'):
+           # if -verb was passed, use it, else let default apply
+           # (ugly, but lets the default be more of what would be expected)
+           if opt_list.find_opt('-verb'):
+              self.show_example_names(verb=self.verb)
+           else:
+              self.show_example_names()
+           return 0
         
         # options which are NO LONGER VALID
 
@@ -3608,6 +3671,47 @@ class SubjProcSream:
        if af.dgrid == 'epi': return 1
 
        return 0
+
+    # ----------------------------------------------------------------------
+    # APExample functions, based on EGS
+    def egs(self):
+        """return imported EGS library, so it is hidden if not used"""
+        if self.EGS == None:
+           import lib_ap_examples as EGS
+           self.EGS = EGS
+           self.EGS.populate_examples()
+        return self.EGS
+
+    def show_example(self, ename, verb=1):
+        EGS = self.egs()
+        eg = EGS.find_eg(ename)
+        eg.display(verb=verb, sphinx=0)
+        
+    def show_example_names(self, verb=2):
+        EGS = self.egs()
+        EGS.show_enames(verb=verb)
+        
+    def compare_vs_opts(self, olist, comp):
+        """compare given option list (list of BASE.comopt elements)
+           vs. comp (some APExample name)
+
+           - remove any -compare* options
+        """
+        EGS = self.egs()
+        olist = [ [opt.name, opt.parlist]
+                  for opt in olist if not opt.name.startswith('-compare')]
+        eg = EGS.APExample('command', olist)
+        # can pass a noelemnt list, of opts not to compare elements of
+        eg.compare(comp, eskip=g_eg_dset_opts, verb=self.verb)
+
+    def compare_example_pair(self, pair):
+        """compare given the given pair of known examples
+        """
+        EGS = self.egs()
+        if len(pair) != 2:
+           print("** compare_example_pair: needs to example names")
+        EGS.compare_eg_pair(pair[0], pair[1],
+                            eskip=g_eg_dset_opts, verb=self.verb)
 
     # ----------------------------------------------------------------------
     # PPI regression script functions

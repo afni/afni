@@ -49,14 +49,16 @@ class RTInterface:
       self.verb            = verb
 
       # per-run variables
-      self.version         = 0                  # 0,1,2: for extra data
+      self.version         = 0                  # 0..4: specifies extra data
       self.nextra          = 0                  # if version > 0
+      self.nextra2         = 0                  # if version == 4
       self.nread           = 0                  # TRs of data read, per connect
 
       # per-run accumulated data variables
       self.motion          = []                 # accumulate: 6 lists of vals
       self.extras          = []                 # accumulate: nextra lists
                                                 # (each of length nread)
+      self.extra2          = []                 # accumulate: nextra2 lists
 
       # TCP connection variables
       self.server_port     = 53214              # listen for connections here
@@ -72,6 +74,7 @@ class RTInterface:
 
       self.version      = 0
       self.nextra       = 0
+      self.nextra2      = 0
       self.nread        = 0
 
       # nuke lists that could use a lot of memory
@@ -79,11 +82,15 @@ class RTInterface:
       self.motion = []
       del(self.extras)
       self.extras = []
+      del(self.extra2)
+      self.extra2 = []
 
    def open_incoming_socket(self):
       """create a server port to listen for connections from AFNI"""
 
-      if self.verb>2: print('-- make server socket, port %d...'%self.server_port)
+      if self.verb > 2:
+         print("-- make server socket, port %d, timeout %s" \
+               % (self.server_port, socket.getdefaulttimeout()))
       elif self.verb>0: print('waiting for connection...')
 
       errs = 0
@@ -239,7 +246,7 @@ class RTInterface:
 
       if self.version == 0: pass        # we're good to go
 
-      elif self.version == 1 or self.version == 2:
+      elif self.version >= 1 and self.version <= 3:
          # ------------------------------------------------------------
          # read the next 4-byte int to determine the number of extra data
          # values received each TR
@@ -252,11 +259,29 @@ class RTInterface:
          if ilist[0] < 0: print('** received invalid num_extra = %d' % ilist[0])
          elif self.version == 1:
             self.nextra = ilist[0]
-         else: # version = 2
+         elif self.version == 2:
             self.nextra = ilist[0] * 8
+         else: # version = 2
+            self.nextra = ilist[0]
 
          if self.verb > 2:
             print('-- num extra = %d' % self.nextra)
+
+      elif self.version == 4:
+         ilist = self.read_ints_from_socket(2)
+         if ilist is None: return 1
+         if len(ilist) < 2:
+            print('** HELLO version 4: could not read 2 ints from socket')
+            return 1
+
+         if ilist[0] < 0: print('** received invalid num_extra = %d' % ilist[0])
+         if ilist[1] < 0: print('** received invalid num_ones = %d' % ilist[1])
+         self.nextra  = ilist[0]     # number of ROI means
+         self.nextra2 = ilist[1]     # number of mask==1 voxel values
+
+         if self.verb > 2:
+            print('-- num extra = %d, nextra2 = %d' \
+                  % (self.nextra, self.nextra2))
 
       else:     # bad, naughty version!
          print('** HELLO string trailer is not magic, want %s but have %s' \
@@ -314,25 +339,45 @@ class RTInterface:
          print('-- displaying data for TR %d' % tr)
 
       mprefix = "++ recv motion:     "
-      if self.version==1:   eprefix = "++ recv %d extras:   "%self.nextra
-      elif self.version==2: eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
+      if self.version in [1,3,4]:
+         eprefix = "++ recv %d extras:   "%self.nextra
+      elif self.version==2:
+          eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
 
       print(UTIL.float_list_string([self.motion[i][tr] for i in range(6)],
                            nchar=9, ndec=5, nspaces=2, mesg=mprefix, left=1))
       
       # version 1, all on one line
       if self.version == 1 and self.nextra > 0:
-         print(UTIL.gen_float_list_string([self.extras[i][tr] for i in
-                           range(self.nextra)], mesg=eprefix, nchar=10, left=1))
+         self.print_floats_one_line(self.extras, self.nextra, tr, eprefix)
+
       # version 2, each voxel on one line
-      elif self.version == 2 and self.nextra > 0:
-         print(eprefix, end=' ')
-         elen = len(eprefix)+1
-         print(UTIL.gen_float_list_string([self.extras[i][tr]
-                   for i in range(8)], mesg='', nchar=10, left=1))
-         for off in range(self.nextra//8 - 1):
-            print(UTIL.gen_float_list_string([self.extras[8*off+8+i][tr]
+      elif self.version in [2,3] and self.nextra > 0:
+         self.print_floats_multi_line(self.extras, self.nextra, tr, eprefix)
+
+      # version 4, ADDITIONALLY show extras2
+      elif self.version == 4 and (self.nextra > 0 or self.nextra2 > 0):
+         ep2 = "++ recv %d extra2:   "%(self.nextra2)
+         self.print_floats_multi_line(self.extras, self.nextra,  tr, eprefix)
+         self.print_floats_multi_line(self.extra2, self.nextra2, tr, ep2)
+
+   def print_floats_one_line(self, data, nvals, tr, mesg):
+         print(UTIL.gen_float_list_string([data[i][tr] for i in
+                           range(nvals)], mesg=mesg, nchar=10, left=1))
+
+   def print_floats_multi_line(self, data, nvals, tr, mesg):
+         print(mesg, end=' ')
+         elen = len(mesg)+1
+         # show all multiples of 8 vals
+         for off in range(nvals//8):
+            print(UTIL.gen_float_list_string([data[8*off+i][tr]
                   for i in range(8)], mesg=' '*elen, nchar=10, left=1))
+         # show the remaining
+         base = (nvals // 8) * 8
+         remain = nvals % 8
+         if remain:
+            print(UTIL.gen_float_list_string([data[base+i][tr]
+                      for i in range(remain)], mesg='', nchar=10, left=1))
 
    def socket_has_closed(self):
       """peek ahead for close message"""
@@ -369,7 +414,7 @@ class RTInterface:
       for ind in range(6):
          self.motion[ind].append(values[ind])
 
-      if self.verb > 4: print('%% current motion[0]: %s' % self.motion[0])
+      if self.verb > 4: print('== current motion[0]: %s' % self.motion[0])
 
       # read and append extra values
       if self.nextra > 0:
@@ -378,7 +423,20 @@ class RTInterface:
             print('** failed to read %d extras for TR %d' \
                   % (self.nextra, self.nread+1))
             return 1
+         if self.verb > 4:
+            print('== extras[%d]: %s' % (self.nextra, values))
          for ind in range(self.nextra): self.extras[ind].append(values[ind])
+
+      # read and append extra2 values
+      if self.nextra2 > 0:
+         values = self.read_floats_from_socket(self.nextra2)
+         if not values:
+            print('** failed to read %d extra2 for TR %d' \
+                  % (self.nextra2, self.nread+1))
+            return 1
+         if self.verb > 4:
+            print('== extras2[%d]: %s' % (self.nextra2, values))
+         for ind in range(self.nextra2): self.extra2[ind].append(values[ind])
 
       # possibly display TR data
       if self.show_times or self.verb > 2: self.display_run_time(self.nread)
@@ -393,6 +451,7 @@ class RTInterface:
       # initialize lists
       self.motion = [[] for i in range(6)]              # array of 6 lists
       self.extras = [[] for i in range(self.nextra)]    # array of nextra lists
+      self.extra2 = [[] for i in range(self.nextra2)]   # array of nextra2 lists
 
       rv = 0
       while rv == 0:
@@ -422,6 +481,7 @@ class RTInterface:
       # initialize lists
       self.motion = [[] for i in range(6)]              # array of 6 lists
       self.extras = [[] for i in range(self.nextra)]    # array of nextra lists
+      self.extra2 = [[] for i in range(self.nextra2)]   # array of nextra2 lists
 
       return 0
 

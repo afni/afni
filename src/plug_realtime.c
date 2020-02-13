@@ -79,6 +79,17 @@
 /** 02 Jun 2010: added ability to register merged data, and to align
                  channels via the same merge registration parameters [rickr] **/
 /** 15 Mar 2012: added AR_Mask_Dset, for per-run mask control        [rickr] **/
+/**  2 Jan 2020: added All_Data_light method                         [JGC]   **/
+/** 13 Jan 2020: merged reorder of ROI average operation             [rickr] **/
+/** 14 Jan 2020: apply regtime to ext reg dset; fix pre-merge align  [rickr]
+               * dx,y,z were used for multiple things, corrupting the
+                 channel merge values                                        **/
+/** 23 Jan 2020: added ROIs_and_data mask method for JGC             [rickr]
+                 This was given a new mask method (and in rr.py), sending 2
+                 lengths to the receiver, one for #(non-1)ROIs, one for the
+                 number of mask==1 voxels.                                   **/
+
+#define RT_VERSION_STR "23 Jan 2020: ROIs_and_data"
 
 
 /**************************************************************************/
@@ -261,6 +272,7 @@ typedef struct {
    byte *        mask ;           /* mask from g_mask_dset (from plugin)     */
    int           mask_nvals ;     /* number of non-zero mask values to use   */
    int           mask_nset ;      /* number of set voxels in mask            */
+   int           mask_nones ;     /* number of val==1 voxels in max          */
    double *      mask_aves ;      /* averages over each mask value           */
    int           mask_init;    /* Cameorn Craddock       */
 
@@ -365,6 +377,7 @@ static char helpstring[] =
    "                  It is likely that one would choose Current & Keep, as\n"
    "                  then all runs would be aligned to the first one, rather\n"
    "                  than each run aligned to its own Base Image.\n"
+   "                * Note that the Base Image index also applies to Extern.\n"
    "                * Note that using Current for the first run, and then\n"
    "                  choosing that dataset as Extern for future runs should\n"
    "                  be identical to using Current & Keep to begin with.\n"
@@ -372,6 +385,8 @@ static char helpstring[] =
    "                  For other Reg Base choices, this is ignored.\n"
    " Base Image   = The value sets the time index in the Reg Base dataset to\n"
    "                  which the alignment will take place.\n"
+   " Src Chan     = For multi-channel/echo data, specify which channel will\n"
+   "                  used to drive registration.\n"
    "\n"
    " Graph        = If set to 'Yes', will display a graph of the estimated\n"
    "                  motion parameters at the end of the run.\n"
@@ -389,13 +404,21 @@ static char helpstring[] =
    " Vals to Send = Controls sending extra data to serial_helper TCP port\n"
    "                (perhaps to serial_helper or realtime_receiver.py).\n"
    "\n"
-   "                    None          : do not send extra information\n"
-   "                    Motion Only   : send only the 6 motion parameters\n"
-   "                    ROI Means     : also send a mean for each Mask ROI\n"
-   "                    All Data      : send all Mask voxel data\n"
+   "                  None             : do not send extra information\n"
+   "                  Motion Only      : send only the 6 motion parameters\n"
+   "                  ROI Means        : also send a mean for each Mask ROI\n"
+   "                  All Data (heavy) : send all Mask voxel data, with extra\n"
+   "                                   - per voxel send 8 values:\n"
+   "                                     1D_index i j k x y z value\n"
+   "                  All Data (light) : send all Mask voxel data, no extras\n"
+   "                                   - per voxel send 1 value\n"
+   "                  ROIs and data    : send ROIs averages, plus raw data\n"
+   "                                   - per non-1 mask ROI, send average\n"
+   "                                   - per ==1 mask voxel, send raw value\n"
+   "                                     (mixing ROI means and Data (light))\n"
    "\n"
-   "                * Sending vals requires use of '3D realtime registration',\n"
-   "                  as it is based on the 3D registration parameters and the\n"
+   "                * Sending vals requires '3D realtime registration', as it\n"
+   "                  is based on the 3D registration parameters and the\n"
    "                  registered data.\n"
    "\n"
    "                --> see 'Mask' and 'Registration', above\n"
@@ -406,12 +429,20 @@ static char helpstring[] =
    "                * Has no effect if only one channel of data is sent.\n"
    "                * Only works if the data channels are float or complex\n"
    "                  data (doesn't work with shorts or bytes).\n"
+   "                   * except: Opt Comb works on short data\n"
    "                * Creates an extra '_mrg' dataset.\n"
-   "                * none    ==> don't combine channels at all\n"
-   "                  sum     ==> add channels [output is float or complex]\n"
-   "                  L1 norm ==> sum(absolute values) [output is float]\n"
-   "                  L2 norm ==> sqrt(sum of squares) [output is float]\n"
-   "\n"
+   "                * none     ==> don't combine channels at all\n"
+   "                  sum      ==> add channels [output is float or complex]\n"
+   "                  L1 norm  ==> sum(absolute values) [output is float]\n"
+   "                  L2 norm  ==> sqrt(sum of squares) [output is float]\n"
+   "                  T2* est  ==> sqrt(sum of squares) [output is float]\n"
+   "                  Opt Comb ==> 'Optimally Combine' the echoes\n"
+   "                     - needs 'T2* Ref Dset' specified\n"
+   "                     - registration probably needs extern dset, as EPI\n"
+   "                       should end up aligned to T2* reference\n"
+   "                     - 1. register echoes (channels) based on 'Src Chan'\n"
+   "                     - 2. applies reg params to all echoes\n"
+   "                     - 3. merge using OC method to weight the echoes\n"
    "MergeRegister = Turn on method for registering ChannelMerge dataset.  So\n"
    "                  instead of a registered channel 0 dataset, merge the\n"
    "                  channels via the ChannelMerge method, then apply the\n"
@@ -422,10 +453,12 @@ static char helpstring[] =
    "                * Creates chanreg dsets if MergeReg set to reg channels\n"
    "                MergeRegister values:\n"
    "                    none         ==> no merge registration\n"
-   "                    reg merged   ==> register merged datasets\n"
+   "                    reg merged   ==> register merged channels\n"
    "                    reg channels ==> apply merge xform to all channels,\n"
-   "                            i.e. create 'registered' dataset per channel\n"
-   "\n"
+   "                       - register all chanels based on 'Src Chan'\n"
+   "                       - apply registration params to all chan/echoes\n"
+   "                         i.e. create 'registered' dataset per channel\n"
+   "                       - merge the registered channels\n"
    " Chan List    = Select a list of channels to merge (otherwise use all).\n"
    "                  Use sub-brick style syntax to select which channels to\n"
    "                  merge, e.g. 0..$(2) would be the even channels, and\n"
@@ -440,6 +473,15 @@ static char helpstring[] =
    "                    Registered : write each registered volume\n"
    "                    Merged     : write each merged volume\n"
    "                                 (after being merged across channels)\n"
+   " T2* Ref Dset = Specify a single volume T2* dataset to be used for the\n"
+   "                  Opt Comb (optimally combined) ChannelMerge method.\n"
+   "\n"
+   " Detrend      = <insert useful information here>\n"
+   "\n"
+   "                * Currently, Mask ROI detrending comes from the 'Mask'\n"
+   "                  block above.  That will change.  In the future, ROI\n"
+   "                  average sending (Vals to Send) should be possible after\n"
+   "                  (separate) ROI detrending.\n"
    "\n"
    "MULTICHANNEL ACQUISITION [Aug 2002]:\n"
    " Multiple image channels can be acquired (e.g., from multi-coil and/or\n"
@@ -526,12 +568,25 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   static char * REG_BASE_strings_ENV[NREG_BASE] = {
     "Current_Run", "Current_Run_Keep", "External_Dataset" } ;
 
-#define N_RT_MASK_METHODS 4     /* 15 Jul 2008 [rickr] */
+#define N_RT_MASK_METHODS 6     /* 15 Jul 2008 [rickr] */
   static char * RT_mask_strings[N_RT_MASK_METHODS] = {
-    "None" , "Motion Only", "ROI means" , "All Data" } ;
+    "None" , "Motion Only", "ROI means" ,
+    "All Data (heavy)" , "All Data (light)", "ROIs and data"} ;
 
+/* RT mask mechods:
+
+   None                 : nothing sent
+   Motion_Only          : 6 motion parameters, per time point
+   ROI_means            : 6 motion, plus the mean over each ROI index
+   All_Data             : big: 6 motion plus index, ijk, xyz, value for each vox
+   All_Data_light       : 6 motion, plus each voxel value (over mask)
+   ROIs_and_data        : 6 motion,
+                          each ROI average (for ROI index > 1)
+                          each voxel value (for ROI index == 1)
+*/
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
-    "None" , "Motion_Only", "ROI_means" , "All_Data" } ;
+    "None" , "Motion_Only", "ROI_means" ,
+    "All_Data", "All_Data_light", "ROIs_and_data"} ;
 
 /* Variables to enable writing individual time-point volumes to disk */
 #define RT_WRITE_NOTHING       0
@@ -707,6 +762,9 @@ static int  RT_mp_check_env_for_mask( void );
 static int  RT_mp_rm_env_mask   ( void );
 static int  RT_mp_get_mask_aves ( RT_input * rtin, int sub );
 static int  RT_mp_set_mask_data ( RT_input * rtin, float * data, int sub );
+static int  RT_mp_set_mask_data_light ( RT_input * rtin, float * data, int sub);
+static int  RT_mp_set_mask_aves_n_data( RT_input * rtin, float * data, int sub);
+
 static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 
 static int  RT_mp_getenv        ( void );
@@ -920,6 +978,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
    PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0),TRUE);
 
+   /* see AFNI_REALTIME_Mask_Dset for setting Mask dset */
+
    /* try to set the mask vals option from the env */
    ept = getenv("AFNI_REALTIME_Mask_Vals")  ;  /* 15 Jul 2008 [rickr] */
    if( ept != NULL ){
@@ -929,7 +989,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /* but if no HOST_PORT, it must be cleared */
    ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;
-   if( ept == NULL ) g_mask_val_type = 0;
+   if( ept == NULL && g_mask_val_type ) {
+      fprintf(stderr,"** RTM: clearing Mask_Vals setting from %s\n"
+                     "        as AFNI_REALTIME_MP_HOST_PORT is unset\n",
+              (g_mask_val_type >= 0 && g_mask_val_type <= N_RT_MASK_METHODS) ?
+              RT_mask_strings_ENV[g_mask_val_type] : "INVALID");
+      g_mask_val_type = 0;
+   }
 
    /* mask dataset option line   10 Nov 2006 [rickr] */
    PLUTO_add_option( plint , "" , "Masking" , FALSE ) ;
@@ -1173,6 +1239,7 @@ char * RT_main( PLUGIN_interface * plint )
                       "RT_opts: choose Reg Base 'Extern Dset'\n"
                       "**************************************" ;
             g_reg_base_dset = THD_copy_one_sub(g_reg_base_dset, regtime);
+            regtime = 0;
             if( ! g_reg_base_dset ) {
                sprintf(buf, /* rely on being static */
                 "*********************************************\n"
@@ -1547,11 +1614,14 @@ Boolean RT_worker( XtPointer elvis )
          nerr++ ; iochan_sleep(1) ;
          return (nerr > 9) ? True : False; /* 12 Oct 2000: if a lot of errors */
       }
+
       nerr = 0 ;                           /* reset error count */
       if( jj == 0 ) return False ;         /* try later if no connection now */
       rtinp = new_RT_input(NULL) ;         /* try to make a new input struct */
       IOCHAN_CLOSENOW( ioc_control ) ;     /* not needed any more */
       if( rtinp == NULL ) return False ;   /* try later (?) */
+
+      /* rcr - here : add details     if (verbose > 1) */
    }
 
    /**---------------------------------------------------------------**/
@@ -1927,10 +1997,15 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    int ii , cc ;
    Three_D_View *im3d ;
 
+   if( verbose > 0 ) fprintf(stderr,"RT: version %s\n", RT_VERSION_STR);
+
    if( ioc_data == NULL ){ /*** THE OLD WAY: get info from control channel ***/
 
      int ncon ;
      char *con , *ptr ;
+
+     if( verbose > 0 )
+        fprintf(stderr,"RT: init RT input via control channel\n");
 
      /** wait until data can be read, or something terrible happens **/
 
@@ -2038,6 +2113,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    } else {  /*** THE NEW WAY: directly connect to ioc_data channel [10 DEC 2002] ***/
 
      /** make new structure **/
+
+     if( verbose > 0 )
+        fprintf(stderr,"RT: init RT input via data channel\n");
 
      rtin = (RT_input *) calloc( 1 , sizeof(RT_input) ) ;
      if( rtin == NULL ){
@@ -2221,13 +2299,13 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
        }
        if( bset == NULL ){
          bset = THD_open_dataset(dname) ;
-        
        }
+
+       /* could apply later THD_copy_one_sub(g_reg_base_dset, regtime) here */
        if( bset != NULL ){
          INFO_message("env.var. sets registration base: %s=%s",RBENV,dname) ;
          g_reg_base_dset = bset ;
          g_reg_base_mode = RT_RBASE_MODE_EXTERN ;
-         regtime         = 0 ;
        } else {
          WARNING_message("env.var. fails to find dataset: %s=%s",RBENV,dname) ;
        }
@@ -2256,8 +2334,18 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->chan_list      = NULL;
 
    /* if dset to copy, dupe one vol                  04 Sep 2009 [rickr] */
-   if(g_reg_base_dset) rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset,0);
-   else                rtin->reg_base_dset=NULL;
+   if(g_reg_base_dset) {
+      /* be sure regtime makes sense */
+      if( regtime < 0 || regtime >= DSET_NVALS(g_reg_base_dset) ) {
+         fprintf(stderr,"** bad regtime %d for g_reg_base_dset\n", regtime);
+         regtime = 0;
+      }
+      rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset, regtime);
+      regtime = 0;
+      rtin->reg_base_index = regtime;
+   } else
+      rtin->reg_base_dset=NULL;
+
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
@@ -2298,7 +2386,8 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
    rtin->mask_init = 0 ;  /* CC: flag to indicate that mask was initialized */
    rtin->mask_nvals = 0 ;
-   rtin->mask_nset  = 0 ;
+   rtin->mask_nset  = 0 ;         /* total number of set mask voxles        */
+   rtin->mask_nones = 0 ;         /* total number of mask voxels == 1       */
 
    rtin->is_oblique = 0 ;         /* oblique info       10 Jul 2008 [rickr] */
    memset(rtin->oblique_mat, 0, sizeof(rtin->oblique_mat)) ;
@@ -2670,11 +2759,24 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
         tr_vals = 6;    /* enough for motion */
         bsize   = 6;
     } else if( g_mask_dset && g_mask_val_type == 2 ) {
-        tr_vals = 256 + 6;    /* enough for many masks and motion */
+        tr_vals = 256 + 6;               /* enough for motion and many masks */
         bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
     } else if( g_mask_dset && g_mask_val_type == 3 ) {
         bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
         tr_vals = bsize;
+    } else if( g_mask_dset && g_mask_val_type == 4) {
+        bsize   = 6 + rtin->mask_nset; /* motion and all vals (light-weight) */
+        tr_vals = bsize; 
+    } else if( g_mask_dset && g_mask_val_type == 5) {
+                        /* motion plus non-1 mask averages plus all-1 voxels */
+        if( rtin->mask_nvals <= 0 ) {
+           /* do we allow this? */
+           fprintf(stderr,"** RTM: no mask to send data for\n");
+           bsize = 6;
+        } else {
+           bsize = 6 + rtin->mask_nvals-1 + rtin->mask_nones;
+        }
+        tr_vals = bsize; 
     } else {
         fprintf(stderr,"** need mask to send data\n");
         RT_mp_comm_close(rtin, 0);
@@ -2708,16 +2810,34 @@ static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
 
             /* process mask, if desired (ROI averages or all set values) */
             if( g_mask_dset && g_mask_val_type == 2 ) {
-                if( ! RT_mp_get_mask_aves(rtin, sub+mpindex) )
+                if( ! RT_mp_get_mask_aves(rtin, sub+mpindex) ) {
                     for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
                         data[bsize*c+6+c2] = (float)rtin->mask_aves[c2+1];
-                else {  /* bad failure, close socket */
+                } else {  /* bad failure, close socket */
                     RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
             } else if( g_mask_dset && g_mask_val_type == 3 ) {
                 dind = bsize*c+6;  /* note initial offset */
                 if( RT_mp_set_mask_data(rtin, data+dind, sub+mpindex) ) {
+                    RT_mp_comm_close(rtin, 0);
+                    return -1;
+                }
+            } else if( g_mask_dset && g_mask_val_type == 4 ) {
+                dind = bsize*c+6;  /* note initial offset */
+                if( RT_mp_set_mask_data_light(rtin, data+dind, sub+mpindex) ) {
+                    RT_mp_comm_close(rtin, 0);
+                    return -1;
+                }
+            } else if( g_mask_dset && g_mask_val_type == 5 ) {
+                /* still compute mask averages (don't bother to exclude 1) */
+                if( RT_mp_get_mask_aves(rtin, sub+mpindex) ) {
+                    RT_mp_comm_close(rtin, 0);
+                    return -1;
+                }
+
+                dind = bsize*c+6;  /* note initial offset (motion) */
+                if( RT_mp_set_mask_aves_n_data(rtin, data+dind, sub+mpindex)) {
                     RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
@@ -2770,7 +2890,7 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     THD_ivec3   ivec;
     void      * dptr;
     float       ffac;
-    int         dind, vind, iv, nvox;
+    int         dind, iv, nvox;
     int         i, j, k, nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
@@ -2801,13 +2921,11 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     if( ffac == 0.0 ) ffac = 1.0;
 
     dind = 0;   /* index into output data array */
-    vind = 0;   /* mask counter */
     dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
     for( iv=0 ; iv < nvox ; iv++ ) {
        if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
 
        /* we have a good voxel, fill everything but value, first */
-       vind++;
 
        IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
        LOAD_IVEC3(ivec,i,j,k);
@@ -2825,6 +2943,133 @@ static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
        data[dind++] = fvec.xyz[2];
 
        if( rtin->datum == MRI_short )   /* and finally set data value */
+           data[dind++] = ((short *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_float )
+           data[dind++] = ((float *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_byte )
+           data[dind++] = ((byte *)dptr)[iv]*ffac;
+    }
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
+   Set non-1 ROI averages and all val==1 mask values.     19 Jan 2020 [rickr]
+   (motion has already been set)
+
+        nmask-1 + nones values
+
+   return 0 on success
+-----------------------------------------------------------------------------*/
+static int RT_mp_set_mask_aves_n_data( RT_input * rtin, float * data, int sub )
+{
+    void      * dptr;
+    float       ffac;
+    int         dind, nvox, iv;
+    int         nx, nxy;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+       fprintf(stderr,"** RT_mp_SMDL: not set for sub-brick %d\n",sub);
+       return -1;
+    }
+
+    if( sub < 0 ) return 0;
+
+    if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
+       fprintf(stderr,"** RT_mp_SMDL: no mask information to apply\n");
+       return -1;
+    }
+
+    /* note dimensions */
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mp_mask_free(rtin);
+    }
+    nx = DSET_NX(g_mask_dset);
+    nxy = nx * DSET_NY(g_mask_dset);
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 0.0 ) ffac = 1.0;
+
+    /* init counters */
+    dind = 0;   /* index into output data array */
+    dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
+
+    /* start by setting non-1 mask aves (skip first iv) */
+    for ( iv = 1; iv < rtin->mask_nvals; iv++ )
+       data[dind++] = (float)rtin->mask_aves[iv+1];
+
+    for( iv=0 ; iv < nvox ; iv++ ) {
+       /* if mask val is not exactly 1, skip */
+       if( rtin->mask[iv] != 1 ) continue;
+
+       /* we have a good voxel */
+
+       /* set the data value (convert to float) */
+       if( rtin->datum == MRI_short )
+           data[dind++] = ((short *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_float )
+           data[dind++] = ((float *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_byte )
+           data[dind++] = ((byte *)dptr)[iv]*ffac;
+    }
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
+   Like RT_mp_set_mask_data, but for each masked voxel, send only that voxel
+   data value (so no index, i,j,k, x,y,z).
+
+   return 0 on success
+-----------------------------------------------------------------------------*/
+static int RT_mp_set_mask_data_light( RT_input * rtin, float * data, int sub )
+{
+    void      * dptr;
+    float       ffac;
+    int         dind, nvox, iv;
+    int         nx, nxy;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+       fprintf(stderr,"** RT_mp_SMDL: not set for sub-brick %d\n",sub);
+       return -1;
+    }
+
+    if( sub < 0 ) return 0;
+
+    if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
+       fprintf(stderr,"** RT_mp_SMDL: no mask information to apply\n");
+       return -1;
+    }
+
+    /* note dimensions */
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mp_mask_free(rtin);
+    }
+    nx = DSET_NX(g_mask_dset);
+    nxy = nx * DSET_NY(g_mask_dset);
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 0.0 ) ffac = 1.0;
+
+    dind = 0;   /* index into output data array */
+    dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
+    for( iv=0 ; iv < nvox ; iv++ ) {
+       if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
+
+       /* we have a good voxel */
+
+       /* set the data value (convert to float) */
+       if( rtin->datum == MRI_short )
            data[dind++] = ((short *)dptr)[iv]*ffac;
        else if( rtin->datum == MRI_float )
            data[dind++] = ((float *)dptr)[iv]*ffac;
@@ -2980,6 +3225,7 @@ static int RT_mp_mask_free( RT_input * rtin )
     if( rtin->mask )     { free(rtin->mask);      rtin->mask      = NULL; }
     if( rtin->mask_aves ){ free(rtin->mask_aves); rtin->mask_aves = NULL; }
     rtin->mask_nset  = 0;
+    rtin->mask_nones = 0;
     rtin->mask_nvals = 0;
     rtin->mask_init = 0; /* Cameron Craddock turn off the mask */
     return 1;
@@ -3048,8 +3294,9 @@ static int RT_mp_getenv( void )
     if( estr != NULL ){
         int ii = PLUTO_string_index(estr,N_RT_MASK_METHODS,RT_mask_strings_ENV);
         if( ii >= 0 && ii < N_RT_MASK_METHODS ) g_mask_val_type = ii;
-        if(verbose>1) fprintf(stderr,"++ RTM getenv: mvals = %s\n",
+        if(verbose) fprintf(stderr,"++ RTM getenv: mvals = %s\n",
                               RT_mask_strings_ENV[g_mask_val_type]);
+        if(verbose>1) fprintf(stderr,"-- RTM getenv, set from %s\n", estr);
     }
 
     if( ! g_mask_val_type ) return 0;
@@ -3082,7 +3329,7 @@ static int RT_mp_comm_init( RT_input * rtin )
     struct sockaddr_in   sin;
     struct hostent     * hostp;
     char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
-    int                  sd, send_nvals = 0, rv;
+    int                  sd, send_nvals = 0, rv, mask_req;
 
      /* if error or not in use, return */
     if( RT_mp_getenv() || ! g_mask_val_type) {
@@ -3094,26 +3341,48 @@ static int RT_mp_comm_init( RT_input * rtin )
      *    0 : original magic_hi
      *    1 : magic_hi[3] += 1   -> also send num_extra as int
      *    2 : magic_hi[3] += 2   -> also send num_extra as int for ALL_DATA
+     *    3 : magic_hi[3] += 3   -> also send num_extra for ALL_DATA light
+     *    4 : magic_hi[3] += 4   -> also send num_extra for nROIs and nones
      *
      * if we are prepared to send mask info, and hello mode is set, then
-     * note to also send mask_nvals (or mask_nset)
+     * note to also send mask_nvals (or mask_nset) and possibly nones
      */
+    mask_req = 0; /* note separately whether a mask is required */
     if( g_MP_send_ver ) {  /* send VERSION info */
         if ( g_mask_val_type == 1 ) {                       /* motion only */
             send_nvals = 0;
             magic_hi[3] += 1;
-        } else if ( g_mask_val_type == 2 && g_mask_dset ) { /* averages */
+        } else if ( g_mask_val_type == 2 ) {                /* averages */
+            mask_req = 1;
             send_nvals = rtin->mask_nvals;
             magic_hi[3] += 1;
-        } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
+        } else if( g_mask_val_type == 3 ) {                 /* all data */
+            mask_req = 1;
             send_nvals = rtin->mask_nset;
             magic_hi[3] += 2;
+        } else if( g_mask_val_type == 4 ) {                 /* data only */
+            mask_req = 1;
+            send_nvals = rtin->mask_nset;
+            magic_hi[3] += 3;
+        } else if( g_mask_val_type == 5 ) {         /* ROI aves and data */
+            mask_req = 1;
+            send_nvals = rtin->mask_nvals-1;
+            /* NOTE: we will also send rtin->mask_nones, below */
+            magic_hi[3] += 4;
         } else {                                            /* bad combo */
-            fprintf(stderr,"** RTM init: mask is required with type %d\n",
+            fprintf(stderr,"** RTM init: unprepared for mask_val type %d\n",
                     g_mask_val_type);
             rtin->mp_tcp_use = -1;
             return -1;
         }
+    }
+
+    /* check the mask separately */
+    if( mask_req && ! g_mask_dset ) {
+       fprintf(stderr,"** RTM init: mask is required with mask_val type %d\n",
+               g_mask_val_type);
+       rtin->mp_tcp_use = -1;
+       return -1;
     }
 
     if ( rtin->mp_tcp_sd != 0 )
@@ -3172,6 +3441,23 @@ static int RT_mp_comm_init( RT_input * rtin )
         }
         if( verbose )
             fprintf(stderr,"RTM: sent nextra = %d with hello\n", send_nvals);
+
+        /* in the case of ROIs_and_data, also send rtin->nones */
+        if( g_mask_val_type == 5 ) {
+            send_nvals = rtin->mask_nones;
+            if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
+            {
+                perror("** RT_mp_comm send hello nones");
+                RT_mp_comm_close(rtin, -1);
+                return -1;
+            } else if ( rv != sizeof(int) ) {
+                fprintf(stderr,"** RT nones: sent only %d of 4 bytes\n", rv);
+                RT_mp_comm_close(rtin, -1);
+                return -1;
+            }
+            if( verbose )
+                fprintf(stderr,"RTM: sent nones = %d with hello\n", send_nvals);
+        }
     }
 
     fprintf(stderr,"RTM: opened motion param socket to %s:%d\n",
@@ -3209,6 +3495,8 @@ static int RT_mp_comm_init_vars( RT_input * rtin )
     ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;  /* 09 Oct 2000 */
     if( ept == NULL ) {
         rtin->mp_tcp_use = -1;
+        if( verbose > 1 )
+           fprintf(stderr,"RTM: no MP_HOST_PORT, shutting down mp_tcp_use\n");
         return 0;
     }
 
@@ -3276,8 +3564,14 @@ static int RT_mp_init_mask( RT_input * rtin )
     rtin->mask_nset = 0;
     for( c = 0, max = rtin->mask[0]; c < DSET_NVOX(g_mask_dset); c++ )
     {
-        if( rtin->mask[c]       ) rtin->mask_nset++;
-        if( rtin->mask[c] > max ) max = rtin->mask[c];
+        /* start by skipping non-mask voxels 19 Jan 2020 [rickr] */
+        if( ! rtin->mask[c] ) continue;
+
+        rtin->mask_nset++;                              /* count all set */
+
+        if( rtin->mask[c] == 1  ) rtin->mask_nones++;   /* count vox==1  */
+        if( rtin->mask[c] > max ) max = rtin->mask[c];  /* track max     */
+
     }
 
     rtin->mask_nvals = max;
@@ -4928,9 +5222,11 @@ void RT_process_image( RT_input * rtin )
       /** 02 Jun 2009: merger operations?
                        if have completed a full set of channels, that is **/
 
-      /* rcr OC - check for pre-reg merge */
+      /* rcr OC - check for pre-reg merge (after last channel is acquired) */
       if( cc+1 == rtin->num_chan && 
           RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
+        if( verbose > 1 )
+           fprintf(stderr,"++ about to pre-reg merge\n");
         RT_merge( rtin, cc, -1);
       }
 
@@ -4956,17 +5252,24 @@ void RT_process_image( RT_input * rtin )
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
          int tt, ntt=DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
-         int tfirst = rtin->mrg_nvol;
 
          for( tt = rtin->mrg_nvol; tt < ntt && tt < rtin->reg_nvol; tt++ ) {
             if( verbose > 1 )
-               fprintf(stderr,"++ about to merge time index %d\n", tt);
+               fprintf(stderr,"++ about to post-reg merge time index %d\n", tt);
             RT_merge( rtin, cc, tt);
          }
+      }
 
-         /* possibly send mot params and ROI aves   2 Mar 2017 [rickr] */
-         if ( rtin->mp_tcp_use > 0 && rtin->reg_mode == REGMODE_3D_RTIME )
-            RT_mp_comm_send_data_wrapper( rtin, tfirst, ntt );
+      /* possibly send mot params and ROI aves   2 Mar 2017 [rickr] */
+      if ( rtin->mp_tcp_use > 0 && rtin->reg_mode == REGMODE_3D_RTIME )
+      {
+         int tfirst = rtin->mp_npsets, ttop;
+         if ( RT_when_to_merge() == RT_CM_MERGE_AFTER_REG )
+            ttop = rtin->mrg_nvol;
+         else
+            ttop = rtin->reg_nvol;
+
+         RT_mp_comm_send_data_wrapper( rtin, tfirst, ttop );
       }
 
       /* Cameron Craddock
@@ -6515,16 +6818,16 @@ void RT_registration_3D_realtime( RT_input *rtin )
       yar[5] = rtin->reg_psi   + ttbot ;
       yar[6] = rtin->reg_theta + ttbot ;
 
-      /* send the data off over tcp connection               30 Mar 2004 [rickr] */
-      /* - if merging after reg, send the data after merging  2 Mar 2017 [rickr] */
-      if ( rtin->mp_tcp_use > 0 && RT_when_to_merge() != RT_CM_MERGE_AFTER_REG ) {
-          RT_mp_comm_send_data_wrapper(rtin, ttbot, ntt);
-      } else if( g_show_times ) {
+      /* send the data off over tcp connection           30 Mar 2004 [rickr] */
+      /* - if merge after reg, send data after merging    2 Mar 2017 [rickr] */
+      /* *** no longer send data at this point ***       19 Dec 2019 [rickr] */
+      /*     (only call RT_mp_comm_send_data_wrapper from RT_process_image)  */
+
+      if( g_show_times ) {
           char vmesg[64];
           sprintf(vmesg,"registered %d vol(s), %d..%d",ntt-ttbot,ttbot,ntt-1);
           RT_show_duration(vmesg);
       }
-
 
       if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
       {
@@ -6828,10 +7131,16 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    */
 
    if( RT_will_register_merged_dset(rtin) ) {
-      if(verbose && !tt) fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
+      if(verbose && !tt)   /* chat at time point 0 */
+         fprintf(stderr,"RTCM: using mrg_dset as reg source\n");
       source = rtin->mrg_dset ;
    }
-   else source = rtin->dset[g_reg_src_chan] ; /* 0 -> g_reg_src_chan */
+   else {
+      if(verbose && !tt) /* chat at time point 0 */
+         fprintf(stderr,"RT: use chan[%d] dset as reg source\n",
+                 g_reg_src_chan);
+      source = rtin->dset[g_reg_src_chan] ; /* 0 -> g_reg_src_chan */
+   }
 
    if( source == NULL ) return ;
 
@@ -6869,12 +7178,20 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN ) {
       /* align mrg_dset and all channels as followers  27 May 2010 [rickr] */
       /* input imarr should have source image and then each channel        */
+      if(verbose>1 && !tt) { /* chat at time point 0 */
+         fprintf(stderr,"RTCM: applying align params to %d channels\n",
+                 rtin->num_chan);
+         fprintf(stderr,"RTCM init motion [%d]: %f %f %f %f %f %f\n",
+                 tt, roll, pitch, yaw, dx, dy, dz);
+      }
       INIT_IMARR(imarr);
-      dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   /* store for channels */
+      /* is this needed (aaaa5555)?  if so, needs alt var names
+         dx = qim->dx ; dy = qim->dy ; dz = qim->dz ;   * store for channels */
 
       for( cc = 0; cc < rtin->num_chan; cc++ ) {
          tim = DSET_BRICK(rtin->dset[cc],tt) ;
-         tim->dx = dx ; tim->dy = dy ; tim->dz = dz ;  /* from qim */
+         /* is this needed (aaaa5555)?
+            tim->dx = dx ; tim->dy = dy ; tim->dz = dz ;  * from qim */
          ADDTO_IMARR(imarr, tim);
       }
 
@@ -6897,21 +7214,21 @@ void RT_registration_3D_onevol( RT_input *rtin , int tt )
    yaw   *= R2DFAC ; if( rtin->hax3 < 0 ) yaw   = -yaw   ;
 
    switch( source->daxes->xxorient ){
-      case ORI_R2L_TYPE: ddy =  dx; break ; case ORI_L2R_TYPE: ddy = -dx; break ;
-      case ORI_P2A_TYPE: ddz = -dx; break ; case ORI_A2P_TYPE: ddz =  dx; break ;
-      case ORI_I2S_TYPE: ddx =  dx; break ; case ORI_S2I_TYPE: ddx = -dx; break ;
+      case ORI_R2L_TYPE: ddy =  dx; break; case ORI_L2R_TYPE: ddy = -dx; break;
+      case ORI_P2A_TYPE: ddz = -dx; break; case ORI_A2P_TYPE: ddz =  dx; break;
+      case ORI_I2S_TYPE: ddx =  dx; break; case ORI_S2I_TYPE: ddx = -dx; break;
    }
 
    switch( source->daxes->yyorient ){
-      case ORI_R2L_TYPE: ddy =  dy; break ; case ORI_L2R_TYPE: ddy = -dy; break ;
-      case ORI_P2A_TYPE: ddz = -dy; break ; case ORI_A2P_TYPE: ddz =  dy; break ;
-      case ORI_I2S_TYPE: ddx =  dy; break ; case ORI_S2I_TYPE: ddx = -dy; break ;
+      case ORI_R2L_TYPE: ddy =  dy; break; case ORI_L2R_TYPE: ddy = -dy; break;
+      case ORI_P2A_TYPE: ddz = -dy; break; case ORI_A2P_TYPE: ddz =  dy; break;
+      case ORI_I2S_TYPE: ddx =  dy; break; case ORI_S2I_TYPE: ddx = -dy; break;
    }
 
    switch( source->daxes->zzorient ){
-      case ORI_R2L_TYPE: ddy =  dz; break ; case ORI_L2R_TYPE: ddy = -dz; break ;
-      case ORI_P2A_TYPE: ddz = -dz; break ; case ORI_A2P_TYPE: ddz =  dz; break ;
-      case ORI_I2S_TYPE: ddx =  dz; break ; case ORI_S2I_TYPE: ddx = -dz; break ;
+      case ORI_R2L_TYPE: ddy =  dz; break; case ORI_L2R_TYPE: ddy = -dz; break;
+      case ORI_P2A_TYPE: ddz = -dz; break; case ORI_A2P_TYPE: ddz =  dz; break;
+      case ORI_I2S_TYPE: ddx =  dz; break; case ORI_S2I_TYPE: ddx = -dz; break;
    }
 
    nest = rtin->reg_nest ;
@@ -7849,6 +8166,13 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 
            DSET_load(rtin->t2star_ref_dset);
            t2star_ref = DSET_ARRAY(rtin->t2star_ref_dset, 0);
+
+           /* warn on bad (probably unset) TEs */
+           for (cc=0 ; cc < ndsets ; cc++)
+              if( rtin->TE[cc] <= 0.0 ) {
+                 fprintf(stderr,"** RT OC: bad TE[%d] = %f\n",
+                         cc, rtin->TE[cc]);
+              }
 
            for (ii=0 ; ii < nvox ; ii++)
            {

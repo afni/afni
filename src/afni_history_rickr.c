@@ -49,6 +49,111 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Feb, 2020, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "add ability to compare against examples",
+   "Add options -compare_opts, -compare_example_pair, -show_example and\n"
+   "            -show_example_names.\n"
+   "Consider these examples:\n"
+   "   afni_proc.py -show_example 'Example 11b'\n"
+   "   afni_proc.py -show_example_names\n"
+   "   afni_proc.py ... my options here ... -compare_opts 'Example 11'\n"
+   "Motivated by C Gaillard and P Taylor."
+ } ,
+
+ {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
+   "build main non-X11, non-SUMA AFNI program without X deps",
+   "Set LLIBS_X11 to current LLIBS, and give it to SUMA_LINK_LIB.\n"
+   "Remove all X11 libs from LLIBS.  Add -DREPLACE_XT to CEXTRA.\n"
+   "Note: without REPLACE_XT, LLIBS could still just use Xt and X11.\n"
+   "And made the same mods to Makefile.linux_xorg7_64."
+ } ,
+
+ {  7, Feb, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "reduce X11 program deps",
+   "Possibly define LLIBS_X11 in top-level Makefile (as current LLIBS) and\n"
+   "then remove X libs from LLIBS.  M.INCLUDE will define LLIBS if not set.\n"
+   "Move suma_help to IMOBJS."
+ } ,
+
+ {  5, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add inital new library for processing example, lib_ap_examples.py",
+   NULL
+ } ,
+
+ {  5, Feb, 2020, RCR, "option_list.py", MINOR, TYPE_NEW_OPT,
+   "list all global options via 'PROG.py -optlist_show_global_opts'",
+   "Also, add -optlist_show_argv_array to display afni_proc.py options\n"
+   "in python dictionary format.\n"
+   "This could be done with any OptionList-based python program."
+ } ,
+
+ {  4, Feb, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for a few esoteric options",
+   NULL
+ } ,
+
+ {  3, Feb, 2020, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "show CSA data on high debug",
+   NULL
+ } ,
+
+ {  3, Feb, 2020, RCR, "dicom_hdr", MICRO, TYPE_NEW_OPT,
+   "add -siemens_csa_data",
+   "Same as 3 -slice_times_verb opts."
+ } ,
+
+ {  3, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -extra_annot_labels",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_ENHANCE,
+   "gzip SUMA/*.nii, except for SurfVol",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "@diff.tree", MINOR, TYPE_NEW_OPT,
+   "add -show_list_comp, to do pairwise comparison of file names",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "add basis=BASIS parameter when defining timing class",
+   "Done for geenaianni on MB."
+ } ,
+
+ { 23, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 4 (ROIs and mask==1 data)",
+   "Done for J Gonzalez-Castillo."
+ } ,
+
+ { 22, Jan, 2020, RCR, "plug_realtime", MAJOR, TYPE_GENERAL,
+   "add ROIs and data mask method",
+   "Added corresponding demo: AFNI_data6/realtime.demos/demo_3_ROIs_n_data\n"
+ } ,
+
+ { 22, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 3 (all data light)",
+   NULL
+ } ,
+
+ { 15, Jan, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "corr_* dsets are now correlations with ROI averages",
+   "They were previously average correlations with each ROI voxel.  The new\n"
+   "maps look similar, but are probably more natural and have nicer scales.\n"
+   "Requested by P Taylor."
+ } ,
+
+ { 13, Jan, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add some make lists ; see 'make list_lists'",
+   NULL
+ } ,
+
+ {  2, Jan, 2020, RCR, "plug_realtime", MICRO, TYPE_GENERAL,
+   "updates corresponding with Javier's new All_Data_light method",
+   NULL
+ } ,
+
  { 31, Dec, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
    "Do not require out_limit.  Currently will still show in driver.",
    "Done for P Taylor."
@@ -166,8 +271,8 @@ afni_history_struct rickr_history[] = {
    "Undo removal of strcasestr."
  } ,
 
- { 17, Oct, 2019, RCR, "Makefile.*", MICRO, TYPE_BUG_FIX,
-   "for strcasestr, we need to define _GNU_SOURCE",
+ { 17, Oct, 2019, RCR, "Makefile", MICRO, TYPE_BUG_FIX,
+   "for strcasestr, we need to define _GNU_SOURCE in Makefile.*",
    NULL
  } ,
 
@@ -819,7 +924,9 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5, Feb, 2019, RCR, "demoExpt.py", MICRO, TYPE_GENERAL,
-   "add roopchansinghv to afni_src.tgz targe",
+   "add roopchansinghv to afni_src.tgz target",
+   "This is a realtime neurofeedback framework, built on top of afni and\n"
+   "realtime_receiver.py, using PsychoPy for feedback and presentation.\n"
    "Also, set demoExpt.py mode as 755."
  } ,
 

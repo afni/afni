@@ -88,12 +88,24 @@ auth = 'PA Taylor'
 #ver = '3.11' ; date = 'Sep 9, 2019' 
 # [PT] spacing fix in VR6 with censoring
 #
-ver = '3.12' ; date = 'Dec 26, 2019' 
+#ver = '3.12' ; date = 'Dec 26, 2019' 
 # [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
 #      as a dependency, so remove it from the list
 #
+#ver = '3.2' ; date = 'Jan 9, 2020' 
+# [PT] new warning block: censor fraction
+#    + seed point plotting introduced (vstat section for resting state)
+#
+#ver = '3.21' ; date = 'Jan 9, 2020' 
+# [PT] raise the thresholds in the vstat_seedcorr regr_corr plots
+#    + so much above threshold otherwise, including noise
+#
+ver = '3.22' ; date = 'Jan , 2020' 
+# [PT] fix type conversion error of scalars -> lists
+#
 #########################################################################
 
+import os
 import sys
 import glob
 import subprocess
@@ -115,6 +127,145 @@ page_title_json = '__page_title'
 
 
 # ----------------------------------------------------------------------
+
+coord_opp = { 'R' : 'L',
+              'L' : 'R',
+              'A' : 'P',
+              'P' : 'A',
+              'I' : 'S',
+              'S' : 'I',
+              }
+
+def coord_to_gen_sys(x, order='RAI'):
+    '''
+    Input
+    -----
+    x     : list of three coords, either float or str to be turned into float
+    order : (opt) coord order (def = 'RAI')
+
+    Output
+    ------
+    out   : list of 3 strings with generalized coord vals, e.g.:
+               [-4R, 3A, 27S]
+    '''
+
+    N = len(x)
+
+    if len(x) != 3 :
+        print("** ERROR: need x to be list of 3 coord values")
+        sys.exit(4)
+
+    out = []
+    for i in range(N):
+        val = float(x[i])
+        if val > 0 :
+            out.append(str(abs(val))+coord_opp[order[i]])
+        else:
+            out.append(str(abs(val))+order[i])
+    return out
+
+# --------------------------------------------------------------------
+
+def read_in_txt_to_dict(fname, tmp_name='__tmp_txt2json.json', DO_CLEAN=True) :
+    '''Take a colon-separate file 'fname', convert it to a JSON file
+'tmp_name', and then return the dictionary created thereby.
+
+    Cleaning text file is optional (def: clean it)
+
+    '''
+
+    if not(os.path.isfile(fname)):
+        print("** ERROR: could not find text file: {}".format(fname))
+        return {}
+
+    odict = {}
+
+    cmd = '''abids_json_tool.py \
+    -overwrite                  \
+    -txt2json                   \
+    -prefix {outp}              \
+    -input  {inp}
+    '''.format( inp  = fname,
+                outp = tmp_name )
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
+    com.run()
+
+    # get dictionary form of json
+    with open(tmp_name, 'r') as fff:
+        odict = json.load(fff)    
+        
+    if DO_CLEAN :
+        # rm tmp json
+        cmd = '''\\rm {outp}'''.format( outp = tmp_name )
+        com = ab.shell_com(cmd, capture=1, save_hist=0)
+        com.run()
+
+    return odict
+
+# --------------------------------------------------------------------
+
+def get_path_abin():
+    
+    cmd = '''dirname `which apqc_make_tcsh.py`'''
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
+    com.run()
+    abin_path = com.so[0]
+
+    return abin_path
+
+# --------------------------------------------------------------------
+
+def get_space_from_dset( dset ):
+    
+    cmd = '''@FindAfniDsetPath -full_path -append_file -space {}'''.format(dset)
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
+    com.run()
+    dset_fullpath = com.so[0]
+
+    cmd = '''3dinfo -space {}'''.format(dset_fullpath)
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
+    com.run()
+    space = com.so[0]
+
+    return space
+
+# --------------------------------------------------------------------
+
+def get_warn_level_3( val, cutoff_list=[] ):
+    '''Go through simple conditional cases for assigning level of
+    warning; cutoff_list must be 3 items here.
+    
+    List should be in order of descending severity.
+
+    '''
+
+    if not(cutoff_list) :
+        print("** ERROR: no cutoff list provided ")
+        sys.exit(3)
+
+    try:
+        N = len(cutoff_list)
+        if N != 3 :
+            print("** ERROR: len of cutoff_list is {}, not 3".format(N))
+            sys.exit(3)
+    except :
+        print("** ERROR: cutoff_list entry not a list, but of type {}?".format(type(cutoff_list)))
+        sys.exit(3)
+
+    # parse text file for warning severity
+    if   val >= cutoff_list[0] :
+        out = "severe"
+    elif val >= cutoff_list[1] :
+        out = "medium"
+    elif val >= cutoff_list[2] :
+        out = "mild"
+    else :
+        out = "none"
+
+    return out
+
+
+# --------------------------------------------------------------------
 
 def check_dep(D, lcheck):
     '''Does dictionary 'D' contain each of the elements of 'lcheck'?'''
@@ -1584,7 +1735,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 # ----------------------------------------------------------------------
 
 # ['final_anat', 'template']
-def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
+def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, tspace=None ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -1603,8 +1754,10 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     '''.format( opref, focusbox )
 
-
-    ttext = '''"ulay: ${ulay_name} (template)" ,, '''
+    tsp = ''
+    if tspace :
+        tsp   = ''', {} space'''.format(tspace)
+    ttext = '''"ulay: ${{ulay_name}} (template{})" ,, '''.format(tsp)
     ttext+= '''"olay: ${olay_name} (anat edges)"'''
 
 
@@ -1671,6 +1824,316 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
 
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
+
+#-------------------------------------------------------------------------
+
+# complicated/tiered depedencies...
+def apqc_regr_corr_errts( obase, qcb, qci, 
+                          ulay, focusbox, corr_brain ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''check ave errts (in WB mask) corr throughout dset: 
+    || ~~~ corr brain dset: {}'''.format( corr_brain )
+
+
+    pre = '''
+    set opref = {}
+    set ulay_dset = {}
+    set focus_box = {}
+    set olay_dset = {}
+    set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
+    set olay_name = `3dinfo -prefix ${{olay_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
+    '''.format( opref, ulay, focusbox, corr_brain )
+
+    cmd0 = '''
+    @chauffeur_afni    
+    -ulay  ${{ulay_dset}}
+    -box_focus_slices ${{focus_box}}
+    -olay  ${{olay_dset}}  
+    -cbar {cbar}
+    -ulay_range 0% 120%  
+    -func_range 0.6
+    -thr_olay 0.3
+    -olay_alpha Yes
+    -olay_boxed Yes
+    -set_subbricks 0 0 0
+    -opacity 9  
+    -pbar_saveim   "${{opbarrt}}.jpg"
+    -pbar_comm_range "{pbar_cr}"
+    -pbar_comm_thr   "{pbar_tr}"
+    -prefix        "${{odir_img}}/${{opref}}"
+    -save_ftype JPEG
+    -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 3  
+    -do_clean
+    '''.format( cbar='Reds_and_Blues_Inv',
+                pbar_cr='Pearson r',
+                pbar_tr='alpha+boxed on' )
+
+    ttext = ''
+    ttext+= '''"olay: corr of WB-average errts with each voxel (${olay_name})"'''
+
+    # As default, use :: and ,, as major and minor delimiters,
+    # respectively, because those should be useful in general.  
+    # NB: because we want the single apostrophe to appear as a text
+    # character, we have to wrap this with the double quotes
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    jsontxt2  = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {} 
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               osubtext2 )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0,
+            pbarjsontxt_cmd,
+            jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
+#-------------------------------------------------------------------------
+
+# complicated/tiered depedencies...
+def apqc_vstat_seedcorr( obase, qcb, qci, 
+                         ulay, focusbox,     # bc some flexibility in usage
+                         seed, count=0,
+                         HAVE_MASK=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    seed_loc_gen = coord_to_gen_sys(seed.xyz)   # general coords: -4R, etc.
+
+    comm  = '''check seedbased corr results: 
+    || ~~~ errts vol: ${{errts_dset}}
+    || ~~~ seed name: {}'''.format( seed.roi_label )
+
+    pre = '''
+    set opref = {}
+    set ulay_dset = {}
+    set focus_box = {}
+    set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
+    set olay_name = `3dinfo -prefix ${{errts_dset}}`
+    set voxvol = `3dinfo -voxvol ${{errts_dset}}`
+    set seed_rad = `echo "${{voxvol}}" | awk '{{printf "%0.2f",(2*($1)^0.3334);}}'`
+    set t1dfile   = _tmp_ave_ts.txt
+    set tcorrvol  = _tmp_corr_vol.nii
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
+    '''.format( opref, ulay, focusbox )
+
+    # make ave time series
+    cmd0 = '''
+    3dmaskave 
+    -quiet
+    -dball {sx} {sy} {sz} ${{seed_rad}}
+    ${{errts_dset}}
+    > ${{t1dfile}}
+    '''.format( sx=seed.xyz[0], sy=seed.xyz[1], sz=seed.xyz[2] )
+    
+    cmd1 = '''
+    3dTcorr1D 
+    -overwrite
+    -prefix ${tcorrvol}
+    ${errts_dset}
+    ${t1dfile}
+    '''
+
+    cmd2 = '''
+    @chauffeur_afni    
+    -ulay  ${{ulay_dset}}
+    -box_focus_slices ${{focus_box}}
+    -olay  ${{tcorrvol}}  
+    -cbar {cbar}
+    -ulay_range 0% 120%  
+    -func_range 0.6
+    -thr_olay 0.3
+    -olay_alpha Yes
+    -olay_boxed Yes
+    -set_subbricks 0 0 0
+    -opacity 9  
+    -pbar_saveim   "${{opbarrt}}.jpg"
+    -pbar_comm_range "{pbar_cr}"
+    -pbar_comm_thr   "{pbar_tr}"
+    -prefix        "${{odir_img}}/${{opref}}"
+    -save_ftype JPEG
+    -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 3  
+    -do_clean
+    '''.format( cbar='Reds_and_Blues_Inv',
+                pbar_cr='Pearson r',
+                pbar_tr='alpha+boxed on' )
+
+    netw_str = ''
+    if seed.netw :
+        netw_str = ''' in {}'''.format(seed.netw)
+    
+    ttext = ''
+    ttext+= '''"olay: seed-based corr map (in ${olay_name})" ,, '''
+    ttext+= '''"seed: '{}'{}, rad = ${{seed_rad}} mm ({}, {}, {})"'''.format(
+        seed.roi_label, 
+        netw_str,
+        seed_loc_gen[0], 
+        seed_loc_gen[1], 
+        seed_loc_gen[2] )
+
+    # As default, use :: and ,, as major and minor delimiters,
+    # respectively, because those should be useful in general.  
+    # NB: because we want the single apostrophe to appear as a text
+    # character, we have to wrap this with the double quotes
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    jsontxt2  = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {} 
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               osubtext2 )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+    cmd1  = commandize( cmd1 )
+    cmd2  = commandize( cmd2 )
+    #post  = commandize( post, cmdindent=0, 
+    #                    ALIGNASSIGN=True, ALLEOL=False )
+
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, cmd2,
+            pbarjsontxt_cmd,
+            jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
 
 #-------------------------------------------------------------------------
 
@@ -1895,14 +2358,6 @@ def apqc_vstat_stvol( obase, qcb, qci,
                 pbar_comm_thr )
 
     ttext = ''
-    #if not(count) :
-    #    ttext+= '''"dset: ${olay_name}" ,, '''
-    #ttext+= '''"olay: [${olaybrick}] '${olaylabel}'" ,, '''
-    #ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
-
-    #ttext+= '''"olay: ${olay_name}${avsp}[${olaybrick}] '${olaylabel}'" ,, '''
-    #ttext+= '''" thr: ${olay_name}${avsp}[${thrbrick}] '${thrlabel}'"'''
-
     ttext+= '''"olay: [${olaybrick}] '${olaylabel}' (in ${olay_name})" ,, '''
     ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
 
@@ -2344,6 +2799,177 @@ def apqc_qsumm_ssrev( obase, qcb, qci ):
 
 # ========================== warn/txt ================================
 
+
+# parse df info dset
+# ['stats_dset', 'censor_dset', 'ss_review_dset', 'xmat_stim']
+def apqc_warns_cen_stim( obase, qcb, qci,
+                         rev_dict={},
+                         label_list=[] ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''review: check for warnings due to censoring per stim'''
+
+    cutoff_list = [0.6, 0.4, 0.2] # sev, med, mild
+
+    # 'num_TRs_per_stim_orig'     : [240.0, 239.0],
+    # 'num_TRs_censored_per_stim' : [6.0, 0.0],
+    # 'fraction_TRs_censored'     : [0.025, 0.0],
+
+    ntr_init_per_stim = rev_dict['num_TRs_per_stim_orig']
+    ntr_cen_per_stim  = rev_dict['num_TRs_censored_per_stim']
+    frac_tr_cen       = rev_dict['fraction_TRs_censored']
+
+    # if >1 time series, above vars are each list; else, float
+    try:
+        nruns = len(ntr_init_per_stim)
+    except:
+        # convert to lists, for simpler scripting, with indexing
+        # [PT: Jan 27, 2020] fixed this section; silly type conversion error
+        nruns = 1
+        ntr_init_per_stim = [ntr_init_per_stim]
+        ntr_cen_per_stim  = [ntr_cen_per_stim]
+        frac_tr_cen       = [frac_tr_cen]
+
+    if len(label_list) != nruns :
+        print("** ERROR: generating censor fraction\n"
+              "   Found {} labels (doesn't match {} runs):\n"
+              "     {}\n" 
+              "   Skipping this QC block\n"
+              "".format(len(label_list), nruns, ', '.join(label_list)))
+        return '\n\n'
+
+    # use the max frac to determine warning level
+    max_frac_cen   = max(frac_tr_cen)
+    max_warn_level = get_warn_level_3( max_frac_cen, cutoff_list)
+
+    pre = '''
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    cmd0 = '''
+    echo "++ Check for censor fraction warnings (per stim): ${odir_img}/${opref}.dat"
+    '''
+
+    cmd1 = '''
+    echo "Max indiv stim censoring fraction : {:5.1f}%"  > ${{odir_img}}/${{opref}}.dat
+    echo "--------------------------------------------"  >> ${{odir_img}}/${{opref}}.dat
+    '''.format( 100*max_frac_cen )
+
+    for ii in range(nruns):
+        cmd1+= '''
+    echo "Censored {:4d} of {:4d} TRs of '{}' stim : {:5.1f}%" >> ${{odir_img}}/${{opref}}.dat
+    '''.format(int(ntr_cen_per_stim[ii]), int(ntr_init_per_stim[ii]), 
+               label_list[ii], 100*float(frac_tr_cen[ii]))
+    
+    cmd1+= '''
+    echo "" >> ${odir_img}/${opref}.dat
+    '''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "Censor fraction warnings (per stim)"
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               max_warn_level)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0, cmdindent=0, ALLEOL=False )
+    cmd1  = commandize( cmd1, cmdindent=0, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+# ---------------------------------------------------------------------
+
+# parse df info dset
+# ['df_info_dset', 'censor_dset']
+def apqc_warns_cen_total( obase, qcb, qci,
+                          df_dict={} ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''review: check for df warnings due to censoring'''
+
+    cutoff_list = [0.5, 0.2, 0.1] # sev, med, mild
+
+    ninit = df_dict["initial_DF"]
+    ncen  = df_dict["DF_used_for_censoring"]
+
+    frac_cen   = float(ncen) / float(ninit)
+    warn_level = get_warn_level_3( frac_cen, cutoff_list)
+
+    pre = '''
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    cmd0 = '''
+    echo "++ Check for censor fraction warnings (general): ${odir_img}/${opref}.dat"
+    '''
+
+    cmd1 = '''
+    echo "Censored {:4d} of {:4d} total time points : {:5.1f}%\\n"  > ${{odir_img}}/${{opref}}.dat
+    '''.format(int(ncen), int(ninit), 100*frac_cen)
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "General censor fraction warnings"
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0, cmdindent=0, ALLEOL=False )
+    cmd1  = commandize( cmd1, cmdindent=0, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+# ---------------------------------------------------------------------
 
 # Text warning, goes to dir_img output
 # ['xmat_regress']
@@ -3061,22 +3687,24 @@ def apqc_Top_pagetop( opref, qcb, qci, task_name = '' ):
 # for parsing stats_dset labels and setting up vstat testing
 class vstat_obj:
 
-    label      = ""                # what user enters
-    stats_dset = ""                # dset searched within
-    label_in_dset = False          # does the label exist in it meaningfully?
-    
-    olay_label = ""                # subbrick label/selector of stats_dset
-    olay_index = -1                # subbrick index selector of stats_dset
-    olay_type  = ""                # 'Coef', 'Tstat', 'Fstat'
-    olay_posonly = False           # For colorbar
-    olay_pbar  = ""                # Name of pbar, decided by posonly
+    def __init__(self) :
 
-    thr_label  = ""                # subbrick label/selector of stats_dset
-    thr_index  = ""                # subbrick index selector of stats_dset
-    thr_type   = ""                # 'Tstat', 'Fstat'
-    thr_sided  = "2sided"          # '1sided', '2sided', 'bisided'
-    thr_sided_txt = "two-sided"    # 'one-sided', 'two-sided', 'bisided'
-    thr_mode   = "pvalue"          # 'percentile' or 'pvalue'
+        self.label      = ""             # what user enters
+        self.stats_dset = ""             # dset searched within
+        self.label_in_dset = False       # does the label exist in it meaningfully?
+
+        self.olay_label = ""             # subbrick label/selector of stats_dset
+        self.olay_index = -1             # subbrick index selector of stats_dset
+        self.olay_type  = ""             # 'Coef', 'Tstat', 'Fstat'
+        self.olay_posonly = False        # For colorbar
+        self.olay_pbar  = ""             # Name of pbar, decided by posonly
+
+        self.thr_label  = ""             # subbrick label/selector of stats_dset
+        self.thr_index  = ""             # subbrick index selector of stats_dset
+        self.thr_type   = ""             # 'Tstat', 'Fstat'
+        self.thr_sided  = "2sided"       # '1sided', '2sided', 'bisided'
+        self.thr_sided_txt = "two-sided" # 'one-sided', 'two-sided', 'bisided'
+        self.thr_mode   = "pvalue"       # 'percentile' or 'pvalue'
 
     def set_label(self, ss):
         self.label = ss

@@ -1,0 +1,242 @@
+#!/bin/csh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "1.0";  set rev_dat   = "Feb 3, 2020"
+#   + AP/QC imager:  volreg and enorm
+#
+# ----------------------------------------------------------------
+
+set this_prog = "@djunct_anonymize"
+set tpname    = "${this_prog:gas/@djunct_//}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set iset        = ""
+
+set DO_ADD_NOTE = 0
+set the_note    = ""
+
+set DO_COPY     = 0
+set cp_prefix   = ""
+set owrite      = ""
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iset = "$argv[$ac]"
+
+    #  ---------- opts ---------------
+
+    else if ( "$argv[$ac]" == "-copy_to" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set DO_COPY   = 1
+        set cp_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-add_note" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set DO_ADD_NOTE = 1
+        set the_note    = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set owrite = "-overwrite"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+if ( "$iset" == "" ) then
+    echo "** ERROR: missing motion censor file! Use '-input ..'"
+    goto BAD_EXIT
+endif
+
+if ( ${DO_COPY} ) then
+    if ( "${cp_prefix}" == "" ) then
+        echo "** ERROR: Need to provide output prefix/filename after '-copy_to ..'"
+        goto BAD_EXIT
+    endif
+
+    set av_sp = `3dinfo -av_space "${iset}"`
+
+    3dcalc   ${owrite}                       \
+        -a "${iset}"                         \
+        -expr 'a'                            \
+        -prefix "${cp_prefix}"
+
+    if ( ${status} != 0 ) then
+        echo "** ERROR: Failure copying file to filename: ${cp_prefix}"
+        goto BAD_EXIT
+    endif
+    
+    # this is our new file to anonymize
+    set iset = "${cp_prefix}"
+    # ... but need to see if it really is full filename:  
+    #   + will be so, if it is NII
+    #   + won't be so, if is BRIK/HEAD
+    set check0 = `3dinfo -is_nifti "${iset}"`
+    if ( "${check0}" == "1" ) then
+        # is nifti, and OK as is
+        set iset = "${cp_prefix}"
+    else if ( "${check0}" == "0" ) then
+        # is non-nifti (BRIK/HEAD), and OK as is
+        set iset = "${cp_prefix}"
+    else if ( "${check0}" == "NO-DSET" ) then
+        # is non-nifti, and just prefix without ext;  add in ext
+        set iset   = "${cp_prefix}${av_sp}.HEAD"
+
+        set check1 = `3dinfo -is_nifti "${iset}"`
+        if ( "${check1}" != "0" ) then
+            # don't know how we would get here, but OK, check for it...
+            echo "** ERROR: Can't seem to copy file to: ${cp_prefix}"
+            echo "   Got as far as making ${iset}, but that is it"
+            goto BAD_EXIT
+        endif
+    else
+        # also don't know what would lead to here
+        echo "** ERROR: Can't seem to copy file to: ${cp_prefix}"
+        echo "   Failing to get known 3dinfo response on this file"
+        goto BAD_EXIT
+    endif
+endif
+
+# =========================== Actual work ==============================
+
+echo "+++ Denoting header"
+3drefit                         \
+    -denote                     \
+    ${iset}
+
+if ( `3dinfo -is_nifti ${iset}` ) then
+    echo "+++ Input file is NIFTI: wielding nifti_tool now"
+    nifti_tool                      \
+        -strip_extras               \
+        -overwrite                  \
+        -infiles ${iset}
+endif
+
+if ( ${DO_ADD_NOTE} ) then
+    echo "+++ Adding note"
+    3dNotes                         \
+        -h "${the_note}"            \
+        ${iset}
+endif
+
+echo "+++ Done anonymizing: ${iset}"
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+Helper program to anonymize files.
+
+NB: Default behavior of this program is to overwrite your file
+(removing header info), so you might want to make a copy first!
+(... or, use the '-copy_to ..' option).
+
+written by PA Taylor
+
+# --------------------------------------------------------------------
+
+COMMAND OPTIONS ~1~
+
+-input     II  :(req) input dataset.
+
+-add_note  AN  :(opt) after anonymizing, add a note "AN" to the history.
+
+-copy_to CT    :(opt) by default, this program overwrites the header info
+                of the input file II.  Instead, you can use this opt
+                to first copy the input to a new file CT, which is then
+                anonymized (the input file will *not* be).
+
+-overwrite     :(opt) if using "-copy to ..", won't overwrite existing
+                file by default; use this opt to copy over preexisting
+                file.
+
+# --------------------------------------------------------------------
+
+NOTES ~1~
+
+This program is mainly a wrapper for two AFNI programs to anonymize
+header info:
+
+    3drefit -denote ...
+
+    nifti_tool -strip_extras -overwrite ...
+
+(The latter is only called if the input file is a NIFTI.)
+
+# --------------------------------------------------------------------
+
+Examples ~1~
+
+1) Basic usage: overwrite input file:
+
+    @djunct_anonymize              \
+        -input FILE.nii
+
+2) Copy file first, then purge header info:
+
+    @djunct_anonymize              \
+        -input FILE.nii            \
+        -copy_to NEW_FILE.nii      
+
+3) Same as #2, but then add a note to the new file's history:
+
+    @djunct_anonymize              \
+        -input FILE.nii            \
+        -copy_to NEW_FILE.nii      \
+        -add_note "This program makes a header as clean as a well-taken Arsenal corner"
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

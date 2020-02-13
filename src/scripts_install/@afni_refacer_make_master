@@ -4,6 +4,10 @@
 ## *** to make your own 'master' shell for refacing,        ***
 ## *** instead of using the one supplied with AFNI binaries ***
 
+## [PT: Jan 24, 2020] Note: after running this script, you might want
+## to look at the @afni_refacer_make_master_addendum script, which
+## makes a related shell that might be more generally useful
+
 ## * This script takes as input a list of T1-weighted dataset names
 ##    that have NOT been skull-stripped or defaced or refaced.
 ## * The output is a dataset afni_refacer_shell.nii.gz that
@@ -173,5 +177,8 @@ gzip -9v afni_refacer_shell.nii
 
 echo "=== output afni_refacer_shell.nii.gz"
 echo "--- If you are satisfied with the results: \rm *.bigA12.nii"
+echo ""
+echo "--- ... and consider checking out: @afni_refacer_make_master_addendum"
+echo ""
 
 exit 0

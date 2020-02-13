@@ -146,11 +146,19 @@ realtime_receiver.py - program to receive and display real-time plugin data
            Version 0: only motion will be sent
            Version 1: motion plus N ROI averages will be sent
            Version 2: motion plus all voxel data for N voxels will be sent
+                      - this is dense - 8 values per voxel
+                      - 1Dindex,  i, j, k,  x, y, z,  value
+           Version 3: motion plus voxel data for N voxels will be sent
+                      - "light" version of 2, only send one 'value' per voxel
+           Version 4: mix of 1 and 3: motion, N ROI aves, M voxel values
 
-        If the version is 1 or 2, the 4-byte handshake should be followed
+        If the version is 1, 2 or 3, the 4-byte handshake should be followed
         by a 4-byte integer, specifying the value of N.  Hence, the 
         combination of the version number and any received N will determine
         how much data will be sent to the program each TR.
+
+        For version 4, the 4-byte handshake should be followed by 2 4-byte
+        integers, one to specify N (# ROI aves), one to specify M (# vox).
 
         At the end of the run, the sending program should send the 4-byte
         good-bye sequence: 0xdeaddead.
@@ -204,9 +212,11 @@ g_history = """
    0.5  Jan 16, 2013 : added -dc_params
    0.6  Sep 16, 2016 : proceed even if requested GUI fails to load
    1.0  Jan 01, 2018 : python3 compatible, added -write_text_data
+   1.1  Jan 22, 2020 : added handling of magic version 3 (all data light)
+   1.2  Jan 23, 2020 : added handling of magic version 4 (ROIs and data)
 """
 
-g_version = "realtime_receiver.py version 1.0, January 1, 2018"
+g_version = "realtime_receiver.py version 1.2, January 23, 2020"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 

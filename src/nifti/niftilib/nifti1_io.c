@@ -413,7 +413,7 @@ static int  nifti_fill_extension(nifti1_extension * ext, const char * data,
                                  int len, int ecode);
 
 /* NBL routines */
-static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
+static int  nifti_load_NBL_bricks(nifti_image * nim , const int * slist, const int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
 static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
                                   nifti_brick_list * nbl);
 static int  nifti_copynsort(int nbricks, const int *blist, int **slist,
@@ -424,7 +424,7 @@ static int  nifti_NBL_matches_nim(const nifti_image *nim,
 /* for nifti_read_collapsed_image: */
 static int  rci_read_data(nifti_image *nim, int *pivots, int *prods, int nprods,
                   const int dims[], char *data, znzFile fp, size_t base_offset);
-static int  rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper );
+static int  rci_alloc_mem(void ** data, const int prods[8], int nprods, int nbyper );
 static int  make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
                             int prods[], int * nprods );
 
@@ -804,7 +804,7 @@ void nifti_free_NBL( nifti_brick_list * NBL )
  *
  * return 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
+static int nifti_load_NBL_bricks( nifti_image * nim , const int * slist, const int * sindex,
                                   nifti_brick_list * NBL, znzFile fp )
 {
    size_t oposn, fposn;      /* orig and current file positions */
@@ -1444,8 +1444,7 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
      case DT_COMPLEX256:  nb = 32 ; ss = 16 ; break ;
    }
 
-   ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
-}
+   ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; }
 
 /*---------------------------------------------------------------------------*/
 /*! Given the quaternion parameters (etc.), compute a transformation matrix.
@@ -1650,7 +1649,6 @@ void nifti_mat44_to_quatern( mat44 R ,
    }
 
    ASSIF(qb,(float)b) ; ASSIF(qc,(float)c) ; ASSIF(qd,(float)d);
-   return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2121,8 +2119,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -3: k = NIFTI_S2I ; break ;
    }
 
-   *icod = i ; *jcod = j ; *kcod = k ; return ;
-}
+   *icod = i ; *jcod = j ; *kcod = k ; }
 
 /*---------------------------------------------------------------------------*/
 /* Routines to swap byte arrays in various ways:
@@ -2151,8 +2148,7 @@ void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
        cp1 += 2;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
@@ -2170,8 +2166,7 @@ void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
        cp0 += 4;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 8 bytes at a time from the given list of n sets of 8 bytes
@@ -2193,8 +2188,7 @@ void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
        }
        cp0 += 8;
    }
-   return ;
-}
+   }
 
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
@@ -2214,8 +2208,7 @@ void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
        }
        cp0 += 16;
    }
-   return ;
-}
+   }
 
 #if 0  /* not important: save for version update     6 Jul 2010 [rickr] */
 
@@ -2257,8 +2250,7 @@ void nifti_swap_Nbytes( size_t n , int siz , void *ar )  /* subsuming case */
         fprintf(stderr,"** NIfTI: cannot swap in %d byte blocks\n", siz);
         break ;
    }
-   return ;
-}
+   }
 
 
 /*-------------------------------------------------------------------------*/
@@ -2319,8 +2311,6 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
    nifti_swap_4bytes(4, h->srow_x);
    nifti_swap_4bytes(4, h->srow_y);
    nifti_swap_4bytes(4, h->srow_z);
-
-   return ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2416,8 +2406,7 @@ void old_swap_nifti_header( struct nifti_1_header *h , int is_nifti )
      nifti_swap_4bytes(4,h->srow_y);
      nifti_swap_4bytes(4,h->srow_z);
    }
-   return ;
-}
+   }
 
 
 #define USE_STAT
@@ -3214,6 +3203,8 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
       }
    }
    /* ignore any other nifti_type */
+
+   if( errs ) return 0;   /* types do not match */
 
    return 1;
 }
@@ -5043,8 +5034,7 @@ void nifti_image_unload( nifti_image *nim )
    if( nim != NULL && nim->data != NULL ){
      free(nim->data) ; nim->data = NULL ;
    }
-   return ;
-}
+   }
 
 /*--------------------------------------------------------------------------*/
 /*! free 'everything' about a nifti_image struct (including the passed struct)
@@ -5063,8 +5053,7 @@ void nifti_image_free( nifti_image *nim )
    if( nim->iname != NULL ) free(nim->iname) ;
    if( nim->data  != NULL ) free(nim->data ) ;
    (void)nifti_free_extensions( nim ) ;
-   free(nim) ; return ;
-}
+   free(nim) ; }
 
 
 /*--------------------------------------------------------------------------*/
@@ -5110,8 +5099,7 @@ void nifti_image_infodump( const nifti_image *nim )
    char *str = nifti_image_to_ascii( nim ) ;
    /* stdout -> stderr   2 Dec 2004 [rickr] */
    if( str != NULL ){ fputs(str,stderr) ; free(str) ; }
-   return ;
-}
+   }
 
 
 /*--------------------------------------------------------------------------
@@ -6145,21 +6133,33 @@ char *nifti_image_to_ascii( const nifti_image *nim )
 
    sprintf( buf+strlen(buf) , "  image_offset = '%d'\n" , nim->iname_offset );
 
-                       sprintf( buf+strlen(buf), "  ndim = '%d'\n", nim->ndim);
-                       sprintf( buf+strlen(buf), "  nx = '%d'\n",   nim->nx  );
-   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  ny = '%d'\n",   nim->ny  );
-   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  nz = '%d'\n",   nim->nz  );
-   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  nt = '%d'\n",   nim->nt  );
-   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  nu = '%d'\n",   nim->nu  );
-   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  nv = '%d'\n",   nim->nv  );
-   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  nw = '%d'\n",   nim->nw  );
-                       sprintf( buf+strlen(buf), "  dx = '%g'\n",   nim->dx  );
-   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  dy = '%g'\n",   nim->dy  );
-   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  dz = '%g'\n",   nim->dz  );
-   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  dt = '%g'\n",   nim->dt  );
-   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  du = '%g'\n",   nim->du  );
-   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  dv = '%g'\n",   nim->dv  );
-   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  dw = '%g'\n",   nim->dw  );
+   sprintf(buf + strlen(buf), "  ndim = '%d'\n", nim->ndim);
+   sprintf(buf + strlen(buf), "  nx = '%d'\n", nim->nx);
+   if (nim->ndim > 1)
+     sprintf(buf + strlen(buf), "  ny = '%d'\n", nim->ny);
+   if (nim->ndim > 2)
+     sprintf(buf + strlen(buf), "  nz = '%d'\n", nim->nz);
+   if (nim->ndim > 3)
+     sprintf(buf + strlen(buf), "  nt = '%d'\n", nim->nt);
+   if (nim->ndim > 4)
+     sprintf(buf + strlen(buf), "  nu = '%d'\n", nim->nu);
+   if (nim->ndim > 5)
+     sprintf(buf + strlen(buf), "  nv = '%d'\n", nim->nv);
+   if (nim->ndim > 6)
+     sprintf(buf + strlen(buf), "  nw = '%d'\n", nim->nw);
+   sprintf(buf + strlen(buf), "  dx = '%g'\n", nim->dx);
+   if (nim->ndim > 1)
+     sprintf(buf + strlen(buf), "  dy = '%g'\n", nim->dy);
+   if (nim->ndim > 2)
+     sprintf(buf + strlen(buf), "  dz = '%g'\n", nim->dz);
+   if (nim->ndim > 3)
+     sprintf(buf + strlen(buf), "  dt = '%g'\n", nim->dt);
+   if (nim->ndim > 4)
+     sprintf(buf + strlen(buf), "  du = '%g'\n", nim->du);
+   if (nim->ndim > 5)
+     sprintf(buf + strlen(buf), "  dv = '%g'\n", nim->dv);
+   if (nim->ndim > 6)
+     sprintf(buf + strlen(buf), "  dw = '%g'\n", nim->dw);
 
    sprintf( buf+strlen(buf) , "  datatype = '%d'\n" , nim->datatype ) ;
    sprintf( buf+strlen(buf) , "  datatype_name = '%s'\n" ,
@@ -6876,8 +6876,8 @@ compute_strides(int *strides,const int *size,int nbyper)
         nifti_image_load, nifti_read_collapsed_image
 *//*-------------------------------------------------------------------------*/
 int nifti_read_subregion_image( nifti_image * nim,
-                                int *start_index,
-                                int *region_size,
+                                const int *start_index,
+                                const int *region_size,
                                 void ** data )
 {
   znzFile fp;                   /* file to read */
@@ -7130,7 +7130,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
    return total size on success, and < 0 on failure
 */
-static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
+static int rci_alloc_mem(void ** data, const int prods[8], int nprods, int nbyper )
 {
    int size, memindex;
 

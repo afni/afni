@@ -58,12 +58,15 @@ set progname = @animal_warper
 #      and reads in the template name
 #    + make $animal_outs almost lined up?
 #
-set version = "1.72" ; set date = "Oct 7, 2019"
+#set version = "1.72" ; set date = "Oct 7, 2019"
 # [PT] $animal_outs descriptors more consistent
 #    + add in prog version numbers to animal_outs scripts
 #    + goes with change in afni.c to have simpler AFNI version 
 #      number/package
 #    + help now exits with 0
+#
+set version = "1.73" ; set date = "Jan 14, 2020"
+# [PT] update text output in @animal_outs a bit
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -609,13 +612,13 @@ endif
 
 # maybe change names? these sound like warp dsets, but they are
 # actually dsets that *have* been warped
+echo "" >> ${animal_outs}
 echo "Dset, NL-warped to templ     : ${origdsetprefix}_warp2std.nii.gz" \
        >> ${animal_outs}
 echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz" \
       >> ${animal_outs}
 echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
       >> ${animal_outs}
-echo "QC directory of images       : QC/" >> ${animal_outs} 
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
@@ -743,6 +746,11 @@ else
    \rm -f __tmp_orig_mskd.nii.gz 
 
 endif
+
+# [PT: Jan 14, 2020] add these to the output text
+echo "Mask of dset                 : ${origdsetprefix}_mask.nii.gz" >> ${animal_outs}
+echo "Dset, skullstripped          : ${origdsetprefix}_ns.nii.gz" >> ${animal_outs}
+
 
 # process any template followers the same way
 foreach temple_dset ($template_followers)
@@ -1177,12 +1185,17 @@ SCRIPT_HELP_STRING
 
 FINISH_OUTS:
 
+echo ""                                              >> ${animal_outs} 
+echo "QC directory of images       : QC/         "   >> ${animal_outs} 
 echo "List of outputs (this file)  : ${animal_outs}" >> ${animal_outs}
 echo ""                                              >> ${animal_outs}
-echo "# Command  :  $argv"                           >> ${animal_outs}
+echo "Command : @animal_warper $argv"                >> ${animal_outs}
 
+echo "" 
 echo "Highlights of the output:"
+echo "-------------------------"
 # show list of outputs
 cat ${animal_outs}
-  
+echo "" 
+
 exit 0

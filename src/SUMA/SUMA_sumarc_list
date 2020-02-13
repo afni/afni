@@ -58,7 +58,7 @@ SUMA_ShareGrandChildrenOverlays = NO
 //Increase is done by taking multiple shots that once stiched together form a high-resolution image
 //The maximum resolution is set by the GL_MAX_VIEWPORT_DIMS of your graphics card. I have 4096 pixels.
 //If you exceed this number, SUMA will make adjustments automatically. 
-//Assemble images with program imcat
+//Assemble images with program 2dcat
 SUMA_SnapshotOverSampling = 1
 //27- Ignore consecutive duplicate images in recorder (YES, default)
 SUMA_NoDuplicatesInRecorder = NO

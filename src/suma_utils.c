@@ -3201,7 +3201,7 @@ static ENV_SPEC envlist[] = {
       " The maximum resolution is set by the GL_MAX_VIEWPORT_DIMS of your\n" 
       " graphics card. I have 4096 pixels.\n"
       " If you exceed this number, SUMA will make adjustments automatically.\n"
-      " Assemble images with program imcat.",
+      " Assemble images with program 2dcat.",
       "SUMA_SnapshotOverSampling",
       "1" },
    {  "Ignore consecutive duplicate images in recorder",

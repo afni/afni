@@ -23,8 +23,8 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================          
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Dec 31, 2019
-Author: Gang Chen (gangchen@mail.nih.gov)
+Version 0.0.1, Jan 10, 2020
+Author: Gang Chen (gangchen@mail.nih.gov)https://scholarblogs.emory.edu/smi2020/
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -39,13 +39,19 @@ Introduction
 
  3dLMEr is a revised and advanced version of its older brother 3dLME in the sense
  that the former is much more flexible in specifying the random-effects components
- than the latter. Also, 3dLMEr uses the R package \'lmerTest\' while 3dLME was
- written  with the R package \'nlme\', and the statistic values for main effects
- and interactions are approximated with the Satterthwaite\'s approach. Similar to
- 3dLME, all the main effects and interactions are automatically available in the
- output while simple effects that tease apart those main effects and interactions
- would have to be requested through options -gltCode or -glfCode. Also, the 3dLMEr
- interface is largely similar to 3dLME except
+ than the latter. Also, 3dLMEr uses the R package \'lme4\' while 3dLME was written
+ with the R package \'nlme\', and the statistic values for main effects and
+ interactions are approximated with the Satterthwaite\'s approach. The greater
+ flexibility of 3dLMEr lies in its adoption of random-effects notations by the R
+ package \'lme4\', as nicely summarized in the following table:
+
+ http://afni.nimh.nih.gov/sscc/staff/gangc/pub/lmerNotations.pdf
+ (adopted from https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html)
+
+ Similar to 3dLME, all the main effects and interactions are automatically available
+ in the output while simple effects that tease apart those main effects and
+ interactions would have to be requested through options -gltCode or -glfCode. Also,
+ the 3dLMEr interface is largely similar to 3dLME except
 
  1) the random-effects components are incorporated as part of the model
  specification, and thus the user is fully responsible in properly formulating the
@@ -590,7 +596,7 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$gltList     <- glt[[1]]
       lop$slpList     <- glt[[2]]
       lop$covValList  <- glt[[3]]
-   }
+   } else lop$num_glt <- 0
 
    if(!is.null(lop$glfCode)) {
       lop$glfLabel <- unlist(lapply(lop$glfCode, `[`, 1))
@@ -599,7 +605,7 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$glfList     <- glf[[1]]
       lop$slpListF     <- glf[[2]]
       lop$covValListF  <- glf[[3]]
-   }
+   } else lop$num_glf <- 0
 
    if(lop$iometh == 'Rlib') {
       lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
@@ -650,6 +656,7 @@ runLME <- function(myData, DM, tag) {
    Stat <- rep(0, lop$NoBrick)
    if(!all(myData == 0)) {     
       DM$yy <- myData
+      fm <- NULL
       options(warn=-1)
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
@@ -838,8 +845,8 @@ lop$model <- as.formula(paste('yy ~ ', lop$model))
 require(lmerTest)
 require(phia)
 fm<-NULL
-gltRes <- vector('list', lop$num_glt)
-glfRes <- vector('list', lop$num_glf)
+if(lop$num_glt > 0) gltRes <- vector('list', lop$num_glt) 
+if(lop$num_glf > 0) glfRes <- vector('list', lop$num_glf) 
 #chi_DF <- NULL
 while(is.null(fm)) {
    lop$dataStr$yy <- inData[ii, jj, kk,]
@@ -869,6 +876,9 @@ while(is.null(fm)) {
    }
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+      lop$nF      <- nrow(anova(fm))    # total number of F-stat
+      nT          <- 2*lop$num_glt
+      lop$NoBrick <- lop$nF + nT + lop$num_glf
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
@@ -884,9 +894,6 @@ while(is.null(fm)) {
       cat('would cause grief for 3dLMEr.\n')
       errex.AFNI("Quitting due to model test failure...")
    }
-   lop$nF      <- nrow(anova(fm))    # total number of F-stat
-   nT      <- 2*lop$num_glt
-   lop$NoBrick <- lop$nF + nT + lop$num_glf
 }
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))

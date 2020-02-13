@@ -163,8 +163,16 @@ foreach ifff ( `count -dig 1 1 $nfff $nblame` )
     if ( ! -f $fff || -z $fff ) continue
     set aa = `file --mime $fff | grep ascii | wc -l`
     if( $aa == 0 ) continue
+    # determine if this is a C file - if so, remove comments
+    set xxx = `basename $fff` ; set yyy = `basename $xxx .c` ; set yyy = `basename $yyy .h`
+    # xxx == yyy means NOT a C file
     # get and save the list of blamees for this file (also grep out blank lines)
-    git blame $fff | grep -v '[0-9]) *$' > gitsum.junk$jfff.txt &
+    if ( $xxx == $yyy ) then
+      git blame $fff | grep -v '[0-9]) *$' > gitsum.junk$jfff.txt &
+    else
+      # uncomment is an AFNI program
+      git blame $fff | uncomment -gitskip - | grep -v -e '[0-9]) *$' -e '^$' -e '^ *$' > gitsum.junk$jfff.txt &
+    endif
     @ nn ++
     echo $fff >> gitsum.list.txt
   end

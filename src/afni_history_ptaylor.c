@@ -66,6 +66,97 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 3, Feb , 2020 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
+   "Can anonymize output dsets:  -anonymize_output.",
+   "Fairly self-explanatory opt.\n"
+},
+
+{ 3, Feb , 2020 , PT , "@djunct_anonymize" , MINOR , TYPE_NEW_PROG,
+   "Anonymize files, and maybe add a note.",
+   "Can either edit input directly, or make a copy + edit that.\n"
+},
+
+{ 29, Jan , 2020 , PT , "1dplot.py" , MINOR , TYPE_BUG_FIX,
+   "The input opt '-xfile ..' was broken;  now it is fixed.",
+   "Fix class inits, as well, under the hood.\n"
+},
+
+{ 29, Jan , 2020 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
+   "Couldn't deal with volumes that had RGB type, which happens for DEC maps.",
+   "Has been fixed now.\n"
+},
+
+{ 29, Jan , 2020 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_GENERAL,
+   "Try to make a couple output images (dwi*b0*.png) a bit clearer.",
+   "Make olay use 95%ile value as cbar max, rather than 100%.\n"
+},
+
+{ 27, Jan , 2020 , PT , "@SSwarper" , MAJOR , TYPE_GENERAL,
+   "Large set of updates; many new opts added, too; generally much improved warps.",
+   "Heavily tested on 178 subj across studies; output fnames are same, though.\n"
+},
+
+{ 27, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "Program now outputs QC images automatically.",
+   "These are output into a PREFIX_QC directory each run.\n"
+},
+
+{ 27, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug in QC.",
+   "Broke when there was one stim used (bad scalar -> list conv).\n"
+},
+
+{ 26, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program now requires specifying a mode for re/defacing.",
+   "One can also output all types of re/defacing simultaneously.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master" , MICRO , TYPE_GENERAL,
+   "Updated with notes to look at @afni_refacer_make_master_addendum.",
+   "The addendum program just tweaks the output of this prog.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master_addendum" , MAJOR , TYPE_GENERAL,
+   "This program just records additional tweaks to refacer ref vol.",
+   "Not really meant to be run on its own; for future reference only.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program has been revamped and updated, including having a new ref vol.",
+   "Syntax for running this has totally changed (options exist).\n"
+},
+
+{ 21, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Increase thresholds and cbar range in vstat_seedcorr and regr_corr dsets.",
+   "Clearer QC, methinks, based on several different group dsets.\n"
+},
+
+{ 14, Jan , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Change text of animal_outs.txt.",
+   "Add in a couple new dsets to be listed.\n"
+},
+
+{ 13, Jan , 2020 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+   "New function to read in seed list text file.",
+   "Returns list of seed objs for APQC.\n"
+},
+
+{ 17, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New pieces of QC:  corr brain image in regr block.",
+   "Shows corr of mean residual with everything.  Have a nice day.\n"
+},
+
+{ 13, Jan , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "New pieces of QC:  first, seedbased corr maps for non-task data.",
+   "Second, censor-based warnings (general and per-stim).\n"
+},
+
+{ 13, Jan , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Couple new options.",
+   "Can specify colorbar and center coords now.\n"
+},
+
 { 27, Dec , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_OPT,
    "New option(s) to not just *check* a dset for FS-ability, but to correct it.",
    "The '-fix_all' and accompanying options control this.  Bonne idee, DRG!\n"

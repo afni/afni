@@ -15,7 +15,7 @@ int main( int argc , char *argv[] )
    if( argc < 4 || strcmp(argv[1],"-help") == 0 ){
       printf( "Usage: imupsam [-A] n input_image output_image\n"
               "\n"
-              "*** Consider using the newer imcat for resampling.\n"
+              "*** Consider using the newer 2dcat for resampling.\n"
               "    byte and rgb images\n"
               "\n"
               "* Upsamples the input 2D image by a factor of n and\n"

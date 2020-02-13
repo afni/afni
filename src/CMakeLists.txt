@@ -1,18 +1,30 @@
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
 add_subdirectory(coxplot)
-add_subdirectory(f2c)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
-add_subdirectory(volpack)
+optional_bundle(volpack)
+optional_bundle(f2c)
 add_subdirectory(3DEdge)
 add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
 include(CMakeLists_mri.txt)
 
+# f2c.h is required for some libraries (local or system f2c library can likely
+# be used). Additionally, parser.f is sometimes modified and reconverted to c
+# source code. In this case the header needs to match that of the f2c used for
+# conversion. This build system system supports the latter in an integrated
+# manner if a system f2c library and binary are found. This configuration can
+# be triggered by calling cmake with the definitions -DUSE_SYSTEM_F2C=ON and
+# -DUSE_F2C=ON
+
+if (USE_F2C AND NOT F2C_EXECUTABLE)
+  message(FATAL_ERROR "f2c should be found: ${F2C_EXECUTABLE}")
+endif()
+
 # 3dinfo should be in the binaries cmake file but provides a test of linking in corelibs
-# configuration
+# configuration and so is placed here instead
 add_executable(3dinfo 3dinfo.c)
 target_link_libraries(3dinfo AFNI::mri)
 
@@ -22,19 +34,62 @@ add_library(rio R_io.c)
 target_include_directories(
   rio
   PRIVATE ${LIBR_INCLUDE_DIRS}
-  PUBLIC $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
 add_afni_target_properties(rio)
 
-# ##### Add libraries outside of corelibs
+# ##### Add models
+foreach(
+  target
+  model_beta
+  model_constant
+  model_conv_PRF
+  model_conv_PRF_6
+  model_conv_PRF_DOG
+  model_conv_cosine4
+  model_conv_diffgamma
+  model_convgamma
+  model_convgamma2a
+  model_demri_3
+  model_diffexp
+  model_diffusion
+  model_exp
+  model_expMEMRI
+  model_expMEMRI3
+  model_expr2
+  model_gammavar
+  model_linear
+  model_linplusort
+  model_michaelis_menton
+  model_null
+  model_quadratic
+  model_sinewave_ap
+  model_sinewave_apf
+  model_squarewave_ap
+  model_squarewave_apf
+  model_trnglwave_ap
+  model_trnglwave_apf
+  model_zero
+  )
+  add_library(${target} ${target}.c)
+  target_link_libraries(
+    ${target}
+    PRIVATE
+            AFNI::mri
+            NIFTI::nifti2
+            NIFTI::nifticdf
+  )
+  add_afni_target_properties(${target})
+  endforeach()
 
+# ##### Add libraries and programs outside of corelibs
 if(NOT AFNI_BUILD_CORELIBS_ONLY)
   add_subdirectory(crorden)
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
   # DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}  RENAME woohoo)
-
-  add_subdirectory(qhulldir)
+  if(NOT USE_SYSTEM_QHULL)
+    add_subdirectory(qhulldir)
+  endif()
   add_subdirectory(avovk)
 endif()
 
@@ -55,7 +110,7 @@ if(BUILD_X_DEPENDENT_GUI_PROGS)
 endif()
 
 # ##### Add suma
-if(BUILD_OPENGL_DEPENDENT_PROGRAMS)
+if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
   add_subdirectory(SUMA)
 endif()
 

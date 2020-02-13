@@ -2477,7 +2477,7 @@ int main( int argc , char *argv[] )
           " + opening windows, or you cannot type text into AFNI popup windows,\n"
           " + you might need to set an environment variable to solve this problem:\n"
           " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace    # tcsh\n"
-          " +   export DYLD_LIBRARY_PATH = /opt/X11/lib/flat_namespace  # bash\n"
+          " +   export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace    # bash\n"
           " + This command is best put in your startup ~/.cshrc file, so that\n"
           " + it will be invoked for every (t)csh shell you open (mutatis mutandis\n"
           " + for the bash shell, of course).\n"
@@ -2485,7 +2485,7 @@ int main( int argc , char *argv[] )
           " + If things are OK and you want to avoid having this warning message\n"
           " + pollute your terminal, use this:\n"
           " +   setenv AFNI_SKIP_DYLD_WARNING YES                       # tcsh\n"
-          " +   export AFNI_SKIP_DYLD_WARNING = YES                     # bash\n\n"
+          " +   export AFNI_SKIP_DYLD_WARNING=YES                       # bash\n\n"
           "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
          ) ;
        }
@@ -3001,6 +3001,8 @@ STATUS("call 14") ;
           putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
 #endif
         }
+        if( AFNI_yesenv("AFNI_CROSSHAIRS_OFF") )
+          MAIN_im3d->vinfo->crosshair_visible = False ;
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
@@ -13720,6 +13722,7 @@ void AFNI_register_nD_func_init( int nd , generic_func *fin )
    return ;
 }
 
+#if 0
 /*---------- 18 May 2000: save/get dataset index for function calls -------*/
 
 static int dset_ijk=-1 , dset_tin=-1 ;
@@ -13731,6 +13734,7 @@ void AFNI_store_dset_index( int ijk , int tin )
 
 int AFNI_needs_dset_ijk(void){ return dset_ijk ; }
 int AFNI_needs_dset_tin(void){ return dset_tin ; }
+#endif
 
 /*-----------------------------------------------------------------------*/
 /*!  Add a timeseries to the global library.

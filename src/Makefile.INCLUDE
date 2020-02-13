@@ -6,6 +6,9 @@
 # be sure MAKE is defined      c/o J Bacon 22 May 2019
 MAKE ?= make
 
+# LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
+LLIBS_X11 ?= $(LLIBS)
+
 # for compiling with OpenMP, if available
 
 CCOMP   = $(CCFAST) $(OMPFLAG)
@@ -28,7 +31,8 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o \
+          suma_help.o
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -119,7 +123,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat  \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
-           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd
+           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd 2dcat
 
 PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
@@ -195,7 +199,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
                   uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
                   3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict            \
-                  3dTto1D 3dExchange                                                \
+                  3dTto1D 3dExchange 2dcat                                         \
                   get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD  \
                   $(EXTRAS)
 
@@ -233,7 +237,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
                images_equal uniq_images stimband 1dNLfit 3dExchange               \
-               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict
+               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat
 
 # put all scripts to install here (no SCRIPTS variable)
 SCRIPTS_DIR = scripts_install
@@ -264,6 +268,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
 
 R_DIR = R_scripts
+R_TCSH_DIR = scripts_for_r
 
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
@@ -349,16 +354,55 @@ prog_list: prog_list_bin prog_list_scripts
                 | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
 		>> prog_list.txt
 
+list_lists:
+	echo list_afni_progs list_suma_progs list_libraries list_headers \
+	     list_models list_plugins list_scripts list_py_scripts       \
+	     list_r_scripts list_scripts_for_r
+
+list_afni_progs:
+	echo $(PROGRAMS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_suma_progs:
+	echo $(SUMA_PROGS) $(SUMA_GTS_PROGS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_libraries:
+	echo $(LIBRARY_LIST) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_headers:
+	echo $(LIBHEADERS) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_models:
+	echo $(MODELLIST) | tr ' ' '\n' | LC_COLLATE=C sort
+
+list_plugins:
+	echo $(PLIST_ALL) | tr ' ' '\n' | LC_COLLATE=C sort
+
+# $(DISCO_SCRIPTS) is a mix, and should be partitioned
+list_scripts:
+	echo `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`    \
+             $(DISCO_SCRIPTS)                                  \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_py_scripts:
+	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_r_scripts:
+	echo `\ls $(R_DIR) | \grep -v CMakeLists.txt`         \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_scripts_for_r:
+	echo `\ls $(R_TCSH_DIR) | \grep -v CMakeLists.txt`    \
+	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
 # Create .gitignore under src/
 gitignore: prog_list
 	echo '##              DO NOT EDIT   ' > .gitignore
 	echo '##This file is created with "$(MAKE) gitignore". ' >> .gitignore
 	echo '##Changes should be made to sources used to create it:' >> .gitignore
 	echo '##                            AFNI/.gitignore '>> .gitignore
-	echo '##                            AFNI/src/gitignore.src.txt '>> .gitignore
 	echo '##and/or the variables listing all programs in src/Makefile.INCLUDE ' \
                                                                   >> .gitignore
-	echo '##targets echo_progs, and prog_list.'  >> .gitignore
+	echo '##targets echo_progs, and prog_list_bin.'  >> .gitignore
 	echo '##Run "$(MAKE) gitignore" to recreate src/.gitignore ' >> .gitignore
 	if [ -f ../.gitignore ]; then \
       echo "" >> .gitignore; \
@@ -366,12 +410,14 @@ gitignore: prog_list
       cat ../.gitignore >> .gitignore; \
    fi
 	echo "" >> .gitignore
-	echo "##Contents of gitignore.src.txt" >> .gitignore
-	cat gitignore.src.txt >> .gitignore
+	echo "" >> .gitignore
+	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '$(INSTALLDIR)' >> .gitignore
+	echo "" >> .gitignore
 	echo "" >> .gitignore
 	echo "##Ignore all the programs and scripts" >> .gitignore
-	echo "##List obtained from AFNI/src/prog_list.txt" >> .gitignore
-	cat prog_list.txt >> .gitignore
+	echo "##List obtained from AFNI/src/prog_list_bin.txt" >> .gitignore
+	cat prog_list_bin.txt >> .gitignore
 
 # CYGWIN: variations on totality and vastness above
 
@@ -384,7 +430,10 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 programs_exe:$(PROGRAMS_EXE)
 
-libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) $(EXLIBS)
+# keep s list of compiled libraries
+LIBRARY_LIST = $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) $(EXLIBS)
+
+libraries: $(LIBRARY_LIST)
 
 ### rules for individual programs
 
@@ -449,8 +498,11 @@ impdif:impdif.c
 imcutup:imcutup.c
 	$(CC) -o imcutup imcutup.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
-imcat:imcat.c
-	$(CC) -o imcat imcat.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+2dcat:2dcat.c
+	$(CC) -o 2dcat 2dcat.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+imcat:2dcat
+	$(CP)  2dcat imcat
 
 images_equal:images_equal.c
 	$(CC) -o images_equal images_equal.c $(INFLAGS) $(LFLAGS) $(LLIBS)
@@ -536,7 +588,7 @@ FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o FD2_inc.c
 
 dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@
-	$(CC) -o dFD2 dFD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS)
+	$(CC) -o dFD2 dFD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS_X11)
 
 fim:fim.c
 	$(RM) $@
@@ -1745,33 +1797,33 @@ afni_version.o:afni_version.c
 
 afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a $(EXLIBS) libjpeg.a libXmHTML.a coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS) -lm -lc
+	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS_X11) -lm -lc
 
 motiftoy: afni motiftoy.c
 	$(RM) $@
-	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS) -lm -lc
+	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS_X11) -lm -lc
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
 afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a $(EXLIBS) $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS_X11)
 
 ### If you have Purify
 
 # pafni:$(AFOBJS) libcoxplot.a
 # 	$(RM) $@
-# 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot $(LLIBS)
+# 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot $(LLIBS_X11)
 
 ### This program is only used with XFree86 4.0 and above
 
 xiner:xiner.o
 	$(RM) $@
-	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS)
+	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS_X11)
 
 cat_matvec:cat_matvec.o
 	$(RM) $@
@@ -1779,7 +1831,7 @@ cat_matvec:cat_matvec.o
 
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
-	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 cs_playsound.o:cs_playsound.c
 	$(RM) $@
@@ -1795,15 +1847,15 @@ cs_playsound.o:cs_playsound.c
 
 1dplot:libcoxplot.a 1dplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS)
+	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS_X11)
 
 1dgrayplot:libcoxplot.a 1dgrayplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS)
+	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
 
 1dsigplot:libcoxplot.a 1dsigplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS)
+	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
 
 1dtranspose:1dtranspose.o
 	$(RM) $@
@@ -2084,7 +2136,7 @@ afni_src.tgz:
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
-	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
+	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -2123,7 +2175,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
@@ -2140,7 +2192,7 @@ install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
@@ -2154,7 +2206,7 @@ install_exe: $(INSTALLDIR)
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 ###################################################################
@@ -2454,7 +2506,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
            thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
-           thd_remove_allzero.o
+           thd_remove_allzero.o thd_store_index.o thd_ljungbox.o
 
 # these are now included in NIML
 
@@ -2553,10 +2605,10 @@ NETSCR_SRCS = $(NETCDF_DIR)/attr.c   $(NETCDF_DIR)/dim.c    $(NETCDF_DIR)/error.
               $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c
 
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
-            suma_string_manip.o suma_algorithms.o suma_help.o
+            suma_string_manip.o suma_algorithms.o
 
 SUMA_SRCS = suma_afni_surface.c suma_datasets.c suma_utils.c \
-            suma_string_manip.c suma_algorithms.c suma_help.c
+            suma_string_manip.c suma_algorithms.c
 
 MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
@@ -2661,7 +2713,8 @@ LIBMRI_LINUX: niml.h mrilib.h                                                \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                          \
                 $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
-                -lmrix -lcoxplot $(LEXLIBS)
+
+  #             -lmrix -lcoxplot $(LEXLIBS)
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
@@ -2685,7 +2738,15 @@ shared_objs: $(INSTALLDIR) libmri.so libmrix.so
 
 SO = $(PLUGIN_SUFFIX)
 
-plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
+# Use lists for plugins and models, so that we can output a list of
+# expected shared objects for them (different from libraries).
+
+# list of all plugin and model targets
+PLIST_ALL = $(PLIST_BASE) $(PLIST_CONTRIB)
+
+# make lists and dependencies based on them
+PLIST_BASE =                                                           \
+        plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_tag.$(SO)      plug_power.$(SO)    plug_stats.$(SO)       \
         plug_lsqfit.$(SO)   plug_imreg.$(SO)    plug_edit.$(SO)        \
         plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
@@ -2698,9 +2759,11 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_roiplot.$(SO)  plug_ttget.$(SO)    plug_L1fit.$(SO)       \
         plug_3ddup.$(SO)    plug_histog_multi.$(SO)                    \
         plug_afnihistory.$(SO)                                         \
-        models contrib_plugins
 
-models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
+plugins: $(PLIST_BASE) models contrib_plugins
+
+MODELLIST =                                                            \
+        model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_null.$(SO) model_diffusion.$(SO) model_beta.$(SO)        \
         model_sinewave_ap.$(SO) model_sinewave_apf.$(SO)               \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO)           \
@@ -2714,32 +2777,72 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)                    \
         model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)
 
+models: $(MODELLIST)
+
+# --------------------------------------------------------------
 # Contributed plugins go last, since they might not compile well
 
+# For a new user list, define a PLIST of actual plugins, a USER_plugin target,
+# and add the PLIST to $PLIST_CONTRIB.
+
+PLIST_CONTRIB = $(PLIST_ZIAD) $(PLIST_BIRN) $(PLIST_KUMMER) $(PLIST_LACONTE) \
+                $(PLIST_RICKR) $(PLIST_TROSS) $(PLIST_BELMONTE)              \
+                $(PLIST_FREDTAM) $(PLIST_DAVIDSHIN)
+
+
+# Really, contrib_plugins and related targets are not needed.  It might be
+# cleaner to just use $PLIST_CONTRIB as a dependency of the plugins target.
 contrib_plugins: ziad_plugins birn_plugins kummer_plugins laconte_plugins \
                  rickr_plugins tross_plugins belmonte_plugins fredtam_plugins \
                  davidshin_plugins
 
-ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
+PLIST_ZIAD =  plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
 
-fredtam_plugins: plug_retroicor.$(SO)
+ziad_plugins: $(PLIST_ZIAD)
 
-davidshin_plugins: plug_aslA3D3.$(SO)
 
-birn_plugins: plug_stavg.$(SO)
+PLIST_FREDTAM = plug_retroicor.$(SO)
 
-kummer_plugins: plug_reorder.$(SO)
+fredtam_plugins: $(PLIST_FREDTAM)
 
-rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
+
+PLIST_DAVIDSHIN = plug_aslA3D3.$(SO)
+
+davidshin_plugins: $(PLIST_DAVIDSHIN)
+
+
+PLIST_BIRN = plug_stavg.$(SO)
+
+birn_plugins: $(PLIST_BIRN)
+
+
+PLIST_KUMMER = plug_reorder.$(SO)
+
+kummer_plugins: $(PLIST_KUMMER)
+
+
+PLIST_RICKR =  plug_roiedit.$(SO) plug_hemisub.$(SO) \
                plug_maskcalc.$(SO) plug_maxima.$(SO) \
                plug_crender.$(SO) plug_vol2surf.$(SO)
 
-tross_plugins: plug_fourier.$(SO)
+rickr_plugins: $(PLIST_RICKR)
 
-belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 
-laconte_plugins: plug_3dsvm.$(SO)
+PLIST_TROSS = plug_fourier.$(SO)
+
+tross_plugins: $(PLIST_TROSS)
+
+
+PLIST_BELMONTE = plug_threshold.$(SO) plug_permtest.$(SO)
+
+belmonte_plugins: $(PLIST_BELMONTE)
+
+
+PLIST_LACONTE = plug_3dsvm.$(SO)
+
+laconte_plugins: $(PLIST_LACONTE)
+
 
 install_plugins: $(INSTALLDIR)
 	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
@@ -3353,7 +3456,7 @@ qqq.o:qqq.c
 	$(CCFAST) -c qqq.c $(INFLAGS)
 
 qqq:qqq.o
-	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS_X11)
 
 warping_test.o:warping_test.c
 	$(CCFAST) -c warping_test.c $(INFLAGS)
@@ -3386,7 +3489,7 @@ unu:unu.o
 	$(CC) -o unu unu.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Xphace:Xphace.o
-	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS)
+	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS_X11)
 
 3dbetafit:3dbetafit.o betafit.c
 	$(CC) -o 3dbetafit 3dbetafit.o $(INFLAGS) $(LFLAGS) $(LLIBS)
@@ -3443,7 +3546,7 @@ niccc:niccc.o
 
 aiv:aiv.o
 	$(RM) $@
-	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 test_powell:test_powell.o
 	$(RM) $@
@@ -3451,7 +3554,7 @@ test_powell:test_powell.o
 
 asnap:asnap.o
 	$(RM) $@
-	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
+	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS_X11)
 
 galler:galler.o
 	$(RM) $@

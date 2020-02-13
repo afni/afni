@@ -44,6 +44,25 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , FEB , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add reading Apple .heic images (via magick tool)" ,
+   NULL } ,
+
+ { 5 , FEB , 2020 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
+   "Add -LJorder option" ,
+   "To order voxels by their Ljung-Box statistics." } ,
+
+ { 02 , FEB , 2020 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "Add -qval option to 3dPVAL [for GC]." ,
+   "Merry Groundhog Day!" } ,
+
+ { 22 , JAN , 2020 , RWC , "3dREMLfit" , MAJOR , TYPE_ENHANCE ,
+   "Compute Ljung-Box statistic for -Rvar dataset." ,
+   "Provides a measure of how temporally correlated each voxel's\n"
+   "pre-whitened residuals are. Small LB value = good fit by the ARMA(1,1)\n"
+   "model. Sub-brick is coded as a chi-squared statistic for use in\n"
+   "thresholding in the AFNI GUI." } ,
+
  { 12 , DEC , 2019 , RWC , "3dTcorrelate" , MINOR , TYPE_NEW_OPT ,
    "Add -zcensor option" ,
    "Remove from consideration any time point t where xset(t) OR yset(t) is\n"

@@ -28,9 +28,12 @@
 #   + [PT] add in the montgap and montcolor opts (useful for macaque
 #          data!)
 #
-set version   = "1.0";  set rev_dat   = "Sep 6, 2019"
+#set version   = "1.0";  set rev_dat   = "Sep 6, 2019"
 #   + [PT] now setting def montgap to 1, in conjunction with making
 #          similar change in APQC images
+#
+set version   = "1.1";  set rev_dat   = "Dec 30, 2019"
+#   + [PT] can set some @chauffeur_opts here-- cbar and set_dicom_xyz
 #
 # ----------------------------------------------------------------
 
@@ -66,11 +69,14 @@ set olayE          = ${tpref}_olayE.nii.gz
 set Nx             = 7                   # num of mont wins, b/c Ny=1
 set mgap           = 1                   # gapsize (in px) bt montage slices
 set mcolor         = 'black'             # color of montage gap
+set cbar           = "Reds_and_Blues_Inv" # default colorbar; can adjust
 
 set refbox_add     = ( "-pass" "-pass" )
 
 set DO_CLEAN       = 1                    # default: do remove
 set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
+
+set user_coors     = "-pass"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -125,6 +131,23 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set mcolor = "$argv[$ac]"
+
+    # [PT: Dec 30, 2019] extra montage feature: cbar to use
+    else if ( "$argv[$ac]" == "-cbar" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cbar = "$argv[$ac]"
+
+    # [PT: Dec 30, 2019] can place coord loc
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_dicom_xyz "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
@@ -267,7 +290,7 @@ endif
     -olay  "${fout}"                        \
     -ulay_range 0% 120%                     \
     -func_range_perc_nz 33                  \
-    -cbar "Reds_and_Blues_Inv"              \
+    -cbar "${cbar}"                         \
     -set_subbricks 0 0 0                    \
     -olay_alpha No                          \
     -olay_boxed No                          \
@@ -279,7 +302,8 @@ endif
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
     -label_mode 1 -label_size 3             \
-    $allclean
+    $allclean                               \
+    ${user_coors}
 
 # ---------------------------------------------------------------------
 
@@ -327,6 +351,8 @@ COMMAND OPTIONS ~1~
 -box_focus_slices
 -montgap
 -montcolor
+-cbar
+-set_dicom_xyz
 -no_clean
 
 EOF

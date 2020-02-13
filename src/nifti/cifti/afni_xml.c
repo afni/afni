@@ -70,7 +70,7 @@ static afni_xml_control gAXD = {
 /*---------- accessor functions for user-controllable variables ----------*/
 /*----------     (one can pass -1 to set the default value)     ----------*/
 
-/*! verb is the vebose level, with 0 meaning "only report errors" (up to 7) */
+/*! verb is the verbose level, with 0 meaning "only report errors" (up to 7) */
 int axml_get_verb( void    ){ return gAXD.verb; }
 int axml_set_verb( int val )
 {

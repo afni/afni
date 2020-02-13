@@ -448,7 +448,7 @@ static PROG_OPTS poptslist[] = {
 { "imand", "", 0},
 { "imaver", "", 0},
 { "imcalc", "-a; -datum; -expr; -output; ", 4},
-{ "imcat", "-autocrop; -autocrop_atol; -autocrop_ctol; -crop; -gap; -gap_col; -gray_wrap; -gscale; -image_wrap; -matrix; -matrix_from_scale; -nx; -ny; -pad_val; -prefix; -rand_wrap; -res_in; -respad_in; -rgb_out; -scale_image; -scale_intensity; -scale_pixels; -white_wrap; -zero_wrap; ", 24},
+{ "2dcat", "-autocrop; -autocrop_atol; -autocrop_ctol; -crop; -gap; -gap_col; -gray_wrap; -gscale; -image_wrap; -matrix; -matrix_from_scale; -nx; -ny; -pad_val; -prefix; -rand_wrap; -res_in; -respad_in; -rgb_out; -scale_image; -scale_intensity; -scale_pixels; -white_wrap; -zero_wrap; ", 24},
 { "imcutup", "-prefix; -x.ynum; -xynum; -y.xnum; -yxnum; ", 5},
 { "imdump", "", 0},
 { "immask", "", 0},

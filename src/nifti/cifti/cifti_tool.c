@@ -98,8 +98,6 @@ int main(int argc, char * argv[])
 
    /* rv == 0, continue... */
    return process(&gopt);
-
-   return 0;
 }
 
 /* ----------------------------------------------------------------- */

@@ -248,9 +248,13 @@
 #set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
 #   + [PT] add in resampling opts for obliquity transform
 #
-set version   = "5.92"; set rev_dat   = "Sep 12, 2019"
+#set version   = "5.92"; set rev_dat   = "Sep 12, 2019"
 #   + [PT] now use "\mkdir -p .." with $odir, so it will generate path
 #          to it, if necessary --- simplifies usage in scripts
+#
+set version   = "5.93"; set rev_dat   = "Jan 16, 2020"
+#   + [PT] put "-no1D" on afni command, so there aren't warnings when
+#          empty 1D files are read (e.g., during resting state APQC)
 #
 # =====================================================================
 
@@ -1849,7 +1853,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu              \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1878,7 +1882,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-        afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                  \
+        afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu            \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
@@ -1954,7 +1958,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1992,7 +1996,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
@@ -2193,7 +2197,7 @@ COMMAND OPTIONS ~1~
 
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
-                   non-zero values.
+                   non-zero values (def: 100).
 
 -obliquify  OBL    :the ulay and/or the olay may have been acquired
                     with oblique coordinate axes; by default, the
