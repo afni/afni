@@ -131,7 +131,11 @@ class APExample:
       emore = []    # more than keys than target
       pdiff = []    # index pairs, where keys are the same but lists differ
       ncommon = 0
-      for key in target.keys:
+
+      # loop over unique keys, counting number in both key lists
+      uniq_target_keys = UTIL.get_unique_sublist(target.keys)
+
+      for key in uniq_target_keys:
          if key not in source.keys: continue
 
          ksource = [ind for ind, e in enumerate(source.olist) if e[0]==key]
@@ -152,6 +156,7 @@ class APExample:
          ncommon += ncomp
          for ind in range(ncomp):
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
+               # just store source and target indices here
                pdiff.append([ksource[ind], ktarget[ind]])
 
       nindent = 3
