@@ -92,6 +92,7 @@ set align_type = "all"
 set ok_to_exist = "0"
 set template_followers = ()
 set seg_followers = ()
+set dset_followers = ()
 set feature_option = ""
 set feature_size = ""
 set supersize = ""
@@ -229,6 +230,36 @@ while ($ac <= $#argv)
             exit 1
         endif
         @ ac --        
+
+    else if ("$argv[$ac]" == "-dset_followers") then
+        @ ac ++
+        while ($ac <= $#argv)
+            # go until an option starting with a hyphen appears
+            set poss_dset = `echo $argv[$ac] | grep -- "^-"`
+            # if the next argument starts with a hyphen
+            # then the grep gives back the same argument
+            # that means we're on to the next option
+            # instead of a dataset
+            if ("$argv[$ac]" == "$poss_dset") then
+#               @ ac --               
+               break
+            # not a hyphen leading option, should be dataset 
+            else
+               set dsetfollow = $argv[$ac] 
+               # is the dataset somewhere else or current directory
+               set dsetfollow = `@FindAfniDsetPath -append_file \
+                                    -full_path $dsetfollow`
+               # add the dataset to the template follower list
+               set dset_followers = ($dset_followers $dsetfollow)
+            endif
+            @ ac ++ 
+        end
+        if ( "$#dset_followers" == "0" ) then
+            echo "** missing dataset for option dset_followers"
+            exit 1
+        endif
+        @ ac --
+
 
     else if ("$argv[$ac]" == "-feature_size") then
         @ ac ++
@@ -547,6 +578,8 @@ echo "NL inv-warp from templ       : ${dsetprefix}_WARPINV.nii.gz" \
 # Make subdirectory for QC images
 \mkdir -p QC
 
+# applying warps
+#  first check if output exists
 if ( ($ok_to_exist == "1") &&                  \
      (-f ${origdsetprefix}_warp2std.nii.gz) && \
      (-f ${origdsetprefix}_warp2std_nsu.nii.gz) ) then
@@ -619,6 +652,41 @@ echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz
       >> ${animal_outs}
 echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
       >> ${animal_outs}
+
+# applying warps to followers - other datasets that start in same space, ~grid
+# move each the same way as the data - align centers, apply affine, nonlinear warp
+foreach followset ($dset_followers)
+   # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
+   set followprefix = `@GetAfniPrefix $followset`
+   echo $followprefix |grep '.gz$'
+   if ($status == "0") then
+      set dsetext = ".gz"
+   else
+      set dsetext = "" 
+   endif
+   set followprefix = `basename $followprefix .gz`
+   set followprefix = `basename $followprefix .nii`
+
+   #  first check if output exists
+   if ( ($ok_to_exist == "1") &&                  \
+     (-f ${followprefix}_warp2std.nii.gz) ) then
+      echo "reusing nonlinear transformed follower dataset"
+   else 
+      # copy dataset to temporary one - reused by multiple dset followers
+      3dcopy $followset tempfollow.nii.gz
+      # align center to base  (Should use @Align_Centers 1D shift - make new option)
+      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp
+      # combine nonlinear and affine warps for dataset warped to standard
+      3dNwarpApply -prefix ${followprefix}_warp2std.nii.gz                    \
+         -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
+         -source tempfollow.nii.gz -master $base  -overwrite
+   endif
+   echo "Follower Dset, NL-warped to templ     : ${followprefix}_warp2std.nii.gz" \
+       >> ${animal_outs}
+end
+
+
+# now handle the inverse transformed data - template and atlases to native space
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \

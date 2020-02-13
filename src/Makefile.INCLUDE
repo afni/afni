@@ -2046,7 +2046,7 @@ iochan_relay:iochan_relay.o
 
 3dCM:3dCM.o
 	$(RM) $@
-	$(CC) -o 3dCM 3dCM.o $(LFLAGS) $(LLIBS)
+	$(CCFAST) -o 3dCM 3dCM.o $(LFLAGS) $(LLIBS)
 
 3dSpatNorm:3dSpatNorm.o
 	$(RM) $@
@@ -2374,6 +2374,10 @@ thd_notes.o:thd_notes.c
 thd_incorrelate.o:thd_incorrelate.c
 	$(RM) $@
 	$(CCFAST) -c thd_incorrelate.c $(INFLAGS)
+
+thd_center.o:thd_center.c
+	$(RM) $@
+	$(CCFAST) -c thd_center.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@

@@ -4951,6 +4951,13 @@ extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
                                int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
                             int *rois, int N_rois, int cmode);
+extern THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
+                     int cmode, THD_fvec3 cmxyz);
+THD_fvec3 THD_Dcent( THD_3dim_dataset *xset , int iv , byte *mmm,
+                     int cmode, THD_fvec3 cmxyz);
+double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im , 
+   double xcm, double ycm, double zcm);
+
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);

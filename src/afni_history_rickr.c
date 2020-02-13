@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Feb, 2020, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "add ability to compare against examples",
+   "Add options -compare_opts, -compare_example_pair, -show_example and\n"
+   "            -show_example_names.\n"
+   "Consider these examples:\n"
+   "   afni_proc.py -show_example 'Example 11b'\n"
+   "   afni_proc.py -show_example_names\n"
+   "   afni_proc.py ... my options here ... -compare_opts 'Example 11'\n"
+   "Motivated by C Gaillard and P Taylor."
+ } ,
+
  {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
    "build main non-X11, non-SUMA AFNI program without X deps",
    "Set LLIBS_X11 to current LLIBS, and give it to SUMA_LINK_LIB.\n"

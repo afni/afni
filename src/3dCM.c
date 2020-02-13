@@ -11,7 +11,10 @@ int main( int argc , char * argv[] )
    THD_fvec3 cmv , setv ;
 
    int cmode = 0; // default: return xyz in DICOM
-
+   int cm_cmode;
+   int Icent = 0;  // compute Icent internal center
+   int Dcent = 0;  // compute Dcent distance center
+        
    /*-- read command line arguments --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
@@ -38,6 +41,16 @@ int main( int argc , char * argv[] )
 "  -all_rois     Don't bother listing the values of ROIs you want\n"
 "                the program will find all of them and produce a \n"
 "                full list.\n"
+"  -Icent Compute Internal Center. For some shapes, the center can\n"
+"          lie outside the shape. This option finds the location\n"
+"          of the center of a voxel closest to the center of mass\n"
+"          It will be the same or similar to a center of mass\n"
+"          if the CM lies within the volume. It will lie necessarily\n"
+"          on an edge voxel if the CMass lies outside the volume\n" 
+"  -Dcent Compute Distance Center, i.e. the center of the voxel\n"
+"          that has the shortest average distance to all the other\n"
+"          voxels. This is much more computational expensive than\n"
+"          Cmass or Icent centers\n"
 "  NOTE: Masking options are ignored with -roi_vals and -all_rois\n"
              ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -114,6 +127,16 @@ int main( int argc , char * argv[] )
          all_rois = 1;
          narg++ ; continue ;
       }
+
+      if( strcmp(argv[narg],"-Icent") == 0 ){
+         Icent = 1;
+         narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-Dcent") == 0 ){
+         Dcent = 1;
+         narg++ ; continue ;
+      }
       
       if( strcmp(argv[narg],"-automask") == 0 ){
          if( mmm != NULL ){
@@ -177,15 +200,30 @@ int main( int argc , char * argv[] )
       }
      
       if (!N_rois) {
-
+         if(Icent || Dcent)
+            cm_cmode = 0;
+         else
+            cm_cmode = cmode;    
          // [PT, Dec, 2016] allow integer ijk output
-         cmv = THD_cmass( xset , 0 , mmm, cmode ) ;
+         cmv = THD_cmass( xset , 0 , mmm, cm_cmode ) ;
          /*if( cmode == 1 ) // integer valued
            printf("%d  %d  %d\n", (int) cmv.xyz[0], 
            (int) cmv.xyz[1], (int) cmv.xyz[2]) ;
            else*/
-         printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+         if(!Icent && !Dcent)
+            printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+         else {
+            printf("%g  %g  %g  Center of Mass\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+            if(Icent){
+              cmv = THD_Icent( xset , 0 , mmm, cmode, cmv);
+              printf("%g  %g  %g  Icent\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+            }
+            if(Dcent){
+              cmv = THD_Dcent( xset , 0 , mmm, cmode, cmv);
+              printf("%g  %g  %g  Dcent\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+            }
 
+         }
          DSET_unload(xset) ;
 
          if( do_set ){

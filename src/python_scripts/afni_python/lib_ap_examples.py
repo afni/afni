@@ -117,6 +117,11 @@ class APExample:
       # use more generic name
       source = self
 
+      # get global max key len
+      maxs = max([len(key) for key in source.keys])
+      maxt = max([len(key) for key in target.keys])
+      maxk = max(maxs, maxt)
+
       # first look for missing and extra
       emiss =  [e for e in target.olist if e[0] not in source.keys]
       eextra = [e for e in source.olist if e[0] not in target.keys]
@@ -149,7 +154,7 @@ class APExample:
             if source.olist[ksource[ind]] != target.olist[ktarget[ind]]:
                pdiff.append([ksource[ind], ktarget[ind]])
 
-      nindent = 4
+      nindent = 3
       ind1 = ' '*nindent
       ind2 = ' '*(2*nindent)
 
@@ -170,7 +175,6 @@ class APExample:
 
       print("==========  missing option(s) : %d" % len(emiss))
       if len(emiss) > 0:
-         maxk = max([len(e[0]) for e in emiss])
          for e in emiss:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -178,7 +182,6 @@ class APExample:
       
       print("==========  extra option(s) : %d" % len(eextra))
       if len(eextra) > 0:
-         maxk = max([len(e[0]) for e in eextra])
          for e in eextra:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -187,9 +190,6 @@ class APExample:
       print("==========  differing option(s) : %d" % len(pdiff))
       if len(pdiff) > 0:
          skips = []
-         maxs = max([len(source.olist[pair[0]][0]) for pair in pdiff])
-         maxt = max([len(target.olist[pair[1]][0]) for pair in pdiff])
-         maxk = max(maxs, maxt)
          for pair in pdiff:
              oname = source.olist[pair[0]][0]
              if oname in eskip and verb < 2:
@@ -198,24 +198,20 @@ class APExample:
                    continue
                 skips.append(oname)
 
-                skip = 1
-                sstr = ' (skipping details - will not repeat)'
+                print("%s%-*s  (verb=1; skipping details)" \
+                      % (ind1, maxk, oname))
              else:
-                skip = 0
-                sstr = ''
-             print("%s%-*s : differences%s" % (ind1, maxk, oname, sstr))
-             # typically skip details of data inputs
-             if skip:
-                continue
-             ksstr = ' '.join(source.olist[pair[0]][1])
-             ktstr = ' '.join(target.olist[pair[1]][1])
-             self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
-             self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
+                # full details
+                print("%s%-*s" % (ind1, maxk, oname))
+
+                ksstr = ' '.join(source.olist[pair[0]][1])
+                ktstr = ' '.join(target.olist[pair[1]][1])
+                self._print_diff_line(ind2, 'current', ksstr, lmax=lmax)
+                self._print_diff_line(ind2, 'target',  ktstr, lmax=lmax)
              print("")
 
       print("==========  fewer applied option(s) : %d" % len(efewer))
       if len(efewer) > 0:
-         maxk = max([len(e[0]) for e in efewer])
          for e in efewer:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -223,7 +219,6 @@ class APExample:
       
       print("==========  more applied option(s) : %d" % len(emore))
       if len(emore) > 0:
-         maxk = max([len(e[0]) for e in emore])
          for e in emore:
              estr = ' '.join(e[1])
              self._print_opt_lin(ind1, e[0], maxk, estr, lmax=lmax)
@@ -241,7 +236,7 @@ class APExample:
              kprint = parstr[0:lmax]
              estr = ' ...'
 
-       print("%s%-*s   %s%s" % (indent, maxlen, oname, kprint, estr))
+       print("%s%-*s  %s%s" % (indent, maxlen, oname, kprint, estr))
 
    def _print_diff_line(self, indent, tstr, parstr, lmax=50):
        """if lmax > 0: restrict parstr to given length, plus elipsis
@@ -255,19 +250,24 @@ class APExample:
 
        print("%s%-8s : %s%s" % (indent, tstr, kprint, estr))
 
-   def wrapped_ap_cmd(self, nindent=10, nextra=3):
-      """return a string that is an afni_proc.py command, indented by
-         nindent, with nextra indentation for option continuation
+   def command_string(self, wrap=0, windent=10):
+      """return a string that is an afni_proc.py command
+            if wrap: - return indented command
+                     - indent by windent
       """
      
       clist = ['%s %s' % (e[0], ' '.join(e[1])) for e in self.olist]
-      return UTIL.list_to_wrapped_command('afni_proc.py', clist,
-                                          nindent=14, maxlen=75)
+      if wrap:
+         return UTIL.list_to_wrapped_command('afni_proc.py', clist,
+                                             nindent=14, maxlen=75)
+      else:
+         clist.insert(0, 'afni_proc.py')
+         return ' '.join(clist)
 
    def display(self, verb=0, sphinx=1):
       """display a single example - use a copy for quoting
          verb: verbosity level
-           0: only show example
+           0: only show example, with no wrap or formatting
            1: include name, source, descrip
            2: full verbosity: as ap -help: include descrip, header, trailer
               - terminate descrip with ~2~, for sphinxificaiton
@@ -275,7 +275,13 @@ class APExample:
          ponder indentation
       """
       cc = self.copy(quotize=1)
-      cmd = cc.wrapped_ap_cmd()
+
+      # handle verb 0 right away, as the command string will differ
+      if verb == 0:
+         print("%s" % cc.command_string())
+         return
+
+      cmd = cc.command_string(wrap=1)
 
       indent = ' '*8
 
@@ -1456,6 +1462,23 @@ def show_enames(verb=1):
    indent = ' '*4
    for eg in ap_examples:
       print("%s%-*s : %s" % (indent, maxn, eg.name, eg.descrip))
+
+def compare_eg_pair(eg1, eg2, eskip=[], verb=1):
+   """similar to compare(), above, but compare 2 known examples"""
+
+   # set names and get an instance for the first entry, eg1
+   if isinstance(eg1, APExample):
+      n1 = eg1.name
+      eg = eg1
+   else:
+      n1 = eg1
+      eg = find_eg(eg1)
+      if not isinstance(eg, APExample):
+         print("** compare_eg_pair: failed to find example named '%s'" % n1)
+         return
+      
+   # so eg is the instance of eg1, just use it
+   return eg.compare(eg2, eskip=eskip, verb=verb)
 
 def display_eg_all(aphelp=1, source='', verb=0):
    """display the examples array if someone wants it
