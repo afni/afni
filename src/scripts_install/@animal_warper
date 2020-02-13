@@ -673,6 +673,7 @@ foreach followset ($dset_followers)
       echo "reusing nonlinear transformed follower dataset"
    else 
       # copy dataset to temporary one - reused by multiple dset followers
+      \rm -f tempfollow.nii.gz
       3dcopy $followset tempfollow.nii.gz
       # align center to base  (Should use @Align_Centers 1D shift - make new option)
       @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp
