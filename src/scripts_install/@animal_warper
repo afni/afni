@@ -65,9 +65,13 @@ set progname = @animal_warper
 #      number/package
 #    + help now exits with 0
 #
-set version = "1.73" ; set date = "Jan 14, 2020"
+#set version = "1.73" ; set date = "Jan 14, 2020"
 # [PT] update text output in @animal_outs a bit
 #
+set version = "1.74" ; set date = "Feb 14, 2020"
+# [DRG] dset_followers to allow for similar space datasets to follow 
+#       into template space. Uses Align_Centers 1D dataset for initial
+#       shifts 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
