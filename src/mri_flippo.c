@@ -30,7 +30,8 @@ ENTRY("mri_flippo") ;
    if( rot == MRI_ROT_0 && mirror == FALSE ) RETURN( im );
 
    if( ! MRI_IS_2D(im) ){
-      fprintf(stderr,"\n*** mri_flippo only works with 2D images!\n") ;
+      ERROR_message("mri_flippo only works with 2D images: nx=%d ny=%d nz=%d",
+                    im->nx , im->ny , im->nz ) ;
       RETURN( im );
    }
 

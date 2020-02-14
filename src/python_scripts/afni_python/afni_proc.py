@@ -832,14 +832,18 @@ stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 # apply to apqc_make_tcsh.py
 g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
-g_eg_dset_opts = [ '-align_epi_ext_dset', 
+# based on what is specified as a dataset, but focus on what
+# is expected to vary
+g_eg_skip_opts = [ 
+   '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
    '-anat_follower', '-anat_follower_ROI', 
    '-blip_forward_dset', '-blip_reverse_dset', 
    '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
-   '-surf_anat', '-tlrc_base', 
-   '-volreg_base_dset', '-volreg_warp_master', 
+   '-surf_anat', '-surf_spec',
+   '-tlrc_NL_warped_dsets', 
+   # '-volreg_base_dset',   (not sure, so allow for now)
    '-regress_censor_extern', '-regress_extra_stim_files', 
-   '-regress_make_ideal_sum', '-regress_motion_file', 
+   '-regress_motion_file', 
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
    ] 
@@ -1705,10 +1709,12 @@ class SubjProcSream:
         
         if opt_list.find_opt('-help_section'):     # just print help
             section, rv = opt_list.get_string_opt('-help_section')
-            if section == 'EGS':
+            if section == 'EGafni':
                EGS = self.egs()
-               EGS.populate_examples()
                EGS.display_eg_all(verb=2)
+            elif section == 'EGall':
+               EGS = self.egs()
+               EGS.display_eg_all(aphelp=-1,verb=2)
             else:
                show_program_help(section=section)
             return 0  # gentle termination
@@ -3702,7 +3708,7 @@ class SubjProcSream:
                   for opt in olist if not opt.name.startswith('-compare')]
         eg = EGS.APExample('command', olist)
         # can pass a noelemnt list, of opts not to compare elements of
-        eg.compare(comp, eskip=g_eg_dset_opts, verb=self.verb)
+        eg.compare(comp, eskip=g_eg_skip_opts, verb=self.verb)
 
     def compare_example_pair(self, pair):
         """compare given the given pair of known examples
@@ -3711,7 +3717,7 @@ class SubjProcSream:
         if len(pair) != 2:
            print("** compare_example_pair: needs to example names")
         EGS.compare_eg_pair(pair[0], pair[1],
-                            eskip=g_eg_dset_opts, verb=self.verb)
+                            eskip=g_eg_skip_opts, verb=self.verb)
 
     # ----------------------------------------------------------------------
     # PPI regression script functions

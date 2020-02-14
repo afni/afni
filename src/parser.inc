@@ -45,7 +45,7 @@ C.......................................................................
 C  Define Function names, etc.
 C
       INTEGER     NUM_FUNC
-      PARAMETER ( NUM_FUNC = 122 )
+      PARAMETER ( NUM_FUNC = 123 )
 C
       CHARACTER*32 C_FUNCNAME(NUM_FUNC+1)
       INTEGER      N_FUNCARGS(NUM_FUNC)
@@ -89,11 +89,13 @@ C
      X
      X 'CHOOSE', 'IFELSE', 'LOGCOSH' , 'ACFWXM' , 'GAMP' , 'GAMQ' ,
      X
+     X 'ISPRIME' ,
+     X
      X 'DUMMY' /
 C
       DATA N_FUNCARGS / 6*1, 2, 12*1, 2*2, 21*1, 3*-1, 2, 3*1, -1,
      X                 3*4, 3*2, 3*3, 3*1, 3*2, 3*3, 3*3, 3*3, 3*2 ,
      X   1 , -1,-1 , 2 , 1 , 1 , 1 , 1 , -1 ,1 , -1  ,
      X  -1,-1, 1,1,2,1,1, -1,-1,-1, 2, 5,5, -1,-1,-1,1,3, 2,2,1,1,2,
-     X  -1, -1,-1, -1, -1, -1, 3 , 1 , 4 , 2,2 /
+     X  -1, -1,-1, -1, -1, -1, 3 , 1 , 4 , 2,2 , 1 /
 C-----------------------------------------------------------------------

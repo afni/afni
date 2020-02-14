@@ -119,7 +119,7 @@ class OptionList:
                     nested      - show as nested array
                     pretty      - enumerated options with params
         """
-        if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
+        if verb or mesg != '': print("\n%sOptionList: %s (len %d)" % \
                                      (mesg, self.label, len(self.olist)))
         if atype == 'arglist':
            print("%s" % [opt.name for opt in self.olist])
