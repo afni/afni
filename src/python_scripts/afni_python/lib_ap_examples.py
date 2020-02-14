@@ -26,11 +26,9 @@ ap_examples = []
 # ----------------------------------------------------------------------
 # class definition for instances in ap_examples array
 class APExample:
-   def __init__(self, name, olist, aphelp=0, source='', descrip='',
+   def __init__(self, name, olist, source='', descrip='',
                 header='', trailer=''):
       self.name     = name          # used to reference example
-      self.aphelp   = aphelp        # flag: shown as part of afni_proc.py -help
-                                    # a bit redundant with source, but quicker
       self.source   = source        # from AP help, AD6, etc.
       self.descrip  = descrip       # very short description
       self.header   = header        # shown before example (in -help)
@@ -39,6 +37,7 @@ class APExample:
 
       self.keys     = []            # convenience: olist[][0] entries
       self.olist    = olist         # list of options [opt, [params]]
+      self.aphelp   = (source == 'afni_proc.py -help')
 
       if not self.valid_olist():
          return None
@@ -324,7 +323,7 @@ def populate_examples():
    if len(ap_examples) > 0:
       return
 
-   ap_examples.append( APExample( 'Example 1', aphelp=1,
+   ap_examples.append( APExample( 'Example 1',
      source='afni_proc.py -help',
      descrip='Minimum use.',
      header="""
@@ -340,7 +339,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 2', aphelp=1,
+   ap_examples.append( APExample('Example 2',
      source='afni_proc.py -help',
      descrip='Very simple.',
      header="""
@@ -357,7 +356,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample('Example 3', aphelp=1,
+   ap_examples.append( APExample('Example 3',
      source='afni_proc.py -help',
      descrip='(no longer) The current class example.',
      header="""
@@ -388,7 +387,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample( 'Example 4', aphelp=1,
+   ap_examples.append( APExample( 'Example 4',
      source='afni_proc.py -help',
      descrip='Similar to 3, but specify the processing blocks.',
      header="""
@@ -412,7 +411,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5a', aphelp=1,
+   ap_examples.append( APExample( 'Example 5a',
      source='afni_proc.py -help',
      descrip='RETROICOR, resting state data.',
      header="""
@@ -450,7 +449,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5b', aphelp=1,
+   ap_examples.append( APExample( 'Example 5b',
      source='afni_proc.py -help',
      descrip='RETROICOR, while running a normal regression.',
      header="""
@@ -482,7 +481,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 5c', aphelp=1,
+   ap_examples.append( APExample( 'Example 5c',
      source='afni_proc.py -help',
      descrip='RETROICOR (modern): censor and band pass.',
      header="""
@@ -529,7 +528,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 6', aphelp=1,
+   ap_examples.append( APExample( 'Example 6',
      source='afni_proc.py -help',
      descrip='A modern example.  GOOD TO CONSIDER.',
      header="""
@@ -596,7 +595,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample( 'Example 7', aphelp=1,
+   ap_examples.append( APExample( 'Example 7',
      source='afni_proc.py -help',
      descrip='Similar to 6, but get a little more esoteric.',
      header="""
@@ -683,7 +682,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 8', aphelp=1,
+   ap_examples.append( APExample('Example 8',
      source='afni_proc.py -help',
      descrip='Surface-based analysis.',
      header="""
@@ -745,7 +744,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample('Example 9', aphelp=1,
+   ap_examples.append( APExample('Example 9',
      source='afni_proc.py -help',
      descrip='Resting state analysis (modern).',
      header="""
@@ -826,7 +825,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 9b', aphelp=1,
+   ap_examples.append( APExample('Example 9b',
      source='afni_proc.py -help',
      descrip='Resting state analysis with ANATICOR.',
      header="""
@@ -861,7 +860,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample('Example 10', aphelp=1,
+   ap_examples.append( APExample('Example 10',
      source='afni_proc.py -help',
      descrip='Resting state analysis, with tissue-based regressors.',
      header="""
@@ -911,7 +910,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample('Example 10b', aphelp=1,
+   ap_examples.append( APExample('Example 10b',
      source='afni_proc.py -help',
      descrip='Resting state analysis, as 10a with 3dRSFC.',
      header="""
@@ -949,7 +948,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample( 'Example 11', aphelp=1,
+   ap_examples.append( APExample( 'Example 11',
      source='afni_proc.py -help',
      descrip='Resting state analysis (now even more modern :).',
      header="""
@@ -1043,7 +1042,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 11b', aphelp=1,
+   ap_examples.append( APExample('Example 11b',
      source='afni_proc.py -help',
      descrip='Similar to 11, but without FreeSurfer.',
      header="""
@@ -1105,7 +1104,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12', aphelp=1,
+   ap_examples.append( APExample('Example 12',
      source='afni_proc.py -help',
      descrip='background: Multi-echo data processing.',
      header="""
@@ -1133,7 +1132,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12a', aphelp=1,
+   ap_examples.append( APExample('Example 12a',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - very simple.',
      header="""
@@ -1164,7 +1163,7 @@ def populate_examples():
        ],
      ))
 
-   ap_examples.append( APExample('Example 12b', aphelp=1,
+   ap_examples.append( APExample('Example 12b',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - OC resting state.',
      header="""
@@ -1198,7 +1197,7 @@ def populate_examples():
        ]
      ))
                                       
-   ap_examples.append( APExample( 'Example 13', aphelp=1,
+   ap_examples.append( APExample( 'Example 13',
      source='afni_proc.py -help',
      descrip='Complicated ME, surface-based resting state example.',
      header="""
@@ -1270,7 +1269,7 @@ def populate_examples():
        ]
      ))
 
-   ap_examples.append( APExample('s03.ap.surface', aphelp=0,
+   ap_examples.append( APExample('s03.ap.surface',
      source='FT_analysis',
      descrip='',
      header="""
@@ -1298,7 +1297,7 @@ def populate_examples():
        ]
      ))
 
-   ap_examples.append( APExample('NARPS', aphelp=1,
+   ap_examples.append( APExample('NARPS',
      source='eventually mention paper reference?',
      descrip='Applied NARPS example from AFNI.',
      header="""
@@ -1366,7 +1365,7 @@ def populate_examples():
        ],
      ))
                                       
-   ap_examples.append( APExample('pamenc', aphelp=1,
+   ap_examples.append( APExample('pamenc',
      source='AFNI_demos',
      descrip='ds000030.v16 parametric encoding task analysis.',
      header="""

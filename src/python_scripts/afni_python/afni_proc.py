@@ -1709,10 +1709,12 @@ class SubjProcSream:
         
         if opt_list.find_opt('-help_section'):     # just print help
             section, rv = opt_list.get_string_opt('-help_section')
-            if section == 'EGS':
+            if section == 'EGafni':
                EGS = self.egs()
-               EGS.populate_examples()
                EGS.display_eg_all(verb=2)
+            elif section == 'EGall':
+               EGS = self.egs()
+               EGS.display_eg_all(aphelp=-1,verb=2)
             else:
                show_program_help(section=section)
             return 0  # gentle termination
