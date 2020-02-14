@@ -1271,7 +1271,7 @@ def populate_examples():
 
    ap_examples.append( APExample('s03.ap.surface',
      source='FT_analysis',
-     descrip='',
+     descrip='class demo - basic surface analysis',
      header="""
             """,
      trailer='',
@@ -1284,6 +1284,8 @@ def populate_examples():
         ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
         ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-blur_size',             ['6']],
@@ -1294,6 +1296,60 @@ def populate_examples():
         ['-regress_censor_motion', ['0.3']],
         ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
                                     '-glt_label', '1', 'V-A']],
+       ]
+     ))
+
+   ap_examples.append( APExample('s05.ap.uber',
+     source='FT_analysis',
+     descrip='class demo - basic task analysis',
+     header="""
+           A basic task analysis with a pair of visual and auditory tasks.
+
+           notable options include :
+                - affine registration to the (default) TT_N27+tlrc template
+                - censoring based on both motion params and outliers
+                - '-regress_compute_fitts' to reduce RAM needs in 3dD
+                - mask_epi_anat - intersect full_mask (epi) with mask_anat
+                - QC: computing radial correlation volumes at the end
+                      of the tcat (initial) and volreg processing blocks
+                - QC: include -check_flip left/right consistency check
+                - QC: compute sum of ideals, for evaluation
+        
+            """,
+     trailer='',
+     olist = [
+        ['-subj_id',               ['FT']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'blur', 'mask', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
+                                    'FT/FT_epi_r2+orig.HEAD',
+                                    'FT/FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-blur_size',             ['4.0']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
+        ['-regress_stim_labels',   ['vis', 'aud']],
+        ['-regress_basis',         ['BLOCK(20,1)']],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
+                                    '-glt_label', '1', 'V-A',
+                                    '-gltsym', 'SYM: 0.5*vis +0.5*aud',
+                                    '-glt_label', '2', 'mean.VA']],
+        ['-regress_compute_fitts', []],
+        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-execute',               []],
        ]
      ))
 

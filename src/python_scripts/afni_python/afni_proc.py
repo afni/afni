@@ -675,7 +675,9 @@ g_history = """
     7.08 Feb 12, 2020: initial -compare_opts functionality:
        - added -compare_opts, -compare_example_pair,
                -show_example, -show_example_names
-    7.09 Feb 14, 2020: added -compare_opts_vs_opts
+    7.09 Feb 14, 2020:
+       - added -compare_opts_vs_opts
+       - modified s03.ap.surace, added s05.ap.uber
 """
 
 g_version = "version 7.09, February 14, 2019"
