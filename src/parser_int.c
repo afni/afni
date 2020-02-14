@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "testprime.c"
 
 /***** C routines to interface to the f2c generated parser code *****/
 

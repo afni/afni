@@ -205,6 +205,10 @@ static char * MRI_TYPE_name[9] =
   } ;
 
 #define IS_REAL_TYPE(zkq) ((zkq)==MRI_byte || (zkq)==MRI_short || (zkq)==MRI_float)
+#define IS_RGB_TYPE(zkq)  ((zkq)==MRI_rgb  || (zkq)==MRI_rgba)
+
+#define IS_REAL_IMAGE(iq) IS_REAL_TYPE((iq)->kind)
+#define IS_RGB_IMAGE(iq)  IS_RGB_TYPE((iq)->kind)
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 

@@ -8481,6 +8481,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 /*----------------------------------------------------------------------------
    get the n-th overlay as an MRI_IMAGE *
    (return NULL if none;  the result must be mri_free-d by the user)
+   NOTE: most of the code in this function is no longer executed
+         under 'normal' circumstances
 ------------------------------------------------------------------------------*/
 
 MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
@@ -8495,6 +8497,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
    FD_brick *br_fim ;
    int do_xhar=0 ;            /* 22 Mar 2002 */
    MRI_IMAGE *rgbov = NULL ;  /* 30 Jan 2003 */
+   int jill = im3d->vinfo->see_ttatlas && AFNI_yesenv("AFNI_JILL_TRAVESTY") ; /* Jill is trouble */
 
 ENTRY("AFNI_overlay") ;
 
@@ -8502,32 +8505,32 @@ ENTRY("AFNI_overlay") ;
 
    /*--- check if crosshairs, markers, or functions are visible ---*/
 
-#ifdef IMAGEIZE_CROSSHAIRS
+#ifdef IMAGEIZE_CROSSHAIRS  /* since this is disabled, do_xhar is always 0 */
    do_xhar = (im3d->vinfo->crosshair_visible && !AFNI_yesenv("AFNI_CROSSHAIR_LINES")) ;
 #endif
 
    dset = im3d->anat_now ;
 
-   ovgood =  do_xhar                                                  ||
+   ovgood =  do_xhar   /* crosshairs in overlay pixels? */            ||
 
-            (  dset->markers != NULL       &&
-              (dset->markers->numset > 0)  &&
+            (  dset->markers != NULL       &&  /* Talairach */
+              (dset->markers->numset > 0)  &&   /* markers? */
               (im3d->vwid->marks->ov_visible == True) )               ||
 
-            (  dset->tagset != NULL  &&
+            (  dset->tagset != NULL  &&        /* user-input tags? */
                dset->tagset->num > 0 &&
                (im3d->vwid->marks->tag_visible == True) )             ||
 
-#ifdef ALLOW_DATASET_VLIST
+#ifdef ALLOW_DATASET_VLIST  /* other random points? */
             ( dset->pts != NULL && im3d->vinfo->pts_visible == True ) ||
 #endif
 
-            ( im3d->vinfo->func_visible == True )                     ||
+            ( im3d->vinfo->func_visible == True ) /* overlay on? */   ||
 
-            ( im3d->vinfo->see_ttatlas &&
+            ( im3d->vinfo->see_ttatlas &&    /* Atlas colors on? */
               im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE ) ;
 
-   if( ! ovgood ) RETURN(NULL) ;
+   if( ! ovgood ) RETURN(NULL) ;  /* nothing is asked of us! */
 
    /*-- at least one source of an overlay is present --*/
 
@@ -8537,16 +8540,47 @@ if(PRINT_TRACING)
    LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
    /*----- get functional overlay, if desired -----*/
+     /* Due to the ALWAYS_USE_BIGMODE change in afni_func.c, the  */
+     /* return from AFNI_func_overlay() is now always RGBA format */
 
    if( im3d->vinfo->func_visible ){
-      br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
-      fov    = AFNI_func_overlay( n , br_fim ) ;
-      if( fov != NULL && fov->kind == MRI_rgb ){ /* 30 Jan 2003: */
-        rgbov = fov ; fov = NULL ;               /* save RGB overlay for later */
+      br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;    /* get overlay FD brick struct */
+      fov    = AFNI_func_overlay( n , br_fim ) ; /* get overlay image (afni_func.c) */
+      /* get rid of it if it contains nothing [12 Feb 2020] */
+      if( fov != NULL && mri_allzero(fov) ){
+        mri_free(fov) ; fov = NULL ;
       }
+
+        /* in the olden days, fov might be shorts (indexes to colors),
+           or might be RGB, but now it is always RGBA. However, the older
+           codes below are built around short (indexed) overlays, and so
+           we set aside the RGBA output to build the (obsolescent) short
+           overlays, and then merge the RGBA and short overlay images later */
+
+        /* so if by some weird chance (or later code change), we still get
+           a color-indexed overlay image back here, convert it to RGB now  */
+
+      if( fov != NULL && fov->kind == MRI_short ){        /* should not happen */
+        rgbov = ISQ_index_to_rgb( im3d->dc , 1 , fov ) ;  /* conversion to RGB */
+        mri_free(fov) ; fov = NULL ;
+      } else if( fov != NULL && IS_RGB_TYPE(fov->kind) ){ /* should happen */
+        rgbov = fov ; fov = NULL ;
+      } else if( fov != NULL ){                           /* should NEVER happen */
+        ERROR_message("AFNI_func_overlay returns illegal image type: %s",MRI_TYPE_NAME(fov)) ;
+        mri_free(fov) ; fov = rgbov = NULL ;
+      }
+
+      if( jill ){
+        if( rgbov == NULL ) INFO_message("AFNI_func_overlay is NULL") ;
+        else                INFO_message("AFNI_func_overlay is %s",MRI_TYPE_NAME(rgbov)) ;
+      }
+
+      /* at this point, the functional overlay is in rgbov (which might be NULL) */
+      /* and the color index overlay image (fov) is NULL for sure */
    }
 
-   /*----- 25 Jul 2001: get TT atlas overlay, if desired and possible -----*/
+   /*----- 25 Jul 2001: get an atlas overlay, if desired and possible -----*/
+   /*-----              which will be merged with functional overlay  -----*/
 
    if( im3d->vinfo->see_ttatlas &&
        im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE ){
@@ -8557,17 +8591,35 @@ if(PRINT_TRACING)
       int ax_2 = br->a123.ijk[1] ;
       int ax_3 = br->a123.ijk[2] ;
 
-      tov = AFNI_ttatlas_overlay( im3d , n , ax_1 , ax_2 , ax_3 , fov ) ;
-      if( tov != NULL && tov != fov ){
-         if( fov != NULL ) mri_free(fov) ;  /* should not happen */
-         fov = tov ;
+      /* if rgbov is non-NULL, the return will be rgbov again,
+         after suitable editing; otherwise, the return is a new image;
+         however, if nothing is overlaid, then tov will be returned NULL */
+
+      tov = AFNI_ttatlas_overlay( im3d , n , ax_1 , ax_2 , ax_3 , rgbov ) ;
+
+      /* if tov came back as shorts, convert it to RGB [old code] */
+      /* if it came back as RGB(A), it is the new RGB(A) overlay */
+      /* [this latter situation should be what happens nowadays] */
+
+      if( tov != NULL && tov->kind == MRI_short ){ /* should not happen */
+        if( jill ) WARNING_message("AFNI_ttatlas_overlay returned a short-valued image!") ;
+        mri_free(rgbov) ;
+        rgbov = ISQ_index_to_rgb( im3d->dc , 1 , tov ) ;
+        mri_free(tov) ;
+      } else if( tov != NULL && IS_RGB_TYPE(tov->kind) && tov != rgbov ){
+          if( jill && rgbov != NULL ) ININFO_message(" replacing rgbov with AFNI_ttatlas_tov combo") ;
+          else if( jill )             ININFO_message(" making rgbov = AFNI_ttatlas_tov output") ;
+        if( rgbov != NULL ) mri_free(rgbov) ;  /* might happen??? */
+        rgbov = tov ;
       }
+
+      /* at this point, rgbov is the merged functional + atlas overlay */
    }
 
-   /*----- now set up overlay image as the functional overlay
-           (if present), or as a new blank image (otherwise). -----*/
+   /*----- now set up short (indexed) overlay image as the functional
+           overlay (if present), or as a new blank image (otherwise) -----*/
 
-   if( fov != NULL ){
+   if( fov != NULL ){ /* if short overlay already exists [not any more] */
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -8576,7 +8628,9 @@ STATUS(str) ; }
 
       im  = fov ; ovgood = True ;
       oar = MRI_SHORT_PTR(im) ;
-   } else {
+
+   } else {   /* this should be the case from now on [13 Feb 2020] */
+
 STATUS("new overlay is created de novo") ;
       im  = mri_new( br->n1 , br->n2 , MRI_short ) ; ovgood = False ;
       oar = MRI_SHORT_PTR(im) ;
@@ -8591,7 +8645,7 @@ STATUS("new overlay is created de novo") ;
 
    /*----- put crosshairs on image directly, if desired (and allowed) -----*/
 
-#ifdef IMAGEIZE_CROSSHAIRS
+#ifdef IMAGEIZE_CROSSHAIRS  /* this is now disabled, far above */
    if( do_xhar ){
       MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
@@ -8754,7 +8808,7 @@ if(PRINT_TRACING)
    } /* end of crosshairs */
 #endif
 
-   /*----- put markers on, if desired -----*/
+   /*----- put Talairach markers on, if desired [ancient code] -----*/
 
    if( im3d->anat_now->markers != NULL &&
        im3d->anat_now->markers->numset > 0 &&
@@ -8830,7 +8884,7 @@ if(PRINT_TRACING)
 
    } /* end if markers to be shown */
 
-   /*----- put tags on, if desired -----*/
+   /*----- put tags on, if desired [also ancient code] -----*/
 
    if( im3d->anat_now->tagset != NULL  &&
        im3d->anat_now->tagset->num > 0 &&
@@ -8876,7 +8930,7 @@ if(PRINT_TRACING)
       }
    } /* end if tags to be shown */
 
-#ifdef ALLOW_DATASET_VLIST
+#ifdef ALLOW_DATASET_VLIST  /* this is currently disabled in 3ddata.h */
    /*----- May 1995: additional points (single pixels) -----*/
 
    if( im3d->vinfo->pts_visible   &&
@@ -8899,6 +8953,7 @@ if(PRINT_TRACING)
 #endif
 
    /*----- return overlay (kill it if nothing happened) -----*/
+        /* [this should be the 'normal' case these days] */
 
    if( !ovgood ) KILL_1MRI(im) ;
 
@@ -8907,12 +8962,12 @@ if(PRINT_TRACING)
       then must meld that with the short color index image */
 
    if( rgbov != NULL ){
-     if( im != NULL ){
+     if( im != NULL ){ /* if short overlay is present */
        MRI_IMAGE *qim ;
        qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0f ) ;
        mri_free(rgbov); mri_free(im); rgbov = qim;
      }
-     im = rgbov ;
+     im = rgbov ; /* overlay is now the RGB(A) image */
    }
 
    RETURN( im ) ;

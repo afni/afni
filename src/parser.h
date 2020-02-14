@@ -213,6 +213,10 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "                    equals the a value; otherwise, return value is 0.\n"    \
   " choose(n,a,b,...)= chooses the n-th value from the a,b,... values.\n"      \
   "                    (e.g., choose(2,a,b,c) is b)\n"                         \
+  "  isprime(n)      = 1 if n is a positive integer and a prime number\n"      \
+  "                    0 if n is a positive integer and not a prime number\n"  \
+  "                   -1 if n is not a positive integer\n"                     \
+  "                   or if n is bigger than 2^31-1\n"                         \
   "\n"                                                                         \
   "  [These last 9 functions take a variable number of arguments.]\n"          \
   "\n"                                                                         \

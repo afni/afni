@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , FEB , 2020 , RWC , "afni GUI" , MINOR , TYPE_BUG_FIX ,
+   "Get Atlas Colors working again" ,
+   "Problem: 2 generations of overlay colorization changes.\n"
+   "a) Overlay went from indexes to RGB\n"
+   "b) Overlay went from indexes or RGB to RGBA\n"
+   "The atlas overlaying function didn't allow for these very well,\n"
+   "especially the latter. Obviously, this can't be my fault since I'm the\n"
+   "boss - even though I wrote the offending code. Someone must have joggled\n"
+   "my brain." } ,
+
  { 10 , FEB , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add reading Apple .heic images (via magick tool)" ,
    NULL } ,

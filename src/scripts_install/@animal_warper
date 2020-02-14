@@ -65,9 +65,13 @@ set progname = @animal_warper
 #      number/package
 #    + help now exits with 0
 #
-set version = "1.73" ; set date = "Jan 14, 2020"
+#set version = "1.73" ; set date = "Jan 14, 2020"
 # [PT] update text output in @animal_outs a bit
 #
+set version = "1.74" ; set date = "Feb 14, 2020"
+# [DRG] dset_followers to allow for similar space datasets to follow 
+#       into template space. Uses Align_Centers 1D dataset for initial
+#       shifts 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -675,8 +679,10 @@ foreach followset ($dset_followers)
       # copy dataset to temporary one - reused by multiple dset followers
       \rm -f tempfollow.nii.gz
       3dcopy $followset tempfollow.nii.gz
-      # align center to base  (Should use @Align_Centers 1D shift - make new option)
-      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp
+      # move center of follower with same 1D shift as original dataset
+      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp \
+          -shift_xform_inv ${dsetprefix}.1D 
+ 
       # combine nonlinear and affine warps for dataset warped to standard
       3dNwarpApply -prefix ${followprefix}_warp2std.nii.gz                    \
          -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \

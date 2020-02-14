@@ -804,6 +804,8 @@ extern void ISQ_draw_winfo( MCW_imseq * ) ;
  /* 06 Mar 2001 */
 extern MRI_IMAGE * ISQ_overlay( MCW_DC *, MRI_IMAGE *, MRI_IMAGE *, float ) ;
 #define ISQ_GOOD_OVERLAY_TYPE(dt) ( (dt)==MRI_short || (dt)==MRI_rgb || (dt)==MRI_rgba )
+ /* 13 Feb 2020 */
+extern MRI_IMAGE * ISQ_overlay_rgba( MCW_DC *dc , MRI_IMAGE *ulim, MRI_IMAGE *ovim, float alpha ) ;
 
 extern MRI_IMAGE * ISQ_binarize_overlay( MRI_IMAGE * ) ; /* Mar 2013 */
 
