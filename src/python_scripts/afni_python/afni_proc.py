@@ -675,9 +675,10 @@ g_history = """
     7.08 Feb 12, 2020: initial -compare_opts functionality:
        - added -compare_opts, -compare_example_pair,
                -show_example, -show_example_names
+    7.09 Feb 14, 2020: added -compare_opts_vs_opts
 """
 
-g_version = "version 7.08, February 12, 2019"
+g_version = "version 7.09, February 14, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1132,8 +1133,12 @@ class SubjProcSream:
                         helpstr="show module version")
 
         # compare options
+        self.valid_opts.add_opt('afni_proc.py', 0, [],
+                        helpstr="ignored, but passed through")
         self.valid_opts.add_opt('-compare_opts', 1, [],
                         helpstr="compare options against specified example")
+        self.valid_opts.add_opt('-compare_opts_vs_opts', 0, [],
+                        helpstr="compare earlier options vs. later ones")
         self.valid_opts.add_opt('-compare_example_pair', 2, [],
                         helpstr="compare the specified pair of examples")
 
@@ -1747,10 +1752,18 @@ class SubjProcSream:
             print(g_version)
             return 0  # gentle termination
 
+        # ------------------------------------------------------------
         # example and "compare" options - to compare option lists
         if opt_list.find_opt('-compare_opts'):
            comp, rv = opt_list.get_string_opt('-compare_opts')
            self.compare_vs_opts(opt_list.olist, comp)
+           return 0
+        
+        # compare early vs later opts (2 commands)
+        if opt_list.find_opt('-compare_opts_vs_opts'):
+           # separate option lists at index of passed opt
+           oind = opt_list.find_opt_index('-compare_opts_vs_opts')
+           self.compare_opts_vs_opts(opt_list.olist, oind)
            return 0
         
         if opt_list.find_opt('-compare_example_pair'):
@@ -3709,6 +3722,32 @@ class SubjProcSream:
         eg = EGS.APExample('command', olist)
         # can pass a noelemnt list, of opts not to compare elements of
         eg.compare(comp, eskip=g_eg_skip_opts, verb=self.verb)
+
+    def compare_opts_vs_opts(self, olist, sep_ind):
+        """compare first part of option list vs. second part,
+           split around sep_ind (separation index)
+           - ignore -compare* options
+        """
+        EGS = self.egs()
+        # get first sep_ind opts, removing all -compare opts
+        olist1 = []
+        for oind in range(sep_ind):
+           opt = olist[oind]
+           if opt.name.startswith('-compare'): continue
+           olist1.append([opt.name, opt.parlist])
+
+        # get second set of opts, after sep_ind
+        olist2 = []
+        for oind in range(sep_ind, len(olist)):
+           opt = olist[oind]
+           if opt.name.startswith('-compare'): continue
+           if opt.name == 'afni_proc.py': continue
+           olist2.append([opt.name, opt.parlist])
+
+        # create instances and compare them
+        eg1 = EGS.APExample('command_1', olist1)
+        eg2 = EGS.APExample('command_2', olist2)
+        eg1.compare(eg2, eskip=g_eg_skip_opts, verb=self.verb)
 
     def compare_example_pair(self, pair):
         """compare given the given pair of known examples

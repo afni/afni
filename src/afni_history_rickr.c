@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -compare_opts_vs_opts",
+   "One can compare two afni_proc.py commmands sequentially, that are\n"
+   "not part of the stored examples list.  Consider:\n"
+   "   afni_proc.py ... first option set ...    \\\n"
+   "                -compare_opts_vs_opts       \\\n"
+   "                ... second option set ...\n"
+   "It is okay for 'second option set' to include the afni_proc.py\n"
+   "command name, in case two scripts are concatenated."
+ } ,
+
  { 12, Feb, 2020, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "add ability to compare against examples",
    "Add options -compare_opts, -compare_example_pair, -show_example and\n"
@@ -57,7 +68,7 @@ afni_history_struct rickr_history[] = {
    "   afni_proc.py -show_example 'Example 11b'\n"
    "   afni_proc.py -show_example_names\n"
    "   afni_proc.py ... my options here ... -compare_opts 'Example 11'\n"
-   "Motivated by C Gaillard and P Taylor."
+   "Motivated by C Caillard and P Taylor."
  } ,
 
  {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
