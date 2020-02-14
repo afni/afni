@@ -55,7 +55,8 @@ ENTRY("mri_to_XImage") ;
      EXIT(1) ;
    }
 
-   if( im->kind == MRI_rgb ) RETURN( rgb_to_XImage(dc,im) ) ;  /* 11 Feb 1999 */
+   if( im->kind == MRI_rgb  ) RETURN( rgb_to_XImage(dc,im)  ) ;  /* 11 Feb 1999 */
+   if( im->kind == MRI_rgba ) RETURN( rgba_to_XImage(dc,im) ) ;  /* 20 Feb 2020 */
 
    if( im->kind != MRI_short ){
      fprintf(stderr,"\n*** ILLEGAL image input to mri_to_XImage\n") ;
@@ -663,6 +664,16 @@ XImage * rgb_to_XImage( MCW_DC *dc , MRI_IMAGE *im )
     case PseudoColor: return rgb_to_XImage_clever(dc,im) ;
    }
    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+XImage * rgba_to_XImage( MCW_DC *dc , MRI_IMAGE *im ) /* 13 Feb 2020 */
+{
+   MRI_IMAGE *qim = mri_to_rgb(im) ;                  /* brute force */
+   XImage    *pim = rgb_to_XImage( dc , qim ) ;
+   mri_free(qim) ;
+   return pim ;
 }
 
 /*----------------------------------------------------------------------------*/

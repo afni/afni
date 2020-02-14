@@ -43,7 +43,7 @@ ENTRY("mri_to_rgba") ;
           oar[ii].r = qar[3*ii] ;
           oar[ii].g = qar[3*ii+1] ;
           oar[ii].b = qar[3*ii+2] ;
-          oar[ii].a = 255 ;
+          oar[ii].a = 255 ;   /* maximum opacity */
         }
       } break ;
 

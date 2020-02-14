@@ -50,7 +50,7 @@ ENTRY("mri_new_7D_generic") ;
    newim = (MRI_IMAGE *)calloc( 1, sizeof(MRI_IMAGE) ) ;
 
    if( newim == NULL ){
-     fprintf( stderr , "malloc failure for new image pointer\n" ) ;
+     fprintf( stderr , "** malloc failure for new image pointer\n" ) ;
      MRI_FATAL_ERROR ;
    }
 
@@ -136,6 +136,7 @@ ENTRY("mri_new_7D_generic") ;
    if( make_space && newim->im == NULL ){
      ERROR_message("malloc failure for image space: %u bytes\n",
                    (unsigned int)npix*newim->pixel_size);
+     ERROR_message(" nx=%d ny=%d nz=%d npix=%d",nx,ny,nz,npix) ;
      MRI_FATAL_ERROR ;
    }
 

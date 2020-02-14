@@ -1210,11 +1210,19 @@ static char *gby[] = {
 
      "Have you ever thought that maybe we have TOO MUCH data about the brain?"     ,
 
-     " Answer me this:\n"
+     "Answer me this:\n"
      "  How is it that you can evaluate and judge another person in 30 seconds,\n"
      "  but that you cannot evaluate and judge your own self in 30 years?"         ,
 
-     "The story of life - Too soon old, too late smart ..."                        ,
+     "The story of life - Too soon old, Too late smart ..."                        ,
+
+     "\n"
+     "  The reason that we don't have the real answers is that we don't have\n"
+     "  the real questions"                                                        ,
+
+     "\n"
+     "  It turns out that trying to understand the brain is like trying\n"
+     "  to understand an alien life form"                                          ,
 
      /* The Manchurian Candidate */
 
