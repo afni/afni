@@ -50,6 +50,25 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14, FEB, 2020, DRG, "@Align_Centers shift xform", MINOR, TYPE_NEW_OPT,
+    "Move center/origin by known amount from 1D file",
+    "Large translations in nonlinear warp interpolation can use vast\n"
+    "amounts or memory in the 3dNwarpApply implementation. By doing\n"
+    "center alignment separately, we can remove the memory and \n"
+    "computational costs. The new options are -shift_xform and\n"
+    "-shift_xform_inv."
+},
+
+{ 14, FEB, 2020, DRG, "@animal_warper dset followers", MINOR, TYPE_NEW_OPT,
+    "-dset_followers to apply same transformations as dset"
+},
+
+{ 12, FEB, 2020, DRG, "3dCM Icent, Dcent", MINOR, TYPE_NEW_OPT,
+    "alternative centers",
+    "To force centers to lie within a region\n"
+    "-Icent for internal center, -Dcent for distance center"
+},
+
 { 25, DEC, 2019, DRG, "erosion/dilation neighborhoods", MINOR, TYPE_MODIFY,
     "Allow for NN1,NN2,NN3 neighborhoods for erosion and dilation",
     "3dAutomask and other programs use these functions\n"
