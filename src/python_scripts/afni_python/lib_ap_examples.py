@@ -530,83 +530,184 @@ def populate_examples():
 
    ap_examples.append( APExample( 'Example 6',
      source='afni_proc.py -help',
-     descrip='A modern example.  GOOD TO CONSIDER.',
+     descrip='A simple task example, based on AFNI_data6.',
      header="""
-           Align the EPI to the anatomy.  Also, process in MNI space, using
-           the 2009c non-linear template, and use non-linear registration to
-           align to it.
+           This example has changed to more closely correspond with the
+           the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
 
-           For alignment in either direction, add the 'align' block, which
-           aligns the anatomy to the EPI.  To then align the EPI to the anat
-           using the lpc+ZZ cost function (instead of just lpc), apply
-           -volreg_align_e2a, where that transform (inverse) is applied along
-           with the motion alignment.
+           The tshift block will interpolate each voxel time series to adjust
+           for differing slice times, where the result is more as if each
+           entire volume were acquired at the beginning of the TR.
 
-           On top of that, complete the processing in standard space by running
-           auto_warp.py to perform non-linear registration of the anat to the
-           template (via the 'tlrc' block) and apply the same transformation
-           to the EPI via -volreg_tlrc_warp.  Again, the EPI transformation is
-           applied along with the motion alignment, using the volume with the
-           minimum outlier fraction as the alignment base (via option
-           '-volreg_align_to MIN_OUTLIER').
+           The 'align' block implies using align_epi_anat.py to align the
+           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
+           for the cost function (more robust than lpc), and -giant_move (in
+           case the anat and EPI start a little far apart).  This block
+           computes the anat to EPI transformation matrix, which will be 
+           inverted in the volreg block, based on -volreg_align_e2a.
 
-           So use the given -blocks option, plus 2 extra volreg warps to #3 via
-           '-volreg_align_e2a', '-volreg_tlrc_warp'.
+           Also, compute the transformation of the anatomy to MNI space, using
+           affine registration (for speed in this simple example) to align to
+           the 2009c template.
 
-           A 4 mm blur is applied, to keep it light.
+           In the volreg block, align the EPI to the MIN_OUTLIER volume (a
+           low-motion volume, determined based on the data).  Then concatenate
+           all EPI transformations, warping the EPI to standard space in one
+           step (without multiple resampling operations), combining:
 
-           As an added bonus, censor TR pairs where the Euclidean Norm of the
-           motion derivative exceeds 0.3.  Also, regress motion parameters
-           separately for each run.
+              EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
+
+           The standard space transformation is included by specifying option
+           -volreg_tlrc_warp.
+
+           A 4 mm blur is applied, to keep it very light (about 1.5 times the
+           voxel size).
+
+           The regression model is based on 2 conditions, each lasting 20 s
+           per event, modeled by convolving a 20 s boxcar function with the
+           BLOCK basis function, specified as BLOCK(20,1) to make the regressor
+           unit height (height 1).
+
+           One extra general linear test (GLT) is included, contrasting the
+           visual reliable condition (vis) with auditory reliable (aud).
+
+           Motion regression will be per run (using one set of 6 regressors for
+           each run, i.e. 18 regressors in this example).
+
+           The regression includes censoring of large motion (>= 0.3 ~mm
+           between successive time points, based on the motion parameters),
+           as well as censoring of outlier time points, where at least 5% of
+           the brain voxels are computed as outliers.
+
+           The regression model starts as a full time series, for time
+           continuity, before censored time points are removed.  The output
+           errts will be zero at censored time points (no error there), and so
+           the output fit times series (fitts) will match the original data.
+
+           The model fit time series (fitts) will be computed AFTER the linear
+           regression, to save RAM on class laptops.
+
+           Create sum_ideal.1D, as the sum of all non-baseline regressors, for
+           quality control.
+
+           Estimate the blur in the residual time series.  The resulting 3 ACF
+           parameters can be averaged across subjects for cluster correction at
+           the group level.
+
+           Skip running the Monte Carlo cluster simulation example, for speed.
+
+           Once the proc script is created, execute it.
            """,
      trailer="""
-           To process in orig space, remove -volreg_tlrc_warp, and probably the
-           -tlrc options.
-           To process as anat aligned to EPI, remove -volreg_align_e2a.
-
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -reml_exec.""",
+           in the case of -regress_reml_exec.""",
      olist = [
-        ['-subj_id',               ['sb23.e6.align']],
-        ['-copy_anat',             ['sb23/sb23_mpra+orig']],
-        ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
+        ['-subj_id',               ['FT.e6']],
+        ['-copy_anat',             ['FT/FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'blur', 'mask', 'scale', 'regress']],
-        ['-tcat_remove_first_trs', ['3']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
         ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
-        ['-tlrc_NL_warp',          []],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
-        ['-blur_size',             ['4']],
-        ['-mask_epi_anat',         ['yes']],
-        ['-regress_stim_times',    ['sb23/stim_files/blk_times.*.1D']],
-        ['-regress_stim_labels',   ['tneg', 'tpos', 'tneu', 'eneg', 'epos',
-                                    'eneu', 'fneg', 'fpos', 'fneu']],
-        ['-regress_basis',         ['BLOCK(30,1)']],
-        ['-regress_motion_per_run', []],
+        ['-blur_size',             ['4.0']],
+        ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
+        ['-regress_stim_labels',   ['vis', 'aud']],
+        ['-regress_basis',         ['BLOCK(20,1)']],
+        ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
+                                    '-glt_label', '1', 'V-A']],
+        ['-regress_motion_per_run',[]],
         ['-regress_censor_motion', ['0.3']],
-        ['-regress_reml_exec',     []],
-        ['-regress_opts_3dD',      ['-gltsym', 'SYM: +eneg -fneg',
-                                    '-glt_label', '1', 'eneg_vs_fneg']],
-        ['-regress_est_blur_epits', []],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_compute_fitts', []],
+        ['-regress_make_ideal_sum',['sum_ideal.1D']],
+        ['-regress_est_blur_eptis', []],
         ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-execute',               []],
+       ],
+     ))
+
+   ap_examples.append( APExample( 'Example 6b',
+     source='afni_proc.py -help',
+     descrip='A modern task example, with preferable options.',
+     header="""
+           GOOD TO CONSIDER
+
+           This is based on Example 6, but is more complete.
+           Example 6 is meant to run quickly.
+           Example 6b is meant to process as we might suggest.
+
+              - apply -check_flip in align_epi_anat.py, to monitor consistency
+              - apply non-linear registration to MNI template, using output
+                from @SSwarper:
+                  o apply skull-stripped anat in -copy_anat
+                  o apply original anat as -anat_follower (for comparison)
+                  o pass warped anat and transforms via -tlrc_NL_warped_dsets,
+                    to apply those already computed transformations
+              - use -mask_epi_anat to tighten the EPI mask (for QC),
+                intersecting it (full_mask) with the anat mask (mask_anat)
+              - use 3dREMLfit for the regression, to account for temporal
+                autocorrelation in the noise
+                (-regress_3dD_stop, -regress_reml_exec)
+              - generate the HTML QC report using the nicer pythonic functions
+                (requires matplotlib)
+           """,
+     trailer='',
+     olist = [
+        ['-subj_id',               ['FT.e6']],
+        ['-copy_anat',             ['Qwarp/anat_warped/anatSS.FT.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'FT/FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'blur', 'mask', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.FT.nii', 'anatQQ.FT.aff12.1D',
+                                    'anatQQ.FT_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['4.0']],
+        ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
+        ['-regress_stim_labels',   ['vis', 'aud']],
+        ['-regress_basis',         ['BLOCK(20,1)']],
+        ['-regress_opts_3dD',      ['-jobs', '2', '-gltsym', 'SYM: vis -aud',
+                                    '-glt_label', '1', 'V-A']],
+        ['-regress_motion_per_run',[]],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_3dD_stop',      []],
+        ['-regress_reml_exec',     []],
+        ['-regress_compute_fitts', []],
+        ['-regress_make_ideal_sum',['sum_ideal.1D']],
+        ['-regress_est_blur_eptis', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
+        ['-execute',               []],
        ],
      ))
 
    ap_examples.append( APExample( 'Example 7',
      source='afni_proc.py -help',
-     descrip='Similar to 6, but get a little more esoteric.',
+     descrip='Apply some esoteric options.',
      header="""
-           a. Register EPI volumes to the one which has the minimum outlier
-              fraction (so hopefully the least motion), still with cost lpc+ZZ.
-
-           b. Blur only within the brain, as far as an automask can tell.  So
+           a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
               created internally by 3dBlurInMask (akin to 3dAutomask).
 
-           c. Let the basis functions vary.  For some reason, we expect the
+           b. Let the basis functions vary.  For some reason, we expect the
               BOLD responses to the telephone classes to vary across the brain.
               So we have decided to use TENT functions there.  Since the TR is
               3.0s and we might expect up to a 45 second BOLD response curve,
@@ -615,7 +716,7 @@ def populate_examples():
               This means using -regress_basis_multi instead of -regress_basis,
               and specifying all 9 basis functions appropriately.
 
-           d. Use amplitude modulation.
+           c. Use amplitude modulation.
 
               We expect responses to email stimuli to vary proportionally with
               the number of punctuation characters used in the message (in
@@ -626,19 +727,19 @@ def populate_examples():
               Use -regress_stim_types to specify that the epos/eneg/eneu stim
               classes should be passed to 3dDeconvolve using -stim_times_AM2.
 
-           e. Not only censor motion, but censor TRs when more than 10% of the
+           d. Not only censor motion, but censor TRs when more than 10% of the
               automasked brain are outliers.  So add -regress_censor_outliers.
 
-           f. Include both de-meaned and derivatives of motion parameters in
+           e. Include both de-meaned and derivatives of motion parameters in
               the regression.  So add '-regress_apply_mot_types demean deriv'.
 
-           g. Output baseline parameters so we can see the effect of motion.
+           f. Output baseline parameters so we can see the effect of motion.
               So add -bout under option -regress_opts_3dD.
 
-           h. Save on RAM by computing the fitts only after 3dDeconvolve.
+           g. Save on RAM by computing the fitts only after 3dDeconvolve.
               So add -regress_compute_fitts.
 
-           i. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
+           h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
            """,
@@ -1383,7 +1484,7 @@ def populate_examples():
         ['-tcat_remove_first_trs', ['0']],
         ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
         ['-radial_correlate',      ['yes']],
-        ['-align_opts_aea',        ['-giant_move', '-cost', 'lpc+ZZ',
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',          []],
@@ -1447,7 +1548,7 @@ def populate_examples():
         ['-tcat_remove_first_trs', ['0']],
         ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
         ['-radial_correlate',      ['yes']],
-        ['-align_opts_aea',        ['-giant_move', '-cost', 'lpc+ZZ',
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',          []],

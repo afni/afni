@@ -8705,18 +8705,75 @@ g_help_examples = """
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -reml_exec.
+           in the case of -regress_reml_exec.
 
-        Example 7. Similar to 6, but get a little more esoteric. ~2~
+        Example 6b. A modern task example, with preferable options.
 
-           a. Register EPI volumes to the one which has the minimum outlier
-              fraction (so hopefully the least motion), still with cost lpc+ZZ.
+           GOOD TO CONSIDER
 
-           b. Blur only within the brain, as far as an automask can tell.  So
+           This is based on Example 6, but is more complete.
+           Example 6 is meant to run quickly.
+           Example 6b is meant to process as we might suggest.
+
+              - apply -check_flip in align_epi_anat.py, to monitor consistency
+              - apply non-linear registration to MNI template, using output
+                from @SSwarper:
+                  o apply skull-stripped anat in -copy_anat
+                  o apply original anat as -anat_follower (for comparison)
+                  o pass warped anat and transforms via -tlrc_NL_warped_dsets,
+                    to apply those already computed transformations
+              - use -mask_epi_anat to tighten the EPI mask (for QC),
+                intersecting it (full_mask) with the anat mask (mask_anat)
+              - use 3dREMLfit for the regression, to account for temporal
+                autocorrelation in the noise
+                (-regress_3dD_stop, -regress_reml_exec)
+              - generate the HTML QC report using the nicer pythonic functions
+                (requires matplotlib)
+           
+              afni_proc.py                                                \\
+                 -subj_id FT.e6                                           \\
+                 -copy_anat Qwarp/anat_warped/anatSS.FT.nii               \\
+                 -anat_has_skull no                                       \\
+                 -anat_follower anat_w_skull anat FT/FT_anat+orig         \\
+                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
+                 -blocks tshift align tlrc volreg blur mask scale regress \\
+                 -radial_correlate_blocks tcat volreg                     \\
+                 -tcat_remove_first_trs 2                                 \\
+                 -align_opts_aea -cost lpc+ZZ -giant_move -check_flip     \\
+                 -tlrc_base MNI152_2009_template_SSW.nii.gz               \\
+                 -tlrc_NL_warp                                            \\
+                 -tlrc_NL_warped_dsets anatQQ.FT.nii anatQQ.FT.aff12.1D   \\
+                     anatQQ.FT_WARP.nii                                   \\
+                 -volreg_align_to MIN_OUTLIER                             \\
+                 -volreg_align_e2a                                        \\
+                 -volreg_tlrc_warp                                        \\
+                 -mask_epi_anat yes                                       \\
+                 -blur_size 4.0                                           \\
+                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+                 -regress_stim_labels vis aud                             \\
+                 -regress_basis 'BLOCK(20,1)'                             \\
+                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                     -glt_label 1 V-A                                     \\
+                 -regress_motion_per_run                                  \\
+                 -regress_censor_motion 0.3                               \\
+                 -regress_censor_outliers 0.05                            \\
+                 -regress_3dD_stop                                        \\
+                 -regress_reml_exec                                       \\
+                 -regress_compute_fitts                                   \\
+                 -regress_make_ideal_sum sum_ideal.1D                     \\
+                 -regress_est_blur_eptis                                  \\
+                 -regress_est_blur_errts                                  \\
+                 -regress_run_clustsim no                                 \\
+                 -html_review_style pythonic                              \\
+                 -execute 
+
+        Example 7. Apply some esoteric options. ~2~
+
+           a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
               created internally by 3dBlurInMask (akin to 3dAutomask).
 
-           c. Let the basis functions vary.  For some reason, we expect the
+           b. Let the basis functions vary.  For some reason, we expect the
               BOLD responses to the telephone classes to vary across the brain.
               So we have decided to use TENT functions there.  Since the TR is
               3.0s and we might expect up to a 45 second BOLD response curve,
@@ -8725,7 +8782,7 @@ g_help_examples = """
               This means using -regress_basis_multi instead of -regress_basis,
               and specifying all 9 basis functions appropriately.
 
-           d. Use amplitude modulation.
+           c. Use amplitude modulation.
 
               We expect responses to email stimuli to vary proportionally with
               the number of punctuation characters used in the message (in
@@ -8736,19 +8793,19 @@ g_help_examples = """
               Use -regress_stim_types to specify that the epos/eneg/eneu stim
               classes should be passed to 3dDeconvolve using -stim_times_AM2.
 
-           e. Not only censor motion, but censor TRs when more than 10% of the
+           d. Not only censor motion, but censor TRs when more than 10% of the
               automasked brain are outliers.  So add -regress_censor_outliers.
 
-           f. Include both de-meaned and derivatives of motion parameters in
+           e. Include both de-meaned and derivatives of motion parameters in
               the regression.  So add '-regress_apply_mot_types demean deriv'.
 
-           g. Output baseline parameters so we can see the effect of motion.
+           f. Output baseline parameters so we can see the effect of motion.
               So add -bout under option -regress_opts_3dD.
 
-           h. Save on RAM by computing the fitts only after 3dDeconvolve.
+           g. Save on RAM by computing the fitts only after 3dDeconvolve.
               So add -regress_compute_fitts.
 
-           i. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
+           h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
 
