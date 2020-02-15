@@ -8644,70 +8644,106 @@ g_help_examples = """
                         -regress_est_blur_epits                 \\
                         -regress_est_blur_errts
 
-        Example 6. A modern example.  GOOD TO CONSIDER. ~2~
+        Example 6. A simple task example, based on AFNI_data6. ~2~
 
-           Align the EPI to the anatomy.  Also, process in MNI space, using
-           the 2009c non-linear template, and use non-linear registration to
-           align to it.
+           This example has changed to more closely correspond with the
+           the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
 
-           For alignment in either direction, add the 'align' block, which
-           aligns the anatomy to the EPI.  To then align the EPI to the anat
-           using the lpc+ZZ cost function (instead of just lpc), apply
-           -volreg_align_e2a, where that transform (inverse) is applied along
-           with the motion alignment.
+           The tshift block will interpolate each voxel time series to adjust
+           for differing slice times, where the result is more as if each
+           entire volume were acquired at the beginning of the TR.
 
-           On top of that, complete the processing in standard space by running
-           auto_warp.py to perform non-linear registration of the anat to the
-           template (via the 'tlrc' block) and apply the same transformation
-           to the EPI via -volreg_tlrc_warp.  Again, the EPI transformation is
-           applied along with the motion alignment, using the volume with the
-           minimum outlier fraction as the alignment base (via option
-           '-volreg_align_to MIN_OUTLIER').
+           The 'align' block implies using align_epi_anat.py to align the
+           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
+           for the cost function (more robust than lpc), and -giant_move (in
+           case the anat and EPI start a little far apart).  This block
+           computes the anat to EPI transformation matrix, which will be 
+           inverted in the volreg block, based on -volreg_align_e2a.
 
-           So use the given -blocks option, plus 2 extra volreg warps to #3 via
-           '-volreg_align_e2a', '-volreg_tlrc_warp'.
+           Also, compute the transformation of the anatomy to MNI space, using
+           affine registration (for speed in this simple example) to align to
+           the 2009c template.
 
-           A 4 mm blur is applied, to keep it light.
+           In the volreg block, align the EPI to the MIN_OUTLIER volume (a
+           low-motion volume, determined based on the data).  Then concatenate
+           all EPI transformations, warping the EPI to standard space in one
+           step (without multiple resampling operations), combining:
 
-           As an added bonus, censor TR pairs where the Euclidean Norm of the
-           motion derivative exceeds 0.3.  Also, regress motion parameters
-           separately for each run.
+              EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
 
-                afni_proc.py -subj_id sb23.e6.align                        \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask         \\
-                                scale regress                              \\
-                        -tcat_remove_first_trs 3                           \\
-                        -align_opts_aea -cost lpc+ZZ                       \\
-                        -tlrc_base MNI152_T1_2009c+tlrc                    \\
-                        -tlrc_NL_warp                                      \\
-                        -volreg_align_to MIN_OUTLIER                       \\
-                        -volreg_align_e2a                                  \\
-                        -volreg_tlrc_warp                                  \\
-                        -blur_size 4                                       \\
-                        -mask_epi_anat yes                                 \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_motion_per_run                            \\
-                        -regress_censor_motion 0.3                         \\
-                        -regress_reml_exec                                 \\
-                        -regress_opts_3dD                                  \\
-                            -gltsym 'SYM: +eneg -fneg'                     \\
-                            -glt_label 1 eneg_vs_fneg                      \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
+           The standard space transformation is included by specifying option
+           -volreg_tlrc_warp.
 
-           To process in orig space, remove -volreg_tlrc_warp, and probably the
-           -tlrc options.
-           To process as anat aligned to EPI, remove -volreg_align_e2a.
+           A 4 mm blur is applied, to keep it very light (about 1.5 times the
+           voxel size).
+
+           The regression model is based on 2 conditions, each lasting 20 s
+           per event, modeled by convolving a 20 s boxcar function with the
+           BLOCK basis function, specified as BLOCK(20,1) to make the regressor
+           unit height (height 1).
+
+           One extra general linear test (GLT) is included, contrasting the
+           visual reliable condition (vis) with auditory reliable (aud).
+
+           Motion regression will be per run (using one set of 6 regressors for
+           each run, i.e. 18 regressors in this example).
+
+           The regression includes censoring of large motion (>= 0.3 ~mm
+           between successive time points, based on the motion parameters),
+           as well as censoring of outlier time points, where at least 5% of
+           the brain voxels are computed as outliers.
+
+           The regression model starts as a full time series, for time
+           continuity, before censored time points are removed.  The output
+           errts will be zero at censored time points (no error there), and so
+           the output fit times series (fitts) will match the original data.
+
+           The model fit time series (fitts) will be computed AFTER the linear
+           regression, to save RAM on class laptops.
+
+           Create sum_ideal.1D, as the sum of all non-baseline regressors, for
+           quality control.
+
+           Estimate the blur in the residual time series.  The resulting 3 ACF
+           parameters can be averaged across subjects for cluster correction at
+           the group level.
+
+           Skip running the Monte Carlo cluster simulation example, for speed.
+
+           Once the proc script is created, execute it.
+
+              afni_proc.py                                                \\
+                 -subj_id FT.e6                                           \\
+                 -copy_anat FT/FT_anat+orig                               \\
+                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
+                 -blocks tshift align tlrc volreg blur mask scale regress \\
+                 -radial_correlate_blocks tcat volreg                     \\
+                 -tcat_remove_first_trs 2                                 \\
+                 -align_opts_aea -cost lpc+ZZ -giant_move                 \\
+                 -tlrc_base MNI152_T1_2009c+tlrc                          \\
+                 -volreg_align_to MIN_OUTLIER                             \\
+                 -volreg_align_e2a                                        \\
+                 -volreg_tlrc_warp                                        \\
+                 -blur_size 4.0                                           \\
+                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+                 -regress_stim_labels vis aud                             \\
+                 -regress_basis 'BLOCK(20,1)'                             \\
+                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                     -glt_label 1 V-A                                     \\
+                 -regress_motion_per_run                                  \\
+                 -regress_censor_motion 0.3                               \\
+                 -regress_censor_outliers 0.05                            \\
+                 -regress_compute_fitts                                   \\
+                 -regress_make_ideal_sum sum_ideal.1D                     \\
+                 -regress_est_blur_epits                                  \\
+                 -regress_est_blur_errts                                  \\
+                 -regress_run_clustsim no                                 \\
+                 -execute 
 
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
            in the case of -regress_reml_exec.
 
-        Example 6b. A modern task example, with preferable options.
+        Example 6b. A modern task example, with preferable options. ~2~
 
            GOOD TO CONSIDER
 
@@ -8742,8 +8778,9 @@ g_help_examples = """
                  -align_opts_aea -cost lpc+ZZ -giant_move -check_flip     \\
                  -tlrc_base MNI152_2009_template_SSW.nii.gz               \\
                  -tlrc_NL_warp                                            \\
-                 -tlrc_NL_warped_dsets anatQQ.FT.nii anatQQ.FT.aff12.1D   \\
-                     anatQQ.FT_WARP.nii                                   \\
+                 -tlrc_NL_warped_dsets anatQQ.FT.nii                      \\
+                                       anatQQ.FT.aff12.1D                 \\
+                                       anatQQ.FT_WARP.nii                 \\
                  -volreg_align_to MIN_OUTLIER                             \\
                  -volreg_align_e2a                                        \\
                  -volreg_tlrc_warp                                        \\
@@ -8761,7 +8798,7 @@ g_help_examples = """
                  -regress_reml_exec                                       \\
                  -regress_compute_fitts                                   \\
                  -regress_make_ideal_sum sum_ideal.1D                     \\
-                 -regress_est_blur_eptis                                  \\
+                 -regress_est_blur_epits                                  \\
                  -regress_est_blur_errts                                  \\
                  -regress_run_clustsim no                                 \\
                  -html_review_style pythonic                              \\
