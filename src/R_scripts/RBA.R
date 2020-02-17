@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.9, Oct 21, 2019
+Version 1.0.0, Feb 17, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -171,6 +171,11 @@ Example 1 --- Simplest scenario. Values from regions are the input from
    -r2z -dataTable myData.txt  \\
 
    The 2nd version above is recommended because of its explicit specifications.
+
+   If the data are skewed or have outliers, use Student's t-distribution:
+
+   RBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
+   -distr 'student' -dataTable myData.txt  \\
 
    The input file 'myData.txt' is a data table in pure text format as below: 
                                                              
@@ -387,6 +392,13 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        invoked) is 'Y'.\n", sep = '\n'
                      ) ),
 
+      '-distr' = apl(n = 1, d = NA,  h = paste(
+   "-distr distr_name: Use this option to specify the distribution for the response",
+   "        variable. The default is Gaussian when this option is not invoked.",
+   "        When skewness or outliers occur in the data, consider adopting the Student's",
+   "        t-distribution by using this option with 'student'.\n", sep = '\n'
+                     ) ),
+
       '-Subj' = apl(n = 1, d = NA,  h = paste(
    "-Subj var_name: var_name is used to specify the column name that is designated as",
    "        as the measuring unit variable (usually subject). The default (when this",
@@ -454,12 +466,14 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$EOI    <- 'Intercept'
       lop$qContr <- NA
       lop$Y      <- 'Y'
+      lop$distr  <= 'gaussian'
       lop$Subj   <- 'Subj'
       lop$ROI    <- 'ROI'
       lop$PDP    <- NA
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
+      lop$student <- FALSE
       lop$r2z     <- FALSE # Fisher transformation
       lop$verb    <- 0
       lop$scale   <- 1
@@ -479,12 +493,14 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              EOI    = lop$EOI    <- ops[[i]],
              qContr = lop$qContr <- ops[[i]],
              Y      = lop$Y      <- ops[[i]],
+             distr  = lop$distr  <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
              ROI    = lop$ROI    <- ops[[i]],
              PDP    = lop$PDP    <- ops[[i]],
              help    = help.RBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
+             
              scale   = lop$scale   <- ops[[i]],
              r2z     = lop$r2z     <- TRUE,
              dataTable  = lop$dataTable <- read.table(ops[[i]], header=T),
@@ -678,7 +694,7 @@ if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 #      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
 #      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, inits=0, 
+fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distr, inits=0, 
       iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 #   fm <- brm(modelForm, data=lop$dataTable,
