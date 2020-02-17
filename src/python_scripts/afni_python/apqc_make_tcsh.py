@@ -116,9 +116,16 @@ auth = 'PA Taylor'
 # [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
 #      as a dependency, so remove it from the list
 #
-ver = '3.2' ; date = 'Jan 9, 2019' 
+#ver = '3.2' ; date = 'Jan 9, 2019' 
 # [PT] new warning block: censor fraction
 #    + seed point plotting introduced (vstat section for resting state)
+#
+#ver = '3.3' ; date = 'Feb 15, 2020' 
+# [PT] new funcs for 'widely used' params
+#    + for censor and sundry info.  
+#
+ver = '3.31' ; date = 'Feb 17, 2020' 
+# [PT] further cleaned up (simplified?) a lot of the censoring info
 #
 #########################################################################
 
@@ -151,17 +158,17 @@ for x in lssr.g_ss_uvar_fields:
 # in MNI space here:
 #seed_locs = [['PCC', 5, 49, 40], ['vis', -1, 77, 11]]
 # ['vis', 18, 99, 0]
-seed_locs = [['lh-precuneus',6, 54, 50],
-             ['rh-vis-cortex',-4, 91, -3],
-             ['rh-Mot',-21, 24, 71],
-             ['rh-DAtt',51, -5, 26],
-             ['lhInsSal',-42, -12, -9],
-             ['PCC', 5, 49, 40],
-             ['RetSplCor', -3, 42, 27], 
-             ['PreCVA', -6, 50, 42], 
-             ['vis', 22, 103, 0],
-             ['rhMotor', -32, 25, 54]
-]
+#seed_locs = [['lh-precuneus',6, 54, 50],
+#             ['rh-vis-cortex',-4, 91, -3],
+#             ['rh-Mot',-21, 24, 71],
+#             ['rh-DAtt',51, -5, 26],
+#             ['lhInsSal',-42, -12, -9],
+#             ['PCC', 5, 49, 40],
+#             ['RetSplCor', -3, 42, 27], 
+#             ['PreCVA', -6, 50, 42], 
+#             ['vis', 22, 103, 0],
+#             ['rhMotor', -32, 25, 54]
+#]
 # list of seed locs; RAI DICOM coords
 # prob need a rad depend on vox size
 
@@ -257,6 +264,29 @@ if __name__ == "__main__":
 
         str_FULL+= ban
         str_FULL+= cmd
+
+    # --------------------------------------------------------------------
+
+    # [PT: Feb 14, 2020]  
+    # Top level: see if there is censoring used in this dset
+
+    ban      = lat.bannerize('Top level: censor info')
+    cmd      = lat.apqc_censor_info( ap_ssdict, RUN_STYLE )
+
+    str_FULL+= ban
+    str_FULL+= cmd
+
+    # --------------------------------------------------------------------
+
+    # [PT: Feb 14, 2020]  
+    # Top level: sundry
+
+    ban      = lat.bannerize('Top level: sundry pieces for multi-use')
+    cmd      = lat.apqc_sundry_info( ap_ssdict )
+
+    str_FULL+= ban
+    str_FULL+= cmd
+
 
     # --------------------------------------------------------------------
 

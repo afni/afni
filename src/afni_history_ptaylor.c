@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 17, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Reorganized under the hood, deal with censoring in a better way.",
+   "Easier to tweak/update changes now.\n"
+},
+
+{ 17, Feb , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Opt -censor_hline can now take a keyword NONE as an entry.",
+   "Useful if looking at multiple inputs and only some have censor lines.\n"
+},
+
 { 3, Feb , 2020 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
    "Can anonymize output dsets:  -anonymize_output.",
    "Fairly self-explanatory opt.\n"

@@ -35,9 +35,14 @@
 #ver = '1.61' ; date = 'July 26, 2019' 
 # + [PT] Fix py2 incompatability
 #
-ver = '1.7' ; date = 'Jan 29, 2020' 
+#ver = '1.7' ; date = 'Jan 29, 2020' 
 # + [PT] Fix input with '-xfile ..' opt
 #      + Fix initialization of all objs here (with def __init(self))
+#
+ver = '1.8' ; date = 'Feb 216, 2020' 
+# + [PT] add in ability for -censor_hline to contain a 'NONE' argument 
+#        ... bc that is useful as a placeholder when some images have
+#        censor vals and others don't
 #
 #########################################################################
 
@@ -327,6 +332,9 @@ COMMAND OPTIONS ~1~
                 Ummm, it is also assumed that all censor hline values 
                 are >=0; if negative, it will be a problem-- ask if this
                 is a problem!
+                A value of 'NONE' can also be input, to be a placeholder
+                in a list, when some subplots have censor_hline values
+                and others don't.
 
 -censor_RGB COL :choose the color of the censoring background; default
                 is: {def_cen_RGB}.
@@ -521,6 +529,41 @@ class figplobj:
 
 # -------------------------------------------------------------------
 
+# A couple simple helper funcs for checking censor hline vals and scaling
+
+def set_valid_censor_hline_val(hh):
+    '''Used in a few places: input 'hh' can be either a number or 'NONE'.
+
+    '''
+
+    try:
+        out = float(hh)
+    except:
+        if hh == 'NONE' :
+            out = hh
+        else:
+            sys.exit("** ERROR: censor_hline value '{}' is illegal.\n"
+                     "   Must enter a number or 'NONE'".format(hh))
+    return out
+
+def set_valid_censor_hline_scale2max( all_y ):
+    '''Used in a few places: input list all_y, and this returns the number
+to use for scaling in SCALE_TO_MAX scenario.
+
+    '''
+
+    maxy = max(all_y)
+    if maxy :
+        hh = 1.0/maxy
+    else:
+        sys.exit("** ERROR: cannot use SCALE_TO_MAX scaling "
+                 " when a censor_hline has "
+                 "{}-value".format(maxy))
+
+    return hh
+
+# ---------------------------------
+
 # object for each subplots
 class subplobj:
 
@@ -536,7 +579,7 @@ class subplobj:
         self.color  = ""
         self.ymin   = 0.
         self.ymax   = 0.
-        self.censor_hline  = [] # will just be a single number for the subj
+        self.censor_hline  = [] # will be list of number(s) and/or 'NONE'
 
     def set_x(self, x):
         self.x = x
@@ -566,8 +609,9 @@ class subplobj:
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
 
-    def set_censor_hline(self, hh):
-        self.censor_hline = float(hh)
+    def set_censor_hline(self, hh): 
+        val = set_valid_censor_hline_val(hh) # check number or 'NONE'
+        self.censor_hline = val
 
     def set_xlim(self, xlim=[]):
         if xlim :
@@ -741,7 +785,8 @@ class apqc_1dplot_opts:
         self.censor_RGB = c
 
     def add_censor_hline(self, hh):
-        self.censor_hline.append(float(hh))
+        val = set_valid_censor_hline_val(hh)
+        self.censor_hline.append(val)
 
     def count_censor_hline(self):
         return len(self.censor_hline)
@@ -792,7 +837,10 @@ class apqc_1dplot_opts:
                 print("++ Will scale each time series by censor_hline")
                 for i in range(self.ndsets):
                     if self.censor_hline[i] :
-                        hh = 1.0/self.censor_hline[i]
+                        if self.censor_hline[i] == 'NONE' :
+                            hh = set_valid_censor_hline_scale2max(self.all_y[i])
+                        else:
+                            hh = 1.0/self.censor_hline[i]
                         self.add_scale(hh)
                     else:
                         sys.exit("** ERROR: cannot use SCALE_TO_HLINE scaling "
@@ -801,14 +849,8 @@ class apqc_1dplot_opts:
             elif self.scale_type == 'SCALE_TO_MAX' :
                 print("++ Will scale each time series by time series max")
                 for i in range(self.ndsets):
-                    maxy = max(self.all_y[i])
-                    if maxy :
-                        hh = 1.0/maxy
-                        self.add_scale(hh)
-                    else:
-                        sys.exit("** ERROR: cannot use SCALE_TO_MAX scaling "
-                                 " when a censor_hline has "
-                                 "{}-value".format(maxy))
+                    hh = set_valid_censor_hline_scale2max(self.all_y[i])
+                    self.add_scale(hh)
             else:
                 pass # fine
         elif n == self.ndsets:
@@ -843,7 +885,8 @@ class apqc_1dplot_opts:
         else:
             N = self.ndsets  # also number of scales, by def, here
             for i in range(N):
-                self.censor_hline[i]*= self.scale[i]
+                if self.censor_hline[i] != 'NONE' :
+                    self.censor_hline[i]*= self.scale[i]
 
     # [PT: Dec 23, 2018] 'hh' can be any of the following:
     ###   bot:top --> full range specified
