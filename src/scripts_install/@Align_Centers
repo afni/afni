@@ -158,7 +158,6 @@ PARSE:
    end
 
 if ("$v1i" == "" || (("$v2i" == "") && ( $shift_xform1D == ""))) then
-) then
    echo "Error: Missing input"
             set retval = 1
    goto END
@@ -319,6 +318,7 @@ else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
       set xfm = `cat_matvec -ONELINE $shift_xform1D`
    else # invert xform
       set xfm = `cat_matvec -ONELINE $shift_xform1D -I`
+   endif
 
    # only interested in the translation shifts here
    set del_RAI = ( $xfm[4] $xfm[8] $xfm[12] )
