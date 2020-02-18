@@ -860,7 +860,7 @@ def populate_examples():
                                       
    ap_examples.append( APExample('Example 9',
      source='afni_proc.py -help',
-     descrip='Resting state analysis (modern).',
+     descrip='Resting state analysis with censoring and band passing.',
      header="""
            With censoring and bandpass filtering.
 

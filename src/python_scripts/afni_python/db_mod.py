@@ -8249,7 +8249,7 @@ def show_program_help(section=''):
    # maybe print them all
    if section == '':
       print(g_help_intro)
-      show_help_examples()      # will start printing from dictionaries
+      show_help_examples(source='eall') # will start printing from dictionaries
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
@@ -8257,7 +8257,7 @@ def show_program_help(section=''):
       return 0
 
    # process new example string separately for now
-   if section == 'enew':
+   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
       show_help_examples(source=section)
       return 0
 
@@ -8272,9 +8272,9 @@ def show_program_help(section=''):
 
    return rv
 
-def show_help_examples(source='old'):
+def show_help_examples(source='eold'):
    """just print the main string, until we are ready for more"""
-   if source != 'enew':
+   if source.lower() in ['eold', 'old']:
        print(g_help_examples)
        return
 
@@ -8282,8 +8282,14 @@ def show_help_examples(source='old'):
    import lib_ap_examples as EGS
    EGS.populate_examples()
 
+   # print only AP examples, or all
+   if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
+      aphelp = 1
+   else:
+      aphelp = -1
+
    print(g_egnew_header)
-   EGS.display_eg_all(verb=2)
+   EGS.display_eg_all(aphelp=aphelp, verb=2)
    print(g_egnew_trailer)
 
    return

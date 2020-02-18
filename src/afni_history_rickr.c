@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "help examples now include some developed outside of afni_proc.py",
+   "This includes some class demos, along with pamenc and NARPS."
+ } ,
+
+ { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste erro and missing endif",
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
  { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -compare_opts_vs_opts",
    "One can compare two afni_proc.py commmands sequentially, that are\n"
