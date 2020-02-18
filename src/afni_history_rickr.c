@@ -51,7 +51,9 @@ afni_history_struct rickr_history[] = {
 
  { 18, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "help examples now include some developed outside of afni_proc.py",
-   "This includes some class demos, along with pamenc and NARPS."
+   "This includes some class demos, along with pamenc and NARPS.\n"
+   "Include a line about whether each example is reasonably recommended.\n"
+   "Done to appease the mighty P Taylor."
  } ,
 
  { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
