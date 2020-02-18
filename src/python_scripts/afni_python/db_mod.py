@@ -8256,11 +8256,10 @@ def show_program_help(section=''):
 
       return 0
 
-   # new examples (EGS) are currently "special"
-   # if section == 'EGS':
-   #    EGS.populate_examples()
-   #    EGS.display_eg_all(verb=2)
-   #    return 0
+   # process new example string separately for now
+   if section == 'enew':
+      show_help_examples(source=section)
+      return 0
 
    # and individual sections
    rv = 0
@@ -8273,10 +8272,35 @@ def show_program_help(section=''):
 
    return rv
 
-def show_help_examples():
+def show_help_examples(source='old'):
    """just print the main string, until we are ready for more"""
-   print(g_help_examples)
+   if source != 'enew':
+       print(g_help_examples)
+       return
+
+   # print new-style examples
+   import lib_ap_examples as EGS
+   EGS.populate_examples()
+
+   print(g_egnew_header)
+   EGS.display_eg_all(verb=2)
+   print(g_egnew_trailer)
+
    return
+
+g_egnew_header = """
+    ==================================================
+    EXAMPLES (options can be provided in any order): ~1~
+"""
+
+g_egnew_trailer = """
+    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
+
+                afni_proc.py -ask_me
+
+        Perhaps at some point this will be revived.  It would be useful.
+        The -ask_me methods have not been seriously updated since 2006.
+"""
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
@@ -8491,8 +8515,8 @@ g_help_examples = """
 
         Example 2. Very simple. ~2~
 
-        Use all defaults, except remove 3 TRs and use basis
-        function BLOCK(30,1).  The default basis function is GAM.
+           Use all defaults, except remove 3 TRs and use basis
+           function BLOCK(30,1).  The default basis function is GAM.
 
                 afni_proc.py -subj_id sb23.e2.simple                       \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -9026,7 +9050,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 9b. Resting state analysis with ANATICOR. ~2~
+        Example 9b. Resting state analysis with ANATICOR. ~2~
 
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
@@ -9055,7 +9079,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10. Resting state analysis, with tissue-based regressors. ~2~
+        Example 10. Resting state analysis, with tissue-based regressors. ~2~
 
            Like example #9, but also regress the eroded white matter averages.
            The WMe mask come from the Classes dataset, created by 3dSeg via the
@@ -9099,7 +9123,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
+        Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
 
             This is for band passing and computation of ALFF, etc.
 
@@ -9130,7 +9154,7 @@ g_help_examples = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (now even more modern :). ~2~
+        Example 11. Resting state analysis (now even more modern :). ~2~
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
@@ -9218,7 +9242,7 @@ g_help_examples = """
                   -regress_est_blur_errts                                    \\
                   -html_review_style pythonic
 
-       Example 11b. Similar to 11, but without FreeSurfer. ~2~
+        Example 11b. Similar to 11, but without FreeSurfer. ~2~
 
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
@@ -9274,7 +9298,7 @@ g_help_examples = """
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim yes
 
-       Example 12 background: Multi-echo data processing. ~2~
+        Example 12 background: Multi-echo data processing. ~2~
 
          Processing multi-echo data should be similar to single echo data,
          except for perhaps:
@@ -9300,7 +9324,7 @@ g_help_examples = """
                 ...                                              \\
 
 
-       Example 12a. Multi-echo data processing - very simple. ~2~
+        Example 12a. Multi-echo data processing - very simple. ~2~
 
          Keep it simple and just focus on the basic ME options, plus a few
          for controlling registration.
@@ -9324,7 +9348,7 @@ g_help_examples = """
                   -volreg_align_e2a                             \\
                   -volreg_tlrc_warp
 
-       Example 12b. Multi-echo data processing - OC resting state. ~2~
+        Example 12b. Multi-echo data processing - OC resting state. ~2~
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.
@@ -9359,7 +9383,7 @@ g_help_examples = """
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
-       Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
+        Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
 
          As above, but run tedana.py for MEICA denoising.
 
@@ -9394,7 +9418,7 @@ g_help_examples = """
 
          Consider an alternative combine method, 'tedana_OC_tedort'.
 
-       Example 13. Complicated ME, surface-based resting state example. ~2~
+        Example 13. Complicated ME, surface-based resting state example. ~2~
 
          Key aspects of this example:
 
@@ -10219,9 +10243,16 @@ g_help_notes = """
     regression, as is done in Example 11.
 
 
-    First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+   *First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
     make ventricle and white matter masks from the Desikan-Killiany atlas based
     parcellation dataset, aparc+aseg.nii.
+
+        * When running FreeSurfer, it is best to start with:
+
+            check_dset_for_fs.py
+
+          to keep the output from FreeSurfer aligned with its input, keeping
+          the FS parcellations aligned with the warped anatomy.
 
     Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
     which might be nicer for probability maps, though the Desikan-Killiany

@@ -678,7 +678,7 @@ g_history = """
     7.09 Feb 14, 2020:
        - added -compare_opts_vs_opts
        - modified s03.ap.surace, added s05.ap.uber
-    7.10 Feb 15, 2020: modified Example 7; added Example 6b
+    7.10 Feb 18, 2020: modified Example 7; added Example 6b and EGS.12c
 """
 
 g_version = "version 7.10, February 15, 2019"
