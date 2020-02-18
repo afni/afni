@@ -8654,25 +8654,25 @@ g_help_examples = """
            entire volume were acquired at the beginning of the TR.
 
            The 'align' block implies using align_epi_anat.py to align the
-           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
-           for the cost function (more robust than lpc), and -giant_move (in
-           case the anat and EPI start a little far apart).  This block
-           computes the anat to EPI transformation matrix, which will be 
-           inverted in the volreg block, based on -volreg_align_e2a.
+           anatomy with the EPI.  Extra options specify using lpc+ZZ for the
+           cost function (probably more robust than lpc), and -giant_move (in
+           case the anat and EPI start a bit far apart).  This block computes
+           the anat to EPI transformation matrix, which will then be inverted
+           in the volreg block, based on -volreg_align_e2a.
 
            Also, compute the transformation of the anatomy to MNI space, using
            affine registration (for speed in this simple example) to align to
            the 2009c template.
 
            In the volreg block, align the EPI to the MIN_OUTLIER volume (a
-           low-motion volume, determined based on the data).  Then concatenate
-           all EPI transformations, warping the EPI to standard space in one
-           step (without multiple resampling operations), combining:
+           low-motion volume, determined from the data).  Then concatenate all
+           EPI transformations, warping the EPI to standard space in one step
+           (without multiple resampling operations), combining:
 
               EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
 
-           The standard space transformation is included by specifying option
-           -volreg_tlrc_warp.
+           The standard space transformation is applied to the EPI due to 
+           specifying -volreg_tlrc_warp.
 
            A 4 mm blur is applied, to keep it very light (about 1.5 times the
            voxel size).
@@ -8693,7 +8693,7 @@ g_help_examples = """
            as well as censoring of outlier time points, where at least 5% of
            the brain voxels are computed as outliers.
 
-           The regression model starts as a full time series, for time
+           The regression model starts from the full time series, for time
            continuity, before censored time points are removed.  The output
            errts will be zero at censored time points (no error there), and so
            the output fit times series (fitts) will match the original data.
@@ -8708,7 +8708,9 @@ g_help_examples = """
            parameters can be averaged across subjects for cluster correction at
            the group level.
 
-           Skip running the Monte Carlo cluster simulation example, for speed.
+           Skip running the Monte Carlo cluster simulation example (which would
+           specify minimum cluster sizes for cluster significance, based on the
+           ACF parameters and mask), for speed.
 
            Once the proc script is created, execute it.
 
@@ -8740,8 +8742,9 @@ g_help_examples = """
                  -regress_run_clustsim no                                 \\
                  -execute 
 
-         * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -regress_reml_exec.
+         * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
+           in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
+           regression, but 3dDeconvolve does not.
 
         Example 6b. A modern task example, with preferable options. ~2~
 
@@ -8755,7 +8758,7 @@ g_help_examples = """
               - apply non-linear registration to MNI template, using output
                 from @SSwarper:
                   o apply skull-stripped anat in -copy_anat
-                  o apply original anat as -anat_follower (for comparison)
+                  o apply original anat as -anat_follower (QC, for comparison)
                   o pass warped anat and transforms via -tlrc_NL_warped_dsets,
                     to apply those already computed transformations
               - use -mask_epi_anat to tighten the EPI mask (for QC),
@@ -10961,7 +10964,7 @@ g_help_options = """
         different one.  One can compare a current command to a given example,
         one example to another, or one command to another.
 
-        To see a list of examples one can compare against, consdier:
+        To see a list of examples one can compare against, consider:
 
             afni_proc.py -show_example_names
 
@@ -10986,7 +10989,7 @@ g_help_options = """
                 afni_proc.py  ... my options ...  -compare_opts 'example 6b'
 
             Adding this option (and parameter) to an existing afni_proc.py
-            command results in commparing the options applied in the current
+            command results in comparing the options applied in the current
             command against those of the specified target example.
 
             The afni_proc.py command terminates after showing the comparison
@@ -11044,7 +11047,7 @@ g_help_options = """
                 afni_proc.py                            \\
                     ... one full set of options ...     \\
                     -compare_opts_vs_opts               \\
-                    ... anoter full set of options ...
+                    ... another full set of options ...
 
             Like other -compare_* options, but this compares 2 full commands,
             separated by -compare_opts_vs_opts.  This is a comparison method
