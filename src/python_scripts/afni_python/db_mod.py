@@ -8748,8 +8748,8 @@ g_help_examples = """
            GOOD TO CONSIDER
 
            This is based on Example 6, but is more complete.
-           Example 6 is meant to run quickly.
-           Example 6b is meant to process as we might suggest.
+           Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
+           Example 6b is meant to process more as we might suggest.
 
               - apply -check_flip in align_epi_anat.py, to monitor consistency
               - apply non-linear registration to MNI template, using output
@@ -8803,6 +8803,12 @@ g_help_examples = """
                  -regress_run_clustsim no                                 \\
                  -html_review_style pythonic                              \\
                  -execute 
+
+           To compare one's own command against this one, consider adding
+                -compare_opts 'example 6b'
+           to the end of (or anywhere in) the current command, as in:
+
+                afni_proc.py ... my options ...   -compare_opts 'example 6b'
 
         Example 7. Apply some esoteric options. ~2~
 
@@ -10944,7 +10950,106 @@ g_help_options = """
             List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
+        -show_example_names     : show names of all sample commands
+                                  (possibly for use with -compare options)
         -ver                    : show the version number
+
+        -----------------------------------------------------------------
+        Terminal 'compare' options ~3~
+
+        These options are used to help compare one afni_proc.py command with a
+        different one.  One can compare a current command to a given example,
+        one example to another, or one command to another.
+
+        To see a list of examples one can compare against, consdier:
+
+            afni_proc.py -show_example_names
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            This option allows one to compare a pair of pre-defined examples
+            (from the list in 'afni_proc.py -show_example_names').  It is like
+            using -compare_opts, but for comparing example vs. example.
+
+        -compare_opts EXAMPLE   : compare current options against EXAMPLE
+
+                e.g. -compare_opts 'example 6b'
+
+            more completely:
+
+                afni_proc.py  ... my options ...  -compare_opts 'example 6b'
+
+            Adding this option (and parameter) to an existing afni_proc.py
+            command results in commparing the options applied in the current
+            command against those of the specified target example.
+
+            The afni_proc.py command terminates after showing the comparison
+            output.
+
+            The output from this is controlled by the -verb LEVEL:
+
+                0       : show (python-style) lists of differing options
+                1 (def) : include parameter differences
+                          (except where expected, e.g. -copy_anat dset)
+                          (limit param lists to current text line)
+                2       : show complete parameter diffs
+
+            Types of differences shown include:
+
+                missing options         :
+                    where the current command is missing options that the
+                    specified target command includes
+                extra options           :
+                    where the current command has extra options that the
+                    specified target command is missing
+                differing options       :
+                    where the current command and target use the same option,
+                    but their parameters differ
+                fewer applied options   :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has fewer
+                    (what is beyond the matching/differing cases)
+                more applied options    :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has more
+                    (what is beyond the matching/differing cases)
+
+            This option is the basis for all of the -compare* options.
+
+            See also -show_example_names.
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            Like -compare_opts, but rather than comparing the current command
+            against a known example, it compares 2 known examples.
+
+            See also -show_example_names.
+
+        -compare_opts_vs_opts opts... : compare 2 full commands
+
+            more completely:
+
+                afni_proc.py                            \\
+                    ... one full set of options ...     \\
+                    -compare_opts_vs_opts               \\
+                    ... anoter full set of options ...
+
+            Like other -compare_* options, but this compares 2 full commands,
+            separated by -compare_opts_vs_opts.  This is a comparison method
+            for comparing 2 local commands, rather than against any known
+            example.
 
         -----------------------------------------------------------------
         General execution and setup options ~3~

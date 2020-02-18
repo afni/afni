@@ -657,9 +657,15 @@ def populate_examples():
               - generate the HTML QC report using the nicer pythonic functions
                 (requires matplotlib)
            """,
-     trailer='',
+     trailer="""
+           To compare one's own command against this one, consider adding
+                -compare_opts 'example 6b'
+           to the end of (or anywhere in) the current command, as in:
+
+                afni_proc.py ... my options ...   -compare_opts 'example 6b'
+           """,
      olist = [
-        ['-subj_id',               ['FT.e6']],
+        ['-subj_id',               ['FT.e6b']],
         ['-copy_anat',             ['Qwarp/anat_warped/anatSS.FT.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'FT/FT_anat+orig']],
