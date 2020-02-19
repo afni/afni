@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "New QC image outputs added.",
+   "One for skullstripping (orig space) and one for warping (ref space).\n"
+},
 
 { 17, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Reorganized under the hood, deal with censoring in a better way.",

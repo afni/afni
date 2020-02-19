@@ -72,7 +72,7 @@
 #   + [PT] new opt for deobliquing a la 3drefit-- probably would be more
 #          useful than 3dWarp-style?
 # 
-set version   = "2.0"; set rev_dat   = "Jan 27, 2020"
+#set version   = "2.0"; set rev_dat   = "Jan 27, 2020"
 #   + [PT] This is a majorly new version of @SSwarper.
 #        + final set of options from testing a loooot of things with
 #          the mixed groups of 178 subj from different studies. This
@@ -81,6 +81,10 @@ set version   = "2.0"; set rev_dat   = "Jan 27, 2020"
 #          inside and outside the brain).
 #        + several opts have been added for additional control, as well
 # 
+set version   = "2.1"; set rev_dat   = "Feb 20, 2020"
+#   + [PT] Extra QC output:  QC*jpg montages
+#        + one to check skullstripping, one to view warping in more detail
+#
 # ----------------------------------------------------------------
 
 # some AFNI environment variables
@@ -125,6 +129,8 @@ set DO_CEIL    = 1       # have a ceiling value on anat
 set DO_GIANT   = 0
 set DO_DEOB    = 0       # 3dWarp-style
 set DO_DEOB_REF = 0      # 3drefit-style
+set DO_EXTRA_QC = 1      # more chauffeur output 
+set JUMP_TO_EXTRA_QC = 0 # just for testing/internal purposes
 
 set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
 set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
@@ -217,6 +223,14 @@ while ( $ac <= $#argv )
     # [PT: Feb 11, 2019]
     else if ( "$argv[$ac]" == "-aniso_off" ) then
         set DO_ANISO = 0
+
+    # [PT: Jan 31, 2020]
+    else if ( "$argv[$ac]" == "-extra_qc_off" ) then
+        set DO_EXTRA_QC = 0
+
+    # just for internal running/testing purposes
+    else if ( "$argv[$ac]" == "-jump_to_extra_qc" ) then
+        set JUMP_TO_EXTRA_QC = 1
 
     # [PT: Feb 11, 2019]
     else if ( "$argv[$ac]" == "-ceil_off" ) then
@@ -369,6 +383,11 @@ if ( $nvolbase < 5 ) then
     echo "   to serve as a reference for $this_prog, it needs 4!"
     echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
     goto BAD_EXIT
+endif
+
+if ( ${JUMP_TO_EXTRA_QC} ) then
+    echo "\n++ Just jumpin' to extra QC\n"
+    goto JUMP_TO_EXTRA_QC
 endif
 
 # --------------------------------------------------------------------
@@ -702,6 +721,74 @@ echo "++ SSW Step 7"
 @snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
 @snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
 
+JUMP_TO_EXTRA_QC:
+
+if ( ${DO_EXTRA_QC} ) then
+
+    # -------- check skullstripping in orig space ---------
+
+    set ulay  = "anatU.${SubID}.nii"
+    set olay0 = "anatSS.${SubID}.nii"
+    set olay  = "${pref}mask.nii"
+    set opref_exqc1 = "${odir}/QC_anatSS.${SubID}.jpg"
+
+    3dcalc                                 \
+        -overwrite                         \
+        -a ${olay0}                        \
+        -expr 'bool(a)'                    \
+        -prefix ${olay}                    \
+        -byte
+        
+    @chauffeur_afni                        \
+        -ulay ${ulay}                      \
+        -ulay_range "2%" "98%"             \
+        -olay ${olay}                      \
+        -func_range_perc_nz 1              \
+        -set_subbricks 0 0 0               \
+        -box_focus_slices ${olay}          \
+        -cbar "Reds_and_Blues_Inv"         \
+        -opacity 4                         \
+        -prefix  ${pref}MONT1              \
+        -save_ftype JPEG                   \
+        -montx 9 -monty 1                  \
+        -montgap 3                         \
+        -set_xhairs OFF                    \
+        -label_mode 1 -label_size 3      
+
+    2dcat                                  \
+        -gap 5                             \
+        -gap_col 66 184 254                \
+        -nx 1                              \
+        -ny 3                              \
+        -prefix ${opref_exqc1}             \
+        ${pref}MONT1*jpg
+
+    # -------- check alignment in ref vol space ---------
+
+    set ulay  = "anatQQ.${SubID}.nii"
+    set olay  = "${Basedset}"
+    set opref_exqc2 = "${odir}/QC_anatQQ.${SubID}.jpg"
+
+    @djunct_edgy_align_check               \
+        -montx            8                \
+        -monty            1                \
+        -ulay             "${ulay}"        \
+        -olay             "${olay}"        \
+        -box_focus_slices "${olay}"        \
+        -prefix           ${pref}MONT2
+
+    2dcat                                  \
+        -gap 5                             \
+        -gap_col 66 184 254                \
+        -nx 1                              \
+        -ny 3                              \
+        -prefix ${opref_exqc2}             \
+        ${pref}MONT2*jpg
+
+endif
+
+# ------------------------------------------------------------------
+
 ## Clean up the junk
 
 CLEANUP:
@@ -709,11 +796,36 @@ CLEANUP:
 ## Rename affine warp matrix
 echo "++ SSW cleanup"
 
-\mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
+# [PT: Feb 19, 2020] Put the mv cmd in an IF condition, because with
+# re-running extra QC images, might not have the first file name;
+# now, avoid an unnecessary error msg.
+if ( -e "${pref}TAL5_Allin.aff12.1D" ) then
+    \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
+endif
 
 if ( $doclean ) then
   \rm -f "${pref}"*
 endif
+
+echo "--------------------------------------------------------"
+echo "++ DONE with SSW.  Check QC images:"
+printf "   $odir/AM${SubID}.jpg  $odir/MA${SubID}.jpg "
+if ( ${DO_EXTRA_QC} ) then
+printf " ${opref_exqc1}  ${opref_exqc2}"
+endif 
+echo ""
+echo ""
+echo "   In ref/base space (check warping):"
+echo "     ulay=anat, olay=base edges  :  $odir/AM${SubID}.jpg"
+echo "     ulay=base edges, olay=anat  :  $odir/MA${SubID}.jpg"
+if ( ${DO_EXTRA_QC} ) then
+    echo "     ulay=anat, olay=base edges  :  ${opref_exqc2}"
+    echo ""
+    echo "   In native space (check skullstripping):"
+    echo "     ulay=anat, olay=SS mask     :  ${opref_exqc1}"
+endif
+echo ""
+echo "--------------------------------------------------------"
 
 goto GOOD_EXIT
 
@@ -755,6 +867,8 @@ USAGE ~1~
        {-skipwarp}           \
        {-unifize_off}        \
        {-init_skullstr_off}  \
+       {-extra_qc_off}       \
+       {-jump_to_extra_qc}   \
        {-cost_aff CA}        \
        {-cost_nl_init CNI}   \
        {-cost_nl_final CNF}  \
@@ -838,6 +952,16 @@ grown/improved over time):
               to roughly isolated brain in the beginning.  This might
               be useful with macaque dsets.
 
+  -extra_qc_off :(opt) don't make extra QC images QC*jpg (for some
+              unknown reason).
+
+  -jump_to_extra_qc :(opt) just make the two QC*jpg images from a
+              previous run of @SSwarper.  These QC*jpg images are new
+              QC output (as of late Feb, 2020), so this might be
+              useful to add a quick check to previously run data.
+              This command would just be tacked on to previously
+              executed one.
+
   -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
               part of alignment.  Here, 'CA' would be just the name of
               the cost function to be provided after '-cost ..' (def:
@@ -846,7 +970,6 @@ grown/improved over time):
               was 'hel').
 
   -cost_nl_init CNI 
-
              :(opt) specify cost function for initial nonlinear
               (3dQwarp) part of alignment.  Here, 'CNI' would be the
               cost function name to be provided (def: is now "lpa").
@@ -936,6 +1059,10 @@ Then the outputs from this script will be"
                             overlaid -- to check the alignment;
   MAsub007.jpg            = similar to the above, with the roles of the
                             template and the anatomical datasets reversed.
+  QC_anatQQ.sub007.jpg    = like AM*.jpg, but 3 rows of 8 slices
+  QC_anatSS.sub007.jpg    = check skullstripping in orig space: ulay is
+                            input dset, and olay is mask of
+                            skullstripped output (anatSS* dset)
 
 * The .aff12.1D and _WARP.nii transformations need to be catenated to get
   the full warp from orginal space to the base space; example:

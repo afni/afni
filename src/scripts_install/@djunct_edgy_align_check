@@ -63,10 +63,11 @@ set olay    = ""
 set odir           = "./QC"
 set opref          = "IMG_${tpname}"
 
-set tpref          = "__tmp"
+set tpref          = "__eac_tmp"
 set olayE          = ${tpref}_olayE.nii.gz
 
 set Nx             = 7                   # num of mont wins, b/c Ny=1
+set Ny             = 1                   
 set mgap           = 1                   # gapsize (in px) bt montage slices
 set mcolor         = 'black'             # color of montage gap
 set cbar           = "Reds_and_Blues_Inv" # default colorbar; can adjust
@@ -137,6 +138,18 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set cbar = "$argv[$ac]"
+
+    # [PT: Feb 19, 2020] extra montage feature: nslices in x 
+    else if ( "$argv[$ac]" == "-montx" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Nx = "$argv[$ac]"
+
+    # [PT: Feb 19, 2020] extra montage feature: nslices in x 
+    else if ( "$argv[$ac]" == "-monty" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Ny = "$argv[$ac]"
 
     # [PT: Dec 30, 2019] can place coord loc
     else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
@@ -353,7 +366,20 @@ COMMAND OPTIONS ~1~
 -montcolor
 -cbar
 -set_dicom_xyz
+-montx
+-monty
 -no_clean
+
+NOTES TO SELF ~1~
+
+If using -box_focus_slices, don't use the AMASK_FOCUS_OLAY keyword,
+but instead repeat the name of the olay explicitly.  This is because
+this program creates an edgified version of the olay, which gets
+passed into @chauffeur_afni, and then using the AMASK* functionality
+would try to 'automask' that dset, typically leaves no voxels and
+leads to an error.  Repeating the name of the input olay leads to
+correct behavior.  (Ask me how I discovered *this* tidbit of
+knowledge?)
 
 EOF
 
