@@ -259,9 +259,9 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              python_module_test.py quick.alpha.vals.py realtime_receiver.py  \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
-             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py \
-             parse_fs_lt_log.py RetroTS.py 1dplot.py                         \
-             DoPerRoi.py adjunct_calc_mont_dims.py adjunct_combine_str.py    \
+             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
+	     parse_fs_lt_log.py RetroTS.py 1dplot.py                         \
+             DoPerRoi.py adjunct_calc_mont_dims.py adjunct_combine_str.py   \
              adjunct_select_str.py BayesianGroupAna.py                       \
              abids_json_info.py abids_json_tool.py abids_tool.py             \
              afni_util.py apqc_make_html.py apqc_make_tcsh.py                \
@@ -313,7 +313,7 @@ afobjs: afobj
 itall:all plugins install install_plugins install_lib
 
 $(INSTALLDIR):
-   if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
 
 ### for those on crippled systems
 
@@ -324,7 +324,7 @@ totality_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug install_nop
 # Create program list
 # (keep this as a simplified form of prog_list, or just depend on prog_list?)
 echo_progs:
-   echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)       \
+	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)       \
              `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`     \
              $(PY_SCRIPTS) $(DISCO_SCRIPTS)"                    \
              | tr ' ' '\n' | LC_COLLATE=C sort | uniq
