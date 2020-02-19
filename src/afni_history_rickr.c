@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2020, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
+   "block inappropriate 'FATAL ERROR: ... already exists'",
+   "This happened when anat_in was local and stripped, so it matched ns_pref.\n"
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
  { 18, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "help examples now include some developed outside of afni_proc.py",
    "This includes some class demos, along with pamenc and NARPS.\n"
