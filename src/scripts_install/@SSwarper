@@ -81,9 +81,12 @@
 #          inside and outside the brain).
 #        + several opts have been added for additional control, as well
 # 
-set version   = "2.1"; set rev_dat   = "Feb 20, 2020"
+#set version   = "2.1"; set rev_dat   = "Feb 20, 2020"
 #   + [PT] Extra QC output:  QC*jpg montages
 #        + one to check skullstripping, one to view warping in more detail
+#
+set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
+#   + [PT] fix paths in the ulay/olay of extra QC*jpg images
 #
 # ----------------------------------------------------------------
 
@@ -727,8 +730,8 @@ if ( ${DO_EXTRA_QC} ) then
 
     # -------- check skullstripping in orig space ---------
 
-    set ulay  = "anatU.${SubID}.nii"
-    set olay0 = "anatSS.${SubID}.nii"
+    set ulay  = "${odir}/anatU.${SubID}.nii"
+    set olay0 = "${odir}/anatSS.${SubID}.nii"
     set olay  = "${pref}mask.nii"
     set opref_exqc1 = "${odir}/QC_anatSS.${SubID}.jpg"
 
@@ -765,7 +768,7 @@ if ( ${DO_EXTRA_QC} ) then
 
     # -------- check alignment in ref vol space ---------
 
-    set ulay  = "anatQQ.${SubID}.nii"
+    set ulay  = "${odir}/anatQQ.${SubID}.nii"
     set olay  = "${Basedset}"
     set opref_exqc2 = "${odir}/QC_anatQQ.${SubID}.jpg"
 

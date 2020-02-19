@@ -1234,7 +1234,7 @@ else
     # index for $ulay
     set USED_SUBBRICK_LABS = 0
     set ii = 1
-    if ( `@djunct_is_label.py "${subbb[$ii]}"` ) then
+    if ( `adjunct_is_label.py "${subbb[$ii]}"` ) then
         echo "++ Searching for label ${subbb[$ii]}..."
         set ind1 = `3dinfo -label2index "${subbb[$ii]}" "${ulay}"`
         if ( "$ind1" != "" ) then
@@ -1249,7 +1249,7 @@ else
 
     # indices (thr and olay) for $olay
     foreach ii ( `seq 2 1 3` )
-        if ( `@djunct_is_label.py "${subbb[$ii]}"` ) then
+        if ( `adjunct_is_label.py "${subbb[$ii]}"` ) then
             echo "++ Searching for label ${subbb[$ii]}..."
             set ind1 = `3dinfo -label2index "${subbb[$ii]}" "${olay}"`
             if ( "$ind1" != "" ) then
@@ -1307,7 +1307,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         endif
 
         # this calc pad was calc'ed earlier and passed along with each
-        # input dset, using @djunct_calc_mont_dims.py
+        # input dset, using adjunct_calc_mont_dims.py
         set calc_pad = "${upre4d}_${rrr}.dat"
         set padpars  = `grep -v "#" $calc_pad`
         set Nsli     = $padpars[1]

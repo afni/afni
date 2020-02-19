@@ -26,7 +26,7 @@ goto NUM_${gonum}
 
 NUM_3:
 
-set fpy2   = @djunct_combine_str.py
+set fpy2   = adjunct_combine_str.py
 # -------------------------------------------
 set fff    = ${fpy2:gas/.py//}
 set fpy3   = ${fff}_2to3.py
@@ -115,7 +115,7 @@ goto CHECK_IT
 
 NUM_2:
 
-set fpy2   = @djunct_select_str.py
+set fpy2   = adjunct_select_str.py
 # -------------------------------------------
 set fff    = ${fpy2:gas/.py//}
 set fpy3   = ${fff}_2to3.py
@@ -184,7 +184,7 @@ goto CHECK_IT
 
 NUM_1:
 
-set fpy2   = @djunct_calc_mont_dims.py
+set fpy2   = adjunct_calc_mont_dims.py
 # -------------------------------------------
 set fff    = ${fpy2:gas/.py//}
 set fpy3   = ${fff}_2to3.py
