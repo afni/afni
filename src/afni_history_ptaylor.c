@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Feb , 2020 , PT , "DoPerRoi.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @DoPerRoi.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
 { 19, Feb , 2020 , PT , "adjunct_select_str.py" , MINOR , TYPE_GENERAL,
    "Renamed from @djunct_select_str.py.",
    "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"

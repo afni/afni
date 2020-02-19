@@ -46,7 +46,7 @@ set(PY_FILES
     adjunct_is_label.py
     adjunct_make_script_and_rst.py
     adjunct_select_str.py
-    @DoPerRoi.py
+    DoPerRoi.py
     abids_json_info.py
     abids_json_tool.py
     abids_lib.py

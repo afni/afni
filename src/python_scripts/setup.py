@@ -4,7 +4,7 @@ ENTRY_POINTS={'console_scripts':
     [
     '1d_tool.py=afni_python.1d_tool:main',
     '1dplot.py=afni_python.1dplot:main',
-    # '@DoPerRoi.py=afni_python.@DoPerRoi:main',
+    # 'DoPerRoi.py=afni_python.DoPerRoi:main',
     # 'adjunct_calc_mont_dims.py=afni_python.adjunct_calc_mont_dims:main',
     # 'adjunct_combine_str.py=afni_python.adjunct_combine_str:main',
     # 'adjunct_select_str.py=afni_python.adjunct_select_str:main',
