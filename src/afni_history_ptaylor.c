@@ -66,6 +66,36 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Feb , 2020 , PT , "DoPerRoi.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @DoPerRoi.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_select_str.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_select_str.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_make_script_and_rst.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_make_script_and_rst.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_is_label.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_is_label.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_combine_str.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_combine_str.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_calc_mont_dims.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_calc_mont_dims.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
 { 19, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "New QC image outputs added.",
    "One for skullstripping (orig space) and one for warping (ref space).\n"

@@ -260,7 +260,7 @@ static PROG_OPTS poptslist[] = {
 { "@DTI_studio_reposition", "", 0},
 { "@DeblankFileNames", "-demo_set; -dry_run; -echo; -help; -move; -nobrac; ", 6},
 { "@DiceMetric", "-base; -do_not_mask_by_base; -dsets; -echo; -forceoutput; -ignore_bad; -keep_tmp; -labeltable; -mask_by_base; -max_N_roi; -prefix; -save_diff; -save_match; ", 13},
-{ "@DoPerRoi.py", "", 0},
+{ "DoPerRoi.py", "", 0},
 { "@DriveAfni", "", 0},
 { "@DriveSuma", "-all_opts; -h_aspx; -h_find; -h_raw; -h_spx; -h_txt; -h_view; -h_web; -hview; -hweb; ", 8},
 { "@ElectroGrid", "-coords; -echo; -grid; -prefix; -strip; -with_markers; ", 6},

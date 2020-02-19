@@ -481,7 +481,7 @@ foreach ii ( `seq 1 1 $#keepsel` )
 end
 
 # Combine all good lists
-@djunct_combine_str.py $odir/$ogoods $Ndwi $keepsel
+adjunct_combine_str.py $odir/$ogoods $Ndwi $keepsel
 
 set KEEP = `cat "$odir/$ogoods"`
 echo "++ String selectors merged:\n\t $KEEP"
