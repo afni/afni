@@ -41,11 +41,11 @@ install(
 set(PY_FILES
     1d_tool.py
     1dplot.py
-    @djunct_calc_mont_dims.py
-    @djunct_combine_str.py
-    @djunct_is_label.py
-    @djunct_make_script_and_rst.py
-    @djunct_select_str.py
+    adjunct_calc_mont_dims.py
+    adjunct_combine_str.py
+    adjunct_is_label.py
+    adjunct_make_script_and_rst.py
+    adjunct_select_str.py
     @DoPerRoi.py
     abids_json_info.py
     abids_json_tool.py

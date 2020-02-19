@@ -261,8 +261,8 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
              uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
 	     parse_fs_lt_log.py RetroTS.py 1dplot.py                         \
-             @DoPerRoi.py @djunct_calc_mont_dims.py @djunct_combine_str.py   \
-             @djunct_select_str.py BayesianGroupAna.py                       \
+             @DoPerRoi.py adjunct_calc_mont_dims.py adjunct_combine_str.py   \
+             adjunct_select_str.py BayesianGroupAna.py                       \
              abids_json_info.py abids_json_tool.py abids_tool.py             \
              afni_util.py apqc_make_html.py apqc_make_tcsh.py                \
              lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
