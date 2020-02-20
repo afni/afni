@@ -1721,7 +1721,7 @@ class SubjProcSream:
             section, rv = opt_list.get_string_opt('-help_section')
             if section == 'EGafni':
                EGS = self.egs()
-               EGS.display_eg_all(verb=2)
+               EGS.display_eg_all(aphelp=1,verb=2)
             elif section == 'EGall':
                EGS = self.egs()
                EGS.display_eg_all(aphelp=-1,verb=2)

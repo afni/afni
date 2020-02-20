@@ -8249,7 +8249,8 @@ def show_program_help(section=''):
    # maybe print them all
    if section == '':
       print(g_help_intro)
-      show_help_examples(source='eall') # will start printing from dictionaries
+      # now print examples from lib_ap_examples
+      show_help_examples(source='eall')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)

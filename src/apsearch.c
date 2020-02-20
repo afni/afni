@@ -30,7 +30,8 @@ int count_procs(char *pname)
       system(sbuf);
    }
    
-   sprintf(sbuf, "afni_util.py -print \"get_process_depth(prog='%s')\"", pname);
+   /* afni_util.py main moved to afni_python_wrapper.py  19 Feb 2020 [rickr] */
+   sprintf(sbuf, "afni_python_wrapper.py -print \"get_process_depth(prog='%s')\"", pname);
    if (verb) fprintf(stderr," Executing %s\n", sbuf);
    
    fp = popen( sbuf , "r" ) ;
