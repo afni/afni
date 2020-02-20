@@ -8,19 +8,27 @@
 import sys, os
 
 # ======================================================================
-# we want to import the main module globally, so process args here
+# get the main import done here
 
-argv = sys.argv
-narg = len(argv)
-if narg > 0:
+# ------------------------------------------------------------
+# only proceed with imports in the context of main,
+# in case this happens to imported
+if __name__ == '__main__':
+   argv = sys.argv
+   narg = len(argv)
 
    # decide which module to import (default is afni_util)
    argbase = 1
    module = 'afni_util'
-   if '-module' == argv[argbase] and narg > 1:
-      module = argv[argbase+1]
-      argbase += 2
 
+   # ------------------------------------------------------------
+   # if enough options are passed, choose which module to import
+   if narg > 2:
+      if '-module' == argv[argbase]:
+         module = argv[argbase+1]
+         argbase += 2
+
+   # terminal option: module is set, see if user wants a listing
    # if -module_dir, import differently
    if '-module_dir' in argv:
       try:
@@ -32,25 +40,25 @@ if narg > 0:
             print("** failed to import module '%s'" % module)
             sys.exit(1)
 
-      print('dir(afni_util):\n   %s' % '\n   '.join(dir(MM)))
+      print('dir(%s):\n   %s' % (module, '\n   '.join(dir(MM))))
       sys.exit(0)
 
    # ------------------------------------------------------------
-   # from here on, we need at least 2 options
-   if narg <= 2:
-      print(_g_main_help)
-      sys.exit(0)
+   # if there are options to process, actually try to import a module
 
-   # import the module in question and proceed
-   # (if this fails, try to import from afni_python)
-   try:
-      exec('from %s import *' % module)
-   except:
+   if narg > 2:
+      # import the module in question and proceed
+      # (if this fails, try to import from afni_python)
       try:
-         exec('from afni_python.%s import *' % module)
+         exec('from %s import *' % module)
       except:
-         print("** failed to import module '%s'" % module)
-         sys.exit(1)
+         try:
+            exec('from afni_python.%s import *' % module)
+         except:
+            print("** failed to import module '%s'" % module)
+            sys.exit(1)
+
+   # we have a module imported, or plan help.n.exit, proceed...
 
 
 # ----------------------------------------------------------------------
@@ -196,6 +204,7 @@ afni_python_wrapper.py: use to call afni_python functions from the shell
             afni_python_wrapper.py -listfunc -join -float linear_fit      \\
                                 `cat y.1D` -list2 `cat x.1D`
 
+   Author: R Reynolds  Feb, 2020  (moved from afni_util.py)
 """
 
 def process_listfunc(argv, argbase=1):
@@ -278,7 +287,7 @@ def show_function_help(flist):
       except:
          print("** not a valid function '%s'" % func)
 
-def main():
+def process_args():
    argv = sys.argv
    if '-help' in argv or len(argv) < 2:
       print(_g_main_help)
@@ -320,6 +329,19 @@ def main():
       print('** please see "afni_python_wrapper.py -help" for usage')
       return 1
 
-if __name__ == '__main__':
-   sys.exit(main())
 
+if __name__ == '__main__':
+   argv = sys.argv
+   narg = len(argv)
+   if '-help' in argv or narg < 2:
+      print(_g_main_help)
+      sys.exit(0)
+
+   # ------------------------------------------------------------
+   # from here on, we need at least 2 options
+   if narg <= 2:
+      print(_g_main_help)
+      sys.exit(0)
+
+   # we have a module imported, proceed...
+   sys.exit(process_args())

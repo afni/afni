@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2020, RCR, "afni_python_wrapper.py", MAJOR, TYPE_NEW_PROG,
+   "replaces afni_util.py as a main",
+   "This program can theortically be used to call any AFNI python function\n"
+   "from the shell."
+ } ,
+
+ { 19, Feb, 2020, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "no longer available as a main executable",
+   NULL
+ } ,
+
  { 19, Feb, 2020, RCR, "apsearch", MICRO, TYPE_MODIFY,
    "get process depth via afni_python_wrapper.py",
    "afni_util.py main was moved to afni_python_wrapper.py."

@@ -4,6 +4,10 @@
 
 # afni_util.py : general utilities for python programs
 
+# ------------------------------------------------------
+# no longer usable as a main: see afni_python_wrapper.py
+# ------------------------------------------------------
+
 import sys, os, math
 import afni_base as BASE
 import lib_textdata as TD
