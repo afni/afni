@@ -1,3 +1,25 @@
+AFNI Digest, week of 2020/02/20.
+
+Contents:
+00) AFNI Bootcamp++ in San Sebastian, Espana (May, 2020) 
+
+00) The Basque Center on Cognition, Brain and Language (BCBL) is
+organizing the 1st Basque AFNI meeting. The event will be held in San
+Sebastián-Donostia, 10-16 May 2020.  Please see the following link for
+more details:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,163224,163224#msg-163224
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+
 AFNI Digest, week of 2020/01/27.
 
 Contents:
