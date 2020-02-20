@@ -3,7 +3,10 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector ["#2e3436" "#a40000" "#4e9a06" "#c4a000" "#204a87" "#5c3566" "#729fcf" "#eeeeec"])
  '(c-basic-offset 3)
+ '(column-number-mode t)
+ '(custom-enabled-themes (quote (adwaita)))
  '(inhibit-startup-screen t)
  '(python-basic-offset 4)
  '(python-continuation-offset 1)
@@ -17,14 +20,18 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(default ((t (:family "DejaVu Sans Mono" :foundry "unknown" :slant normal :weight normal :height 103 :width normal))))
  '(sh-heredoc ((t (:foreground "DeepSkyBlue4")))))
 (setq frame-title-format "%b")
-
+(add-to-list 'default-frame-alist '(width . 84))
+;;   (add-to-list 'default-frame-alist '(height . 24))
+;;  (set-face-attribute 'default (selected-frame) :height 128)
+  (set-face-attribute 'default (selected-frame) :height 108)
 (delete-selection-mode 1)
 (setq tab-stop-list (number-sequence 4 200 4))
 (setq-default indent-tabs-mode nil) ; replace tabs with spaces
-(setq-default tab-width 3)          ; set tab width to 3 for all buffers
-(setq initial-scratch-message "")   ; empty scratch message at startup
+(setq-default tab-width 3) ; set tab width to 3 for all buffers
+(setq initial-scratch-message "");  emtpy scratch message at startup
 
 ; set a backtab, though it's only for 4 spaces; guess I wouldn't need
 ; in C, anyways
@@ -40,12 +47,15 @@
         (untabify (match-beginning 0) (match-end 0)))
       (when (looking-at "^    ")
         (replace-match "")))))
-(setq column-number-mode t) ;; column number on
-(when (fboundp 'electric-indent-mode) (electric-indent-mode -1))
-
-(global-linum-mode t)  ;; show line numbers
-
+; (global-linum-mode t)
 (defadvice text-scale-increase (around all-buffers (arg) activate)
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       ad-do-it)))
+
+; for disabling some autoindent stuff that is hiiiighly annoying
+(when (fboundp 'electric-indent-mode) (electric-indent-mode -1))
+;;(abbrev-mode -1)
+;;(setq save-abbrevs 'silently)
+;;(setq initial-major-mode 'text-mode) ;; turn off initial lisp mode
+(setq save-abbrevs nil)
