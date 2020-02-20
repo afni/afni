@@ -27,7 +27,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 2.0.0, Sept 10, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
+Website - https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/lme_model.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
