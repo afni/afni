@@ -264,7 +264,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              DoPerRoi.py adjunct_calc_mont_dims.py adjunct_combine_str.py   \
              adjunct_select_str.py BayesianGroupAna.py                       \
              abids_json_info.py abids_json_tool.py abids_tool.py             \
-             afni_util.py apqc_make_html.py apqc_make_tcsh.py                \
+             afni_python_wrapper.py apqc_make_html.py apqc_make_tcsh.py      \
              lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
 
 R_DIR = R_scripts
