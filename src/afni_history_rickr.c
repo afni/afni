@@ -49,6 +49,40 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2020, RCR, "afni_python_wrapper.py", MAJOR, TYPE_NEW_PROG,
+   "replaces afni_util.py as a main",
+   "This program can theortically be used to call any AFNI python function\n"
+   "from the shell."
+ } ,
+
+ { 19, Feb, 2020, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "no longer available as a main executable",
+   NULL
+ } ,
+
+ { 19, Feb, 2020, RCR, "apsearch", MICRO, TYPE_MODIFY,
+   "get process depth via afni_python_wrapper.py",
+   "afni_util.py main was moved to afni_python_wrapper.py."
+ } ,
+
+ { 19, Feb, 2020, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
+   "block inappropriate 'FATAL ERROR: ... already exists'",
+   "This happened when anat_in was local and stripped, so it matched ns_pref.\n"
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
+ { 18, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "help examples now include some developed outside of afni_proc.py",
+   "This includes some class demos, along with pamenc and NARPS.\n"
+   "Include a line about whether each example is reasonably recommended.\n"
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste erro and missing endif",
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
  { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -compare_opts_vs_opts",
    "One can compare two afni_proc.py commmands sequentially, that are\n"

@@ -57,7 +57,7 @@ endif
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_selector  = "$adir/@djunct_dwi_selector.tcsh" # [PT: Jun 25, 2018] tcsh
-set my_encoder   = "$adir/@djunct_select_str.py"
+set my_encoder   = "$adir/adjunct_select_str.py"
 set my_viewer_4d = "$adir/@djunct_4d_imager"
 
 # ----------------------- set defaults --------------------------
@@ -394,7 +394,7 @@ cat << EOF
 
  This program is for building a selector string for AFNI subbricks
  and/or 1D text files.  It makes use of J. Rajendra's
- '@djunct_dwi_selector.sh' script to make a list of 'bad' volume
+ '@djunct_dwi_selector.tcsh' script to make a list of 'bad' volume
  indices by clicking on individual volumes in a montage image.  Pretty
  cool.
 

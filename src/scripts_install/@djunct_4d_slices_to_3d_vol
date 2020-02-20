@@ -42,7 +42,7 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
-set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
+set my_calc_func = "$adir/adjunct_calc_mont_dims.py"
 
 set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
 set wdir      = "__WORK_4dslicer_${tmp_code}"    # working directory

@@ -678,10 +678,12 @@ g_history = """
     7.09 Feb 14, 2020:
        - added -compare_opts_vs_opts
        - modified s03.ap.surace, added s05.ap.uber
-    7.10 Feb 15, 2020: modified Example 7; added Example 6b
+    7.10 Feb 18, 2020: modified Example 7; added Example 6b and EGS.12c
+       - display all help examples, including ones outside of afni_proc.py
+       - specify whether each example is reasonably recommended
 """
 
-g_version = "version 7.10, February 15, 2019"
+g_version = "version 7.10, February 18, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -716,9 +718,6 @@ Miscellaneous older changes:
    17 Aug 2016 : blur estimates change from FWHM to ACF
       - FWHM values are now zero, to discourage use
 
-   15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
-                 average correlations (maps are similar by have better scales)
-
 More detailed changes, starting May, 2018.
 
    07 May 2018 : EPI full_mask: dilation is no longer the default
@@ -727,6 +726,9 @@ More detailed changes, starting May, 2018.
 
    22 May 2019 : ANATICOR changes (see -regress_anaticor*)
       - changed default radius from 45 to 30 mm
+
+   15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
+      average correlations (maps are similar by have better scales)
 """
 
 g_todo_str = """todo:
@@ -1719,7 +1721,7 @@ class SubjProcSream:
             section, rv = opt_list.get_string_opt('-help_section')
             if section == 'EGafni':
                EGS = self.egs()
-               EGS.display_eg_all(verb=2)
+               EGS.display_eg_all(aphelp=1,verb=2)
             elif section == 'EGall':
                EGS = self.egs()
                EGS.display_eg_all(aphelp=-1,verb=2)

@@ -327,12 +327,14 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Minimum use.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Provide datasets and stim files (or stim_times files).  Note that a
            dataset suffix (e.g. HEAD) must be used with wildcards, so that
            datasets are not applied twice.  In this case, a stim_file with many
            columns is given, where the script to changes it to stim_times files.
            """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-dsets',                 ['epiRT*.HEAD']],
         ['-regress_stim_files',    ['stims.1D']],
@@ -343,10 +345,12 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Very simple.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Use all defaults, except remove 3 TRs and use basis
            function BLOCK(30,1).  The default basis function is GAM.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sb23.e2.simple']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -360,12 +364,14 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='(no longer) The current class example.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Copy the anatomy into the results directory, register EPI data to
            the last TR, specify stimulus labels, compute blur estimates, and
            provide GLT options directly to 3dDeconvolve.  The GLTs will be
            ignored after this, as they take up too many lines.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sb23.blk']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -391,10 +397,12 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Similar to 3, but specify the processing blocks.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Adding despike and tlrc, and removing tshift.  Note that
            the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
            """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sb23.e4.blocks']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -415,6 +423,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='RETROICOR, resting state data.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Assuming the class data is for resting-state and that we have the
            appropriate slice-based regressors from RetroTS.py, apply the
            despike and ricor processing blocks.  Note that '-do_block' is used
@@ -437,7 +447,8 @@ def populate_examples():
            If tshift, blurring and masking are not desired, consider replacing
            the -do_block option with an explicit list of blocks:
 
-                -blocks despike ricor volreg regress""",
+                -blocks despike ricor volreg regress
+           """,
      olist = [
         ['-subj_id',               ['sb23.e5a.ricor']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -453,6 +464,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='RETROICOR, while running a normal regression.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Add the ricor regressors to a normal regression-based processing
            stream.  Apply the RETROICOR regressors across runs (so using 13
            concatenated regressors, not 13*9).  Note that concatenation is
@@ -461,7 +474,8 @@ def populate_examples():
            To example #3, add -do_block and three -ricor options.
            """,
      trailer="""
-           Also consider adding -regress_bandpass.""",
+           Also consider adding -regress_bandpass.
+           """,
      olist = [
         ['-subj_id',               ['sb23.e5b.ricor']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -485,6 +499,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='RETROICOR (modern): censor and band pass.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
            (or just remove any ricor options).
@@ -505,7 +521,7 @@ def populate_examples():
 
            Also, align EPI to anat and warp to standard space.
            """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sb23.e5a.ricor']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -532,6 +548,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='A simple task example, based on AFNI_data6.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            This example has changed to more closely correspond with the
            the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
 
@@ -594,13 +612,17 @@ def populate_examples():
            parameters can be averaged across subjects for cluster correction at
            the group level.
 
-           Skip running the Monte Carlo cluster simulation example, for speed.
+           Skip running the Monte Carlo cluster simulation example (which would
+           specify minimum cluster sizes for cluster significance, based on the
+           ACF parameters and mask), for speed.
 
            Once the proc script is created, execute it.
            """,
      trailer="""
-         * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -regress_reml_exec.""",
+         * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
+           in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
+           regression, but 3dDeconvolve does not.
+             """,
      olist = [
         ['-subj_id',               ['FT.e6']],
         ['-copy_anat',             ['FT/FT_anat+orig']],
@@ -636,17 +658,19 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='A modern task example, with preferable options.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
            GOOD TO CONSIDER
 
            This is based on Example 6, but is more complete.
-           Example 6 is meant to run quickly.
-           Example 6b is meant to process as we might suggest.
+           Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
+           Example 6b is meant to process more as we might suggest.
 
               - apply -check_flip in align_epi_anat.py, to monitor consistency
               - apply non-linear registration to MNI template, using output
                 from @SSwarper:
                   o apply skull-stripped anat in -copy_anat
-                  o apply original anat as -anat_follower (for comparison)
+                  o apply original anat as -anat_follower (QC, for comparison)
                   o pass warped anat and transforms via -tlrc_NL_warped_dsets,
                     to apply those already computed transformations
               - use -mask_epi_anat to tighten the EPI mask (for QC),
@@ -657,9 +681,15 @@ def populate_examples():
               - generate the HTML QC report using the nicer pythonic functions
                 (requires matplotlib)
            """,
-     trailer='',
+     trailer="""
+           To compare one's own command against this one, consider adding
+                -compare_opts 'example 6b'
+           to the end of (or anywhere in) the current command, as in:
+
+                afni_proc.py ... my options ...   -compare_opts 'example 6b'
+           """,
      olist = [
-        ['-subj_id',               ['FT.e6']],
+        ['-subj_id',               ['FT.e6b']],
         ['-copy_anat',             ['Qwarp/anat_warped/anatSS.FT.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'FT/FT_anat+orig']],
@@ -704,6 +734,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Apply some esoteric options.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
               created internally by 3dBlurInMask (akin to 3dAutomask).
@@ -744,7 +776,7 @@ def populate_examples():
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
            """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sb23.e7.esoteric']],
         ['-dsets',                 ['sb23/epi_r??+orig.HEAD']],
@@ -788,6 +820,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Surface-based analysis.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
            This example is intended to be run from AFNI_data6/FT_analysis.
            It is provided with the class data in file s03.ap.surface.
 
@@ -822,7 +856,7 @@ def populate_examples():
            Note: one would probably want to use standard mesh surfaces here.
                  This example will be updated with them in the future.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.surf']],
         ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
@@ -832,8 +866,8 @@ def populate_examples():
         ['-surf_anat',             ['FT/SUMA/FTmb_SurfVol+orig']],
         ['-surf_spec',             ['FT/SUMA/FTmb_?h.spec']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
-        ['-volreg_align_to',       ['third']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-blur_size',             ['6']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
@@ -848,8 +882,10 @@ def populate_examples():
                                       
    ap_examples.append( APExample('Example 9',
      source='afni_proc.py -help',
-     descrip='Resting state analysis (modern).',
+     descrip='Resting state analysis with censoring and band passing.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            With censoring and bandpass filtering.
 
            This is our suggested way to do pre-processing for resting state
@@ -904,7 +940,7 @@ def populate_examples():
 
            Other options to consider: -tlrc_NL_warp, -anat_uniform_method
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['subj123']],
         ['-dsets',                 ['epi_run1+orig.HEAD']],
@@ -914,6 +950,7 @@ def populate_examples():
         ['-tcat_remove_first_trs', ['3']],
         ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
         ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
         ['-mask_epi_anat',         ['yes']],
@@ -931,6 +968,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Resting state analysis with ANATICOR.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
            -regress_anaticor.
@@ -938,7 +977,7 @@ def populate_examples():
            Note that -regress_anaticor implies options -mask_segment_anat and
            -mask_segment_erode.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['subj123']],
         ['-dsets',                 ['epi_run1+orig.HEAD']],
@@ -948,6 +987,7 @@ def populate_examples():
         ['-tcat_remove_first_trs', ['3']],
         ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
         ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
         ['-mask_epi_anat',         ['yes']],
@@ -966,6 +1006,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Resting state analysis, with tissue-based regressors.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            Like example #9, but also regress the eroded white matter averages.
            The WMe mask come from the Classes dataset, created by 3dSeg via the
            -mask_segment_anat and -mask_segment_erode options.
@@ -984,7 +1026,7 @@ def populate_examples():
                  than errts in the case of bandpassing.  Both options are
                  included here.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['subj123']],
         ['-dsets',                 ['epi_run1+orig.HEAD']],
@@ -1016,6 +1058,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Resting state analysis, as 10a with 3dRSFC.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
             This is for band passing and computation of ALFF, etc.
 
           * This will soon use a modified 3dRSFC.
@@ -1028,7 +1072,7 @@ def populate_examples():
             space (no 'tlrc' block, no -volreg_tlrc_warp option).  Of course,
             going to standard space is an option.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['subj123']],
         ['-dsets',                 ['epi_run1+orig.HEAD']],
@@ -1054,6 +1098,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Resting state analysis (now even more modern :).',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
            than the default lpc one.  Apply -giant_move, in case the datasets
@@ -1103,7 +1149,7 @@ def populate_examples():
                  reasonable to stick with epits.  They will likely be almost
                  identical.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.11.rest']],
         ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
@@ -1148,6 +1194,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Similar to 11, but without FreeSurfer.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
          one could import a ventricle mask from the template (e.g. for TT space,
@@ -1171,7 +1219,7 @@ def populate_examples():
            entertainment purposes anyway.
          o Run the cluster simulation.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.11b.rest']],
         ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
@@ -1210,6 +1258,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='background: Multi-echo data processing.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
          Processing multi-echo data should be similar to single echo data,
          except for perhaps:
 
@@ -1221,7 +1271,7 @@ def populate_examples():
 
          An afni_proc.py command might be updated to include something like:
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                             'mask', 'combine', 'blur', 'scale', 'regress']],
@@ -1238,6 +1288,8 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - very simple.',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
          Keep it simple and just focus on the basic ME options, plus a few
          for controlling registration.
 
@@ -1250,7 +1302,7 @@ def populate_examples():
            are always 3 echoes, even until the end.
             - Note that the 'regress' block is not valid for multiple echoes.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.12a.ME']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
@@ -1269,10 +1321,19 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - OC resting state.',
      header="""
-           Use all defaults, except remove 3 TRs and use basis
-           function BLOCK(30,1).  The default basis function is GAM.
+              (recommended?  no, not intended for a complete analysis)
+
+         Still keep this simple, mostly focusing on ME options, plus standard
+         ones for resting state.
+
+         o This example uses 3 echoes of data across just 1 run.
+            - so use a single -dsets_me_run option to input EPI datasets
+         o Echo 2 is used to drive registration for all echoes.
+            - That is the default, but it is good to be explicit.
+         o The echoes are combined via the 'combine' block.
+         o So -echo_times is used to provided them.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.12a.ME']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
@@ -1299,10 +1360,55 @@ def populate_examples():
        ]
      ))
                                       
+   ap_examples.append( APExample('Example 12c',
+     source='afni_proc.py -help',
+     descrip='Multi-echo data processing - ME-ICA resting state.',
+     header="""
+              (recommended?  no, not intended for a complete analysis)
+
+         As above, but run tedana.py for MEICA denoising.
+
+         o Since tedana.py will mask the data, it may be preferable to
+           blur only within that mask (-blur_in_mask yes).
+         o A task analysis using tedana might look much the same,
+           but with the extra -regress options for the tasks.
+            """,
+     trailer="""
+         Consider an alternative combine method, 'tedana_OC_tedort'.
+           """,
+     olist = [
+        ['-subj_id',               ['FT.12a.ME']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                            'mask', 'combine', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets_me_run',          ['epi_run1_echo*.nii']],
+        ['-echo_times',            ['15', '30.5', '41']],
+        ['-reg_echo',              ['2']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
+        ['-tlrc_NL_warp',          []],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-combine_method',        ['tedana']],
+        ['-blur_size',             ['4']],
+        ['-blur_in_mask',          ['yes']],
+        ['-regress_motion_per_run',[]],
+        ['-regress_censor_motion', ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits',[]],
+       ],
+     ))
+                                      
    ap_examples.append( APExample( 'Example 13',
      source='afni_proc.py -help',
      descrip='Complicated ME, surface-based resting state example.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
          Key aspects of this example:
 
             - multi-echo data, using "optimally combined" echoes
@@ -1324,11 +1430,8 @@ def populate_examples():
          Note: lacking good sample data for this example, it is simply faked
                for demonstration (echoes are identical, fake ricor parameters
                are not part of this data tree).
-
-              # use data_dir variable for tracking inputs
-              set data_dir = FT
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.complicated']],
         ['-blocks',                ['despike', 'ricor', 'tshift', 'align',
@@ -1375,8 +1478,12 @@ def populate_examples():
      source='FT_analysis',
      descrip='class demo - basic surface analysis',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+                             (though it is a very simple example)
+
+           This is the surface analysis run during an AFNI bootcamp.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT.surf']],
         ['-blocks',                ['tshift', 'align', 'volreg', 'surf',
@@ -1405,6 +1512,8 @@ def populate_examples():
      source='FT_analysis',
      descrip='class demo - basic task analysis',
      header="""
+              (recommended?  no, not intended for a complete analysis)
+
            A basic task analysis with a pair of visual and auditory tasks.
 
            notable options include :
@@ -1416,9 +1525,8 @@ def populate_examples():
                       of the tcat (initial) and volreg processing blocks
                 - QC: include -check_flip left/right consistency check
                 - QC: compute sum of ideals, for evaluation
-        
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['FT']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
@@ -1459,9 +1567,11 @@ def populate_examples():
      source='eventually mention paper reference?',
      descrip='Applied NARPS example from AFNI.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
            An amplitude modulation task analysis.
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['sid']],
         ['-script',                ['proc.sid']],
@@ -1527,6 +1637,8 @@ def populate_examples():
      source='AFNI_demos',
      descrip='ds000030.v16 parametric encoding task analysis.',
      header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
            original analysis was from:
                Gorgolewski KJ, Durnez J and Poldrack RA.
                Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
@@ -1535,7 +1647,7 @@ def populate_examples():
 
            downloadable from https://legacy.openfmri.org/dataset/ds000030
             """,
-     trailer='',
+     trailer=""" """,
      olist = [
         ['-subj_id',               ['SID']],
         ['-script',                ['proc.SID']],

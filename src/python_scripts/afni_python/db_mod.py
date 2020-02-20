@@ -8249,18 +8249,18 @@ def show_program_help(section=''):
    # maybe print them all
    if section == '':
       print(g_help_intro)
-      show_help_examples()      # will start printing from dictionaries
+      # now print examples from lib_ap_examples
+      show_help_examples(source='eall')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
 
       return 0
 
-   # new examples (EGS) are currently "special"
-   # if section == 'EGS':
-   #    EGS.populate_examples()
-   #    EGS.display_eg_all(verb=2)
-   #    return 0
+   # process new example string separately for now
+   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+      show_help_examples(source=section)
+      return 0
 
    # and individual sections
    rv = 0
@@ -8273,10 +8273,41 @@ def show_program_help(section=''):
 
    return rv
 
-def show_help_examples():
+def show_help_examples(source='eold'):
    """just print the main string, until we are ready for more"""
-   print(g_help_examples)
+   if source.lower() in ['eold', 'old']:
+       print(g_help_examples)
+       return
+
+   # print new-style examples
+   import lib_ap_examples as EGS
+   EGS.populate_examples()
+
+   # print only AP examples, or all
+   if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
+      aphelp = 1
+   else:
+      aphelp = -1
+
+   print(g_egnew_header)
+   EGS.display_eg_all(aphelp=aphelp, verb=2)
+   print(g_egnew_trailer)
+
    return
+
+g_egnew_header = """
+    ==================================================
+    EXAMPLES (options can be provided in any order): ~1~
+"""
+
+g_egnew_trailer = """
+    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
+
+                afni_proc.py -ask_me
+
+        Perhaps at some point this will be revived.  It would be useful.
+        The -ask_me methods have not been seriously updated since 2006.
+"""
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
@@ -8491,8 +8522,8 @@ g_help_examples = """
 
         Example 2. Very simple. ~2~
 
-        Use all defaults, except remove 3 TRs and use basis
-        function BLOCK(30,1).  The default basis function is GAM.
+           Use all defaults, except remove 3 TRs and use basis
+           function BLOCK(30,1).  The default basis function is GAM.
 
                 afni_proc.py -subj_id sb23.e2.simple                       \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -8654,25 +8685,25 @@ g_help_examples = """
            entire volume were acquired at the beginning of the TR.
 
            The 'align' block implies using align_epi_anat.py to align the
-           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
-           for the cost function (more robust than lpc), and -giant_move (in
-           case the anat and EPI start a little far apart).  This block
-           computes the anat to EPI transformation matrix, which will be 
-           inverted in the volreg block, based on -volreg_align_e2a.
+           anatomy with the EPI.  Extra options specify using lpc+ZZ for the
+           cost function (probably more robust than lpc), and -giant_move (in
+           case the anat and EPI start a bit far apart).  This block computes
+           the anat to EPI transformation matrix, which will then be inverted
+           in the volreg block, based on -volreg_align_e2a.
 
            Also, compute the transformation of the anatomy to MNI space, using
            affine registration (for speed in this simple example) to align to
            the 2009c template.
 
            In the volreg block, align the EPI to the MIN_OUTLIER volume (a
-           low-motion volume, determined based on the data).  Then concatenate
-           all EPI transformations, warping the EPI to standard space in one
-           step (without multiple resampling operations), combining:
+           low-motion volume, determined from the data).  Then concatenate all
+           EPI transformations, warping the EPI to standard space in one step
+           (without multiple resampling operations), combining:
 
               EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
 
-           The standard space transformation is included by specifying option
-           -volreg_tlrc_warp.
+           The standard space transformation is applied to the EPI due to 
+           specifying -volreg_tlrc_warp.
 
            A 4 mm blur is applied, to keep it very light (about 1.5 times the
            voxel size).
@@ -8693,7 +8724,7 @@ g_help_examples = """
            as well as censoring of outlier time points, where at least 5% of
            the brain voxels are computed as outliers.
 
-           The regression model starts as a full time series, for time
+           The regression model starts from the full time series, for time
            continuity, before censored time points are removed.  The output
            errts will be zero at censored time points (no error there), and so
            the output fit times series (fitts) will match the original data.
@@ -8708,7 +8739,9 @@ g_help_examples = """
            parameters can be averaged across subjects for cluster correction at
            the group level.
 
-           Skip running the Monte Carlo cluster simulation example, for speed.
+           Skip running the Monte Carlo cluster simulation example (which would
+           specify minimum cluster sizes for cluster significance, based on the
+           ACF parameters and mask), for speed.
 
            Once the proc script is created, execute it.
 
@@ -8740,22 +8773,23 @@ g_help_examples = """
                  -regress_run_clustsim no                                 \\
                  -execute 
 
-         * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -regress_reml_exec.
+         * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
+           in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
+           regression, but 3dDeconvolve does not.
 
         Example 6b. A modern task example, with preferable options. ~2~
 
            GOOD TO CONSIDER
 
            This is based on Example 6, but is more complete.
-           Example 6 is meant to run quickly.
-           Example 6b is meant to process as we might suggest.
+           Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
+           Example 6b is meant to process more as we might suggest.
 
               - apply -check_flip in align_epi_anat.py, to monitor consistency
               - apply non-linear registration to MNI template, using output
                 from @SSwarper:
                   o apply skull-stripped anat in -copy_anat
-                  o apply original anat as -anat_follower (for comparison)
+                  o apply original anat as -anat_follower (QC, for comparison)
                   o pass warped anat and transforms via -tlrc_NL_warped_dsets,
                     to apply those already computed transformations
               - use -mask_epi_anat to tighten the EPI mask (for QC),
@@ -8803,6 +8837,12 @@ g_help_examples = """
                  -regress_run_clustsim no                                 \\
                  -html_review_style pythonic                              \\
                  -execute 
+
+           To compare one's own command against this one, consider adding
+                -compare_opts 'example 6b'
+           to the end of (or anywhere in) the current command, as in:
+
+                afni_proc.py ... my options ...   -compare_opts 'example 6b'
 
         Example 7. Apply some esoteric options. ~2~
 
@@ -9017,7 +9057,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 9b. Resting state analysis with ANATICOR. ~2~
+        Example 9b. Resting state analysis with ANATICOR. ~2~
 
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
@@ -9046,7 +9086,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10. Resting state analysis, with tissue-based regressors. ~2~
+        Example 10. Resting state analysis, with tissue-based regressors. ~2~
 
            Like example #9, but also regress the eroded white matter averages.
            The WMe mask come from the Classes dataset, created by 3dSeg via the
@@ -9090,7 +9130,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
+        Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
 
             This is for band passing and computation of ALFF, etc.
 
@@ -9121,7 +9161,7 @@ g_help_examples = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (now even more modern :). ~2~
+        Example 11. Resting state analysis (now even more modern :). ~2~
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
@@ -9209,7 +9249,7 @@ g_help_examples = """
                   -regress_est_blur_errts                                    \\
                   -html_review_style pythonic
 
-       Example 11b. Similar to 11, but without FreeSurfer. ~2~
+        Example 11b. Similar to 11, but without FreeSurfer. ~2~
 
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
@@ -9265,7 +9305,7 @@ g_help_examples = """
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim yes
 
-       Example 12 background: Multi-echo data processing. ~2~
+        Example 12 background: Multi-echo data processing. ~2~
 
          Processing multi-echo data should be similar to single echo data,
          except for perhaps:
@@ -9291,7 +9331,7 @@ g_help_examples = """
                 ...                                              \\
 
 
-       Example 12a. Multi-echo data processing - very simple. ~2~
+        Example 12a. Multi-echo data processing - very simple. ~2~
 
          Keep it simple and just focus on the basic ME options, plus a few
          for controlling registration.
@@ -9315,7 +9355,7 @@ g_help_examples = """
                   -volreg_align_e2a                             \\
                   -volreg_tlrc_warp
 
-       Example 12b. Multi-echo data processing - OC resting state. ~2~
+        Example 12b. Multi-echo data processing - OC resting state. ~2~
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.
@@ -9350,7 +9390,7 @@ g_help_examples = """
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
-       Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
+        Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
 
          As above, but run tedana.py for MEICA denoising.
 
@@ -9385,7 +9425,7 @@ g_help_examples = """
 
          Consider an alternative combine method, 'tedana_OC_tedort'.
 
-       Example 13. Complicated ME, surface-based resting state example. ~2~
+        Example 13. Complicated ME, surface-based resting state example. ~2~
 
          Key aspects of this example:
 
@@ -10210,9 +10250,16 @@ g_help_notes = """
     regression, as is done in Example 11.
 
 
-    First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+   *First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
     make ventricle and white matter masks from the Desikan-Killiany atlas based
     parcellation dataset, aparc+aseg.nii.
+
+        * When running FreeSurfer, it is best to start with:
+
+            check_dset_for_fs.py
+
+          to keep the output from FreeSurfer aligned with its input, keeping
+          the FS parcellations aligned with the warped anatomy.
 
     Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
     which might be nicer for probability maps, though the Desikan-Killiany
@@ -10944,7 +10991,106 @@ g_help_options = """
             List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
+        -show_example_names     : show names of all sample commands
+                                  (possibly for use with -compare options)
         -ver                    : show the version number
+
+        -----------------------------------------------------------------
+        Terminal 'compare' options ~3~
+
+        These options are used to help compare one afni_proc.py command with a
+        different one.  One can compare a current command to a given example,
+        one example to another, or one command to another.
+
+        To see a list of examples one can compare against, consider:
+
+            afni_proc.py -show_example_names
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            This option allows one to compare a pair of pre-defined examples
+            (from the list in 'afni_proc.py -show_example_names').  It is like
+            using -compare_opts, but for comparing example vs. example.
+
+        -compare_opts EXAMPLE   : compare current options against EXAMPLE
+
+                e.g. -compare_opts 'example 6b'
+
+            more completely:
+
+                afni_proc.py  ... my options ...  -compare_opts 'example 6b'
+
+            Adding this option (and parameter) to an existing afni_proc.py
+            command results in comparing the options applied in the current
+            command against those of the specified target example.
+
+            The afni_proc.py command terminates after showing the comparison
+            output.
+
+            The output from this is controlled by the -verb LEVEL:
+
+                0       : show (python-style) lists of differing options
+                1 (def) : include parameter differences
+                          (except where expected, e.g. -copy_anat dset)
+                          (limit param lists to current text line)
+                2       : show complete parameter diffs
+
+            Types of differences shown include:
+
+                missing options         :
+                    where the current command is missing options that the
+                    specified target command includes
+                extra options           :
+                    where the current command has extra options that the
+                    specified target command is missing
+                differing options       :
+                    where the current command and target use the same option,
+                    but their parameters differ
+                fewer applied options   :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has fewer
+                    (what is beyond the matching/differing cases)
+                more applied options    :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has more
+                    (what is beyond the matching/differing cases)
+
+            This option is the basis for all of the -compare* options.
+
+            See also -show_example_names.
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            Like -compare_opts, but rather than comparing the current command
+            against a known example, it compares 2 known examples.
+
+            See also -show_example_names.
+
+        -compare_opts_vs_opts opts... : compare 2 full commands
+
+            more completely:
+
+                afni_proc.py                            \\
+                    ... one full set of options ...     \\
+                    -compare_opts_vs_opts               \\
+                    ... another full set of options ...
+
+            Like other -compare_* options, but this compares 2 full commands,
+            separated by -compare_opts_vs_opts.  This is a comparison method
+            for comparing 2 local commands, rather than against any known
+            example.
 
         -----------------------------------------------------------------
         General execution and setup options ~3~

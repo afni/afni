@@ -42,7 +42,7 @@ set mdim = `3dinfo -nv $dwi`
 
 ## run through Paul's golden ratio to get the number of rows and
 ## columns
-set my_calc_func = "@djunct_calc_mont_dims.py"
+set my_calc_func = "adjunct_calc_mont_dims.py"
 $my_calc_func $mdim temp_ZSE.dat
 set padpars = `grep -v "#" temp_ZSE.dat`
 set Ncol = ${padpars[3]} 

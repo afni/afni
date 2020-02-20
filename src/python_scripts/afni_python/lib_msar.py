@@ -1209,7 +1209,7 @@ OUTPUTS ~1~
 EXAMPLES ~1~
 
    1) First time through, execute script to make images:
-   @djunct_make_script_and_rst.py                                          \\
+   adjunct_make_script_and_rst.py                                          \\
        -input          ex_afni11_roi_cmds.tcsh                             \\
        -reflink        afni11_roi_cmds                                     \\
        -prefix_script  afni11_roi_cmds.tcsh                                \\
@@ -1217,7 +1217,7 @@ EXAMPLES ~1~
        -execute_script
 
    2) Second time through, if "only" text changes/formatting:
-   @djunct_make_script_and_rst.py                                          \\
+   adjunct_make_script_and_rst.py                                          \\
        -input          ex_afni11_roi_cmds.tcsh                             \\
        -reflink        afni11_roi_cmds                                     \\
        -prefix_script  afni11_roi_cmds.tcsh                                \\
