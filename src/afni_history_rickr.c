@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2020, RCR, "apsearch", MICRO, TYPE_MODIFY,
+   "get process depth via afni_python_wrapper.py",
+   "afni_util.py main was moved to afni_python_wrapper.py."
+ } ,
+
  { 19, Feb, 2020, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
    "block inappropriate 'FATAL ERROR: ... already exists'",
    "This happened when anat_in was local and stripped, so it matched ns_pref.\n"
