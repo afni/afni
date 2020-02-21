@@ -1211,6 +1211,9 @@ int main( int argc , char * argv[] )
 
     }  /* end of loop over sub-bricks */
 
+    /* newline after the pacifier dots */
+    if( !MRG_be_quiet && !MRG_verbose ) { printf("\n") ; fflush(stdout) ; }
+
     if( MRG_edopt.nfmask > 0 ){
       free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
     }

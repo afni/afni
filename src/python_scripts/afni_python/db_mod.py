@@ -10991,8 +10991,35 @@ g_help_options = """
             List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
+
+        -show_example NAME      : display the given example command
+
+                e.g. afni_proc.py -show_example 'example 6b'
+                e.g. afni_proc.py -show_example 'example 6b' -verb 0
+                e.g. afni_proc.py -show_example 'example 6b' -verb 2
+
+            Display the given afni_proc.py help example.  Details shown depend
+            on the verbose level, as specified with -verb:
+
+                0: no formatting - command can be copied and applied elseshere
+                1: basic         - show header and formatted command
+                2: detailed      - include full description, as in -help output
+
+            To list examples that can be shown, use:
+
+                afni_proc.py -show_example_names
+
+            See also '-show_example_names'.
+
         -show_example_names     : show names of all sample commands
                                   (possibly for use with -compare options)
+
+                e.g. afni_proc.py -show_example_names
+
+            Use this command to list the current examples know by afni_proc.py.
+            The format of the output is affected by -verb, with -verb 2 format
+            being the default.
+
         -ver                    : show the version number
 
         -----------------------------------------------------------------

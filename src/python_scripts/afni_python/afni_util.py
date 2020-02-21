@@ -1298,6 +1298,13 @@ def get_3d_statpar(dname, vindex, statcode='', verb=0):
 
    return par
 
+def converts_to_type(val, vtype):
+   rv = 1
+   try: vtype(val)
+   except: rv = 0
+
+   return rv
+
 def find_opt_and_params(text, opt, nopt=0):
    """given some text, return the option with that text, as well as
       the following 'nopt' parameters (truncated list if not found)"""

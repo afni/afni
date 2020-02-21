@@ -67,7 +67,7 @@ _g_main_help = """
 afni_python_wrapper.py: use to call afni_python functions from the shell
 
    By default, this loads module afni_util, and attempts use functions from it.
-   To use a funtion from a different module, apply -module.
+   To use a function from a different module, apply -module.
 
    MODULE will subsequently to the imported module.
 
