@@ -1154,6 +1154,7 @@ def populate_examples():
         ['-subj_id',               ['FT.11.rest']],
         ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
                           'volreg', 'blur', 'mask', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-copy_anat',             ['anatSS.FT.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.FT.nii']],
