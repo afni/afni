@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Crashing in cases of 'basic' APQC with no outlier-based censoring.",
+   "Have fixed now.\n"
+},
+
 { 19, Feb , 2020 , PT , "DoPerRoi.py" , MINOR , TYPE_GENERAL,
    "Renamed from @DoPerRoi.py.",
    "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"

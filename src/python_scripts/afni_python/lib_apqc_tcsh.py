@@ -107,8 +107,11 @@ auth = 'PA Taylor'
 # [PT] new funcs for 'widely used' params
 #    + for censor and sundry info.  
 #
-ver = '3.31' ; date = 'Feb 17, 2020' 
+#ver = '3.31' ; date = 'Feb 17, 2020' 
 # [PT] further cleaned up (simplified?) a lot of the censoring info
+#
+ver = '3.32' ; date = 'Feb 21, 2020' 
+# [PT] fix minor bug in case of: 'basic' html with no outlier-based censoring
 #
 #########################################################################
 
@@ -803,10 +806,25 @@ def apqc_censor_info( ap_ssdict, run_style ):
                 set cen_lim_mot = "1D: ${nt_orig}@${mot_limit}"
                 set cen_lim_mot_yax = "-yaxis 0:${ytop_mot}:6:2"
                 '''
+            else:
+                cmd3+= '''
+                set cen_lim_mot = ""
+                set cen_lim_mot_yax = ""
+                '''
+
             if check_dep(ap_ssdict, ['out_limit']) :
                 cmd3+= '''
                 set cen_lim_out = "1D: ${nt_orig}@${out_limit}"
                 set cen_lim_out_yax = "-yaxis 0:${ytop_out}:6:2"
+                '''
+            else:
+                # this is a cheap way out of needing to have quotes
+                # around ${cen_lim_out} in the case that 'out_limit'
+                # is present, and not wanting it if it is *not*
+                # present-- just use -echo_edu here
+                cmd3+= '''
+                set cen_lim_out = "-echo_edu"
+                set cen_lim_out_yax = ""
                 '''
 
             # this is not used in 'basic' run_style, only in 'pythonic'
@@ -835,6 +853,7 @@ def apqc_censor_info( ap_ssdict, run_style ):
                 '''
                 
                 mot_hline = "${mot_limit}"
+
 
             if check_dep(ap_ssdict, ['out_limit']) :
                 cmd3+= '''
@@ -1035,8 +1054,7 @@ def apqc_mot_outlr( obase, qcb, qci, run_style, jpgsize,
         cmd = '''
         1dplot
         -one 
-        ${{cen_cmd}}
-        ${{cen_lim_out_yax}}
+        ${{cen_cmd}} ${{cen_lim_out_yax}}
         -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
