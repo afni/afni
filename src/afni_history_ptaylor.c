@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Feb , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Temporary files now have a random string in their prefix.",
+   "Thus, can have multiple runs in same directory simultaneously sans probleme.\n"
+},
+
 { 22, Feb , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Can control AGIF frame rate, using opt (-agif_delay) to control AFNI env var.",
    "Thanks to RCR for pointing out the env var.\n"

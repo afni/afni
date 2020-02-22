@@ -32,8 +32,11 @@
 #   + [PT] now setting def montgap to 1, in conjunction with making
 #          similar change in APQC images
 #
-set version   = "1.1";  set rev_dat   = "Dec 30, 2019"
+#set version   = "1.1";  set rev_dat   = "Dec 30, 2019"
 #   + [PT] can set some @chauffeur_opts here-- cbar and set_dicom_xyz
+#
+set version   = "1.2";  set rev_dat   = "Feb 22, 2020"
+#   + [PT] temp file prefix now contains a random string
 #
 # ----------------------------------------------------------------
 
@@ -63,7 +66,8 @@ set olay    = ""
 set odir           = "./QC"
 set opref          = "IMG_${tpname}"
 
-set tpref          = "__eac_tmp"
+set pppp           = "`3dnewid -fun11`"
+set tpref          = "__eac_tmp_${pppp}"
 set olayE          = ${tpref}_olayE.nii.gz
 
 set Nx             = 7                   # num of mont wins, b/c Ny=1
