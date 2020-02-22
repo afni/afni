@@ -252,9 +252,13 @@
 #   + [PT] now use "\mkdir -p .." with $odir, so it will generate path
 #          to it, if necessary --- simplifies usage in scripts
 #
-set version   = "5.93"; set rev_dat   = "Jan 16, 2020"
+#set version   = "5.93"; set rev_dat   = "Jan 16, 2020"
 #   + [PT] put "-no1D" on afni command, so there aren't warnings when
 #          empty 1D files are read (e.g., during resting state APQC)
+#
+set version   = "5.94"; set rev_dat   = "Feb 22, 2020"
+#   + [PT] add new opt, controlling AGIF delay time from AFNI env vars
+#        + change way movie files are cleaned up, so no __tmp* dir left over
 #
 # =====================================================================
 
@@ -274,6 +278,7 @@ setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
+setenv AFNI_AGIF_DELAY        30         # [PT: Feb 22, 2020] 
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -672,6 +677,11 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
         setenv AFNI_IMAGE_ZOOM_NN NO
         
+    else if ( "$argv[$ac]" == "-agif_delay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_AGIF_DELAY "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-zerocolor" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -2030,8 +2040,7 @@ if( $?killX ) kill %1
 if ( $DO_CLEAN ) then
     echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
     # AKA $read_dir, at present
-    \rm    $odir/$tmp_dir/*
-    \rmdir $odir/$tmp_dir
+    \rm -rf $odir/$tmp_dir
 else
     echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
 endif
@@ -2462,6 +2471,11 @@ COMMAND OPTIONS ~1~
                     changes behavior internally to set this variable
                     to have the value "NO".
 
+-agif_delay AD     :when using "-save_ftype AGIF", this option can be used
+                    to specify the time delay between frames.  Units are
+                    "centi-seconds" = 100ths of seconds (def: 30).
+                    (see ENV: AFNI_AGIF_DELAY)
+
 -crop_axi_x CAX1 CAX2,
 -crop_axi_y CAY1 CAY2 :crop axial image(s) to be between voxels CAX1 and
                     CAX2 along the x-axis (inclusive) and CAY1 and CAY2 
@@ -2633,9 +2647,16 @@ FAIL_MISSING_ARG:
 # ---------------------------------- 
 
 BAD_EXIT:
+    echo ""
+    echo "++ DONE (bad exit): check for errors"
+    echo ""
     exit 1
 
 # ---------------------------------- 
 
 GOOD_EXIT:
+    echo ""
+    echo "++ DONE (good exit)"
+    echo "   see: ${odir}/${impref}*"
+    echo ""
     exit 0

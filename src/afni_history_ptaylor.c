@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Feb , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can control AGIF frame rate, using opt (-agif_delay) to control AFNI env var.",
+   "Thanks to RCR for pointing out the env var.\n"
+},
+
 { 21, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Crashing in cases of 'basic' APQC with no outlier-based censoring.",
    "Have fixed now.\n"
