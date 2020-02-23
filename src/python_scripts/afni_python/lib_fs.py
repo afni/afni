@@ -13,10 +13,22 @@
 # + [PT] fix "-is_mat_even" test
 #      - thanks, S. Torrisi, for pointing this out!
 #
-ver='1.4' ; date='Dec 27, 2019'
+#ver='1.4' ; date='Dec 27, 2019'
 # + [PT] new options for '-fix_all' functionality
 #      - can output new/fixed dsets.  Bonne idee, D Glen!
 #
+ver='2.0' ; date='Feb 23, 2020'
+# + [PT] Major changes, made in consultation with RCR, based on looking
+#        at lots of resamplings/dsets output by FS:
+#      + change criteria: size criteria given new defaults
+#        - still check min/max, but now have vals that can change (e.g., if 
+#          FS changes things
+#        - new default size range is [1.0, 1.0], instead of [0.5, 1.0]
+#          ... so, yes, this is basically just the isotropy criterion
+#      + report differently, a bit; state what min/max are (b/c might change
+#        over time)
+#      + new default 'fix all' output size:  1mm iso (no longer smallest
+#        vox dim in allowed range)
 #
 ###############################################################################
 
@@ -35,6 +47,9 @@ ddefs = {
     'DEF_date'          : date,
     'DEF_eps_iso'       : 1.0*10**-2,
     'DEF_eps_size'      : 1.0*10**-2,
+    'DEF_vox_max_size'  : 1.0,
+    'DEF_vox_min_size'  : 1.0,
+    'DEF_vox_fix_size'  : 1.00,
     'DEF_dset_tmp_base' : '__tmp_fs_check_vox',
 }
 
@@ -47,8 +62,8 @@ all_opts = {
     'ver'                : '-ver',
     'is_mat_even'        : '-is_mat_even',
     'is_vox_iso'         : '-is_vox_iso',
-    'is_vox_1mm_max'     : '-is_vox_1mm_max',
-    'is_vox_05mm_min'    : '-is_vox_05mm_min',
+    'is_vox_sub_max'     : '-is_vox_sub_max',
+    'is_vox_supra_min'   : '-is_vox_supra_min',
     'check_all'          : '-check_all',
     'fix_all'            : '-fix_all',
     'fix_out_vox_dim'    : '-fix_out_vox_dim',
@@ -84,7 +99,7 @@ help_string_this_prog = '''
   well with the input dset.  These include:
      + having isotropic voxel dimensions
      + having matrix dimensions that are all even
-     + having voxels sizes in a range 0.5-1.0 mm.
+     + having voxels sizes in a range {DEF_vox_min_size}-{DEF_vox_max_size} mm.
        - and note that for sub-millimeter voxels, you might have to
          use the "-hires" option in FS's recon-all; please see their
          documentation, such as:
@@ -147,13 +162,13 @@ help_string_this_prog = '''
                           combined with others for final omnibus):
                             is the voxel size isotropic (within tolerance)?
 
-  {is_vox_1mm_max}      : output contains the result of this test (can be
+  {is_vox_sub_max}      : output contains the result of this test (can be
                           combined with others for final omnibus):
-                            is each voxel edge <1 mm (within tolerance)?
+                            is each voxel edge <{DEF_vox_max_size} mm (within tolerance)?
 
-  {is_vox_05mm_min}     : output contains the result of this test (can be
+  {is_vox_supra_min}    : output contains the result of this test (can be
                           combined with others for final omnibus):
-                            is each voxel edge >0.5 mm (within tolerance)?
+                            is each voxel edge >{DEF_vox_min_size} mm (within tolerance)?
 
   {check_all}           : specify that *all* currently available criteria
                           should be employed.  This option should be 
@@ -174,10 +189,10 @@ help_string_this_prog = '''
                           voxels in output dset (dimensions will be isotropic).
                           Otherwise, the minimum voxel dimension of input dset
                           will be used (if resampling is needed); if this opt
-                          is NOT used and min voxel dimension is <0.5mm, then
-                          output voxel size will be 0.5mm; or, if this opt
-                          is NOT used and min voxel dimension is >1mm, then
-                          output voxel size will be 1mm.  Probably safest to 
+                          is NOT used and min voxel dimension is <{DEF_vox_min_size}mm, then
+                          output voxel size will be {DEF_vox_min_size}mm; or, if this opt
+                          is NOT used and min voxel dimension is >{DEF_vox_max_size}, then
+                          output voxel size will be {DEF_vox_max_size}mm.  Probably safest to 
                           just specify LL, if using '{fix_all}'.
 
   {eps_iso} EI          : specify tolerance for defining isotropy of voxels;
@@ -190,8 +205,8 @@ help_string_this_prog = '''
   {eps_size}  ES        : specify tolerance for defining size of
                           voxels; as noted above, exact equality is
                           not tested, but instead pairwise checks of:
-                              dx < 1 + eps_size, 
-                              dx > 0.5 - eps_size,
+                              dx < {DEF_vox_max_size} + eps_size, 
+                              dx > {DEF_vox_min_size} - eps_size,
                           etc., are made. (def: eps_size = {DEF_eps_size})
 
   {help}                : display program help in terminal (consider
@@ -225,13 +240,13 @@ help_string_this_prog = '''
                           -source          DSET      \\
                           -prefix          NEW_NAME
 
-  "Are voxels 1.0 mm (max)"
-  -------------------------
+  "Are voxels below max size"
+  ---------------------------
       Resample; basically the same command as the solution to "Are
       voxels isotropic" woes.
 
-  "Are voxels 0.5 mm (min)"
-  -------------------------
+  "Are voxels above min size"
+  ---------------------------
       Resample; basically the same command as the solution to "Are
       voxels isotropic" woes (maybe using a different '-mast_dxyz ..'
       size, since you must have put in some mighty effort to get
@@ -254,7 +269,7 @@ help_string_this_prog = '''
   *first*, because the resampling there might change the matrix
   dimensions.
 
-  More criteria may be added over time.  Who knows?
+  More (or less) criteria may be added over time.  Who knows?
 
 
   EXAMPLES ~1~
@@ -368,8 +383,8 @@ class iopts_this_prog:
         self.dset_info       = ''
         self.rep_vox_iso     = False
         self.rep_mat_even    = False
-        self.rep_vox_1mm_max = False
-        self.rep_vox_05mm_min = False
+        self.rep_vox_sub_max = False
+        self.rep_vox_supra_min = False
         self.vox_dim         = []
         self.mat_dim         = []
         self.vox_dim_str     = ''
@@ -381,8 +396,8 @@ class iopts_this_prog:
         self.check_all         = -1        # def: do all 
         self.stat_mat_even     = -1        # status
         self.stat_vox_iso      = -1        # status
-        self.stat_vox_1mm_max  = -1        # status
-        self.stat_vox_05mm_min = -1        # status
+        self.stat_vox_sub_max  = -1        # status
+        self.stat_vox_supra_min = -1        # status
         self.stat_fs_safe      = -1        # status
 
         # This is here basically to just initialize the 'comm' obj
@@ -421,11 +436,11 @@ class iopts_this_prog:
     def set_rep_mat_even( self, bb ):
         self.rep_mat_even = bb
 
-    def set_rep_vox_1mm_max( self, bb ):
-        self.rep_vox_1mm_max = bb
+    def set_rep_vox_sub_max( self, bb ):
+        self.rep_vox_sub_max = bb
 
-    def set_rep_vox_05mm_min( self, bb ):
-        self.rep_vox_05mm_min = bb
+    def set_rep_vox_supra_min( self, bb ):
+        self.rep_vox_supra_min = bb
  
     def set_input( self, ss ):
         self.dset      = ss
@@ -445,48 +460,48 @@ class iopts_this_prog:
         self.fix_out_vox_dim_str = '  '.join(self.fix_out_info['-ad3'])
         self.fix_out_mat_dim_str = '  '.join(self.fix_out_info['-n4'][:3])
 
-    def is_vox_1mm_max(self):
+    def is_vox_sub_max(self):
         '''
-        Check if voxel dims are 1 mm (or less). 
+        Check if voxel dims are {vox_max_size} mm (or less). 
 
-        "1 mm" means:   DIM < 1 + eps
-        where eps = {}, by def.
+        "{vox_max_size} mm" means:   DIM < {vox_max_size} + eps
+        where eps = {eps}, by def.
 
         OUTPUT
         ------
         0     : if too big
         1     : if fine
       
-        '''.format(self.eps_size)
+        '''.format(eps=self.eps_size, vox_max_size=1)
         for x in self.vox_dim:
-            if x > 1.0 + self.eps_size :  
-                self.stat_vox_1mm_max = 0
-                return self.stat_vox_1mm_max
+            if x > ddefs['DEF_vox_max_size'] + self.eps_size :  
+                self.stat_vox_sub_max = 0
+                return self.stat_vox_sub_max
 
-        self.stat_vox_1mm_max = 1
-        return self.stat_vox_1mm_max
+        self.stat_vox_sub_max = 1
+        return self.stat_vox_sub_max
 
-    def is_vox_05mm_min(self):
+    def is_vox_supra_min(self):
         '''
-        Check if voxel dims are 0.5 mm (or greater). 
+        Check if voxel dims are {vox_min_size} mm (or greater). 
 
-        "0.5 mm" means:   DIM > 0.5 - eps
-        where eps = {}, by def.
+        "{vox_min_size} mm" means:   DIM > {vox_min_size} - eps
+        where eps = {eps}, by def.
 
         OUTPUT
         ------
         0     : if too small
         1     : if fine
       
-        '''.format(self.eps_size)
+        '''.format(eps=self.eps_size, vox_min_size=1)
 
         for x in self.vox_dim:
-            if x < 0.5 - self.eps_size :  
-                self.stat_vox_05mm_min = 0
-                return self.stat_vox_05mm_min
+            if x < ddefs['DEF_vox_min_size'] - self.eps_size :  
+                self.stat_vox_supra_min = 0
+                return self.stat_vox_supra_min
 
-        self.stat_vox_05mm_min = 1
-        return self.stat_vox_05mm_min
+        self.stat_vox_supra_min = 1
+        return self.stat_vox_to_small
 
     def is_vox_iso(self):
         '''
@@ -535,7 +550,7 @@ class iopts_this_prog:
         Omnibus check.  Currently, conditions are for:
         + even matrix dimensions
         + isotropic voxels
-        + voxels in range 1.0-0.5 mm
+        + voxels in range 'too small' to 'too big' mm
         
 
         OUTPUT
@@ -550,11 +565,11 @@ class iopts_this_prog:
         if self.rep_mat_even :
             checks.append( self.is_mat_even() )
 
-        if self.rep_vox_05mm_min :
-            checks.append( self.is_vox_05mm_min() )
+        if self.rep_vox_supra_min :
+            checks.append( self.is_vox_supra_min() )
 
-        if self.rep_vox_1mm_max :
-            checks.append( self.is_vox_1mm_max() )
+        if self.rep_vox_sub_max :
+            checks.append( self.is_vox_sub_max() )
 
         if self.rep_vox_iso :
             checks.append( self.is_vox_iso() )
@@ -599,17 +614,17 @@ class iopts_this_prog:
         self.fix_overwrite = ss
 
     def do_check_all(self):
-        self.set_rep_vox_05mm_min(True)
-        self.set_rep_vox_1mm_max(True)
+        self.set_rep_vox_supra_min(True)
+        self.set_rep_vox_sub_max(True)
         self.set_rep_mat_even(True)
         self.set_rep_vox_iso(True)
 
     def run_fix_all(self):
 
         # all tests for resampling voxel size
-        if self.stat_vox_iso      == False or \
-           self.stat_vox_1mm_max  == False or \
-           self.stat_vox_05mm_min == False :
+        if self.stat_vox_iso       == False or \
+           self.stat_vox_sub_max   == False or \
+           self.stat_vox_supra_min == False :
             self.fix_vox = True
 
         # all tests for changing matrix dims-- note that if we
@@ -628,16 +643,22 @@ class iopts_this_prog:
             self.fix_make_changes = False
 
         # determine output voxel size; user might have entered a value
-        # (and that will have already been checked for validity at input)
+        # (and that will have already been checked for validity at
+        # input)
+        ## [PT: Feb 23, 2020] this default has been adjusted now: used
+        ## to be 'smallest voxel dim, with floor|ceil vals at 0.5|1mm,
+        ## but now make it 1mm iso, because even isotropic voxels
+        ## appear to produce shifted output
         if self.fix_vox :
             if self.fix_out_vox_dim == None :   # then it hasn't been set by user
-                if self.vox_dim_min < 0.5 :
-                    self.fix_out_vox_dim = 0.5
-                elif 1.0 < self.vox_dim_min :
-                    self.fix_out_vox_dim = 1.0
-                else:
-                    self.fix_out_vox_dim = self.vox_dim_min
-        
+                self.fix_out_vox_dim = ddefs['DEF_vox_fix_size']
+                #if self.vox_dim_min < 0.5 :
+                #    self.fix_out_vox_dim = 0.5
+                #elif 1.0 < self.vox_dim_min :
+                #    self.fix_out_vox_dim = 1.0
+                #else:
+                #    self.fix_out_vox_dim = self.vox_dim_min
+
         # do resampling and/or matrix padding, in that order:
         if self.fix_vox :
             # generate name with random string for fix_vox
@@ -825,15 +846,15 @@ def parse_args_this_prog(full_argv):
                 iopts.set_check_all_val( 0 )
 
         # can be outweighed by "-check_all"
-        elif argv[i] == "{is_vox_1mm_max}".format(**all_opts) :
+        elif argv[i] == "{is_vox_sub_max}".format(**all_opts) :
             if iopts.check_all != 1:
-                iopts.set_rep_vox_1mm_max(True)
+                iopts.set_rep_vox_sub_max(True)
                 iopts.set_check_all_val( 0 )
 
         # can be outweighed by "-check_all"
-        elif argv[i] == "{is_vox_05mm_min}".format(**all_opts) :
+        elif argv[i] == "{is_vox_supra_min}".format(**all_opts) :
             if iopts.check_all != 1:
-                iopts.set_rep_vox_05mm_min(True)
+                iopts.set_rep_vox_supra_min(True)
                 iopts.set_check_all_val( 0 )
 
         # default behavior; and/or will supercede indiv opts
@@ -849,10 +870,13 @@ def parse_args_this_prog(full_argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             fovd = float(argv[i])
-            if fovd < 0.5 or 1.0 < fovd :
-                print("** ERROR: value for output voxel size ({}) is"
-                      "   outside the allowed range [0.5, 1.0]"
-                      "".format(fovd))
+            if fovd < ddefs['DEF_vox_min_size'] or \
+               ddefs['DEF_vox_max_size'] < fovd :
+                print("** ERROR: value for output voxel size ({fovd}) is"
+                      "   outside the allowed range [{minl}, {maxl}]"
+                      "".format(fovd=fovd, 
+                                minl=ddefs['DEF_vox_min_size'], 
+                                maxl=ddefs['DEF_vox_max_size']))
                 sys.exit(3)
             else:
                 iopts.set_fix_out_vox_dim( fovd )
