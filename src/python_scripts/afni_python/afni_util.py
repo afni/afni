@@ -1299,6 +1299,8 @@ def get_3d_statpar(dname, vindex, statcode='', verb=0):
    return par
 
 def converts_to_type(val, vtype):
+   """  converts_to_type(val, vtype) :
+        return whether vtype(val) succeeds"""
    rv = 1
    try: vtype(val)
    except: rv = 0
