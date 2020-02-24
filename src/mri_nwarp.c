@@ -2994,12 +2994,12 @@ void IW3D_interp( int icode ,
 /*---------------------------------------------------------------------------*/
 
 #undef  NPER
-#define NPER 4194304  /* 16 Mbyte per temp float array */
+#define NPER 8388608  /* 32 Mbyte per temp float array */
 
 /* determine size of a temp array */
 
 #undef  NALL
-#define NALL(nnn) (((nnn) > NPER+12345) ? NPER : (nnn))
+#define NALL(nnn) (((nnn) > NPER+524288) ? NPER : (nnn))
 
 /*---------------------------------------------------------------------------*/
 /* B(A(x)) where B = matrix, A = warp, icode = unused
@@ -8062,7 +8062,7 @@ static int          Hforce      = 0    ; /* force an iterative warp update? */
 static int          Hzeasy      = 0    ; /* take it easy at the zero level? */
 static int          Hznoq       = 0    ; /* don't do quintic warp at the zero level? */
 static float        Hfactor     = 1.0f ; /* fraction of maximum warp size allowed */
-static float        Hfactor_q   = 1.0f ; /* set in 3dQwarp for reassigning Hfactor */
+static float        Hfactor_q   = 1.0f ; /* set in 3dQwarp for rescaling Hfactor */
 static float        Hshrink     = 0.749999f ; /* shrink factor for patches between levels */
 static int          Hngmin      = 25 ;   /* min patch size allowed in current run */
 static IndexWarp3D *Haawarp     = NULL ; /* global warp we are improving = A(x) */
@@ -10638,7 +10638,8 @@ ENTRY("IW3D_improve_warp") ;
         scales were selected by running program warping_test a number of times.
 
         Hfactor allows the iteration to scale these down at finer levels,
-        but that wasn't needed after the introduction of the warp penalty. --*/
+        but that wasn't needed after the introduction of the warp penalty.
+        However, the Hfactor_q param in 3dQwarp allow for this capability.  --*/
 
    /*-- If ball optimization is on, the max displacement scales are larger! --*/
 
@@ -10931,6 +10932,15 @@ ENTRY("IW3D_improve_warp") ;
 static IndexWarp3D *WO_iwarp = NULL ;
 static int         *WO_ilev  = 0 ;
 
+static float Hfactor_from_patchsize_ratio( float prat )
+{
+   static float alpha = 0.0f ;
+   if( Hfactor_q >= 1.0f || Hfactor_q < 0.1f || prat >= 1.0f ) return 1.0f ;
+   if( alpha == 0.0f ) alpha = logf(Hfactor_q) / logf(0.1f) ;
+   return powf(prat,alpha) ;
+}
+   
+
 /*----------------------------------------------------------------------------*/
 /* Optimize the warp over a sequence of ever smaller patches;
      bim      = base image
@@ -10959,6 +10969,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    char warplab[64] ;      /* 02 Jan 2015 */
    int xwid0,ywid0,zwid0 ; /* 04 Jan 2019 */
    int64_t num_xyz ;       /* number of voxels in a patch [06 Nov 2019] */
+   float psize0=0.0f , psize=0.0f ;      /* 24 Feb 2020 */
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -10995,6 +11006,7 @@ ENTRY("IW3D_warpomatic") ;
 
    diii = ittt-ibbb+1 ; djjj = jttt-jbbb+1 ; dkkk = kttt-kbbb+1 ; /* sizes of this patch */
    iter = MAX(diii,djjj) ; iter = MAX(iter,dkkk) ;       /* largest size of a patch edge */
+   psize0 = (float)iter ;  /* for Hfactor modification later */
    if( iter < NGMIN ){
      ERROR_message("Can't warpomatic such a small volume: %d x %d x %d",diii,djjj,dkkk) ;
      RETURN(NULL) ;
@@ -11016,11 +11028,13 @@ ENTRY("IW3D_warpomatic") ;
    if( Hverb > 1 && Hsuperhard2 >= Hsuperhard1 )
      INFO_message("SUPERHARD from %d to %d",Hsuperhard1,Hsuperhard2) ;
 
+   Hfactor = 1.0f ;  /* initialize to largest allowed displacement field */
+
    if( Hlev_start == 0 || HGRID(0) == 0 ){
      /* nlevr = number of times to try the global quintic patch */
      nlevr = ( Hznoq ) ? 0 : 1 ;
      /* force the warp to happen, but don't use any penalty at this level */
-     Hforce = 1 ; Hfactor = Hfactor_q ; Hpen_use = 0 ; Hlev_now = 0 ;
+     Hforce = 1 ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      mri_free(Haasrcim) ;                /* At this point, create the warped  */
@@ -11150,6 +11164,8 @@ ENTRY("IW3D_warpomatic") ;
        if( xwid == 0 ) xwid = ywid = zwid = hgzero ;
        if( xwid < NGMIN ) goto DoneDoneDone ;  /* past the end of the Hgridlist array? */
      }
+     psize = MAX(xwid,ywid) ; if( psize < zwid ) psize = zwid ;
+     Hfactor = Hfactor_from_patchsize_ratio( psize / psize0 ) ;
 
      /* decide if we are doing things in x, y, and/or z */
 
@@ -11208,8 +11224,6 @@ ENTRY("IW3D_warpomatic") ;
      ittt = imax+xdel/2+1 ; if( ittt >= Hnx ) ittt = Hnx-1 ;
      jttt = jmax+ydel/2+1 ; if( jttt >= Hny ) jttt = Hny-1 ;
      kttt = kmax+zdel/2+1 ; if( kttt >= Hnz ) kttt = Hnz-1 ;
-
-     Hfactor = Hfactor_q ;  /* always allow full-size patch warps */
 
      zmode = zmode2 = cmode ;      /* cubic patches from here on down */
      do_qfinal = (Hfinal && Hqfinal) ;
@@ -12351,6 +12365,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    int zmode2=MRI_CUBIC , zmodeX ; int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
    char warplab[64] ;
    int xwid0,ywid0,zwid0 ; /* 04 Jan 2019 */
+   float psize0=0.0f , psize=0.0f ;      /* 24 Feb 2020 */
 
 ENTRY("IW3D_warpomatic_plusminus") ;
 
@@ -12377,6 +12392,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
    diii = ittt-ibbb+1 ; djjj = jttt-jbbb+1 ; dkkk = kttt-kbbb+1 ;
    iter = MAX(diii,djjj) ; iter = MAX(iter,dkkk) ;
+   psize0 = (float)iter ;  /* for modifying patch displacement magnitudes later */
    if( iter < NGMIN ){
      ERROR_message("Can't warpomatic such a small volume: %d x %d x %d",diii,djjj,dkkk) ;
      RETURN(NULL) ;
@@ -12386,9 +12402,10 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      INFO_message("AFNI warpomatic start: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d",
                   Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax) ;
 
+   Hfactor = 1.0f ;
    if( Hlev_start == 0 ){            /* top level = global warps */
      nlevr = ( Hznoq ) ? 0 : 1 ;
-     Hforce = 1 ; Hfactor = Hfactor_q ; Hpen_use = 0 ; Hlev_now = 0 ;
+     Hforce = 1 ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      mri_free(Haasrcim_plus) ;   /* at this point, create the initial */
@@ -12475,6 +12492,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      ywid = ywid0*flev ; if( ywid%2 == 0 ) ywid++ ;
      zwid = zwid0*flev ; if( zwid%2 == 0 ) zwid++ ;
 #endif
+     psize = MAX(xwid,ywid) ; if( psize < zwid ) psize = zwid ;
+     Hfactor = Hfactor_from_patchsize_ratio( psize / psize0 ) ;
 
      /* decide if we are doing things in x, y, and/or z */
 
@@ -12529,8 +12548,6 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      ittt = imax+xdel/2+1 ; if( ittt >= Hnx ) ittt = Hnx-1 ;
      jttt = jmax+ydel/2+1 ; if( jttt >= Hny ) jttt = Hny-1 ;
      kttt = kmax+zdel/2+1 ; if( kttt >= Hnz ) kttt = Hnz-1 ;
-
-     Hfactor = Hfactor_q ;
 
      zmode = zmode2 = cmode ; /* cubic patches from here down, thru all turtles */
      do_qfinal = (Hfinal && Hqfinal) ;

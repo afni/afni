@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , FEB , 2020 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add -warpscale option" ,
+   "To scale the warp displacments down at each level, for experimentation." } ,
+
  { 14 , FEB , 2020 , RWC , "afni GUI" , MINOR , TYPE_BUG_FIX ,
    "Get Atlas Colors working again" ,
    "Problem: 2 generations of overlay colorization changes.\n"
