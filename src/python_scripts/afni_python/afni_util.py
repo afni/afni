@@ -4478,5 +4478,6 @@ def read_afni_seed_file(fname, only_from_space=None):
 
 if __name__ == '__main__':
    print('afni_util.py: not intended as a main program')
+   print('              (consider afni_python_wrapper.py)')
    sys.exit(1)
 
