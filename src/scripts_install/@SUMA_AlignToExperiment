@@ -67,6 +67,7 @@ PARSE_COMMAND:
    set prexform = ""
    set OutResOpt = ""
    set rmlist = ()
+   set echo_opt = ""            # '' or '-echo' so it can propagate
    while ($cnt <= $Narg)
       set donext = 1;
       if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
@@ -74,6 +75,7 @@ PARSE_COMMAND:
       endif
 
       if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo_opt = "-echo"
          set echo      
          set donext = 0      
       endif
@@ -586,7 +588,9 @@ ALIGN_CENTERS:
    if ($no_center == 0) then
       echo "Calculating center shift..."
       rm -f $ExpAnatPrefix"_shft$ExpAnatView."* >& /dev/null
+      # echo_opt is "-echo" or "", to propagate
       @Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD \
+                     $echo_opt                          \
                      -dset $ExpAnat.HEAD 
       set mpref = $ExpAnatPrefix
       set center_mat = $mpref"_shft.1D"
