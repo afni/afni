@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Feb , 2020 , PT , "adjunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
+   "Fix image caption processing.",
+   "(This prog is just used in RST/documentation generation.)\n"
+},
+
 { 22, Feb , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
    "Temporary files now have a random string in their prefix.",
    "Thus, can have multiple runs in same directory simultaneously sans probleme.\n"
