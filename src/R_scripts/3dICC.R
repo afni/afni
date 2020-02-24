@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Feb 3, 2020
+Version 0.0.8, Feb 23, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -867,12 +867,12 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
       if(is.na(lop$tStat)) {  # without t-stat as input
 	 inData <- inData[, , ,]
-	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[4])))
-	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[4])
+	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[2])))
+	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[2])
          # declare output receiver
          for (kk in 1:nSeg) {
-            Stat[,,kk,] <- aperm(apply(inData[,kk,], 1, runLME, ModelForm=lop$model,
-                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(dimx_n,1)) 
+            Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, ModelForm=lop$model,
+                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,1)) 
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
          } 
       } else {  # with t-stat as input
@@ -898,12 +898,12 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
       if(is.na(lop$tStat)) {  # without t-stat as input
          clusterEvalQ(cl, library(lme4))
 	 inData <- inData[, , ,]
-	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[4])))
-	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[4])
+	 inData <- rbind(inData, array(0, dim=c(fill, dim(inData)[2])))
+	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[2])
          # declare output receiver
          for (kk in 1:nSeg) {
             Stat[,,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, ModelForm=lop$model,
-                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(dimx_n,1)) 
+                        dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,1)) 
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
          } 
       } else {  # with t-stat as input
