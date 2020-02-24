@@ -819,6 +819,19 @@ void Qhelp(void)
     "                 the older 3dQwarp, you'll also have to use '-penfac 0.2'.\n"
 #endif
     "\n"
+    " -warpscale f = This option allows you to downsize the scale of the warp\n"
+    "                displacements for smaller patch sizes. In some applications,\n"
+    "                the amount of displacement allowed is overly aggressive at\n"
+    "                small patch sizes, but larger displacments at large patch\n"
+    "                sizes are needed to get the overall shapes of the base and\n"
+    "                template to match. The factor 'f' should be a number between\n"
+    "                0.1 and 1.0 (inclusive), and indicates the amount the max\n"
+    "                displacment should shrink when the patch size shrinks by\n"
+    "                a factor of 10. I suggest '-warpscale 0.5' as a starting\n"
+    "                point for experimentation.\n"
+    "              * This option is currently [Feb 2020] for experimenting\n"
+    "                only, and in the future it may change!\n"
+    "\n"
     " -useweight   = With '-useweight', each voxel in the base automask is weighted\n"
     "                by the intensity of the (blurred) base image. This makes\n"
     "                white matter count more in T1-weighted volumes, for example.\n"
@@ -2012,7 +2025,7 @@ int main( int argc , char *argv[] )
        float fff ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        fff = (float)strtod(argv[nopt],NULL) ;
-       if( fff <= 0.5f ) fff = 0.5f ; else if( fff > 2.0f ) fff = 2.0f ;
+       if( fff <= 0.1f ) fff = 0.1f ; else if( fff > 1.0f ) fff = 1.0f ;
        Hfactor_q = fff ;
        nopt++ ; continue ;
      }
