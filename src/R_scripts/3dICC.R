@@ -902,7 +902,7 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
 	 dim(inData) <- c(dimx_n, nSeg, dim(inData)[2])
          # declare output receiver
          for (kk in 1:nSeg) {
-            Stat[,,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, ModelForm=lop$model,
+            Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, ModelForm=lop$model,
                         dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,1)) 
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
          } 
