@@ -1688,6 +1688,9 @@ OPTIONS ~1~
                   would distort standard mesh surfaces.  To evaluate
                   effects of this, consider: MapIcosahedron -write_dist.
 
+                * If you are seeing this message, that problem was fixed
+                  years ago.
+
     NOTE for -NIFTI:
         If you really care that the volumes in SUMA/ are in exact
         register with the volume you passed to FreeSurfer, you 
