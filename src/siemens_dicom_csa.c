@@ -273,7 +273,7 @@ static int print_csa_item(siemens_csa_item * citem, int ilenoff, int data,
 
 static int insert_slice_time(float st)
 {
-   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
+   siemens_slice_times_t * ST = & g_siemens_csa_info.slice_times;  /* global struct */
 
    ST->nused++;
    if( ST->nused > ST->nalloc ) {
@@ -292,12 +292,57 @@ static int insert_slice_time(float st)
    return 0;
 }
 
-/* loop through all CSA data fields
+
+/* ----------------------------------------------------------------------
+ * perform any needed inits before parsing the CSA structure
+ */
+static void clear_afni_csa_struct(void)
+{
+   /* leave memory in place, just init as unfound */
+
+   /* clear all 'found' fields */
+   g_siemens_csa_info.slice_times.found = 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * if ctag->name is of interest, perform any struct init
+ *
+ *      ctag->name                g_siemens_csa_info field
+ *      ----------                -------------------------
+ *      MosaicRefAcqTimes         slice_times
+ *
+ * see also, clear_afni_csa_struct()
+ *
+ * return 1 on any error, else 0
+ * ----------------------------------------------------------------------
+*/
+static int init_csa_info(afni_siemens_csa_info_t * csa_info,
+                         siemens_csa_tag * ctag, int verb, int printed)
+{
+   if( !csa_info || !ctag || !ctag->name ) {
+      fprintf(stderr,"** init_csa_info bad fields\n");
+      return 1;
+   }
+
+   if ( !strcmp(ctag->name, "MosaicRefAcqTimes") ) {
+      g_siemens_csa_info.slice_times.found = 1;
+      csa_info->slice_times.nused = 0;  /* clear slice times */
+   }
+
+   if( verb > 1 && ! printed )
+      print_csa_tag(ctag, stderr);
+
+   return 0;
+}
+
+/* ----------------------------------------------------------------------
+ * loop through all CSA data fields
  *
  * if name, only print that field contents
  * if data, print item data (1=raw, 2=text)
  * verb is verbose level
- *
+ * ----------------------------------------------------------------------
  */
 static int process_csa_data(unsigned char * str, int len, int verb, int data,
                             char * name)
@@ -313,6 +358,7 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
    int                   tagsize = sizeof(siemens_csa_tag);
    int                   posn, ctype, remain, nitem, iitem, ilen, ilenoff=-1;
    int                   little = little_endian();
+   int                   printed=0; /* has CSA tag already been printed */
 
    if( !str ) {
       if(verb > 1) fprintf(stderr,"** PACSAD: bad data pointer\n");
@@ -343,6 +389,7 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
       return 1;
    }
 
+   printed = 0;         /* track which tags have been printed */
    for( itag = 0; itag < ntags; itag++ ) {
       remain = len - posn;
       if( remain < tagsize ) {
@@ -351,13 +398,13 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
       }
       ctag = (siemens_csa_tag *)(ucp+posn);
       if( ! little ) swap_csa_tag(ctag);
-      if( data || verb > 2 ) print_csa_tag(ctag, stderr);
-
-      /* check for our name of interest */
-      if ( name && !strcmp(ctag->name, name) ) {
-         if( verb > 1 ) print_csa_tag(ctag, stderr);
-         g_siemens_slice_times.nused = 0;  /* clear slice times */
+      if( data || verb > 2 ) {
+         print_csa_tag(ctag, stderr);
+         printed = 1;
       }
+
+      /* check for any names of interest */
+      init_csa_info(&g_siemens_csa_info, ctag, verb, printed);
 
       posn += sizeof(siemens_csa_tag);
 
@@ -373,6 +420,7 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
       for( iitem = 0; iitem < ctag->nitems; iitem++ ) {
          citem = (siemens_csa_item *)(ucp+posn);
          if( ! little ) swap_csa_item(citem);
+
          if ( name && !strcmp(ctag->name, name) ) {
 
             if(verb==3) print_csa_item(citem, ilenoff, data, len-posn, stderr);
@@ -384,8 +432,11 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
                insert_slice_time(stime);
             else if (verb > 2) fprintf(stderr," <empty item>");
          }
+
          if( data || verb > 3 )
             print_csa_item(citem, ilenoff, data, len-posn, stderr);
+
+
          posn += csa_item_size(citem, ilenoff);
          if( posn > len ) break;
       }
@@ -420,19 +471,18 @@ static char * findstr(char * instr, char * sstr, int len)
    return NULL;
 }
 
-
 /* - search field '0x0029 1010' for string MosaicRefAcqTimes
  * - from there, find text formatted floats
  * - stop at AutoInlineImageFilterEnabled, if found
  */
-static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
+static int afni_read_mosaic_csa_struct(PRV_ELEMENT_ITEM * elementItem)
 {
    unsigned el_gr = DCM_TAG_GROUP(elementItem->element.tag);
    unsigned el_el = DCM_TAG_ELEMENT(elementItem->element.tag);
    int      el_len = elementItem->element.length;
    char     start_txt[] = "MosaicRefAcqTimes";
    char     end_txt[]   = "AutoInlineImageFilterEnabled";
-   siemens_slice_times_t * ST = & g_siemens_slice_times;  /* global struct */
+   afni_siemens_csa_info_t * CSA = & g_siemens_csa_info;  /* global struct */
 
    char * instr, * mstr;    /* input string and Mosaic string addr         */
    char * s2;               /* second search string, posn of AutoInline... */
@@ -445,8 +495,8 @@ static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
    /* if this is not the correct element, nothing to do */
    if( el_gr != 0x0029 || el_el != 0x1010 ) return 0;
 
-   /* we are in the correct field, start by clearing old results */
-   ST->nused = 0;
+   /* we are in the correct DICOM field, start by clearing old results */
+   clear_afni_csa_struct();
 
    /* input string is field text, mstr is resulting MosaicRef text pointer */
    instr = (char *)elementItem->element.d.ot;
@@ -477,6 +527,8 @@ static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
    process_csa_data((unsigned char *)instr, el_len, g_MDH_verb,
                                             g_MDH_verb>3, start_txt);
 
+#if 0
+   fprintf(stderr,"== if %d > 3, print %d more bytes\n", g_MDH_verb, rem);
    /* in really verbose mode, print out raw text */
    if( g_MDH_verb > 3 ) {
       unsigned char * ucp = (unsigned char *)mstr;
@@ -486,9 +538,11 @@ static int check_for_mosaic_slice_times(PRV_ELEMENT_ITEM * elementItem)
         else fprintf(stderr," %02x", ucp[c]);
       fprintf(stderr, "(end)done\n");
    }
+#endif
 
-   if( g_MDH_verb > 1 )
-      fprintf(stderr,"\n++ found %d slice times\n", ST->nused);
+   if( g_MDH_verb > 1 ) {
+      fprintf(stderr,"\n++ found %d slice times\n", CSA->slice_times.nused);
+   }
 
    return 0;
 }

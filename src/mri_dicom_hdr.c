@@ -72,12 +72,18 @@
 /* pass private(!) Siemens slice times back, if found 
  * nused : number of slice times read                    8 Apr 2011 [rickr] */
 typedef struct {
+   int     found;               /* found CSA tag/struct           */
    int     nalloc;              /* number of times allocated for  */
    int     nused;               /* actual length of 'times' array */
    float * times;               /* list of slice times            */
 } siemens_slice_times_t;
 
-siemens_slice_times_t g_siemens_slice_times = { 0, 0, NULL };
+typedef struct {
+   siemens_slice_times_t slice_times;
+} afni_siemens_csa_info_t;
+
+afni_siemens_csa_info_t g_siemens_csa_info = { { 0, 0, 0, NULL } };
+
 static int g_MDH_verb = 1;             /* verbose level */
 
 int mri_sst_get_verb(void) { return g_MDH_verb; }
@@ -88,9 +94,9 @@ int mri_sst_set_verb(int verb) { g_MDH_verb = verb; return g_MDH_verb; }
 int mri_siemens_slice_times(int * nalloc, int * nused, float ** times)
 {
    if( ! nalloc || ! nused || ! times ) return 1;
-   *nalloc = g_siemens_slice_times.nalloc;
-   *nused  = g_siemens_slice_times.nused;
-   *times  = g_siemens_slice_times.times;
+   *nalloc = g_siemens_csa_info.slice_times.nalloc;
+   *nused  = g_siemens_csa_info.slice_times.nused;
+   *times  = g_siemens_csa_info.slice_times.times;
    return 0;
 }
 
@@ -2598,7 +2604,7 @@ STATUS("looping over groupItem") ;
 
                     /* moved everything to new siemens_dicom_csa.c
                      *                          7 May 2011 [rickr] */
-                    check_for_mosaic_slice_times(elementItem);
+                    afni_read_mosaic_csa_struct(elementItem);
 
 		    break;
 
