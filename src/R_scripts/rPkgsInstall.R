@@ -40,7 +40,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.r, Dec. 31, 2019
+Version 0.0.2, Feb 25, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -57,14 +57,14 @@ Usage:
 Example 1 --- Install all the R packages that are currently required in 
 AFNI programs:
    rPkgsInstall -pkgs ALL
-   rPkgsInstall -pkgs ALL -site 'http://cran.us.r-project.org'\n"
+   rPkgsInstall -pkgs ALL -site 'http://cloud.r-project.org'\n"
 
    ex2 <- 
 "\n--------------------------------
 Example 2 --- Install user-specified R packages:
    rPkgsInstall -pkgs 'gsl'
    rPkgsInstall -pkgs 'afex,phia,paran'
-   rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.us.r-project.org'\n"
+   rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cloud.r-project.org'\n"
 
    ex3 <- 
 "\n--------------------------------
@@ -72,11 +72,11 @@ Example 3 --- check/update/remove R packages:
    rPkgsInstall -pkgs ALL -check
    rPkgsInstall -pkgs ALL -update
    rPkgsInstall -pkgs ALL -remove
-   rPkgsInstall -pkgs ALL -update -site 'http://cran.fhcrc.org/'
+   rPkgsInstall -pkgs ALL -update -site 'http://cloud.r-project.org/'
    rPkgsInstall -pkgs 'lmerTest,pixmap,plotrix' -check
    rPkgsInstall -pkgs 'afex,phia,paran' -update
    rPkgsInstall -pkgs 'boot' -remove
-   rPkgsInstall -pkgs 'snow,nlme,vars' -update -site 'http://cran.cs.wwu.edu/'\n\n"
+   rPkgsInstall -pkgs 'snow,nlme,vars' -update -site 'http://cloud.r-project.org'\n\n"
 
    parnames <- names(params)
    ss <- vector('character')
@@ -140,7 +140,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "-site download_website: You can specify the package repository website within",
    "        single/double quotes. The current sites can be found at\n",
    "        http://cran.r-project.org/mirrors.html\n",
-   "        The default is 'http://cran.us.r-project.org'",
+   "        The default is 'http://cloud.r-project.org'",
    "        University, Houghton, MI.\n",sep = '\n' 
                      ) ),
                                       
@@ -165,7 +165,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    lop$update <- 0
    lop$check <- 0
    lop$remove  <- 0
-   lop$site   <- 'http://cran.us.r-project.org'
+   lop$site   <- 'http://cloud.r-project.org'
    lop$verb   <- 0
 
    #Get user's input
@@ -195,7 +195,7 @@ process.rPkgsInstall.opts <- function (lop, verb = 0) {
    return(lop)
 }
 
-getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.us.r-project.org') {    
+getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cloud.r-project.org') {    
    pkgs_miss <- PKGS[which(!PKGS %in% installed.packages()[, 1])]
    if(check) {
       if(length(pkgs_miss) > 0) warn.AFNI(paste("These packages are not installed on the computer: ", pkgs_miss, '!\n', sep='')) else 
