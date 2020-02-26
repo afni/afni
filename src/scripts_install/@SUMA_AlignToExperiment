@@ -172,6 +172,14 @@ PARSE_COMMAND:
             @ cnt ++
             set EA_in = "$argv[$cnt]"
             set donext = 0   
+
+            # NIFTI is not handled, warn users  26 Feb 2020 [rickr]
+            if ( `3dinfo -is_nifti $EA_in` == 1 ) then
+               set newpre = `3dinfo -prefix_noext $EA_in`
+               echo "** NIFTI is not currently allowed for -exp_anat, sorry"
+               echo "   consider: 3dcopy $EA_in $newpre"
+               goto END
+            endif
          endif   
       endif
      
