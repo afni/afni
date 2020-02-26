@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Feb, 2020, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_MODIFY,
+   "NIFTI fails for -exp_anat, so have it fail early and explain",
+   NULL
+ } ,
+
  { 19, Feb, 2020, RCR, "afni_python_wrapper.py", MAJOR, TYPE_NEW_PROG,
    "replaces afni_util.py as a main",
    "This program can theortically be used to call any AFNI python function\n"
