@@ -30,6 +30,9 @@ ver='2.0' ; date='Feb 23, 2020'
 #      + new default 'fix all' output size:  1mm iso (no longer smallest
 #        vox dim in allowed range)
 #
+ver='2.01' ; date='Feb 25, 2020'
+# + [PT] Bug fix:  thanks, eagle-eyed RCR!
+#
 ###############################################################################
 
 import sys, os
@@ -501,7 +504,7 @@ class iopts_this_prog:
                 return self.stat_vox_supra_min
 
         self.stat_vox_supra_min = 1
-        return self.stat_vox_to_small
+        return self.stat_vox_supra_min
 
     def is_vox_iso(self):
         '''

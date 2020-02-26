@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Crashing in cases of 'pythonic' APQC with no censoring.",
+   "Have fixed now.\n"
+},
+
+{ 25, Feb , 2020 , PT , "check_dset_for_fs.py" , MINOR , TYPE_BUG_FIX,
+   "Minor bug fix, caught by RCR.  Or was it first *added* by RCR????",
+   "... Nope.  It was added by me.  Sigh.\n"
+},
+
+{ 25, Feb , 2020 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_GENERAL,
+   "New min|max range on vox size; update report text.",
+   "Based on tests with FS data.\n"
+},
+
 { 24, Feb , 2020 , PT , "adjunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
    "Fix image caption processing.",
    "(This prog is just used in RST/documentation generation.)\n"
