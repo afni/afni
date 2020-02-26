@@ -85,8 +85,11 @@
 #   + [PT] Extra QC output:  QC*jpg montages
 #        + one to check skullstripping, one to view warping in more detail
 #
-set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
+#set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
 #   + [PT] fix paths in the ulay/olay of extra QC*jpg images
+#
+set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
+#   + [PT] new warpscale opt for 3dQwarp, courtesy of RWC
 #
 # ----------------------------------------------------------------
 
@@ -124,7 +127,8 @@ set tightness = 0
 set doclean   = 1
 set verbopt   = ""
 set skipwarp  = 0
- 
+set warpscale = 1        # def;  [Feb, 2020] RWC added opt to 3dQwarp 
+
 set DO_UNIFIZE = 1
 set DO_SKULLST = 1
 set DO_ANISO   = 1
@@ -177,6 +181,14 @@ while ( $ac <= $#argv )
         set Basedset = "$argv[$ac]"
 
     # --------- optional ---------------
+
+    # [PT: Feb 25, 2020] RWC added this opt to 3dQwarp
+    # lower warpscale -> less flexible warps
+    # may be useful if odd bumps occur.  vals: [0.1, 1.0]
+    else if ( "$argv[$ac]" == "-warpscale" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set warpscale = "$argv[$ac]"
 
     # min patch
     else if ( "$argv[$ac]" == "-minp" ) then
@@ -515,6 +527,7 @@ if ( ${DO_GIANT} ) then
         $liteopt $verbopt                                 \
         -base   "${Basedset}[1]"                          \
         ${cost_nli}                                       \
+        -warpscale ${warpscale}                           \
         -source $odir/anatUAC."$SubID".nii                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
@@ -528,6 +541,7 @@ else
         $liteopt $verbopt                                 \
         -base   "${Basedset}[1]"                          \
         ${cost_nli}                                       \
+        -warpscale ${warpscale}                           \
         -source $odir/anatUAC."$SubID".nii                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
@@ -636,6 +650,7 @@ echo "++ SSW Step 6 ... piece 1"
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
+    -warpscale ${warpscale}              \
     ${cost_nli}                          \
     -inilev 1 -maxlev 5                  \
     -wtgaus ${gaus_wt}                   \
@@ -650,6 +665,7 @@ echo "++ SSW Step 6 ... piece 2"
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}QQ5_WARP.nii"       \
+    -warpscale ${warpscale}              \
     ${cost_nlf}                          \
     -inilev 6 -maxlev 7 -workhard:6:7    \
     -wtgaus ${gaus_wt}                   \
@@ -665,6 +681,7 @@ if( $minp > 13 )then
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
+      -warpscale ${warpscale}              \
       ${cost_nlf}                          \
       -inilev 8                            \
       -wtgaus ${gaus_wt}                   \
@@ -681,6 +698,7 @@ else
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
+      -warpscale ${warpscale}              \
       ${cost_nlf}                          \
       -inilev 8 -minpatch $mpp             \
       -wtgaus ${gaus_wt}                   \
@@ -694,6 +712,7 @@ else
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ9_WARP.nii"       \
+      -warpscale ${warpscale}              \
       ${cost_nlf}                          \
       -inilev 10                           \
       -wtgaus ${gaus_wt}                   \
@@ -875,6 +894,9 @@ USAGE ~1~
        {-cost_aff CA}        \
        {-cost_nl_init CNI}   \
        {-cost_nl_final CNF}  \
+       {-deoblique}          \
+       {-deoblique_refitly}  \
+       {-warpscale WS}       \
        {-SSopt 'strings'     \
        {-aniso_off}          \
        {-ceil_off}           \
@@ -929,6 +951,11 @@ grown/improved over time):
               the input volume (copy, and then '3drefit -deoblique ...'), 
               as an initial step.  This might help when data sets are
               very... oblique.
+
+  -warpscale WS :(opt) opt to control flexibility of warps in 3dQwarp and
+              how they adjust with patch size;  see 3dQwarp's help for 
+              more info. Allowed values of WS are in range [0.1, 1.0].
+              (def: 1.0)
 
   -giant_move :(opt) when starting the initial alignment to the template,
               apply the same parameter expansions to 3dAllineate that
