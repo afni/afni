@@ -110,8 +110,11 @@ auth = 'PA Taylor'
 #ver = '3.31' ; date = 'Feb 17, 2020' 
 # [PT] further cleaned up (simplified?) a lot of the censoring info
 #
-ver = '3.32' ; date = 'Feb 21, 2020' 
+#ver = '3.32' ; date = 'Feb 21, 2020' 
 # [PT] fix minor bug in case of: 'basic' html with no outlier-based censoring
+#
+ver = '3.33' ; date = 'Feb 26, 2020' 
+# [PT] fix minor bug in case of: 'pythonic' html with no censoring at all. Sigh.
 #
 #########################################################################
 
@@ -869,6 +872,21 @@ def apqc_censor_info( ap_ssdict, run_style ):
             set cen_lim_all = "-censor_hline {} {}"
             set cen_lim_all_yax = "-yaxis 0:${{ytop_mot}} 0:${{ytop_out}}"
             '''.format( mot_hline, out_hline )
+
+    elif run_style == 'pythonic' : 
+        # this is for the case of NO censoring AND pythonic output
+        # default/null values, changed just below for either/both
+        # that exist
+        mot_hline = 'NONE'
+        out_hline = 'NONE'
+
+        # order matters here: mot, out
+        cmd3+= '''
+        set cen_lim_all = "-censor_hline {} {}"
+        set cen_lim_all_yax = "-yaxis 0:${{ytop_mot}} 0:${{ytop_out}}"
+        '''.format( mot_hline, out_hline )
+
+
 
 
     comm  = commentize( comm )
