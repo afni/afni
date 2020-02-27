@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 26, Feb, 2020, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_MODIFY,
    "NIFTI fails for -exp_anat, so have it fail early and explain",
-   NULL
+   "Thanks to D Oswalt for noting the problem."
  } ,
 
  { 19, Feb, 2020, RCR, "afni_python_wrapper.py", MAJOR, TYPE_NEW_PROG,
