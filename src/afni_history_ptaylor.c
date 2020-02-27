@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "New opt '-warpscale' added; is a new opt in 3dQwarp, can be tweaked here now.",
+   "Control flexibility of warps.  Right now testing different values.\n"
+},
+
 { 26, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Crashing in cases of 'pythonic' APQC with no censoring.",
    "Have fixed now.\n"

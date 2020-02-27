@@ -50,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 26, FEB, 2020, DRG, "@animal_warper ROIdset followers, modal smoothing",
+     MINOR, TYPE_NEW_OPT,
+    "Allow for ROIs to follow into template space and modal smoothing",
+    "ROIs are transformed with nearest neighbor interpolation\n"
+    "Both ROIs and segmentation followers from the template space\n"
+    "are now modally smoothed within 3 voxel neighborhoods"
+},
 { 14, FEB, 2020, DRG, "@Align_Centers shift xform", MINOR, TYPE_NEW_OPT,
     "Move center/origin by known amount from 1D file",
     "Large translations in nonlinear warp interpolation can use vast\n"

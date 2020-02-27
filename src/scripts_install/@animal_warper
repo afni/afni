@@ -68,10 +68,14 @@ set progname = @animal_warper
 #set version = "1.73" ; set date = "Jan 14, 2020"
 # [PT] update text output in @animal_outs a bit
 #
-set version = "1.74" ; set date = "Feb 14, 2020"
+#set version = "1.74" ; set date = "Feb 14, 2020"
 # [DRG] dset_followers to allow for similar space datasets to follow 
 #       into template space. Uses Align_Centers 1D dataset for initial
 #       shifts 
+set version = "1.75" ; set date = "Feb 26, 2020"
+# [DRG] roidset_followers to allow for similar space datasets to follow 
+#       into template space with nearest neighbor interpolation 
+#       +modal smoothing.
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -97,8 +101,10 @@ set ok_to_exist = "0"
 set template_followers = ()
 set seg_followers = ()
 set dset_followers = ()
+set roidset_followers = ()
 set feature_option = ""
 set feature_size = ""
+set modesmooth = "3"   # 3 voxel modal smoothing
 set supersize = ""
 set keep_temp = ""
 set animal_outs = "animal_outs.txt"
@@ -264,6 +270,35 @@ while ($ac <= $#argv)
         endif
         @ ac --
 
+    else if ("$argv[$ac]" == "-roidset_followers") then
+        @ ac ++
+        while ($ac <= $#argv)
+            # go until an option starting with a hyphen appears
+            set poss_dset = `echo $argv[$ac] | grep -- "^-"`
+            # if the next argument starts with a hyphen
+            # then the grep gives back the same argument
+            # that means we're on to the next option
+            # instead of a dataset
+            if ("$argv[$ac]" == "$poss_dset") then
+#               @ ac --               
+               break
+            # not a hyphen leading option, should be dataset 
+            else
+               set dsetfollow = $argv[$ac] 
+               # is the dataset somewhere else or current directory
+               set dsetfollow = `@FindAfniDsetPath -append_file \
+                                    -full_path $dsetfollow`
+               # add the dataset to the template follower list
+               set roidset_followers = ($roidset_followers $dsetfollow)
+            endif
+            @ ac ++ 
+        end
+        if ( "$#roidset_followers" == "0" ) then
+            echo "** missing dataset for option roidset_followers"
+            exit 1
+        endif
+        @ ac --
+
 
     else if ("$argv[$ac]" == "-feature_size") then
         @ ac ++
@@ -273,6 +308,21 @@ while ($ac <= $#argv)
         endif
         set feature_size = $argv[$ac]
         set feature_option =  "-feature size $feature_size"
+
+    else if ("$argv[$ac]" == "-mode_smooth_size") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-mode_smooth_size'"
+            exit 1
+        endif
+        set modesmooth = $argv[$ac]
+        set modesmooth = `ccalc -int -expr "$modesmooth"`
+        if ("$status" != "0") then
+          echo "mode_smooth_size set to $argv[$ac] is not valid"
+          echo "Please use a number to specify how many voxels"
+          exit 1
+        endif
+
     else if ("$argv[$ac]" == "-supersize") then
         set supersize = "-supersize"
     else if ("$argv[$ac]" == "-keep_temp") then
@@ -692,6 +742,51 @@ foreach followset ($dset_followers)
        >> ${animal_outs}
 end
 
+# applying warps to ROI followers - other datasets that start in same space, ~grid
+# move each the same way as the data - align centers, apply affine, nonlinear warp
+foreach followset ($roidset_followers)
+   # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
+   set followprefix = `@GetAfniPrefix $followset`
+   echo $followprefix |grep '.gz$'
+   if ($status == "0") then
+      set dsetext = ".gz"
+   else
+      set dsetext = "" 
+   endif
+   set followprefix = `basename $followprefix .gz`
+   set followprefix = `basename $followprefix .nii`
+
+   #  first check if output exists
+   if ( ($ok_to_exist == "1") &&                  \
+     (-f ${followprefix}_warp2std.nii.gz) ) then
+      echo "reusing nonlinear transformed follower dataset"
+   else 
+      # copy dataset to temporary one - reused by multiple dset followers
+      \rm -f tempfollow.nii.gz
+      3dcopy $followset tempfollow.nii.gz
+      # move center of follower with same 1D shift as original dataset
+      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp \
+          -shift_xform_inv ${dsetprefix}.1D 
+ 
+      # combine nonlinear and affine warps for dataset warped to standard
+      # here we use Nearest neighbor interpolation instead of the default
+      # wsinc5 for these "ROI datasets" and force short integer values
+      3dNwarpApply -prefix ${followprefix}_warp2std.nii.gz -ainterp NN        \
+         -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
+         -source tempfollow.nii.gz -short -master $base  -overwrite
+      if ($modesmooth != "0") then
+            3dLocalstat -overwrite -stat mode -nbhd "SPHERE(-$modesmooth)" \
+               -prefix ${followprefix}_warp2std.nii.gz ${followprefix}_warp2std.nii.gz
+      endif
+      # make these show up in AFNI as labeled ROI or atlas datasets 
+      3drefit -copytables $followset ${followprefix}_warp2std.nii.gz
+      3drefit -cmap INT_CMAP ${followprefix}_warp2std.nii.gz
+   endif
+   echo "Follower ROIDset, NL-warped to templ     : ${followprefix}_warp2std.nii.gz" \
+       >> ${animal_outs}
+end
+
+
 
 # now handle the inverse transformed data - template and atlases to native space
 
@@ -917,6 +1012,14 @@ end
                 -expr a -datum byte -nscale                  \
               -overwrite -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
            endif
+
+           # modal smoothing
+           # overwrite its own dataset if enabled (default)
+           if ($modesmooth != "0") then
+              3dLocalstat -overwrite -stat mode -nbhd "SPHERE(-$modesmooth)" \
+                -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz  \
+                ${seg_prefix}_in_${origdsetprefix}.nii.gz
+           endif
            
            # copy segmentation information from atlas to this native-space
            #   segmentation dataset and mark to be shown with integer colormap
@@ -1131,11 +1234,27 @@ Options ~1~
                          and a clipped Pearson correlation for nonlinear
                          warping (via auto_warp.py and 3dQwarp)
 
+    -dset_followers dset1 dset2 ...
+                        :warp follower datasets (already aligned to input
+                         data, same native space) to the template space
+
+    -roidset_followers dset1 dset2 ...
+                        :warp ROI follower datasets (already aligned to input
+                         data, same native space) to the template space.
+                         These datasets are integer valued ROIs, where the
+                         values after warping can not be interpolated.
+                         These are different from the seg_followers below
+                         that are transformed from template space to native
+                         space.
+
     -template_followers dset1 dset2 ...
                         :warp related datasets back to native space
 
     -seg_followers segdset1 segdset2 ...
                         :warp related datasets back to native space
+                         preserving the integer values of the segmentation
+                         and copying atlas labels into the output.
+                         Different from the roidset_followers above.
                          
     -maxlev nn          :maximum level for nonlinear warping. Determines
                          neighborhood size that is searched. See 3dQwarp
@@ -1169,6 +1288,13 @@ Options ~1~
 
     -supersize          :allow for up to 50% size difference between subject
                          and template
+    -mode_smooth_size n :modal smoothing kernel size in voxels (not mm)
+                         This determines the size of a spatial regularization
+                         neighborhood for both ROI followers and segmentation
+                         datasets. Voxel values are replaced with the mode
+                         (most common value) in the spherical neighborhood.
+                         The default uses a 3 voxel radius.
+                         Turn off by setting this to 0
 
     -keep_temp          :keep temporary files including awpy directory and 
                          other intermediate datasets
