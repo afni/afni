@@ -29,8 +29,10 @@
 # [Nov 19, 2019] RCR: new option: -fs_setup
 # [Jan 27, 2020] RCR: compress *.nii, but not SV, new opt: -no_compress
 # [Feb  3, 2020] RCR: add -extra_annot_labels
+# [Feb 27, 2020] RCR: add -fsannot_ver (for older version of files)
+#    + also, -extra_annot_labels output is passed on to -extra_fs_dsets
 
-set ver = 2.1
+set ver = 2.2
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -160,6 +162,7 @@ L_PARSE_COMMAND:
     set count    = 1
     set extra_annot_labels = ( )        #  3 Feb 2020 [rickr]
     set fsdsets_extra  = ( )
+    set fsannot_ver  = ""               # 27 Feb 2020 [rickr]
 
     while ( $count <= $args )
         switch ( "$argv[$count]" )
@@ -184,6 +187,20 @@ L_PARSE_COMMAND:
 
                 @ count ++
                 set subj_id  = $argv[$count]
+
+            breaksw
+
+            # ----------------------------------------------------------
+            # usage: -fsannot_ver YEAR (e.g. 2009)
+            case "-fsannot_ver":
+
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -fsannot_ver YEAR"
+                    goto L_BAD_END
+                endif
+
+                @ count ++
+                set fsannot_ver  = $argv[$count]
 
             breaksw
 
@@ -880,26 +897,55 @@ L_CONVERT_SURFACES:
     #and do the labels
     if ( -d $label_dir) then
         cd $label_dir
-        foreach hand ( lh rh )
-            # also look for user-specified annot files
-            foreach exlab ( $extra_annot_labels )
-               set efile = ${hand}.$exlab.annot
-               if ( -f $efile ) then
-                   set ddd = $start_dir/$suma_dir
-                   FSread_annot   -input $efile                     \
-                       -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
-                       -dset    $ddd/${hand}.$exlab.annot.niml.dset \
-                       -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
-               else
-                   echo ""
-                   echo "** annot label '$exlab', missing file: $efile"
-                   echo ""
-               endif
-            end
+        if ( $fsannot_ver != "" ) then
+           set fsannot_opt = "-FSversion $fsannot_ver"
+        else
+           set fsannot_opt = ""
+        endif
+
+        # ------------------------------------------------------------
+        # process any extra annotation labels
+        # (convert and create GIFTI versions to pass to MapIcosahedron)
+        if ( $#extra_annot_labels > 0 ) then
+           echo "++ have $#extra_annot_labels extra labels, " \
+                "including as if -extra_fs_dsets"
         
+           # also look for user-specified annot files
+           # (also, convert to GIFTI)
+           foreach exlab ( $extra_annot_labels )
+              # pass any extra annot labels on to fsdsets
+              set fsdsets = ( $fsdsets $exlab.annot )
+
+              # convert and make a GIFTI version
+              foreach hand ( lh rh )
+                 set efile = ${hand}.$exlab.annot
+                 if ( ! -f $efile ) then
+                     echo ""
+                     echo "** annot label '$exlab', missing file: $efile"
+                     echo ""
+                     continue
+                 endif
+
+                 set ddd = $start_dir/$suma_dir
+                 FSread_annot   -input $efile                     \
+                     $fsannot_opt                                 \
+                     -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
+                     -dset    $ddd/${hand}.$exlab.annot.niml.dset \
+                     -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
+                 # save a GIFTI version for MapIcosahedron
+                 ConvertDset -input  $ddd/${hand}.$exlab.annot.niml.dset \
+                             -prefix $ddd/${hand}.$exlab.annot.gii.dset
+              end
+           end
+        endif
+        
+        # ------------------------------------------------------------
+        # convert standard annot files
+        foreach hand ( lh rh )
             if ( -f ${hand}.aparc.a2005s.annot ) then
                 set ddd = $start_dir/$suma_dir
                 FSread_annot   -input ${hand}.aparc.a2005s.annot       \
+                     $fsannot_opt                                      \
                     -roi_1D  $ddd/${hand}.aparc.a2005s.annot.1D.roi    \
                     -dset    $ddd/${hand}.aparc.a2005s.annot.niml.dset \
                     -cmap_1D $ddd/${hand}.aparc.a2005s.annot.1D.cmap 
@@ -908,6 +954,7 @@ L_CONVERT_SURFACES:
             if ( -f ${hand}.aparc.a2009s.annot ) then
                 set ddd = $start_dir/$suma_dir
                 FSread_annot   -input ${hand}.aparc.a2009s.annot       \
+                     $fsannot_opt                                      \
                     -roi_1D  $ddd/${hand}.aparc.a2009s.annot.1D.roi    \
                     -dset    $ddd/${hand}.aparc.a2009s.annot.niml.dset \
                     -cmap_1D $ddd/${hand}.aparc.a2009s.annot.1D.cmap 

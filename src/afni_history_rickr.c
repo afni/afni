@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -fsannot_ver; apply -extra_annot_labels output as -extra_fs_dsets",
+   NULL
+ } ,
+
  { 26, Feb, 2020, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_MODIFY,
    "NIFTI fails for -exp_anat, so have it fail early and explain",
    "Thanks to D Oswalt for noting the problem."
