@@ -152,7 +152,7 @@ if ( ! $identical && ($#new_files == $#old_files)  \
          printf "%30s  vs.  %-30s\n" $new_files[$index] $old_files[$index]
       endif
    end
-   if ( $showlcomp )
+   if ( $showlcomp ) then
       if ( $verb > 1 ) echo "-- found $ndiffs diffs"
       exit 0
    endif
