@@ -4,6 +4,7 @@
 # where to put the stuff.
 
 # ver = 1.0
+# ver = 1.1 : get tree of afni_handouts : 'latest'
 # ==========================================================================
 
 set loc = $1
@@ -57,7 +58,8 @@ foreach bb ( $all_atlases )
     curl -O https://afni.nimh.nih.gov/pub/dist/atlases/${bb}
 end
 
-
+echo "\n\n++ ----------------- getting handout tree: latest\n"
+cp -rf /mnt/afni/pub/dist/edu/latest .
 
 cd -
 
