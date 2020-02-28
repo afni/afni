@@ -384,7 +384,7 @@ float THD_pearson_corr( int n, float *x , float *y )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Double Pearson correlation of x[] and y[] (x and y are NOT modified. */
+/*! Double Pearson correlation of x[] and y[] (x and y are NOT modified) */
 
 double THD_pearson_corrd( int n, double *x , double *y )
 {
