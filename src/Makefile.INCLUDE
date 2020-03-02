@@ -651,6 +651,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dConformist 3dConformist.o $(LFLAGS) $(LLIBS)
 
+3dCompareAffine:3dCompareAffine.o
+	$(RM) $@
+	$(CC) -o 3dCompareAffine 3dCompareAffine.o $(LFLAGS) $(LLIBS)
+
 3dnvals:3dnvals.o
 	$(RM) $@
 	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)
