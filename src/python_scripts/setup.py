@@ -2,8 +2,6 @@ from setuptools import setup
 
 ENTRY_POINTS={'console_scripts':
     [
-    '1d_tool.py=afni_python.1d_tool:main',
-    '1dplot.py=afni_python.1dplot:main',
     # 'DoPerRoi.py=afni_python.DoPerRoi:main',
     # 'adjunct_calc_mont_dims.py=afni_python.adjunct_calc_mont_dims:main',
     # 'adjunct_combine_str.py=afni_python.adjunct_combine_str:main',
@@ -72,6 +70,10 @@ ENTRY_POINTS={'console_scripts':
     'xmat_tool.py=afni_python.xmat_tool:main'
     ]}
 
+SCRIPTS = [
+    "scripts/1d_tool.py",
+    "scripts/1dplot.py",
+]
 
 setup(name='afni_python',
       version='0.0.1',
@@ -85,4 +87,5 @@ setup(name='afni_python',
           'numpy'
       ],
       entry_points=ENTRY_POINTS,
+      SCRIPTS=SCRIPTS,
       zip_safe=False)
