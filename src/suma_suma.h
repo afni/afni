@@ -31,6 +31,12 @@
 #include <Xm/XmAll.h>
 
 
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glext.h>
+
+
+
 
 #include "imseq.h"
 #include "mrilib.h"
