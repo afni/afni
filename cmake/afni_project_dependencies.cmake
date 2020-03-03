@@ -42,10 +42,10 @@ endif()
 # SUMA dependency management
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # Check for and configure for external dependencies
-  find_package(OpenGL REQUIRED)
   if(APPLE)
     find_package(XQuartzGL REQUIRED)
   else()
+    find_package(OpenGL REQUIRED)
     optional_bundle(src/SUMA/GLUT)
   endif()
   find_package(GLib2)
