@@ -3440,10 +3440,10 @@ int main( int argc , char *argv[] )
    if( Xclu_nblur > 0 && !do_Xclustsim )
      ERROR_exit("You cannot use '-ETAC_blur' without '-ETAC' /:( !") ;
 
-   /* -Clustsim is not currently working when -prefix includes a path */
-   /*                                              3 Mar 2020 [rickr] */
-   if( do_clustsim && strstr(prefix, "/") )
-     ERROR_exit("Cannot use -Clustsim when -prefix includes a path") ;
+   /* -Clustsim is not currently working when -prefix uses a full path */
+   /*                                               3 Mar 2020 [rickr] */
+   if( do_clustsim && prefix && prefix[0] == '/' )
+     ERROR_exit("Cannot use -Clustsim when -prefix has an absolute path") ;
 
    /* do some checking and editing for Clustsim stuff */
 
