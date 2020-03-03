@@ -560,7 +560,7 @@ L_VERIFY_PROGRAMS:
         if ( $test_command == mris_convert ) then
             # Unfortunately, all -help variants seem to set $status,
             # so parse the actual text, looking for 'surface'.
-            set nl = `$test_command --help |& grep surface | wc -l`
+            set nl = `$test_command --help |& \grep surface | wc -l`
             if ( "$nl" == 0 ) then
                 echo "** apparent failure to run $test_command"
                 echo "   $test_command --help starts with:"
@@ -913,9 +913,6 @@ L_CONVERT_SURFACES:
            # also look for user-specified annot files
            # (also, convert to GIFTI)
            foreach exlab ( $extra_annot_labels )
-              # pass any extra annot labels on to fsdsets
-              set fsdsets = ( $fsdsets $exlab.annot )
-
               # convert and make a GIFTI version
               foreach hand ( lh rh )
                  set efile = ${hand}.$exlab.annot
@@ -932,9 +929,6 @@ L_CONVERT_SURFACES:
                      -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
                      -dset    $ddd/${hand}.$exlab.annot.niml.dset \
                      -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
-                 # save a GIFTI version for MapIcosahedron
-                 ConvertDset -input  $ddd/${hand}.$exlab.annot.niml.dset \
-                             -prefix $ddd/${hand}.$exlab.annot.gii.dset
               end
            end
         endif
@@ -1297,19 +1291,19 @@ L_CREATE_BRICK:
     #New block added for reading COR images that are no longer 
     #256x256x256 / 1mm cubic voxels ZSS Oct 20 04
       
-    set Sr = `grep -w imnr0 COR-.info`
+    set Sr = `\grep -w imnr0 COR-.info`
     set i0 = $Sr[$#Sr]
-    set Sr = `grep -w imnr1 COR-.info`
+    set Sr = `\grep -w imnr1 COR-.info`
     set i1 = $Sr[$#Sr]
-    set Sr = `grep -w fov COR-.info`
+    set Sr = `\grep -w fov COR-.info`
     set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
-    set Sr = `grep -w x COR-.info | grep -v xform`
+    set Sr = `\grep -w x COR-.info | \grep -v xform`
     set nx = $Sr[$#Sr]
-    set Sr = `grep -w y COR-.info`
+    set Sr = `\grep -w y COR-.info`
     set ny = $Sr[$#Sr]
-    set Sr = `grep -w thick COR-.info`
+    set Sr = `\grep -w thick COR-.info`
     set zthick = `ccalc -eval $Sr[$#Sr] \* 1000`
-    set Sr = `grep -w psiz COR-.info`
+    set Sr = `\grep -w psiz COR-.info`
     set psize = `ccalc -eval $Sr[$#Sr] \* 1000`
 
     set xSLAB0 = `ccalc -eval $nx \* $psize / 2`
@@ -1469,6 +1463,16 @@ L_ICO:
                     endif
                 end
             endif
+
+            if ($#extra_annot_labels > 0) then
+                foreach alab ($extra_annot_labels)
+                    set aset = ${hem}.${alab}.annot.niml.dset
+                    if ( -f $aset ) then
+                        set dm = ($dm "-NN_dset_map" $aset)
+                    endif
+                end
+            endif
+
             if ( -f $sp) then
                 # possibly add -verb    19 Mar 2017 [rickr]
                 if ( $debug ) then
