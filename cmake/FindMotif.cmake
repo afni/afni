@@ -63,7 +63,7 @@ if(MOTIF_FOUND)
                  "${MOTIF_LIBRARIES}" INTERFACE_INCLUDE_DIRECTORIES "${MOTIF_INCLUDE_DIR}"
     )
     get_target_property(TARGET_TYPE Motif TYPE)
-    target_link_options(Motif INTERFACE "LINKER:--no-as-needed")
+    target_link_options(Motif INTERFACE $<$<C_COMPILER_ID:GCC>:"LINKER:--no-as-needed">)
   endif()
   add_library(Motif::Motif ALIAS Motif)
 endif()

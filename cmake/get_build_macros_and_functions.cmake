@@ -292,7 +292,11 @@ function(add_afni_plugin target_in)
           mrix
         )
   endif()
-  # target_link_options(${target_in} PRIVATE LINKER:-as-needed)
+  target_link_options(${target_in}
+  PRIVATE 
+  $<$<C_COMPILER_ID:Clang>:-Wl,-undefined,dynamic_lookup>
+  $<$<C_COMPILER_ID:GNU>:-Wl,-undefined,dynamic_lookup>
+    )
 endfunction()
 
 function(add_afni_target_properties target)
