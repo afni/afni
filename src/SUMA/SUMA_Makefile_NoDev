@@ -51,13 +51,13 @@ SUMA_EXECS = CreateIcosahedron  MapIcosahedron       \
 
 GLW_SRCS = GLwMDrawA.c GLwDrawA.c 
 
-GLw_local/GLwMDrawA.o: GLw_local/GLwMDrawA.c
+GLw_local/GL/GLwMDrawA.o: GLw_local/GL/GLwMDrawA.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
-		   -o GLw_local/GLwMDrawA.o -c GLw_local/GLwMDrawA.c
+		   -o GLw_local/GL/GLwMDrawA.o -c GLw_local/GL/GLwMDrawA.c
 
-GLw_local/GLwDrawA.o: GLw_local/GLwDrawA.c
+GLw_local/GL/GLwDrawA.o: GLw_local/GL/GLwDrawA.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
-		   -o GLw_local/GLwDrawA.o -c GLw_local/GLwDrawA.c 
+		   -o GLw_local/GL/GLwDrawA.o -c GLw_local/GL/GLwDrawA.c 
  
        
 SUMA_gts.o: SUMA_gts.c
@@ -83,7 +83,7 @@ SUMA_SRCS_MAIN = SUMA_suma.c
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
 SUMA_SOBJS = ${SUMA_SSRCS:.c=.o}
 SUMA_GTS_OBJS = SUMA_gts.o
-GLW_OBJS = GLw_local/GLwMDrawA.o GLw_local/GLwDrawA.o
+GLW_OBJS = GLw_local/GL/GLwMDrawA.o GLw_local/GL/GLwDrawA.o
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o ../afni_fimmer.o \
@@ -133,7 +133,6 @@ ${SUMASLIB} : ${SUMA_SOBJS}
 
 ${GLWLIB} : ${GLW_OBJS}
 	rm -f ${GLWLIB}
-	if [ ! -d GLw_local/GL ] ; then $(MKDIR) -p GLw_local/GL ; cd GLw_local; \ln -s GL GLw; cp *.h GL/ ; cd .. ; fi ; 
 	ar q ${GLWLIB} ${GLW_OBJS}
 	echo "library Rebuilt ..."
 	$(RANLIB) ${GLWLIB}
@@ -168,7 +167,7 @@ mainobj: ${SUMALIB} ${SUMA_SRCS_OBJS}
 
 # do not remove ../suma_*.o  22 Sep, 2014 [rickr]
 clean:
-	$(RM) *.o GLw_local/*.o ${SUMA_EXECS}
+	$(RM) *.o GLw_local/GL/*.o ${SUMA_EXECS}
 
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
