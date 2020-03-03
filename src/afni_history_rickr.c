@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2020, RCR, "3dttest++", MICRO, TYPE_MODIFY,
+   "have 3dttest++ -Clustsim fail immediately if -prefix includes a path",
+   NULL
+ } ,
+
  { 27, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
    "add -fsannot_ver; apply -extra_annot_labels output as -extra_fs_dsets",
    NULL
