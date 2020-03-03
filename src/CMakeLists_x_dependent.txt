@@ -85,8 +85,7 @@ target_link_libraries(afni_all_objects
     )
 
 add_afni_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
-target_link_options(afni PRIVATE LINKER:--export-dynamic)
-
+target_link_options(afni PRIVATE "-rdynamic")
 target_link_libraries(
   afni
   PRIVATE
