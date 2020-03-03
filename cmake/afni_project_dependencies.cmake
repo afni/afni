@@ -43,8 +43,12 @@ endif()
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # Check for and configure for external dependencies
   find_package(OpenGL REQUIRED)
+  if(APPLE)
+    find_package(XQuartzGL REQUIRED)
+  else()
+    optional_bundle(src/SUMA/GLUT)
+  endif()
   find_package(GLib2)
-  optional_bundle(src/SUMA/GLUT)
 
   if(USE_SYSTEM_GLW)
     find_package(GLw REQUIRED)
