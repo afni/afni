@@ -43,6 +43,7 @@ ENTRY("GA_smooth") ;
 
    if( im->kind != MRI_float ) RETURN(NULL) ;
 
+   RAND_ROUND ;
    switch( meth ){
      default:
      case GA_SMOOTH_GAUSSIAN:
@@ -97,6 +98,8 @@ void GA_interp_NN( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_NN") ;
 
+  RAND_ROUND ;
+
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 6666)
  {
@@ -130,6 +133,8 @@ ENTRY("GA_interp_linear") ;
   if( fim == NULL || ip == NULL || jp == NULL || kp == NULL || vv == NULL )
     ERROR_message("NULL pointer on entry to GA_interp_linear :-(") ;
 #endif
+
+ RAND_ROUND ; /* 26 Feb 2020 */
 
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 4444)
@@ -209,6 +214,8 @@ void GA_interp_cubic( MRI_IMAGE *fim ,
                       int npp, float *ip, float *jp, float *kp, float *vv )
 {
 ENTRY("GA_interp_cubic") ;
+
+ RAND_ROUND ; /* 26 Feb 2020 */
 
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 2222)
@@ -967,6 +974,8 @@ void GA_interp_quintic( MRI_IMAGE *fim ,
 {
 ENTRY("GA_interp_quintic") ;
 
+ RAND_ROUND ; /* 26 Feb 2020 */
+
  AFNI_OMP_START ;
 #pragma omp parallel if(npp > 1111)
  {
@@ -1432,6 +1441,8 @@ floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
      pvar[dd] = 0.0f ;                                /* default */
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ; /* skip it */
      elm  = gbs->elm[dd] ;  /* array of indexes in avm (etc.) to use */
+
+     RAND_ROUND ; /* 26 Feb 2020 */
 
      if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ;

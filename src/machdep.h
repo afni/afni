@@ -175,13 +175,16 @@ extern void machdep() ;
 
     USE_RANDOM = #define this if you want/have to use the srandom/random
                  functions instead of the srand48/drand48 functions for
-                 random number generation.
+                 random number generation. [not needed at this time :]
 
     DONT_USE_HTMLWIN = #define this if the 'AFNI Tips' HTML widget
                        causes trouble on your system
 
     UNFONTIZE_HTMLWIN = #define this if the HTML widget works OK as
                         long as font changes aren't ordered
+
+    USE_FENV = #define this if you want to enable the randomization
+               of the floating-point rounding mode in this compilation
 
   Some systems need extra header files included.  Some system header
   files don't give a prototype for alphasort.  This is a place to fix
@@ -426,5 +429,27 @@ extern void AFNI_do_nothing(void) ;
 
 extern int     AFNI_get_ncpu(void) ;    /* 11 Feb 2016 */
 extern int64_t AFNI_get_memsize(void) ; /* 02 Aug 2016 */
+
+/*--------- stuff for changing floating point rounding mode ---------*/
+/* Macro RAND_ROUND will randomize the rounding method if USE_FENV
+   is enabled at compile time; otherwise, these things do nothing! --*/
+
+#ifdef USE_FENV
+extern void change_rounding( int lll ) ; /* 25 Feb 2020 */
+extern void change_rounding_random(void) ;
+# define RAND_ROUND change_rounding_random()  /* macro for easy use */
+# define TONEAREST_ROUND  change_rounding(0)
+# define UPWARD_ROUND     change_rounding(1)
+# define DOWNWARD_ROUND   change_rounding(2)
+# define TOWARDZERO_ROUND change_rounding(3)
+#else
+# define change_rounding(lll) /*nada*/
+# define RAND_ROUND           /*nada*/
+# define TONEAREST_ROUND      /*nada*/
+# define UPWARD_ROUND         /*nada*/
+# define DOWNWARD_ROUND       /*nada*/
+# define TOWARDZERO_ROUND     /*nada*/
+#endif
+/*-------------------------------------------------------------------*/
 
 #endif /* _MCW_MACHDEP_ */

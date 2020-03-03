@@ -44,6 +44,23 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , FEB , 2020 , RWC , "machdep" , MINOR , TYPE_ENHANCE ,
+   "First step for allowing floating round randomization" ,
+   "Code in machdep.c, enabled by environment variable\n"
+   "AFNI_RANDOMIZE_ROUNDING, lets a program invoke macro RAND_ROUND to\n"
+   "randomize the IEEE rounding mode. This requires compiling with the flag\n"
+   "-DUSE_FENV to enable use of the C99 function fesetround() to set the\n"
+   "rounding mode -- see machdep.h. So far, only 3dAllineate has any parts\n"
+   "that use RAND_ROUND -- that is, if you set AFNI_RANDOMIZE_ROUNDING to\n"
+   "YES and run 3dAllineate, the results will change from a 'normal' run.\n"
+   "How much? That's the point of this update, to see how sensitive the\n"
+   "output is to the accumulation of tiny changes." } ,
+
+ { 26 , FEB , 2020 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Always check cmass shifts, and provide warnings if not enabled" ,
+   "That is, if -cmass is NOT on, but the cmass shifts would be large, put\n"
+   "out a WARNING message at the start and at the end." } ,
+
  { 24 , FEB , 2020 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "Add -warpscale option" ,
    "To scale the warp displacments down at each level, for experimentation." } ,
