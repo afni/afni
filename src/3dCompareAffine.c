@@ -7,8 +7,8 @@ static void        glue_affine_warp_vector( mat44_vec ** , mat44_vec ** ) ;
 static THD_3dim_dataset *default_MNI152_mask_dataset(void) ;
 static void hollow_out_mask( int nx, int ny, int nz , byte *mask ) ;
 
-float compare_matrix_pair( THD_3dim_dataset *mset , byte *mask ,
-                           mat44 amat , mat44 bmat ) ;
+float_pair compare_matrix_pair( THD_3dim_dataset *mset , byte *mask ,
+                                mat44 amat , mat44 bmat ) ;
 /*----------------------------------------------------------------------------*/
 
 static void show_help(void)
@@ -36,9 +36,9 @@ static void show_help(void)
     "  * Directly on the command line:\n"
     "     'MATRIX(u11,u12,u13,v1,u21,u22,u23,v2,u31,u32,u33,v3)'\n"
     "\n"
-    "--------\n"
-    "Options:\n"
-    "--------\n"
+    "-------\n"
+    "Options\n"
+    "-------\n"
     "-mask mmm    = Read in dataset 'mmm' and use non-zero voxels\n"
     "               as the region over which to compare the two\n"
     "               affine transformations.\n"
@@ -61,6 +61,29 @@ static void show_help(void)
     "              * The first matrix found in the first '-affine' option\n"
     "                is the base transformation to which all following\n"
     "                transformations will be compared.\n"
+    "------\n"
+    "Method\n"
+    "------\n"
+    "1) The input mask is hollowed out -- that is, all nonzero mask voxels that\n"
+    "    do NOT neighbor a zero voxel are turned to zero. Thus, only the 'edge'\n"
+    "    voxels are used in the computations below. For example, the default\n"
+    "    MNI152 mask has 1818562 nonzero voxels before hollowing out, and\n"
+    "    has 74668 after hollowing out. The hollowing out algorithm is described\n"
+    "    in the help for program 3dAutomask.\n"
+    "2) For each surviving voxel, the xyz coordinates are calculated and then\n"
+    "   transformed by the pair of matrices being compared. Then the Euclidean\n"
+    "   distance between these two sets of transformed xyz vectors is calculated.\n"
+    "   The outputs for each comparison are the maximum distance and the\n"
+    "   root-mean-square (RMS) distance, over the set of hollowed out mask voxels.\n"
+    "\n"
+    "The purpose of this program is to compare the results from 3dAllineate\n"
+    "and other registration programs, run under different conditions.\n"
+#ifdef USE_FLEV
+    "In particular, for runs with and without AFNI_RANDOMIZE_ROUNDING enabled.\n"
+#endif
+    "\n"
+    "-- Author: RWCox - Mar 2020 at the Tulsa bootcamp\n"
+    "\n"
    ) ;
 
    exit(0) ;
@@ -76,7 +99,7 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ;
    char *internal_mask_name = "MNI152" ;
    int nmask_org , nmask_hol ;
-   float val ; int ii ;
+   float_pair pval ; int ii ; float abar,bbar ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) show_help() ;
 
@@ -204,11 +227,17 @@ int main( int argc , char *argv[] )
    /*---------- I guess I've put this off as long as possible.
                 Have to compare amat#0 vs amat#i for i=1, 2, .... ----------*/
 
+   abar = bbar = 0.0f ;
+   printf("#            Max      RMS   (mm)\n") ;
    for( ii=1 ; ii < amat->nmar ; ii++ ){
-     val = compare_matrix_pair( mset , mask ,
+     pval = compare_matrix_pair( mset , mask ,
                                amat->mar[0] , amat->mar[ii] ) ;
-     INFO_message("[0]-[%d] = %g",ii,val) ;
+     printf("[0]-[%d] = %g  %g\n",ii,pval.a,pval.b) ;
+     abar += pval.a ; bbar += pval.b ;
    }
+   abar /= (amat->nmar-1) ;
+   bbar /= (amat->nmar-1) ;
+   printf("mean     = %.5g  %.5g\n",abar,bbar) ;
 
    /* run away screaming in fear of the coronavirus! */
 
@@ -222,19 +251,13 @@ int main( int argc , char *argv[] )
   LOAD_MAT44( MM , zz[0],zz[1],zz[2],zz[3],zz[4] ,zz[5] ,   \
                    zz[6],zz[7],zz[8],zz[9],zz[10],zz[11] )
 
-float compare_matrix_pair( THD_3dim_dataset *mset , byte *mask ,
-                           mat44 amat , mat44 bmat              )
-/* float *aa , float *bb                ) */
+float_pair compare_matrix_pair( THD_3dim_dataset *mset , byte *mask ,
+                                mat44 amat , mat44 bmat              )
 {
-   /* mat44 amat , bmat ; */
-   int nx,ny,nz,nxy,nxyz , qq,ii,jj,kk ;
+   int nx,ny,nz,nxy,nxyz , qq,ii,jj,kk , nsum=0 ;
    THD_fvec3 vxyz ; THD_ivec3 vijk ;
-   float ax,ay,az , bx,by,bz , siz=0.0f,dif ;
-
-/*
-   LOAD_MAT44_FROM_ARRAY(amat,aa) ;
-   LOAD_MAT44_FROM_ARRAY(bmat,bb) ;
-*/
+   float ax,ay,az , bx,by,bz , siz=0.0f,sum=0.0f,dif ;
+   float_pair rval ;
 
    nx = DSET_NX(mset) ; ny = DSET_NY(mset) ; nz = DSET_NZ(mset) ;
    nxy = nx*ny ; nxyz = nxy*nz ;
@@ -248,9 +271,12 @@ float compare_matrix_pair( THD_3dim_dataset *mset , byte *mask ,
      MAT44_VEC(bmat,vxyz.xyz[0],vxyz.xyz[1],vxyz.xyz[2],bx,by,bz) ;
      dif = (ax-bx)*(ax-bx) + (ay-by)*(ay-by) + (az-bz)*(az-bz) ;
      if( dif > siz ) siz = dif ;
+     sum += dif ; nsum++ ;
    }
 
-   siz = sqrtf(siz) ; return siz ;
+   rval.a = sqrtf(siz) ;
+   rval.b = sqrtf(sum/nsum) ;
+   return rval ;
 }
 
 /*----------------------------------------------------------------------------*/
