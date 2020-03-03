@@ -54,7 +54,7 @@ endif()
 
 # Add AFNI atlases (they're not really just atlases but for legacy reasons
 # we'll call them that)
-if(ADD_ATLASES)
+if(COMP_ADD_ATLASES)
   find_program(DATALAD datalad)
   if(DATALAD_NOT_FOUND)
     message(FATAL_ERROR "The datalad executable could not be found. This is required for installation of atlases")
