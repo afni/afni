@@ -362,7 +362,7 @@ def populate_examples():
                                       
    ap_examples.append( APExample('Example 3',
      source='afni_proc.py -help',
-     descrip='(no longer) The current class example.',
+     descrip='Formerly a simple class example.',
      header="""
               (recommended?  no, not intended for a complete analysis)
 
@@ -497,7 +497,7 @@ def populate_examples():
 
    ap_examples.append( APExample( 'Example 5c',
      source='afni_proc.py -help',
-     descrip='RETROICOR (modern): censor and band pass.',
+     descrip='RETROICOR: censor and band pass.',
      header="""
               (recommended?  no, not intended for a complete analysis)
 
