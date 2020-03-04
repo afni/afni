@@ -53,6 +53,17 @@ if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   if(USE_SYSTEM_GLW)
     find_package(GLw REQUIRED)
   endif()
+
+  if(USE_SYSTEM_GTS)
+    find_package(GTS REQUIRED)
+  else()
+    FetchContent_Declare(
+      gts   
+      GIT_REPOSITORY https://github.com/leej3/gts
+      GIT_TAG 962155a01f5a1b87bd64e3e3d880b4dbc2347ac7
+      )
+    FetchContent_MakeAvailable(gts)
+  endif()
 endif()
 
 
@@ -151,13 +162,3 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(netcdf_lib)
 endif()
 
-if(USE_SYSTEM_GTS)
-  find_package(GTS REQUIRED)
-else()
-FetchContent_Declare(
-  gts   
-  GIT_REPOSITORY https://github.com/leej3/gts
-  GIT_TAG 962155a01f5a1b87bd64e3e3d880b4dbc2347ac7
-  )
-FetchContent_MakeAvailable(gts)
-endif()

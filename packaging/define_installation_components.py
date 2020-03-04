@@ -36,13 +36,12 @@ if not components.exists():
 sp.check_output(
     f"""
 cmake -GNinja {src_dir} \
-    -DUSE_SYSTEM_GIFTI=OFF \
+    -DUSE_SYSTEM_ALL=ON \
     -DGENERATE_PACKAGING_COMPONENTS=ON \
     -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON \
     -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
     -DCOMP_ADD_RSTATS=ON \
     -DCOMP_ADD_TCSH=ON \
-    -DUSE_SYSTEM_NIFTI=ON       \
     -DCOMP_ADD_BINARIES=ON
 """,
     # using system nifti should be removed              !!!!!! \
@@ -58,7 +57,8 @@ sp.check_output("ninja")
 sp.check_output(
     f"""
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
+    -DUSE_SYSTEM_ALL=ON \
+    -DUSE_SYSTEM_DCM2NIIX=ON \
     -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=OFF \
     -DCOMP_X_DEPENDENT_GUI_PROGS=OFF \
     -DCOMP_ADD_RSTATS=OFF \
@@ -77,7 +77,6 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
     -DCOMP_ADD_TCSH=OFF \
     -DCOMP_ADD_BINARIES=ON
 ninja
@@ -92,7 +91,6 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
     -DCOMP_ADD_TCSH=ON \
     -DCOMP_ADD_PYTHON=OFF
 ninja
@@ -107,7 +105,6 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
     -DCOMP_ADD_PYTHON=ON
 ninja
 ninja install  > components/3_python.txt
@@ -122,7 +119,6 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
     -DCOMP_X_DEPENDENT_GUI_PROGS=ON
 ninja
 ninja install  > components/4_gui.txt
@@ -136,7 +132,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake -GNinja {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
+    -DUSE_SYSTEM_GTS=ON \
     -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON
 ninja install  > components/5_suma.txt
 """,
@@ -150,7 +146,6 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DUSE_SYSTEM_GIFTI=OFF \
     -DCOMP_ADD_RSTATS=ON
 ninja
 ninja install  > components/6_rstats.txt
@@ -167,13 +162,13 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake /opt/src/afni \
-    -DADD_RTATS=ON \
+    -DCOMP_ADD_RSTATS=ON \
     -DUSE_SYSTEM_NIFTI=OFF \
     -DUSE_SYSTEM_GIFTI=OFF \
     -DFETCHCONTENT_SOURCE_DIR_FETCH_NIFTI_CLIB_GIT_REPO={nifti_dir} -DUSE_SYSTEM_NIFTI=OFF -DFETCHCONTENT_SOURCE_DIR_GIFTI_CLIB={gifti_dir} \
     -DUSE_SYSTEM_JPEG=OFF \
     -DUSE_SYSTEM_XMHTML=OFF \
-    -DUSE_SYSTEM_GTS=ON \
+    -DUSE_SYSTEM_GTS=OFF \
     -DUSE_SYSTEM_GLUT=OFF \
     -DUSE_SYSTEM_VOLPACK=OFF \
     -DUSE_SYSTEM_QHULL=OFF \
