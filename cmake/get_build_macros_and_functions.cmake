@@ -36,6 +36,7 @@ endfunction()
 
 function(filter_out_components mapping components  targets out_var)
   # get all targets associated with the components
+
   filter_for_components("${mapping}" "${components}" "${targets}" comp_targs)
   # Filter out targets associated with components
   if(NOT ("" STREQUAL "${comp_targs}"))
@@ -58,7 +59,7 @@ function(get_expected_target_list mapping targets_label)
 
   # Remove components that are largely scripts or external
   filter_out_components(
-    "{${mapping}}"
+    "${mapping}"
     "python;tcsh;rstats;external_dependencies"
     "${filtered_list}"
     filtered_list
@@ -138,7 +139,7 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   append_make_component("libraries" make_targ_list "${make_targ_list}")
   append_make_component("suma_progs" make_targ_list "${make_targ_list}")
   filter_out_components(
-      "{${CMPNT_MAPPING}}"
+      "${CMPNT_MAPPING}"
       "external_dependencies"
       "${make_targ_list}"
       make_targ_list
