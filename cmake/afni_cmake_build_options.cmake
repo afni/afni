@@ -97,10 +97,33 @@ option(ENABLE_TESTS "Enable tests" OFF)
 option(RUN_PLUGIN_CHECK "Check that plugins build without any missing symbols" OFF)
 
 
-# Defining "external" dependencies i.e. anything that can be installed as a system install
+# Defining "external" dependencies i.e. anything that can be installed as a
+# system install. This list will also include all directories added with the
+# optional_bundle macro. Values that can be easily overwritten without failure
+# can be overwritten concisely USE_SYSTEM_ALL variable defined i.e.
+# cmake -DUSE_SYSTEM_ALL=ON
+# The above would set all options to all except for GLW on OSX because it
+# fails, and netcdf and f2c because they are not currently supported.
+# Also note that the USE_SYSTEM_ALL variable is not persisted in the cmake
+# cache so passed this variable on the commandline will only have an effect
+# during configure time
 option(USE_SYSTEM_GLW "Do not build and use AFNI's local copy of libGLw" ON)
 option(USE_SYSTEM_NETCDF "Do not build and use AFNI's local copy of netcdf" ON)
 option(USE_SYSTEM_GIFTI "Link against a system installed gifti library." ON)
+option(USE_SYSTEM_GTS "If building SUMA use a system installation of gts (does not work on MacOS)" OFF)
 option(USE_SYSTEM_DCM2NIIX "Omit build and installation of dcm2niix_afni." OFF)
 set(USE_SYSTEM_NIFTI ${USE_SYSTEM_GIFTI})
 
+if(DEFINED USE_SYSTEM_ALL)
+  # a list of libraries that shouldn't be counted in ALL
+  set(SLIGHTLY_BROKEN "GLW;F2C;NETCDF;VOLPACK")
+  
+  foreach(OPTIONAL_LIB GLW NETCDF GIFTI GTS DCMNIIX VOLPACK F2C GLUT XMHTML)
+    if("${OPTIONAL_LIB}" IN_LIST SLIGHTLY_BROKEN)
+      continue()
+    endif()
+
+    message("Setting ${OPTIONAL_LIB}")
+    set(USE_SYSTEM_${OPTIONAL_LIB} ${USE_SYSTEM_ALL})
+  endforeach()
+endif()

@@ -160,3 +160,5 @@ if(USE_CPACK)
     include(CMakeCPack.cmake)
   endif()
 endif()
+
+unset(USE_SYSTEM_ALL CACHE)
