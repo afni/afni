@@ -525,6 +525,7 @@ L_PARSE_COMMAND:
     endif
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
+    set sample_spec  = $spec_files[1]
     set afni_prefix  = ${subj_id}_SurfVol
     if ( $neuro_ori != -1 ) then
         set afni_dataset = $afni_prefix+orig
@@ -1162,6 +1163,7 @@ L_CREATE_SPEC:
 
     # Create both.spec file
     set spec_file = {$subj_id}_both.spec
+    set sample_spec = ${subj_id}_lh.spec
 
     if ( $debug ) echo "++ creating spec file '$spec_file'..."
 
@@ -1522,6 +1524,8 @@ L_ICO:
             inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
         endif
     end # foreach ld
+    # pass a better sample spec file along
+    set sample_spec = $ldpref[1]${subj_id}_lh.spec
     cd -
    
 goto L_ICO_DONE
@@ -1547,6 +1551,8 @@ L_TEST_SURF_VOL:
         set ovol = $afni_dataset
     endif
     echo "    suma -spec $spec_file -sv $ovol"
+
+    echo "suma -spec $sample_spec -sv $ovol" > $suma_dir/run_suma_00_basic.txt
 
 goto L_TEST_SURF_VOL_DONE
 
