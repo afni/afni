@@ -1,7 +1,7 @@
 # This file manages the installation of all scripts. In the future the R and python
 # scripts might be migrated to packages
 
-set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
+set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_WRITE;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
 
 # tcsh scripts (R related scripts are ignored if COMP_ADD_RSTATS is not set)
 install(
@@ -51,12 +51,12 @@ if(COMP_ADD_PYTHON)
   set(PY_FILES
       1d_tool.py
       1dplot.py
-      @djunct_calc_mont_dims.py
-      @djunct_combine_str.py
-      @djunct_is_label.py
-      @djunct_make_script_and_rst.py
-      @djunct_select_str.py
-      @DoPerRoi.py
+      adjunct_calc_mont_dims.py
+      adjunct_combine_str.py
+      adjunct_is_label.py
+      adjunct_make_script_and_rst.py
+      adjunct_select_str.py
+      DoPerRoi.py
       abids_json_info.py
       abids_json_tool.py
       abids_lib.py
