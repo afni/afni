@@ -16,6 +16,43 @@ jobs:
           paths:  
             - src/afni
   
+  macos_build:
+    macos:
+        xcode: "11.2.1"
+    steps: # a series of commands to run
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Setup on macos
+          command: |
+            brew cask install xquartz
+            brew install  \
+              cmake ninja gcc pkgconfig  \
+              jpeg gsl gts openmotif  netcdf libpng expat \
+              freetype fontconfig gsl \
+              netpbm git-annex 
+              # note other useful dependencies:
+              # ffmpeg python
+      - run:
+          name: Build on macos
+          command: |
+            cd /tmp/src/afni
+            mkdir build
+            cd build
+            cmake ..                                                           \
+                -GNinja                                                             \
+                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/clang_toolchainfile.cmake      \
+                -DUSE_SYSTEM_VOLPACK=OFF    \
+                -DUSE_SYSTEM_GLW=OFF    \
+                -DUSE_SYSTEM_XMHTML=OFF \
+                -DUSE_SYSTEM_F2C=OFF \
+                -DCOMP_ADD_RSTATS=OFF \
+                -DUSE_SYSTEM_GIFTI=OFF
+            ninja
+
+
+
+
   build_and_test_makebuild:
     machine: true
     working_directory: /tmp/src/afni
@@ -168,6 +205,8 @@ jobs:
             fi
 
 
+
+
 workflows:
   version: 2
   afni_tests:
@@ -178,9 +217,18 @@ workflows:
               ignore: /doc\/.*/
             tags:
               only: /.*/
+      - macos_build:
+          requires:
+            - cache_src_and_data_repo
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
       - cmake_build:
           requires:
             - cache_src_and_data_repo
+            - macos_build
           filters:
             branches:
               ignore: /doc\/.*/

@@ -6,5 +6,5 @@
 # set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/llvm/lib")
 
 # Alternatively one can use gcc (brew install gcc)
-set(CMAKE_C_COMPILER /usr/local/bin/gcc-8)
+set(CMAKE_C_COMPILER /usr/local/bin/gcc-9)
 set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")
