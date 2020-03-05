@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Mar, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_MODIFY,
+   "for now, use mris_convert/3dcopy for extra annot files",
+   "So standard mesh version will not have a proper label table, but\n"
+   "the values will be appropriate and more usable in suma.\n"
+   "This is done to import the Schaefer/Yeo atlases onto standard meshes.\n"
+   "Done with D Glen."
+ } ,
+
  {  3, Mar, 2020, RCR, "3dttest++", MICRO, TYPE_MODIFY,
    "have 3dttest++ -Clustsim fail immediately if -prefix includes a path",
    NULL

@@ -31,8 +31,11 @@
 # [Feb  3, 2020] RCR: add -extra_annot_labels
 # [Feb 27, 2020] RCR: add -fsannot_ver (for older version of files)
 #    + also, -extra_annot_labels output is passed on to -extra_fs_dsets
+# [Mar  5, 2020] RCR/DRG: for extra annot's, pass along without colormap
+#    + use mris_convert/3dcopy for now, instead of FSread_annot/ConvertDset
+#     
 
-set ver = 2.2
+set ver = 2.2.1
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -904,33 +907,64 @@ L_CONVERT_SURFACES:
         endif
 
         # ------------------------------------------------------------
-        # process any extra annotation labels
+        # process any extra annotation labels - use mris_convert
         # (convert and create GIFTI versions to pass to MapIcosahedron)
         if ( $#extra_annot_labels > 0 ) then
            echo "++ have $#extra_annot_labels extra labels, " \
                 "including as if -extra_fs_dsets"
-        
-           # also look for user-specified annot files
-           # (also, convert to GIFTI)
-           foreach exlab ( $extra_annot_labels )
-              # convert and make a GIFTI version
-              foreach hand ( lh rh )
-                 set efile = ${hand}.$exlab.annot
-                 if ( ! -f $efile ) then
-                     echo ""
-                     echo "** annot label '$exlab', missing file: $efile"
-                     echo ""
-                     continue
-                 endif
 
-                 set ddd = $start_dir/$suma_dir
-                 FSread_annot   -input $efile                     \
-                     $fsannot_opt                                 \
-                     -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
-                     -dset    $ddd/${hand}.$exlab.annot.niml.dset \
-                     -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
-              end
+           # find a surface to use as input to mris_convert
+           set sinput = ''
+           set surf_names = ( white smoothwm pial )
+           foreach stmp ( $surf_names )
+              if ( -f ../$surf_dir/lh.$stmp && -f ../$surf_dir/rh.$stmp ) then
+                 set sinput = $stmp
+                 break
+              endif
            end
+
+           if ( $sinput != "" ) then
+              echo "-- using $sinput as surf input to mris_convert"
+
+              foreach exlab ( $extra_annot_labels )
+                 # convert and make a GIFTI version
+                 foreach hand ( lh rh )
+                    set efile = ${hand}.$exlab.annot
+                    if ( ! -f $efile ) then
+                        echo ""
+                        echo "** annot label '$exlab', missing file: $efile"
+                        echo ""
+                        continue
+                    endif
+
+                    set isurf = ../$surf_dir/$hand.$sinput
+                    set ddd = $start_dir/$suma_dir
+
+                    # Until we fix FSread_annot 
+                    #
+                    # FSread_annot   -input $efile                     \
+                    #     $fsannot_opt                                 \
+                    #     -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
+                    #     -dset    $ddd/${hand}.$exlab.annot.niml.dset \
+                    #     -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
+
+                    mris_convert --annot $efile $isurf  \
+                                 $ddd/${hand}.$exlab.FS.annot.gii
+
+                    # This has a color map, but suma does not properly use it.
+                    # Use 3dcopy instead, to just get color index values (and
+                    # essentially throw away the colormap).
+                    #
+                    # ConvertDset -i $ddd/${hand}.$exlab.FS.annot.gii \
+                    #             -o $ddd/${hand}.$exlab.annot.niml.dset
+                    
+                    3dcopy $ddd/${hand}.$exlab.FS.annot.gii \
+                           $ddd/${hand}.$exlab.annot.niml.dset
+                 end
+              end
+           else
+              echo "** missing surf input to mris_convert for -extra_fs_dsets"
+           endif
         endif
         
         # ------------------------------------------------------------
