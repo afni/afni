@@ -262,6 +262,29 @@ PARSE:
          goto CONTINUE
       endif
 
+      if ("$argv[$cnt]" == "-centertype") then
+            if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a type after -centertype"
+            goto BEND
+         endif
+         @ cnt ++         switch ("$argv[$cnt]")
+            case "icent" :
+            case "dcent" : 
+               set centertype = "-${argv[$cnt]}" 
+            breaksw
+            case "cm" :   # default for CM
+               set centertype = ""
+            breaksw
+            default:
+               if (! $quiet_death) \
+               echo "Invalid choice for centertype (icent,dcent,[cm])"
+               goto BEND
+            breaksw
+         endsw   
+         goto CONTINUE
+      endif      
+
       if ("$argv[$cnt]" == "-skip_novoxels") then
          set skipnovoxopt = "-skip_novoxels"
          goto CONTINUE

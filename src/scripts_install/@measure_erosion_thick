@@ -400,13 +400,15 @@ CENTERS:
 # find center
 # first center of mass of original dataset
 set CM = `3dCM -mask $maskset $maskset`
+
+# find second kind of center - deepest, then closest to CM
 # maximum erosion level
 set maxdepth = `3dBrickStat	-max -slow erosion_depth.nii.gz`
 # calculate distance for maximum depth voxels from CM map
 3dcalc -RAI -a erosion_depth.nii.gz -datum float -overwrite \
     -expr "within(a,$maxdepth-0.01,$maxdepth+0.01)*(sqrt(($CM[1]-x)^2 + ($CM[2]-y)^2 + \
     ($CM[3]-z)^2) + 0.0001)"  \
-    -prefix  max_erosion_distance.nii.gz
+    -prefix  max_erosion_distance.nii.gz -overwrite
 # smallest distance in deepest erosion level
 set closest_erosion = `3dBrickStat	-min -slow \
      -mask max_erosion_distance.nii.gz max_erosion_distance.nii.gz`
@@ -419,13 +421,13 @@ set erosioncm_xyz = `3dmaskdump -xyz -noijk \
    -mask max_erosion_distance.nii.gz \
    -mrange $lowval $highval max_erosion_distance.nii.gz| head -1`
 
-
+# find third kind of center - closest to CM in mask
 # calculate distance for maximum depth voxels from CM map
 3dcalc -RAI -a erosion_depth.nii.gz -datum float -overwrite \
     -expr "step(a)*(sqrt(($CM[1]-x)^2 + ($CM[2]-y)^2 + \
     ($CM[3]-z)^2) + 0.0001)"  \
-    -prefix  cm_distance.nii.gz
-# smallest distance in all of mask (not just deepest this time)
+    -prefix  cm_distance.nii.gz  -overwrite
+# smallest distance in all of mask (not deepest this time)
 set closest_cm = `3dBrickStat	-min -slow \
      -mask cm_distance.nii.gz cm_distance.nii.gz`
 # *** Closest to Center of mass - get xyz of closest voxel in mask
@@ -437,6 +439,7 @@ set closestcm_xyz = `3dmaskdump -xyz -noijk \
    -mask cm_distance.nii.gz \
    -mrange $lowval $highval cm_distance.nii.gz| head -1`
 
+# find 4th kind of center, deeper near the voxel that is close to CM
 # at closestcm_xyz, get deepest voxel nearby
 # get thickness at closestcm_xyz voxel
 set thickclosestcm = `3dmaskdump -xyz -noijk \
@@ -444,23 +447,23 @@ set thickclosestcm = `3dmaskdump -xyz -noijk \
    -mrange $lowval $highval erosion_thick_smooth.nii.gz | head -1`
 # look a little more than halfway into volume (thickness/2)
 set deeprad = `ccalc "${thickclosestcm[4]}*0.51"`
-echo ${closestcm_xyz[1-3]} 3 >> temp_closest_center.txt
-3dcalc -RAI -a erosion_depth.nii.gz -datum float -overwrite \
-    -expr a   \
-    -prefix  temp_erosion_depth_RAI.nii.gz
+echo ${closestcm_xyz[1-3]} 3 > temp_closest_center.txt
+3dresample -orient RAI -inset erosion_depth.nii.gz \
+   -prefix  temp_erosion_depth_RAI.nii.gz -overwrite
+# make a small sphere that goes a little into the mask from the edge
 3dUndump -srad $deeprad -xyz -master  temp_erosion_depth_RAI.nii.gz -datum byte \
-    -prefix __tt_sphere_closest_center.nii.gz -overwrite temp_closest_center.txt
+    -prefix temp_sphere_closest_center.nii.gz -overwrite temp_closest_center.txt
 # maximum depth nearby
 set deepclose  = `3dBrickStat	-max -slow \
-     -mask __tt_sphere_closest_center.nii.gz temp_erosion_depth_RAI.nii.gz`
+     -mask temp_sphere_closest_center.nii.gz temp_erosion_depth_RAI.nii.gz`
 # *** find deepest  - get xyz of deepest voxel in very small sphere mask
-# allow some tolerance to get the distance
+# allow some tolerance to get the value that this depth
 set lowval = `ccalc "$deepclose - 0.0001"`
 set highval = `ccalc "$deepclose + 0.0001"`
 # get xyz value
 set deepclose_xyz = `3dmaskdump -xyz -noijk \
-   -mask __tt_sphere_closest_center.nii.gz \
-   -mrange $lowval $highval temp_erosion_depth_RAI.nii.gz | head -1`
+   -mask temp_sphere_closest_center.nii.gz \
+   temp_erosion_depth_RAI.nii.gz"<$lowval..$highval>" | head -1`
 
 
 # put various centers into stats
@@ -475,7 +478,7 @@ echo "DeepClose::${deepclose_xyz[1-3]}" >> erosion_stats.txt
 
 # make a dataset to show the centers
 # make temporary RAI file
-3dresample -orient RAI -prefix __tt_mask_RAI.nii.gz -input $maskset
+3dresample -overwrite -orient RAI -prefix __tt_mask_RAI.nii.gz -input $maskset
 # put centers in a text file to then put as spheres in a dataset
 echo $CM 1 > centers.txt
 echo ${erosioncm_xyz[1-3]} 2 >> centers.txt

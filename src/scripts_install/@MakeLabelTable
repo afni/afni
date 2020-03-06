@@ -8,6 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
+set centertype = "-icent" # internal center - default (DRG - 03/06/2020)
 set iL = 2
 set iV = 1
 
@@ -381,7 +382,7 @@ MAKE_ATLAS_TABLE:
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
             # restricting range to a single value for this label line without quotes
-            set cog = `3dCM $target_dset"<$cogval>"`
+            set cog = `3dCM $centertype $target_dset"<$cogval>"`
             printf ' GYoAR="0"\n COG="%s %s %s"\n' $cog >> $labeltable
          else
             printf ' GYoAR="0"\n COG="0.0 0.0 0.0"\n' >> $labeltable
@@ -954,6 +955,30 @@ PARSE:
          set COG = 1
          goto CONTINUE
       endif      
+
+      if ("$argv[$cnt]" == "-centertype") then
+            if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a type after -centertype"
+            goto BEND
+         endif
+         @ cnt ++         switch ("$argv[$cnt]")
+            case "icent" :
+            case "dcent" : 
+               set centertype = "-${argv[$cnt]}" 
+            breaksw
+            case "cm" :   # default for 3dCM
+               set centertype = ""
+            breaksw
+            default:
+               if (! $quiet_death) \
+               echo "Invalid choice for centertype ([icent],dcent,cm)"
+               goto BEND
+            breaksw
+         endsw   
+         goto CONTINUE
+      endif      
+
 
       if ("$argv[$cnt]" == "-skip_novoxels") then
          set SKIPNOVOX = 1
