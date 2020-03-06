@@ -123,7 +123,7 @@ if(DEFINED USE_SYSTEM_ALL)
       continue()
     endif()
 
-    message("Setting ${OPTIONAL_LIB}")
+    message("Setting ${OPTIONAL_LIB} to ${USE_SYSTEM_ALL} because USE_SYSTEM_ALL is defined")
     set(USE_SYSTEM_${OPTIONAL_LIB} ${USE_SYSTEM_ALL})
   endforeach()
 endif()

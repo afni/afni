@@ -10,8 +10,9 @@ macro(optional_bundle subdir_path)
   get_filename_component(name ${subdir_path} NAME)
   # this must be a macro for scoping reasons. Otherwise LIB_FOUND is not set
   string(TOUPPER ${name} upper)
-
-  option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
+  if(NOT DEFINED USE_SYSTEM_${upper})
+    option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
+  endif()  
   if(USE_SYSTEM_${upper})
     find_package(${name} REQUIRED)
   else(USE_SYSTEM_${upper})
