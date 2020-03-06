@@ -4,6 +4,10 @@
 
 # afni_util.py : general utilities for python programs
 
+# ------------------------------------------------------
+# no longer usable as a main: see afni_python_wrapper.py
+# ------------------------------------------------------
+
 import sys, os, math
 import afni_base as BASE
 import lib_textdata as TD
@@ -92,11 +96,13 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
 
       The default parameters makes it easy to process as a stream:
 
-          afni_util.py -eval 'wrap_file_text()' < INPUT > OUTPUT
+          cat INPUT | afni_python_wrapper.py -eval 'wrap_file_text()'
                 or
-          afni_util.py -eval 'wrap_file_text("INPUT", "OUTPUT")'
+          afni_python_wrapper.py -eval 'wrap_file_text()' < INPUT > OUTPUT
                 or
-          afni_util.py -eval "wrap_file_text('$f1', '$f2')"
+          afni_python_wrapper.py -eval 'wrap_file_text("INPUT", "OUTPUT")'
+                or
+          afni_python_wrapper.py -eval "wrap_file_text('$f1', '$f2')"
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
@@ -1292,6 +1298,15 @@ def get_3d_statpar(dname, vindex, statcode='', verb=0):
 
    return par
 
+def converts_to_type(val, vtype):
+   """  converts_to_type(val, vtype) :
+        return whether vtype(val) succeeds"""
+   rv = 1
+   try: vtype(val)
+   except: rv = 0
+
+   return rv
+
 def find_opt_and_params(text, opt, nopt=0):
    """given some text, return the option with that text, as well as
       the following 'nopt' parameters (truncated list if not found)"""
@@ -1858,7 +1873,7 @@ def restrict_by_index_lists(dlist, ilist, base=0, nonempty=1, verb=1):
     # the big finish
     return 0, [dlist[ind] for ind in clist]
 
-def decode_1D_ints(istr, verb=1, imax=-1):
+def decode_1D_ints(istr, verb=1, imax=-1, labels=[]):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'imax'.
@@ -1870,22 +1885,24 @@ def decode_1D_ints(istr, verb=1, imax=-1):
     if len(slist) == 0:
         if verb > 1: print("-- empty 1D_ints from string '%s'" % istr)
         return []
-    elif verb > 3: print("-- decoding stripped list '%s'" % newstr)
+    elif verb > 3:
+       print("-- decoding stripped list '%s' (nlabs = %d)" \
+             % (newstr,len(labels)))
     ilist = []                  # init return list
     for s in slist:
         try:
             if s.find('@') >= 0:        # then expect "A@B"
                 [N, val] = [n for n in s.split('@')]
                 N = int(N)
-                val = to_int_special(val, '$', imax)
+                val = to_int_special(val, '$', imax, labels)
                 ilist.extend([val for i in range(N)])
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', imax)
+                   v1 = to_int_special(v1, '$', imax, labels)
                    [v2, step] = v2.split('(')
-                   v2 = to_int_special(v2, '$', imax)
+                   v2 = to_int_special(v2, '$', imax, labels)
                    # have start and end values, get step
                    step, junk = step.split(')')
                    step = int(step)
@@ -1897,13 +1914,13 @@ def decode_1D_ints(istr, verb=1, imax=-1):
                    ilist.extend([i for i in range(v1, v2+inc, step)])
                 else:
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = to_int_special(v1, '$', imax)
-                   v2 = to_int_special(v2, '$', imax)
+                   v1 = to_int_special(v1, '$', imax, labels)
+                   v2 = to_int_special(v2, '$', imax, labels)
                    if v1 < v2 : step = 1
                    else:        step = -1
                    ilist.extend([i for i in range(v1, v2+step, step)])
             else:
-                ilist.extend([int(s)])
+                ilist.extend([to_int_special(s, '$', imax, labels)])
         except:
             print("** cannot decode_1D '%s' in '%s'" % (s, istr))
             return []
@@ -1911,14 +1928,20 @@ def decode_1D_ints(istr, verb=1, imax=-1):
     del(newstr)
     return ilist
 
-def to_int_special(cval, spec, sint):
+def to_int_special(cval, spec, sint, labels=[]):
    """basically return int(cval), but if cval==spec, return sint
 
-        cval: int as character string
+      if labels were passed, allow cval to be one
+
+        cval: int as character string, or a label
         spec: special value as string
         sint: special value as int"""
-   if cval == spec: return sint
-   else:            return int(cval)
+   if cval == spec:
+      return sint
+   elif cval[0].isalpha() and cval in labels:
+      return labels.index(cval)
+   else:
+      return int(cval)
 
 def extract_subbrick_selection(sstring):
    """search sstring for something like: [DIGITS*($|DIGITS)]
@@ -1932,24 +1955,27 @@ def extract_subbrick_selection(sstring):
 
 def strip_list_brackets(istr, verb=1):
    """strip of any [], {}, <> or ## surrounding this string
+        - can only be surrounded by whitespace
         - assume only one pair
         - allow the trailing character to be missing
       return the remaining string"""
 
+   if len(istr) < 1: return istr
+
+   icopy = istr.strip()
+
    # strip any of these pairs
    for pairs in [ ['[',']'],  ['{','}'],  ['<','>'],  ['#','#'] ]:
-
-      ind0 = istr.find(pairs[0])
-      if ind0 >= 0:
-         ind1 = istr.find(pairs[1], ind0+1)
+      if icopy[0] == pairs[0]:
+         ind1 = icopy.find(pairs[1], 1)
          if verb > 1: print('-- stripping %s%s at %d,%d in %s' % \
-                            (pairs[0],pairs[1],ind0,ind1,istr))
-         if ind1 > ind0: return istr[ind0+1:ind1]
-         else:           return istr[ind0+1:]
+                            (pairs[0],pairs[1],0,ind1,icopy))
+         if ind1 > 0: return icopy[1:ind1]
+         else:        return icopy[1:]
 
-   if verb > 2: print("-- nothing to strip from '%s'" % istr)
+   if verb > 2: print("-- nothing to strip from '%s'" % icopy)
 
-   return istr
+   return icopy
 
 def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr
@@ -1979,7 +2005,36 @@ def replace_n_squeeze(instr, oldstr, newstr):
 # ----------------------------------------------------------------------
 # line wrapper functions
 
-# add line wrappers ('\'), and align them all
+def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
+    """return a string that is a 'cname' command, indented by
+         nindent, with nextra indentation for option continuation
+
+       This function taks a command and a list of options with parameters,
+       and furnishes a wrapped command, where each option entry is on its
+       own line, and any option entry line wraps includes nextra indentation.
+
+           - wrap each option line without indentation
+           - split across \\\n; ==> have good indentation
+           - keep all in array
+           
+           - join array with indentation and \\\n
+           - finally, align the \\\n wrappers
+    """
+    ntot = nindent + nextra
+    isind = ' '*nindent
+    istot = ' '*ntot
+    jstr  = ' \\\n' + istot
+
+    clist = [cname]
+    for line in llist:
+       wline = add_line_wrappers(line, maxlen=(maxlen-ntot))
+       wlist = wline.split('\\\n')
+       clist.extend(wlist)
+
+    return align_wrappers(isind + jstr.join(clist))
+
+
+# MAIN wrapper: add line wrappers ('\'), and align them all
 def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
        if '\\\n', align all wrapstr strings"""
@@ -2686,7 +2741,8 @@ def glob2stdout(globlist):
       This is meant to be a stream workaround to shell errors
       like, "Argument list too long".
 
-      echo 'd1/*.dcm' 'd2/*.dcm' | afni_util.py -listfunc glob2stdout -
+      echo 'd1/*.dcm' 'd2/*.dcm'            \\
+        | afni_python_wrapper.py -listfunc glob2stdout -
    """
    for gform in globlist:
       for fname in glob.glob(gform):
@@ -4299,231 +4355,129 @@ def test_tent_vecs(val, freq, length):
 
     return correlation_p(a,b)
 
-_g_main_help = """
-afni_util.py: not really intended as a main program
-
-   However, there is some functionality for devious purposes...
-
-   options:
-
-      -help             : show this help
-
-      -module_dir       : show the elements returned by dir()
-
-         This option is useful to get a list of all module functions.
-
-      -eval STRING      : evaluate STRING in the context of afni_util.py
-                          (i.e. STRING can be function calls or other)
-
-         This option is used to simply execute the code in STRING.
-
-         Examples for eval:
-
-            afni_util.py -eval "show_process_stack()"
-            afni_util.py -eval "show_process_stack(verb=2)"
-            afni_util.py -eval "show_process_stack(pid=1000)"
-
-            # display out.ss_review.FT.txt as a json dictionary
-            afni_util.py -eval 'write_data_as_json(read_text_dictionary("out.ss_review.FT.txt")[1])'
-            afni_util.py -eval 'write_data_as_json(read_text_dictionary("out.ss_review.FT.txt", compact=1)[1])'
-
-      -exec STRING      : execute STRING in the context of afni_util.py
-
-         This option is used to simply execute the code in STRING.
-
-         Examples for exec:
-
-            afni_util.py -exec "y = 3+4 ; print y"
-            afni_util.py -exec "import PyQt4"
-            afni_util.py -exec "show_process_stack()"
-
-      -funchelp FUNC    : print the help for afni_util.py function FUNC
-
-         Pring the FUNC.__doc__ text, if any.
-
-         Example:
-
-            afni_util.py -funchelp wrap_file_text
-
-      -print STRING     : print the result of executing STRING
-
-         Akin to -eval, but print the results of evaluating STRING.
-
-         Examples for print:
-
-            afni_util.py -print "get_last_history_ver_pack('DSET+tlrc')"
-            afni_util.py -print "get_last_history_version('DSET+tlrc')"
-            afni_util.py -print 'gaussian_at_fwhm(3,5)'
-            afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
-
-      -lprint STRING    : line print: print result list, one element per line
-
-         The 'l' stands for 'line' (or 'list').  This is akin to -print,
-         but prints a list with one element per line.
-
-      -listfunc [SUB_OPTS] FUNC LIST ... : execute FUNC(LIST)
-
-         With this option, LIST is a list of values to be passed to FUNC().
-         Note that LIST can be simply '-' or 'stdin', in which case the
-         list values are read from stdin.
-
-         This is similar to eval, but instead of requiring:
-            -eval "FUNC([v1,v2,v3,...])"
-         the list values can be left as trailing arguments:
-            -listfunc FUNC v1 v2 v3 ...
-         (where LIST = v1 v2 v3 ...).
-
-         SUB_OPTS sub-options:
-
-                -float  : convert the list to floats before passing to FUNC()
-                -print  : print the result
-                -join   : print the results join()'d together
-
-         Examples for listfunc:
-
-            afni_util.py -listfunc        min_mean_max_stdev 1 2 3 4 5
-            afni_util.py -listfunc -print min_mean_max_stdev 1 2 3 4 5
-            afni_util.py -listfunc -join  min_mean_max_stdev 1 2 3 4 5
-
-            afni_util.py -listfunc -join -float demean 1 2 3 4 5
-
-            afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
-            count -digits 4 1 124 | afni_util.py -listfunc -join shuffle -
-            afni_util.py -listfunc glob2stdout 'EPI_run1/8*'
-
-            afni_util.py -listfunc -joinc list_minus_glob_form *HEAD
-
-            afni_util.py -listfunc -join -float linear_fit 2 3 5 4 8 5 8 9
 
 
-         Also, if LIST contains -list2, then 2 lists can be input to do
-         something like:
-            -eval "FUNC([v1,v2,v3], [v4,v5,v6])"
 
-         Examples with -list2:
+# ----------------------------------------------------------------------
+# [PT: Jan 13, 2020] Pieces for dealing with files of AFNI seed points
 
-            afni_util.py -listfunc -print -float ttest 1 2 3 4 5 \\
-                                                -list2 2 2 4 6 8
+class afni_seeds:
 
-            afni_util.py -listfunc -print -float ttest_paired   \\
-                          1 2 3 4 5 -list2 2 4 5 6 8
+    def __init__(self, file_line=[]):
+        '''Make an object for seed-based correlation.
 
-            afni_util.py -listfunc -join -float linear_fit      \\
-                         `cat y.1D` -list2 `cat x.1D`
+        Use the optional 'file_line' input to read a (non-split) line
+        from a file easily.
 
-"""
+        '''
 
-def process_listfunc(argv):
-   """see the -help description"""
+        self.xyz        = []
+        self.space      = ''
+        self.roi_label  = ''
+        self.netw       = None
 
-   if argv[1] != '-listfunc': return 1
+        # these for future/other use;  cannot be changed at the moment
+        self.rad    = None
+        self.shape  = 'sphere'
 
-   if len(argv) <= 3 :
-      print('** -listfunc usage requires at least 3 args')
-      return 1
+        # use this to read a (non-split) line from a file easily
+        if file_line :
+            self.set_all_info_from_file(file_line)
 
-   do_join = 0
-   do_joinc = 0 # join with commas
-   do_float = 0
-   do_print = 0
-   argbase = 2
+    def set_space(self, x):
+        self.space = x
 
-   while argv[argbase] in ['-join', '-joinc', '-print', '-float']:
-      if argv[argbase] == '-join':
-         do_join = 1
-         argbase += 1
-      elif argv[argbase] == '-joinc':
-         do_joinc = 1
-         argbase += 1
-      elif argv[argbase] == '-print':
-         do_print = 1
-         argbase += 1
-      elif argv[argbase] == '-float':
-         do_float = 1
-         argbase += 1
-      else: break # should not happen
+    def set_xyz(self, xlist):
+        '''Input a list of strings or floats to be a list of float coords.
+        '''
+        if len(xlist) != 3:
+            print("** ERROR: need 3 items input, not {}:\n"
+                  "      '{}'".format(len(xlist), xlist))
+            sys.exit(3)
+        self.xyz = [float(x) for x in xlist]
 
-   # note function
-   func = eval(argv[argbase])
+    def set_roi_label(self, x):
+        self.roi_label = x
 
-   # get args, and check for -list2
-   # (allow for - to read all data into array)
-   args1 = argv[argbase+1:]
-   if len(args1) == 1:
-      if args1[0] == '-' or args1[0] == 'stdin':
-         fvals = read_text_file()
-         args1 = []
-         for fv in fvals: args1.extend(fv.split())
+    def set_netw(self, x):
+        self.netw = x
 
-   args2 = []
-   if '-list2' in args1:
-      l2ind = args1.index('-list2')
-      args2 = args1[l2ind+1:]
-      args1 = args1[0:l2ind]
+    def set_rad(self, x):
+        self.rad = float(x)
 
-   if do_float:
-      try: vals1 = [float(v) for v in args1]
-      except:
-         print('** list1 is not all float')
-         return 1
-      try: vals2 = [float(v) for v in args2]
-      except:
-         print('** list2 is not all float')
-         return 1
-   else:
-      vals1 = args1
-      vals2 = args2
+    def set_shape(self, x):
+        self.shape = x
 
-   if len(vals2) > 0: ret = func(vals1, vals2)
-   else:              ret = func(vals1)
-   
-   if   do_join:  print(' '.join(str(v) for v in ret))
-   elif do_joinc: print(','.join(str(v) for v in ret))
-   elif do_print: print(ret)
-   # else do nothing special
-   return 0
+    def set_all_info_from_file(self, line):
+        '''Read in an unsplit line from a file, and save all the information
+        appropriately.  Column order matters!
 
-def show_function_help(flist):
-   for func in flist:
-      print(section_divider('help for: %s' % func))
-      try:
-         fn = eval(func)
-         print(fn.__doc__)
-      except:
-         print("** not a valid function '%s'" % func)
+        '''
+        y    = line.split()
+        Ny   = len(y)
+        if Ny < 5 :
+            print("** ERROR: too few columns ({}) in this line:\n"
+                  "   {}\n"
+                  "   e.g., did you forget something?".format(Ny, line))
+            sys.exit(2)
 
-def main():
-   argv = sys.argv
-   if '-help' in argv:
-      print(_g_main_help)
-      return 0
-   if '-module_dir' in argv:
-      import afni_util
-      print('dir(afni_util):\n   %s' % '\n   '.join(dir(afni_util)))
-      return 0
-   if len(argv) > 2:
-      if argv[1] == '-eval':
-         eval(' '.join(argv[2:]))
-         return 0
-      elif argv[1] == '-exec':
-         exec(' '.join(argv[2:]))
-         return 0
-      elif argv[1] == '-funchelp':
-         show_function_help(argv[2:])
-         return 0
-      elif argv[1] == '-lprint':
-         ret = eval(' '.join(argv[2:]))
-         print('\n'.join(['%s'%rent for rent in ret]))
-         return 0
-      elif argv[1] == '-print':
-         print(eval(' '.join(argv[2:])))
-         return 0
-      elif argv[1] == '-listfunc':
-         return process_listfunc(argv)
+        elif Ny > 6 :
+            print("** ERROR: too many columns ({}) in this line:\n"
+                  "   {}\n"
+                  "   e.g., did you put spaces in names?".format(Ny, line))
+            sys.exit(2)
 
-   print('afni_util.py: not intended as a main program')
-   return 1
+        xyz  = [ float(y[j]) for j in range(3) ]
+
+        self.set_xyz(xyz)
+        self.set_space(y[3])
+        self.set_roi_label(y[4])
+
+        if len(y) == 6 :
+            self.set_netw(y[5])
+
+# [PT: Jan 13, 2020] for APQC (and maybe other purposes later), read
+# in a simple text file that contains both numbers and strings.
+# See text file:  afni_seeds_per_space.txt
+def read_afni_seed_file(fname, only_from_space=None):
+    '''Read in a file of columns of info, and return list of seed objs.
+
+    Input
+    -----
+    fname           : (req) text file of seed point information.
+    only_from_space : (opt) can choose to only attach seeds from a given space
+                      (which is entered here); otherwise, all seeds are output.
+    
+    Output: list of seed objects.
+
+    '''
+
+    # expected/allowed cols ('netw' is opt)
+    cols  = ['x', 'y', 'z', 'space', 'roi_label', 'netw']
+    Ncols = len(cols)
+
+    # input data, ignore blank lines
+    x   = read_text_file( fname, noblank=1 )
+    Nx  = len(x)
+
+    dat = []
+
+    for i in range(Nx):
+        row = x[i]
+        if row[0] != '#': 
+            seed_obj = afni_seeds(file_line=row)
+            if not(only_from_space) :
+                dat.append( seed_obj )
+            else:
+                if seed_obj.space == only_from_space :
+                    dat.append( seed_obj )
+
+    return dat
+
+# ----------------------------------------------------------------------
 
 if __name__ == '__main__':
-   sys.exit(main())
+   print('afni_util.py: not intended as a main program')
+   print('              (consider afni_python_wrapper.py)')
+   sys.exit(1)
 

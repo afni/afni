@@ -1,3 +1,79 @@
+AFNI Digest, week of 2020/02/20.
+
+Contents:
+00) AFNI Bootcamp++ in San Sebastian, Espana (May, 2020) 
+
+00) The Basque Center on Cognition, Brain and Language (BCBL) is
+organizing the 1st Basque AFNI meeting. The event will be held in San
+Sebastián-Donostia, 10-16 May 2020.  Please see the following link for
+more details:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,163224,163224#msg-163224
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+
+AFNI Digest, week of 2020/01/27.
+
+Contents:
+00) 2 AFNI-TORTOISE DTI workshops in India (Feb, 2020).
+
+00) We are pleased to announce the upcoming AFNI-TORTOISE DTI workshop,
+"India Brain Connectivity Bootcamp: Diffusion Tensor Imaging 2020."
+Each 3-day workshop will be a combination of lecture and hands-on data
+investigation, with speakers including Drs. Carlo Pierpaoli, Amritha
+Nayak, Paul Taylor, Rose Dawn Bharath and Bharath Holla.
+
+These will take place at NIMHANS in Bengaluru from Feb 8-10 and at
+PGIMER in Chandigarh from Feb 13-15. For more details and
+registration, please see the PDF advert here:
+https://afni.nimh.nih.gov/pub/sscc/staff/ptaylor/Flyer_India_Brain_Connectivity_Bootcamp_2020.pdf
+Circulate to any interested colleagues. See you there!
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+AFNI Digest, week of 2020/01/14.
+
+Contents:
+00) AFNI Bootcamp advert: at NIH campus, March 30 - April 3, 2020.
+
+00) AFNI Bootcamp advert: at NIH campus, March 30 - April 3, 2020.
+The next AFNI Bootcamp at NIH (Bethesda, MD, USA) is open for
+registration!  The main session runs Mar 30-Apr 3, and there is
+an optional/alternative DTI session, also on Friday, Apr 3. There
+is no registration fee for the Bootcamp, but attendees must pay
+all their own expenses (e.g., lodging, travel, food, fancy
+coffees). The main Bootcamp info page is here, with a link to the
+registration form:
+https://afni.nimh.nih.gov/bootcamp/
+along with preliminary schedules and logistic information.
+
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
 AFNI Digest, week of 2019/08/28.
 
 Contents:
@@ -566,7 +642,7 @@ generating images automatically. This can make it easier to view
 individual subject results during processing, as well as to make
 matrices of images across subjects for group analysis and/or
 presentations.  Examples using AFNI Bootcamp datasets (for
-@chauffeur_afni and imcat so far) are now available here:
+@chauffeur_afni and 2dcat so far) are now available here:
 https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/auto_image/main_toc.html
 
 01) Ubuntu 18.04 installation instructions.

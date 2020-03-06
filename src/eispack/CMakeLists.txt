@@ -83,6 +83,6 @@ add_library(
   eis_tridib.c
   eis_tsturm.c
 )
-target_link_libraries(eispack AFNI::f2cdir)
+target_link_libraries(eispack $<TARGET_NAME_IF_EXISTS:f2c> m)
 add_afni_target_properties(eispack)
 add_library(AFNI::eispack ALIAS eispack)

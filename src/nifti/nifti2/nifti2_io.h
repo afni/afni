@@ -417,7 +417,7 @@ const char * nifti_datatype_to_string(int dtype);
 int    nifti_header_version          (const char * buf, size_t nbytes);
 
 int64_t nifti_get_filesize( const char *pathname ) ;
-void  swap_nifti_header ( void * h , int ni_ver ) ;
+void  swap_nifti_header ( void * hdr , int ni_ver ) ;
 void  old_swap_nifti_header( struct nifti_1_header *h , int is_nifti );
 void  nifti_swap_as_analyze( nifti_analyze75 *h );
 void  nifti_swap_as_nifti1( nifti_1_header *h );
@@ -440,8 +440,8 @@ void         nifti_image_free    ( nifti_image *nim);
 int64_t      nifti_read_collapsed_image( nifti_image * nim,
                                          const int64_t dims[8], void ** data);
 
-int64_t      nifti_read_subregion_image(nifti_image *nim, int64_t *start_index,
-                                        int64_t *region_size, void ** data);
+int64_t      nifti_read_subregion_image(nifti_image *nim, const int64_t *start_index,
+                                        const int64_t *region_size, void ** data);
 
 void         nifti_image_write   ( nifti_image * nim ) ;
 void         nifti_image_write_bricks(nifti_image * nim,
@@ -492,7 +492,7 @@ znzFile nifti_image_write_hdr_img(nifti_image *nim, int write_data,
                                   const char* opts);
 znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
                const char* opts, znzFile imgfile, const nifti_brick_list * NBL);
-int64_t nifti_read_buffer(znzFile fp, void* datatptr, int64_t ntot,
+int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
                          nifti_image *nim);
 int     nifti_write_all_data(znzFile fp, nifti_image * nim,
                              const nifti_brick_list * NBL);
@@ -559,8 +559,8 @@ char * nifti_makebasename(const char* fname);
 /* other routines */
 int   nifti_convert_nim2n1hdr(const nifti_image* nim, nifti_1_header * hdr);
 int   nifti_convert_nim2n2hdr(const nifti_image* nim, nifti_2_header * hdr);
-nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int dtype);
-nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int dtype);
+nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[], int arg_dtype);
+nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[], int arg_dtype);
 void           * nifti_read_header(const char *hname, int *nver,    int check);
 nifti_1_header * nifti_read_n1_hdr(const char *hname, int *swapped, int check);
 nifti_2_header * nifti_read_n2_hdr(const char *hname, int *swapped, int check);

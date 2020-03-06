@@ -902,29 +902,32 @@ def afni_selectors(names):
    pnsel = ""
    ltsel = ""
    namestr = names
-   
-   nse = names.count('[')
-   if (nse == 1 and nse == names.count(']')):
-      sqsel = names[names.find('['):names.find(']')+1]
+
+   # Use modified namestr for continued processing, as no nesting should
+   # be considered here, and '#' can be in [] selectors.
+
+   nse = namestr.count('[')
+   if (nse == 1 and nse == namestr.count(']')):
+      sqsel = namestr[namestr.find('['):names.find(']')+1]
       namestr = namestr.replace(sqsel,'')
    
    # handle enclosed shell variables, like "${subj}"  13 Jun 2019 [rickr]
-   clist = find_all_non_var_curlys(names)
+   clist = find_all_non_var_curlys(namestr)
    if len(clist) == 1:  # maybe > 0 is okay, should we really distinguish?
-      if names.count('}', clist[-1]) == 1:
-         cend = names.find('}',clist[-1])  # for clarity
-         cusel = names[clist[-1]:cend+1]
+      if namestr.count('}', clist[-1]) == 1:
+         cend = namestr.find('}',clist[-1])  # for clarity
+         cusel = namestr[clist[-1]:cend+1]
          namestr = namestr.replace(cusel,'')
    
-   nse = names.count('<')
-   if (nse == 1 and nse == names.count('>')):
-      ltsel = names[names.find('<'):names.find('>')+1]
+   nse = namestr.count('<')
+   if (nse == 1 and nse == namestr.count('>')):
+      ltsel = namestr[namestr.find('<'):namestr.find('>')+1]
       namestr = namestr.replace(ltsel,'')
    
-   nse = names.count('#')
+   nse = namestr.count('#')
    if (nse == 2):
-      nf = names.find('#')
-      pnsel = names[nf[0]:nf[1]+1]
+      nf = namestr.find('#')
+      pnsel = namestr[nf[0]:nf[1]+1]
       namestr = namestr.replace(pnsel,'')
    
    return sqsel, cusel, pnsel, ltsel, namestr

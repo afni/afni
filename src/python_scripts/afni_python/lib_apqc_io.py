@@ -32,8 +32,17 @@
 #ver = '1.6' ; date = 'July 23, 2019' 
 # + [PT] 1dplot.py can output PDF files now, too
 #
-ver = '1.61' ; date = 'July 26, 2019' 
+#ver = '1.61' ; date = 'July 26, 2019' 
 # + [PT] Fix py2 incompatability
+#
+#ver = '1.7' ; date = 'Jan 29, 2020' 
+# + [PT] Fix input with '-xfile ..' opt
+#      + Fix initialization of all objs here (with def __init(self))
+#
+ver = '1.8' ; date = 'Feb 216, 2020' 
+# + [PT] add in ability for -censor_hline to contain a 'NONE' argument 
+#        ... bc that is useful as a placeholder when some images have
+#        censor vals and others don't
 #
 #########################################################################
 
@@ -244,6 +253,9 @@ COMMAND OPTIONS ~1~
                is determined by taking the min-of-mins and max-of-
                maxes, and padding slightly outward.  
 
+-one_graph    :plot multiple infiles in a single subplot (default is to put
+               each one in a new subplot).
+
 -dpi DDD      :choose the output image's DPI.  The default value is
                {def_dpi}.
 
@@ -320,6 +332,9 @@ COMMAND OPTIONS ~1~
                 Ummm, it is also assumed that all censor hline values 
                 are >=0; if negative, it will be a problem-- ask if this
                 is a problem!
+                A value of 'NONE' can also be input, to be a placeholder
+                in a list, when some subplots have censor_hline values
+                and others don't.
 
 -censor_RGB COL :choose the color of the censoring background; default
                 is: {def_cen_RGB}.
@@ -376,32 +391,33 @@ def ARG_missing_arg(arg):
 # object for each figure
 class figplobj:
 
-    title        = ""
-    dpi          = DEF_dpi
-    all_subs     = []     # will be a list of subplots
-    nsub         = 0
-    ngraph       = 0
-    fname        = DEF_prefix
-    figsize      = []
-    fontsize     = DEF_fontsize
-    fontfamily   = DEF_fontfamily
-    fontstyles   = DEF_fontstyles
-    layout       = DEF_layout
-    see_xax      = True
-    color_table  = []
-    censor_RGB   = DEF_censor_RGB
-    censor_width = 0
-    censor_arr   = []              # NB: really stays a list
-    censor_on    = DEF_censor_on
-    censor_hline = []
-    ncensor      = 0
-    patch_arr    = []
-    npatch       = 0
-    bkgd_color   = DEF_bkgd_color
-    boxplot_on   = DEF_boxplot_on
-    margin_on    = DEF_margin_on
-    bplot_view   = ''
-    boxplot_ycen = DEF_boxplot_ycen
+    def __init__(self):
+        self.title        = ""
+        self.dpi          = DEF_dpi
+        self.all_subs     = []     # will be a list of subplots
+        self.nsub         = 0
+        self.ngraph       = 0
+        self.fname        = DEF_prefix
+        self.figsize      = []
+        self.fontsize     = DEF_fontsize
+        self.fontfamily   = DEF_fontfamily
+        self.fontstyles   = DEF_fontstyles
+        self.layout       = DEF_layout
+        self.see_xax      = True
+        self.color_table  = []
+        self.censor_RGB   = DEF_censor_RGB
+        self.censor_width = 0
+        self.censor_arr   = []              # NB: really stays a list
+        self.censor_on    = DEF_censor_on
+        self.censor_hline = []
+        self.ncensor      = 0
+        self.patch_arr    = []
+        self.npatch       = 0
+        self.bkgd_color   = DEF_bkgd_color
+        self.boxplot_on   = DEF_boxplot_on
+        self.margin_on    = DEF_margin_on
+        self.bplot_view   = ''
+        self.boxplot_ycen = DEF_boxplot_ycen
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
@@ -513,21 +529,57 @@ class figplobj:
 
 # -------------------------------------------------------------------
 
+# A couple simple helper funcs for checking censor hline vals and scaling
+
+def set_valid_censor_hline_val(hh):
+    '''Used in a few places: input 'hh' can be either a number or 'NONE'.
+
+    '''
+
+    try:
+        out = float(hh)
+    except:
+        if hh == 'NONE' :
+            out = hh
+        else:
+            sys.exit("** ERROR: censor_hline value '{}' is illegal.\n"
+                     "   Must enter a number or 'NONE'".format(hh))
+    return out
+
+def set_valid_censor_hline_scale2max( all_y ):
+    '''Used in a few places: input list all_y, and this returns the number
+to use for scaling in SCALE_TO_MAX scenario.
+
+    '''
+
+    maxy = max(all_y)
+    if maxy :
+        hh = 1.0/maxy
+    else:
+        sys.exit("** ERROR: cannot use SCALE_TO_MAX scaling "
+                 " when a censor_hline has "
+                 "{}-value".format(maxy))
+
+    return hh
+
+# ---------------------------------
+
 # object for each subplots
 class subplobj:
 
-    x      = []
-    y      = []
-    ycen   = []    # will be a list of points after censoring
-    xlabel = ""
-    ylabel = ""
-    xlim   = []
-    ylim   = []
-    npts   = -1
-    color  = ""
-    ymin   = 0.
-    ymax   = 0.
-    censor_hline  = [] # will just be a single number for the subj
+    def __init__(self):
+        self.x      = []
+        self.y      = []
+        self.ycen   = []    # will be a list of points after censoring
+        self.xlabel = ""
+        self.ylabel = ""
+        self.xlim   = []
+        self.ylim   = []
+        self.npts   = -1
+        self.color  = ""
+        self.ymin   = 0.
+        self.ymax   = 0.
+        self.censor_hline  = [] # will be list of number(s) and/or 'NONE'
 
     def set_x(self, x):
         self.x = x
@@ -557,8 +609,9 @@ class subplobj:
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
 
-    def set_censor_hline(self, hh):
-        self.censor_hline = float(hh)
+    def set_censor_hline(self, hh): 
+        val = set_valid_censor_hline_val(hh) # check number or 'NONE'
+        self.censor_hline = val
 
     def set_xlim(self, xlim=[]):
         if xlim :
@@ -604,64 +657,66 @@ class subplobj:
 # input-reading opts, also partly processed
 class apqc_1dplot_opts:
 
-    # req input
-    infiles  = []
-    prefix   = DEF_prefix
-    ninfiles = 0
+    def __init__(self):
 
-    # opt input
-    ylabels  = []
-    nylabels = 0    
-    xlabel  = ""
-    onescl  = True
-    one_graph  = False
-    reverse_order = False
-    xfile   = ""    # 1D file of xaxis vals
-    xvals   = []    # alt. xaxis def: "start stop step"
-    yaxran  = []    # yaxis range [MIN, MAX]; maybe later include more
+        # req input
+        self.infiles  = []
+        self.prefix   = DEF_prefix
+        self.ninfiles = 0
 
-    dpi     = DEF_dpi
-    title   = ""
-    figsize = []
-    layout  = ""
-    fontsize = DEF_fontsize
-    fontfamily = DEF_fontfamily
-    fontstyles = DEF_fontstyles
-    color_table = []
-    ncolors = 0
-    bkgd_color = DEF_bkgd_color
-    boxplot_on = DEF_boxplot_on
-    margin_on  = DEF_margin_on
-    bplot_view = DEF_bplot_view
+        # opt input
+        self.ylabels  = []
+        self.nylabels = 0    
+        self.xlabel  = ""
+        self.onescl  = True
+        self.one_graph  = False
+        self.reverse_order = False
+        self.xfile   = ""    # 1D file of xaxis vals
+        self.xvals   = []    # alt. xaxis def: "start stop step"
+        self.yaxran  = []    # yaxis range [MIN, MAX]; maybe later include more
 
-    # input catchers for censoring
-    censor_in_trs   = []
-    censor_in_files = []
-    censor_on       = DEF_censor_on # if user asks for censoring, this
-                                    # will go to True, and then if
-                                    # boxplotting, the BC_AC will be
-                                    # default, EVEN IF no points were
-                                    # censored for a subj
+        self.dpi     = DEF_dpi
+        self.title   = ""
+        self.figsize = []
+        self.layout  = ""
+        self.fontsize = DEF_fontsize
+        self.fontfamily = DEF_fontfamily
+        self.fontstyles = DEF_fontstyles
+        self.color_table = []
+        self.ncolors = 0
+        self.bkgd_color = DEF_bkgd_color
+        self.boxplot_on = DEF_boxplot_on
+        self.margin_on  = DEF_margin_on
+        self.bplot_view = DEF_bplot_view
 
-    # derived values from censoring
-    censor_arr   = []     # the final list; this is used
-    ncensor      = 0
-    censor_width = 0
-    censor_RGB   = DEF_censor_RGB
-    censor_hline = []
+        # input catchers for censoring
+        self.censor_in_trs   = []
+        self.censor_in_files = []
+        self.censor_on       = DEF_censor_on # if user asks for censoring, this
+                                        # will go to True, and then if
+                                        # boxplotting, the BC_AC will be
+                                        # default, EVEN IF no points were
+                                        # censored for a subj
 
-    scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
-    scale_type   = ''
+        # derived values from censoring
+        self.censor_arr   = []     # the final list; this is used
+        self.ncensor      = 0
+        self.censor_width = 0
+        self.censor_RGB   = DEF_censor_RGB
+        self.censor_hline = []
 
-    patch_arr   = [] # list of run lengths, for alternating patches of plot
+        self.scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
+        self.scale_type   = ''
 
-    # derived vals
-    all_x  = []
-    all_y  = []
-    npts   = -1
-    ndsets = -1
-    all_ymin = 0
-    all_ymax = 0
+        self.patch_arr   = [] # list of run lengths, for alternating patches of plot
+
+        # derived vals
+        self.all_x  = []
+        self.all_y  = []
+        self.npts   = -1
+        self.ndsets = -1
+        self.all_ymin = 0
+        self.all_ymax = 0
 
     # ----------- req -----------------
 
@@ -730,7 +785,8 @@ class apqc_1dplot_opts:
         self.censor_RGB = c
 
     def add_censor_hline(self, hh):
-        self.censor_hline.append(float(hh))
+        val = set_valid_censor_hline_val(hh)
+        self.censor_hline.append(val)
 
     def count_censor_hline(self):
         return len(self.censor_hline)
@@ -781,7 +837,10 @@ class apqc_1dplot_opts:
                 print("++ Will scale each time series by censor_hline")
                 for i in range(self.ndsets):
                     if self.censor_hline[i] :
-                        hh = 1.0/self.censor_hline[i]
+                        if self.censor_hline[i] == 'NONE' :
+                            hh = set_valid_censor_hline_scale2max(self.all_y[i])
+                        else:
+                            hh = 1.0/self.censor_hline[i]
                         self.add_scale(hh)
                     else:
                         sys.exit("** ERROR: cannot use SCALE_TO_HLINE scaling "
@@ -790,14 +849,8 @@ class apqc_1dplot_opts:
             elif self.scale_type == 'SCALE_TO_MAX' :
                 print("++ Will scale each time series by time series max")
                 for i in range(self.ndsets):
-                    maxy = max(self.all_y[i])
-                    if maxy :
-                        hh = 1.0/maxy
-                        self.add_scale(hh)
-                    else:
-                        sys.exit("** ERROR: cannot use SCALE_TO_MAX scaling "
-                                 " when a censor_hline has "
-                                 "{}-value".format(maxy))
+                    hh = set_valid_censor_hline_scale2max(self.all_y[i])
+                    self.add_scale(hh)
             else:
                 pass # fine
         elif n == self.ndsets:
@@ -832,7 +885,8 @@ class apqc_1dplot_opts:
         else:
             N = self.ndsets  # also number of scales, by def, here
             for i in range(N):
-                self.censor_hline[i]*= self.scale[i]
+                if self.censor_hline[i] != 'NONE' :
+                    self.censor_hline[i]*= self.scale[i]
 
     # [PT: Dec 23, 2018] 'hh' can be any of the following:
     ###   bot:top --> full range specified
@@ -923,6 +977,9 @@ class apqc_1dplot_opts:
 
     def set_xlabel(self, xlabel):
         self.xlabel = xlabel
+
+    def set_xfile(self, ss):
+        self.xfile = ss
 
     def set_xvals(self, a, b, c):
         self.xvals = [a, b, c]
@@ -1035,11 +1092,11 @@ class apqc_1dplot_opts:
         '''
 
         if self.xfile :
-            dat = LAD.Afni1D(fff)
-            x = dat.mat[0]
-            if x.nvec > 1 :
+            dat = LAD.Afni1D(self.xfile)
+            if dat.nvec > 1 :
                 sys.exit("** ERROR reading in xvalue file: too many columns.\n"
                          "   Specify just one!")
+            x = dat.mat[0]
         elif self.xvals:
             i = 0
             A = self.xvals[0]
@@ -1465,11 +1522,12 @@ Help is here.
 
 class apqc_tcsh_opts:
 
-    # Each of these is required.  Might have other optional options in
-    # the future
-    json     = ""
-    subjdir  = ""
-    revstyle = "basic"
+    def __init__(self):
+        # Each of these is required.  Might have other optional
+        # options in the future
+        self.json     = ""
+        self.subjdir  = ""
+        self.revstyle = "basic"
 
     def set_json(self, json):
         self.json = json
@@ -1577,9 +1635,10 @@ Help is here.
 
 class apqc_html_opts:
 
-    # Each of these is required.  Might have other optional options in
-    # the future
-    qcdir = ""
+    def __init__(self):
+        # Each of these is required.  Might have other optional
+        # options in the future
+        self.qcdir = ""
 
     def set_qcdir(self, qcdir):
         self.qcdir = qcdir

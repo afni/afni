@@ -1,5 +1,6 @@
 #include "mrilib.h"
 
+/*------------------------------------------------------------------------*/
 /*! Return 1 if an image is all zero (or NULL),
     or return 0 if it is not all zero (bytewise) */
 
@@ -14,6 +15,7 @@ int mri_allzero( MRI_IMAGE *im )
    return 1 ;
 }
 
+/*------------------------------------------------------------------------*/
 /*! Return count of nonzero voxels. */
 
 int mri_nonzero_count( MRI_IMAGE *im )
@@ -28,6 +30,28 @@ int mri_nonzero_count( MRI_IMAGE *im )
    far = MRI_FLOAT_PTR(fim) ;
    nvox = fim->nvox ;
    for( nnz=ii=0 ; ii < nvox ; ii++ ) if( far[ii] != 0.0f ) nnz++ ;
+   if( fim != im ) mri_free(fim) ;
+   return nnz ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Return count of nonzero voxels in a mask [12 Dec 2019] */
+
+int mri_nonzero_count_inmask( MRI_IMAGE *im , byte *mmm )
+{
+   MRI_IMAGE *fim ; float *far ;
+   int ii , nvox , nnz ;
+
+   if( mri_allzero(im) ) return 0 ;
+   if( mmm == NULL     ) return mri_nonzero_count(im) ;
+
+   if( im->kind == MRI_float ) fim = im ;
+   else                        fim = mri_to_float(im) ;
+   far = MRI_FLOAT_PTR(fim) ;
+   nvox = fim->nvox ;
+   for( nnz=ii=0 ; ii < nvox ; ii++ )
+     if( mmm[ii] && far[ii] != 0.0f ) nnz++ ;
+
    if( fim != im ) mri_free(fim) ;
    return nnz ;
 }

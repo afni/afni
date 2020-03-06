@@ -49,6 +49,199 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Mar, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_MODIFY,
+   "for now, use mris_convert/3dcopy for extra annot files",
+   "So standard mesh version will not have a proper label table, but\n"
+   "the values will be appropriate and more usable in suma.\n"
+   "This is done to import the Schaefer/Yeo atlases onto standard meshes.\n"
+   "Done with D Glen."
+ } ,
+
+ {  3, Mar, 2020, RCR, "3dttest++", MICRO, TYPE_MODIFY,
+   "have 3dttest++ -Clustsim fail immediately if -prefix includes a path",
+   NULL
+ } ,
+
+ { 27, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -fsannot_ver; apply -extra_annot_labels output as -extra_fs_dsets",
+   NULL
+ } ,
+
+ { 26, Feb, 2020, RCR, "@SUMA_AlignToExperiment", MICRO, TYPE_MODIFY,
+   "NIFTI fails for -exp_anat, so have it fail early and explain",
+   "Thanks to D Oswalt for noting the problem."
+ } ,
+
+ { 19, Feb, 2020, RCR, "afni_python_wrapper.py", MAJOR, TYPE_NEW_PROG,
+   "replaces afni_util.py as a main",
+   "This program can theortically be used to call any AFNI python function\n"
+   "from the shell."
+ } ,
+
+ { 19, Feb, 2020, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
+   "no longer available as a main executable",
+   NULL
+ } ,
+
+ { 19, Feb, 2020, RCR, "apsearch", MICRO, TYPE_MODIFY,
+   "get process depth via afni_python_wrapper.py",
+   "afni_util.py main was moved to afni_python_wrapper.py."
+ } ,
+
+ { 19, Feb, 2020, RCR, "@auto_tlrc", MICRO, TYPE_BUG_FIX,
+   "block inappropriate 'FATAL ERROR: ... already exists'",
+   "This happened when anat_in was local and stripped, so it matched ns_pref.\n"
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
+ { 18, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "help examples now include some developed outside of afni_proc.py",
+   "This includes some class demos, along with pamenc and NARPS.\n"
+   "Include a line about whether each example is reasonably recommended.\n"
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste erro and missing endif",
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
+ { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -compare_opts_vs_opts",
+   "One can compare two afni_proc.py commmands sequentially, that are\n"
+   "not part of the stored examples list.  Consider:\n"
+   "   afni_proc.py ... first option set ...    \\\n"
+   "                -compare_opts_vs_opts       \\\n"
+   "                ... second option set ...\n"
+   "It is okay for 'second option set' to include the afni_proc.py\n"
+   "command name, in case two scripts are concatenated."
+ } ,
+
+ { 12, Feb, 2020, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "add ability to compare against examples",
+   "Add options -compare_opts, -compare_example_pair, -show_example and\n"
+   "            -show_example_names.\n"
+   "Consider these examples:\n"
+   "   afni_proc.py -show_example 'Example 11b'\n"
+   "   afni_proc.py -show_example_names\n"
+   "   afni_proc.py ... my options here ... -compare_opts 'Example 11'\n"
+   "Motivated by C Gaillard and P Taylor."
+ } ,
+
+ {  7, Feb, 2020, RCR, "Makefile.linux_fedora_28_shared", MINOR, TYPE_ENHANCE,
+   "build main non-X11, non-SUMA AFNI program without X deps",
+   "Set LLIBS_X11 to current LLIBS, and give it to SUMA_LINK_LIB.\n"
+   "Remove all X11 libs from LLIBS.  Add -DREPLACE_XT to CEXTRA.\n"
+   "Note: without REPLACE_XT, LLIBS could still just use Xt and X11.\n"
+   "And made the same mods to Makefile.linux_xorg7_64."
+ } ,
+
+ {  7, Feb, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "reduce X11 program deps",
+   "Possibly define LLIBS_X11 in top-level Makefile (as current LLIBS) and\n"
+   "then remove X libs from LLIBS.  M.INCLUDE will define LLIBS if not set.\n"
+   "Move suma_help to IMOBJS."
+ } ,
+
+ {  5, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add inital new library for processing example, lib_ap_examples.py",
+   NULL
+ } ,
+
+ {  5, Feb, 2020, RCR, "option_list.py", MINOR, TYPE_NEW_OPT,
+   "list all global options via 'PROG.py -optlist_show_global_opts'",
+   "Also, add -optlist_show_argv_array to display afni_proc.py options\n"
+   "in python dictionary format.\n"
+   "This could be done with any OptionList-based python program."
+ } ,
+
+ {  4, Feb, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for a few esoteric options",
+   NULL
+ } ,
+
+ {  3, Feb, 2020, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "show CSA data on high debug",
+   NULL
+ } ,
+
+ {  3, Feb, 2020, RCR, "dicom_hdr", MICRO, TYPE_NEW_OPT,
+   "add -siemens_csa_data",
+   "Same as 3 -slice_times_verb opts."
+ } ,
+
+ {  3, Feb, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "add -extra_annot_labels",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_ENHANCE,
+   "gzip SUMA/*.nii, except for SurfVol",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "@diff.tree", MINOR, TYPE_NEW_OPT,
+   "add -show_list_comp, to do pairwise comparison of file names",
+   NULL
+ } ,
+
+ { 27, Jan, 2020, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "add basis=BASIS parameter when defining timing class",
+   "Done for geenaianni on MB."
+ } ,
+
+ { 23, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 4 (ROIs and mask==1 data)",
+   "Done for J Gonzalez-Castillo."
+ } ,
+
+ { 22, Jan, 2020, RCR, "plug_realtime", MAJOR, TYPE_GENERAL,
+   "add ROIs and data mask method",
+   "Added corresponding demo: AFNI_data6/realtime.demos/demo_3_ROIs_n_data\n"
+ } ,
+
+ { 22, Jan, 2020, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+   "add handling of magic version 3 (all data light)",
+   NULL
+ } ,
+
+ { 15, Jan, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "corr_* dsets are now correlations with ROI averages",
+   "They were previously average correlations with each ROI voxel.  The new\n"
+   "maps look similar, but are probably more natural and have nicer scales.\n"
+   "Requested by P Taylor."
+ } ,
+
+ { 13, Jan, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add some make lists ; see 'make list_lists'",
+   NULL
+ } ,
+
+ {  2, Jan, 2020, RCR, "plug_realtime", MICRO, TYPE_GENERAL,
+   "updates corresponding with Javier's new All_Data_light method",
+   NULL
+ } ,
+
+ { 31, Dec, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "Do not require out_limit.  Currently will still show in driver.",
+   "Done for P Taylor."
+ } ,
+
+ { 26, Dec, 2019, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "add -timing_to_1D_mods and -show_events",
+   "Done for A Gorka."
+ } ,
+
+ { 20, Dec, 2019, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "add more help details for advanced usage",
+   NULL
+ } ,
+
+ { 17, Dec, 2019, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow labels as column selectors when reading xmat.1D files",
+   "Done for G Chen."
+ } ,
+
  { 10, Dec, 2019, RCR, "uber_proc.py", MINOR, TYPE_MODIFY,
    "separate into main/lib/gui, so one can run -help w/out PyQt4",
    NULL
@@ -146,8 +339,8 @@ afni_history_struct rickr_history[] = {
    "Undo removal of strcasestr."
  } ,
 
- { 17, Oct, 2019, RCR, "Makefile.*", MICRO, TYPE_BUG_FIX,
-   "for strcasestr, we need to define _GNU_SOURCE",
+ { 17, Oct, 2019, RCR, "Makefile", MICRO, TYPE_BUG_FIX,
+   "for strcasestr, we need to define _GNU_SOURCE in Makefile.*",
    NULL
  } ,
 
@@ -799,7 +992,9 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5, Feb, 2019, RCR, "demoExpt.py", MICRO, TYPE_GENERAL,
-   "add roopchansinghv to afni_src.tgz targe",
+   "add roopchansinghv to afni_src.tgz target",
+   "This is a realtime neurofeedback framework, built on top of afni and\n"
+   "realtime_receiver.py, using PsychoPy for feedback and presentation.\n"
    "Also, set demoExpt.py mode as 755."
  } ,
 

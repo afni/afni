@@ -8,8 +8,8 @@ int main( int argc , char * argv[] )
    char *prefix = "cmplx" ;
    byte *mask=NULL ; float *rr,*gg ; complex *cmx ;
    int iarg=1 , dofim=0 , ii,i2,nvox , mode=0 ;
-   int ivol, nvol ;  /* 16 Oct 2019 rickr */
-   int ninput ;      /* have 1 or 2 datasets as input */
+   int ivol, nvol=0 ;  /* 16 Oct 2019 rickr */
+   int ninput=0 ;      /* have 1 or 2 datasets as input */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage #1: 3dTwotoComplex [options] dataset\n"

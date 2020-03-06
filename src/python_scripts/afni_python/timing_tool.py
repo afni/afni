@@ -160,9 +160,20 @@ examples: ~1~
 
           1dplot -sepscl sfile.1D waver.1D X.xmat.1D
 
-   Example 6c.  do this per run, but leave each run in a separate file ~2~
+   Example 6c. like 6a, but per run; leave each run in a separate file ~2~
+
+       Add option -per_run_file.
 
           timing_tool.py -timing timing.txt -timing_to_1D sfile.1D      \\
+                         -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
+                         -run_len 360 360 400 -per_run_file
+
+   Example 6d. like 6c, but write amplitude modulators ~2~
+
+       Add option -timing_to_1D_mods.
+
+          timing_tool.py -timing timing.txt -timing_to_1D smods.1D      \\
+                         -timing_to_1D_mods                             \\
                          -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
                          -run_len 360 360 400 -per_run_file
 
@@ -288,6 +299,12 @@ examples: ~1~
       Create a vertical GE (global events) list, showing ALL fields.
 
       timing_tool.py -multi_timing stim.* -multi_timing_to_event_list GE:ALL -
+
+      Note: for convenience, one can also use -show_events, as in:
+
+        timing_tool.py -multi_timing stim.* -show_events
+
+      This is much easier to remember, and it is a very common option.
 
    Example 13b. like 13a, but restrict the output ~2~
 
@@ -441,7 +458,7 @@ examples: ~1~
                         -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
                         -show_tsv_label_details
 
-      Consider "-multi_timing_to_event_list GE:ALL -" to view event list.
+      Consider "-show_events" to view event list.
 
 --------------------------------------------------------------------------
 Notes: ~1~
@@ -881,6 +898,13 @@ action options (apply to single timing element, only): ~1~
 
             Consider example 6a or 6c.
 
+   -timing_to_1D_mods           : write amp modulators to 1D, not binary ~2~
+
+        For -timing_to_1D, instead of writing a binary 0/1 file, write the
+        (first) amplitude modulators to the 1D file.
+
+        This only applies to -timing_to_1D.
+
    -timing_to_1D_warn_ok        : make some conversion issues non-fatal ~2~
 
         Conditions from -timing_to_1D that this makes non-fatal:
@@ -1010,6 +1034,9 @@ action options (apply to multi timing elements, only): ~1~
                  d : event duration
                  o : offset from previous event (including previous duration)
                  f : event class file name
+
+      * note: -show_events is short for '-multi_timing_to_event_list GE:ALL -'
+        See also -show_events.
 
 ------------------------------------------
 general options: ~1~
@@ -1141,6 +1168,17 @@ general options: ~1~
         The run durations only matter for displaying ISI statistics.
 
             Consider '-show_isi_stats' and '-multi_show_isi_stats'.
+
+   -show_events                 : see -multi_timing_to_event_list GE:ALL - ~2~
+
+        This option, since it is so useful, it shorthand for
+
+            -multi_timing_to_event_list GE:ALL -
+
+        This option works for both -timing and -multi_timing.
+        It is terminal.
+
+        See also -multi_timing_to_event_list.
 
    -tr TR                       : specify the time resolution in 1D output ~2~
                                   (in seconds)
@@ -1373,13 +1411,14 @@ g_history = """
    3.09 Jul 23, 2019 - added help and examples -tsv_labels
    3.10 Jul 24, 2019 - added -show_tsv_label_details
    3.11 Jul 29, 2019 - formatted -help for sphinx conversion
-   3.12 Aug  8, 2019 -
+   3.12 Aug  8, 2019
         - ISI stats: allow and adjust for stim overlap
         - dur stats: show file/condition with stats
         - match output between python2 and python3
+   3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
 """
 
-g_version = "timing_tool.py version 3.12, August 8, 2019"
+g_version = "timing_tool.py version 3.13, December 26, 2019"
 
 
 
@@ -1403,6 +1442,7 @@ class ATInterface:
       self.per_run         = 0          # conversions done per run
       self.part_init       = 'INIT'     # default for -part_init
       self.t21D_warn_ok    = 0          # some timing_to_1D issues are non-fatal
+      self.t21D_mods       = 0          # write modulators, rather than binary
       self.write_married   = 0          # for -write_as_married
 
       # user options - single var
@@ -1685,6 +1725,9 @@ class ATInterface:
       self.valid_opts.add_opt('-show_duration_stats', 0, [], 
                          helpstr='display min/mean/max/stdev of event durs')
 
+      self.valid_opts.add_opt('-show_events', 0, [], 
+                         helpstr='display events list')
+
       self.valid_opts.add_opt('-show_timing', 0, [], 
                          helpstr='display timing contents')
 
@@ -1696,6 +1739,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-timing_to_1D', 1, [], 
                          helpstr='convert stim_times to 0/1 stim_file')
+
+      self.valid_opts.add_opt('-timing_to_1D_mods', 0, [], 
+                         helpstr='write amplitude modulators, not binary')
 
       self.valid_opts.add_opt('-timing_to_1D_warn_ok', 0, [], 
                          helpstr='make some conversion issues non-fatal')
@@ -1905,6 +1951,11 @@ class ATInterface:
          val, err = uopts.get_type_list(float, '-run_len')
          if type(val) == type([]) and not err:
             self.run_len = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-timing_to_1D_mods')
+      if oind >= 0:
+         if uopts.find_opt('-timing_to_1D_mods'): self.t21D_mods = 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-timing_to_1D_warn_ok')
@@ -2197,6 +2248,18 @@ class ATInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return 1
             self.multi_timing_to_event_list(val[1], style=val[0])
+
+         # ** a convenience option, because the above is soooo useful
+         elif opt.name == '-show_events':
+            # if -timing, cheat and use multi_timing
+            if self.timing and not self.m_timing:
+               if self.multi_set_timing([self.fname]): return 1
+            if not self.m_timing:
+               print("** '%s' requires -multi_timing" % opt.name)
+               return 1
+            self.multi_timing_to_event_list('-', style='GE:ALL')
+            # terminal
+            return 0
 
          elif opt.name == '-transpose':
             if not self.timing:
@@ -2628,7 +2691,8 @@ class ATInterface:
 
       errstr, result = self.timing.timing_to_1D(self.run_len, self.tr,
                             self.min_frac, self.per_run,
-                            allow_warns=self.t21D_warn_ok)
+                            allow_warns=self.t21D_warn_ok,
+                            write_mods=self.t21D_mods)
       if errstr:
          print(errstr)
          return 1

@@ -1,0 +1,186 @@
+#!/bin/tcsh
+
+# This program is just a patch/add-on to the
+# "@afni_refacer_make_master" program.  It is not really meant for
+# general use.  Instead, it records the very practical/empirical steps
+# followed to tweak/adjust the existing "afni_refacer_shell.nii.gz"
+# reference file for the refacer.
+
+# Update shell properties for refacer: make symmetric, choosing the
+# "more open" shell in the inferior slices; getting rid of odd small
+# pieces; making defacer part more specific (to face+ears)
+
+# Running this requires having the two existing files:
+#    afni_refacer_shell.nii.gz
+#    afni_refacer_MNIbmask10.nii.gz
+
+# Output file name: afni_refacer_shell_sym_1.0.nii.gz
+
+# ---------------------------------------------------------------------------
+
+# --------- make extra shell to patch holes in other shell -----------
+
+echo "\n++ work on pre-shell\n"
+
+3dcalc \
+    -a afni_refacer_shell.nii.gz \
+    -expr 'equals(a,-1)'         \
+    -prefix __preshell_00_min1.nii
+
+3dmask_tool \
+    -dilate_inputs 2                    \
+    -inputs __preshell_00_min1.nii      \
+    -prefix __preshell_01_min1_infl.nii
+
+set sh_mean = `3dBrickStat -positive -mean afni_refacer_shell.nii.gz`
+
+# add in the extra shell, but not closing off the bottom of the brain
+# nor adding by nose.
+3dcalc \
+    -a __preshell_00_min1.nii       \
+    -b __preshell_01_min1_infl.nii  \
+    -c afni_refacer_shell.nii.gz    \
+    -expr "${sh_mean}*step(b-a)*not(step(c))*step(z+134)*step(y+72)+step(c)*c+c*isnegative(c)*not(step(b-a))" \
+    -prefix __preshell_02_extra_shell.nii
+
+# ----------------------------------------------------------------------------
+
+echo "\n++ start work on main shell\n"
+
+# make LR-symmetric version of shell
+3dLRflip                                 \
+    -LR                                  \
+    -prefix __shell_00_LR.nii            \
+    __preshell_02_extra_shell.nii
+
+# make the mask region usable, as well.
+3dZeropad \
+    -master afni_refacer_shell.nii.gz    \
+    -prefix __refacer_01_grid.nii        \
+    afni_refacer_MNIbmask10.nii.gz
+
+3dmask_tool \
+    -dilate_inputs -2                    \
+    -inputs __refacer_01_grid.nii        \
+    -prefix __refacer_02_dil-2.nii
+
+# symmetrize, keeping the inferior regions relatively free (for brain
+# stem, if present in real data)
+3dcalc                                                      \
+    -a __shell_00_LR.nii                                    \
+    -b __preshell_02_extra_shell.nii                        \
+    -c __refacer_02_dil-2.nii                               \
+    -expr '(isnegative(x)*b + not(isnegative(x))*a)*not(c)' \
+    -prefix __shell_02_sym.nii
+
+
+# get rid of any tiny scraps left around
+3dClusterize                                                \
+    -nosum -1Dformat                                        \
+    -inset __shell_02_sym.nii                               \
+    -idat 0                                                 \
+    -ithr 0                                                 \
+    -NN 2                                                   \
+    -clust_nvox 100                                         \
+    -1sided RIGHT 2                                         \
+    -pref_map  __shell_02b_sym_map.nii                      \
+    -pref_dat  __shell_02c_sym_dat.nii            
+
+# get rid of odd scraps; use higher threshold in the ant than post
+3dcalc                                                         \
+    -overwrite                                                 \
+    -a __shell_02c_sym_dat.nii                                 \
+    -expr 'step(not(step(y))*step(a-325)+step(y)*step(a-150))' \
+    -prefix __shell_03_sym_thr.nii
+
+# smooth out edges
+3dmask_tool                                        \
+    -overwrite                                     \
+    -dilate_inputs 6 -5                            \
+    -inputs __shell_03_sym_thr.nii                 \
+    -prefix __shell_04_sym_thr_dil.nii 
+
+# make sure there has been no creep of 
+3dcalc                                             \
+    -a __shell_04_sym_thr_dil.nii                  \
+    -b __refacer_02_dil-2.nii                      \
+    -expr "step(a)*not(b)"                         \
+    -prefix __shell_05_sym_thr_dil_trim.nii
+
+3dBlurInMask                                                \
+    -input __shell_02c_sym_dat.nii                          \
+    -mask  __shell_05_sym_thr_dil_trim.nii                  \
+    -FWHM  2.666                                            \
+    -prefix __shell_06_blurinmask.nii
+
+
+# use the -1 values from initial afni_shell to repopulate with -1.
+# Use 3dROIMaker to 'fill in' outside the mask
+3dROIMaker                              \
+    -inset  __preshell_00_min1.nii      \
+    -nifti                              \
+    -inflate 9                          \
+    -trim_off_wm                        \
+    -skel_stop_strict                   \
+    -csf_skel __shell_06_blurinmask.nii \
+    -wm_skel  __shell_06_blurinmask.nii \
+    -skel_thr 0.00000000001             \
+    -volthr 200                         \
+    -dump_no_labtab                     \
+    -prefix  __shell_07_min1_region
+
+# finally, combine-- hopefully done now!
+3dcalc                                           \
+    -overwrite                                   \
+    -a __shell_06_blurinmask.nii                 \
+    -b __shell_07_min1_region_GMI.nii.gz         \
+    -expr 'a+not(a)*(-1)*step(b)'                \
+    -prefix afni_refacer_shell_sym_1.0.nii.gz  \
+    -datum short
+
+
+# --------------------- for defacing part ------------------------------
+
+echo "\n++ work on defacing part\n"
+
+# make a binary mask that shows parts that will be "defaced": 
+#   face and ears
+
+3dcalc                                          \
+    -a afni_refacer_shell_sym_1.0.nii.gz      \
+    -expr 'bool(a)'                             \
+    -prefix __deface_00_bool.nii
+
+### [PT: Jan 24, 2020] this step later deemed unnecesary.  Don't need
+### to shrink defacing volume
+#3dmask_tool                                     \
+#    -dilate_inputs -6                           \
+#    -inputs __deface_00_bool.nii                \
+#    -prefix __deface_01_dil.nii 
+
+# only use slices below a certain level; retain shell values
+3dcalc                                          \
+    -a __deface_00_bool.nii                     \
+    -b afni_refacer_shell_sym_1.0.nii.gz      \
+    -expr   'b*step(a)*isnegative(z+30)*ispositive(z+142)*isnegative(y-59)' \
+    -prefix __deface_02_inf_sli.nii             \
+    -datum short
+
+# --------------------- combine parts and finish ---------------------------
+
+echo "\n++ combine re- and de-facers, and finalize\n"
+
+3dTcat                                            \
+    -overwrite                                    \
+    -prefix afni_refacer_shell_sym_1.0.nii.gz   \
+    afni_refacer_shell_sym_1.0.nii.gz           \
+    __deface_02_inf_sli.nii
+
+3drefit -sublabel 0 "refacer" afni_refacer_shell_sym_1.0.nii.gz
+3drefit -sublabel 1 "defacer" afni_refacer_shell_sym_1.0.nii.gz
+
+echo ""
+echo "\n++ DONE:  afni_refacer_shell_sym_1.0.nii.gz\n"
+echo ""
+
+exit 0

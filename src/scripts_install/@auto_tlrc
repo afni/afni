@@ -603,7 +603,14 @@ PARSE:
          goto BEND
       endif
       if($RemoveSkull != 1) then
-         3dcopy $anat_in $ns_pref 
+         # if intput and output are identical, do not run   19 Feb 2020 [rickr]
+         # (avoid confusing FATAL ERROR: already exists, e.g. Robin on MB)
+         if ( "`@GetAfniPrefix $anat_in`" != ${ns_pref} ) then
+            echo "++ anat already stripped, copying $anat_in as $ns_pref"
+            3dcopy $anat_in $ns_pref 
+         else
+            echo "++ anat already stripped, re-using"
+         endif
       endif
    else
       set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}

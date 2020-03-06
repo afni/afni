@@ -1,0 +1,18 @@
+
+# notes for building AFNI on Mac OS 10.14, Mojave
+# (based on the rantings of a crazed emperor)
+
+# Mac has apparently hidden some system header files in the darkest
+# depths of Mordor.  However there is a pkg that can be installed to
+# add links to them from the standard locations.
+# 
+# These links are helpful in order to get the build to work under gcc.
+
+
+# 1. install Xcode, comand line tools and XQuartz
+#    (when upgrading the OS, new versions may be required)
+#
+# 2. open the .pkg file under /Library/Developer/CommandLineTools/Packages
+#    and "open" the contained .pkg file
+#
+# 3. get off emperor's lawn

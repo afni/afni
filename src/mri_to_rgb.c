@@ -43,10 +43,18 @@ ENTRY("mri_to_rgb") ;
       break ;
 
       case MRI_rgba:{ rgba *qar = MRI_RGBA_PTR(oldim) ;
-        for( ii=0 ; ii < npix ; ii++ ){
-          rgb[3*ii]   = qar[ii].r ;
-          rgb[3*ii+1] = qar[ii].g ;
-          rgb[3*ii+2] = qar[ii].b ;
+        float aa ;
+        for( ii=0 ; ii < npix ; ii++ ){ /* scale by A [13 Feb 2020] */
+          aa = qar[ii].a / 255.0f ;     /* instead of just dropping A */
+          if( aa > 0.99f ){
+            rgb[3*ii]   = qar[ii].r ;
+            rgb[3*ii+1] = qar[ii].g ;
+            rgb[3*ii+2] = qar[ii].b ;
+          } else {
+            rgb[3*ii]   = (byte)(aa*qar[ii].r+0.4f) ;
+            rgb[3*ii+1] = (byte)(aa*qar[ii].g+0.4f) ;
+            rgb[3*ii+2] = (byte)(aa*qar[ii].b+0.4f) ;
+          }
         }
       } break ;
 

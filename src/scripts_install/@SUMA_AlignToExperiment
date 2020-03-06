@@ -67,6 +67,7 @@ PARSE_COMMAND:
    set prexform = ""
    set OutResOpt = ""
    set rmlist = ()
+   set echo_opt = ""            # '' or '-echo' so it can propagate
    while ($cnt <= $Narg)
       set donext = 1;
       if ($donext && "$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
@@ -74,6 +75,7 @@ PARSE_COMMAND:
       endif
 
       if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo_opt = "-echo"
          set echo      
          set donext = 0      
       endif
@@ -170,6 +172,14 @@ PARSE_COMMAND:
             @ cnt ++
             set EA_in = "$argv[$cnt]"
             set donext = 0   
+
+            # NIFTI is not handled, warn users  26 Feb 2020 [rickr]
+            if ( `3dinfo -is_nifti $EA_in` == 1 ) then
+               set newpre = `3dinfo -prefix_noext $EA_in`
+               echo "** NIFTI is not currently allowed for -exp_anat, sorry"
+               echo "   consider: 3dcopy $EA_in $newpre"
+               goto END
+            endif
          endif   
       endif
      
@@ -586,7 +596,9 @@ ALIGN_CENTERS:
    if ($no_center == 0) then
       echo "Calculating center shift..."
       rm -f $ExpAnatPrefix"_shft$ExpAnatView."* >& /dev/null
+      # echo_opt is "-echo" or "", to propagate
       @Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD \
+                     $echo_opt                          \
                      -dset $ExpAnat.HEAD 
       set mpref = $ExpAnatPrefix
       set center_mat = $mpref"_shft.1D"

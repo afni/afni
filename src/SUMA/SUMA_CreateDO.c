@@ -3972,7 +3972,7 @@ float *SUMA_CIFTI_DO_XYZ_Range(SUMA_CIFTI_DO *CO, float *here)
    static int icall=0;
    static float fv[10][6];
    int k, j;
-   float *xyzr, def[6] = {-20, 20, -20, 20, -20, 20};
+   float *xyzr=NULL, def[6] = {-20, 20, -20, 20, -20, 20};
    SUMA_ALL_DO *asdo=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5222,7 +5222,7 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_ALL_DO *ado)
 void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_WorldAxisStandard"};
-   float MinDims[3], MaxDims[3], *xyzr;
+   float MinDims[3], MaxDims[3], *xyzr=NULL;
    int i, j, Nsel, *Vis_IDs=NULL;
    SUMA_SurfaceObject *cso=NULL;
    SUMA_DSET *dset=NULL;

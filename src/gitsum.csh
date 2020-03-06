@@ -8,6 +8,7 @@
 ## Output files:
 ##  gitsum.out.txt    = author line counts (also cat-ed to stdout)
 ##  gitsum.unkown.txt = lines that had unknown authors (for further research)
+##  gitsum.list.txt   = files that were processed (in case you care)
 ##
 ## -- RWCox -- Sep 2019
 #################################################################################
@@ -40,33 +41,45 @@ else if ( 1 ) then
 # everything minus the excludes (which aren't by anyone in SSCC)
   echo "Finding files"
   set flist = ( `git ls-tree --name-only -r HEAD ..` )
-  set exclude = ( -v -e qhulldir/ -e jpeg-6b/ -e mpeg_encodedir/ -e faces/ -e eispack/   \
-                     -e f2cdir/ -e matlab/ -e volpack/ -e maple/ -e poems/ -e gifsicledir/ -e XmHTML/ )
+  echo "File count (rawnum) = $#flist"
+  set exclude = ( -v -e qhulldir/ -e jpeg-6b/ -e mpeg_encodedir/ -e faces/  \
+                     -e eispack/  -e gts/     -e f2cdir/   -e matlab/       \
+                     -e volpack/  -e maple/   -e poems/    -e gifsicledir/  \
+                     -e XmHTML/   -e libglut/ -e mpegtoppm_dir              \
+                     -e netcdf-3.5.0/                                         )
+  
   set qlist = ( `echo $flist | xargs -n1 echo | grep $exclude` )
   unset flist
+  echo "File count (pruned) = $#qlist"
 else
 # for quicker testing
   set qlist = ( afni.c imseq.c suma_datasets.c pbar*.[ch] )
 endif
 
-# make sure list doesn't have duplicates or other undesired files
+# make sure list doesn't have duplicates or other undesirable files
 
-set flist = ( `echo $qlist | xargs -n1 echo |                                       \
-              grep -v -i -e '\.jpg' -e '\.jpeg' -e '\.png' -e '\.html' -e '\.pdf' | \
+set flist = ( `echo $qlist | xargs -n1 echo |                                        \
+              grep -v -i -e '\.jpg' -e '\.jpeg' -e '\.png'  -e '\.html' -e '\.pdf'   \
+                         -e '\.xbm' -e '\.tex'  -e '\.ps'   -e '\.tif'  -e '\.nii'   \
+                         -e '\.1D$' -e '\.BRIK' -e '\.HEAD' -e '\.dset'            | \
               sort | uniq` )
 
-echo "File count = $#flist"
+echo "File count (finito) = $#flist"
 
 # run the Count Lines Of Code script, if present (this is fast)
 
+if( -f gitsum.out.txt ) \rm -f gitsum.out.txt
+
 which cloc-1.64.pl >& /dev/null
 if ( $status == 0 ) then
-  cloc-1.64.pl --quiet $flist
-  sleep 1
-  echo
+  cloc-1.64.pl --quiet $flist |           tee gitsum.out.txt
+else
+  echo                                      > gitsum.out.txt
+  echo "--- cloc script not available ---" >> gitsum.out.txt
 endif
+echo                                       >> gitsum.out.txt
 
-# list of authors needing only one alias (not case sensitive)
+# list of AFNI authors needing only one alias (not case sensitive)
 # - anyone whose alias has spaces in it is out of luck
 
 set alist = ( Cox Craddock discoraj Froehlich Gang  \
@@ -74,9 +87,9 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
               Laconte Lisinski Clark Johnson Julia  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
-              Vovk Zosky Torres Schmidt                )
+              Vovk Zosky Torres Schmidt Novak Hanke    )
 
-# list of authors needing two aliases (i.e., troublemakers)
+# list of AFNI authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
 # - Trickery for Vinai: his username is 'V. R', and the blank is trouble
 
@@ -116,19 +129,60 @@ end
 if( -f gitsum.unknown.txt ) \rm -f gitsum.unknown.txt
 touch gitsum.unknown.txt
 
+# will get list of all files processed
+if( -f gitsum.list.txt ) \rm -f gitsum.list.txt
+touch gitsum.list.txt
+
 # loop over source files, plus README documents
 
 printf "start blaming "
 
-foreach fff ( $flist )
+set nfff = $#flist
 
+# number of git blames to run at one time
+# this speeds the script up a lot
+
+set nblame = 20
+@   mblame = $nblame - 1
+
+set jffq = ( `count -dig 1 0 $mblame` )
+
+foreach ifff ( `count -dig 1 1 $nfff $nblame` )
+
+ # delete temp files from previous loop
+
+  \rm gitsum.junk*.txt
+
+ # run git blame on several files at once
  # skip directories or non-existing files or non-ASCII files
-  if ( ! -f $fff || -z $fff ) continue
-  set aa = `file --mime $fff | grep ascii | wc -l`
-  if( $aa == 0 ) continue
 
- # get and save the list of blamees for this file (grep out blank lines)
-  git blame $fff | grep -v '[0-9]) $' > gitsum.junk.txt
+  foreach jfff ( $jffq )
+    @ qfff = $ifff + $jfff
+    if( $qfff > $nfff ) continue
+    set fff = $flist[$qfff]
+    if ( ! -f $fff || -z $fff ) continue
+    set aa = `file --mime $fff | grep ascii | wc -l`
+    if( $aa == 0 ) continue
+    # determine if this is a C file - if so, remove comments
+    set xxx = `basename $fff` ; set yyy = `basename $xxx .c` ; set yyy = `basename $yyy .h`
+    # xxx == yyy means NOT a C file
+    # get and save the list of blamees for this file (also grep out blank lines)
+    if ( $xxx == $yyy ) then
+      git blame $fff | grep -v '[0-9]) *$' > gitsum.junk$jfff.txt &
+    else
+      # uncomment is an AFNI program
+      git blame $fff | uncomment -gitskip - | grep -v -e '[0-9]) *$' -e '^$' -e '^ *$' > gitsum.junk$jfff.txt &
+    endif
+    @ nn ++
+    echo $fff >> gitsum.list.txt
+  end
+
+ # wait until all jobs above are done, put results together in one file
+  wait
+  set junk = ( `find . -maxdepth 1 -name 'gitsum.junk*.txt'` )
+  if( $#junk == 0 ) continue
+
+  cat gitsum.junk?*.txt > gitsum.junk.txt
 
  # count total lines in this file, sum them up
   set aa = `wc -l < gitsum.junk.txt` ; @ tsum += $aa
@@ -147,14 +201,14 @@ foreach fff ( $flist )
   grep $gunk gitsum.junk.txt >> gitsum.unknown.txt
 
  # print a progress pacifier
-  @ nn ++ ; if( $nn % 20 == 0 ) printf "%d/%d " $nn $#flist
+  echo "=== $nn files / $tsum lines done"
+ # if( $nn % 20 == 0 ) printf "%d/%d " $nn $#flist
 
 end
 
 # cleanup after loop over files
 
-printf "... total line count = %d \n" $tsum
-\rm -f gitsum.junk.txt
+\rm -f gitsum.junk*.txt
 touch gitsum.junk.txt
 
 # count total number of unknown lines now
@@ -187,13 +241,13 @@ endif
 
 # Put header lines into the final report
 
-echo   " Contributor    Lines    %-age"            > gitsum.out.txt
+echo   " Contributor    Lines    %-age"           >> gitsum.out.txt
 echo   " ------------  -------  -------"          >> gitsum.out.txt
 printf " %12s  %7s  %6.2f%%\n" Everyone $tsum 100 >> gitsum.out.txt
 
 # sort output lines by second column, put in final report
 
-sort -n -r --key=2 gitsum.junk.txt      >> gitsum.out.txt
+sort -n -r --key=2 gitsum.junk.txt                >> gitsum.out.txt
 
 # let the user see the results, as well as having saved them
 
@@ -202,6 +256,6 @@ cat gitsum.out.txt
 
 # toss out the junk
 
-\rm -f gitsum.junk.txt
+\rm -f gitsum.junk*.txt
 
 exit 0

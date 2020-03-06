@@ -8688,6 +8688,8 @@ char *gen_space_str(char *space_str)
 
    ENTRY("gen_space_str");
 
+   if( space_str == NULL || *space_str == '\0' ) RETURN(NULL) ;
+
    if(asl==NULL){
       ERROR_message("can not load spaces\n");
       RETURN(NULL);

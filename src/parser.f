@@ -822,7 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ
+      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ,ISPRIME
 C
 C  External library functions
 C
@@ -1116,6 +1116,9 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             R8_EVAL(NEVAL) = ZTONE( R8_EVAL(NEVAL) )
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'ISPRIME' )THEN
+            R8_EVAL(NEVAL) = ISPRIME( R8_EVAL(NEVAL) )
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'CDF2STAT' )THEN
             NEVAL = NEVAL - 4
             R8_EVAL(NEVAL) = CDF2ST( R8_EVAL(NEVAL)   ,
@@ -1408,7 +1411,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ
+      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ,ISPRIME
 C
 C  External library functions
 C
@@ -2007,6 +2010,11 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = ZTONE( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'ISPRIME' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = ISPRIME( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'CDF2STAT' )THEN
@@ -3320,7 +3328,7 @@ ccc      REAL*8 X
 ccc      CALL QQQERR
 ccc      DGAMMA = 0.D+0
 ccc      RETURN
-      END
+ccc      END
       REAL*8 FUNCTION  DBESI0( X )
       REAL*8 X
       CALL QQQERR

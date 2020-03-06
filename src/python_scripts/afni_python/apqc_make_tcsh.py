@@ -109,8 +109,23 @@ auth = 'PA Taylor'
 #    + put in censoring to the 1dplot.py command when showing VR6 -
 #      also known as the 'Molfese approach'
 #
-ver = '3.11' ; date = 'Sep 9, 2019' 
+#ver = '3.11' ; date = 'Sep 9, 2019' 
 # [PT] spacing fix in VR6 with censoring
+#
+#ver = '3.12' ; date = 'Dec 26, 2019' 
+# [PT] for regr QC block, indiv stim plotting: don't need 'xmat_uncensored'
+#      as a dependency, so remove it from the list
+#
+#ver = '3.2' ; date = 'Jan 9, 2019' 
+# [PT] new warning block: censor fraction
+#    + seed point plotting introduced (vstat section for resting state)
+#
+#ver = '3.3' ; date = 'Feb 15, 2020' 
+# [PT] new funcs for 'widely used' params
+#    + for censor and sundry info.  
+#
+ver = '3.31' ; date = 'Feb 17, 2020' 
+# [PT] further cleaned up (simplified?) a lot of the censoring info
 #
 #########################################################################
 
@@ -123,15 +138,40 @@ import sys
 import os
 import json
 import glob
+import afni_base      as BASE
+import afni_util      as UTIL
 import lib_apqc_tcsh  as lat
 import lib_ss_review  as lssr
 import lib_apqc_io    as laio
+import apqc_make_html as amh
 import apqc_make_html as amh
 
 # all possible uvars
 all_uvars = []
 for x in lssr.g_ss_uvar_fields: 
     all_uvars.append(x[0])
+
+### !!!! need to put something here about checking about
+### !!!! knowing template, and getting a list of seed
+### !!!! locations (maybe someday user can enter seed
+### !!!! locations); also have a label
+# in MNI space here:
+#seed_locs = [['PCC', 5, 49, 40], ['vis', -1, 77, 11]]
+# ['vis', 18, 99, 0]
+#seed_locs = [['lh-precuneus',6, 54, 50],
+#             ['rh-vis-cortex',-4, 91, -3],
+#             ['rh-Mot',-21, 24, 71],
+#             ['rh-DAtt',51, -5, 26],
+#             ['lhInsSal',-42, -12, -9],
+#             ['PCC', 5, 49, 40],
+#             ['RetSplCor', -3, 42, 27], 
+#             ['PreCVA', -6, 50, 42], 
+#             ['vis', 22, 103, 0],
+#             ['rhMotor', -32, 25, 54]
+#]
+# list of seed locs; RAI DICOM coords
+# prob need a rad depend on vox size
+
 
 # ===================================================================
 # ===================================================================
@@ -149,6 +189,12 @@ if __name__ == "__main__":
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
+
+    # we will often want template space name, if it has one
+    if lat.check_dep(ap_ssdict, ['template']) :
+        template_space = lat.get_space_from_dset(ap_ssdict['template'])
+    else:
+        template_space = ''
 
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
@@ -218,6 +264,29 @@ if __name__ == "__main__":
 
         str_FULL+= ban
         str_FULL+= cmd
+
+    # --------------------------------------------------------------------
+
+    # [PT: Feb 14, 2020]  
+    # Top level: see if there is censoring used in this dset
+
+    ban      = lat.bannerize('Top level: censor info')
+    cmd      = lat.apqc_censor_info( ap_ssdict, RUN_STYLE )
+
+    str_FULL+= ban
+    str_FULL+= cmd
+
+    # --------------------------------------------------------------------
+
+    # [PT: Feb 14, 2020]  
+    # Top level: sundry
+
+    ban      = lat.bannerize('Top level: sundry pieces for multi-use')
+    cmd      = lat.apqc_sundry_info( ap_ssdict )
+
+    str_FULL+= ban
+    str_FULL+= cmd
+
 
     # --------------------------------------------------------------------
 
@@ -346,7 +415,7 @@ if __name__ == "__main__":
         ban      = lat.bannerize('anatomical and template alignment')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
-                                            focusbox )
+                                            focusbox, tspace=template_space )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -355,8 +424,8 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "vstat"
-    # item    : stats in vol: F-stat (def) and other stim/contrasts
-    DO_VSTAT        = 0
+    # item    : stats in vol (task FMRI): F-stat (def) and other stim/contrasts
+    DO_VSTAT_TASK   = 0
     VSTAT_HAVE_MASK = 0
 
     ldep     = ['stats_dset', 'final_anat']
@@ -366,18 +435,18 @@ if __name__ == "__main__":
     ldep4    = ['mask_dset']                               # 4ary consid
 
     if lat.check_dep(ap_ssdict, ldep) :
-        DO_VSTAT = 1
+        DO_VSTAT_TASK = 1
         ulay = '${final_anat}'
         if lat.check_dep(ap_ssdict, ldep2) :
             focusbox = '${templ_vol}'
         else:
             focusbox = '${final_anat}'
     elif lat.check_dep(ap_ssdict, alt_ldep) :
-        DO_VSTAT = 1
+        DO_VSTAT_TASK = 1
         ulay     = '${vr_base_dset}'
         focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
 
-    if DO_VSTAT :
+    if DO_VSTAT_TASK :
         all_vstat = ["Full_Fstat"]
         if lat.check_dep(ap_ssdict, ldep3) :
             all_vstat.extend(ap_ssdict[ldep3[0]])
@@ -410,6 +479,76 @@ if __name__ == "__main__":
             str_FULL+= ban
             str_FULL+= cmd
             idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vstat"
+    # item    : corr maps (rest/non-task FMRI): seedbased corr 
+    if not(DO_VSTAT_TASK) :               # only done in resting/non-task cases
+        # mirror same logic as task (above) for deciding ulay/olay
+        DO_VSTAT_SEED_REST = 0
+        VSTAT_HAVE_MASK    = 0
+
+        ldep     = ['errts_dset', 'final_anat']
+        ldep2    = ['template']                                # 2ary consid
+        alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
+        ldep3    = ['user_stats']                              # 3ary consid
+        ldep4    = ['mask_dset']                               # 4ary consid
+
+        if lat.check_dep(ap_ssdict, ldep) :
+            DO_VSTAT_SEED_REST = 1
+            ulay = '${final_anat}'
+            if lat.check_dep(ap_ssdict, ldep2) :
+                focusbox = '${templ_vol}'
+            else:
+                focusbox = '${final_anat}'
+
+        elif lat.check_dep(ap_ssdict, alt_ldep) :
+            DO_VSTAT_SEED_REST = 1
+            ulay     = '${vr_base_dset}'
+            focusbox = 'AMASK_FOCUS_ULAY' 
+
+        if DO_VSTAT_SEED_REST :
+
+            abin_dir = lat.get_path_abin()
+
+            SPECIAL_FILE = abin_dir + '/' + 'afni_seeds_per_space.txt'
+
+            if lat.check_dep(ap_ssdict, ldep4) :
+                VSTAT_HAVE_MASK = 1
+
+            if 0 :
+                print("This branch will be for a user-entered file. Someday.")
+            elif os.path.isfile(SPECIAL_FILE) :
+                if lat.check_dep(ap_ssdict, ldep2) :
+                    tspace    = lat.get_space_from_dset(ap_ssdict['template'])
+                    seed_list = UTIL.read_afni_seed_file(SPECIAL_FILE, 
+                                                         only_from_space=tspace)
+                    Nseed = len(seed_list)
+                else:
+                    Nseed = 0
+            else:
+                Nseed = 0
+
+            for ii in range(Nseed):
+
+                seed  = seed_list[ii]               # obj with nec info
+                sname = 'seed_' + seed.roi_label
+
+                ban   = lat.bannerize('view seedbased corr: ' + seed.roi_label)
+                obase = 'qc_{:02d}'.format(idx)
+                # in this case, we also specify the indices of the ulay
+                # and thr volumes in the stats dset-- we intend that this
+                # will generalize to viewing not just the F-stat (the
+                # default)
+                cmd      = lat.apqc_vstat_seedcorr( obase, "vstat", sname, 
+                                                    ulay, focusbox, seed, 
+                                                    ii,
+                                                    HAVE_MASK=VSTAT_HAVE_MASK )
+
+                str_FULL+= ban
+                str_FULL+= cmd
+                idx     += 1
 
     # --------------------------------------------------------------------
 
@@ -536,7 +675,7 @@ if __name__ == "__main__":
     # if there is no stats dset or its value is NO_STATS, then there
     # *are no* regressors of interest, so we won't try to plot them.
     # At some point, we will add in different info to put here, though.
-    ldep = ['xmat_stim', 'xmat_uncensored', 'stats_dset']
+    ldep = ['xmat_stim', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         # additional checks here for possible other uvars to use
         HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
@@ -565,6 +704,48 @@ if __name__ == "__main__":
         # thr volumes in the stats dset-- we intend that this will
         # generalize to viewing not just the F-stat (the default)
         cmd      = lat.apqc_regr_df( obase, "regr", "df" )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "regr"
+    # item    : corr brain:  corr of errts WB mask ave with each voxel
+
+    # !!! make uvar for this??
+
+    ldep     = ['errts_dset', 'final_anat']
+    ldep2    = ['template']                                # 2ary consid
+    alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
+    ldep3    = ['user_stats']                              # 3ary consid
+    ldep4    = ['mask_dset']                               # 4ary consid
+
+    if lat.check_dep(ap_ssdict, ldep) :
+        DO_REGR_CORR_ERRTS = 1
+        ulay = '${final_anat}'
+        if lat.check_dep(ap_ssdict, ldep2) :
+            focusbox = '${templ_vol}'
+        else:
+            focusbox = '${final_anat}'
+    elif lat.check_dep(ap_ssdict, alt_ldep) :
+        DO_REGR_CORR_ERRTS = 1
+        ulay     = '${vr_base_dset}'
+        focusbox = 'AMASK_FOCUS_ULAY' 
+
+    #ldep  = ['xmat_regress']
+    #if lat.check_dep(ap_ssdict, ldep) :
+
+    list_corr_brain = glob.glob('corr_brain+*.HEAD')
+    if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
+
+        corr_brain = list_corr_brain[0]
+
+        ban      = lat.bannerize('check ave errts corr through brain')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_corr_errts( obase, "regr", "corr_errts",
+                                             ulay, focusbox, corr_brain )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -617,6 +798,57 @@ if __name__ == "__main__":
             txtfile = ap_ssdict['cormat_warn_dset']
         cmd      = lat.apqc_warns_xmat( obase, "warns", "xmat",
                                         fname = txtfile )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : censor fraction, general
+
+    # apply if there is censoring used
+    ldep = ['df_info_dset', 'censor_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        # ---------- get df info as json
+
+        df_dict = lat.read_in_txt_to_dict( ap_ssdict['df_info_dset'],
+                                           tmp_name='__tmp_df_info.json' )
+
+        ban      = lat.bannerize('Censor fraction (total)')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_cen_total( obase, "warns", "cen_total",
+                                             df_dict=df_dict )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : censor fraction, per stimulus
+
+    # use if: there are stim files present, and censoring
+    ldep = ['stats_dset', 'censor_dset', 'ss_review_dset', 'xmat_stim']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # get the ss_review_basic info as a dict
+        rev_dict = lat.read_in_txt_to_dict( ap_ssdict['ss_review_dset'],
+                                            tmp_name='__tmp_ss_rev.json' )
+
+        cmd = '''1d_tool.py -verb 0 -infile {xmat_stim} -show_labels
+        '''.format( **ap_ssdict )
+        com = BASE.shell_com(cmd, capture=1, save_hist=0)
+        com.run()
+        all_labels = com.so[0].split() # list of all labels
+
+        ban      = lat.bannerize('Censor fraction (per stim)')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_cen_stim( obase, "warns", "cen_stim",
+                                            rev_dict=rev_dict,
+                                            label_list=all_labels)
 
         str_FULL+= ban
         str_FULL+= cmd

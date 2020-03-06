@@ -13,8 +13,13 @@ author    = "PA Taylor (NIMH, NIH)"
 # + [PT] at the moment, numpy isn't actually used here, so removing
 #        that import-- I would expect it to return *someday*, though.
 #
-version   = "1.4"; date  = "Jan 14, 2019"
+#version   = "1.4"; date  = "Jan 14, 2019"
 # + [PT] calc 1D-plot LW from Npts
+#
+ver = '1.5' ; date = 'Feb 216, 2020' 
+# + [PT] add in ability for -censor_hline to contain a 'NONE' argument 
+#        ... bc that is useful as a placeholder when some images have
+#        censor vals and others don't
 #
 # =================================================================
 
@@ -112,9 +117,10 @@ lots of individual subject 'ss' instances of the subplobj object.
                                       lw=0, edgecolor=None, alpha=None) )
 
         if ss.censor_hline : 
-            pp.axhline( y=ss.censor_hline, 
-                        c=laio.DEF_censor_hline_RGB, 
-                        ls=':', lw=1)
+            if ss.censor_hline != 'NONE' :
+                pp.axhline( y=ss.censor_hline, 
+                            c=laio.DEF_censor_hline_RGB, 
+                            ls=':', lw=1)
 
         if bf.see_xax : 
             pp.axhline(y=0, c='0.6', ls='-', lw=0.5)
@@ -172,9 +178,10 @@ lots of individual subject 'ss' instances of the subplobj object.
                 qq = subpl[1]
 
             if ss.censor_hline : 
-                qq.axhline( y=ss.censor_hline, 
-                             c=laio.DEF_censor_hline_RGB, 
-                             ls=':', lw=1)
+                if ss.censor_hline != 'NONE' :
+                    qq.axhline( y=ss.censor_hline, 
+                                c=laio.DEF_censor_hline_RGB, 
+                                ls=':', lw=1)
 
             if bf.see_xax : 
                 qq.axhline(y=0, c='0.6', ls='-', lw=0.5)

@@ -238,7 +238,7 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
          if(verb>2) INFO_message("... dilating vol %d by %d\n", ivol, dsize);
          if( dsize > 0 ) {
             for( id=0; id < dsize; id++ )
-               THD_mask_dilate(nx, ny, nz, bdata, 1);
+               THD_mask_dilate(nx, ny, nz, bdata, 1, 2);
          } else if( dsize < 0 ) {
             for( id=0; id > dsize; id-- )
                THD_mask_erode_sym(nx, ny, nz, bdata, 1);

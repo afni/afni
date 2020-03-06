@@ -2209,7 +2209,7 @@ int main( int argc , char *argv[] )
    int bb , bbase , ss ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout=NULL , *rimout=NULL ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
-   float *maxar , *minar ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
+   float *maxar=NULL , *minar=NULL ; char *prefix_minmax=NULL ; int do_minmax=0 ; /* 16 Mar 2017 */
    float *t_minmax=NULL ; MRI_IMAGE *im_minmax=NULL ;
    float_pair tpair ;
    THD_3dim_dataset *outset , *bbset=NULL , *rrset=NULL ;
@@ -3439,6 +3439,11 @@ int main( int argc , char *argv[] )
 
    if( Xclu_nblur > 0 && !do_Xclustsim )
      ERROR_exit("You cannot use '-ETAC_blur' without '-ETAC' /:( !") ;
+
+   /* -Clustsim is not currently working when -prefix uses a full path */
+   /*                                               3 Mar 2020 [rickr] */
+   if( do_clustsim && prefix && prefix[0] == '/' )
+     ERROR_exit("Cannot use -Clustsim when -prefix has an absolute path") ;
 
    /* do some checking and editing for Clustsim stuff */
 

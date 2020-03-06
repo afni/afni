@@ -899,7 +899,7 @@ void FslWriteAllVolumes(FSLIO *fslio, const void *buffer)
 size_t FslWriteVolumes(FSLIO *fslio, const void *buffer, size_t nvols)
 {
   /* The dimensions and datatype must be set before calling this function */
-  size_t retval = 0;  // initialize to failure
+  size_t retval = 0;  /* initialize to failure */
   if (fslio==NULL)  FSLIOERR("FslWriteVolumes: Null pointer passed for FSLIO");
   if ( (!fslio->written_hdr) && (FslIsSingleFileType(FslGetFileType(fslio))) &&
        (FslIsCompressedFileType(FslGetFileType(fslio))) )

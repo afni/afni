@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "testprime.c"
 
 /***** C routines to interface to the f2c generated parser code *****/
 
@@ -984,7 +985,7 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
                        float *parbot, float *partop, float *parout,
                        int meth , float *wtar )
 {
-   int jind ; char cind ;
+   int jind=0 ; char cind ;
    int jj,aa ; char cjj ;
    int nbad=0 ;
    double pval[26] ;

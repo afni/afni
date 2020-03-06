@@ -6232,10 +6232,11 @@ def db_cmd_tproject(proc, block, insets, maskstr='', censtr='', cmode='ZERO',
     else:     dstr = ''
 
     cmd = '%s# -- use 3dTproject to project out regression matrix --\n' \
+          '%s#    (make errts like 3dDeconvolve, but more quickly)\n'   \
           '%s3dTproject -polort 0 -input %s \\\n'                       \
           '%s%s%s'                                                      \
           '%s           -ort %s -prefix %s\n\n'                         \
-          % (istr, istr, insets, mstr, cstr, dstr, istr, xmat, prefix)
+          % (istr, istr, istr, insets, mstr, cstr, dstr, istr, xmat, prefix)
 
     proc.errts_pre = prefix
 
@@ -6298,35 +6299,45 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
 
     # Do not handle surface until we have both hemispheres at once.
 
-    gcor_file = 'out.gcor.1D'
-    gu_mean   = 'gmean.errts.unit.1D'
-    uset      = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    gcor_file  = 'out.gcor.1D'
+    gu_mean    = 'mean.errts.unit.1D'
+    uset       = BASE.afni_name('rm.errts.unit%s' % proc.view)
+    errts_dset = '%s%s' % (errts_pre, proc.view)
 
     cmd = '# ---------------------------------------------------\n'     \
           '# compute and store GCOR (global correlation average)\n'     \
           '# (sum of squares of global mean of unit errts)\n'           \
-          '3dTnorm -norm2 -prefix %s %s%s\n'                            \
+          '3dTnorm -norm2 -prefix %s %s\n'                              \
           '3dmaskave -quiet -mask %s %s \\\n'                           \
           '          > %s\n'                                            \
-          % (uset.prefix, errts_pre, proc.view, proc.mask_epi.pv(),
+          % (uset.prefix, errts_dset, proc.mask_epi.pv(),
              uset.pv(), gu_mean)
 
     cmd += "3dTstat -sos -prefix - %s\\' > %s\n"                        \
            'echo "-- GCOR = `cat %s`"\n\n'                              \
             % (gu_mean, gcor_file, gcor_file)
 
-    gcor_dset = 'corr_brain'
+    corset = 'corr_brain'
+    gmean  = 'mean.errts.1D'
     cmd += '# ---------------------------------------------------\n'    \
            "# compute correlation volume\n"                             \
-           "# (per voxel: average correlation across masked brain)\n"   \
-           "# (now just dot product with average unit time series)\n"   \
-           "3dTcorr1D -dot -prefix %s %s %s\n\n"                        \
-           % (gcor_dset, uset.pv(), gu_mean)
+           "# (per voxel: correlation with masked brain average)\n"     \
+           "3dmaskave -quiet -mask %s %s \\\n"                          \
+           "          > %s\n"                                           \
+           "3dTcorr1D -prefix %s %s%s %s\n\n"                           \
+           % (proc.mask_epi.pv(), errts_dset, gmean,
+              corset, errts_pre, proc.view, gmean)
 
     # compute extra correlation volumes (assuming EPI grid ROIs followers):
+    #   - This WAS average correlation ('ave unit' dot 'unit errts'),
+    #     but that was basically scaled results for correlation with
+    #     average, so prefer the latter.
+    #
+    #   unit errts -> errts, remove -dot
+    #
     #   3dcalc -a ROI -b full_mask -expr 'a*b' -prefix ROI.FM
-    #   3dmaskave -quiet -mask ROI.FM rm.errts.unit+tlrc > mean.ROI.1D
-    #   3dTcorr1D -dot -prefix corr_ROI rm.errts.unit+tlrc mean.ROI.1D
+    #   3dmaskave -quiet -mask ROI.FM errts+tlrc > mean.ROI.1D
+    #   3dTcorr1D -prefix corr_ROI errts+tlrc mean.ROI.1D
     oname = '-regress_make_corr_vols'
     roilist, rv = block.opts.get_string_list(oname)
     if roilist:
@@ -6338,17 +6349,18 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
              return
 
           mpre = 'rm.fm.%s' % roi
-          meants = 'mean.unit.%s.1D' % roi
+          meants = 'mean.ROI.%s.1D' % roi
           cvol = 'corr_af_%s' % roi
 
           rstr += '# create correlation volume %s\n' % cvol
           rstr += "3dcalc -a %s -b %s -expr 'a*b' \\\n"         \
                   "       -prefix %s\n" \
                   % (mset.pv(), proc.mask_epi.pv(), mpre)
-          rstr += "3dmaskave -q -mask %s%s %s > %s\n"           \
-                  % (mpre, proc.view, uset.pv(), meants)
-          rstr += "3dTcorr1D -dot -prefix %s %s %s\n\n"         \
-                  % (cvol, uset.pv(), meants)
+          rstr += "3dmaskave -q -mask %s%s %s \\\n"             \
+                  "          > %s\n"                            \
+                  % (mpre, proc.view, errts_dset, meants)
+          rstr += "3dTcorr1D -prefix %s %s %s\n\n"              \
+                  % (cvol, errts_dset, meants)
 
        cmd += rstr
 
@@ -8236,14 +8248,21 @@ def block_header(hname, maxlen=74, hchar='=', endchar=''):
 def show_program_help(section=''):
    # maybe print them all
    if section == '':
-      print(g_help_string)
-      print(g_help_examples)
+      print(g_help_intro)
+      # now print examples from lib_ap_examples
+      show_help_examples(source='eall')
       print(g_help_notes)
       print(g_help_options)
       print(g_help_trailer)
 
       return 0
 
+   # process new example string separately for now
+   if section in ['enew', 'eold', 'eall', 'afni_proc.py']:
+      show_help_examples(source=section)
+      return 0
+
+   # and individual sections
    rv = 0
    try:
       shelp = eval('g_help_%s' % section)
@@ -8254,11 +8273,47 @@ def show_program_help(section=''):
 
    return rv
 
+def show_help_examples(source='eold'):
+   """just print the main string, until we are ready for more"""
+   if source.lower() in ['eold', 'old']:
+       print(g_help_examples)
+       return
+
+   # print new-style examples
+   import lib_ap_examples as EGS
+   EGS.populate_examples()
+
+   # print only AP examples, or all
+   if source.lower() in ['enew', 'new', 'afni_proc', 'afni_proc.py']:
+      aphelp = 1
+   else:
+      aphelp = -1
+
+   print(g_egnew_header)
+   EGS.display_eg_all(aphelp=aphelp, verb=2)
+   print(g_egnew_trailer)
+
+   return
+
+g_egnew_header = """
+    ==================================================
+    EXAMPLES (options can be provided in any order): ~1~
+"""
+
+g_egnew_trailer = """
+    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
+
+                afni_proc.py -ask_me
+
+        Perhaps at some point this will be revived.  It would be useful.
+        The -ask_me methods have not been seriously updated since 2006.
+"""
+
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
 # -- this is long, get it out of the main library
 
-g_help_string = """
+g_help_intro = """
     ===========================================================================
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
@@ -8467,8 +8522,8 @@ g_help_examples = """
 
         Example 2. Very simple. ~2~
 
-        Use all defaults, except remove 3 TRs and use basis
-        function BLOCK(30,1).  The default basis function is GAM.
+           Use all defaults, except remove 3 TRs and use basis
+           function BLOCK(30,1).  The default basis function is GAM.
 
                 afni_proc.py -subj_id sb23.e2.simple                       \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -8620,76 +8675,182 @@ g_help_examples = """
                         -regress_est_blur_epits                 \\
                         -regress_est_blur_errts
 
-        Example 6. A modern example.  GOOD TO CONSIDER. ~2~
+        Example 6. A simple task example, based on AFNI_data6. ~2~
 
-           Align the EPI to the anatomy.  Also, process in MNI space, using
-           the 2009c non-linear template, and use non-linear registration to
-           align to it.
+           This example has changed to more closely correspond with the
+           the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
 
-           For alignment in either direction, add the 'align' block, which
-           aligns the anatomy to the EPI.  To then align the EPI to the anat
-           using the lpc+ZZ cost function (instead of just lpc), apply
-           -volreg_align_e2a, where that transform (inverse) is applied along
-           with the motion alignment.
+           The tshift block will interpolate each voxel time series to adjust
+           for differing slice times, where the result is more as if each
+           entire volume were acquired at the beginning of the TR.
 
-           On top of that, complete the processing in standard space by running
-           auto_warp.py to perform non-linear registration of the anat to the
-           template (via the 'tlrc' block) and apply the same transformation
-           to the EPI via -volreg_tlrc_warp.  Again, the EPI transformation is
-           applied along with the motion alignment, using the volume with the
-           minimum outlier fraction as the alignment base (via option
-           '-volreg_align_to MIN_OUTLIER').
+           The 'align' block implies using align_epi_anat.py to align the
+           anatomy with the EPI.  Extra options specify using lpc+ZZ for the
+           cost function (probably more robust than lpc), and -giant_move (in
+           case the anat and EPI start a bit far apart).  This block computes
+           the anat to EPI transformation matrix, which will then be inverted
+           in the volreg block, based on -volreg_align_e2a.
 
-           So use the given -blocks option, plus 2 extra volreg warps to #3 via
-           '-volreg_align_e2a', '-volreg_tlrc_warp'.
+           Also, compute the transformation of the anatomy to MNI space, using
+           affine registration (for speed in this simple example) to align to
+           the 2009c template.
 
-           As an added bonus, censor TR pairs where the Euclidean Norm of the
-           motion derivative exceeds 0.3.  Also, regress motion parameters
-           separately for each run.
+           In the volreg block, align the EPI to the MIN_OUTLIER volume (a
+           low-motion volume, determined from the data).  Then concatenate all
+           EPI transformations, warping the EPI to standard space in one step
+           (without multiple resampling operations), combining:
 
-                afni_proc.py -subj_id sb23.e6.align                        \\
-                        -copy_anat sb23/sb23_mpra+orig                     \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask         \\
-                                scale regress                              \\
-                        -tcat_remove_first_trs 3                           \\
-                        -align_opts_aea -cost lpc+ZZ                       \\
-                        -tlrc_base MNI152_T1_2009c+tlrc                    \\
-                        -tlrc_NL_warp                                      \\
-                        -volreg_align_to MIN_OUTLIER                       \\
-                        -volreg_align_e2a                                  \\
-                        -volreg_tlrc_warp                                  \\
-                        -mask_epi_anat yes                                 \\
-                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
-                        -regress_stim_labels tneg tpos tneu eneg epos      \\
-                                             eneu fneg fpos fneu           \\
-                        -regress_basis 'BLOCK(30,1)'                       \\
-                        -regress_motion_per_run                            \\
-                        -regress_censor_motion 0.3                         \\
-                        -regress_reml_exec                                 \\
-                        -regress_opts_3dD                                  \\
-                            -gltsym 'SYM: +eneg -fneg'                     \\
-                            -glt_label 1 eneg_vs_fneg                      \\
-                        -regress_est_blur_epits                            \\
-                        -regress_est_blur_errts
+              EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
 
-           To process in orig space, remove -volreg_tlrc_warp, and probably the
-           -tlrc options.
-           To process as anat aligned to EPI, remove -volreg_align_e2a.
+           The standard space transformation is applied to the EPI due to 
+           specifying -volreg_tlrc_warp.
 
-         * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
-           in the case of -reml_exec.
+           A 4 mm blur is applied, to keep it very light (about 1.5 times the
+           voxel size).
 
-        Example 7. Similar to 6, but get a little more esoteric. ~2~
+           The regression model is based on 2 conditions, each lasting 20 s
+           per event, modeled by convolving a 20 s boxcar function with the
+           BLOCK basis function, specified as BLOCK(20,1) to make the regressor
+           unit height (height 1).
 
-           a. Register EPI volumes to the one which has the minimum outlier
-              fraction (so hopefully the least motion), still with cost lpc+ZZ.
+           One extra general linear test (GLT) is included, contrasting the
+           visual reliable condition (vis) with auditory reliable (aud).
 
-           b. Blur only within the brain, as far as an automask can tell.  So
+           Motion regression will be per run (using one set of 6 regressors for
+           each run, i.e. 18 regressors in this example).
+
+           The regression includes censoring of large motion (>= 0.3 ~mm
+           between successive time points, based on the motion parameters),
+           as well as censoring of outlier time points, where at least 5% of
+           the brain voxels are computed as outliers.
+
+           The regression model starts from the full time series, for time
+           continuity, before censored time points are removed.  The output
+           errts will be zero at censored time points (no error there), and so
+           the output fit times series (fitts) will match the original data.
+
+           The model fit time series (fitts) will be computed AFTER the linear
+           regression, to save RAM on class laptops.
+
+           Create sum_ideal.1D, as the sum of all non-baseline regressors, for
+           quality control.
+
+           Estimate the blur in the residual time series.  The resulting 3 ACF
+           parameters can be averaged across subjects for cluster correction at
+           the group level.
+
+           Skip running the Monte Carlo cluster simulation example (which would
+           specify minimum cluster sizes for cluster significance, based on the
+           ACF parameters and mask), for speed.
+
+           Once the proc script is created, execute it.
+
+              afni_proc.py                                                \\
+                 -subj_id FT.e6                                           \\
+                 -copy_anat FT/FT_anat+orig                               \\
+                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
+                 -blocks tshift align tlrc volreg blur mask scale regress \\
+                 -radial_correlate_blocks tcat volreg                     \\
+                 -tcat_remove_first_trs 2                                 \\
+                 -align_opts_aea -cost lpc+ZZ -giant_move                 \\
+                 -tlrc_base MNI152_T1_2009c+tlrc                          \\
+                 -volreg_align_to MIN_OUTLIER                             \\
+                 -volreg_align_e2a                                        \\
+                 -volreg_tlrc_warp                                        \\
+                 -blur_size 4.0                                           \\
+                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+                 -regress_stim_labels vis aud                             \\
+                 -regress_basis 'BLOCK(20,1)'                             \\
+                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                     -glt_label 1 V-A                                     \\
+                 -regress_motion_per_run                                  \\
+                 -regress_censor_motion 0.3                               \\
+                 -regress_censor_outliers 0.05                            \\
+                 -regress_compute_fitts                                   \\
+                 -regress_make_ideal_sum sum_ideal.1D                     \\
+                 -regress_est_blur_epits                                  \\
+                 -regress_est_blur_errts                                  \\
+                 -regress_run_clustsim no                                 \\
+                 -execute 
+
+         * One could also use ANATICOR with task (e.g. -regress_anaticor_fast)
+           in the case of -regress_reml_exec.  3dREMLfit supports voxelwise
+           regression, but 3dDeconvolve does not.
+
+        Example 6b. A modern task example, with preferable options. ~2~
+
+           GOOD TO CONSIDER
+
+           This is based on Example 6, but is more complete.
+           Example 6 is meant to run quickly, as in an AFNI bootcamp setting.
+           Example 6b is meant to process more as we might suggest.
+
+              - apply -check_flip in align_epi_anat.py, to monitor consistency
+              - apply non-linear registration to MNI template, using output
+                from @SSwarper:
+                  o apply skull-stripped anat in -copy_anat
+                  o apply original anat as -anat_follower (QC, for comparison)
+                  o pass warped anat and transforms via -tlrc_NL_warped_dsets,
+                    to apply those already computed transformations
+              - use -mask_epi_anat to tighten the EPI mask (for QC),
+                intersecting it (full_mask) with the anat mask (mask_anat)
+              - use 3dREMLfit for the regression, to account for temporal
+                autocorrelation in the noise
+                (-regress_3dD_stop, -regress_reml_exec)
+              - generate the HTML QC report using the nicer pythonic functions
+                (requires matplotlib)
+           
+              afni_proc.py                                                \\
+                 -subj_id FT.e6                                           \\
+                 -copy_anat Qwarp/anat_warped/anatSS.FT.nii               \\
+                 -anat_has_skull no                                       \\
+                 -anat_follower anat_w_skull anat FT/FT_anat+orig         \\
+                 -dsets FT/FT_epi_r?+orig.HEAD                            \\
+                 -blocks tshift align tlrc volreg blur mask scale regress \\
+                 -radial_correlate_blocks tcat volreg                     \\
+                 -tcat_remove_first_trs 2                                 \\
+                 -align_opts_aea -cost lpc+ZZ -giant_move -check_flip     \\
+                 -tlrc_base MNI152_2009_template_SSW.nii.gz               \\
+                 -tlrc_NL_warp                                            \\
+                 -tlrc_NL_warped_dsets anatQQ.FT.nii                      \\
+                                       anatQQ.FT.aff12.1D                 \\
+                                       anatQQ.FT_WARP.nii                 \\
+                 -volreg_align_to MIN_OUTLIER                             \\
+                 -volreg_align_e2a                                        \\
+                 -volreg_tlrc_warp                                        \\
+                 -mask_epi_anat yes                                       \\
+                 -blur_size 4.0                                           \\
+                 -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt        \\
+                 -regress_stim_labels vis aud                             \\
+                 -regress_basis 'BLOCK(20,1)'                             \\
+                 -regress_opts_3dD -jobs 2 -gltsym 'SYM: vis -aud'        \\
+                     -glt_label 1 V-A                                     \\
+                 -regress_motion_per_run                                  \\
+                 -regress_censor_motion 0.3                               \\
+                 -regress_censor_outliers 0.05                            \\
+                 -regress_3dD_stop                                        \\
+                 -regress_reml_exec                                       \\
+                 -regress_compute_fitts                                   \\
+                 -regress_make_ideal_sum sum_ideal.1D                     \\
+                 -regress_est_blur_epits                                  \\
+                 -regress_est_blur_errts                                  \\
+                 -regress_run_clustsim no                                 \\
+                 -html_review_style pythonic                              \\
+                 -execute 
+
+           To compare one's own command against this one, consider adding
+                -compare_opts 'example 6b'
+           to the end of (or anywhere in) the current command, as in:
+
+                afni_proc.py ... my options ...   -compare_opts 'example 6b'
+
+        Example 7. Apply some esoteric options. ~2~
+
+           a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
               created internally by 3dBlurInMask (akin to 3dAutomask).
 
-           c. Let the basis functions vary.  For some reason, we expect the
+           b. Let the basis functions vary.  For some reason, we expect the
               BOLD responses to the telephone classes to vary across the brain.
               So we have decided to use TENT functions there.  Since the TR is
               3.0s and we might expect up to a 45 second BOLD response curve,
@@ -8698,7 +8859,7 @@ g_help_examples = """
               This means using -regress_basis_multi instead of -regress_basis,
               and specifying all 9 basis functions appropriately.
 
-           d. Use amplitude modulation.
+           c. Use amplitude modulation.
 
               We expect responses to email stimuli to vary proportionally with
               the number of punctuation characters used in the message (in
@@ -8709,19 +8870,19 @@ g_help_examples = """
               Use -regress_stim_types to specify that the epos/eneg/eneu stim
               classes should be passed to 3dDeconvolve using -stim_times_AM2.
 
-           e. Not only censor motion, but censor TRs when more than 10% of the
+           d. Not only censor motion, but censor TRs when more than 10% of the
               automasked brain are outliers.  So add -regress_censor_outliers.
 
-           f. Include both de-meaned and derivatives of motion parameters in
+           e. Include both de-meaned and derivatives of motion parameters in
               the regression.  So add '-regress_apply_mot_types demean deriv'.
 
-           g. Output baseline parameters so we can see the effect of motion.
+           f. Output baseline parameters so we can see the effect of motion.
               So add -bout under option -regress_opts_3dD.
 
-           h. Save on RAM by computing the fitts only after 3dDeconvolve.
+           g. Save on RAM by computing the fitts only after 3dDeconvolve.
               So add -regress_compute_fitts.
 
-           i. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
+           h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
 
@@ -8738,6 +8899,7 @@ g_help_examples = """
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
                         -mask_epi_anat yes                                 \\
+                        -blur_size 4                                       \\
                         -blur_in_automask                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_types times times times              \\
@@ -8887,6 +9049,7 @@ g_help_examples = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -mask_epi_anat yes                                         \\
+                  -blur_size 4                                               \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
@@ -8894,7 +9057,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 9b. Resting state analysis with ANATICOR. ~2~
+        Example 9b. Resting state analysis with ANATICOR. ~2~
 
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
@@ -8914,6 +9077,7 @@ g_help_examples = """
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -mask_epi_anat yes                                         \\
+                  -blur_size 4                                               \\
                   -regress_anaticor                                          \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.05                              \\
@@ -8922,7 +9086,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10. Resting state analysis, with tissue-based regressors. ~2~
+        Example 10. Resting state analysis, with tissue-based regressors. ~2~
 
            Like example #9, but also regress the eroded white matter averages.
            The WMe mask come from the Classes dataset, created by 3dSeg via the
@@ -8954,6 +9118,7 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -blur_size 4                                               \\
                   -mask_epi_anat yes                                         \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
@@ -8965,7 +9130,7 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
+        Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
 
             This is for band passing and computation of ALFF, etc.
 
@@ -8996,14 +9161,17 @@ g_help_examples = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (now even more modern :). ~2~
+        Example 11. Resting state analysis (now even more modern :). ~2~
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
-           than the default lpc one.
+           than the default lpc one.  Apply -giant_move, in case the datasets
+           do not start off well-aligned.  Include -check_flip for good measure.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
+           * NOTE: prepare for FreeSurfer before running @SSwarper, so that the
+                   FS output will stay aligned with the input.
            * This adds a lot of processing time.
            * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
              Then use the resulting datasets in the afni_proc.py command below
@@ -9012,6 +9180,9 @@ g_help_examples = """
                             -subid FT                  \\
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
+
+            - The SS (skull-stripped) can be given via -copy_anat, and the 
+              with-skull unifized anatU can be given as a follower.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -9041,19 +9212,20 @@ g_help_examples = """
                  reasonable to stick with epits.  They will likely be almost
                  identical.
 
-
                 afni_proc.py -subj_id FT.11.rest                             \\
                   -blocks despike tshift align tlrc volreg blur mask         \\
                           scale regress                                      \\
-                  -copy_anat FT_anat_FSPprep.nii                             \\
+                  -copy_anat anatSS.FT.nii                                   \\
+                  -anat_has_skull no                                         \\
+                  -anat_follower anat_w_skull anat anatU.FT.nii              \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI FSvent epi fs_ap_vent.nii.gz            \\
+                  -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
                   -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                \\
                   -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
-                  -align_opts_aea -cost lpc+ZZ                               \\
+                  -align_opts_aea -cost lpc+ZZ -giant_move -check_flip       \\
                   -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
                   -tlrc_NL_warp                                              \\
                   -tlrc_NL_warped_dsets anatQQ.FT.nii                        \\
@@ -9062,9 +9234,11 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -blur_size 4                                               \\
                   -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC FSvent 3                                   \\
+                  -regress_ROI_PC_per_run FSvent                             \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
@@ -9072,9 +9246,10 @@ g_help_examples = """
                   -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts
+                  -regress_est_blur_errts                                    \\
+                  -html_review_style pythonic
 
-       Example 11b. Similar to 11, but without FreeSurfer. ~2~
+        Example 11b. Similar to 11, but without FreeSurfer. ~2~
 
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
@@ -9106,14 +9281,13 @@ g_help_examples = """
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
+                  -tlrc_base TT_N27+tlrc                                     \\
                   -tlrc_NL_warp                                              \\
-                  -tlrc_NL_warped_dsets                                      \\
-                      anatQQ.FT.nii anatQQ.FT.aff12.1D anatQQ.FT_WARP.nii    \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -volreg_warp_dxyz 2.5                                      \\
+                  -blur_size 4                                               \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
@@ -9131,7 +9305,7 @@ g_help_examples = """
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim yes
 
-       Example 12 background: Multi-echo data processing. ~2~
+        Example 12 background: Multi-echo data processing. ~2~
 
          Processing multi-echo data should be similar to single echo data,
          except for perhaps:
@@ -9157,7 +9331,7 @@ g_help_examples = """
                 ...                                              \\
 
 
-       Example 12a. Multi-echo data processing - very simple. ~2~
+        Example 12a. Multi-echo data processing - very simple. ~2~
 
          Keep it simple and just focus on the basic ME options, plus a few
          for controlling registration.
@@ -9181,9 +9355,7 @@ g_help_examples = """
                   -volreg_align_e2a                             \\
                   -volreg_tlrc_warp
 
-       Example 12b. Multi-echo data processing - OC resting state. ~2~
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
-                  -tlrc_NL_warp                                              \\
+        Example 12b. Multi-echo data processing - OC resting state. ~2~
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.
@@ -9211,13 +9383,14 @@ g_help_examples = """
                   -volreg_tlrc_warp                             \\
                   -mask_epi_anat yes                            \\
                   -combine_method OC                            \\
+                  -blur_size 4                                  \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
                   -regress_censor_outliers 0.05                 \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
-       Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
+        Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
 
          As above, but run tedana.py for MEICA denoising.
 
@@ -9242,6 +9415,7 @@ g_help_examples = """
                   -volreg_tlrc_warp                             \\
                   -mask_epi_anat yes                            \\
                   -combine_method tedana                        \\
+                  -blur_size 4                                  \\
                   -blur_in_mask yes                             \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
@@ -9251,7 +9425,7 @@ g_help_examples = """
 
          Consider an alternative combine method, 'tedana_OC_tedort'.
 
-       Example 13. Complicated ME, surface-based resting state example. ~2~
+        Example 13. Complicated ME, surface-based resting state example. ~2~
 
          Key aspects of this example:
 
@@ -9264,6 +9438,12 @@ g_help_examples = """
             - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
             - QC: @radial_correlate on tcat and volreg block results
             - QC: pythonic html report
+
+            * since this is a surface-based example, the are no tlrc options
+
+         Minor aspects:
+
+            - a FWHM=6mm blur is applied, since blur on surface is TO is size
 
          Note: lacking good sample data for this example, it is simply faked
                for demonstration (echoes are identical, fake ricor parameters
@@ -10070,9 +10250,16 @@ g_help_notes = """
     regression, as is done in Example 11.
 
 
-    First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
+   *First run FreeSurfer, then import to AFNI using @SUMA_Make_Spec_FS, then
     make ventricle and white matter masks from the Desikan-Killiany atlas based
     parcellation dataset, aparc+aseg.nii.
+
+        * When running FreeSurfer, it is best to start with:
+
+            check_dset_for_fs.py
+
+          to keep the output from FreeSurfer aligned with its input, keeping
+          the FS parcellations aligned with the warped anatomy.
 
     Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
     which might be nicer for probability maps, though the Desikan-Killiany
@@ -10095,11 +10282,12 @@ g_help_notes = """
       * Note, @SUMA_Make_Spec_FS now (as of 14 Nov, 2019) outputs ventricle
         and white matter masks, for possible use with afni_proc.py:
 
-            SUMA/fs_ap_vent.nii.gz
+            SUMA/fs_ap_latvent.nii.gz
             SUMA/fs_ap_wm.nii.gz
     
-    Then FT_anat_FSprep.nii, fs_ap_vent.nii.gz and fs_ap_wm.nii.gz (along with
-    the basically unused aparc.a2009s+aseg.nii) are passed to afni_proc.py.
+    Then FT_anat_FSprep.nii, fs_ap_latvent.nii.gz and fs_ap_wm.nii.gz
+    (along with the basically unused aparc.a2009s+aseg.nii) are passed
+    to afni_proc.py.
 
 
   * Preparation for running FreeSurfer
@@ -10760,7 +10948,19 @@ g_help_options = """
         -----------------------------------------------------------------
         Informational/terminal options  ~3~
 
-        -help                   : show this help
+        -help                   : show the complete help
+
+        -help_section SECTION   : show help for given SECTION
+
+            The help is divided into sections, an any one of these can be
+            displayed individually by providing the given SECTION:
+
+                  intro         - introduction
+                  examples      - afni_proc.py command examples
+                  notes         - NOTE_* entries
+                  options       - descriptions of options
+                  trailer       - final trailer
+
         -hist                   : show the module history
 
         -requires_afni_version  : show AFNI date required by processing script
@@ -10791,7 +10991,133 @@ g_help_options = """
             List the history of '-requires_afni_version' dates and reasons.
 
         -show_valid_opts        : show all valid options (brief format)
+
+        -show_example NAME      : display the given example command
+
+                e.g. afni_proc.py -show_example 'example 6b'
+                e.g. afni_proc.py -show_example 'example 6b' -verb 0
+                e.g. afni_proc.py -show_example 'example 6b' -verb 2
+
+            Display the given afni_proc.py help example.  Details shown depend
+            on the verbose level, as specified with -verb:
+
+                0: no formatting - command can be copied and applied elseshere
+                1: basic         - show header and formatted command
+                2: detailed      - include full description, as in -help output
+
+            To list examples that can be shown, use:
+
+                afni_proc.py -show_example_names
+
+            See also '-show_example_names'.
+
+        -show_example_names     : show names of all sample commands
+                                  (possibly for use with -compare options)
+
+                e.g. afni_proc.py -show_example_names
+
+            Use this command to list the current examples know by afni_proc.py.
+            The format of the output is affected by -verb, with -verb 2 format
+            being the default.
+
         -ver                    : show the version number
+
+        -----------------------------------------------------------------
+        Terminal 'compare' options ~3~
+
+        These options are used to help compare one afni_proc.py command with a
+        different one.  One can compare a current command to a given example,
+        one example to another, or one command to another.
+
+        To see a list of examples one can compare against, consider:
+
+            afni_proc.py -show_example_names
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            This option allows one to compare a pair of pre-defined examples
+            (from the list in 'afni_proc.py -show_example_names').  It is like
+            using -compare_opts, but for comparing example vs. example.
+
+        -compare_opts EXAMPLE   : compare current options against EXAMPLE
+
+                e.g. -compare_opts 'example 6b'
+
+            more completely:
+
+                afni_proc.py  ... my options ...  -compare_opts 'example 6b'
+
+            Adding this option (and parameter) to an existing afni_proc.py
+            command results in comparing the options applied in the current
+            command against those of the specified target example.
+
+            The afni_proc.py command terminates after showing the comparison
+            output.
+
+            The output from this is controlled by the -verb LEVEL:
+
+                0       : show (python-style) lists of differing options
+                1 (def) : include parameter differences
+                          (except where expected, e.g. -copy_anat dset)
+                          (limit param lists to current text line)
+                2       : show complete parameter diffs
+
+            Types of differences shown include:
+
+                missing options         :
+                    where the current command is missing options that the
+                    specified target command includes
+                extra options           :
+                    where the current command has extra options that the
+                    specified target command is missing
+                differing options       :
+                    where the current command and target use the same option,
+                    but their parameters differ
+                fewer applied options   :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has fewer
+                    (what is beyond the matching/differing cases)
+                more applied options    :
+                    where the current command and target use multiple copies of
+                    the same option, but the current command has more
+                    (what is beyond the matching/differing cases)
+
+            This option is the basis for all of the -compare* options.
+
+            See also -show_example_names.
+
+        -compare_example_pair EG1 EG2 : compare options for pair of examples
+
+                e.g. -compare_example_pair 'example 6' 'example 6b'
+
+            more completely:
+
+                afni_proc.py -compare_example_pair 'example 6' 'example 6b'
+
+            Like -compare_opts, but rather than comparing the current command
+            against a known example, it compares 2 known examples.
+
+            See also -show_example_names.
+
+        -compare_opts_vs_opts opts... : compare 2 full commands
+
+            more completely:
+
+                afni_proc.py                            \\
+                    ... one full set of options ...     \\
+                    -compare_opts_vs_opts               \\
+                    ... another full set of options ...
+
+            Like other -compare_* options, but this compares 2 full commands,
+            separated by -compare_opts_vs_opts.  This is a comparison method
+            for comparing 2 local commands, rather than against any known
+            example.
 
         -----------------------------------------------------------------
         General execution and setup options ~3~
@@ -11127,6 +11453,32 @@ g_help_options = """
 
                 tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
+        -exit_on_error yes/no   : set whether proc script should exit on error
+
+                e.g.     -exit_on_error no
+                default: -exit_on_error yes
+
+            This option affects how the program will suggest running any
+            created proc script, as well as how one would be run if -execute
+            is provided.
+
+            If the choice is 'yes' (the default), the help for how to run the
+            proc script (terminal and in script, itself) will show running it
+            via "tcsh -xef", where the 'e' parameter says to exit on error.
+            For example (using tcsh notation):
+
+                tcsh -xef proc.sb23 |& tee output.proc.sb23
+
+            If the choice is 'no', then it will suggest using simply "tcsh -x".
+            For example (using tcsh notation):
+
+                tcsh -x proc.sb23 |& tee output.proc.sb23
+
+            This is also applied when using -execute, where afni_proc.py itself 
+            runs the given system command.
+
+            See also -execute.
+
         -gen_epi_review SCRIPT_NAME : specify script for EPI review
 
                 e.g. -gen_epi_review review_orig_EPI.txt
@@ -11202,6 +11554,11 @@ g_help_options = """
             would be given names with prefix 'rm.'.  By default, those files
             are deleted at the end of the script.  This option blocks that
             deletion.
+
+        -keep_script_on_err     : do not remove proc script if AP command fails
+
+            When there is a fatal error in the afni_proc.py command, it will
+            delete any incomplete proc script, unless this option is applied.
 
         -move_preproc_files     : move preprocessing files to preproc.data dir
 
@@ -12130,7 +12487,11 @@ g_help_options = """
             global vr_base, say, which may or may not be one of the per-run
             vr_base datasets).
 
-            See also -volreg_pvra_base_index.
+          * Consider use of -volreg_warp_dxyz, for cases when the voxel size
+            might vary across runs.  It would ensure that the final grids are
+            the same.
+
+            See also -volreg_pvra_base_index, -volreg_warp_dxyz.
 
         -volreg_pvra_base_index INDEX : specify per run INDEX for post_vr_allin
 
@@ -13879,6 +14240,10 @@ g_help_options = """
 
                 See also -regress_censor_motion.
 
+        -regress_no_stim_times  : do not use
+
+            OBSOLETE: please see -regress_use_stim_files
+
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
                 e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
@@ -14113,6 +14478,20 @@ g_help_options = """
 
             The user is encouraged to check the 3dDeconvolve command in the
             processing script, to be sure they are applied correctly.
+
+        -regress_show_df_info yes/no    : set whether to report DoF information
+
+                e.g.     -regress_show_df_info no
+                default: -regress_show_df_info yes
+
+            This option is used to specify whether get QC information about
+            degrees of freedom using:
+
+                1d_tool.py -show_df_info
+
+            By default, that will be run, saving output to out.df_info.txt.
+
+            Please see '1d_tool.py -help' for more information.
 
         -regress_stim_labels LAB1 ...   : specify labels for stimulus classes
 

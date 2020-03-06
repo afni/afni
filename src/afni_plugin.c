@@ -4905,6 +4905,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) r_idisp_vec3f ,          /* 31 Jul 2007 */
    (vptr_func *) THD_dataset_mismatch ,   /* 04 Sep 2009 */
    (vptr_func *) legendre ,               /* 16 Jul 2010 */
+   (vptr_func *) AFNI_needs_dset_ijk ,    /* 13 Jan 2020 */
 #endif
 NULL } ;
 

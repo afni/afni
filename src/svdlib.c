@@ -893,7 +893,7 @@ double *svdLoadDenseArray(char *filename, int *np, char binary) {
   a = svd_doubleArray(n, FALSE, "svdLoadDenseArray: a");
   if (!a) return NULL;
   if (binary) {
-    float f;
+    float f=0.0f;
     for (i = 0; i < n; i++) {
       svd_readBinFloat(file, &f);
       a[i] = f;

@@ -44,13 +44,14 @@ target_include_directories(
   INTERFACE 
             $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::3DEdge,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:$<TARGET_NAME_IF_EXISTS:f2c>,INTERFACE_INCLUDE_DIRECTORIES>
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
-            ${MOTIF_INCLUDE_DIR}
+            $<TARGET_PROPERTY:Motif::Motif,INTERFACE_INCLUDE_DIRECTORIES>
             ${X11_INCLUDE_DIR}
 )
 target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
@@ -114,11 +115,25 @@ endfunction(configure_pcor)
 configure_pcor(pcor "REF_FLOAT_SINGLE")
 configure_pcor(pcorsh "REF_FLOAT_SINGLE;VOX_SHORT")
 
-add_library(parser OBJECT parser.c parser_int.c)
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/parser.c)
+  # Copy or generate parser.c in the build tree
+  if (USE_F2C)
+    configure_file(parser.f ${CMAKE_CURRENT_BINARY_DIR}/parser.f COPYONLY)
+    configure_file(parser.inc ${CMAKE_CURRENT_BINARY_DIR}/parser.inc COPYONLY)
+    execute_process(
+    COMMAND
+      "${F2C_EXECUTABLE}" "-A" parser.f
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  else()
+    configure_file(parser.c ${CMAKE_CURRENT_BINARY_DIR}/parser.c COPYONLY)
+  endif()
+endif()
+add_library(parser OBJECT ${CMAKE_CURRENT_BINARY_DIR}/parser.c parser_int.c)
 target_include_directories(
   parser PRIVATE $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )
-# target_link_libraries(parser PRIVATE  AFNI::f2cdir)
 
 set_source_files_properties(
   thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
@@ -283,6 +298,7 @@ add_library(
   thd_iochan.c
   thd_lasso.c
   thd_linecount.c
+  thd_ljungbox.c
   thd_loaddblk.c
   thd_logafni.c
   thd_makefbuc.c
@@ -325,6 +341,7 @@ add_library(
   thd_shear3d.c
   thd_shift2.c
   thd_statpval.c
+  thd_store_index.c
   thd_strfunc.c
   thd_svdblur.c
   thd_table.c
@@ -497,12 +514,12 @@ target_link_libraries(
           libheaders
           AFNI::coxplot
   PRIVATE 
-          ${NETCDF_LIBRARIES_C}
           AFNI::3DEdge
           AFNI::eispack
-          AFNI::volpack
+          $<TARGET_NAME_IF_EXISTS:volpack>
           NIFTI::nifti2
           NIFTI::nifticdf
+          ${NETCDF_LIBRARIES_C}
 )
 add_afni_target_properties(mri)
 add_library(AFNI::mri ALIAS mri)

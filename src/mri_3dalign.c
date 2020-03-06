@@ -786,8 +786,8 @@ MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis *basis, MRI_IMARR *imar ,
                                  int keep_datum  )
 {
    int nim = IMARR_COUNT(imar) , kk ;
-   MRI_IMAGE *bim , *outim , *keepim ;
-   MRI_IMARR *outar ;
+   MRI_IMAGE *bim=NULL , *outim=NULL , *keepim=NULL ;
+   MRI_IMARR *outar=NULL ;
 
 ENTRY("mri_3dalign_apply") ;
 

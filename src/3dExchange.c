@@ -37,9 +37,9 @@ int main( int argc , char * argv[] )
    int nopt=0, nbriks=0, ib=0;
    int i,k, nvox=0, nmaps=0, nx=0, ny=0;
    float fac, voxval, prev_voxval=-9999.0, prev_replace=-9999.0 ;
-   short *sar, *outsar;
-   byte *bar, *outbar;
-   float *far, *outfar, *mapptr, *srclist, *replacelist;
+   short *sar=NULL, *outsar;
+   byte *bar=NULL, *outbar;
+   float *far=NULL, *outfar, *mapptr, *srclist, *replacelist;
    char *mapstr=NULL;
    char *prefix=NULL;
    char stmp[THD_MAX_PREFIX+1]={""}; 

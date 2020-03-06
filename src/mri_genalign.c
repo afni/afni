@@ -133,6 +133,7 @@ ENTRY("GA_get_warped_values") ;
    /* send parameters to warping function for its setup */
 
 /* STATUS("send params to wfunc") ; */
+   RAND_ROUND ;
    gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
    /* choose image from which to extract data */
@@ -164,6 +165,7 @@ ENTRY("GA_get_warped_values") ;
      /**** (warp does index-to-index transformation) ****/
 
 /* STATUS("call wfunc for real") ; */
+     RAND_ROUND ;
      gstup->wfunc( npar , NULL ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
@@ -288,6 +290,7 @@ void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
 {
 ENTRY("GA_setup_2Dhistogram") ;
 
+   RAND_ROUND ;
    switch( gstup->hist_mode ){
 
      default:
@@ -405,6 +408,8 @@ ENTRY("GA_pearson_local") ;
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;  /* skip this blok */
      elm = gbs->elm[dd] ;
 
+     RAND_ROUND ; /* 26 Feb 2020 */
+
      if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
        for( ii=0 ; ii < nelm ; ii++ ){
@@ -484,6 +489,7 @@ float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
    for( wss=0.0001f,dd=0 ; dd < nblok ; dd++ ){
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
      elm = gbs->elm[dd] ;
+     RAND_ROUND ;
      if( nelm > nxt ){
        xt = (float *)realloc(xt,sizeof(float)*nelm) ;
        yt = (float *)realloc(yt,sizeof(float)*nelm) ; nxt = nelm ;
@@ -529,6 +535,8 @@ double GA_scalar_costfun( int meth , int npt ,
   double val=0.0f ;
 
 ENTRY("GA_scalar_costfun") ;
+
+   RAND_ROUND ; /* 26 Feb 2020 */
 
   switch( meth ){
 
@@ -1292,6 +1300,8 @@ ENTRY("mri_genalign_scalar_optim") ;
    /* copy initial warp parameters into local array wpar,
       scaling to the range 0..1                          */
 
+   RAND_ROUND ;
+
    wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
      if( !stup->wfunc_param[qq].fixed ){
@@ -1485,7 +1495,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      kpar[kk] = (double *)calloc(sizeof(double),nfr) ; /* parameters sets */
 
    /* try the middle of the allowed parameter range, and save it */
-
+   RAND_ROUND ;
    for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5 ;
    mpr = 0 ;
    val = GA_scalar_fitter( nfr , wpar ) ;
@@ -1573,6 +1583,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( mverb ) fprintf(stderr," + - A little optimization:") ;
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
+     RAND_ROUND ;
      (void)powell_newuoa( nfr , kpar[kk] ,
                           0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
@@ -1631,7 +1642,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      else
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_fixed ;
    }
-   if( mverb > 1 ) ININFO_message("- save #%2d for twobest",ival[0]) ;
+   if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[0]) ;
    nt = 1 ;
    for( jj=1 ; jj < ngood && nt < PARAM_MAXTRIAL ; jj++ ){
      qpar = kpar[ival[jj]] ;                 /* the jj-th best param set */
@@ -1647,7 +1658,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          goto NEXT_jj ;
        }
      }
-     if( mverb > 1 ) ININFO_message("- save #%2d for twobest",ival[jj]) ;
+     if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[jj]) ;
      for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
          stup->wfunc_param[qq].val_trial[nt] = stup->wfunc_param[qq].min
@@ -1743,6 +1754,7 @@ ENTRY("mri_genalign_scalar_warpone") ;
 #endif
    }
 
+   RAND_ROUND ;
    wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
    /* create float copy of input image, if needed */
@@ -1788,6 +1800,7 @@ ENTRY("mri_genalign_scalar_warpone") ;
 
      /**** warp base points to new locations ****/
 
+     RAND_ROUND ;
      wfunc( npar , NULL , npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
      /* interpolate target image at warped points */
@@ -3055,6 +3068,7 @@ void mri_genalign_cubic( int npar, float *wpar ,
  AFNI_OMP_START ;
 #pragma omp parallel if( npt > 6666 )
  { int ii,jj,kk ; float aa,bb,cc , uu,vv,ww , pv[NPOLCUBI] ;
+   memset( pv , 0 , sizeof(float)*NPOLCUBI ) ;
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
 

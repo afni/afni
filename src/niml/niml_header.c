@@ -461,7 +461,7 @@ NI_float_array * NI_decode_float_list( char *ss , char *sep )
 {
    NI_float_array *far ; float *ar,val ; int num , ii,jj , nadd ;
    NI_str_array *sar ; char *cc, *dd , *sl=NULL ;
-   int allow_slash=0 , nv=0 ; float v1,v2,dv ;
+   int allow_slash=0 , nv=0 ; float v1,v2,dv=0.0f ;
 
    sar = NI_decode_string_list( ss , sep ) ;
    if( sar == NULL ) return NULL ;

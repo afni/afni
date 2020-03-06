@@ -375,6 +375,8 @@ void ISQ_setup_ppmto_filters(void)
 #ifdef DARWIN
    else if( THD_is_directory("/Applications/GIMP.app") )
      gimp_path = strdup("open -a /Applications/GIMP.app") ;
+   else if( THD_is_directory("/Applications/MacPorts/GIMP.app") )
+     gimp_path = strdup("open -a /Applications/MacPorts/GIMP.app") ;
 #endif
 
    /*-- the cheap way to write PPM  --*/
@@ -2775,19 +2777,21 @@ ENTRY("ISQ_short_to_rgb") ;
    Overlay one image onto another.  Underlay (ulim) and overlay (ovim)
    must be either shorts or rgb.  If they are shorts, they are indices
    into the underlay and overlay color index tables, respectively.
+   * Usually the underlay table is grayscale, and the overlay table colors,
+     but the underlay table can be colors if the user turns 'Colr' on.
    The overlay opacity is alpha (0 < alpha <= 1).
      If both are shorts and alpha=1, the output is shorts.
      If either is rgb, or alpha < 1, then the output is rgb.
+     If ulim is rgba, then output is rgba [13 Feb 2020].
      The output is NULL if the inputs are invalid.
    Pixels from ovim are overlaid only if they are NOT zero.
-
-   06 Mar 2001 -- RWCox
+   -- 06 Mar 2001 -- RWCox
 -------------------------------------------------------------------------*/
 
 MRI_IMAGE * ISQ_overlay( MCW_DC *dc , MRI_IMAGE *ulim, MRI_IMAGE *ovim, float alpha )
 {
    register int npix,ii,jj ;
-   MRI_IMAGE *outim , *orim ;
+   MRI_IMAGE *outim=NULL , *orim ;
    register byte *orr, *our ;
 
 ENTRY("ISQ_overlay") ;
@@ -2796,44 +2800,58 @@ ENTRY("ISQ_overlay") ;
 
    npix = ulim->nvox ;
 
-   if( ovim->nvox != npix ) RETURN(NULL) ;
+   if( ovim->nvox != npix ) RETURN(NULL) ;  /* this is bad - user = loser */
 
-   if( alpha > 1.0f ) alpha = 1.0f ;
+   if( alpha > 1.0f ) alpha = 1.0f ;       /* stoopid user loser */
 
-   /*-- Case: both are short indices, no transparency --*/
+   /*-- Case: both are short indices, no transparency (alpha == 1) --*/
+   /*--       output image will be shorts as well                  --*/
 
    if( ulim->kind == MRI_short && ovim->kind == MRI_short && alpha > 0.99f ){
      register short *tar , *oar=MRI_SHORT_PTR(ovim) , *iar=MRI_SHORT_PTR(ulim) ;
 
      outim = mri_new_conforming( ulim , MRI_short ) ;
-     tar = MRI_SHORT_PTR( outim ) ;
+     tar   = MRI_SHORT_PTR( outim ) ;
      for( ii=0 ; ii < npix ; ii++ )
        tar[ii] = (oar[ii] <= 0) ? iar[ii] : -oar[ii] ;
 
      RETURN(outim) ;
    }
 
-   /*-- Convert both inputs to RGB, if needed --*/
+   /*-- Case: underlay input is RGBA [13 Feb 2020] --*/
+   /*--       output image will be RGBA as well    --*/
+
+   if( ulim->kind == MRI_rgba ){
+     outim = ISQ_overlay_rgba( dc , ulim , ovim , alpha ) ;
+     RETURN(outim) ;
+   }
+
+   /*-- Convert underlay to RGB, if needed  --*/
+   /*-- Output image will be RGB below here --*/
 
    switch( ulim->kind ){              /* we always make a new RGB underlay,  */
-     case MRI_rgb:                   /* since this will be the output image */
+     case MRI_rgb:                    /* since this will be the output image */
        outim = mri_copy(ulim) ;
        our   = MRI_RGB_PTR(outim) ;
      break ;
 
+#if 0  /* should no longer be possible */
      case MRI_rgba:
        outim = mri_to_rgb(ulim) ;
        our   = MRI_RGB_PTR(outim) ;
      break ;
+#endif
 
      default:
-       RETURN(NULL) ; break ;   /* bad bad bad */
+       RETURN(NULL) ; break ;   /* bad bad bad - user should be flogged */
 
      case MRI_short:
-       outim = ISQ_index_to_rgb( dc , 0 , ulim ) ;
+       outim = ISQ_index_to_rgb( dc , 0 , ulim ) ; /* grayscale from indexes */
        our   = MRI_RGB_PTR(outim) ;
      break ;
    }
+
+   /*-- overlay conversion --*/
 
    switch( ovim->kind ){    /* but we don't make a new overlay unless needed */
      case MRI_rgb:
@@ -2844,19 +2862,19 @@ ENTRY("ISQ_overlay") ;
        RETURN(NULL) ; break ;              /* bad bad bad */
 
      case MRI_short:
-       orim = ISQ_index_to_rgb( dc , 1 , ovim ) ;
+       orim = ISQ_index_to_rgb( dc , 1 , ovim ) ;  /* colors from indexes */
        orr  = MRI_RGB_PTR(orim) ;
      break ;
 
      case MRI_rgba:{                                         /* 08 Dec 2014 */
-       rgba *ovar = MRI_RGBA_PTR(ovim) ; byte rr,gg,bb,aa ;
+       rgba *ovar = MRI_RGBA_PTR(ovim) ; byte rr,gg,bb,aa ;  /* RGBA special case */
        register float al=alpha , am,bm ;
        for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
           rr = ovar[ii].r; gg = ovar[ii].g; bb = ovar[ii].b; aa = ovar[ii].a;
           if( aa > 0 && (rr > 0 || gg > 0 || bb > 0 ) ){
-            am = aa*al/255.0f ; bm = 1.0f-am ;
-            our[jj  ] = am*rr + bm*our[jj  ] ;  /* mix colors */
-            our[jj+1] = am*gg + bm*our[jj+1] ;
+            am = aa*al/255.0f ; bm = 1.0f-am ;  /* pixelwise mixing fracs */
+            our[jj  ] = am*rr + bm*our[jj  ] ;  /* mix colors betwixt ovar */
+            our[jj+1] = am*gg + bm*our[jj+1] ;  /* and our; overwrite our */
             our[jj+2] = am*bb + bm*our[jj+2] ;
            }
        }
@@ -2865,7 +2883,7 @@ ENTRY("ISQ_overlay") ;
      break ;
    }
 
-   /* now overlay */
+   /* now overlay (same mixing frac per pixel) */
 
    if( alpha > 0.99f ){                          /* opaque overlay */
       for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
@@ -2922,6 +2940,126 @@ ENTRY("ISQ_overlay") ;
    }
 
    if( orim != ovim ) mri_free(orim) ;  /* destroy copy of overlay, if any */
+
+   RETURN(outim) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Always produce RGBA output [13 Feb 2020] */
+
+MRI_IMAGE * ISQ_overlay_rgba( MCW_DC *dc , MRI_IMAGE *ulim, MRI_IMAGE *ovim, float alpha )
+{
+   register int npix,ii,jj ;
+   MRI_IMAGE *outim , *ulimNEW , *ovimNEW , *qim ;
+   rgba *outar , *ular , *ovar ;
+   int jill = AFNI_yesenv("AFNI_JILL_TRAVESTY") ; /* Jill is trouble */
+
+ENTRY("ISQ_overlay_rgba") ;
+
+   if( dc == NULL || ulim == NULL || ovim == NULL || alpha <= 0.0 ) RETURN(NULL) ;
+
+   npix = ulim->nvox ;
+
+   if( ovim->nvox != npix ) RETURN(NULL) ;  /* this is bad */
+
+   if( alpha > 1.0f ) alpha = 1.0f ;       /* stoopid user */
+
+   /*-- Convert both inputs to RGBA, if needed --*/
+
+   switch( ulim->kind ){
+     default:
+       if( jill ) ININFO_message(" - underlay = ILLEGAL type") ;
+       RETURN(NULL) ; break ;   /* bad bad bad */
+
+     case MRI_rgba:      /* no conversion needed */
+       ulimNEW = ulim ;
+       if( jill ) ININFO_message(" - underlay = RGBA");
+     break ;
+
+     case MRI_rgb:
+       ulimNEW = mri_to_rgba(ulim) ;
+       if( jill ) ININFO_message(" - underlay = RGB to RGBA");
+     break ;
+
+     case MRI_short:
+       qim = ISQ_index_to_rgb( dc , 1 , ulim ) ; /* colors from indexes */
+       ulimNEW = mri_to_rgba(qim) ;              /* NOT grayscale */
+       mri_free(qim) ;
+       if( jill ) ININFO_message(" - underlay = SHORT to RGBA");
+     break ;
+   }
+
+   outim = mri_copy(ulimNEW) ;     /* initial output = copy of underlay input */
+   outar = MRI_RGBA_PTR(outim) ;
+   ular  = MRI_RGBA_PTR(ulimNEW) ;
+
+   /*-- conversion of the overlay input image --*/
+
+   switch( ovim->kind ){
+     case MRI_rgba:       /* no conversion needed */
+       ovimNEW = ovim ;
+       if( jill ) ININFO_message(" - overlay = RGBA");
+     break ;
+
+     case MRI_rgb:
+       ovimNEW = mri_to_rgba(ovim) ;
+       if( jill ) ININFO_message(" - overlay = RGB to RGBA");
+     break ;
+
+     default:                                    /* bad bad bad */
+       mri_free(outim) ;
+       if( ulimNEW != ulim ) mri_free(ulimNEW) ;
+       if( jill ) ININFO_message(" - overlay = ILLEGAL type") ;
+     RETURN(NULL) ; break ;
+
+     case MRI_short:
+       qim = ISQ_index_to_rgb( dc , 1 , ovim ) ; /* colors from indexes */
+       ovimNEW = mri_to_rgba(qim) ;
+       mri_free(qim) ;
+       if( jill ) ININFO_message(" - overlay = SHORT to RGBA");
+     break ;
+   }
+
+   ovar = MRI_RGBA_PTR(ovimNEW) ;
+
+   /* merger of RGBA data -- see
+      https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending */
+
+   if( jill ) ININFO_message(" - begin alpha blending") ;
+
+   { float al=alpha , oam,obm , uuu ;
+     byte orr,ogg,obb,oaa , urr,ugg,ubb,uaa ; int n1=0,n2=0,n3=0 ;
+     for( ii=0 ; ii < npix ; ii++ ){
+       orr = ovar[ii].r; ogg = ovar[ii].g; obb = ovar[ii].b; oaa = ovar[ii].a;
+       urr = ular[ii].r; ugg = ular[ii].g; ubb = ular[ii].b; uaa = ular[ii].a;
+       if( oaa > 0 && (orr > 0 || ogg > 0 || obb > 0 ) ){
+         oam = oaa*al/255.0f ; obm = 1.0f-oam ;  /* mixing fracs for overlay */
+         if( oam > 0.99f ){        /* opaque overlay */
+           outar[ii].r = orr ;
+           outar[ii].g = ogg ;
+           outar[ii].b = obb ;
+           outar[ii].a = 255 ; n1++ ;
+         } else if( uaa > 252 ){  /* opaque underlay */
+           outar[ii].r = (byte)(oam*orr + obm*urr + 0.4f) ;
+           outar[ii].g = (byte)(oam*ogg + obm*ugg + 0.4f) ;
+           outar[ii].b = (byte)(oam*obb + obm*ubb + 0.4f) ;
+           outar[ii].a = 255 ; n2++ ;
+         } else {                  /* non-opaque underlay */
+           obm *= (uaa/255.0f) ;   /* shrink obm */
+           uuu = oam + obm ;
+           oam = oam / uuu ; obm = 1.0f-oam ;
+           outar[ii].r = (byte)(oam*orr + obm*urr + 0.4f) ;
+           outar[ii].g = (byte)(oam*ogg + obm*ugg + 0.4f) ;
+           outar[ii].b = (byte)(oam*obb + obm*ubb + 0.4f) ;
+           outar[ii].a = (byte)(255.0f*uuu+0.4f) ; n3++ ;
+         }
+       }
+     }
+     if( jill ) ININFO_message(" - images merged: n1=%d n2=%d n3=%d npix=%d",n1,n2,n3,npix) ;
+   }
+
+   if( ulimNEW != ulim ) mri_free(ulimNEW) ;  /* only toss them if they */
+   if( ovimNEW != ovim ) mri_free(ovimNEW) ;  /* aren't the actual inputs */
 
    RETURN(outim) ;
 }

@@ -40,7 +40,7 @@
  /************************************************************************/
 
 /***=====================================================================***/
-double algdiv(double *a,double *b)
+double algdiv(const double *a,const double *b)
 /*
 -----------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double alngam(double *x)
+double alngam(const double *x)
 /*
 **********************************************************************
 
@@ -221,7 +221,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-double alnrel(double *a)
+double alnrel(const double *a)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF THE FUNCTION LN(1 + A)
@@ -252,7 +252,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-double apser(double *a,double *b,double *x,double *eps)
+double apser(const double *a,double *b,const double *x,const double *eps)
 /*
 -----------------------------------------------------------------------
      APSER YIELDS THE INCOMPLETE BETA RATIO I(SUB(1-X))(B,A) FOR
@@ -289,7 +289,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double basym(double *a,double *b,double *lambda,double *eps)
+double basym(double *a,double *b,const double *lambda,const double *eps)
 /*
 -----------------------------------------------------------------------
      ASYMPTOTIC EXPANSION FOR IX(A,B) FOR LARGE A AND B.
@@ -399,7 +399,7 @@ S80:
 } /* END */
 
 /***=====================================================================***/
-double bcorr(double *a0,double *b0)
+double bcorr(const double *a0,const double *b0)
 /*
 -----------------------------------------------------------------------
 
@@ -450,7 +450,7 @@ static double bcorr,a,b,c,h,s11,s3,s5,s7,s9,t,w,x,x2;
 } /* END */
 
 /***=====================================================================***/
-double betaln(double *a0,double *b0)
+double betaln(const double *a0,const double *b0)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF THE LOGARITHM OF THE BETA FUNCTION
@@ -558,8 +558,8 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-double bfrac(double *a,double *b,double *x,double *y,double *lambda,
-             double *eps)
+double bfrac(double *a,double *b,double *x,double *y,const double *lambda,
+             const double *eps)
 /*
 -----------------------------------------------------------------------
      CONTINUED FRACTION EXPANSION FOR IX(A,B) WHEN A,B .GT. 1.
@@ -627,7 +627,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-void bgrat(double *a,double *b,double *x,double *y,double *w,
+void bgrat(double *a,double *b,const double *x,const double *y,double *w,
            double *eps,int *ierr)
 /*
 -----------------------------------------------------------------------
@@ -707,11 +707,10 @@ S70:
                THE EXPANSION CANNOT BE COMPUTED
 */
     *ierr = 1;
-    return;
 } /* END */
 
 /***=====================================================================***/
-double bpser(double *a,double *b,double *x,double *eps)
+double bpser(double *a,double *b,const double *x,const double *eps)
 /*
 -----------------------------------------------------------------------
      POWER SERIES EXPANSION FOR EVALUATING IX(A,B) WHEN B .LE. 1
@@ -811,7 +810,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-void bratio(double *a,double *b,double *x,double *y,double *w,
+void bratio(const double *a,const double *b,const double *x,const double *y,double *w,
             double *w1,int *ierr)
 /*
 -----------------------------------------------------------------------
@@ -1046,11 +1045,10 @@ S320:
     return;
 S330:
     *ierr = 7;
-    return;
 } /* END */
 
 /***=====================================================================***/
-double brcmp1(int *mu,double *a,double *b,double *x,double *y)
+double brcmp1(int *mu,double *a,double *b,const double *x,const double *y)
 /*
 -----------------------------------------------------------------------
           EVALUATION OF  EXP(MU) * (X**A*Y**B/BETA(A,B))
@@ -1190,7 +1188,7 @@ S190:
 } /* END */
 
 /***=====================================================================***/
-double brcomp(double *a,double *b,double *x,double *y)
+double brcomp(double *a,double *b,const double *x,const double *y)
 /*
 -----------------------------------------------------------------------
                EVALUATION OF X**A*Y**B/BETA(A,B)
@@ -1330,7 +1328,7 @@ S190:
 } /* END */
 
 /***=====================================================================***/
-double bup(double *a,double *b,double *x,double *y,int *n,double *eps)
+double bup(double *a,double *b,double *x,double *y,const int *n,const double *eps)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF IX(A,B) - IX(A+N,B) WHERE N IS A POSITIVE INTEGER.
@@ -1409,7 +1407,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-void cdfbet(int *which,double *p,double *q,double *x,double *y,
+void cdfbet(const int *which,double *p,double *q,double *x,double *y,
             double *a,double *b,int *status,double *bound)
 /**********************************************************************
 
@@ -1785,7 +1783,7 @@ S540:
 } /* END */
 
 /***=====================================================================***/
-void cdfbin(int *which,double *p,double *q,double *s,double *xn,
+void cdfbin(const int *which,double *p,double *q,double *s,double *xn,
             double *pr,double *ompr,int *status,double *bound)
 /**********************************************************************
 
@@ -2156,7 +2154,7 @@ S560:
 } /* END */
 
 /***=====================================================================***/
-void cdfchi(int *which,double *p,double *q,double *x,double *df,
+void cdfchi(const int *which,double *p,double *q,double *x,double *df,
             int *status,double *bound)
 /**********************************************************************
 
@@ -2442,7 +2440,7 @@ S380:
 } /* END */
 
 /***=====================================================================***/
-void cdfchn(int *which,double *p,double *q,double *x,double *df,
+void cdfchn(const int *which,double *p,double *q,double *x,double *df,
             double *pnonc,int *status,double *bound)
 /**********************************************************************
 
@@ -2717,7 +2715,7 @@ S280:
 } /* END */
 
 /***=====================================================================***/
-void cdff(int *which,double *p,double *q,double *f,double *dfn,
+void cdff(const int *which,double *p,double *q,double *f,double *dfn,
           double *dfd,int *status,double *bound)
 /**********************************************************************
 
@@ -3035,7 +3033,7 @@ S420:
 } /* END */
 
 /***=====================================================================***/
-void cdffnc(int *which,double *p,double *q,double *f,double *dfn,
+void cdffnc(const int *which,double *p,double *q,double *f,double *dfn,
             double *dfd,double *phonc,int *status,double *bound)
 /**********************************************************************
 
@@ -3361,7 +3359,7 @@ S350:
 } /* END */
 
 /***=====================================================================***/
-void cdfgam(int *which,double *p,double *q,double *x,double *shape,
+void cdfgam(const int *which,double *p,double *q,double *x,double *shape,
             double *scale,int *status,double *bound)
 /**********************************************************************
 
@@ -3653,8 +3651,7 @@ S310:
             *status = 0;
         }
     }
-    return;
-#undef tol
+    #undef tol
 #undef atol
 #undef zero
 #undef inf
@@ -4242,7 +4239,7 @@ S160:
 #endif /* defined(__COMPILE_UNUSED_FUNCTIONS__) */
 
 /***=====================================================================***/
-void cdfpoi(int *which,double *p,double *q,double *s,double *xlam,
+void cdfpoi(const int *which,double *p,double *q,double *s,double *xlam,
             int *status,double *bound)
 /**********************************************************************
 
@@ -4500,7 +4497,7 @@ S330:
 } /* END */
 
 /***=====================================================================***/
-void cdft(int *which,double *p,double *q,double *t,double *df,
+void cdft(const int *which,double *p,double *q,double *t,double *df,
           int *status,double *bound)
 /**********************************************************************
 
@@ -4824,14 +4821,10 @@ S10:
     return;
 S20:
     bratio(a,b,x,y,cum,ccum,&ierr);
-/*
-     Call bratio routine
-*/
-    return;
 } /* END */
 
 /***=====================================================================***/
-void cumbin(double *s,double *xn,double *pr,double *ompr,
+void cumbin(const double *s,const double *xn,double *pr,double *ompr,
             double *cum,double *ccum)
 /*
 **********************************************************************
@@ -4899,7 +4892,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-void cumchi(double *x,double *df,double *cum,double *ccum)
+void cumchi(const double *x,const double *df,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -4947,11 +4940,10 @@ static double a,xx;
     a = *df*0.5e0;
     xx = *x*0.5e0;
     cumgam(&xx,&a,cum,ccum);
-    return;
 } /* END */
 
 /***=====================================================================***/
-void cumchn(double *x,double *df,double *pnonc,double *cum,
+void cumchn(double *x,double *df,const double *pnonc,double *cum,
             double *ccum)
 /*
 **********************************************************************
@@ -5159,14 +5151,13 @@ S70:
 S80:
     *cum = sum;
     *ccum = 0.5e0+(0.5e0-*cum);
-    return;
 #undef dg
 #undef qsmall
 #undef qtired
 } /* END */
 
 /***=====================================================================***/
-void cumf(double *f,double *dfn,double *dfd,double *cum,double *ccum)
+void cumf(const double *f,const double *dfn,const double *dfd,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5246,13 +5237,12 @@ S10:
     T1 = *dfd*half;
     T2 = *dfn*half;
     bratio(&T1,&T2,&xx,&yy,ccum,cum,&ierr);
-    return;
 #undef half
 #undef done
 } /* END */
 
 /***=====================================================================***/
-void cumfnc(double *f,double *dfn,double *dfd,double *pnonc,
+void cumfnc(double *f,double *dfn,double *dfd,const double *pnonc,
             double *cum,double *ccum)
 /*
 **********************************************************************
@@ -5417,7 +5407,6 @@ S60:
 S70:
     *cum = sum;
     *ccum = 0.5e0+(0.5e0-*cum);
-    return;
 #undef qsmall
 #undef half
 #undef done
@@ -5478,10 +5467,6 @@ static int K1 = 0;
     return;
 S10:
     gratio(a,x,cum,ccum,&K1);
-/*
-     Call gratio routine
-*/
-    return;
 } /* END */
 
 #if defined(__COMPILE_UNUSED_FUNCTIONS__)
@@ -5554,7 +5539,7 @@ static double T1;
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-void cumnor(double *arg,double *result,double *ccum)
+void cumnor(const double *arg,double *result,double *ccum)
 /*
 **********************************************************************
 
@@ -5767,7 +5752,7 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 } /* END */
 
 /***=====================================================================***/
-void cumpoi(double *s,double *xlam,double *cum,double *ccum)
+void cumpoi(const double *s,const double *xlam,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5816,11 +5801,10 @@ static double chi,df;
     df = 2.0e0*(*s+1.0e0);
     chi = 2.0e0**xlam;
     cumchi(&chi,&df,ccum,cum);
-    return;
 } /* END */
 
 /***=====================================================================***/
-void cumt(double *t,double *df,double *cum,double *ccum)
+void cumt(const double *t,const double *df,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5938,7 +5922,7 @@ static double dbetrm,T1,T2,T3;
 #endif /* defined(__COMPILE_UNUSED_FUNCTIONS__) */
 
 /***=====================================================================***/
-double devlpl(double a[],int *n,double *x)
+double devlpl(const double a[],const int *n,const double *x)
 /*
 **********************************************************************
 
@@ -6035,7 +6019,7 @@ S20:
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-double dinvnr(double *p,double *q)
+double dinvnr(const double *p,const double *q)
 /*
 **********************************************************************
 
@@ -6134,9 +6118,9 @@ S40:
 
 /***=====================================================================***/
 void E0000(int IENTRY,int *status,double *x,double *fx,
-                  unsigned long *qleft,unsigned long *qhi,double *zabsst,
-                  double *zabsto,double *zbig,double *zrelst,
-                  double *zrelto,double *zsmall,double *zstpmu)
+                  unsigned long *qleft,unsigned long *qhi,const double *zabsst,
+                  const double *zabsto,const double *zbig,const double *zrelst,
+                  const double *zrelto,const double *zsmall,const double *zstpmu)
 {
 #define qxmon(zx,zy,zz) (int)((zx) <= (zy) && (zy) <= (zz))
 static double absstp,abstol,big,fbig,fsmall,relstp,reltol,small,step,stpmul,xhi,
@@ -6937,7 +6921,7 @@ S20:
 #endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-double dt1(double *p,double *q,double *df)
+double dt1(double *p,double *q,const double *df)
 /*
 **********************************************************************
 
@@ -7008,10 +6992,10 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-void E0001(int IENTRY,int *status,double *x,double *fx,
+void E0001(int IENTRY,int *status,double *x,const double *fx,
                   double *xlo,double *xhi,unsigned long *qleft,
-                  unsigned long *qhi,double *zabstl,double *zreltl,
-                  double *zxhi,double *zxlo)
+                  unsigned long *qhi,const double *zabstl,const double *zreltl,
+                  const double *zxhi,const double *zxlo)
 {
 #define ftol(zx) (0.5e0*fifdmax1(abstol,reltol*fabs((zx))))
 static double a,abstol,b,c,d,fa,fb,fc,fd,fda,fdb,m,mb,p,q,reltol,tol,w,xxhi,xxlo;
@@ -7287,7 +7271,7 @@ void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
 } /* END */
 
 /***=====================================================================***/
-double erf1(double *x)
+double erf1(const double *x)
 /*
 -----------------------------------------------------------------------
              EVALUATION OF THE REAL ERROR FUNCTION
@@ -7357,7 +7341,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double erfc1(int *ind,double *x)
+double erfc1(const int *ind,const double *x)
 /*
 -----------------------------------------------------------------------
          EVALUATION OF THE COMPLEMENTARY ERROR FUNCTION
@@ -7465,7 +7449,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-double esum(int *mu,double *x)
+double esum(const int *mu,const double *x)
 /*
 -----------------------------------------------------------------------
                     EVALUATION OF EXP(MU + X)
@@ -7496,7 +7480,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double exparg(int *l)
+double exparg(const int *l)
 /*
 --------------------------------------------------------------------
      IF L = 0 THEN  EXPARG(L) = THE LARGEST POSITIVE W FOR WHICH
@@ -7544,7 +7528,7 @@ S50:
 } /* END */
 
 /***=====================================================================***/
-double fpser(double *a,double *b,double *x,double *eps)
+double fpser(const double *a,const double *b,const double *x,const double *eps)
 /*
 -----------------------------------------------------------------------
 
@@ -7590,7 +7574,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double gam1(double *a)
+double gam1(const double *a)
 /*
      ------------------------------------------------------------------
      COMPUTATION OF 1/GAMMA(A+1) - 1  FOR -0.5 .LE. A .LE. 1.5
@@ -7652,7 +7636,7 @@ S50:
 } /* END */
 
 /***=====================================================================***/
-void gaminv(double *a,double *x,double *x0,double *p,double *q,
+void gaminv(double *a,double *x,const double *x0,const double *p,const double *q,
             int *ierr)
 /*
  ----------------------------------------------------------------------
@@ -8012,7 +7996,6 @@ S350:
 S360:
     *x = xmax;
     *ierr = -8;
-    return;
 } /* END */
 
 /***=====================================================================***/
@@ -8071,7 +8054,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double gamln1(double *a)
+double gamln1(const double *a)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF LN(GAMMA(1 + A)) FOR -0.2 .LE. A .LE. 1.25
@@ -8121,7 +8104,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-double Xgamm(double *a)
+double Xgamm(const double *a)
 /*
 -----------------------------------------------------------------------
 
@@ -8272,8 +8255,8 @@ S120:
 } /* END */
 
 /***=====================================================================***/
-void grat1(double *a,double *x,double *r,double *p,double *q,
-           double *eps)
+void grat1(double *a,const double *x,const double *r,double *p,double *q,
+           const double *eps)
 {
 static int K2 = 0;
 static double a2n,a2nm1,am0,an,an0,b2n,b2nm1,c,cma,g,h,j,l,sum,t,tol,w,z,T1,T3;
@@ -8377,7 +8360,7 @@ S120:
 } /* END */
 
 /***=====================================================================***/
-void gratio(double *a,double *x,double *ans,double *qans,int *ind)
+void gratio(double *a,const double *x,double *ans,double *qans,const int *ind)
 /*
  ----------------------------------------------------------------------
         EVALUATION OF THE INCOMPLETE GAMMA RATIO FUNCTIONS
@@ -8792,11 +8775,10 @@ S430:
                      ERROR RETURN
 */
     *ans = 2.0e0;
-    return;
 } /* END */
 
 /***=====================================================================***/
-double gsumln(double *a,double *b)
+double gsumln(const double *a,const double *b)
 /*
 -----------------------------------------------------------------------
           EVALUATION OF THE FUNCTION LN(GAMMA(A + B))
@@ -8825,7 +8807,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double psi(double *xx)
+double psi(const double *xx)
 /*
 ---------------------------------------------------------------------
 
@@ -9020,7 +9002,7 @@ S100:
 } /* END */
 
 /***=====================================================================***/
-double rcomp(double *a,double *x)
+double rcomp(double *a,const double *x)
 /*
      -------------------
      EVALUATION OF EXP(-X)*X**A/GAMMA(A)
@@ -9055,7 +9037,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double rexp(double *x)
+double rexp(const double *x)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF THE FUNCTION EXP(X) - 1
@@ -9087,7 +9069,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double rlog(double *x)
+double rlog(const double *x)
 /*
      -------------------
      COMPUTATION OF  X - 1 - LN(X)
@@ -9139,7 +9121,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double rlog1(double *x)
+double rlog1(const double *x)
 /*
 -----------------------------------------------------------------------
              EVALUATION OF THE FUNCTION X - LN(1 + X)
@@ -9191,7 +9173,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double spmpar(int *i)
+double spmpar(const int *i)
 /*
 -----------------------------------------------------------------------
 
@@ -9259,7 +9241,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double stvaln(double *p)
+double stvaln(const double *p)
 /*
 **********************************************************************
 
@@ -9409,7 +9391,7 @@ Prints msg to standard error and then exits
 } /* END */
 
 /***=====================================================================***/
-int ipmpar(int *i)
+int ipmpar(const int *i)
 /*
 -----------------------------------------------------------------------
 
@@ -10815,61 +10797,96 @@ static double invgauss_pq2s( pqpair pq , double c )
     - All the actual work is done in utility functions for each distribution.
 ----------------------------------------------------------------------------*/
 
-static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
+static pqpair stat2pq(double val, int code, double p1, double p2, double p3)
 {
-   pqpair pq={0.0,1.0} ;
+  pqpair pq = {0.0, 1.0};
 
-   switch( code ){
-
-     case NIFTI_INTENT_CORREL:     pq = correl_s2pq  ( val, p1 )      ; break;
-     case NIFTI_INTENT_TTEST:      pq = student_s2pq ( val, p1 )      ; break;
-     case NIFTI_INTENT_FTEST:      pq = fstat_s2pq   ( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_ZSCORE:     pq = normal_s2pq  ( val )          ; break;
-     case NIFTI_INTENT_CHISQ:      pq = chisq_s2pq   ( val, p1 )      ; break;
-     case NIFTI_INTENT_BETA:       pq = beta_s2pq    ( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_BINOM:      pq = binomial_s2pq( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_GAMMA:      pq = gamma_s2pq   ( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_POISSON:    pq = poisson_s2pq ( val, p1 )      ; break;
-     case NIFTI_INTENT_FTEST_NONC: pq = fnonc_s2pq   ( val, p1,p2,p3 ); break;
-     case NIFTI_INTENT_CHISQ_NONC: pq = chsqnonc_s2pq( val, p1,p2    ); break;
-     case NIFTI_INTENT_TTEST_NONC: pq = tnonc_s2pq   ( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_CHI:        pq = chi_s2pq     ( val, p1 )      ; break;
-
-     /* these distributions are shifted and scaled copies of a standard case */
-
-     case NIFTI_INTENT_INVGAUSS:
-        if( p1 > 0.0 && p2 > 0.0 ) pq = invgauss_s2pq( val/p1,p2/p1 ) ; break;
-
-     case NIFTI_INTENT_WEIBULL:
-        if( p2 > 0.0 && p3 > 0.0 ) pq = weibull_s2pq ((val-p1)/p2,p3) ; break;
-
-     case NIFTI_INTENT_EXTVAL:
-                    if( p2 > 0.0 ) pq = extval1_s2pq ( (val-p1)/p2 )  ; break;
-
-     case NIFTI_INTENT_NORMAL:
-                    if( p2 > 0.0 ) pq = normal_s2pq  ( (val-p1)/p2 )  ; break;
-
-     case NIFTI_INTENT_LOGISTIC:
-                    if( p2 > 0.0 ) pq = logistic_s2pq( (val-p1)/p2 )  ; break;
-
-     case NIFTI_INTENT_LAPLACE:
-                    if( p2 > 0.0 ) pq = laplace_s2pq ( (val-p1)/p2 )  ; break;
-
-     case NIFTI_INTENT_UNIFORM:
-                    if( p2 > p1  ) pq = uniform_s2pq((val-p1)/(p2-p1)); break;
-
-     /* these cases are trivial (note what is called 'p' is really 'q') */
-
-     case NIFTI_INTENT_PVAL:
-                        if( val >= 0.0 && val <= 1.0 ) pq.q = val ;
-                                                       pq.p = 1.0-pq.q; break;
-     case NIFTI_INTENT_LOGPVAL:
-                           pq.q = exp(-fabs(val))    ; pq.p = 1.0-pq.q; break;
-     case NIFTI_INTENT_LOG10PVAL:
-                           pq.q = pow(10.,-fabs(val)); pq.p = 1.0-pq.q; break;
-   }
-
-   return pq ;
+  switch (code)
+  {
+  case NIFTI_INTENT_CORREL:
+    pq = correl_s2pq(val, p1);
+    break;
+  case NIFTI_INTENT_TTEST:
+    pq = student_s2pq(val, p1);
+    break;
+  case NIFTI_INTENT_FTEST:
+    pq = fstat_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_ZSCORE:
+    pq = normal_s2pq(val);
+    break;
+  case NIFTI_INTENT_CHISQ:
+    pq = chisq_s2pq(val, p1);
+    break;
+  case NIFTI_INTENT_BETA:
+    pq = beta_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_BINOM:
+    pq = binomial_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_GAMMA:
+    pq = gamma_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_POISSON:
+    pq = poisson_s2pq(val, p1);
+    break;
+  case NIFTI_INTENT_FTEST_NONC:
+    pq = fnonc_s2pq(val, p1, p2, p3);
+    break;
+  case NIFTI_INTENT_CHISQ_NONC:
+    pq = chsqnonc_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_TTEST_NONC:
+    pq = tnonc_s2pq(val, p1, p2);
+    break;
+  case NIFTI_INTENT_CHI:
+    pq = chi_s2pq(val, p1);
+    break;
+  /* these distributions are shifted and scaled copies of a standard case */
+  case NIFTI_INTENT_INVGAUSS:
+    if (p1 > 0.0 && p2 > 0.0)
+      pq = invgauss_s2pq(val / p1, p2 / p1);
+    break;
+  case NIFTI_INTENT_WEIBULL:
+    if (p2 > 0.0 && p3 > 0.0)
+      pq = weibull_s2pq((val - p1) / p2, p3);
+    break;
+  case NIFTI_INTENT_EXTVAL:
+    if (p2 > 0.0)
+      pq = extval1_s2pq((val - p1) / p2);
+    break;
+  case NIFTI_INTENT_NORMAL:
+    if (p2 > 0.0)
+      pq = normal_s2pq((val - p1) / p2);
+    break;
+  case NIFTI_INTENT_LOGISTIC:
+    if (p2 > 0.0)
+      pq = logistic_s2pq((val - p1) / p2);
+    break;
+  case NIFTI_INTENT_LAPLACE:
+    if (p2 > 0.0)
+      pq = laplace_s2pq((val - p1) / p2);
+    break;
+  case NIFTI_INTENT_UNIFORM:
+    if (p2 > p1)
+      pq = uniform_s2pq((val - p1) / (p2 - p1));
+    break;
+  /* these cases are trivial (note what is called 'p' is really 'q') */
+  case NIFTI_INTENT_PVAL:
+    if (val >= 0.0 && val <= 1.0)
+      pq.q = val;
+    pq.p = 1.0 - pq.q;
+    break;
+  case NIFTI_INTENT_LOGPVAL:
+    pq.q = exp(-fabs(val));
+    pq.p = 1.0 - pq.q;
+    break;
+  case NIFTI_INTENT_LOG10PVAL:
+    pq.q = pow(10., -fabs(val));
+    pq.p = 1.0 - pq.q;
+    break;
+  }
+  return pq;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -10882,59 +10899,94 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
 
 static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
 {
-   double val=BIGG ;
+  double val = BIGG;
 
-   if( pq.p < 0.0 || pq.q < 0.0 || pq.p > 1.0 || pq.q > 1.0 ) return val ;
+  if (pq.p < 0.0 || pq.q < 0.0 || pq.p > 1.0 || pq.q > 1.0)
+    return val;
 
-   switch( code ){
+  switch (code)
+  {
+  case NIFTI_INTENT_CORREL:
+    val = correl_pq2s(pq, p1);
+    break;
+  case NIFTI_INTENT_TTEST:
+    val = student_pq2s(pq, p1);
+    break;
+  case NIFTI_INTENT_FTEST:
+    val = fstat_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_ZSCORE:
+    val = normal_pq2s(pq);
+    break;
+  case NIFTI_INTENT_CHISQ:
+    val = chisq_pq2s(pq, p1);
+    break;
+  case NIFTI_INTENT_BETA:
+    val = beta_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_BINOM:
+    val = binomial_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_GAMMA:
+    val = gamma_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_POISSON:
+    val = poisson_pq2s(pq, p1);
+    break;
+  case NIFTI_INTENT_FTEST_NONC:
+    val = fnonc_pq2s(pq, p1, p2, p3);
+    break;
+  case NIFTI_INTENT_CHISQ_NONC:
+    val = chsqnonc_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_TTEST_NONC:
+    val = tnonc_pq2s(pq, p1, p2);
+    break;
+  case NIFTI_INTENT_CHI:
+    val = chi_pq2s(pq, p1);
+    break;
+  /* these distributions are shifted and scaled copies of a standard case */
+  case NIFTI_INTENT_INVGAUSS:
+    if (p1 > 0.0 && p2 > 0.0)
+      val = p1 * invgauss_pq2s(pq, p2 / p1);
+    break;
+  case NIFTI_INTENT_WEIBULL:
+    if (p2 > 0.0 && p3 > 0.0)
+      val = p1 + p2 * weibull_pq2s(pq, p3);
+    break;
+  case NIFTI_INTENT_EXTVAL:
+    if (p2 > 0.0)
+      val = p1 + p2 * extval1_pq2s(pq);
+    break;
+  case NIFTI_INTENT_NORMAL:
+    if (p2 > 0.0)
+      val = p1 + p2 * normal_pq2s(pq);
+    break;
+  case NIFTI_INTENT_LOGISTIC:
+    if (p2 > 0.0)
+      val = p1 + p2 * logistic_pq2s(pq);
+    break;
+  case NIFTI_INTENT_LAPLACE:
+    if (p2 > 0.0)
+      val = p1 + p2 * laplace_pq2s(pq);
+    break;
+  case NIFTI_INTENT_UNIFORM:
+    if (p2 > p1)
+      val = p1 + (p2 - p1) * uniform_pq2s(pq);
+    break;
+  /* these cases are trivial */
+  case NIFTI_INTENT_PVAL:
+    val = pq.q;
+    break;
+  case NIFTI_INTENT_LOGPVAL:
+    val = (pq.q > 0.0) ? -log(pq.q) : BIGG;
+    break;
+  case NIFTI_INTENT_LOG10PVAL:
+    val = (pq.q > 0.0) ? -log10(pq.q) : BIGG;
+    break;
+  }
 
-     case NIFTI_INTENT_CORREL:     val = correl_pq2s  ( pq , p1 )      ; break;
-     case NIFTI_INTENT_TTEST:      val = student_pq2s ( pq , p1 )      ; break;
-     case NIFTI_INTENT_FTEST:      val = fstat_pq2s   ( pq , p1,p2 )   ; break;
-     case NIFTI_INTENT_ZSCORE:     val = normal_pq2s  ( pq )           ; break;
-     case NIFTI_INTENT_CHISQ:      val = chisq_pq2s   ( pq , p1 )      ; break;
-     case NIFTI_INTENT_BETA:       val = beta_pq2s    ( pq , p1,p2 )   ; break;
-     case NIFTI_INTENT_BINOM:      val = binomial_pq2s( pq , p1,p2 )   ; break;
-     case NIFTI_INTENT_GAMMA:      val = gamma_pq2s   ( pq , p1,p2 )   ; break;
-     case NIFTI_INTENT_POISSON:    val = poisson_pq2s ( pq , p1 )      ; break;
-     case NIFTI_INTENT_FTEST_NONC: val = fnonc_pq2s   ( pq , p1,p2,p3 ); break;
-     case NIFTI_INTENT_CHISQ_NONC: val = chsqnonc_pq2s( pq , p1,p2    ); break;
-     case NIFTI_INTENT_TTEST_NONC: val = tnonc_pq2s   ( pq , p1,p2 )   ; break;
-     case NIFTI_INTENT_CHI:        val = chi_pq2s     ( pq , p1 )      ; break;
-
-     /* these distributions are shifted and scaled copies of a standard case */
-
-     case NIFTI_INTENT_INVGAUSS:
-        if( p1 > 0.0 && p2 > 0.0 ) val = p1*invgauss_pq2s   ( pq,p2/p1); break;
-
-     case NIFTI_INTENT_WEIBULL:
-        if( p2 > 0.0 && p3 > 0.0 ) val = p1+p2*weibull_pq2s ( pq, p3 ) ; break;
-
-     case NIFTI_INTENT_EXTVAL:
-                    if( p2 > 0.0 ) val = p1+p2*extval1_pq2s ( pq )     ; break;
-
-     case NIFTI_INTENT_NORMAL:
-                    if( p2 > 0.0 ) val = p1+p2*normal_pq2s  ( pq )     ; break;
-
-     case NIFTI_INTENT_LOGISTIC:
-                    if( p2 > 0.0 ) val = p1+p2*logistic_pq2s( pq )     ; break;
-
-     case NIFTI_INTENT_LAPLACE:
-                    if( p2 > 0.0 ) val = p1+p2*laplace_pq2s ( pq )     ; break;
-
-     case NIFTI_INTENT_UNIFORM:
-                    if( p2 > p1  ) val = p1+(p2-p1)*uniform_pq2s(pq)   ; break;
-
-     /* these cases are trivial */
-
-     case NIFTI_INTENT_PVAL:       val = pq.q                          ; break;
-     case NIFTI_INTENT_LOGPVAL:    val = (pq.q > 0.0) ? -log(pq.q)
-                                                      : BIGG           ; break;
-     case NIFTI_INTENT_LOG10PVAL:  val = (pq.q > 0.0) ? -log10(pq.q)
-                                                      : BIGG           ; break;
-   }
-
-   return val ;
+  return val;
 }
 
 /****************************************************************************/

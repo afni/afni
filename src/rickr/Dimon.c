@@ -156,10 +156,11 @@ static char * g_history[] =
     "      - reconcile write_as_nifti and NIFTI prefix\n"
     "      - add -p option to mkdir\n"
     " 4.25 Feb  5, 2019 [rickr]: -infile_list implies -no_wait\n"
+    " 4.26 Feb  3, 2020 [rickr]: show CSA header on high debug (4)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.25 (February 5, 2019)"
+#define DIMON_VERSION "version 4.26 (February 3, 2020)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3744,7 +3745,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     if( check_timing && gD.level > 2 ) {    /* set verb for timing info */
        tverb = mri_sst_get_verb();
-       mri_sst_set_verb(3);
+       mri_sst_set_verb(gD.level);
     }
 
     imarr = mri_read_dicom( pathname ); /* return a whole MRI_IMARR     */

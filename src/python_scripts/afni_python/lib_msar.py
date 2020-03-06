@@ -36,8 +36,11 @@ import afni_base as ab
 #ver = '1.9'; date = 'July 10, 2019'
 # + [PT] can have text in the image tables now
 #
-ver = '1.91'; date = 'July 18, 2019'
+#ver = '1.91'; date = 'July 18, 2019'
 # + [PT] fix if '-prefix ..' dir is the present one
+#
+ver = '1.92'; date = 'Feb 24, 2020'
+# + [PT] fix imcaption processing
 #
 ##########################################################################
 
@@ -397,7 +400,6 @@ def add_in_textblock_image( X,
     lmode = 'IMAGES'
     for ii in range(tstart+1, Nx):
         ss = X[ii].split()
-
         if ss[0].__contains__("#:IMCAPTION") :
             lmode = 'CAPTION'
             if len(ss) > 1:
@@ -409,14 +411,15 @@ def add_in_textblock_image( X,
             # need for two main passes through interpreting the RST:
             # in the first main pass of the program, images might not
             # be found, but in the second pass, they might/should.
-            
+      
             minilist = parse_image_list( X[ii] ) 
             if minilist :
                 imlist.append(minilist) 
 
         elif lmode == 'CAPTION' :
-            if len(ss) > 1:
-                imcaption.append((' '.join(ss[1:])))
+            # [PT: Feb 24, 2020] fixed a couple index/length things here
+            if len(ss) > 0:
+                imcaption.append((' '.join(ss[0:])))
 
     # Calc max dims of image matrix
     Ncol = 0
@@ -1209,7 +1212,7 @@ OUTPUTS ~1~
 EXAMPLES ~1~
 
    1) First time through, execute script to make images:
-   @djunct_make_script_and_rst.py                                          \\
+   adjunct_make_script_and_rst.py                                          \\
        -input          ex_afni11_roi_cmds.tcsh                             \\
        -reflink        afni11_roi_cmds                                     \\
        -prefix_script  afni11_roi_cmds.tcsh                                \\
@@ -1217,7 +1220,7 @@ EXAMPLES ~1~
        -execute_script
 
    2) Second time through, if "only" text changes/formatting:
-   @djunct_make_script_and_rst.py                                          \\
+   adjunct_make_script_and_rst.py                                          \\
        -input          ex_afni11_roi_cmds.tcsh                             \\
        -reflink        afni11_roi_cmds                                     \\
        -prefix_script  afni11_roi_cmds.tcsh                                \\

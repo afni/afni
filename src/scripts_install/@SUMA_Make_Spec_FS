@@ -27,8 +27,15 @@
 # [Nov 14, 2019] PT : new default: *rank* dsets will not be output
 #    + have new option to create rank dsets:  -make_rank_dsets
 # [Nov 19, 2019] RCR: new option: -fs_setup
+# [Jan 27, 2020] RCR: compress *.nii, but not SV, new opt: -no_compress
+# [Feb  3, 2020] RCR: add -extra_annot_labels
+# [Feb 27, 2020] RCR: add -fsannot_ver (for older version of files)
+#    + also, -extra_annot_labels output is passed on to -extra_fs_dsets
+# [Mar  5, 2020] RCR/DRG: for extra annot's, pass along without colormap
+#    + use mris_convert/3dcopy for now, instead of FSread_annot/ConvertDset
+#     
 
-set ver = 2.1
+set ver = 2.2.1
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -71,6 +78,10 @@ goto L_TEST_SURF_VOL
 goto L_RENUMBER_ROIS
      L_RENUMBER_ROIS_DONE:
 
+# [27 Jan 2020 rickr]
+goto L_COMPRESS_FILES
+     L_COMPRESS_FILES_DONE:
+
 goto L_GOOD_END   # finished, woohooo!
 
 
@@ -85,6 +96,7 @@ L_INIT_VARS:
     set endstr = "$prog_name ... finished"
     set debug     = 0
     set ldlist = (141 60)
+    set do_compress = 1
     #set fsdsets = (thickness.gii.dset)
     #set fsdsets = (thickness curv sulc $fsdsets_extra ) 
     set inflates = ()
@@ -151,7 +163,9 @@ L_PARSE_COMMAND:
     set set_space = ''
     set args     = $#argv
     set count    = 1
+    set extra_annot_labels = ( )        #  3 Feb 2020 [rickr]
     set fsdsets_extra  = ( )
+    set fsannot_ver  = ""               # 27 Feb 2020 [rickr]
 
     while ( $count <= $args )
         switch ( "$argv[$count]" )
@@ -176,6 +190,20 @@ L_PARSE_COMMAND:
 
                 @ count ++
                 set subj_id  = $argv[$count]
+
+            breaksw
+
+            # ----------------------------------------------------------
+            # usage: -fsannot_ver YEAR (e.g. 2009)
+            case "-fsannot_ver":
+
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -fsannot_ver YEAR"
+                    goto L_BAD_END
+                endif
+
+                @ count ++
+                set fsannot_ver  = $argv[$count]
 
             breaksw
 
@@ -239,6 +267,14 @@ L_PARSE_COMMAND:
                 endif
 
                 set neuro_ori = 1
+            breaksw
+
+            # ----------------------------------------------------------
+            # usage : -no_compress                    27 Jan 2020 [rickr]
+            case "-no_compress":
+
+                # then turn off compression
+                set do_compress = 0
             breaksw
 
             # ----------------------------------------------------------
@@ -344,6 +380,40 @@ L_PARSE_COMMAND:
 
             breaksw
 
+
+            # ----------------------------------------------------------
+            # usage : -extra_annot_labels AA BB CC ...
+            case "-extra_annot_labels":
+
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -extra_annot_labels AA BB CC ..."
+                    goto L_BAD_END
+                endif
+
+                @ i0   = $count + 1    # $i0 will always lead $count by one
+
+                # keep track of first char of next arg (not '-')
+                set c0 = `echo $argv[$i0] | cut -b 1`
+
+                while ( ( $i0 <= $#argv ) && ( "$c0" != "-" ) )
+                    set extra_annot_labels = ($extra_annot_labels "$argv[$i0]")
+
+                    @ i0 ++
+                    @ count ++ 
+                    if ( $i0 <= $#argv ) then
+                        # get first char of next arg, to be check in while()
+                        set c0 = `echo $argv[$i0] | cut -b 1`
+                    endif
+                end
+
+                if ( $#extra_annot_labels == 0 ) then
+                    echo "** ERROR: need at least one dset after $argv[$count]"
+                    goto BAD_EXIT
+                else
+                    echo "++ will track $#extra_annot_labels extra annot labels"
+                endif
+
+            breaksw
 
             # ----------------------------------------------------------
             # usage : -extra_fs_dsets AA BB CC ...
@@ -455,6 +525,7 @@ L_PARSE_COMMAND:
     endif
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
+    set sample_spec  = $spec_files[1]
     set afni_prefix  = ${subj_id}_SurfVol
     if ( $neuro_ori != -1 ) then
         set afni_dataset = $afni_prefix+orig
@@ -493,7 +564,7 @@ L_VERIFY_PROGRAMS:
         if ( $test_command == mris_convert ) then
             # Unfortunately, all -help variants seem to set $status,
             # so parse the actual text, looking for 'surface'.
-            set nl = `$test_command --help |& grep surface | wc -l`
+            set nl = `$test_command --help |& \grep surface | wc -l`
             if ( "$nl" == 0 ) then
                 echo "** apparent failure to run $test_command"
                 echo "   $test_command --help starts with:"
@@ -830,10 +901,80 @@ L_CONVERT_SURFACES:
     #and do the labels
     if ( -d $label_dir) then
         cd $label_dir
+        if ( $fsannot_ver != "" ) then
+           set fsannot_opt = "-FSversion $fsannot_ver"
+        else
+           set fsannot_opt = ""
+        endif
+
+        # ------------------------------------------------------------
+        # process any extra annotation labels - use mris_convert
+        # (convert and create GIFTI versions to pass to MapIcosahedron)
+        if ( $#extra_annot_labels > 0 ) then
+           echo "++ have $#extra_annot_labels extra labels, " \
+                "including as if -extra_fs_dsets"
+
+           # find a surface to use as input to mris_convert
+           set sinput = ''
+           set surf_names = ( white smoothwm pial )
+           foreach stmp ( $surf_names )
+              if ( -f ../$surf_dir/lh.$stmp && -f ../$surf_dir/rh.$stmp ) then
+                 set sinput = $stmp
+                 break
+              endif
+           end
+
+           if ( $sinput != "" ) then
+              echo "-- using $sinput as surf input to mris_convert"
+
+              foreach exlab ( $extra_annot_labels )
+                 # convert and make a GIFTI version
+                 foreach hand ( lh rh )
+                    set efile = ${hand}.$exlab.annot
+                    if ( ! -f $efile ) then
+                        echo ""
+                        echo "** annot label '$exlab', missing file: $efile"
+                        echo ""
+                        continue
+                    endif
+
+                    set isurf = ../$surf_dir/$hand.$sinput
+                    set ddd = $start_dir/$suma_dir
+
+                    # Until we fix FSread_annot 
+                    #
+                    # FSread_annot   -input $efile                     \
+                    #     $fsannot_opt                                 \
+                    #     -roi_1D  $ddd/${hand}.$exlab.annot.1D.roi    \
+                    #     -dset    $ddd/${hand}.$exlab.annot.niml.dset \
+                    #     -cmap_1D $ddd/${hand}.$exlab.annot.1D.cmap 
+
+                    mris_convert --annot $efile $isurf  \
+                                 $ddd/${hand}.$exlab.FS.annot.gii
+
+                    # This has a color map, but suma does not properly use it.
+                    # Use 3dcopy instead, to just get color index values (and
+                    # essentially throw away the colormap).
+                    #
+                    # ConvertDset -i $ddd/${hand}.$exlab.FS.annot.gii \
+                    #             -o $ddd/${hand}.$exlab.annot.niml.dset
+                    
+                    3dcopy $ddd/${hand}.$exlab.FS.annot.gii \
+                           $ddd/${hand}.$exlab.annot.niml.dset
+                 end
+              end
+           else
+              echo "** missing surf input to mris_convert for -extra_fs_dsets"
+           endif
+        endif
+        
+        # ------------------------------------------------------------
+        # convert standard annot files
         foreach hand ( lh rh )
             if ( -f ${hand}.aparc.a2005s.annot ) then
                 set ddd = $start_dir/$suma_dir
                 FSread_annot   -input ${hand}.aparc.a2005s.annot       \
+                     $fsannot_opt                                      \
                     -roi_1D  $ddd/${hand}.aparc.a2005s.annot.1D.roi    \
                     -dset    $ddd/${hand}.aparc.a2005s.annot.niml.dset \
                     -cmap_1D $ddd/${hand}.aparc.a2005s.annot.1D.cmap 
@@ -842,6 +983,7 @@ L_CONVERT_SURFACES:
             if ( -f ${hand}.aparc.a2009s.annot ) then
                 set ddd = $start_dir/$suma_dir
                 FSread_annot   -input ${hand}.aparc.a2009s.annot       \
+                     $fsannot_opt                                      \
                     -roi_1D  $ddd/${hand}.aparc.a2009s.annot.1D.roi    \
                     -dset    $ddd/${hand}.aparc.a2009s.annot.niml.dset \
                     -cmap_1D $ddd/${hand}.aparc.a2009s.annot.1D.cmap 
@@ -1021,6 +1163,7 @@ L_CREATE_SPEC:
 
     # Create both.spec file
     set spec_file = {$subj_id}_both.spec
+    set sample_spec = ${subj_id}_lh.spec
 
     if ( $debug ) echo "++ creating spec file '$spec_file'..."
 
@@ -1184,19 +1327,19 @@ L_CREATE_BRICK:
     #New block added for reading COR images that are no longer 
     #256x256x256 / 1mm cubic voxels ZSS Oct 20 04
       
-    set Sr = `grep -w imnr0 COR-.info`
+    set Sr = `\grep -w imnr0 COR-.info`
     set i0 = $Sr[$#Sr]
-    set Sr = `grep -w imnr1 COR-.info`
+    set Sr = `\grep -w imnr1 COR-.info`
     set i1 = $Sr[$#Sr]
-    set Sr = `grep -w fov COR-.info`
+    set Sr = `\grep -w fov COR-.info`
     set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
-    set Sr = `grep -w x COR-.info | grep -v xform`
+    set Sr = `\grep -w x COR-.info | \grep -v xform`
     set nx = $Sr[$#Sr]
-    set Sr = `grep -w y COR-.info`
+    set Sr = `\grep -w y COR-.info`
     set ny = $Sr[$#Sr]
-    set Sr = `grep -w thick COR-.info`
+    set Sr = `\grep -w thick COR-.info`
     set zthick = `ccalc -eval $Sr[$#Sr] \* 1000`
-    set Sr = `grep -w psiz COR-.info`
+    set Sr = `\grep -w psiz COR-.info`
     set psize = `ccalc -eval $Sr[$#Sr] \* 1000`
 
     set xSLAB0 = `ccalc -eval $nx \* $psize / 2`
@@ -1356,6 +1499,16 @@ L_ICO:
                     endif
                 end
             endif
+
+            if ($#extra_annot_labels > 0) then
+                foreach alab ($extra_annot_labels)
+                    set aset = ${hem}.${alab}.annot.niml.dset
+                    if ( -f $aset ) then
+                        set dm = ($dm "-NN_dset_map" $aset)
+                    endif
+                end
+            endif
+
             if ( -f $sp) then
                 # possibly add -verb    19 Mar 2017 [rickr]
                 if ( $debug ) then
@@ -1371,6 +1524,8 @@ L_ICO:
             inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
         endif
     end # foreach ld
+    # pass a better sample spec file along
+    set sample_spec = $ldpref[1]${subj_id}_lh.spec
     cd -
    
 goto L_ICO_DONE
@@ -1397,6 +1552,8 @@ L_TEST_SURF_VOL:
     endif
     echo "    suma -spec $spec_file -sv $ovol"
 
+    echo "suma -spec $sample_spec -sv $ovol" > $suma_dir/run_suma_00_basic.txt
+
 goto L_TEST_SURF_VOL_DONE
 
 ####################################################################
@@ -1412,6 +1569,41 @@ L_RENUMBER_ROIS:
     @SUMA_renumber_FS $suma_dir
 
 goto L_RENUMBER_ROIS_DONE
+
+####################################################################
+# [27 Jan 2020 rickr]
+# compress SUMA/*.nii, except for SurfVol
+
+L_COMPRESS_FILES:
+
+    # maybe the user does not want to compress
+    if ( ! $do_compress ) then
+        if ( $debug ) echo "-- skipping NIFTI compression"
+        goto L_COMPRESS_FILES_DONE
+    endif
+
+    # be sure gzip is in the path
+    (which gzip) >& /dev/null
+    if ( $status ) then
+        echo "program not found in path: gzip, skipping compress"
+        goto L_COMPRESS_FILES_DONE
+    endif
+
+    cd $suma_dir
+
+    # do this very simply, for clarity
+    # first zip everything, then unzip SurfVol
+    if ( -f $afni_dataset.nii ) then
+       echo "\n\n++ Compressing all remaining .nii files, except for SurfVol.\n"
+
+       gzip *.nii
+       gunzip $afni_dataset.nii.gz
+    endif
+
+    cd -
+
+
+goto L_COMPRESS_FILES_DONE
 
 ####################################################################
 # display help and exit
@@ -1465,6 +1657,9 @@ OPTIONS ~1~
           e.g. -debug 1
           the default level is 0, max is 2
 
+          A debug level of 2 will "set echo", so one can follow the actual
+          commands executed in the script.
+
     -fs_setup       : source \$FREESURFER_HOME/SetUpFreeSurfer.csh
 
           This might be useful on OS X, as FreeSurfer uses DYLD_LIBRARY_PATH,
@@ -1485,6 +1680,23 @@ OPTIONS ~1~
 
           Note: when this option is provided, all file/path
           messages will be with respect to this directory.
+
+    -extra_annot_labels L1 L2 ...  : convert extra annot files into ROI dsets
+          e.g. -extra_annot_labels aparc
+
+          FS typically outputs annotaion files:
+                lh.aparc.a2005s.annot
+                rh.aparc.a2005s.annot
+                lh.aparc.a2009s.annot
+                rh.aparc.a2009s.annot
+          from each of which Make_Spec extracts a colormap, ROI and a
+          displayable surface dataset.
+
+          Use this option to specify other labels to extract.
+
+          If LABEL is specified, then expected annotation files will be:
+                lh.LABEL.annot
+                rh.LABEL.annot
 
     -extra_fs_dsets AA BB CC ...
                     : FS calculates many types of data on the surface,
@@ -1566,6 +1778,9 @@ OPTIONS ~1~
          ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI
                   would distort standard mesh surfaces.  To evaluate
                   effects of this, consider: MapIcosahedron -write_dist.
+
+                * If you are seeing this message, that problem was fixed
+                  years ago.
 
     NOTE for -NIFTI:
         If you really care that the volumes in SUMA/ are in exact

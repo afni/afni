@@ -5,22 +5,60 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *iset , *oset ;
    int iarg=1 , kk ;
    int doz=0 ;            /* 20 Aug 2019 */
+   int doq=0 , nqbad=0 ;  /* 01 Feb 2020 */
    char *prefix="Pval" ;
    MRI_IMAGE *iim , *oim ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dPval [options] dataset\n\n"
-      "* Converts a dataset statistical sub-bricks to p-values.\n"
-      "* Sub-bricks that are not marked as statistical volumes are unchanged.\n"
+      "\n"
+      "Usage: 3dPval [options] dataset\n"
+      "\n"
+      "* Converts a dataset's statistical sub-bricks to p-values.\n"
+      "\n"
+      "* Sub-bricks not internally marked as statistical volumes are unchanged.\n"
+      "\n"
       "* However, all output volumes will be converted to float format!\n"
-      "* A quick hack for Isaac, by Zhark the Probabilistic [26 Jun 2015].\n"
+      "\n"
+      "* If you wish to convert only sub-brick #3 (say) of a dataset, then\n"
+      "   something like this command should do the job:\n"
+      "     3dPval -prefix Zork.nii InputDataset.nii'[3]'\n"
+      "\n"
+      "* Note that sub-bricks being marked as statistical volumes, and\n"
+      "   having value-to-FDR conversion curves attached, are AFNI-only\n"
+      "   ideas, and are not part of any standard, NIfTI or otherwise!\n"
+      "   In other words, this program will be useless for a random dataset\n"
+      "   which you download from some random non-AFNI-centric site :(\n"
+      "\n"
+      "* Also note that SMALLER p- and q-values are more 'significant', but\n"
+      "   that the AFNI GUI provides interactive thresholding for values\n"
+      "   ABOVE a user-chosen level, so using the GUI to threshold on a\n"
+      "   p-value or q-value volume will have the opposite result to what\n"
+      "   you might wish for.\n"
+      "\n"
+      "* Although the program now allows conversion of statistic values\n"
+      "   to z-scores or FDR q-values, instead of p-values, you can only\n"
+      "   do one type of conversion per run of 3dPval. If you want p-values\n"
+      "   AND q-values, you'll have to run this program twice.\n"
+      "\n"
+      "* Finally, 'sub-brick' is AFNI jargon for a single 3D volume inside\n"
+      "   a multi-volume dataset.\n"
       "\n"
       "Options:\n"
       "=======\n"
-      " -zscore     = Convert to a z-score instead\n"
-      " -prefix p   = Prefix name for output file\n"
+      " -zscore   = Convert statistic to a z-score instead, an N(0,1) deviate\n"
+      "               that represents the same p-value.\n"
       "\n"
+      " -qval     = Convert statistic to a q-value (FDR) instead:\n"
+      "             + This option only works with datasets that have\n"
+      "               FDR curves inserted in their headers, which most\n"
+      "               AFNI statistics programs will do. The program\n"
+      "               3drefit can also do this, with the -addFDR option.\n"
+      "\n"
+      " -prefix p = Prefix name for output file (default name is 'Pval')\n"
+      "\n"
+      "\n"
+      "AUTHOR: The Man With The Golden p < 0.000001\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -30,7 +68,11 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-zscore") == 0 || strcasecmp(argv[iarg],"-zstat") == 0 ){
-       doz++ ; iarg++ ; continue ;  /* 20 Aug 2019 */
+       doq = 0 ; doz++ ; iarg++ ; continue ;  /* 20 Aug 2019 */
+     }
+
+     if( strcasecmp(argv[iarg],"-qval") == 0 ){
+       doq++ ; doz = 0 ; iarg++ ; continue ;  /* 01 Feb 2020 */
      }
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -63,6 +105,14 @@ int main( int argc , char *argv[] )
      if( doz ){
        oim = mri_to_zscore( iim , DSET_BRICK_STATCODE(iset,kk) ,
                                   DSET_BRICK_STATAUX (iset,kk)  ) ;
+     } else if( doq ){
+       floatvec *fv = DSET_BRICK_FDRCURVE(iset,kk) ;
+       oim = mri_to_qval( iim , fv ) ;
+       if( fv == NULL && FUNC_IS_STAT(DSET_BRICK_STATCODE(iset,kk)) ){
+         WARNING_message(
+           "volume %d is marked as a stat, but does not have an FDR curve :(",kk) ;
+         nqbad++ ;
+       }
      } else {
        oim = mri_to_pval( iim , DSET_BRICK_STATCODE(iset,kk) ,
                                 DSET_BRICK_STATAUX (iset,kk)  ) ;
@@ -74,8 +124,9 @@ int main( int argc , char *argv[] )
        char *olab , nlab[128] ;
        mri_free(iim) ; fprintf(stderr,"+") ;
        olab = DSET_BRICK_LABEL(iset,kk) ;
-       if( doz ) sprintf(nlab,"%.120s_zstat",olab) ;
-       else      sprintf(nlab,"%.120s_pval" ,olab) ;
+            if( doz ) sprintf(nlab,"%.120s_zstat",olab) ;
+       else if( doq ) sprintf(nlab,"%.120s_qval" ,olab) ;
+       else           sprintf(nlab,"%.120s_pval" ,olab) ;
        EDIT_BRICK_LABEL(oset,kk,nlab) ;
        if( doz ) EDIT_BRICK_TO_FIZT(oset,kk) ;
        else      EDIT_BRICK_TO_NOSTAT(oset,kk) ;
@@ -84,6 +135,11 @@ int main( int argc , char *argv[] )
      mri_clear_and_free(oim) ;
    }
    fprintf(stderr,"\n") ;
+
+   if( nqbad > 0 ){
+     WARNING_message(
+      "lack of FDR curves can be supplied by using 3drefit -addFDR") ;
+   }
 
    DSET_write(oset) ; WROTE_DSET(oset) ;
    exit(0) ;

@@ -66,6 +66,196 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "New opt '-warpscale' added; is a new opt in 3dQwarp, can be tweaked here now.",
+   "Control flexibility of warps.  Right now testing different values.\n"
+},
+
+{ 26, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Crashing in cases of 'pythonic' APQC with no censoring.",
+   "Have fixed now.\n"
+},
+
+{ 25, Feb , 2020 , PT , "check_dset_for_fs.py" , MINOR , TYPE_BUG_FIX,
+   "Minor bug fix, caught by RCR.  Or was it first *added* by RCR????",
+   "... Nope.  It was added by me.  Sigh.\n"
+},
+
+{ 25, Feb , 2020 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_GENERAL,
+   "New min|max range on vox size; update report text.",
+   "Based on tests with FS data.\n"
+},
+
+{ 24, Feb , 2020 , PT , "adjunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
+   "Fix image caption processing.",
+   "(This prog is just used in RST/documentation generation.)\n"
+},
+
+{ 22, Feb , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Temporary files now have a random string in their prefix.",
+   "Thus, can have multiple runs in same directory simultaneously sans probleme.\n"
+},
+
+{ 22, Feb , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can control AGIF frame rate, using opt (-agif_delay) to control AFNI env var.",
+   "Thanks to RCR for pointing out the env var.\n"
+},
+
+{ 21, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Crashing in cases of 'basic' APQC with no outlier-based censoring.",
+   "Have fixed now.\n"
+},
+
+{ 19, Feb , 2020 , PT , "DoPerRoi.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @DoPerRoi.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_select_str.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_select_str.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_make_script_and_rst.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_make_script_and_rst.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_is_label.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_is_label.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_combine_str.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_combine_str.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "adjunct_calc_mont_dims.py" , MINOR , TYPE_GENERAL,
+   "Renamed from @djunct_calc_mont_dims.py.",
+   "Purge @ symbol in Python progs, for purpose of repackaging/distribution.\n"
+},
+
+{ 19, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "New QC image outputs added.",
+   "One for skullstripping (orig space) and one for warping (ref space).\n"
+},
+
+{ 17, Feb , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Reorganized under the hood, deal with censoring in a better way.",
+   "Easier to tweak/update changes now.\n"
+},
+
+{ 17, Feb , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Opt -censor_hline can now take a keyword NONE as an entry.",
+   "Useful if looking at multiple inputs and only some have censor lines.\n"
+},
+
+{ 3, Feb , 2020 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
+   "Can anonymize output dsets:  -anonymize_output.",
+   "Fairly self-explanatory opt.\n"
+},
+
+{ 3, Feb , 2020 , PT , "@djunct_anonymize" , MINOR , TYPE_NEW_PROG,
+   "Anonymize files, and maybe add a note.",
+   "Can either edit input directly, or make a copy + edit that.\n"
+},
+
+{ 29, Jan , 2020 , PT , "1dplot.py" , MINOR , TYPE_BUG_FIX,
+   "The input opt '-xfile ..' was broken;  now it is fixed.",
+   "Fix class inits, as well, under the hood.\n"
+},
+
+{ 29, Jan , 2020 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
+   "Couldn't deal with volumes that had RGB type, which happens for DEC maps.",
+   "Has been fixed now.\n"
+},
+
+{ 29, Jan , 2020 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_GENERAL,
+   "Try to make a couple output images (dwi*b0*.png) a bit clearer.",
+   "Make olay use 95%ile value as cbar max, rather than 100%.\n"
+},
+
+{ 27, Jan , 2020 , PT , "@SSwarper" , MAJOR , TYPE_GENERAL,
+   "Large set of updates; many new opts added, too; generally much improved warps.",
+   "Heavily tested on 178 subj across studies; output fnames are same, though.\n"
+},
+
+{ 27, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "Program now outputs QC images automatically.",
+   "These are output into a PREFIX_QC directory each run.\n"
+},
+
+{ 27, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Fixed bug in QC.",
+   "Broke when there was one stim used (bad scalar -> list conv).\n"
+},
+
+{ 26, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program now requires specifying a mode for re/defacing.",
+   "One can also output all types of re/defacing simultaneously.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master" , MICRO , TYPE_GENERAL,
+   "Updated with notes to look at @afni_refacer_make_master_addendum.",
+   "The addendum program just tweaks the output of this prog.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_make_master_addendum" , MAJOR , TYPE_GENERAL,
+   "This program just records additional tweaks to refacer ref vol.",
+   "Not really meant to be run on its own; for future reference only.\n"
+},
+
+{ 24, Jan , 2020 , PT , "@afni_refacer_run" , MAJOR , TYPE_GENERAL,
+   "This program has been revamped and updated, including having a new ref vol.",
+   "Syntax for running this has totally changed (options exist).\n"
+},
+
+{ 21, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Increase thresholds and cbar range in vstat_seedcorr and regr_corr dsets.",
+   "Clearer QC, methinks, based on several different group dsets.\n"
+},
+
+{ 14, Jan , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Change text of animal_outs.txt.",
+   "Add in a couple new dsets to be listed.\n"
+},
+
+{ 13, Jan , 2020 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+   "New function to read in seed list text file.",
+   "Returns list of seed objs for APQC.\n"
+},
+
+{ 17, Jan , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New pieces of QC:  corr brain image in regr block.",
+   "Shows corr of mean residual with everything.  Have a nice day.\n"
+},
+
+{ 13, Jan , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "New pieces of QC:  first, seedbased corr maps for non-task data.",
+   "Second, censor-based warnings (general and per-stim).\n"
+},
+
+{ 13, Jan , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Couple new options.",
+   "Can specify colorbar and center coords now.\n"
+},
+
+{ 27, Dec , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_OPT,
+   "New option(s) to not just *check* a dset for FS-ability, but to correct it.",
+   "The '-fix_all' and accompanying options control this.  Bonne idee, DRG!\n"
+},
+
+{ 26, Dec , 2019 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Simpler list of uvar dependencies for indiv stim plotting.",
+   "... ergo, see indiv stims even if not censoring.\n"
+},
+
+{ 26, Dec , 2019 , PT , "check_dset_for_fs.py" , MINOR , TYPE_BUG_FIX,
+   "Fix one of the test criteria (-is_mat_even).",
+   "Thanks, S. Torrisi, for pointing this out.\n"
+},
+
 { 14, Nov , 2019 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_GENERAL,
    "New output: fs_ap* dsets for tissue-based reg in afni_proc.py;.",
    "New output: *REN_gmrois* dsets for tracking/corr mats in FATCAT.\n"

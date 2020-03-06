@@ -87,7 +87,9 @@ typedef struct znzptr * znzFile;
 
 znzFile znzopen(const char *path, const char *mode, int use_compression);
 
+#ifdef COMPILE_NIFTIUNUSED_CODE
 znzFile znzdopen(int fd, const char *mode, int use_compression);
+#endif
 
 int Xznzclose(znzFile * file);
 
@@ -103,6 +105,7 @@ long znztell(znzFile file);
 
 int znzputs(const char *str, znzFile file);
 
+#ifdef COMPILE_NIFTIUNUSED_CODE
 char * znzgets(char* str, int size, znzFile file);
 
 int znzputc(int c, znzFile file);
@@ -111,6 +114,7 @@ int znzgetc(znzFile file);
 
 #if !defined(WIN32)
 int znzprintf(znzFile stream, const char *format, ...);
+#endif
 #endif
 
 /*=================*/

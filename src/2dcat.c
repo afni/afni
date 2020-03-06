@@ -10,10 +10,10 @@
 #define YXNUM    1
 #define XDOTYNUM 2
 #define YDOTXNUM 3
-void imcat_usage(int detail) 
+void prog_usage(int detail) 
 {
          printf(
- "Usage: imcat [options] fname1 fname2 etc.\n"
+ "Usage: 2dcat [options] fname1 fname2 etc.\n"
  "Puts a set images into an image matrix (IM) \n"
  " montage of NX by NY images.\n"
  " The minimum set of input is N images (N >= 1).\n"
@@ -95,9 +95,9 @@ void imcat_usage(int detail)
  "\n"
  "Example 0 (assuming afni is in ~/abin directory):\n"
  "   Resizing an image:\n"
- "   imcat -prefix big -res_in 1024 1024 \\\n"
+ "   2dcat -prefix big -res_in 1024 1024 \\\n"
  "         ~/abin/funstuff/face_zzzsunbrain.jpg \n"
- "   imcat -prefix small -res_in 64 64 \\\n"
+ "   2dcat -prefix small -res_in 64 64 \\\n"
  "         ~/abin/funstuff/face_zzzsunbrain.jpg \n"
  "   aiv small.ppm big.ppm \n"
  "\n"
@@ -105,17 +105,17 @@ void imcat_usage(int detail)
  "   Stitching together images:\n"
  "    (Can be used to make very high resolution SUMA images.\n"
  "     Read about 'Ctrl+r' in SUMA's GUI help.)\n"
- "   imcat -prefix cat -matrix 14 12 \\\n"
+ "   2dcat -prefix cat -matrix 14 12 \\\n"
  "         ~/abin/funstuff/face_*.jpg\n"
  "   aiv cat.ppm\n"
  "\n"
  "Example 2:\n"
  "   Stitching together 3 images getting rid of annoying white boundary:\n"
  "\n"
- "   imcat -prefix surfview_pry3b.jpg -ny 1 -autocrop surfview.000[789].jpg\n"
+ "   2dcat -prefix surfview_pry3b.jpg -ny 1 -autocrop surfview.000[789].jpg\n"
  "\n"   
  "Example 20 (assuming afni is in ~/abin directory):\n"
- "   imcat -prefix bigcat.jpg -scale_image ~/abin/afnigui_logo.jpg \\\n"
+ "   2dcat -prefix bigcat.jpg -scale_image ~/abin/afnigui_logo.jpg \\\n"
  "         -matrix_from_scale -rand_wrap -rgb_out -respad_in 128 128 \\\n"
  "         -pad_val 128 ~/abin/funstuff/face_*.jpg \n"
  "   aiv   bigcat.jpg bigcat.jpg \n"
@@ -126,6 +126,8 @@ void imcat_usage(int detail)
  "\n"
  "You can look at the output image file with\n"
  "  afni -im ppp.ppm  [then open the Sagittal image window]\n"
+ "\n"
+ "Deprecation warning: The imcat program will be replaced by 2dcat in the future."
  "\n"
             ) ;
    return;
@@ -153,7 +155,7 @@ int main( int argc , char * argv[] )
    void *ggg=NULL;
    
    
-   mainENTRY("imcat main"); machdep() ;
+   mainENTRY("2dcat main"); machdep() ;
     
     wrapmode = 1;
     ScaleInt = 0;
@@ -174,7 +176,7 @@ int main( int argc , char * argv[] )
     while( iarg < argc && argv[iarg][0] == '-' ){
        if( strcmp(argv[iarg],"-help") == 0 ||
            strcmp(argv[iarg],"-h") == 0 ) {
-         imcat_usage(strlen(argv[iarg])>2 ? 2:1);
+         prog_usage(strlen(argv[iarg])>2 ? 2:1);
          exit(0);  /* do not continue   18 Sep 2018 [rickr] */
        }
 
@@ -401,7 +403,7 @@ int main( int argc , char * argv[] )
     
     if( argc < 4 ){
       ERROR_message("Too few options");
-      imcat_usage(0);
+      prog_usage(0);
       exit(1) ;
     }
     

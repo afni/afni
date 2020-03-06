@@ -352,6 +352,7 @@ int main( int argc , char *argv[] )
    float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
    int nvox_base ;
    float v1,v2 , xxx_p,yyy_p,zzz_p,siz , xxx_m,yyy_m,zzz_m , xxx,yyy,zzz , xc,yc,zc ;
+   float xxc,yyc,zzc ; int CMbad=0 ; /* 26 Feb 2020 */
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+2][MAXPAR];  /* +2 for some extra cases */
@@ -834,9 +835,11 @@ int main( int argc , char *argv[] )
 "               stops trying to improve the alignment when the optimizer\n"
 "               (NEWUOA) reports it has narrowed the search radius\n"
 "               down to this level.\n"
+"               * To set this value to the smallest allowable, use '-conv 0'.\n"
+"               * A coarser value for 'quick-and-dirty' alignment is 0.05.\n"
 "\n"
 " -verb       = Print out verbose progress reports.\n"
-"               [Using '-VERB' will give even more prolix reports.]\n"
+"               [Using '-VERB' will give even more prolix reports :]\n"
 " -quiet      = Don't print out verbose stuff.\n"
 "\n"
 " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
@@ -849,6 +852,10 @@ int main( int argc , char *argv[] )
 "               may have to delete them manually. (TIM=Temporary IMage)\n"
 "       **N.B.: If the program fails with a 'malloc failure' type of\n"
 "               message, then try '-usetemp' (malloc=memory allocator).\n"
+"             * If the program just stops with a message 'killed', that\n"
+"               means the operating system (Unix/Linux) stopped the\n"
+"               program, which almost always is due to the system running\n"
+"               low on memory -- so it starts killing programs to save itself.\n"
 #ifdef USING_MCW_MALLOC
 "       **N.B.: If you use '-verb', then memory usage is printed out\n"
 "               at various points along the way.\n"
@@ -974,7 +981,7 @@ int main( int argc , char *argv[] )
 "                   [This option is OFF by default]\n"
 "                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
 "                 where +a means to try determine automatically in which\n"
-"                 direction the data is partial by looking for a too large shift\n" 
+"                 direction the data is partial by looking for a too large shift\n"
 "                 If given in the form '-cmass+xy' (for example), means to\n"
 "                 do the CoM calculation in the x- and y-directions, but\n"
 "                 not the z-direction.\n"
@@ -2186,7 +2193,7 @@ int main( int argc , char *argv[] )
        ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
        if( ntmask < 666 )
          ERROR_exit("Too few (%d) voxels in -source_mask :-(",ntmask) ;
-       if( verb ) INFO_message("%d voxels in -source_mask",ntmask) ;
+       if( verb > 1 ) INFO_message("%d voxels in -source_mask",ntmask) ;
        iarg++ ; fill_source_mask = 1 ; continue ;
      }
 
@@ -2663,8 +2670,8 @@ int main( int argc , char *argv[] )
        float vv ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
-            if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("limited %s to 0.0001",argv[iarg]); }
-       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("limited %s to 0.666" ,argv[iarg]); }
+            if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("%s: limited %s to 0.0001",argv[iarg-1],argv[iarg]); }
+       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("%s: limited %s to 0.666" ,argv[iarg-1],argv[iarg]); }
        conv_mm = vv ; iarg++ ; continue ;
      }
 
@@ -3325,7 +3332,7 @@ int main( int argc , char *argv[] )
 
    /*--- load input datasets ---*/
 
-   if( verb ) INFO_message("Loading datasets") ;
+   if( verb ) INFO_message("Loading datasets into memory") ;
 
    /* target MUST be present */
 
@@ -3352,7 +3359,7 @@ int main( int argc , char *argv[] )
      mri_fix_data_pointer( mmm , im_tmask ) ;
      if( ndil > 0 ){
        for( ii=0 ; ii < ndil ; ii++ ){
-         THD_mask_dilate     ( nx_targ,ny_targ,nz_targ , mmm , 3 ) ;
+         THD_mask_dilate     ( nx_targ,ny_targ,nz_targ , mmm , 3, 2 ) ;
          THD_mask_fillin_once( nx_targ,ny_targ,nz_targ , mmm , 2 ) ;
        }
      }
@@ -3363,7 +3370,7 @@ int main( int argc , char *argv[] )
      ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
      if( ntmask < 666 && auto_tmask )
        ERROR_exit("Too few (%d) voxels in %s :-(",ntmask,auto_tstring) ;
-     if( verb )
+     if( verb > 1 )
        INFO_message("%d voxels in %s",ntmask,auto_tstring) ;
 
    } else if( im_tmask != NULL ){  /*-- check -source_mask vs. target --*/
@@ -3471,7 +3478,7 @@ int main( int argc , char *argv[] )
      MRI_autobbox( qim, &pad_xm,&pad_xp, &pad_ym,&pad_yp, &pad_zm,&pad_zp ) ;
      mri_free(qim) ;
 #if 0
-     if( verb ){
+     if( verb > 1 ){
        INFO_message("bbox: xbot=%3d xtop=%3d nx=%3d",pad_xm,pad_xp,nx_base);
        INFO_message("    : ybot=%3d ytop=%3d ny=%3d",pad_ym,pad_yp,ny_base);
       if( nz_base > 1 )
@@ -3492,7 +3499,7 @@ int main( int argc , char *argv[] )
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
-     if( verb && apply_mode == 0 ){
+     if( verb > 1 && apply_mode == 0 ){
        if( zeropad ){
          if( pad_xm > 0 || pad_xp > 0 )
            INFO_message("Zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
@@ -3654,7 +3661,7 @@ STATUS("zeropad weight dataset") ;
        WARNING_message("Cost function '%s' ('%s') uses -automask NOT -autoweight",
                        meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
        auto_weight = 2 ;
-     } else if( verb >= 1 ){
+     } else if( verb > 1 ){
        INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
@@ -3692,8 +3699,8 @@ STATUS("zeropad weight dataset") ;
      mf = MRI_BYTE_PTR(im_mask) ;
      for( ii=0 ; ii < im_mask->nvox ; ii++ ) mf[ii] = (wf[ii] > 0.0f) ;
      nmask = THD_countmask(im_mask->nvox,mf) ;
-     if( verb ) INFO_message("%d voxels [%.1f%%] in weight mask",
-                             nmask, 100.0*nmask/(float)im_mask->nvox ) ;
+     if( verb > 1 ) INFO_message("%d voxels [%.1f%%] in weight mask",
+                                 nmask, 100.0*nmask/(float)im_mask->nvox ) ;
      if( !APPLYING && nmask < 100 )
        ERROR_exit("3dAllineate fails: not enough voxels in weight mask") ;
 
@@ -3734,7 +3741,7 @@ STATUS("zeropad weight dataset") ;
    } else {
       npt_match = (int)(nmask_frac*(double)nmask);
    }
-   if( verb && apply_mode == 0 )
+   if( verb > 1 && apply_mode == 0 )
      INFO_message("Number of points for matching = %d",npt_match) ;
 
    /*------ setup alignment structure parameters ------*/
@@ -3891,8 +3898,9 @@ STATUS("zeropad weight dataset") ;
    xxx = xxx_m ; yyy = yyy_m ; zzz = zzz_m ;
 
    /*-- 30 Jul 2007: center-of-mass sets range of shifts --*/
+   /*-- 26 Feb 2020: always compute, maybe not use       --*/
 
-   if( do_cmass ){
+   if( 1 || do_cmass ){
      float xtarg,ytarg,ztarg , xbase,ybase,zbase ;
 
      mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
@@ -3904,7 +3912,7 @@ STATUS("zeropad weight dataset") ;
      if( verb > 1 )
        ININFO_message("source center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
-     xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
+     xxc = xc = xtarg-xbase ; yyc = yc = ytarg-ybase ; zzc = zc = ztarg-zbase ;
      if( verb > 1 )
        ININFO_message("source-target CM = %.3f %.3f %.3f (xyz)",xc,yc,zc) ;
      if (do_cmass < 0) {
@@ -3933,12 +3941,31 @@ STATUS("zeropad weight dataset") ;
         if( (do_cmass & 2) == 0 ) yc = 0.0f ;
         if( (do_cmass & 4) == 0 ) zc = 0.0f ;
      }
-     if( verb > 1 && apply_mode == 0 ){
-       ININFO_message("center of mass shifts = %.3f %.3f %.3f",xc,yc,zc) ;
+     if( do_cmass && verb > 1 && apply_mode == 0 ){
+       ININFO_message("estimated center of mass shifts = %.3f %.3f %.3f",xc,yc,zc) ;
      }
    } else {
      xc = yc = zc = 0.0f ;
    }
+
+   /* WARNING message if unused cmass shifts are large compared to search range */
+
+   if( ! do_cmass ){         /* 26 Feb 2020 */
+     float rrr ;
+     rrr = fabsf(xxc)/xxx ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
+     rrr = fabsf(yyc)/yyy ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
+     rrr = fabsf(zzc)/zzz ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
+     if( CMbad > 0 && CMbad < 100 )
+       WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
+     else if( CMbad >= 100 )
+       WARNING_message("center of mass shifts (-cmass) are turned off, but would be TERRIBLY large!") ;
+
+     ININFO_message (" -cmass x y z shifts = %.3f %.3f %.3f",xxc,yyc,zzc) ;
+     ININFO_message (" search range is +/- = %.3f %.3f %.3f",xxx,yyy,zzz) ;
+
+     xc = yc = zc = 0.0f ; /* pleonastic, to be safe */
+   }
+
    xxx_p = xc + xxx ; xxx_m = xc - xxx ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
@@ -4387,7 +4414,7 @@ STATUS("zeropad weight dataset") ;
        mri_fix_data_pointer( mmm , bsm ) ;
        if( ndil > 0 ){
          for( ii=0 ; ii < ndil ; ii++ ){
-           THD_mask_dilate     ( nx_base,ny_base,nz_base , mmm , 3 ) ;
+           THD_mask_dilate     ( nx_base,ny_base,nz_base , mmm , 3, 2 ) ;
            THD_mask_fillin_once( nx_base,ny_base,nz_base , mmm , 2 ) ;
          }
        }
@@ -4949,6 +4976,7 @@ STATUS("zeropad weight dataset") ;
          ININFO_message("- Finalish cost = %f ; %d funcs",stup.vbest,nfunc) ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+       if( verb > 1 ) PARINI("- ini Finalish") ;
        stup.need_hist_setup = 1 ;
        if( (meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
             meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal ){
@@ -5794,6 +5822,13 @@ mri_genalign_set_pgmat(1) ;
    if( verb ){
       INFO_message("###########################################################");
    }
+   if( CMbad > 0 ){          /* 26 Feb 2020 */
+     ININFO_message (" ") ;
+     INFO_message   ("***********************************************************") ;
+     WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
+     ININFO_message ("          please check your results - PLEASE PLEASE PLEASE" ) ;
+     INFO_message   ("***********************************************************") ;
+   }
 
    exit(0) ;
 }
@@ -5882,7 +5917,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
+   THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c NN2 */
    THD_mask_clust( nx,ny,nz, mmm ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
    free((void *)mmm) ;
@@ -5916,7 +5951,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        if( verb > 1 ) ININFO_message("Weightize: dilating") ;
        for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
        for( ii=0 ; ii < ndil ; ii++ ){
-         THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
+         THD_mask_dilate     ( nx,ny,nz , mmm , 3, 2 ) ;
          THD_mask_fillin_once( nx,ny,nz , mmm , 2 ) ;
        }
        for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = (float)mmm[ii] ;

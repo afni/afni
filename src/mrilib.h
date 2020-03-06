@@ -109,6 +109,14 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #include "Amalloc.h"     /* 09 Dec 2003 addition */
 #include "Aomp.h"
 
+/* preferentially include f2c header from local directory, otherwise use system
+ header */
+#include "f2c.h"
+/* The following was added to harmonize with system f2c header. Subsequent
+typedef for complex is now ignored */
+#define TYPEDEF_complex
+
+
 /*----------------------------------------------------------------------------*/
 
 #ifndef PI
@@ -197,6 +205,10 @@ static char * MRI_TYPE_name[9] =
   } ;
 
 #define IS_REAL_TYPE(zkq) ((zkq)==MRI_byte || (zkq)==MRI_short || (zkq)==MRI_float)
+#define IS_RGB_TYPE(zkq)  ((zkq)==MRI_rgb  || (zkq)==MRI_rgba)
+
+#define IS_REAL_IMAGE(iq) IS_REAL_TYPE((iq)->kind)
+#define IS_RGB_IMAGE(iq)  IS_RGB_TYPE((iq)->kind)
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
@@ -246,7 +258,9 @@ static float MRI_TYPE_maxval[9] =
 
 #ifndef TYPEDEF_complex
 #define TYPEDEF_complex
+#ifndef complex
 typedef struct complex { float r , i ; } complex ;
+#endif
 #endif
 
 #ifndef TYPEDEF_float_pair
@@ -879,7 +893,8 @@ extern char *      mri_dicom_hdrinfo_full( char *fname, int natt, char **att ,
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
 
 extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
-extern int mri_nonzero_count( MRI_IMAGE *im ) ; /* 28 Dec 2015 */
+extern int mri_nonzero_count( MRI_IMAGE *im ) ;                   /* 28 Dec 2015 */
+extern int mri_nonzero_count_inmask( MRI_IMAGE *im, byte *mmm ) ; /* 12 Dec 2019 */
 
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_valpad_2D( int,int,int,int, MRI_IMAGE *, byte val ) ;
@@ -1037,8 +1052,6 @@ extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
 extern byte      *mri_to_bytemask( MRI_IMAGE *, float,float ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
-extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
-extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
 
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
@@ -1462,6 +1475,10 @@ extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+
+extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
+extern MRI_IMAGE *mri_to_qval( MRI_IMAGE * , floatvec * ) ; /* 01 Feb 2020 */
 
 /*-----------------------------------------------------*/
 

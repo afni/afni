@@ -248,9 +248,17 @@
 #set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
 #   + [PT] add in resampling opts for obliquity transform
 #
-set version   = "5.92"; set rev_dat   = "Sep 12, 2019"
+#set version   = "5.92"; set rev_dat   = "Sep 12, 2019"
 #   + [PT] now use "\mkdir -p .." with $odir, so it will generate path
 #          to it, if necessary --- simplifies usage in scripts
+#
+#set version   = "5.93"; set rev_dat   = "Jan 16, 2020"
+#   + [PT] put "-no1D" on afni command, so there aren't warnings when
+#          empty 1D files are read (e.g., during resting state APQC)
+#
+set version   = "5.94"; set rev_dat   = "Feb 22, 2020"
+#   + [PT] add new opt, controlling AGIF delay time from AFNI env vars
+#        + change way movie files are cleaned up, so no __tmp* dir left over
 #
 # =====================================================================
 
@@ -270,6 +278,7 @@ setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
+setenv AFNI_AGIF_DELAY        30         # [PT: Feb 22, 2020] 
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -668,6 +677,11 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
         setenv AFNI_IMAGE_ZOOM_NN NO
         
+    else if ( "$argv[$ac]" == "-agif_delay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_AGIF_DELAY "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-zerocolor" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -1230,7 +1244,7 @@ else
     # index for $ulay
     set USED_SUBBRICK_LABS = 0
     set ii = 1
-    if ( `@djunct_is_label.py "${subbb[$ii]}"` ) then
+    if ( `adjunct_is_label.py "${subbb[$ii]}"` ) then
         echo "++ Searching for label ${subbb[$ii]}..."
         set ind1 = `3dinfo -label2index "${subbb[$ii]}" "${ulay}"`
         if ( "$ind1" != "" ) then
@@ -1245,7 +1259,7 @@ else
 
     # indices (thr and olay) for $olay
     foreach ii ( `seq 2 1 3` )
-        if ( `@djunct_is_label.py "${subbb[$ii]}"` ) then
+        if ( `adjunct_is_label.py "${subbb[$ii]}"` ) then
             echo "++ Searching for label ${subbb[$ii]}..."
             set ind1 = `3dinfo -label2index "${subbb[$ii]}" "${olay}"`
             if ( "$ind1" != "" ) then
@@ -1303,7 +1317,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         endif
 
         # this calc pad was calc'ed earlier and passed along with each
-        # input dset, using @djunct_calc_mont_dims.py
+        # input dset, using adjunct_calc_mont_dims.py
         set calc_pad = "${upre4d}_${rrr}.dat"
         set padpars  = `grep -v "#" $calc_pad`
         set Nsli     = $padpars[1]
@@ -1849,7 +1863,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu              \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1878,7 +1892,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-        afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                  \
+        afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu            \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
@@ -1954,7 +1968,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1992,7 +2006,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
+afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
@@ -2026,8 +2040,7 @@ if( $?killX ) kill %1
 if ( $DO_CLEAN ) then
     echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
     # AKA $read_dir, at present
-    \rm    $odir/$tmp_dir/*
-    \rmdir $odir/$tmp_dir
+    \rm -rf $odir/$tmp_dir
 else
     echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
 endif
@@ -2193,7 +2206,7 @@ COMMAND OPTIONS ~1~
 
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
-                   non-zero values.
+                   non-zero values (def: 100).
 
 -obliquify  OBL    :the ulay and/or the olay may have been acquired
                     with oblique coordinate axes; by default, the
@@ -2458,6 +2471,11 @@ COMMAND OPTIONS ~1~
                     changes behavior internally to set this variable
                     to have the value "NO".
 
+-agif_delay AD     :when using "-save_ftype AGIF", this option can be used
+                    to specify the time delay between frames.  Units are
+                    "centi-seconds" = 100ths of seconds (def: 30).
+                    (see ENV: AFNI_AGIF_DELAY)
+
 -crop_axi_x CAX1 CAX2,
 -crop_axi_y CAY1 CAY2 :crop axial image(s) to be between voxels CAX1 and
                     CAX2 along the x-axis (inclusive) and CAY1 and CAY2 
@@ -2629,9 +2647,16 @@ FAIL_MISSING_ARG:
 # ---------------------------------- 
 
 BAD_EXIT:
+    echo ""
+    echo "++ DONE (bad exit): check for errors"
+    echo ""
     exit 1
 
 # ---------------------------------- 
 
 GOOD_EXIT:
+    echo ""
+    echo "++ DONE (good exit)"
+    echo "   see: ${odir}/${impref}*"
+    echo ""
     exit 0

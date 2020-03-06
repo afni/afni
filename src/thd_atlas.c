@@ -34,7 +34,7 @@ char * THD_get_space(THD_3dim_dataset *dset)
    fprintf(stderr,"getting space for dset: %s\n", dset->dblk->diskptr->brick_name); 
 #endif
 
-   if(!dset) RETURN(NULL);
+   if(!ISVALID_DSET(dset)) RETURN(NULL);
    
    if(dset->atlas_space[0] != '\0'){
 #ifdef DEBUG_SPACES
@@ -75,9 +75,9 @@ char * THD_get_generic_space(THD_3dim_dataset *dset)
 
    ENTRY("THD_get_generic_space");
 
-   if(!dset) RETURN(NULL);
+   if(!ISVALID_DSET(dset)) RETURN(NULL);
    spcstr = THD_get_space(dset); /* space from dataset structure - do not free */
-   if(spcstr) 
+   if(spcstr!=NULL && *spcstr!='\0') 
        genspcstr = gen_space_str(spcstr); /* space string from space structure - also do not free */
    if(genspcstr)
       RETURN(genspcstr);
@@ -104,7 +104,7 @@ char * THD_get_view_space(THD_3dim_dataset *dset)
 
    ENTRY("THD_get_view_space");
 
-   if(!dset) RETURN(NULL);
+   if(!ISVALID_DSET(dset)) RETURN(NULL);
    spcstr = dset->dblk->diskptr->viewcode;
    if(spcstr != NULL)
       RETURN(spcstr);

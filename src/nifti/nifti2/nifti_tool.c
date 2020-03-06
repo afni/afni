@@ -139,7 +139,7 @@ static const char * g_history[] =
   "   - added -keep_hist option, to store the command as a COMMENT extension\n",
   "     (includes fill_cmd_string() and add_int(), is done for all actions)\n"
   "   - added remove_ext_list(), for removing a list of extensions by indices\n"
-  "   - added -strip action, to strip all extensions and descrip fields\n"
+  "   - added -strip_extras action, to strip all exts and descrip fields\n"
   "\n",
   "1.9  25 Aug 2005 [rickr] - const/string cleanup for warnings\n",
   "1.10 18 Nov 2005 [rickr] - added check_hdr and check_nim actions\n",
@@ -1173,7 +1173,7 @@ int use_full()
    "       (in example #3, the extension is copied from a text file)\n"
    "\n"
    "\n"
-   "      1. nifti_tool -strip -overwrite -infiles *.nii\n"
+   "      1. nifti_tool -strip_extras -overwrite -infiles *.nii\n"
    "      2. nifti_tool -add_comment 'converted from MY_AFNI_DSET+orig' \\\n"
    "                    -prefix dnew -infiles dset0.nii\n"
    );
@@ -1577,7 +1577,7 @@ int use_full()
    "\n");
    printf(
    "       e.g. to strip all *.nii datasets in this directory:\n"
-   "       nifti_tool -strip -overwrite -infiles *.nii\n"
+   "       nifti_tool -strip_extras -overwrite -infiles *.nii\n"
    "\n");
    printf(
    "    -swap_as_nifti    : swap the header according to nifti_1_header\n"
@@ -5026,8 +5026,7 @@ int act_run_misc_tests( nt_opts * opts )
 {
    nifti_image * nim;
    const char  * fname;
-   char          mesg[32], *mptr;
-   int           ec, fc;
+   int           fc;
 
    if( g_debug > 1 )
       fprintf(stderr,"-d running misc. tests for %d files...\n",

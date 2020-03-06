@@ -358,7 +358,7 @@ ENTRY("map_v2s_results");
     }
     else        /* indexed colors */
     {
-	float othr[NPANE_MAX];	/* threshold */
+	float othr[NPANE_MAX+1];	/* threshold */
 	short ovc[NPANE_MAX+1];	/* color */
 	byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1];
 
@@ -378,6 +378,7 @@ ENTRY("map_v2s_results");
 	/* compute the thresholds */
 	for( ival=0 ; ival < npanes ; ival++ )
 	    othr[ival] = pane_scale * pbar->pval[ival+1];
+   othr[npanes] = othr[npanes-1] ;
 
 	if ( debug > 2 )
 	{

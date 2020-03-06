@@ -123,7 +123,7 @@ char * GetAfniWebBrowser(void)
 
    if( awb != NULL ) return(awb) ;
 
-   awb = getenv("AFNI_WEB_BROWSER") ;
+   awb = my_getenv("AFNI_WEB_BROWSER") ;
 #ifdef DARWIN
    if( awb == NULL ) awb = "open" ;  /* for Mac OS X */
 #endif
@@ -147,7 +147,7 @@ char * GetAfniTextEditor(void)
 
    if( ate != NULL ) return(ate) ;
 
-   ate = getenv("AFNI_GUI_EDITOR");
+   ate = my_getenv("AFNI_GUI_EDITOR");
    if( ate != NULL ) return(ate);
 
    /* else, hunt */
@@ -171,7 +171,7 @@ char * GetAfniWebDownloader(void)
 
    if( ate != NULL ) return(ate) ;
 
-   ate = getenv("AFNI_WEB_DOWNLOADER");
+   ate = my_getenv("AFNI_WEB_DOWNLOADER");
    if( ate != NULL ) return(ate);
 
    /* else, hunt */
@@ -186,7 +186,7 @@ char * GetAfniWebDownloader(void)
 char * GetAfniPDFViewer(void)
 {
    static char *ate=NULL;
-   ate = getenv("AFNI_PDF_VIEWER");
+   ate = my_getenv("AFNI_PDF_VIEWER");
 
    if( ate ) return ate;
 
@@ -204,7 +204,7 @@ char * GetAfniPDFViewer(void)
 char * GetAfniImageViewer(void)
 {
    static char *ate=NULL;
-   ate = getenv("AFNI_IMAGE_VIEWER");
+   ate = my_getenv("AFNI_IMAGE_VIEWER");
 
    if( ate ) return ate;
 
@@ -219,6 +219,8 @@ char * GetAfniImageViewer(void)
 
 void init_rand_seed( long int seed )
 {
+   static int first=1 ;
+   if( ! first ) return ;
    if( seed == 0 ){
      FILE *ufp=fopen("/dev/urandom","rb") ;
      seed = (long)time(NULL)+37*(long)getpid() ;
@@ -228,7 +230,7 @@ void init_rand_seed( long int seed )
        seed += (long)urr ;
      }
    }
-   srand48(seed) ;
+   srand48(seed) ; first = 0 ; return ;
 }
 
 /*-------------------------------------------------------------------
@@ -382,3 +384,65 @@ void AFNI_do_nothing(void){
 }
 
 /*---------------------------------------------------------------------------*/
+/* Stuff for changing floating point rounding mode [25 Feb 2020] */
+
+#ifdef USE_FENV
+#include <fenv.h>
+#pragma STDC FENV_ACCESS ON
+
+static int   fval[4] = { FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO };
+static char *fstr[4] = { "nearst"    , "upward" , "dnward"   , "tozero"      };
+
+/* code to give a random value from 0..3, using compiled-in random numbers */
+
+#ifdef USE_RANDOM  /* man random */
+
+# define ROUNVAL     ((random() >> 3) % 4)
+# define ROUNSEED(s) srandom((unsigned int)(s))
+
+#else              /* man nrand48 */
+
+  static unsigned short xran[3] = { 32100 , 42731 , 23172 } ; /* seed */
+# undef  SET_XRAN
+# define SET_XRAN(xr,rss)                                                    \
+  ( (xr)[0]=((rss)>>16), (xr)[1]=((rss)&65535), (xr)[2]=(xr)[0]+(xr)[1]+17 )
+
+# define ROUNVAL     ((nrand48(xran) >> 3) % 4)
+# define ROUNSEED(s) SET_XRAN(xran,(s))
+
+#endif
+
+/*--------- change the rounding randomly? --------*/
+
+void change_rounding_random(void)
+{
+   static int first=1 ; static int doit=0 ;
+
+   /*- setup stuff, first time only -*/
+
+   if( first ){
+     char *eee = my_getenv("AFNI_RANDOMIZE_ROUNDING") ;
+     doit = ( eee != NULL && (*eee=='Y' || *eee=='y') ) ; /* do this? */
+     if( doit ){                           /* OK, setup randomization */
+       long seed=0 ;
+       eee = my_getenv("AFNI_RANDOMIZE_ROUNDING_SEED") ;
+       if( eee != NULL && isdigit(*eee) ) seed = (long)strtod(eee,NULL) ;
+       if( seed == 0 ) seed = (long)time(NULL)+37*(long)getpid() ;
+       ROUNSEED(seed) ;
+       fprintf(stderr,"++ AFNI_RANDOMIZE_ROUNDING seed = %d\n",(int)seed) ;
+     }
+     first = 0 ; /* never run this code again! */
+   }
+
+   if( doit ){ fesetround(fval[ROUNVAL]) ; }
+   return ;
+}
+
+/*-------- change the rounding as ordered by the pitiful user --------*/
+
+void change_rounding(int lll)
+{
+   if( lll >=0 && lll <= 3 ) fesetround( fval[lll] ) ;
+   return ;
+}
+#endif

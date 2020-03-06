@@ -4951,6 +4951,13 @@ extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
                                int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
                             int *rois, int N_rois, int cmode);
+extern THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
+                     int cmode, THD_fvec3 cmxyz);
+THD_fvec3 THD_Dcent( THD_3dim_dataset *xset , int iv , byte *mmm,
+                     int cmode, THD_fvec3 cmxyz);
+double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im , 
+   double xcm, double ycm, double zcm);
+
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -5401,17 +5408,18 @@ extern int THD_mask_fill_holes( int,int,int, byte *, THD_ivec3 *, int);
 
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
-extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate ) ;
+extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte nn ) ;
 extern void THD_mask_erode_sym(int nx,int ny,int nz, byte *mmm, int nerode);
 
 extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ; /* 24 Oct 2006 */
 
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
-extern int THD_mask_dilate( int, int, int, byte *, int ) ;   /* 30 Aug 2002 */
+extern int THD_mask_dilate( int, int, int, byte *, int, byte ) ;   /* 30 Aug 2002 */
 extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask,
                               byte preservemask,
-                              short *usethisdepth);    /* ZSS March 02 2010 */
+                              short *usethisdepth, byte nn); /* ZSS March 02 2010 */
+                                                             /* DRG Dec 23 2019 */
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
 extern float THD_cliplevel_abs( MRI_IMAGE * , float ) ;      /* 05 Mar 2007 */
@@ -6002,6 +6010,10 @@ extern MRI_IMAGE *build_byteized_vectors( int n ,              /* 02 Mar 2009 */
                                           float xbot,float xtop,float *x ,
                                           float ybot,float ytop,float *y  ) ;
 
+extern double ljung_box_uneven( int nval, int hh, double *val, int *tau ) ; /* 21 Jan 2020 */
+extern double ljung_box_zcens ( int nval, int hh, double *val ) ;
+extern MRI_IMAGE * mri_vec_to_ljmap( MRI_IMAGE *inim ) ;                    /* 05 Feb 2020 */
+
 /*------------------------------------------------------------------------*/
 /* Stuff for compression via zlib - see zfun.c - 02 Mar 2009 == snow day! */
 
@@ -6128,5 +6140,10 @@ typedef struct {
 
 extern char * THD_clustsim_atr_mask_dset_idcode( THD_3dim_dataset *dset ) ;
 extern float_triple THD_clustsim_atr_fwhmxyz( THD_3dim_dataset *dset ) ;
+
+/*------ Moved here from afni.h [13 Jan 2020] ------*/
+extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
+extern int  AFNI_needs_dset_ijk(void) ;
+extern int  AFNI_needs_dset_tin(void) ;
 
 #endif /* _MCW_3DDATASET_ */

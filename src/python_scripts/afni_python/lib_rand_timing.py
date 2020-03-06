@@ -17,7 +17,7 @@ g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed',
 g_fixed_dist_types = ['fixed', 'INSTANT']
 g_valid_param_types= ['dist', 't_gran']
 
-# -add_timing_class stimA 3 3  3 dist=decay 0.1
+# -add_timing_class stimA 3 3  3 dist=decay 0.1 basis='BLOCK(3)'
 # -add_timing_class stimA 3 5 10
 # -add_timing_class stimA 3 5  7 dist=uniform_grid t_gran=0.1
 
@@ -48,6 +48,7 @@ class TimingClass:
       # additional parameters (just t_gran, for now)
       self.dist_type    = 'decay'       # see g_valid_dist_types[]
       self.t_gran       = gDEF_T_GRAN
+      self.basis        = ''            # 3dDeconvolve basis function
 
       # computation parameters (computed during processing)
       self.total_time   = 0
@@ -115,6 +116,10 @@ class TimingClass:
                 return 1
              # apply
              self.t_gran = float(t_gran)
+          elif pvar == 'basis':
+             # quotize the basis function, regardless
+             self.basis = "'%s'" % pval
+
           # elif pvar == 'max_consec':
           #    try: mc = int(pval)
           #    except:
@@ -148,6 +153,7 @@ class TimingClass:
       print('   max_dur      : %s' % self.max_dur)
       print('   dist_type    : %s' % self.dist_type)
       print('   t_gran       : %s' % self.t_gran)
+      print('   basis        : %s' % self.basis)
 
       if details:
          print('   verb         : %s' % self.verb)
@@ -595,6 +601,9 @@ class StimClass:
          self.rclass.show('rest class for %s'%self.name)
 
       print('')
+
+   def basis_function(self):
+      return self.sclass.basis
 
    def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass

@@ -15,8 +15,8 @@ PARSE:
    set xmat_only = 0
    set xmat_only_meanit = 0  # really don't make new dsets
    set oprefix = "" # optional output prefix       18 Nov 2016 [rickr]
- 
-   set mode = 'grid'
+   set shift_xform1D = ""  # apply xform or inv xform shifts from 1D file  - 13 Feb 2020 [drg]
+   set mode = 'grid'   # grid, cm, shift1D or shift1D_inv
    set cm_amask = '-automask' # -automask or ''     6 Nov 2015 [rickr]
    set overw = 0
    set overf = ''
@@ -120,6 +120,35 @@ PARSE:
             set donext = 0   
          endif   
       endif
+
+      if ($donext && "$argv[$cnt]" == "-shift_xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need name after -shift_xform"
+            set retval = 1
+            goto END
+         else
+            @ cnt ++
+            set shift_xform1D = ($argv[$cnt])
+            set mode = "shift1D"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-shift_xform_inv") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need name after -shift_xform_inv"
+            set retval = 1
+            goto END
+         else
+            @ cnt ++
+            set shift_xform1D = ($argv[$cnt])
+            set mode = "shift1D_inv"
+            set donext = 0   
+         endif   
+      endif
+
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
             set retval = 1
@@ -128,7 +157,7 @@ PARSE:
       @ cnt ++
    end
 
-if ("$v1i" == "" || "$v2i" == "") then
+if ("$v1i" == "" || (("$v2i" == "") && ( $shift_xform1D == ""))) then
    echo "Error: Missing input"
             set retval = 1
    goto END
@@ -148,6 +177,14 @@ if ( $oprefix != "" ) then
    if ( $retval ) then
       goto END
    endif
+endif
+
+# don't need the base if applying a xform
+if ( $shift_xform1D != "") then
+   if ($v2i == "") then # simpler to use same dataset name for input as base
+      set v2i = $v1i # don't need a base anyway when applying xform
+   endif
+   goto SETCENTER
 endif
 
 SET_PARAMS: 
@@ -244,39 +281,94 @@ if ($mode == 'grid') then
                -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
       endif
    endif
-else
+else if ($mode == "cm") then
+      #get the center of mass of the base and apply delta
+      set v2_center_RAI = `3dCM $cm_amask $v2i`
+      if ($usecp == 1) then
+         if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
+            echo ""
+            echo "Error `basename $0`"
+            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo ""
+            set retval = 1
+            goto END
+         endif
    
-   #get the center of mass of the base and apply delta
-   set v2_center_RAI = `3dCM $cm_amask $v2i`
-   if ($usecp == 1) then
-      if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
-         echo ""
-         echo "Error `basename $0`"
-         echo "Dset $v1_pth/$oname found, cleanup first!"
-         echo ""
-         set retval = 1
-         goto END
+         if ($xmat_only_meanit != 1) then
+            3dcopy $overf $v1  $v1_pth/$oname
+            set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI \
+                                 $v1_pth/$oname`
+         endif
+      else
+         if ($xmat_only_meanit != 1) then
+            set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI $v1`
+         endif
       endif
+      
+      set del_RAI = ( 0 0 0 )
+      foreach i (1 2 3)
+         set del_RAI[$i] = `ccalc -eval "$v2_center_RAI[$i] - $v1_center_RAI[$i]"`
+      end
+      echo base: $v2_center_RAI
+      echo dset: $v1_center_RAI
+      echo delta: $del_RAI
+else if (($mode == "shift1D") || ($mode == "shift1D_inv")) then
+   # need to consider whether to negate translation vector or use inverse
+   if ($mode == "shift1D") then
+      set xfm = `cat_matvec -ONELINE $shift_xform1D`
+   else # invert xform
+      set xfm = `cat_matvec -ONELINE $shift_xform1D -I`
+   endif
 
+   # only interested in the translation shifts here
+   set del_RAI = ( $xfm[4] $xfm[8] $xfm[12] )
+
+   #orientation of v1
+   set v1_orient = `@GetAfniOrient $v1`
+   #change del_RAI to v1fol_orient
+   set del = `@FromRAI -xyz $del_RAI -or $v1_orient`
+   echo $del
+   #multiply deltas by axis signs         (changed from v1_orient  DG/RR)
+   set mp = `@AfniOrientSign $v1_orient` 
+   set del_refit = ($del)
+   foreach i ( 1 2 3)
+        # changed to form double
+        set del_refit[$i] = `ccalc -form d -expr "$mp[$i] * $del[$i]"`
+   end
+
+   #apply delta
+   if ($usecp == 1) then
       if ($xmat_only_meanit != 1) then
+         if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
+            echo ""
+            echo "Error `basename $0`"
+            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo ""
+            set retval = 1
+            goto END
+         endif
+   
          3dcopy $overf $v1  $v1_pth/$oname
-         set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI \
-                              $v1_pth/$oname`
+         3drefit  -dxorigin $del_refit[1] \
+                  -dyorigin $del_refit[2] \
+                  -dzorigin $del_refit[3] $v1_pth/$oname
       endif
-   else
+   else  # not a copy, refitting the dataset in place!
       if ($xmat_only_meanit != 1) then
-         set v1_center_RAI = `3dCM $cm_amask -set $v2_center_RAI $v1`
+          3drefit  -dxorigin $del_refit[1] \
+               -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
       endif
    endif
-   
-   set del_RAI = ( 0 0 0 )
-   foreach i (1 2 3)
-      set del_RAI[$i] = `ccalc -eval "$v2_center_RAI[$i] - $v1_center_RAI[$i]"`
-   end
-   echo base: $v2_center_RAI
-   echo dset: $v1_center_RAI
-   echo delta: $del_RAI
-endif   
+
+else
+      echo "Unrecognized mode - nothing to do"
+      exit 1
+endif   # end of mode choices
+
+# if applying a previous shift, continue to children
+if ( $shift_xform1D != "") then
+  goto SETCHILDREN
+endif
 
 DELTA_TO_XMAT:
    #Output xform matrix for allineating
@@ -409,7 +501,8 @@ Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp]
    -grid: (default) Center is that of the volume's grid
    -cm : Center is the center of mass of the volume.
    -cm_no_amask : Implies -cm, but with no -automask.
-
+   -shift_xform xxx.1D : apply shift translation from 1D file
+   -shift_xform_inv xxx.1D : apply inverse of shift translation
 
    See also @Center_Distance
 
@@ -422,10 +515,6 @@ Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp]
        look at the history of each dset and undo
        the excess 3drefit operations.
 
-Requires 3drefit newer than Oct. 02/02.
-
-Ziad Saad (saadz@mail.nih.gov)
-SSCC/NIMH/ National Institutes of Health, Bethesda Maryland
 
 EOF
 

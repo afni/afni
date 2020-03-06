@@ -45,6 +45,9 @@ if __name__ == '__main__':
 #
 #   09 May 2014 [rickr]:
 #     - added find_opt_index, which allows for popping
+#
+#   05 Feb 2020 [rickr]:
+#     - added -optlist_show_argv_array, which takes a parameter
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -56,7 +59,13 @@ class OptionList:
         self.trailers = 0       # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
         self.show_count = 1     # display option count in show()
-        self.verb     = 1       # display option count in show()
+        self.verb     = 1       # verbosity level
+
+        # terminal options
+        self.show_argv_array='' # show found arguments and exit (method name)
+
+        # parameters for terminal options
+        self.argv_array_types = ['arglist', 'dict', 'pretty', 'nested']
 
     def add_opt(self, name, npar, deflist=[], acplist=[], req=0, setpar=0,  \
                 helpstr = "", okdash=1):
@@ -102,6 +111,32 @@ class OptionList:
                print("opt %02d: %-24s%s" % (index, self.olist[index].name, hs))
             else: 
                print("    %-24s%s" % (self.olist[index].name, hs))
+
+    def show_as_array(self, mesg='', atype='pretty', verb=0):
+        """atype    
+                    arglist     - forget opts, just show the option list
+                    dict        - show as a dictionary
+                    nested      - show as nested array
+                    pretty      - enumerated options with params
+        """
+        if verb or mesg != '': print("\n%sOptionList: %s (len %d)" % \
+                                     (mesg, self.label, len(self.olist)))
+        if atype == 'arglist':
+           print("%s" % [opt.name for opt in self.olist])
+        elif atype == 'dict':
+           print("{")
+           for ind, opt in enumerate(self.olist):
+               print("  %-28s: %s," % ("'%s'"%opt.name, opt.parlist))
+           print("}")
+        elif atype == 'pretty':
+           for ind, opt in enumerate(self.olist):
+               print("%5s %-24s : %s" % ('[%d]'%ind, opt.name,
+                                         ' '.join(opt.parlist)))
+        elif atype == 'nested':
+           print("[")
+           for opt in self.olist:
+               print("  [%-25s %s]," % ("'%s',"%opt.name, opt.parlist))
+           print("]")
 
     def find_opt(self, name, nth=1):    # find nth occurance of option name
         """return nth comopt where name=name, else None"""
@@ -321,7 +356,10 @@ class OptionList:
 
         # global options (some take a parameter)
         global_opts = [ '-optlist_verbose', '-optlist_no_show_count',
-                        '-all_opts', '-h_find', '-h_view', '-hview' ]
+                        '-optlist_show_global_opts',
+                        '-optlist_show_valid_opts',
+                        '-optlist_show_argv_array',
+                        '-h_find', '-h_view', '-hview' ]
 
         alen = len(argv)
 
@@ -337,13 +375,36 @@ class OptionList:
             if self.verb>1: print('++ optlist: clearing show_count')
 
         # terminal options (all end in exit)
-        if '-all_opts' in argv:
-            oname = '-all_opts'
+
+        # terminal opts specific to this library
+        if '-optlist_show_global_opts' in argv:
+            global_opts.sort()
+            print("-- global OptionList options (%d):" % len(global_opts))
+            print("     %s\n" % '\n     '.join(global_opts))
+            sys.exit(0)
+
+        if '-optlist_show_valid_opts' in argv:
+            oname = '-optlist_show_valid_opts'
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             self.show(verb=1)
             sys.exit(0)
 
+        if '-optlist_show_argv_array' in argv:
+            oname = '-optlist_show_argv_array'
+            ind = argv.index(oname)
+            # this takes one parameter, which must be in list
+            atype = ''
+            if alen >= ind+2:
+               atype = argv[ind+1]
+            if atype not in self.argv_array_types:
+               print("** %s: requires a parameter in %s" \
+                     % (oname, self.argv_array_types))
+               sys.exit(1)
+            argv[ind:ind+2] = []
+            self.show_argv_array = atype
+
+        # terminal general options
         if '-h_find' in argv:
             oname = '-h_find'
             ind = argv.index(oname)
@@ -529,6 +590,12 @@ def read_options(argv, oplist, verb = -1):
 
     if verb > 1 : OL.show("-d all found options: ")
     if verb > 3 : print("-d final optlist with counts: ", namelist)
+
+    # check for terminal options in oplist
+    if oplist.show_argv_array != '':
+       OL.show_as_array("-- show_argv_array: found options",
+                        atype=oplist.show_argv_array)
+       sys.exit(0)
 
     return OL
 

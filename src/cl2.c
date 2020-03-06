@@ -90,7 +90,7 @@ float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 
    /* parameters for call to wnnls_fort() */
 
-   real *w=NULL , prgopt[1] , *x=NULL , rnorm , *work=NULL ;
+   real *w=NULL , prgopt[1] , *x=NULL , rnorm=0.0f , *work=NULL ;
    integer mdw , me , ma , n , l , mode , *iwork=NULL ;
 
 #undef  FREEIF

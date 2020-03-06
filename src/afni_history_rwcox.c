@@ -44,6 +44,62 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , FEB , 2020 , RWC , "machdep" , MINOR , TYPE_ENHANCE ,
+   "First step for allowing floating round randomization" ,
+   "Code in machdep.c, enabled by environment variable\n"
+   "AFNI_RANDOMIZE_ROUNDING, lets a program invoke macro RAND_ROUND to\n"
+   "randomize the IEEE rounding mode. This requires compiling with the flag\n"
+   "-DUSE_FENV to enable use of the C99 function fesetround() to set the\n"
+   "rounding mode -- see machdep.h. So far, only 3dAllineate has any parts\n"
+   "that use RAND_ROUND -- that is, if you set AFNI_RANDOMIZE_ROUNDING to\n"
+   "YES and run 3dAllineate, the results will change from a 'normal' run.\n"
+   "How much? That's the point of this update, to see how sensitive the\n"
+   "output is to the accumulation of tiny changes." } ,
+
+ { 26 , FEB , 2020 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Always check cmass shifts, and provide warnings if not enabled" ,
+   "That is, if -cmass is NOT on, but the cmass shifts would be large, put\n"
+   "out a WARNING message at the start and at the end." } ,
+
+ { 24 , FEB , 2020 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add -warpscale option" ,
+   "To scale the warp displacments down at each level, for experimentation." } ,
+
+ { 14 , FEB , 2020 , RWC , "afni GUI" , MINOR , TYPE_BUG_FIX ,
+   "Get Atlas Colors working again" ,
+   "Problem: 2 generations of overlay colorization changes.\n"
+   "a) Overlay went from indexes to RGB\n"
+   "b) Overlay went from indexes or RGB to RGBA\n"
+   "The atlas overlaying function didn't allow for these very well,\n"
+   "especially the latter. Obviously, this can't be my fault since I'm the\n"
+   "boss - even though I wrote the offending code. Someone must have joggled\n"
+   "my brain." } ,
+
+ { 10 , FEB , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add reading Apple .heic images (via magick tool)" ,
+   NULL } ,
+
+ { 5 , FEB , 2020 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
+   "Add -LJorder option" ,
+   "To order voxels by their Ljung-Box statistics." } ,
+
+ { 02 , FEB , 2020 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "Add -qval option to 3dPVAL [for GC]." ,
+   "Merry Groundhog Day!" } ,
+
+ { 22 , JAN , 2020 , RWC , "3dREMLfit" , MAJOR , TYPE_ENHANCE ,
+   "Compute Ljung-Box statistic for -Rvar dataset." ,
+   "Provides a measure of how temporally correlated each voxel's\n"
+   "pre-whitened residuals are. Small LB value = good fit by the ARMA(1,1)\n"
+   "model. Sub-brick is coded as a chi-squared statistic for use in\n"
+   "thresholding in the AFNI GUI." } ,
+
+ { 12 , DEC , 2019 , RWC , "3dTcorrelate" , MINOR , TYPE_NEW_OPT ,
+   "Add -zcensor option" ,
+   "Remove from consideration any time point t where xset(t) OR yset(t) is\n"
+   "identically zero (in the mask). For Peter Molfese and Emily Finn.\n"
+   "Merry X!" } ,
+
  { 10 , DEC , 2019 , RWC , "AFNI GUI" , MINOR , TYPE_NEW_ENV ,
    "Add 'Zoom lock' to the locking capability" ,
    "Also a new environment variable AFNI_ZOOM_LOCK to turn this on at\n"

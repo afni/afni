@@ -697,6 +697,7 @@ class OutputDiffer:
 
     def check_comparison_dir(self):
         cmpr_path = self.data.comparison_dir
+        dl_dset = datalad.Dataset(str(self.data.tests_data_dir))
         if not cmpr_path.exists():
             raise ValueError(
                 "The following path does not exist but is required to "
@@ -722,7 +723,7 @@ class OutputDiffer:
 
         need_data = any(p.is_symlink() and not p.exists() for p in cmpr_files)
         if need_data:
-            datalad.get(str(cmpr_path))
+            dl_dset.get(str(cmpr_path))
 
     @property
     def data(self):

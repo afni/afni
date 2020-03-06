@@ -2452,6 +2452,7 @@ void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im )
  ** Changed Nov 2018 to allow a mixture of the volume edited
     FIM (im_fim) and the non-volume edited FIM (im_noved) to
     determine color and alpha.
+ ** The output image is in RGBA format.
 -------------------------------------------------------------------------*/
 
 MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop,
@@ -2650,6 +2651,8 @@ STATUS("threshold-ization and alpha-ization") ;
    fov = functional overlay image previously computed
          if non-NULL, then fov will be overlaid, and will be returned
          if NULL, then a new image will be created and returned
+   This function is called from AFNI_overlay, when making the combined
+   overlay image for display in a viewer.
   -- 25 Jul 2001 - RWCox
 -------------------------------------------------------------------------*/
 
@@ -2662,20 +2665,25 @@ MRI_IMAGE * AFNI_ttatlas_overlay( Three_D_View *im3d ,
    byte *b0=NULL , *brik,  *ovc  ;
    short *s0=NULL, *ovar, *val, *fovar ;
    float *f0=NULL;
-   MRI_IMAGE *ovim=NULL, *b0im=NULL, *fovim=NULL, *b1im=NULL;
+   MRI_IMAGE *ovim=NULL, *b0im=NULL, *fovim=NULL, *b1im=NULL, *outim ;
    int gwin , fwin , nreg , ii,jj , nov ;
    int at_sbi, fim_type, at_vox, at_nsb;
+   int jill = AFNI_yesenv("AFNI_JILL_TRAVESTY") ; /* Jill is trouble */
 
 ENTRY("AFNI_ttatlas_overlay") ;
 
    /* setup and sanity checks */
 
+   if(jill) INFO_message("Starting AFNI_ttatlas_overlay");
+
    /* make sure we are actually drawing something */
-  if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-      printf("Starting AFNI_ttatlas_overlay\n");
 
    STATUS("checking if Atlas Colors is on") ;
-   ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
+   ttp = TTRR_get_params() ;
+   if( ttp == NULL ){
+     if( jill ) ININFO_message(" params are off - vamoose") ;
+     RETURN(NULL) ;
+   }
 
    STATUS("checking if Atlas dataset can be loaded") ;
 
@@ -2690,12 +2698,12 @@ ENTRY("AFNI_ttatlas_overlay") ;
           DSET_unload(atlas_ovdset);
        atlas_ovdset = r_new_resam_dset ( dseTT, im3d->anat_now,  0, 0, 0, NULL,
                                        MRI_NN, NULL, 1, 0);
-  if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-      printf("First time loading atlas dset\n");
+  if(jill)
+      ININFO_message(" First time loading atlas dset");
 /*       DSET_unload(dseTT);*/
        if(!atlas_ovdset) {
-         if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-            printf("Could not load atlas dset\n");
+         if(jill)
+            ININFO_message(" Could not load atlas dset");
          RETURN(NULL);
        }
    }
@@ -2705,135 +2713,157 @@ ENTRY("AFNI_ttatlas_overlay") ;
          "Voxels do not match between resampled atlas and the underlay dataset");
       RETURN(NULL) ;
    }
-   /* get slices from TTatlas dataset */
+   /* get slices from atlas dataset */
    STATUS("loading Atlas bricks") ;
 
    /* extract slice from right direction from atlas */
    b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 ,
                            atlas_ovdset ) ;
-   if( b0im == NULL )
-      RETURN(NULL) ;
 
-   /* make a new overlay image, or just operate on the old one */
+   if( b0im == NULL ) RETURN(NULL) ;  /* this is bad */
+
+   /* make a new overlay image [shorts] for the atlas colors */
+
    STATUS("making new overlay for Atlas") ;
-   ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
+   ovim = mri_new_conforming( b0im , MRI_short ) ;
    ovar = MRI_SHORT_PTR(ovim) ;
-   memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
-   /* only needed b0im to get resampled grid */
+   memset( ovar , 0 , ovim->nvox * sizeof(short) ) ; /* nugatory */
+   /* actually, only needed b0im to get resampled grid dimensions */
    mri_free(b0im);
+   if( jill )
+     ININFO_message("ovim = %d x %d",ovim->nx,ovim->ny) ;
 
-   /* fwin => function 'wins' over Atlas - overlay image gets priority */
-   /* gwin => gyral Atlas brick 'wins' over 'area' Atlas brick - */
+   /* fwin => input function 'wins' over Atlas - overlay image gets priority */
+   /* gwin => earlier Atlas brick 'wins' over later Atlas brick */
 
    fwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_FAG) ;
    gwin = (ttp->meth == TTRR_METH_FGA) || (ttp->meth == TTRR_METH_GAF) ;
+
    nreg = ttp->num ;    /* number of 'on' regions     */
    brik = ttp->ttbrik ; /* which sub-brick in atlas    */
    val  = ttp->ttval ;  /* which code in that sub-brick */
    ovc  = ttp->ttovc ;  /* which overlay color index   */
 
    /* loop over image voxels, find overlays from Atlas */
+
    STATUS("doing Atlas overlay") ;
-   at_nsb = DSET_NVALS(atlas_ovdset);
+   at_nsb = DSET_NVALS(atlas_ovdset);  /* number of atlas bricks */
    nov = 0;
-   for( at_sbi=0; at_sbi < at_nsb; at_sbi++) {
+   for( at_sbi=0; at_sbi < at_nsb; at_sbi++) { /* loop over bricks */
+
+      /* extract atlas slice from volumne #at_sbi */
       b1im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
-                             atlas_ovdset);
-      if( b1im == NULL )
-         RETURN(NULL) ;
+                              atlas_ovdset);
+      if( b1im == NULL ) continue ; /* this is bad */
+
+      /* get pointer to slice's data */
       fim_type = b1im->kind ;
+      b0 = NULL ; s0 = NULL ; f0 = NULL ;
       switch( fim_type ){
-         default:
-            RETURN(NULL) ;
-         case MRI_byte:
-            b0 = MRI_BYTE_PTR(b1im);
-         break ;
-         case MRI_short:
-            s0 = MRI_SHORT_PTR(b1im);
-         break ;
-         case MRI_float:
-            f0 = MRI_FLOAT_PTR(b1im);
-         break ;
+         case MRI_byte:  b0 = MRI_BYTE_PTR(b1im) ; break ;
+         case MRI_short: s0 = MRI_SHORT_PTR(b1im); break ;
+         case MRI_float: f0 = MRI_FLOAT_PTR(b1im); break ;
+      }
+      if( b0 == NULL && s0 == NULL && f0 == NULL ){ /* this is bad */
+        ERROR_message("Atlas data type is illegal: %s",MRI_TYPE_NAME(b1im)) ;
+        mri_free(b1im) ; continue ;
       }
 
-      for( ii=0 ; ii < ovim->nvox ; ii++ ){
+      for( ii=0 ; ii < ovim->nvox ; ii++ ){ /* loop over voxels */
+
          /* if the overlay array is already set in the overlay */
-         /* earlier atlas voxel, keep it*/
-         if( (ovar[ii] && gwin ) ) continue ;
+         /* earlier atlas voxel, keep it (if gwin is also set) */
+
+         if( ovar[ii] && gwin ) continue ;
+
+         switch( fim_type ){ /* get the atlas value at this voxel */
+           default:
+           case MRI_byte:  at_vox = (int) b0[ii];      break ;
+           case MRI_short: at_vox = (int) s0[ii];      break ;
+           case MRI_float: at_vox = (int)(f0[ii]+.1f); break ;
+         }
 
          /* check Atlas 'on' regions for hits */
-         for( jj=0 ; jj<nreg ; jj++ ){
-            switch( fim_type ){
-               default:
-               case MRI_byte:
-                  at_vox = (int) b0[ii];
-               break ;
-               case MRI_short:
-                  at_vox = (int) s0[ii];
-               break ;
-               case MRI_float:
-                  at_vox = (int) (f0[ii]+.1); /* show in overlay if >=0.4 */
-               break ;
-            }
-
-            if( at_vox == val[jj] ) {
-               ovar[ii] = ovc[jj] ;
-               nov++ ;
-            }
+         for( jj=0 ; jj < nreg ; jj++ ){
+           if( at_vox == val[jj] ){ /* atlas value matches jj-th region in list */
+             ovar[ii] = ovc[jj] ; nov++ ; break ;
+           }
          }
 
       }
-      mri_free(b1im) ;
+      mri_free(b1im) ; /* done with this atlas slice */
    }
 
    if(PRINT_TRACING)
       { char str[256]; sprintf(str,"Atlas overlaid %d pixels",nov); STATUS(str); }
+   if(jill)
+      ININFO_message(" Atlas overlaid %d image pixels out of %d",nov,ovim->nvox) ;
 
-   if(fov == NULL) {  /* if there was no overlay, return what we have */
-      if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-         printf("No overlay, that's okay\n");
+   if( mri_allzero(ovim) ){       /* if it is all zero, we are done here */
+     mri_free(ovim) ; RETURN(NULL) ;
+   }
+
+   /* convert ovim from shorts to RGB at this point */
+
+   fovim = ISQ_index_to_rgb( im3d->dc , 1 , ovim ) ;
+   mri_free(ovim) ;
+   ovim = fovim ; fovim = NULL ;
+
+   /* setup input image for overlaying in RGB land */
+
+   if( fov == NULL ){                   /* no input of existing overlay? */
+     fovim = NULL ;
+   } else if( fov->kind == MRI_short ){  /* should no longer be possible */
+     fovim = ISQ_index_to_rgb( im3d->dc , 1 , ovim ) ; /* convert to RGB */
+   } else if( IS_RGB_IMAGE(fov) ){
+     fovim = fov ;
+   } else {                                 /* someone is is BIG trouble */
+     ERROR_message(" Atlas input overlay image kind illegal: %s",MRI_TYPE_NAME(fov)) ;
+     fovim = NULL;
+   }
+
+   if( fovim == NULL ){  /* if there was no input overlay, return what we made */
+      if(jill)
+         ININFO_message(" No input overlay, that's okay - returning atlas overlay");
       RETURN(ovim);
    }
 
-   STATUS("re-using old overlay for Atlas") ;
-   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-      printf("re-using old overlay for atlas\n");
-   fovim = fov ;                                      /* old overlay */
-   fovar = MRI_SHORT_PTR(fovim) ;
-   if( fovim->nvox != ovim->nvox ){                    /* shouldn't happen!  */
-        if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-            printf("freeing ovim at early return\n");
-         mri_free(ovim); RETURN(NULL) ;
-   }
-   nov = 0;
-   for( ii=0 ; ii < ovim->nvox ; ii++ ){
-      /* if the overlay array is already set in the overlay, keep it*/
-      if( (fovar[ii]!=0) && fwin ) continue;
-      if(ovar[ii]!=0) {
-         fovar[ii] = ovar[ii];
-         nov++;
-      }
+   /* at this point, ovim is RGB and fovim is RGB or RGBA */
+
+   if( fovim->nvox != ovim->nvox ){                /* shouldn't happen!  */
+     if(jill)
+       ININFO_message(" freeing atlas ovim due to input grid mismatch :(");
+     if( fovim != fov ) mri_free(fovim) ;
+     mri_free(ovim); RETURN(NULL) ;
    }
 
-   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-       printf("freeing ovim at normal return\n");
-   mri_free(ovim);
-   if(AFNI_yesenv("AFNI_JILL_TRAVESTY"))
-       printf("leaving AFNI_ttatlas_overlay\n");
-   RETURN(fovim);
+   STATUS("merging input RGB* overlay with Atlas") ;
+   if(jill)
+     ININFO_message(" merging input %s overlay with Atlas",MRI_TYPE_NAME(fovim)) ;
+
+   if( fwin )
+     outim = ISQ_overlay( im3d->dc , ovim , fovim , 1.0f ) ;
+   else
+     outim = ISQ_overlay( im3d->dc , fovim , ovim , 1.0f ) ;
+
+   if(jill)
+       ININFO_message(" freeing ovim at normal return");
+   mri_free(ovim); if( fovim != fov ) mri_free(fovim) ;
+
+   if(jill)
+      ININFO_message(" leaving AFNI_ttatlas_overlay");
+   RETURN(outim);
 }
 
 /* use to force reload of atlas for new default */
-void
-reset_atlas_ovdset()
+void reset_atlas_ovdset()
 {
    DSET_unload(atlas_ovdset);
    atlas_ovdset = NULL;
 }
 
 /* get the current resampled dataset used for overlay */
-THD_3dim_dataset *
-current_atlas_ovdset()
+THD_3dim_dataset * current_atlas_ovdset()
 {
    return(atlas_ovdset);
 }
@@ -3277,7 +3307,7 @@ static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" , "Dataset" } 
 /** max size of strings in the list **/
 
 #define STRLIST_SIZE      (THD_MAX_PREFIX+256)
-#define MAX_SESSTRAIL_LEN 48
+#define MAX_SESSTRAIL_LEN 96
 
 void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
 {
@@ -3301,6 +3331,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
    /*--- initialize ---*/
 
    if( ! IM3D_OPEN(im3d) || w == (Widget)NULL ) EXRETURN ;
+
+   sesstrail = (strcmp(im3d->ss_now->sessname,"All_Datasets")==0) ||
+               AFNI_yesenv("AFNI_USE_SESSTRAIL") ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =

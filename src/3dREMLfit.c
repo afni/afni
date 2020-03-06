@@ -37,8 +37,8 @@ static int goforit=0 ;
 #undef REML_DEBUG
 
 /*---------------------------------------------------------------------------*/
-/*! Check matrix condition number.  Return value is the
-    number of bad things that were detected.  Hopefully, zero.
+/*! Check matrix condition number. Return value is the
+    number of bad things that were detected. Hopefully, zero.
 -----------------------------------------------------------------------------*/
 
 int check_matrix_condition( matrix xdata , char *xname )
@@ -179,7 +179,7 @@ ENTRY("create_float_dataset") ;
 /*! Save a series of floats into a dataset,
     either directly into the bricks, or to a temp file to be restored later. */
 
-char sslab[256] = "\0" ;
+char sslab[256] = "\0" ;  /* purely for debugging purposes */
 
 void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp )
 {
@@ -582,6 +582,9 @@ int main( int argc , char *argv[] )
 
    int nallz = 0 ; int *allz = NULL ;  /* 15 Mar 2010 */
 
+   int LJ_hh = 0 ; /* Ljung-Box lag parameter [21 Jan 2020] */
+   int min_run = 0 , max_run = 0 ; /* shortest and longest runs */
+
    /**------------ Get by with a little help from your friends? ------------**/
 
    set_obliquity_report(0); /* silence obliquity */
@@ -648,11 +651,17 @@ int main( int argc , char *argv[] )
       "    on the type of linear regression that was used.\n"
       "\n"
       "* If you are planning to use 3dMEMA for group analysis, then using\n"
-      "    3dREMLfit instead of 3dDeconvolve is a good idea.  3dMEMA uses\n"
+      "    3dREMLfit instead of 3dDeconvolve is a good idea. 3dMEMA uses\n"
       "    the t-statistic of the beta weight as well as the beta weight\n"
       "    itself -- and the t-values from 3dREMLfit are probably more\n"
       "    more accurate than those from 3dDeconvolve, since the underlying\n"
       "    variance estimate should be more accurate (less biased).\n"
+      "\n"
+      "* When there is significant temporal correlation, and you are using\n"
+      "    'IM' regression (estimated individual betas for each event),\n"
+      "    the REML GLSQ regression can be superior to OLSQ beta\n"
+      "    estimates -- in the sense that the resulting betas\n"
+      "    have somewhat less variance with GLSQ than with OLSQ.\n"
       "\n"
       "-------------------------------------------\n"
       "Input Options (the first two are mandatory)  ~1\n"
@@ -670,7 +679,7 @@ int main( int argc , char *argv[] )
       "\n"
       "             ** N.B.: You can omit entirely defining the regression matrix,\n"
       "                       but then the program will fabricate a matrix consisting\n"
-      "                       of a single column with all 1s.  This option is\n"
+      "                       of a single column with all 1s. This option is\n"
       "                       mostly for the convenience of the author; for\n"
       "                       example, to have some fun with an AR(1) time series:\n"
       "                 1deval -num 1001 -expr 'gran(0,1)+(i-i)+0.7*z' > g07.1D\n"
@@ -686,7 +695,7 @@ int main( int argc , char *argv[] )
       " --------------------------------------------------------------------------\n"
       " -polort P = If no -matrix option is given, AND no -matim option,\n"
       "               create a matrix with Legendre polynomial regressors\n"
-      "               up to order 'P'.  The default value is P=0, which\n"
+      "               up to order 'P'. The default value is P=0, which\n"
       "               produces a matrix with a single column of all ones.\n"
       "               (That is the default matrix described above.)\n"
       "\n"
@@ -717,7 +726,7 @@ int main( int argc , char *argv[] )
       "                For most situations, this slowdown will not be horrific.\n"
       "            * An advanced intelligence could reverse engineer the XML\n"
       "              format used by the .xmat.1D files, to fully activate all the\n"
-      "              regression features of this software :-)\n"
+      "              regression features of this software :)\n"
       "           ** N.B.: You can use only 'Col' as a name in GLTs ('-gltsym')\n"
       "                    with these nonstandard matrix input methods, since\n"
       "                    the other column names come from the '-matrix' file.\n"
@@ -777,8 +786,8 @@ int main( int argc , char *argv[] )
       "Options to Add Baseline (Null Hypothesis) Columns to the Regression Matrix  ~1\n"
       "--------------------------------------------------------------------------\n"
       " -addbase bb = You can add baseline model columns to the matrix with\n"
-      "                 this option.  Each column in the .1D file 'bb' will\n"
-      "                 be appended to the matrix.  This file must have at\n"
+      "                 this option. Each column in the .1D file 'bb' will\n"
+      "                 be appended to the matrix. This file must have at\n"
       "                 least as many rows as the matrix does.\n"
       "              * Multiple -addbase options can be used, if needed.\n"
       "              * More than 1 file can be specified, as in\n"
@@ -804,43 +813,47 @@ int main( int argc , char *argv[] )
       "\n"
       " -dsort dset = Similar to -addbase in concept, BUT the dataset 'dset'\n"
       "                 provides a different baseline regressor for every\n"
-      "                 voxel.  This dataset must have the same number of\n"
+      "                 voxel. This dataset must have the same number of\n"
       "                 time points as the input dataset, and have the same\n"
       "                 number of voxels.                          [Added 22 Jul 2015]\n"
       "               + The REML (a,b) estimation is done WITHOUT this extra\n"
       "                   voxel-wise regressor, and then the selected (a,b)\n"
       "                   ARMA parameters are used to do the final regression for\n"
-      "                   the '-R...' output datasets.  This method is not ideal,\n"
+      "                   the '-R...' output datasets. This method is not ideal,\n"
       "                   but the alternative of re-doing the (a,b) estimation with\n"
       "                   a different matrix for each voxel would be VERY slow.\n"
       "                   -- The -dsort estimation is thus different from the -addbase\n"
       "                      and/or -slibase estimations, in that the latter cases\n"
       "                      incorporate the extra regressors into the REML estimation\n"
-      "                      of the ARMA (a,b) parameters.  The practical difference\n"
+      "                      of the ARMA (a,b) parameters. The practical difference\n"
       "                      between these two methods is usually very small ;-)\n"
       "               + If any voxel time series from -dsort is constant through time,\n"
       "                   the program will print a warning message, and peculiar things\n"
-      "                   might happen.  Gleeble, fitzwilly, blorten, et cetera.\n"
+      "                   might happen. Gleeble, fitzwilly, blorten, et cetera.\n"
       "                   -- Actually, if this event happens, the 'offending' -dsort voxel\n"
       "                      time series is replaced by the mean time series from that\n"
       "                      -dsort dataset.\n"
       "               + The '-Rbeta' (and/or '-Obeta') option will include the\n"
       "                   fit coefficient for the -dsort regressor (last).\n"
       "               + There is no way to include the -dsort regressor beta in a GLT.\n"
-      "               + You can use -dsort more than once.  Please don't go crazy.\n"
+      "               + You can use -dsort more than once. Please don't go crazy.\n"
       "               + Using this option slows the program down in the GLSQ loop,\n"
       "                   since a new matrix and GLT set must be built up and torn down\n"
       "                   for each voxel separately.\n"
 #ifdef USE_OMP
-      "                   -- And at this time, the GLSQ loop is not OpenMP-ized.\n"
+      "              -- At this time, the GLSQ loop is not OpenMP-ized.\n"
 #endif
+      "             +++ This voxel-wise regression capability is NOT implemented in\n"
+      "                   3dDeconvolve, so you'll have to use 3dREMLfit if you want\n"
+      "                   to use this method, even if you only want ordinary least\n"
+      "                   squares regression.\n"
       "               + The motivation for -dsort is to apply ANATICOR to task-based\n"
-      "                   FMRI analyses.  You might be clever and have a better idea!?\n"
+      "                   FMRI analyses. You might be clever and have a better idea!?\n"
       "                  http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2897154/\n"
       "                  https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
       "\n"
       " -dsort_nods = If '-dsort' is used, the output datasets reflect the impact of the\n"
-      "                 voxel-wise regressor(s).  If you want to compare those results\n"
+      "                 voxel-wise regressor(s). If you want to compare those results\n"
       "                 to the case where you did NOT give the '-dsort' option, then\n"
       "                 also use '-dsort_nods' (nods is short for 'no dsort').\n"
       "                 The linear regressions will be repeated without the -dsort\n"
@@ -854,7 +867,7 @@ int main( int argc , char *argv[] )
       "                 [0] column of 'bb' appended to the matrix for\n"
       "                 the #0 slice of the dataset, the [1] column of 'bb'\n"
       "                 appended to the matrix for the #1 slice of the dataset,\n"
-      "                 and so on.  For example, if the dataset has 3 slices\n"
+      "                 and so on. For example, if the dataset has 3 slices\n"
       "                 and file 'bb' has 6 columns, then the order of use is\n"
       "                     bb[0] --> slice #0 matrix\n"
       "                     bb[1] --> slice #1 matrix\n"
@@ -903,7 +916,7 @@ int main( int argc , char *argv[] )
       "                 for every (a,b) pair in the ARMA parameter grid.\n"
       "              * '-usetemp' can actually speed the program up, interestingly,\n"
       "                   even if you have enough RAM to hold all the intermediate\n"
-      "                   matrices needed with '-slibase'.  YMMV :-)\n"
+      "                   matrices needed with '-slibase'. YMMV :)\n"
       "              * '-usetemp' also writes temporary files to store dataset\n"
       "                   results, which can help if you are creating multiple large\n"
       "                   dataset (e.g., -Rfitts and -Rerrts in the same program run).\n"
@@ -946,7 +959,7 @@ int main( int argc , char *argv[] )
       "\n"
       " -nodmbase   = By default, baseline columns added to the matrix\n"
       "                 via '-addbase' or '-slibase' or '-dsort' will each have\n"
-      "                 their mean removed (as is done in 3dDeconvolve).  If you\n"
+      "                 their mean removed (as is done in 3dDeconvolve). If you\n"
       "                 do NOT want this operation performed, use '-nodmbase'.\n"
       "              * Using '-nodmbase' would make sense if you used\n"
       "                 '-polort -1' to set up the matrix in 3dDeconvolve, and/or\n"
@@ -958,20 +971,26 @@ int main( int argc , char *argv[] )
       "------------------------------------------------------------------------\n"
       " -Rvar  ppp  = dataset for saving REML variance parameters\n"
       "               * See the 'What is ARMA(1,1)' section, far below.\n"
-      "               * This dataset has 5 volumes:\n"
-      "                 [0] = 'a'       = ARMA parameter\n"
-      "                                 = decay rate of correlations with lag\n"
-      "                 [1] = 'b'       = ARMA parameter\n"
-      "                 [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
-      "                                 = correlation at lag=1\n"
-      "                                   correlation at lag=k is lam * a^(k-1) (k>0)\n"
-      "                 [3] = 'StDev'   = standard deviation of prewhitened\n"
-      "                                   residuals (used in computing statistics\n"
-      "                                   in '-Rbuck' and in GLTs)\n"
-      "                 [4] = '-LogLik' = negative of the REML log-likelihood\n"
-      "                                   function (see math notes)\n"
+      "               * This dataset has 6 volumes:\n"
+      "                [0] = 'a'       = ARMA parameter\n"
+      "                                = decay rate of correlations with lag\n"
+      "                [1] = 'b'       = ARMA parameter\n"
+      "                [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
+      "                                = correlation at lag=1\n"
+      "                                  correlation at lag=k is lam * a^(k-1) (k>0)\n"
+      "                [3] = 'StDev'   = standard deviation of prewhitened\n"
+      "                                  residuals (used in computing statistics\n"
+      "                                  in '-Rbuck' and in GLTs)\n"
+      "                [4] = '-LogLik' = negative of the REML log-likelihood\n"
+      "                                  function (see the math notes)\n"
+      "                [5] = 'LjungBox'= Ljung-Box statistic of the pre-whitened\n"
+      "                                  residuals, an indication of how much\n"
+      "                                  temporal correlation is left-over.\n"
+      "                                + See the 'Other Commentary' section far below\n"
+      "                                  for a little more information on the LB\n"
+      "                                  statistic.\n"
       "               * The main purpose of this dataset is to check when weird\n"
-      "                   things happen in the calculations.\n"
+      "                   things happen in the calculations. Or just to have fun.\n"
       " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
       "                 [similar to the -cbucket output from 3dDeconvolve]\n"
       "               * This dataset will contain all the beta weights, for\n"
@@ -1062,7 +1081,7 @@ int main( int argc , char *argv[] )
       "                    file (put there by 3dDeconvolve), you can refer\n"
       "                    to regressor columns in the matrix using the\n"
       "                    symbolic name 'Col', which collectively means\n"
-      "                    all the columns in the matrix.  'Col' is a way\n"
+      "                    all the columns in the matrix. 'Col' is a way\n"
       "                    to test '-addbase' and/or '-slibase' regressors\n"
       "                    for significance; for example, if you have a\n"
       "                    matrix with 10 columns from 3dDeconvolve and\n"
@@ -1088,7 +1107,7 @@ int main( int argc , char *argv[] )
       "                 [see why, then think about it for a while]\n"
       "\n"
       "Note that you don't have to use any of the '-R' options; you could\n"
-      "use 3dREMLfit just for the '-O' options if you want.  In that case,\n"
+      "use 3dREMLfit just for the '-O' options if you want. In that case,\n"
       "the program will skip the time consuming ARMA(1,1) estimation for\n"
       "each voxel, by pretending you used the option '-ABfile =0,0'.\n"
       "\n"
@@ -1118,10 +1137,12 @@ int main( int argc , char *argv[] )
       "                   b can be either sign).\n"
       "               * If -NEGcor is used, then '-Grid 3' means 16 divisions\n"
       "                   in each direction, so that the grid spacing is 0.1\n"
-      "                   if MAX=0.8.  Similarly, '-Grid 4' means 32 divisions\n"
+      "                   if MAX=0.8. Similarly, '-Grid 4' means 32 divisions\n"
       "                   in each direction, '-Grid 5' means 64 divisions, etc.\n"
       "               * I see no reason why you would ever use a -Grid size\n"
       "                   greater than 5 (==> parameter resolution = 0.025).\n"
+      "                 ++ However, if you like burning up CPU time, values up\n"
+      "                    to '-Grid 7' are allowed :)\n"
       "               * In the future, '-Grid 5' might become the default, since\n"
       "                   it is a little more accurate and computers are a lot\n"
       "                   faster than in the days when I was hunting brontosauri.\n"
@@ -1134,6 +1155,9 @@ int main( int argc , char *argv[] )
       "                    are going to use 3dMEMA, which relies on accurate\n"
       "                    single subject t-statistics, which in turn requires\n"
       "                    accurate temporal autocorrelation modeling.\n"
+      "                 ++ If you are interested in the REML parameters themselves,\n"
+      "                    or in getting the 'best' prewhitening possible, then\n"
+      "                    '-Grid 5' makes sense.\n"
       "               * The program is somewhat slower as the -Grid size expands.\n"
       "                   And uses more memory, to hold various matrices for\n"
       "                   each (a,b) case.\n"
@@ -1145,10 +1169,15 @@ int main( int argc , char *argv[] )
       "               * Note that when -NEGcor is used, the number of grid\n"
       "                   points in the a direction doubles to cover the\n"
       "                   range -am .. 0; this will slow the program down.\n"
-      " -POScor    = Do not allow negative correlations.  Since this is\n"
+      " -POScor    = Do not allow negative correlations. Since this is\n"
       "                the default, you don't actually need this option.\n"
       "                [FMRI data doesn't seem to need the modeling  ]\n"
       "                [of negative correlations, but you never know.]\n"
+      " -WNplus    = Do not allow negative correlations, and only allow\n"
+      "                (a,b) parameter combinations that fit the model\n"
+      "                AR(1) + white noise:\n"
+      "               * a > 0  and  -a < b < 0\n"
+      "               * see 'What is ARMA(1,1)' far below\n"
       "\n"
       " -Mfilt mr  = After finding the best fit parameters for each voxel\n"
       "                in the mask, do a 3D median filter to smooth these\n"
@@ -1161,10 +1190,10 @@ int main( int argc , char *argv[] )
       "                 experimentation.\n"
       "\n"
       " -CORcut cc = The exact ARMA(1,1) correlation matrix (for a != 0)\n"
-      "                has no non-zero entries.  The calculations in this\n"
+      "                has no non-zero entries. The calculations in this\n"
       "                program set correlations below a cutoff to zero.\n"
-      "                The default cutoff is %.3f, but can be altered with\n"
-      "                this option.  The usual reason to use this option is\n"
+      "                The default cutoff is %.5f, but can be altered with\n"
+      "                this option. The usual reason to use this option is\n"
       "                to test the sensitivity of the results to the cutoff.\n"
       "\n"
       " -ABfile ff = Instead of estimating the ARMA(a,b) parameters from the\n"
@@ -1173,7 +1202,7 @@ int main( int argc , char *argv[] )
       "               * Note that the (a,b) values read from this file will\n"
       "                   be mapped to the nearest ones on the (a,b) grid\n"
       "                   before being used to solve the generalized least\n"
-      "                   squares problem.  For this reason, you may want\n"
+      "                   squares problem. For this reason, you may want\n"
       "                   to use '-Grid 5' to make the (a,b) grid finer, if\n"
       "                   you are not using (a,b) values from a -Rvar file.\n"
       "               * Using this option will skip the slowest part of\n"
@@ -1199,14 +1228,14 @@ int main( int argc , char *argv[] )
       "                     temporal correlation structure for all voxels.\n"
       "\n"
       " -GOFORIT   = 3dREMLfit checks the regression matrix for tiny singular\n"
-      "                values (as 3dDeconvolve does).  If the matrix is too\n"
+      "                values (as 3dDeconvolve does). If the matrix is too\n"
       "                close to being rank-deficient, then the program will\n"
-      "                not proceed.  You can use this option to force the\n"
+      "                not proceed. You can use this option to force the\n"
       "                program to continue past such a failed collinearity\n"
       "                check, but you MUST check your results to see if they\n"
       "                make sense!\n"
       "              ** '-GOFORIT' is required if there are all zero columns\n"
-      "                   in the regression matrix.  However, at this time\n"
+      "                   in the regression matrix. However, at this time\n"
       "                   [15 Mar 2010], the all zero columns CANNOT come from\n"
       "                   the '-slibase' inputs.\n"
       "                 ** Nor from the '-dsort' inputs.\n"
@@ -1245,15 +1274,28 @@ int main( int argc , char *argv[] )
       "    (i.e., a > 0  and  -a < b < 0 ). Thus, the model 'AR(1)+white noise'\n"
       "    is a proper subset of ARMA(1,1) -- and also a proper subset of the default\n"
       "    -POScor setting (which also allows 0 < a < lam via b > 0).\n"
+      "  + This restricted model can be specified with the '-WNplus' option.\n"
+      "    With '-Wnplus', you should use '-Grid 5', since you are restricting\n"
+      "    the number of available noise models fairly substantially.\n"
+      "  + If the variance of the white noise is T and the variance of the AR(1) noise\n"
+      "    is U, then lam = (a*U)/(U+T*(1-a^2)), and U/T = (lam*(1-a^2))/(a^2-lam).\n"
+      "  + In principal, one could estimate the fraction of the noise that is\n"
+      "    white vs. correlated using this U/T formula (e.g., via 3dcalc on the\n"
+      "    '-Rvar' output).\n"
+      "  + It is not clear that such an estimate is useful for any purpose,\n"
+      "    or indeed that the '-Rvar' outputs of the ARMA(1,1) parameters\n"
+      "    are useful for more than code testing reasons. YMMV :)\n"
       "\n"
-      "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
+      "* The natural range of a and b is -1..+1. However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
-      "    of b that give lam > 0 will be allowed.  Also, the program doesn't\n"
+      "    of b that give lam > 0 will be allowed. Also, the program doesn't\n"
       "    allow values of a or b to be outside the range -0.9..+0.9.\n"
       "\n"
       "* The program sets up the correlation matrix using the censoring and run\n"
       "    start information saved in the header of the .xmat.1D matrix file, so\n"
       "    that the actual correlation matrix used will not always be Toeplitz.\n"
+      "    For details of how time series with such gaps are analyzed, see the\n"
+      "    math notes.\n"
       "\n"
       "* The 'Rvar' dataset has 5 sub-bricks with variance parameter estimates:\n"
       "    #0 = a = factor by which correlations decay from lag k to lag k+1\n"
@@ -1261,11 +1303,12 @@ int main( int argc , char *argv[] )
       "    #2 = lam (see the formula above) = correlation at lag 1\n"
       "    #3 = standard deviation of ARMA(1,1) noise in that voxel\n"
       "    #4 = -log(REML likelihood function) = optimized function at (a,b)\n"
+      "         For details about this, see the math notes.\n"
       "\n"
       "* The 'Rbeta' dataset has the beta (model fit) parameters estimates\n"
       "    computed from the prewhitened time series data in each voxel,\n"
       "    as in 3dDeconvolve's '-cbucket' output, in the order in which\n"
-      "    they occur in the matrix.  -addbase and -slibase and -dsort beta\n"
+      "    they occur in the matrix. -addbase and -slibase and -dsort beta\n"
       "    values come last in this file.\n"
        "   [The '-nobout' option will disable output of baseline parameters.]\n"
       "\n"
@@ -1335,16 +1378,16 @@ int main( int argc , char *argv[] )
       "\n"
       "* I have been asked if 3dREMLfit prewhitens the design matrix as well as\n"
       "    the data. The short answer to this somewhat uninformed question is YES.\n"
-      "    The long answer follows:\n"
+      "    The long answer follows (warning: math ahead!):\n"
       "\n"
       "* Mathematically, the GLSQ solution is expressed as\n"
       "    f = inv[ X' inv(R) X] X' inv(R) y\n"
       "    where X = model matrix, R = symmetric correlation matrix\n"
-      "              (of noise, depends on the a,b parameters),\n"
+      "              of noise (R depends on the a,b parameters),\n"
       "          f = parameter estimates, and y = data vector.\n"
       "    Notation: ' = transpose, inv() = inverse matrix.\n"
       "    A symmetric matrix S such that SS = R is called a square root of R\n"
-      "    (there are many such matrices).  The matrix inv(S) is a prewhitening\n"
+      "    (there are many such matrices). The matrix inv(S) is a prewhitening\n"
       "    matrix. That is, if the noise vector q is such that E(q q') = R\n"
       "    (here E = expected value), and vector t = inv(S) q, then\n"
       "    E(t t') = E[ inv(S)q q'inv(S) ] = inv(S) S S inv(S) = I.\n"
@@ -1353,13 +1396,14 @@ int main( int argc , char *argv[] )
       "      = inv[ (inv(S)X)' (inv(S)X) ] (inv(S)X)' (inv(S)y)\n"
       "    so the GLSQ solution is equivalent to the OLSQ solution, with the model\n"
       "    matrix X replaced by inv(S)X and the data vector y replaced by inv(S)y;\n"
-      "    that is, we prewhiten both of them.  In 3dREMLfit, this is done implicitly\n"
+      "    that is, we prewhiten both of them. In 3dREMLfit, this is done implicitly\n"
       "    in the solution method outlined in the 7-step procedure on the fourth page\n"
       "    of my math notes -- a procedure designed for efficient implementation\n"
       "    with banded R. The prewhitened X matrix is never explicitly computed:\n"
       "    it is not needed, since the goal is to compute vector f, not inv(S)X.\n"
       "\n"
       "* The idea of pre-whitening the data but NOT the matrix is a very bad plan.\n"
+      "    (This also was a suggestion by a not-well-informed user.)\n"
       "    If you work through the linear algebra, you'll see that the resulting\n"
       "    estimate for f is not statistically consistent with the underlying model!\n"
       "    In other words, prewhitening only the data but not the matrix is WRONG.\n"
@@ -1392,9 +1436,14 @@ int main( int argc , char *argv[] )
       "    The 4th term depends only on X, and is not actually used herein, since\n"
       "    we don't include a model for varying X as well as R.\n"
       "\n"
-      "* See the math notes below for more fun algorithmic details:\n"
+      "* The method for estimating (a,b) does not require the time series data to be\n"
+      "    perfectly uniform in time. Gaps due to censoring and run break are allowed\n"
+      "    for properly.\n"
+      "\n"
+      "* Again, see the math notes for more fun fun algorithmic details:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
       "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
+      "    https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
       "\n"
       "----------------\n"
       "Other Commentary ~1\n"
@@ -1404,8 +1453,8 @@ int main( int argc , char *argv[] )
       "\n"
       "* Each voxel gets a separate pair of 'a' and 'b' parameters.\n"
       "    There is no option to estimate global values for 'a' and 'b'\n"
-      "    and use those for all voxels.  Such an approach might be called\n"
-      "    'kindergarten statistics' by the authors of Some People's Methods.\n"
+      "    and use those for all voxels. Such an approach might be called\n"
+      "    'kindergarten statistics' by the promulgators of Some People's Methods.\n"
       "\n"
       "* OLSQ = Ordinary Least SQuares; these outputs can be used to compare\n"
       "         the REML/GLSQ estimations with the simpler OLSQ results\n"
@@ -1417,7 +1466,7 @@ int main( int argc , char *argv[] )
       "* The '-matrix' file must be from 3dDeconvolve; besides the regression\n"
       "    matrix itself, the header contains the stimulus labels, the GLTs,\n"
       "    the censoring information, etc.\n"
-      "  ++ Although you can put in a 'raw' matrix using the '-matim' option,\n"
+      "  + Although you can put in a 'raw' matrix using the '-matim' option,\n"
       "     described earlier.\n"
       "\n"
       "* If you don't actually want the OLSQ results from 3dDeconvolve, you can\n"
@@ -1426,10 +1475,10 @@ int main( int argc , char *argv[] )
       "      3dDeconvolve -bucket Fred -nodata 800 2.5 -x1D_stop ...\n"
       "      3dREMLfit -matrix Fred.xmat.1D -input ...\n"
       "    In the above example, no 3D dataset is input to 3dDeconvolve, so as to\n"
-      "    avoid the overhead of having to read it in for no reason.  Instead,\n"
+      "    avoid the overhead of having to read it in for no reason. Instead,\n"
       "    the '-nodata 800 2.5' option is used to setup the time series of the\n"
       "    desired length (corresponding to the real data's length, here 800 points),\n"
-      "    and the appropriate TR (here, 2.5 seconds).  This will properly establish\n"
+      "    and the appropriate TR (here, 2.5 seconds). This will properly establish\n"
       "    the size and timing of the matrix file.\n"
       "\n"
       "* The bucket output datasets are structured to mirror the output\n"
@@ -1441,7 +1490,7 @@ int main( int argc , char *argv[] )
       "\n"
       "* If the 3dDeconvolve matrix generation step did NOT have any non-base\n"
       "    stimuli (i.e., everything was '-stim_base'), then there are no 'stimuli'\n"
-      "    in the matrix file.  In that case, since by default 3dREMLfit doesn't\n"
+      "    in the matrix file. In that case, since by default 3dREMLfit doesn't\n"
       "    compute statistics of baseline parameters, to get statistics you will\n"
       "    have to use the '-gltsym' option here, specifying the desired column\n"
       "    indexes with the 'Col[]' notation, and then use '-Rglt' to get these\n"
@@ -1456,22 +1505,45 @@ int main( int argc , char *argv[] )
       "    then the program will print a message something like\n"
       "      ** ERROR: X matrix has 1 tiny singular value -- collinearity\n"
       "    The program will NOT continue past this type of error, unless\n"
-      "    the '-GOFORIT' option is used.  You should examine your results\n"
+      "    the '-GOFORIT' option is used. You should examine your results\n"
       "    carefully to make sure they are reasonable (e.g., look at\n"
       "    the fitted model overlay on the input time series).\n"
       "\n"
-      "* Despite my best efforts, this program is somewhat slow.\n"
-      "    Partly because it solves many linear systems for each voxel,\n"
-      "    trying to find the 'best' ARMA(1,1) prewhitening matrix.\n"
-      "  ++ However, a careful choice of algorithms for solving the linear\n"
-      "     systems (QR method, sparse matrix operations, etc.) and some\n"
-      "     other code optimizations should make running 3dREMLfit tolerable.\n"
-      "  ++ Depending on the matrix and the options, you might expect CPU time\n"
-      "     to be about 2..4 times that of the corresponding 3dDeconvolve run.\n"
-      "     (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
-      "  ++ Nowadays [2019], computers are so much faster that the olden\n"
-      "     times that this 'slow' comment is probably pointless, except\n"
-      "     perhaps for very large datasets.\n"
+      "* The Ljung-Box (LB) statistic computed via the '-Rvar' option is a\n"
+      "    measure of how correlated the ARMA(1,1) pre-whitened residuals are\n"
+      "    in time. A 'small' value indicates that the pre-whitening was\n"
+      "    reasonably successful (e.g., small LB = 'good').\n"
+      "  + The LB volume will be marked as a chi-squared statistic with h-2 degrees\n"
+      "     of freedom, where 'h' is the semi-arbitrarily chosen maximum lag used.\n"
+      "     A large LB value indicates noticeable temporal correlation in the\n"
+      "     pre-whitened residuals (e.g., that the ARMA(1,1) model wasn't adequate).\n"
+      "  + If a voxel has LB statistic = 0, this means that the LB value could not\n"
+      "     be computed for some reason (e.g., residuals are all zero).\n"
+      "  + For yet more information, see this article:\n"
+      "      On a measure of lack of fit in time series models.\n"
+      "      GM Ljung, GEP Box. Biometrika, 1978.\n"
+      "      https://www.jstor.org/stable/2335207\n"
+      "      https://academic.oup.com/biomet/article/65/2/297/236869\n"
+      "  + The calculation of the LB statistic is adjusted to allow for gaps in\n"
+      "     the time series (e.g., censoring, run gaps).\n"
+      "  + Note that the LB statistic is computed if and only if you give the\n"
+      "     '-Rvar' option. You don't have to give the '-Rwherr' option, which is\n"
+      "     used to save the pre-whitened residuals to a dataset.\n"
+      "  + If you want to test the LB statistic calculation under the null\n"
+      "     hypothesis (i.e., that the ARMA(1,1) model is correct), then\n"
+      "     you can use program 3dSimARMA11 to create a time series dataset,\n"
+      "     then run that through 3dREMLfit, then peruse the histogram\n"
+      "     of the resulting LB statistic. Have fun!\n"
+      "\n"
+      "* Depending on the matrix and the options, you might expect CPU time\n"
+      "    to be about 2..4 times that of the corresponding 3dDeconvolve run.\n"
+      "  + A careful choice of algorithms for solving the multiple linear\n"
+      "     systems required (e.g., QR method, sparse matrix operations,\n"
+      "     bordering, etc.) and some other code optimizations make\n"
+      "     running 3dREMLfit tolerable.\n"
+      "  + Especially on modern fast CPUs. Kids these days have NO idea\n"
+      "     about how we used to suffer waiting for computer runs, and\n"
+      "     how we passed the time by walking uphill through the snow.\n"
       "\n"
       "---------------------------------------------------------------\n"
       "How 3dREMLfit handles all zero columns in the regression matrix\n"
@@ -1479,32 +1551,32 @@ int main( int argc , char *argv[] )
 #if 0
       "* 3dDeconvolve uses the singular value decomposition to compute\n"
       "    the pseudo-inverse of the regression matrix X; normally, the\n"
-      "    pseudo-inverse is given by inv[X'X] X'.  However, if X has\n"
+      "    pseudo-inverse is given by inv[X'X] X'. However, if X has\n"
       "    any zero singular values (i.e., there is a linear combination\n"
       "    of the columns of X that is zero), then matrix X'X is not\n"
-      "    invertible.  The SVD-based pseudo-inverse of X proceeds past\n"
+      "    invertible. The SVD-based pseudo-inverse of X proceeds past\n"
       "    this point by modifying X'X to make it non-singular, by\n"
       "    boosting up the close-to-zero singular values to make them\n"
       "    bounded away from zero.\n"
       "* 3dREMLfit doesn't use the SVD and doesn't form the pseudo-inverse\n"
       "    for the calculations for several reasons -- to save on CPU time\n"
       "    and to save on memory, since many more matrices must be processed\n"
-      "    than in 3dDeconvolve.  Instead, 3dREMLfit uses the QR factorization\n"
-      "    [of R^(-1/2)X].  However, if X has any zero singular values, then\n"
+      "    than in 3dDeconvolve. Instead, 3dREMLfit uses the QR factorization\n"
+      "    [of R^(-1/2)X]. However, if X has any zero singular values, then\n"
       "    the some diagonal elements of the QR factor will be zero, and in\n"
       "    in the equation solution process, we have to divide by these diagonal\n"
       "    elements ==> problem!\n"
       "* The solution used here is to 'de-singularize' the matrix before QR\n"
-      "    factorization (if '-GOFORIT' is on).  This is done simply by\n"
+      "    factorization (if '-GOFORIT' is on). This is done simply by\n"
       "    doing the SVD of the matrix to be QR factored, boosting up the\n"
       "    close-to-zero singular values, and then re-constructing the matrix\n"
       "    from the SVD factors.\n"
 #endif
       "* One salient (to the user) difference from 3dDeconvolve is how\n"
       "    3dREMLfit deals with the beta weight from an all zero column when\n"
-      "    computing a statistic (e.g., a GLT).  The beta weight will simply\n"
+      "    computing a statistic (e.g., a GLT). The beta weight will simply\n"
       "    be ignored, and its entry in the GLT matrix will be set to zero.\n"
-      "    Any all zero rows in the GLT matrix are then removed.  For example,\n"
+      "    Any all zero rows in the GLT matrix are then removed. For example,\n"
       "    the 'Full_Fstat' for a model with 3 beta weights is computed from\n"
       "    the GLT matrix [ 1 0 0 ]\n"
       "                   [ 0 1 0 ]\n"
@@ -1512,15 +1584,15 @@ int main( int argc , char *argv[] )
       "    an all zero column, then the matrix becomes [ 1 0 0 ]\n"
       "                                                [ 0 1 0 ]\n"
       "                                                [ 0 0 0 ], and then\n"
-      "    then last row is omitted.  This excision reduces the number of\n"
-      "    numerator degrees of freedom in this test from 3 to 2.  The net\n"
+      "    then last row is omitted. This excision reduces the number of\n"
+      "    numerator degrees of freedom in this test from 3 to 2. The net\n"
       "    effect is that the F-statistic will be larger than in 3dDeconvolve,\n"
       "    which does not modify the GLT matrix (or its equivalent).\n"
       "\n"
       " * A similar adjustment is made to denominator degrees of freedom, which\n"
       "    is usually n-m, where n=# of data points and m=# of regressors.\n"
       "    3dDeconvolve counts all zero regressors in with m, but 3dREMLfit\n"
-      "    does not.  The net effect is again to (slightly) increase F-statistic\n"
+      "    does not. The net effect is again to (slightly) increase F-statistic\n"
       "    values over the equivalent 3dDeconvolve computation.\n"
       "\n"
       "-----------------------------------------------------------\n"
@@ -1555,7 +1627,7 @@ int main( int argc , char *argv[] )
        "   these up (now and forever, two and inseparable).\n"
        "* '-usetemp' disables OpenMP multi-CPU usage, since the file I/O for\n"
        "   saving and restoring various matrices and results is not easily\n"
-       "   parallelized.  To get OpenMP speedup for large problems (just where\n"
+       "   parallelized. To get OpenMP speedup for large problems (just where\n"
        "   you want it), you'll need a lot of RAM.\n"
      ) ;
 
@@ -1680,11 +1752,11 @@ int main( int argc , char *argv[] )
          if( label_order != 2 ) {  /* not slice-minor order */
            if( label_order == 1 ) {
              ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
-                 "   for which -slibase_sm is more appropriate.  If this is\n"
+                 "   for which -slibase_sm is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
                  "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
-             WARNING_message("Unknown regressor ordering.  If the regressors\n"
+             WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
                  "   appropriate than -slibase.");
            }
@@ -1716,11 +1788,11 @@ int main( int argc , char *argv[] )
          if( label_order != 1 ) {  /* not slice-major order */
            if( label_order == 2 ) {
              ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
-                 "   for which -slibase is more appropriate.  If this is\n"
+                 "   for which -slibase is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
                  "        https://afni.nimh.nih.gov/afni/community/board");
            } else { /* order is unknown */
-             WARNING_message("Unknown regressor ordering.  If the regressors\n"
+             WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS' you are probably okay.");
            }
          } /* end label_order check */
@@ -1792,13 +1864,27 @@ int main( int argc , char *argv[] )
        bm_set = bmax ; iarg++ ; continue ;
      }
 
+     /*-- the next 3 options are actually implemented inside remla.c --*/
+
      if( strcasecmp(argv[iarg],"-NEGcor") == 0 ){
-       REML_allow_negative_correlations(1) ; iarg++ ; continue ;
+       REML_allow_negative_correlations(1) ;
+       ININFO_message("negative correlations enabled") ;
+       iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-POScor") == 0 ){
-       REML_allow_negative_correlations(0) ; iarg++ ; continue ;
+       REML_allow_negative_correlations(0) ;
+       ININFO_message("negative correlations disabled") ;
+       iarg++ ; continue ;
      }
+
+     if( strcasecmp(argv[iarg],"-WNplus") == 0 ){   /* 02 Jan 2020 */
+       REML_allow_only_pos_white_noise(1) ;
+       ININFO_message("AR(1)+white noise model enabled") ;
+       iarg++ ; continue ;
+     }
+
+     /*---*/
 
      if( strcasecmp(argv[iarg],"-Mfilt") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -2015,7 +2101,7 @@ STATUS("options done") ;
      if( usetemp ){
        maxthr = 1 ;
        WARNING_message("-usetemp disables OpenMP multi-CPU usage") ;
-     } else if( nvox < 999 ){
+     } else if( nvox < maxthr*33 ){
        maxthr = 1 ;
        WARNING_message("only %d voxels: disables OpenMP multi-CPU usage in voxel loop",
                        nvox) ;
@@ -2154,7 +2240,7 @@ STATUS("options done") ;
      if( abot < -0.9f || atop > 0.9f || bbot < -0.9f || btop > 0.9f )
        ERROR_exit("-ABfile (a,b) values out of range -0.9..+0.9 ?!") ;
 
-     REML_allow_negative_correlations(1) ;
+     REML_allow_negative_correlations(1) ; /* who knows what's in -ABfile? */
      if( do_mfilt ){
        do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt !!") ;
      }
@@ -2184,7 +2270,7 @@ STATUS("options done") ;
 
    } else if( abfixed ){
 
-     REML_allow_negative_correlations(1) ;
+     REML_allow_negative_correlations(1) ; /* anything goes */
      if( do_mfilt ){
        do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt") ;
      }
@@ -2311,6 +2397,22 @@ STATUS("process matrix") ;
        INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run = no time discontinuities");
      Nruns = 1 ; runs = calloc(sizeof(int),1) ;
    }
+   if( Nruns == 1 ){  /* 21 Jan 2020 */
+     min_run = max_run = ntime ;
+   } else {
+     min_run = 666666 ; max_run = -666666 ;
+     for( jj=1 ; jj < Nruns ; jj++ ){
+       rnum = runs[jj] - runs[jj-1] ;
+       if( min_run > rnum ) min_run = rnum ;
+       if( max_run < rnum ) max_run = rnum ;
+     }
+     rnum = nfull - runs[Nruns-1] ;
+     if( min_run > rnum ) min_run = rnum ;
+     if( max_run < rnum ) max_run = rnum ;
+     INFO_message("shortest run = %d   longest run = %d",min_run,max_run) ;
+     if( min_run > 555555 || min_run < 6 || max_run < 6 )
+       ERROR_exit("Matrix attribute 'RunStart' has bad values") ;
+   }
 
    /*----- set up pseudo-time tau[] vector for R matrix formation -----*/
 
@@ -2401,7 +2503,7 @@ STATUS("process -addbase images") ;
      /*------ make up extra labels for these columns ------*/
 
      if( beta_lab != NULL ){
-       char lll[32] ;
+       char lll[64] ;
        beta_lab = NI_realloc( beta_lab , char * , sizeof(char *)*nrega ) ;
        for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
          im = IMARR_SUBIM( imar_addbase , ii ) ;
@@ -2931,7 +3033,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-   niv = (nvals+nregda+glt_num+9)*2 ;
+   niv = (nvals+nregda+glt_num+99)*2 ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ; /* temp vectors */
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
@@ -2953,7 +3055,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
 #ifdef USE_OMP
-   if( maxthr > 1 && nmask < 99*maxthr ){
+   if( maxthr > 1 && nmask < 33*maxthr ){
      maxthr = 1 ;
      WARNING_message(
       "only %d voxels in mask: disables OpenMP multi-CPU usage for voxel loop",
@@ -3278,7 +3380,7 @@ STATUS("labelizing Rbeta") ;
        EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[betaset[ii]] ) ;
    }
 
-   Rvar_dset  = create_float_dataset( inset , 5    , Rvar_prefix,1 , NULL,NULL ) ;
+   Rvar_dset  = create_float_dataset( inset , 6    , Rvar_prefix,1 , NULL,NULL ) ;
    if( Rvar_dset != NULL ){
      float abar[3] ;
 STATUS("labelizing Rvar") ;
@@ -3287,6 +3389,15 @@ STATUS("labelizing Rvar") ;
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 4 , "-LogLik") ;
+
+     EDIT_BRICK_LABEL( Rvar_dset , 5 , "LjungBox") ;  /* 21 Jan 2020 */
+     if( LJ_hh == 0 ){              /* set the max lag parameter now */
+       int h1 = min_run/8 , h2 = (int)rintf(3.0f*logf((float)min_run)) ;
+       LJ_hh = nrega+2+MIN(h1,h2) ; if( LJ_hh > min_run/2 ) LJ_hh = min_run/2 ;
+       INFO_message("Ljung-Box max lag parameter h = %d (%d chi-squared DOF)",LJ_hh,LJ_hh-2) ;
+     }
+     EDIT_BRICK_TO_FICT( Rvar_dset , 5 , (LJ_hh-2.0f) ) ;
+
      abar[0] = rhomax ; abar[1] = bmax ; abar[2] = (float)nlevab ;
      THD_set_float_atr( Rvar_dset->dblk , "REMLFIT_abmax" , 3 , abar ) ;
    }
@@ -3453,6 +3564,7 @@ STATUS("setting up Rglt") ;
 
      last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
 
+     /* make some space for vectors */
      for( ii=0 ; ii < 7 ; ii++ )
        bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
@@ -3602,7 +3714,7 @@ STATUS("setting up Rglt") ;
                 bb2 = whitened residuals    (ntime)
                       (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
-         sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ;
+         sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ; /* debugging */
 #if 1
          (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
 #else
@@ -3614,7 +3726,7 @@ STATUS("setting up Rglt") ;
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
-           sprintf(sslab,"%s %d", "Rfitts" ,vv);
+           sprintf(sslab,"%s %d", "Rfitts" ,vv); /* debugging */
            save_series( vv , Rfitts_dset , nfull , iv , Rfitts_fp ) ;
          }
 
@@ -3622,7 +3734,7 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
-           sprintf(sslab,"%s %d", "Rerrts" ,vv);
+           sprintf(sslab,"%s %d", "Rerrts" ,vv); /* debugging */
            save_series( vv , Rerrts_dset , nfull , iv , Rerrts_fp ) ;
          }
 
@@ -3630,22 +3742,28 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = bb2[ii] ;
-           sprintf(sslab,"%s %d", "Rwherr" ,vv);
+           sprintf(sslab,"%s %d", "Rwherr" ,vv); /* debugging */
            save_series( vv , Rwherr_dset , nfull , iv , Rwherr_fp ) ;
          }
 
          if( Rbeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
-           sprintf(sslab,"%s %d", "Rbeta" ,vv);
+           sprintf(sslab,"%s %d", "Rbeta" ,vv); /* debugging */
            save_series( vv , Rbeta_dset , nbetaset , iv , Rbeta_fp ) ;
          }
 
          if( Rvar_dset != NULL ){
+           int h1,h2 ;
+
            iv[0] = my_rset->rho ; iv[1] = my_rset->barm ;
            iv[2] = my_rset->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
-           sprintf(sslab,"%s %d", "Rvar" ,vv);
-           save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
+
+           /* Ljung-Box statistic (cf. thd_ljungbox.c) [21 Jan 2020] */
+           iv[5] = (float)ljung_box_uneven( ntime, LJ_hh, bb2, tau ) ;
+
+           sprintf(sslab,"%s %d", "Rvar" ,vv); /* debugging */
+           save_series( vv , Rvar_dset , 6 , iv , Rvar_fp ) ;
          }
 
          AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
@@ -3674,7 +3792,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
-           sprintf(sslab,"%s %d", "Rbuckt glt" ,vv);
+           sprintf(sslab,"%s %d", "Rbuckt glt" ,vv); /* debugging */
            save_series( vv , Rbuckt_dset , nbuckt , iv , Rbuckt_fp ) ;
          }
 
@@ -3702,7 +3820,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
-           sprintf(sslab,"%s %d", "Rglt" ,vv);
+           sprintf(sslab,"%s %d", "Rglt" ,vv); /* debugging */
            save_series( vv , Rglt_dset , neglt , iv , Rglt_fp ) ;
          }
 
@@ -4038,7 +4156,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
-           sprintf(sslab,"%s %d", "Ofitts" ,vv);
+           sprintf(sslab,"%s %d", "Ofitts" ,vv); /* debugging */
            save_series( vv , Ofitts_dset , nfull , iv , Ofitts_fp ) ;
          }
 
@@ -4046,19 +4164,19 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
-           sprintf(sslab,"%s %d", "Oerrts" ,vv);
+           sprintf(sslab,"%s %d", "Oerrts" ,vv); /* debugging */
            save_series( vv , Oerrts_dset , nfull , iv , Oerrts_fp ) ;
          }
 
          if( Obeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
-           sprintf(sslab,"%s %d", "Obeta" ,vv);
+           sprintf(sslab,"%s %d", "Obeta" ,vv); /* debugging */
            save_series( vv , Obeta_dset , nbetaset , iv , Obeta_fp ) ;
          }
 
          if( Ovar_dset != NULL ){
            iv[0] = sqrt( bbsumq / ddof ) ;
-           sprintf(sslab,"%s %d", "Ovar" ,vv);
+           sprintf(sslab,"%s %d", "Ovar" ,vv); /* debugging */
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
@@ -4087,7 +4205,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
                }
              }
            }
-           sprintf(sslab,"%s %d", "Obuckt glt" ,vv);
+           sprintf(sslab,"%s %d", "Obuckt glt" ,vv); /* debugging */
            save_series( vv , Obuckt_dset , nbuckt , iv , Obuckt_fp ) ;
          }
 
@@ -4115,7 +4233,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
                }
              }
            }
-           sprintf(sslab,"%s %d", "Oglt" ,vv);
+           sprintf(sslab,"%s %d", "Oglt" ,vv); /* debugging */
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
          }
 
@@ -4238,3 +4356,106 @@ STATUS("ALL_GLTS") ;
 #endif
    exit(0) ;
 }
+
+/******************************************************************************/
+/******************************************************************************/
+#if 0
+/*--- The shell script below is for testing this ARMA/REML implementation. ---*/
+/*-----------------------------------------------------------------------------
+
+#!/bin/tcsh
+
+### Script to test REML GLSQ vs OLSQ regression
+
+# B      = signal amplitude for all repetitions
+# P      = signal period (TRs)
+# nstim  = number of signals (IM regression)
+# numvox = number of voxels to simulate
+# so there is a total of $nstim * $numvox stimuli being simulated
+
+set B      = 2
+set P      = 12
+set nstim  = 20
+set numvox = 400
+
+# ARMA(1,1) parameters for this test/simulation
+
+set AA  = 0.8
+set LAM = 0.5
+
+# D = number of time points (TR=1)
+
+@ D = $P * $nstim
+
+# create stimulus timing
+
+1deval -num $nstim -expr "i*${P}"  > stim.1D
+
+# create the voxel time series = simulated data
+
+1deval -num $D -expr "${B}*sin(PI*t/${P})^2"  > signal.1D
+foreach ii ( `count -dig 4 1 $numvox` )
+  1dgenARMA11 -num $D -a $AA -lam $LAM               > noise.1D
+  1deval      -a noise.1D -b signal.1D -expr 'a+b'   > data${ii}.1D
+end
+
+# glue them together into one file
+
+1dcat data0*.1D > data.1D
+\rm -f data0*.1D noise.1D signal.1D
+
+# create the regression matrix (note use of IM regression model)
+
+3dDeconvolve -num_stimts 1                                            \
+             -stim_times_IM 1 stim.1D "EXPR(0,${P}) sin(PI*t/${P})^2" \
+             -stim_label    1 'sinsq'                                 \
+             -nodata $D 1 -x1D_stop -polort 2 -x1D test.xmat.1D
+
+# analyses
+
+3dREMLfit -matrix test.xmat.1D \
+          -input data.1D\'     \
+          -Rvar  test.Rvar.1D  \
+          -Rbeta test.Rbeta.1D \
+          -Obeta test.Obeta.1D \
+          -nobout -Grid 5 -MAXa 0.9 -MAXb 0.9 -NEGcor
+
+# extract the betas for each voxel into one long single column 1D file
+# instead of the multi-column file output by 3dREMLfit
+
+@ ns1 = $nstim - 1
+if( -f test.Rbeta.all.1D ) \rm test.Rbeta.all.1D
+if( -f test.Obeta.all.1D ) \rm test.Obeta.all.1D
+foreach ii ( `count -dig 1 0 $ns1` )
+  1dcat test.Rbeta.1D"[$ii]" >> test.Rbeta.all.1D
+  1dcat test.Obeta.1D"[$ii]" >> test.Obeta.all.1D
+end
+
+# compute the mean and stdev of the GLSQ and OLSQ betas
+# (means should be about B, or something weird happened)
+
+3dTstat -mean -stdev -prefix test.Rbeta.stat.1D test.Rbeta.all.1D\'
+3dTstat -mean -stdev -prefix test.Obeta.stat.1D test.Obeta.all.1D\'
+
+# compute the ratio of the stdevs
+# srat > 1 means OLSQ stdev was bigger than GLSQ (what we expect)
+
+set Rsig = `1dcat test.Rbeta.stat.1D'[1]'`
+set Osig = `1dcat test.Obeta.stat.1D'[1]'`
+set srat = `ccalc "$Osig/$Rsig"`
+
+# print out these results
+
+echo "======================="
+echo "a = $AA  lam = $LAM"
+echo "REML mean stdev = " `1dcat test.Rbeta.stat.1D`
+echo "OLSQ mean stdev = " `1dcat test.Obeta.stat.1D`
+echo "Osig/Rsig       =  $srat"
+echo "======================="
+
+time ; exit 0
+
+-----------------------------------------------------------------------------*/
+#endif
+/******************************************************************************/
+/******************************************************************************/
