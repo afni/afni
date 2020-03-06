@@ -7,8 +7,10 @@ set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
+set centertype = "-centertype icent"
 set skipnovoxopt = ""
 set lncol = ""
+
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -67,7 +69,8 @@ if ("$flab" != "IS_ATLAS") then
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV $lnarg \
                    -atlas_pointlist keys_${RNS}_ \
-                   -dset $target_dset  $replace $centeropt $skipnovoxopt\
+                   -dset $target_dset  $replace \
+                   $centeropt $centertype $skipnovoxopt\
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -265,20 +268,20 @@ PARSE:
       if ("$argv[$cnt]" == "-centertype") then
             if ($cnt > $Narg) then
             if (! $quiet_death) \
-               echo "Need a type after -centertype"
+               echo "Need a type after -centertype ([icent],dcent,cm)"
             goto BEND
          endif
          @ cnt ++         switch ("$argv[$cnt]")
             case "icent" :
             case "dcent" : 
-               set centertype = "-${argv[$cnt]}" 
+               set centertype = "-centertype ${argv[$cnt]}" 
             breaksw
             case "cm" :   # default for CM
                set centertype = ""
             breaksw
             default:
                if (! $quiet_death) \
-               echo "Invalid choice for centertype (icent,dcent,[cm])"
+               echo "Invalid choice for centertype ([icent],dcent,cm)"
                goto BEND
             breaksw
          endsw   
