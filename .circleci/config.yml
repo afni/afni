@@ -1,4 +1,4 @@
-  
+
 version: 2
 jobs:
               
@@ -26,13 +26,14 @@ jobs:
           name: Setup on macos
           command: |
             brew cask install xquartz
+            brew unlink python@2
             brew install  \
               cmake ninja gcc pkgconfig  \
               jpeg gsl gts openmotif  netcdf libpng expat \
               freetype fontconfig gsl \
               netpbm git-annex 
               # note other useful dependencies:
-              # ffmpeg python
+              # ffmpeg
       - run:
           name: Build on macos
           command: |
