@@ -8,7 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
-set centertype = "-icent" # internal center - default (DRG - 03/06/2020)
+set centertype = "-Icent" # internal center - default (DRG - 03/06/2020)
 set iL = 2
 set iV = 1
 
@@ -962,17 +962,19 @@ PARSE:
                echo "Need a type after -centertype"
             goto BEND
          endif
-         @ cnt ++         switch ("$argv[$cnt]")
-            case "icent" :
-            case "dcent" : 
-               set centertype = "-${argv[$cnt]}" 
+         @ cnt ++
+         switch ("$argv[$cnt]")
+            case "Icent":
+            case "Dcent": 
+               set centertype = "-$argv[$cnt]" 
             breaksw
-            case "cm" :   # default for 3dCM
+            case "CM":
+            case "cm":   # default for 3dCM
                set centertype = ""
             breaksw
             default:
                if (! $quiet_death) \
-               echo "Invalid choice for centertype ([icent],dcent,cm)"
+               echo "Invalid choice for centertype ([Icent],Dcent,cm)"
                goto BEND
             breaksw
          endsw   
@@ -1105,6 +1107,8 @@ HELP:
 #   echo "                              in DSET" 
    echo "   -centers : Compute center of mass location for each ROI"
    echo "              requires simple blobbish ROIs to work"
+   echo "   -centertype TYPE: Choose Icent, Dcent or cm for different ways"
+   echo "              to compute centers. See 3dCM for details" 
    echo "   -skip_novoxels : Skip regions without voxels"
    echo ""
    echo "   Note that you cannot use the same key for multiple labels."
