@@ -1,3 +1,28 @@
+ AFNI Digest, week of 2020/03/09.
+
+Contents:
+00) Cancellation of in-person Bootcamp at NIH (March, 2020)
+
+00)  As you are aware, the outbreak and spread of coronavirus/COVID-19 has become a major concern in the US and globally. The NIH has recently issued guidance to telecast/postpone/cancel large conferences and meetings on campus where possible:
+https://www.nih.gov/health-information/nih-guidance-travel-meetings
+Unfortunately, this means that we will not be able to host the upcoming AFNI Bootcamp from March 30-April 3, 2020.
+
+We understand that many people have made plans to travel here for the Bootcamp, and we are deeply sorry that we cannot host the standard Bootcamp.  We really appreciate that you would take the time and effort travel here for the course, but the larger public health concerns require its cancellation.
+
+However, we are working to create and provide a new set of recordings of the Bootcamp lectures online.  While we do have previous Bootcamp recordings available already:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+we also have new talks, programs and functionality to present.  Additionally, we are looking into ways to schedule separate consultation sessions for users during that time.  We will write back more details on both considerations.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
 AFNI Digest, week of 2020/02/20.
 
 Contents:
