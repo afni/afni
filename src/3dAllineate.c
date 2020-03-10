@@ -3952,16 +3952,23 @@ STATUS("zeropad weight dataset") ;
 
    if( ! do_cmass ){         /* 26 Feb 2020 */
      float rrr ;
-     rrr = fabsf(xxc)/xxx ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
-     rrr = fabsf(yyc)/yyy ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
-     rrr = fabsf(zzc)/zzz ; CMbad += (rrr < 0.1f) ? 0 : (rrr < 0.4f) ? 1 : 100 ;
-     if( CMbad > 0 && CMbad < 100 )
+     rrr = fabsf(xxc)/xxx ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
+     rrr = fabsf(yyc)/yyy ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
+     rrr = fabsf(zzc)/zzz ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
+     if( CMbad > 0 && CMbad < 100 ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
-     else if( CMbad >= 100 )
+       WARNING_message("  - at least one is more than 20%% of search range") ;
+     } else if( CMbad >= 100 ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be TERRIBLY large!") ;
+       WARNING_message("  - at least one is more than 50%% of search range") ;
+     }
 
-     ININFO_message (" -cmass x y z shifts = %.3f %.3f %.3f",xxc,yyc,zzc) ;
-     ININFO_message (" search range is +/- = %.3f %.3f %.3f",xxx,yyy,zzz) ;
+     ININFO_message("       -cmass x y z shifts = %8.3f %8.3f %8.3f",xxc,yyc,zzc) ;
+     ININFO_message(" shift search range is +/- = %8.3f %8.3f %8.3f",xxx,yyy,zzz) ;
+     if( CMbad > 0 ){
+       ININFO_message("                             %7.1f%% %7.1f%% %7.1f%%",
+                      100.0f*fabsf(xxc)/xxx, 100.0f*fabsf(yyc)/yyy,100.0f*fabsf(zzc)/zzz  ) ;
+     }
 
      xc = yc = zc = 0.0f ; /* pleonastic, to be safe */
    }
@@ -3970,7 +3977,7 @@ STATUS("zeropad weight dataset") ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
 
-   if( verb > 1 && apply_mode == 0 )
+   if( do_cmass && verb > 1 && apply_mode == 0 )
      INFO_message("shift param auto-range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
@@ -4138,6 +4145,19 @@ STATUS("zeropad weight dataset") ;
    conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.000005f) ;
    if( verb > 1 && apply_mode == 0 )
      INFO_message("Normalized convergence radius = %.7f",conv_rad) ;
+
+   /*-- print parameter ranges [10 Mar 2020] --*/
+
+   if( verb > 1 ){
+     INFO_message("Final parameter search ranges:") ;
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+       if( !stup.wfunc_param[jj].fixed )
+         ININFO_message(" %12s = %8.3f .. %8.3f",
+                        stup.wfunc_param[jj].name ,
+                        stup.wfunc_param[jj].min  ,
+                        stup.wfunc_param[jj].max   ) ;
+     }
+   }
 
    /*-- special case: 04 Apr 2008 --*/
 

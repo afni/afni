@@ -3728,9 +3728,10 @@ STATUS("construct weight/mask volume") ;
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
-     INFO_message("========== total number of parameters 'optimized' = %d",Hnpar_sum) ;
-   ININFO_message("           final unpenalized cost = %g",Hcostt) ;
-   ININFO_message("           final penalized   cost = %g",Hcost ) ;
+     INFO_message("====== total number of parameters 'optimized' = %d",Hnpar_sum) ;
+   ININFO_message("     initial unpenalized cost = %g",Hcostt_zero) ; /* 10 Mar 2020 */
+   ININFO_message("       final unpenalized cost = %g",Hcostt) ;
+   ININFO_message("       final penalized   cost = %g",Hcost ) ;
 
    mri_free(wbim) ; wbim = NULL ;  /* not needed after here [17 Oct 2013] */
    mri_free(bim)  ; bim  = NULL ;

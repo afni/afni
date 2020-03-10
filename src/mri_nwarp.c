@@ -8160,6 +8160,9 @@ static float Hcost  = 666.666f ;  /* current 'correlation' cost */
 static float Hpenn  = 0.0f ;
 static float Hcostt = 0.0f ;      /* 'pure' cost */
 
+static float Hcostt_zero = 0.0f ; /* 10 Mar 2020 */
+static float save_H_zero = 0 ;
+
 #undef  SRCIM /* macro for which source image to use */
 #define SRCIM ( (Hsrcim_blur != NULL ) ? Hsrcim_blur : Hsrcim )
 
@@ -10130,6 +10133,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    }
 
    Hcostt = cost ;  /* store 'pure' cost globally for reporting purposes */
+   if( save_H_zero ){ Hcostt_zero = cost ; save_H_zero = 0 ; } /* 10 Mar 2020 */
 
    /* Step 4: add the penalty function into the output cost */
 
@@ -10939,7 +10943,6 @@ static float Hfactor_from_patchsize_ratio( float prat )
    if( alpha == 0.0f ) alpha = logf(Hfactor_q) / logf(0.1f) ;
    return powf(prat,alpha) ;
 }
-   
 
 /*----------------------------------------------------------------------------*/
 /* Optimize the warp over a sequence of ever smaller patches;
@@ -10987,6 +10990,8 @@ ENTRY("IW3D_warpomatic") ;
    /* imin..imax jmin..jmax kmin..kmax = autobox = contains all nonzeros */
 
    MRI_autobbox( Hwtim , &imin,&imax , &jmin,&jmax , &kmin,&kmax ) ;
+
+   save_H_zero = 1 ;
 
    /* do global warping first (lev=0) */
 
@@ -11799,6 +11804,8 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    cost = INCOR_evaluate( Hincor , Hnval , Hwval_minus , Hwval_plus ,
                           (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
    if( Hnegate ) cost = -cost ;
+   Hcostt = cost ;
+   if( save_H_zero ){ Hcostt_zero = cost ; save_H_zero = 0 ; } /* 10 Mar 2020 */
 
    if( !isfinite(cost) ){
      ERROR_message("bad Warpomatic cost = %g -- input parameters:",cost) ;
@@ -12379,6 +12386,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    /* range of indexes over which to warp */
 
    MRI_autobbox( Hwtim , &imin,&imax , &jmin,&jmax , &kmin,&kmax ) ;
+
+   save_H_zero = 1 ;
 
    /* do global warping first */
 
