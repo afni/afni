@@ -74,9 +74,9 @@ ENTRY_POINTS={'console_scripts':
 
 
 setup(name='afni_python',
-      version='0.0.1',
+      version='0.0.2',
       description='AFNI python packages',
-      url='git+https://github.com/leej3/template_making.git',
+      url='git+https://github.com/afni/afni.git@master#egg=afni-python&subdirectory=src/python_scripts',
       author='AFNI team',
       author_email='afni.bootcamp@gmail.com',
       license='Public Domain',
