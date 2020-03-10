@@ -45,8 +45,8 @@ static void fputs_messfp( char *msg )
 
 #undef  ZMAX
 #undef  SZMAX
-#define ZMAX  32222        /* increased for Ziad (who else is so crazy?) */
-#define SZMAX "%.32222s"   /* same as ZMAX */
+#define ZMAX  49999        /* increased for Ziad (who else is so crazy?) */
+#define SZMAX "%.49999s"   /* same as ZMAX */
 
 char * THD_zzprintf( char *sss , char *fmt , ... )
 {
