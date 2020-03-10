@@ -1606,6 +1606,17 @@ static char *gby[] = {
      "Later there will be, I hope, some people who\n"
      "  will find it to their advantage to decipher all this mess"                            ,
 
+     // Lem
+     "Everyone knows that dragons don't exist.  But while this simplistic\n"
+     "formulation may satisfy the layman, it does not suffice for the scientific\n"
+     "mind.  The School of Higher Neantical Nillity is in fact wholly unconcerned\n"
+     "with what does exist.  Indeed, the banality of existence has been so amply\n"
+     "demonstrated, there is no need for us to discuss it any further here.  The\n"
+     "brilliant Cerebron, attacking the problem analytically, discovered three\n"
+     "distinct kinds of dragon:  the mythical, the chimerical, and the purely\n"
+     "hypothetical.  They were all, one might say, nonexistent, but each non-existed\n"
+     "in an entirely different way."                                                          ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"

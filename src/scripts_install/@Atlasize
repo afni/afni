@@ -7,8 +7,10 @@ set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
+set centertype = "-centertype Icent"
 set skipnovoxopt = ""
 set lncol = ""
+
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -67,7 +69,8 @@ if ("$flab" != "IS_ATLAS") then
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV $lnarg \
                    -atlas_pointlist keys_${RNS}_ \
-                   -dset $target_dset  $replace $centeropt $skipnovoxopt\
+                   -dset $target_dset  $replace \
+                   $centeropt $centertype $skipnovoxopt \
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -262,6 +265,31 @@ PARSE:
          goto CONTINUE
       endif
 
+      if ("$argv[$cnt]" == "-centertype") then
+            if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a type after -centertype ([Icent],Dcent,cm)"
+            goto BEND
+         endif
+         @ cnt ++
+         switch ( "$argv[$cnt]" )
+            case "Icent":
+            case "Dcent":
+               set centertype = "-centertype $argv[$cnt]" 
+            breaksw
+            case "cm":
+            case "CM":
+               set centertype = ""
+            breaksw
+            default:
+               if (! $quiet_death) \
+               echo "Invalid choice for centertype ([Icent],Dcent,cm)"
+               goto BEND
+            breaksw
+         endsw   
+         goto CONTINUE
+      endif      
+
       if ("$argv[$cnt]" == "-skip_novoxels") then
          set skipnovoxopt = "-skip_novoxels"
          goto CONTINUE
@@ -378,6 +406,8 @@ echo "                 and allow an overwrite. You could endup with a lot of"
 echo "                 backed volumes and niml files, so you might want to"
 echo "                 to cleanup now and then."
 echo "   -centers:    Add center of mass coordinates to atlas"
+echo "   -centertype TYPE: Choose Icent, Dcent or cm for different ways"
+echo "              to compute centers. See 3dCM for details" 
 echo "   -skip_novoxels:  Skip regions without any voxels in the dataset"
 echo ""
    @global_parse -gopts_help

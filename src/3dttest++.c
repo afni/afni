@@ -131,9 +131,64 @@ static int nvout = 0 ;
 static int nvres = 0 ;
 static int center_code = CENTER_DIFF ;
 static int center_meth = CMETH_MEAN ;    /* 26 Mar 2013 */
+
+/*-- Matrices for regression-based analyses --*/
+
 MRI_IMAGE *Axxim=NULL , *Bxxim=NULL ;
 static float *Axx=NULL , *Axx_psinv=NULL , *Axx_xtxinv=NULL ;
 static float *Bxx=NULL , *Bxx_psinv=NULL , *Bxx_xtxinv=NULL ;
+
+  /* macros for access to regression arrays */
+
+#undef  AXX
+#define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
+#undef  BXX
+#define BXX(i,j) Bxx[(i)+(j)*(nval_BBB)]    /* i=0..nval_BBB-1 , j=0..mcov */
+
+/*-- subject-level weights [04 Mar 2020] --*/
+
+static int      do_wtar = 0 ;
+static float     *Awtar = NULL , *Awtar_actual = NULL ;
+static float     *Bwtar = NULL , *Bwtar_actual = NULL ;
+static int       nAwt   = 0 ;
+static int       nBwt   = 0 ;
+static MRI_IMAGE *Awtim = NULL ;
+static MRI_IMAGE *Bwtim = NULL ;
+
+  /* the _actual arrays are used to allow for -permute */
+
+  /* this macro loads one _actual array from the original */
+#define LOAD_ACTUAL(actar,ar,nv)                                          \
+ do{ if( (ar) != NULL ){                                                  \
+       if( (nv) > 0 ) memcpy( (actar) , (ar) , sizeof(float)*(nv) ) ;     \
+     } else {                                                             \
+       int qq ; for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] = 1.0f ;       \
+     }                                                                    \
+ } while(0)
+
+  /* this macro scales an _actual array so the coefficients sum to N */
+#define SCALE_wtar(actar,nv)                                              \
+ do{ int qq; float sum;                                                   \
+     for( sum=0.0f,qq=0 ; qq < (nv) ; qq++ ) sum += (actar)[qq] ;         \
+     sum = (nv) / sum ;                                                   \
+     for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] *= sum ;                  \
+ } while(0)
+
+  /* this macro loads the 2 _actual arrays & permutes them (if needed) */
+#define LOAD_ABwtar_actual                                                \
+ do{ if( Awtar_actual == NULL && nval_AAA > 0 )                           \
+       Awtar_actual = (float *)malloc(sizeof(float)*nval_AAA) ;           \
+     if( Bwtar_actual == NULL && nval_BBB > 0 )                           \
+       Bwtar_actual = (float *)malloc(sizeof(float)*nval_BBB) ;           \
+     LOAD_ACTUAL(Awtar_actual,Awtar,nval_AAA) ;                           \
+     LOAD_ACTUAL(Bwtar_actual,Bwtar,nval_BBB) ;                           \
+     if( do_permute && p_nxy > 0 )                                        \
+       permute_arrays( nval_AAA,Awtar_actual, nval_BBB,Bwtar_actual );    \
+     SCALE_wtar(Awtar_actual,nval_AAA) ;                                  \
+     SCALE_wtar(Bwtar_actual,nval_BBB) ;                                  \
+ } while(0)
+
+/*-- stuff for saving residuals --*/
 
 static char *prefix_resid = NULL ;
 static int  do_resid=0 ;
@@ -141,13 +196,10 @@ static float *ABresid=NULL , *Aresid=NULL , *Bresid=NULL ; /* 07 Dec 2015 */
 
 static int  do_ACF=0 ;                                     /* 30 Dec 2016 */
 
+/* for the hidden '-savedata' option */
+
 static int  do_savedata=0 ;                                /* 19 Apr 2017 */
 static char *prefix_savedata=NULL ;
-
-#undef  AXX
-#define AXX(i,j) Axx[(i)+(j)*(nval_AAA)]    /* i=0..nval_AAA-1 , j=0..mcov */
-#undef  BXX
-#define BXX(i,j) Bxx[(i)+(j)*(nval_BBB)]    /* i=0..nval_BBB-1 , j=0..mcov */
 
 static char *prefix = "TTnew" ;
 static byte *mask   = NULL ;
@@ -173,6 +225,7 @@ static THD_3dim_dataset **dset_BBB=NULL ;
 static MRI_vectim      *vectim_BBB=NULL ;
 
 static int debug = 0 ;
+static int rebug = 0 ;
 
 static int do_randomsign   = 0 ;     /* 31 Dec 2015 */
 static int do_sdat         = 0 ;     /* 29 Aug 2016 */
@@ -458,7 +511,7 @@ void display_help_menu(void)
       "   is tested against 0.\n"
       "\n"
       "* With 2 sets, the difference in means across each set is tested\n"
-      "   against 0.  The 1 sample results for each set are also provided, since\n"
+      "   against 0. The 1 sample results for each set are also provided, since\n"
       "   these are often of interest to the investigator (e.g., YOU).\n"
       "  ++ With 2 sets, the default is to produce the difference as setA - setB.\n"
       "  ++ You can use the option '-BminusA' to get the signs reversed.\n"
@@ -467,7 +520,7 @@ void display_help_menu(void)
       "   (input=1 dataset sub-brick).\n"
       "  ++ Note that voxel-level covariates will slow the program down, since\n"
       "      the regression matrix for the covariates must be re-inverted for\n"
-      "      each voxel separately.  For most purposes, the program is so fast\n"
+      "      each voxel separately. For most purposes, the program is so fast\n"
       "      that this slower operation won't be important.\n"
       "\n"
       "* The new-ish options '-Clustsim' and '-ETAC' will use randomization and\n"
@@ -502,7 +555,7 @@ void display_help_menu(void)
       "* '-setB' is optional, and if it isn't used, then the mean of the dataset\n"
       "   values from '-setA' is t-tested against 0 (1 sample t-test).\n"
       "\n"
-      "* Two forms for the '-setX' (X='A' or 'B') options are allowed.  The first\n"
+      "* Two forms for the '-setX' (X='A' or 'B') options are allowed. The first\n"
       "   (short) form is similar to the original 3dttest program, where the option\n"
       "   is just followed by a list of datasets to use.\n"
       "\n"
@@ -532,7 +585,7 @@ void display_help_menu(void)
       "     the BETA_DSET filenames, along with sub-brick selectors, to make it\n"
       "     easier to create the command line.\n"
       "     To protect the wildcards from the shell, the entire filename should be\n"
-      "     inside single ' or double \" quote marks.  For example:\n"
+      "     inside single ' or double \" quote marks. For example:\n"
       "       3dttest++ -setA '*.beta+tlrc.HEAD[Vrel#0_Coef]' \\\n"
       "                 -setB '*.beta+tlrc.HEAD[Arel#0_Coef]' -prefix VAtest -paired\n"
       "     will do a paired 2-sample test between the symbolically selected sub-bricks\n"
@@ -573,7 +626,7 @@ void display_help_menu(void)
       "\n"
       " -labelA SETNAME = for the short form of '-setX', this option allows you\n"
       "[-labelB]          to attach a label to the set, which will be used in\n"
-      "                   the sub-brick labels in the output dataset.  If you don't\n"
+      "                   the sub-brick labels in the output dataset. If you don't\n"
       "                   give a SETNAME, then '-setA' will be named 'SetA', etc.\n"
       "\n"
       "  ***** NOTE WELL: The sign of a two sample test is A - B.          *****\n"
@@ -591,7 +644,7 @@ void display_help_menu(void)
       "---------------------------------------------------------------\n"
       "\n"
       "This new [Mar 2015] option allows you to test a single value versus\n"
-      "a group of datasets.  To do this, replace the '-setA' option with the\n"
+      "a group of datasets. To do this, replace the '-setA' option with the\n"
       "'-singletonA' option described below, and input '-setB' normally\n"
       "(that is, '-setB' must have more than 1 dataset).\n"
       "\n"
@@ -606,7 +659,7 @@ void display_help_menu(void)
       "* In the first form, just give the 1 sub-brick dataset name after the option.\n"
       "\n"
       "* In the second form, you can provide a dataset 'label' to be used for\n"
-      "  covariates extraction.  As in the case of the long forms for '-setA' and\n"
+      "  covariates extraction. As in the case of the long forms for '-setA' and\n"
       "  '-setB', the 'LABL_A' argument cannot be the name of an existing dataset;\n"
       "  otherwise, the program will assume you are using the first form.\n"
       "\n"
@@ -616,7 +669,7 @@ void display_help_menu(void)
       "     since you presumably aren't testing against an instance of a random\n"
       "     variable.\n"
       "  ++ Also, '-BminusA' is turned on when FIXED_NUMBER is used, to give the\n"
-      "     effect of a 1-sample test against a constant.  For example,\n"
+      "     effect of a 1-sample test against a constant. For example,\n"
       "       -singletonA 0.0 -set B x y z\n"
       "     is equivalent to the 1-sample test with '-setA x y z'. The only advantage\n"
       "     of using '-singletonA FIXED_NUMBER' is that you can test against a\n"
@@ -661,7 +714,7 @@ void display_help_menu(void)
       "     'dataset_A' is replaced by a fixed number, in the third form above).\n"
       "\n"
       "* Statistical inference on a single sample (dataset_A values) isn't really\n"
-      "  possible.  The purpose of '-singletonA' is to give you some guidance when\n"
+      "  possible. The purpose of '-singletonA' is to give you some guidance when\n"
       "  a voxel value in dataset_A is markedly different from the distribution of\n"
       "  values in setB.\n"
       "  ++ However, a statistician would caution you that when an elephant walks into\n"
@@ -711,8 +764,8 @@ void display_help_menu(void)
       "                      Lucy    133   32  Lucy_GM+tlrc[8]\n"
       "                      Ricky   121   37  Ricky_GM+tlrc[8]\n"
       "\n"
-      "* The first line of COVAR_FILE contains column headers.  The header label\n"
-      "   for the first column (#0) isn't used for anything.  The later header labels\n"
+      "* The first line of COVAR_FILE contains column headers. The header label\n"
+      "   for the first column (#0) isn't used for anything. The later header labels\n"
       "   are used in the sub-brick labels stored in the output dataset.\n"
       "\n"
       "* The first column contains the dataset labels that must match the dataset\n"
@@ -730,11 +783,11 @@ void display_help_menu(void)
       "     will not work well!\n"
       "\n"
       "* The later columns in COVAR_FILE contain numbers (e.g., 'IQ' and 'age',\n"
-      "    above), OR dataset names.  In the latter case, you are specifying a\n"
+      "    above), OR dataset names. In the latter case, you are specifying a\n"
       "    voxel-wise covariate (e.g., 'GMfrac').\n"
       "  ++ Do NOT put the dataset names or labels in this file in quotes.\n"
       "\n"
-      "* A column can contain numbers only, OR datasets names only.  But one\n"
+      "* A column can contain numbers only, OR datasets names only. But one\n"
       "   column CANNOT contain a mix of numbers and dataset names!\n"
       " ++ In the second line of the file (after the header line), a column entry\n"
       "    that is purely numeric indicates that column will be all numbers.\n"
@@ -750,9 +803,9 @@ void display_help_menu(void)
       "   numbers is assumed to be a list of dataset names, not category labels!\n"
      "\n"
       "* If you want to omit some columns in COVAR_FILE from the analysis, you\n"
-      "   can do so with the standard AFNI column selector '[...]'.  However,\n"
+      "   can do so with the standard AFNI column selector '[...]'. However,\n"
       "   you MUST include column #0 first (the dataset labels) and at least\n"
-      "   one more column.  For example:\n"
+      "   one more column. For example:\n"
       "     -covariates Cov.table'[0,2..4]'\n"
       "   to skip column #1 but keep columns #2, #3, and #4.\n"
       "\n"
@@ -779,11 +832,11 @@ void display_help_menu(void)
       "\n"
       "* If you are having trouble getting the program to read your covariates\n"
       "  table file, then set the environment variable AFNI_DEBUG_TABLE to YES\n"
-      "  and run the program.  A lot of progress reports will be printed out,\n"
+      "  and run the program. A lot of progress reports will be printed out,\n"
       "  which may help pinpoint the problem; for example:\n"
       "     3dttest++ -DAFNI_DEBUG_TABLE=YES -covariates cfile.txt |& more\n"
       "\n"
-      "* A maximum of 31 covariates are allowed.  If you have more, then\n"
+      "* A maximum of 31 covariates are allowed. If you have more, then\n"
       "   seriously consider the likelihood that you are completely deranged.\n"
       "\n"
       "* N.B.: The simpler forms of the COVAR_FILE that 3dMEMA allows are\n"
@@ -793,7 +846,7 @@ void display_help_menu(void)
       "        one of the '-setX' options, AND you are using covariates, then\n"
       "        you must use the 'LONG FORM' of input for the '-setX' option,\n"
       "        and give each sub-brick a distinct label that matches something\n"
-      "        in the covariates file.  Otherwise, the program will not know\n"
+      "        in the covariates file. Otherwise, the program will not know\n"
       "        which covariate to use with which input sub-brick, and bad\n"
       "        things will happen.\n"
       "\n"
@@ -807,7 +860,7 @@ void display_help_menu(void)
       "***** CENTERING (this subject is very important -- read and think!) *******\n"
       "\n"
       " ++ This term refers to how the mean across subjects of a covariate\n"
-      "    will be processed.  There are 3 possibilities:\n"
+      "    will be processed. There are 3 possibilities:\n"
       "\n"
       " -center NONE = Do not remove the mean of any covariate.\n"
       " -center DIFF = Each set will have the means removed separately.\n"
@@ -827,39 +880,44 @@ void display_help_menu(void)
       " ++ '-center NONE' is for the case where you have pre-processed the\n"
       "    covariate values to meet your needs; otherwise, it is not recommended!\n"
       "\n"
-      " ++ Centering can be important.  For example, suppose that the mean\n"
+      " ++ Centering can be important. For example, suppose that the mean\n"
       "    IQ in setA is significantly higher than in setB, and that the beta\n"
-      "    values are positively correlated with IQ.  Then the mean in\n"
-      "    setA will be higher than in setB simply from the IQ effect.\n"
-      "    To attempt to allow for this type of inter-group mean differences,\n"
-      "    you would have to center the two groups together, rather than\n"
-      "    separately (i.e., '-center SAME').\n"
+      "    values are positively correlated with IQ IN THE SAME WAY IN THE\n"
+      "    TWO GROUPS. Then the mean beta value in setA will be higher than in\n"
+      "    setB simply from the IQ effect.\n"
+      "  -- To attempt to allow for this type of inter-group mean differences,\n"
+      "      in order to detect other difference between the two groups\n"
+      "      (e.g., from disease status), you would have to center the two groups\n"
+      "      together, rather than separately (i.e., use '-center SAME').\n"
+      "  -- However, if the beta values are correlated significantly differently\n"
+      "      with IQ in the two groups, then '-center DIFF' would perhaps be\n"
+      "      a better choice. Please read on:\n"
       "\n"
       " ++ How to choose between '-center SAME' or '-center DIFF'?  You have\n"
       "    to understand what your model is and what effect the covariates\n"
-      "    are likely to have on the data.  You shouldn't just blindly use\n"
-      "    covariates 'just in case'.  That way lies statistical madness.\n"
+      "    are likely to have on the data. You shouldn't just blindly use\n"
+      "    covariates 'just in case'. That way lies statistical madness.\n"
       "  -- If the two samples don't differ much in the mean values of their\n"
       "      covariates, then the results with '-center SAME' and '-center DIFF'\n"
       "      should be nearly the same.\n"
       "  -- For fixed covariates (not those taken from datasets), the program\n"
       "      prints out the results of a t-test of the between-group mean\n"
-      "      covariate values.  This test is purely informative; no action is\n"
+      "      covariate values. This test is purely informative; no action is\n"
       "      taken if the t-test shows that the two groups are significantly\n"
       "      different in some covariate.\n"
       "  -- If the two samples DO differ much in the mean values of their\n"
-      "      covariates, then you should read the next point carefully.\n"
+      "      covariates, then you should read the next point VERY CAREFULLY.\n"
       "\n"
       " ++ The principal purpose of including covariates in an analysis (ANCOVA)\n"
       "    is to reduce the variance of the beta values due to extraneous causes.\n"
       "    Some investigators also wish to use covariates to 'factor out' significant\n"
-      "    differences between groups.  However, there are those who argue\n"
+      "    differences between groups. However, there are those who argue\n"
       "    (convincingly) that if your two groups differ markedly in their mean\n"
       "    covariate values, then there is NO statistical test that can tell if\n"
       "    their mean beta values (dependent variable) would be the same or\n"
       "    different if their covariate values were all the same instead:\n"
-      "      Miller GM and Chapman JP. 'Misunderstanding analysis of covariance',\n"
-      "      J Abnormal Psych 110: 40-48 (2001) \n"
+      "      Miller GM and Chapman JP. Misunderstanding analysis of covariance.\n"
+      "      J Abnormal Psych 110: 40-48 (2001). \n"
       "      http://dx.doi.org/10.1037/0021-843X.110.1.40\n"
       "      http://psycnet.apa.org/journals/abn/110/1/40.pdf\n"
       "  -- For example, if all your control subjects have high IQs and all your\n"
@@ -872,13 +930,13 @@ void display_help_menu(void)
       "  -- The decision as to whether a mean covariate difference between groups\n"
       "      makes the t-test of the mean beta difference invalid or valid isn't\n"
       "      purely a statistical question; it's also a question of interpretation\n"
-      "      of the scientific issues of the study.  See the Miller & Chapman paper\n"
-      "      for a lengthy discussion of this issue.\n"
+      "      of the scientific issues of the study. See the Miller & Chapman paper\n"
+      "      (above) for a lengthy discussion of this issue.\n"
       "  -- It is not clear how much difference in covariate levels is acceptable.\n"
       "      You could carry out a t-test on the covariate values between the\n"
       "      2 groups and if the difference in means is not significant at some\n"
       "      level (i.e., if p > 0.05?), then accept the two groups as being\n"
-      "      'identical' in that variable.  But this is just a suggestion.\n"
+      "      'identical' in that variable. But this is just a suggestion.\n"
       "      (In fact, the program now carries out this t-test for you; cf supra.)\n"
       "  -- Thanks to Andy Mayer for pointing out this article to me.\n"
       "\n"
@@ -897,7 +955,7 @@ void display_help_menu(void)
       "-------------\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
-      "              compare setA and setB.  If this option is used,\n"
+      "              compare setA and setB. If this option is used,\n"
       "              setA and setB must have the same cardinality (duh).\n"
       "             ++ Recall that if '-paired' is used with '-covariates',\n"
       "                 the covariates for setB will be the same as for setA.\n"
@@ -949,7 +1007,7 @@ void display_help_menu(void)
       "             ++ If you follow '-zskip' with a positive integer (> 1),\n"
       "                 then that is the minimum number of nonzero values (in\n"
       "                 each of setA and setB, separately) that must be present\n"
-      "                 before the t-test is carried out.  If you don't give\n"
+      "                 before the t-test is carried out. If you don't give\n"
       "                 this value, but DO use '-zskip', then its default is 5\n"
       "                 (for no good reason).\n"
       "             ++ At this time, you can't use -zskip with -covariates,\n"
@@ -957,7 +1015,7 @@ void display_help_menu(void)
       "                 and then re-programming.\n"
       "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
       "             ++ You can also put a decimal fraction between 0 and 1 in\n"
-      "                 place of 'n' (e.g., '0.9', or '90%%').  Such a value\n"
+      "                 place of 'n' (e.g., '0.9', or '90%%'). Such a value\n"
       "                 indicates that at least 90%% (e.g.) of the values in each\n"
       "                 set must be nonzero for the t-test to proceed. [08 Nov 2010]\n"
       "                 -- In no case will the number of values tested fall below 2!\n"
@@ -966,7 +1024,7 @@ void display_help_menu(void)
 #ifdef ALLOW_RANK
       "\n"
       " -rankize  = Convert the data (and covariates, if any) into ranks before\n"
-      "              doing the 2-sample analyses.  This option is intended to make\n"
+      "              doing the 2-sample analyses. This option is intended to make\n"
       "              the statistics more 'robust', and is inspired by the paper\n"
       "                WJ Conover and RL Iman.\n"
       "                Analysis of Covariance Using the Rank Transformation,\n"
@@ -983,19 +1041,19 @@ void display_help_menu(void)
       " -no1sam   = When you input two samples (setA and setB), normally the\n"
       "              program outputs the 1-sample test results for each set\n"
       "              (comparing to zero), as well as the 2-sample test results\n"
-      "              for differences between the sets.  With '-no1sam', these\n"
+      "              for differences between the sets. With '-no1sam', these\n"
       "              1-sample test results will NOT be calculated or saved.\n"
       "\n"
       " -nomeans  = You can also turn off output of the 'mean' sub-bricks, OR\n"
       " -notests  = of the 'test' sub-bricks if you want, to reduce the size of\n"
-      "              the output dataset.  For example, '-nomeans -no1sam' will\n"
+      "              the output dataset. For example, '-nomeans -no1sam' will\n"
       "              result in only getting the t-statistics for the 2-sample\n"
-      "              tests.  These options are intended for use with '-brickwise',\n"
+      "              tests. These options are intended for use with '-brickwise',\n"
       "              where the amount of output sub-bricks can become overwhelming.\n"
       "             ++ You CANNOT use both '-nomeans' and '-notests', because\n"
       "                 then you would be asking for no outputs at all!\n"
       "\n"
-      " -nocov    = Do not output the '-covariates' results.  This option is\n"
+      " -nocov    = Do not output the '-covariates' results. This option is\n"
       "             intended only for internal testing, and it's hard to see\n"
       "             why the ordinary user would want it.\n"
       "\n"
@@ -1005,7 +1063,7 @@ void display_help_menu(void)
       "         -->>++ It is VERY important to use '-mask' when you use '-ClustSim'\n"
       "                or '-ETAC' to computed cluster-level thresholds.\n"
       "             ++ NOTE: voxels whose input data is constant (in either set)\n"
-      "                 will NOT be processed and will get all zero outputs.  This\n"
+      "                 will NOT be processed and will get all zero outputs. This\n"
       "                 inaction happens because the variance of a constant set of\n"
       "                 data is zero, and division by zero is forbidden by the\n"
       "                 Deities of Mathematics -- cf., http://www.math.ucla.edu/~tao/\n"
@@ -1036,18 +1094,18 @@ void display_help_menu(void)
       "                  for the input datasets).\n"
       "              ++ WITHOUT '-brickwise', all the input sub-bricks from all\n"
       "                  datasets in '-setA' are gathered together to form the setA\n"
-      "                  sample (similarly for setB, of course).  In this case, there\n"
+      "                  sample (similarly for setB, of course). In this case, there\n"
       "                  is no requirement that all input datasets have the same\n"
       "                  number of sub-bricks.\n"
       "              ++ WITH '-brickwise', all input datasets (in both sets)\n"
-      "                  MUST have the same number of sub-bricks.  The t-tests\n"
+      "                  MUST have the same number of sub-bricks. The t-tests\n"
       "                  are then carried out sub-brick by sub-brick; that is,\n"
       "                  if you input a collection of datasets with 10 sub-bricks\n"
       "                  in each dataset, then you will get 10 t-test results.\n"
       "              ++ Each t-test result will be made up of more than 1 sub-brick\n"
-      "                  in the output dataset.  If you are doing a 2-sample test,\n"
+      "                  in the output dataset. If you are doing a 2-sample test,\n"
       "                  you might want to use '-no1sam' to reduce the number of\n"
-      "                  volumes in the output dataset.  In addition, if you are\n"
+      "                  volumes in the output dataset. In addition, if you are\n"
       "                  only interested in the statistical tests and not the means\n"
       "                  (or slopes for covariates), then the option '-nomeans'\n"
       "                  will reduce the dataset to just the t (or z) statistics\n"
@@ -1061,7 +1119,7 @@ void display_help_menu(void)
       "          -->>++ The intended application of this option is to make it\n"
       "                  easy to take a collection of time-dependent datasets\n"
       "                  (e.g., from MEG or from moving-window RS-FMRI analyses),\n"
-      "                  and get time-dependent t-test results.  It is possible to do\n"
+      "                  and get time-dependent t-test results. It is possible to do\n"
       "                  the same thing with a scripted loop, but that way is painful.\n"
       "              ++ You CAN use '-covariates' with '-brickwise'. You should note\n"
       "                  that each t-test will re-use the same covariates -- that is,\n"
@@ -1112,7 +1170,7 @@ void display_help_menu(void)
       "                alternative to using the parameteric '-ACF' method in\n"
       "                program 3dClustSim.\n"
       "\n"
-      " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
+      " -dupe_ok  = Duplicate dataset labels are OK. Do not generate warnings\n"
       "             for dataset pairs.\n"
       "            ** This option must preceed the corresponding -setX options.\n"
       "            ** Such warnings are issued only when '-covariates' is used\n"
@@ -1180,23 +1238,23 @@ void display_help_menu(void)
       "              ++ If you have less than 14 datasets total (setA & setB combined),\n"
       "                 this option will not work! (There aren't enough random subsets.)\n"
       "               ** And it will not work with '-singletonA'.\n"
-      "          -->>++ '-Clustsim' runs step (a) in multiple jobs, for speed.  By\n"
+      "          -->>++ '-Clustsim' runs step (a) in multiple jobs, for speed. By\n"
       "                 default, it tries to auto-detect the number of CPUs on the \n"
-      "                 system and uses that many separate jobs.  If you put a positive\n"
+      "                 system and uses that many separate jobs. If you put a positive\n"
       "                 integer immediately following the option, as in '-Clustsim 12',\n"
-      "                 it will instead use that many jobs (e.g., 12).  This capability\n"
+      "                 it will instead use that many jobs (e.g., 12). This capability\n"
       "                 is to be used when the CPU count is not auto-detected correctly.\n"
       "               ** You can also set the number of CPUs to be used via the Unix\n"
       "                  environment variable OMP_NUM_THREADS.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
-      "                 more -- causing the computer to freeze or crash.  The program\n"
+      "                 more -- causing the computer to freeze or crash. The program\n"
       "                 tries to avoid this, but it is not always possible to detect\n"
       "                 how much memory is usable on a computer. For this reason, you\n"
       "                 can use this option in the form\n"
       "                    -Clustsim NCPU NGIG\n"
       "                 where NCPU is the number of CPUs (cores) to use, and NGIG is\n"
-      "                 the number of gigabytes of memory to use.  This may help you\n"
+      "                 the number of gigabytes of memory to use. This may help you\n"
       "                 prevent the 'Texas meltdown'.\n"
 #endif
       "          -->>++ It is important to use a proper '-mask' option with '-Clustsim'.\n"
@@ -1236,7 +1294,7 @@ void display_help_menu(void)
 #if 0
       "                      ++ The default randomly generated prefix will start with\n"
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
-      "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
+      "                         as in 'TT.Sv0Ghrn4uVg'. To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
 #else
       "                      ++ By default, the Clustsim (and ETAC) prefix will\n"
@@ -1295,14 +1353,14 @@ void display_help_menu(void)
       "                threshold combination.\n"
       "             ++ Example:  -seed 3217343 1830201\n"
       "\n"
-      " ***** These options (below) are not often directly used, but *****\n"
-      " ***** are described here for completeness and for reference. *****\n"
-      " ***** They are invoked by options '-Clustsim' and '-ETAC'.   *****\n"
+      "    ***** These options (below) are not usually directly used, but *****\n"
+      "    ***** are described here for completeness and for reference.   *****\n"
+      "    ***** They are invoked by options '-Clustsim' and '-ETAC'.     *****\n"
       "\n"
-      " -randomsign = Randomize the signs of the datasets.  Intended to be used\n"
+      " -randomsign = Randomize the signs of the datasets. Intended to be used\n"
       "               with the output of '-resid' to generate null hypothesis\n"
       "               statistics in a second run of the program (probably using\n"
-      "               '-nomeans' and '-toz').  Cannot be used with '-singletonA'\n"
+      "               '-nomeans' and '-toz'). Cannot be used with '-singletonA'\n"
       "               or with '-brickwise'.\n"
       "             ++ You will never get an 'all positive' or 'all negative' sign\n"
       "                flipping case -- each sign will be present at least 15%%\n"
@@ -1316,27 +1374,35 @@ void display_help_menu(void)
       "                as many output sub-bricks as usual. This is intended for\n"
       "                for use with simulations such as '3dClustSim -inset'.\n"
       "         -->>++ This option is usually not used directly, but will be\n"
-      "                invoked by the use of '-Clustsim'.  It is documented here\n"
-      "                for the sake of telling the Galaxy how the program works.\n"
+      "                invoked by the use of '-Clustsim' and/or '-ETAC'. It is\n"
+      "                documented here for the sake of telling the Galaxy how the\n"
+      "                program works.\n"
       "\n"
       " -permute    = With '-randomsign', and when both '-setA' and '-setB' are used,\n"
       "               this option will add inter-set permutation to the randomization.\n"
       "             ++ If only '-setA' is used (1-sample test), there is no permutation.\n"
+      "                (Neither will there be permutation with '-singletonA'.)\n"
       "             ++ If '-randomsign' is NOT given, but '-Clustsim' is used, then\n"
       "                '-permute' will be passed for use with the '-Clustsim' tests\n"
       "                (again, only if '-setA' and '-setB' are both used).\n"
       "             ++ If '-randomsign' is given and if the following conditions\n"
-      "                are ALL true, then '-permute' is assumed:\n"
+      "                are ALL true, then '-permute' is assumed (without the option\n"
+      "                needed on the command line):\n"
       "                  (a) You have a 2-sample test.\n"
+      "                      And, you are not using '-singletonA'.\n"
       "                      [Permutation is meaningless without 2 samples!]\n"
-      "                  (b) You are not using '-unpooled'.\n"
-      "                  (c) You are not using '-paired'.\n"
-      "                  (c) You are not using '-covariates'.\n"
+      "                  (b) And, you are not using '-unpooled'.\n"
+      "                  (c) And, you are not using '-paired'.\n"
       "         -->>++ You only NEED to use '-permute' if you want inter-set\n"
-      "                permutation used AND you give at least one of '-unpooled' or\n"
-      "                '-paired' or '-covariates'. Normally, you don't need '-permute'.\n"
+      "                permutation used AND you the '-unpooled' option.\n"
+      "               + Permutation with '-unpooled' is a little weird.\n"
+      "               + Permutation with '-paired' is very weird and is NOT allowed.\n"
+      "             + Permutation with '-covariates' may not work the way you wish.\n"
+      "               In the past [pre-March 2020], covariates were NOT permuted along\n"
+      "               with their data. Now, covariate ARE permuted along with their data.\n"
+      "               This latter method seems more logical to me [RWCox].\n"
       "             ++ There is no option to do permutation WITHOUT sign randomization.\n"
-      "         -->>++ This option is also not usually used directly by the user;\n"
+      "         -->>++ AGAIN: This option is NOT usually used directly by the user;\n"
       "                it will be invoked by the '-Clustsim' or '-ETAC' operations.\n"
       "\n"
       " -nopermute  = This option is present if you want to turn OFF the automatic\n"
@@ -1722,7 +1788,7 @@ void display_help_menu(void)
       "   corresponding SETNAME.  (Mutatis mutandis for 'SetB'.)\n"
       "\n"
       "* If you produce a NIfTI-1 (.nii) file, then the sub-brick labels are\n"
-      "   saved in the AFNI extension in the .nii file.  Processing further\n"
+      "   saved in the AFNI extension in the .nii file. Processing further\n"
       "   in non-AFNI programs will probably cause these labels to be lost\n"
       "   (along with other AFNI niceties, such as the history field).\n"
       "\n"
@@ -1743,9 +1809,9 @@ void display_help_menu(void)
       "estimate the mean of the input data and the slopes of the data with\n"
       "respect to variations in the covariates.\n"
       "\n"
-      "For each input set of sub-bricks, a matrix is assembled.  There is one\n"
+      "For each input set of sub-bricks, a matrix is assembled. There is one\n"
       "row for each sub-brick, and one column for each covariate, plus one\n"
-      "more column for the mean.  So if there are 5 sub-bricks and 2 covariates,\n"
+      "more column for the mean. So if there are 5 sub-bricks and 2 covariates,\n"
       "the matrix would look like so\n"
       "\n"
       "     [ 1  0.3  1.7 ]\n"
@@ -1759,7 +1825,7 @@ void display_help_menu(void)
       "numbers above are values I just made up, obviously.)\n"
       "\n"
       "The matrix is centered by removing the mean from each column except\n"
-      "the first one.  In the above matrix, the mean of column #2 is 2,\n"
+      "the first one. In the above matrix, the mean of column #2 is 2,\n"
       "and the mean of column #3 is 4, so the centered matrix is\n"
       "\n"
       "      [ 1 -1.7 -2.3 ]\n"
@@ -1792,15 +1858,15 @@ void display_help_menu(void)
       "means that even a column of all zero covariates will not cause a\n"
       "singular matrix problem.\n"
       "\n"
-      "In addition, the matrix [Xi] = inverse[Xc'Xc] is computed.  Its diagonal\n"
-      "elements are needed in the t-test computations.  In the above example,\n"
+      "In addition, the matrix [Xi] = inverse[Xc'Xc] is computed. Its diagonal\n"
+      "elements are needed in the t-test computations. In the above example,\n"
       "\n"
       "      [ 0.2 0        0       ]\n"
       " Xi = [ 0   0.29331 -0.23556 ]\n"
       "      [ 0  -0.23556  0.22912 ]\n"
       "\n"
       "For a 1-sample t-test, the regression values computed in [b] are the\n"
-      "'_mean' values stored in the output dataset.  The t-statistics are\n"
+      "'_mean' values stored in the output dataset. The t-statistics are\n"
       "computed by first calculating the regression residual vector\n"
       "  [r] = [Xc][b] - [z]  (the mismatch between the data and the model)\n"
       "and then the estimated variance v of the residuals is given by\n"
@@ -1810,7 +1876,7 @@ void display_help_menu(void)
       "        i=1\n"
       "\n"
       "where N=number of data points and m=number of matrix columns=number of\n"
-      "parameters estimated in the regression model.  The t-statistic for the\n"
+      "parameters estimated in the regression model. The t-statistic for the\n"
       "k-th element of [b] is then given by\n"
       "\n"
       "  t[k] = b[k] / sqrt( v * Xi[k,k] )\n"
@@ -1820,7 +1886,7 @@ void display_help_menu(void)
       "\n"
       "For a 2-sample unpaired t-test, the '_mean' output for the k-th column\n"
       "of the matrix [X] is bA[k]-bB[k] where 'A' and 'B' refer to the 2 input\n"
-      "collections of datasets.  The t-statistic is computed by\n"
+      "collections of datasets. The t-statistic is computed by\n"
       "\n"
       "  vAB  = (qA+qB) / (NA+NB-2*m)\n"
       "\n"
@@ -1843,12 +1909,12 @@ void display_help_menu(void)
       "These numbers are the variances of the estimates of the [b] if the\n"
       "data [z] is corrupted by additive white noise with variance=1.\n"
       "(In the case of an all zero column of covariates, the SVD inversion)\n"
-      "(that yields [Xi] will make that diagonal element 0.  Division by 0)\n"
+      "(that yields [Xi] will make that diagonal element 0. Division by 0)\n"
       "(being a not-good thing, in such a case Xi[k,k] is replaced by 1e9.)\n"
       "\n"
       "For cases with voxel-wise covariates, each voxel gets a different\n"
       "[X] matrix, and so the matrix inversions are carried out many many\n"
-      "times.  If the covariates are fixed values, then only one set of\n"
+      "times. If the covariates are fixed values, then only one set of\n"
       "matrix inversions needs to be carried out.\n"
       "\n"
 
@@ -1879,7 +1945,7 @@ void display_help_menu(void)
       "    which under the null hypothesis has mean 0 and variance\n"
       "      sigma^2 ( 1 + [c]'[Xi][c] )\n"
       "    Here, the '1' comes from the variance of y, and the [c]'[Xi][c] comes\n"
-      "    from the variance of [b] dotted with [c].  Note that in the trivial\n"
+      "    from the variance of [b] dotted with [c]. Note that in the trivial\n"
       "    case of no covariates, [X] = 1-column matrix of all 1s and [c] = scalar\n"
       "    value of 1, so [c]'[Xi][c] = 1/N where N = number of datasets in setB.\n"
       "\n"
@@ -1966,7 +2032,7 @@ void display_help_menu(void)
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
       "that the absolute value of the t-statistic computation would be bigger than\n"
       "the absolute value of T, IF the null hypothesis of no difference in the means\n"
-      "(2-sample test) were true.  For example, with 30 degrees of freedom, a T-value\n"
+      "(2-sample test) were true. For example, with 30 degrees of freedom, a T-value\n"
       "of 2.1 has a p-value of 0.0442 -- that is, if the null hypothesis is true\n"
       "and you repeated the experiment a lot of times, only 4.42%% of the time would\n"
       "the T-value get to be 2.1 or bigger (and -2.1 or more negative).\n"
@@ -1987,24 +2053,24 @@ void display_help_menu(void)
       "     http://www.stat.duke.edu/courses/Spring10/sta122/Labs/Lab6.pdf\n"
       "The exact interpretation of what the above question means is somewhat\n"
       "tricky, depending on if you are a Bayesian heretic or a Frequentist\n"
-      "true believer.  But in either case, one reasonable answer is given by\n"
+      "true believer. But in either case, one reasonable answer is given by\n"
       "the function\n"
       "     alpha(p) = 1 / [ 1 - 1/( e * p * log(p) ) ]\n"
-      "(where 'e' is 2.71828... and 'log' is to the base 'e').  Here,\n"
+      "(where 'e' is 2.71828... and 'log' is to the base 'e'). Here,\n"
       "alpha(p) can be interpreted as the likelihood that the given p-value\n"
       "was generated by the null hypothesis, versus being from the alternative\n"
-      "hypothesis.  For p=0.0442, alpha=0.2726; in non-quantitative words, this\n"
+      "hypothesis. For p=0.0442, alpha=0.2726; in non-quantitative words, this\n"
       "p-value is NOT very strong evidence that the alternative hypothesis is true.\n"
       "\n"
       "Why is this so -- why isn't saying 'the null hypothesis would only give\n"
       "a result this big 4.42%% of the time' similar to saying 'the alternative\n"
       "hypothesis is 95.58%% likely to be true'?  The answer is because it is\n"
       "only somewhat more likely the t-statistic would be that value when the\n"
-      "alternative hypothesis is true.  In this example, the difference in means\n"
+      "alternative hypothesis is true. In this example, the difference in means\n"
       "cannot be very large, or the t-statistic would almost certainly be larger.\n"
       "But with a small difference in means (relative to the standard deviation),\n"
       "the alternative hypothesis (noncentral) t-value distribution isn't that\n"
-      "different than the null hypothesis (central) t-value distribution.  It is\n"
+      "different than the null hypothesis (central) t-value distribution. It is\n"
       "true that the alternative hypothesis is more likely to be true than the\n"
       "null hypothesis (when p < 1/e = 0.36788), but it isn't AS much more likely\n"
       "to be true than the p-value itself seems to say.\n"
@@ -2030,21 +2096,21 @@ void display_help_menu(void)
       "       1dplot -stdin -dx 0.001 -xzero 0.001 -xlabel 'p' -ylabel '\\alpha(p)'\n"
       "Another example: to reduce the likelihood of the null hypothesis being the\n"
       "source of your t-statistic to 10%%, you have to have p = 0.008593 -- a value\n"
-      "more stringent than usually seen in scientific publications.  To get the null\n"
+      "more stringent than usually seen in scientific publications. To get the null\n"
       "hypothesis likelihood below 5%%, you have to get p below 0.003408.\n"
       "\n"
       "Finally, none of the discussion above is limited to the case of p-values that\n"
-      "come from 2-sided t-tests.  The function alpha(p) applies (approximately) to\n"
-      "many other situations.  However, it does NOT apply to 1-sided tests (which\n"
-      "are not testing 'Precise Null Hypotheses').  See the paper by Sellke et al.\n"
-      "for a lengthier and more precise discussion.  Another paper to peruse is\n"
+      "come from 2-sided t-tests. The function alpha(p) applies (approximately) to\n"
+      "many other situations. However, it does NOT apply to 1-sided tests (which\n"
+      "are not testing 'Precise Null Hypotheses'). See the paper by Sellke et al.\n"
+      "for a lengthier and more precise discussion. Another paper to peruse is\n"
       "     Revised standards for statistical evidence.\n"
-      "     VE Johnson.  PNAS v110:19313-19317, 2013.\n"
+      "     VE Johnson. PNAS v110:19313-19317, 2013.\n"
       "     http://www.pnas.org/content/110/48/19313.long\n"
       "For the case of 1-sided t-tests, the issue is more complex; the paper below\n"
       "may be of interest:\n"
       "     Default Bayes Factors for Nonnested Hypthesis Testing.\n"
-      "     JO Berger and J Mortera.  J Am Stat Assoc v:94:542-554, 1999.\n"
+      "     JO Berger and J Mortera. J Am Stat Assoc v:94:542-554, 1999.\n"
       "     http://www.jstor.org/stable/2670175 [PDF]\n"
       "     http://ftp.isds.duke.edu/WorkingPapers/97-44.ps [PS preprint]\n"
       "What I have tried to do herein is outline the p-value interpretation issue\n"
@@ -2114,7 +2180,7 @@ int is_possible_filename( char * fname )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Start a job in a thread.  Save process id for later use. */
+/* Start a job in a thread. Save process id for later use. */
 
 static int   njob   = 0 ;
 static pid_t *jobid = NULL ;
@@ -2715,7 +2781,7 @@ int main( int argc , char *argv[] )
        if( cpt != NULL ) opx->do_sorter = 0 ;  /* HIDDEN from user */
 
        if( nbad > 0 )
-         ERROR_exit("Can't continue after such errors in option %s /:(",thisopt) ;
+         ERROR_exit("Cannot continue after such errors in option %s /:(",thisopt) ;
 
        nnopt_Xclu++ ; nopt++ ; free(acp) ; continue ;
      }
@@ -2897,13 +2963,13 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-mask") == 0 ){
        bytevec *bvec ;
        if( mask != NULL )
-         ERROR_exit("Can't use '-mask' twice!") ;
+         ERROR_exit("Cannot use '-mask' twice!") ;
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
        bvec = THD_create_mask_from_string(argv[nopt]) ;
        name_mask = strdup(argv[nopt]) ;  /* 10 Feb 2016 */
        if( bvec == NULL )
-         ERROR_exit("Can't create mask from '-mask' option") ;
+         ERROR_exit("Cannot create mask from '-mask' option") ;
        mask = bvec->ar ; nmask = bvec->nar ;
        nmask_hits = THD_countmask( nmask , mask ) ;
        if( nmask_hits > 0 )
@@ -2949,6 +3015,39 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*----- the -setweight options [04 Mar 2020] -----*/
+
+     if( strncmp(argv[nopt],"-setweight",10) == 0 ){
+       char cc=argv[nopt][10] ; MRI_IMAGE *qim ; int ii,nbad ; float *qar ;
+
+       if( cc == 'A' ){
+         if( Awtim != NULL ) ERROR_exit("Cannot use '-setweightA' twice!") ;
+       } else if( cc == 'B' ){
+         if( Bwtim != NULL ) ERROR_exit("Cannot use '-setweightB' twice!") ;
+       } else {
+         ERROR_exit("'%s' is not a recognized '-setweight' option",argv[nopt]);
+       }
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
+
+       qim = mri_read_1D( argv[nopt] ) ;
+       if( qim == NULL )
+         ERROR_exit("%s - cannot read file %s",argv[nopt-1],argv[nopt]) ;
+
+       qar = MRI_FLOAT_PTR(qim) ;
+       for( nbad=ii=0 ; ii < qim->nvox ; ii++ ){ /* check positivity */
+         if( qar[ii] <= 0.0f ) nbad++ ;
+       }
+       if( nbad > 0 )
+         ERROR_exit("%s - found %d non-positive value%s in file %s",
+                    argv[nopt-1] , nbad , (nbad==1)?"\0":"s" , argv[nopt] ) ;
+
+       if( cc == 'A' ){ Awtim = qim ; Awtar = qar ; nAwt = qim->nvox ; }
+       else           { Bwtim = qim ; Bwtar = qar ; nBwt = qim->nvox ; }
+
+       nopt++ ; continue ;
+     }
+
      /*----- the various flavours of '-set' -----*/
 
      if( strncmp(argv[nopt],"-set",4) == 0 ){
@@ -2957,10 +3056,10 @@ int main( int argc , char *argv[] )
        THD_3dim_dataset *qset , **dset=NULL ;
 
        if( cc == 'A' || cc == '2' ){
-              if( ndset_AAA > 1 ) ERROR_exit("Can't use '-setA' twice!") ;
-         else if( singletonA    ) ERROR_exit("Can't use '-setA' and '-singletonA' together!") ;
+              if( ndset_AAA > 1 ) ERROR_exit("Cannot use '-setA' twice!") ;
+         else if( singletonA    ) ERROR_exit("Cannot use '-setA' and '-singletonA' together!") ;
        } else if( cc == 'B' || cc == '1' ){
-         if( ndset_BBB > 0 ) ERROR_exit("Can't use '-setB' twice!") ;
+         if( ndset_BBB > 0 ) ERROR_exit("Cannot use '-setB' twice!") ;
        } else {
          ERROR_exit("'%s' is not a recognized '-set' option",argv[nopt]);
        }
@@ -3289,9 +3388,9 @@ int main( int argc , char *argv[] )
        if( covnel != NULL ) ERROR_exit("can't use -covariates twice!") ;
        covnel = THD_mixed_table_read( argv[nopt] ) ; fname_cov = strdup(argv[nopt]) ;
        if( covnel == NULL ){
-         ERROR_message("Can't read table from -covariates file '%s'",argv[nopt]) ;
+         ERROR_message("Cannot read table from -covariates file '%s'",argv[nopt]) ;
          ERROR_message("Try re-running this program with the extra option -DAFNI_DEBUG_TABLE=YES") ;
-         ERROR_exit(   "Can't continue after the above error!") ;
+         ERROR_exit(   "Cannot continue after the above error!") ;
        }
        INFO_message("Covariates file: %d columns, each with %d rows",
                     covnel->vec_num , covnel->vec_len ) ;
@@ -3307,7 +3406,7 @@ int main( int argc , char *argv[] )
          if( covlab == NULL || covlab->num < mcov+1 )
            ERROR_exit("can't decode labels properly?!") ;
        } else {
-         ERROR_exit("Can't get labels from -covariates file '%s'",argv[nopt]) ;
+         ERROR_exit("Cannot get labels from -covariates file '%s'",argv[nopt]) ;
        }
        nlab[0] = dlab[0] = '\0' ;
        for( nbad=0,jj=1 ; jj <= mcov ; jj++ ){
@@ -3401,7 +3500,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -brickwise and %s together!",clustsim_opt) ;
 
    if( do_ranks && (do_clustsim || do_Xclustsim ) )
-     ERROR_exit("Can't use -rankize and %s together /:(",clustsim_opt) ;
+     ERROR_exit("Cannot use -rankize and %s together /:(",clustsim_opt) ;
 
    if( do_randomsign && (do_clustsim || do_Xclustsim) )
      ERROR_exit("You can't use -randomsign and %s together!",clustsim_opt) ;
@@ -3509,11 +3608,104 @@ int main( int argc , char *argv[] )
    }
 
    if( nval_AAA != nval_BBB && ttest_opcode == 2 )
-     ERROR_exit("Can't do '-paired' with unequal set sizes: #A=%d #B=%d",
+     ERROR_exit("Cannot do '-paired' with unequal set sizes: #A=%d #B=%d",
                 nval_AAA , nval_BBB ) ;
 
    if( use_singleton_fixed_val && mcov > 0 )  /* 08 Dec 2015 */
      ERROR_exit("You can't use a fixed -singletonA constant AND use -covariates!") ;
+
+   /*-- check subject-level weights from -setweightX options [04 Mar 2020] --*/
+
+   if( nAwt > 0 && singletonA ){     /* not logically possible */
+     WARNING_message("-singletonA incompatible with -setweightA ==> ignoring weightA") ;
+     nAwt = 0 ; mri_free(Awtim) ; Awtar = NULL ;
+   }
+
+   if( nBwt > 0 && nval_BBB == 0 ){  /* confused user? */
+     WARNING_message("-setweightB given without -setB ==> ignoring") ;
+     nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
+   }
+
+   if( nBwt > 0 && nval_BBB > 0 && ttest_opcode == 2 ){   /* paired test? */
+     WARNING_message(  "-setweightB used with -paired ==> ignoring [uses -setweightA]") ;
+     nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
+     if( nAwt == 0 )
+       WARNING_message(" AND -setweightA wasn't given ==> no weighting will be used") ;
+   }
+
+   if( debug )
+    INFO_message("-saveweight pre-processing: nAwt=%d  nBwt=%d",nAwt,nBwt) ;
+
+   if( nAwt > 0 || nBwt > 0 ){       /* check for weight counts */
+     int wbad=0 ;  /* number of error messages herein */
+
+     do_wtar = 1 ; /* mark that we will reweight data and matrices */
+
+#ifdef ALLOW_RANKS
+     if( do_ranks ){
+       ERROR_message("You can't use -rankize and -setweight options together :(") ;
+       wbad++ ;
+     }
+#endif
+
+     if( nAwt != 0 && nAwt < nval_AAA ){ /* not enuf */
+       ERROR_message("-setweightA has %d values, fewer than %d -setA values to test",
+                     nAwt , nval_AAA ) ;
+       wbad++ ;
+     } else if( nAwt > nval_AAA ){       /* too many */
+       WARNING_message("-setweightA has %d values, more than %d -setA values to test",
+                       nAwt , nval_AAA ) ;
+       nAwt = nval_AAA ;
+     } else if( nAwt == 0 ){             /* none at all */
+       INFO_message("-setweightA not given ==> using all 1 weights for -setA") ;
+     }
+
+     if( nBwt != 0 && nBwt < nval_BBB ){ /* not enuf */
+       ERROR_message("-setweightB has %d values, fewer than %d -setB values to test",
+                     nBwt , nval_BBB ) ;
+       wbad++ ;
+     } else if( nBwt > nval_BBB ){       /* too many */
+       WARNING_message("-setweightB has %d values, more than %d -setB values to test",
+                       nBwt , nval_BBB ) ;
+       nBwt = nval_BBB ;
+     } else if( nBwt == 0 && nval_BBB > 0 && ttest_opcode != 2 ){  /* none at all */
+       INFO_message("-setweightB not given ==> using all 1 weights for -setB") ;
+     }
+
+     if( wbad > 0 ) ERROR_exit("Cannot continue after weight counting error :(") ;
+
+     /* scale weights so they sum to N in each set [convenient for -permute] */
+
+     if( nAwt > 0 ){
+       SCALE_wtar(Awtar,nval_AAA) ; /* scaling macro */
+       Awtim->nx = nval_AAA ; Awtim->ny = Awtim->nz = 1 ;
+     }
+
+     if( nBwt > 0 ){
+       SCALE_wtar(Bwtar,nval_BBB) ; /* scaling macro */
+       Bwtim->nx = nval_BBB ; Bwtim->ny = Bwtim->nz = 1 ;
+     } else if( nAwt > 0 && ttest_opcode == 2 ){ /* paired == copy A weights */
+       nBwt = nAwt ; Bwtar = Awtar ; Bwtim = Awtim ;
+       INFO_message("-paired and -setweightA ==> -setB will copy weights from -setA") ;
+     }
+
+     if( nAwt == 0 && nBwt == 0 ) /* should not be possible */
+       ERROR_exit("Unknown error caused weight vectors to be canceled! :(") ;
+
+     LOAD_ABwtar_actual ;  /* macro to load actual arrays used */
+
+     if( debug ){
+       ININFO_message("Awtar_actual follows:") ;
+       for( ii=0 ; ii < nval_AAA ; ii++ ) fprintf(stderr," %g",Awtar_actual[ii]) ;
+       fprintf(stderr,"\n") ;
+       ININFO_message("Bwtar_actual follows:") ;
+       for( ii=0 ; ii < nval_BBB ; ii++ ) fprintf(stderr," %g",Bwtar_actual[ii]) ;
+       fprintf(stderr,"\n") ;
+     }
+
+   } /*-- end of weight array checks and pre-processing --*/
+
+   /*- voxel count checks -*/
 
    if( !use_singleton_fixed_val ) nvox = DSET_NVOX(dset_AAA[0]) ;
    else                           nvox = DSET_NVOX(dset_BBB[0]) ;
@@ -3522,6 +3714,8 @@ int main( int argc , char *argv[] )
 
    if( nmask > 0 && nmask != nvox )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
+
+   /* zskip checks */
 
    if( do_zskip && mcov > 0 )
      ERROR_exit("-zskip and -covariates cannot be used together [yet] /:(") ;
@@ -3552,6 +3746,8 @@ int main( int argc , char *argv[] )
                       zskip_BBB,nval_BBB) ;
    }
 
+   /* covariate count checks */
+
    if( (!singletonA && (nval_AAA - mcov < 2) ) ||
        ( twosam     && (nval_BBB - mcov < 2) )   )
      ERROR_exit("Too many covariates (%d) compared to number of datasets in each -set",mcov) ;
@@ -3567,8 +3763,9 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( ttest_opcode == 1 && mcov > 0 ){
-     WARNING_message("-covariates does not support unpooled variance: switching to pooled") ;
+   if( ttest_opcode == 1 && (mcov > 0 || do_wtar) ){
+     WARNING_message("-covariates and/or -setweight doesn't support unpooled variance\n"
+                     "   switching to pooled") ;
      ttest_opcode = 0 ;
    }
 
@@ -3642,7 +3839,7 @@ int main( int argc , char *argv[] )
 
    /* check if -permute is used reasonably */
 
-   if( !twosam ){
+   if( !twosam || singletonA ){
      if( do_permute > 1 ){
        WARNING_message("only 1 sample: -permute is turned off") ;
      }
@@ -3672,20 +3869,20 @@ int main( int argc , char *argv[] )
          WARNING_message("-permute with -unpooled is somewhat weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
-     if( ttest_opcode == 2 ){         /* -paired -- keep -permute or not? */
-       if( do_permute == 1 )          /* default to off */
-         { do_permute = 0 ; dont_permute = 1 ; }
-       else if( do_permute > 1 )      /* forced on */
-         WARNING_message("-permute with -paired is definitely weird\n"
-                         "           -- but since you asked for it, you'll get it :)") ;
+     if( ttest_opcode == 2 ){         /* -paired -- disable -permute */
+       if( do_permute > 1 )
+         WARNING_message("-permute is turned off for -paired t-test") ;
+       do_permute = 0 ; dont_permute = 1 ;
      }
+#if 0 /* disabled 05 Mar 2020 */
      if( mcov > 0 ){                  /* -covariates -- keep -permute or not? */
        if( do_permute == 1 )          /* default to off */
          { do_permute = 0 ; dont_permute = 1 ; }
        else if( do_permute > 1 )      /* forced on */
-         WARNING_message("-permute with -covariates is not likely to work the way you want\n"
+         WARNING_message("-permute with -covariates may not work the way you want\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
+#endif
    } /* end of polymorphic permute perturbations */
 
    /*----- ETAC memory check [22 Aug 2017] -----*/
@@ -3771,9 +3968,9 @@ int main( int argc , char *argv[] )
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
-   /*----- set up covariates in a very lengthy aside now -----*/
+   /*----- set up covariates/regression matrices in a very lengthy aside now -----*/
 
-   if( mcov > 0 ){
+   if( mcov > 0 || do_wtar ){     /* need matrices if using weights [04 Mar 2020] */
      THD_3dim_dataset **qset ; int nkbad ;
 
      /*-- convert covariates to vectors to be loaded into matrices --*/
@@ -3788,124 +3985,126 @@ int main( int argc , char *argv[] )
 
      /* note that if covariates are used, nval_XXX == ndset_XXX */
 
-     INFO_message("loading covariates") ;
+     if( mcov > 0 ){  /* we only load covariates if there ARE covariates */
 
-     nbad = 0 ; /* total error count */
-     if( twosam ){
-       qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
-       covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
-       covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
-       for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
-         covvim_BBB[jj] = NULL ;         /* initialize output vectors to NULL */
-         covvec_BBB[jj] = NULL ;
-         for( nkbad=kk=0 ; kk < ndset_BBB ; kk++ ){     /* loop over datasets */
-           ii = string_search( labl_BBB[kk] ,     /* ii = covariate row index */
-                               covnel->vec_len ,
-                               (char **)covnel->vec[0] ) ;
-           if( ii < 0 ){                     /* can't find it ==> this is bad */
-             if( jj == 0 )
-               ERROR_message("Can't find label '%s' in covariates file" ,
-                             labl_BBB[kk] ) ;
-               nbad++ ; nkbad++ ; continue ;
-           }
-           if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
-             char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
-             qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
-             if( qset[kk] == NULL ){
-               ERROR_message("Can't open dataset '%s' from covariates file" ,
-                             qpt[ii] ) ; nbad++ ; nkbad++ ;
-             } else if( DSET_NVALS(qset[kk]) > 1 ){
-               ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
-                             qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+       INFO_message("loading covariates") ;
+
+       nbad = 0 ; /* total error count */
+       if( twosam ){  /* do setB covariates now */
+         qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
+         covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
+         covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
+         for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
+           covvim_BBB[jj] = NULL ;         /* initialize output vectors to NULL */
+           covvec_BBB[jj] = NULL ;
+           for( nkbad=kk=0 ; kk < ndset_BBB ; kk++ ){     /* loop over datasets */
+             ii = string_search( labl_BBB[kk] ,     /* ii = covariate row index */
+                                 covnel->vec_len ,
+                                 (char **)covnel->vec[0] ) ;
+             if( ii < 0 ){                     /* can't find it ==> this is bad */
+               if( jj == 0 )
+                 ERROR_message("Cannot find label '%s' in covariates file" ,
+                               labl_BBB[kk] ) ;
+                 nbad++ ; nkbad++ ; continue ;
              }
-           } /* end of creating dataset #kk in column #jj */
-           else {                                           /* a number field */
-             float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
-             if( covvec_BBB[jj] == NULL )             /* create output vector */
-               MAKE_floatvec(covvec_BBB[jj],ndset_BBB) ;
-             covvec_BBB[jj]->ar[kk] = fpt[ii] ;             /* save the value */
-           }
-         } /* end of kk loop over BBB datasets */
-         if( covnel->vec_typ[jj+1] == NI_STRING ){     /* a dataset covariate */
-           if( nkbad == 0 ){  /* all dataset opens good ==> convert to vectim */
-             covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
-             if( covvim_BBB[jj] == NULL ){
-               ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
-               nbad++ ;
-             } else {
-               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
-               THD_check_vectim(covvim_BBB[jj],msg) ;
+             if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
+               char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
+               qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
+               if( qset[kk] == NULL ){
+                 ERROR_message("Cannot open dataset '%s' from covariates file" ,
+                               qpt[ii] ) ; nbad++ ; nkbad++ ;
+               } else if( DSET_NVALS(qset[kk]) > 1 ){
+                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                               qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+               }
+             } /* end of creating dataset #kk in column #jj */
+             else {                                           /* a number field */
+               float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
+               if( covvec_BBB[jj] == NULL )             /* create output vector */
+                 MAKE_floatvec(covvec_BBB[jj],ndset_BBB) ;
+               covvec_BBB[jj]->ar[kk] = fpt[ii] ;             /* save the value */
              }
-           }
-           for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
-             if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
-         }
-       } /* end of jj loop = covariates column index */
-       free(qset) ;
-     } /* end of BBB covariates datasets processing */
-
-     /* repeat for the AAA datasets */
-
-     if( ndset_AAA > 0 ){
-       qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_AAA) ;
-       covvim_AAA = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
-       covvec_AAA = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
-       for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
-         covvim_AAA[jj] = NULL ;         /* initialize output vectors to NULL */
-         covvec_AAA[jj] = NULL ;
-         for( nkbad=kk=0 ; kk < ndset_AAA ; kk++ ){     /* loop over datasets */
-           ii = string_search( labl_AAA[kk] ,     /* ii = covariate row index */
-                               covnel->vec_len ,
-                               (char **)covnel->vec[0] ) ;
-           if( ii < 0 ){                     /* can't find it ==> this is bad */
-             if( jj == 0 )
-               ERROR_message("Can't find label '%s' in covariates file" ,
-                             labl_AAA[kk] ) ;
-               nbad++ ; nkbad++ ; continue ;
-           }
-           if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
-             char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
-             qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
-             if( qset[kk] == NULL ){
-               ERROR_message("Can't open dataset '%s' from covariates file" ,
-                             qpt[ii] ) ; nbad++ ; nkbad++ ;
-             } else if( DSET_NVALS(qset[kk]) > 1 ){
-               ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
-                             qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+           } /* end of kk loop over BBB datasets */
+           if( covnel->vec_typ[jj+1] == NI_STRING ){     /* a dataset covariate */
+             if( nkbad == 0 ){  /* all dataset opens good ==> convert to vectim */
+               covvim_BBB[jj] = THD_dset_list_to_vectim( ndset_BBB, qset, mask ) ;
+               if( covvim_BBB[jj] == NULL ){
+                 ERROR_message("Cannot assemble dataset vectors for covariate #%d",jj+1) ;
+                 nbad++ ;
+               } else {
+                 sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
+                 THD_check_vectim(covvim_BBB[jj],msg) ;
+               }
              }
-           } /* end of creating dataset #kk in column #jj */
-           else {                                           /* a number field */
-             float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
-             if( covvec_AAA[jj] == NULL )             /* create output vector */
-               MAKE_floatvec(covvec_AAA[jj],ndset_AAA) ;
-             covvec_AAA[jj]->ar[kk] = fpt[ii] ;             /* save the value */
+             for( kk=0 ; kk < ndset_BBB ; kk++ )         /* tossola la trashola */
+               if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
            }
-         } /* end of kk loop over AAA datasets */
-         if( covnel->vec_typ[jj+1] == NI_STRING ){      /* a dataset covariate */
-           if( nkbad == 0 ){   /* all dataset opens good ==> convert to vectim */
-             covvim_AAA[jj] = THD_dset_list_to_vectim( ndset_AAA, qset, mask ) ;
-             if( covvim_AAA[jj] == NULL ){
-               ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
-               nbad++ ;
-             } else {
-               /* B/BBB -> A/AAA        20 Sep 2018 [rickr] */
-               sprintf(msg,"3dttest++ -setA covariate #%d",jj+1) ;
-               THD_check_vectim(covvim_AAA[jj],msg) ;
+         } /* end of jj loop = covariates column index */
+         free(qset) ;
+       } /* end of BBB covariates datasets processing */
+
+       /* repeat for the AAA datasets */
+
+       if( ndset_AAA > 0 ){
+         qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_AAA) ;
+         covvim_AAA = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
+         covvec_AAA = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
+         for( jj=0 ; jj < mcov ; jj++ ){                /* loop over covariates */
+           covvim_AAA[jj] = NULL ;         /* initialize output vectors to NULL */
+           covvec_AAA[jj] = NULL ;
+           for( nkbad=kk=0 ; kk < ndset_AAA ; kk++ ){     /* loop over datasets */
+             ii = string_search( labl_AAA[kk] ,     /* ii = covariate row index */
+                                 covnel->vec_len ,
+                                 (char **)covnel->vec[0] ) ;
+             if( ii < 0 ){                     /* can't find it ==> this is bad */
+               if( jj == 0 )
+                 ERROR_message("Cannot find label '%s' in covariates file" ,
+                               labl_AAA[kk] ) ;
+                 nbad++ ; nkbad++ ; continue ;
              }
+             if( covnel->vec_typ[jj+1] == NI_STRING ){  /* a dataset name field */
+               char **qpt = (char **)covnel->vec[jj+1] ;   /* column of strings */
+               qset[kk] = THD_open_dataset(qpt[ii]) ;      /* covariate dataset */
+               if( qset[kk] == NULL ){
+                 ERROR_message("Cannot open dataset '%s' from covariates file" ,
+                               qpt[ii] ) ; nbad++ ; nkbad++ ;
+               } else if( DSET_NVALS(qset[kk]) > 1 ){
+                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                               qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
+               }
+             } /* end of creating dataset #kk in column #jj */
+             else {                                           /* a number field */
+               float *fpt = (float *)covnel->vec[jj+1] ;    /* column of floats */
+               if( covvec_AAA[jj] == NULL )             /* create output vector */
+                 MAKE_floatvec(covvec_AAA[jj],ndset_AAA) ;
+               covvec_AAA[jj]->ar[kk] = fpt[ii] ;             /* save the value */
+             }
+           } /* end of kk loop over AAA datasets */
+           if( covnel->vec_typ[jj+1] == NI_STRING ){      /* a dataset covariate */
+             if( nkbad == 0 ){   /* all dataset opens good ==> convert to vectim */
+               covvim_AAA[jj] = THD_dset_list_to_vectim( ndset_AAA, qset, mask ) ;
+               if( covvim_AAA[jj] == NULL ){
+                 ERROR_message("Cannot assemble dataset vectors for covariate #%d",jj+1) ;
+                 nbad++ ;
+               } else {
+                 /* B/BBB -> A/AAA        20 Sep 2018 [rickr] */
+                 sprintf(msg,"3dttest++ -setA covariate #%d",jj+1) ;
+                 THD_check_vectim(covvim_AAA[jj],msg) ;
+               }
+             }
+             for( kk=0 ; kk < ndset_AAA ; kk++ )       /* tossola la trashola */
+               if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
            }
-           for( kk=0 ; kk < ndset_AAA ; kk++ )       /* tossola la trashola */
-             if( qset[kk] != NULL ) DSET_delete(qset[kk]) ;
-         }
-       } /* end of jj loop = covariates column index */
-       free(qset) ;
-     } /* end of AAA covariates datasets processing */
+         } /* end of jj loop = covariates column index */
+         free(qset) ;
+       } /* end of AAA covariates datasets processing */
 
-     /*- Alas Babylon! -*/
+       /*- Alas Babylon! -*/
 
-     if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s \\:(",
-                                (nbad==1) ? "\0" : "s" ) ;
+       if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s \\:(",
+                                  (nbad==1) ? "\0" : "s" ) ;
 
-     /*-- end of loading covariate vectors --*/
+     } /*-- end of loading covariate vectors --*/
 
      /*-- next, create the (empty) covariate regression matrices --*/
 
@@ -3929,7 +4128,7 @@ int main( int argc , char *argv[] )
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && num_covset_col < mcov && !singletonA ){     /* 19 Oct 2010 */
+     if( twosam && mcov > 0 && num_covset_col < mcov && !singletonA ){ /* 19 Oct 2010 */
        int toz_sav = toz ; float pp ; /* test covariates for equality-ishness */
 
        toz = 1 ;
@@ -4001,8 +4200,8 @@ int main( int argc , char *argv[] )
 
    /*** make up some brick labels [[[man, this is tediously boring work]]] ***/
 
-   if( mcov > 0 ){
-     nws       = sizeof(float)*(4*mcov+2*nval_AAA+2*nval_BBB+32) ;
+   if( mcov > 0 || do_wtar ){
+     nws       = sizeof(float)*(4*mcov+2*nval_AAA+2*nval_BBB+1024) ;
      workspace = (float *)malloc(nws) ;
 
      if( twosam ){
@@ -4289,11 +4488,13 @@ LABELS_ARE_DONE:  /* target for goto above */
      dofsub = (int)rintf(0.0999f*(nval_AAA+nval_BBB)) ;
    }
 
-   for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
+   for( bb=0 ; bb < brickwise_num ; bb++ ){  /* bricks/iterations to process */
      bbase = bb*nvout ;
 
      if( do_minmax ){ /* 16 Mar 2017 */
-       for( jj=0 ; jj < nvres ; jj++ ){ maxar[jj] = -WAY_BIG; minar[jj] = WAY_BIG; }
+       for( jj=0 ; jj < nvres ; jj++ ){
+         maxar[jj] = -WAY_BIG; minar[jj] = WAY_BIG;
+       }
      }
 
      /* setup permutation and randomization:
@@ -4301,7 +4502,14 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( do_randomsign ){
        setup_randomsign() ;
-       if( do_permute ) setup_permute(nval_AAA,nval_BBB) ;
+       if( do_permute ){
+         setup_permute(nval_AAA,nval_BBB) ;
+         if( mcov > 0 || do_wtar ){
+           if( do_wtar ) LOAD_ABwtar_actual ; /* permute weights */
+           TT_matrix_setup(0) ;               /* re-setup matrix */
+                           /* to allow for covariate permutation */
+         }
+       }
      }
 
      if( bstep > 0 && bb%bstep==bstep/2 ) vstep_print() ;
@@ -4329,7 +4537,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
      nconst = nzred = nzskip = 0 ;
 
-     /*------- the actual work is in this loop over voxels! -------*/
+     /*------- the actual t-testing work is in this loop over voxels! -------*/
 
      for( kout=ivox=0 ; ivox < nvox ; ivox++ ){  /* for each voxel to process */
 
@@ -4340,6 +4548,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
 
+       /* data extraction and setup */
+
        if( use_singleton_fixed_val )
                     datAAA = &singleton_fixed_val ;           /* 08 Dec 2015 */
        else         datAAA = VECTIM_PTR(vectim_AAA,kout) ;    /* data arrays */
@@ -4349,8 +4559,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
        memset( resar , 0 , sizeof(float)*nvres ) ;          /* (set to zero) */
 
-       if( do_permute && do_randomsign )         /* permute amongst all data */
+       /* actual permutation and/or sign flipping of data vectors */
+
+       if( do_permute && do_randomsign ){        /* permute amongst all data */
          permute_arrays( nval_AAA,datAAA, nval_BBB,datBBB );  /* 07 Dec 2016 */
+       }
 
        if( randomsign_AAA != NULL ){        /* randomize signs [31 Dec 2015] */
          for( ii=0 ; ii < nval_AAA ; ii++ )
@@ -4360,6 +4573,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          for( ii=0 ; ii < nval_BBB ; ii++ )
            if( randomsign_BBB[ii] ) datBBB[ii] = -datBBB[ii] ;
        }
+
+       /* where to save residuals */
 
        if( do_resid ){
          if( bb == 0 ) rimout->ivec[kout] = ivox ;
@@ -4397,7 +4612,10 @@ LABELS_ARE_DONE:  /* target for goto above */
          nconst++ ; kout++ ; continue ;
        }
 
-       if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
+       /*-- two branches of analysis: simple t-tests, and t-tests via regression --*/
+
+       if( mcov == 0 && !do_wtar ){ /*-- no covariates ==> simple t-tests --*/
+
          float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
          float *rAAA=Aresid, *rBBB=Bresid ; /* 26 Sep 2017 */
          int   *iAAA=NULL  , *iBBB=NULL , fix_resid=0 ;
@@ -4475,10 +4693,16 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( iAAA != NULL )                   free(iAAA) ;
          if( iBBB != NULL )                   free(iBBB) ;
 
+         /* end of standard t-test stuff */
+
        } else {          /*--- covariates ==> regression analysis ---*/
+                         /*--- or weights ==> same [04 Mar 2020]  ---*/
 
          /*-- if covariate datasets are being used,
-              must fill in the Axx and Bxx matrices now --*/
+              must fill in the Axx and Bxx matrices now; otherwise,
+              they were pre-filled in earlier via TT_matrix_setup(0) --*/
+
+         rebug = ( debug && kout == 9999 ) ;
 
          if( num_covset_col > 0 ) TT_matrix_setup(kout) ;
 
@@ -4489,6 +4713,23 @@ LABELS_ARE_DONE:  /* target for goto above */
 #ifdef ALLOW_RANK
          if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
 #endif
+         if( do_wtar ){  /* scale data by weights [04 Mar 2020] */
+           if( !singletonA )
+             for( ii=0 ; ii < nval_AAA ; ii++ ) datAAA[ii] *= Awtar_actual[ii] ;
+           if( nval_BBB > 0 )
+             for( ii=0 ; ii < nval_BBB ; ii++ ) datBBB[ii] *= Bwtar_actual[ii] ;
+           if( rebug ){
+             ININFO_message("Weighted data A at kout=%d",kout) ;
+             for( ii=0 ; ii < nval_AAA ; ii++ ) fprintf(stderr," %g",datAAA[ii]) ;
+             fprintf(stderr,"\n") ;
+             if( nval_BBB > 0 ){
+               ININFO_message("Weighted data B at kout=%d",kout) ;
+               for( ii=0 ; ii < nval_BBB ; ii++ ) fprintf(stderr," %g",datBBB[ii]) ;
+               fprintf(stderr,"\n") ;
+             }
+           }
+         }
+
          if( singletonA ){
            regress_toz_singletonA( datAAA[0] ,
                                    nval_BBB , datBBB ,
@@ -4501,7 +4742,8 @@ LABELS_ARE_DONE:  /* target for goto above */
                         Axx , Axx_psinv , Axx_xtxinv ,
                         Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
          }
-       }
+
+       } /* end of covariates analysis */
 
        if( BminusA && ntwosam ){  /* negate 2 sample results? [05 Nov 2010] */
          for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
@@ -4698,9 +4940,16 @@ LABELS_ARE_DONE:  /* target for goto above */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 10000 ;
+     char *Awtstring=NULL , *Bwtstring=NULL ;
+     size_t clen ;
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
+
+     if( Awtim != NULL )
+       Awtstring = mri_1D_tostring( Awtim ) ;
+     if( Bwtim != NULL && Bwtim != Awtim )
+       Bwtstring = mri_1D_tostring( Bwtim ) ;
 
      /* how many iterations? */
 
@@ -4716,7 +4965,10 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      /* cmd = space for command to randomize/permute 3dttest++ runs */
 
-     cmd  = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
+     clen = sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512) ;
+     if( Awtstring != NULL ) clen += strlen(Awtstring)+128 ;
+     if( Bwtstring != NULL ) clen += strlen(Bwtstring)+128 ;
+     cmd  = (char *)malloc(clen) ;
 
      nper = ncsim / num_clustsim ; if( nper*num_clustsim < ncsim ) nper++ ;
 
@@ -4725,7 +4977,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      /* bmd = space for command to do blurred 3dttest++ runs */
 
      if( do_Xclustsim && Xclu_nblur > 0 ){
-       bmd = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
+       bmd = (char *)malloc(clen) ;
        strcpy( bprefix , prefix ) ;
        if( !PREFIX_IS_NIFTI(prefix) ) strcat( bprefix , ".nii" ) ;
      } else {
@@ -4793,6 +5045,12 @@ LABELS_ARE_DONE:  /* target for goto above */
          cprefix[icase] = strdup( modify_afni_prefix(bprefix,NULL,fname) ) ;
          sprintf( bmd+strlen(bmd) , " -prefix %s" , cprefix[icase] ) ;
 
+         /* add subject-level weights, if supplied by user [05 Mar 2020] */
+         if( Awtstring != NULL )
+           sprintf( bmd+strlen(bmd) , " \\\n -setweightA '%s'" , Awtstring ) ;
+         if( Bwtstring != NULL )
+           sprintf( bmd+strlen(bmd) , " \\\n -setweightB '%s'" , Bwtstring ) ;
+
          sprintf( bmd+strlen(bmd) , " \\\n   ") ;
        }
 
@@ -4829,6 +5087,14 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( cmd+strlen(cmd) , " -permute" ) ;    /* 07 Dec 2016 */
          else if( dont_permute )
            sprintf( cmd+strlen(cmd) , " -nopermute" ) ;  /* 09 Dec 2016 */
+
+         /* add subject-level weights, if supplied by user [05 Mar 2020] */
+         if( Awtstring != NULL )
+           sprintf( cmd+strlen(cmd) , " \\\n -setweightA '%s'" , Awtstring ) ;
+         if( Bwtstring != NULL )
+           sprintf( cmd+strlen(cmd) , " \\\n -setweightB '%s'" , Bwtstring ) ;
+         if( Awtstring != NULL || Bwtstring != NULL )
+           sprintf( cmd+strlen(cmd) , " \\\n") ;
 
          if( !do_5percent )
            sprintf( cmd+strlen(cmd) , " -no5percent" ) ; /* 24 May 2017 */
@@ -4933,6 +5199,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( dryrun ){
            ININFO_message("cmd command #%d:\n  %s",pp,cmd) ;
          } else {
+           if( pp == 0 && debug )
+             ININFO_message("cmd command #%d:\n  %s",pp,cmd) ;
            start_job( cmd ) ;
          }
          NI_sleep(33) ;  /* give each job a little bit to start up */
@@ -4964,7 +5232,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(fname,"%s/%s.%04d.minmax.1D",tempdir,prefix_clustsim,pp) ;
          inim = mri_read_1D(fname) ; remove(fname) ;
          if( inim == NULL ){  /* should not happen */
-           WARNING_message("Can't read file %s",fname) ; nbad++ ;
+           WARNING_message("Cannot read file %s",fname) ; nbad++ ;
          }
          ADDTO_IMARR(inar,inim) ;
        }
@@ -5461,6 +5729,11 @@ ENTRY("regress_toz") ;
 
    if( numB == 0 ) opcode = 0 ;  /* 03 Mar 2011 */
 
+   if( rebug ){
+     ININFO_message("Enter regress_toz: numA=%d numB=%D mcov=%d",numA,numB,mcov) ;
+     ININFO_message(" testA=%d testB=%d testAB=%d",testA,testB,testAB) ;
+   }
+
    nws = 0 ;
    if( testA || testAB ){
      betA  = workspace + nws ; nws += mm ;
@@ -5471,68 +5744,42 @@ ENTRY("regress_toz") ;
      zdifB = workspace + nws ; nws += nB ;
    }
 
+   if( rebug ) ININFO_message("  workspace assigned = %d",nws) ;
+
    /*-- compute estimates for A parameters --*/
 
    if( testA || testAB ){
-#if 0
-     MRI_IMAGE *axxim_psinv=NULL , *axxim_xtxinv=NULL ;
-     if( psinvA == NULL || xtxinvA == NULL ){  /* matrix wasn't pre-inverted */
-       MRI_IMARR *impr ; MRI_IMAGE *axxim ;
-       axxim = mri_new_vol_empty( nA , mcov+1 , 1 , MRI_float ) ;
-       mri_fix_data_pointer(xA,axxim) ;
-       impr = mri_matrix_psinv_pair(axxim,0.0f) ;
-       mri_clear_data_pointer(axxim) ; mri_free(axxim) ;
-       if( impr == NULL ){ ERROR_message("psinv setA matrix fails"); EXRETURN; }
-       axxim_psinv  = IMARR_SUBIM(impr,0); psinvA  = MRI_FLOAT_PTR(axxim_psinv );
-       axxim_xtxinv = IMARR_SUBIM(impr,1); xtxinvA = MRI_FLOAT_PTR(axxim_xtxinv);
-       FREE_IMARR(impr) ;
-     }
-#endif
      for( ii=0 ; ii < mm ; ii++ ){  /* fit coefficients */
        for( val=0.0f,jj=0 ; jj < nA ; jj++ ) val += PA(ii,jj)*zA[jj] ;
        betA[ii] = val ;
+       if( rebug ) ININFO_message("  betA[%d] = %g",ii,val) ;
      }
      for( jj=0 ; jj < nA ; jj++ ){  /* residuals */
        val = -zA[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XA(jj,ii)*betA[ii] ;
        zdifA[jj] = val ; ssqA += val*val ; if( Aresid ) Aresid[jj] = -val ;
+       if( rebug ) ININFO_message("  zdifA[%d] = %g",jj,val) ;
      }
+     if( rebug ) ININFO_message("  ssqA = %g",ssqA) ;
      if( testA ){ varA = ssqA / (nA-mm) ; if( varA <= 0.0f ) varA = VBIG ; }
-#if 0
-     mri_free(axxim_psinv) ; mri_free(axxim_xtxinv) ; /* if they're not NULL */
-#endif
    }
 
    /*-- compute estimates for B parameters --*/
 
    if( testB || testAB ){
-#if 0
-     MRI_IMAGE *bxxim_psinv=NULL , *bxxim_xtxinv=NULL ;
-     if( psinvB == NULL || xtxinvB == NULL ){  /* matrix wasn't pre-inverted */
-       MRI_IMARR *impr ; MRI_IMAGE *bxxim ;
-       bxxim = mri_new_vol_empty( nB , mcov+1 , 1 , MRI_float ) ;
-       mri_fix_data_pointer(xB,bxxim) ;
-       impr = mri_matrix_psinv_pair(bxxim,0.0f) ;
-       mri_clear_data_pointer(bxxim) ; mri_free(bxxim) ;
-       if( impr == NULL ){ ERROR_message("psinv setB matrix fails"); EXRETURN; }
-       bxxim_psinv  = IMARR_SUBIM(impr,0); psinvB  = MRI_FLOAT_PTR(bxxim_psinv );
-       bxxim_xtxinv = IMARR_SUBIM(impr,1); xtxinvB = MRI_FLOAT_PTR(bxxim_xtxinv);
-       FREE_IMARR(impr) ;
-     }
-#endif
      for( ii=0 ; ii < mm ; ii++ ){
        for( val=0.0f,jj=0 ; jj < nB ; jj++ ) val += PB(ii,jj)*zB[jj] ;
        betB[ii] = val ;
+       if( rebug ) ININFO_message("  betB[%d] = %g",ii,val) ;
      }
      for( jj=0 ; jj < nB ; jj++ ){
        val = -zB[jj] ;
        for( ii=0 ; ii < mm ; ii++ ) val += XB(jj,ii)*betB[ii] ;
        zdifB[jj] = val ; ssqB += val*val ; if( Bresid ) Bresid[jj] = -val ;
+       if( rebug ) ININFO_message("  zdifB[%d] = %g",jj,val) ;
      }
+     if( rebug ) ININFO_message("  ssqB = %g",ssqB) ;
      if( testB ){ varB = ssqB / (nB-mm) ; if( varB <= 0.0f ) varB = VBIG ; }
-#if 0
-     mri_free(bxxim_psinv) ; mri_free(bxxim_xtxinv) ;
-#endif
    }
 
    /*-- carry out 2-sample (A-B) tests, if any --*/
@@ -5567,10 +5814,12 @@ ENTRY("regress_toz") ;
        for( tt=0 ; tt < mm ; tt++ ){
          if( (testAB & (1 << tt)) == 0 ) continue ;  /* bitwase AND */
          outvec[kt++] = betA[tt] - betB[tt] ;
+         if( rebug ) ININFO_message("  outvec[%d] = %g [val AB]",kt-1,outvec[kt-1]) ;
          den          = xtxA(tt)+xtxB(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
          val          = outvec[kt-1] / sqrtf( varAB*den );
          outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                               : TCLIP(val) ;
+         if( rebug ) ININFO_message("  outvec[%d] = %g [stat AB]",kt-1,outvec[kt-1]) ;
        }
      } /* end of unpaired pooled variance */
    }
@@ -5583,10 +5832,12 @@ ENTRY("regress_toz") ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testA & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betA[tt] ;
+       if( rebug ) ININFO_message("  outvec[%d] = %g [val A]",kt-1,outvec[kt-1]) ;
        den          = xtxA(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
        val          = betA[tt] / sqrtf( varA * den ) ;
        outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                             : TCLIP(val) ;
+       if( rebug ) ININFO_message("  outvec[%d] = %g [stat A]",kt-1,outvec[kt-1]) ;
      }
    }
 
@@ -5598,10 +5849,12 @@ ENTRY("regress_toz") ;
      for( tt=0 ; tt < mm ; tt++ ){
        if( (testB & (1 << tt)) == 0 ) continue ;  /* bitwise AND */
        outvec[kt++] = betB[tt] ;
+       if( rebug ) ININFO_message("  outvec[%d] = %g [val B]",kt-1,outvec[kt-1]) ;
        den          = xtxB(tt) ; if( den <= 0.0f ) den = 1.e+9f ;
        val          = betB[tt] / sqrtf( varB * den ) ;
        outvec[kt++] = (toz) ? (float)GIC_student_t2z( (double)val , dof )
                             : TCLIP(val) ;
+       if( rebug ) ININFO_message("  outvec[%d] = %g [stat B]",kt-1,outvec[kt-1]) ;
      }
    }
 
@@ -6075,7 +6328,7 @@ void TT_centerize(void)
    int jj,kk ; float sum ;
    int nvv , iv ; float *vv ;
 
-   if( center_code == CENTER_NONE ) return ;
+   if( center_code == CENTER_NONE ) return ;  /* that was easy */
 
    nvv = nval_AAA + nval_BBB ;
    vv  = (float *)malloc(sizeof(float)*nvv) ;
@@ -6133,7 +6386,9 @@ void TT_matrix_setup( int kout )
 
 ENTRY("TT_matrix_setup") ;
 
-   /*-- load setA matrix [first colum is all 1s] --*/
+   if( debug ) INFO_message("--- Enter TT_matrix_setup(%d) ---",kout) ;
+
+   /*-- load setA matrix [first column is all 1s] --*/
 
    for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,0) = 1.0f ; /* the mean */
    for( jj=1 ; jj <= mcov ; jj++ ){
@@ -6142,9 +6397,9 @@ ENTRY("TT_matrix_setup") ;
      for( kk=0 ; kk < nval_AAA ; kk++ ) AXX(kk,jj) = fpt[kk] ;
    }
 
-   /*-- load setB matrix [first colum is all 1s] --*/
+   /*-- load setB matrix [first column is all 1s] --*/
 
-   if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
+   if( Bxx != NULL && Bxx != Axx ){    /* un-paired 2-sample case */
      for( kk=0 ; kk < nval_BBB ; kk++ ) BXX(kk,0) = 1.0f ; /* the mean */
      for( jj=1 ; jj <= mcov ; jj++ ){
        if( covvec_BBB[jj-1] != NULL ) fpt = covvec_BBB[jj-1]->ar ;
@@ -6164,7 +6419,30 @@ ENTRY("TT_matrix_setup") ;
    }
 #endif
 
-   TT_centerize() ; /* column de-mean-ization? */
+   if( do_permute ){     /* permute each AXX and BXX column [05 Mar 2020] */
+     float *axar , *bxar ;  /* [is no permutation for 1-sample or paired] */
+     for( jj=1 ; jj <= mcov ; jj++ ){
+       axar = Axx + jj*nval_AAA ;        /* pointers to arrays that hold */
+       bxar = Bxx + jj*nval_BBB ;       /* the jj-th columns of matrices */
+       permute_arrays( nval_AAA,axar, nval_BBB,bxar ) ; /* inter-permute */
+     }
+   }
+
+   TT_centerize() ; /* covariate column de-mean-ization? */
+
+   /* scale each column for subject-level weights? [04 Mar 2020] */
+   /* - note that weights were permuted by LOAD_ABwtar_actual()  */
+
+   if( do_wtar ){
+     for( kk=0 ; kk < nval_AAA ; kk++ ){
+       for( jj=0 ; jj <= mcov ; jj++ ) AXX(kk,jj) *= Awtar_actual[kk] ;
+     }
+   }
+   if( do_wtar && Bxx != NULL && Bxx != Axx ){
+     for( kk=0 ; kk < nval_BBB ; kk++ ){
+       for( jj=0 ; jj <= mcov ; jj++ ) BXX(kk,jj) *= Bwtar_actual[kk] ;
+     }
+   }
 
    if( debug ){
      sprintf(label,"setA voxel#%d",kout) ;
@@ -6183,7 +6461,7 @@ ENTRY("TT_matrix_setup") ;
 
    if( !singletonA ){
      imprA = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
-     if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! \\:(") ;
+     if( imprA == NULL ) ERROR_exit("Cannot invert setA covariate matrix?! \\:(") ;
      Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
      Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
    } else {
@@ -6203,7 +6481,7 @@ ENTRY("TT_matrix_setup") ;
    if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
      if( imprB != NULL ) DESTROY_IMARR(imprB) ;
      imprB = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
-     if( imprB == NULL ) ERROR_exit("Can't invert setB covariate matrix?! \\:(") ;
+     if( imprB == NULL ) ERROR_exit("Cannot invert setB covariate matrix?! \\:(") ;
      Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,0)) ;
      Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,1)) ;
 
