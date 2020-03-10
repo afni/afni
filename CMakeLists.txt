@@ -10,7 +10,9 @@ include(get_build_macros_and_functions)
 include(CMakeDependentOption)
 include(afni_cmake_build_options)
 
-
+if(NOT DEFINED CMAKE_C_COMPILER)
+  set(CMAKE_C_COMPILER "gcc")
+endif()
 # ##### Project info
 project(
   AFNI
