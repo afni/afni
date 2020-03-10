@@ -86,6 +86,7 @@ target_link_libraries(
   suma
   PRIVATE SUMA
           AFNI::mrix
+          Motif::Motif
           ${X11_Xt_LIB}
           ${X11_LIBRARIES}
           AFNI::track_tools

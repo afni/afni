@@ -269,12 +269,28 @@ endfunction()
 
 function(add_afni_library target_in)
   add_library(${ARGV})
+  target_link_options(${target_in}
+  PRIVATE 
+  LINKER:-undefined,error
+    )
+  target_link_options(${target_in}
+  PRIVATE 
+  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
+    )
   add_library(AFNI::${target_in} ALIAS ${target_in})
   add_afni_target_properties(${target_in})
 endfunction()
 
 function(add_afni_executable target_in)
   add_executable(${ARGV})
+  target_link_options(${target_in}
+  PRIVATE 
+  LINKER:-undefined,error
+    )
+  target_link_options(${target_in}
+  PRIVATE 
+  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
+    )
   add_afni_target_properties(${target_in})
 endfunction()
 
@@ -296,8 +312,7 @@ function(add_afni_plugin target_in)
   endif()
   target_link_options(${target_in}
   PRIVATE 
-  $<$<C_COMPILER_ID:Clang>:-Wl,-undefined,dynamic_lookup>
-  $<$<C_COMPILER_ID:GNU>:-Wl,-undefined,dynamic_lookup>
+  LINKER:-undefined,dynamic_lookup
     )
 endfunction()
 
