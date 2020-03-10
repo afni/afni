@@ -3,7 +3,7 @@
 # python3 status: compatible
 
 # coding=utf-8
-__author__ = "Joshua Zosky"
+__author__ = "Joshua Zosky" # Modified a bit by gianfranco 
 
 """
     Copyright 2015 Joshua Zosky
@@ -240,8 +240,7 @@ def retro_ts(
         print("Computing RVT from peaks")
         print(respiration_info["p_trace_r"])
         rvt = rvt_from_peakfinder(respiration_phased)
-
-    respiration_info.update(rvt)
+        respiration_info.update(rvt)
 
     # Show some results
     if show_graphs:
@@ -273,12 +272,12 @@ def retro_ts(
     n_r_v = 0
     n_r_p = 0
     n_e = 0
-    if respiration_info:
+    if "time_series_time" in respiration_info:
         n_n = len(respiration_info["time_series_time"])
         n_r_p = size(respiration_info["phase_slice_reg"], 1)
         n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
-    if cardiac_info:  # must have cardiac_info
+    if "time_series_time" in cardiac_info:  # must have cardiac_info
         n_n = len(
             cardiac_phased["time_series_time"]
         )  # ok to overwrite len(respiration_info.tst), should be same.
@@ -570,9 +569,9 @@ Output:
         fir_order=opt_dict["-fir_order"],
         quiet=opt_dict["-quiet"],
         demo=opt_dict["-demo"],
-        rvt_out=opt_dict["-rvt_out"],
-        cardiac_out=int(opt_dict["-cardiac_out"]),
-        respiration_out=int(opt_dict["-respiration_out"]),
+        rvt_out= (int(opt_dict["-rvt_out"]) if opt_dict["-r"] else 0),
+        cardiac_out= (int(opt_dict["-cardiac_out"]) if opt_dict["-c"] else 0),
+        respiration_out= (int(opt_dict["-respiration_out"]) if opt_dict["-r"] else 0),
         slice_order=opt_dict["-slice_order"],
         show_graphs=opt_dict["-show_graphs"],
         zero_phase_offset=opt_dict["-zero_phase_offset"],
