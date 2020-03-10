@@ -10,6 +10,7 @@ include(get_build_macros_and_functions)
 include(CMakeDependentOption)
 include(afni_cmake_build_options)
 
+
 # ##### Project info
 project(
   AFNI
@@ -21,7 +22,11 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
-set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
+if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
+    # This should never happen, compiler should be gcc or clang
+    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}")
+endif()
+# set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # set(CMAKE_C_FLAGS_DEBUG
 #     "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
@@ -62,9 +67,8 @@ list(TRANSFORM CMPNT_MAPPING REPLACE "\n" ";")
 include(afni_project_dependencies)
 
 # Other details of dependencies and configuration
-
 set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG -Wl,--as-needed"
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
 )
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING -DHAVE_ZLIB") # XXX not in default cflags
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
