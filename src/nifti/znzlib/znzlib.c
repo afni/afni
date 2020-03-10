@@ -197,11 +197,11 @@ size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
   return fwrite(buf,size,nmemb,file->nzfptr);
 }
 
-long znzseek(znzFile file, long offset, int whence)
+znz_off_t znzseek(znzFile file, znz_off_t offset, int whence)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
-  if (file->zfptr!=NULL) return (long) gzseek(file->zfptr,offset,whence);
+  if (file->zfptr!=NULL) return (znz_off_t) gzseek(file->zfptr,offset,whence);
 #endif
   return fseek(file->nzfptr,offset,whence);
 }
@@ -222,11 +222,11 @@ int znzrewind(znzFile stream)
   return 0;
 }
 
-long znztell(znzFile file)
+znz_off_t znztell(znzFile file)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
-  if (file->zfptr!=NULL) return (long) gztell(file->zfptr);
+  if (file->zfptr!=NULL) return (znz_off_t) gztell(file->zfptr);
 #endif
   return ftell(file->nzfptr);
 }
