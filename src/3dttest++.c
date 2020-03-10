@@ -154,6 +154,7 @@ static int       nAwt   = 0 ;
 static int       nBwt   = 0 ;
 static MRI_IMAGE *Awtim = NULL ;
 static MRI_IMAGE *Bwtim = NULL ;
+static char *Awtstring=NULL , *Bwtstring=NULL ;
 
   /* the _actual arrays are used to allow for -permute */
 
@@ -2435,9 +2436,9 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     /*----- debug -----*/
+     /*----- debug [22 Sep 2010] -----*/
 
-     if( strcmp(argv[nopt],"-debug") == 0 ){  /* 22 Sep 2010 */
+     if( strcmp(argv[nopt],"-debug") == 0 || strcmp(argv[nopt],"-verb") == 0 ){
        debug++ ; nopt++ ; continue ;
      }
 
@@ -2536,18 +2537,15 @@ int main( int argc , char *argv[] )
 
        INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
        if( num_clustsim == 1 ){
-         ININFO_message("  The program will be slow with only 1 CPU :(") ;
+         ININFO_message("  The program will be pretty slow with only 1 CPU :(") ;
          ININFO_message("  You can set the number of CPUs to use manually with '-Clustsim N'") ;
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
-#if 0
-         uuu = UNIQ_idcode_11() ;
-         prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ;
-#else
-         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
-#endif
+         char *nnn ;
+         prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
+         nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
+         if( nnn != NULL ) *nnn = '\0' ;
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
@@ -3679,11 +3677,13 @@ int main( int argc , char *argv[] )
      if( nAwt > 0 ){
        SCALE_wtar(Awtar,nval_AAA) ; /* scaling macro */
        Awtim->nx = nval_AAA ; Awtim->ny = Awtim->nz = 1 ;
+       Awtstring = mri_1D_tostring( Awtim ) ;
      }
 
      if( nBwt > 0 ){
        SCALE_wtar(Bwtar,nval_BBB) ; /* scaling macro */
        Bwtim->nx = nval_BBB ; Bwtim->ny = Bwtim->nz = 1 ;
+       Bwtstring = mri_1D_tostring( Bwtim ) ;
      } else if( nAwt > 0 && ttest_opcode == 2 ){ /* paired == copy A weights */
        nBwt = nAwt ; Bwtar = Awtar ; Bwtim = Awtim ;
        INFO_message("-paired and -setweightA ==> -setB will copy weights from -setA") ;
@@ -4940,16 +4940,10 @@ LABELS_ARE_DONE:  /* target for goto above */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 10000 ;
-     char *Awtstring=NULL , *Bwtstring=NULL ;
      size_t clen ;
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
-
-     if( Awtim != NULL )
-       Awtstring = mri_1D_tostring( Awtim ) ;
-     if( Bwtim != NULL && Bwtim != Awtim )
-       Bwtstring = mri_1D_tostring( Bwtim ) ;
 
      /* how many iterations? */
 
@@ -5047,9 +5041,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          /* add subject-level weights, if supplied by user [05 Mar 2020] */
          if( Awtstring != NULL )
-           sprintf( bmd+strlen(bmd) , " \\\n -setweightA '%s'" , Awtstring ) ;
+           sprintf( bmd+strlen(bmd) , " \\\n   -setweightA '%s'" , Awtstring ) ;
          if( Bwtstring != NULL )
-           sprintf( bmd+strlen(bmd) , " \\\n -setweightB '%s'" , Bwtstring ) ;
+           sprintf( bmd+strlen(bmd) , " \\\n   -setweightB '%s'" , Bwtstring ) ;
 
          sprintf( bmd+strlen(bmd) , " \\\n   ") ;
        }
@@ -5191,6 +5185,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            if( dryrun ){
              ININFO_message("bmd command:\n  %s",bmd) ;
            } else {
+             if( debug > 1 )
+               ININFO_message("bmd command icase=%d:\n  %s",icase,cmd) ;
              start_job( bmd ) ;
            }
            NI_sleep(33) ; /* fiddle while Rome burns */
@@ -5199,8 +5195,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( dryrun ){
            ININFO_message("cmd command #%d:\n  %s",pp,cmd) ;
          } else {
-           if( pp == 0 && debug )
-             ININFO_message("cmd command #%d:\n  %s",pp,cmd) ;
+           if( (pp == 0 && debug) || (debug > 1) )
+             ININFO_message("cmd command #%d icase=%d:\n  %s",pp,icase,cmd) ;
            start_job( cmd ) ;
          }
          NI_sleep(33) ;  /* give each job a little bit to start up */
