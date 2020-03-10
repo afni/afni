@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # afni_util.py : general utilities for python programs
 
@@ -8,12 +8,15 @@
 # no longer usable as a main: see afni_python_wrapper.py
 # ------------------------------------------------------
 
-import sys, os, math
-import afni_base as BASE
-import lib_textdata as TD
 import glob
+import math
+import os
 import pdb
 import re
+import sys
+
+from afni_python import afni_base as BASE
+from afni_python import lib_textdata as TD
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
@@ -29,7 +32,7 @@ def change_path_basename(orig, prefix='', suffix='', append=0):
     """given a path (leading directory or not) swap the trailing
        filename with the passed prefix and suffix
           e.g. C_P_B('my/dir/pickles.yummy','toast','.1D')
-                 --> 'my/dir/toast.1D' 
+                 --> 'my/dir/toast.1D'
        or with append...
           e.g. C_P_B('my/dir/pickles.yummy','toast','.1D', append=1)
                  --> 'my/dir/toastpickles.yummy.1D'
@@ -65,7 +68,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
         return 1
 
     if wrap: tdata = add_line_wrappers(tdata, wrapstr)
-    
+
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
     elif fname == 'stderr':
@@ -107,7 +110,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
-   
+
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    """return the text text from the given file as either one string
@@ -147,7 +150,7 @@ def read_text_dictionary(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
    rv, ttable = read_text_dict_list(fname, verb=verb, mjdiv=mjdiv, mndiv=mndiv,
                                     compact=compact)
    if rv: return rv, {}
-   
+
    rdict = {}
    for row in ttable:
       if len(row) != 2:
@@ -621,7 +624,7 @@ def get_process_stack_slow(pid=-1, verb=1):
       ss = ac.so[0]
       entries = ss.split()
       if len(entries) == 0: return 1, []
-      
+
       return 0, entries
 
    def get_ppids(cmd, entries):
@@ -1269,7 +1272,7 @@ def get_3d_statpar(dname, vindex, statcode='', verb=0):
 
    sline = ilines[lind]
    plist = sline.split()
-   if statcode: 
+   if statcode:
       olist = find_opt_and_params(sline, 'statcode', 2)
       if len(olist) < 3:
          print('** 3d_statpar: missing expected statcode')
@@ -1287,14 +1290,14 @@ def get_3d_statpar(dname, vindex, statcode='', verb=0):
    if len(olist) < 3:
       if verb: print('** 3d_statpar: missing expected statpar')
       if verb > 2: print('   found %s in %s' % (olist, sline))
-      return -1 
+      return -1
    if verb > 2: print('-- found %s' % olist)
 
    par = -1
    try: par = int(olist[2])
    except:
       if verb: print('** 3d_statpar: bad stat par[2] in %s' % olist)
-      return -1 
+      return -1
 
    return par
 
@@ -1330,7 +1333,7 @@ def get_truncated_grid_dim(dset, verb=1):
     for ind in range(len(dims)):
         dims[ind] = abs(dims[ind])
     md = min(dims)
-    # changed 2 -> 4  19 Mar 2010 
+    # changed 2 -> 4  19 Mar 2010
     if md >= 4.0: return math.floor(md)
     if md <= 0:
         print('** failed to get truncated grid dim from %s' % dims)
@@ -1374,7 +1377,7 @@ def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
     if meth == 'round': ival = round(pm * fval)
     else:               ival = math.floor(pm * fval)
     retval = sign*float(ival)/pm
-    
+
     if verb > 2:
         print('-- T2NB: 2^%d <= 2^%d * %g < 2^%d' % (bits-1,m,fval,bits))
         print('         ival = %g, returning %g' % (ival,retval))
@@ -1391,7 +1394,7 @@ def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
         trunc = truncate_to_N_bits(val,bits)
         print(val, ' -> ', trunc)
         val = trunc - e
-    
+
 def get_dset_reps_tr(dset, notr=0, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
@@ -1487,7 +1490,7 @@ def is_matrix_square( mat, full_check=False ):
     N = 1
     if full_check :
         N = rows
-    
+
     for i in range(N):
         if len(mat[i]) != rows :
             return 0
@@ -1528,7 +1531,7 @@ def derivative(vector, in_place=0, direct=0):
 
     if in_place: vec = vector    # reference original
     else:        vec = vector[:] # start with copy
-    
+
     # count from the end to allow memory overwrite
     if direct:  # forward difference
        vlen = len(vec)
@@ -1549,13 +1552,13 @@ arbitrary dimension (subject to Arow/Bcol matching).
     Each input must have 2 indices.  So, the following are valid inputs:
         x = [[1, 2, 3]]
     while these are NOT valid:
-        x = [1, 2, 3] 
+        x = [1, 2, 3]
 
     Output a new array of appropriate dims, which will also always
     have 2 inds (unless one input had zero row or col; in this case,
     return empty arr).  So, output might look like:
        [[16], [10], [12]]
-       [[2]] 
+       [[2]]
        []
     etc.
 
@@ -1592,7 +1595,7 @@ arbitrary dimension (subject to Arow/Bcol matching).
     ZZ = calc_zero_dtype(A[0][0], zero_dtype)
 
     # Initialize output list of correct dimensions
-    C = [[ZZ] * NcolB for row in range(NrowA)] 
+    C = [[ZZ] * NcolB for row in range(NrowA)]
 
     # Ye olde matrix multiplication, boolean style
     if type(ZZ) == bool :
@@ -1600,7 +1603,7 @@ arbitrary dimension (subject to Arow/Bcol matching).
             for j in range(NcolB):
                 for k in range(NcolA):
                     C[i][j] = C[i][j] or (A[i][k] and B[k][j])
-    else: 
+    else:
         # Ye olde matrix multiplication
         for i in range(NrowA):
             for j in range(NcolB):
@@ -2016,7 +2019,7 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
            - wrap each option line without indentation
            - split across \\\n; ==> have good indentation
            - keep all in array
-           
+
            - join array with indentation and \\\n
            - finally, align the \\\n wrappers
     """
@@ -2042,7 +2045,7 @@ def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
     posn = 0
 
     while needs_wrapper(commands, maxlen, posn):
-            
+
         end = find_command_end(commands, posn)
 
         if not needs_wrapper(commands, maxlen, posn, end): # command is okay
@@ -2180,7 +2183,7 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     cur_posn = start
     remain = end_posn - cur_posn
     while remain > maxlen:
-        
+
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
         if 0 <= posn-cur_posn <= maxlen: # adjust and continue
@@ -2216,7 +2219,7 @@ def find_command_end(command, start=0):
             if length > end+1 and command[start] == '#'   \
                               and command[end+1] != '#':
                 return end      # since comments cannot wrap
-            else: continue 
+            else: continue
         return end              # found
 
 def num_leading_line_spaces(istr,start,pound=0):
@@ -2244,7 +2247,7 @@ def find_next_space(istr,start,skip_prefix=0):
     length = len(istr)
     index  = start
     if skip_prefix: index += num_leading_line_spaces(istr,start,1)
-    
+
     while 1:
         if index >= length: break
         if istr[index] != '\n' and istr[index].isspace(): break
@@ -2263,7 +2266,7 @@ def find_last_space(istr,start,end,max_len=-1,stretch=1):
     else:                                     index = end
 
     posn = index        # store current position in case of stretch
-    
+
     while posn >= start and (istr[posn] == '\n' or not istr[posn].isspace()):
         posn -= 1
 
@@ -2362,7 +2365,7 @@ def vals_are_sorted(vlist, reverse=0):
    except:
       print("** failed to detect sorting in list: %s" % vlist)
       rval = 0
-      
+
    return rval
 
 def vals_are_increasing(vlist, reverse=0):
@@ -2384,7 +2387,7 @@ def vals_are_increasing(vlist, reverse=0):
    except:
       print("** failed to detect sorting in list: %s" % vlist)
       rval = 0
-      
+
    return rval
 
 def vals_are_unique(vlist, dosort=1):
@@ -2409,7 +2412,7 @@ def vals_are_unique(vlist, dosort=1):
       rval = 0
 
    del(dupe)
-      
+
    return rval
 
 def lists_are_same(list1, list2, epsilon=0, doabs=0):
@@ -2791,7 +2794,7 @@ def glob_form_matches_list(slist, ordered=1):
 
    if ordered:
       inlist = slist
-   else: 
+   else:
       inlist = slist[:]
       inlist.sort()
 
@@ -2801,7 +2804,7 @@ def glob_form_matches_list(slist, ordered=1):
 
    # they must match
    return 1
-   
+
 
 def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
    """given a list of strings, return the inner part of the list that varies
@@ -2822,7 +2825,7 @@ def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
              if hpad = 926 (or 4 :) and tpad = 1,
              return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
 
-      If keep_dent_pre is set, then (if '/' is found) decrement hlen until 
+      If keep_dent_pre is set, then (if '/' is found) decrement hlen until
       that '/'.
 
         e.g. given ['dir/subjA1.txt', 'dir/subjB4.txt', 'dir/subjA2.txt' ]
@@ -2927,7 +2930,7 @@ def list_minus_pref_suf(slist, pref, suf, stripdir=1):
          flist.append(ff)
    else: flist = slist
 
-   
+
    rv = 0
    rlist = []
    for fname in flist:
@@ -3229,7 +3232,7 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
 
    # be more aggressive, use dataset prefix names
    # dlist = [dset.split('/')[-1] for dset in dsets]
-   if type(dsets[0]) == str: 
+   if type(dsets[0]) == str:
       nlist = [BASE.afni_name(dset) for dset in dsets]
    elif isinstance(dsets[0], BASE.afni_name):
       nlist = dsets
@@ -3268,7 +3271,7 @@ def insensitive_word_pattern(word):
       if c.isalpha: return '[%s%s]'%(c.lower(),c.upper())
       else:         return c
    return ''.join(map(either,word))
-   
+
 def insensitive_glob(pattern):
    """return glob.glob, but where every alphabetic character is
       replaced by lower/upper pair tests
@@ -3337,7 +3340,7 @@ def which(pname):
          return search
 
    return ''
-   
+
 
 def num_found_in_path(word, mtype=0, casematch=1):
    """a simple wrapper to print search_path_dirs results
@@ -3531,7 +3534,7 @@ def demean(vec, ibot=-1, itop=-1):
 
         if ibot == -1, ibot will be 0
         if itop == -1, itop will be len-1
-    
+
        return 0 on success, 1 on error"""
 
     if not vec: return 0
@@ -3649,7 +3652,7 @@ def interval_offsets(times, dur):
     except:
         print("** interval offsets 2: bad dur (%s) or times: %s" % (dur, times))
         return []
-   
+
     return offlist
 
 def fractional_offsets(times, dur):
@@ -4159,7 +4162,7 @@ def shuffle_blocks(vlist, bsize=-1):
        shuffle(vlist, boff, boff+bsize-1)
        boff += bsize
     shuffle(vlist, boff, boff+nrem-1)
-        
+
     return vlist
 
 def random_merge(list1, list2):
@@ -4205,7 +4208,7 @@ def prob_start_with_R(nA, nB, nS):
        or: factorial(nB, init=nB-nS+1) * nA / fact(nA+nB, init=nA+nB-nS)
 
        or: choose(nB,nS)/choose(nA+nB,nS) * nA/(nA+nB-nS)
-       
+
     """
     return 1.0 * nA * factorial(nB,    init=nB-nS+1) \
                     / factorial(nA+nB, init=nA+nB-nS)
@@ -4225,7 +4228,7 @@ def factorial(n, init=1):
 
 def swap2(data):
     """swap data elements in pairs"""
-    
+
     size  = 2
     nsets = len(data)//size
     if nsets <= 0: return
@@ -4238,7 +4241,7 @@ def swap2(data):
 
 def swap4(data):
     """swap data elements in groups of 4"""
-    
+
     size  = 4
     nsets = len(data)//size
     if nsets <= 0: return
@@ -4264,7 +4267,7 @@ def vec_extremes(vec, minv, maxv, inclusive=0):
    if not vec: return 1, None
 
    if minv > maxv:
-      print('** extremes: minv > maxv (', minv, maxv, ')') 
+      print('** extremes: minv > maxv (', minv, maxv, ')')
       return 1, None
 
    if inclusive:
@@ -4286,7 +4289,7 @@ def vec_moderates(vec, minv, maxv, inclusive=1):
    if not vec: return 1, None
 
    if minv > maxv:
-      print('** moderates: minv > maxv (', minv, maxv, ')') 
+      print('** moderates: minv > maxv (', minv, maxv, ')')
       return 1, None
 
    if inclusive:
@@ -4447,7 +4450,7 @@ def read_afni_seed_file(fname, only_from_space=None):
     fname           : (req) text file of seed point information.
     only_from_space : (opt) can choose to only attach seeds from a given space
                       (which is entered here); otherwise, all seeds are output.
-    
+
     Output: list of seed objects.
 
     '''
@@ -4464,7 +4467,7 @@ def read_afni_seed_file(fname, only_from_space=None):
 
     for i in range(Nx):
         row = x[i]
-        if row[0] != '#': 
+        if row[0] != '#':
             seed_obj = afni_seeds(file_line=row)
             if not(only_from_space) :
                 dat.append( seed_obj )
@@ -4480,4 +4483,3 @@ if __name__ == '__main__':
    print('afni_util.py: not intended as a main program')
    print('              (consider afni_python_wrapper.py)')
    sys.exit(1)
-

@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # currently, this explicitly does _not_ depend on scipy or numpy
 
-from __future__ import print_function
+import os
+import sys
 
+from afni_python import module_test_lib
 
-import os, sys
-import module_test_lib
 g_testlibs = ['math', 'copy']
 if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
-   
 
 # import libraries
 import math
 import copy
 
-import afni_util as UTIL
-import afni_base as BASE
-import lib_textdata as TD
+from afni_python import afni_util as UTIL
+from afni_python import afni_base as BASE
+from afni_python import lib_textdata as TD
 
 MTYPE_NONE = 0   # no modulation        (these work as a bit mask)
 MTYPE_AMP  = 1   # amplitude modulation
@@ -158,7 +157,7 @@ class Afni1D:
          ntotal += rlen
       self.runstart = runstart
 
-      # finally ready?  
+      # finally ready?
       # make tlist, clear groups, reduce_by_tlist
       # and then update nruns, run_len, runstart
       self.groups = []
@@ -308,7 +307,7 @@ class Afni1D:
                      if UTIL.starts_with(self.labels[ind], "bandpass")]
 
       # partition group 0 (RONI)
-      missed, ort_counts = self.count_sublist_labs(self.labels, all_ort_labs, 
+      missed, ort_counts = self.count_sublist_labs(self.labels, all_ort_labs,
                                                    index_list=zero_list)
 
       # get counts from any motion labels
@@ -677,10 +676,10 @@ class Afni1D:
 
          params (3dvolreg -1Dfile):    roll, pitch, yaw,    dS,     dL,   dP
                 (3dAllineate 1Dapply):
-           
+
          3dvolreg params:    v0  v1  v2   v3  v4  v5
          3dAllieate params: -v4 -v5 -v3   v0  v1  v2
-         
+
          Permute and negate vectors, and append [0] vectors.
 
          return 0 on success
@@ -894,7 +893,7 @@ class Afni1D:
       adcopy.demean()
       adcopy.unitize()
       gu = adcopy.get_mean_vec()
-      
+
       en = UTIL.dotprod(gu,gu)
 
       return en
@@ -999,7 +998,7 @@ class Afni1D:
          0, otherwise (moderate)
 
          For example, these would be the TRs to omit in a censor.1D file.
-        
+
          return 0 on success"""
 
       if self.verb > 3:
@@ -1029,7 +1028,7 @@ class Afni1D:
          0, otherwise (extreme)
 
          For example, these would be the TRs to keep in a censor.1D file.
-        
+
          return 0 on success"""
 
       if self.verb > 3:
@@ -1128,7 +1127,7 @@ class Afni1D:
 
          if rlengths is not set, assume all runs are of a set length
          if rlengths IS set, nruns is ignored
-     
+
          Only one of nruns/rlengths is is applied.
 
          return 0 on success"""
@@ -1188,7 +1187,7 @@ class Afni1D:
 
       # and apply tlist
       if self.reduce_by_tlist(tlist): return 1
-      
+
       # update run info
       self.nruns   = NR
       self.run_len = rlens
@@ -1322,7 +1321,7 @@ class Afni1D:
       """rely on runstart to restrict tr_list
          return status and restricted list
       """
-     
+
       # maybe there is nothing to do
       if run_index < 0: return 0, tr_list
 
@@ -1420,7 +1419,7 @@ class Afni1D:
 
       if self.csim_fill_obj():          return 0
       if not self.csim_has_all_attrs(): return 0
-  
+
       # get to work
       try:
          pind = self.mat[0].index(pthr)
@@ -1517,7 +1516,7 @@ class Afni1D:
 
       try:
          # try this out, it is separate, so make_random_timing need not import
-         import lib_vars_object as VO
+         from afni_python import lib_vars_object as VO
          self.VO = VO
          cobj = self.VO.VarsObject()
          cobj.whined = 0
@@ -1550,7 +1549,7 @@ class Afni1D:
                      cobj.mask = csplit[ind+1]
                   else:
                      continue
-                  
+
             elif cline.find('thresholding') > 1:
                cobj.sided = csplit[1]
 
@@ -1563,7 +1562,7 @@ class Afni1D:
                cobj.grid_vsize = ' '.join(gvals[1:3])
                msplit = gline[vind+2:].split()
                cobj.mask_nvox = int(msplit[0])
-               
+
             elif UTIL.starts_with(cline, '# -NN '):
                cobj.NN = int(csplit[2])
 
@@ -1629,13 +1628,13 @@ class Afni1D:
       """
       # if no data, do not return a header
       if self.nvec == 0 or self.nt == 0: return ''
-      
+
       hlist = []
       hlist.append('#  ni_dimen = "%s"' % self.nt)
       if len(self.labels) == self.nvec:
          hlist.append('#  ColumnLabels = "%s"' % ' ; '.join(self.labels))
       if len(self.groups) == self.nvec:
-         hlist.append('#  ColumnGroups = "%s"' 
+         hlist.append('#  ColumnGroups = "%s"'
                       % self.val_list_to_at_str(self.groups))
       hlist.append('#  RowTR = "%s"' % self.tr)
       if len(self.goodlist) > 0:
@@ -2297,7 +2296,7 @@ class Afni1D:
 
          self.run_len = [rlen for i in range(nruns)]
          self.nruns   = nruns
-         
+
       except:
          if self.verb > 1: print('** unknown exception in LD:set_nruns')
          errs = 1
@@ -2391,7 +2390,7 @@ class Afni1D:
             del(oldvec)
 
          self.nt        = nrowfull      # now the lists are full
-         self.nruns     = len(runstart) # 
+         self.nruns     = len(runstart) #
          self.run_len   = rlens         # steal reference
          self.GLapplied = 2             # goodlist was applied
 
@@ -2455,7 +2454,7 @@ class Afni1D:
       """return status, self.run_len, self.run_len_nc
 
          check for consistency
-         if vector lengths are not nruns and 
+         if vector lengths are not nruns and
       """
 
       rv = self.check_tr_count_consistency(self.verb)
@@ -2624,7 +2623,7 @@ class Afni1D:
          # and grab the biggest
          dlist.sort()
          maxdiff = dlist[-1][0]
-         
+
          if self.verb > 1:
             i = dlist[-1][1]
             j = dlist[-1][2]
@@ -2689,7 +2688,7 @@ class Afni1D:
                mind = ind
                break
          mind += 1 # becomes a count to zero
-         
+
          if verb: print("    col %d: response length = %d" % (cind, mind))
          else:    print("%d" % mind, end='')
       print('')
@@ -2859,7 +2858,7 @@ class Afni1D:
          groups.extend([g for g in self.groups if g > 0])
       if len(groups) < 1 or len(self.groups) < 1: return []
       return [val for val in range(self.nvec) if self.groups[val] in groups]
-      
+
    def ordered_cols_by_group_list(self, groups):
       """return a list of columns, given a list of groups
 
@@ -2875,7 +2874,7 @@ class Afni1D:
          clist.extend([v for v in range(self.nvec) if self.groups[v] == g])
 
       return clist
-      
+
    def cols_by_label_list(self, labels):
       """return a list of columns, given a list of labels"""
       if not self.labels or not labels: return []
@@ -2958,7 +2957,7 @@ class Afni1D:
       # treat columns as across time
       mat = UTIL.transpose(tmat)
       del(tmat)
-      
+
       self.mat   = mat
       self.nvec  = len(mat)
       if self.nvec > 0: self.nt = len(mat[0])
@@ -3162,7 +3161,7 @@ class AfniData(object):
       self.cormat_ready = 0     # correlation mat is set
 
       # initialize...
-      if self.fname: 
+      if self.fname:
          if self.init_from_filename(self.fname): return None
       elif mdata:
          if self.init_from_mdata(mdata): return None
@@ -3186,7 +3185,7 @@ class AfniData(object):
 
       if rlen == 0: return 1
       if rlen == len(self.mat[0]): return 1
-      
+
       return 0
 
    def get_duration(self):
@@ -3234,7 +3233,7 @@ class AfniData(object):
          if promote_mtypes and they differ, promote so they are the same
          if promote_rows and they differ, promote so they are the same
       """
-      
+
       if not self.ready or not newdata.ready:
          print('** timing elements not ready for extending rows (%d,%d)' % \
                (self.ready, newdata.ready))
@@ -3285,7 +3284,7 @@ class AfniData(object):
          - whine on negatives
          - result will include MTYPE_DUR
       """
-      
+
       if not self.ready or not newdata.ready:
          print('** timing elements not ready for end_times (%d,%d)' % \
                (self.ready, newdata.ready))
@@ -3792,7 +3791,7 @@ class AfniData(object):
       """return whether data has errors for local stim_times format
                 - times should be non-negative
                 - times should be unique per run
-         if run_lens is passed, 
+         if run_lens is passed,
                 - number of runs should match nrows
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
@@ -3926,7 +3925,7 @@ class AfniData(object):
       """warn about any oddities in local timing
                 - times should be non-negative
                 - times should be unique per run
-         if run_lens is passed, 
+         if run_lens is passed,
                 - number of runs should match nrows
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
@@ -4070,7 +4069,7 @@ class AfniData(object):
       if self.maxlen > 1:
          ferrors |= ERR_ANY_MISC
          if verb: print('** file %s has rows longer than 1' % self.fname)
-         
+
 
       # negative times are not errors, but warnings
 
@@ -4121,7 +4120,7 @@ class AfniData(object):
       if tr > 0.0: endoftime *= tr
 
       if data[-1] >= endoftime:
-         warnings.append("   - time %g after all runs, %g" 
+         warnings.append("   - time %g after all runs, %g"
                             % (data[-1], endoftime))
 
       if not UTIL.vals_are_increasing(data):
@@ -4135,7 +4134,7 @@ class AfniData(object):
 
    def init_from_filename(self, fname):
       """file could be 1D, timing or married timing data
-        
+
          For now, store complete result but focus on times only.
       """
 
@@ -4190,7 +4189,7 @@ class AfniData(object):
             break
 
       self.ready = 1
-      
+
       return 0
 
    def init_from_fsl_flist(self, flist):
@@ -4346,7 +4345,7 @@ class AfniData(object):
             break
 
       self.ready = 1
-      
+
       return 0
 
    def mdata_looks_valid(self, mdata, verb=0):
@@ -4543,7 +4542,7 @@ class AfniData(object):
       return mstr
 
 def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
-   import lib_timing as LT
+   from afni_python import lib_timing as LT
 
    nad = len(adlist)
    if nad == 0:
@@ -4564,5 +4563,3 @@ def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
 if __name__ == '__main__':
    print('** this is not a main module')
    sys.exit(1)
-
-

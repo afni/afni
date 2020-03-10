@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
-import os, sys, glob, operator, string, re, afni_base
+import glob
+import operator
+import os
+import re
+import string
+import sys
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
@@ -30,7 +35,7 @@ class afni_name(object):
       if view in valid_new_views: self.new_view(view)
       return
 
-   def p(self):   #Full path 
+   def p(self):   #Full path
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
       fn = pp.find(self.path)      #is path at end of abspath?
@@ -39,7 +44,7 @@ class afni_name(object):
       else:
          return "%s/" % os.path.abspath(self.path)
 
-   def realp(self):   #Full path following symbolic links 
+   def realp(self):   #Full path following symbolic links
       """show path only, no dataset name"""
       pp = "%s/" % os.path.realpath('./')  #full path at this location
       fn = str.find(pp,self.path)      #is path at end of abspath?
@@ -67,16 +72,16 @@ class afni_name(object):
                              self.rangesel)
 
       if sstuff == '': return sstuff
-    
+
       return "%s%s%s" % (self.selquote, sstuff, self.selquote)
-      
+
    def ppves(self, quotes=1):
       """show path, prefix, view, extension and all selectors
          (colsel, rowsel, nodesel, rangesel)
 
          this is identically ppve(sel=1), but maybe without quotes
       """
-      
+
       # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
 
       # if no quotes, clear and reset internal selqute
@@ -97,7 +102,7 @@ class afni_name(object):
       #                    self.nodesel, self.rangesel)
       #
       # return s
-      
+
    def input(self):
       """full path to dataset in 'input' format
          e.g. +orig, but no .HEAD
@@ -105,7 +110,7 @@ class afni_name(object):
       if self.type == 'BRIK':
          return self.ppv()
       else:
-         return self.ppve() 
+         return self.ppve()
 
    def real_input(self):
       """full path to dataset in 'input' format
@@ -115,7 +120,7 @@ class afni_name(object):
       if self.type == 'BRIK':
          return self.rppv()
       else:
-         return self.rppve() 
+         return self.rppve()
 
    def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
@@ -129,7 +134,7 @@ class afni_name(object):
          if head: return '%s%s%s' % (name, '.HEAD', sstr)
          else:    return '%s%s' % (name, sstr)
       else:
-         return self.rpve(sel=sel) 
+         return self.rpve(sel=sel)
 
    def shortinput(self, head=0, sel=0):
       """dataset name in 'input' format
@@ -146,7 +151,7 @@ class afni_name(object):
          if head: return '%s%s%s' % (name, '.HEAD', sstr)
          else:    return '%s%s' % (name, sstr)
       else:
-         return self.pve(sel=sel) 
+         return self.pve(sel=sel)
 
    def out_prefix(self):
       """dataset name in 'output' format
@@ -155,7 +160,7 @@ class afni_name(object):
       if self.type == 'BRIK':
          return self.prefix
       else:
-         return self.pve() 
+         return self.pve()
    def ppv(self, sel=0):
       """return path, prefix, view formatted name"""
       s = "%s%s" % (self.p(), self.pv(sel=sel))
@@ -242,7 +247,7 @@ class afni_name(object):
          if (     os.path.isfile(locppv) ):
             return 1
          else: return 0
-   
+
    def locate(self, oexec=""):
       """Attempt to locate the file and if found, update its info"""
       if (self.exist()):
@@ -267,7 +272,7 @@ class afni_name(object):
          newline = self.path.find('\n')
          if newline > 1: self.path = self.path[0:newline]
       return 0
-      
+
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""
       if (self.type == 'BRIK'):
@@ -294,18 +299,18 @@ class afni_name(object):
             if os.path.isfile("%s.HEAD" % self.ppv()):
                sv = shell_com("mv %s %s/" % (self.head(), path), oexec).run()
                found = found + 1
-            if os.path.isfile("%s.BRIK" % self.ppv()):           
+            if os.path.isfile("%s.BRIK" % self.ppv()):
                sv = shell_com("mv %s %s/" % (self.brick(), path), oexec).run()
                found = found + 1
             if os.path.isfile("%s.BRIK.gz" % self.ppv()):
                sv = shell_com("mv %s %s/" % (self.brickgz(), path), oexec).run()
-               found = found + 1         
+               found = found + 1
             if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
                sv = shell_com("mv %s %s/" % (self.brickbz2(), path), oexec).run()
-               found = found + 1 
+               found = found + 1
             if os.path.isfile("%s.BRIK.Z" % self.ppv()):
                sv = shell_com("mv %s %s/" % (self.brickZ(), path), oexec).run()
-               found = found + 1 
+               found = found + 1
             if (found > 0):
                self.new_path(path)
                if ( not self.exist() and oexec != "dry_run"):
@@ -330,17 +335,17 @@ class afni_name(object):
          print("Error: Path %s not found for moving %s." % (path, self.ppv()))
          return 0
       return 1
-      
+
    def head(self):
       return "%s.HEAD" % self.ppv()
    def brick(self):
-      return "%s.BRIK" % self.ppv()      
+      return "%s.BRIK" % self.ppv()
    def brickgz(self):
-      return "%s.BRIK.gz" % self.ppv() 
+      return "%s.BRIK.gz" % self.ppv()
    def brickbz2(self):
-      return "%s.BRIK.bz2" % self.ppv() 
+      return "%s.BRIK.bz2" % self.ppv()
    def brickZ(self):
-      return "%s.BRIK.Z" % self.ppv() 
+      return "%s.BRIK.Z" % self.ppv()
    def new_path(self,path=""):
       #give name a new path (check for root)
       if len(path) == 0: pp = "./"
@@ -363,7 +368,7 @@ class afni_name(object):
       if verb > 1: print("   name    : %s" % self.ppve())
       if verb > 1: print("   path    : %s" % self.path)
 
-      print("   prefix  : %s" % self.prefix)   
+      print("   prefix  : %s" % self.prefix)
       print("   view    : %s" % self.view)
       print("   exten.  : %s" % self.extension)
       print("   type    : %s" % self.type)
@@ -372,8 +377,8 @@ class afni_name(object):
       print("   Col Sel : %s" % self.colsel)
       print("   Node Sel: %s" % self.nodesel)
       print("   RangeSel: %s" % self.rangesel)
-      
-   def new(self, new_pref='', new_view='', parse_pref=0):  
+
+   def new(self, new_pref='', new_view='', parse_pref=0):
       """return a copy with optional new_prefix and new_view
          if parse_pref, parse prefix as afni_name
       """
@@ -401,8 +406,8 @@ class afni_name(object):
       view = pdict['view']
       if view in ['+orig', '+acpc', '+tlrc']: return view
       return ''
-               
-   def to_afni(self, new_view=''):  
+
+   def to_afni(self, new_view=''):
       """modify to be BRIK type, with possible new_view (default is +orig)"""
 
       # be sure there is some view
@@ -412,24 +417,24 @@ class afni_name(object):
       if self.type == 'BRIK': return
 
       self.type = 'BRIK'
-      self.extension = ''  # clear 
+      self.extension = ''  # clear
       return
-               
+
 class comopt(object):
    def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
       self.name = name
       self.i_name = -1      # index of option name in argv
-      self.n_exp = npar     # Number of expected params, 0 if no params, 
+      self.n_exp = npar     # Number of expected params, 0 if no params,
                             #   -1 if any number > 0 is OK.
-                            #   N if exactly N numbers are expected 
+                            #   N if exactly N numbers are expected
       self.n_found = -1     # Number of parameters found after parsing
                             #   0 means was on command line but had no params
-      self.parlist = None   # parameter strings list following option 
+      self.parlist = None   # parameter strings list following option
       self.deflist = defpar # default parameter list,if any
       self.acceptlist = acplist # acceptable values if any
       self.required = 0     # is the argument required?
       self.helpstr = helpstr  # The help string
-      return 
+      return
 
    def show(self, mesg = '', short = 0):
       print("%sComopt: %s" % (mesg, self.name))
@@ -455,7 +460,7 @@ class comopt(object):
                print("Error: Option %s needs at least %d parameters\n"  \
                      "Default list has %d parameters."\
                         % (self.name, -self.n_exp, len(self.deflist)))
-               return None 
+               return None
       else :
          if self.n_exp >= 0:
             #print "option %s n_exp = %d, len(parlist)=%d" % (self.name, self.n_exp, len(self.parlist))
@@ -470,7 +475,7 @@ class comopt(object):
                print("Error: Option %s needs at least %d parameters\n"  \
                      "Parameter list has %d parameters."\
                         % (self.name, -self.n_exp, len(self.parlist)))
-               return None 
+               return None
       return 1
 
 class shell_com(object):
@@ -515,13 +520,15 @@ class shell_com(object):
       else:
          tcom = re.sub(r"[ ]{2,}", ' ', self.com).replace(self.dir, './')
       return tcom
-   def echo(self): 
+   def echo(self):
       if (len(self.trimcom) < len(self.com)):
          ms = " (command trimmed)"
       else:
          ms = ""
       if self.eo == "echo":
-         print("#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom))
+         print("#Now running%s:\n   cd %s\n   %s" % (
+             ms, self.dir, self.trimcom
+         ))
          sys.stdout.flush()
       elif self.eo == "dry_run":
          print("#Would be running%s:\n  %s" % (ms, self.trimcom))
@@ -531,7 +538,7 @@ class shell_com(object):
          sys.stdout.flush()
       elif (self.eo == "quiet"):
          pass
-      
+
       if self.exc==1:
          print("#    WARNING: that command has been executed already! ")
          sys.stdout.flush()
@@ -547,10 +554,10 @@ class shell_com(object):
          self.status = 0
          self.exc = 1
          return 0
-      self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
+      self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture)
       self.exc = 1
       return self.status
-      
+
    def run_echo(self,eo=""):
       self.eo = eo;
       self.run()
@@ -569,14 +576,14 @@ class shell_com(object):
 
    def stdout(self):
       if (len(self.so)):
-         print("++++++++++ stdout:") 
+         print("++++++++++ stdout:")
          sys.stdout.flush()
          for ln in self.so:
             print("   %s" % ln)
             sys.stdout.flush()
-   def stderr(self):   
+   def stderr(self):
       if (len(self.se)):
-            print("---------- stderr:") 
+            print("---------- stderr:")
             sys.stdout.flush()
             for ln in self.se:
                print("   %s" % ln)
@@ -587,7 +594,7 @@ class shell_com(object):
       else:
          print("#............. not executed.")
          sys.stdout.flush()
-   
+
    def val(self, i, j=-1): #return the jth string from the ith line of output. if j=-1, return all ith line
       if not self.exc:
          print("Error: Command not executed")
@@ -602,7 +609,7 @@ class shell_com(object):
          print("Error: First index i=%d >= to number of elements (%d) in output " %  \
                (i, len(self.so)))
          return None
-      
+
       if j>= 0:
          l = self.so[i].split()
          if len(l) <= j:
@@ -664,9 +671,9 @@ def dset_dims(dset):
                '   command: %s\n'                       \
                '   output: %s' % (cstr, com.so))
       # dl = [int(com.val(0,0)), int(com.val(0,1)),
-      #       int(com.val(0,2)), int(com.val(0,3))]   
+      #       int(com.val(0,2)), int(com.val(0,3))]
    return dl
-   
+
 
 #transform a list of afni names to one string for shell script usage
 def anlist(vlst, sb=''):
@@ -676,7 +683,7 @@ def anlist(vlst, sb=''):
    else:
       sbs = ''
    for an in vlst:
-      namelst.append("%s%s" % (an.ppv(), sbs))    
+      namelst.append("%s%s" % (an.ppv(), sbs))
    return str.join(' ',namelst)
 
 
@@ -702,7 +709,7 @@ def show_opts2(opts):
       print("       User Parameter List: %s" % opts[key].parlist)
       print("       Default Parameter List: %s\n" % opts[key].deflist)
    return
-   
+
 def getopts2(argv,oplist):
    """ A function to parse command line arguments.
    to use it, you need to set up the options list.
@@ -710,19 +717,19 @@ def getopts2(argv,oplist):
 
    oplist = []
    # an option that needs no params
-   oplist.append(afni_base.comopt('-dicom', 0, []))  
+   oplist.append(afni_base.comopt('-dicom', 0, []))
    # an option that needs 2 params, with 2 options, defaulting to 2 and 10.0
-   oplist.append(afni_base.comopt('-clust', 2, ['2', '10.0']))  
+   oplist.append(afni_base.comopt('-clust', 2, ['2', '10.0']))
    # an option that needs an undetermined number of parameters
    # (-1 for 1 or more, -2 for 2 or more)
    oplist.append(afni_base.comopt('-dsets', -1, []))
-   
+
    once the list is made, you call getopts2 with argv and oplist
-   
+
    opts = afni_base.getopts2(sys.argv, oplist)
-   
+
    opts is a dictionary with the name of oplist elements as keys
-   
+
    to get a quick look at it use:
    afni_base.show_opts2(opts) """
    opts = {}
@@ -732,7 +739,7 @@ def getopts2(argv,oplist):
    op = comopt('basename',0, [])
    opts['basename'] = op
    argv.remove( argv[0] )
-   
+
    #form a list of the known options
    optnames = []
    for op in oplist:
@@ -756,20 +763,20 @@ def getopts2(argv,oplist):
                            (argv[op.iname], op.name,                    \
                            str.join(' , ',op.acceptlist)))
                op.parlist.append(argv[op.iname]) #string added
-               argv.remove(argv[op.iname])       #remove this string from list          
+               argv.remove(argv[op.iname])       #remove this string from list
             op.n_found = len(op.parlist)
-               
+
       else : #No option in argv, just copy option
          op.parlist = op.deflist
-      
+
       #Now copy results to dictionary
       opts[op.name] = op #a bit of redundancy, but I don't care
-      
+
       if (op.test() == None):
          afni_base.show_opts2(opts)
          return None
-         
-         
+
+
    #Any remaining?
    for op in oplist:
       if op.name == 'loose':  #Expecting loose params
@@ -786,21 +793,21 @@ def getopts2(argv,oplist):
                "Have %d loose parameters (or bad option) on "   \
                "command line (%s).\n" % (len(argv), argv))
          return None
-   
+
    #go west young man
-   return opts        
-                     
+   return opts
+
 #Strip the extensions from extlist out of name
 #returns name without the extension and the extension
 #found, if any.
-#Example: 
+#Example:
 # res = strip_extension('Hello.Jim', ['.paul', '.Jim'])
 # --> res[0] = 'Hello'
 # --> res[1] = '.Jim'
 #
 # To remove anything after the last 'dot'
 # res = strip_extension('Hello.Jim', [])
-# 
+#
 def strip_extension(name, extlist):
    res = {}
    nle = len(name)
@@ -823,7 +830,7 @@ def strip_extension(name, extlist):
          res[0] = str.join('.',spl[0:-1])
          res[1] = '.'+spl[-1]
          return res
-         
+
    #defaults
    res[0] = name
    res[1] = ''
@@ -843,7 +850,7 @@ def parse_afni_name(name, aname=None, do_sel=1):
       res['col'], res['row'], res['node'], res['range'], fn = afni_selectors(fn)
    else:
       res['col'] = res['row'] = res['node'] = res['range'] = ''
-   
+
    #is this a .nii volume?
    rni = strip_extension(fn,['.nii', '.nii.gz'])
    if (len(rni[1]) > 0):
@@ -851,7 +858,7 @@ def parse_afni_name(name, aname=None, do_sel=1):
       ex = rni[1]
       pr = rni[0]
       tp = 'NIFTI'
-   else: 
+   else:
       rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.BRIK.bz2',
                             '.BRIK.Z','.1D', '.',  '.1D.dset', '.niml.dset'])
       ex = rni[1]
@@ -866,8 +873,8 @@ def parse_afni_name(name, aname=None, do_sel=1):
       rni = strip_extension(rni[0], ['+orig','+tlrc','+acpc'])
       vi = rni[1]
       pr = rni[0]
-   #get selectors 
-   
+   #get selectors
+
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'
@@ -888,7 +895,7 @@ def afni_prefix(names):
       res = parse_afni_name(names[run])
       pref.append(res['prefix'])
    return pref
-      
+
 def afni_view(names):
    pref = []
    for run in range(0, len(names)):
@@ -910,7 +917,7 @@ def afni_selectors(names):
    if (nse == 1 and nse == namestr.count(']')):
       sqsel = namestr[namestr.find('['):names.find(']')+1]
       namestr = namestr.replace(sqsel,'')
-   
+
    # handle enclosed shell variables, like "${subj}"  13 Jun 2019 [rickr]
    clist = find_all_non_var_curlys(namestr)
    if len(clist) == 1:  # maybe > 0 is okay, should we really distinguish?
@@ -918,22 +925,22 @@ def afni_selectors(names):
          cend = namestr.find('}',clist[-1])  # for clarity
          cusel = namestr[clist[-1]:cend+1]
          namestr = namestr.replace(cusel,'')
-   
+
    nse = namestr.count('<')
    if (nse == 1 and nse == namestr.count('>')):
       ltsel = namestr[namestr.find('<'):namestr.find('>')+1]
       namestr = namestr.replace(ltsel,'')
-   
+
    nse = namestr.count('#')
    if (nse == 2):
       nf = namestr.find('#')
       pnsel = namestr[nf[0]:nf[1]+1]
       namestr = namestr.replace(pnsel,'')
-   
+
    return sqsel, cusel, pnsel, ltsel, namestr
 
 def find_all_non_var_curlys(stext):
-   """return a 
+   """return a
    """
    clist = []
    start = 0
@@ -947,7 +954,7 @@ def find_all_non_var_curlys(stext):
       start = cind + 1
       cind = stext.find('{', start)
    return clist
-   
+
 #execute a shell command and when capture is 1 returns results in:
 # so (stdout) and se (stderr) and status
 #status is only reliable with python versions 2.5 and above
@@ -959,13 +966,13 @@ def shell_exec(s,opt="",capture=1):
       print("#In %s, would execute:\n   %s" % (os.getcwd(), s))
       sys.stdout.flush()
    elif opt == "echo":
-      print("#In %s, about to execute:\n   %s" % (os.getcwd(), s))   
+      print("#In %s, about to execute:\n   %s" % (os.getcwd(), s))
       sys.stdout.flush()
-      
+
    status, so, se = shell_exec2(s,capture)
-   
+
    return so, se
-   
+
 def shell_exec2(s, capture=0):
 
    # moved to python_ver_float()   16 May 2011 [rickr]
@@ -973,11 +980,11 @@ def shell_exec2(s, capture=0):
       #if there is no capture in option: run os.system
       if(not capture):
          os.system("%s"%s)
-         status = 0; #Don't got status here 
+         status = 0; #Don't got status here
          so = []     # should return arrays    24 Apr, 2014 [rickr]
          se = []
       else:
-         i,o,e = os.popen3(s) #captures stdout in o,  stderr in e and stdin in i      
+         i,o,e = os.popen3(s) #captures stdout in o,  stderr in e and stdin in i
          # The readlines seems to hang below despite all the attempts at
          # limiting the size and flushing, etc. The hangup happens when a
          # program spews out a lot to stdout.  So when that is expected,
@@ -999,13 +1006,13 @@ def shell_exec2(s, capture=0):
             se.append(ll)
             ll = e.readline()
 
-         #so = o.readlines(64)  - read till EOF, but python might hang 
+         #so = o.readlines(64)  - read till EOF, but python might hang
          #se = e.readlines(64)  - if output to stdout and stderr is too large.
-         #Have tried readlines(1024) and (256) to little effect 
+         #Have tried readlines(1024) and (256) to little effect
 
          o.close
          e.close             #
-         status = 0; #Don't got status here 
+         status = 0; #Don't got status here
    else:
       import subprocess as SP
       if(not capture):
@@ -1026,14 +1033,14 @@ def shell_exec2(s, capture=0):
             e = e.decode()
 
          so = o.splitlines()
-         se = e.splitlines()                           
+         se = e.splitlines()
 
          #if decode:
          #   so = [l.decode() for l in so]
          #   se = [l.decode() for l in se]
 
    return status, so, se
-   
+
 # basically shell_exec2, but no splitlines()            16 May 2011 [rickr]
 def simple_shell_exec(command, capture=0):
    """return status, so, se  (without any splitlines)"""
@@ -1156,7 +1163,7 @@ def GetFiles(wild):
    for mstr in wild:
       rl.extend(glob.glob(mstr))
    return rl
-     
+
 def PrintIndexedList(l):
    cnt = 0
    for il in l:
@@ -1179,7 +1186,7 @@ def unique_match(txt, l):
    else:
       return None
 
-      
+
 def GetSelectionFromList(l, prmpt = ""):
    PrintIndexedList(l)
    if len(prmpt)==0:
@@ -1206,7 +1213,7 @@ def GetSelectionFromList(l, prmpt = ""):
       cnt += 1
    print("Vous ne comprenez pas l'anglais?")
    print("Ciao")
-   
+
 # determine if a string is a valid floating point number
 # from http://mail.python.org/pipermail/python-list/2002-September/164892.html
 # used like isnum() or isalpha() built-in string methods

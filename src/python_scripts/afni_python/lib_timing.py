@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # Timing library, accessed via timing_tool.py.
 #
@@ -9,15 +9,18 @@
 # R Reynolds    December, 2008
 
 import sys
-import module_test_lib
+
+from afni_python import module_test_lib
+
 g_testlibs = ['sys', 'math', 'copy']
 if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
-   
+
 # import libraries
-import math
 import copy
-import afni_util as UTIL
-import lib_afni1D as LD
+import math
+
+from afni_python import lib_afni1D as LD
+from afni_python import afni_util as UTIL
 
 g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
 g_tsv_def_labels   = ['onset', 'duration', 'trial_type']
@@ -30,7 +33,7 @@ class AfniTiming(LD.AfniData):
    def __init__(self, filename="", dur=-1, mdata=None, fsl_flist=[], verb=1):
       """AFNI married stimulus timing class"""
 
-      super(AfniTiming, self).__init__(filename, mdata=mdata, 
+      super(AfniTiming, self).__init__(filename, mdata=mdata,
                                        fsl_flist=fsl_flist, verb=verb)
 
       # initialize duration data
@@ -642,7 +645,7 @@ class AfniTiming(LD.AfniData):
                       % (entry[0], entry[1], run_len[ind]))
                 print('        --> truncating end time')
                 entry[1] = entry[0] + 0.99*(run_len[ind]-entry[0])
-          
+
       result = []
       modres = []   # for modulated results
       # process one run at a time, first converting to TR indices
@@ -797,7 +800,7 @@ class AfniTiming(LD.AfniData):
       if self.verb > 3:
          print(scopy.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
                         mesg='scopy data'))
-      
+
       all_stim  = []    # all stimulus durations (one row per run)
       all_isi   = []    # all isi times (one row per run)
       pre_time  = []    # pre-stim, per run
@@ -949,7 +952,7 @@ class AfniTiming(LD.AfniData):
 
       # clean up, just to be kind
       del(all_stim); del(all_isi); del(pre_time); del(post_time); del(run_time)
-      
+
       del(rtot_stim); del(rtot_isi); del(rtot_rest); del(stim_list)
       del(isi_list); del(nstim_list)
 
@@ -1001,7 +1004,7 @@ class AfniTiming(LD.AfniData):
       offmn = m0; offm = m1; offs = s
       mn = abs(min(offsets))
       offmax = abs(max(offsets))
-      if mn > offmax: offmax = mn       
+      if mn > offmax: offmax = mn
 
       # fractional
       for ind, val in enumerate(offsets):
@@ -1011,7 +1014,7 @@ class AfniTiming(LD.AfniData):
       del(offsets)
 
       return [offmn, offm, offmax, offs, m0, m1, offmax/tr, s]
-      
+
    def show_TR_offset_stats(self, tr, mesg='', wlimit=0.4):
       """display statistics regarding within-TR offsets of stimuli
 
@@ -1107,14 +1110,14 @@ class AfniTiming(LD.AfniData):
       del(off_means); del(off_stdev)
 
       return rv, rstr
-      
+
 def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    str = ''
    for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
 
    return str
 
-def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, 
+def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
                         show_only=0, verb=1):
    """Read a set of 3 column tsv (tab separated value) files
          - one file per run
@@ -1201,7 +1204,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels, 
+def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
                    def_dur_lab=None, show_only=0, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
@@ -1273,7 +1276,7 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
 
    # ----------------------------------------
    # decide how to handle n/a duration
-    
+
    # default to 'missed'
    if def_dur_lab == None: def_dur_lab = 'missed'
 
@@ -1292,7 +1295,7 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
            print("** could not find tsv column '%s' in %s"%(def_dur_lab,fname))
          return -1, [], []
       col_dur_alt = cols_alt[1]
-      
+
    # if show_only, we are done
    if show_only: return 0, [], []
 
@@ -1443,7 +1446,7 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
             print("** tsv file has unexpected labels, failing")
             if verb < 3: print("   (consider -verb 3)")
          return []
-       
+
    # all are found, yay!
    if verb > 1: print("++ found expected labels in tsv file")
    if verb > 2:
@@ -1528,4 +1531,3 @@ def read_value_file(fname):
    fp.close()
 
    return data
-

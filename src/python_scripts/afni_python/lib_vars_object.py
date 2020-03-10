@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
-import sys, os
 import copy
+import os
+import sys
 
 # whine about execution as a main program
 if __name__ == '__main__':
@@ -209,7 +210,7 @@ class VarsObject(object):
                 vname           : name of variable
                 vlist           : value list (set from vlist[0] or vlist)
                 defs            : obj to get var type from
-                
+
             optional params:
 
                 as_type         : flag - convert to type in defs (else str)
@@ -260,7 +261,7 @@ class VarsObject(object):
          # possibly apply the defs type
          if as_type: val = vv
       elif dtype == list: val = vlist
-      else: 
+      else:
          print('** SVWD: invalid type %s for %s'%(dtype,vname))
          return -1
 
@@ -445,7 +446,7 @@ class VarsObject(object):
                           (list is not a valid atr type)
                 alevel  : array level (N levels of array nesting before atype)
 
-         
+
          if alevel > 0:
             - assume array is consistent in depth and type
               (so can focus on val[0][0][0]...)
@@ -552,4 +553,3 @@ class VarsObject(object):
                   sstr += "      %-20s : %s\n" % (atr, atype)
 
       return sstr
-
