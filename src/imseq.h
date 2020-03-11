@@ -413,6 +413,7 @@ typedef struct MCW_imseq {
 
      Widget wtop, wform, wimage, wbar, wscale , winfo ,
             wbut_bot[NBUTTON_BOT] , wbut_rig[NBUTTON_RIG] ; /* windows */
+     Widget rinfo_sep , rinfo ;                             /* 11 Mar 2020 */
 
      Widget wbar_menu , wbar_rng_but , wbar_zer_but  , wbar_flat_but ,
             wbar_sharp_but , wbar_vgize_but ;
@@ -509,6 +510,7 @@ typedef struct MCW_imseq {
      /* extra text for winfo [07 Aug 1999] */
 
      char winfo_extra[64] ;
+     char rinfo_label[64] ; /* 11 Mar 2020 */
 
      /* text for sides of window in default orientation [01 Dec 1999] */
 
@@ -694,6 +696,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_getoptions    203
 #define isqDR_winfosides    204
 #define isqDR_winfoprefix   205
+#define isqDR_rinfolabel    211
 
 #define isqDR_destroy       666
 

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , MAR , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Card or Obliq notice to image viewers" ,
+   NULL } ,
+
  { 10 , MAR , 2020 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
    "Add dataset-level weights to 3dttest++" ,
    "Per the request of users in Tulsa.\n"
