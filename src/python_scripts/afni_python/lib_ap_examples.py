@@ -328,6 +328,7 @@ def populate_examples():
      descrip='Minimum use.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              merely shows how simple a command can be)
 
            Provide datasets and stim files (or stim_times files).  Note that a
            dataset suffix (e.g. HEAD) must be used with wildcards, so that
@@ -346,6 +347,7 @@ def populate_examples():
      descrip='Very simple.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
 
            Use all defaults, except remove 3 TRs and use basis
            function BLOCK(30,1).  The default basis function is GAM.
@@ -365,6 +367,7 @@ def populate_examples():
      descrip='Formerly a simple class example.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
 
            Copy the anatomy into the results directory, register EPI data to
            the last TR, specify stimulus labels, compute blur estimates, and
@@ -398,6 +401,7 @@ def populate_examples():
      descrip='Similar to 3, but specify the processing blocks.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
 
            Adding despike and tlrc, and removing tshift.  Note that
            the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
@@ -424,6 +428,7 @@ def populate_examples():
      descrip='RETROICOR, resting state data.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              just a terribly simple example using ricor)
 
            Assuming the class data is for resting-state and that we have the
            appropriate slice-based regressors from RetroTS.py, apply the
@@ -465,6 +470,7 @@ def populate_examples():
      descrip='RETROICOR, while running a normal regression.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              another overly simple example using ricor)
 
            Add the ricor regressors to a normal regression-based processing
            stream.  Apply the RETROICOR regressors across runs (so using 13
@@ -500,6 +506,7 @@ def populate_examples():
      descrip='RETROICOR: censor and band pass.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper, no BP)
 
            This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
@@ -549,6 +556,8 @@ def populate_examples():
      descrip='A simple task example, based on AFNI_data6.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              meant to be fast, but not complete, e.g. NL warp)
+              (              prefer: see Example 6b)
 
            This example has changed to more closely correspond with the
            the class analysis example, AFNI_data6/FT_analysis/s05.ap.uber.
@@ -735,6 +744,8 @@ def populate_examples():
      descrip='Apply some esoteric options.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              e.g. NL warp without @SSwarper)
+              (              prefer: see Example 6b)
 
            a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
@@ -885,6 +896,8 @@ def populate_examples():
      descrip='Resting state analysis with censoring and band passing.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              e.g. has band pass, no @SSwarper)
+              (              prefer: see Example 11)
 
            With censoring and bandpass filtering.
 
@@ -969,6 +982,8 @@ def populate_examples():
      descrip='Resting state analysis with ANATICOR.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              e.g. has band pass, no @SSwarper)
+              (              prefer: see Example 11)
 
            Like example #9, but also regress out the signal from locally
            averaged white matter.  The only change is adding the option
@@ -1007,6 +1022,8 @@ def populate_examples():
      descrip='Resting state analysis, with tissue-based regressors.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              e.g. missing @SSwarper)
+              (              prefer: see Example 11)
 
            Like example #9, but also regress the eroded white matter averages.
            The WMe mask come from the Classes dataset, created by 3dSeg via the
@@ -1059,6 +1076,7 @@ def populate_examples():
      descrip='Resting state analysis, as 10a with 3dRSFC.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              prefer: see Example 11)
 
             This is for band passing and computation of ALFF, etc.
 
@@ -1098,7 +1116,7 @@ def populate_examples():
      source='afni_proc.py -help',
      descrip='Resting state analysis (now even more modern :).',
      header="""
-              (recommended?  no, not intended for a complete analysis)
+              (recommended?  yes, reasonable for a complete analysis)
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
@@ -1196,6 +1214,7 @@ def populate_examples():
      descrip='Similar to 11, but without FreeSurfer.',
      header="""
               (recommended?  yes, reasonable for a complete analysis)
+              (              if this ventricle extraction method seems okay)
 
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
@@ -1260,6 +1279,8 @@ def populate_examples():
      descrip='background: Multi-echo data processing.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              incomplete - just shows basic ME options)
+              (              prefer: see Example 13)
 
          Processing multi-echo data should be similar to single echo data,
          except for perhaps:
@@ -1290,6 +1311,8 @@ def populate_examples():
      descrip='Multi-echo data processing - very simple.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
+              (              prefer: see Example 13)
 
          Keep it simple and just focus on the basic ME options, plus a few
          for controlling registration.
@@ -1323,6 +1346,8 @@ def populate_examples():
      descrip='Multi-echo data processing - OC resting state.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
+              (              prefer: see Example 13)
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.
@@ -1366,6 +1391,8 @@ def populate_examples():
      descrip='Multi-echo data processing - ME-ICA resting state.',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              many missing preferences, e.g. @SSwarper)
+              (              prefer: see Example 13)
 
          As above, but run tedana.py for MEICA denoising.
 
@@ -1514,6 +1541,7 @@ def populate_examples():
      descrip='class demo - basic task analysis',
      header="""
               (recommended?  no, not intended for a complete analysis)
+              (              prefer: see Example 6b)
 
            A basic task analysis with a pair of visual and auditory tasks.
 

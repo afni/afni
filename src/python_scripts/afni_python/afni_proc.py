@@ -681,9 +681,10 @@ g_history = """
     7.10 Feb 18, 2020: modified Example 7; added Example 6b and EGS.12c
        - display all help examples, including ones outside of afni_proc.py
        - specify whether each example is reasonably recommended
+    7.11 Mar 11, 2020: add details on why examples are not considered complete
 """
 
-g_version = "version 7.10, February 18, 2019"
+g_version = "version 7.11, March 11, 2020"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
