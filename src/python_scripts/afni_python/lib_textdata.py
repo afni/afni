@@ -333,6 +333,172 @@ def data_is_rect(mdata):
         if len(row) != rlen: return 0
     return 1
 
+def read_text_file(fname='stdin', lines=1, strip=1, skipempty=0):
+   """return status, data
+        status: 0 on succcess
+        data  : the text text from the given file as either one string
+                or as an array of lines
+   """
+
+   if fname == 'stdin' or fname == '-': fp = sys.stdin
+   else:
+      try: fp = open(fname, 'r')
+      except:
+        print("** TD.read_text_file: failed to open '%s'" % fname)
+        if lines: return 1, []
+        else:     return 1, ''
+
+   if lines:
+      tdata = fp.readlines()
+      if strip: tdata = [td.strip() for td in tdata]
+      if skipempty: tdata = [td for td in tdata if td != '']
+   else:
+      tdata = fp.read()
+      if strip: tdata.strip()
+
+   fp.close()
+
+   return 0, tdata
+
+
+def text_to_rowlists(fname, sep=None, skipempty=1):
+   """return  status, data  from a text file
+
+        This will return a row-major ragged string lists.
+        Value types are not yet considered.
+
+            fname     : file to read (e.g. 'stdin')
+            sep       : separation/split character (None for whitespace)
+            skipempty : flag: skip empty rows?
+
+        status  : 0 on success, 1 on error
+        data    : row-major list of string lists
+   """
+
+   # first read into line array
+   rv, lines = read_text_file(fname, lines=1, skipempty=1)
+   if rv: return 1, []
+
+   nlines = len(lines)
+   if len(lines) < 1:
+      # allow to be empty
+      return 0, []
+
+   # split (skipping length 0 rows)
+   data = []
+   for ind, line in enumerate(lines):
+      # skip empty rows
+      ldata = line.split(sep=sep)
+      if skipempty and len(ldata) == 0:
+         continue
+      data.append(ldata)
+
+   return 0, data
+
+def tsv_to_columns(fname, try_headers=0):
+   """return  status, headers, data  from a TSV file
+
+        The file MUST be rectangular.  Value types are not yet considered.
+
+        if try_headers
+           if all row[0] entries start with isalpha(), return row[0] separately
+
+        status  : 0 on success, 1 on error
+        headers : array of headers, if found, or []
+        data    : rectangular column-major matrix
+   """
+
+   # get row-major line lists
+   rv, rowdata = text_to_rowlists(fname, sep='\t', skipempty=1)
+   if rv:
+      return rv, [], []
+
+   # quit on empty
+   if len(rowdata) == 0:
+      return 0, [], []
+
+   # ------------------------------------------------------------
+   # first simply check that it is rectangular
+
+   ncols = len(rowdata[0])
+   for ind, row in enumerate(rowdata):
+      rlen = len(row)
+      if rlen == 0: continue
+
+      if rlen != ncols:
+         print("** tsv_to_columns: input '%s' is not rectangular" % fname)
+         return 1, [], []
+
+   # ------------------------------------------------------------
+   # all set, collect some data
+
+   # do we extract headers?
+   rbase = 0
+   headers = []
+   if try_headers:
+      alpha = 1
+      for val in rowdata[0]:
+         if not val[0].isalpha():
+            alpha = 0
+
+      # if we seem to have a header, extract it
+      if alpha:
+         headers = rowdata[0]
+         rbase = 1  # so skip row 0
+
+   # ------------------------------------------------------------
+   # it is rectangular, so just reshape (possibly skipping input row 0)
+   coldata = [[row[cind] for rind, row in enumerate(rowdata)    \
+                         if rind >= rbase]                      \
+                  for cind in range(ncols)]
+
+   return 0, headers, coldata
+
+def tsv_to_fmat(fname, try_headers=0, na2zero=1):
+   """return  status, headers, data (floats) from a TSV file
+
+        The file MUST be rectangular.  
+
+        if try_headers
+           if all row[0] entries start with isalpha(), return row[0] separately
+        if na2zero
+           convert any n/a value to zero
+
+        status  : 0 on success, 1 on error
+        headers : array of headers, if found, or []
+        data    : rectangular column-major matrix of floats
+   """
+
+   rv, headers, cdata = tsv_to_columns(fname, try_headers=try_headers)
+   if rv:
+      return rv, [], []
+
+   # if nothing to process, run away
+   if len(cdata) < 1:
+      return 0, headers, []
+
+   # attempt to convert to floats
+   nrows = len(cdata[0])
+   for cind, col in enumerate(cdata):
+      for rind, val in enumerate(col):
+         # look for n/a?
+         if na2zero:
+            if val.lower() in ['na', 'n/a']:
+               col[rind] = 0.0
+               continue
+
+         # try converting value to float
+         try:
+            col[rind] = float(val)
+         except:
+            print("** tsv_to_fmat: file %s: bad float '%s'\n"
+                  "   in data row %d, col %d" % (fname, val, rind, cind))
+            return 1, [], []
+
+   return 0, headers, cdata
+
+
+
 def main():
    if len(sys.argv) > 2:
       if sys.argv[1] == '-eval':

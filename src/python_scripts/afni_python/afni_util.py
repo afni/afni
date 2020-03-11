@@ -111,25 +111,13 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    """return the text text from the given file as either one string
-      or as an array of lines"""
+      or as an array of lines
 
-   if fname == 'stdin' or fname == '-': fp = sys.stdin
-   else:
-      try: fp = open(fname, 'r')
-      except:
-        if verb: print("** read_text_file: failed to open '%s'" % fname)
-        if lines: return []
-        else:     return ''
+      This function was moved to lib_textdata (and verb is ignored).
+   """
 
-   if lines:
-      tdata = fp.readlines()
-      if strip: tdata = [td.strip() for td in tdata]
-      if noblank: tdata = [td for td in tdata if td != '']
-   else:
-      tdata = fp.read()
-      if strip: tdata.strip()
-
-   fp.close()
+   stat, tdata = TD.read_text_file(fname=fname, lines=lines, strip=strip,
+                                   skipempty=noblank)
 
    return tdata
 
