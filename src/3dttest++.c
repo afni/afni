@@ -640,6 +640,47 @@ void display_help_menu(void)
       "  ***              The option '-AminusB' can be used to explicitly    ***\n"
       "  *****            specify the standard subtraction order.          *****\n"
       "\n"
+      "---------- Dataset (e.g., Subject) level weights [10 Mar 2020] ----------\n"
+      "\n"
+      "These options let you make some datasets (that is, some subjects) as\n"
+      "weighing more in the analysis. A larger weight means a subject's\n"
+      "data will count more in the analysis.\n"
+      "\n"
+      "-setweightA   wname = Name of a file with the weights for the -setA\n"
+      "[-setweightB]         datasets. This is a .1D (numbers as text) file\n"
+      "                      that should have 1 positive value for each\n"
+      "                      volume being processed. A larger weight value\n"
+      "                      means the voxel values for that volume count\n"
+      "                      more in the test. In the least squares world,\n"
+      "                      these weights would typically be the reciprocal\n"
+      "                      of that subject's (that volume's) standard\n"
+      "                      deviation -- in other words, a measure of the\n"
+      "                      perceived reliability of the data in that volume.\n"
+      "                     * You can provide the weights directly on the\n"
+      "                       the command line with an option of the form\n"
+      "                         -setweightA '1D: 3 2 1 4 1 2'\n"
+      "                       when -setA has 6 input volumes.\n"
+      "                     * -setweight will turn off -unpooled.\n"
+      "                     * -paired will turn off -setweightB, since\n"
+      "                       a paired t-test requires equal weights\n"
+      "                       (and equal covariates) in both samples.\n"
+      "                     * -singletonA will turn off -setweightA.\n"
+      "                     * You can use -covariates and -setweight together.\n"
+#ifdef ALLOW_RANK
+      "                     * Using -setweight with -rankize is not allowed.\n"
+#endif
+      "\n"
+      "Implementation of weights is by use of the regression method used\n"
+      "for implementing covariates. For convenience in the program, the\n"
+      "provided weights are normalized to average 1, separately for\n"
+      "-setA and -setB (if present). This means that the total weight\n"
+      "for each set is the number of volumes present in that set.\n"
+      "\n"
+      "Thus, the t-statistic for A-B is testing whether the weighted\n"
+      "means of the two samples are equal. Similar remarks apply to\n"
+      "the individual sample means (e.g., weighted mean of -set A\n"
+      "tested versus 0).\n"
+      "\n"
       "---------------------------------------------------------------\n"
       "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS   ~1~\n"
       "---------------------------------------------------------------\n"
@@ -812,6 +853,7 @@ void display_help_menu(void)
       "\n"
       "* Only the -paired and -pooled options can be used with covariates.\n"
       "  ++ If you use -unpooled, it will be changed to -pooled.\n"
+      "  ++ The same limitation on -unpooled applies to -setweight.\n"
       "\n"
       "* If you use -paired, then the covariate values for setB will be the\n"
       "   same as those for setA, even if the dataset labels are different!\n"
@@ -2541,13 +2583,6 @@ int main( int argc , char *argv[] )
          ININFO_message("  You can set the number of CPUs to use manually with '-Clustsim N'") ;
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
-       if( prefix_clustsim == NULL ){
-         char *nnn ;
-         prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
-         nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
-         if( nnn != NULL ) *nnn = '\0' ;
-         ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
-       }
        continue ;
      }
 
@@ -2595,13 +2630,10 @@ int main( int argc , char *argv[] )
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
-#if 0
-         uuu = UNIQ_idcode_11() ;
-         prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
-         sprintf(prefix_clustsim,"TT.%s",uuu) ;
-#else
-         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
-#endif
+         char *nnn ;
+         prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
+         nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
+         if( nnn != NULL ) *nnn = '\0' ;
          ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
        }
 
@@ -4987,6 +5019,8 @@ LABELS_ARE_DONE:  /* target for goto above */
                     num_clustsim , (num_clustsim > 1)?"s":"\0" , nper ) ;
      ct1 = COX_clock_time() ;
 
+     /* for using the efficient .sdat format [default] */
+
      if( use_sdat ){
        int64_t nsdat , nsysmem ;
        nsdat = (int64_t)(ncsim) * (int64_t)(ncase) * (int64_t)(nmask_hits) * 2 ;
@@ -5186,7 +5220,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              ININFO_message("bmd command:\n  %s",bmd) ;
            } else {
              if( debug > 1 )
-               ININFO_message("bmd command icase=%d:\n  %s",icase,cmd) ;
+               ININFO_message("bmd command [icase=%d]:\n  %s",icase,cmd) ;
              start_job( bmd ) ;
            }
            NI_sleep(33) ; /* fiddle while Rome burns */
@@ -5196,7 +5230,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            ININFO_message("cmd command #%d:\n  %s",pp,cmd) ;
          } else {
            if( (pp == 0 && debug) || (debug > 1) )
-             ININFO_message("cmd command #%d icase=%d:\n  %s",pp,icase,cmd) ;
+             ININFO_message("cmd command #%d [icase=%d]:\n  %s",pp,icase,cmd) ;
            start_job( cmd ) ;
          }
          NI_sleep(33) ;  /* give each job a little bit to start up */

@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , MAR , 2020 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Add dataset-level weights to 3dttest++" ,
+   "Per the request of users in Tulsa.\n"
+   "New options -setweight[AB] allow user to provide weights\n"
+   "for the importance of a user in the calculations." } ,
+
  { 26 , FEB , 2020 , RWC , "machdep" , MINOR , TYPE_ENHANCE ,
    "First step for allowing floating round randomization" ,
    "Code in machdep.c, enabled by environment variable\n"
@@ -12584,7 +12590,8 @@ afni_history_struct rwcox_history[] = {
    "   header of interactive fim files; example\n"
    "     1dplot '`3dAttribute -ssep ' ' AFNI_FIM_REF r1_time@1+orig`'\n"
    "* Changes to mri_read_1D() to allow arbitrarily long filenames.\n"
-   "* New function mri_to1Dstring(), to create '1D:' strings from MRI_IMAGEs.\n"
+   "* New function mri_1D_tostring(), to create '1D:' strings from MRI_IMAGEs.\n"
+   "  (see file mri_fromstring.c)\n"
    },
 
   { 16,NOV,2007 , RWC , "Miscellaneous" , MINOR , TYPE_NEW_OPT , "Older History stuff" ,
