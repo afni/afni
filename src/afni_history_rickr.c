@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Mar, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add details on why some help examples are not considered complete",
+   "And corrected status of Example 11, changed to recommended.\n"
+   "Thanks to K Knutson for questioning the status."
+ } ,
+
  {  5, Mar, 2020, RCR, "@SUMA_Make_Spec_FS", MINOR, TYPE_MODIFY,
    "for now, use mris_convert/3dcopy for extra annot files",
    "So standard mesh version will not have a proper label table, but\n"
