@@ -35,8 +35,11 @@
 #set version   = "1.1";  set rev_dat   = "Dec 30, 2019"
 #   + [PT] can set some @chauffeur_opts here-- cbar and set_dicom_xyz
 #
-set version   = "1.2";  set rev_dat   = "Feb 22, 2020"
+#set version   = "1.2";  set rev_dat   = "Feb 22, 2020"
 #   + [PT] temp file prefix now contains a random string
+#
+set version   = "1.21";  set rev_dat   = "March 10, 2020"
+#   + [PT] add in -ulay_range as opt
 #
 # ----------------------------------------------------------------
 
@@ -75,6 +78,9 @@ set Ny             = 1
 set mgap           = 1                   # gapsize (in px) bt montage slices
 set mcolor         = 'black'             # color of montage gap
 set cbar           = "Reds_and_Blues_Inv" # default colorbar; can adjust
+
+set umin           = "0%"
+set umax           = "120%"
 
 set refbox_add     = ( "-pass" "-pass" )
 
@@ -136,6 +142,14 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set mcolor = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
 
     # [PT: Dec 30, 2019] extra montage feature: cbar to use
     else if ( "$argv[$ac]" == "-cbar" ) then
@@ -283,7 +297,7 @@ if ( 0 ) then
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
     -olay  "${fout}"                        \
-    -ulay_range 0% 120%                     \
+    -ulay_range "${umin}" "${umax}"         \
     -func_range_perc_nz 33                  \
     -cbar "Reds_and_Blues_Inv"              \
     -set_subbricks 0 0 0                    \
@@ -305,7 +319,7 @@ endif
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
     -olay  "${fout}"                        \
-    -ulay_range 0% 120%                     \
+    -ulay_range "${umin}" "${umax}"         \
     -func_range_perc_nz 33                  \
     -cbar "${cbar}"                         \
     -set_subbricks 0 0 0                    \
@@ -370,6 +384,7 @@ COMMAND OPTIONS ~1~
 -montcolor
 -cbar
 -set_dicom_xyz
+-ulay_range
 -montx
 -monty
 -no_clean

@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Mar , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Swap ulay/olay in va2t (anat->ulay); clearer image, maybe.",
+   "Make template (if used) ulay in most other QC blocks.\n"
+},
+
 { 27, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "New opt '-warpscale' added; is a new opt in 3dQwarp, can be tweaked here now.",
    "Control flexibility of warps.  Right now testing different values.\n"
