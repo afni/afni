@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Mar , 2020 , PT , "3dReHo" , MINOR , TYPE_GENERAL,
+   "Alter output format if ROI neighborhood values of ReHo are calc'ed.",
+   "Make 2 col (ROI val; ReHo val). Output multiple text files, if nec, too.\n"
+},
+
 { 12, Mar , 2020 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_GENERAL,
    "This program has been deemed unnecessary.",
    "Thanks for the FS folks for discussions/clarifications on this.\n"
