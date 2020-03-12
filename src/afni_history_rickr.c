@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Mar, 2020, RCR, "SUMA_test_DrawingAreaWidget", MINOR, TYPE_NEW_PROG,
+   "test for a valid DrawingAreaWidgetClass pointer",
+   NULL
+ } ,
+
  { 12, Mar, 2020, RCR, "align_epi_anat.py", MICRO, TYPE_BUG_FIX,
    "account for lpc+zz when checking costs for -check_flip",
    "Thanks to R Kampe for noting the problem."
