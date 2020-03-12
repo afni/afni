@@ -1949,8 +1949,8 @@ class RegWrap:
    #      0.778644     0.410080    -0.108398     0.778821     0.989730    10.462562    -0.018096     0.882749     0.862151     0.221356    -0.009732     0.990268     0.522726     0.999801
 
    def get_cost(self, costfilename ,costfunction):
-      # lpc+ZZ evaluated at end of alignment as lpc
-      if costfunction == "lpc+ZZ" :
+      # lpc+ZZ (or lpc+zz) evaluated at end of alignment as lpc
+      if costfunction.lower() == "lpc+zz" :
           costfunction = "lpc"
 
       try:
@@ -1968,6 +1968,13 @@ class RegWrap:
          costfile.close()
          # make dictionary of names and costs
          costdict = dict(list(zip(costnamelist, costs)))
+
+         # be sure cost function is in the dictionary
+         if not costfunction in costnamelist:
+            print("** Error processing cost list file %s" % costfilename)
+            print("   cost '%s' not found in dict\n" \
+                  " : %s" % (costfunction, costdict))
+
          # get cost value from dictionary (error handling if it doesn't exist in list)
          costvalue = float(costdict[costfunction])
          return (costvalue)

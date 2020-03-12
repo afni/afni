@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Mar, 2020, RCR, "align_epi_anat.py", MICRO, TYPE_BUG_FIX,
+   "account for lpc+zz when checking costs for -check_flip",
+   "Thanks to R Kampe for noting the problem."
+ } ,
+
  { 11, Mar, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add details on why some help examples are not considered complete",
    "And corrected status of Example 11, changed to recommended.\n"
