@@ -177,6 +177,10 @@ SUMA_glxdino:SUMA_glxdino.c
 	$(RM) $@
 	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMA_LINK_LIB}
 
+SUMA_test_DrawingAreaWidget:SUMA_test_DrawingAreaWidget.c
+	$(RM) $@
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_test_DrawingAreaWidget.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMA_LINK_LIB}
+
 SUMA_paperplane:SUMA_paperplane.c
 	$(RM) $@
 	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_paperplane.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMA_LINK_LIB}
@@ -746,6 +750,7 @@ install:
 	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfMeasures ]; then mv SurfMeasures ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_test_DrawingAreaWidget ]; then mv SUMA_test_DrawingAreaWidget ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_paperplane ]; then mv SUMA_paperplane ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
@@ -802,6 +807,7 @@ packbins:
 	@if [ -f 3dSurf2Vol ]; then $(CP) -p 3dSurf2Vol SUMA_bin/; fi;
 	@if [ -f SurfMeasures ]; then $(CP) -p SurfMeasures SUMA_bin/; fi;
 	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
+	@if [ -f SUMA_test_DrawingAreaWidget ]; then $(CP) -p SUMA_test_DrawingAreaWidget SUMA_bin/; fi;
 	@if [ -f SUMA_paperplane ]; then $(CP) -p SUMA_paperplane SUMA_bin/; fi;
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
@@ -848,4 +854,4 @@ standalones: ${SUMA_EXECS}
 
 anew: clean ${SUMALIB} mainobj suma standalones  install 
 
-testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps
+testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps SUMA_test_DrawingAreaWidget
