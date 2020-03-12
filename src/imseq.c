@@ -1555,6 +1555,7 @@ if( PRINT_TRACING ){
                             XmNleftAttachment , XmATTACH_OPPOSITE_WIDGET ,
                             XmNleftWidget , wtemp ,
                             XmNleftOffset , 7 ,
+                            XmNrecomputeSize , True ,
                          NULL ) ;
    wtemp = newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->rinfo_sep ;
 

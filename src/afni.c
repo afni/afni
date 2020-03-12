@@ -7441,7 +7441,7 @@ void AFNI_set_rinfo_labels( Three_D_View *im3d )
    if( !IM3D_OPEN(im3d) ) return ;
 
    angle = THD_compute_oblique_angle(im3d->anat_now->daxes->ijk_to_dicom_real,0) ;
-   label = (angle < 1.0f) ? " Card" : "Obliq" ;
+   label = (angle < 1.0f) ? "Card" : "Obliq" ;
 
    ssss = im3d->s123 ;
    if( ssss != NULL && ISQ_REALZ(ssss) )
