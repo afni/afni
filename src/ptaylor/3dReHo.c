@@ -19,6 +19,10 @@
                          -> now it does
    + updated, May, 2017: added boxes as a shape for ReHoing
    + updated, May, 2017: bug fix in checksum to find null time series
+   + updated, Mar, 2020: change format of output *.vals and *.chi files,
+                         if the user has input "-in_rois ...".  Will now
+                         be 2 cols instead of 1:
+                            ROI_label ReHo_val
 */
 
 
@@ -136,14 +140,17 @@ void usage_ReHo(int detail)
 "\n"
 "    -in_rois INROIS :can input a set of ROIs, each labelled with distinct\n"
 "                     integers. ReHo will be calculated per ROI. The output\n"
-"                     will be similar to the format of 3dROIstats: one row\n"
-"                     of numbers per INROIS subbrick, and the number of \n"
-"                     columns determined by the number of ROIs per subbrick\n"
-"                     (but only numbers are output). The output of this is\n"
-"                     in a file called PREFIX_ROI_reho.vals, and if\n"
-"                     `-chi_sq' values are being output, then those for the\n"
-"                     ROI values will be output in an analogously formatted\n"
-"                     file called PREFIX_ROI_reho.chi.\n"
+"                     for this info is in a file called PREFIX_ROI_reho.vals\n"
+"                     (or PREFIX_ROI_reho_000.vals, PREFIX_ROI_reho_001.vals,\n"
+"                     etc. if the INROIS has >1 subbrick); if `-chi_sq'\n"
+"                     values are being output, then those values for the\n"
+"                     ROIs will be output in an analogously formatted\n"
+"                     file called PREFIX_ROI_reho.chi (with similar\n"
+"                     zeropadded numbering for multibrick input).\n"
+"                     As of March, text format in the *.vals and *.chi files\n"
+"                     has changed: it will be 2 columns of numbers per file,\n"
+"                     with the first column being the ROI (integer) value\n"
+"                     and the second column being the ReHo or Chi-sq value.\n"
 "                     Voxelwise ReHo will still be calculated and output.\n"
 "\n"
 "  + OUTPUT: \n"
@@ -681,6 +688,8 @@ int main(int argc, char *argv[]) {
     for(i=0 ; i<HAVE_ROIS ; i++) 
       for( j=0 ; j<NROI_REF[i] ; j++ ) {
         ndof[0]=ROI_COUNT[i][j];
+        //printf("ROILABEL [ndof]: %d   %d\n", 
+        //ROI_LABELS_REF[i][j+1], ndof[0]);
         ROI_KW[i][j] = ReHoIt(ROI_LISTS[i][j],INDEX,Nties,Dim,
                               ndof);
         ROI_chisq[i][j] = ndof[0]*(Dim[3]-1)* ROI_KW[i][j];
@@ -718,33 +727,45 @@ int main(int argc, char *argv[]) {
   THD_write_3dim_dataset(NULL, NULL, outsetREHO, True);
 
   if(HAVE_ROIS>0) {
-    sprintf(out_rois,"%s_ROI_reho.vals", prefix); 
-    if( (fout1 = fopen(out_rois, "w")) == NULL) {
-      fprintf(stderr, "Error opening file %s.",out_rois);
-      exit(19);
-    }
-    for(i=0 ; i<HAVE_ROIS ; i++) {
-      for( j=0 ; j<NROI_REF[i] ; j++ ) 
-        fprintf(fout1,"%.4f\t",ROI_KW[i][j]);
-      fprintf(fout1,"\n");
-    }
-    fclose(fout1);    
+     for(i=0 ; i<HAVE_ROIS ; i++) {
+        if ( HAVE_ROIS == 1 ) 
+           sprintf(out_rois,"%s_ROI_reho.vals", prefix); 
+        else
+           sprintf(out_rois,"%s_ROI_reho_%03d.vals", prefix, i); 
+        if( (fout1 = fopen(out_rois, "w")) == NULL) {
+           fprintf(stderr, "Error opening file %s.",out_rois);
+           exit(19);
+        }
+        fprintf(fout1,"%10s     %10s\n", "# ROI", "ReHo_val");
 
-    if(CHI_ON){
-      sprintf(out_rois,"%s_ROI_reho.chi", prefix); 
-      if( (fout1 = fopen(out_rois, "w")) == NULL) {
-        fprintf(stderr, "Error opening file %s.",out_rois);
-        exit(19);
-      }
-      for(i=0 ; i<HAVE_ROIS ; i++) {
         for( j=0 ; j<NROI_REF[i] ; j++ ) 
-          fprintf(fout1,"%.4f\t",ROI_chisq[i][j]);
-        fprintf(fout1,"\n");
-      }
-      fclose(fout1);    
-    }
-  }
+           fprintf(fout1,"%10d     %10.4f\n", 
+                   ROI_LABELS_REF[i][j+1], 
+                   ROI_KW[i][j]);
+        fclose(fout1);    
+     }
 
+     if(CHI_ON){
+        for(i=0 ; i<HAVE_ROIS ; i++) {
+           if ( HAVE_ROIS == 1 ) 
+              sprintf(out_rois,"%s_ROI_reho.chi", prefix); 
+           else
+              sprintf(out_rois,"%s_ROI_reho_%03d.chi", prefix, i); 
+           if( (fout1 = fopen(out_rois, "w")) == NULL) {
+              fprintf(stderr, "Error opening file %s.",out_rois);
+              exit(19);
+           }
+           fprintf(fout1,"%10s     %10s\n", "# ROI", "ReHo_chi");
+           
+           for( j=0 ; j<NROI_REF[i] ; j++ ) 
+              fprintf(fout1,"%10d     %10.4f\n", 
+                      ROI_LABELS_REF[i][j+1], 
+                      ROI_chisq[i][j]);
+           fclose(fout1);    
+        }
+     }
+  }
+  
   INFO_message("ReHo (Kendall's W) calculated.");
   if(CHI_ON)
     INFO_message("Friedman chi-sq of W calculated (%d deg of freedom per vox)",
