@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Mar , 2020 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_GENERAL,
+   "This program has been deemed unnecessary.",
+   "Thanks for the FS folks for discussions/clarifications on this.\n"
+},
+
 { 12, Mar , 2020 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
    "vstat image was generated even if 'surf' block was used in AP.",
    "Since stats_dset in this case was *.niml.dset, no image should be made.\n"
