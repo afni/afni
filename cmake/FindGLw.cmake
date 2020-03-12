@@ -28,14 +28,12 @@ find_package(PkgConfig QUIET)
 
 pkg_check_modules(PC_GLW QUIET glw)
 
-# message("!!! FOUND DIRS ${PC_GLW_INCLUDE_DIRS}") Look for the header file.
 find_path(
   GLW_INCLUDE_DIR
   NAMES GL/GLwDrawA.h
   HINTS ${PC_GLW_INCLUDE_DIRS}
 )
-# message("!!! FOUND DIRS2 ${GLW_INCLUDE_DIR}  CMAKE Setting
-# BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ")
+# message("!!! FOUND DIRS2 ${GLW_INCLUDE_DIR}")
 
 # Look for the library.
 find_library(
@@ -67,9 +65,21 @@ if(GLW_INCLUDE_DIR AND EXISTS "${GLW_INCLUDE_DIR}/GL/GLwDrawA.h")
   # message("!!!!! Found GLw version ${GLW_VERSION_STRING}")
 endif()
 
+include(CheckSymbolDefined)
+list(APPEND CMAKE_REQUIRED_LIBRARIES ${GLW_LIBRARY})
+list(APPEND CMAKE_REQUIRED_INCLUDES ${GLW_INCLUDE_DIR})
+list(APPEND CMAKE_REQUIRED_INCLUDES ${X11_INCLUDE_DIR})
+check_symbol_defined(
+  glwDrawingAreaWidgetClass
+   "X11/IntrinsicP.h;X11/StringDefs.h;GL/GLwDrawA.h" 
+   WIDGET_CLASS_IS_GLOBAL)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  GLw REQUIRED_VARS GLW_LIBRARY GLW_INCLUDE_DIR VERSION_VAR GLW_VERSION_STRING
+  GLw
+  REQUIRED_VARS 
+    GLW_LIBRARY GLW_INCLUDE_DIR WIDGET_CLASS_IS_GLOBAL
+  VERSION_VAR 
+    GLW_VERSION_STRING 
 )
 
 # Copy the results to the output variables and target.
