@@ -1544,6 +1544,45 @@ if( PRINT_TRACING ){
 
      wtemp = newseq->crop_drag_pb ;
 
+   /*-- Label for other info at right [11 Mar 2020] --*/
+
+   newseq->rinfo_sep = XtVaCreateManagedWidget(
+                         "imseq" , xmSeparatorWidgetClass , newseq->wform ,
+                            XmNseparatorType , XmSINGLE_LINE ,
+                            EDGING_RIG   , XmATTACH_FORM ,
+                            LEADING_RIG  , XmATTACH_WIDGET ,
+                            LEADING_WIDGET_RIG , wtemp ,
+                            XmNleftAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                            XmNleftWidget , wtemp ,
+                            XmNleftOffset , 7 ,
+                            XmNrecomputeSize , True ,
+                         NULL ) ;
+   wtemp = newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->rinfo_sep ;
+
+   newseq->onoff_widgets[(newseq->onoff_num)++] =
+   newseq->rinfo = XtVaCreateManagedWidget(
+                     "font7" , xmLabelWidgetClass , newseq->wform ,
+                       EDGING_RIG   , XmATTACH_FORM ,
+                       LEADING_RIG  , XmATTACH_WIDGET ,
+                       LEADING_WIDGET_RIG , wtemp ,
+                       XmNinitialResourcesPersistent , False ,
+                     NULL ) ;
+   BLACK_AND_WHITE_WIDGET(newseq->rinfo) ;
+   strcpy(newseq->rinfo_label,"OK") ;
+   MCW_register_hint( newseq->rinfo ,
+                      "Dataset axes: Card=parallel to LR-AP-IS; Obliq=not parallel" ) ;
+   MCW_register_help( newseq->rinfo ,
+                      " \n"
+                      "This label shows the underlay dataset axes\n"
+                      "orientation with respect to anatomical\n"
+                      "xyz axis (L-R, A-P, I-S):\n"
+                      "  Card = dataset parallel with anatomical xyz\n"
+                      " Obliq = dataset NOT parallel\n"
+                      "         in which case the default AFNI image\n"
+                      "         viewers won't show the underlay\n"
+                      "         slices in the 'standard' cut planes.\n " ) ;
+   wtemp = newseq->rinfo ;
+
    /* 18 Jul 2003: toggle button for pen (drawing mode) */
 
    { char *lbl = "pen" ;
@@ -5680,6 +5719,7 @@ ENTRY("ISQ_draw_winfo") ;
      strcpy(seq->im_label,buf) ;
    }
 
+   MCW_set_widget_label( seq->rinfo , seq->rinfo_label ) ;
    EXRETURN ;
 }
 
@@ -7739,6 +7779,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_winfosides      (char **) sets the winfo_sides text
 *    isqDR_winfoprefix     (char *) set the winfo_prefix text
 
+*    isqDR_rinfolabel      (char *) set the rinfo label [11 Mar 2020]
+
 *    isqDR_getoptions      (ISQ_options *) to get the current options
 
 *    isqDR_setmontage      (int *) sets the montage parameters
@@ -8081,6 +8123,7 @@ static unsigned char record_bits[] = {
          ISQ_remove_widget( seq , seq->arrowpad->wform ) ;
          ISQ_remove_widget( seq , seq->wbar ) ;
          ISQ_remove_widget( seq , seq->winfo ) ;
+         ISQ_remove_widget( seq , seq->rinfo ) ;
 
          /* change to Save:bkg */
 
@@ -8403,6 +8446,17 @@ static unsigned char record_bits[] = {
         MCW_set_widget_label( seq->arrowpad->wbut[4] , lab ) ;
         seq->im_label[0] = '\0' ;  /* will force redraw */
         ISQ_draw_winfo( seq ) ;
+        RETURN( True );
+      }
+
+      /*------- rinfo label text [11 Mar 2020] -------*/
+
+      case isqDR_rinfolabel:{
+        char *pf=(char *)drive_data  ;
+        if( pf == NULL || *pf == '\0' ) pf = "OK" ;
+        strncpy( seq->rinfo_label , pf , 6 ) ;
+        seq->rinfo_label[6] = '\0' ;
+        MCW_set_widget_label( seq->rinfo , seq->rinfo_label ) ;
         RETURN( True );
       }
 

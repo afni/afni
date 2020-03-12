@@ -113,8 +113,19 @@ auth = 'PA Taylor'
 #ver = '3.32' ; date = 'Feb 21, 2020' 
 # [PT] fix minor bug in case of: 'basic' html with no outlier-based censoring
 #
-ver = '3.33' ; date = 'Feb 26, 2020' 
+#ver = '3.33' ; date = 'Feb 26, 2020' 
 # [PT] fix minor bug in case of: 'pythonic' html with no censoring at all. Sigh.
+#
+#ver = '3.4' ; date = 'March 11, 2020' 
+# [PT] change way template/final_anat dsets are proc'ed/used.
+#    + new top level section to get template/anat_final properties
+#    + va2t: now underlay anat, and use template for edges
+#    + vstat: now underlay template (if there), instead of anat_final
+#    + regr: use template as ulay (if there), instead of anat_final
+#
+ver = '3.41' ; date = 'March 12, 2020' 
+# [PT] no vstat if 'surf' block was used in AP (-> stats dset is
+#      *.niml.dset)
 #
 #########################################################################
 
@@ -297,6 +308,12 @@ def check_dep(D, lcheck):
         # NULL value, NO_STATS, and that is reflected here
         elif x == "stats_dset" :
             if D[x] == "NO_STATS" :
+                HAS_ALL = 0
+                break
+
+            # also need to consider case that stats is on surface; at
+            # the moment, won't have any QC imaging for this scenario
+            elif D[x][-10:] == ".niml.dset" :
                 HAS_ALL = 0
                 break
 
@@ -904,6 +921,68 @@ def apqc_censor_info( ap_ssdict, run_style ):
 
     lout  = [comm, pre, cmd0, cmd1, cmd2, cmd3]
     return '\n\n'.join(lout)
+
+# ---------
+# ---------
+
+def apqc_find_main_dset( ap_ssdict, all_uvars ):
+
+    HAVE_MAIN = 0
+
+    comm  = '''Find the main dset, mostly for ulay functionality, || in 
+    descending order of preference: || template, anat_final,
+    vr_base.'''
+
+    ldep      = ['template']
+    ldep_alt1 = ['final_anat']
+    ldep_alt2 = ['vr_base_dset']
+    if check_dep(ap_ssdict, ldep) :
+        HAVE_MAIN = 1
+        pre = '''# try to locate the template as main dset
+        set btemp      = `basename ${template}`
+        set templ_path = `@FindAfniDsetPath ${template}`
+        ~~
+        if ( ${#templ_path} ) then
+        ~~~~set main_dset = "${templ_path}/${btemp}"
+        ~~~~echo "*+ Found main dset (template):  ${main_dset}"
+        else
+        ~~~~echo "** ERROR: Cannot find template, though one was specified."
+        ~~~~echo "   Please put the template in a findable spot, and try again."
+        ~~~~exit 1
+        endif
+        '''
+    elif check_dep(ap_ssdict, ldep_alt1) :
+        HAVE_MAIN = 1
+        pre = '''# use anat_final as main dset
+        set main_dset = "${final_anat}"
+        '''
+    elif check_dep(ap_ssdict, ldep_alt2) :
+        HAVE_MAIN = 1
+        pre = '''# use volreg ref vol as main dset
+        set main_dset = "${vr_base_dset}"
+        '''
+    else:
+        pre = '''
+        # no main dset (not template, anat_final nor vr_base)
+        '''
+
+    if HAVE_MAIN :
+        pre2 = '''
+        set main_dset_sp = `3dinfo -space ${main_dset}`
+        '''
+    else:
+        pre2 = ""
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    pre2  = commandize( pre2, cmdindent=0, 
+                        ALIGNASSIGN=True, padpost=2 )
+
+    lout = [comm, pre, pre2]
+    return '\n\n'.join(lout)
+
+
 
 # ---------
 
@@ -1764,7 +1843,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 # ----------------------------------------------------------------------
 
 # ['final_anat', 'template']
-def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, tspace=None ):
+def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -1772,22 +1851,22 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, tspace=None ):
     (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
     follow ventricles and gyral patterns'''
 
+    # [PT: Mar 11, 2020] now change to have final anat as *ulay* and
+    # template as *olay*: makes more sense to view anat dset and just
+    # outlines of templ, I think
     pre = '''
     set opref = {}
     set focus_box = {}
-    set ulay_name = `3dinfo -prefix ${{templ_vol}}`
-    set olay_name = `3dinfo -prefix ${{final_anat}}`
+    set ulay_name = `3dinfo -prefix ${{final_anat}}`
+    set olay_name = `3dinfo -prefix ${{main_dset}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     '''.format( opref, focusbox )
 
-    tsp = ''
-    if tspace :
-        tsp   = ''', {} space'''.format(tspace)
-    ttext = '''"ulay: ${{ulay_name}} (template{})" ,, '''.format(tsp)
-    ttext+= '''"olay: ${olay_name} (anat edges)"'''
+    ttext = '''"ulay: ${ulay_name} (anat)" ,, '''
+    ttext+= '''"olay: ${olay_name} (template edges, ${main_dset_sp} space)"'''
 
 
     jsontxt = '''
@@ -1836,9 +1915,9 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, tspace=None ):
     # templates could be reference template 
     cmd = '''
     @djunct_edgy_align_check
-    -ulay    ${templ_vol}
+    -ulay    ${final_anat}
     -box_focus_slices ${focus_box}
-    -olay    ${final_anat}
+    -olay    ${main_dset}
     -prefix  ${odir_img}/${opref}
     '''
 
@@ -2368,7 +2447,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     -thr_olay ${{thr_thresh}}    
     -olay_alpha Yes
     -olay_boxed Yes
-    -set_subbricks -1 ${{olaybrick}} ${{thrbrick}}
+    -set_subbricks 0 ${{olaybrick}} ${{thrbrick}}
     -opacity 9  
     -pbar_saveim   "${{opbarrt}}.jpg"
     -pbar_comm_range "{}"

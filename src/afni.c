@@ -7429,6 +7429,35 @@ ENTRY("AFNI_time_index_CB") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------------*/
+/* Set rinfo label in an image viewer */
+
+void AFNI_set_rinfo_labels( Three_D_View *im3d )
+{
+   float angle ;
+   char *label ;
+   MCW_imseq   *ssss ;
+
+   if( !IM3D_OPEN(im3d) ) return ;
+
+   angle = THD_compute_oblique_angle(im3d->anat_now->daxes->ijk_to_dicom_real,0) ;
+   label = (angle < 1.0f) ? "Card" : "Obliq" ;
+
+   ssss = im3d->s123 ;
+   if( ssss != NULL && ISQ_REALZ(ssss) )
+     drive_MCW_imseq( ssss , isqDR_rinfolabel , label ) ;
+
+   ssss = im3d->s231 ;
+   if( ssss != NULL && ISQ_REALZ(ssss) )
+     drive_MCW_imseq( ssss , isqDR_rinfolabel , label ) ;
+
+   ssss = im3d->s312 ;
+   if( ssss != NULL && ISQ_REALZ(ssss) )
+     drive_MCW_imseq( ssss , isqDR_rinfolabel , label ) ;
+
+   return ;
+}
+
 /*-------------------------------------------------------------------------
    Start a view (12-3, 23-1, or 31-2)
 ---------------------------------------------------------------------------*/
@@ -7473,7 +7502,7 @@ static char * AFNI_image_help =
 ;
 
 static char * AFNI_arrowpad_help =
-   "Click arrows to scroll crosshair position\n"
+   "THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_realClick arrows to scroll crosshair position\n"
    "Click button to open/close crosshair gap " ;
 
 static char * AFNI_arrowpad_hint[] = {
@@ -7654,6 +7683,7 @@ if( !AFNI_yesenv("TMONT") )
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
       drive_MCW_imseq( *snew , isqDR_allowmerger , NULL ) ;           /* 25 Aug 2014 */
+      AFNI_set_rinfo_labels( im3d ) ;                                 /* 11 Mar 2020 */
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
       /* 04 Nov 2003: or min-to-max on grayscaling? */
@@ -9768,6 +9798,7 @@ STATUS("turning markers on") ;
    /*----- set up for viewing -----*/
 
    AFNI_setup_viewing( im3d , True ) ;
+   AFNI_set_rinfo_labels( im3d ) ;      /* 11 Mar 2020 */
 
    /*-----------------------------------------------------*/
    /*----- reset viewpoint to same Dicom coordinates -----*/

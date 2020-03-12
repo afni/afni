@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Mar , 2020 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_GENERAL,
+   "This program has been deemed unnecessary.",
+   "Thanks for the FS folks for discussions/clarifications on this.\n"
+},
+
+{ 12, Mar , 2020 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "vstat image was generated even if 'surf' block was used in AP.",
+   "Since stats_dset in this case was *.niml.dset, no image should be made.\n"
+},
+
+{ 11, Mar , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Swap ulay/olay in va2t (anat->ulay); clearer image, maybe.",
+   "Make template (if used) ulay in most other QC blocks.\n"
+},
+
 { 27, Feb , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "New opt '-warpscale' added; is a new opt in 3dQwarp, can be tweaked here now.",
    "Control flexibility of warps.  Right now testing different values.\n"

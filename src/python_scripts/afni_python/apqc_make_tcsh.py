@@ -124,8 +124,25 @@ auth = 'PA Taylor'
 # [PT] new funcs for 'widely used' params
 #    + for censor and sundry info.  
 #
-ver = '3.31' ; date = 'Feb 17, 2020' 
+#ver = '3.31' ; date = 'Feb 17, 2020' 
 # [PT] further cleaned up (simplified?) a lot of the censoring info
+#
+#ver = '3.32' ; date = 'Feb 21, 2020' 
+# [PT] fix minor bug in case of: 'basic' html with no outlier-based censoring
+#
+#ver = '3.33' ; date = 'Feb 26, 2020' 
+# [PT] fix minor bug in case of: 'pythonic' html with no censoring at all. Sigh.
+#
+#ver = '3.4' ; date = 'March 11, 2020' 
+# [PT] change way template/final_anat dsets are proc'ed/used.
+#    + new top level section to get template/anat_final properties
+#    + va2t: now underlay anat, and use template for edges
+#    + vstat: now underlay template (if there), instead of anat_final
+#    + regr: use template as ulay (if there), instead of anat_final
+#
+ver = '3.41' ; date = 'March 12, 2020' 
+# [PT] no vstat if 'surf' block was used in AP (-> stats dset is
+#      *.niml.dset)
 #
 #########################################################################
 
@@ -190,12 +207,6 @@ if __name__ == "__main__":
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
 
-    # we will often want template space name, if it has one
-    if lat.check_dep(ap_ssdict, ['template']) :
-        template_space = lat.get_space_from_dset(ap_ssdict['template'])
-    else:
-        template_space = ''
-
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
 
@@ -250,6 +261,18 @@ if __name__ == "__main__":
     str_FULL+= ban
     str_FULL+= cmd
 
+    # ------------------------------------------------------------------
+
+    # Top level: find main dset, from descending order of template,
+    # anat_final, vr_dset
+
+    ban = lat.bannerize( 'Top level: find main dset',
+                                     padpost=1 )
+    cmd = lat.apqc_find_main_dset( ap_ssdict, all_uvars )
+
+    str_FULL+= ban
+    str_FULL+= cmd
+
     # --------------------------------------------------------------------
 
     # Top level: see if template can be found, *if* a template was used.
@@ -257,13 +280,13 @@ if __name__ == "__main__":
     # will be influenced by this-- if there *is* a template, then use its
     # box to define view slices; else, just try to "box in" the final anat.
 
-    ldep = ['template']
-    if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('Top level: find a template')
-        cmd      = lat.apqc_find_template( )
+#    ldep = ['template']
+#    if lat.check_dep(ap_ssdict, ldep) :
+#        ban      = lat.bannerize('Top level: find a template')
+#        cmd      = lat.apqc_find_template( )
 
-        str_FULL+= ban
-        str_FULL+= cmd
+#        str_FULL+= ban
+#        str_FULL+= cmd
 
     # --------------------------------------------------------------------
 
@@ -390,10 +413,7 @@ if __name__ == "__main__":
     ldep  = ['final_anat', 'final_epi_dset']
     ldep2 = ['template'] # secondary consideration
     if lat.check_dep(ap_ssdict, ldep) :
-        if lat.check_dep(ap_ssdict, ldep2) :
-            focusbox = '${templ_vol}'
-        else:
-            focusbox = '${final_anat}'
+        focusbox = '${main_dset}'
 
         ban      = lat.bannerize('EPI and anatomical alignment')
         obase    = 'qc_{:02d}'.format(idx) # will get appended to
@@ -410,12 +430,12 @@ if __name__ == "__main__":
 
     ldep = ['final_anat', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${templ_vol}'
+        focusbox = '${main_dset}'
 
         ban      = lat.bannerize('anatomical and template alignment')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
-                                            focusbox, tspace=template_space )
+                                            focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -436,11 +456,12 @@ if __name__ == "__main__":
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_VSTAT_TASK = 1
-        ulay = '${final_anat}'
-        if lat.check_dep(ap_ssdict, ldep2) :
-            focusbox = '${templ_vol}'
-        else:
-            focusbox = '${final_anat}'
+        #ulay = '${final_anat}'
+        # [PT: Mar 11, 2020] if the template exists, use *that* as ulay;
+        # otherwise, use anat final
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         DO_VSTAT_TASK = 1
         ulay     = '${vr_base_dset}'
@@ -497,11 +518,12 @@ if __name__ == "__main__":
 
         if lat.check_dep(ap_ssdict, ldep) :
             DO_VSTAT_SEED_REST = 1
-            ulay = '${final_anat}'
-            if lat.check_dep(ap_ssdict, ldep2) :
-                focusbox = '${templ_vol}'
-            else:
-                focusbox = '${final_anat}'
+            ulay = '${main_dset}'
+            focusbox = '${main_dset}'
+            #if lat.check_dep(ap_ssdict, ldep2) :
+            #    focusbox = '${templ_vol}'
+            #else:
+            #    focusbox = '${final_anat}'
 
         elif lat.check_dep(ap_ssdict, alt_ldep) :
             DO_VSTAT_SEED_REST = 1
@@ -724,11 +746,12 @@ if __name__ == "__main__":
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_REGR_CORR_ERRTS = 1
-        ulay = '${final_anat}'
-        if lat.check_dep(ap_ssdict, ldep2) :
-            focusbox = '${templ_vol}'
-        else:
-            focusbox = '${final_anat}'
+        ulay     = '${main_dset}' #'${final_anat}'
+        focusbox = '${main_dset}'
+        #if lat.check_dep(ap_ssdict, ldep2) :
+        #    focusbox = '${templ_vol}'
+        #else:
+        #    focusbox = '${final_anat}'
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         DO_REGR_CORR_ERRTS = 1
         ulay     = '${vr_base_dset}'
