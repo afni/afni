@@ -133,12 +133,16 @@ auth = 'PA Taylor'
 #ver = '3.33' ; date = 'Feb 26, 2020' 
 # [PT] fix minor bug in case of: 'pythonic' html with no censoring at all. Sigh.
 #
-ver = '3.4' ; date = 'March 11, 2020' 
+#ver = '3.4' ; date = 'March 11, 2020' 
 # [PT] change way template/final_anat dsets are proc'ed/used.
 #    + new top level section to get template/anat_final properties
 #    + va2t: now underlay anat, and use template for edges
 #    + vstat: now underlay template (if there), instead of anat_final
 #    + regr: use template as ulay (if there), instead of anat_final
+#
+ver = '3.41' ; date = 'March 12, 2020' 
+# [PT] no vstat if 'surf' block was used in AP (-> stats dset is
+#      *.niml.dset)
 #
 #########################################################################
 

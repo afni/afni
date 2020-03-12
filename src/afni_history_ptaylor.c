@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Mar , 2020 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "vstat image was generated even if 'surf' block was used in AP.",
+   "Since stats_dset in this case was *.niml.dset, no image should be made.\n"
+},
+
 { 11, Mar , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Swap ulay/olay in va2t (anat->ulay); clearer image, maybe.",
    "Make template (if used) ulay in most other QC blocks.\n"
