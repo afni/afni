@@ -1569,6 +1569,18 @@ if( PRINT_TRACING ){
                      NULL ) ;
    BLACK_AND_WHITE_WIDGET(newseq->rinfo) ;
    strcpy(newseq->rinfo_label,"OK") ;
+   MCW_register_hint( newseq->rinfo ,
+                      "Dataset axes: Card=parallel to LR-AP-IS; Obliq=not parallel" ) ;
+   MCW_register_help( newseq->rinfo ,
+                      " \n"
+                      "This label shows the underlay dataset axes\n"
+                      "orientation with respect to anatomical\n"
+                      "xyz axis (L-R, A-P, I-S):\n"
+                      "  Card = dataset parallel with anatomical xyz\n"
+                      " Obliq = dataset NOT parallel\n"
+                      "         in which case the default AFNI image\n"
+                      "         viewers won't show the underlay\n"
+                      "         slices in the 'standard' cut planes.\n " ) ;
    wtemp = newseq->rinfo ;
 
    /* 18 Jul 2003: toggle button for pen (drawing mode) */
