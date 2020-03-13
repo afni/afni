@@ -4,7 +4,7 @@
   * Wrapper functions to interpolate images in various ways.
   * Built on top of functions in mri_genalign_util (thus the GA_).
   * Could be optimized for various sub-cases, but is that
-    really worth the effort?
+    really worth the effort? We'll see.
 *********************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -50,7 +50,7 @@ ENTRY("mri_interp_scalar_to_floats_pointset") ;
      break ;
 
      default:
-       ERROR_message("unknown interp code = %d in mri_interp_to_same_pointset()",code) ;
+       ERROR_message("unknown interp code = %d in mri_interp_to_floats_pointset()",code) ;
 
    }
 
@@ -61,17 +61,17 @@ ENTRY("mri_interp_scalar_to_floats_pointset") ;
 
 /*---------------------------------------------------------------------------*/
 
-void mri_interp_to_same_pointset( MRI_IMAGE *fim,
-                                  int npp, float *ip, float *jp, float *kp,
-                                  int code, void *vv )
+void mri_interp_to_sametype_pointset( MRI_IMAGE *fim,
+                                      int npp, float *ip, float *jp, float *kp,
+                                      int code, void *vv )
 {
    register int ii ;
 
-ENTRY("mri_interp_to_same_pointset") ;
+ENTRY("mri_interp_to_sametype_pointset") ;
 
    if( fim == NULL || npp <= 0    ||
        ip  == NULL || jp  == NULL || kp == NULL || vv == NULL ){
-     ERROR_message("NULL inputs to mri_interp_to_same_pointset()") ;
+     ERROR_message("NULL inputs to mri_interp_to_sametype_pointset()") ;
      EXRETURN ;
    }
 
@@ -179,10 +179,51 @@ ENTRY("mri_interp_to_same_pointset") ;
      break ;
 
      default:
-       ERROR_message("unknown image kind = %d in  mri_interp_to_same_pointset()",fim->kind) ;
+       ERROR_message("unknown image kind = %d in  mri_interp_to_sametype_pointset()",fim->kind) ;
      break ;
 
    }
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_interp_to_floats_block( MRI_IMAGE *fim ,
+                                        mat44 ijk_to_ijk , int code ,
+                                        int ibot , int itop ,
+                                        int jbot , int jtop ,
+                                        int kbot , int ktop  )
+{
+   MRI_IMAGE *outim ; float *outar ;
+   int nxout, nyout, nzout, nxyz , ii,jj,kk,qq ;
+   float *ip , *jp , *kp ;
+
+ENTRY("mri_interp_to_floats_block") ;
+
+   if( fim == NULL || !ISVALID_MAT44(ijk_to_ijk) ||
+       ibot > itop || jbot > jtop || kbot > ktop   ) RETURN(NULL) ;
+
+   nxout = itop-ibot+1 ;
+   nyout = jtop-jbot+1 ;
+   nzout = ktop-kbot+1 ; nxyz = nxout * nyout * nzout ;
+
+   outim = mri_new_vol( nxout, nyout, nzout , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+
+   ip = (float *)malloc(sizeof(float)*nxyz) ;
+   jp = (float *)malloc(sizeof(float)*nxyz) ;
+   kp = (float *)malloc(sizeof(float)*nxyz) ;
+
+   for( qq=kk=kbot ; kk <= ktop ; kk++ ){
+    for( jj=jbot ; jj <= jtop ; jj++ ){
+     for( ii=ibot ; ii <= itop ; ii++,qq++ ){
+       MAT44_VEC( ijk_to_ijk , ii,jj,kk , ip[qq],jp[qq],kp[qq] ) ;
+   }}}
+
+   mri_interp_scalar_to_floats_pointset( fim, nxyz, ip,jp,kp, code, outar ) ;
+
+   free(kp); free(jp); free(ip) ;
+
+   RETURN(outim) ;
 }
