@@ -61,17 +61,17 @@ ENTRY("mri_interp_scalar_to_floats_pointset") ;
 
 /*---------------------------------------------------------------------------*/
 
-void mri_interp_to_sametype_pointset( MRI_IMAGE *fim,
-                                      int npp, float *ip, float *jp, float *kp,
-                                      int code, void *vv )
+void mri_interp_to_sametyp_pointset( MRI_IMAGE *fim,
+                                     int npp, float *ip, float *jp, float *kp,
+                                     int code, void *vv )
 {
    register int ii ;
 
-ENTRY("mri_interp_to_sametype_pointset") ;
+ENTRY("mri_interp_to_sametyp_pointset") ;
 
    if( fim == NULL || npp <= 0    ||
        ip  == NULL || jp  == NULL || kp == NULL || vv == NULL ){
-     ERROR_message("NULL inputs to mri_interp_to_sametype_pointset()") ;
+     ERROR_message("NULL inputs to mri_interp_to_sametyp_pointset()") ;
      EXRETURN ;
    }
 
@@ -168,7 +168,7 @@ ENTRY("mri_interp_to_sametype_pointset") ;
        ppar =  mri_complex_to_pair(fim) ;
        mri_interp_scalar_to_floats_pointset( IMARR_SUBIM(ppar,0) ,
                                              npp , ip,jp,kp , code, xx ) ;
-       mri_interp_scalar_to_floats_pointset( IMARR_SUBIM(ppar,0) ,
+       mri_interp_scalar_to_floats_pointset( IMARR_SUBIM(ppar,1) ,
                                              npp , ip,jp,kp , code, yy ) ;
        for( ii=0 ; ii < npp ; ii++ ){
          pval[ii].r = xx[ii] ;
@@ -178,8 +178,26 @@ ENTRY("mri_interp_to_sametype_pointset") ;
      }
      break ;
 
+     case MRI_fvect:{
+       MRI_IMARR *ppar ; int nff, kk,ii,qq ; float **ffar, *pval=(float *)vv ;
+       ppar = mri_fvect_to_imarr(fim) ;
+       nff  = IMARR_COUNT(ppar) ;
+       ffar = (float **)malloc(sizeof(float *)*nff) ;
+       for( kk=0 ; kk < nff ; kk++ ){
+         ffar[kk] = (float *)malloc(sizeof(float)*npp) ;
+         mri_interp_scalar_to_floats_pointset( IMARR_SUBIM(ppar,kk) ,
+                                               npp , ip,jp,kp , code, ffar[kk] ) ;
+       }
+       for( qq=ii=0 ; ii < npp ; ii++ ){
+         for( kk=0 ; kk < nff ; kk++ ) pval[qq++] = ffar[kk][ii] ;
+       }
+       for( kk=0 ; kk < nff ; kk++ ) free(ffar[kk]) ;
+       free(ffar) ;
+     }
+     break ;
+
      default:
-       ERROR_message("unknown image kind = %d in  mri_interp_to_sametype_pointset()",fim->kind) ;
+       ERROR_message("unknown image kind = %d in mri_interp_to_sametyp_pointset()",fim->kind) ;
      break ;
 
    }
@@ -222,6 +240,56 @@ ENTRY("mri_interp_to_floats_block") ;
    }}}
 
    mri_interp_scalar_to_floats_pointset( fim, nxyz, ip,jp,kp, code, outar ) ;
+
+   free(kp); free(jp); free(ip) ;
+
+   RETURN(outim) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_interp_to_vectyp_block( MRI_IMAGE *fim ,
+                                        mat44 ijk_to_ijk , int code ,
+                                        int ibot , int itop ,
+                                        int jbot , int jtop ,
+                                        int kbot , int ktop  )
+{
+   MRI_IMAGE *outim ; float *outar ;
+   int nxout, nyout, nzout, nxyz , ii,jj,kk,qq ;
+   float *ip , *jp , *kp ;
+
+ENTRY("mri_interp_to_vectyp_block") ;
+
+   if( fim == NULL || !ISVALID_MAT44(ijk_to_ijk) ||
+       ibot > itop || jbot > jtop || kbot > ktop   ) RETURN(NULL) ;
+
+   if( ! ISVECTIM(fim) ){
+     outim = mri_interp_to_floats_block( fim,ijk_to_ijk,code,ibot,itop,jbot,jtop,kbot,ktop) ;
+     RETURN(outim) ;
+   }
+
+   nxout = itop-ibot+1 ;
+   nyout = jtop-jbot+1 ;
+   nzout = ktop-kbot+1 ; nxyz = nxout * nyout * nzout ;
+
+   if( fim->kind == MRI_fvect ){
+     outim = mri_new_fvectim( nxout , nyout , nzout , fim->vdim ) ;
+   } else {
+     outim = mri_new_vol( nxout, nyout, nzout , fim->kind ) ;
+   }
+   outar = mri_data_pointer(outim) ;
+
+   ip = (float *)malloc(sizeof(float)*nxyz) ;
+   jp = (float *)malloc(sizeof(float)*nxyz) ;
+   kp = (float *)malloc(sizeof(float)*nxyz) ;
+
+   for( qq=kk=kbot ; kk <= ktop ; kk++ ){
+    for( jj=jbot ; jj <= jtop ; jj++ ){
+     for( ii=ibot ; ii <= itop ; ii++,qq++ ){
+       MAT44_VEC( ijk_to_ijk , ii,jj,kk , ip[qq],jp[qq],kp[qq] ) ;
+   }}}
+
+   mri_interp_to_sametyp_pointset( fim, nxyz, ip,jp,kp, code, outar ) ;
 
    free(kp); free(jp); free(ip) ;
 
