@@ -69,6 +69,14 @@
 #include "mri_dicom_hdr.h"
 #include "mri_dicom_elist.h"  /* for whining  [6 Mar 2019 rickr] */
 
+/* ---------------------------------------------------------------------- */
+/* begin: Siemens CSA header code                                         */
+
+/* names for structure population (in CSA header element 0x0029 1010 */
+static char * g_csa_search_names[] = {
+   "MosaicRefAcqTimes",
+};
+
 /* pass private(!) Siemens slice times back, if found 
  * nused : number of slice times read                    8 Apr 2011 [rickr] */
 typedef struct {
@@ -99,6 +107,9 @@ int mri_siemens_slice_times(int * nalloc, int * nused, float ** times)
    *times  = g_siemens_csa_info.slice_times.times;
    return 0;
 }
+
+/* end: Siemens CSA header code                                           */
+/* ---------------------------------------------------------------------- */
 
 /* Dimon needs to compile without libmri     18 May 2006 */
 /* (this allows removal of rickr/l_mri_dicom_hdr.c)      */

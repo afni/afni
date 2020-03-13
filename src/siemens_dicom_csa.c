@@ -314,26 +314,31 @@ static void clear_afni_csa_struct(void)
  *
  * see also, clear_afni_csa_struct()
  *
- * return 1 on any error, else 0
+ * return       1 : if tag of interest
+ *              0 : if not
+ *             -1 : on error
  * ----------------------------------------------------------------------
 */
 static int init_csa_info(afni_siemens_csa_info_t * csa_info,
                          siemens_csa_tag * ctag, int verb, int printed)
 {
+   int tag_of_interest = 0;
+
    if( !csa_info || !ctag || !ctag->name ) {
       fprintf(stderr,"** init_csa_info bad fields\n");
-      return 1;
+      return -1;
    }
 
    if ( !strcmp(ctag->name, "MosaicRefAcqTimes") ) {
       g_siemens_csa_info.slice_times.found = 1;
       csa_info->slice_times.nused = 0;  /* clear slice times */
+      tag_of_intrest = 1;
    }
 
    if( verb > 1 && ! printed )
       print_csa_tag(ctag, stderr);
 
-   return 0;
+   return tag_of_interest;
 }
 
 /* ----------------------------------------------------------------------
@@ -359,6 +364,7 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
    int                   posn, ctype, remain, nitem, iitem, ilen, ilenoff=-1;
    int                   little = little_endian();
    int                   printed=0; /* has CSA tag already been printed */
+   int                   is_sname=0; /* is current tag in g_csa_search_names */
 
    if( !str ) {
       if(verb > 1) fprintf(stderr,"** PACSAD: bad data pointer\n");
@@ -404,7 +410,7 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
       }
 
       /* check for any names of interest */
-      init_csa_info(&g_siemens_csa_info, ctag, verb, printed);
+      is_sname = init_csa_info(&g_siemens_csa_info, ctag, verb, printed);
 
       posn += sizeof(siemens_csa_tag);
 
@@ -421,6 +427,10 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
          citem = (siemens_csa_item *)(ucp+posn);
          if( ! little ) swap_csa_item(citem);
 
+         if( is_sname ) {
+            process_csa_search_name(ctag, citem,  ... rcr
+         }
+# if 0
          if ( name && !strcmp(ctag->name, name) ) {
 
             if(verb==3) print_csa_item(citem, ilenoff, data, len-posn, stderr);
@@ -432,20 +442,23 @@ static int process_csa_data(unsigned char * str, int len, int verb, int data,
                insert_slice_time(stime);
             else if (verb > 2) fprintf(stderr," <empty item>");
          }
+#endif
 
          if( data || verb > 3 )
             print_csa_item(citem, ilenoff, data, len-posn, stderr);
-
 
          posn += csa_item_size(citem, ilenoff);
          if( posn > len ) break;
       }
 
+if( verb > 1 ) fputc('\n', stderr);
+#if 0
       /* if we have processed our tag of interest, we're done */
       if ( name && !strcmp(ctag->name, name) ) {
          if( verb > 1 ) fputc('\n', stderr);
          if( verb < 5 ) return 0;  /* else print everything */
       }
+#endif
    }
 
    return 0;
@@ -481,13 +494,10 @@ static int afni_read_mosaic_csa_struct(PRV_ELEMENT_ITEM * elementItem)
    unsigned el_el = DCM_TAG_ELEMENT(elementItem->element.tag);
    int      el_len = elementItem->element.length;
    char     start_txt[] = "MosaicRefAcqTimes";
-   char     end_txt[]   = "AutoInlineImageFilterEnabled";
    afni_siemens_csa_info_t * CSA = & g_siemens_csa_info;  /* global struct */
 
    char * instr, * mstr;    /* input string and Mosaic string addr         */
-   char * s2;               /* second search string, posn of AutoInline... */
    char * pstr;             /* position pointer, for reading times         */
-   int    rem, rem2 = 0;    /* remainder counts                            */
    int    off, c, rv, diff; /* offset and counter vars                     */
    float  stime;            /* any read slice time                         */
 
@@ -508,21 +518,10 @@ static int afni_read_mosaic_csa_struct(PRV_ELEMENT_ITEM * elementItem)
    }
 
    off = mstr - instr;  /* offset of Mosaic string into field */
-   rem = el_len - off;  /* remaining length of field */
-
-   /* secondary remainder to be until any AutoInline... string */
-   s2 = findstr(mstr, end_txt, rem);
-   if( s2 ) rem2 = s2 - mstr;
-   else     rem2 = 0;
 
    if( g_MDH_verb > 1 )
-      fprintf(stderr, "== found %s in 0x0029 1010\n"
-              "   off = %d of %d bytes (rem %d, %d)\n",
-              start_txt, off, el_len, rem, rem2);
-
-   if( s2 ) rem = rem2;  /* after verbose, update remaining length */
-
-   if( rem <= 0 ) return 0;
+      fprintf(stderr, "== found %s in 0x0029 1010, off = %d of %d bytes\n",
+              start_txt, off, el_len);
 
    process_csa_data((unsigned char *)instr, el_len, g_MDH_verb,
                                             g_MDH_verb>3, start_txt);
