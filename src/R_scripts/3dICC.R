@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, Feb 23, 2020
+Version 0.1.0, Mar 13, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -553,6 +553,7 @@ runMME <- function(myData, dataframe, fe, re, nBrk, tag) {
       hlf <- length(myData)/2
       dataframe$eff <- myData[1:hlf]
       dataframe$vi  <- myData[(1+hlf):length(myData)]
+      dataframe <- dataframe[dataframe$vi != 0, ]  # remove those rows with 0 variance
       try(fm <- rma.mv(yi=eff, V=vi, mods=fe, random=re, data=dataframe, test='t'), tag<-1)  
       if(tag != 1) {    
          #myStat[1] <- fm$b
@@ -566,7 +567,7 @@ runMME <- function(myData, dataframe, fe, re, nBrk, tag) {
    }
    return(myStat)
 }
-# runMME(comArr[30,30,30,], lop$dataStr, lop$fe, lop$re, 2, lop$ME, 0)
+# runMME(comArr[30,30,30,], dataframe=lop$dataStr, fe=lop$fe, re=lop$re, nBrk=lop$NoBrick, tag=0)
 
 
 #################################################################################
@@ -761,6 +762,7 @@ if(any(!is.na(lop$vVars))) {
 if(is.na(lop$tStat)) require(lme4) else {
    require(metafor)
    inDataV <- unlist(mapply(function(x, y) ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), inData, inDataV, SIMPLIFY = FALSE))
+#   inDataV <- unlist(mapply(function(x, y) ifelse(abs(y)<tolL, 1e16, (x/y)^2), inData, inDataV, SIMPLIFY = FALSE))
    dim(inDataV) <- c(dimx, dimy, dimz, NoFile)
    comArr <- array(c(inData, inDataV), dim=c(dim(inData)[1:3], sum(dim(inData)[4], dim(inDataV)[4])))
 }
