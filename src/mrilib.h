@@ -236,13 +236,13 @@ static float MRI_TYPE_maxval[9] =
 
 /*! Force a float into a short. */
 
-#define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                    \
-                      : ((xx) >  32767.0) ? (short) 32767 : (short)rint(xx) )
+#define SHORTIZE(xx) (  ((xx) < -32767.0f) ? (short)-32767                    \
+                      : ((xx) >  32767.0f) ? (short) 32767 : (short)rint(xx) )
 
 /*! Force a float into a byte. */
 
-#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                      \
-                      : ((xx) > 255.0) ? (byte)255 : (byte)rintf(xx) )
+#define BYTEIZE(xx)  (  ((xx) <   0.0 ) ? (byte)0                             \
+                      : ((xx) > 255.0f) ? (byte)255 : (byte)rintf(xx) )
 
 /*! Determine if a MRI_TYPE is an integer type. */
 
@@ -1061,6 +1061,10 @@ extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
+
+extern MRI_IMAGE * mri_4to_rgba( MRI_IMAGE *rim , MRI_IMAGE *gim , MRI_IMAGE *bim , MRI_IMAGE *aim ) ;
+extern MRI_IMARR * mri_rgba_to_4float( MRI_IMAGE *oldim ) ;
+extern MRI_IMARR * mri_rgba_to_4byte( MRI_IMAGE *oldim ) ;
 
 extern void mri_sharpen3D_pos( MRI_IMAGE *im , float phi ) ; /* 13 Feb 2017 */
 
@@ -2252,11 +2256,11 @@ extern void RBF_set_verbosity( int ) ;
 extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
 
 /*----------------------------------------------------------------------------*/
-/** Test if a image is vector-valued (fvect, rgb, or complex) **/
+/** Test if a image is vector-valued (fvect, rgb, rgba, or complex) **/
 
 #undef  ISVECTIM
-#define ISVECTIM(tim) ((tim)->kind==MRI_fvect || (tim)->kind==MRI_rgb \
-                                              || (tim)->kind==MRI_complex)
+#define ISVECTIM(tim) ((tim)->kind==MRI_fvect || (tim)->kind==MRI_rgb ||   \
+                       (tim)->kind==MRI_rgba  || (tim)->kind==MRI_complex)
 
 /** Vectorize a call to an image producing function that takes as input
     1 float image and produces as output 1 float image.  To use this macro,
@@ -2279,6 +2283,7 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
        default:                                             break ;           \
        case MRI_fvect:   qxmpq = mri_fvect_to_imarr(inpp) ; break ;           \
        case MRI_rgb:     qxmpq = mri_rgb_to_3float (inpp) ; break ;           \
+       case MRI_rgba:    qxmpq = mri_rgba_to_4float (inpp); break ;           \
        case MRI_complex: qxmpq = mri_complex_to_pair(inpp); break ;           \
      }                                                                        \
      if( qxmpq == NULL ) break ;                                              \
@@ -2294,6 +2299,11 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
        case MRI_rgb:     (outp) = mri_3to_rgb(IMARR_SUBIM(qxmpq,0),           \
                                               IMARR_SUBIM(qxmpq,1),           \
                                               IMARR_SUBIM(qxmpq,2) ) ;        \
+                         break ;                                              \
+       case MRI_rgba:    (outp) = mri_4to_rgba(IMARR_SUBIM(qxmpq,0),          \
+                                               IMARR_SUBIM(qxmpq,1),          \
+                                               IMARR_SUBIM(qxmpq,2),          \
+                                               IMARR_SUBIM(qxmpq,3) ) ;       \
                          break ;                                              \
        case MRI_complex: (outp) = mri_pair_to_complex(IMARR_SUBIM(qxmpq,0),   \
                                                       IMARR_SUBIM(qxmpq,1) ); \
