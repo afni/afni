@@ -42,7 +42,7 @@ jobs:
             cd build
             cmake ..                                                           \
                 -GNinja                                                             \
-                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/clang_toolchainfile.cmake      \
+                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/macos_toolchainfile.cmake      \
                 -DUSE_SYSTEM_VOLPACK=OFF    \
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
