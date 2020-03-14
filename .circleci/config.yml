@@ -221,6 +221,7 @@ workflows:
       - macos_build:
           requires:
             - cache_src_and_data_repo
+            - test_cmake_build
           filters:
             branches:
               ignore: /doc\/.*/
@@ -229,7 +230,6 @@ workflows:
       - cmake_build:
           requires:
             - cache_src_and_data_repo
-            - macos_build
           filters:
             branches:
               ignore: /doc\/.*/
