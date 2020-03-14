@@ -28,7 +28,7 @@ jobs:
             brew cask install xquartz
             brew unlink python@2
             brew install  \
-              cmake ninja gcc pkgconfig  \
+              cmake ninja llvm pkgconfig  \
               jpeg gsl gts openmotif  netcdf libpng expat \
               freetype fontconfig gsl \
               netpbm git-annex 
