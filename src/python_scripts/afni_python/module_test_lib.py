@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: compatible
+# python3 status: started
 
 # ---------------------------------------------------------------------------
 # These are routines for checking whether libraries can be imported
@@ -38,12 +38,9 @@
 # todo:
 #
 # - fromlibs = { 'scipy': ['linalg', 'signal', 'stats'], 'fish': ['tuna'] }
-# - add to
+# - add to 
 
-import imp
-import os
-import sys
-
+import imp, os, sys
 IL = None
 
 # add 'R' if needed
@@ -59,7 +56,7 @@ alllibs.extend(guilibs)
 
 # ---------------------------------------------------------------------------
 # library failure message list (for select library packages)
-#
+# 
 # These install descriptions are old.  Just mention the libraries for now.
 #                                                       16 Sep 2016
 g_mesglist = [
@@ -161,7 +158,7 @@ def import_find_test_25(libname, details=1, verb=1):
             print("---------------------------------------------------------")
          print("** python module not found: %s" % libname)
          if mesg: print(mesg)
-
+            
       return None
 
    if verb>2: print("++ module '%s' found at %s" % (libname, pname))
@@ -321,3 +318,4 @@ def num_import_failures(liblist=[], details=1, verb=1):
       if not rlib: errs = errs + 1
 
    return errs
+

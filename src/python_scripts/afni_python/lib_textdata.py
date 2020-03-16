@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
-# python3 status: compatible
+# python3 status: started
 
 # lib_textdata.py : I/O utilities for 1D/timing/married data files
 
 # created 16 Aug, 2010 [rickr]
 
-import math
-import os
-import sys
+import sys, os, math
 
 def write_1D_file(data, filename, as_rows=0, space=' '):
     """data can be 1D or 2D array of floats, write one index per line
@@ -281,7 +279,7 @@ def process_one_data_line(line, verb=1):
 
 def split_token(tdata, seplist=[':','*',',']):
    """
-      like str.split(), but allow a list of separators, and return
+      like str.split(), but allow a list of separators, and return 
       the corresponding list of separators (length should be one less
       than the length of the value list) along with the list of elements,
       i.e. return [split values] [separators]
