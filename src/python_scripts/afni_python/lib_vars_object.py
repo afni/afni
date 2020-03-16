@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
-import sys, os
 import copy
+import os
+import sys
 
 # whine about execution as a main program
 if __name__ == '__main__':

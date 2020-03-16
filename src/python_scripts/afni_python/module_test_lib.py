@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # ---------------------------------------------------------------------------
 # These are routines for checking whether libraries can be imported

@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
-import os, sys, glob, operator, string, re, afni_base
+import glob
+import operator
+import os
+import re
+import string
+import sys
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']

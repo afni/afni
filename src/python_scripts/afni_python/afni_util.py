@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # afni_util.py : general utilities for python programs
 
@@ -8,12 +8,15 @@
 # no longer usable as a main: see afni_python_wrapper.py
 # ------------------------------------------------------
 
-import sys, os, math
-import afni_base as BASE
-import lib_textdata as TD
 import glob
+import math
+import os
 import pdb
 import re
+import sys
+
+from afni_python import afni_base as BASE
+from afni_python import lib_textdata as TD
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
