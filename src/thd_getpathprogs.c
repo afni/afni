@@ -1348,6 +1348,11 @@ char *web_prog_help_link(char *prog, int style)
    char *progname=NULL;
    static char weblinka[10][1024]={""}, *weblink;
    static int n;
+   /* point to the new AFNI program help page     16 Mar 2020 [rickr] */
+   const char * sphinx_help =
+      "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs";
+   const char * old_help =
+      "https://afni.nimh.nih.gov/pub/dist/doc/program_help";
    
    ++n; if (n>9) n = 0;
    weblink = (char *)weblinka[n]; weblink[0]='\0';
@@ -1356,13 +1361,11 @@ char *web_prog_help_link(char *prog, int style)
    
    if (!strcmp(prog,"ALL")) {
       if (style == 0) {
-         snprintf(weblink,1020*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
-               "all-of-them");
+         snprintf(weblink,1020*sizeof(char), "%s/%s.html", sphinx_help,
+               "main_toc");
       } else {
          /* Nothing yet, return old */
-         snprintf(weblink,1020*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+         snprintf(weblink,1020*sizeof(char), "%s/%s.html", old_help,
                "all-of-them");
       }
    } else {
@@ -1373,13 +1376,11 @@ char *web_prog_help_link(char *prog, int style)
       }
 
       if (style == 0) {
-         snprintf(weblink,1020*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+         snprintf(weblink,1020*sizeof(char), "%s/%s_sphx.html", sphinx_help,
                THD_trailname(progname,0));
       } else {
          /* Nothing yet, return old */
-         snprintf(weblink,1020*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+         snprintf(weblink,1020*sizeof(char), "%s/%s_sphx.html", sphinx_help,
                THD_trailname(progname,0));
       }
    }

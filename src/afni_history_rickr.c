@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Mar, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "point web help for program to sphinx tree",
+   NULL
+ } ,
+
  { 12, Mar, 2020, RCR, "SUMA_test_DrawingAreaWidget", MINOR, TYPE_NEW_PROG,
    "test for a valid DrawingAreaWidgetClass pointer",
    NULL

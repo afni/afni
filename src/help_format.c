@@ -19,7 +19,9 @@ static int   nwign = 0 ;
 static char **wign = NULL ;
 static int  *lwign = NULL ;
 
+/* old web help and new sphinx one    16 Mar 2020 [rickr] */
 #define WEB "/pub/dist/doc/program_help/"
+#define AFNISPHINX_WEB "/pub/dist/doc/htmldoc/programs/"
 
 static void qsort_intchar( int n , int *a , char **ia ) ; /* at end of file */
 
@@ -158,7 +160,8 @@ void complex_echo_line( char *buf )
         if( line_num <= pwsub[jj]+LINE_GAP || isalnum(cc) || cc == '_' || cc == '-' ){
           printf("%s",wsub[jj]) ;
         } else {
-          printf("<a href='%s%s.html'>%s</a>",WEB,wsub[jj],wsub[jj]) ;
+          printf("<a href='%s%s_sphx.html'>%s</a>",AFNISPHINX_WEB,
+                                                   wsub[jj],wsub[jj]) ;
           pwsub[jj] = line_num ;
         }
 
