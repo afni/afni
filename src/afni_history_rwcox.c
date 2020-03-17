@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAR , 2020 , RWC , "afni GUI" , MINOR , TYPE_NEW_OPT ,
+   "Modify font size options - hopefully easier now" ,
+   "1) Change meaning of 'plus' fonts to be bigger than before.\n"
+   "2) Change so that 'plus' twice on command line equals 'big'.\n"
+   "3) Add simpler options '-big' and '-plus' and '-minus'.\n"
+   "Combined, these should make it easier to do font size changes."
+ } ,
+
  { 11 , MAR , 2020 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add Card or Obliq notice to image viewers" ,
    NULL } ,
