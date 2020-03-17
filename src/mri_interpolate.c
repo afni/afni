@@ -295,3 +295,61 @@ ENTRY("mri_interp_to_vectyp_block") ;
 
    RETURN(outim) ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* Interpolate 1 point from each image, and return a 1D float array.
+   This function is meant to provide a time-series array from an
+   interpolated grid point, for use in the AFNI graph viewer.
+   It is rather brute force, but as computers are so fast these days .... */
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * imarr_interp_scalar_to_floats_onepoint(
+                    MRI_IMARR *imar,
+                    float iq , float jq , float kq , int code )
+{
+   MRI_IMAGE *inim, *fim, *outim ; int nim, kk ;
+   float *outar , vv[1] , ip,jp,kp ;
+
+ENTRY("imarr_interp_scalar_to_floats_onepoint") ;
+
+   if( imar == NULL || IMARR_COUNT(imar) < 1 ){
+     ERROR_message("NULL inputs to imarr_interp_scalar_to_floats_onepoint()") ;
+     RETURN(NULL) ;
+   }
+
+   nim = IMARR_COUNT(imar) ;
+   outim = mri_new( nim , 1 , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+   ip = iq ; jp = jq ; kp = kq ;
+
+   for( kk=0 ; kk < nim ; kk++ ){
+
+     inim = IMARR_SUBIM(imar,kk) ;
+     if( inim == NULL ) continue ;
+
+     /* convert to float? */
+     if( inim->kind != MRI_float ) inim = mri_to_float(fim) ;
+
+     switch( code ){
+       case MRI_NN:
+         GA_interp_NN     ( inim , 1,&ip,&jp,&kp , vv ) ;
+       break ;
+       case MRI_LINEAR:
+         GA_interp_linear ( inim , 1,&ip,&jp,&kp , vv ) ;
+       break ;
+       case MRI_CUBIC:
+         GA_interp_cubic  ( inim , 1,&ip,&jp,&kp , vv ) ;
+       break ;
+       case MRI_QUINTIC:
+         GA_interp_quintic( inim , 1,&ip,&jp,&kp , vv ) ;
+       break ;
+       case MRI_WSINC5:
+         GA_interp_wsinc5 ( inim , 1,&ip,&jp,&kp , vv ) ;
+       break ;
+     }
+     outar[kk] = vv[0] ;
+     if( inim != fim ) mri_free(inim) ;
+   }
+
+   RETURN(outim) ;
+}
