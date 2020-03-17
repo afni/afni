@@ -48,6 +48,9 @@ if __name__ == '__main__':
 #
 #   05 Feb 2020 [rickr]:
 #     - added -optlist_show_argv_array, which takes a parameter
+#
+#   16 Mar 2020 [rickr]:
+#     - added apsearch options: -hweb, -h_web
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -432,6 +435,17 @@ class OptionList:
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             cmd = 'apsearch -view_prog_help %s' % prog
+            if self.verb>1: print('++ optlist: applying %s via: %s'%(oname,cmd))
+            BASE.simple_shell_exec(cmd)
+            sys.exit(0)
+
+        if   '-hweb'  in argv: oname = '-hweb'
+        elif '-h_web' in argv: oname = '-h_web'
+        else:                  oname = ''
+        if oname != '':
+            ind = argv.index(oname)
+            prog = os.path.basename(argv[0])
+            cmd = 'apsearch -web_prog_help %s' % prog
             if self.verb>1: print('++ optlist: applying %s via: %s'%(oname,cmd))
             BASE.simple_shell_exec(cmd)
             sys.exit(0)

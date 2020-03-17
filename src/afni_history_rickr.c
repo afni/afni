@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 12, Mar, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "point web help for program to sphinx tree",
-   NULL
+   "Also, added -hweb/-h_web for python progs that use option_list.py."
  } ,
 
  { 12, Mar, 2020, RCR, "SUMA_test_DrawingAreaWidget", MINOR, TYPE_NEW_PROG,
