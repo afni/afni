@@ -10,7 +10,7 @@
 # something like the following:
 #
 #       import sys
-#       import module_test_lib
+#       from afnipy import module_test_lib
 #       g_testlibs = ['numpy', 'wx', 'matplotlib', 'scipy']
 #       if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
 #

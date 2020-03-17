@@ -46,11 +46,11 @@ import os
 import sys
 import glob
 import json
-import lib_apqc_html       as lah
-import lib_apqc_html_helps as lahh
-import lib_apqc_html_css   as lahc
-import lib_apqc_tcsh       as lat
-import lib_apqc_io         as laio
+from afnipy import lib_apqc_html       as lah
+from afnipy import lib_apqc_html_helps as lahh
+from afnipy import lib_apqc_html_css   as lahc
+from afnipy import lib_apqc_tcsh       as lat
+from afnipy import lib_apqc_io         as laio
 
 # ------------------------------------------------------------------------
 

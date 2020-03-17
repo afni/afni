@@ -13,8 +13,8 @@
 ###########################################################################
 
 
-import lib_fat_funcs as GR
-import lib_fat_Rfactor as FR
+from afnipy import lib_fat_funcs as GR
+from afnipy import lib_fat_Rfactor as FR
 from numpy import set_printoptions
 import getopt, sys 
 import numpy as np

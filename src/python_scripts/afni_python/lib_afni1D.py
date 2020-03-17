@@ -8,7 +8,7 @@ from __future__ import print_function
 
 
 import os, sys
-import module_test_lib
+from afnipy import module_test_lib
 g_testlibs = ['math', 'copy']
 if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
    
@@ -17,9 +17,9 @@ if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
 import math
 import copy
 
-import afni_util as UTIL
-import afni_base as BASE
-import lib_textdata as TD
+from afnipy import afni_util as UTIL
+from afnipy import afni_base as BASE
+from afnipy import lib_textdata as TD
 
 MTYPE_NONE = 0   # no modulation        (these work as a bit mask)
 MTYPE_AMP  = 1   # amplitude modulation
@@ -1517,7 +1517,7 @@ class Afni1D:
 
       try:
          # try this out, it is separate, so make_random_timing need not import
-         import lib_vars_object as VO
+         from afnipy import lib_vars_object as VO
          self.VO = VO
          cobj = self.VO.VarsObject()
          cobj.whined = 0
@@ -4543,7 +4543,7 @@ class AfniData(object):
       return mstr
 
 def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
-   import lib_timing as LT
+   from afnipy import lib_timing as LT
 
    nad = len(adlist)
    if nad == 0:

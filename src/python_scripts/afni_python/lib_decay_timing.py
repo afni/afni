@@ -3,14 +3,14 @@
 # python3 status: working
 
 import sys
-# import module_test_lib
+# from afnipy import module_test_lib
 # g_testlibs = ['sys', 'math']
 # if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
    
 # import libraries
 import math
-# import afni_util as UTIL
-# import lib_afni1D as LD
+# from afnipy import afni_util as UTIL
+# from afnipy import lib_afni1D as LD
 
 def decay_mean(a,b):
    """integral of xe^-x on [a,b] = (a+1)e^-a - (b+1)e^-b
@@ -340,7 +340,7 @@ def show_times_PDF(L,N,nbin, y0=0):
 
 def plot_pdf_from_file(fname, nbin, scale=1, L=0):
   
-   import lib_textdata as TD
+   from afnipy import lib_textdata as TD
    data = TD.read_1D_file(fname)[0]
    data.sort()
    show_val_bins(data, nbin, scale=scale, L=L)

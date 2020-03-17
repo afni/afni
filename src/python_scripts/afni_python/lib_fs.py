@@ -13,7 +13,7 @@ ver='3.0' ; date='March 12, 2020'
 ###############################################################################
 
 import sys, os
-import afni_base as BASE
+from afnipy import afni_base as BASE
 
 ddefs = {}
 

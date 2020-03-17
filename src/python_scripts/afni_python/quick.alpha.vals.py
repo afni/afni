@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
-import lib_afni1D as LAD
+from afnipy import lib_afni1D as LAD
 
 # run as PROG niters sizefile
 

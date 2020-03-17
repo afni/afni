@@ -12,10 +12,10 @@ if 0 :  # for testing, might add the current dir and ~/abin to the PATH
 import gc, math
 
 # AFNI libraries
-import option_list as OL
-import lib_afni1D as LAD
-import afni_util as UTIL
-import afni_base as BASE
+from afnipy import option_list as OL
+from afnipy import lib_afni1D as LAD
+from afnipy import afni_util as UTIL
+from afnipy import afni_base as BASE
 
 # ----------------------------------------------------------------------
 # globals

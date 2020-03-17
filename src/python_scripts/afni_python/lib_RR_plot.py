@@ -5,7 +5,7 @@
 import sys, os
 
 # verify system libraries
-import module_test_lib
+from afnipy import module_test_lib
 g_testlibs = ['gc', 'numpy', 'wx', 'matplotlib']
 if module_test_lib.num_import_failures(g_testlibs,details=0):
    print """
@@ -35,7 +35,7 @@ from matplotlib.figure import Figure
 
 from matplotlib.ticker import FormatStrFormatter
 
-import afni_util as UTIL
+from afnipy import afni_util as UTIL
 
 # ======================================================================
 # general plotting routine:

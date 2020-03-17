@@ -9,8 +9,8 @@
 # ------------------------------------------------------
 
 import sys, os, math
-import afni_base as BASE
-import lib_textdata as TD
+from afnipy import afni_base as BASE
+from afnipy import lib_textdata as TD
 import glob
 import pdb
 import re

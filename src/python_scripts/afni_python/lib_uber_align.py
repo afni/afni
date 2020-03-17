@@ -6,10 +6,10 @@ import sys, os
 from time import asctime
 import glob
 
-import afni_base as BASE
-import afni_util as UTIL
-import lib_subjects as SUBJ
-import lib_vars_object as VO
+from afnipy import afni_base as BASE
+from afnipy import afni_util as UTIL
+from afnipy import lib_subjects as SUBJ
+from afnipy import lib_vars_object as VO
 
 DEF_UBER_DIR = 'uber_results'        # top directory for output
 DEF_TOP_DIR  = 'tool_results'     # top subject dir under uber_results

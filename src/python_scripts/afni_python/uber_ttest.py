@@ -7,16 +7,16 @@
 import sys, os, copy, math
 
 # system libraries : test, then import as local symbols
-import module_test_lib
+from afnipy import module_test_lib
 testlibs = ['copy', 'signal']
 if module_test_lib.num_import_failures(testlibs): sys.exit(1)
 import copy
 
-import afni_util as UTIL
-import lib_subjects as SUBJ
-import lib_vars_object as VO
-import lib_uber_ttest as LTT
-import option_list as OPT
+from afnipy import afni_util as UTIL
+from afnipy import lib_subjects as SUBJ
+from afnipy import lib_vars_object as VO
+from afnipy import lib_uber_ttest as LTT
+from afnipy import option_list as OPT
 
 g_command_help = """
 ===========================================================================
@@ -352,7 +352,7 @@ class MainInterface(object):
          return 1
 
       # if the above worked, let any GUI import errors show normally
-      import gui_uber_ttest as GUT
+      from afnipy import gui_uber_ttest as GUT
 
       app = QtGui.QApplication(self.guiopts)
       D = GUT.MainWindow(cvars=self.cvars, uvars=self.uvars, set_pdir=1)

@@ -278,7 +278,7 @@ def process_listfunc(argv, argbase=1):
    return 0
 
 def show_function_help(flist):
-   import afni_util as UTIL
+   from afnipy import afni_util as UTIL
    for func in flist:
       print(UTIL.section_divider('help for: %s' % func))
       try:
@@ -306,7 +306,7 @@ def process_args():
       exec(' '.join(argv[argbase+1:]))
       return 0
    elif argv[argbase] == '-funchelp':
-      import afni_util as UTIL
+      from afnipy import afni_util as UTIL
       for func in argv[argbase+1:]:
          print(UTIL.section_divider('help for: %s' % func))
          try:

@@ -155,13 +155,13 @@ import sys
 import os
 import json
 import glob
-import afni_base      as BASE
-import afni_util      as UTIL
-import lib_apqc_tcsh  as lat
-import lib_ss_review  as lssr
-import lib_apqc_io    as laio
-import apqc_make_html as amh
-import apqc_make_html as amh
+from afnipy import afni_base      as BASE
+from afnipy import afni_util      as UTIL
+from afnipy import lib_apqc_tcsh  as lat
+from afnipy import lib_ss_review  as lssr
+from afnipy import lib_apqc_io    as laio
+from afnipy import apqc_make_html as amh
+from afnipy import apqc_make_html as amh
 
 # all possible uvars
 all_uvars = []

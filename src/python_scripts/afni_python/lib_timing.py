@@ -9,15 +9,15 @@
 # R Reynolds    December, 2008
 
 import sys
-import module_test_lib
+from afnipy import module_test_lib
 g_testlibs = ['sys', 'math', 'copy']
 if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
    
 # import libraries
 import math
 import copy
-import afni_util as UTIL
-import lib_afni1D as LD
+from afnipy import afni_util as UTIL
+from afnipy import lib_afni1D as LD
 
 g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
 g_tsv_def_labels   = ['onset', 'duration', 'trial_type']
@@ -589,7 +589,7 @@ class AfniTiming(LD.AfniData):
          ** testing **
 
          import math, copy
-         import afni_util as UTIL, lib_timing as LT
+         from afnipy import afni_util as UTIL, lib_timing as LT
          reload LT
          t = LT.AfniTiming('ch_fltr.txt')
          t.timing_to_tr_frac(run_len, 2.5)

@@ -29,9 +29,9 @@ ver = '2.3' ; date = 'July 3, 2019'
 import sys
 import os
 import json
-import lib_apqc_tcsh       as lat
-import lib_apqc_html_helps as lahh
-import lib_apqc_html_css   as lahc
+from afnipy import lib_apqc_tcsh       as lat
+from afnipy import lib_apqc_html_helps as lahh
+from afnipy import lib_apqc_html_css   as lahc
 
 NULL_BTN1     = '' # empty space, used to keep button populated
 NULL_BTN0     = '|' # empty space, used to keep button populated

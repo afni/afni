@@ -5,8 +5,8 @@ import sys
 import gc, math
 
 # AFNI libraries
-import option_list as OL
-import afni_util as UTIL
+from afnipy import option_list as OL
+from afnipy import afni_util as UTIL
 
 # ----------------------------------------------------------------------
 # globals
@@ -526,7 +526,7 @@ class XmatInterface:
    def set_afni_xmat(self):
       """load afni_xmat locally as AM"""
       try:
-         import afni_xmat
+         from afnipy import afni_xmat
          self.AM = afni_xmat
       except:
          print "\n--> use 'xmat_tool.py -test_libs' to test all modules\n"
@@ -1109,7 +1109,7 @@ class XmatInterface:
 
    def test_libraries(self,verb=2):
       """test for existence of needed python libraries"""
-      import module_test_lib as MLT
+      from afnipy import module_test_lib as MLT
       libs = ['os', 'gc', 'numpy', 'wx', 'matplotlib', 'scipy']
       if MLT.num_import_failures(libs,details=1,verb=verb): return 1
       else: return 0

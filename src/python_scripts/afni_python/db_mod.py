@@ -10,10 +10,10 @@ if __name__ == '__main__':
    sys.exit(1)
 
 import math, os
-import afni_base as BASE, afni_util as UTIL
-import option_list as OL
-import lib_afni1D as LD
-import lib_vars_object as VO
+from afnipy import afni_base as BASE, afni_util as UTIL
+from afnipy import option_list as OL
+from afnipy import lib_afni1D as LD
+from afnipy import lib_vars_object as VO
 
 # types of motion simulated datasets that can be created
 #    motion     : simulated motion time series - volreg base warped
@@ -1301,7 +1301,7 @@ def copy_ricor_regs_str(proc):
     lstr = ''
     if proc.ricor_nlast > 0:
         try:
-            import lib_afni1D as LAD
+            from afnipy import lib_afni1D as LAD
             for reg in proc.ricor_regs:
                 adata = LAD.Afni1D(reg)
                 trs.append(adata.nt)
@@ -1427,7 +1427,7 @@ def db_cmd_ricor(proc, block):
     # check regressors against nslices and nTR (also check reg[0] existence)
     adata = None
     try:
-        import lib_afni1D as LAD
+        from afnipy import lib_afni1D as LAD
         adata = LAD.Afni1D(proc.ricor_regs[0], verb=proc.verb)
     except: pass
     if not adata or not adata.ready:
@@ -8280,7 +8280,7 @@ def show_help_examples(source='eold'):
        return
 
    # print new-style examples
-   import lib_ap_examples as EGS
+   from afnipy import lib_ap_examples as EGS
    EGS.populate_examples()
 
    # print only AP examples, or all
@@ -12225,7 +12225,7 @@ g_help_options = """
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
 
-        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: from afnipy import auto_warp.py output
 
                 e.g. -tlrc_NL_warped_dsets anat.nii           \\
                                            anat.un.aff.Xat.1D \\

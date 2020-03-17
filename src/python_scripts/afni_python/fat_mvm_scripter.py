@@ -25,7 +25,7 @@
 # Sep,2015
 #    + use subset of ROIs to make a new MVM table file, for subnet test
 
-import lib_fat_funcs as GR
+from afnipy import lib_fat_funcs as GR
 from numpy import set_printoptions
 import getopt, sys 
 from glob import glob

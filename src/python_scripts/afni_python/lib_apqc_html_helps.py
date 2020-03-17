@@ -16,8 +16,8 @@ import sys
 import os
 import json
 import collections         as coll
-import lib_apqc_html       as lah
-import lib_apqc_html_css   as lahc
+from afnipy import lib_apqc_html       as lah
+from afnipy import lib_apqc_html_css   as lahc
 
 # -----------------------------------------------------------------------
 # -----------------------------------------------------------------------
