@@ -2648,13 +2648,6 @@ int main( int argc , char *argv[] )
          ININFO_message("  You can set the number of CPUs to use manually with '-ETAC N'") ;
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
-       if( prefix_clustsim == NULL ){
-         char *nnn ;
-         prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
-         nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
-         if( nnn != NULL ) *nnn = '\0' ;
-         ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
-       }
 
        continue ;
      }
@@ -3594,6 +3587,13 @@ int main( int argc , char *argv[] )
      ERROR_exit("Cannot use -Clustsim when -prefix has an absolute path") ;
 
    /* do some checking and editing for Clustsim stuff */
+
+   if( prefix_clustsim == NULL ){ /* moved here 17 Mar 2020 */
+     char *nnn ;
+     prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
+     nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
+     if( nnn != NULL ) *nnn = '\0' ;
+   }
 
    if( do_clustsim || do_Xclustsim ){
 
