@@ -7,11 +7,11 @@ import sys
 from time import asctime
 
 # AFNI modules
-from afni_base import *
-from afni_util import *
-from option_list import *
-from db_mod import *
-import ask_me
+from afnipy.afni_base import *
+from afnipy.afni_util import *
+from afnipy.option_list import *
+from afnipy.db_mod import *
+from afnipy import ask_me
 
 g_help_string = """
     ===========================================================================

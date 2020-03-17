@@ -5,9 +5,9 @@
 from __future__ import print_function
 
 import sys, random, os, math, copy
-import option_list as OL, afni_util as UTIL
-import lib_rand_timing as LRT
-import lib_afni1D as LAD
+from afnipy import option_list as OL, afni_util as UTIL
+from afnipy import lib_rand_timing as LRT
+from afnipy import lib_afni1D as LAD
 
 g_help_string = """
 ===========================================================================

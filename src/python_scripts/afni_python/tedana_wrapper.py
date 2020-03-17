@@ -10,7 +10,7 @@
 import sys, os, glob, subprocess, re, argparse, signal, textwrap, shutil
 
 # sys.path.insert(0,afni_dir)
-import afni_base, afni_util
+from afnipy import afni_base, afni_util
 
 
 ########################################################################

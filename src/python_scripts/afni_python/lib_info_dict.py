@@ -9,8 +9,8 @@ ver='1.0' ; date='Sept 16, 2019'
 
 import sys, os
 import json
-import afni_base as BASE
-import afni_util as UTIL
+from afnipy import afni_base as BASE
+from afnipy import afni_util as UTIL
 
 list_3dinfo_ignore = [ '-hview', '-h_view',
                        '-hweb',  '-h_web', 

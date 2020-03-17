@@ -8,7 +8,7 @@
 import sys, os, glob, subprocess, csv, re, argparse, signal, textwrap, json
 
 ## locations of stuff
-import afni_base, abids_lib
+from afnipy import afni_base, abids_lib
 from collections import OrderedDict
 
 ########################################################################

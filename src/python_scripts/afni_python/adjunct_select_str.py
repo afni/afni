@@ -20,7 +20,7 @@ VERSION   = "1.21"; VER_DATE  = "Dec 5, 2018"
 # --------------------------------------------------------------------
 
 import sys       as sys
-import afni_util as au     # they are gold, indeed!
+from afnipy import afni_util as au     # they are gold, indeed!
 
 THIS_PROG = 'adjunct_select_str.py'
 NUM_ARGS  = 3                          # three input args needed

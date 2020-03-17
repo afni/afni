@@ -29,9 +29,9 @@ import matplotlib.pyplot  as plt
 from   matplotlib         import rcParams, gridspec
 from   matplotlib.ticker  import AutoMinorLocator
 import matplotlib.patches as matpat
-import lib_afni1D         as LAD
-import lib_apqc_io        as laio
-import afni_util          as au
+from afnipy import lib_afni1D         as LAD
+from afnipy import lib_apqc_io        as laio
+from afnipy import afni_util          as au
 
 MAXLEN = 10**7     # can adjust if that is ever necessary!
 EPS    = 10**(-14)

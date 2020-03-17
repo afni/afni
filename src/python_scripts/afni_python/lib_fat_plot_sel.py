@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
-import lib_fat_funcs as GR
+from afnipy import lib_fat_funcs as GR
 
 import sys
 

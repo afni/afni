@@ -2,7 +2,7 @@
 
 import sys, os
 
-import lib_uber_proc as UPROC
+from afnipy import lib_uber_proc as UPROC
 
 def run_gui():
    try: from PyQt4 import QtCore, QtGui
@@ -12,7 +12,7 @@ def run_gui():
             '   --> see the output of: uber_subject.py -help_install\n')
       return 1
 
-   import gui_uber_proc as GUP
+   from afnipy import gui_uber_proc as GUP
 
    app = QtGui.QApplication(sys.argv)
    QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Cleanlooks"))

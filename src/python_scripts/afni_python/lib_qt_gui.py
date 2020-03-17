@@ -7,8 +7,8 @@ import sys, os
 from PyQt4 import QtCore, QtGui
 import copy, glob
 
-import lib_vars_object as VO
-import afni_util as UTIL
+from afnipy import lib_vars_object as VO
+from afnipy import afni_util as UTIL
 
 g_history = """
   ...         : previous version

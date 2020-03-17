@@ -17,14 +17,14 @@ from __future__ import print_function
 import sys, os
 
 # system libraries : test, then import as local symbols
-import module_test_lib
+from afnipy import module_test_lib
 testlibs = ['time', 'socket', 'struct']
 if module_test_lib.num_import_failures(testlibs): sys.exit(1)
 import time, socket, struct
 
 # AFNI libraries (besides module_test_lib)
-import option_list as OL
-import afni_util as UTIL        # not actually used, but probably will be
+from afnipy import option_list as OL
+from afnipy import afni_util as UTIL        # not actually used, but probably will be
 
 # ----------------------------------------------------------------------
 # globals

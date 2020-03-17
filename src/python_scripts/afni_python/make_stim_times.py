@@ -3,8 +3,8 @@
 # python3 status: started
 
 import sys, os, string
-import option_list, afni_util
-import lib_textdata as TD
+from afnipy import option_list, afni_util
+from afnipy import lib_textdata as TD
 
 g_help_string = """
 ===========================================================================

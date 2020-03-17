@@ -5,7 +5,7 @@
 from __future__ import print_function
 
 import sys, string, glob, os
-import afni_base, afni_util
+from afnipy import afni_base, afni_util
 
 # the main interface for updating SubjProcStream options via questions
 def ask_me_subj_proc(proc):

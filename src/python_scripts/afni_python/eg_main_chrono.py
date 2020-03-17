@@ -10,8 +10,8 @@ if 1 :  # for testing, might add the current dir and ~/abin to the PATH
    except: pass
 
 # AFNI libraries
-import option_list as OL
-import afni_util as UTIL        # not actually used, but probably will be
+from afnipy import option_list as OL
+from afnipy import afni_util as UTIL        # not actually used, but probably will be
 
 # ----------------------------------------------------------------------
 # globals

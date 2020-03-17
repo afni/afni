@@ -6,7 +6,7 @@
 
 ## system libraries
 import sys, os, glob, subprocess, csv, re, argparse, signal, textwrap, json
-import afni_base, abids_lib
+from afnipy import afni_base, abids_lib
 
 
 ########################################################################

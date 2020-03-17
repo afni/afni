@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 
-import lib_fat_funcs as GR
-import lib_fat_plot_sel as PS
+from afnipy import lib_fat_funcs as GR
+from afnipy import lib_fat_plot_sel as PS
 from numpy import set_printoptions
 import getopt, sys 
 from glob import glob

@@ -3,7 +3,7 @@
 import sys
 
 # verify system libraries
-import module_test_lib
+from afnipy import module_test_lib
 g_testlibs = ['wx']
 if module_test_lib.num_import_failures(g_testlibs,details=0):
    print """

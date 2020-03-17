@@ -101,8 +101,8 @@ ver='2.62' ; date='Oct 2, 2019'
 
 import sys, os
 
-import afni_base   as ab
-import lib_b0_corr as lb0
+from afnipy import afni_base   as ab
+from afnipy import lib_b0_corr as lb0
 
 # =============================================================================
 

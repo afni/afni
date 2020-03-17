@@ -6,7 +6,7 @@
 # test python modules
 
 import sys
-import module_test_lib
+from afnipy import module_test_lib
 
 g_help_string = """
 ===========================================================================
@@ -110,7 +110,7 @@ class ModuleTest:
       self.OL             = None        # store option_list module locally
 
    def init_opts(self):
-      import option_list
+      from afnipy import option_list
       self.OL = option_list
 
       self.valid_opts = self.OL.OptionList('valid options')
@@ -232,7 +232,7 @@ class ModuleTest:
       return None
 
    def show_failed_command(self):
-      import afni_util as UTIL
+      from afnipy import afni_util as UTIL
       UTIL.show_args_as_command(sys.argv,"** failed command:")
 
 def process():

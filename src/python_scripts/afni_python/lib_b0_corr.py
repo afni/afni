@@ -101,9 +101,9 @@ ver='2.62' ; date='Oct 2, 2019'
 
 import sys, os
 import json
-import afni_base as BASE
-import afni_util as UTIL
-import lib_msar  as lmsar
+from afnipy import afni_base as BASE
+from afnipy import afni_util as UTIL
+from afnipy import lib_msar  as lmsar
 
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------

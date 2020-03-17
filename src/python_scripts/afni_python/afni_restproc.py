@@ -2,10 +2,10 @@
 
 import sys
 import os
-import option_list as OL
+from afnipy import option_list as OL
 import random
-from afni_base import *
-from db_mod import *
+from afnipy.afni_base import *
+from afnipy.db_mod import *
 from math import pow
 
 rickr_note = """

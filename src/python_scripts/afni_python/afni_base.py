@@ -2,7 +2,7 @@
 
 # python3 status: started
 
-import os, sys, glob, operator, string, re, afni_base
+import os, sys, glob, operator, string, re
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']

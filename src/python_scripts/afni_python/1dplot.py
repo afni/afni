@@ -39,9 +39,9 @@ try:
 except:
     os.environ['MPLBACKEND'] = 'agg'
 
-import lib_afni1D as LAD
-import lib_apqc_io as laio
-import lib_plot_1D as lpod
+from afnipy import lib_afni1D as LAD
+from afnipy import lib_apqc_io as laio
+from afnipy import lib_plot_1D as lpod
 
 
 
