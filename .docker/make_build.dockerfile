@@ -9,7 +9,7 @@ RUN mkdir -p /root/.config/matplotlib \
     && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
 
 # Copy AFNI source code. This can invalidate the build cache.
-ARG AFNI_ROOT=/opt/afni
+ARG AFNI_ROOT=/opt/src/afni
 COPY [".", "$AFNI_ROOT/"]
 
 ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64

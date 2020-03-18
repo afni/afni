@@ -77,7 +77,7 @@ jobs:
           no_output_timeout: 2h
           name: Run tests on standard AFNI build 
           command: |
-            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
+            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/src/afni/tests/run_tests.sh'
 
       - run:
           name: AFNI account should upload successful builds
@@ -169,9 +169,9 @@ jobs:
             mkdir -p /tmp/src /tmp/out
             chmod 777 /tmp/src /tmp/out
             docker run --rm -it \
-                -v /tmp/src/afni:/opt/afni \
+                -v /tmp/src/afni:/opt/src/afni \
                 afni/afni_cmake_build \
-                bash -c 'bash /opt/afni/tests/run_tests_cmake.sh'
+                bash -c 'bash /opt/src/afni/tests/run_tests_cmake.sh'
 
           
   deploy_docker_cmake:
