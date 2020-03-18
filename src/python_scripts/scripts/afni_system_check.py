@@ -8,7 +8,7 @@ import sys, os
 # AFNI libraries (test first)
 from afnipy import module_test_lib
 g_testlibs = ['option_list', 'afni_util', 'lib_system_check']
-if module_test_lib.num_import_failures(g_testlibs,details=0,verb=0):
+if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
    print("\n** failed to load standard AFNI python libraries")
    print("   python version = %s" % sys.version.split()[0])
    sys.exit(1)
