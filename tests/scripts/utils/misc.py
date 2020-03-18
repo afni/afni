@@ -109,7 +109,7 @@ def generate_fetch_list(input_file, test_data_dir):
     Returns:
         list of paths-as-strings: A list of files for datalad to fetch.
     """
-    ab = try_to_import_afni_module("afni_base")
+    from afnipy import afni_base as ab
 
     parsed_obj = ab.parse_afni_name(str(test_data_dir / input_file))
     if parsed_obj["type"] == "BRIK":

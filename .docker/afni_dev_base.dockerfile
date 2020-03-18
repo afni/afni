@@ -104,6 +104,7 @@ RUN \
         black \
         codecov \
         datalad \
+        matplotlib \
         nibabel \
         numpy \
         pandas \
