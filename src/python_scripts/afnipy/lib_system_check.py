@@ -213,7 +213,10 @@ class SysInfo:
 
       prefix = '           top history: '
       hname = '%s/%s/%s' % (droot, ddir, histfile)
-      self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
+      try:
+         self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
+      except UnicodeDecodeError:
+         print("Unicode decoding error occurred when trying to read %s. No info retrieved"%hname)
 
       return 0
 
