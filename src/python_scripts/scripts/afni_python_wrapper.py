@@ -35,7 +35,7 @@ if __name__ == '__main__':
          exec('import %s as MM' % module)
       except:
          try:
-            exec('import afni_python.%s as MM' % module)
+            exec('import afnipy.%s as MM' % module)
          except:
             print("** failed to import module '%s'" % module)
             sys.exit(1)
@@ -48,12 +48,12 @@ if __name__ == '__main__':
 
    if narg > 2:
       # import the module in question and proceed
-      # (if this fails, try to import from afni_python)
+      # (if this fails, try to import from afnipy)
       try:
          exec('from %s import *' % module)
       except:
          try:
-            exec('from afni_python.%s import *' % module)
+            exec('from afnipy.%s import *' % module)
          except:
             print("** failed to import module '%s'" % module)
             sys.exit(1)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 # ----------------------------------------------------------------------
 
 _g_main_help = """
-afni_python_wrapper.py: use to call afni_python functions from the shell
+afni_python_wrapper.py: use to call afnipy functions from the shell
 
    By default, this loads module afni_util, and attempts use functions from it.
    To use a function from a different module, apply -module.

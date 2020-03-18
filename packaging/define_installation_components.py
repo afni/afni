@@ -72,7 +72,7 @@ ninja install  > components/0_corelibs.txt
 )
 print("Built without binaries")
 
-# without afni_python, just corelibs and core binaries
+# without afnipy, just corelibs and core binaries
 sp.check_output(
     f"""
 ninja uninstall

@@ -12,7 +12,7 @@
 # afni_tcsh: Built if COMP_ADD_TCSH is set to OFF. Tcsh scripts that
 # make use of AFNI's core functionality.
 
-# afni_python: This includes executables and modules for importing AFNI
+# afnipy: This includes executables and modules for importing AFNI
 # functionality written in python
 
 # afni_rstats: R scripts to perform statistical analyses
