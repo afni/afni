@@ -121,6 +121,12 @@ if(NOT TARGET uninstall)
     uninstall COMMAND ${CMAKE_COMMAND} -P
                       ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
   )
+  if(USE_PIP)
+  add_custom_target(
+    uninstall_python COMMAND ${Python_EXECUTABLE} -m pip uninstall -y afnipy
+  )
+  add_dependencies(uninstall uninstall_python)
+  endif()
 endif()
 
 
@@ -138,18 +144,22 @@ add_custom_target(
 # Define PATH modification required for within build tree tests execution
 set(COMP_ADD_BINARIES ${CMAKE_CURRENT_BINARY_DIR}/src/targets)
 set(T_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scripts_install)
-set(P_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/python_scripts/afni_python)
 set(R_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/R_scripts)
 set(J_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/jzosky)
 set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
-set(TESTING_PATHS "${COMP_ADD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
+set(TESTING_PATHS "${COMP_ADD_BINARIES}:${T_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
 set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
+
+
+# Make sure the python code is installed:
+add_custom_target(check_afnipy_installed
+                  COMMAND ${Python_EXECUTABLE} -c 'from afnipy import afni_base')
 
 # Create test target for running tests within the build tree
 add_custom_target(
   pytest
-  DEPENDS test_setup
+  DEPENDS test_setup check_afnipy_installed
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/afni_tests"
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND echo Running tests with modified path to use build binaries and scripts in the source tree...
@@ -158,6 +168,7 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E env PATH=${PATH_FOR_TESTING}  ${Python_EXECUTABLE} -B -m pytest $$ARGS
   USES_TERMINAL
 )
+
 
 
 # Generate packaging if this is the top level project
