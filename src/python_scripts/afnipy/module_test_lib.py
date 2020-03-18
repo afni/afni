@@ -248,7 +248,7 @@ def simple_import(libname, details=1, verb=1):
       IL = LLL
 
    try:
-      mod = IL.import_module(libname)
+      mod = IL.import_module("afnipy." + libname)
       if verb > 1:
          print("++ module loaded: %s" % libname)
    except:
@@ -306,16 +306,16 @@ def num_import_failures(liblist=[], details=1, verb=1):
       exec(import_find_test_24_def)
       imptest = eval('import_find_test_24')
    else:        # use 2.5 version
-      exec(import_find_test_25_def)
-      imptest = eval('import_find_test_25')
-
-   if liblist: libs = liblist
-   else:       libs = alllibs
-
-   errs = 0
-   for lib in libs:
-      rlib = imptest(lib, details, verb)
-      if not rlib: errs = errs + 1
+      
+      if liblist: libs = liblist
+      else:       libs = alllibs
+   
+      errs = 0
+      for lib in libs:
+         try:
+            rlib = simple_import(lib, details, verb)
+         except ImportError:
+            errs += 1
 
    return errs
 
