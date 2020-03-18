@@ -248,25 +248,9 @@ SCRIPTS_SRC = scripts_src
 TEXT_DIR    = text_install
 
 PY_ROOT = python_scripts
-PY_DIR = $(PY_ROOT)/afnipy
-PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
-             align_epi_anat.py auto_warp.py eg_main_chrono.py                \
-             fat_lat_csv.py fat_mat_sel.py fat_mvm_gridconv.py               \
-             fat_mvm_prep.py fat_mvm_scripter.py fat_roi_row.py              \
-             fat_mvm_review.py                                               \
-             gen_epi_review.py gen_group_command.py gen_ss_review_scripts.py \
-             gen_ss_review_table.py make_pq_script.py make_random_timing.py  \
-             make_stim_times.py meica.py neuro_deconvolve.py                 \
-             python_module_test.py quick.alpha.vals.py realtime_receiver.py  \
-             slow_surf_clustsim.py timing_tool.py                            \
-             uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
-             uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
-	     parse_fs_lt_log.py RetroTS.py 1dplot.py                         \
-             DoPerRoi.py adjunct_calc_mont_dims.py adjunct_combine_str.py   \
-             adjunct_select_str.py BayesianGroupAna.py                       \
-             abids_json_info.py abids_json_tool.py abids_tool.py             \
-             afni_python_wrapper.py apqc_make_html.py apqc_make_tcsh.py      \
-             lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
+PY_DIR = $(PY_ROOT)/scripts
+PY_SCRIPTS = $(shell ls $(PY_dir))
+PY_PACKAGE_DIR = $(PY_ROOT)/afnipy
 
 R_DIR = R_scripts
 R_TCSH_DIR = scripts_for_r
@@ -2181,7 +2165,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
@@ -2198,7 +2182,7 @@ install_noplug: $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) $(LIBMRI_OBJ) libmrix.a $(LIBF2C_OBJ) libcoxplot.a $(EXLIBS) $(LIBHEADERS) $(LIBDIR)
@@ -2212,7 +2196,7 @@ install_exe: $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
