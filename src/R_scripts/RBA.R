@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, March 14, 2020 
+Version 1.0.2, March 18, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -106,20 +106,12 @@ Usage: ~1~
     simulations.
 
  6) The evidence for region effects in the output can be assessed through P+,
-    the probability that the effect is postive conditional on the current
-    dataset. The following criterion for highlighting the results is only
-    suggestive:
-     P+ >= 0.975 or <= 0.025 - very strong evidence
-     P+ >= 0.95 or <= 0.05   - strong evidence
-     P+ >= 0.90 or <= 0.10   - moderate evidence
-     else                    - little evidence
-
-    The same criterion is applied to the color coding in the posterior
-    distribution plots generated with the option -PDP:
-     P+ >= 0.975 or <= 0.025 - green:    very strong evidence
-     P+ >= 0.95 or <= 0.05   - yellow:   strong evidence
-     P+ >= 0.90 or <= 0.10   - gray:     moderate evidence
-     else                    - no color: little evidence
+    the probability that the effect is positive conditional on the current
+    model and dataset. Unlike the NHST convention, we emphasize that a decision 
+    about the strength of statistical evidence should not be purely based on an
+    artificial threshold. Instead, we encourage full results reporting:
+    highlight some results with strong evidence and literature support (if
+    available) without hiding the rest.
 
  7) WARNING: If the results are pretty homogenized across regions, it is an
     indication that presumably partial pooling becomes full pooling. Most
