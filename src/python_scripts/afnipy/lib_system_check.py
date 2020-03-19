@@ -9,7 +9,7 @@ from afnipy import module_test_lib as MT
 
 # test dependency libs before proceeding
 # note: platform came with python 2.3
-testlibs = ['platform', 'afni_base', 'afni_util']
+testlibs = ['platform', 'afnipy.afni_base', 'afnipy.afni_util']
 if MT.num_import_failures(testlibs):
    sys.exit(1)
 

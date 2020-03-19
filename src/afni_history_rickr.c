@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Mar, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix use of module_test_lib.py with change to new afnipy dir",
+   NULL
+ } ,
+
  { 12, Mar, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "point web help for program to sphinx tree",
    "Also, added -hweb/-h_web for python progs that use option_list.py."

@@ -7,7 +7,8 @@ import sys, os
 
 # AFNI libraries (test first)
 from afnipy import module_test_lib
-g_testlibs = ['option_list', 'afni_util', 'lib_system_check']
+g_testlibs = ['afnipy.option_list', 'afnipy.afni_util',
+              'afnipy.lib_system_check']
 if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
    print("\n** failed to load standard AFNI python libraries")
    print("   python version = %s" % sys.version.split()[0])
@@ -15,7 +16,7 @@ if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
 
 # now load AFNI libraries by name
 from afnipy import option_list as OL
-from afnipy import afni_util as UTIL        # not actually used, but probably will be
+from afnipy import afni_util as UTIL  # not actually used, but probably will be
 from afnipy import lib_system_check as SC
 
 g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.cshrc', '.tcshrc']

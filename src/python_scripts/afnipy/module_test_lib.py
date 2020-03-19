@@ -248,7 +248,7 @@ def simple_import(libname, details=1, verb=1):
       IL = LLL
 
    try:
-      mod = IL.import_module("afnipy." + libname)
+      mod = IL.import_module(libname)
       if verb > 1:
          print("++ module loaded: %s" % libname)
    except:
@@ -313,6 +313,7 @@ def num_import_failures(liblist=[], details=1, verb=1):
       errs = 0
       for lib in libs:
          try:
+            # we now need to handle A.B form
             rlib = simple_import(lib, details, verb)
          except ImportError:
             errs += 1
