@@ -84,6 +84,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     rsync \
     tree \
     valgrind \
+    ipython3 \
     vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
@@ -112,3 +113,6 @@ RUN \
         pytest \
         pytest-cov \
         pytest-parallel
+
+# add pdb alias ipy for easier pdb debugging
+RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
