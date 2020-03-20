@@ -248,9 +248,9 @@ SCRIPTS_SRC = scripts_src
 TEXT_DIR    = text_install
 
 PY_ROOT = python_scripts
-PY_DIR = $(PY_ROOT)/scripts
-PY_SCRIPTS = $(shell ls $(PY_DIR))
-PY_PACKAGE_DIR = $(PY_ROOT)/afnipy
+PY_SCRIPTS_DIR = $(PY_ROOT)/scripts
+PY_SCRIPTS = $(shell cd $(PY_SCRIPTS_DIR); echo *.py; cd ..)
+PY_LIB_DIR = $(PY_ROOT)/afnipy
 
 R_DIR = R_scripts
 R_TCSH_DIR = scripts_for_r
@@ -342,7 +342,7 @@ prog_list: prog_list_bin prog_list_scripts
 list_lists:
 	echo list_afni_progs list_suma_progs list_libraries list_headers \
 	     list_models list_plugins list_scripts list_py_scripts       \
-	     list_r_scripts list_scripts_for_r
+	     list_py_libs list_r_scripts list_scripts_for_r
 
 list_afni_progs:
 	echo $(PROGRAMS) | tr ' ' '\n' | LC_COLLATE=C sort
@@ -369,6 +369,9 @@ list_scripts:
 	     | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_py_scripts:
+	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+
+list_py_libs:
 	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_r_scripts:
@@ -2164,8 +2167,8 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
+	$(CP) $(PY_SCRIPTS_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_LIB_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
@@ -2181,8 +2184,8 @@ install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
+	$(CP) $(PY_SCRIPTS_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_LIB_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) $(LIBMRI_OBJ) libmrix.a $(LIBF2C_OBJ) libcoxplot.a $(EXLIBS) $(LIBHEADERS) $(LIBDIR)
@@ -2195,8 +2198,8 @@ install_exe: $(INSTALLDIR)
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
-	$(CP) -r $(SHINY_DIR) $(PY_PACKAGE_DIR) $(INSTALLDIR)
+	$(CP) $(PY_SCRIPTS_DIR)/*.py $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(PY_LIB_DIR) $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Mar, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "fix PY_DIR, update PY vars, add list_py_libs",
+   NULL
+ } ,
+
  { 19, Mar, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix use of module_test_lib.py with change to new afnipy dir",
    NULL
