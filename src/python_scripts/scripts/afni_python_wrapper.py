@@ -125,7 +125,7 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
 
       -funchelp FUNC    : print the help for module function FUNC
 
-         Pring the FUNC.__doc__ text, if any.
+         Print the FUNC.__doc__ text, if any.
 
          Example:
 

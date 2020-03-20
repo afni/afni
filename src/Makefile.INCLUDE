@@ -249,7 +249,7 @@ TEXT_DIR    = text_install
 
 PY_ROOT = python_scripts
 PY_DIR = $(PY_ROOT)/scripts
-PY_SCRIPTS = $(shell ls $(PY_dir))
+PY_SCRIPTS = $(shell ls $(PY_DIR))
 PY_PACKAGE_DIR = $(PY_ROOT)/afnipy
 
 R_DIR = R_scripts
