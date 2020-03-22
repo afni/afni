@@ -72,10 +72,12 @@ set progname = @animal_warper
 # [DRG] dset_followers to allow for similar space datasets to follow 
 #       into template space. Uses Align_Centers 1D dataset for initial
 #       shifts 
-set version = "1.75" ; set date = "Feb 26, 2020"
+#set version = "1.75" ; set date = "Feb 26, 2020"
 # [DRG] roidset_followers to allow for similar space datasets to follow 
 #       into template space with nearest neighbor interpolation 
 #       +modal smoothing.
+set version = "1.76" ; set date = "Mar 22, 2020"
+# [DRG] fixed stupid bug, space in feature_size option for aea.py
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -307,7 +309,7 @@ while ($ac <= $#argv)
             exit 1
         endif
         set feature_size = $argv[$ac]
-        set feature_option =  "-feature size $feature_size"
+        set feature_option =  "-feature_size $feature_size"
 
     else if ("$argv[$ac]" == "-mode_smooth_size") then
         @ ac ++
