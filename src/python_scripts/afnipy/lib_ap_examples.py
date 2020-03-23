@@ -1125,13 +1125,11 @@ def populate_examples():
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
-           * NOTE: prepare for FreeSurfer before running @SSwarper, so that the
-                   FS output will stay aligned with the input.
            * This adds a lot of processing time.
            * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
              Then use the resulting datasets in the afni_proc.py command below
              via -tlrc_NL_warped_dsets.
-                  @SSwarper -input FT_anat_FSprep.nii  \\
+                  @SSwarper -input FT_anat+orig        \\
                             -subid FT                  \\
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
@@ -1145,11 +1143,6 @@ def populate_examples():
              - ANATICOR white matter mask (for local white matter regression)
            * For details on how these masks were created, see "FREESURFER NOTE"
              in the help, as it refers to this "Example 11".
-         o Input anat was prepared for and given to FreeSurfer, so it should be
-           aligned with the FS results and masks.
-             - output from FS is usually not quite aligned with input
-             - run "3dZeropad -pad2evens" and 3dAllineate before FreeSurfer
-             - check anat input to FS using check_dset_for_fs.py
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
