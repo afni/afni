@@ -49,6 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Mar, 2020, RCR, "3drefit", MINOR, TYPE_NEW_OPT,
+   "add options -oblique_recenter and -oblique_recenter_raw",
+   "Adjust the origin so the cardinalized 0,0,0 (e.g. seen in the afni GUI)\n"
+   "is in the same brain location as it was originally (in the scanner?).\n"
+   "So when viewing an oblique volume on top of a '3dWarp -deoblique' output,\n"
+   "coordinate 0,0,0 will match between them."
+ } ,
+
+ { 20, Mar, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "fix PY_DIR, update PY vars, add list_py_libs",
+   NULL
+ } ,
+
  { 20, Mar, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "fix PY_DIR, update PY vars, add list_py_libs",
    NULL

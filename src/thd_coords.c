@@ -632,6 +632,63 @@ void THD_dicom_card_xform (THD_3dim_dataset *dset ,
    return  ;
 }
 
+/* -------------------------------------------------------------------------
+ * THD_dicom_real_to_card - convert ijk_to_dicom_real coords to ijk_to_dicom
+ *                          version (both input and output coords are dicom)
+ *
+ * Convert input coords->xyz from ijk_to_dicom_real to ijk_to_dicom.
+ * This function essentially just modifies the coords vector.
+ * If rnd is set, round to the nearest voxel (i.e., round ijk indices).
+ *
+ *
+ *    method: inverse warp dicom_real_xyz to indices
+ *            possibly round
+ *            warp to dicom_xyz
+ *
+ * Note: it is okay if the input or output coordinates are outside of the
+ *       dataset's field of view.
+ *
+ * return 0 on success                                  23 Mar 2020 [rickr]
+ * -------------------------------------------------------------------------
+ */
+int THD_dicom_real_to_card(THD_3dim_dataset *dset, THD_fvec3 * coords, int rnd)
+{
+   THD_ivec3 iv={{0,0,0}};
+   float fi, fj, fk;
+   mat44 r2i;   /* real xyz to ijk (inverse of ijk_to_dicom_real */
+
+   ENTRY("THD_dicom_real_to_card");
+
+   /* check for bad inputs */
+   if ( !dset || !dset->daxes ) {
+      WARNING_message("THD_dicom_real_to_card: null input");
+      RETURN(1);
+   }
+   if ( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) ) {
+      WARNING_message("THD_dicom_real_to_card: invalid ijk_to_dicom");
+      RETURN(1);
+   }
+   if ( !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real) ) {
+      WARNING_message("THD_dicom_real_to_card: invalid ijk_to_dicom_real");
+      RETURN(1);
+   }
+
+   /* get dicom_to_ijk mat */
+   r2i = nifti_mat44_inverse(dset->daxes->ijk_to_dicom_real);
+
+   /* apply r2i to input coords */
+   MAT44_VEC(r2i, coords->xyz[0], coords->xyz[1], coords->xyz[2], fi, fj, fk);
+
+   /* possibly round to nearest voxel center (okay if outside dset grid) */
+   if( rnd ) { fi = roundf(fi); fj = roundf(fj); fk = roundf(fk); }
+
+   /* apply ijk_to_dicom to index coords */
+   MAT44_VEC(dset->daxes->ijk_to_dicom, fi, fj, fk,
+             coords->xyz[0], coords->xyz[1], coords->xyz[2]);
+
+   RETURN(0);
+}
+
 /*---------------------------------------------------------------------
    Return rotation and shift param. to go from i, j, k to Real
    Dicom x,y,z 

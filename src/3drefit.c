@@ -232,6 +232,15 @@ void Syntax(int detail)
 "  -oblique_origin\n"
 "                  assume origin and orientation from oblique transformation\n"
 "                  matrix rather than traditional cardinal information\n\n"
+"  -oblique_recenter\n"
+"                  Adjust the origin so that the cardinalized 0,0,0 is in\n"
+"                  the same brain location as that of the original (oblique?)\n"
+"                  (scanner?) coordinates.\n"
+"                  Round this to the nearest voxel center.\n\n"
+"  -oblique_recenter_raw\n"
+"                  Like -oblique_recenter, but do not round.\n"
+"                  So coordinate 0,0,0 is in the exact same location, even\n"
+"                  if not at a voxel center.\n\n"
 
 "  -byteorder bbb  Sets the byte order string in the header.\n"
 "                  Allowable values for 'bbb' are:\n"
@@ -525,6 +534,7 @@ int main( int argc , char *argv[] )
    NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
    int geom_change = 0;              /* 04 Nov 2011 [drg] */
    int do_checkaxes = 0 ;            /* 27 Jun 2014 [RWCox] */
+   int obl_recenter = 0 ;            /* 17 Mar 2020 [rickr] */
 
 #define VINFO(x) do{ if(verb)ININFO_message(x) ; } while(0)
 
@@ -1095,6 +1105,20 @@ int main( int argc , char *argv[] )
 
       /* 02 Mar 2000: -d?origin stuff, to go with plug_nudge.c */
 
+      if( strcmp(argv[iarg],"-oblique_recenter") == 0 ){
+         obl_recenter = 2 ;
+         new_stuff++ ;
+         /* no geom change */
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strcmp(argv[iarg],"-oblique_recenter_raw") == 0 ){
+         obl_recenter = 1 ;
+         new_stuff++ ;
+         /* no geom change */
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       if( strncmp(argv[iarg],"-dxorigin",4) == 0 ){
          if( ++iarg >= argc ) SynErr("need an argument after -dxorigin!");
          xorg = strtod(argv[iarg],NULL) ; dxorg = 1 ; cxorg = 0 ;
@@ -1546,6 +1570,13 @@ fprintf(stderr,"\n") ; }
     "-xyzscale is incompatible with other options for changing voxel grid");
    }
 
+   if( obl_recenter &&  /* 17 Mar 2020 [rickr] */
+       (new_orient || new_xorg || new_yorg || new_zorg ||
+        keepcen    || new_xdel || new_ydel || new_zdel   ) ){
+    SynErr(
+    "-oblique_recenter is not compatible with other voxel grid modifications");
+   }
+
    if( new_orient && (dxorg || dyorg || dzorg) )     /* 02 Mar 2000 */
       SynErr("Can't use -orient with -d?origin!?") ;
 
@@ -1875,6 +1906,29 @@ fprintf(stderr,"\n") ; }
 
       if( new_zdel || new_orient )
       {  daxes->zzdel = (ORIENT_sign[daxes->zzorient] == '+') ? (zdel) : (-zdel) ; did_something++ ; }
+
+      /* shift ijk_to_dicom xyz=0,0,0 to match ijk_to_dicom_real=0,0,0, and */
+      /* round to voxel center if not _raw version      [23 Mar 2020 rickr] */
+      if( obl_recenter ) {
+         THD_fvec3 coords={{0.0, 0.0, 0.0}};          /* dicom 0,0,0 */
+
+         /* map 0,0,0 from scanner to cardinalized coords */
+         if( THD_dicom_real_to_card(dset, & coords, obl_recenter==2) )
+            ERROR_exit("-oblique_recenter failure");
+
+         /* convert from dicom to to dataset coords (permute) */
+         coords = THD_dicomm_to_3dmm(dset, coords);
+
+         /* and subtract to re-center */
+         daxes->xxorg -= coords.xyz[0];
+         daxes->yyorg -= coords.xyz[1];
+         daxes->zzorg -= coords.xyz[2];
+
+         INFO_message("shifting origin by %g %g %g",
+                      -coords.xyz[0], -coords.xyz[1], -coords.xyz[2]);
+
+         did_something++;
+      }
 
       /*-- deoblique - assume the data is cardinal  6/20/2007 */
       /* this should be after any other axis,
