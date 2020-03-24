@@ -252,7 +252,8 @@ def simple_import(libname, details=1, verb=1):
       if verb > 1:
          print("++ module loaded: %s" % libname)
    except:
-      print("** failed to load module %s" % libname)
+      if verb > 1:
+          print("** failed to load module %s" % libname)
       return None
 
    if details and verb > 1:
@@ -312,10 +313,9 @@ def num_import_failures(liblist=[], details=1, verb=1):
    
       errs = 0
       for lib in libs:
-         try:
-            # we now need to handle A.B form
-            rlib = simple_import(lib, details, verb)
-         except ImportError:
+         # use simple_import to handle A.B form
+         rlib = simple_import(lib, details, verb)
+         if rlib == None:
             errs += 1
 
    return errs

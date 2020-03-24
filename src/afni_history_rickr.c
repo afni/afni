@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Mar, 2020, RCR, "python_module_test.py", MINOR, TYPE_MODIFY,
+   "restore approximate previous behavior",
+   NULL
+ } ,
+
  { 23, Mar, 2020, RCR, "3drefit", MINOR, TYPE_NEW_OPT,
    "add options -oblique_recenter and -oblique_recenter_raw",
    "Adjust the origin so the cardinalized 0,0,0 (e.g. seen in the afni GUI)\n"
