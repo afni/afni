@@ -54,7 +54,7 @@ from afnipy import lib_apqc_io         as laio
 
 # ------------------------------------------------------------------------
 
-ohtml     = 'index.html'             # output file, HTML page
+ohtml     = lat.ohtml                # output file, HTML page
 ocss      = lat.dir_info + '/styles.css' # CSS of formats/attributes/etc.
 ohelp     = 'help.html'              # output help file, also html
 tobetable = "IHAVEACUNNINGPLAN!"     # string to be replaced later

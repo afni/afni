@@ -160,8 +160,6 @@ from afnipy import afni_util      as UTIL
 from afnipy import lib_apqc_tcsh  as lat
 from afnipy import lib_ss_review  as lssr
 from afnipy import lib_apqc_io    as laio
-from afnipy import apqc_make_html as amh
-from afnipy import apqc_make_html as amh
 
 # all possible uvars
 all_uvars = []
@@ -235,7 +233,7 @@ if __name__ == "__main__":
     copying them into a new file), as long as the 'Top level' sections are
     all present.
 
-    '''.format( lat.qcbase, ap_ssdict['subj'], amh.ohtml )
+    '''.format( lat.qcbase, ap_ssdict['subj'], lat.ohtml )
 
     comm     = lat.commentize(comm, padpost=2)
     str_FULL+= comm

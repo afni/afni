@@ -142,6 +142,8 @@ from afnipy import lib_ss_review       as lssr
 
 # ----------------------------------------------------------------------
 
+ohtml      = 'index.html'            # output file, HTML page
+
 scriptname = '@ss_review_html'
 qcbase     = 'QC'                    # full odir has subj ID concatenated
 dir_img    = 'media'
