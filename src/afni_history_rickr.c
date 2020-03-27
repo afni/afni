@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Mar, 2020, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "PY_LIBS",
+   NULL
+ } ,
+
+ { 26, Mar, 2020, RCR, "apqc_make_tcsh.py", MICRO, TYPE_MODIFY,
+   "move ohtml to lib_apqc_tcsh.py and remove import of apqc_make_html",
+   "This is in keeping with all python libs being under afnipy."
+ } ,
+
  { 24, Mar, 2020, RCR, "python_module_test.py", MINOR, TYPE_MODIFY,
    "restore approximate previous behavior",
    NULL
