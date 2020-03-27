@@ -76,8 +76,11 @@ set progname = @animal_warper
 # [DRG] roidset_followers to allow for similar space datasets to follow 
 #       into template space with nearest neighbor interpolation 
 #       +modal smoothing.
-set version = "1.76" ; set date = "Mar 22, 2020"
+#set version = "1.76" ; set date = "Mar 22, 2020"
 # [DRG] fixed stupid bug, space in feature_size option for aea.py
+set version = "1.77" ; set date = "Mar 26, 2020"
+# [DRG] changed center shift defaults and help for dealing with shifts
+#       concatenating shift with affine alignment by default option 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -110,6 +113,7 @@ set modesmooth = "3"   # 3 voxel modal smoothing
 set supersize = ""
 set keep_temp = ""
 set animal_outs = "animal_outs.txt"
+set center_out = "native"
 
 # process user options
 set ac = 1
@@ -180,6 +184,20 @@ while ($ac <= $#argv)
            echo "align_type set to $align_type"
         else
            echo "align_type $align_type is not a valid choice"
+           exit 1
+        endif             
+    else if ("$argv[$ac]" == "-center_out") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-center_out'"
+            exit 1
+        endif
+        set center_out =  $argv[$ac]
+        if (($center_out == "native") || ($center_out == "center_shift")) then
+           echo "center_out set to $center_out"
+        else
+           echo "center_out $center_out is not a valid choice"
+           echo "please choose native or center_shift"
            exit 1
         endif             
     else if ("$argv[$ac]" == "-ok_to_exist") then
@@ -810,6 +828,10 @@ cat_matvec -ONELINE ${dsetprefix}.1D ${dsetprefix}_al2std_mat.aff12.1D > \
 cat_matvec -ONELINE ${dsetprefix}_inv.1D        \
     ${dsetprefix}_inv_al2std_mat.aff12.1D       \
     > ${origdsetprefix}_composite_linear_to_template_inv.1D
+echo "Matrix, affine xform with shift :  ${origdsetprefix}_composite_linear_to_template.1D" \
+     >> ${animal_outs}
+echo "Matrix, inverse affine xform with shift : ${origdsetprefix}_composite_linear_to_template_inv.1D" \
+     >> ${animal_outs}
 
 # use concatenated affine and nonlinear warp to go back to shifted
 # original space
@@ -822,10 +844,11 @@ else
       -source $base -master ${dsetprefix}.nii.gz                           \
       -prefix ${templatename}_in_${origdsetprefix}.nii.gz
    
-   # put back in non-shifted version (really native space) 
-   @Align_Centers -base ${finalmaster} \
+   # put back in non-shifted version (really native space) - should be default 
+   if ($center_out == "native") then
+      @Align_Centers -base ${finalmaster} \
         -dset ${templatename}_in_${origdsetprefix}.nii.gz -no_cp
-
+   endif 
    # put back into the view of the original dataset to make it viewable in AFNI
 #   gunzip -f ${templatename}_in_${origdsetprefix}.nii.gz
 #   nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
@@ -940,8 +963,10 @@ foreach temple_dset ($template_followers)
          -prefix ${temple_prefix}_in_${origdsetprefix}.nii.gz
       
       # put back in non-shifted version (really native space) 
-      @Align_Centers -base ${finalmaster} \
+      if ($center_out == "native") then
+        @Align_Centers -base ${finalmaster} \
             -dset  ${temple_prefix}_in_${origdsetprefix}.nii.gz -no_cp
+      endif
       # put back into the view of the original dataset to make it
       # viewable in AFNI
       #gunzip -f ${temple_prefix}_in_${origdsetprefix}.nii.gz
@@ -999,9 +1024,10 @@ end
               -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
        
            # put back in non-shifted version (really native space) 
-           @Align_Centers -base ${finalmaster} \
+           if ($center_out == "native") then
+              @Align_Centers -base ${finalmaster} \
                 -dset  ${seg_prefix}_in_${origdsetprefix}.nii.gz -no_cp
-       
+           endif
            # change the datum type to byte to save space if values
            # range from 0 to 255 this step also gets removes the shift
            # transform information in the header overwriting original
@@ -1267,6 +1293,9 @@ Options ~1~
                          space. Default is to create a surface directory
                          with surfaces of each region in native space
 
+    -center_out         :center native-space output to native original 
+                         space or to center-shifted space over the center
+                         of template 
     -align_type         :provide alignment only to specified level
                          (rigid,rigid_equiv,affine,all)
                          rigid - align using rotation and translation
