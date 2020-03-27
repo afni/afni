@@ -123,21 +123,24 @@ auth = 'PA Taylor'
 #    + vstat: now underlay template (if there), instead of anat_final
 #    + regr: use template as ulay (if there), instead of anat_final
 #
-ver = '3.41' ; date = 'March 12, 2020' 
+#ver = '3.41' ; date = 'March 12, 2020' 
 # [PT] no vstat if 'surf' block was used in AP (-> stats dset is
 #      *.niml.dset)
+#
+ver = '3.5' ; date = 'March 27, 2020' 
+# [PT] remove dependency on lib_apqc_html_helps.py
 #
 #########################################################################
 
 import os
 import sys
 import glob
-import subprocess
 import json
-import collections         as coll
+import subprocess
+import collections   as coll
+
 from afnipy import afni_base           as ab
 from afnipy import lib_apqc_html       as lah
-from afnipy import lib_apqc_html_helps as lahh
 from afnipy import lib_ss_review       as lssr
 
 # ----------------------------------------------------------------------
@@ -146,7 +149,6 @@ ohtml      = 'index.html'            # output file, HTML page
 
 scriptname = '@ss_review_html'
 qcbase     = 'QC'                    # full odir has subj ID concatenated
-dir_img    = 'media'
 dir_info   = 'extra_info'            # for gen_ss- and AP-JSONs, and more
 
 page_title_json = '__page_title'
@@ -693,7 +695,7 @@ fixed names, basically.  Should be run near start of prog.
     set odir_qc = {}_${{subj}}
     set odir_img = ${{odir_qc}}/{}
     set odir_info = ${{odir_qc}}/{}
-    '''.format( qcbase, dir_img, dir_info )
+    '''.format( qcbase, lah.dir_img, dir_info )
 
     cmd = '''
     \\mkdir -p ${odir_img}
@@ -1088,7 +1090,7 @@ def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize,
     text        :: {}
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1191,7 +1193,7 @@ def apqc_mot_outlr( obase, qcb, qci, run_style, jpgsize,
     text        :: "{}"
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1290,7 +1292,7 @@ def apqc_mot_enorm( obase, qcb, qci, run_style, jpgsize,
     text        :: {}
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1377,7 +1379,7 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
     text        :: {}
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1467,7 +1469,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
     text        :: "{}"
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1555,7 +1557,7 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
     text        :: "{}"
     subtext     :: "${{rep_cen_str}}"
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
                STR_json_text )
 
     jsontxt_cmd = '''
@@ -1680,7 +1682,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 STR_json_text )
 
     jsontxt_cmd = '''
@@ -1693,7 +1695,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -prefix ${ojson}
     '''
 
-    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
     osubtext2+= ''' ,, '''
     osubtext2+= '''"range: [${minmax[1]}, ${minmax[2]}]'''
     osubtext2+= ''';  obliquity: ${ulay_ob}"'''
@@ -1707,7 +1709,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     title       :: {}
     subtext     :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 osubtext2 )
 
     jsontxt2_cmd = '''
@@ -1797,7 +1799,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 ttext )
 
     jsontxt_cmd = '''
@@ -1818,7 +1820,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -1880,7 +1882,7 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 ttext )
 
     jsontxt_cmd = '''
@@ -1901,7 +1903,7 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2005,7 +2007,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 ttext )
 
     jsontxt_cmd = '''
@@ -2018,7 +2020,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     -prefix ${ojson}
     '''
 
-    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
     jsontxt2  = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2028,7 +2030,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     title       :: {}
     subtext     :: {} 
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                osubtext2 )
 
     jsontxt2_cmd = '''
@@ -2175,7 +2177,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 ttext )
 
     jsontxt_cmd = '''
@@ -2188,7 +2190,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     -prefix ${ojson}
     '''
 
-    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
     jsontxt2  = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2198,7 +2200,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     title       :: {}
     subtext     :: {} 
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                osubtext2 )
 
     jsontxt2_cmd = '''
@@ -2485,7 +2487,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     title       :: {}
     text        :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 ttext )
 
     jsontxt_cmd = '''
@@ -2498,7 +2500,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     -prefix ${ojson}
     '''
 
-    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
     jsontxt2  = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2508,7 +2510,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     title       :: {}
     subtext     :: {} 
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                osubtext2 )
 
     jsontxt2_cmd = '''
@@ -2650,7 +2652,7 @@ def apqc_regr_grayplot( obase, qcb, qci,
 
     str_TEXT = '''"Grayplot ('-pvorder') of residuals dset: ${errts_name}"'''
 
-    str_SUBTEXT = '''"{}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
+    str_SUBTEXT = '''"{}:${{opref}}.pbar.json"'''.format( lah.PBAR_FLAG )
 
     # [PT: June 27, 2019] added if enorm calc'ed and in Pythonic mode
     cmd3 = ''
@@ -2742,7 +2744,7 @@ def apqc_regr_grayplot( obase, qcb, qci,
     text        :: {}
     subtext     :: {}
     EOF
-    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                 str_TEXT, str_SUBTEXT )
 
     jsontxt_cmd = '''
@@ -2809,7 +2811,7 @@ def apqc_regr_df( obase, qcb, qci ):
     title       :: {}
     text  ::  "Summary of degrees of freedom (DF) usage from processing"
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2866,7 +2868,7 @@ def apqc_qsumm_ssrev( obase, qcb, qci ):
     title       :: {}
     text        :: "Basic summary quantities from processing"
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2971,7 +2973,7 @@ def apqc_warns_cen_stim( obase, qcb, qci,
     text        :: "Censor fraction warnings (per stim)"
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                max_warn_level)
 
     jsontxt_cmd = '''
@@ -3038,7 +3040,7 @@ def apqc_warns_cen_total( obase, qcb, qci,
     text        :: "General censor fraction warnings"
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                warn_level)
 
     jsontxt_cmd = '''
@@ -3111,7 +3113,7 @@ def apqc_warns_xmat( obase, qcb, qci,
     text        :: "Regression matrix correlation warnings"
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                warn_level)
 
     jsontxt_cmd = '''
@@ -3179,7 +3181,7 @@ def apqc_warns_press( obase, qcb, qci,
     text        :: "Pre-steady state warnings"
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                warn_level)
 
     jsontxt_cmd = '''
@@ -3247,7 +3249,7 @@ def apqc_warns_TENT( obase, qcb, qci,
     text        :: "TENT warnings from timing_tool.py"
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                warn_level)
 
     jsontxt_cmd = '''
@@ -3415,7 +3417,7 @@ those might have been flipped.'''
     text        ::  "Left-right flip check warnings" 
     warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                warn_level)
 
     jsontxt_warn_cmd = '''
@@ -3455,7 +3457,7 @@ those might have been flipped.'''
     title       :: {}
     subtext     :: "ulay: ${{ulay_name_o}} (original anat, ${{state_o}})" ,, "olay: ${{olay_name}} (EPI edges)"
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -3476,7 +3478,7 @@ those might have been flipped.'''
     title       :: {}
     subtext     :: "ulay: ${{ulay_name_f}} (flipped anat, ${{state_f}})" ,, "olay: ${{olay_name}} (EPI edges)"
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -3606,7 +3608,7 @@ def apqc_radcor_rcvol( obase, qcb, qci,
             otext+= '''{}"'''.format( rcdir )
         if not(ith_run) and not(ii) :
             otext+= ''' ,, '''
-            otext+= '''"   {}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
+            otext+= '''"   {}:${{opref}}.pbar.json"'''.format( lah.PBAR_FLAG )
 
         # [PT: May 16, 2019] new format for flagging/getting PBAR info
         # can be passed as subtext or text or anything.
@@ -3626,7 +3628,7 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         text        :: {}
         subtext     :: {}
         EOF
-        '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+        '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
                     otext, osubtext)
 
         jsontxt_cmd = '''
@@ -3750,7 +3752,7 @@ def apqc_Top_pagetop( opref, qcb, qci, task_name = '' ):
     title       :: {}
     subj        :: "${{subj}}"
     EOF
-    '''.format(qci, qcb, lahh.qc_title[qcb][0], lahh.qc_title[qcb][1] )
+    '''.format(qci, qcb, lah.qc_title[qcb][0], lah.qc_title[qcb][1] )
 
     ## !!!!! to be added at some point, from new uvar:
     ##    taskname  ::  task
