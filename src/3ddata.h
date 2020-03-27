@@ -5508,7 +5508,10 @@ extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
                       THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern void THD_dicom_real_xform (THD_3dim_dataset * dset ,
                       THD_dmat33 *tmat, THD_dfvec3 *dics );
+extern int  THD_dicom_real_to_card(THD_3dim_dataset *dset, /* 23 Mar 2020 */
+                      THD_fvec3 * coords, int rnd);
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
+
 
 extern void THD_report_obliquity(THD_3dim_dataset *dset);
 extern void set_obliquity_report(int v);

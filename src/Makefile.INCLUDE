@@ -251,6 +251,7 @@ PY_ROOT = python_scripts
 PY_SCRIPTS_DIR = $(PY_ROOT)/scripts
 PY_SCRIPTS = $(shell cd $(PY_SCRIPTS_DIR); echo *.py; cd ..)
 PY_LIB_DIR = $(PY_ROOT)/afnipy
+PY_LIBS = $(shell cd $(PY_LIB_DIR); echo *.py; cd ..)
 
 R_DIR = R_scripts
 R_TCSH_DIR = scripts_for_r
@@ -372,7 +373,7 @@ list_py_scripts:
 	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_py_libs:
-	echo $(PY_SCRIPTS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
+	echo $(PY_LIBS) | tr ' ' '\n' | LC_COLLATE=C sort | uniq 
 
 list_r_scripts:
 	echo `\ls $(R_DIR) | \grep -v CMakeLists.txt`         \

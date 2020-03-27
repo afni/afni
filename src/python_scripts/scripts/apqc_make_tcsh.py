@@ -140,9 +140,12 @@ auth = 'PA Taylor'
 #    + vstat: now underlay template (if there), instead of anat_final
 #    + regr: use template as ulay (if there), instead of anat_final
 #
-ver = '3.41' ; date = 'March 12, 2020' 
+#ver = '3.41' ; date = 'March 12, 2020' 
 # [PT] no vstat if 'surf' block was used in AP (-> stats dset is
 #      *.niml.dset)
+#
+ver = '3.5' ; date = 'March 27, 2020' 
+# [PT] remove dependency on lib_apqc_html_helps.py
 #
 #########################################################################
 
@@ -155,13 +158,12 @@ import sys
 import os
 import json
 import glob
+
 from afnipy import afni_base      as BASE
 from afnipy import afni_util      as UTIL
 from afnipy import lib_apqc_tcsh  as lat
 from afnipy import lib_ss_review  as lssr
 from afnipy import lib_apqc_io    as laio
-from afnipy import apqc_make_html as amh
-from afnipy import apqc_make_html as amh
 
 # all possible uvars
 all_uvars = []
@@ -235,7 +237,7 @@ if __name__ == "__main__":
     copying them into a new file), as long as the 'Top level' sections are
     all present.
 
-    '''.format( lat.qcbase, ap_ssdict['subj'], amh.ohtml )
+    '''.format( lat.qcbase, ap_ssdict['subj'], lat.ohtml )
 
     comm     = lat.commentize(comm, padpost=2)
     str_FULL+= comm
@@ -330,7 +332,7 @@ if __name__ == "__main__":
     #
     # The following is a list of images that MAY be made as part of
     # the QC.  These are now organized as QC blocks (see
-    # lahh.qc_blocks).  The order that these are listed here are
+    # lah.qc_blocks).  The order that these are listed here are
     # basically the order in which they might occur there, and their
     # file names will also reflect their QC block.  
     # 

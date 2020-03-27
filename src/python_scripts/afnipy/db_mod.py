@@ -9170,13 +9170,11 @@ g_help_examples = """
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
-           * NOTE: prepare for FreeSurfer before running @SSwarper, so that the
-                   FS output will stay aligned with the input.
            * This adds a lot of processing time.
            * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
              Then use the resulting datasets in the afni_proc.py command below
              via -tlrc_NL_warped_dsets.
-                  @SSwarper -input FT_anat_FSprep.nii  \\
+                  @SSwarper -input FT_anat.nii         \\
                             -subid FT                  \\
                             -odir  FT_anat_warped      \\
                             -base  MNI152_2009_template_SSW.nii.gz
@@ -9190,11 +9188,6 @@ g_help_examples = """
              - ANATICOR white matter mask (for local white matter regression)
            * For details on how these masks were created, see "FREESURFER NOTE"
              in the help, as it refers to this "Example 11".
-         o Input anat was prepared for and given to FreeSurfer, so it should be
-           aligned with the FS results and masks.
-             - output from FS is usually not quite aligned with input
-             - run "3dZeropad -pad2evens" and 3dAllineate before FreeSurfer
-             - check anat input to FS using check_dset_for_fs.py
          o Erode FS white matter and ventricle masks before application.
          o Bring along FreeSurfer parcellation datasets:
              - aaseg : NN interpolated onto the anatomical grid
@@ -10254,13 +10247,6 @@ g_help_notes = """
     make ventricle and white matter masks from the Desikan-Killiany atlas based
     parcellation dataset, aparc+aseg.nii.
 
-        * When running FreeSurfer, it is best to start with:
-
-            check_dset_for_fs.py
-
-          to keep the output from FreeSurfer aligned with its input, keeping
-          the FS parcellations aligned with the warped anatomy.
-
     Note that the aparc.a2009s segmentations are based on the Destrieux atlas,
     which might be nicer for probability maps, though the Desikan-Killiany
     aparc+aseg segmentation is currently used for segmenting white matter and
@@ -10271,9 +10257,9 @@ g_help_notes = """
     atlas purposes, aligned with the result), though the white matter and
     ventricle masks are based instead on aparc+aseg.nii.
 
-        # run (complete) FreeSurfer on FT_anat_FSprep.nii
-        # (see below for commands to prepare FT_anat_FSprep.nii)
-        recon-all -all -subject FT -i FT_anat_FSprep.nii
+        # run ) FreeSurfer on FT_anat.nii (NIFTI version of FT_anat+orig)
+        3dcopy FT_anat+orig FT_anat.nii
+        recon-all -all -subject FT -i FT_anat.nii
 
         # import to AFNI, in NIFTI format
         @SUMA_Make_Spec_FS -sid FT -NIFTI
@@ -10285,52 +10271,9 @@ g_help_notes = """
             SUMA/fs_ap_latvent.nii.gz
             SUMA/fs_ap_wm.nii.gz
     
-    Then FT_anat_FSprep.nii, fs_ap_latvent.nii.gz and fs_ap_wm.nii.gz
-    (along with the basically unused aparc.a2009s+aseg.nii) are passed
-    to afni_proc.py.
-
-
-  * Preparation for running FreeSurfer
-
-    Be aware that the output from FreeSurfer (e.g. FT_SurfVol.nii) will
-    often not quite align with the input (e.g. FT_anat+orig).  It is preferable
-    to have 1 mm^3 isotropic voxels, with even numbers of voxels in each
-    direction (FreeSurfer has options to handle slightly higher resolution,
-    too).  Particularly without the even numbers of voxels, the output might
-    be slightly shifted (0.5 mm, or perhaps 1/2 voxel).
-
-    While the corresponding anatomy output by FreeSurfer might be sufficient
-    for some uses, the original input is more generally useful.  And without
-    keeping the two aligned, the surface and parcellation datasets would also
-    not quite align with the original input (FT_anat+orig), corrupting
-    tissue-based regressors.  Clearly, we prefer good alignment.
-
-
-    To have the FreeSurfer output align with the input, it might help to pass a
-    modified volume to FreeSurfer.  Start with check_dset_for_fs.py, to find
-    out what needs to be fixed (voxel size and voxel count parity), though the
-    subsequent commands should work in any case.
-
-    Use 3dAllineate to make a volume with 1 mm^3 voxels (3dAllineate allows
-    for wsinc5 interpolation), and use 3dZeropad to ensure an even number
-    voxels in each direction.
-
-    Consider these sample commands, converting ANAT+orig to FT_anat_FSprep.nii
-    before running FreeSurfer and importing into AFNI/SUMA.
-
-        # note what is off, just to be aware
-        check_dset_for_fs.py -input FT_anat+orig
-
-        # resample to 1 mm^3 voxels ...
-        3dAllineate -1Dmatrix_apply IDENTITY -mast_dxyz 1 -final wsinc5 \\
-            -source FT_anat+orig FT_1mm.nii
-        # ... then pad to even numbers of voxels
-        3dZeropad -pad2evens -prefix FT_anat_FSprep.nii FT_1mm.nii
-
-        # run FreeSurfer
-        recon-all -all -subject FT -i FT_anat_FSprep.nii
-        # big finish: import FreeSurfer output into SUMA-land
-        @SUMA_Make_Spec_FS -sid FT -NIFTI -fspath ./FT
+    Then FT_anat.nii (or FT_anat+orig), fs_ap_latvent.nii.gz and
+    fs_ap_wm.nii.gz (along with the basically unused aparc.a2009s+aseg.nii)
+    are passed to afni_proc.py.
 
     --------------------------------------------------
     TIMING FILE NOTE: ~2~

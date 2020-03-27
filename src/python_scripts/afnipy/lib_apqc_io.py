@@ -39,17 +39,19 @@
 # + [PT] Fix input with '-xfile ..' opt
 #      + Fix initialization of all objs here (with def __init(self))
 #
-ver = '1.8' ; date = 'Feb 216, 2020' 
+#ver = '1.8' ; date = 'Feb 21, 2020' 
 # + [PT] add in ability for -censor_hline to contain a 'NONE' argument 
 #        ... bc that is useful as a placeholder when some images have
 #        censor vals and others don't
+#
+ver = '1.81' ; date = 'Mar 27, 2020' 
+# + [PT] remove double import of module
 #
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy
-from afnipy import lib_afni1D as LAD
 from afnipy import lib_afni1D as LAD
 from afnipy import afni_util  as au
 

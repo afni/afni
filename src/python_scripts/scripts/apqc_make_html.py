@@ -36,9 +36,13 @@
 # + [PT] QC block ID now in QC block titles
 # + [PT] added more help descriptions
 #
-ver = '2.31' ; date = 'July 17, 2019' 
+#ver = '2.31' ; date = 'July 17, 2019' 
 # + [PT] tiny tweak in departurating message: guard against dreaded
 #        double slash
+#
+ver = '2.4' ; date = 'March 27, 2020' 
+# [PT] remove dependency on lib_apqc_html_helps.py
+#    + dir_img now from lah
 #
 #########################################################################
 
@@ -46,20 +50,20 @@ import os
 import sys
 import glob
 import json
+
 from afnipy import lib_apqc_html       as lah
-from afnipy import lib_apqc_html_helps as lahh
 from afnipy import lib_apqc_html_css   as lahc
 from afnipy import lib_apqc_tcsh       as lat
 from afnipy import lib_apqc_io         as laio
 
 # ------------------------------------------------------------------------
 
-ohtml     = 'index.html'             # output file, HTML page
+ohtml     = lat.ohtml                # output file, HTML page
 ocss      = lat.dir_info + '/styles.css' # CSS of formats/attributes/etc.
 ohelp     = 'help.html'              # output help file, also html
 tobetable = "IHAVEACUNNINGPLAN!"     # string to be replaced later
 ftypes    = [ 'jpg', 'dat', 'txt' ]  # types of data to populate HTML page
-allblocks = lahh.qc_blocks.keys()    # SHOULD be ordered list of QC blocks
+allblocks = lah.qc_blocks.keys()    # SHOULD be ordered list of QC blocks
 
 MAX_WLEVEL      = ''
 MAX_WLEVEL_RANK =  lahc.wlevel_ranks[MAX_WLEVEL]
@@ -77,7 +81,7 @@ if __name__ == "__main__":
     os.chdir(iopts.qcdir)
 
     # get dictionary form of json, title page info to get subj ID
-    fname = lat.dir_img + '/' + lat.page_title_json + '.json'
+    fname = lah.dir_img + '/' + lat.page_title_json + '.json'
     with open( fname, 'r' ) as fff:
         titlepg_dict = json.load(fff)    
 
@@ -113,7 +117,7 @@ if __name__ == "__main__":
     PADMARG_VAL = 80 
 
 
-    page_title    = lat.dir_img + '/' + lat.page_title_json + '.json'
+    page_title    = lah.dir_img + '/' + lat.page_title_json + '.json'
     # 'AATI' = all APQC title info.
     AATI = lah.read_title_json(page_title)
 
@@ -146,8 +150,8 @@ if __name__ == "__main__":
     # ones (like the *.cor.*, *.sag.* and *pbar* ones)
     list_allglob = []
     for ff in ftypes:
-        list_allglob += glob.glob(lat.dir_img + '/*.' + ff)
-    list_jsonglob = glob.glob(lat.dir_img + '/*.json')
+        list_allglob += glob.glob(lah.dir_img + '/*.' + ff)
+    list_jsonglob = glob.glob(lah.dir_img + '/*.json')
 
     #print(list_allglob)
     #print(list_jsonglob)
@@ -239,7 +243,7 @@ if __name__ == "__main__":
     # close final section div
     ht+= '''</div>'''
 
-    list_links.append( lahh.qc_link_final )
+    list_links.append( lah.qc_link_final )
 
     txt_for_navtable = lah.make_nav_table(list_links,
                                           max_wlevel = MAX_WLEVEL)
@@ -263,7 +267,7 @@ if __name__ == "__main__":
     lah.write_json_file(list_links, oapqcjson) 
 
     # output help html file; reuse same external CSS file
-    lahh.write_help_html_file( ohelp, ocss ) 
+    lah.write_help_html_file( ohelp, ocss ) 
 
     # silly check, so no doubling of slash in path (not harmful, but
     # annoyingly unaesthetic)
