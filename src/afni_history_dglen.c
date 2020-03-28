@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27, MAR, 2020, DRG, "@animal_warper center_shift",
+     MINOR, TYPE_NEW_OPT,
+    "Allow for center shifting or not"
+},
 { 26, FEB, 2020, DRG, "@animal_warper ROIdset followers, modal smoothing",
      MINOR, TYPE_NEW_OPT,
     "Allow for ROIs to follow into template space and modal smoothing",
