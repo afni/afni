@@ -822,12 +822,13 @@ cat_matvec -ONELINE                             \
 # distance can be very large, and 3dNwarpApply will create a high
 # resolution space that will likely eat up large amounts of memory
 # ****USE WITH CAUTION *******
-cat_matvec -ONELINE ${dsetprefix}.1D ${dsetprefix}_al2std_mat.aff12.1D > \
+cat_matvec -ONELINE ${dsetprefix}_al2std_mat.aff12.1D ${dsetprefix}.1D > \
      ${origdsetprefix}_composite_linear_to_template.1D
 #Now create the inverse composite warp from template to subject space
 cat_matvec -ONELINE ${dsetprefix}_inv.1D        \
     ${dsetprefix}_inv_al2std_mat.aff12.1D       \
     > ${origdsetprefix}_composite_linear_to_template_inv.1D
+
 echo "Matrix, affine xform with shift :  ${origdsetprefix}_composite_linear_to_template.1D" \
      >> ${animal_outs}
 echo "Matrix, inverse affine xform with shift : ${origdsetprefix}_composite_linear_to_template_inv.1D" \
@@ -1295,7 +1296,21 @@ Options ~1~
 
     -center_out         :center native-space output to native original 
                          space or to center-shifted space over the center
-                         of template 
+                         of template.
+                         ****Note using the center_out native data
+                         transformations will require extra care.
+                         3dNmatrix_apply may require vast amounts of memory
+                         if the center of the original dataset is far from
+                         the center of the template dataset, usually around
+                         an xyz coordinate of 0,0,0. 
+                         If datasets are far from a center around 0,0,0,
+                         then consider using 
+                           3drefit -oblique_recenter
+                           3drefit -oblique_recenter_raw
+                         or a preprocessing center alignment for all the
+                         native space datasets
+                           @Align_Centers -base template -dset mydset \
+                            -child dset2 dset3 ...
     -align_type         :provide alignment only to specified level
                          (rigid,rigid_equiv,affine,all)
                          rigid - align using rotation and translation
