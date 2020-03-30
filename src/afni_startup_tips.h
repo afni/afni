@@ -866,9 +866,14 @@ static char *gby[] = {
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
-     "Remember -- eggs cannot be unscrambled"                        ,
-     "Remember -- a closed mouth gathers no feet"                    ,
+     "Remember -- Eggs cannot be unscrambled"                        ,
+     "Remember -- A closed mouth gathers no feet"                    ,
      "Remember -- People are willing to believe what they wish"      ,
+
+     "For my money it was just an ordinary cock-up"                  ,
+     "I have seen the deepness in the sky"                           ,
+     "I am trapped in a cage I created but cannot see"               ,
+     "In the streets of Diaspar it is always afternoon"              ,
 
      "Fools give you reasons, wise people never try"                 ,
      "People willingly trust the statistics they wish to believe"    ,
@@ -1607,15 +1612,16 @@ static char *gby[] = {
      "  will find it to their advantage to decipher all this mess"                            ,
 
      // Lem
-     "Everyone knows that dragons don't exist.  But while this simplistic\n"
+     "\n"
+     "Everyone knows that dragons don't exist. But while this simplistic\n"
      "formulation may satisfy the layman, it does not suffice for the scientific\n"
-     "mind.  The School of Higher Neantical Nillity is in fact wholly unconcerned\n"
-     "with what does exist.  Indeed, the banality of existence has been so amply\n"
-     "demonstrated, there is no need for us to discuss it any further here.  The\n"
+     "mind. The School of Higher Neantical Nillity is in fact wholly unconcerned\n"
+     "with what does exist. Indeed, the banality of existence has been so amply\n"
+     "demonstrated, there is no need for us to discuss it any further here. The\n"
      "brilliant Cerebron, attacking the problem analytically, discovered three\n"
-     "distinct kinds of dragon:  the mythical, the chimerical, and the purely\n"
-     "hypothetical.  They were all, one might say, nonexistent, but each non-existed\n"
-     "in an entirely different way."                                                          ,
+     "distinct kinds of dragon: the mythical, the chimerical, and the purely\n"
+     "hypothetical. They were all, one might say, nonexistent, but each non-existed\n"
+     "in an entirely different way"                                                           ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
@@ -1667,16 +1673,8 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
-     "\n     Everyone knows that dragons don't exist. But while this\n"
-     "     simplistic formulation may satisfy the layman, it does not\n"
-     "     suffice for the scientific mind... The brilliant Cerebron,\n"
-     "     attacking the problem analytically, discovered three distinct\n"
-     "     kinds of dragon: the mythical, the chimerical, and the purely\n"
-     "     hypothetical. They were all, one might say, nonexistent, but each\n"
-     "     non-existed in an entirely different way.\n" ,
-
      "\n    Never should I forget this event\n"
-     "    in the life of my fatigued retinas.\n" ,
+     "    in the life of my fatigued retinas\n" ,
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
