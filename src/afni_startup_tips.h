@@ -1673,8 +1673,10 @@ static char *gby[] = {
      "     attacking the problem analytically, discovered three distinct\n"
      "     kinds of dragon: the mythical, the chimerical, and the purely\n"
      "     hypothetical. They were all, one might say, nonexistent, but each\n"
-     "     non-existed in an entirely different way.\n"
+     "     non-existed in an entirely different way.\n" ,
 
+     "\n    Never should I forget this event\n"
+     "    in the life of my fatigued retinas.\n" ,
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
