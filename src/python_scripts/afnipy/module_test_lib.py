@@ -240,21 +240,40 @@ def simple_import(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
    global IL
-   if IL is None:
-      try: import importlib as LLL
-      except:
-         print("** simple_import_test: failed to get importlib")
-         return None
-      IL = LLL
 
-   try:
-      mod = IL.import_module(libname)
-      if verb > 1:
-         print("++ module loaded: %s" % libname)
-   except:
-      if verb > 1:
-          print("** failed to load module %s" % libname)
-      return None
+   old_python = (get_py_ver_float() < 2.7)
+
+   if IL is None:
+      try:
+         import importlib as LLL
+         IL = LLL
+      except:
+         # failure, unless this is old python
+         if not old_python:
+            print("** simple_import_test: failed to get importlib to test %s" \
+                  % libname)
+            return None
+
+   # exec waaaay simple backup plan for older python without importlib
+   # --> simply attempt to import
+   if old_python:
+      try:
+         exec('import %s as mod' % libname)
+         if verb > 1:
+            print("++ module loaded: %s" % libname)
+      except:
+         if verb:
+             print("** failed to load module %s" % libname)
+         return None
+   else:
+      try:
+         mod = IL.import_module(libname)
+         if verb > 1:
+            print("++ module loaded: %s" % libname)
+      except:
+         if verb:
+             print("** failed to load module %s" % libname)
+         return None
 
    if details and verb > 1:
       if hasattr(mod, '__file__'):
