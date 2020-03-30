@@ -152,6 +152,7 @@ static float     *Awtar = NULL , *Awtar_actual = NULL ;
 static float     *Bwtar = NULL , *Bwtar_actual = NULL ;
 static int       nAwt   = 0 ;
 static int       nBwt   = 0 ;
+static int permute_wtar = 1 ;  /* 30 Mar 2020 */
 static MRI_IMAGE *Awtim = NULL ;
 static MRI_IMAGE *Bwtim = NULL ;
 static char *Awtstring=NULL , *Bwtstring=NULL ;
@@ -183,7 +184,7 @@ static char *Awtstring=NULL , *Bwtstring=NULL ;
        Bwtar_actual = (float *)malloc(sizeof(float)*nval_BBB) ;           \
      LOAD_ACTUAL(Awtar_actual,Awtar,nval_AAA) ;                           \
      LOAD_ACTUAL(Bwtar_actual,Bwtar,nval_BBB) ;                           \
-     if( do_permute && p_nxy > 0 )                                        \
+     if( do_permute && p_nxy > 0 && permute_wtar )                        \
        permute_arrays( nval_AAA,Awtar_actual, nval_BBB,Bwtar_actual );    \
      SCALE_wtar(Awtar_actual,nval_AAA) ;                                  \
      SCALE_wtar(Bwtar_actual,nval_BBB) ;                                  \
@@ -3899,8 +3900,10 @@ int main( int argc , char *argv[] )
 
    if( do_permute && dont_permute ){ /* check if user did both -nopermute and -permute */
      if( do_permute > 1 ) WARNING_message("-nopermute turns off -permute") ;
-     do_permute = 0 ;
+     do_permute = 0 ; permute_wtar = 0 ;
    }
+
+   if( AFNI_yesenv("AFNI_DONT_PERMUTE_WTAR") ) permute_wtar = 0 ; /* 30 Mar 2020 */
 
    if( do_permute ){
      if( !do_randomsign && !do_clustsim && !do_Xclustsim ){  /* is it useful? */
