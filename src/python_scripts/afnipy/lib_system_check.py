@@ -71,7 +71,17 @@ class SysInfo:
       dstr = ''
       if   self.system == 'Linux':
          try:    dstr = tostr(platform.linux_distribution())
-         except: checkdist = 1
+         except: 
+            checkdist = 1
+            try: platform.dist()
+            except:
+               checkdist = 0
+               try:
+                  import distro
+                  dstr = tostr(distro.linux_distribution(full_distribution_name=False))
+                  dstr =  ''.join(dstr)
+               except:
+                  pass
       elif self.system == 'Darwin':
          try: dstr = tostr(platform.mac_ver())
          except: checkdist = 1
