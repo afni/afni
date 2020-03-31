@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Mar, 2020, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
+   "update for python3",
+   NULL
+ } ,
+
  { 31, Mar, 2020, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
    "grep from $HOME/.bash_profile",
    NULL

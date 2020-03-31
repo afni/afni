@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: ready
+
 import sys
 from afnipy import option_list, afni_util as UTIL, afni_base as BASE
 from afnipy import lib_afni1D as LD
@@ -135,9 +137,10 @@ g_history = """
          - replaced -input with -infiles
          - added options -old, -infiles, -tr_nup
     0.3  Jun 08, 2015: allow infiles to include paths
+    0.4  Mar 30, 2020: update for python3
 """
 
-g_version = "version 0.3, June 8, 2015"
+g_version = "version 0.4, March 30, 2020"
 
 g_todo = """
    - temporal partitioning based on stimulus timing and durations
@@ -235,11 +238,11 @@ class Decon:
 
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
-            print g_help_string
+            print(g_help_string)
             return 0
 
         if '-hist' in sys.argv:
-            print g_history
+            print(g_history)
             return 0
 
         if '-show_valid_opts' in sys.argv:      # show all valid options
@@ -247,7 +250,7 @@ class Decon:
             return 0
 
         if '-ver' in sys.argv:
-            print g_version
+            print(g_version)
             return 0
 
         # ------------------------------------------------------------
@@ -314,7 +317,7 @@ class Decon:
         # check over the inputs
 
         if len(self.infiles) < 1:
-           print '** missing option -infiles'
+           print('** missing option -infiles')
            return 1
 
         # check over -input as an AFNI dataset
@@ -324,18 +327,18 @@ class Decon:
 
         if self.aname.type == '1D':
             if self.tr == None:
-                print '** -tr is required if the input is in 1D format'
+                print('** -tr is required if the input is in 1D format')
             self.reps = UTIL.max_dim_1D(self.infiles[0])
         else:
             if self.aname.type != 'BRIK':
-                print "** unknown 'type' for -input '%s'" % self.infiles[0]
+                print("** unknown 'type' for -input '%s'" % self.infiles[0])
             err,self.reps,self.tr =     \
                 UTIL.get_dset_reps_tr(self.aname.pv(), verb=self.verb)
             if err: return 1
 
         if self.verb > 1:
-            print '-- using kernel %s, kfile %s, tr = %s, reps = %s' %  \
-                  (self.kernel, self.kfile, self.tr, self.reps)
+            print('-- using kernel %s, kfile %s, tr = %s, reps = %s' %  \
+                  (self.kernel, self.kfile, self.tr, self.reps))
 
         return None
 
@@ -373,12 +376,13 @@ class Decon:
         # when copying file in, use 1dtranspose if they are horizontal
         adata = LD.AfniData(self.infiles[0], verb=self.verb)
         if not adata: return 1
+        # rcr - in progress?  unused: adata, nt, transp
         if adata.nrows == 1:
-           nt = adata.ncols/self.tr_nup
+           nt = adata.ncols * self.tr_nup
            trstr = '(no transpose on read)'
            trchr = ''
         else:
-           nt = adata.nrows/self.tr_nup
+           nt = adata.nrows * self.tr_nup
            transp = 1
            trstr = '(transpose on read)'
            trchr = '\\\''
@@ -392,10 +396,10 @@ class Decon:
         if self.kfile_in: kfile = self.kfile_in
         else:
            # generate a response kernel using 3dDeconvolve
-           if   kernel == 'GAM':   ntk = 12/trup
-           elif kernel == 'BLOCK': ntk = 15/trup
+           if   kernel == 'GAM':   ntk = int(12/trup + 0.5)
+           elif kernel == 'BLOCK': ntk = int(15/trup + 0.5)
            else:
-              print '** only GAM/BLOCK basis functions are allowed now'
+              print('** only GAM/BLOCK basis functions are allowed now')
               return 1
 
            if kernel == 'BLOCK': kernel = 'BLOCK(0.1,1)'
@@ -472,7 +476,7 @@ class Decon:
         """create the deconvolution (3dTfitter) script"""
 
         if self.aname.type == '1D':
-            print '** 3D decon routine with 1D data?'
+            print('** 3D decon routine with 1D data?')
             return 1
 
         cmd  = '# ------------------------------------------------------\n'  \
