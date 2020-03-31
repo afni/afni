@@ -56,39 +56,14 @@ class SysInfo:
    def show_general_sys_info(self, header=1):
       if header: print(UTIL.section_divider('general', hchar='-'))
 
-      def tostr(some_tuple):
-         if type(some_tuple) == str: return some_tuple
-         tlist = [t for t in list(some_tuple) if type(t) == str]
-         return ' '.join(tlist)
-
-      print('architecture:         %s' % tostr(platform.architecture()))
+      print('architecture:         %s' % tup_str(platform.architecture()))
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())
 
-      # check distributions by type
-      checkdist = 0
-      dstr = ''
-      if   self.system == 'Linux':
-         try:    dstr = tostr(platform.linux_distribution())
-         except: 
-            checkdist = 1
-            try: platform.dist()
-            except:
-               checkdist = 0
-               try:
-                  import distro
-                  dstr = tostr(distro.linux_distribution(full_distribution_name=False))
-                  dstr =  ''.join(dstr)
-               except:
-                  pass
-      elif self.system == 'Darwin':
-         try: dstr = tostr(platform.mac_ver())
-         except: checkdist = 1
-      else: checkdist = 1
-      if checkdist: dstr = tostr(platform.dist())
-      self.os_dist = dstr       # save result
-      print('distribution:         %s' % dstr)
+      # check distributions by type - now all over the place
+      self.os_dist = distribution_string() # save for later
+      print('distribution:         %s' % self.os_dist)
          
       print('number of CPUs:       %s' % self.get_cpu_count())
 
@@ -1290,6 +1265,45 @@ class SysInfo:
       self.show_os_specific()
 
       self.show_comments()
+
+def tup_str(some_tuple):
+   """just listify some string tuple"""
+   return ' '.join(list(some_tuple))
+
+def distribution_string():
+   """check distributions by type - now a bit messy"""
+   import platform
+   sysname = platform.system()
+   checkdist = 0        # set in any failure case
+   dstr = 'bad pizza'
+
+   if sysname == 'Linux':
+      # through python 3.7 (if they still use mac_ver, why not linux?)
+      try: dstr = tup_str(platform.linux_distribution())
+      except: 
+         print("-- failed platform.linux_dist()")
+         try:
+            # python 3.4+
+            import distro
+            dstr = tup_str(distro.linux_distribution( \
+                           full_distribution_name=False))
+         except:
+            print("-- failed distro.linux_dist()")
+            # deprecated since 2.6, but why not give it a try?
+            try:    dstr = tup_str(platform.dist())
+            except: checkdist = 1
+   elif sysname == 'Darwin':
+      try:    dstr = tup_str(platform.mac_ver())
+      except: checkdist = 1
+   else:
+      try:    dstr = tup_str(platform.dist())
+      except: checkdist = 1
+
+   # backup plan
+   if checkdist:
+      dstr = 'unknown %s' % sysname
+
+   return dstr
 
 if __name__ == '__main__':
    print('lib_system_check.py: not intended as a main program')
