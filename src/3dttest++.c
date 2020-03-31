@@ -167,7 +167,7 @@ static char *Awtstring=NULL , *Bwtstring=NULL ;
        } else {                                                           \
          int qq ; for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] = 1.0f ;     \
        }                                                                  \
-     }
+     }                                                                    \
  } while(0)
 
   /* this macro scales an _actual array so the coefficients sum to N */
@@ -177,7 +177,7 @@ static char *Awtstring=NULL , *Bwtstring=NULL ;
        for( sum=0.0f,qq=0 ; qq < (nv) ; qq++ ) sum += (actar)[qq] ;       \
        sum = (nv) / sum ;                                                 \
        for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] *= sum ;                \
-     }
+     }                                                                    \
  } while(0)
 
   /* this macro loads the 2 _actual arrays & permutes them (if needed) */
