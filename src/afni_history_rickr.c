@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Mar, 2020, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "grep from $HOME/.bash_profile",
+   NULL
+ } ,
+
  { 31, Mar, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
    "fix lib_system_check:self.os_dist for newer python",
    NULL

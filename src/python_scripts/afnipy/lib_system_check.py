@@ -143,7 +143,8 @@ class SysInfo:
          gfound = 0
          if f1found and f2found:
             # does f1name reference f2name?
-            st, so, se = UTIL.limited_shell_exec("\grep %s %s"%(f2name,f1name))
+            st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" \
+                                                 % (f2name, f1name))
             if not st: gfound = 1
 
          if not f1found or not f2found or not gfound:
