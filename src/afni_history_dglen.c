@@ -50,6 +50,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 30, MAR, 2020, DRG, "align_epi_anat.py",
+     MINOR, TYPE_NEW_OPT,
+    "rigid_equiv - rigid equivalent affine alignment"
+},
+{ 30, MAR, 2020, DRG, "align_epi_anat.py",
+     MINOR, TYPE_BUG_FIX,
+    "NIFTI view equivalent for epi2anat alignment fix"
+},
 { 27, MAR, 2020, DRG, "@animal_warper center_shift",
      MINOR, TYPE_NEW_OPT,
     "Allow for center shifting or not"

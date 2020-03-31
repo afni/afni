@@ -219,7 +219,13 @@ g_help_string = """
         little problem. All these methods when used with the default
         lpc cost function require good contrast in the EPI image so that
         the CSF can be roughly identifiable.
-        
+
+    -rigid_body   Limit transformation to translation and rotation,
+                  no scaling or shearing.
+    -rigid_equiv  Compute alignment with full affine 12 parameters, but
+                  use only the translation and rotation parameters. Useful
+                  for axialization/AC-PC alignment to a template 
+   
     -partial_coverage: indicates that the EPI dataset covers only a part of 
                   the brain. Alignment will try to guess which direction should
                   not be shifted If EPI slices are known to be a specific 
@@ -599,7 +605,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.61" # software version (update for changes)
+      self.align_version = "1.62" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -633,6 +639,7 @@ class RegWrap:
       self.flip_giant = 0  # don't necessarily use giant_move for L-R flipping test
       self.giant_move = 0  # don't use giant_move
       self.supersize = 0   # don't use supersize
+      self.rigid_equiv = 0 # don't do rigid_body equivalent for alignment
             
       # options for saving temporary datasets permanently
       self.save_Al_in = 0  # don't save 3dAllineate input files
@@ -736,6 +743,8 @@ class RegWrap:
 
       self.valid_opts.add_opt('-rigid_body', 0, [], \
                helpstr="Do only rigid body alignment - shifts and rotates")
+      self.valid_opts.add_opt('-rigid_equiv', 0, [], \
+               helpstr="Do only rigid body equivalent alignment - shifts and rotates")
 
       self.valid_opts.add_opt('-partial_coverage', 0, [],                  \
                helpstr="partial_xxxx options control center of mass adjustment")
@@ -1357,6 +1366,11 @@ class RegWrap:
       opt = self.user_opts.find_opt('-rigid_body')
       if opt != None:
          ps.AlOpt = ps.AlOpt.replace('-warp aff', '-warp shift_rotate')
+
+      # rigid body alignment
+      opt = self.user_opts.find_opt('-rigid_equiv')
+      if opt != None:
+         ps.rigid_equiv = 1
 
       opt = self.user_opts.find_opt('-feature_size')
       if opt != None:
@@ -2178,8 +2192,19 @@ class RegWrap:
             except:
                 print("WARNING: Could not write to flip text file")
 
+         # if rigid_equiv, then save only rigid equivalent alignment
+         # extract with cat_matvec
+         if(ps.rigid_equiv):
+            self.info_msg( \
+                "Reducing alignment transformation to rigid equivalent")
+            com = shell_com(  \
+                  "cat_matvec -ONELINE %s -P > __tt_temp.1D ; sleep 1; \
+                  mv __tt_temp.1D %s" % \
+                  (self.anat_mat,self.anat_mat), ps.oexec)
+            com.run();
+ 
          # if not doing alignment for anat2epi, just return now,
-         # and use the xform matrix computed later
+         # and use the xform matrix later
          if (not(ps.anat2epi)):
             return o, ow
 
@@ -2359,21 +2384,26 @@ class RegWrap:
 #      o = afni_name("%s%s" % (self.epi.out_prefix(), suf)) # was e.out_prefix() here
       if(self.master_epi_dset == 'SOURCE'):
           o.view = "%s" % e.view
+          if(not(o.view)) :
+                 o.view = dset_view(self.master_epi_dset)   
 #          self.info_msg("o.view is SOURCE VIEW %s\n" % o.view)
       else:
           if(self.master_epi_dset == 'BASE'):
              o.view = "%s" % a.view
              if(not(o.view)) :
-                 o.view = e.view
+                 o.view = dset_view(a.ppve())   
 #             self.info_msg("o.view is BASE VIEW %s\n" % o.view)
+
           else:
              mepi = afni_name(self.master_epi_dset)
              o.view = mepi.view
+             if(not(o.view)) :
+                 o.view = dset_view(self.master_epi_dset)   
 #             self.info_msg("o.view is OTHER VIEW %s\n" % o.view)
 
 #      self.info_msg("o.view is %s\n" % o.view)
       if(not(o.view)) :
-          o.view = '+orig'           
+          o.view = '+orig'
       eview = "%s" % o.view
 #      o.view = '+orig'
 
@@ -2423,12 +2453,13 @@ class RegWrap:
                  self.master_epi_option, alopt, owrite), ps.oexec)
          
          com.run()
-         
+
          # mark as not oblique if deobliqued
          if(oblique_mat!="") :
             o.view = eview
             com = shell_com ("3drefit -deoblique %s" % o.input(), ps.oexec)
             com.run()
+
 
 #         if (not o.exist() and not ps.dry_run()):
 #            self.error_msg("Could not apply transformation to epi data")
