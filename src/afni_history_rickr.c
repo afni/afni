@@ -49,6 +49,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Mar, 2020, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
+   "update for python3",
+   NULL
+ } ,
+
+ { 31, Mar, 2020, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "grep from $HOME/.bash_profile",
+   NULL
+ } ,
+
+ { 31, Mar, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
+   "fix lib_system_check:self.os_dist for newer python",
+   NULL
+ } ,
+
+ { 30, Mar, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "have module_test_lib.py (and so afni_proc.py) work on python 2.6 again",
+   "Done for S Horovitz."
+ } ,
+
  { 27, Mar, 2020, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "PY_LIBS",
    NULL
