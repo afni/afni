@@ -49,6 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Apr, 2020, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "add -see_also and -ver_man to help create a quick man page",
+   "To create a man page (via help2man), consider:\n"
+   "   nifti_tool -see_also > nt.see_also.txt\n"
+   "   help2man --help-option=-help --version-option=-ver_man  \\\n"
+   "            --include nt.see_also.txt --no-info nifti_tool \\\n"
+   "            | gzip > nifti_tool_manpage.1.gz\n"
+   "after which one can install the file, or test via\n"
+   "   man ./nifti_tool_manpage.1.gz\n"
+   "(see the uncompressed version for syntax)."
+ } ,
+
  { 31, Mar, 2020, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
    "update for python3",
    NULL
