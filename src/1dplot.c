@@ -311,6 +311,8 @@ void usage_1dplot(int detail)
      " -dashed codes   = Plot dashed lines between data points.  The 'codes'\n"
      "                   are a colon-separated list of dash values, which\n"
      "                   can be 1 (solid), 2 (longer dashes), or 3 (shorter dashes).\n"
+     "                   0 can be used to indicate that a time series is to be\n"
+     "                   plotted without lines but with boxes instead.\n"
      "                ** Example: '-dashed 1:2:3' means to plot the first time\n"
      "                   series with solid lines, the second with long dashes,\n"
      "                   and the third with short dashes.\n"

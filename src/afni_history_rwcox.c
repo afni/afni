@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2020 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
+   "Add '0' to the -dashed option" ,
+   "-dashed codes are now\n"
+   " 1 = solid           2 = longer dashes\n"
+   " 3 = shorter dashes  0 = no line, use boxes\n"
+   "Code 0 is new, to allow a graph with some data plotted\n"
+   "with lines and some without."
+ } ,
+
  { 17 , MAR , 2020 , RWC , "afni GUI" , MINOR , TYPE_NEW_OPT ,
    "Modify font size options - hopefully easier now" ,
    "1) Change meaning of 'plus' fonts to be bigger than before.\n"
