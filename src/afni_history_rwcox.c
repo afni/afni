@@ -44,6 +44,9 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , APR , 2020 , RWC , "AFNI gui" , MINOR , TYPE_NEW_OPT ,
+   "Add -norm option for normal font sizes" , NULL } ,
+
  { 8 , APR , 2020 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
    "Add '0' to the -dashed option" ,
    "-dashed codes are now\n"
