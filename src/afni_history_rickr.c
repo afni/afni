@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Apr, 2020, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if dataset inputs had full paths, use them in proc script",
+   "Thanks to W-L Tseng for pointing out the discrepancy."
+ } ,
+
  {  7, Apr, 2020, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
    "add -see_also and -ver_man to help create a quick man page",
    "To create a man page (via help2man), consider:\n"

@@ -682,9 +682,10 @@ g_history = """
        - display all help examples, including ones outside of afni_proc.py
        - specify whether each example is reasonably recommended
     7.11 Mar 11, 2020: add details on why examples are not considered complete
+    7.12 Apr 14, 2020: copy with absolute paths if inputs have them
 """
 
-g_version = "version 7.11, March 11, 2020"
+g_version = "version 7.12, April 14, 2020"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
