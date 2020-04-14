@@ -989,6 +989,7 @@ static char *gby[] = {
      "I came, I saw, I got confused"                                 ,
      "Inconceivable!"                                                ,
      "Computers are useless -- they can only give you answers"       ,
+     "Remember:  Plans are useless, but planning is indispensable"   ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
