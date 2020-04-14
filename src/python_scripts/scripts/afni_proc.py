@@ -2951,14 +2951,14 @@ class SubjProcSream:
             self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
 
         if self.anat:
-            oanat = self.anat.rel_input()
+            oanat = self.anat.nice_input()
             tstr = '# copy anatomy to results dir\n'     \
                   '3dcopy %s %s/%s\n' % (oanat, self.od_var, self.anat.prefix)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
             # further use should assume AFNI format
-            self.anat.to_afni(new_view=dset_view(self.anat.rel_input()))
+            self.anat.to_afni(new_view=dset_view(self.anat.nice_input()))
             # track with original format, possibly changing to AFNI
             self.tlist.add(oanat, self.anat.shortinput(), 'anat', ftype='dset')
             self.tlrcanat.to_afni()
@@ -3022,11 +3022,11 @@ class SubjProcSream:
            tstr = '# copy anatomical follower datasets into the results dir\n'
            for af in self.afollowers:
               tstr += '3dcopy %s %s/%s\n' % \
-                   (af.aname.rel_input(), self.od_var, af.cpname.out_prefix())
+                   (af.aname.nice_input(), self.od_var, af.cpname.out_prefix())
               # update current name, in case we switch to AFNI format
               af.cname = af.cpname
               if af.cname.view == '': af.cname.new_view(self.view)
-              self.tlist.add(af.aname.rel_input(), af.cname.shortinput(),
+              self.tlist.add(af.aname.nice_input(), af.cname.shortinput(),
                              'anat_follower', ftype='dset')
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -3056,8 +3056,8 @@ class SubjProcSream:
 
            # copy anat, setting its file type to AFNI
            an = self.nlw_priors[0]
-           tstr += '3dcopy %s %s/%s\n'%(an.rel_input(), self.od_var, an.prefix)
-           anorig = an.rel_input()
+           tstr += '3dcopy %s %s/%s\n'%(an.nice_input(), self.od_var, an.prefix)
+           anorig = an.nice_input()
 
            # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
            # (priors[0] is anat in standard space)
@@ -3072,14 +3072,15 @@ class SubjProcSream:
            # get aff12.1D file
            an = self.nlw_priors[1]
            tstr += '3dcopy %s %s/%s\n' % \
-                   (an.rel_input(), self.od_var, an.out_prefix())
-           self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp', ftype='1D')
+                   (an.nice_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.nice_input(), an.shortinput(), 'NL_warp',
+                          ftype='1D')
 
            # get WARP.nii (specify tlrc view, since they stay nifti)
            an = self.nlw_priors[2]
            tstr += '3dcopy %s %s/%s\n' % \
-                   (an.rel_input(), self.od_var, an.out_prefix())
-           self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp',
+                   (an.nice_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.nice_input(), an.shortinput(),'NL_warp',
                           ftype='dset', view='+tlrc')
 
            self.write_text(add_line_wrappers(tstr))
@@ -3097,8 +3098,8 @@ class SubjProcSream:
            tstr = '# copy external -blip_forward_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_for.prefix,
-                  self.blip_in_for.rel_input(sel=1))
-           self.tlist.add(self.blip_in_for.rel_input(),
+                  self.blip_in_for.nice_input(sel=1))
+           self.tlist.add(self.blip_in_for.nice_input(),
                 self.blip_dset_for.shortinput(), 'blip_fwd', ftype='dset')
            bstr += tstr
 
@@ -3112,9 +3113,9 @@ class SubjProcSream:
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
-                  self.blip_in_rev.rel_input(sel=1))
+                  self.blip_in_rev.nice_input(sel=1))
            bstr += tstr
-           self.tlist.add(self.blip_in_rev.rel_input(),
+           self.tlist.add(self.blip_in_rev.nice_input(),
                 self.blip_dset_rev.shortinput(), 'blip_rev', ftype='dset')
 
         if isinstance(self.blip_in_med, afni_name):
@@ -3124,9 +3125,9 @@ class SubjProcSream:
               self.blip_dset_med = afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
-                     (self.blip_in_med.rel_input(), self.od_var,
+                     (self.blip_in_med.nice_input(), self.od_var,
                      self.blip_dset_med.prefix)
-              self.tlist.add(self.blip_in_med.rel_input(),
+              self.tlist.add(self.blip_in_med.nice_input(),
                    self.blip_dset_med.shortinput(), 'blip_med', ftype='dset')
            bstr += tstr
 
@@ -3134,9 +3135,9 @@ class SubjProcSream:
            self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
-                  (self.blip_in_warp.rel_input(), self.od_var,
+                  (self.blip_in_warp.nice_input(), self.od_var,
                   self.blip_dset_warp.prefix)
-           self.tlist.add(self.blip_in_warp.rel_input(),
+           self.tlist.add(self.blip_in_warp.nice_input(),
                 self.blip_dset_warp.shortinput(), 'blip_warp', ftype='dset')
            bstr += tstr
 

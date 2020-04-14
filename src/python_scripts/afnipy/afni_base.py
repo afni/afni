@@ -117,6 +117,35 @@ class afni_name(object):
       else:
          return self.rppve() 
 
+   def nice_input(self, head=0, sel=0):
+      """return a path to the input, where rel/abs path matches original
+           - the path being relative or absolute will match self.initname
+                                                      14 Apr 2020 [rickr]
+      """
+      # if relative path, rel_input does the job
+      if not self.initname.startswith('/'):
+         return self.rel_input(head=head, sel=sel)
+
+      # absolute path
+
+      # if not head or not BRIK type, easy return
+      if not head or self.type != 'BRIK':
+         return self.ppv(sel=sel)
+
+      # have head AND type==BRIK,
+      # temporarily alter the extension and use it
+
+      save_ext = self.extension
+      self.extension = '.HEAD'
+
+      # get return value, including extension, without expanding links
+      retval = self.ppve(sel=sel)
+
+      # and restore previous extension before return
+      self.extension = save_ext
+
+      return retval
+
    def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
