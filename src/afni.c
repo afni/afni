@@ -167,6 +167,9 @@ static void AFNI_set_4fonts(char *AA,char *BB, char *CC, char *DD) ;
      "-adobe-courier-bold-r-normal--20-140-100-100-m-110-iso8859-1" ,   \
      "-adobe-courier-bold-r-normal--17-120-100-100-m-100-iso8859-1"  )
 
+#define XXX_NORM_FONTS \
+   AFNI_set_4fonts("9x15bold","8x13bold","7x13","6x10")
+
 static char *FALLback[] =
   {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
       "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
@@ -295,6 +298,9 @@ static void process_XXX_options( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-minus") == 0 ){
        XXX_MINUS_FONTS ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-norm") == 0 ){  /* 10 Apr 2020 */
+       XXX_NORM_FONTS ; nopt++ ; continue ;
      }
 
      if( strncasecmp(argv[nopt],"-XXX",4) != 0 ){ nopt++; continue; }
@@ -1014,10 +1020,11 @@ void AFNI_syntax(void)
     " -plus                   ++ Using 'big' will use larger Adobe Courier fonts.\n"  
     "   *OR*                  ++ Alternatively, you can control each of the 4 fonts\n"
     " -minus                     that AFNI uses, via the 4 following options ...\n"
-    "                         ++ You can also set the fontsize for your copy\n"
-    "                            of AFNI in your ~/.afnirc file by setting\n"
+    "   *OR*                  ++ You can also set the fontsize for your copy\n"
+    " -norm                      of AFNI in your ~/.afnirc file by setting\n"
     "                            environment variable AFNI_FONTSIZE to one of:\n"
     "                              big *OR* minus *or* plus\n"
+    "                         ++ Using 'norm' gives the default AFNI font sizes.\n"
     "\n"
     " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
     "                         controller\n"
@@ -1527,6 +1534,7 @@ ENTRY("AFNI_parse_args") ;
       if( strcasecmp(argv[narg],"-big")   == 0 ){ narg++; continue; }
       if( strcasecmp(argv[narg],"-plus")  == 0 ){ narg++; continue; }
       if( strcasecmp(argv[narg],"-minus") == 0 ){ narg++; continue; }
+      if( strcasecmp(argv[narg],"-norm")  == 0 ){ narg++; continue; }
 
       /*----- -destruct option -----*/
 
@@ -2411,6 +2419,7 @@ int main( int argc , char *argv[] )
             if( strcasecmp(ep,"minus") == 0 ) XXX_MINUS_FONTS ;
        else if( strcasecmp(ep,"plus")  == 0 ) XXX_PLUS_FONTS ;
        else if( strcasecmp(ep,"big")   == 0 ) XXX_BIG_FONTS ;
+       else if( strcasecmp(ep,"norm")  == 0 ) XXX_NORM_FONTS ;
      }
    }
 
