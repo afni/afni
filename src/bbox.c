@@ -9,14 +9,14 @@
 
 static Widget wtemp ;
 
-static char *wtype = NULL ;
-void BBOX_set_wtype( char *wt ){ wtype = wt ; }
+static char *wsubtype = NULL ;
+void BBOX_set_wsubtype( char *wt ){ wsubtype = wt ; }
 
 #undef  DIALOG
-#define DIALOG ( (wtype==NULL) ? "dialog" : wtype )
+#define DIALOG ( (wsubtype==NULL) ? "dialog" : wsubtype )
 
 #undef  MENU
-#define MENU   ( (wtype==NULL) ? "menu" : wtype )
+#define MENU   ( (wsubtype==NULL) ? "menu" : wsubtype )
 
 static Widget old_wpar=NULL ; /* Apr 2013 -- for Allison */
 static int old_xx=-666,old_yy=-666;
@@ -997,7 +997,7 @@ STATUS("creating menu window") ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
 
 STATUS("creating option menu") ;
-   av->wrowcol = XmCreateOptionMenu( parent , MENU , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( parent , DIALOG , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1061,7 +1061,7 @@ STATUS("creating option menu") ;
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                MENU , xmPushButtonWidgetClass , wmenu ,
+                DIALOG , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1186,7 +1186,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
-   av->wrowcol = XmCreateOptionMenu( rcholder , MENU , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( rcholder , DIALOG , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1280,7 +1280,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                MENU , xmPushButtonWidgetClass , wmenu ,
+                DIALOG , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1462,7 +1462,7 @@ ENTRY("refit_MCW_optmenu") ;
       } else {
          STATUS("setting up new button") ;
          wbut = XtVaCreateManagedWidget(
-                   MENU , xmPushButtonWidgetClass , wmenu ,
+                   DIALOG , xmPushButtonWidgetClass , wmenu ,
                      XmNlabelString  , xstr ,
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,

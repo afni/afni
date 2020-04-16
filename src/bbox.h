@@ -71,7 +71,7 @@ extern void MCW_set_bbox( MCW_bbox * , int ) ;
 extern int  MCW_val_bbox( MCW_bbox * ) ;
 extern void MCW_bbox_hints( MCW_bbox * , int , char ** ) ;
 
-extern void BBOX_set_wtype( char *wt ) ;  /* Feb 2012 */
+extern void BBOX_set_wsubtype( char *wt ) ;  /* Feb 2012 */
 
 /*---------------------------------------------------------------------------------*/
 /***--- for arrowval ---***/
