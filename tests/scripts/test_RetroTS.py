@@ -5,8 +5,8 @@ import pytest
 data_paths = {
     "ECG_epiRTslt_scan_4": "retro_ts/ECG_epiRTslt_scan_4.1D",
     "Resp_epiRTslt_scan_4": "retro_ts/Resp_epiRTslt_scan_4.1D",
-    "epiRTslt_scan_4_bids_meta": "retro_ts/eepiRTslt_scan_4_bidsphysio.json",
-    "epiRTslt_scan_4_bids": "retro_ts/epiRTslt_scan_4_bidsphysio.tsv.gz",
+    "epiRTslt_scan_4_bids_meta": "mini_data/retro_ts/eepiRTslt_scan_4_bidsphysio.json",
+    "epiRTslt_scan_4_bids": "mini_data/retro_ts/epiRTslt_scan_4_bidsphysio.tsv.gz",
 }
 
 
