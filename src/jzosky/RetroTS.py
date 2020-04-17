@@ -151,7 +151,7 @@ def retro_ts(
     # init slice_offsets, unless Custom order
     # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
     if (
-        main_info["slice_order"] not in ["Custom", "custom"]:
+        (main_info["slice_order"] not in ["Custom", "custom"])
         or len(main_info["slice_offset"]) != main_info["number_of_slices"]
     ):
         main_info["slice_offset"] = [0] * main_info[
