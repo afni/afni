@@ -151,7 +151,7 @@ def retro_ts(
     # init slice_offsets, unless Custom order
     # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
     if (
-        main_info["slice_order"] != "Custom"
+        main_info["slice_order"] not in ["Custom", "custom"]:
         or len(main_info["slice_offset"]) != main_info["number_of_slices"]
     ):
         main_info["slice_offset"] = [0] * main_info[
@@ -172,8 +172,9 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             main_info["slice_offset"][i] = tt
             tt += dtt
-    elif main_info["slice_order"] == "Custom":  # Does nothing, unsure of it's purpose
+    elif main_info["slice_order"] not in ["Custom", "custom"]:  # Does nothing, unsure of it's purpose
         pass
+
     else:  # Open external file specified in argument line,
         # fill SliceFileList with values, then load into main_info['slice_offset']
         with open(main_info["slice_order"], "r") as f:
