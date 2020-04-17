@@ -237,14 +237,14 @@ def retro_ts(
                     respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
                 respiration_peak, error = peak_finder(respiration_info, v=phys_dat[k])
                 if error:
-                    print("Died in PeakFinder")
+                    print("Died in respiratory PeakFinder")
                     return
             elif k.lower() == 'cardiac':
                 if not main_info['phys_fs']:
                     cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
                 cardiac_peak, error = peak_finder(cardiac_info, v=phys_dat[k])
                 if error:
-                    print("Died in PeakFinder")
+                    print("Died in cardiac PeakFinder")
                     return
             else:
                 Warning('phys data contains a {s} column, but RetroTS will'
@@ -253,14 +253,14 @@ def retro_ts(
         if respiration_file:
             respiration_peak, error = peak_finder(respiration_info, respiration_file)
             if error:
-                print("Died in PeakFinder")
+                print("Died in respiratory PeakFinder")
                 return
         else:
             respiration_peak = {}
         if cardiac_file:
             cardiac_peak, error = peak_finder(cardiac_info, cardiac_file)
             if error:
-                print("Died in PeakFinder")
+                print("Died in cardiac PeakFinder")
                 return
         else:
             cardiac_peak = {}
