@@ -5,8 +5,8 @@ import pytest
 data_paths = {
     "ECG_epiRTslt_scan_4": "retro_ts/ECG_epiRTslt_scan_4.1D",
     "Resp_epiRTslt_scan_4": "retro_ts/Resp_epiRTslt_scan_4.1D",
-    "epiRTslt_scan_4_bids_meta": "eepiRTslt_scan_4_bidsphysio.json",
-    "epiRTslt_scan_4_bids": "epiRTslt_scan_4_bidsphysio.tsv.gz",
+    "epiRTslt_scan_4_bids_meta": "retro_ts/eepiRTslt_scan_4_bidsphysio.json",
+    "epiRTslt_scan_4_bids": "retro_ts/epiRTslt_scan_4_bidsphysio.tsv.gz",
 }
 
 
@@ -42,7 +42,7 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
 
 
 @pytest.mark.parametrize("vol_tr", [(2), (2.5)])
-def test_RetroTS_basic(data, vol_tr, python_interpreter):
+def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
     seedval = 31416
 
     kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
