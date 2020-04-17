@@ -22,7 +22,9 @@ __author__ = "Joshua Zosky" # Modified a bit by gianfranco
     along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from numpy import zeros, size, savetxt, column_stack, shape
+import gzip
+import json
+from numpy import zeros, size, savetxt, column_stack, shape, array
 from lib_RetroTS.PeakFinder import peak_finder
 from lib_RetroTS.PhaseEstimator import phase_estimator
 from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
@@ -51,11 +53,11 @@ def setup_exceptionhook():
 
 
 def retro_ts(
-    respiration_file,
-    cardiac_file,
-    phys_fs,
-    number_of_slices,
-    volume_tr,
+    respiration_file=None,
+    cardiac_file=None,
+    phys_fs=None,
+    number_of_slices=None,
+    volume_tr=None,
     prefix="Output_File_Name",
     slice_offset=0,
     slice_major=1,
@@ -73,6 +75,8 @@ def retro_ts(
     show_graphs=0,
     zero_phase_offset=0,
     legacy_transform=0,
+    phys_file=None,
+    phys_json=None,
 ):
     """
 
@@ -104,6 +108,10 @@ def retro_ts(
     :param show_graphs:
     :param legacy_transform: Important-this will specify whether you use the original Matlab code's version or the
         potentially bug-corrected version for the final phase correction in lib_RetroTS/RVT_from_PeakFinder.py
+    :param phys_file: IDS formatted physio file in tab separated format. May
+            be gzipped.
+    :param phys_json: BIDS formatted physio metadata json file. If not specified
+            the json corresponding to the phys_file will be loaded.
     :return:
     """
     if not slice_offset:
@@ -131,6 +139,8 @@ def retro_ts(
         "show_graphs": show_graphs,
         "zero_phase_offset": zero_phase_offset,
         "legacy_transform": legacy_transform,
+        "phys_file": phys_file,
+        "phsio_json": phys_json,
     }
     # Determining main_info['slice_offset'] based upon main_info['slice_order'], main_info['volume_tr'],
     #  and main_info['number_of_slices'].
@@ -197,21 +207,62 @@ def retro_ts(
     # Time-based phase for cardiac signal
     cardiac_info["amp_phase"] = 0
 
+    # Handle file inputs
+    if (((phys_file is not None) & (respiration_file is not None)) 
+        | ((phys_file is not None) & (cardiac_file is not None))):
+        raise ValueError('You should not pass a BIDS style phsyio file'
+                         ' and respiration or cardiac files.')
     # Get the peaks for respiration_info and cardiac_info
-    if respiration_file:
-        respiration_peak, error = peak_finder(respiration_info, respiration_file)
-        if error:
-            print("Died in PeakFinder")
-            return
+    if phys_file:
+        if phys_json is None:
+            phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
+        with open(phys_json, 'rt') as h:
+            phys_meta = json.load(h)
+        phys_ending = phys_file.split(".")[-1]
+        if phys_ending == 'gz':
+            opener = gzip.open
+        else:
+            opener = open
+        phys_dat = {k:[] for k in phys_meta['Columns']}
+        with opener(phys_file, 'rt') as h:
+            for pl in h.readlines():
+                pls = pl.split("\t")
+                for k,v in zip(phys_meta['Columns'], pls):
+                    phys_dat[k].append(float(v))
+        for k in phys_meta['Columns']:
+            phys_dat[k] = array(phys_dat[k])
+            if k.lower() == 'respiratory':
+                if not main_info['phys_fs']:
+                    respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                respiration_peak, error = peak_finder(respiration_info, v=phys_dat[k])
+                if error:
+                    print("Died in PeakFinder")
+                    return
+            elif k.lower() == 'cardiac':
+                if not main_info['phys_fs']:
+                    cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                cardiac_peak, error = peak_finder(cardiac_info, v=phys_dat[k])
+                if error:
+                    print("Died in PeakFinder")
+                    return
+            else:
+                Warning('phys data contains a {s} column, but RetroTS will'
+                        ' only handle cardiac or reipiratory data.')
     else:
-        respiration_peak = {}
-    if cardiac_file:
-        cardiac_peak, error = peak_finder(cardiac_info, cardiac_file)
-        if error:
-            print("Died in PeakFinder")
-            return
-    else:
-        cardiac_peak = {}
+        if respiration_file:
+            respiration_peak, error = peak_finder(respiration_info, respiration_file)
+            if error:
+                print("Died in PeakFinder")
+                return
+        else:
+            respiration_peak = {}
+        if cardiac_file:
+            cardiac_peak, error = peak_finder(cardiac_info, cardiac_file)
+            if error:
+                print("Died in PeakFinder")
+                return
+        else:
+            cardiac_peak = {}
 
     main_info["resp_peak"] = respiration_peak
     main_info["card_peak"] = cardiac_peak
@@ -413,11 +464,11 @@ Mac/Linux Example:
 
 Input
 ================================================================================
-    Following are the mandatory and optional parameters that can be entered
-    after RetroTS.py, each separated by a space.
+    RetroTS.py can be run with independent respiration and cardiac data files
+    (Method 1), or with a BIDS formatted physio file and json (Method 2).
 
-    Mandatory:
-    ----------
+    Method 1:
+    ---------
     :param -r: (respiration_file) Respiration data file
     :param -c: (cardiac_file) Cardiac data file
     :param -p: (phys_fs) Physiological signal sampling frequency in Hz.
@@ -426,6 +477,16 @@ Input
     Note:   These parameters are the only single-letter parameters, as they are
             mandatory and frequently typed. The following optional parameters
             must be fully spelled out.
+
+    Method 2:
+    ---------
+    :param -phys_file: BIDS formatted physio file in tab separated format. May
+            be gzipped.
+    :param -phys_json: BIDS formatted physio metadata json file. If not specified
+            the json corresponding to the phys_file will be loaded.
+    :param -n: (number_of_slices) Number of slices
+    :param -v: (volume_tr) Volume TR in seconds
+
 
     Optional:
     ---------
@@ -524,6 +585,8 @@ Output:
         "-show_graphs": 0,
         "-zero_phase_offset": 0,
         "-legacy_transform": 0,
+        "-phys_file":None,
+        "-phys_json":None
     }
 
     if len(sys.argv) < 2:
@@ -552,11 +615,14 @@ Output:
                     print("%s" % key)
                 quit()
             temp_opt = opt
+    if opt_dict["-p"]:
+        opt_dict["-p"] = float(opt_dict["-p"])
+
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     retro_ts(
         respiration_file=opt_dict["-r"],
         cardiac_file=opt_dict["-c"],
-        phys_fs=float(opt_dict["-p"]),
+        phys_fs=opt_dict["-p"],
         number_of_slices=int(opt_dict["-n"]),
         volume_tr=float(opt_dict["-v"]),
         prefix=opt_dict["-prefix"],
@@ -569,11 +635,13 @@ Output:
         fir_order=opt_dict["-fir_order"],
         quiet=opt_dict["-quiet"],
         demo=opt_dict["-demo"],
-        rvt_out= (int(opt_dict["-rvt_out"]) if opt_dict["-r"] else 0),
-        cardiac_out= (int(opt_dict["-cardiac_out"]) if opt_dict["-c"] else 0),
-        respiration_out= (int(opt_dict["-respiration_out"]) if opt_dict["-r"] else 0),
+        rvt_out= (int(opt_dict["-rvt_out"]) ),
+        cardiac_out= (int(opt_dict["-cardiac_out"])),
+        respiration_out= (int(opt_dict["-respiration_out"])),
         slice_order=opt_dict["-slice_order"],
         show_graphs=opt_dict["-show_graphs"],
         zero_phase_offset=opt_dict["-zero_phase_offset"],
         legacy_transform=opt_dict["-legacy_transform"],
+        phys_file=opt_dict["-phys_file"],
+        phys_json=opt_dict["-phys_json"]
     )
