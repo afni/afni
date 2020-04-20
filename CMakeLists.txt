@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14.7 FATAL_ERROR)
 
 # ##### Set policies
 cmake_policy(SET CMP0048 NEW)
@@ -10,6 +10,9 @@ include(get_build_macros_and_functions)
 include(CMakeDependentOption)
 include(afni_cmake_build_options)
 
+if(NOT DEFINED CMAKE_C_COMPILER)
+  set(CMAKE_C_COMPILER "gcc")
+endif()
 # ##### Project info
 project(
   AFNI
@@ -21,7 +24,11 @@ string(TIMESTAMP BUILD_DATE "%m %d %Y")
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
-set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
+if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
+    # This should never happen, compiler should be gcc or clang
+    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}")
+endif()
+# set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # set(CMAKE_C_FLAGS_DEBUG
 #     "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
@@ -39,8 +46,8 @@ set_if_not_defined(AFNI_INSTALL_LIBRARY_DIR "${INSTALL_PREFIX}/lib")
 set_if_not_defined(AFNI_INSTALL_RUNTIME_DIR "${INSTALL_PREFIX}/bin")
 set_if_not_defined(AFNI_INSTALL_INCLUDE_DIR "${INSTALL_PREFIX}/include")
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/targets)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/targets)
 if(CONDA_BUILD)
   get_filename_component(AFNI_INSTALL_LIBRARY_DIR ${AFNI_INSTALL_LIBRARY_DIR} DIRECTORY)
   get_filename_component(AFNI_INSTALL_INCLUDE_DIR ${AFNI_INSTALL_INCLUDE_DIR} DIRECTORY)
@@ -50,13 +57,20 @@ endif()
 set(AFNI_INSTALL_ATLAS_DIR "${INSTALL_PREFIX}/atlases")
 set(AFNI_INSTALL_PICS_DIR "${INSTALL_PREFIX}/funstuff")
 
+# Get mapping between each target name and it's installation component
+set(COMPONENTS_MAPFILE ${CMAKE_CURRENT_SOURCE_DIR}/packaging/installation_components.txt )
+file(READ 
+  ${COMPONENTS_MAPFILE}
+  CMPNT_MAPPING)
+list(TRANSFORM CMPNT_MAPPING REPLACE "\n" ";")
+
+
 # ##### Dependencies
 include(afni_project_dependencies)
 
 # Other details of dependencies and configuration
-
 set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG -Wl,--no-undefined"
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
 )
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING -DHAVE_ZLIB") # XXX not in default cflags
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
@@ -107,6 +121,12 @@ if(NOT TARGET uninstall)
     uninstall COMMAND ${CMAKE_COMMAND} -P
                       ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
   )
+  if(USE_PIP)
+  add_custom_target(
+    uninstall_python COMMAND ${Python_EXECUTABLE} -m pip uninstall -y afnipy
+  )
+  add_dependencies(uninstall uninstall_python)
+  endif()
 endif()
 
 
@@ -122,22 +142,26 @@ add_custom_target(
 
 
 # Define PATH modification required for within build tree tests execution
-set(BUILD_BINARIES ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(COMP_ADD_BINARIES ${CMAKE_CURRENT_BINARY_DIR}/src/targets)
 set(T_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scripts_install)
-set(P_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/python_scripts/afni_python)
 set(R_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/R_scripts)
 set(J_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/jzosky)
 set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
-set(TESTING_PATHS "${BUILD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
+set(TESTING_PATHS "${COMP_ADD_BINARIES}:${T_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
 set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
-file(WRITE ${CMAKE_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
+
+
+# Make sure the python code is installed:
+add_custom_target(check_afnipy_installed
+                  COMMAND ${Python_EXECUTABLE} -c 'from afnipy import afni_base')
 
 # Create test target for running tests within the build tree
 add_custom_target(
   pytest
-  DEPENDS test_setup
-  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/afni_tests"
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+  DEPENDS test_setup check_afnipy_installed
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/afni_tests"
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND echo Running tests with modified path to use build binaries and scripts in the source tree...
   COMMAND echo Prepending ${TESTING_PATHS}
   COMMAND echo When using 'ninja test' one can define "ARGS" to pass additional arguments to pytest...
@@ -145,3 +169,13 @@ add_custom_target(
   USES_TERMINAL
 )
 
+
+
+# Generate packaging if this is the top level project
+if(USE_CPACK)
+  if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    include(CMakeCPack.cmake)
+  endif()
+endif()
+
+unset(USE_SYSTEM_ALL CACHE)

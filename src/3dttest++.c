@@ -152,6 +152,7 @@ static float     *Awtar = NULL , *Awtar_actual = NULL ;
 static float     *Bwtar = NULL , *Bwtar_actual = NULL ;
 static int       nAwt   = 0 ;
 static int       nBwt   = 0 ;
+static int wtar_permute = 1 ;  /* 30 Mar 2020 */
 static MRI_IMAGE *Awtim = NULL ;
 static MRI_IMAGE *Bwtim = NULL ;
 static char *Awtstring=NULL , *Bwtstring=NULL ;
@@ -160,19 +161,23 @@ static char *Awtstring=NULL , *Bwtstring=NULL ;
 
   /* this macro loads one _actual array from the original */
 #define LOAD_ACTUAL(actar,ar,nv)                                          \
- do{ if( (ar) != NULL ){                                                  \
-       if( (nv) > 0 ) memcpy( (actar) , (ar) , sizeof(float)*(nv) ) ;     \
-     } else {                                                             \
-       int qq ; for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] = 1.0f ;       \
+ do{ if( (actar) != NULL && (nv) > 0 ){                                   \
+       if( (ar) != NULL ){                                                \
+         if( (nv) > 0 ) memcpy( (actar) , (ar) , sizeof(float)*(nv) ) ;   \
+       } else {                                                           \
+         int qq ; for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] = 1.0f ;     \
+       }                                                                  \
      }                                                                    \
  } while(0)
 
   /* this macro scales an _actual array so the coefficients sum to N */
 #define SCALE_wtar(actar,nv)                                              \
  do{ int qq; float sum;                                                   \
-     for( sum=0.0f,qq=0 ; qq < (nv) ; qq++ ) sum += (actar)[qq] ;         \
-     sum = (nv) / sum ;                                                   \
-     for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] *= sum ;                  \
+     if( (actar) != NULL && (nv) > 0 ){                                   \
+       for( sum=0.0f,qq=0 ; qq < (nv) ; qq++ ) sum += (actar)[qq] ;       \
+       sum = (nv) / sum ;                                                 \
+       for( qq=0 ; qq < (nv) ; qq++ ) (actar)[qq] *= sum ;                \
+     }                                                                    \
  } while(0)
 
   /* this macro loads the 2 _actual arrays & permutes them (if needed) */
@@ -183,7 +188,7 @@ static char *Awtstring=NULL , *Bwtstring=NULL ;
        Bwtar_actual = (float *)malloc(sizeof(float)*nval_BBB) ;           \
      LOAD_ACTUAL(Awtar_actual,Awtar,nval_AAA) ;                           \
      LOAD_ACTUAL(Bwtar_actual,Bwtar,nval_BBB) ;                           \
-     if( do_permute && p_nxy > 0 )                                        \
+     if( do_permute && p_nxy > 0 && wtar_permute )                        \
        permute_arrays( nval_AAA,Awtar_actual, nval_BBB,Bwtar_actual );    \
      SCALE_wtar(Awtar_actual,nval_AAA) ;                                  \
      SCALE_wtar(Bwtar_actual,nval_BBB) ;                                  \
@@ -394,7 +399,7 @@ static void setup_permute( int nx , int ny )
 
    if( nx == 0 || ny == 0 ) return ;  /* how did this happen? */
 
-   if( nx+ny > p_nxy ){  /* make workspaces */
+   if( nx+ny > p_nxy ){  /* (re)make workspaces */
      p_nxy = nx+ny ;
      p_xyar = (float *)realloc(p_xyar,sizeof(float)*p_nxy) ;
      p_ijar = (int   *)realloc(p_ijar,sizeof(int  )*p_nxy) ;
@@ -2648,13 +2653,6 @@ int main( int argc , char *argv[] )
          ININFO_message("  You can set the number of CPUs to use manually with '-ETAC N'") ;
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
-       if( prefix_clustsim == NULL ){
-         char *nnn ;
-         prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
-         nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
-         if( nnn != NULL ) *nnn = '\0' ;
-         ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
-       }
 
        continue ;
      }
@@ -3595,6 +3593,13 @@ int main( int argc , char *argv[] )
 
    /* do some checking and editing for Clustsim stuff */
 
+   if( prefix_clustsim == NULL ){ /* moved here 17 Mar 2020 */
+     char *nnn ;
+     prefix_clustsim = strdup(prefix) ;     /* 22 Feb 2018 */
+     nnn = strstr(prefix_clustsim,".nii") ; /* 10 May 2020 */
+     if( nnn != NULL ) *nnn = '\0' ;
+   }
+
    if( do_clustsim || do_Xclustsim ){
 
      if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
@@ -3894,28 +3899,31 @@ int main( int argc , char *argv[] )
      if( do_permute > 1 ){
        WARNING_message("only 1 sample: -permute is turned off") ;
      }
-     do_permute = 0 ; dont_permute = 1 ;
+     do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ;
    }
 
    if( do_permute && dont_permute ){ /* check if user did both -nopermute and -permute */
      if( do_permute > 1 ) WARNING_message("-nopermute turns off -permute") ;
-     do_permute = 0 ;
+     do_permute = 0 ; wtar_permute = 0 ;
    }
+
+   if( wtar_permute && 
+       AFNI_yesenv("AFNI_DONT_PERMUTE_WTAR") ) wtar_permute = 0 ; /* 30 Mar 2020 */
 
    if( do_permute ){
      if( !do_randomsign && !do_clustsim && !do_Xclustsim ){  /* is it useful? */
        if( do_permute > 1 )
          WARNING_message("-permute without -randomsign or -Clustsim -- turning it off \\:(") ;
-       { do_permute = 0 ; dont_permute = 1 ; }
+       { do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ; }
      }
      if( singletonA ){                                        /* is it legal? */
        if( do_permute > 1 )
          WARNING_message("You can't use -permute with -singletonA -- turning it off \\:(") ;
-       { do_permute = 0 ; dont_permute = 1 ; }
+       { do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ; }
      }
      if( ttest_opcode == 1 ){         /* -unpooled -- keep -permute or not? */
        if( do_permute == 1 )          /* default to off */
-         { do_permute = 0 ; dont_permute = 1 ; }
+         { do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ; }
        else if( do_permute > 1 )      /* forced on */
          WARNING_message("-permute with -unpooled is somewhat weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
@@ -3923,12 +3931,12 @@ int main( int argc , char *argv[] )
      if( ttest_opcode == 2 ){         /* -paired -- disable -permute */
        if( do_permute > 1 )
          WARNING_message("-permute is turned off for -paired t-test") ;
-       do_permute = 0 ; dont_permute = 1 ;
+       do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ;
      }
 #if 0 /* disabled 05 Mar 2020 */
      if( mcov > 0 ){                  /* -covariates -- keep -permute or not? */
        if( do_permute == 1 )          /* default to off */
-         { do_permute = 0 ; dont_permute = 1 ; }
+         { do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ; }
        else if( do_permute > 1 )      /* forced on */
          WARNING_message("-permute with -covariates may not work the way you want\n"
                          "           -- but since you asked for it, you'll get it :)") ;
@@ -5132,7 +5140,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          if( do_permute )
            sprintf( cmd+strlen(cmd) , " -permute" ) ;    /* 07 Dec 2016 */
-         else if( dont_permute )
+         else
            sprintf( cmd+strlen(cmd) , " -nopermute" ) ;  /* 09 Dec 2016 */
 
          /* add subject-level weights, if supplied by user [05 Mar 2020] */

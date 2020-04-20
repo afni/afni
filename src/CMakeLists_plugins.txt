@@ -57,64 +57,59 @@ foreach(
   plug_zeropad
 )
   # Filter plugins if requested
-  if(BUILD_COREPLUGINS)
+  if(NOT (COMP_ADD_ALL_PLUGINS))
     if(NOT ${target} IN_LIST CORE_PLUGINS)
       continue()
     endif()
   endif()
 
   # Add plugin to build
-  add_library(${target} ${target}.c)
+  add_afni_plugin(${target} ${target}.c)
   target_link_libraries(
     ${target}
     PRIVATE 
-            afni_all_objects
-            $<TARGET_NAME_IF_EXISTS:f2c>
-            ${NETCDF_LIBRARIES_C}
-            NIFTI::nifti2
+    libheaders
   )
-endforeach(target)
+  endforeach(target)
 
-add_library(plug_drealtime plug_realtime.c)
-add_library(plug_maxima maxima.c plug_maxima.c)
-add_library(plug_retroicor plug_retroicor.c retroicor.c)
 
-foreach(target plug_drealtime plug_maxima plug_retroicor) 
+add_afni_plugin(plug_maxima maxima.c plug_maxima.c)
+add_afni_plugin(plug_retroicor plug_retroicor.c retroicor.c)
+
+foreach(target plug_maxima plug_retroicor) 
   target_link_libraries(${target}
     PRIVATE
-      afni_all_objects
-      NIFTI::nifti2
-      NIFTI::nifticdf
-      ) 
-endforeach()
+    libheaders
+    )
+  endforeach()
 
-# add_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
-# svm/plug_3dsvm.c) 
-# target_link_libraries(plug_3dsvm 
-#   PRIVATE
-#     afni_all_objects
-#     AFNI::mri
-#     )
+add_afni_plugin(
+  plug_3dsvm
+  svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c svm/plug_3dsvm.c
+ ) 
+target_link_libraries(plug_3dsvm 
+  PRIVATE
+  libheaders
+  )
 
-# foreach(target plug_scatplot plug_nlfit)
-#   add_library(${target} ${target}.c)
-#   target_link_libraries(${target} 
-#     PRIVATE
-#       afni_all_objects
-#       AFNI::mri
-#       NIFTI::nifti2
-#       NIFTI::nifticdf
-#   )
-# endforeach(target)
-
-foreach(target afni_open aiv Xphace)
-  add_executable(${target} ${target}.c)
+foreach(target plug_scatplot plug_nlfit)
+  add_afni_plugin(${target} ${target}.c)
   target_link_libraries(${target} 
     PRIVATE
-      AFNI::mrix
-      Motif::Motif
-      ${X11_Xt_LIB}
-      NIFTI::nifti2
-      NIFTI::nifticdf
-  )
+    libheaders
+    )
 endforeach(target)
+
+if(COMP_ADD_BINARIES)
+  foreach(target afni_open aiv Xphace)
+    add_afni_executable(${target} ${target}.c)
+    target_link_libraries(${target} 
+      PRIVATE
+        AFNI::mrix
+        Motif::Motif
+        ${X11_Xt_LIB}
+        NIFTI::nifti2
+        NIFTI::nifticdf
+    )
+  endforeach(target)
+endif()

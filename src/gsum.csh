@@ -17,7 +17,7 @@ if ( 1 ) then
                 rickr/*.[ch] ptaylor/*.[ch] gifti/*.[ch] svm/*.[ch]                     \
                 `git ls-tree --name-only -r master | grep scripts_install`              \
                 `find discoraj -type f` `find shiny -type f -name '*.R'`                \
-                python_scripts/afni_python/*.py R_scripts/*.R                           \
+                python_scripts/afnipy/*.py R_scripts/*.R                           \
                 ../tests/scripts/*.py ../tests/scripts/utils/*.py                         )
 else
 # for quicker testing

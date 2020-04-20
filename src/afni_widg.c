@@ -3379,7 +3379,7 @@ STATUS("making func->rowcol") ;
 
    /** Jul 1997: optmenu to choose top value for scale **/
 
-   BBOX_set_wtype("font8") ;
+   BBOX_set_wsubtype("font8") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
                                         "10^" ,
                                         AVOPT_STYLE ,
@@ -3387,7 +3387,7 @@ STATUS("making func->rowcol") ;
                                         MCW_AV_notext , 0 ,
                                         AFNI_thresh_top_CB , (XtPointer)im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
-   BBOX_set_wtype(NULL) ;
+   BBOX_set_wsubtype(NULL) ;
 
    im3d->vinfo->func_thresh_top = 1.0 ;
 
@@ -3821,7 +3821,7 @@ STATUS("making func->rowcol") ;
               XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   BBOX_set_wtype("font8") ;
+   BBOX_set_wsubtype("font8") ;
    func->inten_av = new_MCW_arrowval(
                        func->inten_rowcol ,
                         "#" ,
@@ -3856,7 +3856,7 @@ STATUS("making func->rowcol") ;
                     MCW_BB_noframe ,
                     AFNI_inten_bbox_CB , (XtPointer)im3d ) ;
 
-   BBOX_set_wtype(NULL) ;
+   BBOX_set_wsubtype(NULL) ;
 
    func->inten_bbox->parent = (XtPointer)im3d ;
 

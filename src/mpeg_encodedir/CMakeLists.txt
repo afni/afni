@@ -1,4 +1,4 @@
-add_executable(
+add_afni_executable(
   mpeg_encode
   bframe.c
   bitio.c

@@ -1,0 +1,1 @@
+message(FATAL_ERROR "local gts not currently supported")

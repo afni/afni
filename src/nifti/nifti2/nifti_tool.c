@@ -39,6 +39,8 @@
  *   nifti_tool -help_datatypes
  *   nifti_tool -hist
  *   nifti_tool -ver
+ *   nifti_tool -ver_man
+ *   nifti_tool -see_also
  *   nifti_tool -nifti_hist
  *   nifti_tool -nifti_ver
  *   nifti_tool -with_zlib
@@ -189,9 +191,12 @@ static const char * g_history[] =
   "   - added many corresponding tests\n"
   "   - added some matrix manipulation macros\n"
   "   - warn on type, and block print buffer overflow\n"
+  "2.09  7 Apr 2020 [rickr]\n",
+  "   - add -see_also and -ver_man, for man page generation\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.08 (October 5, 2019)";
+static char g_version[] = "2.09";
+static char g_version_date[] = "April 7, 2020";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -355,8 +360,12 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          return usage(argv[0], USE_FULL);
       else if( ! strcmp(argv[ac], "-hist") )
          return usage(argv[0], USE_HIST);
+      else if( ! strcmp(argv[ac], "-see_also") )
+         return usage(argv[0], USE_SEE_ALSO);
       else if( ! strcmp(argv[ac], "-ver") )
          return usage(argv[0], USE_VERSION);
+      else if( ! strcmp(argv[ac], "-ver_man") )
+         return usage(argv[0], USE_VER_MAN);
       else if( ! strcmp(argv[ac], "-nifti_hist") )
       {
          nifti_disp_lib_hist(1);
@@ -942,8 +951,15 @@ int usage(char * prog, int level)
       disp_field_s_list("nifti2_image: ", nim_fields, NT_NIM_NUM_FIELDS);
       printf("   sizeof(nifti2_image) = %d\n", (int)sizeof(nifti2_image));
    }
+   else if( level == USE_SEE_ALSO )
+      fprintf(stdout, "[see also]\n"
+                      "To see the direct, originally formatted help,\n"
+                      "consider the command\n\n"
+                      "      %s -help\n", prog);
    else if( level == USE_VERSION )
-      fprintf(stdout, "%s, %s\n", prog, g_version);
+      fprintf(stdout, "%s, version %s (%s)\n", prog, g_version, g_version_date);
+   else if( level == USE_VER_MAN )
+      fprintf(stdout, "%s %s\n\n%s\n", prog, g_version, g_version_date);
    else {
       fprintf(stdout,"** illegal level for usage(): %d\n", level);
       return -1;
@@ -959,7 +975,7 @@ int usage(char * prog, int level)
 int use_full()
 {
    printf(
-   "nifti_tool\n"
+   "nifti_tool - display, modify or compare nifti headers\n"
    "\n"
    "   - display, modify or compare nifti structures in datasets\n"
    "   - copy a dataset by selecting a list of volumes from the original\n"
@@ -1035,6 +1051,8 @@ int use_full()
    "\n");
    printf(
    "    nifti_tool -ver                  : show the current version\n"
+   "    nifti_tool -ver_man              : show man page formatted version\n"
+   "    nifti_tool -see_also             : show the 'SEE ALSO' string\n"
    "    nifti_tool -hist                 : show the modification history\n"
    "    nifti_tool -nifti_ver            : show the nifti library version\n"
    "    nifti_tool -nifti_hist           : show the nifti library history\n"
@@ -1955,6 +1973,14 @@ int use_full()
    "\n"
    "       e.g.  nifti_tool -ver\n"
    "\n"
+   "    -ver_man          : show the version, formatted for a man page\n"
+   "\n"
+   "       e.g.  nifti_tool -ver_man\n"
+   "\n"
+   "    -see_also         : show the 'SEE ALSO' string for man pages\n"
+   "\n"
+   "       e.g.  nifti_tool -see_also\n"
+   "\n"
    "    -hist             : show the program modification history\n"
    "\n"
    "       e.g.  nifti_tool -hist\n"
@@ -1976,8 +2002,8 @@ int use_full()
    "\n"
    "  R. Reynolds\n"
    "  compiled: %s\n"
-   "  %s\n\n",
-   __DATE__, g_version );
+   "  version %s (%s)\n\n",
+   __DATE__, g_version, g_version_date );
 
    return 1;
 }

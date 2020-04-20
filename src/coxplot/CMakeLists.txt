@@ -1,4 +1,4 @@
-add_library(
+add_afni_library(
   coxplot
   color.c
   curve.c
@@ -57,5 +57,3 @@ target_include_directories(
 )
 set_target_properties(coxplot PROPERTIES PUBLIC_HEADER "coxplot.h")
 target_link_libraries(coxplot PRIVATE libheaders $<TARGET_NAME_IF_EXISTS:f2c> m)
-add_afni_target_properties(coxplot)
-add_library(AFNI::coxplot ALIAS coxplot)

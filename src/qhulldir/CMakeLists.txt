@@ -1,6 +1,6 @@
 project(qhull)
 
-add_library(
+add_afni_library(
   qhull
   geom.c
   geom2.c
@@ -19,15 +19,13 @@ add_library(
   usermem.c
   userprintf.c
 )
-add_afni_target_properties(qhull)
 target_link_libraries(qhull m)
 foreach(target unix rbox)
-  add_executable(${target} ${target}.c)
-  add_afni_target_properties(${target})
-  target_link_libraries(${target} qhull m)
+  add_afni_executable(${target} ${target}.c)
+    target_link_libraries(${target} qhull m)
 endforeach(target)
 
-add_executable(qdelaunay qdelaun.c)
+add_afni_executable(qdelaunay qdelaun.c)
 target_link_libraries(qdelaunay qhull)
 
 install(

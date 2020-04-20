@@ -2,8 +2,7 @@
 set(default_build_type "Debug")
 set(CMAKE_BUILD_TYPE
     "${default_build_type}"
-    CACHE STRING "Choose the type of build." FORCE
-)
+    CACHE STRING "Choose the type of build.")
 set_property(
   CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel"
                                   "RelWithDebInfo"

@@ -49,6 +49,86 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Apr, 2020, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if dataset inputs had full paths, use them in proc script",
+   "Thanks to W-L Tseng for pointing out the discrepancy."
+ } ,
+
+ {  7, Apr, 2020, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "add -see_also and -ver_man to help create a quick man page",
+   "To create a man page (via help2man), consider:\n"
+   "   nifti_tool -see_also > nt.see_also.txt\n"
+   "   help2man --help-option=-help --version-option=-ver_man  \\\n"
+   "            --include nt.see_also.txt --no-info nifti_tool \\\n"
+   "            | gzip > nifti_tool_manpage.1.gz\n"
+   "after which one can install the file, or test via\n"
+   "   man ./nifti_tool_manpage.1.gz\n"
+   "(see the uncompressed version for syntax)."
+ } ,
+
+ { 31, Mar, 2020, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
+   "update for python3",
+   NULL
+ } ,
+
+ { 31, Mar, 2020, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "grep from $HOME/.bash_profile",
+   NULL
+ } ,
+
+ { 31, Mar, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
+   "fix lib_system_check:self.os_dist for newer python",
+   NULL
+ } ,
+
+ { 30, Mar, 2020, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "have module_test_lib.py (and so afni_proc.py) work on python 2.6 again",
+   "Done for S Horovitz."
+ } ,
+
+ { 27, Mar, 2020, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "PY_LIBS",
+   NULL
+ } ,
+
+ { 26, Mar, 2020, RCR, "apqc_make_tcsh.py", MICRO, TYPE_MODIFY,
+   "move ohtml to lib_apqc_tcsh.py and remove import of apqc_make_html",
+   "This is in keeping with all python libs being under afnipy."
+ } ,
+
+ { 24, Mar, 2020, RCR, "python_module_test.py", MINOR, TYPE_MODIFY,
+   "restore approximate previous behavior",
+   NULL
+ } ,
+
+ { 23, Mar, 2020, RCR, "3drefit", MINOR, TYPE_NEW_OPT,
+   "add options -oblique_recenter and -oblique_recenter_raw",
+   "Adjust the origin so the cardinalized 0,0,0 (e.g. seen in the afni GUI)\n"
+   "is in the same brain location as it was originally (in the scanner?).\n"
+   "So when viewing an oblique volume on top of a '3dWarp -deoblique' output,\n"
+   "coordinate 0,0,0 will match between them."
+ } ,
+
+ { 20, Mar, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "fix PY_DIR, update PY vars, add list_py_libs",
+   NULL
+ } ,
+
+ { 20, Mar, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "fix PY_DIR, update PY vars, add list_py_libs",
+   NULL
+ } ,
+
+ { 19, Mar, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix use of module_test_lib.py with change to new afnipy dir",
+   NULL
+ } ,
+
+ { 12, Mar, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "point web help for program to sphinx tree",
+   "Also, added -hweb/-h_web for python progs that use option_list.py."
+ } ,
+
  { 12, Mar, 2020, RCR, "SUMA_test_DrawingAreaWidget", MINOR, TYPE_NEW_PROG,
    "test for a valid DrawingAreaWidgetClass pointer",
    NULL

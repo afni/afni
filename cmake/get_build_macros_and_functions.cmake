@@ -6,54 +6,163 @@ macro(list_TO_STRING _string _list)
   endforeach(_item)
 endmacro(list_TO_STRING)
 
-macro(optional_bundle name)
+macro(optional_bundle subdir_path)
+  get_filename_component(name ${subdir_path} NAME)
   # this must be a macro for scoping reasons. Otherwise LIB_FOUND is not set
   string(TOUPPER ${name} upper)
-
-  option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
+  if(NOT DEFINED USE_SYSTEM_${upper})
+    option(USE_SYSTEM_${upper} "use system ${name} instead of bundled" ON)
+  endif()  
   if(USE_SYSTEM_${upper})
     find_package(${name} REQUIRED)
   else(USE_SYSTEM_${upper})
-    add_subdirectory(${name})
+    add_subdirectory(${subdir_path})
   endif(USE_SYSTEM_${upper})
 endmacro()
 
-function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
-  # ##### Read list of makefile programs that are built by this project.
-  execute_process(
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND bash "-c" "make -s -f Makefile.INCLUDE prog_list_bin"
-  )
-
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list_bin.txt ALL_PROGRAMS)
-  string(STRIP ${ALL_PROGRAMS} ALL_PROGRAMS)
-  string(REPLACE "\n" " " ALL_PROGRAMS ${ALL_PROGRAMS})
-  separate_arguments(ALL_PROGRAMS)
-  set(PROGRAMS_BUILT "")
-  set(NOT_BUILT "")
-  set(installable_targets ${ALL_PROGRAMS})
-
-  # remove some programs that should not be here
-  foreach(other_project_target gifti_tool giftiio gifti_test nifti_tool niftiio)
-    # message("Removing ${other_project_target} because it is not built by this
-    # project")
-    list(REMOVE_ITEM installable_targets ${other_project_target})
+function(filter_for_components mapping components  targets out_var)
+  # get all targets associated with the components. Append all targets
+  # to the comp_targs list and return it.
+  set(comp_targs "")
+  foreach(component ${components})
+    set(temp_mapping ${mapping})
+    list(FILTER temp_mapping INCLUDE REGEX ", ${component}$")
+    list(APPEND comp_targs ${temp_mapping})
   endforeach()
+  list(TRANSFORM comp_targs REPLACE ", .*" "" )
 
-  foreach(program ${installable_targets})
-    if(TARGET ${program})
-      list(APPEND PROGRAMS_BUILT ${program})
-      add_afni_target_properties(${program})
-    else()
-      list(APPEND NOT_BUILT ${program})
-    endif()
-  endforeach()
-
-  if(SHOW_UNBUILT_PROGS)
-    message("programs not built: '${NOT_BUILT}'")
-    message("programs built: '${PROGRAMS_BUILT}'")
-  endif()
+  # Set input variable to the filtered list
+  set(${out_var} "${comp_targs}" PARENT_SCOPE)
 endfunction()
+
+function(filter_out_components mapping components  targets out_var)
+  # get all targets associated with the components
+
+  filter_for_components("${mapping}" "${components}" "${targets}" comp_targs)
+  # Filter out targets associated with components
+  if(NOT ("" STREQUAL "${comp_targs}"))
+    # message(" components that have been filtered for: ${comp_targs}")
+    list(REMOVE_ITEM targets ${comp_targs})
+  endif()
+  # Set input variable to the filtered list
+  set(${out_var} "${targets}" PARENT_SCOPE)
+endfunction()
+  
+function(get_expected_target_list mapping targets_label)
+  set(filtered_list "${mapping}")
+  list(TRANSFORM filtered_list REPLACE ", .*" "" )
+  if(COMP_CORELIBS_ONLY)
+    # only corelibs will be installed
+    filter_for_components("${mapping}" "corelibs" "${filtered_list}" filtered_list)
+    set(${targets_label} "${filtered_list}" PARENT_SCOPE)
+    return()
+  endif()
+
+  # Remove components that are largely scripts or external
+  filter_out_components(
+    "${mapping}"
+    "python;tcsh;rstats;external_dependencies"
+    "${filtered_list}"
+    filtered_list
+    )
+  # message(" filtered_list: ${filtered_list}")
+
+  if(NOT (COMP_ADD_BINARIES))
+    filter_out_components( "${mapping}" "corebinaries" "${filtered_list}" filtered_list)
+  endif()
+
+
+  if(NOT (COMP_X_DEPENDENT_GUI_PROGS))
+    filter_out_components( "${mapping}" "gui" "${filtered_list}" filtered_list)
+  endif()
+
+  if(NOT (COMP_OPENGL_DEPENDENT_GUI_PROGS))
+    filter_out_components( "${mapping}" "suma" "${filtered_list}" filtered_list)
+  endif()
+
+  if(NOT (COMP_ADD_PLUGINS))
+    filter_out_components( "${mapping}" "plugins" "${filtered_list}" filtered_list)
+  endif()
+
+  set(${targets_label} "${filtered_list}" PARENT_SCOPE)
+endfunction()
+
+function(append_make_component component varlabel var)
+  set(out_list ${var})
+
+  execute_process(
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND bash "-c" "make -sf Makefile.INCLUDE list_${component}"
+      OUTPUT_VARIABLE comp_list
+      RESULT_VARIABLE status
+    )
+  if(NOT status STREQUAL "0")
+    message(FATAL_ERROR "Failed attempting to get the component \
+      '${component}' from the make build")
+  endif()
+  # message(${comp_list})
+  # string(STRIP ${comp_list} comp_list)
+  # string(REGEX REPLACE "\n" ";" comp_list ${comp_list})
+  string(REGEX REPLACE "\n" ";" comp_list ${comp_list})
+  # Filter out lib prefixes and library extensions
+  list(
+    TRANSFORM comp_list 
+    REPLACE "lib(.*)(.so|.a)$" "\\1"
+    REGEX "lib.*(.so|.a)")
+  # Filter out library extension stubs
+  list(
+    TRANSFORM comp_list 
+    REPLACE "\.$" ""
+    REGEX ".*[.]$")
+  list(APPEND out_list ${comp_list})
+  set(${varlabel} ${out_list} PARENT_SCOPE)
+endfunction()
+
+function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
+  
+  # Filter expected targets based on build configuration
+  get_expected_target_list("${CMPNT_MAPPING}" expected_targets)
+
+  # Get list of installed targets from this project build...
+  get_property(installed_targets GLOBAL PROPERTY INSTALLED_PROGS)
+  # message("Installed:${installed_targets}")
+  list(REMOVE_ITEM expected_targets ${installed_targets})
+  if(NOT "${expected_targets}" STREQUAL "")
+    message(FATAL_ERROR "The build has not built all the targets expected. It is\
+     missing the following targets:${expected_targets}!!!!")
+  endif()
+  
+  # ##### assessing parity with the make build
+  set(make_targ_list "")
+  append_make_component("plugins" make_targ_list "${make_targ_list}")
+  append_make_component("models" make_targ_list "${make_targ_list}")
+  append_make_component("afni_progs" make_targ_list "${make_targ_list}")
+  append_make_component("libraries" make_targ_list "${make_targ_list}")
+  append_make_component("suma_progs" make_targ_list "${make_targ_list}")
+  filter_out_components(
+      "${CMPNT_MAPPING}"
+      "external_dependencies"
+      "${make_targ_list}"
+      make_targ_list
+      )
+
+
+  # Compute targets not present in the make build
+  set(CMAKE_LESS_MAKE_BUILT ${installed_targets})
+  list(REMOVE_ITEM CMAKE_LESS_MAKE_BUILT ${make_targ_list})
+
+  # Compute targets only in the make build
+  set(MAKE_BUILD_LESS_CMAKE ${make_targ_list})
+  list(REMOVE_ITEM MAKE_BUILD_LESS_CMAKE ${installed_targets})
+
+
+  # Provide feedback on difference between the builds
+  message("Comparison with build using the make system:")
+  message("programs not built: '${MAKE_BUILD_LESS_CMAKE}'")
+  message("extra programs built: '${CMAKE_LESS_MAKE_BUILT}'")
+  
+endfunction()
+
 
 macro(set_os_flags src_file)
   # sets os specific compile definintions for source files. This is currently
@@ -115,13 +224,108 @@ macro(get_afni_rpath)
     )
   endif()
   # file(TO_NATIVE_PATH "${_rpath}" afni_target_RPATH)
+  # message(FATAL_ERROR "${afni_target_RPATH}----- ${AFNI_INSTALL_LIBRARY_DIR}--- ${_rel_afni}------${INSTALL_PATH} -------${TARGET_TYPE}")
 endmacro()
 
-macro(add_afni_target_properties target)
+function(get_component_name component cmpnt_mapping targ_in)
+  set(${component} "not found" PARENT_SCOPE)
+  # Escape "+" character for regex
+  get_target_regex(${targ_in} regex_pat)
+  # Filter for current target
+  list(FILTER cmpnt_mapping INCLUDE REGEX "^${regex_pat},")
+
+  # Extract component for target
+  string(REGEX REPLACE "[@a-zA-Z0-9_.+]*, " "" output "${cmpnt_mapping}")
+  # Raise an error if the target is not in the list of project targets
+  if(output)
+    set(${component} "${output}" PARENT_SCOPE)
+  else()
+    message(FATAL_ERROR 
+      "########################################################################## \
+      ERROR: Installation component not found for ${targ_in}. This is             \
+      assessed by checking the target name against the saved list of              \
+      target/component pairs in the packaging directory of the AFNI               \
+      repository. This saved list can be modified manually or regenerated by      \
+      executing the 'define_installation_components.py' script contained in that  \
+      directory                                                                   \
+      ##########################################################################  
+      "
+      )
+   endif()
+endfunction()
+
+function(get_target_regex target pattern)
+# convert target string to regex pattern
+string(REGEX REPLACE "([+])" [[\\+]] with_subs "${target}")
+set(${pattern} "${with_subs}" PARENT_SCOPE)
+endfunction()
+
+function(log_target_as_installed target)
+  GET_PROPERTY(temp_list GLOBAL PROPERTY INSTALLED_PROGS)
+  get_target_regex(${target} regex_pat)
+  list(APPEND temp_list "${target}")
+  SET_PROPERTY(GLOBAL PROPERTY INSTALLED_PROGS "${temp_list}")
+endfunction()
+
+function(add_afni_library target_in)
+  add_library(${ARGV})
+  target_link_options(${target_in}
+  PRIVATE 
+  LINKER:-undefined,error
+    )
+  target_link_options(${target_in}
+  PRIVATE 
+  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
+    )
+  add_library(AFNI::${target_in} ALIAS ${target_in})
+  add_afni_target_properties(${target_in})
+endfunction()
+
+function(add_afni_executable target_in)
+  add_executable(${ARGV})
+  target_link_options(${target_in}
+  PRIVATE 
+  LINKER:-undefined,error
+    )
+  target_link_options(${target_in}
+  PRIVATE 
+  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
+    )
+  add_afni_target_properties(${target_in})
+endfunction()
+
+function(add_afni_plugin target_in)
+  set(CMAKE_C_FLAGS_DEBUG
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
+)
+  add_library(${ARGV})
+  add_afni_target_properties(${target_in})
+  if(ADD_PLUGIN_CHECK)
+      add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
+      target_link_libraries(
+          checking_${target_in}
+          PUBLIC
+          afni_all_objects
+          mri
+          mrix
+        )
+  endif()
+  target_link_options(${target_in}
+  PRIVATE 
+  LINKER:-undefined,dynamic_lookup
+    )
+endfunction()
+
+function(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
   get_target_property(TARGET_TYPE ${target} TYPE)
   get_afni_rpath()
-
+  if(NOT (GENERATE_PACKAGING_COMPONENTS))
+    get_component_name(component "${CMPNT_MAPPING}" ${target})
+  endif()
+  log_target_as_installed(${target})
+  # message("${target} -------${component}")
+  
   # Set the target properties
   if(NOT DEFINED ENV{CONDA_BUILD})
     set_target_properties(
@@ -144,14 +348,14 @@ macro(add_afni_target_properties target)
 
   install(
     TARGETS ${target}
+    COMPONENT ${component}
     RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
     LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
     ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
     PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
+    # PRIVATE_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
   )
-
-  # INSTALL_RPATH_USE_LINK_PATH ON SKIP_BUILD_RPATH OFF BUILD_WITH_INSTALL_RPATH OFF
-endmacro()
+endfunction()
 
 function(check_header_has_been_created HEADER_PATH)
   if(NOT EXISTS "${HEADER_PATH}")

@@ -1,11 +1,12 @@
+# ##### Create global entity in which to store installed targets
+set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
+
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
 add_subdirectory(coxplot)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
-optional_bundle(volpack)
-optional_bundle(f2c)
 add_subdirectory(3DEdge)
 add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
@@ -22,21 +23,6 @@ include(CMakeLists_mri.txt)
 if (USE_F2C AND NOT F2C_EXECUTABLE)
   message(FATAL_ERROR "f2c should be found: ${F2C_EXECUTABLE}")
 endif()
-
-# 3dinfo should be in the binaries cmake file but provides a test of linking in corelibs
-# configuration and so is placed here instead
-add_executable(3dinfo 3dinfo.c)
-target_link_libraries(3dinfo AFNI::mri)
-
-# ##### Add rio
-set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
-add_library(rio R_io.c)
-target_include_directories(
-  rio
-  PRIVATE ${LIBR_INCLUDE_DIRS}
-)
-target_link_libraries(rio ${LIBR_LIBRARIES} AFNI::mri)
-add_afni_target_properties(rio)
 
 # ##### Add models
 foreach(
@@ -71,7 +57,7 @@ foreach(
   model_trnglwave_apf
   model_zero
   )
-  add_library(${target} ${target}.c)
+  add_afni_library(${target} ${target}.c)
   target_link_libraries(
     ${target}
     PRIVATE
@@ -79,44 +65,60 @@ foreach(
             NIFTI::nifti2
             NIFTI::nifticdf
   )
-  add_afni_target_properties(${target})
-  endforeach()
+    endforeach()
 
 # ##### Add libraries and programs outside of corelibs
-if(NOT AFNI_BUILD_CORELIBS_ONLY)
-  add_subdirectory(crorden)
+if(NOT COMP_CORELIBS_ONLY)
+  if(USE_SYSTEM_DCM2NIIX)
+    # Hack to bypass, target checks because this should be a symlink to a the
+    # runtime dependency dcm2niix
+    # log_target_as_installed(dcm2niix)
+  else()
+    add_subdirectory(crorden)
+    set_target_properties(dcm2niix PROPERTIES OUTPUT_NAME dcm2niix_afni)
+    # add_afni_target_properties(dcm2niix)
+  endif()
   # not sure how dcm2niix_afni will be installed... install(TARGETS dcm2niix  RUNTIME
   # DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}  RENAME woohoo)
-  if(NOT USE_SYSTEM_QHULL)
-    add_subdirectory(qhulldir)
-  endif()
-  add_subdirectory(avovk)
 endif()
 
-# ##### Add many other binaries
-if(BUILD_BINARIES)
+# Add majority of binaries
+if(COMP_ADD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# ##### Add scripts
-if(NOT DO_NOT_INSTALL_SCRIPTS)
+# Add scripts (includes shell, python, and R scripts)
+if(COMP_ADD_TCSH)
   add_subdirectory(scripts_install)
 endif()
 
-# ##### Add targets with a dependency on X
-if(BUILD_X_DEPENDENT_GUI_PROGS)
+# Add targets with a dependency on X
+if(COMP_X_DEPENDENT_GUI_PROGS)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
 
-# ##### Add suma
-if(BUILD_OPENGL_DEPENDENT_GUI_PROGS)
+# Add suma
+if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
+  # segtools/avovk only used by suma so add it here
+  add_subdirectory(avovk)
   add_subdirectory(SUMA)
 endif()
 
-# ##### Add_plugin targets
-if(BUILD_PLUGINS)
+# Add_plugin targets
+if(COMP_ADD_PLUGINS)
   include(CMakeLists_plugins.txt)
+endif()
+
+if(COMP_ADD_RSTATS)
+  # Add rio
+  set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
+  add_afni_library(rio R_io.c)
+  target_include_directories(
+    rio
+    PRIVATE ${LIBR_INCLUDE_DIRS}
+  )
+  target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
 
 # ##### Create list of programs built

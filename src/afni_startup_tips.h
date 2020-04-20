@@ -809,7 +809,7 @@ static char *gby[] = {
      "May the odds be ever in your favor"                            ,
      "I weep for Adonais -- he is dead! Oh, weep for Adonais"        ,
      "An echo and a light unto eternity"                             ,
-     "Did I mention that we're doomed? Horribly horribly doomed?"    ,
+     // "Did I mention that we're doomed? Horribly horribly doomed?"    ,
      "I could go for some momos right now, how about you?"           ,
      "I really like woh for a filling dinner, don't you?"            ,
      "Dal bhat power, 24 hour"                                       ,
@@ -866,9 +866,14 @@ static char *gby[] = {
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
-     "Remember -- eggs cannot be unscrambled"                        ,
-     "Remember -- a closed mouth gathers no feet"                    ,
+     "Remember -- Eggs cannot be unscrambled"                        ,
+     "Remember -- A closed mouth gathers no feet"                    ,
      "Remember -- People are willing to believe what they wish"      ,
+
+     "For my money it was just an ordinary cock-up"                  ,
+     "I have seen the deepness in the sky"                           ,
+     "I am trapped in a cage I created but cannot see"               ,
+     "In the streets of Diaspar it is always afternoon"              ,
 
      "Fools give you reasons, wise people never try"                 ,
      "People willingly trust the statistics they wish to believe"    ,
@@ -984,6 +989,7 @@ static char *gby[] = {
      "I came, I saw, I got confused"                                 ,
      "Inconceivable!"                                                ,
      "Computers are useless -- they can only give you answers"       ,
+     "Remember: Plans are useless, but planning is indispensable"    ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
@@ -1287,7 +1293,7 @@ static char *gby[] = {
      /* Longer quotes */
 
      "Where did the time go? I thought growing old would take longer"                 ,
-     "I'll say this:  Often bumpy roads lead to beautiful places"                     ,
+     "I'll say this: Often bumpy roads lead to beautiful places"                      ,
      "Never pay attention to criticism from someone you wouldn't take advice from"    ,
      "80% of our problems would go away if we'd just sit down and wait"               ,
      "Despite what FMRI says, tears come from the heart not from the brain"           ,
@@ -1315,7 +1321,7 @@ static char *gby[] = {
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
      "In a billion years, the sun gets so hot Earth will be fried. Are you ready?"    ,
-     "May your results be like the Velvet Hammer:  bold flavor, smooth finish!"     ,
+     "May your results be like the Velvet Hammer: bold flavor, smooth finish!"        ,
 
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
@@ -1572,6 +1578,11 @@ static char *gby[] = {
      "\n  One great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
 
+     "\n The 3 phases of programming:\n"
+     "  Design\n"
+     "  Implementation\n"
+     "  Blasphemy (repeat as needed)"                                                         ,
+
      "\n  When someone says: I'm going to simplify things.\n"
      "  They mean:         Be confused. Be very, very confused"                               ,
 
@@ -1607,15 +1618,16 @@ static char *gby[] = {
      "  will find it to their advantage to decipher all this mess"                            ,
 
      // Lem
-     "Everyone knows that dragons don't exist.  But while this simplistic\n"
+     "\n"
+     "Everyone knows that dragons don't exist. But while this simplistic\n"
      "formulation may satisfy the layman, it does not suffice for the scientific\n"
-     "mind.  The School of Higher Neantical Nillity is in fact wholly unconcerned\n"
-     "with what does exist.  Indeed, the banality of existence has been so amply\n"
-     "demonstrated, there is no need for us to discuss it any further here.  The\n"
+     "mind. The School of Higher Neantical Nillity is in fact wholly unconcerned\n"
+     "with what does exist. Indeed, the banality of existence has been so amply\n"
+     "demonstrated, there is no need for us to discuss it any further here. The\n"
      "brilliant Cerebron, attacking the problem analytically, discovered three\n"
-     "distinct kinds of dragon:  the mythical, the chimerical, and the purely\n"
-     "hypothetical.  They were all, one might say, nonexistent, but each non-existed\n"
-     "in an entirely different way."                                                          ,
+     "distinct kinds of dragon: the mythical, the chimerical, and the purely\n"
+     "hypothetical. They were all, one might say, nonexistent, but each non-existed\n"
+     "in an entirely different way"                                                           ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
@@ -1667,14 +1679,8 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
-     "\n     Everyone knows that dragons don't exist. But while this\n"
-     "     simplistic formulation may satisfy the layman, it does not\n"
-     "     suffice for the scientific mind... The brilliant Cerebron,\n"
-     "     attacking the problem analytically, discovered three distinct\n"
-     "     kinds of dragon: the mythical, the chimerical, and the purely\n"
-     "     hypothetical. They were all, one might say, nonexistent, but each\n"
-     "     non-existed in an entirely different way.\n"
-
+     "\n    Never should I forget this event\n"
+     "    in the life of my fatigued retinas\n" ,
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,

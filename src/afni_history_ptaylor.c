@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2020 , PT , "adjunct_simplify_cost.py" , MICRO , TYPE_NEW_PROG,
+   "Adjunct program for (soon to be updated) @SSwarper.",
+   "Convert cost name to simpler version, for some application(s).\n"
+},
+
+{ 16, Apr , 2020 , PT , "@djunct_ssw_intermed_edge_imgs" , MICRO , TYPE_NEW_PROG,
+   "Adjunct program for (soon to be updated) @SSwarper.",
+   "Generates images for intermediate QC/tracking.\n"
+},
+
+{ 27, Mar , 2020 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
+   "Rearrange variable/function definitions in afnipy libs (no more interdep).",
+   "All changes just 'under the hood'---should be no output differences.\n"
+},
+
+{ 27, Mar , 2020 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Rearrange variable/function definitions in afnipy libs (no more interdep).",
+   "All changes just 'under the hood'---should be no output differences.\n"
+},
+
 { 12, Mar , 2020 , PT , "3dReHo" , MINOR , TYPE_GENERAL,
    "Alter output format if ROI neighborhood values of ReHo are calc'ed.",
    "Make 2 col (ROI val; ReHo val). Output multiple text files, if nec, too.\n"

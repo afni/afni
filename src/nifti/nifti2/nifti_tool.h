@@ -51,6 +51,8 @@ typedef struct{
 #define USE_FIELD_ANA  31
 #define USE_DTYPES     41
 #define USE_VERSION    51
+#define USE_VER_MAN    52       /* for unix man-page formatting */
+#define USE_SEE_ALSO   53       /* for unix man-page formatting */
 
 #define CHECK_NEXT_OPT(n,m,str)                                       \
    do { if ( (n) >= (m) ) {                                           \

@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Feb 17, 2020 
+Version 1.0.2, March 18, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -106,20 +106,12 @@ Usage: ~1~
     simulations.
 
  6) The evidence for region effects in the output can be assessed through P+,
-    the probability that the effect is postive conditional on the current
-    dataset. The following criterion for highlighting the results is only
-    suggestive:
-     P+ >= 0.975 or <= 0.025 - very strong evidence
-     P+ >= 0.95 or <= 0.05   - strong evidence
-     P+ >= 0.90 or <= 0.10   - moderate evidence
-     else                    - little evidence
-
-    The same criterion is applied to the color coding in the posterior
-    distribution plots generated with the option -PDP:
-     P+ >= 0.975 or <= 0.025 - green:    very strong evidence
-     P+ >= 0.95 or <= 0.05   - yellow:   strong evidence
-     P+ >= 0.90 or <= 0.10   - gray:     moderate evidence
-     else                    - no color: little evidence
+    the probability that the effect is positive conditional on the current
+    model and dataset. Unlike the NHST convention, we emphasize that a decision 
+    about the strength of statistical evidence should not be purely based on an
+    artificial threshold. Instead, we encourage full results reporting:
+    highlight some results with strong evidence and literature support (if
+    available) without hiding the rest.
 
  7) WARNING: If the results are pretty homogenized across regions, it is an
     indication that presumably partial pooling becomes full pooling. Most
@@ -175,7 +167,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
    If the data are skewed or have outliers, use Student's t-distribution:
 
    RBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
-   -distr 'student' -dataTable myData.txt  \\
+   -distY 'student' -dataTable myData.txt  \\
 
    The input file 'myData.txt' is a data table in pure text format as below: 
                                                              
@@ -392,10 +384,25 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        invoked) is 'Y'.\n", sep = '\n'
                      ) ),
 
-      '-distr' = apl(n = 1, d = NA,  h = paste(
-   "-distr distr_name: Use this option to specify the distribution for the response",
-   "        variable. The default is Gaussian when this option is not invoked.",
-   "        When skewness or outliers occur in the data, consider adopting the Student's",
+      '-distY' = apl(n = 1, d = NA,  h = paste(
+   "-distY distr_name: Use this option to specify the distribution for the response",
+   "        variable. The default is Gaussian when this option is not invoked. When",
+   "        skewness or outliers occur in the data, consider adopting the Student's",
+   "        t-distribution or exGaussian by using this option with 'student' or",
+   "        'exgaussian'.\n", sep = '\n'
+                     ) ),
+
+      '-distROI' = apl(n = 1, d = NA,  h = paste(
+   "-distROI distr_name: Use this option to specify the distribution for the ROIs.",
+   "        The default is Gaussian when this option is not invoked. When the number of",
+   "         regions is small (e.g., less than 20), consider adopting the Student's",
+   "        t-distribution by using this option with 'student'.\n", sep = '\n'
+                     ) ),
+
+      '-distSubj' = apl(n = 1, d = NA,  h = paste(
+   "-distSubj distr_name: Use this option to specify the distribution for the subjects.",
+   "        The default is Gaussian when this option is not invoked. When the number of",
+   "         regions is small (e.g., less than 20), consider adopting the Student's",
    "        t-distribution by using this option with 'student'.\n", sep = '\n'
                      ) ),
 
@@ -466,7 +473,9 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$EOI    <- 'Intercept'
       lop$qContr <- NA
       lop$Y      <- 'Y'
-      lop$distr  <= 'gaussian'
+      lop$distY  <- 'gaussian'
+      lop$distROI  <- NA
+      lop$distSubj <- NA
       lop$Subj   <- 'Subj'
       lop$ROI    <- 'ROI'
       lop$PDP    <- NA
@@ -493,7 +502,9 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              EOI    = lop$EOI    <- ops[[i]],
              qContr = lop$qContr <- ops[[i]],
              Y      = lop$Y      <- ops[[i]],
-             distr  = lop$distr  <- ops[[i]],
+             distY  = lop$distY  <- ops[[i]],
+             distROI   = lop$distROI   <- ops[[i]],
+             distSubj  = lop$distSubj  <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
              ROI    = lop$ROI    <- ops[[i]],
              PDP    = lop$PDP    <- ops[[i]],
@@ -683,8 +694,23 @@ ptm <- proc.time()
 #lop$model <- '1+V1+V2'
 
 ##################### MCMC ####################
-if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
-   modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+if(!is.na(lop$distROI) & lop$distROI == 'student') {
+   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
+      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))  
+   } else {
+      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
+      modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+   }
+} else { 
+   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
+      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))  
+   } else {
+      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+   }
+}
 
 if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 
@@ -694,7 +720,7 @@ if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 #      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
 #      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distr, inits=0, 
+fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distY, inits=0, 
       iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 #   fm <- brm(modelForm, data=lop$dataTable,

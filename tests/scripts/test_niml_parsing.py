@@ -2,9 +2,11 @@ import xml.etree.ElementTree as ET
 import nibabel as nb
 from pathlib import Path
 import subprocess as sp
-from .utils.misc import try_to_import_afni_module
+import pytest
 
-nml = try_to_import_afni_module("niml_parsing")
+
+nml = pytest.importorskip("afnipy.niml_parsing")
+
 scans_dir = Path("AFNI_data6/afni")
 
 data_paths = {

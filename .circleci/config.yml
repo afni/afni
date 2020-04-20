@@ -1,4 +1,4 @@
-  
+
 version: 2
 jobs:
               
@@ -16,6 +16,44 @@ jobs:
           paths:  
             - src/afni
   
+  macos_build:
+    macos:
+        xcode: "11.2.1"
+    steps: # a series of commands to run
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Setup on macos
+          command: |
+            brew cask install xquartz
+            brew unlink python@2
+            brew install  \
+              cmake ninja llvm pkgconfig  \
+              jpeg gsl gts openmotif  netcdf libpng expat \
+              freetype fontconfig gsl \
+              netpbm git-annex 
+              # note other useful dependencies:
+              # ffmpeg
+      - run:
+          name: Build on macos
+          command: |
+            cd /tmp/src/afni
+            mkdir build
+            cd build
+            cmake ..                                                           \
+                -GNinja                                                             \
+                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/macos_toolchainfile.cmake      \
+                -DUSE_SYSTEM_VOLPACK=OFF    \
+                -DUSE_SYSTEM_GLW=OFF    \
+                -DUSE_SYSTEM_XMHTML=OFF \
+                -DUSE_SYSTEM_F2C=OFF \
+                -DCOMP_ADD_RSTATS=OFF \
+                -DUSE_SYSTEM_GIFTI=OFF
+            ninja
+
+
+
+
   build_and_test_makebuild:
     machine: true
     working_directory: /tmp/src/afni
@@ -39,7 +77,7 @@ jobs:
           no_output_timeout: 2h
           name: Run tests on standard AFNI build 
           command: |
-            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
+            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/src/afni/tests/run_tests.sh'
 
       - run:
           name: AFNI account should upload successful builds
@@ -131,9 +169,9 @@ jobs:
             mkdir -p /tmp/src /tmp/out
             chmod 777 /tmp/src /tmp/out
             docker run --rm -it \
-                -v /tmp/src/afni:/opt/afni \
+                -v /tmp/src/afni:/opt/src/afni \
                 afni/afni_cmake_build \
-                bash -c 'bash /opt/afni/tests/run_tests_cmake.sh'
+                bash -c 'bash /opt/src/afni/tests/run_tests_cmake.sh'
 
           
   deploy_docker_cmake:
@@ -168,11 +206,22 @@ jobs:
             fi
 
 
+
+
 workflows:
   version: 2
   afni_tests:
     jobs:
       - cache_src_and_data_repo:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      - macos_build:
+          requires:
+            - cache_src_and_data_repo
+            - test_cmake_build
           filters:
             branches:
               ignore: /doc\/.*/

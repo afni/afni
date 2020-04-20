@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.1, Jul 2, 2019
+Version 4.0.2,  March 25, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -468,7 +468,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
-     '-qvarcenters' = apl(n=1, d=NA, h = paste(
+     '-qVarCenters' = apl(n=1, d=NA, h = paste(
    "-qVarCenters VALUES: Specify centering values for quantitative variables",
    "         identified under -qVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
