@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 21 , APR , 2020 , JKR , "afni" , MINOR , TYPE_NEW_OPT ,
+   "Added -all_dsets to load all datasets togther."
+ } ,
  { 16 , AUG , 2019 , JKR , "FATCAT_matplot" , MICRO , TYPE_BUG_FIX ,
    "Fix for FATCAT_matplot header reading."
  } ,

@@ -629,6 +629,12 @@ void AFNI_syntax(void)
      "                  command may not actually be a good idea - unless you want to\n"
      "                  go get a cup of chai or coffee.\n"
      "\n"
+     "   -all_dsets   Read in all datasets from all listed folders together.\n"
+     "                  Has the same effect as choosing 'All_Datasets' in the GUI.\n"
+     "                  Example: afni -all_dsets dir1 dir2 dir3\n"
+     "                  Can be set to default in .afnirc with ALL_DSETS_STARTUP = YES.\n"
+     "                  Overiden silently by AFNI_ALL_DATASETS = NO.\n"
+     "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging unused datasets from memory.\n"
      "                  [Use this if you run out of memory when running AFNI.]\n"
@@ -1017,7 +1023,7 @@ void AFNI_syntax(void)
     "   *OR*                  thinks your screen resolution is by the command\n"
     " -big                      xdpyinfo | grep -i resolution\n"
     "   *OR*                  ++ Applying 'plus' twice is the same as 'big'.\n"
-    " -plus                   ++ Using 'big' will use larger Adobe Courier fonts.\n"  
+    " -plus                   ++ Using 'big' will use larger Adobe Courier fonts.\n"
     "   *OR*                  ++ Alternatively, you can control each of the 4 fonts\n"
     " -minus                     that AFNI uses, via the 4 following options ...\n"
     "   *OR*                  ++ You can also set the fontsize for your copy\n"
@@ -1291,6 +1297,9 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
    GLOBAL_argopt.cat_sess = !AFNI_noenv("AFNI_ALL_DATASETS") ; /* 02 Jun 2016 */
+
+   /* 04/06/2020 discoraj */
+   GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
    while( narg < argc ){
 
@@ -1888,6 +1897,22 @@ ENTRY("AFNI_parse_args") ;
       /*----- -q option -----*/
 
       if( strcmp(argv[narg],"-q") == 0 ){            /* was handled in main() */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- all data sets 04/06/2020 discoraj -----*/
+      if( strcmp(argv[narg],"-all_dsets") == 0 ){
+
+          // // check for env variable that overides -all_dsets
+          // if( !AFNI_yesenv("AFNI_ALL_DATASETS") ){
+          //     fprintf(stderr,
+          //         "\n\n** WARNING: option -all_dsets is ignored silently.") ;
+          //     fprintf(stderr,"\n            AFNI_ALL_DATASETS = NO.\n") ;
+          //     GLOBAL_argopt.all_dsets_startup = 0 ;
+          //  }
+          //  else { GLOBAL_argopt.all_dsets_startup = 1 ; }
+
+         GLOBAL_argopt.all_dsets_startup = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -3010,6 +3035,12 @@ STATUS("initialize plugins") ;
 #endif
 
         TT_setup_popup_func( AFNI_popup_message ) ;  /* 26 May 2006 */
+
+        /* 04/06/2020 discoraj */
+        if( GLOBAL_argopt.all_dsets_startup ){
+            ii = AFNI_find_session( "All_Datasets") ;
+            if( ii >= 0 ) MAIN_im3d->vinfo->sess_num = ii ;
+        }
       }
       break ;
 
@@ -13953,4 +13984,18 @@ void AFNI_fix_scale_size_timer_CB( XtPointer client_data , XtIntervalId *id )
                            AFNI_fix_scale_size_timer_CB , NULL ) ;
 
    return ;
+}
+
+/* 04/06/2020 discoraj */
+int AFNI_find_session( char *dname ) {
+
+    int ic ;
+    /* find session name in list of sessions (sloppy compare) */
+    for( ic=0 ; ic < GLOBAL_library.sslist->num_sess ; ic++ )
+       if( strstr(GLOBAL_library.sslist->ssar[ic]->sessname,dname) != NULL )
+        break;
+
+    if( ic == GLOBAL_library.sslist->num_sess ) RETURN(-1) ;
+
+    return ic ;
 }
