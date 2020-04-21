@@ -1903,14 +1903,14 @@ ENTRY("AFNI_parse_args") ;
       /*----- all data sets 04/06/2020 discoraj -----*/
       if( strcmp(argv[narg],"-all_dsets") == 0 ){
 
-          // // check for env variable that overides -all_dsets
-          // if( !AFNI_yesenv("AFNI_ALL_DATASETS") ){
-          //     fprintf(stderr,
-          //         "\n\n** WARNING: option -all_dsets is ignored silently.") ;
-          //     fprintf(stderr,"\n            AFNI_ALL_DATASETS = NO.\n") ;
-          //     GLOBAL_argopt.all_dsets_startup = 0 ;
-          //  }
-          //  else { GLOBAL_argopt.all_dsets_startup = 1 ; }
+          // check for env variable that overides -all_dsets
+          if( AFNI_noenv("AFNI_ALL_DATASETS") ){
+              fprintf(stderr,
+                  "\n\n** WARNING: option -all_dsets is ignored silently.") ;
+              fprintf(stderr,"\n            AFNI_ALL_DATASETS = NO.\n") ;
+              GLOBAL_argopt.all_dsets_startup = 0 ;
+           }
+           else { GLOBAL_argopt.all_dsets_startup = 1 ; }
 
          GLOBAL_argopt.all_dsets_startup = 1 ;
          narg++ ; continue ;  /* go to next arg */
