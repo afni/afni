@@ -194,3 +194,25 @@ int THD_stat_is_2sided( int statcode , int thrsign )
 
    return -1 ;
 }
+
+/****************************************************************/
+
+int THD_stat_is_signed( int statcode )
+{
+   switch( statcode ){  /* if statcode is illegal, will return -1 */
+
+      case FUNC_COR_TYPE:
+      case FUNC_TT_TYPE:
+      case FUNC_ZT_TYPE: return 1 ;
+
+      case FUNC_FT_TYPE: return 0 ;  /* always 2-sided [16 Oct 2015] */
+
+      case FUNC_PT_TYPE:
+      case FUNC_GT_TYPE:
+      case FUNC_BN_TYPE:
+      case FUNC_BT_TYPE:
+      case FUNC_CT_TYPE: return 0 ;  /* always 1-sided */
+   }
+
+   return -1 ;
+}

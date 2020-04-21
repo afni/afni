@@ -5,7 +5,8 @@
 
 #include "afni.h"
 #define SUMA_noFunc
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 extern int * SUMA_Dijkstra_generic (int N_Node, 
                      float *NodeList, int NodeDim, int dist_metric,

@@ -6,10 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"
-#include "suma_suma.h"
-
-
-         
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 int is_archive_pn(SUMA_PARSED_NAME *FN)
 {

@@ -1,6 +1,7 @@
 #include "afni.h"
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
 #include "afni_whelp.h"
+/*------------------------------------------------------------*/
 
 char *AFNI_All_Documented_Widgets(void)
 {
