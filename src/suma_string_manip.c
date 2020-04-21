@@ -20,8 +20,8 @@
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-/* #include "xutil.h" */
-#include "suma_objs.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 #if defined SUMA_COMPILED
    extern SUMA_CommonFields *SUMAg_CF;
@@ -29,6 +29,7 @@
    extern SUMA_DO *SUMAg_DOv;
 #endif
 
+/*------------------------------------------------------------*/
 
 /*
    SUMA_EscapeChars ("Hallo_Baby%Hallo", "_%", "//")

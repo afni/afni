@@ -17,7 +17,8 @@
 ***/
 
 #include "mrilib.h"
-#include "suma_objs.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 #ifdef USE_OMP     /* this is important! */
 #include <omp.h>

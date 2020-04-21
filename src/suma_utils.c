@@ -12,16 +12,16 @@
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-/* #include "xutil.h" */
-
-
-#include "suma_objs.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 #if defined SUMA_COMPILED
    extern SUMA_CommonFields *SUMAg_CF;
    extern int SUMAg_N_DOv; 
    extern SUMA_DO *SUMAg_DOv;
 #endif 
+
+/*------------------------------------------------------------*/
 
 /*! ********** Begin Multiplexed Vectors Functions ************* */
 /*!
