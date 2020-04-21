@@ -6,9 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"
-#include "suma_suma.h"
-
-
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )

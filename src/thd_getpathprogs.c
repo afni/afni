@@ -1,6 +1,7 @@
 #include "mrilib.h"
 #include "thd.h"
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 static int               einit = 0 ;
 static THD_string_array *elist = NULL ;

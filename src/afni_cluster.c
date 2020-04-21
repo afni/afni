@@ -1554,17 +1554,16 @@ ENTRY("AFNI_clus_makedetails") ;
    } else {
      cwid = im3d->vwid->func->cwid ;
      icent_flag = 0 ;
-     if( cwid ) {
-        if(cwid->coord_mode == ICENT_MODE)
-			icent_flag = 1;
-     }			
+     if( cwid != NULL ){
+       if( cwid->coord_mode == ICENT_MODE ) icent_flag = 1;
+     }
 
      im3d->vwid->func->clu_num = nclu = clar->num_clu ;
      im3d->vwid->func->clu_det = (mri_cluster_detail *)
                                  realloc( (void *)im3d->vwid->func->clu_det ,
                                           sizeof(mri_cluster_detail)*nclu    );
      for( ii=0 ; ii < nclu ; ii++ )
-       im3d->vwid->func->clu_det[ii] = 
+       im3d->vwid->func->clu_det[ii] =
               mri_clusterize_detailize(clar->clar[ii], icent_flag);
    }
 
