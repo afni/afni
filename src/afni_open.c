@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 
          

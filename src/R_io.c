@@ -1,7 +1,7 @@
 #include <R.h>
 #include <Rdefines.h>
 #include "mrilib.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 static int odebug;
 void set_odebug(int dd) { odebug = dd; }

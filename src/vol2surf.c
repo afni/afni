@@ -97,7 +97,7 @@ char gv2s_history[] =
 
 #include "mrilib.h"
 #include "vol2surf.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 /*----------------------------------------------------------------------*/
 /* local typedefs                                                       */

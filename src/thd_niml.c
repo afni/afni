@@ -4,7 +4,7 @@
  *----------------------------------------------------------------------
 */
 #include "mrilib.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 /* globals to control I/O of niml data      3 Aug 2006 [rickr] */
 typedef struct {

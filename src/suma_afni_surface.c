@@ -9,7 +9,7 @@
     Add funky stuff to suma_datasets.c       ZSS      Feb 28 08
 ---------------------------------------------------------------*/
 
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 NI_group *SUMA_NewAfniSurfaceObject(void)
 {

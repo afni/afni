@@ -9,8 +9,8 @@ be used from AFNI */
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-#include "xutil.h"
-#include "suma_suma.h"
+/* #include "xutil.h" */
+#include "suma_objs.h"
 
 static DList *All_GUI_Help = NULL;
 static char *DocumentedWidgets = NULL; /*!< Widget names for which a Sphinx 

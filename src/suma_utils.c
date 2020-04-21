@@ -12,10 +12,10 @@
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-#include "xutil.h"
+/* #include "xutil.h" */
 
 
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 #if defined SUMA_COMPILED
    extern SUMA_CommonFields *SUMAg_CF;

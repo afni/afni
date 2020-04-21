@@ -17,7 +17,7 @@
 ***/
 
 #include "mrilib.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 #ifdef USE_OMP     /* this is important! */
 #include <omp.h>

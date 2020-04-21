@@ -1,5 +1,5 @@
 #include "afni.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 #include "afni_whelp.h"
 
 char *AFNI_All_Documented_Widgets(void)
