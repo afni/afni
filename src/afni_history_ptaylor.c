@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Apt , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
+   "The '-xvals ..' opt was broken, but now is fixed.",
+   "*Now* the brain can be solved.\n"
+},
+
 { 16, Apr , 2020 , PT , "adjunct_simplify_cost.py" , MICRO , TYPE_NEW_PROG,
    "Adjunct program for (soon to be updated) @SSwarper.",
    "Convert cost name to simpler version, for some application(s).\n"
