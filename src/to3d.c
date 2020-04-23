@@ -376,7 +376,14 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
    /** Jun 2014: but only if given axis has nvals > 1    [rickr] **/
 
    if( all_good ){
-      int iii =  (user_inputs.xincode > 0 || user_inputs.nx == 1 )
+      /* allow for none specified, yet some computed, as in for JPEG input */
+      int iii =  (user_inputs.xincode > 0)
+               + (user_inputs.yincode > 0)
+               + (user_inputs.zincode > 0) ;
+      /* so if somthing is specified, each must be, or be of length 1 */
+      /*                                          23 Apr 2020 [rickr] */
+      if ( iii > 0 )
+          iii =  (user_inputs.xincode > 0 || user_inputs.nx == 1 )
                + (user_inputs.yincode > 0 || user_inputs.ny == 1 )
                + (user_inputs.zincode > 0 || user_inputs.nz == 1 ) ;
 

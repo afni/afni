@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Apr, 2020, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "allow no controller open on input of JPEG image",
+   NULL
+ } ,
+
  { 14, Apr, 2020, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if dataset inputs had full paths, use them in proc script",
    "Thanks to W-L Tseng for pointing out the discrepancy."
