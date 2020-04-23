@@ -71,7 +71,7 @@ afni_history_struct ptaylor_history[] = {
    "Provides a way for user-created cbar info to be input+used.\n"
 },
 
-{ 22, Apt , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
+{ 22, Apr , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
    "The '-xvals ..' opt was broken, but now is fixed.",
    "*Now* the brain can be solved.\n"
 },
