@@ -44,8 +44,12 @@
 #        ... bc that is useful as a placeholder when some images have
 #        censor vals and others don't
 #
-ver = '1.81' ; date = 'Mar 27, 2020' 
+#ver = '1.81' ; date = 'Mar 27, 2020' 
 # + [PT] remove double import of module
+#
+ver = '1.82' ; date = 'Apr 22, 2020' 
+# [PT] bug fix:  need MAXLEN defined here
+#    + also, fixed set_xvals() method
 #
 #########################################################################
 
@@ -56,6 +60,8 @@ from afnipy import lib_afni1D as LAD
 from afnipy import afni_util  as au
 
 # -------------------------------------------------------------------
+
+MAXLEN = 10**7     # can adjust if that is ever necessary!
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
@@ -983,8 +989,9 @@ class apqc_1dplot_opts:
     def set_xfile(self, ss):
         self.xfile = ss
 
+    # [PT: Apr 22, 2020] fixed: put "float()"s in here:
     def set_xvals(self, a, b, c):
-        self.xvals = [a, b, c]
+        self.xvals = [float(a), float(b), float(c)]
 
     def set_title(self, title):
         self.title = title

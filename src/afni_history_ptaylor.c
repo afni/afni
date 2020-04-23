@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Use '-colorscale_idx_file ..' to control AFNI env var AFNI_COLORSCALE_xx.",
+   "Provides a way for user-created cbar info to be input+used.\n"
+},
+
+{ 22, Apt , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
+   "The '-xvals ..' opt was broken, but now is fixed.",
+   "*Now* the brain can be solved.\n"
+},
+
 { 16, Apr , 2020 , PT , "adjunct_simplify_cost.py" , MICRO , TYPE_NEW_PROG,
    "Adjunct program for (soon to be updated) @SSwarper.",
    "Convert cost name to simpler version, for some application(s).\n"
