@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 { 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Added new help example.",
+   "Demonstrates useful colorbar-entry functionality.\n"
+},
+
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Use '-colorscale_idx_file ..' to control AFNI env var AFNI_COLORSCALE_xx.",
    "Provides a way for user-created cbar info to be input+used.\n"
 },

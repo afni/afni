@@ -265,6 +265,9 @@ set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
 #      AFNI_COLORSCALE_xx
 #      + user can enter own scale values this way
 #
+set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
+# [PT] added help example of "fun" cbar usage
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -2698,6 +2701,31 @@ EXAMPLES ~1~
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
         -do_clean 
+
+  D) Fun way to enter a colorbar-- note all the '-cbar*' options
+     working together here, and the way they are used to make a
+     discrete cbar.  (You might also enjoy the '-colorscale_idx_file ..' 
+     option, as another way to enter your own colorbar; colors
+     entered there are *not* discrete regions, but get blended
+     together.)
+
+    @chauffeur_afni                       \
+        -ulay FT_anat+orig.               \
+        -olay FT_anat+orig.               \
+        -func_range_perc 95               \
+        -prefix AAA                       \
+        -pbar_saveim BBB.jpg              \
+        -pbar_posonly                     \
+        -cbar_ncolors 6                   \
+        -cbar_topval ""                   \
+        -cbar "1000=yellow                \
+                800=cyan                  \
+                600=rbgyr20_10            \
+                400=rbgyr20_08            \
+                200=rbgyr20_05            \
+                100=rbgyr20_03            \
+                0=none"
+
 
 # -------------------------------------------------------------------
 
