@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Apr , 2020 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "Sidedness of testing will no longer be checked for non-stat thr vols.",
+   "It must be Daniel Glen's birthday today (two-sided, non-stat p<0.9999).\n"
+},
+
 { 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Added new help example.",
    "Demonstrates useful colorbar-entry functionality.\n"
