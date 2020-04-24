@@ -186,7 +186,7 @@ def clean_resamp(v):
     return v
 
 
-def peak_finder(var_v, filename):
+def peak_finder(var_v, filename=None, v=None):
     """,
                 phys_fs=(1 / 0.025),
                 zero_phase_offset=0.5,
@@ -303,10 +303,12 @@ def peak_finder(var_v, filename):
     # with open(r['v_name'], "rb") as f:
     # v = f.read()
     # v = map(int, v)
-    v = []
-    with open(r["v_name"], "rb") as h:
-        for line in h:
-            v.append(float(line.strip()))
+    if v is None:
+        v = []
+        with open(r["v_name"], "rb") as h:
+            for line in h:
+                v.append(float(line.strip()))
+    
     v_np = numpy.asarray(v)
     # else:
     # r_list[i_column]['v_name'] = 'vector input col %d' % i_column
