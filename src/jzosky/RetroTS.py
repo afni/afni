@@ -209,8 +209,8 @@ def retro_ts(
     cardiac_info["amp_phase"] = 0
 
     # Handle file inputs
-    if (((phys_file is not None) & (respiration_file is not None)) 
-        | ((phys_file is not None) & (cardiac_file is not None))):
+    if (((phys_file is not None) and (respiration_file is not None))
+        or ((phys_file is not None) and (cardiac_file is not None))):
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
     # Get the peaks for respiration_info and cardiac_info
