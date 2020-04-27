@@ -133,8 +133,8 @@ if(USE_SYSTEM_NIFTI)
 else()
 FetchContent_Declare(
   fetch_nifti_clib_git_repo   
-  GIT_REPOSITORY https://github.com/leej3/nifti_clib.git 
-  GIT_TAG 2b61eb8960341f64d349b03c78c8dd609fa3cc09
+  GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git 
+  GIT_TAG 9563fa4ae56140d8d3d268688ff2386bf2daf2c8
   )
 FetchContent_MakeAvailable(fetch_nifti_clib_git_repo)
 endif()
@@ -144,8 +144,8 @@ if(USE_SYSTEM_GIFTI)
 else()
 FetchContent_Declare(
   gifti_clib   
-  GIT_REPOSITORY https://github.com/leej3/gifti_clib.git 
-  GIT_TAG 075b5933c29b259fff5ac8dddf5ce72d3f0f3f5c
+  GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib.git 
+  GIT_TAG 0f8b7c073d2c79a235687419a09523b203a4ced8
   )
 FetchContent_MakeAvailable(gifti_clib)
 endif()
