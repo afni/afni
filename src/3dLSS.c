@@ -15,12 +15,12 @@ static int verb = 0 ;
        gamma = scalar fit coefficient of [b]
        delta = scalar fit coefficient of [c]
    The LSS goal is to find the value of gamma+delta for a bunch of
-   different [c] vectors.  To that end, this function returns an
+   different [c] vectors. To that end, this function returns an
    N vector [s] for each input [c], such that gamma+delta = [s] *dot* [z].
    All the other stuff that COULD be estimated, such as [beta], is ignored
    for the sake of efficiency.
 
-   If NULL is returned, the inputs are illegal.  In particular, the nx element
+   If NULL is returned, the inputs are illegal. In particular, the nx element
    (column length) of the 2 input images must be the same, or you will be
    chastised and anathematised in public.
 *//*--------------------------------------------------------------------------*/
@@ -188,13 +188,22 @@ void LSS_help(void)
      "\n"
      " ** Least-Squares-Sum (LSS) estimation from a -stim_times_IM matrix, as      **\n"
      " *  described in the paper:                                                   *\n"
-     " *    JA Mumford et al.  Deconvolving BOLD activation in event-related        *\n"
+     " *    JA Mumford et al. Deconvolving BOLD activation in event-related         *\n"
      " *    designs for multivoxel pattern classification analyses.                 *\n"
      " *    NeuroImage (2011) http://dx.doi.org/10.1016/j.neuroimage.2011.08.076    *\n"
      " *  LSS regression was first mentioned in this poster:                        *\n"
      " *    B Turner. A comparison of methods for the use of pattern classification *\n"
      " *    on rapid event-related fMRI data. Annual Meeting of the Society for     *\n"
      " **   Neuroscience, San Diego, CA (2010).                                    **\n"
+     "\n"
+     " The method implemented here can be described (by me) as a 'pull one out'\n"
+     " approach. That is, for a single trial in the list of trials, its individual\n"
+     " regressor is pulled out and kept separate, and all the other trials are\n"
+     " combined to give another regressor - so that if there are N trials, only\n"
+     " 2 regressors (instead of N) are used for the response model. This 'pull out'\n"
+     " approach is repeated for each single trial separately (thus doing N separate\n"
+     " regressions), which gives a separate response amplitude (beta coefficient)\n"
+     " for each trial. See the 'Caveats' section below for more information.\n"
      "\n"
      "----------------------------------------\n"
      "Options (the first 'option' is mandatory)\n"
@@ -231,7 +240,7 @@ void LSS_help(void)
      "               * If you don't use '-prefix', then the prefix is 'LSSout'.\n"
      "\n"
      " -save1D qqq = Save the estimator vectors (cf. infra) to a 1D formatted\n"
-     "                file named 'qqq'.  Each column of this file will be\n"
+     "                file named 'qqq'. Each column of this file will be\n"
      "                one estimator vector, the same length as the input\n"
      "                dataset timeseries (after censoring, if any).\n"
      "               * The j-th LSS beta estimate is the dot product of the j-th\n"
@@ -246,7 +255,7 @@ void LSS_help(void)
      " 3dLSS is fast, since it uses a rank-1 bordering technique to pre-compute\n"
      " the estimator for each separate stimulus regressor from the fixed part of\n"
      " the matrix, then applies these estimators to each time series in the input\n"
-     " dataset by a simple dot product.  If you wish to peruse the equations, see\n"
+     " dataset by a simple dot product. If you wish to peruse the equations, see\n"
      "   https://afni.nimh.nih.gov/pub/dist/doc/misc/3dLSS/3dLSS_mathnotes.pdf \n"
      " The estimator for each separate beta (as described at '-save1D') is the\n"
      " N-vector which, when dotted into the N-vector of a voxel's time series,\n"
@@ -258,9 +267,9 @@ void LSS_help(void)
      " The LSS method produces estimates that tend to have smaller variance than the\n"
      " LSA method that 3dDeconvolve would produce, but the LSS estimates have greater\n"
      " bias -- in principle, the LSA method is unbiased if the noise is symmetrically\n"
-     " distributed.  For the purpose of using the beta estimates for MVPA (e.g., 3dsvm),\n"
+     " distributed. For the purpose of using the beta estimates for MVPA (e.g., 3dsvm),\n"
      " the bias may not matter much and the variance reduction may help improve the\n"
-     " classification, as illustrated in the Mumford paper.  For other purposes, the\n"
+     " classification, as illustrated in the Mumford paper. For other purposes, the\n"
      " trade-off might well go the other way -- for ANY application of LSS vs. LSA,\n"
      " you need to assess the situation before deciding -- probably by the judicious\n"
      " use of simulation (as in the Mumford paper).\n"
@@ -268,7 +277,7 @@ void LSS_help(void)
      " The bias in the estimate of any given beta is essentially due to the fact\n"
      " that for any given beta, LSS doesn't use an estimator vector that is orthogonal\n"
      " to the regressors for other coefficients -- that is what LSA does, using the\n"
-     " pseudo-inverse.  Typically, any given LSS-estimated beta will include a mixture\n"
+     " pseudo-inverse. Typically, any given LSS-estimated beta will include a mixture\n"
      " of the betas from neighboring stimuli -- for example,\n"
      "    beta8{LSS} = beta8{LSA} + 0.3*beta7{LSA} - 0.1*beta9{LSA} + smaller stuff\n"
      " where the weights of the neighbors are larger if the corresponding stimuli\n"
@@ -281,7 +290,7 @@ void LSS_help(void)
      " To investigate these weighting and orthogonality issues yourself, you can\n"
      " multiply the LSS estimator vectors into the 3dDeconvolve regression matrix\n"
      " and examine the result -- in the ideal world, the matrix would be all 0\n"
-     " except for 1s on diagonal corresponding to the -stim_times_IM betas.  This\n"
+     " except for 1s on diagonal corresponding to the -stim_times_IM betas. This\n"
      " calculation can be done in AFNI with commands something like the 'toy' example\n"
      " below, which has only 6 stimulus times:\n"
      "\n"
@@ -302,7 +311,7 @@ void LSS_help(void)
      "   that influence the estimated j-th LSS beta.\n"
      " * e.g., Note that the 4th and 5th stimuli are close in time (3.6 s), and that\n"
      "   the result is that the LSS estimator for the 4th and 5th beta weights mix up\n"
-     "   the 'true' 4th, 5th, and 6th betas.  For example, looking at the 4th column\n"
+     "   the 'true' 4th, 5th, and 6th betas. For example, looking at the 4th column\n"
      "   of R.mult.1D, we see that\n"
      "      beta4{LSS} = beta4{LSA} + 0.33*beta5{LSA} - 0.27*beta6{LSA} + small stuff\n"
      " * The sum of each column of R.mult.1D is 1 (e.g., run '1dsum R.mult.1D'),\n"
