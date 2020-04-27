@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added a help example for integrating output into afni_proc.py.",
+   "... because otherwise *I* forget how to use the outputs.\n"
+},
+
 { 24, Apr , 2020 , PT , "3dLMEr" , MINOR , TYPE_GENERAL,
    "Updating this R file for GC. So I don't really know what the changes do.",
    "... though I reeeallly want to pretend the changes were mine, ALL MINE.\n"
