@@ -59,11 +59,11 @@ Introduction
  necessary for 3dLMEr);
 
  2) the specifications for simple and composite effects through -gltCode and
- -glfCode are slightly simplified (the lable for each effect is part of -gltCode
+ -glfCode are slightly simplified (the label for each effect is part of -gltCode
  and -glfCode, and no more -gltLabel is needed); and
 
  3) all the statistic values for simple effects (specified through -gltCode) are
- stored in the output as Z-statisc while main effects, interactions and the
+ stored in the output as Z-statistic while main effects, interactions and the
  composite effects (specified through -gltCode) are represented in the output as
  chi-square with 2 degrees of freedom. The fixed number of DFs (i.e., 2) for the
  chi-square statistic, regardless of the specific situation, is adopted for
@@ -122,6 +122,9 @@ Introduction
  or,
 
  nohup tcsh -x LME.txt > diary.txt &
+
+ or,
+
  nohup tcsh -x LME.txt |& tee diary.txt &
 
  The advantage of the latter commands is that the progression is saved into
@@ -295,11 +298,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the LME context the simplest model is \"1+(1|Subj1)+(1|Subj2)\"in",
-   "         while the random effect from each of the two subjects in a pair is",
+   "         In the LME context the simplest model is \"1+(1|Subj1)+(1|Subj2)\" in",
+   "         which the random effect from each of the two subjects in a pair is",
    "         symmetrically incorporated in the model. Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
-   "         effects of intereste and confounding variables (quantitative or",
+   "         effects of interest and confounding variables (quantitative or",
    "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
              ) ),
 
@@ -313,7 +316,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         this option. The list with more than one variable has to be",
    "         separated with comma (,) without any other characters such as",
    "         spaces and should be surrounded within (single or double) quotes.",
-   "          For example, -qVars \"Age,IQ\"",
+   "         For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
    "         1) Centering a quantitative variable through -qVarsCenters is",
    "         very critical when other fixed effects are of interest.",
@@ -327,7 +330,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltCode label weights: Specify the label and weights of interest. The",
    "       weights should be surrounded with quotes. For example, the specification",
-   "       '-gltCode AvB 'Condition : 1*A -1*B'' compares A and B with a label",
+   "       '-gltCode AvB 'Condition : 1*A -1*B' compares A and B with a label",
    "       'AvB' for the output sub-bricks.  \n", sep = '\n'
                      ) ),
 
