@@ -34,7 +34,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 4.0.2,  March 25, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
+Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -88,7 +88,7 @@ Usage: ~1~
  install.packages("snow")
 
  More details about 3dMVM can be found at
- https://afni.nimh.nih.gov/sscc/gangc/MVM.html
+ https://afni.nimh.nih.gov/MVM
 
  Running: ~1~
  Once the 3dMVM command script is constructed, it can be run by copying and
@@ -150,8 +150,8 @@ Example 1 --- 3 between-subjects and 2 within-subject variables: ~2~
           2) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
-          3) The two GLFs showcase the user how to specify sub-interactions.
-          5) Option '-SS_type 2' specifies the hierarchial type for the sume of squares in the
+          3) The three GLFs show the user how to specify sub-interactions.
+          4) Option '-SS_type 2' specifies the hierarchial type for the sums of squares in the
           omnibus F-statistics in the output. See more details in the help.\n"
 
    ex2 <-
@@ -293,7 +293,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
-   "-verb VERB: Speicify ver level.\n", sep = '\n'
+   "-verb VERB: Specify verbosity level.\n", sep = '\n'
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
@@ -306,7 +306,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         the ones used in the header of -dataTable. A+B represents the",
    "         additive effects of A and B, A:B is the interaction between A",
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
-   "         factors, if present under -wsVars are automatically assumed",
+   "         factors, if present under -wsVars, are automatically assumed",
    "         to interact with the ones specified here. Subject as a variable",
    "         should not occur in the model specification here.\n", sep = '\n'
              ) ),
@@ -415,7 +415,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         sphericity correction for main and interaction effects, which",
    "         are labeled with -SC- in the sub-brick names.",
    "         NOTE: this option should be used only when at least one",
-   "         within-subject factor has more than TWO levesl.\n", sep='\n')),
+   "         within-subject factor has more than TWO levels.\n", sep='\n')),
 
        '-robust' = apl(n=0, h = paste(
    "-robust: Robust regression is performed so that outliers can be",
@@ -439,10 +439,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
    "         this option. The list with more than one variable has to be",
    "         separated with comma (,) without any other characters such as",
-   "         spaces and should be surrounded within (single or double) quotes.",
-   "          For example, -qVars \"Age,IQ\"",
+   "         spaces, and should be surrounded within (single or double) quotes.",
+   "         For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
-   "         1) Centering a quantitative variable through -qVarsCenters is",
+   "         1) Centering a quantitative variable through -qVarCenters is",
    "         very critical when other fixed effects are of interest.",
    "         2) Between-subjects covariates are generally acceptable.",
    "         However EXTREME caution should be taken when the groups",
@@ -473,7 +473,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         identified under -qVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
    "         values should match that of the quantitative variables in -qVars.",
-   "         Default (absence of option -qVarsCetners) means centering on the",
+   "         Default (absence of option -qVarCenters) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
@@ -496,9 +496,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-SS_type 2/3: Specify the type for the sums of squares for the omnibus",
    "         F-statistics. Type 2 is hierarchical or partially sequential",
    "         while type 3 is marginal. Type 2 is more powerful if all the",
-   "         relevant higher-oder interactions do not exist. The default",
+   "         relevant higher-order interactions do not exist. The default",
    "         is 3. The controversy surrounding the different types can be",
-   "         found at https://afni.nimh.nih.gov/sscc/gangc/SS.html\n", sep = '\n'
+   "         found at https://sscc.nimh.nih.gov/sscc/gangc/SS.html\n", sep = '\n'
              ) ),
 
      '-num_glt' = apl(n=1, d=0, h = paste(
@@ -540,21 +540,21 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         3) The effect for a quantitative variable (or slope) can be specified",
    "         with, for example, 'Group : 1*Old Age : ', or ",
    "         'Group : 1*Old - 1*Young Age : '\n",
-   "         4) When a quantitative covariate is involved in the model, the\n",
-   "         absence of the covariate in the GLT coding means that the test\n",
-   "         will be performed at the center value of the covarite. However,\n",
-   "         with a value after the colon, the effect would be tested at the\n",
+   "         4) When a quantitative covariate is involved in the model, the",
+   "         absence of the covariate in the GLT coding means that the test",
+   "         will be performed at the center value of the covarite. However,",
+   "         with a value after the colon, the effect would be tested at the",
    "         value of 2 above the center. For example, 'Group : 1*Old Age : 2'",
-   "         shows the effect of the Old Group at the age of 2 years older than\n",
-   "         the center age. On the other hand, 'Group : 1*Old' tests for the\n",
+   "         shows the effect of the Old Group at the age of 2 years older than",
+   "         the center age. On the other hand, 'Group : 1*Old' tests for the",
    "         effect of the Old Group at the center age.\n",
    "         5) The absence of a categorical variable in a coding means the",
    "         levels of that factor are averaged (or collapsed) for the GLT.\n",
    "         6) The appearance of a categorical variable has to be followed",
    "         by the linear combination of its levels. Only a quantitative",
-   "         is allowed to have a dangling coding as seen in 'Age :'\n",
+   "         is allowed to have a dangling coding as seen in 'Age :'.\n",
    "         7) Some special interaction effects can be tested under -gltCode",
-   "         when the numerical DF is 1. For example, 'Group : 1*Old - 1*Young",
+   "         when the numerical DF is 1. For example, 'Group : 1*Old -1*Young",
    "         Condition : 1*House -1*Face Emotion : 1*positive'. Even though",
    "         this is typically an F-test that can be coded under -glfCode, it",
    "         can be tested under -gltCode as well. An extra bonus is that the",
@@ -566,10 +566,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-glfCode k CODING: Specify the k-th general linear F-test (GLF) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
-   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1:pos' tests the main",
+   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos' tests the main",
    "         effect of Condition at the positive Emotion. Similarly the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
-   "         the interaction between the three levels of Condition and the two.",
+   "         the interaction between the three levels of Condition and the two",
    "         levels of Emotion.\n",
    "         NOTE:\n",
    "         1) The weights for a variable do not have to add up to 0.\n",
