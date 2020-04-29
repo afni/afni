@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , APR , 2020 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
+   "Patch failure to register 2D images (I hope)" ,
+   "Turns out the cluster-izing step added to the weight production\n"
+   "zeroed out the 2D images. Cheap fix = just remove isolas instead."
+ } ,
+
  { 10 , APR , 2020 , RWC , "AFNI gui" , MINOR , TYPE_NEW_OPT ,
    "Add -norm option for normal font sizes" , NULL } ,
 

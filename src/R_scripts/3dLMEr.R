@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================          
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Jan 10, 2020
+Version 0.0.2, April 24, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)https://scholarblogs.emory.edu/smi2020/
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -138,7 +138,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                     \\
-          -model  'emotion+(1|Subj)                                 \\
+          -model  'emotion+(1|Subj)'                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
           -gltCode neu      'emotion : 1*neu'                       \\
@@ -175,7 +175,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                   \\
-          -model  'emotion*RT+(RT|Subj)           \\
+          -model  'emotion*RT+(RT|Subj)'          \\
           -qVars  'RT'                            \\
           -qVarCenters 0                          \\
           -gltCode pos      'emotion : 1*pos'                       \\
@@ -211,7 +211,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                       \\
-          -model  'emotion+(1|Subj)+(1|site)          \\
+          -model  'emotion+(1|Subj)+(1|site)'         \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
           -gltCode neu      'emotion : 1*neu'                       \\
@@ -415,15 +415,16 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         [] within quotes) specified with a number or label.\n",
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
-   "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not forget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable @table.txt'.",
-   "         However, when the table is provided as a separate file, do NOT put any",
-   "         quotes around the square brackets for each sub-brick, otherwise the",
-   "         program cannot properly read the files, unlike the situation when ",
-   "         quotes are required if the table is included as part of the script.",
-   "         Backslash is also not needed at the end of each line, but it would cause",
-   "         any problem if it is present. This option of separating the table from",
+   "         4) When the table is part of the script, a backslash is needed at the end",
+   "         of each line to indicate the continuation to the next line. Alternatively,",
+   "         one can save the context of the table as a separate file, e.g.,",
+   "         calling it table.txt, and then in the script specify the data with",
+   "         '-dataTable @table.txt'. However, when the table is provided as a separate",
+   "         file, do NOT put any quotes around the square brackets for each sub-brick,",
+   "         otherwise the program would not properly read the files, unlike the",
+   "         situation when quotes are required if the table is included as part of the",
+   "         script. Backslash is also not needed at the end of each line, but it would",
+   "         not cause any problem if present. This option of separating the table from",
    "         the script is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
    "         you want to try different models with the same dataset.\n",

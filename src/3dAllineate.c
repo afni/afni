@@ -69,6 +69,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
+static int   doing_2D     = 0 ;       /* 28 Apr 2020 */
 
 static int verb = 1 ; /* somewhat on by default */
 
@@ -606,6 +607,10 @@ int main( int argc , char *argv[] )
 "            ** 3dAllineate can register 2D datasets (single slice),\n"
 "               but both the base and source must be 2D -- you cannot\n"
 "               use this program to register a 2D slice into a 3D volume!\n"
+"               -- However, the 'lpc' and 'lpa' cost functionals do not\n"
+"                  work properly with 2D images, as they are designed\n"
+"                  around local 3D neighborhoods and that code has not\n"
+"                  been patchd to work with 2D neighborhoods :(\n"
 "            ** See the script @2dwarper.Allin for an example of using\n"
 "               3dAllineate to do slice-by-slice nonlinear warping to\n"
 "               align 3D volumes distorted by time-dependent magnetic\n"
@@ -3129,6 +3134,15 @@ int main( int argc , char *argv[] )
         "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
 
+   if( doing_2D && 
+       ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) ){
+     WARNING_message(
+      "-lpc or -lpa cost functionals do NOT work well with 2D images :(") ;
+   }
+
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
      switch( meth_code ){
        case GA_MATCH_PEARSON_LOCALS:
@@ -3411,6 +3425,8 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   doing_2D = (nz_base == 1) ;          /* 28 Apr 2020 */
+
    if( !APPLYING ){                     /* 13 Mar 2017 */
      nnz = mri_nonzero_count(im_base) ;
      if( nnz < 100 )
@@ -3494,7 +3510,7 @@ int main( int argc , char *argv[] )
      pad_xp = mpad - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
      pad_yp = mpad - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
      pad_zp = mpad - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
-     if( nz_base == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
+     if( doing_2D ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
@@ -3546,7 +3562,7 @@ int main( int argc , char *argv[] )
      zz_code = ORIENT_xyzint[ qset->daxes->zzorient ] ;
    }
 
-   if( nz_base == 1 ){  /* 2D input image */
+   if( doing_2D ){  /* 2D input image */
      char *tnam ;
      twodim_code = zz_code ;
      tnam = (twodim_code == 1) ? "sagittal"         /* twodim_code = slice direction */
@@ -3619,11 +3635,11 @@ int main( int argc , char *argv[] )
 
    /* check for base:target dimensionality mismatch */
 
-   if( nz_base >  1 && nz_targ == 1 )
+   if( !doing_2D && nz_targ == 1 )
      ERROR_exit("Can't register 2D source into 3D base :-(") ;
-   if( nz_base == 1 && nz_targ >  1 )
+   if(  doing_2D && nz_targ >  1 )
      ERROR_exit("Can't register 3D source onto 2D base :-(") ;
-   if( nz_base == 1 && nwarp_pass && !NONLINEAR_IS_POLY(nwarp_type) )
+   if( doing_2D && nwarp_pass && !NONLINEAR_IS_POLY(nwarp_type) )
      ERROR_exit("Can't use non-polynomial -nwarp on 2D images :-(") ;
 
    /* load weight dataset if defined */
@@ -5935,12 +5951,23 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
    if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
-   THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c NN2 */
-   THD_mask_clust( nx,ny,nz, mmm ) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
+   for( jj=ii=0 ; ii < nxyz ; ii++ ){
+     if( wf[ii] >= clip ){ jj++ ; mmm[ii] = 1 ; }
+     else                {        mmm[ii] = 0 ; }
+   }
+   if( verb > 1 ) ININFO_message("Weightize: %d voxels survive clip",jj) ;
+   if( ! doing_2D ){                          /* 28 Apr 2020 */
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c NN2 */
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+   } else {
+     THD_mask_remove_isolas( nx,ny,nz , mmm ) ;
+   }
+   for( jj=nxyz,ii=0 ; ii < nxyz ; ii++ ){
+     if( !mmm[ii] ){ wf[ii] = 0.0f ; jj-- ; }
+   }
    free((void *)mmm) ;
+   if( verb > 1 ) ININFO_message("Weightize: %d voxels survive clusterize",jj) ;
 
    /*-- convert to 0..1 range [10 Sep 2007] --*/
 

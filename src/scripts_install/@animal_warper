@@ -81,11 +81,15 @@ set progname = @animal_warper
 #set version = "1.77" ; set date = "Mar 26, 2020"
 # [DRG] changed center shift defaults and help for dealing with shifts
 #       concatenating shift with affine alignment by default option 
-# --------------------------------------------------------------------
-# --------------------------------------------------------------------
-set version = "1.78" ; set date = "Mar 29, 2020"
+#
+#set version = "1.78" ; set date = "Mar 29, 2020"
 # [BTJ] added template mask-based brainmasking
 # maxlev defaults to 9 for some increase in speed
+#
+set version = "1.8" ; set date = "Apr 27, 2020"
+# [PT] add help file example of integrating with afni_proc.py
+#    + particularly important now to get correct aff12 mat
+#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -761,8 +765,9 @@ echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz
 echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
       >> ${animal_outs}
 
-# applying warps to followers - other datasets that start in same space, ~grid
-# move each the same way as the data - align centers, apply affine, nonlinear warp
+# applying warps to followers - other datasets that start in same
+# space, ~grid.  move each the same way as the data - align centers,
+# apply affine, nonlinear warp.
 foreach followset ($dset_followers)
    # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
    set followprefix = `@GetAfniPrefix $followset`
@@ -796,8 +801,9 @@ foreach followset ($dset_followers)
        >> ${animal_outs}
 end
 
-# applying warps to ROI followers - other datasets that start in same space, ~grid
-# move each the same way as the data - align centers, apply affine, nonlinear warp
+# applying warps to ROI followers - other datasets that start in same
+# space, ~grid.  move each the same way as the data - align centers,
+# apply affine, nonlinear warp.
 foreach followset ($roidset_followers)
    # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
    set followprefix = `@GetAfniPrefix $followset`
@@ -830,7 +836,8 @@ foreach followset ($roidset_followers)
          -source tempfollow.nii.gz -short -master $base  -overwrite
       if ($modesmooth != "0") then
             3dLocalstat -overwrite -stat mode -nbhd "SPHERE(-$modesmooth)" \
-               -prefix ${followprefix}_warp2std.nii.gz ${followprefix}_warp2std.nii.gz
+               -prefix ${followprefix}_warp2std.nii.gz                     \
+                ${followprefix}_warp2std.nii.gz
       endif
       # make these show up in AFNI as labeled ROI or atlas datasets 
       3drefit -copytables $followset ${followprefix}_warp2std.nii.gz
@@ -842,7 +849,8 @@ end
 
 
 
-# now handle the inverse transformed data - template and atlases to native space
+# now handle the inverse transformed data - template and atlases to
+# native space
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
@@ -1003,8 +1011,10 @@ else
 endif
 
 # [PT: Jan 14, 2020] add these to the output text
-echo "Mask of dset                 : ${origdsetprefix}_mask.nii.gz" >> ${animal_outs}
-echo "Dset, skullstripped          : ${origdsetprefix}_ns.nii.gz" >> ${animal_outs}
+echo "Mask of dset                 : ${origdsetprefix}_mask.nii.gz" \
+    >> ${animal_outs}
+echo "Dset, skullstripped          : ${origdsetprefix}_ns.nii.gz"   \
+    >> ${animal_outs}
 
 
 # process any template followers the same way
@@ -1079,7 +1089,7 @@ end
            # use concatenated affine and nonlinear warp to go back to
            # shifted original space
            3dNwarpApply -ainterp NN -short -overwrite -nwarp \
-             "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz" \
+              "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz" \
               -source $segm_dset -master ${dsetprefix}.nii.gz \
               -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
        
@@ -1267,14 +1277,15 @@ Script to align a subject structural data to a template and invert the
 warps to compute the template and segmentation in the subject's
 original, native space.
 
-This program uses basic AFNI commands to compute affine and nonlinear
-alignments. The program works by first aligning centers of the subject
-to that of the template. Affine and nonlinear alignment follow. The
-inverse warp is computed to bring the template and atlas segmentation
-into the center-shifted grid. Skullstripping is provided by masking
-with the template. Finally, the grids are adjusted back to the
-original center. Surfaces are made for all the atlas regions and for
-a transformed copy of the template dataset.
+This @animal_warper (AW) program uses basic AFNI commands to compute
+affine and nonlinear alignments. The program works by first aligning
+centers of the subject to that of the template. Affine and nonlinear
+alignment follow. The inverse warp is computed to bring the template
+and atlas segmentation into the center-shifted grid. Skullstripping is
+provided by masking with the template. Finally, the grids are adjusted
+back to the original center. Surfaces are made for all the atlas
+regions and for a transformed copy of the template dataset.
+
 
 Usage Example ~1~
 
@@ -1284,7 +1295,13 @@ Usage Example ~1~
       -outdir aligned_data
 
    Note only the input dset and template_dset are required. If no
-   segmentation is given, then only the alignment steps are performed.
+   "-atlas .." dset is given, then only the alignment steps are
+   performed.
+
+   Note also that you might want to include the "-ok_to_exist" flag,
+   in case you need to restart the command at some point, and want to
+   make use of previously created datasets (to save time).
+
 
 Options ~1~
 
@@ -1293,8 +1310,8 @@ Options ~1~
     -base  base_dataset :required template. Can be in a standard AFNI
                          location or fully specified path.
                          Note, if the template has no skull (and no brainmask
-                         is provided), then a masked (skullstripped) version of
-                         the input is produced in the output
+                         is provided), then a masked (skullstripped) version 
+                         of the input is produced in the output
 
     -atlas atlas_dataset :atlas can also be in a standard AFNI location
                          or fully specified
@@ -1455,6 +1472,51 @@ Comments ~1~
     Here all occurrences of mydset in the output file names would be replaced
        with the name of your dataset. For NMT and D99 templates, the output
        will contain NMT or D99 instead of template
+
+Integrating AW with afni_proc.py ~1~
+
+Let's say that you ran this command as the following (written with
+variables in ye olde 'tcsh' style):
+
+    set anat_subj = sub-001_anat.nii.gz                          # input anat
+    set refvol    = NMT_stereo_sym_2.0_SS.nii.gz                 # ref: template
+    set refatl    = D99_atlas_1.2a_in_NMT_stereo_sym_2.0.nii.gz  # ref: atlas
+    set odir_aw   = dir_aw/sub-001                               # output dir
+
+    @animal_warper                          \
+        -input  \${anat_subj}                \
+        -base   \${refvol}                   \
+        -atlas  \${refatl}                   \
+        -outdir \${odir_aw}                  \
+        -ok_to_exist
+
+Then, these are some lines that you might want to include in your
+afni_proc.py command (where the '...' means some other entries/options
+for afni_proc.py would be included; order doesn't matter for the
+command, but we are following the style in which most afni_proc.py
+help examples are written):
+
+|    # root of AW output dsets
+|    set anat_base = \`3dinfo -prefix_noext \${anat_subj}\`  
+|
+|    afni_proc.py                                                          \
+|        ...                                                               \
+|        -blocks  ... align tlrc volreg ...                                \
+|        ...                                                               \
+|        -copy_anat               \${odir_aw}/\${anat_base}_ns.nii.gz        \
+|        -anat_has_skull          no                                       \
+|        ...                                                               \
+|        -tlrc_base               \${refvol}                                \
+|        -tlrc_NL_warp                                                     \
+|        -tlrc_NL_warped_dsets                                             \
+|            \${odir_aw}/\${anat_base}_warp2std_nsu.nii.gz                   \
+|            \${odir_aw}/\${anat_base}_composite_linear_to_template.1D     \
+|            \${odir_aw}/\${anat_base}_shft_WARP.nii.gz                    \
+|        ...
+
+In the preceding, please note the naming conventions in the *.1D
+affine matrix and *WARP.nii.gz nonlinear warp dset which are provided
+to the '-tlrc_NL_warped_dsets ..' option.
 
 
 QC images ~1~
