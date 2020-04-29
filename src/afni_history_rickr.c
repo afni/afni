@@ -49,6 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Apr, 2020, RCR, "@chauffeur_afni", MINOR, TYPE_ENHANCE,
+   "add AFNI_DRIVE_OPTS_XVFB env var for adding opts to Xvfb",
+   "This will probably be modified later, but it allows one to pass\n"
+   "something like '-nolisten inet6' if IPv6 is not working.\n"
+   "Thanks to W-L Tseng."
+ } ,
+
+ { 29, Apr, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "for recur, def to pub/dist/bin/misc; terminate on failed test download",
+   NULL
+ } ,
+
  { 23, Apr, 2020, RCR, "to3d", MICRO, TYPE_BUG_FIX,
    "allow no controller open on input of JPEG image",
    NULL
