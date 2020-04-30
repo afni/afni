@@ -5593,6 +5593,7 @@ STATUS("making prog->rowcol") ;
    vwid->tips_pb       = NULL ;  /* not always created */
    vwid->news_pb       = NULL ;  /* 15 May 2019 */
    vwid->forum_pb      = NULL ;  /* 17 May 2019 */
+   vwid->ytube_pb      = NULL ;  /* 28 Apr 2020 discoraj */
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -5621,7 +5622,7 @@ STATUS("making prog->rowcol") ;
         vwid->tips_pb =
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI Tips") ,
+                 LABEL_ARG("Tips") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
                  XmNleftOffset       , TIPS_PLUS_SHIFT ,
@@ -5641,10 +5642,11 @@ STATUS("making prog->rowcol") ;
         MCW_set_widget_bg( vwid->tips_pb , "#000044" , 0 ) ;
         MCW_set_widget_fg( vwid->tips_pb , "#ffddaa" ) ;
 
+        /* ------------------ news -------------------------- */
         vwid->news_pb =                /* 15 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI News") ,
+                 LABEL_ARG("News") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
                  XmNleftOffset       , TIPS_PLUS_SHIFT ,
@@ -5664,10 +5666,11 @@ STATUS("making prog->rowcol") ;
         MCW_set_widget_bg( vwid->news_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->news_pb , "#ffffaa" ) ;
 
+        /* ------------------ forum -------------------------- */
         vwid->forum_pb =                /* 17 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI Forum") ,
+                 LABEL_ARG("Forum") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->news_pb ,
                  XmNbottomAttachment , XmATTACH_WIDGET ,
@@ -5689,7 +5692,7 @@ STATUS("making prog->rowcol") ;
         vwid->phelp_pb =                /* 17 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("Prog Helps") ,
+                 LABEL_ARG("Helps") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->tips_pb ,
                  XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
@@ -5706,6 +5709,30 @@ STATUS("making prog->rowcol") ;
                        AFNI_phelp_CB , im3d ) ;
         MCW_set_widget_bg( vwid->phelp_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->phelp_pb , "#ffffaa" ) ;
+
+        /* ------------------ youtube -------------------------- */
+        vwid->ytube_pb =                /* 28 Apr 2020 discoraj*/
+           XtVaCreateManagedWidget(
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
+                 LABEL_ARG("YouTube") ,
+                 XmNleftAttachment   , XmATTACH_WIDGET ,
+                 XmNleftWidget       , vwid->phelp_pb ,
+                 XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                 XmNbottomWidget     , vwid->picture ,
+                 XmNbottomOffset     , 2 ,
+                 XmNshadowThickness  , 3 ,
+                 XmNtraversalOn      , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+        MCW_register_help( vwid->ytube_pb , "Opens a web browser\n"
+                                            "to the AFNI Bootcamp\n"
+                                            "Youtube channel" ) ;
+        MCW_register_hint( vwid->ytube_pb , "Web: AFNI YouTube" ) ;
+        XtAddCallback( vwid->ytube_pb , XmNactivateCallback ,
+                       AFNI_ytube_CB , im3d ) ;
+        MCW_set_widget_bg( vwid->ytube_pb , "#003300" , 0 ) ;
+        MCW_set_widget_fg( vwid->ytube_pb , "#ffffaa" ) ;
+        
       }
    }
 #else
@@ -7799,7 +7826,7 @@ char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
       /* max is high - use the ROI_i256 colorbar -
  *         user should use -XXXnpane option*/
       return("ROI_i256" ) ;
-   
+
 
    return("ROI_i256" ) ;
 }
@@ -7905,7 +7932,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 /*            AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
                            THD_dset_max(im3d->fim_now, 1));
 */
-         }  
+         }
       }
       else {
 #if 0

@@ -7124,6 +7124,7 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
       XtUnmanageChild(im3d->vwid->forum_pb) ;
       XtUnmanageChild(im3d->vwid->phelp_pb) ;
+      XtUnmanageChild(im3d->vwid->ytube_pb) ;
 
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
       SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
@@ -7137,6 +7138,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
       XtManageChild(im3d->vwid->forum_pb) ;
       XtManageChild(im3d->vwid->phelp_pb) ;
+      XtManageChild(im3d->vwid->ytube_pb) ;
+
 
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
