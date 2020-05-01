@@ -21,7 +21,6 @@ RUN  cmake \
     -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
     -DCOMP_ADD_PLUGINS=ON \
     -DUSE_OMP=ON \
-    -DUSE_PIP=ON \
     $AFNI_ROOT
 
 RUN /bin/bash -oc pipefail \

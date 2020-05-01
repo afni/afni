@@ -83,7 +83,7 @@ cmake_dependent_option(
   "NOT COMP_CORELIBS_ONLY;COMP_ADD_BINARIES" OFF
 )
 mark_as_advanced(COMP_ADD_PYTHON)
-set_if_not_defined(USE_PIP ON)
+set_if_not_defined(STANDARD_PYTHON_INSTALL "afnipy installation is required for running the tests suite" ON)
 
 cmake_dependent_option(
     COMP_ADD_RSTATS "Includes scripts and libraries only used for statistics in R." OFF 
@@ -127,6 +127,7 @@ option(USE_CPACK "CPack can be used to generate source and binary distributions"
 option(ENABLE_TESTS "Enable tests" OFF)
 option(RUN_PLUGIN_CHECK "Check that plugins build without any missing symbols" OFF)
 set_if_not_defined(FETCHCONTENT_QUIET ON CACHE BOOL "Quietly fetch")
+set_if_not_defined(STANDARD_PYTHON_INSTALL ON)
 
 # Defining "external" dependencies i.e. anything that can be installed as a
 # system install. This list will also include all directories added with the

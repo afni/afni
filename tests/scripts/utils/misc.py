@@ -49,7 +49,8 @@ def try_to_import_afni_module(mod):
     """Function returns an imported object from AFNI's python modules.
     Currently this is required because AFNI's python code is not installed. It
     is on the system path. When on the path, the .py files can be run as an
-    executable from anywhere but not imported.
+    executable from anywhere but not imported. It's use should be limited with
+    a view to eventually eradicate its need.
 
     Args:
         mod (str): A module name to attempt to import from AFNI's installation directory
@@ -60,7 +61,7 @@ def try_to_import_afni_module(mod):
     Raises:
         EnvironmentError: If AFNI is not installed this error is raised.
     """
-    if mod != "1d_tool":
+    if mod not in ["1d_tool", "afni_base"]:
         raise ImportError(
             """This functionality is removed. If the afnipy package is
                       not installed into the current python interpretter and
@@ -115,9 +116,49 @@ def check_file_exists(file_path, test_data_dir):
             raise ValueError(no_file_error)
 
 
-def generate_fetch_list(input_file, test_data_dir):
+def generate_fetch_list(path_obj, test_data_dir):
+    """Summary
+    
+    Args:
+        path_obj (TYPE): Description
+        test_data_dir (TYPE): Description
+    
+    Returns:
+        List: List of paths as str type (including HEAD files if BRIK is used)
+        Bool: needs_fetching, True if all data has not been downloaded
+    
+    Raises:
+        TypeError: Description
+    """
+    if type(path_obj) == str:
+        path_obj = [Path(path_obj)]
+    elif isinstance(path_obj, Path):
+        path_obj = [path_obj]
+    elif iter(path_obj):
+        return_val = [Path(p) for p in path_obj]
+    else:
+        raise TypeError(
+            "data_paths must contain values that are of type str or a "
+            "non-str iterable type. i.e. list, tuple... "
+        )
+    needs_fetching = False
+    fetch_list = []
+    for p in path_obj:
+        # add HEAD files if BRIK is given
+        current_file_list = get_extra_files(p, test_data_dir)
+        for pp in current_file_list:
+            # file should be found even if just as an unresolved symlink
+            check_file_exists(pp, test_data_dir)
+            # fetch if any file does not "exist" (is a broken symlink)
+            needs_fetching = needs_fetching or not (test_data_dir / pp).exists()
+        fetch_list += current_file_list
+
+    return fetch_list, needs_fetching
+
+
+def get_extra_files(input_file, test_data_dir):
     """Given a file this function globs for similar files and returns a list
-    containing paths as strings.
+    containing Paths.
 
     Args:
         input_file (pathlib.Path): A Path object for an relative reference to
@@ -125,25 +166,24 @@ def generate_fetch_list(input_file, test_data_dir):
         test_data_dir (pathlib.Path): The test data directory
 
     Returns:
-        list of paths-as-strings: A list of files for datalad to fetch.
+        list of paths: A list of files for datalad to fetch.
     """
     # skip tests without afnipy module but this function is required for all tests
     try:
         from afnipy import afni_base as ab
     except ImportError:
         ab = try_to_import_afni_module("afni_base")
-
     parsed_obj = ab.parse_afni_name(str(test_data_dir / input_file))
     if parsed_obj["type"] == "BRIK":
         globbed_files = list(Path(parsed_obj["path"]).glob(parsed_obj["prefix"] + "*"))
-        return [str(f) for f in globbed_files]
+        return [f for f in globbed_files]
     else:
-        return [str(input_file)]
+        return [input_file]
 
 
 def process_path_obj(path_obj, test_data_dir):
     """
-    Convert paths to the pathlib Path type and get the data for test_data_dir,
+    Get the data for test_data_dir,
     a datalad repository.
 
     Args: path_obj (str/pathlib.Path or iterable): Paths as
@@ -152,68 +192,55 @@ def process_path_obj(path_obj, test_data_dir):
 
         test_data_dir (pathlib.Path): An existing datalad repository containing the test data.
     Returns:
-        Path or iterable of Paths: path_obj appropriately converted to pathlib Paths
-        objects with files in test_data_dir data fetched as required.
+        Iterable of Paths: iterable pathlib Paths fetched as required.
     """
-    if type(path_obj) == str:
-        path_obj = Path(path_obj)
-        return_val = test_data_dir / path_obj
-    elif isinstance(path_obj, Path):
-        return_val = test_data_dir / path_obj
-    elif iter(path_obj):
-        return_val = [test_data_dir / p for p in path_obj]
-    else:
-        raise TypeError(
-            "data_paths must contain values that are of type str or a "
-            "non-str iterable type. i.e. list, tuple... "
-        )
+    files_to_fetch, needs_fetching = generate_fetch_list(path_obj, test_data_dir)
 
     # Fetching the data
-    process_for_fetching_data = Process(
-        target=try_data_download, args=(path_obj, test_data_dir)
-    )
-    # Repeated tries should eventually just be timed-out to deal with of
-    # unpredictable stalls.
-    process_for_fetching_data.start()
-    process_for_fetching_data.join(timeout=120)
+    if needs_fetching:
+        # fetch data with a global lock
+        try_data_download(files_to_fetch, test_data_dir)
 
-    if process_for_fetching_data.is_alive():
-        # terminate the process.
-        process_for_fetching_data.terminate()
-        raise ValueError(f"Data fetching timed out for {path_obj}")
-    elif process_for_fetching_data.exitcode != 0:
-        raise ValueError(f"Data fetching failed for {path_obj}")
+    if isinstance(path_obj, list):
+        return [str(test_data_dir / p) for p in path_obj]
     else:
-        return return_val
+        return str(test_data_dir / path_obj)
 
 
-def try_data_download(path_obj, test_data_dir):
+def try_data_download(file_fetch_list, test_data_dir):
     global lock
     dl_dset = datalad.Dataset(str(test_data_dir))
     attempt_count = 0
     lock.acquire()
-    while attempt_count < 5:
+    while attempt_count < 2:
         try:
-            if isinstance(path_obj, Path):
-                check_file_exists(path_obj, test_data_dir)
-                file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
-                dl_dset.get(path=file_fetch_list)
-                lock.release()
-                return
+            # Fetching the data
+            process_for_fetching_data = Process(
+                target=dl_dset.get, kwargs={"path": [str(p) for p in file_fetch_list]}
+            )
+
+            # attempts should be timed-out to deal with of unpredictable stalls.
+            process_for_fetching_data.start()
+            process_for_fetching_data.join(timeout=30)
+            if process_for_fetching_data.is_alive():
+                # terminate the process.
+                process_for_fetching_data.terminate()
+                raise IncompleteResultsError(
+                    f"Data fetching timed out for {file_fetch_list}"
+                )
+            elif process_for_fetching_data.exitcode != 0:
+                raise ValueError(f"Data fetching failed for {file_fetch_list}")
             else:
-                file_fetch_list = []
-                for input_file in path_obj:
-                    input_file = Path(input_file)
-                    check_file_exists(input_file, test_data_dir)
-                    file_fetch_list = file_fetch_list + generate_fetch_list(
-                        input_file, test_data_dir
-                    )
-                    dl_dset.get(path=file_fetch_list)
                 lock.release()
                 return
         except (IncompleteResultsError, CommandError) as e:
             # Try another loop
             attempt_count += 1
+            # make sure datalad repo wasn't updated to git annex version 8. Not sure why this is happening
+            git_config_file = Path(test_data_dir) / ".git" / "config"
+            git_config_file.write_text(
+                git_config_file.read_text().replace("version = 8", "version = 7")
+            )
             continue
 
     # datalad download attempts failed
