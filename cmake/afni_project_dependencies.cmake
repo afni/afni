@@ -20,13 +20,33 @@ if(COMP_ADD_RSTATS)
     endif()
 endif()
 
-# set(Python_FIND_VIRTUALENV FIRST)
-set(CMAKE_FIND_FRAMEWORK LAST)
-find_package(Python 3 REQUIRED COMPONENTS Interpreter)
-if(NOT ${Python_FOUND})
-  message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
-endif()
 
+if(COMP_ADD_PYTHON)
+  # The python interpreter used for the build (and subsequent testing if
+  # FORCE_CURRENT_PY_INTERP_FOR_TESTS is not set) is the first one found that
+  # satisfies the version requirements. The PATH variable is used for this,
+  # and OSX framework python is found last. If an environment is used for
+  # software isolation then python is only searched for in this environment.
+  # For more details see:
+  # https://cmake.org/cmake/help/git-stage/module/FindPython.html
+  set(CMAKE_FIND_FRAMEWORK LAST)
+  set(Python_FIND_VIRTUALENV ONLY)
+  set(Python_FIND_STRATEGY LOCATION)
+
+  # Unless overwritten, python > 3.6 is required since this is required to run
+  # the test suite. A minimum requirement is also defined in setup.py for
+  # installation of the python code if that is desired.
+  set_if_not_defined(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS ON)
+  if(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS)
+    set(PY_VER 3.6)
+  else()
+    set(PY_VER 3)
+  endif()
+  find_package(Python ${PY_VER} REQUIRED COMPONENTS Interpreter)
+  if(NOT ${Python_FOUND})
+    message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
+  endif()
+endif()
 
 if(NOT COMP_CORELIBS_ONLY)
   if(NOT USE_SYSTEM_QHULL)

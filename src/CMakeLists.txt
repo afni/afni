@@ -87,9 +87,14 @@ if(COMP_ADD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# Add scripts (includes shell, python, and R scripts)
+# Add scripts (includes shell and R scripts)
 if(COMP_ADD_TCSH)
   add_subdirectory(scripts_install)
+endif()
+
+# Add python code
+if(COMP_ADD_PYTHON)
+  add_subdirectory(python_scripts)
 endif()
 
 # Add targets with a dependency on X
