@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 30 , APR , 2020 , JKR , "afni" , MINOR , TYPE_GENERAL ,
+   "Added YouTube button to afni GUI."
+ } ,
  { 21 , APR , 2020 , JKR , "afni" , MINOR , TYPE_NEW_OPT ,
    "Added -all_dsets to load all datasets togther."
  } ,
