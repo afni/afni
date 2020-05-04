@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 04 , MAY , 2020 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "-nosquash, to avoid soft cap on large intensities" ,
+   "In other words, to skip the change of 30 Jan 2019, which\n"
+   "was causing trouble for someone doing oinker imaging!"
+ } ,
+
  { 28 , APR , 2020 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
    "Patch failure to register 2D images (I hope)" ,
    "Turns out the cluster-izing step added to the weight production\n"
