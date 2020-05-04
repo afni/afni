@@ -6,21 +6,21 @@
 
 #ifdef SUMA_COMPILED
    #undef SUMA_STANDALONE_INIT
-   #define SUMA_STANDALONE_INIT {   \
-      /* install signal handler, shamelessly copied from AFNI) */ \
-      signal(SIGINT ,SUMA_sigfunc) ;      \
-      signal(SIGBUS ,SUMA_sigfunc) ;   \
-      signal(SIGSEGV,SUMA_sigfunc) ;   \
-      signal(SIGTERM,SUMA_sigfunc) ;   \
-      SUMA_process_environ(); \
-         SUMAg_CF = SUMA_Create_CommonFields ();   \
-	      if (SUMAg_CF == NULL) { \
-		      fprintf(SUMA_STDERR,\
-                  "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName); \
-		      exit(1); \
-	      }  \
-         /* SUMAg_CF->scm = SUMA_Build_Color_maps();  require X connection*/\
-      SUMA_ParseInput_basics_s (argv, argc);   \
+   #define SUMA_STANDALONE_INIT {                                            \
+      /* install signal handler, shamelessly copied from AFNI) */            \
+      signal(SIGINT ,SUMA_sigfunc) ;                                         \
+      signal(SIGBUS ,SUMA_sigfunc) ;                                         \
+      signal(SIGSEGV,SUMA_sigfunc) ;                                         \
+      signal(SIGTERM,SUMA_sigfunc) ;                                         \
+      SUMA_process_environ();                                                \
+      SUMAg_CF = SUMA_Create_CommonFields();                                 \
+      if (SUMAg_CF == NULL) {                                                \
+         fprintf(SUMA_STDERR,                                                \
+               "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);  \
+         exit(1);                                                            \
+      }                                                                      \
+      /* SUMAg_CF->scm = SUMA_Build_Color_maps();  require X connection*/    \
+      SUMA_ParseInput_basics_s (argv, argc);                                 \
       /* glutInit(& argc, argv);  fails for remote connections 4 Sep 2016 */ \
    }
 #endif   
