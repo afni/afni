@@ -143,7 +143,7 @@ else()
 FetchContent_Declare(
   nifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git 
-  GIT_TAG 9563fa4ae56140d8d3d268688ff2386bf2daf2c8
+  GIT_TAG 65f801b9c2f1f15f4de4a19d45e6595c25765632
   )
 FetchContent_MakeAvailable(nifti_clib)
 endif()
