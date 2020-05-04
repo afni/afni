@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, May, 2020, RCR, "xmat_tool.py", MINOR, TYPE_ENHANCE,
+   "make partual updates for python3",
+   NULL
+ } ,
+
+ {  4, May, 2020, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "remove tabs from a bunch of files",
+   NULL
+ } ,
+
  { 29, Apr, 2020, RCR, "@chauffeur_afni", MINOR, TYPE_ENHANCE,
    "add AFNI_DRIVE_OPTS_XVFB env var for adding opts to Xvfb",
    "This will probably be modified later, but it allows one to pass\n"

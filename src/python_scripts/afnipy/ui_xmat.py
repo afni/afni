@@ -479,9 +479,10 @@ g_history = """
         - added GUI help
    1.1  Dec 08 2008: allow -test_libs to proceed without numpy
    1.2  Jun 12 2009: used some wx IDs
+   1.3  May  4 2020: basic updates for python3 (not complete)
 """
 
-g_version = "xmat_tool.py version 1.2, June 12, 2009"
+g_version = "xmat_tool.py version 1.3, May 4, 2020"
 
 g_cormat_cut = 0.4
 g_cosmat_cut = 0.3827
@@ -529,7 +530,7 @@ class XmatInterface:
          from afnipy import afni_xmat
          self.AM = afni_xmat
       except:
-         print "\n--> use 'xmat_tool.py -test_libs' to test all modules\n"
+         print("\n--> use 'xmat_tool.py -test_libs' to test all modules\n")
          self.status = 1
       return self.status
 
@@ -612,15 +613,15 @@ class XmatInterface:
       # process terminal options without the option_list interface
 
       if '-help' in sys.argv:
-         print g_help_string
+         print(g_help_string)
          return 1
 
       if '-help_gui' in sys.argv:
-         print gui_help_string
+         print(gui_help_string)
          return 1
 
       if '-hist' in sys.argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_valid_opts' in sys.argv:
@@ -632,7 +633,7 @@ class XmatInterface:
          return 1
 
       if '-ver' in sys.argv:
-         print g_version
+         print(g_version)
          return 1
 
       return 0
@@ -691,7 +692,7 @@ class XmatInterface:
          if val and not err:
             rstr = self.set_cols_from_string(val)
             if rstr:
-               print "** failed to apply '-choose_cols':\n%s" % rstr
+               print("** failed to apply '-choose_cols':\n%s" % rstr)
                return 1
 
       # ------------------------------------------------------------
@@ -709,7 +710,7 @@ class XmatInterface:
             elif opt.name == '-choose_cols':
                rstr = self.set_cols_from_string(opt.parlist[0])
                if rstr:
-                  print "** failed to apply '-choose_cols':\n%s" % rstr
+                  print("** failed to apply '-choose_cols':\n%s" % rstr)
                   return 1
 
             # general options
@@ -735,39 +736,39 @@ class XmatInterface:
          if opt.name == '-show_col_types':
             if self.matX:
                err, str = self.make_col_type_string()
-               print str
-            else: print "** -show_col_types: needs -load_xmat"
+               print(str)
+            else: print("** -show_col_types: needs -load_xmat")
          elif opt.name == '-show_conds':
-            if self.matX: print self.matX.make_show_conds_str(self.col_list)
-            else: print "** -show_conds: needs -load_xmat"
+            if self.matX: print(self.matX.make_show_conds_str(self.col_list))
+            else: print("** -show_conds: needs -load_xmat")
          elif opt.name == '-show_cormat':
             err, str = self.make_cormat_string()
-            print '-- Correlation matrix for %s :' % self.fname_mat
-            print str
+            print('-- Correlation matrix for %s :' % self.fname_mat)
+            print(str)
          elif opt.name == '-show_cormat_warnings':
             err, str = self.make_cormat_warnings_string()
-            print '-- Correlation matrix warnings for %s :' % self.fname_mat
-            print str
+            print('-- Correlation matrix warnings for %s :' % self.fname_mat)
+            print(str)
          elif opt.name == '-show_cosmat':
             err, str = self.make_cosmat_string()
-            print '-- Cosine matrix for %s :' % self.fname_mat
-            print str
+            print('-- Cosine matrix for %s :' % self.fname_mat)
+            print(str)
          elif opt.name == '-show_cosmat_warnings':
             err, str = self.make_cosmat_warnings_string()
-            print '-- Cosine matrix warnings for %s :' % self.fname_mat
-            print str
+            print('-- Cosine matrix warnings for %s :' % self.fname_mat)
+            print(str)
          elif opt.name == '-show_fit_betas':
             err, rstr = self.make_matrix_fit_betas_string()
-            print rstr
+            print(rstr)
          elif opt.name == '-show_fit_ts':
             err, rstr = self.make_matrix_fit_string()
-            print rstr
+            print(rstr)
          elif opt.name == '-show_xmat':
             if self.matX: self.matX.show()
-            else: print "** -show_xmat: needs -load_xmat"
+            else: print("** -show_xmat: needs -load_xmat")
          elif opt.name == '-show_1D':
             if self.matX: self.mat1D.show()
-            else: print "** -show_1D: needs -load_1D"
+            else: print("** -show_1D: needs -load_1D")
 
          # store gui options in a separate list
          elif opt.name[0:5] == '-gui_': self.gui_opts.append(opt)
@@ -792,7 +793,7 @@ class XmatInterface:
       clist = UTIL.decode_1D_ints(cstr, imax=ncols-1)
       if not clist:
          return "invalid column list\n\n--> please use AFNI sub-brick notation"
-      elif not self.AM.list2_is_in_list1(range(ncols), clist):
+      elif not self.AM.list2_is_in_list1(list(range(ncols)), clist):
          return "column list outside xmat cols 0..%d" % (ncols-1)
 
       self.col_list = clist
@@ -884,13 +885,13 @@ class XmatInterface:
          del(mat)
          return 1
 
-      if self.verb > 1: print "++ read xmat from '%s'" % fname
+      if self.verb > 1: print("++ read xmat from '%s'" % fname)
 
       # delete any old copy
       if self.matX:
          if self.verb > 1:
-            print "-- replacing X matrix '%s' with that in '%s'" % \
-                      (self.fname_mat, fname)
+            print("-- replacing X matrix '%s' with that in '%s'" % \
+                      (self.fname_mat, fname))
          del(self.matX)
       self.matX = mat
       self.fname_mat = fname
@@ -900,7 +901,7 @@ class XmatInterface:
          self.col_list = mat.cols_by_group_list([g for g in mat.groups if g>0])
          #self.col_list = range(mat.ncols)
       else:
-         self.col_list = range(mat.ncols)
+         self.col_list = list(range(mat.ncols))
 
       return 0
 
@@ -910,17 +911,17 @@ class XmatInterface:
          return 0 on success, 1 on error"""
       mat = self.AM.AfniXmat(fname, verb=self.verb)
       if not mat.ready:
-         print "** failed to read timeseries from '%s'" % fname
+         print("** failed to read timeseries from '%s'" % fname)
          del(mat)
          return 1
 
-      if self.verb > 1: print "++ read timeseries from '%s'" % fname
+      if self.verb > 1: print("++ read timeseries from '%s'" % fname)
 
       # delete any old copy
       if self.mat1D:
          if self.verb > 1:
-            print "-- replacing timeseries '%s' with that in '%s'" % \
-                      (self.fname_1D, fname)
+            print("-- replacing timeseries '%s' with that in '%s'" % \
+                      (self.fname_1D, fname))
          del(self.mat1D)
       self.mat1D = mat
       self.fname_1D = fname
@@ -1092,7 +1093,7 @@ class XmatInterface:
 
       mstr  = 'Columns by regressor type:\n\n'
       mstr += '    main regressor columns     : %s\n' % \
-                   UTIL.encode_1D_ints(range(self.matX.ncols))
+                   UTIL.encode_1D_ints(list(range(self.matX.ncols)))
       mstr += '    chosen regressor columns   : %s\n' % \
                    UTIL.encode_1D_ints(self.col_list)
       mstr += '    baseline regressor columns : %s\n' % \
@@ -1117,7 +1118,7 @@ class XmatInterface:
    def test(self, verb=3):
       if self.set_afni_xmat(): return 1 # might not be loaded
       # init
-      print '------------------------ initial reads -----------------------'
+      print('------------------------ initial reads -----------------------')
       self.verb = verb
       # these should not fail, so quit if they do
       # first try AFNI_data4, then regression data
@@ -1128,7 +1129,7 @@ class XmatInterface:
          return None
 
       # reset
-      print '------------------------ reset files -----------------------'
+      print('------------------------ reset files -----------------------')
       if self.set_xmat('X.xmat.1D') and self.set_xmat('X.AD4.xmat.1D'):
          return None
       if self.set_1D('norm.022_043_012.1D') and \
@@ -1136,46 +1137,46 @@ class XmatInterface:
          return None
 
       # failures
-      print '------------------------ should fail -----------------------'
+      print('------------------------ should fail -----------------------')
       self.set_xmat('noxmat')
       self.set_1D('no1D')
 
       # more tests
-      print '------------------------- xmatrix --------------------------'
+      print('------------------------- xmatrix --------------------------')
       self.matX.show()
-      print '------------------------- 1D file --------------------------'
+      print('------------------------- 1D file --------------------------')
       self.mat1D.show()
 
-      print '------------------------ matrix fit ------------------------'
-      rv, fstr = self.make_matrix_fit_string(range(self.matX.ncols))
-      print fstr
+      print('------------------------ matrix fit ------------------------')
+      rv, fstr = self.make_matrix_fit_string(list(range(self.matX.ncols)))
+      print(fstr)
 
-      print '------------------------ fit betas -------------------------'
-      rv, fstr = self.make_matrix_fit_betas_string(range(self.matX.ncols))
-      print fstr
+      print('------------------------ fit betas -------------------------')
+      rv, fstr = self.make_matrix_fit_betas_string(list(range(self.matX.ncols)))
+      print(fstr)
 
-      print '-------------------------- cormat --------------------------'
+      print('-------------------------- cormat --------------------------')
       rv, fstr = self.make_cormat_string()
-      print fstr
-      print '-------------------------- cosmat --------------------------'
+      print(fstr)
+      print('-------------------------- cosmat --------------------------')
       rv, fstr = self.make_cosmat_string()
-      print fstr
+      print(fstr)
 
-      print '--------------------- cormat warnings ----------------------'
+      print('--------------------- cormat warnings ----------------------')
       rv, fstr = self.make_cormat_warnings_string()
-      print fstr
-      print '---------------------- cosmat warnings ---------------------'
+      print(fstr)
+      print('---------------------- cosmat warnings ---------------------')
       self.cosmat_motion = 1
       err, str = self.make_cosmat_warnings_string()
-      print '-- Cosine matrix warnings for %s :' % self.fname_mat
-      print str
+      print('-- Cosine matrix warnings for %s :' % self.fname_mat)
+      print(str)
 
-      print '-------------------------- conds ---------------------------'
+      print('-------------------------- conds ---------------------------')
       self.matX.show_conds()
 
       return None
 
 if __name__ == '__main__':
-   print '** this is not a main program'
+   print('** this is not a main program')
 
 
