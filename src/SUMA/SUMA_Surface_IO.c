@@ -131,7 +131,7 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper (
       default:
          SUMA_S_Err("Bad format %d.\n", SO_FT);
          SUMA_DUMP_TRACE("Trace at Bad format");
-	 exit(1);
+    exit(1);
    }
 
    if (SF_name) SUMA_free(SF_name); SF_name = NULL;
@@ -415,7 +415,7 @@ SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO)
    char *fl=NULL, *flp = NULL;
    int ii=0, Found = 0, nread=0;
    double num = 0;
-	int LocalHead = NOPE;
+   int LocalHead = NOPE;
 
    SUMA_ENTRY;
    
@@ -426,11 +426,11 @@ SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO)
       SUMA_SL_Err("Failed to read file.");
       SUMA_RETURN(NOPE);
    }
-	
+   
    /* find 'P' */
    ii = 0; flp = fl;
    while (ii<nread && *flp != 'P') ++flp;
-	if (ii == nread) {
+   if (ii == nread) {
       SUMA_S_Err("Failed to find 'P'");
       SUMA_RETURN(NOPE);
    }
@@ -448,7 +448,7 @@ SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO)
       }
       ++ii;
    }
-	/* get the sixth number */
+   /* get the sixth number */
    SUMA_ADVANCE_PAST_INT(flp, SO->N_Node, Found);
    if (!Found || SO->N_Node < 0 || SO->N_Node > 999999999) {
       SUMA_S_Errv("Bad N_Node of %d\n", SO->N_Node);
@@ -635,133 +635,133 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Coord*/
    static char FuncName[]={"SUMA_SureFit_Read_Coord"}; 
    FILE *sf_file;
-	int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
-	char stmp[100], head_strt[100], head_end[100], 
+   int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
+   char stmp[100], head_strt[100], head_end[100], 
         s[1000], delimstr[] = {' ', '\0'}, *st;
    byte *isallzeros=NULL;
-	int LocalHead = 0;
+   int LocalHead = 0;
    
-	SUMA_ENTRY;
-	
-	ND = 3;
-	
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		SUMA_RETURN (NOPE);
-	}
-	
-	sprintf(SF->name_coord, "%s", f_name);
-	
-	/* start reading */
-	sf_file = fopen (f_name,"r");
-	if (sf_file == NULL)
-		{
-			SUMA_error_message (FuncName,"Could not open input file ",0);
-			SUMA_RETURN (NOPE);
-		}
+   SUMA_ENTRY;
+   
+   ND = 3;
+   
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+      SUMA_RETURN (NOPE);
+   }
+   
+   sprintf(SF->name_coord, "%s", f_name);
+   
+   /* start reading */
+   sf_file = fopen (f_name,"r");
+   if (sf_file == NULL)
+      {
+         SUMA_error_message (FuncName,"Could not open input file ",0);
+         SUMA_RETURN (NOPE);
+      }
 
-	/* read until you reach the begin header BeginHeader */
-	ex = 1;
-	FoundHead = 0;
-	sprintf(head_strt,"BeginHeader");
-	while (ex != EOF && !FoundHead)
-	{
-		ex = fscanf (sf_file,"%s",s);
-		if (strlen (s) >= strlen(head_strt)) 
-			{
-				evl = SUMA_iswordin (s,head_strt);
-				if (evl == 1) FoundHead = 1;
-			}
-	}
-	
-	if (!FoundHead) {
-		fprintf( SUMA_STDERR, 
+   /* read until you reach the begin header BeginHeader */
+   ex = 1;
+   FoundHead = 0;
+   sprintf(head_strt,"BeginHeader");
+   while (ex != EOF && !FoundHead)
+   {
+      ex = fscanf (sf_file,"%s",s);
+      if (strlen (s) >= strlen(head_strt)) 
+         {
+            evl = SUMA_iswordin (s,head_strt);
+            if (evl == 1) FoundHead = 1;
+         }
+   }
+   
+   if (!FoundHead) {
+      fprintf( SUMA_STDERR, 
                "Error %s: BeginHeader not found in %s.\n"
                "Perhaps you are using old versions of Caret/SureFit files.\n", 
                FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}
-	EndHead = 0;
-	sprintf(head_end,"EndHeader");
-	sprintf(delimstr," ");
-	
-	while (ex != EOF && !EndHead)	{
-		ex = fscanf (sf_file,"%s",s);
-		/*fprintf(stdout,"%s\n", s);*/
-		if (strlen (s) >= strlen(head_end)) 
-			{
-				evl = SUMA_iswordin (s,head_end);
-				if (evl == 1) EndHead = 1;
-			}
-		/* look for some tokens */
-		skp = 0;
-		if (!EndHead) {
-			st = strtok(s, delimstr);
-			sprintf(stmp,"encoding");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found encoding\n");*/
-				ex = fscanf (sf_file,"%s",(SF->encoding_coord));
-				skp = 1;
-			}
-			
-			sprintf(stmp,"configuration_id");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found configuration_id\n");*/
-				ex = fscanf (sf_file,"%s",(SF->configuration_id));
-				skp = 1;
-			}
-			
-			sprintf(stmp,"coordframe_id");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found configuration_id\n");*/
-				ex = fscanf (sf_file,"%s",(SF->coordframe_id));
-				skp = 1;
-			}
+      SUMA_RETURN (NOPE);
+   }
+   EndHead = 0;
+   sprintf(head_end,"EndHeader");
+   sprintf(delimstr," ");
+   
+   while (ex != EOF && !EndHead) {
+      ex = fscanf (sf_file,"%s",s);
+      /*fprintf(stdout,"%s\n", s);*/
+      if (strlen (s) >= strlen(head_end)) 
+         {
+            evl = SUMA_iswordin (s,head_end);
+            if (evl == 1) EndHead = 1;
+         }
+      /* look for some tokens */
+      skp = 0;
+      if (!EndHead) {
+         st = strtok(s, delimstr);
+         sprintf(stmp,"encoding");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found encoding\n");*/
+            ex = fscanf (sf_file,"%s",(SF->encoding_coord));
+            skp = 1;
+         }
+         
+         sprintf(stmp,"configuration_id");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found configuration_id\n");*/
+            ex = fscanf (sf_file,"%s",(SF->configuration_id));
+            skp = 1;
+         }
+         
+         sprintf(stmp,"coordframe_id");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found configuration_id\n");*/
+            ex = fscanf (sf_file,"%s",(SF->coordframe_id));
+            skp = 1;
+         }
          
          sprintf(stmp,"caret-version");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found caret-version\n");*/
-				ex = fscanf (sf_file,"%f",&(SF->caret_version));
-				skp = 1;
-			}
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found caret-version\n");*/
+            ex = fscanf (sf_file,"%f",&(SF->caret_version));
+            skp = 1;
+         }
          
          sprintf(stmp,"Caret-Version");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found caret-version\n");*/
-				ex = fscanf (sf_file,"%f",&(SF->caret_version));
-				skp = 1;
-			}
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found caret-version\n");*/
+            ex = fscanf (sf_file,"%f",&(SF->caret_version));
+            skp = 1;
+         }
 
-		}
-	}
-	/* Now read the Number of Nodes */
-	fscanf(sf_file, "%d", &SF->N_Node);
-	if (LocalHead) fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);
+      }
+   }
+   /* Now read the Number of Nodes */
+   fscanf(sf_file, "%d", &SF->N_Node);
+   if (LocalHead) fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);
    if (SF->N_Node <= 3) {
       SUMA_S_Err("Too few nodes!");
       SUMA_RETURN (NOPE);
    }
-	
-	/* allocate space */
-	SF->NodeList = (float *)SUMA_calloc(SF->N_Node * ND, sizeof(float));
-	SF->NodeId = (int *)SUMA_calloc (SF->N_Node, sizeof(int));
+   
+   /* allocate space */
+   SF->NodeList = (float *)SUMA_calloc(SF->N_Node * ND, sizeof(float));
+   SF->NodeId = (int *)SUMA_calloc (SF->N_Node, sizeof(int));
    SF->allzerocoord = (byte *)SUMA_calloc(SF->N_Node, sizeof(byte));
    
-	
-	if (SF->NodeList == NULL || SF->NodeId == NULL || !SF->allzerocoord) {
-		fprintf(SUMA_STDERR, 
+   
+   if (SF->NodeList == NULL || SF->NodeId == NULL || !SF->allzerocoord) {
+      fprintf(SUMA_STDERR, 
                "Error %s: Could not allocate space for NodeList &/| NodeId.\n", 
                FuncName);
-		SUMA_RETURN (NOPE);
-	}
-	
-	/* Now read the nodes until the end of the file */
-		cnt = 0;
-		while (ex != EOF && cnt < SF->N_Node)	{
-			id = cnt * ND;
-			ex = fscanf (sf_file,"%d %f %f %f",&(SF->NodeId[cnt]), 
-					&(SF->NodeList[id]), &(SF->NodeList[id+1]), 
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* Now read the nodes until the end of the file */
+      cnt = 0;
+      while (ex != EOF && cnt < SF->N_Node)  {
+         id = cnt * ND;
+         ex = fscanf (sf_file,"%d %f %f %f",&(SF->NodeId[cnt]), 
+               &(SF->NodeList[id]), &(SF->NodeList[id+1]), 
                &(SF->NodeList[id+2]));
          #if 0
          if (SF->NodeList[id] == 0.0f &&
@@ -776,38 +776,38 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
                SF->allzerocoord[cnt] = 1;
          #endif
          ++cnt;
-		}
-	if (cnt != SF->N_Node) {
-		fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n"
+      }
+   if (cnt != SF->N_Node) {
+      fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n"
                            "First triplet: %f %f %f\n"
                            "Last triplet: %f %f %f\n", FuncName, SF->N_Node, cnt,
                            SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
                            SF->NodeList[3*(cnt-1)], SF->NodeList[3*(cnt-1)+1], 
                            SF->NodeList[3*(cnt-1)+2]);
-		SUMA_RETURN (NOPE);
-	}
-	fclose (sf_file);
-	SUMA_RETURN (YUP); 
+      SUMA_RETURN (NOPE);
+   }
+   fclose (sf_file);
+   SUMA_RETURN (YUP); 
 }/*SUMA_SureFit_Read_Coord*/
 
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
-	static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
-	int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk, 
+   static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
+   int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk, 
       i, ip, NP, nread=0, iwarn=0;
-	char stmp[100], head_strt[100], head_end[100], s[1000], 
+   char stmp[100], head_strt[100], head_end[100], s[1000], 
          delimstr[] = {' ', '\0'}, *st, *eop, *fl0, *fl1, *op2, *fl,
          *fleh, *flns, *flbh;
-	int LocalHead = 0,  Found=0;
-	double tmpdbl;
+   int LocalHead = 0,  Found=0;
+   double tmpdbl;
    
-	SUMA_ENTRY;
+   SUMA_ENTRY;
 
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		SUMA_RETURN (NOPE);
-	}
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+      SUMA_RETURN (NOPE);
+   }
 
    SUMA_LH("Sucking file");
 
@@ -816,29 +816,29 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
       SUMA_SL_Err("Failed to read file.");
       SUMA_RETURN(NOPE);
    }
-	
-	sprintf(SF->name_topo, "%s", f_name);
-	
-	/* find BeginHeader and EndHeader tags*/
-	fl0 = fl; /* beginning */
+   
+   sprintf(SF->name_topo, "%s", f_name);
+   
+   /* find BeginHeader and EndHeader tags*/
+   fl0 = fl; /* beginning */
    fl1 = fl + nread; /* end */
 
    eop = SUMA_MIN_PAIR(fl1, fl+5000);
    SUMA_ADVANCE_PAST(fl,eop,"BeginHeader",Found,1);
-	if (!Found) {
-		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}
+   if (!Found) {
+      fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }
    flbh = fl;
    
    
    SUMA_ADVANCE_PAST(fl,eop,"EndHeader",Found,1);
-	if (!Found) {
-		fprintf(SUMA_STDERR,"Error %s: EndHeader not found in %s.\n"
+   if (!Found) {
+      fprintf(SUMA_STDERR,"Error %s: EndHeader not found in %s.\n"
                  "Perhaps you are using old versions of Caret/SureFit files.\n", 
                  FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}
+      SUMA_RETURN (NOPE);
+   }
    fleh = fl;
    
    /* find the header fields */
@@ -925,27 +925,27 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    }
 
 
-	NODE_SPECS:
-	SF->FN.N_Node = SF->N_Node_Specs;
-	SF->FN.N_Neighb_max = 0;
+   NODE_SPECS:
+   SF->FN.N_Node = SF->N_Node_Specs;
+   SF->FN.N_Neighb_max = 0;
 
-	/* allocate for Node Specs Matrix and First_Neighb structure*/
-	SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
-	/*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
-	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, 
+   /* allocate for Node Specs Matrix and First_Neighb structure*/
+   SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
+   /*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
+   SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, 
                               SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
-	SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
-	SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
-	
-	if (  SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || 
+   SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+   SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+   
+   if (  SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || 
          SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
-		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
-		SUMA_RETURN (NOPE);
-	} 
-	
-	/* Now read the node specs */
-	if (LocalHead) fprintf (stdout,"About to read specs\n");
-	cnt = 0;
+      fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   } 
+   
+   /* Now read the node specs */
+   if (LocalHead) fprintf (stdout,"About to read specs\n");
+   cnt = 0;
    do {
       for (i=0; i<6; ++i) {
          SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
@@ -957,17 +957,17 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
          }
       }
       SF->FN.NodeId[cnt] = SF->Specs_mat[cnt][0];
-		SF->FN.N_Neighb[cnt] = SF->Specs_mat[cnt][1];
-		if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
-			fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
-				FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
-			SUMA_RETURN (NOPE);
-		}
-		if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
-		
-		/* Now Read in the Neighbors info */
-		for (i=0; i < SF->FN.N_Neighb[cnt]; ++ i) {
-			SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found); /* skip first number */
+      SF->FN.N_Neighb[cnt] = SF->Specs_mat[cnt][1];
+      if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
+         fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
+            FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
+         SUMA_RETURN (NOPE);
+      }
+      if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
+      
+      /* Now Read in the Neighbors info */
+      for (i=0; i < SF->FN.N_Neighb[cnt]; ++ i) {
+         SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found); /* skip first number */
          SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
          if (Found) {
             SF->FN.FirstNeighb[cnt][i] = (int)tmpdbl;
@@ -975,17 +975,17 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
             fprintf (SUMA_STDERR,"Error %s: Failed to read neighbor index! cnt = %d, i = %d\n", FuncName, cnt, i);
             SUMA_RETURN (NOPE);
          }
-		}
-		/* seal with -1 */
-		SF->FN.FirstNeighb[cnt][SF->FN.N_Neighb[cnt]] = -1;
-		
-		++cnt;
+      }
+      /* seal with -1 */
+      SF->FN.FirstNeighb[cnt][SF->FN.N_Neighb[cnt]] = -1;
+      
+      ++cnt;
    } while (cnt < SF->N_Node_Specs);
    
-	if (cnt != SF->N_Node_Specs) {
-		fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
-		SUMA_RETURN (NOPE);
-	}
+   if (cnt != SF->N_Node_Specs) {
+      fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
+      SUMA_RETURN (NOPE);
+   }
    
    FACESETS:
    if (SF->N_FaceSet < 0) { 
@@ -1000,13 +1000,13 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
       }
    }
    
-	if (LocalHead) fprintf (stdout, "Reading facesets\n");
+   if (LocalHead) fprintf (stdout, "Reading facesets\n");
    if (SF->N_FaceSet < 3) {
       fprintf(SUMA_STDERR, "Error %s: Too few (%d) triangles.\n", FuncName, SF->N_FaceSet);
       SUMA_RETURN (NOPE);
    }
-	
-	NP = 3;	
+   
+   NP = 3;  
    SF->FaceSetList = (int *)SUMA_strtol_vec(fl, SF->N_FaceSet * NP, 
                                             &ex, SUMA_int, NULL);
    if (!SF->FaceSetList || ex != SF->N_FaceSet * NP) {
@@ -1015,7 +1015,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
                            FuncName, SF->N_FaceSet*NP, ex);
       SUMA_RETURN (NOPE);
    }
-	
+   
    /* remove all zeros coords? */
    i=0;
    while(i<SF->N_FaceSet) {
@@ -1047,172 +1047,172 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 /* Old version , could not handle versions with tag-version string */
 SUMA_Boolean SUMA_SureFit_Read_Topo_old (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo_old*/
-	static char FuncName[]={"SUMA_SureFit_Read_Topo_old"}; 
+   static char FuncName[]={"SUMA_SureFit_Read_Topo_old"}; 
    FILE *sf_file;
-	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP;
-	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
-	int LocalHead = 1;
-	
-	SUMA_ENTRY;
+   int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP;
+   char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
+   int LocalHead = 1;
+   
+   SUMA_ENTRY;
 
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		SUMA_RETURN (NOPE);
-	}
-	
-	sprintf(SF->name_topo, "%s", f_name);
-	
-	/* start reading */
-	sf_file = fopen (f_name,"r");
-	if (sf_file == NULL)
-		{
-			SUMA_error_message (FuncName,"Could not open input file ",0);
-			SUMA_RETURN (NOPE);
-		}
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+      SUMA_RETURN (NOPE);
+   }
+   
+   sprintf(SF->name_topo, "%s", f_name);
+   
+   /* start reading */
+   sf_file = fopen (f_name,"r");
+   if (sf_file == NULL)
+      {
+         SUMA_error_message (FuncName,"Could not open input file ",0);
+         SUMA_RETURN (NOPE);
+      }
 
-	/* read until you reach the begin header BeginHeader */
-	ex = 1;
-	FoundHead = 0;
-	sprintf(head_strt,"BeginHeader");
-	while (ex != EOF && !FoundHead)
-	{
-		ex = fscanf (sf_file,"%s",s);
-		if (strlen (s) >= strlen(head_strt)) 
-			{
-				evl = SUMA_iswordin (s,head_strt);
-				if (evl == 1) FoundHead = 1;
-			}
-	}
-	if (!FoundHead) {
-		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}
-	EndHead = 0;
-	sprintf(head_end,"EndHeader");
-	sprintf(delimstr," ");
-	
-	while (ex != EOF && !EndHead)	{
-		ex = fscanf (sf_file,"%s",s);
-		/*fprintf(stdout,"%s\n", s);*/
-		if (strlen (s) >= strlen(head_end)) 
-			{
-				evl = SUMA_iswordin (s,head_end);
-				if (evl == 1) EndHead = 1;
-			}
-		/* look for some tokens */
-		skp = 0;
-		if (!EndHead) {
-			st = strtok(s, delimstr);
-			sprintf(stmp,"encoding");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found encoding\n");*/
-				ex = fscanf (sf_file,"%s",(SF->encoding_topo));
-				skp = 1;
-			}
-			
-			sprintf(stmp,"perimeter_id");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found perimeter_id\n");*/
-				ex = fscanf (sf_file,"%s",(SF->perimeter_id));
-				skp = 1;
-			}
-			
-			sprintf(stmp,"date");
-			if (!skp && SUMA_iswordin (st, stmp) == 1) {
-				/*fprintf(stdout,"Found date\n");*/
-				ex = fscanf (sf_file,"%s\n",(SF->date));
-				skp = 1;
-			}
+   /* read until you reach the begin header BeginHeader */
+   ex = 1;
+   FoundHead = 0;
+   sprintf(head_strt,"BeginHeader");
+   while (ex != EOF && !FoundHead)
+   {
+      ex = fscanf (sf_file,"%s",s);
+      if (strlen (s) >= strlen(head_strt)) 
+         {
+            evl = SUMA_iswordin (s,head_strt);
+            if (evl == 1) FoundHead = 1;
+         }
+   }
+   if (!FoundHead) {
+      fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }
+   EndHead = 0;
+   sprintf(head_end,"EndHeader");
+   sprintf(delimstr," ");
+   
+   while (ex != EOF && !EndHead) {
+      ex = fscanf (sf_file,"%s",s);
+      /*fprintf(stdout,"%s\n", s);*/
+      if (strlen (s) >= strlen(head_end)) 
+         {
+            evl = SUMA_iswordin (s,head_end);
+            if (evl == 1) EndHead = 1;
+         }
+      /* look for some tokens */
+      skp = 0;
+      if (!EndHead) {
+         st = strtok(s, delimstr);
+         sprintf(stmp,"encoding");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found encoding\n");*/
+            ex = fscanf (sf_file,"%s",(SF->encoding_topo));
+            skp = 1;
+         }
+         
+         sprintf(stmp,"perimeter_id");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found perimeter_id\n");*/
+            ex = fscanf (sf_file,"%s",(SF->perimeter_id));
+            skp = 1;
+         }
+         
+         sprintf(stmp,"date");
+         if (!skp && SUMA_iswordin (st, stmp) == 1) {
+            /*fprintf(stdout,"Found date\n");*/
+            ex = fscanf (sf_file,"%s\n",(SF->date));
+            skp = 1;
+         }
 
-		}
-	}
-	/* Now read the Number of Nodes Specs */
-	ex = fscanf (sf_file,"%s",s);
+      }
+   }
+   /* Now read the Number of Nodes Specs */
+   ex = fscanf (sf_file,"%s",s);
    SF->N_Node_Specs = atoi(s);
    /* fscanf(sf_file, "%d", &SF->N_Node_Specs); */
-	if (LocalHead) fprintf (stdout,"Expecting %d Node_Specs (from string %s) .\n", SF->N_Node_Specs, s);
-	
+   if (LocalHead) fprintf (stdout,"Expecting %d Node_Specs (from string %s) .\n", SF->N_Node_Specs, s);
+   
    if (!SF->N_Node_Specs || SUMA_iswordin (s, "tag-") == 1) {
       if (LocalHead) fprintf (stdout,"Looks like SF file is in new format (%s).\n", s);
       goto FACESETS;
    }
    
-	SF->FN.N_Node = SF->N_Node_Specs;
-	SF->FN.N_Neighb_max = 0;
+   SF->FN.N_Node = SF->N_Node_Specs;
+   SF->FN.N_Neighb_max = 0;
 
-	/* allocate for Node Specs Matrix and First_Neighb structure*/
-	SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
-	/*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
-	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
-	SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
-	SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
-	
-	if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
-		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
-		SUMA_RETURN (NOPE);
-	} 
-	
-	/* Now read the node specs */
-	/*fprintf (stdout,"About to read specs\n");*/
-	cnt = 0;
-	while (ex != EOF && cnt < SF->N_Node_Specs)	{
-		ex = fscanf (sf_file,"%d %d %d %d %d %d",&(SF->Specs_mat[cnt][0]), &(SF->Specs_mat[cnt][1]), \
-				&(SF->Specs_mat[cnt][2]), &(SF->Specs_mat[cnt][3]), &(SF->Specs_mat[cnt][4]), &(SF->Specs_mat[cnt][5]));
-		SF->FN.NodeId[cnt] = SF->Specs_mat[cnt][0];
-		SF->FN.N_Neighb[cnt] = SF->Specs_mat[cnt][1];
-		if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
-			fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
-				FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
-			SUMA_RETURN (NOPE);
-		}
-		if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
-		
-		/* Now Read in the Neighbors info */
-		for (i=0; i < SF->FN.N_Neighb[cnt]; ++ i) {
-			ex = fscanf (sf_file,"%d %d", &jnk, &(SF->FN.FirstNeighb[cnt][i]));
-		}
-		/* seal with -1 */
-		SF->FN.FirstNeighb[cnt][SF->FN.N_Neighb[cnt]] = -1;
-		
-		++cnt;
-	}
-	if (cnt != SF->N_Node_Specs) {
-		fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
-		SUMA_RETURN (NOPE);
-	}
-	
+   /* allocate for Node Specs Matrix and First_Neighb structure*/
+   SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
+   /*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
+   SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
+   SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+   SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+   
+   if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
+      fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   } 
+   
+   /* Now read the node specs */
+   /*fprintf (stdout,"About to read specs\n");*/
+   cnt = 0;
+   while (ex != EOF && cnt < SF->N_Node_Specs)  {
+      ex = fscanf (sf_file,"%d %d %d %d %d %d",&(SF->Specs_mat[cnt][0]), &(SF->Specs_mat[cnt][1]), \
+            &(SF->Specs_mat[cnt][2]), &(SF->Specs_mat[cnt][3]), &(SF->Specs_mat[cnt][4]), &(SF->Specs_mat[cnt][5]));
+      SF->FN.NodeId[cnt] = SF->Specs_mat[cnt][0];
+      SF->FN.N_Neighb[cnt] = SF->Specs_mat[cnt][1];
+      if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
+         fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
+            FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
+         SUMA_RETURN (NOPE);
+      }
+      if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
+      
+      /* Now Read in the Neighbors info */
+      for (i=0; i < SF->FN.N_Neighb[cnt]; ++ i) {
+         ex = fscanf (sf_file,"%d %d", &jnk, &(SF->FN.FirstNeighb[cnt][i]));
+      }
+      /* seal with -1 */
+      SF->FN.FirstNeighb[cnt][SF->FN.N_Neighb[cnt]] = -1;
+      
+      ++cnt;
+   }
+   if (cnt != SF->N_Node_Specs) {
+      fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
+      SUMA_RETURN (NOPE);
+   }
+   
    FACESETS:
    
-	/*fprintf (stdout, "Done with Node Specs.\n");*/
-	ex = fscanf (sf_file,"%d", &(SF->N_FaceSet));
-	if (LocalHead) fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);
+   /*fprintf (stdout, "Done with Node Specs.\n");*/
+   ex = fscanf (sf_file,"%d", &(SF->N_FaceSet));
+   if (LocalHead) fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);
    if (SF->N_FaceSet < 3) {
       fprintf(SUMA_STDERR, "Error %s: Too few (%d) triangles.\n", FuncName, SF->N_FaceSet);
       SUMA_RETURN (NOPE);
    }
-	
-	NP = 3;
-	SF->FaceSetList = (int *) SUMA_calloc(SF->N_FaceSet * 3, sizeof(int));
-	if (SF->FaceSetList == NULL){
-		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->FaceSetList.\n", FuncName);
-		SUMA_RETURN (NOPE);
-	} 
-	
+   
+   NP = 3;
+   SF->FaceSetList = (int *) SUMA_calloc(SF->N_FaceSet * 3, sizeof(int));
+   if (SF->FaceSetList == NULL){
+      fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->FaceSetList.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   } 
+   
    /*fprintf (stdout,"About to read FaceSets\n");*/
-	cnt = 0;
-	while (ex != EOF && cnt < SF->N_FaceSet)	{
-		ip = NP * cnt;
-		ex = fscanf (sf_file,"%d %d %d ",&(SF->FaceSetList[ip]), &(SF->FaceSetList[ip+1]), \
-				&(SF->FaceSetList[ip+2]));
-		++cnt;
-	}
-	if (cnt != SF->N_FaceSet) {
-		fprintf(SUMA_STDERR, "Error %s: Expecting %d FaceSets, read %d.\n", FuncName, SF->N_FaceSet, cnt);
-		SUMA_RETURN (NOPE);
-	}
-	fclose (sf_file);
-	
+   cnt = 0;
+   while (ex != EOF && cnt < SF->N_FaceSet)  {
+      ip = NP * cnt;
+      ex = fscanf (sf_file,"%d %d %d ",&(SF->FaceSetList[ip]), &(SF->FaceSetList[ip+1]), \
+            &(SF->FaceSetList[ip+2]));
+      ++cnt;
+   }
+   if (cnt != SF->N_FaceSet) {
+      fprintf(SUMA_STDERR, "Error %s: Expecting %d FaceSets, read %d.\n", FuncName, SF->N_FaceSet, cnt);
+      SUMA_RETURN (NOPE);
+   }
+   fclose (sf_file);
+   
 SUMA_RETURN (YUP);
 }/*SUMA_SureFit_Read_Topo_old*/
 
@@ -1220,22 +1220,22 @@ SUMA_RETURN (YUP);
 Show data structure containing SureFit surface object
 */
 void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
-{	int cnt, id, ND, NP;
-	static char FuncName[]={"SUMA_Show_SureFit"};
-	
-	SUMA_ENTRY;
+{  int cnt, id, ND, NP;
+   static char FuncName[]={"SUMA_Show_SureFit"};
+   
+   SUMA_ENTRY;
 
-	ND = 3;
-	NP = 3;
-	if (Out == NULL) Out = SUMA_STDOUT;
+   ND = 3;
+   NP = 3;
+   if (Out == NULL) Out = SUMA_STDOUT;
    fprintf (Out, "\n%s: Coord Info\n", SF->name_coord);
-	fprintf (Out, "caret-version %f\n", SF->caret_version);
-	fprintf (Out, "N_Node %d\n", SF->N_Node);
-	fprintf (Out, "encoding_coord: %s\nconfiguration id: %s, coordframe_id: %s \n", SF->encoding_coord,SF->configuration_id, SF->coordframe_id);
-	if (!SF->NodeId) {
+   fprintf (Out, "caret-version %f\n", SF->caret_version);
+   fprintf (Out, "N_Node %d\n", SF->N_Node);
+   fprintf (Out, "encoding_coord: %s\nconfiguration id: %s, coordframe_id: %s \n", SF->encoding_coord,SF->configuration_id, SF->coordframe_id);
+   if (!SF->NodeId) {
       fprintf (Out, "NULL NodeId:\n");
    }
-	if (!SF->allzerocoord) {
+   if (!SF->allzerocoord) {
       fprintf (Out, "NULL allzerocoord:\n");
    }
    if (!SF->NodeList) {
@@ -1243,72 +1243,72 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
    }
    if (SF->NodeId && SF->NodeList) {
       fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", 
-		   SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
-		   SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
-	   if (SF->N_Node > 2) {
+         SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
+         SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
+      if (SF->N_Node > 2) {
          fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		      SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
-		      SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
-	   }
+            SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
+            SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
+      }
    } 
    fprintf (Out, "\n%s: Topo Info\n", SF->name_topo);
-	fprintf (Out, "N_Node_Specs %d\n", SF->N_Node_Specs);
-	fprintf (Out, "ecnoding_topo: %s, date %s\n",  SF->encoding_topo, SF->date);
-	fprintf (Out, "N_FaceSet %d\n", SF->N_FaceSet);
-	if (!SF->FaceSetList) {
+   fprintf (Out, "N_Node_Specs %d\n", SF->N_Node_Specs);
+   fprintf (Out, "ecnoding_topo: %s, date %s\n",  SF->encoding_topo, SF->date);
+   fprintf (Out, "N_FaceSet %d\n", SF->N_FaceSet);
+   if (!SF->FaceSetList) {
       fprintf (Out, "NULL SF->FaceSetList:\n");
    }
    if (SF->N_FaceSet > 2 && SF->FaceSetList) {
-	   fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n",
-		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
-		   SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
+      fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n",
+         SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
+         SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
       fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", 
-		         SF->FaceSetList[NP*(SF->N_FaceSet-2)],    
+               SF->FaceSetList[NP*(SF->N_FaceSet-2)],    
                SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], 
                SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
-		         SF->FaceSetList[NP*(SF->N_FaceSet-1)], 
+               SF->FaceSetList[NP*(SF->N_FaceSet-1)], 
                SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], 
                SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
-	} else if (SF->FaceSetList){
+   } else if (SF->FaceSetList){
       fprintf (Out, "First polygon:\n\t%d %d %d\n", 
-		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2] );
+         SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2] );
    }
    fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
-	if (SF->Specs_mat) {
+   if (SF->Specs_mat) {
       fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", 
-	            SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], 
+               SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], 
                SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
-	} else {
+   } else {
       fprintf (Out, "NULL SF->Specs_mat\n");
    }
    if (SF->FN.FirstNeighb) {
       cnt = 0;
-	   while (cnt < SF->FN.N_Neighb[0]) {
-		   fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[0][cnt]); 
-		   ++cnt;
-	   }
+      while (cnt < SF->FN.N_Neighb[0]) {
+         fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[0][cnt]); 
+         ++cnt;
+      }
    } else {
       fprintf (Out, "NULL SF->FN.FirstNeighb\n");
    }
-	if (SF->Specs_mat) {
+   if (SF->Specs_mat) {
       fprintf (Out, "Last Entry: \t%d %d %d %d %d %d\n", 
-		   SF->Specs_mat[SF->N_Node_Specs-1][0], 
+         SF->Specs_mat[SF->N_Node_Specs-1][0], 
          SF->Specs_mat[SF->N_Node_Specs-1][1],
          SF->Specs_mat[SF->N_Node_Specs-1][2],
-		   SF->Specs_mat[SF->N_Node_Specs-1][3],
+         SF->Specs_mat[SF->N_Node_Specs-1][3],
          SF->Specs_mat[SF->N_Node_Specs-1][4], 
          SF->Specs_mat[SF->N_Node_Specs-1][5]);
-	} 
+   } 
    if (SF->FN.N_Neighb) {
       cnt = 0;
-	   while (cnt < SF->FN.N_Neighb[SF->N_Node_Specs-1]) {
-		   fprintf (Out, "\t%d %d\n", 
+      while (cnt < SF->FN.N_Neighb[SF->N_Node_Specs-1]) {
+         fprintf (Out, "\t%d %d\n", 
                   cnt, SF->FN.FirstNeighb[SF->N_Node_Specs-1][cnt]); 
-		   ++cnt;
-	   }
+         ++cnt;
+      }
    }
 
-	SUMA_RETURNe;
+   SUMA_RETURNe;
 }
 
 /*!
@@ -1431,20 +1431,20 @@ SUMA_Boolean SUMA_SureFit_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
       fprintf (outFile, "BeginHeader\ndate NA\nencoding ASCII\n"
                         "perimeter_id NA\nEndHeader\n");
       fprintf (outFile,"%d\n", SO->N_Node);
-	   j = 0;
-	   while (j < SO->FN->N_Node)	{
+      j = 0;
+      while (j < SO->FN->N_Node) {
          /* dunno what last 4 ints of upcoming line are */
-		   fprintf (outFile,
+         fprintf (outFile,
                   "%d %d 0 0 0 0\n", SO->FN->NodeId[j], SO->FN->N_Neighb[j]);
 
-		   /* Now write the Neighbors info */
-		   for (i=0; i < SO->FN->N_Neighb[j]; ++ i) {
-			   fprintf (outFile,"%d %d\n", i, SO->FN->FirstNeighb[j][i]);
-		   }
-		   ++j;
-	   }
+         /* Now write the Neighbors info */
+         for (i=0; i < SO->FN->N_Neighb[j]; ++ i) {
+            fprintf (outFile,"%d %d\n", i, SO->FN->FirstNeighb[j][i]);
+         }
+         ++j;
+      }
 
-	   fprintf (outFile,"%d\n", SO->N_FaceSet);
+      fprintf (outFile,"%d\n", SO->N_FaceSet);
 
       j=0;
       for (i=0; i<SO->N_FaceSet; ++i) {
@@ -1466,30 +1466,30 @@ free data structure containing SureFit surface object
 */
 SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)  
 {
-	static char FuncName[]={"SUMA_Free_SureFit"};
-	SUMA_Boolean LocalHead = NOPE;
+   static char FuncName[]={"SUMA_Free_SureFit"};
+   SUMA_Boolean LocalHead = NOPE;
    
-	SUMA_ENTRY;
+   SUMA_ENTRY;
 
-	if (!SF) SUMA_RETURN (YUP);
+   if (!SF) SUMA_RETURN (YUP);
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%p, %p, %p, %p, %p, %p, %p\n", 
          SF->NodeList, SF->NodeId, SF->Specs_mat, SF->FN.FirstNeighb,
          SF->FN.N_Neighb, SF->FN.NodeId, SF->FaceSetList);
    }
    if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
-	if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
-	if (SF->allzerocoord != NULL) SUMA_free(SF->allzerocoord);
-	if (SF->Specs_mat != NULL) 
+   if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
+   if (SF->allzerocoord != NULL) SUMA_free(SF->allzerocoord);
+   if (SF->Specs_mat != NULL) 
       SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
-	if (SF->FN.FirstNeighb != NULL) 
+   if (SF->FN.FirstNeighb != NULL) 
       SUMA_free2D((char **)SF->FN.FirstNeighb, SF->FN.N_Node);
-	if (SF->FN.N_Neighb != NULL) SUMA_free(SF->FN.N_Neighb);
-	if (SF->FN.NodeId != NULL) SUMA_free(SF->FN.NodeId);
-	if (SF->FaceSetList != NULL) SUMA_free(SF->FaceSetList);
-	if (SF!= NULL) SUMA_free(SF);
-	
-	SUMA_RETURN (YUP);
+   if (SF->FN.N_Neighb != NULL) SUMA_free(SF->FN.N_Neighb);
+   if (SF->FN.NodeId != NULL) SUMA_free(SF->FN.NodeId);
+   if (SF->FaceSetList != NULL) SUMA_free(SF->FaceSetList);
+   if (SF!= NULL) SUMA_free(SF);
+   
+   SUMA_RETURN (YUP);
 }
 
 /*!
@@ -1497,272 +1497,272 @@ Read in some parameters from a .param file
 */
 SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 {
-	static char FuncName[]={"SUMA_Read_SureFit_Param"};
-	int ex, evl; 
+   static char FuncName[]={"SUMA_Read_SureFit_Param"};
+   int ex, evl; 
    FILE *sf_file;
-	SUMA_Boolean Done;
-	char delimstr[] = {' ', '\0'}, stmp[100], s[1000], *st;
+   SUMA_Boolean Done;
+   char delimstr[] = {' ', '\0'}, stmp[100], s[1000], *st;
    SUMA_Boolean LocalHead = NOPE;
    
-	SUMA_ENTRY;
+   SUMA_ENTRY;
 
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
-		SUMA_RETURN (NOPE);
-	}
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+      SUMA_RETURN (NOPE);
+   }
 
-	sprintf(SF->name_param, "%s", f_name);
+   sprintf(SF->name_param, "%s", f_name);
 
-	/* start reading */
-	sf_file = fopen (f_name,"r");
-	if (sf_file == NULL)
-		{
-			fprintf (SUMA_STDERR,"Error %s: Could not open input file ",FuncName);
-			SUMA_RETURN (NOPE);
-		}
+   /* start reading */
+   sf_file = fopen (f_name,"r");
+   if (sf_file == NULL)
+      {
+         fprintf (SUMA_STDERR,"Error %s: Could not open input file ",FuncName);
+         SUMA_RETURN (NOPE);
+      }
 
-	/* read until you reach something you like */
-	SF->AC_WholeVolume[0] = SF->AC_WholeVolume[1] = SF->AC_WholeVolume[2] = 0.0f;
-	SF->AC[0] = SF->AC[1] = SF->AC[2] = 0.0f; 
+   /* read until you reach something you like */
+   SF->AC_WholeVolume[0] = SF->AC_WholeVolume[1] = SF->AC_WholeVolume[2] = 0.0f;
+   SF->AC[0] = SF->AC[1] = SF->AC[2] = 0.0f; 
    SF->CropMax[0] = SF->CropMax[1] = SF->CropMax[2] = 0.0f;
    SF->CropMin[0] = SF->CropMin[1] = SF->CropMin[2] = 0.0f;
    
    ex = 1;
-	Done = NOPE;			
-	sprintf(delimstr,"=");
-	while (ex != EOF && !Done)
-	{
-		ex = fscanf (sf_file,"%s",s);
-		if (LocalHead) fprintf(SUMA_STDERR, "Working >>>%s<<<\n", s);
-		sprintf(stmp,"ACx_WholeVolume");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACx_WholeVolume */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACx_WholeVolume:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+   Done = NOPE;         
+   sprintf(delimstr,"=");
+   while (ex != EOF && !Done)
+   {
+      ex = fscanf (sf_file,"%s",s);
+      if (LocalHead) fprintf(SUMA_STDERR, "Working >>>%s<<<\n", s);
+      sprintf(stmp,"ACx_WholeVolume");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACx_WholeVolume */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACx_WholeVolume:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC_WholeVolume[0] = atof(st);
-			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[0]);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[0]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
-		sprintf(stmp,"ACy_WholeVolume");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACy_WholeVolume */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACy_WholeVolume:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+         continue;
+      }
+      sprintf(stmp,"ACy_WholeVolume");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACy_WholeVolume */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACy_WholeVolume:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC_WholeVolume[1] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[1]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			
-			continue;
-		}
-		sprintf(stmp,"ACz_WholeVolume");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACz_WholeVolume */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACz_WholeVolume:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+         
+         continue;
+      }
+      sprintf(stmp,"ACz_WholeVolume");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACz_WholeVolume */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACz_WholeVolume:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC_WholeVolume[2] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[2]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
-		 
-		sprintf(stmp,"ACx");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACx */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACx:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+         continue;
+      }
+       
+      sprintf(stmp,"ACx");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACx */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACx:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC[0] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[0]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
-		sprintf(stmp,"ACy");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACy */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACy:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+         continue;
+      }
+      sprintf(stmp,"ACy");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACy */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACy:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC[1] = atof(st);
-			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[1]);
-			} else {
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[1]);
+         } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
          continue;
-		}
-		sprintf(stmp,"ACz");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found ACz */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found ACz:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      }
+      sprintf(stmp,"ACz");
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found ACz */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found ACz:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->AC[2] = atof(st);
-			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[2]);
-			} else {
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[2]);
+         } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
          continue;
-		}
-		
+      }
+      
       sprintf(stmp,"CropMinX");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMinX */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinX:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMinX */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinX:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMin[0] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[0]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
+         continue;
+      }
       sprintf(stmp,"CropMinY");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMinY */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinY:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMinY */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinY:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMin[1] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[1]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
+         continue;
+      }
       sprintf(stmp,"CropMinZ");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMinZ */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinZ:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMinZ */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinZ:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMin[2] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[2]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
-		
+         continue;
+      }
+      
       sprintf(stmp,"CropMaxX");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMaxX */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxX:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMaxX */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxX:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMax[0] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[0]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
+         continue;
+      }
       sprintf(stmp,"CropMaxY");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMaxY */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxY:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMaxY */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxY:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMax[1] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[1]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
+         continue;
+      }
       sprintf(stmp,"CropMaxZ");
-		evl = SUMA_iswordin (s,stmp);
-		if (evl == 1) {
-			/* found  CropMaxZ */
-			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxZ:");
-			/* go past the = sign and grab the value */
-			st = strtok(s, delimstr);
-			st = strtok(NULL, delimstr);
-			if (st) {
+      evl = SUMA_iswordin (s,stmp);
+      if (evl == 1) {
+         /* found  CropMaxZ */
+         if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxZ:");
+         /* go past the = sign and grab the value */
+         st = strtok(s, delimstr);
+         st = strtok(NULL, delimstr);
+         if (st) {
             SF->CropMax[2] = atof(st);
             if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[2]);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
-			continue;
-		}
-		
-	}
-	
-	fclose(sf_file);
-	
-	/* Sanity Checks */
-	if (SF->AC[0] == 0.0f && SF->AC[1] == 0.0f && SF->AC[2] == 0.0f) {
-		if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC are 0.0.\n", FuncName);
-		/* SUMA_RETURN (NOPE); */
-	}
-	
-	if (SF->AC_WholeVolume[0] == 0.0f && SF->AC_WholeVolume[1] == 0.0f && SF->AC_WholeVolume[2] == 0.0f) {
-		if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC_WholeVolume are 0.0. \n", FuncName);
-		/* SUMA_RETURN (NOPE); */
-	}
-	
-	if (SF->AC[0] == SF->AC_WholeVolume[0] && SF->AC[1] == SF->AC_WholeVolume[1] && SF->AC[2] == SF->AC_WholeVolume[2])
-	{
-		if (SF->caret_version < 5.2) SUMA_SL_Warn("Idetincal values for AC and AC_WholeVolume.\nCheck your params file if not using Talairach-ed surfaces.\n");
+         continue;
+      }
+      
+   }
+   
+   fclose(sf_file);
+   
+   /* Sanity Checks */
+   if (SF->AC[0] == 0.0f && SF->AC[1] == 0.0f && SF->AC[2] == 0.0f) {
+      if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC are 0.0.\n", FuncName);
+      /* SUMA_RETURN (NOPE); */
+   }
+   
+   if (SF->AC_WholeVolume[0] == 0.0f && SF->AC_WholeVolume[1] == 0.0f && SF->AC_WholeVolume[2] == 0.0f) {
+      if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC_WholeVolume are 0.0. \n", FuncName);
+      /* SUMA_RETURN (NOPE); */
+   }
+   
+   if (SF->AC[0] == SF->AC_WholeVolume[0] && SF->AC[1] == SF->AC_WholeVolume[1] && SF->AC[2] == SF->AC_WholeVolume[2])
+   {
+      if (SF->caret_version < 5.2) SUMA_SL_Warn("Idetincal values for AC and AC_WholeVolume.\nCheck your params file if not using Talairach-ed surfaces.\n");
       /* looks like that's OK for TLRC surfaces ...*/
       /*
       fprintf (SUMA_STDERR,"Error %s: Idetincal values for AC and AC_WholeVolume. Check your params file.\n", FuncName);
-		SUMA_RETURN (NOPE);
+      SUMA_RETURN (NOPE);
       */
-	}
-	if (SF->AC[0] < 0.0f || SF->AC[1] < 0.0f || SF->AC[2] < 0.0f || SF->AC_WholeVolume[0] < 0.0f || SF->AC_WholeVolume[1] < 0.0f || SF->AC_WholeVolume[2] < 0.0f) 
-	{
-		fprintf (SUMA_STDERR,"Error %s: Negative values in AC or AC_WholeVolume. Check your params file.\n", FuncName);
-		SUMA_RETURN (NOPE);
-	}
-	
-	SUMA_RETURN (YUP);
+   }
+   if (SF->AC[0] < 0.0f || SF->AC[1] < 0.0f || SF->AC[2] < 0.0f || SF->AC_WholeVolume[0] < 0.0f || SF->AC_WholeVolume[1] < 0.0f || SF->AC_WholeVolume[2] < 0.0f) 
+   {
+      fprintf (SUMA_STDERR,"Error %s: Negative values in AC or AC_WholeVolume. Check your params file.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   SUMA_RETURN (YUP);
 }
 
 
@@ -2249,15 +2249,15 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
    if (dsetp) *dsetp=NULL;
    
    /* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		SUMA_S_Errv("File %s does not exist or cannot be read.\n", 
+   if (!SUMA_filexists(f_name)) {
+      SUMA_S_Errv("File %s does not exist or cannot be read.\n", 
                   f_name);
-		SUMA_RETURN (NOPE);
-	}else if (LocalHead) {
-		fprintf( SUMA_STDERR,
+      SUMA_RETURN (NOPE);
+   }else if (LocalHead) {
+      fprintf( SUMA_STDERR,
                "%s: File %s exists and will be read.\n", 
                FuncName, f_name);
-	}
+   }
    
    if (ctfile) {
       if (!(SUMA_readFScolorLUT(ctfile, &ct))) {
@@ -2271,7 +2271,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
          fprintf( SUMA_STDERR,
                   "Error %s: File %s exists, will not overwrite.\n", 
                   FuncName, f_ROI);
-	      SUMA_RETURN (NOPE);
+         SUMA_RETURN (NOPE);
       }else {
          fr = fopen(f_ROI, "w");
          if (!fr) {
@@ -2286,7 +2286,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
          fprintf( SUMA_STDERR,
                   "Error %s: File %s exists, will not overwrite.\n", 
                   FuncName, f_cmap);
-	      SUMA_RETURN (NOPE);
+         SUMA_RETURN (NOPE);
       }else {
          fc = fopen(f_cmap, "w");
          if (!fc) {
@@ -2301,7 +2301,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
          fprintf(SUMA_STDERR,
                  "Error %s: File %s exists, will not overwrite.\n", 
                  FuncName, f_col);
-	      SUMA_RETURN (NOPE);
+         SUMA_RETURN (NOPE);
       }else {
          fo = fopen(f_col, "w");
          if (!fo) {
@@ -2626,16 +2626,16 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols,
    SUMA_ENTRY;
    
    /* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		SUMA_S_Errv("File %s does not exist or cannot be read.\n", f_name);
-		SUMA_RETURN (NULL);
-	}else if (LocalHead) {
-		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", 
+   if (!SUMA_filexists(f_name)) {
+      SUMA_S_Errv("File %s does not exist or cannot be read.\n", f_name);
+      SUMA_RETURN (NULL);
+   }else if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", 
               FuncName, f_name);
-	}
+   }
    
    if (SkipCoords) *ncols = 2;
-   else *ncols = 5; /* constant */	
+   else *ncols = 5; /* constant */  
 
    if (*ncols !=2 && *ncols != 5) {
       SUMA_SL_Crit("ncols must be either 2 or 5");
@@ -2682,7 +2682,7 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols,
    if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
 
    if (rowmajor) {
-	   if (*ncols == 5) {
+      if (*ncols == 5) {
          SUMA_LH("RowMajor, All Coords");
          for (i=0; i< *nrows; ++i) {
             id = *ncols*i;
@@ -2701,7 +2701,7 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols,
          }
       } 
    } else {
-	   if (*ncols == 5) {
+      if (*ncols == 5) {
          SUMA_LH("ColMajor, All Coords");
          for (i=0; i<*ncols * *nrows; ++i) v[i] = far[i];
       } else if (*ncols == 2) {
@@ -2734,13 +2734,13 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 /*!**  
 Usage : 
 Ret = SUMA_FreeSurfer_Read_eng (surfname, FreeSurfer, debug)
-	
-	For a full surface definition, it is assumed that the first line can be a comment.
-	The second line contains the number of nodes followed by the number of FaceSets
-	The NodeList follows with X Y Z 0
-	The FaceSetList follows with i1 i2 i3 0
    
-	
+   For a full surface definition, it is assumed that the first line can be a comment.
+   The second line contains the number of nodes followed by the number of FaceSets
+   The NodeList follows with X Y Z 0
+   The FaceSetList follows with i1 i2 i3 0
+   
+   
 Input paramters : 
 \param surfname (char *) name of surface (or patch) file output by:
         mris_convert <surface_name> <surface_name.asc>
@@ -2765,155 +2765,155 @@ Side effects :
 ***/
 SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
 {/*SUMA_FreeSurfer_Read_eng*/
-	static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
+   static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
    char stmp[50]; 
    FILE *fs_file;
-	int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
-	float jnkf, *NodeList;
-	char c;
-	SUMA_Boolean LocalHead = NOPE;
-	   
-	SUMA_ENTRY;
+   int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
+   float jnkf, *NodeList;
+   char c;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
 
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}else if ( debug > 1) {
-		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
-	}
-	
-	
-	/* start reading */
-	fs_file = fopen (f_name,"r");
-	if (fs_file == NULL)
-		{
-			SUMA_error_message (FuncName,"Could not open input file ",0);
-			SUMA_RETURN (NOPE);
-		}
-
-	sprintf(FS->name, "%s", f_name);
-	
-	/* read first character and check if it is a comment */
-	ex = fscanf (fs_file,"%c",&c);
-	if (LocalHead) fprintf (SUMA_STDOUT, "%s: --->%c<---\n", FuncName, c);
-   if (c == '#') {
-		if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
-		
-      /*skip till next line */
-		cnt = 0;
-		FS->comment[cnt] = '#'; 
-		while (ex != EOF && c != '\n') {
-			ex = fscanf (fs_file,"%c",&c);
-			if (cnt < SUMA_MAX_STRING_LENGTH-2) {
-				++cnt;
-				FS->comment[cnt] = c;
-			} else {
-				fprintf(SUMA_STDERR,"Error %s: Too long a comment in FS file, increase SUMA_FS_MAX_COMMENT_LENGTH\n", FuncName);
-				SUMA_RETURN (NOPE);
-			}
-		}
-      ++cnt;
-		FS->comment[cnt] = '\0';
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Comment:-->%s<--", FuncName, FS->comment);
-	}
-	
-	/* find out if surface is patch */
-	sprintf(stmp,"patch");
-	if (SUMA_iswordin (FS->comment, stmp) == 1) {
-		FS->isPatch = YUP;
-	   SUMA_LH("is patch");
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }else if ( debug > 1) {
+      fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
    }
-	else {
-		FS->isPatch = NOPE;
+   
+   
+   /* start reading */
+   fs_file = fopen (f_name,"r");
+   if (fs_file == NULL)
+      {
+         SUMA_error_message (FuncName,"Could not open input file ",0);
+         SUMA_RETURN (NOPE);
+      }
+
+   sprintf(FS->name, "%s", f_name);
+   
+   /* read first character and check if it is a comment */
+   ex = fscanf (fs_file,"%c",&c);
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: --->%c<---\n", FuncName, c);
+   if (c == '#') {
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
+      
+      /*skip till next line */
+      cnt = 0;
+      FS->comment[cnt] = '#'; 
+      while (ex != EOF && c != '\n') {
+         ex = fscanf (fs_file,"%c",&c);
+         if (cnt < SUMA_MAX_STRING_LENGTH-2) {
+            ++cnt;
+            FS->comment[cnt] = c;
+         } else {
+            fprintf(SUMA_STDERR,"Error %s: Too long a comment in FS file, increase SUMA_FS_MAX_COMMENT_LENGTH\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+      }
+      ++cnt;
+      FS->comment[cnt] = '\0';
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Comment:-->%s<--", FuncName, FS->comment);
+   }
+   
+   /* find out if surface is patch */
+   sprintf(stmp,"patch");
+   if (SUMA_iswordin (FS->comment, stmp) == 1) {
+      FS->isPatch = YUP;
+      SUMA_LH("is patch");
+   }
+   else {
+      FS->isPatch = NOPE;
       SUMA_LH("ain't patch");
-	}
-		
-	/* read in the number of nodes and the number of facesets */
-	ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
-	
+   }
+      
+   /* read in the number of nodes and the number of facesets */
+   ex = fscanf(fs_file, "%d %d", &(FS->N_Node), &(FS->N_FaceSet));
+   
    if (FS->N_Node <= 0 || FS->N_FaceSet <= 0) {
       SUMA_SL_Crit("Trouble parsing FreeSurfer file.\nNull or negative number of nodes &/| facesets.\n");
       SUMA_RETURN(NOPE);
    }
    
-	if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for NodeList (%dx3) and FaceSetList(%dx3)\n", FuncName, FS->N_Node, FS->N_FaceSet);
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for NodeList (%dx3) and FaceSetList(%dx3)\n", FuncName, FS->N_Node, FS->N_FaceSet);
    
    /* allocate space for NodeList and FaceSetList */
-	FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
-	FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
-	FS->NodeId = (int *)SUMA_calloc(FS->N_Node, sizeof(int));
-	if (FS->NodeList == NULL || FS->FaceSetList == NULL || FS->NodeId == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->NodeList &/| FS->FaceSetList &/| FS->NodeId\n", FuncName);
-		SUMA_RETURN (NOPE);
-	} 
-	if (FS->isPatch) {
-		FS->FaceSetIndexInParent = (int *)SUMA_calloc(FS->N_FaceSet, sizeof(int));
-		if (FS->FaceSetIndexInParent == NULL) {
-			fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->FaceSetIndexInParent\n", FuncName);
-			SUMA_RETURN (NOPE);
-		}
-	} else {
-		FS->FaceSetIndexInParent = NULL;
-	}
-	
-	if (!FS->isPatch) {
-	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading full surface...\n", FuncName);
-		/* read in the nodes */
-		cnt = 0;
-		while (ex != EOF && cnt < FS->N_Node) {
-			FS->NodeId[cnt] = cnt;
-			id = 3 * cnt;
-			ex = fscanf(fs_file, "%f %f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]), &jnkf);
-			++cnt;
-		}
-		if (cnt != FS->N_Node) {
-			fprintf(SUMA_STDERR,"Error %s: File %s; Expected %d nodes, %d read.\n", FuncName, f_name, FS->N_Node, cnt);
-			SUMA_RETURN (NOPE);
-		}
+   FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
+   FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
+   FS->NodeId = (int *)SUMA_calloc(FS->N_Node, sizeof(int));
+   if (FS->NodeList == NULL || FS->FaceSetList == NULL || FS->NodeId == NULL) {
+      fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->NodeList &/| FS->FaceSetList &/| FS->NodeId\n", FuncName);
+      SUMA_RETURN (NOPE);
+   } 
+   if (FS->isPatch) {
+      FS->FaceSetIndexInParent = (int *)SUMA_calloc(FS->N_FaceSet, sizeof(int));
+      if (FS->FaceSetIndexInParent == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: Could not allocate for FS->FaceSetIndexInParent\n", FuncName);
+         SUMA_RETURN (NOPE);
+      }
+   } else {
+      FS->FaceSetIndexInParent = NULL;
+   }
+   
+   if (!FS->isPatch) {
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading full surface...\n", FuncName);
+      /* read in the nodes */
+      cnt = 0;
+      while (ex != EOF && cnt < FS->N_Node) {
+         FS->NodeId[cnt] = cnt;
+         id = 3 * cnt;
+         ex = fscanf(fs_file, "%f %f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]), &jnkf);
+         ++cnt;
+      }
+      if (cnt != FS->N_Node) {
+         fprintf(SUMA_STDERR,"Error %s: File %s; Expected %d nodes, %d read.\n", FuncName, f_name, FS->N_Node, cnt);
+         SUMA_RETURN (NOPE);
+      }
 
-		/* read in the facesets */
-		cnt = 0;
-		while (ex != EOF && cnt < FS->N_FaceSet) {
-			ip = 3 * cnt;
-			ex = fscanf(fs_file, "%d %d %d %d", &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]), &jnki);
-			++cnt;
-		}
-		if (cnt != FS->N_FaceSet) {
-			fprintf(SUMA_STDERR,"Error %s: File %s; expected %d FaceSets, %d read.\n", FuncName, f_name, FS->N_FaceSet, cnt);
-			SUMA_RETURN (NOPE);
-		}
-	} /* read a full surface */
-	else { /* that's a patch */
-	   #if 0 /* old way, simple parsing ... */
+      /* read in the facesets */
+      cnt = 0;
+      while (ex != EOF && cnt < FS->N_FaceSet) {
+         ip = 3 * cnt;
+         ex = fscanf(fs_file, "%d %d %d %d", &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]), &jnki);
+         ++cnt;
+      }
+      if (cnt != FS->N_FaceSet) {
+         fprintf(SUMA_STDERR,"Error %s: File %s; expected %d FaceSets, %d read.\n", FuncName, f_name, FS->N_FaceSet, cnt);
+         SUMA_RETURN (NOPE);
+      }
+   } /* read a full surface */
+   else { /* that's a patch */
+      #if 0 /* old way, simple parsing ... */
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch olde way...\n", FuncName);
-		   /* Node IDs are a reference to those in the parent surface */
-		   cnt = 0;
+         /* Node IDs are a reference to those in the parent surface */
+         cnt = 0;
          while (ex != EOF && cnt < FS->N_Node) {
-			   ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
-			   id = 3 * cnt;
+            ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
+            id = 3 * cnt;
             /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
-			   ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]),&(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
-			   ++cnt;
-		   }
+            ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]),&(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
+            ++cnt;
+         }
          if (cnt != FS->N_Node) {
-			   fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
-			   SUMA_RETURN (NOPE);
-		   }
+            fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
+            SUMA_RETURN (NOPE);
+         }
 
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
-		   /* read in the facesets */
-		   cnt = 0;
-		   while (ex != EOF && cnt < FS->N_FaceSet) {
-			   ex = fscanf(fs_file, "%d", &(FS->FaceSetIndexInParent[cnt]));
-			   ip = 3 * cnt;
-			   ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]));
-			   ++cnt;
-		   }
-		   if (cnt != FS->N_FaceSet) {
-			   fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
-			   SUMA_RETURN (NOPE);
-		   }
+         /* read in the facesets */
+         cnt = 0;
+         while (ex != EOF && cnt < FS->N_FaceSet) {
+            ex = fscanf(fs_file, "%d", &(FS->FaceSetIndexInParent[cnt]));
+            ip = 3 * cnt;
+            ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]));
+            ++cnt;
+         }
+         if (cnt != FS->N_FaceSet) {
+            fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
+            SUMA_RETURN (NOPE);
+         }
       #else 
       {
          char *fl=NULL, *eop=NULL, *florig=NULL;
@@ -2940,51 +2940,51 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
          SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); ptri = (int)dbuf;
          
          /* Node IDs are a reference to those in the parent surface */
-		   Found = 1;
+         Found = 1;
          cnt = 0;
          while (Found && cnt < FS->N_Node) {
-			   eop = fl+50; /* don't you dare use (fl+50) instead of eop below!, else you will serch till the end all the time!
+            eop = fl+50; /* don't you dare use (fl+50) instead of eop below!, else you will serch till the end all the time!
                            Macro Danger! */
             SUMA_ADVANCE_PAST(fl, eop,"vno=",Found,0);  /* The new patch format ... */
             SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeId[cnt] = (int)dbuf;
-			   id = 3 * cnt;
+            id = 3 * cnt;
             /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
-			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id] = (float)dbuf;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id] = (float)dbuf;
             SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id+1] = (float)dbuf;
             SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id+2] = (float)dbuf;
-			   ++cnt;
-		   }
+            ++cnt;
+         }
          if (cnt != FS->N_Node) {
-			   fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
-			   SUMA_RETURN (NOPE);
-		   }
+            fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
+            SUMA_RETURN (NOPE);
+         }
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
-		   /* read in the facesets */
-		   Found = 1;
-		   cnt = 0;
+         /* read in the facesets */
+         Found = 1;
+         cnt = 0;
          while (Found && cnt < FS->N_FaceSet) {
-			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetIndexInParent[cnt] = (int)dbuf;
-			   ip = 3 * cnt;
-			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip  ] = (int)dbuf;
-			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+1] = (int)dbuf;
-			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+2] = (int)dbuf;
-			   ++cnt;
-		   }
-		   if (cnt != FS->N_FaceSet) {
-			   fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
-			   SUMA_RETURN (NOPE);
-		   }
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetIndexInParent[cnt] = (int)dbuf;
+            ip = 3 * cnt;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip  ] = (int)dbuf;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+1] = (int)dbuf;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+2] = (int)dbuf;
+            ++cnt;
+         }
+         if (cnt != FS->N_FaceSet) {
+            fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
+            SUMA_RETURN (NOPE);
+         }
          SUMA_free(florig); fl = florig = NULL; /*  */
       }   
       #endif   
       
-		/* The FaceSet List which will be read next, uses indices into the NodeList of the parent surface
-		This means that it expects a NodeList of the size of the NodeList in the parent surface. 
-		One could read the maximum number of nodes in the parent surface and create a NodeList of that size.
-		However, that would require keeping track of the link between the patch file and the parent file.
-		Instead, I will search through the FaceSetList for the highest index and allocate a new nodelist to match it*/
+      /* The FaceSet List which will be read next, uses indices into the NodeList of the parent surface
+      This means that it expects a NodeList of the size of the NodeList in the parent surface. 
+      One could read the maximum number of nodes in the parent surface and create a NodeList of that size.
+      However, that would require keeping track of the link between the patch file and the parent file.
+      Instead, I will search through the FaceSetList for the highest index and allocate a new nodelist to match it*/
       
-		SUMA_MAX_VEC(FS->FaceSetList, FS->N_FaceSet * 3, maxamax); ++maxamax;
+      SUMA_MAX_VEC(FS->FaceSetList, FS->N_FaceSet * 3, maxamax); ++maxamax;
       /* make sure that the node list does not refer to nodes of an index higher than that in NodeId */
       SUMA_MAX_VEC(FS->NodeId, FS->N_Node, maxamax2); ++maxamax2;
       if (maxamax2 > maxamax) {
@@ -2994,43 +2994,43 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
       if (LocalHead) fprintf (SUMA_STDOUT, "%s: Copying NodeList, allocating for new nodelist %dx3 elements...\n", \
          FuncName, maxamax);
          
-		NodeList = (float *)SUMA_calloc(maxamax * 3, sizeof(float));
-		NodeId = (int *)SUMA_calloc (maxamax, sizeof(int));
+      NodeList = (float *)SUMA_calloc(maxamax * 3, sizeof(float));
+      NodeId = (int *)SUMA_calloc (maxamax, sizeof(int));
       
       if (NodeList == NULL || NodeId == NULL)
-		{
-			fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList or NodeId\n", FuncName);
-			SUMA_RETURN (NOPE);
-		} 
-		/*Now copy pertinent nodes into NodeList */
-		
+      {
+         fprintf(SUMA_STDERR,"Error %s: Could not allocate for NodeList or NodeId\n", FuncName);
+         SUMA_RETURN (NOPE);
+      } 
+      /*Now copy pertinent nodes into NodeList */
+      
       for (cnt=0; cnt< FS->N_Node; ++cnt) {
-			id = 3*cnt; 
-			id2 = 3*FS->NodeId[cnt];
+         id = 3*cnt; 
+         id2 = 3*FS->NodeId[cnt];
          /* fprintf (SUMA_STDERR, "%s: id = %d id2 = %d\n", FuncName, id, id2); */
-			NodeList[id2] = FS->NodeList[id];
-			NodeList[id2+1] = FS->NodeList[id+1];
-			NodeList[id2+2] = FS->NodeList[id+2];
-		}
-		
+         NodeList[id2] = FS->NodeList[id];
+         NodeList[id2+1] = FS->NodeList[id+1];
+         NodeList[id2+2] = FS->NodeList[id+2];
+      }
+      
       /* this is redundant here, but should be done to match what comes out of a full surface */
       for (cnt=0; cnt< maxamax; ++cnt) {
          NodeId[cnt] = cnt;
       }
       
       /* Now free FS->NodeList & FS->NodeId */
-		SUMA_free(FS->NodeList);
-		SUMA_free(FS->NodeId);
+      SUMA_free(FS->NodeList);
+      SUMA_free(FS->NodeId);
       
-		/*make FS->NodeList be NodeList */
-		FS->NodeList = NodeList;
+      /*make FS->NodeList be NodeList */
+      FS->NodeList = NodeList;
       FS->NodeId = NodeId;
-		FS->N_Node = maxamax;
-	} /* read a patch */
-	
-	fclose (fs_file);
-	SUMA_RETURN (YUP);
-	
+      FS->N_Node = maxamax;
+   } /* read a patch */
+   
+   fclose (fs_file);
+   SUMA_RETURN (YUP);
+   
 }/* SUMA_FreeSurfer_Read_eng*/
 
 SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine, SUMA_SurfaceObject *SO_parent)
@@ -3111,35 +3111,35 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
 */
 SUMA_Boolean SUMA_FreeSurfer_ReadBin_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
 {/*SUMA_FreeSurfer_ReadBin_eng*/
-	static char FuncName[]={"SUMA_FreeSurfer_ReadBin_eng"};
+   static char FuncName[]={"SUMA_FreeSurfer_ReadBin_eng"};
    char stmp[50]; 
    FILE *fs_file;
-	int ex, End, rmax,  chnk, cnt, i, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId, magic;
-	float jnkf, *NodeList;
-	char c;
+   int ex, End, rmax,  chnk, cnt, i, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId, magic;
+   float jnkf, *NodeList;
+   char c;
    byte m1, m2, m3;
-	SUMA_Boolean bs;
+   SUMA_Boolean bs;
    SUMA_Boolean LocalHead = NOPE;
-	   
-	SUMA_ENTRY;
+      
+   SUMA_ENTRY;
    
    if (debug) LocalHead = YUP;
    
-	/* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}else if ( debug > 1) {
-		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
-	}
-	
-	/* start reading */
-	fs_file = fopen (f_name,"r");
-	if (fs_file == NULL)
-		{
-			SUMA_SL_Err ("Could not open input file ");
-			SUMA_RETURN (NOPE);
-		}
+   /* check for existence */
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }else if ( debug > 1) {
+      fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+   }
+   
+   /* start reading */
+   fs_file = fopen (f_name,"r");
+   if (fs_file == NULL)
+      {
+         SUMA_SL_Err ("Could not open input file ");
+         SUMA_RETURN (NOPE);
+      }
 
    SUMA_WHAT_ENDIAN(End);
    if (End == MSB_FIRST) {
@@ -3200,8 +3200,8 @@ SUMA_Boolean SUMA_FreeSurfer_ReadBin_eng (char * f_name, SUMA_FreeSurfer_struct 
    }
    
    /* allocate */
-	FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
-	FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
+   FS->NodeList = (float *)SUMA_calloc(FS->N_Node * 3, sizeof(float));
+   FS->FaceSetList = (int *)SUMA_calloc(FS->N_FaceSet * 3, sizeof(int));
    if (!FS->NodeList || !FS->FaceSetList) {
       SUMA_SL_Err("Failed to allocate");
       SUMA_RETURN(NOPE);
@@ -3230,85 +3230,85 @@ SUMA_Boolean SUMA_FreeSurfer_ReadBin_eng (char * f_name, SUMA_FreeSurfer_struct 
    SUMA_RETURN(YUP);
 }
 /*! 
-	free memory allocated for FreeSurfer structure  
+   free memory allocated for FreeSurfer structure  
 */
 SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 {
-	static char FuncName[]={"SUMA_Free_FreeSurfer"};
+   static char FuncName[]={"SUMA_Free_FreeSurfer"};
    
    SUMA_ENTRY;
 
-	if (FS->FaceSetList != NULL) SUMA_free(FS->FaceSetList);
-	if (FS->NodeList != NULL) SUMA_free(FS->NodeList);
-	if (FS->NodeId != NULL) SUMA_free(FS->NodeId);
-	if (FS->FaceSetIndexInParent != NULL) SUMA_free(FS->FaceSetIndexInParent);
-	if (FS != NULL) SUMA_free(FS);
-	SUMA_RETURN (YUP);
+   if (FS->FaceSetList != NULL) SUMA_free(FS->FaceSetList);
+   if (FS->NodeList != NULL) SUMA_free(FS->NodeList);
+   if (FS->NodeId != NULL) SUMA_free(FS->NodeId);
+   if (FS->FaceSetIndexInParent != NULL) SUMA_free(FS->FaceSetIndexInParent);
+   if (FS != NULL) SUMA_free(FS);
+   SUMA_RETURN (YUP);
 }
 
 /*! 
-	Show elements of FreeSurfer structure 
+   Show elements of FreeSurfer structure 
 */
 void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
-{	
-	static char FuncName[]={"SUMA_Show_FreeSurfer"};
-	int ND = 3, id, ip;
-	
-	SUMA_ENTRY;
+{  
+   static char FuncName[]={"SUMA_Show_FreeSurfer"};
+   int ND = 3, id, ip;
+   
+   SUMA_ENTRY;
 
-	if (Out == NULL) Out = SUMA_STDOUT;
-	if (FS->comment) fprintf (Out, "Comment: %s\n", FS->comment);
+   if (Out == NULL) Out = SUMA_STDOUT;
+   if (FS->comment) fprintf (Out, "Comment: %s\n", FS->comment);
    else fprintf (Out, "Comment: NULL\n");
-	fprintf (Out, "N_Node %d\n", FS->N_Node);
-	if (FS->NodeId) {
+   fprintf (Out, "N_Node %d\n", FS->N_Node);
+   if (FS->NodeId) {
       fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		   FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
-		   FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
-	   if (FS->N_Node > 2) {
+         FS->NodeId[0], FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
+         FS->NodeId[1], FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
+      if (FS->N_Node > 2) {
          fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		      FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
-		      FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+            FS->NodeId[FS->N_Node-2], FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+            FS->NodeId[FS->N_Node-1], FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
       }
    } else {
       fprintf (Out, "NULL NodeId\n");
       fprintf (Out, "First 2 points X Y Z:\n\t %f %f %f\n\t %f %f %f\n", \
-		   FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
-		   FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
-	   if (FS->N_Node > 2) {
+         FS->NodeList[0], FS->NodeList[1], FS->NodeList[2],
+         FS->NodeList[3], FS->NodeList[4], FS->NodeList[5]);
+      if (FS->N_Node > 2) {
          fprintf (Out, "Last 2 points X Y Z:\n\t %f %f %f\n\t %f %f %f\n", \
-		      FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
-		      FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
+            FS->NodeList[3*(FS->N_Node-2)], FS->NodeList[3*(FS->N_Node-2)+1], FS->NodeList[3*(FS->N_Node-2)+2],
+            FS->NodeList[3*(FS->N_Node-1)], FS->NodeList[3*(FS->N_Node-1)+1], FS->NodeList[3*(FS->N_Node-1)+2]);
       }
    }
-	fprintf (Out, "N_FaceSet %d\n", FS->N_FaceSet);
-	if (!FS->isPatch) {
-		if (FS->N_FaceSet > 2) {
+   fprintf (Out, "N_FaceSet %d\n", FS->N_FaceSet);
+   if (!FS->isPatch) {
+      if (FS->N_FaceSet > 2) {
         fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-			FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
-			FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
+         FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
+         FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
         fprintf (Out, "Last 2 polygons:\n%d %d %d\n%d %d %d\n", \
-	   		FS->FaceSetList[3 * (FS->N_FaceSet-2)], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2],
-		   	FS->FaceSetList[3 * (FS->N_FaceSet-1)], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+            FS->FaceSetList[3 * (FS->N_FaceSet-2)], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2],
+            FS->FaceSetList[3 * (FS->N_FaceSet-1)], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
       }else {
          fprintf (Out, "First polygon:\n\t%d %d %d\n", \
-			FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
+         FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
       }
-	} else {
-		if (FS->N_FaceSet > 2) {
+   } else {
+      if (FS->N_FaceSet > 2) {
          fprintf (Out, "First 2 polygons:\n\t[parent ID:%d] %d %d %d\n\t[parent ID:%d] %d %d %d\n", \
-		   	FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
-		   	FS->FaceSetIndexInParent[1], FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
-		   fprintf (Out, "Last 2 polygons:\n\t[parent ID:%d]%d %d %d\n\t[parent ID:%d]%d %d %d\n", \
-		   	FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[3 * (FS->N_FaceSet-2)], \
-		   	FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2], \
-		   	FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
-		   	FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
+            FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2],
+            FS->FaceSetIndexInParent[1], FS->FaceSetList[3], FS->FaceSetList[4], FS->FaceSetList[5]);
+         fprintf (Out, "Last 2 polygons:\n\t[parent ID:%d]%d %d %d\n\t[parent ID:%d]%d %d %d\n", \
+            FS->FaceSetIndexInParent[FS->N_FaceSet-2], FS->FaceSetList[3 * (FS->N_FaceSet-2)], \
+            FS->FaceSetList[3 * (FS->N_FaceSet-2) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-2) + 2], \
+            FS->FaceSetIndexInParent[FS->N_FaceSet-1], FS->FaceSetList[3 * (FS->N_FaceSet-1)], \
+            FS->FaceSetList[3 * (FS->N_FaceSet-1) + 1], FS->FaceSetList[3 * (FS->N_FaceSet-1) + 2]);
       } else {
          fprintf (Out, "First polygon:\n\t[parent ID:%d] %d %d %d\n", \
-		   	FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
+            FS->FaceSetIndexInParent[0], FS->FaceSetList[0], FS->FaceSetList[1], FS->FaceSetList[2]);
       }
-	}
-	SUMA_RETURNe;
+   }
+   SUMA_RETURNe;
 
 }
 
@@ -3640,9 +3640,9 @@ SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
 SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols) 
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read"};
-	float FileVersion, cx, cy, cz, *fbuf = NULL;
-	int i, ii, chnk, ex, surf_type, n_neighbors, bs, cnt_inmesh=0, *ibuf=NULL;
-	char buffer[256];
+   float FileVersion, cx, cy, cz, *fbuf = NULL;
+   int i, ii, chnk, ex, surf_type, n_neighbors, bs, cnt_inmesh=0, *ibuf=NULL;
+   char buffer[256];
    float fbuffer[256];
    FILE *fl=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -3650,15 +3650,15 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    SUMA_ENTRY;
    
    /* check for existence */
-	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
-		SUMA_RETURN (NOPE);
-	}else {
+   if (!SUMA_filexists(f_name)) {
+      fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }else {
       if ( debug > 1) {
-		   fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
-	   }
+         fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+      }
    }
-	
+   
    fl = fopen(f_name, "r");
    if (!fl) {
       SUMA_SL_Err("Failed to open file for reading.\n");
@@ -3666,7 +3666,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    }
    
    SO->N_Node=0;
-	SO->N_FaceSet=0;
+   SO->N_FaceSet=0;
    
    /* read version, and number of nodes and facesets, assume no swapping for the moment */
    bs = 0;

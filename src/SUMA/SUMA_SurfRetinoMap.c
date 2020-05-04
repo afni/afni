@@ -417,15 +417,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    Opt->out_prefix = NULL;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 ps->hverb = strlen(argv[kar])>3?2:1;
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          ps->hverb = strlen(argv[kar])>3?2:1;
           usage_RetinoMap(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -454,27 +454,27 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
       if (!brk && (  (strcmp(argv[kar], "-node_dbg") == 0) || 
                      (strcmp(argv[kar], "-node_debug") == 0)) ) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -node_debug \n");
-				exit (1);
-			}
-			Opt->NodeDbg = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -node_debug \n");
+            exit (1);
+         }
+         Opt->NodeDbg = atoi(argv[kar]);
          if (Opt->NodeDbg < 0) {
             fprintf (SUMA_STDERR, "%d is a bad node number.\n", Opt->NodeDbg);
-				exit (1);
+            exit (1);
          }
          brk = YUP;
-		}
+      }
       
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood.\n"
+         SUMA_S_Errv("Option %s not understood.\n"
                      "Try -help for usage\n", 
                      argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    SUMA_RETURN(Opt);
@@ -495,10 +495,10 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-s;-o;-talk;-mask;-dset;");
    
    if (argc < 2) {

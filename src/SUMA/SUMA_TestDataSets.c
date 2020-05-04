@@ -32,7 +32,7 @@ void  SUMA_TestDataSets_Usage()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_TestDataSets-Main-"}; 
-	char *VolParName, *specfilename = NULL;
+   char *VolParName, *specfilename = NULL;
    int kar, *Node = NULL, N_Node=-1;
    int SurfIn, brk, LocalHead = 1;
     
@@ -42,30 +42,30 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
    
-	/* Work the options */
-	kar = 1;
-	brk = 0;
-	while (kar < argc) { /* loop accross command line options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		
+   /* Work the options */
+   kar = 1;
+   brk = 0;
+   while (kar < argc) { /* loop accross command line options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 SUMA_TestDataSets_Usage ();
+          SUMA_TestDataSets_Usage ();
           exit (1);
-		}
+      }
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
-		if (!brk) {
-			fprintf (stderr,
+      if (!brk) {
+         fprintf (stderr,
                "Error %s: Option %s not understood. Try -help for usage\n",
                 FuncName, argv[kar]);
-			exit (1);
-		} else {	
-			brk = 0;
-			kar ++;
-		}
-		
-	}/* loop accross command ine options */
+         exit (1);
+      } else { 
+         brk = 0;
+         kar ++;
+      }
+      
+   }/* loop accross command ine options */
 
    /* Say you want to save a bunch of node values */
    { /* BEGIN: Test to save a data set with a bunch of node values */
@@ -307,7 +307,7 @@ int main (int argc,char *argv[])
          SUMA_free(s);
       } 
    } /* END: Test to save a data set with a bunch of node values */
- 	
+   
    #ifdef SUMA_COMPILED
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    #endif

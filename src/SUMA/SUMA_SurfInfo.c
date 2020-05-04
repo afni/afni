@@ -51,14 +51,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
    Opt->in_1D=" ; ";
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfInfo(ps);
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SurfInfo(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -138,8 +138,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			/* Assume the rest is input data */
-			while (kar < argc) {
+         /* Assume the rest is input data */
+         while (kar < argc) {
             if (Opt->n_in_namev < SUMA_GENERIC_PROG_MAX_IN_NAME) {
                Opt->in_namev[Opt->n_in_namev] = argv[kar];
                ++Opt->n_in_namev; ++kar;
@@ -147,10 +147,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
                SUMA_S_Err("Too many input surfaces on command line");
             }
          }
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    SUMA_RETURN(Opt);
@@ -168,10 +168,10 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
    if (argc < 2) {
