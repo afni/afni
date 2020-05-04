@@ -798,6 +798,22 @@ ENTRY("REML_setup_plus") ;
 }
 
 /*==========================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/* Variable do_logqsumq controls how the REML function uses the residuals.
+   * For the case where the matrices are CORRELATION matrices with
+      unit diagonals, and the variance is estimated from the residuals,
+      this variable should be 1. This case is for the ARMA estimation of
+      (residual) time series correlation structure.
+   * For the case (not yet implemented) where the matrices are COVARIANCE
+      matrices, so that the variances are embedded in the matrices, then
+      this variable should be 0. This case is for the linear mixed model
+      stuff (to come), where there are different variance components added
+      together in the covariance matrix.
+*//*------------------------------------------------------------------------*/
+
+static int do_logqsumq = 1 ; /* 28 Apr 2020 */
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X.
@@ -860,11 +876,15 @@ ENTRY("REML_func") ;
 
    if( bbsumq != NULL ) *bbsumq = qsumq ;   /* output sum of residual squares */
 
-   if( qsumq > 0.0 )
-     val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
-          + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
-   else
-     val = 0.0 ;                                     /* should not happen */
+   if( do_logqsumq ){
+     if( qsumq > 0.0 )
+       val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
+            + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
+     else
+       val = 0.0 ;                                     /* should not happen */
+   } else {
+     val = qsumq + rset->dd_logdet + rset->cc_logdet ; /* 28 Apr 2020 */
+   }
 
    RETURN(val) ;
 }

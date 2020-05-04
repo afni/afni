@@ -1655,6 +1655,10 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
+     if( strcasecmp(argv[iarg],"-qsumq") == 0 ){     /* HIDDEN [28 Apr 2020] */
+       do_logqsumq = 0 ; iarg++ ; continue ;         /* should NOT BE USED */
+     }
+
      /**==========   -virtvec  ==========**/
 
      if( strcasecmp(argv[iarg],"-virtvec") == 0 ){   /** for Javier -- 13 Dec 2012 **/

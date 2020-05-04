@@ -13,6 +13,7 @@ static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
 
 static int do_EPI    = 0 ;  /* 01 Mar 2017 */
 static int do_double = 1 ;  /* duplo? */
+static int do_squash = 1 ;  /* squash big values? [04 May 2020] */
 
 static THD_3dim_dataset *inset=NULL , *outset=NULL ;
 
@@ -543,7 +544,7 @@ ENTRY("mri_local_percmean") ;
 
 MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
 {
-   MRI_IMAGE *pim, *gim ; float *par,*gar , pval ; int ii ;
+   MRI_IMAGE *pim, *gim ; float *par,*gar , pval ; int ii,nsq ;
 
 ENTRY("mri_WMunifize") ;
 
@@ -564,14 +565,16 @@ ENTRY("mri_WMunifize") ;
 
    /* scale output by the pim created above */
 
-   for( ii=0 ; ii < gim->nvox ; ii++ ){
+   for( nsq=ii=0 ; ii < gim->nvox ; ii++ ){
      pval = par[ii] = (par[ii] <= 0.0f) ? 0.0f : PKVAL / par[ii] ;
      gar[ii] = gar[ii] * pval ;
-     if( gar[ii] > WMCUT )  /* top clipping [30 Jan 2019] */
-       gar[ii] = WMCUT + WMSCL*tanhf((gar[ii]-WMCUT)/WMSCL) ;
+     if( do_squash && gar[ii] > WMCUT ){  /* top clipping [30 Jan 2019] */
+       gar[ii] = WMCUT + WMSCL*tanhf((gar[ii]-WMCUT)/WMSCL) ; nsq++ ;
+     }
    }
 
-   if( verb ) fprintf(stderr,"W") ;
+   if( verb            ) fprintf(stderr,"W") ;
+   if( verb && nsq > 0 ) fprintf(stderr,"[s%d]",nsq) ;
 
    if( sclim != NULL ) mri_free(sclim) ;  /* 25 Jun 2013: save scale image */
    sclim = pim ;
@@ -835,6 +838,15 @@ int main( int argc , char *argv[] )
        "               then this option is what you want.\n"
 #endif
        "\n"
+       "  -nosquash  = In Jan 2019, a change was made to 'squash' (reduce) large\n"
+       "               values that sometimes occur in images - values larger than\n"
+       "               typical WM intensities. For some applications, this procedure\n"
+       "               does not produce images that are useful for 3dAllineate\n"
+       "               (or so I was told, by people doing pig brain imaging).\n"
+       "               This option will turn off the squashing step. [04 May 2020]\n"
+       "                 (I thought of calling it '-oink', but that would be)\n"
+       "                 (absurd, and as you know, Obi-Want hates absurdity.)\n"
+       "\n"
        "-- Feb 2013 - by Obi-Wan Unifobi\n"
        "            - can always be found at the Everest Bakery in Namche Bazaar,\n"
        "              if you have any questions about this program\n"
@@ -1004,6 +1016,11 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-GM") == 0 ){
        do_GM++ ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-nosquash") == 0 ||
+         strcasecmp(argv[iarg],"-oink"    ) == 0   ){  /* 04 May 2020 */
+       do_squash = 0 ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-T2") == 0 ){  /* 18 Dec 2014 */

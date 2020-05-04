@@ -3,7 +3,8 @@
 set stat = 0
 set sdir = $PWD
 
-set demo = MACAQUE_DEMO
+# [PT: May 1, 2020] updated version
+set demo = MACAQUE_DEMO_2.0
 
 goto PARSE
 RET_PARSE:
@@ -20,6 +21,8 @@ echo "Otherwise to run demos, see content of ./$demo/README.txt"
 echo ""
 goto END
    endif
+
+echo "++ Going to fetch demo:  ${demo}"
 
 if ($use_curl == -1) then
    which curl
