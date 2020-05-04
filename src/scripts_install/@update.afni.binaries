@@ -1050,13 +1050,14 @@ if ( $local_package == "" ) then
    endif
    set get_package = $hostsite/$distdir/bin/$package/$pp
    echo "++ downloading test file: $get_prog $package/$pp ..."
-   if ( ! $status ) then
+
+   $get_prog $get_package
+   if ( $status ) then
       echo "** failed to download test file"
       echo "   (maybe package $package is not available)"
       exit 1
    endif
 
-   $get_prog $get_package
    cmp -s $pp ../$pp
    if ( ! $status ) then
        echo "++ no update needed"

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, May, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
+   "fix download of test file",
+   "Thanks to Gerome on MB for reporting the problem."
+ } ,
+
  {  4, May, 2020, RCR, "xmat_tool.py", MINOR, TYPE_ENHANCE,
    "make partual updates for python3",
    NULL
