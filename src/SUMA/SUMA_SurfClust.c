@@ -196,15 +196,15 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
    
    outname = NULL;
    BuildMethod = SUMA_OFFSETS2_NO_REC;
-	brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfClust(strlen(argv[kar]) > 3 ? 2:1);
+   brk = NOPE;
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_SurfClust(strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-no_cent") == 0)) {
          Opt->DoCentrality = 0;
@@ -233,214 +233,214 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
        
       if (!brk && (strcmp(argv[kar], "-update") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -update \n");
-				exit (1);
-			}
-			Opt->update = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -update \n");
+            exit (1);
+         }
+         Opt->update = atof(argv[kar]);
          if (Opt->update < 1 || Opt->update > 100) {
             fprintf (SUMA_STDERR, 
                      "-update needs a parameter between "
                      "1 and 50 (I have %.1f)\n", Opt->update);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
-				exit (1);
-			}
-         Opt->oform = SUMA_GuessFormatFromExtension(argv[kar], NULL);		
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix \n");
+            exit (1);
+         }
+         Opt->oform = SUMA_GuessFormatFromExtension(argv[kar], NULL);      
          if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = SUMA_ASCII_NIML;
-         Opt->out_prefix = SUMA_RemoveDsetExtension_s(argv[kar], Opt->oform);	
+         Opt->out_prefix = SUMA_RemoveDsetExtension_s(argv[kar], Opt->oform); 
          Opt->WriteFile = YUP;
          brk = YUP;
-		}
+      }
             
 #if 0
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			Opt->spec_file = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -spec \n");
+            exit (1);
+         }
+         Opt->spec_file = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -sv \n");
-				exit (1);
-			}
-			Opt->sv_name = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -sv \n");
+            exit (1);
+         }
+         Opt->sv_name = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
-			if (kar + 1>= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
-				exit (1);
-			}
-			ind = argv[kar][6] - 'A';
+         if (kar + 1>= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
+            exit (1);
+         }
+         ind = argv[kar][6] - 'A';
          if (ind < 0 || ind >= SURFCLUST_MAX_SURF) {
             fprintf (SUMA_STDERR, 
                      "-surf_X SURF_NAME option is out of range.\n"
                      "Only %d surfaces are allowed. \n"
                      "Must start with surf_A for first surface.\n", 
                      SURFCLUST_MAX_SURF);
-				exit (1);
+            exit (1);
          }
          kar ++;
          Opt->surf_names[ind] = argv[kar];
          Opt->N_surf = ind+1;
          brk = YUP;
-		}
+      }
 #endif
       
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -input \n");
-				exit (1);
-			}
-			Opt->in_name = argv[kar]; kar ++;
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need 2 arguments after -input \n");
+            exit (1);
+         }
+         Opt->in_name = argv[kar]; kar ++;
          /* no need for that one Opt->nodecol = atoi(argv[kar]); kar ++; */
          Opt->labelcol = atoi(argv[kar]); 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-rmm") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -rmm \n");
-				exit (1);
-			}
-			Opt->DistLim = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -rmm \n");
+            exit (1);
+         }
+         Opt->DistLim = atof(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-in_range") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need two arguments after -in_range \n");
-				exit (1);
-			}
-			Opt->DoThreshold = SUMA_THRESH_INSIDE_RANGE;
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need two arguments after -in_range \n");
+            exit (1);
+         }
+         Opt->DoThreshold = SUMA_THRESH_INSIDE_RANGE;
          Opt->ThreshR[0] = atof(argv[kar]); ++kar;
          Opt->ThreshR[1] = atof(argv[kar]);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-ex_range") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need two arguments after -ex_range \n");
-				exit (1);
-			}
-			Opt->DoThreshold = SUMA_THRESH_OUTSIDE_RANGE;
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need two arguments after -ex_range \n");
+            exit (1);
+         }
+         Opt->DoThreshold = SUMA_THRESH_OUTSIDE_RANGE;
          Opt->ThreshR[0] = atof(argv[kar]); ++kar;
          Opt->ThreshR[1] = atof(argv[kar]);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-thresh") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -thresh \n");
-				exit (1);
-			}
-			Opt->DoThreshold = SUMA_LESS_THAN;
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -thresh \n");
+            exit (1);
+         }
+         Opt->DoThreshold = SUMA_LESS_THAN;
          Opt->ThreshR[0] = atof(argv[kar]);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-athresh") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -athresh \n");
-				exit (1);
-			}
-			Opt->DoThreshold = SUMA_ABS_LESS_THAN;
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -athresh \n");
+            exit (1);
+         }
+         Opt->DoThreshold = SUMA_ABS_LESS_THAN;
          Opt->ThreshR[0] = atof(argv[kar]);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-thresh_col") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -thresh_col \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -thresh_col \n");
+            exit (1);
+         }
          Opt->tind = atoi(argv[kar]);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-amm2") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -amm2 \n");
-				exit (1);
-			}
-			Opt->AreaLim = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -amm2 \n");
+            exit (1);
+         }
+         Opt->AreaLim = atof(argv[kar]);
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-n") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -n \n");
-				exit (1);
-			}
-			Opt->NodeLim = atoi(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -n \n");
+            exit (1);
+         }
+         Opt->NodeLim = atoi(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-out_roidset") == 0)) {
          Opt->OutROI = YUP;
-			brk = YUP;
+         brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-prepend_node_index") == 0)) {
          Opt->prepend_node_index = YUP;
-			brk = YUP;
+         brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-out_clusterdset") == 0)) {
          Opt->OutClustDset = YUP;
-			brk = YUP;
+         brk = YUP;
       }
 
       if (!brk && (strcmp(argv[kar], "-out_fulllist") == 0)) {
          Opt->FullROIList = YUP;
-			brk = YUP;
+         brk = YUP;
       }
       
       if (!brk && (strcmp(argv[kar], "-sort_none") == 0)) {
          Opt->SortMode = SUMA_SORT_CLUST_NO_SORT;
-			brk = YUP;
+         brk = YUP;
       }
       
       if (!brk && (strcmp(argv[kar], "-sort_n_nodes") == 0)) {
          Opt->SortMode = SUMA_SORT_CLUST_BY_NUMBER_NODES;
-			brk = YUP;
+         brk = YUP;
       }
       
       if (!brk && (strcmp(argv[kar], "-sort_area") == 0)) {
          Opt->SortMode = SUMA_SORT_CLUST_BY_AREA;
-			brk = YUP;
+         brk = YUP;
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood.\n"
+         SUMA_S_Errv("Option %s not understood.\n"
                   "Try -help for usage\n", argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
 
    /* sanitorium */
@@ -478,14 +478,14 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfClust"}; 
-	int kar, SO_read, *ni=NULL, N_ni, cnt, i, *nip=NULL, N_Spec = 0;
+   int kar, SO_read, *ni=NULL, N_ni, cnt, i, *nip=NULL, N_Spec = 0;
    float *data_old = NULL, *far = NULL, *nv=NULL, *nt = NULL;
    void *SO_name = NULL;
    SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
    MRI_IMAGE *im = NULL;
    SUMA_DSET_FORMAT iform;
    SUMA_SURFCLUST_OPTIONS *Opt;  
-	SUMA_SurfSpecFile *Spec=NULL; 
+   SUMA_SurfSpecFile *Spec=NULL; 
    DList *list = NULL;
    SUMA_DSET *dset = NULL;
    float *NodeArea = NULL;
@@ -496,11 +496,11 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
    
    
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-spec;-i;-t;-sv;-s;");
    Opt = SUMA_SurfClust_ParseInput (argv, argc, ps);
