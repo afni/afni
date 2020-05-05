@@ -6863,6 +6863,7 @@ ENTRY("AFNI_controller_clonify") ;
 /*-------------------------------------------------------------------------
    04 Nov 1996: make a menubar to control the coordinate locking
                 of the various controller windows
+                [buttons rearranged 05 May 2020]
 ---------------------------------------------------------------------------*/
 
 void AFNI_lock_button( Three_D_View *im3d )
@@ -6870,7 +6871,7 @@ void AFNI_lock_button( Three_D_View *im3d )
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
 
-   static char *clabel[] = {
+   static char *clabel[] = {  /* never more than 26 controllers! */
       "Lock [A]", "Lock [B]", "Lock [C]", "Lock [D]", "Lock [E]",
       "Lock [F]", "Lock [G]", "Lock [H]", "Lock [I]", "Lock [J]",
       "Lock [K]", "Lock [L]", "Lock [M]", "Lock [N]", "Lock [O]",
@@ -6957,17 +6958,66 @@ ENTRY("AFNI_lock_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   /*** button box to select locks ***/
+   /*** to clear all locks right now ***/
 
-   dmode->lock_bbox = new_MCW_bbox( menu ,
-                                    MAX_CONTROLLERS , clabel ,
-                                    MCW_BB_check , MCW_BB_noframe ,
-                                    AFNI_lock_change_CB , (XtPointer)im3d ) ;
+   xstr = XmStringCreateLtoR( "Clear All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_clear_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_clear_pb , XmNactivateCallback ,
+                  AFNI_lock_clear_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
 
-   MCW_set_bbox( dmode->lock_bbox , GLOBAL_library.controller_lock ) ;
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
-   MCW_reghint_children( dmode->lock_bbox->wrowcol ,
-                         "Which ones are locked together?" ) ;
+   /*** to set all locks right now [19 Apr 1999] ***/
+
+   xstr = XmStringCreateLtoR( "Set All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_setall_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_setall_pb , XmNactivateCallback ,
+                  AFNI_lock_setall_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+   /*** to enforce locks right now ***/
+
+   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_enforce_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_enforce_pb , XmNactivateCallback ,
+                  AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
+   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
 
    /*** button box to control the time lock ***/
 
@@ -7057,66 +7107,17 @@ ENTRY("AFNI_lock_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   /*** to clear all locks right now ***/
+   /*** button box to select locks [moved 05 May 2020] ***/
 
-   xstr = XmStringCreateLtoR( "Clear All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_clear_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_clear_pb , XmNactivateCallback ,
-                  AFNI_lock_clear_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
-   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
+   dmode->lock_bbox = new_MCW_bbox( menu ,
+                                    MAX_CONTROLLERS , clabel ,
+                                    MCW_BB_check , MCW_BB_noframe ,
+                                    AFNI_lock_change_CB , (XtPointer)im3d ) ;
 
-   (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
-               XmNseparatorType , XmSINGLE_LINE ,
-            NULL ) ;
+   MCW_set_bbox( dmode->lock_bbox , GLOBAL_library.controller_lock ) ;
 
-   /*** to set all locks right now [19 Apr 1999] ***/
-
-   xstr = XmStringCreateLtoR( "Set All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_setall_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_setall_pb , XmNactivateCallback ,
-                  AFNI_lock_setall_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
-   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
-
-   (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
-               XmNseparatorType , XmSINGLE_LINE ,
-            NULL ) ;
-
-   /*** to enforce locks right now ***/
-
-   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_enforce_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_enforce_pb , XmNactivateCallback ,
-                  AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
-   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
+   MCW_reghint_children( dmode->lock_bbox->wrowcol ,
+                         "Which ones are locked together?" ) ;
 
    XtManageChild( rc ) ;
    EXRETURN ;
