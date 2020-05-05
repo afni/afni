@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
+   "Installer for the Indian Brain Templates.",
+   "Enjoy.\n"
+},
+
 { 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Added a help example for integrating output into afni_proc.py.",
    "... because otherwise *I* forget how to use the outputs.\n"
