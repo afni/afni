@@ -99,7 +99,10 @@ extern "C" {
 #  define DYNAMIC_SYMBOL(handle,symbol,address) \
       (address) = dlsym( (handle) , (symbol) )
 
-#  define DYNAMIC_suffix ".so"
+#ifndef DYNAMIC_suffix
+#   define DYNAMIC_suffix ".so"
+#endif
+      
 #ifdef __cplusplus
 }
 #endif

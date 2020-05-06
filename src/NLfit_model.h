@@ -86,8 +86,9 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 
 #  define DYNAMIC_SYMBOL(handle,symbol,address) \
       (address) = dlsym( (handle) , (symbol) )
-
+#ifndef DYNAMIC_suffix
 #  define DYNAMIC_suffix ".so"
+#endif
 #endif
 
 /****************** The dl.h and dld library ******************/
