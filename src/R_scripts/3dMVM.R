@@ -2015,7 +2015,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
                   out_post[ii,1]   <- glt[1,1]
                   out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
                   out_post[ii,3]   <- glt[1,6]
-                  out_post[ii,4]   <- glt[1,7 
+                  out_post[ii,4]   <- glt[1,7]
                } #if(!is.null(glt))
             } # for(ii in 1:lop$num_glt)
             dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
