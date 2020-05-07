@@ -49,6 +49,10 @@ struct AFNI_plugin_array ; /* incomplete definition */
 
 #include "afni.h"
 
+#ifdef WHATS_MY_EXEPATH
+#include "whats_my_exepath.h"
+#endif
+
 #include <Xm/XmAll.h>
 
 /*******************************************************************
