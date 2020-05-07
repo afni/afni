@@ -281,6 +281,13 @@ AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
    AFNI_plugin_array * outar , * tmpar ;
    int epos , ll , ii , id ;
    THD_string_array *qlist ; /* 02 Feb 2002 */
+#ifdef DARWIN
+   int size = PATH_MAX;
+#else
+   int size = THD_MAX_NAME;
+#endif
+   char *exe_path = (char *)malloc(sizeof(char)*size);
+
 
    /*----- sanity checks -----*/
 

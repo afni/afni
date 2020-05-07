@@ -1,6 +1,7 @@
 # ##### Build X dependent programs...
 
 add_subdirectory(svm)
+add_subdirectory(leej3)
 add_afni_library(
   mrix
   bbox.c
@@ -73,10 +74,11 @@ add_library(
   mcw_graf.c
   pbar.c
 )
-target_link_libraries(afni_all_objects 
+target_link_libraries(afni_all_objects
   PUBLIC
     libheaders
   PRIVATE
+    whats_my_exepath
     AFNI::mrix
     Motif::Motif
     ${X11_Xt_LIB}
@@ -84,12 +86,15 @@ target_link_libraries(afni_all_objects
     ${CMAKE_DL_LIBS}
     )
 
+
 add_afni_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 target_link_options(afni PRIVATE "-rdynamic")
 target_link_libraries(
   afni
   PRIVATE
     afni_all_objects
+    whats_my_exepath
     NIFTI::nifti2
     NIFTI::nifticdf
 )
+
