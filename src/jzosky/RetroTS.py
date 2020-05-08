@@ -150,7 +150,6 @@ def retro_ts(
     )  # Increments for iteration
     # init slice_offsets, unless Custom order
     # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
-    print(main_info["slice_order"])
     if (
         (main_info["slice_order"] not in ["Custom", "custom"])
         or len(main_info["slice_offset"]) != main_info["number_of_slices"]
