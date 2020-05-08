@@ -305,14 +305,33 @@ ENTRY("PLUG_get_many_plugins") ;
    if( epath == NULL )
      epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
+#ifdef WHATS_MY_EXEPATH
+   if( epath == NULL )
+      {
+         if( whats_my_exepath(exe_path, size) ) {
+            fprintf(stderr,"** failure\n");
+            RETURN(NULL);
+         }
+      char*exe_dir = strdup(dirname(exe_path)) ;
+      /* contents of exe_path not guaranteed */
+      free(exe_path) ;
+
+      /* get possible lib directory for alternative installation pattern */
+      char*lib_dir = malloc(strlen(exe_dir)+64) ;
+      strcpy(lib_dir,exe_dir) ; strcat(lib_dir,"/../lib") ;
+
+
+      /* use putative bin and lib dirs to search for plugins */
+      epath = (char *)malloc(size) ;
+      strcpy(epath,exe_dir) ;
+      if (lib_dir != NULL) strcat(strcat(epath," "),lib_dir) ;
+        }
+#else
+   /* fall back to previous PATH search */
    if( epath == NULL ){
-     epath = getenv("PATH") ;              /* try yet another name? */
-#if 0
-     if( epath != NULL )
-       fprintf(stderr,
-               "\n++ WARNING: AFNI_PLUGINPATH not set; searching PATH\n") ;
-#endif
+      epath = getenv("PATH") ;
    }
+#endif
 
    if( epath == NULL && pname != NULL && strchr(pname,'/') != NULL ){ /* 29 Mar 2001 */
      char *ep = strdup(pname) ;                                       /* get path    */
@@ -322,8 +341,8 @@ ENTRY("PLUG_get_many_plugins") ;
      else                 free(ep) ;      /* got zipperoni */
    }
 
-   if( epath == NULL )                                /* put in a fake path instead? */
-     epath = "./ /usr/local/bin /sw/bin /opt/local/bin /Applications/AFNI" ;
+   if( epath == NULL ) /* abandon plugin search */
+      RETURN(NULL) ;
 
    INIT_SARR(qlist) ; /* 02 Feb 2002: list of checked directories */
 
@@ -343,7 +362,7 @@ ENTRY("PLUG_get_many_plugins") ;
 
 if(PRINT_TRACING)
 { STATUS("paths to be searched for plugins follows:") ;
-  printf("%s\n",elocal) ; fflush(stdout) ; }
+  printf("Path: %s\n",elocal) ; fflush(stdout) ; }
 
    /*----- extract blank delimited strings;
            use as directory names to get libraries -----*/
