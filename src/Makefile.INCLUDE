@@ -47,7 +47,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_version.o afni_lock.o afni_vol2surf.o             \
             afni_pplug_instacorr.o afni_pplug_instacalc.o          \
             afni_pplug_tstat.o                                     \
-            afni_whelp.o
+            afni_whelp.o whats_my_exepath.o
 
 AFHEADS  = quotize readmes
 
@@ -1790,7 +1790,7 @@ afni_version.o:afni_version.c
 
 afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a $(EXLIBS) libjpeg.a libXmHTML.a coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
+	$(CC) -DWHATS_MY_EXE -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -2127,7 +2127,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv leej3 ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
@@ -2223,6 +2223,8 @@ afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
 afni_fimmer.o:afni_graph.h afni.h machdep.h
 afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h \
               machdep.h display.h imseq.h
+	$(CC) $(INFLAGS) -DWHATS_MY_EXE -c afni_plugin.c
+
 afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
 afni_setup.o:afni.h afni_setup.h pbar.h
 
@@ -2730,6 +2732,7 @@ shared_objs: $(INSTALLDIR) libmri.so libmrix.so
 .SUFFIXES:.$(PLUGIN_SUFFIX)
 
 SO = $(PLUGIN_SUFFIX)
+
 
 # Use lists for plugins and models, so that we can output a list of
 # expected shared objects for them (different from libraries).
@@ -3720,6 +3723,14 @@ roopchansinghv_install:
 	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py \
                  roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniRTI     \
                  $(INSTALLDIR)
+
+#############
+# leej3 directory
+whats_my_exepath.o:
+	(cd leej3; \
+	$(CC) -c whats_my_exepath.c; \
+	$(CP) whats_my_exepath.o ..; \
+	cd ..)
 
 #############
 #SUMA
