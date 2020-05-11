@@ -275,6 +275,9 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h               \
              cs_qsort_small.h
 
+
+FORCE:
+
 ### Make everything, install it too, and cleanup
 
 totality:clean all plugins install install_plugins install_lib cleann
@@ -2123,7 +2126,7 @@ backup:
 
 ### Make the source distribution
 
-afni_src.tgz:
+afni_src.tgz:FORCE
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
