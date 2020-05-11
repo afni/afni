@@ -286,7 +286,7 @@ AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 #else
    int size = THD_MAX_NAME;
 #endif
-   char *exe_path = (char *)malloc(sizeof(char)*size);
+   char *exe_path=NULL, *exe_dir=NULL, *lib_dir=NULL;
 
 
    /*----- sanity checks -----*/
@@ -306,26 +306,28 @@ ENTRY("PLUG_get_many_plugins") ;
      epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
 #ifdef WHATS_MY_EXEPATH
-   if( epath == NULL )
-      {
-         if( whats_my_exepath(exe_path, size) ) {
-            fprintf(stderr,"** failure\n");
-            RETURN(NULL);
-         }
-      char*exe_dir = strdup(dirname(exe_path)) ;
+   if( epath == NULL ) {
+      exe_path = (char *)malloc(sizeof(char)*size);
+      if( whats_my_exepath(exe_path, size) ) {
+         fprintf(stderr,"** failure\n");
+         RETURN(NULL);
+      }
+      exe_dir = strdup(dirname(exe_path)) ;
       /* contents of exe_path not guaranteed */
       free(exe_path) ;
 
       /* get possible lib directory for alternative installation pattern */
-      char*lib_dir = malloc(strlen(exe_dir)+64) ;
+      lib_dir = malloc(strlen(exe_dir)+64) ;
       strcpy(lib_dir,exe_dir) ; strcat(lib_dir,"/../lib") ;
-
 
       /* use putative bin and lib dirs to search for plugins */
       epath = (char *)malloc(size) ;
       strcpy(epath,exe_dir) ;
-      if (lib_dir != NULL) strcat(strcat(epath," "),lib_dir) ;
-        }
+      free(exe_dir) ;
+
+      strcat(strcat(epath," "),lib_dir) ;
+      free(lib_dir) ;
+   }
 #else
    /* fall back to previous PATH search */
    if( epath == NULL ){

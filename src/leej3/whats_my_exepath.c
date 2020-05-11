@@ -6,6 +6,9 @@ int whats_my_exepath(char output[],int len_array)
     int ret;
     pid_t pid;
 
+    if ( !output || len_array < 2 )
+       return 1;
+
     pid = getpid();
     ret = proc_pidpath (pid, output, len_array);
     if ( ret <= 0 ) {
@@ -28,6 +31,7 @@ int whats_my_exepath(char output[],int len_array)
 
    output[r] = '\0';
 #endif
+
    return 0;
 }
 

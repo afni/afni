@@ -1,5 +1,5 @@
-#ifndef _WHATSMYEXEPATH_
-#define _WHATSMYEXEPATH_
+#ifndef _WHATS_MY_EXEPATH_H_
+#define _WHATS_MY_EXEPATH_H_
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -17,4 +17,4 @@
 #endif
 
 int whats_my_exepath(char output[],int len_array);
-#endif
+#endif /* _WHATS_MY_EXEPATH_H_ */
