@@ -694,10 +694,10 @@ class MainWindow(QtGui.QMainWindow):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/program_help/index.html')
+                            '/htmldoc/programs/main_toc.html')
       elif obj == self.gvars.act_browse_AP_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/program_help/afni_proc.py.html')
+                            '/htmldoc/programs/afni_proc.py_sphx.html')
       elif obj == self.gvars.act_browse_MB:
          self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
       else: print('** cb_help_browse: invalid sender')

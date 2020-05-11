@@ -39,9 +39,10 @@ g_history = """
     0.5  19 May, 2011: revert to /usr/bin/env python
     0.6  06 Jul, 2011: apply set_var_with_defs (mostly to test it out)
     0.7  22 Sep, 2011: moved get_def_tool_path to library
+    0.8  11 May, 2020: python3; update web links
 """
 
-g_version = '0.7 (September 22, 2011)'
+g_version = '0.8 (May 11, 2020)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
