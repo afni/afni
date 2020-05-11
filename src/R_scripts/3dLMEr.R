@@ -4,7 +4,7 @@ first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
    ff<-ff[lapply(ff,file.exists)==TRUE];
   #cat('Using ', ff[1],'\n');
-   return(gsub('//','/',ff[1], fixed=TRUE)) 
+   return(gsub('//','/',ff[1], fixed=TRUE))
 }
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dLMEr'
@@ -18,12 +18,12 @@ tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding ana
 #The help function for 3dLMEr batch (AFNI-style script mode)
 help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
-   intro <- 
+   intro <-
 '
-             ================== Welcome to 3dLMEr ==================          
+             ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, April 24, 2020
+Version 0.0.3, May 5, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)https://scholarblogs.emory.edu/smi2020/
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -31,11 +31,11 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 
 Introduction
 ------
- 
+
  Linear Mixed-Effects (LME) analysis adopts the traditional approach that
  differentiates two types of effects: fixed effects capture the population-
  level components while random effects characterize the lower-level components
- such as subjects, families, scanning sites, etc. 
+ such as subjects, families, scanning sites, etc.
 
  3dLMEr is a revised and advanced version of its older brother 3dLME in the sense
  that the former is much more flexible in specifying the random-effects components
@@ -59,24 +59,24 @@ Introduction
  necessary for 3dLMEr);
 
  2) the specifications for simple and composite effects through -gltCode and
- -glfCode are slightly simplified (the lable for each effect is part of -gltCode
+ -glfCode are slightly simplified (the label for each effect is part of -gltCode
  and -glfCode, and no more -gltLabel is needed); and
 
  3) all the statistic values for simple effects (specified through -gltCode) are
- stored in the output as Z-statisc while main effects, interactions and the
+ stored in the output as Z-statistic while main effects, interactions and the
  composite effects (specified through -gltCode) are represented in the output as
  chi-square with 2 degrees of freedom. The fixed number of DFs (i.e., 2) for the
  chi-square statistic, regardless of the specific situation, is adopted for
  convenience because of the varying DFs due to the Satterthwaite approximation.
 
  If you want to cite the analysis approach, use the following reference:
- 
+
  Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). Linear
  Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage 73:176-190.
  http://dx.doi.org/10.1016/j.neuroimage.2013.01.047
 
- Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain 
- the output int the same format of the input, append a proper suffix to the 
+ Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain
+ the output int the same format of the input, append a proper suffix to the
  output specification option -prefix (e.g., .nii, .niml.dset or .1D for NIfTI,
  surface or 1D).
 
@@ -99,7 +99,7 @@ Introduction
  be added in the future if I could crowdsource more scenarios from the users
  (including you the reader). In case you find one example similar to your data
  structure, use the example(s) as a template and then build up your own script.
- 
+
  In addition to R installtion, the following R packages need to be installed
  first before running 3dLMEr: "lmerTest", "phia" and "snow". To install these R
  packages, run the following command at the terminal:
@@ -107,34 +107,37 @@ Introduction
  rPkgsInstall -pkgs "lmerTest,phia,snow"
 
  Alternatively you may install them in R:
- 
+
  install.packages("lmerTest")
  install.packages("phia")
- install.packages("snow") 
+ install.packages("snow")
 
  Once the 3dLMEr command script is constructed, it can be run by copying and
- pasting to the terminal. Alternatively (and probably better) you save the 
- script as a text file, for example, called LME.txt, and execute it with the 
+ pasting to the terminal. Alternatively (and probably better) you save the
+ script as a text file, for example, called LME.txt, and execute it with the
  following (assuming on tc shell),
- 
+
  nohup tcsh -x LME.txt &
- 
+
  or,
- 
+
  nohup tcsh -x LME.txt > diary.txt &
+
+ or,
+
  nohup tcsh -x LME.txt |& tee diary.txt &
 
  The advantage of the latter commands is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.\n'
 
-   ex1 <-  
+   ex1 <-
 "Example 1 --- Simplest case: LME analysis for one group of subjects each of
-  which has three effects associated with three emotions (pos, neg and neu), 
+  which has three effects associated with three emotions (pos, neg and neu),
   and the effects of interest are the comparisons among the three emotions
   at the populaton level (missing data allowed). This data structure is usually
   considered as one-way repeated-measures (or within-subject) ANOVA if no
   missing data occured. The LME model is typically formulated with a random
-  intercept in this case. 
+  intercept in this case.
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                     \\
@@ -155,19 +158,19 @@ Introduction
           s2    pos     s2_pos+tlrc               \\
           s2    neg     s2_neg+tlrc               \\
           s2    pos     s2_neu+tlrc               \\
-          ... 
+          ...
           s20   pos     s20_pos+tlrc              \\
           s20   neg     s20_neg+tlrc              \\
           s20   neu     s20_neu+tlrc              \\
-          ...                                   
+          ...
    \n"
 
-   ex2 <-  
-"Example 2 --- LME analysis for one group of subjects each of  which has 
-  three effects associated with three emotions (pos, neg and neu), and the 
-  effects of interest are the comparisons among the three emotions  at the 
-  populaton level. In addition, reaction time (RT) is avaible per emotion 
-  from each subject. An LME model can be formulated to include both random 
+   ex2 <-
+"Example 2 --- LME analysis for one group of subjects each of  which has
+  three effects associated with three emotions (pos, neg and neu), and the
+  effects of interest are the comparisons among the three emotions  at the
+  populaton level. In addition, reaction time (RT) is avaible per emotion
+  from each subject. An LME model can be formulated to include both random
   intercept and random slope. Be careful about the centering issue
   about any quantitive quantitative variable: you have to decide which makes
   more sense - global centering or within-condition (or within-group)
@@ -198,15 +201,15 @@ Introduction
           s20   pos     12   s20_pos+tlrc         \\
           s20   neg     20   s20_neg+tlrc         \\
           s20   neu     30   s20_neu+tlrc         \\
-          ...                                   
+          ...
    \n"
 
-   ex3 <-  
-"Example 3 --- LME analysis for one group of subjects each of which has three 
-  effects associated with three emotions (pos, neg and neu), and the effects 
-  of interest are the comparisons among the three emotions  at the populaton 
-  level. As the data were acquired across 12 scanning sites,  we set up an LME 
-  model with a crossed random-effects structure, one for cross-subjects and one 
+   ex3 <-
+"Example 3 --- LME analysis for one group of subjects each of which has three
+  effects associated with three emotions (pos, neg and neu), and the effects
+  of interest are the comparisons among the three emotions  at the populaton
+  level. As the data were acquired across 12 scanning sites,  we set up an LME
+  model with a crossed random-effects structure, one for cross-subjects and one
   for cross-sites variability.
 
 -------------------------------------------------------------------------
@@ -228,28 +231,28 @@ Introduction
           s2    pos     site1   s2_pos+tlrc           \\
           s2    neg     site2   s2_neg+tlrc           \\
           s2    pos     site3   s2_neu+tlrc           \\
-          ... 
+          ...
           s80   pos     site12  s80_pos+tlrc          \\
           s80   neg     site12  s80_neg+tlrc          \\
           s80   neu     site10  s80_neu+tlrc          \\
-          ...                                   
+          ...
    \n"
 
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
-       parnames <- sort(parnames)   
+       parnames <- sort(parnames)
        ss <- paste('Options in alphabetical order:\n',
                   '------------------------------\n', sep='')
    } else ss <- paste('Options:\n', '--------\n', sep='')
    for(ii in 1:length(parnames)) {
       op <- params[parnames[ii]][[1]]
       if(!is.null(op$help)) ss <- c(ss , paste(itspace, op$help, sep='')) else
-         ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep='')) 
+         ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
    cat(intro, ex1, ex2, ex3, ss, sep='\n')
-   
+
    if (adieu) exit.AFNI();
 }
    
@@ -270,7 +273,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 #   "         if present, should be interpreted as the effect with each factor",
 #   "         at the reference level (alphabetically the lowest level) for each",
 #   "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
-#                     ) ),       
+#                     ) ),
 
       '-mask' = apl(n=1,  d = NA, h = paste(
    "-mask MASK: Process voxels inside this mask only.\n",
@@ -295,11 +298,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the LME context the simplest model is \"1+(1|Subj1)+(1|Subj2)\"in",
-   "         while the random effect from each of the two subjects in a pair is",
+   "         In the LME context the simplest model is \"1+(1|Subj1)+(1|Subj2)\" in",
+   "         which the random effect from each of the two subjects in a pair is",
    "         symmetrically incorporated in the model. Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
-   "         effects of intereste and confounding variables (quantitative or",
+   "         effects of interest and confounding variables (quantitative or",
    "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
              ) ),
 
@@ -307,13 +310,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "-dbgArgs: This option will enable R to save the parameters in a",
    "         file called .3dLMEr.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
-       
+
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
    "         this option. The list with more than one variable has to be",
    "         separated with comma (,) without any other characters such as",
    "         spaces and should be surrounded within (single or double) quotes.",
-   "          For example, -qVars \"Age,IQ\"",
+   "         For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
    "         1) Centering a quantitative variable through -qVarsCenters is",
    "         very critical when other fixed effects are of interest.",
@@ -323,11 +326,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         \n",
              sep = '\n'
              ) ),
-	     
+
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltCode label weights: Specify the label and weights of interest. The",
    "       weights should be surrounded with quotes. For example, the specification",
-   "       '-gltCode AvB 'Condition : 1*A -1*B'' compares A and B with a label",
+   "       '-gltCode AvB 'Condition : 1*A -1*B' compares A and B with a label",
    "       'AvB' for the output sub-bricks.  \n", sep = '\n'
                      ) ),
 
@@ -343,7 +346,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         two levels of Emotion and the resulting sub-brick is labeled as",
    "         'CondByEmo'.\n",
    "         NOTE:\n",
-   "         1) The weights for a variable do not have to add up to 0.\n",   
+   "         1) The weights for a variable do not have to add up to 0.\n",
    "         2) When a quantitative variable is present, other effects are",
    "         tested at the center value of the covariate unless the covariate",
    "         value is specified as, for example, 'Group : 1*Old Age : 2', where",
@@ -434,17 +437,17 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" ),
-   
+
        '-cio' = apl(n=0, h = paste(
    "-cio: Use AFNI's C io functions, which is default. Alternatively -Rio",
    "         can be used.\n", sep='\n')),
        '-Rio' = apl(n=0, h = "-Rio: Use R's io functions. The alternative is -cio.\n")
-      
+
          )
-   #browser()                  
+   #browser()
    ops <- parse.AFNI.args(args, params, other_ok=FALSE)
    if (verb) show.AFNI.args(ops, verb=0, hstr='')
-   if (is.null(ops)) 
+   if (is.null(ops))
       errex.AFNI('Error parsing arguments. See 3dLMEr -help for details.')
 
    #Parse dems options
@@ -459,15 +462,15 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
       #lop$ranEff <- NA
       lop$model  <- NA
-      lop$qVars  <- NA   
+      lop$qVars  <- NA
       #lop$vVars  <- NA
       #lop$vQV    <- NA
       lop$qVarCenters <- NA
       #lop$vVarCenters <- NA
       lop$gltCode    <- NULL
-      lop$glfCode  <- NULL      
+      lop$glfCode  <- NULL
       lop$dataTable <- NULL
-      
+
       lop$iometh <- 'clib'
       lop$dbgArgs  <- FALSE # for debugging purpose
       lop$verb <- 0
@@ -493,7 +496,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              #vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
-             
+
              help = help.LME.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
 
@@ -538,21 +541,21 @@ glfConstr <- function(cStr, dataStr) {
 # glfConstr(lop$glfCode[[1]], lop$dataStr)
 
 
-#Change options list to 3dLMEr variable list 
+#Change options list to 3dLMEr variable list
 process.LME.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(an$type == "NIML") {
       if(file.exists(lop$outFN)) errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
-   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) || 
-     file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) || 
-     file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) || 
+   } else if(file.exists(paste(lop$outFN,"+tlrc.HEAD", sep="")) ||
+     file.exists(paste(lop$outFN,"+tlrc.BRIK", sep="")) ||
+     file.exists(paste(lop$outFN,"+orig.HEAD", sep="")) ||
      file.exists(paste(lop$outFN,"+orig.BRIK", sep=""))) {
      errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
      return(NULL)
    }
    #browser()
-   if(an$type != 'BRIK' && lop$iometh != 'clib') 
+   if(an$type != 'BRIK' && lop$iometh != 'clib')
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
 
@@ -560,16 +563,16 @@ process.LME.opts <- function (lop, verb = 0) {
       an2 <- parse.AFNI.name(lop$resid)
       if(an2$type == "NIML") {
          if(file.exists(lop$resid)) errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
-      } else if(file.exists(paste(lop$resid,"+tlrc.HEAD", sep="")) || 
-        file.exists(paste(lop$resid,"+tlrc.BRIK", sep="")) || 
-        file.exists(paste(lop$resid,"+orig.HEAD", sep="")) || 
+      } else if(file.exists(paste(lop$resid,"+tlrc.HEAD", sep="")) ||
+        file.exists(paste(lop$resid,"+tlrc.BRIK", sep="")) ||
+        file.exists(paste(lop$resid,"+orig.HEAD", sep="")) ||
         file.exists(paste(lop$resid,"+orig.BRIK", sep=""))) {
         errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
         return(NULL)
-      }  
-      if(an2$type != 'BRIK' && lop$iometh != 'clib') 
+      }
+      if(an2$type != 'BRIK' && lop$iometh != 'clib')
           errex.AFNI(c('Must of use -cio option with any input/output ',
-                       'format other than BRIK'))   
+                       'format other than BRIK'))
    }
    # assume the quantitative variables are separated by + here
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
@@ -578,7 +581,7 @@ process.LME.opts <- function (lop, verb = 0) {
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == lop$IF)  # assuming the input file is the last column here!
    hi <- len / wd - 1
-   
+
    if(len %% wd != 0)
       errex.AFNI(paste('The content under -dataTable is not rectangular !', len, wd)) else {
       lop$dataStr <- NULL
@@ -614,15 +617,15 @@ process.LME.opts <- function (lop, verb = 0) {
    } else {
       #an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
-         lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
-      if (exists.AFNI.name(lop$outFN) || 
+         lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
+      if (exists.AFNI.name(lop$outFN) ||
           exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc")))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
       if(!is.null(lop$resid)) {
-         #an2 <- paste(lop$resid, "+tlrc", sep="")      
+         #an2 <- paste(lop$resid, "+tlrc", sep="")
          if(an2$type == "BRIK" && an2$ext == "" && is.na(an2$view))
-            lop$resid <- paste(lop$resid, "+tlrc", sep="")      
-         if (exists.AFNI.name(lop$resid) || 
+            lop$resid <- paste(lop$resid, "+tlrc", sep="")
+         if (exists.AFNI.name(lop$resid) ||
              exists.AFNI.name(modify.AFNI.name(lop$resid,"view","+tlrc")))
              errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
       }
@@ -639,8 +642,8 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
-   if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+   if(!is.na(lop$maskFN))
+      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3]))
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -655,26 +658,26 @@ process.LME.opts <- function (lop, verb = 0) {
 runLME <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$NoBrick)
-   if(!all(myData == 0)) {     
+   if(!all(myData == 0)) {
       DM$yy <- myData
       fm <- NULL
       options(warn=-1)
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
-      if(!is.null(fm)) {      
+      if(!is.null(fm)) {
          #Stat[1:lop$nF] <- anova(fm)$`F value` # F-stat
 	 Stat[1:lop$nF] <- qchisq(anova(fm)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
 	 #qnorm(anova(fm)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
-            if(is.na(lop$gltList[[ii]])) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+            if(is.na(lop$gltList[[ii]])) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
-            tt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+            tt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
             if(!is.null(tt)) {
                Stat[lop$nF[1]+2*ii-1] <- tt[1,'Value']
 	       Stat[lop$nF[1]+2*ii]   <- sign(tt[1,'Value'])*qnorm(tt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
-            } 
+            }
          }
 	 if(lop$num_glf > 0) for(ii in 1:lop$num_glf) {
             ff <- NULL
@@ -686,7 +689,7 @@ runLME <- function(myData, DM, tag) {
 	       adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL)
             if(!is.null(ff)) {
                Stat[lop$nF[1]+2*lop$num_glt+ii] <- qchisq(ff[2,'Pr(>Chisq)'], 2, lower.tail = F) # glf[2,2]  # convert chisq to Z
-            } 
+            }
          }
       }
    }
@@ -698,8 +701,8 @@ runLME <- function(myData, DM, tag) {
 ########################## Begin LME main ######################################
 #################################################################################
 
-   if(!exists('.DBG_args')) { 
-      args = (commandArgs(TRUE))  
+   if(!exists('.DBG_args')) {
+      args = (commandArgs(TRUE))
       rfile <- first.in.path(sprintf('%s.R',ExecName))
       # save only on -dbg_args          28 Apr 2016 [rickr]
       if ( '-dbgArgs' %in% args ) {
@@ -712,7 +715,7 @@ runLME <- function(myData, DM, tag) {
    if(!length(args)) {
       BATCH_MODE <<- 0
       cat(greeting.LME(),
-      "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n", 
+      "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n",
       sep='\n')
       #browser()
       if(length(args)<6) modFile <- "model.txt" else modFile <- args[6]
@@ -721,7 +724,7 @@ runLME <- function(myData, DM, tag) {
       }
 
       if(0) str(lop)
-      
+
    } else {
       if(!exists('.DBG_args')) {
          BATCH_MODE <<- 1
@@ -730,13 +733,13 @@ runLME <- function(myData, DM, tag) {
       }
       if(is.null(lop <- read.LME.opts.batch(args, verb = 0)))
          stop('Error parsing input')
-      
+
       #str(lop);
-      if(is.null(lop <- process.LME.opts(lop, verb = lop$verb))) 
+      if(is.null(lop <- process.LME.opts(lop, verb = lop$verb)))
          stop('Error processing input')
-      
+
    }
-   #if(lop$verb > 1) { 
+   #if(lop$verb > 1) {
       #Too much output, big dump of header structs of input dsets..
    #   str(lop)
    #}
@@ -744,14 +747,14 @@ runLME <- function(myData, DM, tag) {
 
 ########################################################################
 
-# in case the user didn't put space around each colon (:), this 
-#lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))                                             
+# in case the user didn't put space around each colon (:), this
+#lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-# effect coding leads to the same type III as SAS   
+# effect coding leads to the same type III as SAS
 options(contrasts = c("contr.sum", "contr.poly"))
-    
+
 # standardize the names for Y, ROI and subject
 #names(lop$dataStr)[names(lop$dataStr)==lop$Subj] <- 'Subj'
 names(lop$dataStr)[names(lop$dataStr)==lop$IF] <- 'InputFile'
@@ -762,7 +765,7 @@ lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 #if(is.null(lop$Tstat)) lop$dataStr$Tstat <-  as.character(lop$dataStr$Tstat)
 
 # center on user-speficied value or mean
-if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) 
+if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters)))
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F)[,,drop=T] else
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)[,,drop=T]
 
@@ -772,18 +775,18 @@ cat('***** Summary information of data structure *****\n')
 #nS <- levels(lop$dataStr$Subj) # total number of subjects
 nF <- dim(lop$dataStr[1])[1] # number of input files
 
-#cat(nS, 'subjects in total:', nS, '\n') 
+#cat(nS, 'subjects in total:', nS, '\n')
 cat(nF, 'response values\n')
 
 if(dim(lop$dataStr)[2] > 3) for(ii in 3:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
-   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
+   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':',
    levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'numeric' | class(lop$dataStr[,ii]) == 'matrix')  # numeric doesn't work
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 #cat(lop$num_glt, 'post hoc tests\n')
 
 cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
 
-cat('***** End of data structure information *****\n')   
+cat('***** End of data structure information *****\n')
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
 cat('Reading input files now...\n\n')
@@ -812,7 +815,7 @@ if (!is.na(lop$maskFN)) {
 }
 
 
-# try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
+# try out a few voxels and see if the model is OK, and find out the number of F tests and DF's
 # for t tests (and catch potential problems as well)
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
@@ -820,10 +823,10 @@ if (!is.na(lop$maskFN)) {
 
 # add a new column to store the voxel-wise filenames
 if(any(!is.na(lop$vVars))) {
-   lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])                                                
+   lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])
    names(lop$dataStr)[length(names(lop$dataStr))] <- paste(lop$vQV[1], '_fn', sep='')
    lop$nVVars <- nlevels(lop$dataStr[,paste(lop$vQV[1], '_fn', sep='')])
-}                                             
+}
 
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
@@ -846,12 +849,12 @@ lop$model <- as.formula(paste('yy ~ ', lop$model))
 require(lmerTest)
 require(phia)
 fm<-NULL
-if(lop$num_glt > 0) gltRes <- vector('list', lop$num_glt) 
-if(lop$num_glf > 0) glfRes <- vector('list', lop$num_glf) 
+if(lop$num_glt > 0) gltRes <- vector('list', lop$num_glt)
+if(lop$num_glf > 0) glfRes <- vector('list', lop$num_glf)
 #chi_DF <- NULL
 while(is.null(fm)) {
    lop$dataStr$yy <- inData[ii, jj, kk,]
-   options(warn=-1)  
+   options(warn=-1)
    try(fm <- lmer(lop$model, data=lop$dataStr), silent=TRUE)
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
@@ -863,8 +866,8 @@ while(is.null(fm)) {
          if(is.null(gltRes[[n]])) fm <- NULL
          n <- n+1
       }
-   }  
-   if(!is.null(fm)) if (lop$num_glf > 0) {  
+   }
+   if(!is.null(fm)) if (lop$num_glf > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glf)) {
          if(is.na(lop$glfList[[n]])) glfRes[[n]] <- tryCatch(testFactors(fm, pairwise=NULL,
@@ -882,7 +885,7 @@ while(is.null(fm)) {
       lop$NoBrick <- lop$nF + nT + lop$num_glf
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
-      cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
+      cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
       cat('0) Make sure that R package lmerTest has been installed. See the 3dLME\n')
       cat('help documentation for more details.\n\n')
@@ -914,7 +917,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
       if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, tag=0), c(2,1)) else
       Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }         
+   }
 
 if (lop$nNodes>1) {
    pkgLoad('snow')
@@ -924,7 +927,7 @@ if (lop$nNodes>1) {
    clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
    for (kk in 1:dimz) {
       Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
-                  DM=lop$dataStr, tag=0), c(2,3,1)) 
+                  DM=lop$dataStr, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    }
     stopCluster(cl)
@@ -933,8 +936,8 @@ if (lop$nNodes>1) {
 
 Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
+Stat[Stat > Top] <- Top
+Stat[Stat < (-Top)] <- -Top
 
 brickNames <- paste(rownames(anova(fm)), 'Chi-sq')
 if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
@@ -946,14 +949,14 @@ if(lop$num_glf > 0) for (n in 1:lop$num_glf) {
 }
 
 statsym <- NULL
-if(lop$nF > 0) for (n in 1:lop$nF) 
+if(lop$nF > 0) for (n in 1:lop$nF)
    statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=2)))
 #   statsym <- c(statsym, list(list(sb=n-1, typ="fizt", par=NULL)))
-if(lop$num_glt > 0) for (n in 1:lop$num_glt) 
+if(lop$num_glt > 0) for (n in 1:lop$num_glt)
    statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
 if(lop$num_glf > 0) for (n in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$num_glt+n-1, typ="fict", par=2)))
-#      statsym <- c(statsym, list(list(sb=lop$nF+lop$num_glt+n, typ="fizt", par=NULL)))
+#      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n, typ="fizt", par=NULL)))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')

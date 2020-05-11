@@ -193,21 +193,23 @@ ENTRY("new_MCW_bbox_cbwrap") ;
       }
 
       if (cbs->event) {
-         for (ib=0; ib<cbws->bb->nbut && icaller < 0; ++ib) {
-            if (cbws->bb->wbut[ib] == w) icaller = ib;
-         }
+         if( cbws->bb_type != MCW_BB_check ){ /* 05 May 2020 */
+           for (ib=0; ib<cbws->bb->nbut && icaller < 0; ++ib) {
+             if (cbws->bb->wbut[ib] == w) icaller = ib;
+           }
 
-         /* what --was-- the state the calling widget? */
-         oset = !XmToggleButtonGetState( cbws->bb->wbut[icaller] );
-         if (oset && cbws->bb_type == MCW_BB_radio_one) {
-            /* widget was already set, and we're in radio one mode
-              turn it back on and vamoose */
-            XmToggleButtonSetState(cbws->bb->wbut[icaller], oset, False);
-            EXRETURN;
-         }
+           /* what --was-- the state the calling widget? */
+           oset = !XmToggleButtonGetState( cbws->bb->wbut[icaller] );
+           if (oset && cbws->bb_type == MCW_BB_radio_one) {
+              /* widget was already set, and we're in radio one mode
+                turn it back on and vamoose */
+              XmToggleButtonSetState(cbws->bb->wbut[icaller], oset, False);
+              EXRETURN;
+           }
 
-         /* flip everything but the calling widget */
-         MCW_enforce_radio_bbox(cbws->bb, icaller);
+           /* flip everything but the calling widget */
+           MCW_enforce_radio_bbox(cbws->bb, icaller);
+         }
       } else {
          /* ignore the initial call */
          /* for some reason, if you press on widgets other than 0, you get
@@ -242,7 +244,8 @@ ENTRY("new_MCW_bbox_cbwrap") ;
    }
 
    /* Now call the intended callback */
-   (cbws->cb)(w, cbws->cb_data, call_data);
+   if( cbws->cb != NULL )
+     (cbws->cb)(w, cbws->cb_data, call_data);
 
    EXRETURN;
 }
@@ -375,6 +378,8 @@ ENTRY("new_MCW_bbox") ;
         } else {
           XtSetArg( wa[na] , XmNradioAlwaysOne , False ) ; na++ ;
         }
+      } else {
+        XtSetArg( wa[na] , XmNradioBehavior , False ) ; na++ ; /* 05 May 2020 */
       }
 
       STATUS("create rowcol") ;
