@@ -1424,7 +1424,7 @@ class CanvasFrame(wx.Frame):
 
             if amat.run_len > 10 and amat.nruns > 1:
                ax.set_xticks(N.array([r*amat.run_len
-                                      for r in range(amat.nruns+1)]))
+                                      for r in range(int(amat.nruns)+1)]))
 
          if i < ncols - 1: ax.set_xticklabels([])
          else:             ax.set_xlabel('TRs')
