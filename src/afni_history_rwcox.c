@@ -44,6 +44,27 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , May , 2020 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with Lock menu toggle switches" ,
+   "Only one controller could be clicked on at a time!\n"
+   "Which was caused a long time ago by the LessTif patrol,\n"
+   "enforcing radio behavior even if it wasn't a radio box.\n"
+   "Also: rearranged buttons on menu so that main stuff\n"
+   "      is now at top, where it's more convenient."
+ } ,
+
+ { 4 , MAY , 2020 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "-nosquash, to avoid soft cap on large intensities" ,
+   "In other words, to skip the change of 30 Jan 2019, which\n"
+   "was causing trouble for someone doing oinker imaging!"
+ } ,
+
+ { 28 , APR , 2020 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
+   "Patch failure to register 2D images (I hope)" ,
+   "Turns out the cluster-izing step added to the weight production\n"
+   "zeroed out the 2D images. Cheap fix = just remove isolas instead."
+ } ,
+
  { 10 , APR , 2020 , RWC , "AFNI gui" , MINOR , TYPE_NEW_OPT ,
    "Add -norm option for normal font sizes" , NULL } ,
 

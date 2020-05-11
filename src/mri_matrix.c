@@ -3,6 +3,11 @@
 /****** functions used mostly in 1dmatcalc.c, but elsewhere as well ******/
 /***** these functions operate on matrices stored in 2D float images *****/
 
+/*----------------------------------------------------------------------------*/
+
+static int verb_rpn = 0 ;
+void mri_matrix_evalrpn_verb(int i){ verb_rpn = i ; }
+
 /*-----------------------------------------------------------------------*/
 
 void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label )
@@ -273,7 +278,7 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
    double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww , alp ;
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
-   int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
+   int do_svd = (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
    int *kbot=NULL,*ktop=NULL , ibot,itop,jbot,jtop , mn ;  /* 12 Feb 2009 */
 
 ENTRY("mri_matrix_psinv") ;
@@ -495,6 +500,13 @@ STATUS("SVD") ;
 
      for( ii=0 ; ii < n ; ii++ )
        if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;  /* should not happen */
+
+     if( verb_rpn ){
+       fprintf(stderr,"  singular values:") ;
+       for( ii=0 ; ii < n ; ii++ )
+         fprintf(stderr," %g",sval[ii]) ;
+       fprintf(stderr,"\n") ;
+     }
 
      /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
@@ -1163,11 +1175,6 @@ static int command_check( char *str , char *cmd )
   } while(0)
 
 /*----------------------------------------------------------------------------*/
-
-static int verb_rpn = 0 ;
-void mri_matrix_evalrpn_verb(int i){ verb_rpn = i ; }
-
-/*----------------------------------------------------------------------------*/
 /*! Evaluate a space delimited RPN expression to evaluate matrices:
      - The operations allowed are described in the output of
        function  mri_matrix_evalrpn_help().
@@ -1205,7 +1212,19 @@ ENTRY("mri_matrix_evalrpn") ;
       cmd = sar->str[ss] ;
       nstk = IMARR_COUNT(imstk) ;
 
-      if(verb_rpn)fprintf(stderr," + nstk=%d  cmd='%s'\n",nstk,cmd) ;
+      if(verb_rpn){
+        int ss , na,nb ; float *amat ;
+        fprintf(stderr," + nstk=%d  cmd='%s'\n",nstk,cmd) ;
+        for( ss=nstk-1 ; ss >= 0 ; ss-- ){
+          ima = IMARR_SUBIM(imstk,ss) ;
+          fprintf(stderr,"  [%d] %d X %d",ss,ima->nx,ima->ny) ;
+          if( ima->nx == 1 && ima->ny == 1 ){
+            amat = MRI_FLOAT_PTR(ima) ;
+            fprintf(stderr," = %g",amat[0]) ;
+          }
+          fprintf(stderr,"\n") ;
+        }
+      }
 
       if( *cmd == '\0' ) continue ;      /* WTF? */
 
@@ -1230,6 +1249,12 @@ ENTRY("mri_matrix_evalrpn") ;
 
       else if( command_check(cmd,"clear") ){
         DESTROY_IMARR(matar) ;
+      }
+
+      /** purge the stack; named matrices are unchanged **/
+
+      else if( command_check(cmd,"purge") ){  /* 05 May 2020 */
+        TRUNCATE_IMARR(imstk,0) ;
       }
 
       /** transpose matrix on top of stack, replacing it **/
@@ -1302,7 +1327,7 @@ ENTRY("mri_matrix_evalrpn") ;
       else if( command_check(cmd,"Psinv") ){
         if( nstk < 1 ) ERREX("no matrix") ;
         ima = IMARR_SUBIM(imstk,nstk-1) ;
-        imc = mri_matrix_psinv( ima , NULL , 0.0f ) ;
+        imc = mri_matrix_psinv( ima , NULL , 0.00001f ) ;
         if( imc == NULL ) ERREX("can't compute") ;
         TRUNCATE_IMARR(imstk,nstk-1) ;
         ADDTO_IMARR(imstk,imc) ;
@@ -1500,7 +1525,7 @@ char * mri_matrix_evalrpn_help(void)
     " * Operations mostly contain characters such as '&' and '*' that\n"
     "   are special to Unix shells, so you'll probably need to put\n"
     "   the arguments to this program in 'single quotes'.\n"
-    " * You can use '%%' or '@' in place of the '&' character, if you wish.\n"
+    " * You can use '%' or '@' in place of the '&' character, if you wish.\n"
     "\n"
     " STACK OPERATIONS\n"
     " -----------------\n"
@@ -1511,6 +1536,8 @@ char * mri_matrix_evalrpn_help(void)
     "                 names start with an alphabetic character\n"
     " &clear     == erase all named matrices (to save memory);\n"
     "                 does not affect the stack at all\n"
+    " &purge     == erase the stack;\n"
+    "                 does not affect named matrices\n"
     " &read(FF)  == read ASCII (.1D) file onto top of stack from file 'FF'\n"
     " &read4x4Xform(FF)\n"
     "            == Similar to &read(FF), except that it expects data\n"

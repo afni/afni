@@ -87,14 +87,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfExtrema_ParseInput(
    Opt->s = NULL;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfExtrema(ps);
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SurfExtrema(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -221,20 +221,20 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfExtrema_ParseInput(
          if (Opt->r <= 0.0) {
             SUMA_S_Errv("neighborhood radius is not valid (have %f from %s).\n", 
                         Opt->r, argv[kar]);
-		      exit (1);
+            exit (1);
          }
          brk = YUP;
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+         SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
                      argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit(1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    if (!Opt->out_prefix) {
@@ -242,7 +242,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfExtrema_ParseInput(
    }
    if (Opt->r <= 0.0) {
       SUMA_S_Errv("neighborhood radius is not set (have %f).\n", Opt->r);
-		exit (1);
+      exit (1);
    }
 
    SUMA_RETURN(Opt);
@@ -263,10 +263,10 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-sv;-m;-dset;-talk;");
    
    if (argc < 2) {

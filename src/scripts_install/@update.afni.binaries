@@ -77,6 +77,9 @@ history for $prog :
   3.11  6 Sep 2019 : if afni -ver fails, fall back to AFNI_version.txt
   3.12 13 Sep 2019 : set DYLD_LIBRARY_PATH on mac
   3.13 24 Sep 2019 : missed endif, extra ]
+  3.14 29 Apr 2020 : default recur from pub/dist/bin/misc
+                   - terminate on failed test download
+  3.15  4 May 2020 : fixed download of test file
 
 -------------------------------------------------------------------------------
 EOF
@@ -85,7 +88,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.13, September 24, 2019"
+set aub_version = "3.15, May 4, 2020"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -802,13 +805,14 @@ cd $tmp_dir
 #     get a new version of this script to make sure we are current...
 #     (sneaky suggestion by Bob)
 # download to a temp name, though
+# Try pub/dist/bin/misc first, then go after the package version
 if ( $do_recur ) then
    set temp_prog = tmp.$prog         # temp name to run with
    set retry = 0                     # use multiple attempts to get this
 
    set bin_root = $hostsite/$distdir/bin
-   set get_package = $bin_root/$package/$prog
-   echo "++ getting install prog: $get_prog $package/$prog ..."
+   set get_package = $bin_root/misc/$prog
+   echo "++ getting install prog: $get_prog bin/misc/$prog ..."
    echo $get_prog $get_package
    $get_prog $get_package
 
@@ -827,7 +831,7 @@ if ( $do_recur ) then
 
    if ( $retry ) then
       set retry = 0
-      set ppp = linux_openmp_64
+      set ppp = $package
       echo "** failed, trying $ppp/$prog ..."
       $get_prog $bin_root/$ppp/$prog
       if ( $status ) then
@@ -1047,7 +1051,14 @@ if ( $local_package == "" ) then
    endif
    set get_package = $hostsite/$distdir/bin/$package/$pp
    echo "++ downloading test file: $get_prog $package/$pp ..."
+
    $get_prog $get_package
+   if ( $status ) then
+      echo "** failed to download test file"
+      echo "   (maybe package $package is not available)"
+      exit 1
+   endif
+
    cmp -s $pp ../$pp
    if ( ! $status ) then
        echo "++ no update needed"

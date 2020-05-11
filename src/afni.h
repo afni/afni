@@ -74,6 +74,7 @@ typedef struct {
                /* port_niml no longer in use. ZSS June 2011 */
                /* int port_niml ;         10 Dec 2002 */
 
+      int all_dsets_startup ; /* 04/06/2020 discoraj */
       char *script_fname ;    /* 21 Jan 2003 */
 
       int cat_sess ;          /* 02 Jun 2016 */
@@ -335,7 +336,7 @@ typedef struct {
       int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
           stats_func_ok,     /*   to indicate if the sub-brick range  */
           arang_func_ok,     /*   statistics are loaded properly     */
-          stats_thresh_ok ;  
+          stats_thresh_ok ;
 
       int   i1_icor , j2_icor , k3_icor;  /* for InstaCorr -- 08 May 2009 */
       float xi_icor , yj_icor , zk_icor ; /* DICOM coords -- 17 Mar 2010 */
@@ -1009,6 +1010,7 @@ typedef struct {
       Widget news_pb ;                    /* 15 May 2019 */
       Widget forum_pb ;                   /* 17 May 2019 */
       Widget phelp_pb ;
+      Widget ytube_pb ;                   /* youtube 28 Apr 2020 discoraj */
 
       Widget file_dialog , file_sbox ;
       XtCallbackProc file_cb ;
@@ -1791,6 +1793,9 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 
 # define SUMA_ENABLED   GLOBAL_argopt.enable_suma
 
+/* 04/06/2020 discoraj */
+#define ALL_DSETS_STARTUP  GLOBAL_argopt.all_dsets_startup
+
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
 
 #define PBAR_FULLRANGE  GLOBAL_library.pbar_fullrange
@@ -1829,6 +1834,7 @@ extern void AFNI_tips_CB           ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_news_CB           ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_forum_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_phelp_CB          ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_ytube_CB          ( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ;    /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
@@ -2494,6 +2500,7 @@ extern int  AFNI_needs_dset_tin(void) ;
 extern int AFNI_gcd( int m , int n ) ;
 extern int AFNI_find_relprime_random( int n ) ;
 extern int AFNI_find_relprime_fixed( int n ) ;
+extern int AFNI_find_session( char *dname ) ; /* 04/06/2020 discoraj */
 
 /*-----------------------------------------------------------*/
 /*-----------------  initializations  -----------------------*/

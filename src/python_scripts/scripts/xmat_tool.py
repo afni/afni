@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: in progress (need updates for wx in GUI)
+
 # basically everything is in ui_xmat.py and gui_xmat.py
 #
 # see "xmat_tool.py -help"

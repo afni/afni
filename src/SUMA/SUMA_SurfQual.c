@@ -132,58 +132,58 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc,
    Opt->self_intersect = 0;
    Opt->DoSum = 0;
    
-	brk = NOPE;
+   brk = NOPE;
    
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfQual(ps, strlen(argv[kar]) > 3 ? 2:1);
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_SurfQual(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
+      }
+      
       /* skip the options parsed in SUMA_ParseInput_basics_s */
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-sphere") == 0)) {
-			if (Opt->surftype) {
+         if (Opt->surftype) {
             SUMA_S_Err( "Surface type already specified.\n"
                         "Only one type allowed.");
             exit(1);
          }
          Opt->surftype = argv[kar];
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-self_intersect") == 0)) {
          Opt->self_intersect = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-summary") == 0)) {
          Opt->DoSum = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
-				exit (1);
-			}
-			Opt->out_prefix = SUMA_copy_string(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix \n");
+            exit (1);
+         }
+         Opt->out_prefix = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+      }
             
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
       
    }
    
@@ -211,14 +211,14 @@ int main (int argc,char *argv[])
    int N_bad_nodes, N_bad_facesets;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
-	
+   
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
       
-	/* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   /* Allocate space for DO structure */
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
    Opt = SUMA_SurfQual_ParseInput (argv, argc, ps);
    if (argc < 2)

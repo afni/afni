@@ -1,11 +1,13 @@
 #include <R.h>
 #include <Rdefines.h>
 #include "mrilib.h"
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 static int odebug;
 void set_odebug(int dd) { odebug = dd; }
 int get_odebug(void) { return(odebug); }
+/*------------------------------------------------------------*/
 
 SEXP getListElement(SEXP list, const char *str)
 {

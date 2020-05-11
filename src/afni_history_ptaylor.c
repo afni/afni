@@ -66,6 +66,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
+   "Installer for the Indian Brain Templates.",
+   "Enjoy.\n"
+},
+
+{ 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added a help example for integrating output into afni_proc.py.",
+   "... because otherwise *I* forget how to use the outputs.\n"
+},
+
+{ 24, Apr , 2020 , PT , "3dLMEr" , MINOR , TYPE_GENERAL,
+   "Updating this R file for GC. So I don't really know what the changes do.",
+   "... though I reeeallly want to pretend the changes were mine, ALL MINE.\n"
+},
+
+{ 24, Apr , 2020 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "Sidedness of testing will no longer be checked for non-stat thr vols.",
+   "It must be Daniel Glen's birthday today (two-sided, non-stat p<0.9999).\n"
+},
+
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Added new help example.",
+   "Demonstrates useful colorbar-entry functionality.\n"
+},
+
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Use '-colorscale_idx_file ..' to control AFNI env var AFNI_COLORSCALE_xx.",
+   "Provides a way for user-created cbar info to be input+used.\n"
+},
+
+{ 22, Apr , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
+   "The '-xvals ..' opt was broken, but now is fixed.",
+   "*Now* the brain can be solved.\n"
+},
+
 { 16, Apr , 2020 , PT , "adjunct_simplify_cost.py" , MICRO , TYPE_NEW_PROG,
    "Adjunct program for (soon to be updated) @SSwarper.",
    "Convert cost name to simpler version, for some application(s).\n"

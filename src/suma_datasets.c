@@ -13,9 +13,9 @@ See SUMA_Makefile_NoDev
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-#include "xutil.h"
 
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 extern int selenium_close(void) ;
 

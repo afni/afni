@@ -1173,11 +1173,13 @@ int main( int argc , char *argv[] )
       "                the default, you don't actually need this option.\n"
       "                [FMRI data doesn't seem to need the modeling  ]\n"
       "                [of negative correlations, but you never know.]\n"
-      " -WNplus    = Do not allow negative correlations, and only allow\n"
+      " -WNplus    = Do not allow negative correlations, AND only allow\n"
       "                (a,b) parameter combinations that fit the model\n"
       "                AR(1) + white noise:\n"
       "               * a > 0  and  -a < b < 0\n"
       "               * see 'What is ARMA(1,1)' far below\n"
+      "               * you should use '-Grid 5' with this option, since\n"
+      "                 it restricts the number of possible ARMA(1,1) models\n"
       "\n"
       " -Mfilt mr  = After finding the best fit parameters for each voxel\n"
       "                in the mask, do a 3D median filter to smooth these\n"
@@ -1275,7 +1277,7 @@ int main( int argc , char *argv[] )
       "    is a proper subset of ARMA(1,1) -- and also a proper subset of the default\n"
       "    -POScor setting (which also allows 0 < a < lam via b > 0).\n"
       "  + This restricted model can be specified with the '-WNplus' option.\n"
-      "    With '-Wnplus', you should use '-Grid 5', since you are restricting\n"
+      "    With '-WNplus', you should use '-Grid 5', since you are restricting\n"
       "    the number of available noise models fairly substantially.\n"
       "  + If the variance of the white noise is T and the variance of the AR(1) noise\n"
       "    is U, then lam = (a*U)/(U+T*(1-a^2)), and U/T = (lam*(1-a^2))/(a^2-lam).\n"
@@ -1652,6 +1654,10 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     if( strcasecmp(argv[iarg],"-qsumq") == 0 ){     /* HIDDEN [28 Apr 2020] */
+       do_logqsumq = 0 ; iarg++ ; continue ;         /* should NOT BE USED */
+     }
 
      /**==========   -virtvec  ==========**/
 

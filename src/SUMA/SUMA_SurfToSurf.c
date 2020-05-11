@@ -157,19 +157,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
    Opt->oform = SUMA_NO_DSET_FORMAT;
    accepting_out = NOPE;
    while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       
       if (!brk && accepting_out) { 
          /* make sure you have not begun with new options */
          if (*(argv[kar]) == '-') accepting_out = NOPE;
       }
-		
+      
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfToSurf(ps, strlen(argv[kar]) > 3 ? 2:1);
+          usage_SurfToSurf(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -375,16 +375,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
          brk = YUP;
       }
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s:\n"
                   "Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    /* set default for NearestNode if nothing has been set */
@@ -408,7 +408,7 @@ int main (int argc,char *argv[])
    SUMA_M2M_STRUCT *M2M = NULL;
    int N_Spec=0, *nodeind = NULL, N_nodeind, icol, i, j;
    MRI_IMAGE *im = NULL, *im_data=NULL;
-	int nvec=0, ncol=0, nvec_data=0, ncol_data=0, Nchar=0;
+   int nvec=0, ncol=0, nvec_data=0, ncol_data=0, Nchar=0;
    float *far = NULL, *far_data=NULL, *dt = NULL, *projdir=NULL;
    char *outname = NULL, *s=NULL, sbuf[100];
    void *SO_name = NULL;   
@@ -419,10 +419,10 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;-o;");
    
    Opt = SUMA_SurfToSurf_ParseInput (argv, argc, ps);

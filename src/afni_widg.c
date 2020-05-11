@@ -5593,6 +5593,7 @@ STATUS("making prog->rowcol") ;
    vwid->tips_pb       = NULL ;  /* not always created */
    vwid->news_pb       = NULL ;  /* 15 May 2019 */
    vwid->forum_pb      = NULL ;  /* 17 May 2019 */
+   vwid->ytube_pb      = NULL ;  /* 28 Apr 2020 discoraj */
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -5621,7 +5622,7 @@ STATUS("making prog->rowcol") ;
         vwid->tips_pb =
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI Tips") ,
+                 LABEL_ARG("Tips") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
                  XmNleftOffset       , TIPS_PLUS_SHIFT ,
@@ -5641,10 +5642,11 @@ STATUS("making prog->rowcol") ;
         MCW_set_widget_bg( vwid->tips_pb , "#000044" , 0 ) ;
         MCW_set_widget_fg( vwid->tips_pb , "#ffddaa" ) ;
 
+        /* ------------------ news -------------------------- */
         vwid->news_pb =                /* 15 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI News") ,
+                 LABEL_ARG("News") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
                  XmNleftOffset       , TIPS_PLUS_SHIFT ,
@@ -5664,10 +5666,11 @@ STATUS("making prog->rowcol") ;
         MCW_set_widget_bg( vwid->news_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->news_pb , "#ffffaa" ) ;
 
+        /* ------------------ forum -------------------------- */
         vwid->forum_pb =                /* 17 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("AFNI Forum") ,
+                 LABEL_ARG("Forum") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->news_pb ,
                  XmNbottomAttachment , XmATTACH_WIDGET ,
@@ -5689,7 +5692,7 @@ STATUS("making prog->rowcol") ;
         vwid->phelp_pb =                /* 17 May 2019 */
            XtVaCreateManagedWidget(
               "font8" , xmPushButtonWidgetClass , vwid->top_form ,
-                 LABEL_ARG("Prog Helps") ,
+                 LABEL_ARG("Helps") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->tips_pb ,
                  XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
@@ -5706,6 +5709,30 @@ STATUS("making prog->rowcol") ;
                        AFNI_phelp_CB , im3d ) ;
         MCW_set_widget_bg( vwid->phelp_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->phelp_pb , "#ffffaa" ) ;
+
+        /* ------------------ youtube -------------------------- */
+        vwid->ytube_pb =                /* 28 Apr 2020 discoraj*/
+           XtVaCreateManagedWidget(
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
+                 LABEL_ARG("YouTube") ,
+                 XmNleftAttachment   , XmATTACH_WIDGET ,
+                 XmNleftWidget       , vwid->phelp_pb ,
+                 XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                 XmNbottomWidget     , vwid->picture ,
+                 XmNbottomOffset     , 2 ,
+                 XmNshadowThickness  , 3 ,
+                 XmNtraversalOn      , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+        MCW_register_help( vwid->ytube_pb , "Opens a web browser\n"
+                                            "to the AFNI Bootcamp\n"
+                                            "Youtube channel" ) ;
+        MCW_register_hint( vwid->ytube_pb , "Web: AFNI YouTube" ) ;
+        XtAddCallback( vwid->ytube_pb , XmNactivateCallback ,
+                       AFNI_ytube_CB , im3d ) ;
+        MCW_set_widget_bg( vwid->ytube_pb , "#003300" , 0 ) ;
+        MCW_set_widget_fg( vwid->ytube_pb , "#ffffaa" ) ;
+        
       }
    }
 #else
@@ -6836,6 +6863,7 @@ ENTRY("AFNI_controller_clonify") ;
 /*-------------------------------------------------------------------------
    04 Nov 1996: make a menubar to control the coordinate locking
                 of the various controller windows
+                [buttons rearranged 05 May 2020]
 ---------------------------------------------------------------------------*/
 
 void AFNI_lock_button( Three_D_View *im3d )
@@ -6843,7 +6871,7 @@ void AFNI_lock_button( Three_D_View *im3d )
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
 
-   static char *clabel[] = {
+   static char *clabel[] = {  /* never more than 26 controllers! */
       "Lock [A]", "Lock [B]", "Lock [C]", "Lock [D]", "Lock [E]",
       "Lock [F]", "Lock [G]", "Lock [H]", "Lock [I]", "Lock [J]",
       "Lock [K]", "Lock [L]", "Lock [M]", "Lock [N]", "Lock [O]",
@@ -6930,17 +6958,66 @@ ENTRY("AFNI_lock_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   /*** button box to select locks ***/
+   /*** to clear all locks right now ***/
 
-   dmode->lock_bbox = new_MCW_bbox( menu ,
-                                    MAX_CONTROLLERS , clabel ,
-                                    MCW_BB_check , MCW_BB_noframe ,
-                                    AFNI_lock_change_CB , (XtPointer)im3d ) ;
+   xstr = XmStringCreateLtoR( "Clear All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_clear_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_clear_pb , XmNactivateCallback ,
+                  AFNI_lock_clear_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
 
-   MCW_set_bbox( dmode->lock_bbox , GLOBAL_library.controller_lock ) ;
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
-   MCW_reghint_children( dmode->lock_bbox->wrowcol ,
-                         "Which ones are locked together?" ) ;
+   /*** to set all locks right now [19 Apr 1999] ***/
+
+   xstr = XmStringCreateLtoR( "Set All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_setall_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_setall_pb , XmNactivateCallback ,
+                  AFNI_lock_setall_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+   /*** to enforce locks right now ***/
+
+   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_enforce_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_enforce_pb , XmNactivateCallback ,
+                  AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
+   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
 
    /*** button box to control the time lock ***/
 
@@ -7030,66 +7107,17 @@ ENTRY("AFNI_lock_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   /*** to clear all locks right now ***/
+   /*** button box to select locks [moved 05 May 2020] ***/
 
-   xstr = XmStringCreateLtoR( "Clear All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_clear_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_clear_pb , XmNactivateCallback ,
-                  AFNI_lock_clear_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
-   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
+   dmode->lock_bbox = new_MCW_bbox( menu ,
+                                    MAX_CONTROLLERS , clabel ,
+                                    MCW_BB_check , MCW_BB_noframe ,
+                                    AFNI_lock_change_CB , (XtPointer)im3d ) ;
 
-   (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
-               XmNseparatorType , XmSINGLE_LINE ,
-            NULL ) ;
+   MCW_set_bbox( dmode->lock_bbox , GLOBAL_library.controller_lock ) ;
 
-   /*** to set all locks right now [19 Apr 1999] ***/
-
-   xstr = XmStringCreateLtoR( "Set All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_setall_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_setall_pb , XmNactivateCallback ,
-                  AFNI_lock_setall_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
-   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
-
-   (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
-               XmNseparatorType , XmSINGLE_LINE ,
-            NULL ) ;
-
-   /*** to enforce locks right now ***/
-
-   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
-   dmode->lock_enforce_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               XmNlabelString , xstr ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->lock_enforce_pb , XmNactivateCallback ,
-                  AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
-   XmStringFree(xstr) ;
-   MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
-   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
+   MCW_reghint_children( dmode->lock_bbox->wrowcol ,
+                         "Which ones are locked together?" ) ;
 
    XtManageChild( rc ) ;
    EXRETURN ;
@@ -7799,7 +7827,7 @@ char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
       /* max is high - use the ROI_i256 colorbar -
  *         user should use -XXXnpane option*/
       return("ROI_i256" ) ;
-   
+
 
    return("ROI_i256" ) ;
 }
@@ -7905,7 +7933,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 /*            AFNI_set_func_range_nval(im3d->vwid->func->inten_pbar->parent,
                            THD_dset_max(im3d->fim_now, 1));
 */
-         }  
+         }
       }
       else {
 #if 0

@@ -1416,7 +1416,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt, FILE *condition_n
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n"
                            "Number of control points: %d\n", 
-                     	    FuncName, opt->N_ctrl_points);
+                            FuncName, opt->N_ctrl_points);
    }
    
    if (opt->dim !=2 && opt->dim != 3) {

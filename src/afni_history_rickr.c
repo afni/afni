@@ -49,6 +49,38 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, May, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
+   "fix download of test file",
+   "Thanks to Gerome on MB for reporting the problem."
+ } ,
+
+ {  4, May, 2020, RCR, "xmat_tool.py", MINOR, TYPE_ENHANCE,
+   "make partual updates for python3",
+   NULL
+ } ,
+
+ {  4, May, 2020, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "remove tabs from a bunch of files",
+   NULL
+ } ,
+
+ { 29, Apr, 2020, RCR, "@chauffeur_afni", MINOR, TYPE_ENHANCE,
+   "add AFNI_DRIVE_OPTS_XVFB env var for adding opts to Xvfb",
+   "This will probably be modified later, but it allows one to pass\n"
+   "something like '-nolisten inet6' if IPv6 is not working.\n"
+   "Thanks to W-L Tseng."
+ } ,
+
+ { 29, Apr, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "for recur, def to pub/dist/bin/misc; terminate on failed test download",
+   NULL
+ } ,
+
+ { 23, Apr, 2020, RCR, "to3d", MICRO, TYPE_BUG_FIX,
+   "allow no controller open on input of JPEG image",
+   NULL
+ } ,
+
  { 14, Apr, 2020, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if dataset inputs had full paths, use them in proc script",
    "Thanks to W-L Tseng for pointing out the discrepancy."

@@ -4,7 +4,7 @@ set stat = 0
 set sdir = $PWD
 
 # [PT: May 1, 2020] updated version
-set demo = MACAQUE_DEMO_2.0
+set demo = IBT_DATASETS
 
 goto PARSE
 RET_PARSE:
@@ -41,7 +41,7 @@ endif
 tar xvzf $demo.tgz
 cd $demo
    echo "********************************************************"
-   echo "Follow examples in ./$demo/README.txt "
+   echo "A brief description is provided in ./$demo/README.txt "
    #echo "---------------------------------------------------------"
    #PT: Normally here you can consider running one or all of the"
    #scripts and quide the users to look at the results.

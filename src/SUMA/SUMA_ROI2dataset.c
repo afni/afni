@@ -110,20 +110,20 @@ int main (int argc,char *argv[])
    NI_stream ns;
    SUMA_DSET_FORMAT Out_Format = SUMA_ASCII_NIML;
    SUMA_DRAWN_ROI ** ROIv = NULL, **tROIv = NULL;
-	SUMA_Boolean AddThis = NOPE;
+   SUMA_Boolean AddThis = NOPE;
    SUMA_ROI_EXTRACT *dd=NULL;
    DList *ddl=NULL;
    DListElmt *el=NULL;
    int nodups=0, olabel = 0, withflag = 0, keepsep=0;
    SUMA_COLOR_MAP *cmap=NULL;
    SUMA_Boolean LocalHead = NOPE;
-	
+   
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-	
+   
    /* parse the command line */
    kar = 1;
-	brk = NOPE;
+   brk = NOPE;
    prefix_name = NULL;
    input_name_v = NULL;
    N_input_name = 0;
@@ -137,32 +137,32 @@ int main (int argc,char *argv[])
    keepsep = 0;
    nodups = 0;
    while (kar < argc) { /* loop accross command ine options */
-		/* SUMA_LH("Parsing command line..."); */
+      /* SUMA_LH("Parsing command line..."); */
       
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_ROI2dataset_Main(strlen(argv[kar]) > 3 ? 2:1);
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_ROI2dataset_Main(strlen(argv[kar]) > 3 ? 2:1);
           exit (1);
-		}
+      }
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
-				exit (1);
-			}
-			prefix_name = argv[kar];
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix ");
+            exit (1);
+         }
+         prefix_name = argv[kar];
          brk = YUP;
-		}
+      }
       
       if (!brk && (strcmp(argv[kar], "-label_dset") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -label_dset ");
-				exit (1);
-			}
-			prefix_name = argv[kar];
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -label_dset ");
+            exit (1);
+         }
+         prefix_name = argv[kar];
          if (Out_Format != SUMA_NO_DSET_FORMAT &&
              Out_Format != SUMA_ASCII_NIML &&
              Out_Format != SUMA_BINARY_NIML) {
@@ -174,7 +174,7 @@ int main (int argc,char *argv[])
          else Out_Format = SUMA_BINARY_NIML;
          olabel = 1;
          brk = YUP;
-		}
+      }
       
       if (  !brk && 
             (strcmp(argv[kar], "-keep_separate") == 0) ) {
@@ -189,14 +189,14 @@ int main (int argc,char *argv[])
          if (strlen(argv[kar])> 10) nodups = 1;
          else nodups = 0;
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -nodelist* options ");
-				exit (1);
-			}
-			nodelist = argv[kar];
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -nodelist* options ");
+            exit (1);
+         }
+         nodelist = argv[kar];
          
          brk = YUP;
-		}
+      }
       
       if (  !brk && 
             (strcmp(argv[kar], "-nodelist_with_ROIval") == 0) ) {
@@ -206,10 +206,10 @@ int main (int argc,char *argv[])
       
       if (!brk && (strcmp(argv[kar], "-of") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -of ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -of ");
+            exit (1);
+         }
          
          Out_Format = SUMA_NO_DSET_FORMAT;
                      /* Can't use isOutputFormatFromArg because -of is not part
@@ -217,7 +217,7 @@ int main (int argc,char *argv[])
          if (!SUMA_isFormatFromArg(argv[kar], &Out_Format)) {
             fprintf (SUMA_STDERR, 
                      "%s not a valid option with -of.\n", argv[kar]);
-				exit (1);
+            exit (1);
          }
          if (olabel && 
              Out_Format != SUMA_ASCII_NIML &&
@@ -227,24 +227,24 @@ int main (int argc,char *argv[])
          } 
          
          brk = YUP;
-		}
+      }
       
       if (!brk && (strcmp(argv[kar], "-dom_par_id") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -dom_par_id");
-				exit (1);
-			}
-			Parent_idcode_str = SUMA_copy_string(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -dom_par_id");
+            exit (1);
+         }
+         Parent_idcode_str = SUMA_copy_string(argv[kar]);
          brk = YUP;
       }
       
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need at least one argument after -input ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need at least one argument after -input ");
+            exit (1);
+         }
          input_name_v = (char **)SUMA_malloc((argc-kar+1)*sizeof(char *));
          
          cnt = 0;
@@ -259,24 +259,24 @@ int main (int argc,char *argv[])
       if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) || 
                      (strcmp(argv[kar], "-pad_val") == 0) )) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -pad_label");
-				exit (1);
-			}
-			pad_val = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -pad_label");
+            exit (1);
+         }
+         pad_val = atoi(argv[kar]);
          brk = YUP;
       }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}   
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }   
    }   
    
    if (argc < 4) {

@@ -199,7 +199,7 @@ int main (int argc,char *argv[])
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-	
+   
    SUMA_LH("Creating CIFTI toy");
    if (!(cdset = SUMA_Create_Fake_CIFTI(NULL, NULL, NULL))) {
       SUMA_S_Err("Failed to create fake CIFTI");
@@ -273,7 +273,7 @@ int main (int argc,char *argv[])
          exit(1);
       }  
       #endif
-      	/* form the dataset */
+         /* form the dataset */
    SUMA_LH("Adding stat NodeDef column ...");
    if (!SUMA_AddDsetNelCol (   dset, /* the famed nel */ 
                            "Node Indices", 
@@ -358,7 +358,7 @@ int main (int argc,char *argv[])
    }  
    #endif
                            
-	/* form the dataset */
+   /* form the dataset */
    SUMA_LH("Adding NodeDef column ...");
    if (!SUMA_AddDsetNelCol (   dset, /* the famed nel */ 
                            "le Node Def", 
@@ -454,7 +454,7 @@ int main (int argc,char *argv[])
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
          SUMA_free(OutName); OutName = NULL; 
       }
-	   
+      
       #ifdef SUMA_COMPILED
       OutName = SUMA_WriteDset_s ("Test_writeas_all_num", dset, SUMA_ASCII_NIML, 1, 1); 
       #else
@@ -545,7 +545,7 @@ int main (int argc,char *argv[])
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
          SUMA_free(OutName); OutName = NULL;
       }
-	   
+      
       SUMA_LH("Writing to 1D a dataset that is not all numbers.\nThis should fail.\n");
       #ifdef SUMA_COMPILED
       OutName = SUMA_WriteDset_s ("Test_write", dset, SUMA_1D, 1, 1); 
@@ -657,6 +657,6 @@ int main (int argc,char *argv[])
    if (dset) SUMA_FreeDset((void *)dset);
    #endif
    
-	SUMA_RETURN (0);
+   SUMA_RETURN (0);
 }/* Main */
    

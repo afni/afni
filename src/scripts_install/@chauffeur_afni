@@ -256,9 +256,17 @@
 #   + [PT] put "-no1D" on afni command, so there aren't warnings when
 #          empty 1D files are read (e.g., during resting state APQC)
 #
-set version   = "5.94"; set rev_dat   = "Feb 22, 2020"
+#set version   = "5.94"; set rev_dat   = "Feb 22, 2020"
 #   + [PT] add new opt, controlling AGIF delay time from AFNI env vars
 #        + change way movie files are cleaned up, so no __tmp* dir left over
+#
+set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
+# [PT] new opt: -colorscale_idx_file, to make use of the existing env var
+#      AFNI_COLORSCALE_xx
+#      + user can enter own scale values this way
+#
+set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
+# [PT] added help example of "fun" cbar usage
 #
 # =====================================================================
 
@@ -384,6 +392,10 @@ set olay_nz = "-non-zero"        # [PT: Jul 23, 2018] same olay def: non-0
 set com_ulay_str = "DO_NOTHING"  # [PT: Jul 23, 2018] so we can drive values 
 set umax_scale = 1
 set umax_magic = "98"
+
+set USER_CSCALE  = 0             # [PT: Apr 23, 2020] for AFNI_COLORSCALE_xx
+set cscale_idx   = ""
+set cscale_fname = ""
 
 set BIGNEG = -100000001
 @ BIGNEGp1 = $BIGNEG + 1
@@ -556,6 +568,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         set topval = "$argv[$ac]"
         
+    # [PT: Apr 23, 2020] enable AFNI_COLORSCALE_xx env var behavior.
+    # NB: this will *require* 2 args: index in range [01,99], and filename
+    else if ( "$argv[$ac]" == "-colorscale_idx_file" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cscale_idx   = "$argv[$ac]"
+        @ ac += 1
+        set cscale_fname = "$argv[$ac]"
+        set USER_CSCALE  = 1
+
     # SAVE_ALLJPEG [c].imagewindowname filename
     # SAVE_ALLPNG  [c].imagewindowname filename
     # SAVE_MPEG    [c].imagewindowname filename
@@ -1026,6 +1048,31 @@ if ( $innit == 0 ) then
     echo "** ERROR: bad opacity:  $opac"
     echo "   ---> needs to be (exactly) one of:  $check_list\n\n"
     goto BAD_EXIT
+endif
+
+# [PT: Apr 23, 2020] 
+if ( ${USER_CSCALE} ) then
+    echo "++ Using user-specified colorscale:"
+    if ( "${cscale_fname}" == "" ) then
+        echo "** ERROR: need colorscale file name"
+        goto BAD_EXIT
+    else if ( ! -f "${cscale_fname}" ) then
+        echo "** ERROR: cannot find colorscale with file name: ${cscale_fname}"
+        goto BAD_EXIT
+    endif
+
+    if ( "${cscale_idx}" == "" ) then
+        echo "** ERROR: need colorscale index."
+        goto BAD_EXIT
+    endif
+
+    echo "   colorscale index : ${cscale_idx}"
+    echo "   colorscale fname : ${cscale_fname}"
+
+    setenv AFNI_COLORSCALE_${cscale_idx}  "${cscale_fname}"
+
+    # get new cbar name from top line of file
+    set my_cbar = `head -n 1 "${cscale_fname}"`
 endif
 
 # -------------------- make temp working dir
@@ -1776,6 +1823,17 @@ EOF
 
     # start the X virtual frame buffer on display #xdisplay, a la bob
 
+    # allow user to set extra options, such as "-nolisten inet6", in
+    # case IPv6 is not configured; consider a test like:
+    #     if -d /proc/net && ! -f /proc/net/if_inet6
+    #        then add: -nolisten inet6
+    #     or maybe if -d /proc/sys/net/ipv6
+    if ( $?AFNI_DRIVE_OPTS_XVFB ) then
+       set opts_xvfb = ( $AFNI_DRIVE_OPTS_XVFB )
+    else
+       set opts_xvfb = ( )
+    endif
+
     if ( $rrr == 1 ) then ### only need to start once, i.e., if in MODE_4D
         set ranval = `count -dig 1 1 999999 R1`
 
@@ -1786,8 +1844,8 @@ EOF
           while( $Xnotfound )
             set xdisplay = `count -dig 1 3 999 R1`
             if( -e /tmp/.X${xdisplay}-lock ) continue
-            echo " -- trying to start Xvfb :${xdisplay}"
-            Xvfb :${xdisplay} -screen 0 1024x768x24 &
+            echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
+            Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
             sleep 1
             jobs > zzerm.$ranval.txt
             grep -q Xvfb zzerm.$ranval.txt
@@ -2276,6 +2334,29 @@ COMMAND OPTIONS ~1~
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
                     cbars in the standard AFNI list (def: $my_cbar).
 
+-colorscale_idx_file CI CF 
+                   :another way to specify a colorbar, in this case
+                    one created by the user.  Two arguments must be
+                    input.  First, CI is a colorscale index, which
+                    must be in the (inclusive) range [01, 99], using
+                    two numbers.  (The user has to enter this, because
+                    they might have one/more of these specified
+                    already in their ~/.afnirc file, and hence avoid
+                    duplicating an index.)  Second, CF is the
+                    colorscale filename; the file contains the name of
+                    the colorbar in the first line, and then either 2
+                    columns (values and colors) or 1 column (just
+                    colors; will be evenly spaced).  An example CF is:
+                          Yellow-Lime-Red-Blue
+                            1.0 #ffff00
+                            0.7 limegreen
+                            0.5 #ff0000
+                            0.3 #aa00aa
+                            0.0 #0000ff
+                    Note the types of AFNI-allowed colornames used here
+                    (hex and specific colorname). 
+                    (see ENV: AFNI_COLORSCALE_xx)
+
 -pbar_posonly      :for color range specification, default is to use
                     both positive and negative values; enter this flag
                     to use only the positive range. (See DR:
@@ -2631,6 +2712,31 @@ EXAMPLES ~1~
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
         -do_clean 
+
+  D) Fun way to enter a colorbar-- note all the '-cbar*' options
+     working together here, and the way they are used to make a
+     discrete cbar.  (You might also enjoy the '-colorscale_idx_file ..' 
+     option, as another way to enter your own colorbar; colors
+     entered there are *not* discrete regions, but get blended
+     together.)
+
+    @chauffeur_afni                       \
+        -ulay FT_anat+orig.               \
+        -olay FT_anat+orig.               \
+        -func_range_perc 95               \
+        -prefix AAA                       \
+        -pbar_saveim BBB.jpg              \
+        -pbar_posonly                     \
+        -cbar_ncolors 6                   \
+        -cbar_topval ""                   \
+        -cbar "1000=yellow                \
+                800=cyan                  \
+                600=rbgyr20_10            \
+                400=rbgyr20_08            \
+                200=rbgyr20_05            \
+                100=rbgyr20_03            \
+                0=none"
+
 
 # -------------------------------------------------------------------
 

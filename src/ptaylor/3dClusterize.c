@@ -76,6 +76,9 @@ void usage_Clusterize(int detail)
 " main output of this program is a single volume dataset showing a map\n"
 " of the cluster ROIs.\n"
 " \n"
+" As of Apr 24, 2020, this program now behaves less (unnecessarily)\n"
+" guardedly when thresholding non-stat volumes.  About time, right?\n"
+" \n"
 " This program is specifically meant to reproduce behavior of the muuuch\n"
 " older 3dclust, but this new program:\n"
 "   + uses simpler syntax (hopefully);\n"
@@ -319,7 +322,7 @@ void usage_Clusterize(int detail)
 "     3dClusterize command and dump the text into a separate file of\n"
 "     your own naming.\n"
 " \n"
-"   Using p-values as thresholds ~2~\n"
+"   Using p-values as thresholds for statistic volumes ~2~\n"
 " \n"
 "     By default, numbers entered as voxelwise thresholds are assumed to\n"
 "     be appropriate statistic values that you have calculated for your\n"
@@ -353,6 +356,9 @@ void usage_Clusterize(int detail)
 " \n"
 "     You cannot mix p-values and statistic values (for two-sided\n"
 "     things, enter either the single p-value or both stats).\n"
+" \n"
+"     You cannot use this internal p-to-stat conversion if the volume\n"
+"     you are thresholding is not recognized as a stat.\n"
 " \n"
 "   Performing appropriate testing ~2~\n"
 " \n"
@@ -407,6 +413,18 @@ void usage_Clusterize(int detail)
 "        -NN 1                      \\\n"
 "        -bisided p=0.001           \\\n"
 "        -clust_nvox 157            \\\n"
+"        -pref_map ClusterMap       \\\n"
+"        -pref_dat ClusterEffEst\n"
+" \n"
+"   4. Threshold a non-stat dset.\n"
+" \n"
+"     3dClusterize                  \\\n"
+"        -inset anat+orig           \\\n"
+"        -ithr 0                    \\\n"
+"        -idat 0                    \\\n"
+"        -NN 1                      \\\n"
+"        -within_range 500 1000     \\\n"
+"        -clust_nvox 100            \\\n"
 "        -pref_map ClusterMap       \\\n"
 "        -pref_dat ClusterEffEst\n"
 " \n"
@@ -644,12 +662,14 @@ int main(int argc, char *argv[]) {
          if( thr_type == 1 ) { // R
             thb = thr_1sid;
             tht = - BIIIIG_NUM;
-            sprintf(repstr, "right-tail stat=%f", thb);
+            // [PT: Apr 24, 2020] Here and below, now report 'thr=..',
+            // not 'stat=..', because it is more generally accurate.
+            sprintf(repstr, "right-tail thr=%f", thb);
          }
          else { // L
             tht = thr_1sid;
             thb = BIIIIG_NUM;
-            sprintf(repstr, "left-tail stat=%f", tht);
+            sprintf(repstr, "left-tail thr=%f", tht);
          }   
 
          MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
@@ -694,8 +714,8 @@ int main(int argc, char *argv[]) {
                ERROR_exit("If using 'p=...', only use one argument!");
       
             thb = atof(chtmp); // for bot of R tail
-            sprintf(repstr, "left-tail stat=%f;  "
-                    "right-tail stat=%f", tht, thb);
+            sprintf(repstr, "left-tail thr=%f;  "
+                    "right-tail thr=%f", tht, thb);
          }
 
          if( STATINPUT )
@@ -887,9 +907,19 @@ int main(int argc, char *argv[]) {
    // how many sides to this stat?  Check that user has appropriate
    // number of tails tested for it
    STAT_nsides = STAT_SIDES(DSET_BRICK_STATCODE(insetA, ithr));
-   //INFO_message("How many sides to this stat? %d",
-   //             STAT_nsides);
-   if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
+   INFO_message("How many sides to this stat? %d",
+                STAT_nsides);
+
+   // [PT: Apr 24, 2020] Change behavior of checking for stat type and
+   // tailedness here: The Daniel Glen Rule, II.  *If* the
+   // thresholding volume is not a stat, then allow any sidedness.
+   // Otherwise, watchfully check for sidedness.  This means we put a
+   // check down below the user enters not-a-stat and tries to use the
+   // 'p=..' conversion.
+   if ( !STAT_nsides )
+      INFO_message("Looks like clustering is *not* being performed "
+                   "on a stat value; won't worry about sidedness, then.");
+   else if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
       ERROR_exit("You are asking for multisided clustering on a "
                  "single-sided stat!");
    else if( (STAT_nsides < 2) && (thr_type == -1) )
@@ -910,6 +940,11 @@ int main(int argc, char *argv[]) {
 
    // ALL THIS JUST TO MAKE J. RAJENDRA HAPPY!!!
    if( !STATINPUT ) {
+      // Now check here if a non-stat was used for thresholding
+      if ( !STAT_nsides )
+         ERROR_exit("Thresholding volume does *not* appear to be a stat "
+                    "so you can't use the 'p=..' internal conversion to stat");
+
       tmpb = thb;
       tmpt = tht;
 
@@ -917,16 +952,16 @@ int main(int argc, char *argv[]) {
          tht = - THD_pval_to_stat( 2*tht,
                                    DSET_BRICK_STATCODE(insetA, ithr),
                                    DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
-         sprintf(repstr, "left-tail p=%f -> stat=%f", tmpt, tht);
+         INFO_message("Converted left-tail p=%f -> thr=%f", tmpt, tht);
+         sprintf(repstr, "left-tail p=%f -> thr=%f", tmpt, tht);
    
       }
       else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
          thb = THD_pval_to_stat( 2*thb,
                                  DSET_BRICK_STATCODE(insetA, ithr),
                                  DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
-         sprintf(repstr, "right-tail p=%f -> stat=%f", tmpb, thb);
+         INFO_message("Converted right-tail p=%f -> thr=%f", tmpb, thb);
+         sprintf(repstr, "right-tail p=%f -> thr=%f", tmpb, thb);
       }
       else {// adjust all of bisided, 2sided, and within range
          thb = THD_pval_to_stat( thb,
@@ -935,10 +970,10 @@ int main(int argc, char *argv[]) {
          tht = - THD_pval_to_stat( tht,
                                    DSET_BRICK_STATCODE(insetA, ithr),
                                    DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
-         INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
-         sprintf(repstr, "left-tail p=%f -> stat=%f;  "
-                 "right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
+         INFO_message("Converted left-tail p=%f -> thr=%f", tmpt, tht);
+         INFO_message("Converted right-tail p=%f -> thr=%f", tmpb, thb);
+         sprintf(repstr, "left-tail p=%f -> thr=%f;  "
+                 "right-tail p=%f -> thr=%f", tmpt, tht, tmpb, thb);
       }
    }
 

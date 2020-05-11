@@ -242,56 +242,56 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
    Opt->oType = SUMA_FT_NOT_SPECIFIED;
    Opt->verb = 1;
    Opt->flip = 0;
-	brk = NOPE;
+   brk = NOPE;
    
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_getPatch(ps, strlen(argv[kar]) > 3 ? 2:1);
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_getPatch(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
+      }
+      
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-hits") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -hits \n");
-				exit (1);
-			}
-			Opt->minhits = atoi(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -hits \n");
+            exit (1);
+         }
+         Opt->minhits = atoi(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-coord_gain") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -coord_gain \n");
-				exit (1);
-			}
-			Opt->coordgain = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -coord_gain \n");
+            exit (1);
+         }
+         Opt->coordgain = atof(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-masklabel") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -masklabel \n");
-				exit (1);
-			}
-			Opt->thislabel = atoi(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -masklabel \n");
+            exit (1);
+         }
+         Opt->thislabel = atoi(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-node_depth") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -node_depth \n");
-				exit (1);
-			}
-			Opt->nodedepth = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -node_depth \n");
+            exit (1);
+         }
+         Opt->nodedepth = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-patch2surf") == 0)) {
          Opt->Do_p2s = YUP;
@@ -299,88 +299,88 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
       }
       
       if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
-			Opt->DoVol = 1;
-			brk = YUP;
-		}
+         Opt->DoVol = 1;
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-flip_orientation") == 0)) {
-			Opt->flip = 1;
-			brk = YUP;
-		}
+         Opt->flip = 1;
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-vol_only") == 0)) {
-			Opt->DoVol = 1;
+         Opt->DoVol = 1;
          Opt->VolOnly = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-adjust_contour") == 0)) {
-			Opt->adjust_contour = 1;
-			brk = YUP;
-		}
+         Opt->adjust_contour = 1;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-do-not-adjust_contour") == 0)) {
-			Opt->adjust_contour = 0;
-			brk = YUP;
-		}
+         Opt->adjust_contour = 0;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-check_bowtie") == 0)) {
-			Opt->FixBowTie = 1;
-			brk = YUP;
-		}
+         Opt->FixBowTie = 1;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-fix_bowtie") == 0)) {
-			Opt->FixBowTie = 2;
-			brk = YUP;
-		}
+         Opt->FixBowTie = 2;
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-ok_bowtie") == 0)) {
-			Opt->FixBowTie = 0;
-			brk = YUP;
-		}
+         Opt->FixBowTie = 0;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
-				exit (1);
-			}
-			Opt->out_prefix = SUMA_copy_string(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix \n");
+            exit (1);
+         }
+         Opt->out_prefix = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-verb") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -verb \n");
-				exit (1);
-			}
-			Opt->verb = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -verb \n");
+            exit (1);
+         }
+         Opt->verb = atoi(argv[kar]);
          if (Opt->verb < 0 || Opt->verb > 10) {
             SUMA_S_Errv("Something fishy with -verb value of %s\n"
                         "Need integer from 0 to 2\n", argv[kar]);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-stiched_surface") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -stiched_surface \n");
-				exit (1);
-			}
-			Opt->out_volprefix = SUMA_copy_string(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -stiched_surface \n");
+            exit (1);
+         }
+         Opt->out_volprefix = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-out_type") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -out_type \n");
-				exit (1);
-			}
-			if ((Opt->oType = 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -out_type \n");
+            exit (1);
+         }
+         if ((Opt->oType = 
                SUMA_GuessSurfFormatFromExtension(argv[kar], NULL)) <= 
                   SUMA_FT_NOT_SPECIFIED) {
             /* For backward compatibility */
@@ -388,67 +388,67 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
          }
          if (Opt->oType <= SUMA_FT_NOT_SPECIFIED) Opt->oType=SUMA_GIFTI;
          brk = YUP;
-		}
+      }
 
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
-			if (kar+2 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 3 arguments after -input \n");
-				exit (1);
-			}
-			Opt->in_name = argv[kar]; kar ++;
+         if (kar+2 >= argc)  {
+            fprintf (SUMA_STDERR, "need 3 arguments after -input \n");
+            exit (1);
+         }
+         Opt->in_name = argv[kar]; kar ++;
          Opt->nodecol = atoi(argv[kar]); kar ++;
          Opt->labelcol = atoi(argv[kar]); 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
 #if 0
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			Opt->spec_file = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -spec \n");
+            exit (1);
+         }
+         Opt->spec_file = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -sv \n");
-				exit (1);
-			}
-			Opt->sv_name = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -sv \n");
+            exit (1);
+         }
+         Opt->sv_name = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
-			if (kar + 1>= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
-				exit (1);
-			}
-			ind = argv[kar][6] - 'A';
+         if (kar + 1>= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
+            exit (1);
+         }
+         ind = argv[kar][6] - 'A';
          if (ind < 0 || ind >= SURFPATCH_MAX_SURF) {
             fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range.\n");
-				exit (1);
+            exit (1);
          }
          kar ++;
          Opt->surf_names[ind] = argv[kar];
          Opt->N_surf = ind+1;
          brk = YUP;
-		}
+      }
 #endif      
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
       
    }
    
@@ -503,15 +503,15 @@ int main (int argc,char *argv[])
    float *NodeList = NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
-	
+   
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
-	/* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   /* Allocate space for DO structure */
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    
    Opt = SUMA_GetPatch_ParseInput (argv, argc, ps);
    if (argc < 2)
