@@ -54,7 +54,7 @@ class MainWindow(QtGui.QMainWindow):
       if uvars != None:     # try to update verb from uvars
          if uvars.valid('verb'):
             try: self.verb = int(uvars.verb)
-            except: print '** UAT Main: bad uvars.verb = %s' % uvars.verb
+            except: print('** UAT Main: bad uvars.verb = %s' % uvars.verb)
 
       # initialize the subject variables to defaults, update at the end
       self.cvars  = UALIGN.g_cdef_strs.copy('GUI control vars')
@@ -102,7 +102,7 @@ class MainWindow(QtGui.QMainWindow):
       #         -1 = script failure?
       self.status = 0
 
-      if self.verb > 1: print '-- finished Single Subject Dialog setup'
+      if self.verb > 1: print('-- finished Single Subject Dialog setup')
 
    def reset_vars(self, cvars=None, uvars=None, set_pdir=0):
       """replace old uvars with new"""
@@ -247,7 +247,7 @@ class MainWindow(QtGui.QMainWindow):
          opstr = str(obj.text())
          self.uvars.set_var('aea_opts', opstr.split())
 
-      else: print '** CB_line_text: unknown sender'
+      else: print('** CB_line_text: unknown sender')
 
    def make_l3_group_boxes(self):
       """create anat, EPI, stim, etc. group boxes, and add to m2_vlayout"""
@@ -587,7 +587,7 @@ class MainWindow(QtGui.QMainWindow):
          if obj.isChecked(): self.set_uvar('anat_has_skull', 'yes')
          else:               self.set_uvar('anat_has_skull', 'no')
 
-      else: print "** CB_checkbox: unknown sender"
+      else: print("** CB_checkbox: unknown sender")
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
       """check text against check_func(text, bname, 1, self, 1)
@@ -607,7 +607,7 @@ class MainWindow(QtGui.QMainWindow):
       if check_func(rtext, button_name, 1, self, 1):
          self.set_uvar(attr, rtext)
          if type(obj) == g_LineEdittype: obj.setText(text)
-         else: print '** update_textLine_check: not a LineEdit type'
+         else: print('** update_textLine_check: not a LineEdit type')
          return 1
       else:
          # error, reset to previous attribute
@@ -694,7 +694,7 @@ class MainWindow(QtGui.QMainWindow):
          UTIL.write_text_to_file('%s/.orig.cmd.uat' % pdir, sstr)
 
    def cb_command_window(self, cmd):
-      print '++ python exec command: %s' % cmd
+      print('++ python exec command: %s' % cmd)
       exec(cmd)
 
    def cb_show_py_command_window(self):
@@ -720,7 +720,7 @@ class MainWindow(QtGui.QMainWindow):
          sender = self.sender()
          text = str(sender.text())
       except:
-         print '** CB_gbox_PushB: no text'
+         print('** CB_gbox_PushB: no text')
          return
 
       # anat
@@ -779,13 +779,13 @@ class MainWindow(QtGui.QMainWindow):
          self.update_textLine_check(self.gvars.Line_center_base,
                 fname, 'center_base', 'center dataset', QLIB.valid_as_filepath)
 
-      else: print "** unexpected button text: %s" % text
+      else: print("** unexpected button text: %s" % text)
 
    def resize_table(self, table, countLabel=None):
       nrows = table.rowCount()
       if nrows > 0: rheight = table.rowHeight(0)
       else        : rheight = 0
-      if self.verb > 2: print '-- resize_table: using row height %d' % rheight
+      if self.verb > 2: print('-- resize_table: using row height %d' % rheight)
       table.setAlternatingRowColors(True)
       table.setFixedHeight(self.max_table_size(nrows, rheight=rheight))
       table.resizeRowsToContents()
@@ -830,7 +830,7 @@ class MainWindow(QtGui.QMainWindow):
          if epi != '':       return os.path.dirname(epi)
          elif anat != '':    return os.path.dirname(anat)
       else:
-         print '** pick_base_dir: bad dtype = %s' % dtype
+         print('** pick_base_dir: bad dtype = %s' % dtype)
 
       return ''
 
@@ -993,9 +993,9 @@ class MainWindow(QtGui.QMainWindow):
       try: 
          import webbrowser
          self.gvars.browser = webbrowser
-         if self.verb > 1: print '++ have browser'
+         if self.verb > 1: print('++ have browser')
       except:
-         if self.verb > 1: print '-- NO browser'
+         if self.verb > 1: print('-- NO browser')
 
    def open_web_site(self, site):
       if self.gvars.browser == None:
@@ -1026,7 +1026,7 @@ class MainWindow(QtGui.QMainWindow):
    def update_help_window(self, text, title=''):
       # if no permanent window, make a new one each time
       if self.gvars.Text_help == None:
-         if self.verb > 2: print '++ opening new TextWindow'
+         if self.verb > 2: print('++ opening new TextWindow')
          win = QLIB.TextWindow(text=text, title=title, parent=self)
          win.setAttribute(QtCore.Qt.WA_DeleteOnClose)
          win.show()
@@ -1058,7 +1058,7 @@ class MainWindow(QtGui.QMainWindow):
                             '/program_help/afni_proc.py.html')
       elif obj == self.gvars.act_browse_MB:
          self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
-      else: print '** cb_help_browse: invalid sender'
+      else: print('** cb_help_browse: invalid sender')
 
    def update_uvars_from_gui(self, warn=0, set_pdir=1, disable_exec=1):
       """set what we can, if warn, report error
@@ -1077,7 +1077,7 @@ class MainWindow(QtGui.QMainWindow):
          pdir = SUBJ.get_def_tool_path('align_test', top_dir='tool_results',
                    prefix='tool', keep_if_missing=self.uvars.val('results_dir'))
          if self.set_cvar('proc_dir', pdir):
-            print '-- setting proc_dir to %s' % pdir
+            print('-- setting proc_dir to %s' % pdir)
 
       if disable_exec: self.gvars.act_exec_script.setEnabled(False)
 
@@ -1135,7 +1135,7 @@ class MainWindow(QtGui.QMainWindow):
          sstr = self.gvars.make_show_str('GUI vars', name=0, all=1)
          QLIB.static_TextWindow(title='GUI vars', text=sstr, parent=self)
 
-      else: print '** unhandled object in cb_view'
+      else: print('** unhandled object in cb_view')
 
    def show_howto_view_results(self):
       """display (in help window) how to view the processing results"""
@@ -1175,9 +1175,9 @@ class MainWindow(QtGui.QMainWindow):
          return status, text
 
       if self.verb > 2:
-         print '-- executed center command:\n      %s' % cmd
-         print '   status = %d' % status
-         print '   output = %s' % output
+         print('-- executed center command:\n      %s' % cmd)
+         print('   status = %d' % status)
+         print('   output = %s' % output)
 
       # distance should be first line of output, but strip the '\n'
       output = output.strip()
@@ -1229,7 +1229,7 @@ class MainWindow(QtGui.QMainWindow):
          elif type(val) == list:
             cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
          else:
-            print '** make_uber_command: bad attr %s' % atr
+            print('** make_uber_command: bad attr %s' % atr)
 
       return UTIL.add_line_wrappers(cmd + '\n')
 
@@ -1261,7 +1261,7 @@ class MainWindow(QtGui.QMainWindow):
 
       # so the value has changed...
 
-      if self.verb > 3 : print "++ set_cvar: update [%s] to '%s'"%(name,newval)
+      if self.verb > 3 : print("++ set_cvar: update [%s] to '%s'"%(name,newval))
 
       # even for cvars, since proc_dir is part of script
       self.gvars.act_exec_script.setEnabled(False)
@@ -1276,7 +1276,7 @@ class MainWindow(QtGui.QMainWindow):
 
       # so the value has changed...
 
-      if self.verb > 3 : print "++ set_uvar: update [%s] to '%s'"%(name,newval)
+      if self.verb > 3 : print("++ set_uvar: update [%s] to '%s'"%(name,newval))
 
       self.gvars.act_exec_script.setEnabled(False)
 
@@ -1342,10 +1342,10 @@ class MainWindow(QtGui.QMainWindow):
                 self.gvars.Line_aea_opts.setText(' '.join(self.uvars.aea_opts))
 
       else:
-         if self.verb > 1: print '** apply_uvar_in_gui: unhandled %s' % uvar
+         if self.verb > 1: print('** apply_uvar_in_gui: unhandled %s' % uvar)
          rv = 0
 
-      if rv and self.verb > 2: print '++ apply_uvar_in_gui: process %s' % uvar
+      if rv and self.verb > 2: print('++ apply_uvar_in_gui: process %s' % uvar)
 
       return rv
 
@@ -1492,7 +1492,7 @@ g_help_eg = """
 
 def main():
 
-   print '** this is not a main program'
+   print('** this is not a main program')
    return 1
 
 if __name__ == '__main__':
