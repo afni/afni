@@ -3812,7 +3812,6 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 */
 #define DSET_unload(ds) THD_purge_datablock( (ds)?(ds)->dblk:NULL , DATABLOCK_MEM_ANY )
 
-
 /*! Unload sub-brick iv in dataset ds from memory.
 
     Only does something if the dataset is malloc()-ed,

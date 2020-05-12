@@ -360,7 +360,8 @@ int main( int argc , char *argv[] )
    float ffparm[PARAM_MAXTRIAL+2][MAXPAR];  /* not really used yet */
    float tfcost[PARAM_MAXTRIAL+2] ;
    int   tfindx[PARAM_MAXTRIAL+2] ;
-   int skip_first=0 , didtwo , targ_kind , skipped=0 , nptwo=6 ;
+   int skip_first=0 , didtwo , targ_kind, skipped=0 , nptwo=6 ;
+   int targ_was_vector=0, targ_vector_kind=-1 ; MRI_IMAGE *im_targ_vector=NULL ;
    double ctim=0.0,dtim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL ;
@@ -414,6 +415,7 @@ int main( int argc , char *argv[] )
    int warp_code               = WARP_AFFINE ;
    char warp_code_string[64]   = "\0" ;         /* 22 Feb 2010 */
    int warp_freeze             = 0 ;            /* off by default */
+   int do_small                = 0 ;            /* 12 May 2020 */
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
    int tbest                   = 5 ;            /* default=try best 5 */
@@ -614,9 +616,17 @@ int main( int argc , char *argv[] )
 "               -- You can input .jpg files as 2D 'datasets', register\n"
 "                  them with 3dAllineate, and write the result back out\n"
 "                  using a prefix that ends in '.jpg'; HOWEVER, the color\n"
-"                  information will be lost in this process, as this\n"
-"                  program was written to deal with monochrome medical\n"
-"                  datasets.\n"
+"                  information will not be used in the registration, as\n"
+"                  this program was written to deal with monochrome medical\n"
+"                  datasets. At the end, if the source was RGB (color), then\n"
+"                  the output will be also be RGB, and then a color .jpg\n"
+"                  can be output.\n"
+"               -- The above remarks also apply to aligning 3D RGB datasets:\n"
+"                  it will be done using only the 3D volumes converted to\n"
+"                  grayscale, but the final output will be the source\n"
+"                  RGB dataset transformed to the (hopefully) aligned grid.\n"
+"                 * However, I've never tested aligning 3D color datasets;\n"
+"                   you can be the first one ever!\n"
 "            ** See the script @2dwarper.Allin for an example of using\n"
 "               3dAllineate to do slice-by-slice nonlinear warping to\n"
 "               align 3D volumes distorted by time-dependent magnetic\n"
@@ -1147,6 +1157,15 @@ int main( int argc , char *argv[] )
 #endif
        "               You can use '-nowarpfreeze' and/or '-noreplacebase' AFTER the\n"
        "               '-EPI' on the command line if you do not want these options used.\n"
+       "\n"
+       "  ** OPTIONS to change search ranges for alignment parameters **\n"
+       "\n"
+       " -smallrange   = Set all the parameter ranges to be smaller (about half) than\n"
+       "                 the default ranges, which are rather large for many purposes.\n"
+       "                * Default angle range    is plus/minus 30 degrees\n"
+       "                * Default shift range    is plus/minus 32%% of grid size\n"
+       "                * Default scaling range  is plus/minus 20%% of grid size\n"
+       "                * Default shearing range is plus/minus 0.1111\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
 "\n"
@@ -1852,6 +1871,12 @@ int main( int argc , char *argv[] )
      }
 # endif
 #endif
+
+     /*------*/
+
+     if( strcmp(argv[iarg],"-smallrange") == 0 ){ /* 12 May 2020 */
+       do_small++ ; iarg++ ; continue ;
+     }
 
      /*------*/
 
@@ -3147,7 +3172,7 @@ int main( int argc , char *argv[] )
         "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
 
-   if( doing_2D && 
+   if( doing_2D &&
        ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
          meth_code == GA_MATCH_PEARSON_LOCALA   ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
@@ -3308,7 +3333,9 @@ int main( int argc , char *argv[] )
 #else
      WARNING_message("source dataset %s has non-scalar data type '%s'",
                 DSET_BRIKNAME(dset_targ) , MRI_TYPE_name[targ_kind] ) ;
-     targ_kind = MRI_float ;
+     targ_kind = MRI_float ; /* for allineation purposes */
+     targ_was_vector = !floatize && ISVECTIM(DSET_BRICK(dset_targ,0)) ;
+     if( targ_was_vector ) targ_vector_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
 #endif
    }
    if( !DSET_datum_constant(dset_targ) )
@@ -4015,6 +4042,7 @@ STATUS("zeropad weight dataset") ;
      xc = yc = zc = 0.0f ; /* pleonastic, to be safe */
    }
 
+   if( do_small ){ xxx *= 0.5f ; yyy *= 0.5f ; zzz *= 0.5f ; }
    xxx_p = xc + xxx ; xxx_m = xc - xxx ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
@@ -4034,29 +4062,36 @@ STATUS("zeropad weight dataset") ;
      if( nz_base > 1 ) stup.wfunc_param[2].val_pinit = zc ;
    }
 
-   DEFPAR( 3, "z-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
-   DEFPAR( 4, "x-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 5, "y-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
+   { float rval,sval ;
 
-   DEFPAR( 6, "x-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;  /* identity */
-   DEFPAR( 7, "y-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
-   DEFPAR( 8, "z-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;
+     rval = (do_small) ? 15.0f : 30.0 ;
+     DEFPAR( 3, "z-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
+     DEFPAR( 4, "x-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
+     DEFPAR( 5, "y-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
 
-   /* the code below (for shear params) was modified 16 Jul 2014, to
-      correct the labels (per user Mingbo) for the various EPI/FPS cases;
-      see the usage of the 'a', 'b', 'c' parameters in defining the shear
-      matrix 'ss' in function GA_setup_affine() in file mri_genalign.c.  */
+     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
 
-   { char *alab , *blab , *clab ;
-     switch( smat ){
-       default:       alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "z/y-shear" ; break ;
-       case SMAT_XXX: alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "unused"    ; break ;
-       case SMAT_YYY: alab = "y/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
-       case SMAT_ZZZ: alab = "z/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
+     DEFPAR( 6, "x-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /* identity */
+     DEFPAR( 7, "y-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
+     DEFPAR( 8, "z-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;
+
+     /* the code below (for shear params) was modified 16 Jul 2014, to
+        correct the labels (per user Mingbo) for the various EPI/FPS cases;
+        see the usage of the 'a', 'b', 'c' parameters in defining the shear
+        matrix 'ss' in function GA_setup_affine() in file mri_genalign.c.  */
+
+     { char *alab , *blab , *clab ;
+       switch( smat ){
+         default:       alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "z/y-shear" ; break ;
+         case SMAT_XXX: alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "unused"    ; break ;
+         case SMAT_YYY: alab = "y/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
+         case SMAT_ZZZ: alab = "z/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
+       }
+       rval = (do_small) ? 0.0555f : 0.1111f ;
+       DEFPAR(  9, alab , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
+       DEFPAR( 10, blab , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
+       DEFPAR( 11, clab , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
      }
-     DEFPAR(  9, alab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
-     DEFPAR( 10, blab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
-     DEFPAR( 11, clab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
    }
 
    if( twodim_code > 0 ){               /* 03 Dec 2010 */
@@ -4530,10 +4565,17 @@ STATUS("zeropad weight dataset") ;
        if( kk == DSET_NVALS(dset_targ)-1 ) fputc('\n', stderr);
      }
 
+     /* extract data to be aligned */
+
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
-     DSET_unload_one(dset_targ,kk) ;
      if( im_targ == NULL )
        ERROR_exit("Cannot extract float image from source dataset :(") ;
+
+     if( targ_was_vector ){  /* 12 May 2020 (for RGB images) */
+       if( im_targ_vector != NULL ) mri_free(im_targ_vector) ;
+       im_targ_vector = mri_copy( DSET_BRICK(dset_targ,kk) ) ;
+     }
+     DSET_unload_one(dset_targ,kk) ;
 
      if( do_zclip ){
        float *bar = MRI_FLOAT_PTR(im_targ) ;
@@ -5678,9 +5720,16 @@ mri_genalign_set_pgmat(1) ;
                                  nxyz_dout, dxyz_dout, cmat_bout,
                                  nxyz_targ, dxyz_targ, cmat_tout ) ;
 
-           im_targ = mri_genalign_scalar_warpone(
-                                 stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
-                                 aim , nxout,nyout,nzout, final_interp ) ;
+           if( im_targ_vector == NULL ){
+             im_targ = mri_genalign_scalar_warpone(
+                                   stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                                   aim , nxout,nyout,nzout, final_interp ) ;
+           } else { /* RGB image [12 May 2020] */
+             im_targ = mri_genalign_scalar_warpone(
+                                   stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                                   im_targ_vector , nxout,nyout,nzout, final_interp ) ;
+             mri_free(im_targ_vector) ; im_targ_vector = NULL ;
+           }
 
            if( nwarp_save_prefix != NULL ){  /* 10 Dec 2010: save map of warp itself */
              THD_3dim_dataset *wset; MRI_IMARR *wimar;
@@ -5729,9 +5778,16 @@ mri_genalign_set_pgmat(1) ;
            wmat = MAT44_MUL(aff12_xyz,mast_cmat) ;
            qmat = MAT44_MUL(targ_cmat_inv,wmat) ;  /* index transform matrix */
            UNLOAD_MAT44_AR(qmat,ap) ;
-           im_targ = mri_genalign_scalar_warpone(
-                                 12 , ap , mri_genalign_mat44 ,
-                                 aim , nxout,nyout,nzout, final_interp ) ;
+           if( im_targ_vector == NULL ){
+             im_targ = mri_genalign_scalar_warpone(
+                                   12 , ap , mri_genalign_mat44 ,
+                                   aim , nxout,nyout,nzout, final_interp ) ;
+           } else { /* RGB image [12 May 2020] */
+             im_targ = mri_genalign_scalar_warpone(
+                                   12 , ap , mri_genalign_mat44 ,
+                                   im_targ_vector , nxout,nyout,nzout, final_interp ) ;
+             mri_free(im_targ_vector) ; im_targ_vector = NULL ;
+           }
          }
          break ;
        }
@@ -5773,7 +5829,12 @@ mri_genalign_set_pgmat(1) ;
 
        /* save sub-brick without scaling factor */
 
-       if( floatize || targ_kind == MRI_float ){
+       if( targ_was_vector ){                  /* RGB image [12 May 2020] */
+         MRI_IMAGE *qim = mri_copy(im_targ) ;
+         EDIT_substitute_brick( dset_out ,kk ,
+                                qim->kind , mri_data_pointer(qim) ) ;
+         mri_clear_and_free(qim) ;
+       } else if( floatize || targ_kind == MRI_float ){
          EDIT_substitute_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) );
          mri_clear_data_pointer(im_targ) ;  /* data in im_targ saved directly */
        } else {
@@ -5792,6 +5853,8 @@ mri_genalign_set_pgmat(1) ;
    } /***------------- end of loop over target sub-bricks ------------------***/
 
    /*--- unload stuff we no longer need ---*/
+
+   if( verb > 1 ) INFO_message("Unloading unneeded data") ;
 
    DSET_unload(dset_targ) ;
    mri_free(im_base); mri_free(im_weig); mri_free(im_mask);

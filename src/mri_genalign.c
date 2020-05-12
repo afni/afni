@@ -1734,15 +1734,28 @@ MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfu
    MRI_IMAGE *wim , *inim ;
    float     *war , *inar ;
    float oot ;
+   static int recur=0 ;
 
 ENTRY("mri_genalign_scalar_warpone") ;
 
    if( wfunc == NULL || imtarg == NULL ) RETURN(NULL) ;
+
+   /** allow for 'vector' images (for example, RGB) [12 May 2020] **/
+
+#undef  CALLME
+#define CALLME(inp,out) (out) = mri_genalign_scalar_warpone(                  \
+                                 npar,wpar,wfunc, (inp) , nnx,nny,nnz,icode )
+   if( ISVECTIM(imtarg) ){
+     recur=1 ; VECTORME(imtarg,wim) ; recur=0 ; RETURN(wim) ;
+   }
+
+   /** OK, the normal case **/
+
    nper = MAX(nperval,NPER) ;
 
    /* send parameters to warping function, for setup */
 
-   if( mverb > 1 ){
+   if( mverb > 1 && !recur ){
      fprintf(stderr,"++ image warp: parameters =") ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %.4f",wpar[ii]) ;
      fprintf(stderr,"\n") ;
