@@ -70,8 +70,9 @@ def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
     )
     differ.run()
 
+
 @pytest.mark.parametrize("vol_tr", [(2), (2.5)])
-def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
+def test_RetroTS_bids_custom_slice_order(data, vol_tr, python_interpreter):
     seedval = 31416
 
     kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
