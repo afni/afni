@@ -262,6 +262,15 @@ ENTRY("THD_write_3dim_dataset") ;
      RETURN(bb) ;
    }
 
+   /*------ 12 May 2020: write in .jpg format? ------*/
+
+   if( ( STRING_HAS_SUFFIX_CASE(ppp,".jpg") || STRING_HAS_SUFFIX_CASE(ppp,".png") )
+      && DSET_HAS_2D(dset) && DSET_NVALS(dset) == 1 ){
+     bb = (Boolean)mri_write_jpg( ppp , DSET_BRICK(dset,0) ) ;
+     if( bb == False ) error_count++ ;
+     RETURN(bb) ;
+   }
+
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/
 
    bb = THD_write_datablock(blk,write_brick) ;

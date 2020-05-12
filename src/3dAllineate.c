@@ -610,7 +610,13 @@ int main( int argc , char *argv[] )
 "               -- However, the 'lpc' and 'lpa' cost functionals do not\n"
 "                  work properly with 2D images, as they are designed\n"
 "                  around local 3D neighborhoods and that code has not\n"
-"                  been patchd to work with 2D neighborhoods :(\n"
+"                  been patched to work with 2D neighborhoods :(\n"
+"               -- You can input .jpg files as 2D 'datasets', register\n"
+"                  them with 3dAllineate, and write the result back out\n"
+"                  using a prefix that ends in '.jpg'; HOWEVER, the color\n"
+"                  information will be lost in this process, as this\n"
+"                  program was written to deal with monochrome medical\n"
+"                  datasets.\n"
 "            ** See the script @2dwarper.Allin for an example of using\n"
 "               3dAllineate to do slice-by-slice nonlinear warping to\n"
 "               align 3D volumes distorted by time-dependent magnetic\n"
@@ -633,6 +639,8 @@ int main( int argc , char *argv[] )
 " **            (Another reason why you should use align_epi_anat.py) **\n"
 " **       -->> If the coordinate system in the dataset headers is    **\n"
 " **            WRONG, then 3dAllineate will probably not work well!  **\n"
+" **            And I say this because we have seen this in several   **\n"
+" **            datasets downloaded from online archives.             **\n"
 "\n"
 " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
 "   *OR*        option is NOT given, no dataset will be output!  The\n"
@@ -2419,8 +2427,13 @@ int main( int argc , char *argv[] )
        if( dset_base == NULL ) ERROR_exit("can't open -base dataset '%s' :-(",argv[iarg]);
        ii = (int)DSET_BRICK_TYPE(dset_base,0) ;
        if( ii != MRI_float && ii != MRI_short && ii != MRI_byte )
+#if 0
          ERROR_exit("base dataset %s has non-scalar data type '%s' :-(",
                     DSET_BRIKNAME(dset_base) , MRI_TYPE_name[ii] ) ;
+#else
+         WARNING_message("base dataset %s has non-scalar data type '%s' :-(",
+                    DSET_BRIKNAME(dset_base) , MRI_TYPE_name[ii] ) ;
+#endif
        iarg++ ; continue ;
      }
 
@@ -3288,9 +3301,16 @@ int main( int argc , char *argv[] )
    /* check target data type */
 
    targ_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
-   if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte )
+   if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte ){
+#if 0
      ERROR_exit("source dataset %s has non-scalar data type '%s'",
                 DSET_BRIKNAME(dset_targ) , MRI_TYPE_name[targ_kind] ) ;
+#else
+     WARNING_message("source dataset %s has non-scalar data type '%s'",
+                DSET_BRIKNAME(dset_targ) , MRI_TYPE_name[targ_kind] ) ;
+     targ_kind = MRI_float ;
+#endif
+   }
    if( !DSET_datum_constant(dset_targ) )
      WARNING_message("source dataset %s does not have constant data type :-(",
                      DSET_BRIKNAME(dset_targ)) ;
@@ -3404,6 +3424,8 @@ int main( int argc , char *argv[] )
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
+     if( im_base == NULL )
+       ERROR_exit("Cannot extract float image from base dataset :(") ;
 
      DSET_unload(dset_base) ;
      dx_base = fabsf(DSET_DX(dset_base)) ;
@@ -3416,6 +3438,8 @@ int main( int argc , char *argv[] )
        INFO_message("no -base option ==> base is #0 sub-brick of source") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
+     if( im_base == NULL )
+       ERROR_exit("Cannot extract float image from source dataset :(") ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
      if( do_cmass && apply_mode == 0 ){   /* 30 Jul 2007 */
        INFO_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
@@ -3650,6 +3674,8 @@ STATUS("load weight dataset") ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
                                    DSET_BRICK(dset_weig,0)         ) ;
      DSET_unload(dset_weig) ;
+     if( im_weig == NULL )
+       ERROR_exit("Cannot extract float image from weight dataset :(") ;
 
      /* zeropad weight to match base? */
 
@@ -4506,6 +4532,8 @@ STATUS("zeropad weight dataset") ;
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;
+     if( im_targ == NULL )
+       ERROR_exit("Cannot extract float image from source dataset :(") ;
 
      if( do_zclip ){
        float *bar = MRI_FLOAT_PTR(im_targ) ;

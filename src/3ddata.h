@@ -3371,6 +3371,20 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_NXY(ds) ((ds)->daxes->nxx * (ds)->daxes->nyy)
 
+/*! Is dataset 3D? [12 May 2020] */
+
+#define DSET_HAS_3D(ds) \
+  ( (ds)->daxes->nxx > 1 && (ds)->daxes->nyy > 1 && (ds)->daxes->nzz > 1 )
+
+/*! Is dataset 2D? [12 May 2020] */
+
+#define DSET_HAS_2D(ds) \
+  ( (ds)->daxes->nxx > 1 && (ds)->daxes->nyy > 1 && (ds)->daxes->nzz == 1 )
+
+/*! Is dataset 1D? [12 May 2020] */
+
+#define DSET_HAS_1D(ds) \
+  ( (ds)->daxes->nxx > 1 && (ds)->daxes->nyy == 1 && (ds)->daxes->nzz == 1 )
 
 /*! Return grid spacing (voxel size) along x-axis of dataset ds */
 
