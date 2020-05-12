@@ -13,10 +13,14 @@ from time import sleep
 import random
 
 
-def run_x_prog(cmd):
+def run_x_prog(cmd, run_kwargs=None):
     import subprocess as sp
 
-    res = sp.run("xvfb-run " + cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+    run_kwargs = run_kwargs or {}
+
+    res = sp.run(
+        "xvfb-run -a " + cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs
+    )
     res.check_returncode()
     if "ERROR" in res.stdout.decode():
 
