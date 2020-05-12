@@ -2,36 +2,36 @@
 
 int whats_my_exepath(char output[],int len_array)
 {
-#ifdef DARWIN
-    int ret;
-    pid_t pid;
-
-    if ( !output || len_array < 2 )
-       return 1;
-
-    pid = getpid();
-    ret = proc_pidpath (pid, output, len_array);
-    if ( ret <= 0 ) {
-        fprintf(stderr, "PID %d: proc_pidpath ();\n", pid);
-        fprintf(stderr, "    %s\n", strerror(errno));
-        return 1;
-    }
-#else
-   ssize_t r;
-
-   if ( !output || len_array < 2 )
+        /* check input */
+        if ( !output || len_array < 2 ){
       return 1;
+    }
+    /* new scope */
+    {
+#ifdef DARWIN
+        int ret;
+        pid_t pid;
 
-   r = readlink("/proc/self/exe", output, len_array-1);
+        pid = getpid();
+        ret = proc_pidpath (pid, output, len_array);
+        if ( ret <= 0 ) {
+            fprintf(stderr, "PID %d: proc_pidpath ();\n", pid);
+            fprintf(stderr, "    %s\n", strerror(errno));
+            return 1;
+        }
+#else
+       ssize_t r;
 
-   if (r < 0) {
-        perror("lstat");
-        return 1;
-   }
+       r = readlink("/proc/self/exe", output, len_array-1);
 
-   output[r] = '\0';
+       if (r < 0) {
+            perror("lstat");
+            return 1;
+       }
+
+       output[r] = '\0';
 #endif
-
+    }
    return 0;
 }
 
