@@ -445,11 +445,14 @@
    AFNI adaptation by
     Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
+
 <ATLAS
   atlas_name="CA_MPM_22_TT"
   dset_name="TT_caez_mpm_22+tlrc"
   template_space="TT_N27"
-  description="Eickhoff-Zilles MPM atlas - Talairach space"
+  description="Eickhoff-Zilles MPM atlas 2.2 - Talairach space"
+  comment="Eickhoff-Zilles maximum probability map- 2.2 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 #Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
@@ -496,31 +499,34 @@
    dset_name="TT_caez_mpm_18+tlrc"
    template_space="TT_N27"
    description="Cytoarch. Max. Prob. Maps"
-   comment="Eickhoff-Zilles maximum probability map on TT_N27 from post-mortem analysis"
+   comment="Eickhoff-Zilles maximum probability map-1.8 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_PM"   
    dset_name="TT_caez_pmaps_18+tlrc"
    template_space="TT_N27"
-   description="Cytoarch. Probabilistic Maps"
-   comment="Eickhoff-Zilles probablity maps on TT_N27 from post-mortem analysis"
+   description="Cytoarch. Probabilistic Maps 1.8"
+   comment="Eickhoff-Zilles probablity maps 1.8 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_GW"   
    dset_name="TT_caez_gw_18+tlrc"
    template_space="TT_N27"
-   description="Cytoarch. Prob. Maps for gray/white matter"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+   description="Cytoarch. Prob. Maps for gray/white matter 1.8"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 1.8 version
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_LR"
    dset_name="TT_caez_lr_18+tlrc"
    template_space="TT_N27"
-   description="Left/Right (N27)"
-   comment="Simple left, right hemisphere segmentation"
+   description="Left/Right (N27) 1.8"
+   comment="Simple left, right hemisphere segmentation 1.8 version"
 ></ATLAS>
 
 #Cytoarchitectonic atlases shifted to MNI space
@@ -537,7 +543,8 @@
    dset_name="MNI_caez_mpm_18+tlrc"
    template_space="MNI"
    description="Cytoarch. Max. Prob. Maps (MNI)"
-   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis (MNI space)"
+   comment="Eickhoff-Zilles maximum probability map on MNI-152 
+     from post-mortem analysis (MNI space)"
 ></ATLAS>
 
 <ATLAS
@@ -663,8 +670,9 @@
  dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas. 
-     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June).
+     The Haskins Pediatric Brain Atlas. 
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 #*******Template datasets ************************
@@ -776,17 +784,17 @@
 <TEMPLATE
    template_name="HaskinsPeds_NL_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas. Poster session presented at the 
-     Organization for Human Brain Mapping, Honolulu, HI"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas. 
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="HaskinsPeds_aff_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas Poster session presented at the 
-     Organization for Human Brain Mapping, Honolulu, HI"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 #**********************************************
