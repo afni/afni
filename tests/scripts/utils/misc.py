@@ -7,7 +7,10 @@ import logging
 import contextlib
 import os
 import datalad.api as datalad
+from datalad.support.exceptions import IncompleteResultsError, CommandError
 import pytest
+from time import sleep
+import random
 
 
 def run_x_prog(cmd):
@@ -141,26 +144,37 @@ def process_path_obj(path_obj, test_data_dir):
     if type(path_obj) == str:
         path_obj = Path(path_obj)
 
-    if isinstance(path_obj, Path):
-        check_file_exists(path_obj, test_data_dir)
-        file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
-        dl_dset.get(path=file_fetch_list)
-        return test_data_dir / path_obj
-    elif iter(path_obj):
-        file_fetch_list = []
-        for input_file in path_obj:
-            input_file = Path(input_file)
-            check_file_exists(input_file, test_data_dir)
-            file_fetch_list = file_fetch_list + generate_fetch_list(
-                input_file, test_data_dir
-            )
+    attempt_count = 0
+    while attempt_count < 5:
+        try:
+            sleep(10 * random.random())
+            if isinstance(path_obj, Path):
+                check_file_exists(path_obj, test_data_dir)
+                file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
+                dl_dset.get(path=file_fetch_list)
+                return test_data_dir / path_obj
+            elif iter(path_obj):
+                file_fetch_list = []
+                for input_file in path_obj:
+                    input_file = Path(input_file)
+                    check_file_exists(input_file, test_data_dir)
+                    file_fetch_list = file_fetch_list + generate_fetch_list(
+                        input_file, test_data_dir
+                    )
+                    dl_dset.get(path=file_fetch_list)
+                return [test_data_dir / p for p in path_obj]
+            else:
 
-        dl_dset.get(path=file_fetch_list)
+                raise TypeError(
+                    "data_paths must contain values that are of type str or a "
+                    "non-str iterable type. i.e. list, tuple... "
+                )
+        except (IncompleteResultsError, CommandError):
+            # Try another loop
+            attempt_count += 1
+            continue
 
-        return [test_data_dir / p for p in path_obj]
-    else:
-
-        raise TypeError(
-            "data_paths must contain values that are of type str or a "
-            "non-str iterable type. i.e. list, tuple... "
-        )
+    # datalad download attempts failed
+    raise EnvironmentError(
+        "Datalad download failed 5 times, you may not be connected to the internet"
+    )

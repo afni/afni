@@ -8,6 +8,7 @@ import inspect
 import functools
 import datetime
 import datetime as dt
+import time
 from scripts.utils import misc
 
 pytest.register_assert_rewrite("scripts.utils.tools")
@@ -28,9 +29,20 @@ try:
 except ImportError:
     raise NotImplementedError("Currently datalad is a dependency for testing.")
 
+from datalad.support.exceptions import IncompleteResultsError
+
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+
+def pytest_sessionstart(session):
+    """ called after the ``Session`` object has been created and before performing collection
+    and entering the run test loop.
+
+    :param _pytest.main.Session session: the pytest session object
+    """
+    get_tests_data_dir(session)
 
 
 def pytest_generate_tests(metafunc):
@@ -62,7 +74,12 @@ def test_data_path(pytestconfig):
 
 
 def get_test_data_path(config_obj):
-    return Path(config_obj.rootdir) / "afni_ci_test_data"
+    if hasattr(config_obj, "rootdir"):
+        return Path(config_obj.rootdir) / "afni_ci_test_data"
+    elif hasattr(config_obj, "config"):
+        return Path(config_obj.config.rootdir) / "afni_ci_test_data"
+    else:
+        raise ValueError("A pytest config object was expected")
 
 
 # def get_test_rootdir():
@@ -112,10 +129,18 @@ def get_tests_data_dir(config_obj):
     """
     # Define hard-coded paths for now
     tests_data_dir = get_test_data_path(config_obj)
-    race_error_msg = (
-        "A failed attempt and datalad download occurred. Running the "
-        "tests sequentially once may help "
-    )
+
+    # remote should be configured or something is badly amiss...
+    dl_dset = datalad.Dataset(str(tests_data_dir))
+    if dl_dset.is_installed() and not 'remote.afni_ci_test_data.url' in dl_dset.config.keys():
+        for f in dl_dset.pathobj.glob('**/*'):
+            try:
+                f.chmod(0o700)
+            except FileNotFoundError:
+                # missing symlink, nothing to worry about
+                pass
+
+        shutil.rmtree(dl_dset.pathobj)
 
     # datalad is required and the datalad repository is used for data.
     if not (tests_data_dir / ".datalad").exists():
@@ -125,13 +150,14 @@ def get_tests_data_dir(config_obj):
                 "https://github.com/afni/afni_ci_test_data.git",
                 recursive=True,
             )
+            # Let file system do it's thing
+            time.sleep(5)
         except FileExistsError as e:
             # likely a race condition
             print(e)
             raise FileExistsError(race_error_msg)
         except FileNotFoundError:
             raise FileNotFoundError(race_error_msg)
-
     return tests_data_dir
 
 
@@ -153,7 +179,13 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
         collections.NameTuple: A data object for conveniently handling the specification
     """
     test_name = get_current_test_name()
-    tests_data_dir = get_tests_data_dir(pytestconfig)
+    tests_data_dir = get_test_data_path(pytestconfig)
+
+    # make sure datalad repo wasn't updated to git annex version 8. Not sure why this is happening
+    git_config_file = Path(tests_data_dir) / ".git" / "config"
+    git_config_file.write_text(
+        git_config_file.read_text().replace("version = 8", "version = 7")
+    )
 
     # Set module specific values:
     try:
