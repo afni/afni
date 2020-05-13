@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os, glob
 
@@ -67,9 +69,10 @@ g_history = """
    read_matlab_files.py history:
 
    0.0  Jan 14, 2015 - initial version
+   0.1  May 11, 2020 - python3 compatible
 """
 
-g_version = "read_matlab_files.py version 0.0, Jan 14, 2015"
+g_version = "read_matlab_files.py version 0.1, May 11, 2020"
 
 
 class MyInterface:
@@ -128,11 +131,11 @@ class MyInterface:
 
       # if no arguments are given, do default processing
       if '-help' in argv or len(argv) < 2:
-         print g_help_string
+         print(g_help_string)
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_valid_opts' in argv:
@@ -140,7 +143,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 1
 
       # ============================================================
@@ -165,7 +168,7 @@ class MyInterface:
          elif opt.name == '-infiles':
             self.infiles, err = uopts.get_string_list('', opt=opt)
             if self.infiles == None or err:
-               print '** failed to read -infiles list'
+               print('** failed to read -infiles list')
                errs +=1
 
          elif opt.name == '-overwrite':
@@ -183,7 +186,7 @@ class MyInterface:
 
       # if here, require input files
       if len(self.infiles) < 1:
-         print '** missing -infiles option'
+         print('** missing -infiles option')
          errs += 1
 
       # if no -prefix and no -verb, default verb to 2
@@ -202,12 +205,12 @@ class MyInterface:
          import scipy.io
          import numpy
       except:
-         print '** missing library: scipy.io'
-         print '   (please install scipy)'
+         print('** missing library: scipy.io')
+         print('   (please install scipy)')
          return 1
 
       if not os.path.isfile(fname):
-         print "** missing file '%s'" % fname
+         print("** missing file '%s'" % fname)
          return 1
 
       mfile = scipy.io.loadmat(fname)
@@ -218,19 +221,21 @@ class MyInterface:
       if prefix != '' and len(self.infiles) > 1:
          prefix = '%s.%02d' % (self.prefix, index+1)
 
-      klist = [key for key in mfile.keys() if key[0:2] != '__']
+      klist = [key for key in list(mfile.keys()) if key[0:2] != '__']
       maxlen = max([len(key) for key in klist])
 
       if self.verb:
-         if self.verb > 1: print
-         print '-- file %s has %d key(s)' % (fname, len(klist))
+         if self.verb > 1: print()
+         print('-- file %s has %d key(s)' % (fname, len(klist)))
 
       for key in klist:
          obj = mfile[key]
          if self.verb > 1:
-            print ('   %-*s %s' % (maxlen, key, type(obj))),
-            if type(obj) is numpy.ndarray: print ' shape %s' % str(obj.shape)
-            else:                          print
+            if type(obj) is numpy.ndarray:
+               shstr = ' shape %s' % str(obj.shape)
+            else:
+               shstr = ''
+            print('   %-*s %s%s' % (maxlen, key, type(obj), shstr))
 
          # maybe write any numpy data
          if prefix != '' and type(obj) is numpy.ndarray:
@@ -244,7 +249,7 @@ class MyInterface:
                self.write_model_files(adata, prefix)
             else:
                ofile = '%s.%s.1D'%(prefix,key)
-               print '++ writing ndarry to %s' % ofile
+               print('++ writing ndarry to %s' % ofile)
                adata.write(ofile, overwrite=self.overwrite)
 
       return 0
@@ -258,7 +263,7 @@ class MyInterface:
       for ind in range(adata.nvec):
          avec = LD.Afni1D(from_mat=1, matrix=[adata.mat[ind]], verb=self.verb)
          ofile = '%s.model.%02d.1D' % (prefix, ind+1)
-         print '++ writing model file %s' % ofile
+         print('++ writing model file %s' % ofile)
          avec.write(ofile, overwrite=self.overwrite)
 
       return 0
@@ -267,7 +272,7 @@ class MyInterface:
       """process matlab files
       """
 
-      print '-- have %d files to process' % len(self.infiles)
+      print('-- have %d files to process' % len(self.infiles))
 
       # check file existence first
       for ind, ifile in enumerate(self.infiles):
@@ -282,7 +287,7 @@ def main():
    rv = me.process_options()
    if rv > 0: return 0  # exit with success
    if rv < 0:           # exit with error status
-      print '** failed to process options...'
+      print('** failed to process options...')
       return 1
 
    if me.process_files(): return 1

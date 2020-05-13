@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , MAY , 2020 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow output of .jpg files for 2D images" ,
+   "Actually, any AFNI program that writes a 2D 'dataset' will now do so in\n"
+   "JPEG format if the prefix ends in '.jpg'. Similarly for '.png' and PNG\n"
+   "format. However, note that most programs produce scalar (non-RGB)\n"
+   "images, which will thus be monochrome - even if the input is color." } ,
+
  { 5 , May , 2020 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "Fix problem with Lock menu toggle switches" ,
    "Only one controller could be clicked on at a time!\n"

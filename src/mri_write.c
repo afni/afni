@@ -407,21 +407,36 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    char *pg , *jpfilt, *eee ;
    FILE *fp ;
    int jpeg_compress;
+   MRI_IMAGE *qim ; int qq ;
 
-   if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
-   if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+ENTRY("mri_write_jpg") ;
+
+   if( fname == NULL || *fname == '\0' || im == NULL ) RETURN(0) ;
+   if( im->kind != MRI_rgb && im->kind != MRI_byte   ){
+     qim = mri_to_byte(im) ;
+   } else {
+     qim = im ;
+   }
 
    if( STRING_HAS_SUFFIX_CASE(fname,".png") ){  /* 07 Dec 2007 */
-     RETURN( mri_write_png(fname,im) ) ;
+     qq = mri_write_png(fname,qim) ;
+     if( qim != im ) mri_free(qim) ;
+     RETURN(qq) ;
    }
    if( STRING_HAS_SUFFIX_CASE(fname,".ppm") ||
        STRING_HAS_SUFFIX_CASE(fname,".pgm") ||
        STRING_HAS_SUFFIX_CASE(fname,".pnm")   ){
-     RETURN( mri_write_pnm(fname,im) ) ;
+     qq = mri_write_pnm(fname,im) ;
+     if( qim != im ) mri_free(qim) ;
+     RETURN(qq) ;
    }
 
    pg = THD_find_executable( "cjpeg" ) ;
-   if( pg == NULL ) return 0 ;
+   if( pg == NULL ){
+     if( qim != im ) mri_free(qim) ;
+     RETURN(0) ;
+   }
+
    /* user environment variable compression quality - mod 5/10/2006 drg */
    eee = my_getenv("AFNI_JPEG_COMPRESS");
    if(eee!=NULL){
@@ -436,16 +451,22 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
    fp = popen( jpfilt , "w" ) ;
-   if( fp == NULL ){ free((void *)jpfilt); return 0; }
-
-   if( im->kind == MRI_rgb ){
-     fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
-     fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
-   } else if( im->kind == MRI_byte ){
-     fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
-     fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
+   if( fp == NULL ){
+     free((void *)jpfilt);
+     if( qim != im ) mri_free(qim) ;
+     RETURN(0);
    }
-   (void) pclose(fp) ; free((void *)jpfilt) ; return 1 ;
+
+   if( qim->kind == MRI_rgb ){
+     fprintf(fp,"P6\n%d %d\n255\n" , qim->nx,qim->ny ) ;
+     fwrite( MRI_RGB_PTR(qim), sizeof(byte), 3*qim->nvox, fp ) ;
+   } else if( qim->kind == MRI_byte ){
+     fprintf(fp,"P5\n%d %d\n255\n" , qim->nx,qim->ny ) ;
+     fwrite( MRI_BYTE_PTR(qim), sizeof(byte), qim->nvox, fp ) ;
+   }
+   (void) pclose(fp) ; free((void *)jpfilt) ;
+   if( qim != im ) mri_free(qim) ;
+   RETURN(1) ;
 }
 
 /*---------------------------------------------------------------*/
@@ -455,8 +476,10 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
    char *pg , *pgfilt ;
    FILE *fp ;
 
-   if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
-   if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+ENTRY("mri_write_png") ;
+
+   if( fname == NULL || *fname == '\0' || im == NULL ) RETURN(0) ;
+   if( im->kind != MRI_rgb && im->kind != MRI_byte   ) RETURN(0) ;
 
    if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){  /* 07 Dec 2007 */
      RETURN( mri_write_jpg(fname,im) ) ;
@@ -467,14 +490,14 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
      RETURN( mri_write_pnm(fname,im) ) ;
    }
 
-   pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) return 0 ;
+   pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) RETURN(0) ;
    pgfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
    sprintf( pgfilt , "%s -compression 9 > %s" , pg , fname ) ;
 #ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
    fp = popen( pgfilt , "w" ) ;
-   if( fp == NULL ){ free((void *)pgfilt); return 0; }
+   if( fp == NULL ){ free((void *)pgfilt); RETURN(0); }
 
    if( im->kind == MRI_rgb ){
      fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
@@ -483,7 +506,7 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
      fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
      fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
    }
-   (void) pclose(fp) ; free((void *)pgfilt) ; return 1 ;
+   (void) pclose(fp) ; free((void *)pgfilt) ; RETURN(1) ;
 }
 
 /*---------------------------------------------------------------*/

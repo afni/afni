@@ -172,7 +172,7 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             main_info["slice_offset"][i] = tt
             tt += dtt
-    elif main_info["slice_order"] not in ["Custom", "custom"]:  # Does nothing, unsure of it's purpose
+    elif main_info["slice_order"] in ["Custom", "custom"]:  # Does nothing, unsure of it's purpose
         pass
 
     else:  # Open external file specified in argument line,

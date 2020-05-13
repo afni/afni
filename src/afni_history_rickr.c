@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update web links to help pages in uber*.py",
+   "Update uber_align_test.py, uber_skel.py, uber_subj.py and uber_ttest.py."
+ } ,
+
+ { 11, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "updates for python3",
+   "Update xmat_tool.py, quick.alpha.vals.py, read_matlab_files.py,\n"
+   "uber_align_test.py and uber_skel.py."
+ } ,
+
  {  4, May, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
    "fix download of test file",
    "Thanks to Gerome on MB for reporting the problem."
