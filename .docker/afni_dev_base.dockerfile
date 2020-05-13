@@ -42,12 +42,11 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libxpm-dev \
     libxt-dev \
     libvolpack1-dev \
-    python-dev \
-    python-qt4 \
-    python-rpy2 \
-    python-scipy \
-    python-tk \
-    python-wxgtk3.0 \
+    python3-dev \
+    python3-rpy2 \
+    python3-scipy \
+    python3-tk \
+    python3-wxgtk4.0 \
     python3.6-dev \
     qhull-bin \
     r-base \
@@ -71,9 +70,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     ncurses-dev \
     ninja-build \
     pkg-config \
-    python-matplotlib \
-    python-mpltoolkits.basemap \
-    python-numpy \
+    python3-mpltoolkits.basemap \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
@@ -81,10 +78,10 @@ RUN apt-get update && apt-get install -y eatmydata && \
 RUN apt-get update && apt-get install -y eatmydata && \
     eatmydata apt-get install -y --no-install-recommends \
     gdb \
+    ipython3 \
     rsync \
     tree \
     valgrind \
-    ipython3 \
     vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
@@ -113,6 +110,7 @@ RUN \
         pytest \
         pytest-cov \
         pytest-parallel
-
 # add pdb alias ipy for easier pdb debugging
 RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
