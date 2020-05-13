@@ -5830,10 +5830,9 @@ mri_genalign_set_pgmat(1) ;
        /* save sub-brick without scaling factor */
 
        if( targ_was_vector ){                  /* RGB image [12 May 2020] */
-         MRI_IMAGE *qim = mri_copy(im_targ) ;
          EDIT_substitute_brick( dset_out ,kk ,
-                                qim->kind , mri_data_pointer(qim) ) ;
-         mri_clear_and_free(qim) ;
+                                im_targ->kind , mri_data_pointer(im_targ) ) ;
+         mri_clear_data_pointer(im_targ) ;
        } else if( floatize || targ_kind == MRI_float ){
          EDIT_substitute_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) );
          mri_clear_data_pointer(im_targ) ;  /* data in im_targ saved directly */
