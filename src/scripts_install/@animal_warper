@@ -561,14 +561,20 @@ if (($ok_to_exist == "1") && (-f  ${dsetprefix}_al2std_mat.aff12.1D)) then
    echo "reusing affine transformation matrix"
 else
    align_epi_anat.py -overwrite                                     \
-    -dset2 $dset -dset1 $base  -dset2to1                            \
-    -giant_move -suffix _al2std -dset1_strip None -dset2_strip None \
+    -dset2 $dset                                                    \
+    -dset1 $base                                                    \
+    -dset2to1                                                       \
+    -giant_move -suffix _al2std                                     \
+    -dset1_strip None -dset2_strip None                             \
     -cost $cost $rigidopt $feature_option $supersize
 
    set baseview = `3dinfo -av_space $base`
+
    # convert the affine aligned output to NIFTI
-   3dAFNItoNIFTI -prefix ${dsetprefix}_al2std.nii.gz \
+   3dAFNItoNIFTI                             \
+        -prefix ${dsetprefix}_al2std.nii.gz  \
         ${dsetprefix}_al2std${baseview}
+
    \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
@@ -682,7 +688,6 @@ else
    3dcopy -overwrite \
         awpy_${dsetprefix}/anat.*.qw_WARPINV.nii* \
         ${dsetprefix}_WARPINV.nii.gz
-
 endif
 
 printf "%-37s : %s\n"                                           \
@@ -715,8 +720,8 @@ else
               ${dsetprefix}_al2std_mat.aff12.1D"   \
       -source $dset -master $base 
 
-   # make masked version of orig dset in template space, using the template
-   # itself.
+   # make masked version of orig dset in template space, using the
+   # template itself.
    3dcalc -overwrite                               \
       -a "${origdsetprefix}_warp2std.nii.gz"       \
       -b "$base"                                   \
@@ -739,9 +744,10 @@ else
       ${origdsetprefix}_warp2std_nsu.nii.gz
 
 
-   # Image   : [ulay] edges of template; [olay] orig dset, warped to template
-   # This is in template space, so use the template (which has no skull)
-   # as a refbox
+   # Image : [ulay] edges of template; 
+   #         [olay] orig dset, warped to template
+   # This is in template space, so use the template (which has no
+   # skull) as a refbox
    set ulay  = "$base"
    set olay  = "${origdsetprefix}_warp2std.nii.gz"
    set opref = QC/qc_00_e_temp+wrpd_inp
@@ -803,20 +809,26 @@ foreach followset ($dset_followers)
 
    #  first check if output exists
    if ( ($ok_to_exist == "1") &&                  \
-     (-f ${followprefix}_warp2std.nii.gz) ) then
+        (-f ${followprefix}_warp2std.nii.gz) ) then
       echo "reusing nonlinear transformed follower dataset"
    else 
       # copy dataset to temporary one - reused by multiple dset followers
       \rm -f tempfollow.nii.gz
       3dcopy $followset tempfollow.nii.gz
+
       # move center of follower with same 1D shift as original dataset
-      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp \
+      @Align_Centers -overwrite                       \
+          -no_cp                                      \
+          -base $base -dset tempfollow.nii.gz         \
           -shift_xform_inv ${dsetprefix}.1D 
  
       # combine nonlinear and affine warps for dataset warped to standard
-      3dNwarpApply -prefix ${followprefix}_warp2std.nii.gz                    \
-         -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
-         -source tempfollow.nii.gz -master $base  -overwrite
+      3dNwarpApply  -overwrite                                      \
+         -prefix ${followprefix}_warp2std.nii.gz                    \
+         -nwarp "${dsetprefix}_WARP.nii.gz                          \
+                 ${dsetprefix}_al2std_mat.aff12.1D"                 \
+         -source tempfollow.nii.gz                                  \
+         -master $base
    endif
 
    printf "%-37s : %s\n"                        \
@@ -848,6 +860,7 @@ foreach followset ($roidset_followers)
       # copy dataset to temporary one - reused by multiple ROI dset followers
       \rm -f tempfollow.nii.gz
       3dcopy $followset tempfollow.nii.gz
+
       # move center of follower with same 1D shift as original dataset
       @Align_Centers -overwrite               \
           -no_cp                              \
@@ -857,25 +870,29 @@ foreach followset ($roidset_followers)
       # combine nonlinear and affine warps for dataset warped to standard
       # here we use Nearest neighbor interpolation instead of the default
       # wsinc5 for these "ROI datasets" and force short integer values
-      3dNwarpApply  -overwrite                                                \
-         -prefix ${followprefix}_warp2std.nii.gz                              \
-         -ainterp NN                                                          \
-         -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
-         -source tempfollow.nii.gz -short -master $base  -overwrite
+      3dNwarpApply  -overwrite                                             \
+         -prefix ${followprefix}_warp2std.nii.gz                           \
+         -ainterp NN                                                       \
+         -nwarp "${dsetprefix}_WARP.nii.gz                                 \
+                 ${dsetprefix}_al2std_mat.aff12.1D"                        \
+         -source tempfollow.nii.gz -short -master $base 
+
       if ($modesmooth != "0") then
-            3dLocalstat -overwrite -stat mode -nbhd "SPHERE(-$modesmooth)" \
+            3dLocalstat -overwrite                                         \
+               -stat mode -nbhd "SPHERE(-$modesmooth)"                     \
                -prefix ${followprefix}_warp2std.nii.gz                     \
-                ${followprefix}_warp2std.nii.gz
+               ${followprefix}_warp2std.nii.gz
       endif
+
       # make these show up in AFNI as labeled ROI or atlas datasets 
       3drefit -copytables $followset ${followprefix}_warp2std.nii.gz
       3drefit -cmap INT_CMAP ${followprefix}_warp2std.nii.gz
    endif
+
    printf "%-37s : %s\n"                               \
             "Follower ROIDset, NL-warped to templ"     \
             "${followprefix}_warp2std.nii.gz"          \
          >> ${animal_outs}
-
 end
 
 # now handle the inverse transformed data - template and atlases to
