@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Large number of under-the-hood changes, for readability/clarity.",
+   "Change echo->printf, spacing, clear comments, etc. No output changes.\n"
+},
+
 { 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
    "Installer for the Indian Brain Templates.",
    "Enjoy.\n"

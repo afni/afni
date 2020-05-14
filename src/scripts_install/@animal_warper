@@ -86,9 +86,15 @@ set progname = @animal_warper
 # [BTJ] added template mask-based brainmasking
 # maxlev defaults to 9 for some increase in speed
 #
-set version = "1.8" ; set date = "Apr 27, 2020"
+#set version = "1.8" ; set date = "Apr 27, 2020"
 # [PT] add help file example of integrating with afni_proc.py
 #    + particularly important now to get correct aff12 mat
+#
+set version = "1.81" ; set date = "May 14, 2020"
+# [PT] change spacing and printing for ease of reading
+#    + remove '-segmentation' opt, which didn't appear to do anything
+#    + clean up comments
+#    + introduce 'adjunct_simplify_cost.py' for getting rid of +ZZ, +zz and +
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -104,7 +110,6 @@ setenv AFNI_COMPRESSOR GZIP
 set dset = ""
 set base = ""
 set segset = ""
-set segmentation = ""
 set outdir = ""
 set templatename = ""
 set brainmask = ""
@@ -154,13 +159,6 @@ while ($ac <= $#argv)
             exit 1
         endif
         set segset =  $argv[$ac]
-    else if ("$argv[$ac]" == "-segmentation") then
-        @ ac ++
-        if ( $ac > $#argv ) then
-            echo "** missing parameter for option '-atlas'"
-            exit 1
-        endif
-        set segmentation =  $argv[$ac]
     else if ("$argv[$ac]" == "-outdir") then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -204,7 +202,7 @@ while ($ac <= $#argv)
         endif
         set align_type =  $argv[$ac]
         if (($align_type == "all") || ($align_type == "rigid") || \
-         ($align_type == "rigid_equiv") || ($align_type == "affine")) then
+            ($align_type == "rigid_equiv") || ($align_type == "affine")) then
            echo "align_type set to $align_type"
         else
            echo "align_type $align_type is not a valid choice"
@@ -238,7 +236,6 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-#               @ ac --
                break
             # not a hyphen leading option, should be dataset 
             else
@@ -266,7 +263,6 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-#               @ ac --
                break
             # not a hyphen leading option, should be dataset
             else
@@ -295,7 +291,6 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-#               @ ac --               
                break
             # not a hyphen leading option, should be dataset 
             else
@@ -324,7 +319,6 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-#               @ ac --               
                break
             # not a hyphen leading option, should be dataset 
             else
@@ -406,20 +400,14 @@ if ($cost == "") then
    set cost = "lpa+ZZ"
    set nlcost = ""
 else
-# nonlinear warps do not support +ZZ costs, so just use similar cost
-   set nlcost = `basename $cost "+ZZ"`
+   # NL warps do not support +ZZ costs, so just use similar cost
+   set nlcost = `adjunct_simplify_cost.py ${cost}`
 endif
 
-# allow for base to be in a standard directory or specified
-#   expand @FindAfniDsetPath to allow for AFNI_SUPP_ATLAS_DIR
-# is there a path in the name of the dataset
-#set basedir = `dirname $base`
 # is the dataset somewhere else or current directory
 set base = `@FindAfniDsetPath -full_path -append_file $base`
 
 if ($segset != "") then
-   # is there a path in the name of the dataset
-#   set segdir = `dirname $segset`
    # is the dataset somewhere else or current directory
    set segset = `@FindAfniDsetPath -full_path -append_file $segset`
 endif
@@ -441,15 +429,10 @@ endif
 set dsetprefix = `basename $dsetprefix .gz`
 set dsetprefix = `basename $dsetprefix .nii`
 
-# which afni view is used even if NIFTI dataset is used as base
-# usually +tlrc
-#set baseview = `3dinfo -av_space $base`
-
 # input datasets may not be +orig
 # so match input view equivalent even for NIFTI
 set origview = `3dinfo -av_space $dset |tr -d +`
 set origspace = `3dinfo -space $dset`
-
 
 # if input dataset is NIFTI vs AFNI format
 set dset_nifti = `3dinfo -is_nifti $dset`
@@ -530,7 +513,6 @@ if ($templatename == "") then
 endif
 
 if ($segset != "") then
-   #set segsetprefix = `@GetAfniPrefix $segset`
    set segsetdir = `dirname $segset`
    # if a template prefix has been selected by user, use that
    # for segmentation name output too
@@ -560,9 +542,10 @@ cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
 set dset = ${dsetprefix}_shft.nii.gz
 set dsetprefix = ${dsetprefix}_shft
 
-echo "Dset, center-shifted to templ : $dset" >> ${animal_outs}
-
-# goto apply_warps
+printf "%-37s : %s\n" \
+        "Dset, center-shifted to templ" \
+        "$dset"                         \
+       >> ${animal_outs}
 
 if ($align_type == "rigid") then
    set rigidopt = "-rigid_body"
@@ -577,7 +560,8 @@ endif
 if (($ok_to_exist == "1") && (-f  ${dsetprefix}_al2std_mat.aff12.1D)) then
    echo "reusing affine transformation matrix"
 else
-   align_epi_anat.py -dset2 $dset -dset1 $base -overwrite -dset2to1 \
+   align_epi_anat.py -overwrite                                     \
+    -dset2 $dset -dset1 $base  -dset2to1                            \
     -giant_move -suffix _al2std -dset1_strip None -dset2_strip None \
     -cost $cost $rigidopt $feature_option $supersize
 
@@ -588,16 +572,26 @@ else
    \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
-echo "Matrix, affine xform         : ${dsetprefix}_al2std_mat.aff12.1D" \
-     >> ${animal_outs}
-echo "Dset, aff-xformed to templ (orig res) : ${dsetprefix}_al2std.nii.gz" \
-     >> ${animal_outs}
+printf "%-37s : %s\n"                                               \
+        "Matrix, affine xform"                                      \
+        "${dsetprefix}_al2std_mat.aff12.1D"                         \
+       >> ${animal_outs}
+
+printf "%-37s : %s\n"                                               \
+        "Dset, aff-xformed to templ (orig res)"                     \
+        "${dsetprefix}_al2std.nii.gz"                               \
+       >> ${animal_outs}
 
 if ($align_type == rigid_equiv) then
-    cat_matvec ${dsetprefix}_al2std_mat.aff12.1D -P \
-        > ${dsetprefix}_al2std_mat_rigid.aff12.1D
     set affmat = ${dsetprefix}_al2std_mat_rigid.aff12.1D
-    echo "Matrix, rigid equiv xform    : $affmat" >> ${animal_outs}
+    cat_matvec                                              \
+        ${dsetprefix}_al2std_mat.aff12.1D -P                \
+        > ${affmat}
+
+    printf "%-37s : %s\n"                                   \
+            "Matrix, rigid equiv xform"                     \
+            "${affmat}"                                     \
+        >> ${animal_outs}
 else
     set affmat = ${dsetprefix}_al2std_mat.aff12.1D
 endif
@@ -607,16 +601,23 @@ endif
 if (($ok_to_exist == "1") && (-f ${dsetprefix}_aff.nii.gz)) then
    echo "reusing affine transformed dataset"
 else
-   3dAllineate -1Dmatrix_apply $affmat                                 \
-        -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE      \
-        -source $dset -overwrite
+   3dAllineate -overwrite                                       \
+        -1Dmatrix_apply $affmat                                 \
+        -prefix ${dsetprefix}_aff.nii.gz                        \
+        -base $base -master BASE                                \
+        -source $dset 
 endif
-echo "Dset, aff-xformed to templ   : ${dsetprefix}_aff.nii.gz" \
-     >> ${animal_outs}
+
+printf "%-37s : %s\n"                                      \
+        "Dset, aff-xformed to templ"                       \
+        "${dsetprefix}_aff.nii.gz"                         \
+       >> ${animal_outs}
 
 # if nonlinear alignment is not requested, then exit
 if ( $align_type != "all" ) then
+   echo ""
    echo "Finished aligning with only $align_type alignment"
+   echo ""
    if ($align_type == "rigid") then
       echo "This alignment method requires restarting the alignment"
       echo "for other types of alignment"
@@ -625,26 +626,30 @@ if ( $align_type != "all" ) then
       echo "a different align_type and -ok_to_exist"
    endif
       goto FINISH_OUTS
-
 endif
 
-# affinely align to template
-#  (could let auto_warp.py hande this, but AUTO_CENTER option might be needed)
+# --------------------------------------------------------------------------
+# Note about the warping here:
+#
+# affinely align to template (could let auto_warp.py hande this, but
+#  AUTO_CENTER option might be needed)
 # @auto_tlrc -base $base -input $dset -no_ss -init_xform AUTO_CENTER
-
-# !!! Now skipping cheap skullstripping !!!  didn't work for macaques
-#   with very different size brains. V1 got cut off probably could
-#   work with dilated mask "cheap" skullstripping with affine
-#   registered dataset the macaque brains are similar enough that the
-#   affine seems to be sufficient here for skullstripping
+#
+# NB: Now skipping cheap skullstripping:
+#   It didn't work for macaques with very different size brains. V1
+#   got cut off probably could work with dilated mask "cheap"
+#   skullstripping with affine registered dataset the macaque brains
+#   are similar enough that the affine seems to be sufficient here for
+#   skullstripping
 # 3dcalc -a ${dsetprefix}_aff+tlrc. -b $base -expr 'a*step(b)'   \
 #    -prefix ${dsetprefix}_aff_ns -overwrite
-
+#
 # nonlinear alignment of affine skullstripped dataset to template
 #  by default,the warp and the warped dataset are computed
 #  by using "-qw_opts ", one could save the inverse warp and do extra padding
 #  with -qw_opts '-iwarp -expad 30'
-# change qw_opts to remove max_lev 2 for final   ********************
+# change qw_opts to remove max_lev 2 for final   
+# --------------------------------------------------------------------------
 
 \rm -rf awpy_${dsetprefix}
 
@@ -660,7 +665,8 @@ if (($ok_to_exist == "1") && (-f ${dsetprefix}_WARP.nii.gz)) then
    echo "reusing nonlinear WARP dataset"
 else
    # nonlinear warping via auto_warp script
-   auto_warp.py -base $base -affine_input_xmat ID -qworkhard 0 2 \
+   auto_warp.py                                                  \
+      -base $base -affine_input_xmat ID -qworkhard 0 2           \
       -input ${dsetprefix}_aff.nii.gz -overwrite                 \
       -output_dir awpy_${dsetprefix} -qw_opts -iwarp             \
       -maxlev $maxlev $nlcostoption
@@ -668,9 +674,8 @@ else
    # the awpy has the result dataset, copy the warped data, the warp,
    # inverse warp don't copy the warped dataset - combine the
    # transformations instead below
-   # cp awpy_${dsetprefix}/${dsetprefix}_aff.aw.nii ./${dsetprefix}_warp2std.nii
 
-   3dcopy -overwrite \
+   3dcopy -overwrite                           \
         awpy_${dsetprefix}/anat.*.qw_WARP.nii* \
         ${dsetprefix}_WARP.nii.gz
 
@@ -680,12 +685,17 @@ else
 
 endif
 
-echo "NL warp to templ             : ${dsetprefix}_WARP.nii.gz"    \
-     >> ${animal_outs}
-echo "NL inv-warp from templ       : ${dsetprefix}_WARPINV.nii.gz" \
-     >> ${animal_outs}
+printf "%-37s : %s\n"                                           \
+        "NL warp to templ"                                      \
+        "${dsetprefix}_WARP.nii.gz"                             \
+       >> ${animal_outs}
 
-#apply_warps:
+printf "%-37s : %s\n"                                           \
+        "NL inv-warp from templ"                                \
+        "${dsetprefix}_WARPINV.nii.gz"                          \
+       >> ${animal_outs}
+
+# ------------------------- apply_warps ---------------------------------
 
 # Make subdirectory for QC images
 \mkdir -p QC
@@ -699,9 +709,11 @@ if ( ($ok_to_exist == "1") &&                  \
 else
    # combine nonlinear and affine warps for dataset warped to standard
    # template space **** mod - DRG 07 Nov 2016
-   3dNwarpApply -prefix ${origdsetprefix}_warp2std.nii.gz                  \
-      -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
-      -source $dset -master $base  -overwrite
+   3dNwarpApply -overwrite                         \
+      -prefix ${origdsetprefix}_warp2std.nii.gz    \
+      -nwarp "${dsetprefix}_WARP.nii.gz            \
+              ${dsetprefix}_al2std_mat.aff12.1D"   \
+      -source $dset -master $base 
 
    # make masked version of orig dset in template space, using the template
    # itself.
@@ -758,12 +770,21 @@ endif
 # maybe change names? these sound like warp dsets, but they are
 # actually dsets that *have* been warped
 echo "" >> ${animal_outs}
-echo "Dset, NL-warped to templ     : ${origdsetprefix}_warp2std.nii.gz" \
+
+printf "%-37s : %s\n"                              \
+        "Dset, NL-warped to templ"                 \
+        "${origdsetprefix}_warp2std.nii.gz"        \
        >> ${animal_outs}
-echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz" \
-      >> ${animal_outs}
-echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
-      >> ${animal_outs}
+
+printf "%-37s : %s\n"                              \
+        "Dset, NL-warped to templ (no skull)"      \
+        "${origdsetprefix}_warp2std_ns.nii.gz"     \
+       >> ${animal_outs}
+
+printf "%-37s : %s\n"                              \
+        "Dset, NL-warped to templ (no skull, uni)" \
+        "${origdsetprefix}_warp2std_nsu.nii.gz"    \
+       >> ${animal_outs}
 
 # applying warps to followers - other datasets that start in same
 # space, ~grid.  move each the same way as the data - align centers,
@@ -797,8 +818,11 @@ foreach followset ($dset_followers)
          -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
          -source tempfollow.nii.gz -master $base  -overwrite
    endif
-   echo "Follower Dset, NL-warped to templ     : ${followprefix}_warp2std.nii.gz" \
-       >> ${animal_outs}
+
+   printf "%-37s : %s\n"                        \
+            "Follower Dset, NL-warped to templ" \
+            "${followprefix}_warp2std.nii.gz"   \
+        >> ${animal_outs}
 end
 
 # applying warps to ROI followers - other datasets that start in same
@@ -825,13 +849,17 @@ foreach followset ($roidset_followers)
       \rm -f tempfollow.nii.gz
       3dcopy $followset tempfollow.nii.gz
       # move center of follower with same 1D shift as original dataset
-      @Align_Centers -base $base -dset tempfollow.nii.gz -overwrite -no_cp \
+      @Align_Centers -overwrite               \
+          -no_cp                              \
+          -base $base -dset tempfollow.nii.gz \
           -shift_xform_inv ${dsetprefix}.1D 
  
       # combine nonlinear and affine warps for dataset warped to standard
       # here we use Nearest neighbor interpolation instead of the default
       # wsinc5 for these "ROI datasets" and force short integer values
-      3dNwarpApply -prefix ${followprefix}_warp2std.nii.gz -ainterp NN        \
+      3dNwarpApply  -overwrite                                                \
+         -prefix ${followprefix}_warp2std.nii.gz                              \
+         -ainterp NN                                                          \
          -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
          -source tempfollow.nii.gz -short -master $base  -overwrite
       if ($modesmooth != "0") then
@@ -843,18 +871,18 @@ foreach followset ($roidset_followers)
       3drefit -copytables $followset ${followprefix}_warp2std.nii.gz
       3drefit -cmap INT_CMAP ${followprefix}_warp2std.nii.gz
    endif
-   echo "Follower ROIDset, NL-warped to templ     : ${followprefix}_warp2std.nii.gz" \
-       >> ${animal_outs}
+   printf "%-37s : %s\n"                               \
+            "Follower ROIDset, NL-warped to templ"     \
+            "${followprefix}_warp2std.nii.gz"          \
+         >> ${animal_outs}
+
 end
-
-
 
 # now handle the inverse transformed data - template and atlases to
 # native space
 
-# compute the inverse of the affine alignment transformation - all 12 numbers
-#cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
-#     >! ${dsetprefix}_al2std_mat.aff12.1D
+# compute the inverse of the affine alignment transformation - all 12
+# numbers
 cat_matvec -ONELINE                             \
     ${dsetprefix}_al2std_mat.aff12.1D -I        \
     >! ${dsetprefix}_inv_al2std_mat.aff12.1D
@@ -864,17 +892,27 @@ cat_matvec -ONELINE                             \
 # distance can be very large, and 3dNwarpApply will create a high
 # resolution space that will likely eat up large amounts of memory
 # ****USE WITH CAUTION *******
-cat_matvec -ONELINE ${dsetprefix}_al2std_mat.aff12.1D ${dsetprefix}.1D > \
-     ${origdsetprefix}_composite_linear_to_template.1D
+cat_matvec                                       \
+    -ONELINE                                     \
+    ${dsetprefix}_al2std_mat.aff12.1D            \
+    ${dsetprefix}.1D                             \
+    > ${origdsetprefix}_composite_linear_to_template.1D
+
 #Now create the inverse composite warp from template to subject space
-cat_matvec -ONELINE ${dsetprefix}_inv.1D        \
-    ${dsetprefix}_inv_al2std_mat.aff12.1D       \
+cat_matvec -ONELINE                              \
+    ${dsetprefix}_inv.1D                         \
+    ${dsetprefix}_inv_al2std_mat.aff12.1D        \
     > ${origdsetprefix}_composite_linear_to_template_inv.1D
 
-echo "Matrix, affine xform with shift :  ${origdsetprefix}_composite_linear_to_template.1D" \
-     >> ${animal_outs}
-echo "Matrix, inverse affine xform with shift : ${origdsetprefix}_composite_linear_to_template_inv.1D" \
-     >> ${animal_outs}
+printf "%-37s : %s\n"                                       \
+        "Matrix, affine xform with shift"                   \
+        "${origdsetprefix}_composite_linear_to_template.1D" \
+       >> ${animal_outs}
+
+printf "%-37s : %s\n"                                           \
+        "Matrix, inverse affine xform with shift"               \
+        "${origdsetprefix}_composite_linear_to_template_inv.1D" \
+       >> ${animal_outs}
 
 # use concatenated affine and nonlinear warp to go back to shifted
 # original space
@@ -882,22 +920,22 @@ if ( ($ok_to_exist == "1") && \
      (-f  ${templatename}_in_${origdsetprefix}.nii.gz) ) then
    echo "reusing template transformed to native space dataset"
 else 
-   3dNwarpApply -overwrite -nwarp \
-     "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
-      -source $base -master ${dsetprefix}.nii.gz                           \
-      -prefix ${templatename}_in_${origdsetprefix}.nii.gz
+   3dNwarpApply -overwrite                                 \
+     -nwarp "${dsetprefix}_inv_al2std_mat.aff12.1D         \
+             ${dsetprefix}_WARPINV.nii.gz)"                \
+     -source $base -master ${dsetprefix}.nii.gz            \
+     -prefix ${templatename}_in_${origdsetprefix}.nii.gz
    
-   # put back in non-shifted version (really native space) - should be default 
+   # put back in non-shifted version (really native space); should be
+   # default
    if ($center_out == "native") then
-      @Align_Centers -base ${finalmaster} \
-        -dset ${templatename}_in_${origdsetprefix}.nii.gz -no_cp
+      @Align_Centers                                       \
+        -no_cp                                             \
+        -base ${finalmaster}                               \
+        -dset ${templatename}_in_${origdsetprefix}.nii.gz 
    endif 
-   # put back into the view of the original dataset to make it viewable in AFNI
-#   gunzip -f ${templatename}_in_${origdsetprefix}.nii.gz
-#   nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
-#              -mod_field qform_code $origqform_code -overwrite \
-#              -infiles ${templatename}_in_${origdsetprefix}.nii
-#   gzip -f ${templatename}_in_${origdsetprefix}.nii
+   # put back into the view of the original dataset to make it
+   # viewable in AFNI
    3drefit -space $origspace  ${templatename}_in_${origdsetprefix}.nii.gz 
 
    # image is taken below, after skull-stripping applied to make focus
@@ -916,23 +954,23 @@ else
           (-f  ${origdsetprefix}_mask.nii.gz) ) then
         echo "reusing template transformed to native space dataset"
      else
-        3dNwarpApply -overwrite -ainterp NN -short -nwarp \
-          "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz" \
-           -source $brainmask -master ${dsetprefix}.nii.gz \
-           -prefix ${origdsetprefix}_mask.nii.gz
+        3dNwarpApply -overwrite                                 \
+          -ainterp NN -short                                    \
+          -nwarp "${dsetprefix}_inv_al2std_mat.aff12.1D         \
+                  ${dsetprefix}_WARPINV.nii.gz"                 \
+          -source $brainmask                                    \
+          -master ${dsetprefix}.nii.gz                          \
+          -prefix ${origdsetprefix}_mask.nii.gz
 
         # put back in non-shifted version (really native space)
-        @Align_Centers -base ${finalmaster} \
-              -dset  ${origdsetprefix}_mask.nii.gz -no_cp
+        @Align_Centers                               \
+            -no_cp                                   \
+            -base ${finalmaster}                     \
+            -dset  ${origdsetprefix}_mask.nii.gz
         # put back into the view of the original dataset to make it
         # viewable in AFNI
-        #gunzip -f ${temple_prefix}_in_${origdsetprefix}.nii.gz
-        #nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
-                   #-mod_field qform_code $origqform_code -overwrite \
-                   #-infiles ${temple_prefix}_in_${origdsetprefix}.nii
-        #gzip -f ${temple_prefix}_in_${origdsetprefix}.nii
         3drefit -space $origspace ${origdsetprefix}_mask.nii.gz
-    endif
+     endif
    else
       3dcalc \
          -a ${templatename}_in_${origdsetprefix}.nii.gz   \
@@ -1011,11 +1049,15 @@ else
 endif
 
 # [PT: Jan 14, 2020] add these to the output text
-echo "Mask of dset                 : ${origdsetprefix}_mask.nii.gz" \
-    >> ${animal_outs}
-echo "Dset, skullstripped          : ${origdsetprefix}_ns.nii.gz"   \
-    >> ${animal_outs}
+printf "%-37s : %s\n"                         \
+        "Mask of dset"                        \
+        "${origdsetprefix}_mask.nii.gz"       \
+       >> ${animal_outs}
 
+printf "%-37s : %s\n"                         \
+        "Dset, skullstripped"                 \
+        "${origdsetprefix}_ns.nii.gz"         \
+       >> ${animal_outs}
 
 # process any template followers the same way
 foreach temple_dset ($template_followers)
@@ -1027,27 +1069,28 @@ foreach temple_dset ($template_followers)
         (-f  ${temple_prefix}_in_${origdsetprefix}.nii.gz) ) then
       echo "reusing template transformed to native space dataset"
    else
-      3dNwarpApply -overwrite -short -nwarp \
+      3dNwarpApply -overwrite                                                \
+        -short -nwarp                                                        \
         "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz" \
-         -source $temple_dset -master ${dsetprefix}.nii.gz \
+         -source $temple_dset -master ${dsetprefix}.nii.gz                   \
          -prefix ${temple_prefix}_in_${origdsetprefix}.nii.gz
       
       # put back in non-shifted version (really native space) 
       if ($center_out == "native") then
-        @Align_Centers -base ${finalmaster} \
-            -dset  ${temple_prefix}_in_${origdsetprefix}.nii.gz -no_cp
+        @Align_Centers                                                      \
+            -no_cp                                                          \
+            -base ${finalmaster}                                            \
+            -dset  ${temple_prefix}_in_${origdsetprefix}.nii.gz 
       endif
       # put back into the view of the original dataset to make it
       # viewable in AFNI
-      #gunzip -f ${temple_prefix}_in_${origdsetprefix}.nii.gz
-      #nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
-                 #-mod_field qform_code $origqform_code -overwrite \
-                 #-infiles ${temple_prefix}_in_${origdsetprefix}.nii
-      #gzip -f ${temple_prefix}_in_${origdsetprefix}.nii
       3drefit -space $origspace ${temple_prefix}_in_${origdsetprefix}.nii.gz
   endif
-    echo "Templ, NL-warped to orig : ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> ${animal_outs}
 
+  printf "%-37s : %s\n"                                                     \
+         "Templ, NL-warped to orig"                                         \
+         "${temple_prefix}_in_${origdsetprefix}.nii.gz"                     \
+       >> ${animal_outs}
 end
 
  # warp segmentation from atlas back to the original macaque space
@@ -1056,20 +1099,26 @@ end
  #    back to the same native space, it will be faster to compose
  #    the warp separately with 3dNwarpCat or 3dNwarpCalc rather
  #    than composing it for each 3dNwarpApply
+
  if ($segset != "") then
+
+    # ----------------------------------------------------------------------
+    # Note:
+    # 
     # this only warps back to the affine warped space (~ in template space)
-#    3dNwarpApply -ainterp NN -short -overwrite -nwarp \
-#       ${dsetprefix}_WARPINV.nii.gz  -overwrite \
-#       -source $segset -master ${dsetprefix}_aff.nii.gz \
-#       -prefix ${segname}_in_${origdsetprefix}.nii.gz
+    #    3dNwarpApply -ainterp NN -short -overwrite -nwarp \
+    #       ${dsetprefix}_WARPINV.nii.gz  -overwrite \
+    #       -source $segset -master ${dsetprefix}_aff.nii.gz \
+    #       -prefix ${segname}_in_${origdsetprefix}.nii.gz
     # moves data to orig space - but introduces second interpolation
     # on nearest neighbor ROI data, this can make for odd artifacts
-#    3dAllineate -source ${segname}_in_${origdsetprefix}.nii.gz \
-#        -base ${origdsetprefix}.nii.gz \
-#    	-final NN \
-#        -1Dmatrix_apply ${origdsetprefix}_composite_linear_to_template_inv.1D \
-#        -prefix ${segname}_in_${origdsetprefix}.nii.gz
+    #    3dAllineate -source ${segname}_in_${origdsetprefix}.nii.gz \
+    #       -base ${origdsetprefix}.nii.gz \
+    #    	-final NN \
+    #    -1Dmatrix_apply ${origdsetprefix}_composite_linear_to_template_inv.1D \
+    #        -prefix ${segname}_in_${origdsetprefix}.nii.gz
     # deletes the segmentation in affine warped space
+    # ----------------------------------------------------------------------
 
     foreach segm_dset ($segset $seg_followers)
        if ($segm_dset == $segset) then
@@ -1088,15 +1137,19 @@ end
 
            # use concatenated affine and nonlinear warp to go back to
            # shifted original space
-           3dNwarpApply -ainterp NN -short -overwrite -nwarp \
-              "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz" \
-              -source $segm_dset -master ${dsetprefix}.nii.gz \
+           3dNwarpApply -overwrite                             \
+              -ainterp NN -short                               \
+              -nwarp "${dsetprefix}_inv_al2std_mat.aff12.1D    \
+                      ${dsetprefix}_WARPINV.nii.gz"            \
+              -source $segm_dset -master ${dsetprefix}.nii.gz  \
               -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
        
            # put back in non-shifted version (really native space) 
            if ($center_out == "native") then
-              @Align_Centers -base ${finalmaster} \
-                -dset  ${seg_prefix}_in_${origdsetprefix}.nii.gz -no_cp
+              @Align_Centers                                          \
+                -no_cp                                                \
+                -base ${finalmaster}                                  \
+                -dset ${seg_prefix}_in_${origdsetprefix}.nii.gz
            endif
            # change the datum type to byte to save space if values
            # range from 0 to 255 this step also gets removes the shift
@@ -1105,27 +1158,26 @@ end
            set segminmax = `3dBrickStat -min -max -slow \
                                 ${seg_prefix}_in_${origdsetprefix}.nii.gz`
            if (($segminmax[2] <= 255) && ($segminmax[1] >= 0)) then
-              3dcalc \
-                -a ${seg_prefix}_in_${origdsetprefix}.nii.gz \
-                -expr a -datum byte -nscale                  \
-              -overwrite -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
+              3dcalc -overwrite                                       \
+                -a ${seg_prefix}_in_${origdsetprefix}.nii.gz          \
+                -expr a                                               \
+                -datum byte                                           \
+                -nscale                                               \
+                -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
            endif
 
            # modal smoothing
            # overwrite its own dataset if enabled (default)
            if ($modesmooth != "0") then
-              3dLocalstat -overwrite -stat mode -nbhd "SPHERE(-$modesmooth)" \
-                -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz  \
+              3dLocalstat -overwrite                                 \
+                -stat mode -nbhd "SPHERE(-$modesmooth)"              \
+                -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz    \
                 ${seg_prefix}_in_${origdsetprefix}.nii.gz
            endif
            
-           # copy segmentation information from atlas to this native-space
-           #   segmentation dataset and mark to be shown with integer colormap
-           #gunzip -f ${seg_prefix}_in_${origdsetprefix}.nii.gz
-           #nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
-                 #-mod_field qform_code $origqform_code -overwrite \
-                 #-infiles ${seg_prefix}_in_${origdsetprefix}.nii
-           #gzip -f ${seg_prefix}_in_${origdsetprefix}.nii
+           # copy segmentation information from atlas to this
+           # native-space segmentation dataset and mark to be shown
+           # with integer colormap
            3drefit -cmap INT_CMAP -space \
                 $origspace ${seg_prefix}_in_${origdsetprefix}.nii.gz
            3drefit -copytables $segm_dset \
@@ -1155,13 +1207,13 @@ end
                 -set_xhairs OFF                        \
                 -label_mode 1 -label_size 3
 
-           #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz \
-           #     ./${segname}_in_${origdsetprefix}.nii.gz
        endif
-    echo "Atlas/seg, NL-warped to orig : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
+
+       printf "%-37s : %s\n"                                   \
+                "Atlas/seg, NL-warped to orig"                 \
+                "${seg_prefix}_in_${origdsetprefix}.nii.gz"    \
             >> ${animal_outs}
     end
-
 
     # create surfaces for template and all individual regions in
     # atlas, but now in native space
@@ -1174,7 +1226,8 @@ end
           echo "reusing anisotropically smoothed template"
           echo "  in native space dataset"
        else
-          3danisosmooth \
+          # [PT: May 14, 2020] Should there be an "-overwrite" here?
+          3danisosmooth                                               \
             -prefix ${templatename}_in_${origdsetprefix}_aniso.nii.gz \
             -automask -3D -iters 6 -matchorig                         \
             ${templatename}_in_${origdsetprefix}.nii.gz
@@ -1197,43 +1250,49 @@ end
           echo "reusing anisotropically smoothed and clustered template"
           echo "  in native space dataset"
        else
-          3dClusterize -idat 0 -ithr 0 -1sided RIGHT_TAIL $basethresh \
-             -pref_dat ${templatename}_in_${origdsetprefix}_aniso_clust.nii.gz \
-             -inset  ${templatename}_in_${origdsetprefix}_aniso.nii.gz -NN 2 \
-             -clust_nvox  $minbrainvolume
+          3dClusterize                                                        \
+            -idat 0 -ithr 0 -1sided RIGHT_TAIL $basethresh                    \
+            -pref_dat ${templatename}_in_${origdsetprefix}_aniso_clust.nii.gz \
+            -inset  ${templatename}_in_${origdsetprefix}_aniso.nii.gz -NN 2   \
+            -clust_nvox  $minbrainvolume
        endif
 
        if ( ($ok_to_exist == "1") && \
             (-f  ${templatename}_in_${origdsetprefix}.gii ) ) then
           echo "reusing template in native space surface dataset"
        else
-          IsoSurface -isorange $basethresh $basemax -overwrite \
+          IsoSurface -overwrite                                             \
+            -isorange $basethresh $basemax                                  \
             -input  ${templatename}_in_${origdsetprefix}_aniso_clust.nii.gz \
-            -o  ${templatename}_in_${origdsetprefix}.gii -overwrite \
+            -o  ${templatename}_in_${origdsetprefix}.gii                    \
             -noxform -Tsmooth 0.01 6
        endif
-          echo "Templ surf in orig           : ${templatename}_in_${origdsetprefix}.gii" \
+
+       printf "%-37s : %s\n"                                     \
+                "Templ surf in orig"                             \
+                "${templatename}_in_${origdsetprefix}.gii"       \
             >> ${animal_outs}
 
-#       if (($ok_to_exist == "1") && (-f  surfaces/native*.gii )) then
-#          echo "reusing segmentation surfaces in native space"
-#       else
-           if (-f ${segname}_in_${origdsetprefix}.nii.gz) then
-              \rm -rf surfaces/
-              \mkdir surfaces
-              cd surfaces
-              IsoSurface -isorois+dsets -o native.gii \
-                -input ../${segname}_in_${origdsetprefix}.nii.gz -noxform \
-                -Tsmooth 0.01 6
-              cd ..
-           endif
-#       endif
-            echo "Atlas/seg surfs in orig      : ./surfaces" \
-                >> ${animal_outs}
+       if (-f ${segname}_in_${origdsetprefix}.nii.gz) then
+          \rm -rf surfaces/
+          \mkdir -p surfaces
+          cd surfaces
+          IsoSurface                                                  \
+            -isorois+dsets -o native.gii                              \
+            -input ../${segname}_in_${origdsetprefix}.nii.gz -noxform \
+            -Tsmooth 0.01 6
+          cd ..
+       endif
+
+       printf "%-37s : %s\n"                                          \
+        "Atlas/seg surfs in orig"                                     \
+        "./surfaces"                                                  \
+       >> ${animal_outs}
+
     endif
+endif
 
- endif
-
+# ------------------------------ Clean up ----------------------------
 
 # get rid of temporary warped datasets
 if($keep_temp != "1") then
@@ -1244,28 +1303,31 @@ if($keep_temp != "1") then
    \rm -f "${templatename}_in_${origdsetprefix}_aniso*.nii.gz"
 endif
 
+# --------------------------- Finish and exit ----------------------------
+
 # finish outputs and exit gracefully: normal exit for default proc
 goto FINISH_OUTS
 
-# -------------------------------------------
-
-# notes
-
+# -------------------------------------------------------------------------
+# Note
+#
 # warp the transformed macaque back to its original space
-#  just as a quality control. The two datasets should be very similar
-#3dNwarpApply -overwrite -short -nwarp \
+#  just as a quality control. The two datasets should be very similar:
+# 3dNwarpApply -overwrite -short -nwarp \
 #   "${dsetprefix}_inv.aff12.1D INV(${dsetprefix}_WARP.nii.gz)" \
 #   -source ${dsetprefix}_warp2std.nii.gz -master ${finalmaster}${origview} \
 #   -prefix ${dsetprefix}_iwarpback -overwrite
-
-
-# zeropad the warp if segmentation doesn't cover the brain and reapply the warp
-# 3dZeropad -S 50 -prefix ${dsetprefix}_zp_WARP.nii.gz ${dsetprefix}_WARP.nii.gz
+#
+# zeropad the warp if segmentation doesn't cover the brain, and
+# reapply the warp:
+# 3dZeropad -S 50 -prefix ${dsetprefix}_zp_WARP.nii.gz \
+#   ${dsetprefix}_WARP.nii.gz
 # 3dNwarpApply -interp NN \
 #   -nwarp "${dsetprefix}_inv.aff12.1D INV(${dsetprefix}_zp_WARP.nii.gz)" \
 #   -source $segset -master $dset -prefix ${dsetprefix}_seg_zp
 # 3drefit -cmap INT_CMAP ${dsetprefix}_seg_zp${origview}
 # 3drefit -copytables $segset ${dsetprefix}_seg_zp${origview}
+# ---------------------------------------------------------------------------
 
 HELP:
 
