@@ -383,7 +383,7 @@
  atlas_name="MNI_Glasser_HCP_v1.0"
  dset_name="MNI_Glasser_HCP_v1.0.nii.gz"
  template_space="MNI"
- description="Glasser HCP atlas 2016 surface-based parcellation"
+ description="Glasser HCP 2016 surface-based parcellation"
  comment="Glasser, et al,A multi-modal parcellation of human cerebral cortex,
     Nature,2016. 
     Atlas was constructed from surface analysis in Contee grayordinates.
@@ -624,7 +624,7 @@
    atlas_name="FS_Desai_PM"
    dset_name="TT_desai_fspmaps+tlrc"
    template_space="TT_N27"
-   description="Contains 40 subcortical areas"
+   description="40 subcortical areas"
    comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
 ></ATLAS>
 
@@ -632,7 +632,7 @@
    atlas_name="DD_Desai_MPM"
    dset_name="TT_desai_dd_mpm+tlrc"
    template_space="TT_N27"
-   description="Contains the maximum probability maps of Desai DD and FS maps"
+   description="Maximum probability maps of Desai DD and FS maps"
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
@@ -640,7 +640,7 @@
    atlas_name="DKD_Desai_MPM"
    dset_name="TT_desai_dk_mpm+tlrc"
    template_space="TT_N27"
-   description="Contains the maximum probability maps of Desai DKD and FS maps"
+   description="Maximum probability maps of Desai DKD and FS maps"
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
