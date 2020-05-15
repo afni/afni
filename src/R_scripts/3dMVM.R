@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.3,  May 5, 2020
+Version 4.0.4,  May 14, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1329,7 +1329,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
       args = (commandArgs(TRUE))
       rfile <- first.in.path(sprintf('%s.R',ExecName))
        # save only on -dbgArgs          28 Apr 2016 [rickr]
-       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE 
+       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
