@@ -1427,7 +1427,7 @@ lop$nSubj <- nlevels(lop$dataStr$Subj)
 cat(lop$nSubj, 'subjects : ', levels(lop$dataStr$Subj), '\n')
 cat(length(lop$dataStr[[respVar]]), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
-   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':' 
+   cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':',
    levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix' | class(lop$dataStr[,ii]) == 'numeric')  # numeric may not work
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 cat(lop$num_glt, 'post hoc tests\n')
@@ -2009,7 +2009,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
                       covariates=lop$covValList[[n]], adjustment="none", idata = fmidata), error=function(e) NULL) } else {
                if(lop$afex_new) glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
                    covariates=lop$covValList[[ii]], adjustment="none", idata = fm$data$idata), error=function(e) NULL) else
-               glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]] 
+               glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                    covariates=lop$covValList[[ii]], adjustment="none", idata = fm$idata), error=function(e) NULL) }
                if(!is.null(glt)) {
                   out_post[ii,1]   <- glt[1,1]
