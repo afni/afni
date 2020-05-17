@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.0, Mar 13, 2020
+Version 0.1.1, Mar 17, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -505,11 +505,11 @@ process.ICC.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk
+      lop$maskData <- mm$brk[,,,1]
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
    if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -718,9 +718,9 @@ if(!is.na(lop$tStat)) {
    cat('Reading input files for tStat: Done!\n\n')
 }
 
-if (!is.na(lop$maskFN)) {
-   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
+if(!is.na(lop$maskFN)) {
+   #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
    if(!is.na(lop$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
   
@@ -771,11 +771,17 @@ cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
 cat('is likely inappropriate.\n\n')
 
-xinit <- dimx%/%3
-if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
-
-ii <- xinit; jj <- yinit; kk <- zinit
+# pick up a test voxel
+if(!is.na(lop$maskFN)) {
+   idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- idx[floor(dim(idx)[1]/2),1:3]
+   ii <- idx[1]; jj <- idx[2]; kk <- idx[3] 
+} else {
+   xinit <- dimx%/%3
+   if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
+   if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+   ii <- xinit; jj <- yinit; kk <- zinit
+}
 
 if(is.na(lop$tStat)) { # no tStat input
    lop$model <- as.formula(paste('eff ~ ', lop$model))
