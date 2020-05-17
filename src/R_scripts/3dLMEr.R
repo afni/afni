@@ -138,7 +138,8 @@ Introduction
   considered as one-way repeated-measures (or within-subject) ANOVA if no
   missing data occured. The LME model is typically formulated with a random
   intercept in this case. With the option -bounds, values beyond [-2, 2] will
-  be treated as outliers and considered as missing. 
+  be treated as outliers and considered as missing. If you want to set a range, 
+  choose the bounds that make sense with your input data. 
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                     \\
@@ -320,7 +321,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
-   "         less than the second.\n", sep='\n')),
+   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -656,11 +657,11 @@ process.LME.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk
+      lop$maskData <- mm$brk[,,,1]
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
    if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3]))
+      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -827,8 +828,8 @@ cat('Reading input files for effect estimates: Done!\n\n')
 
 # masking
 if(!is.na(lop$maskFN)) {
-   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
+   #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
 
@@ -837,7 +838,6 @@ if(!is.na(lop$bounds)) {
    inData[inData > lop$bounds[2]] <- NA
    inData[inData < lop$bounds[1]] <- NA
 }
-
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's
 # for t tests (and catch potential problems as well)
@@ -856,11 +856,18 @@ cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
 cat('is likely inappropriate.\n\n')
 
-xinit <- dimx%/%3
-if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+# pick up a test voxel
+if(!is.na(lop$maskFN)) {
+  idx <- which(lop$maskData == 1, arr.ind = T)
+  idx <- idx[floor(dim(idx)[1]/2),1:3]
+  ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+} else {
+  xinit <- dimx%/%3
+  if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
+  if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+  ii <- xinit; jj <- yinit; kk <- zinit
+}
 
-ii <- xinit; jj <- yinit; kk <- zinit
 #if(unlist(strsplit(lop$model, split="[+]"))[1]==1) {
 #   intercept <- 1
 #   lop$NoBrick <- 2
