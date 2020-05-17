@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, May 5, 2020
+Version 0.0.4, May 17, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)https://scholarblogs.emory.edu/smi2020/
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -137,11 +137,13 @@ Introduction
   at the populaton level (missing data allowed). This data structure is usually
   considered as one-way repeated-measures (or within-subject) ANOVA if no
   missing data occured. The LME model is typically formulated with a random
-  intercept in this case.
+  intercept in this case. With the option -bounds, values beyond [-2, 2] will
+  be treated as outliers and considered as missing. 
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                     \\
           -model  'emotion+(1|Subj)'                                \\
+          -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
           -gltCode neu      'emotion : 1*neu'                       \\
@@ -179,6 +181,7 @@ Introduction
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                   \\
           -model  'emotion*RT+(RT|Subj)'          \\
+          -bounds -2 2                            \\
           -qVars  'RT'                            \\
           -qVarCenters 0                          \\
           -gltCode pos      'emotion : 1*pos'                       \\
@@ -215,6 +218,7 @@ Introduction
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                       \\
           -model  'emotion+(1|Subj)+(1|site)'         \\
+          -bounds -2 2                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
           -gltCode neu      'emotion : 1*neu'                       \\
@@ -310,6 +314,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "-dbgArgs: This option will enable R to save the parameters in a",
    "         file called .3dLMEr.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
+
+       '-bounds' = apl(n=2, h = paste(
+   "-bounds lb ub: This option is for outlier removal. Two numbers are expected from",
+   "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
+   "         be confined within [lb, ub]: any values in the input data that are beyond",
+   "         the bounds will be removed and treated as missing. Make sure the first number",
+   "         less than the second.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -463,6 +474,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       #lop$ranEff <- NA
       lop$model  <- NA
       lop$qVars  <- NA
+      lop$bounds <- NA
       #lop$vVars  <- NA
       #lop$vQV    <- NA
       lop$qVarCenters <- NA
@@ -492,6 +504,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 	     gltCode   = lop$gltCode   <- ops[[i]],
 	     glfCode  = lop$glfCode <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
+             bounds = lop$bounds <- ops[[i]],
              #vVars  = lop$vVars  <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
              #vVarCenters = lop$vVarCenters <- ops[[i]],
@@ -578,12 +591,16 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
+   if(lop$bounds[1] > lop$bounds[2]) 
+      errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1], 
+         ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == lop$IF)  # assuming the input file is the last column here!
    hi <- len / wd - 1
 
    if(len %% wd != 0)
-      errex.AFNI(paste('The content under -dataTable is not rectangular !', len, wd)) else {
+      errex.AFNI(paste('The content under -dataTable is not rectangular!', len, wd)) else {
       lop$dataStr <- NULL
       for(ii in 1:wd) lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
@@ -808,10 +825,17 @@ tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
 cat('Reading input files for effect estimates: Done!\n\n')
 
-if (!is.na(lop$maskFN)) {
+# masking
+if(!is.na(lop$maskFN)) {
    Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
    inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
+}
+
+# outlier removal
+if(!is.na(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
 }
 
 
