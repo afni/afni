@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.4,  May 14, 2020
+Version 4.0.5,  May 17, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1014,11 +1014,11 @@ process.MVM.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk
+      lop$maskData <- mm$brk[,,,1]
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
    if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3]))
+      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -1510,8 +1510,8 @@ if(any(!is.null(lop$vVars))) {
 } else vQV <- NULL
 
 if (!is.na(lop$maskFN)) {
-   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)),
+   #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)),
       dim=c(dimx,dimy,dimz,lop$NoFile+(!is.na(lop$vQV[1]))*lop$nSubj))
 }
 
@@ -1545,11 +1545,17 @@ if(any(!is.null(lop$vVars))) {
 
 ###############################
 
-xinit <- dimx%/%3
-if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
-if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
-
-ii <- xinit; jj <- yinit; kk <- zinit
+# pick up a test voxel
+if(!is.na(lop$maskFN)) {
+  idx <- which(lop$maskData == 1, arr.ind = T)
+  idx <- idx[floor(dim(idx)[1]/2),1:3]
+  ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+} else {
+   xinit <- dimx%/%3
+   if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
+   if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
+   ii <- xinit; jj <- yinit; kk <- zinit
+}
 
 fm<-NULL
 gltRes <- vector('list', lop$num_glt)
