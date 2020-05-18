@@ -5,11 +5,11 @@ export NCPUS=$(getconf _NPROCESSORS_ONLN)
 export OMP_NUM_THREADS=1
 
 # Run tests
-cd /opt/src/afni/tests
+cd /opt/afni/src/tests
 pytest --runveryslow -v -r Esx --workers $NCPUS
 # For coverage
-# pytest --runveryslow --cov=/opt/src/afni/abin --cov-report xml:/opt/src/afni/coverage.xml --workers $NCPUS
-# cd /opt/src/afni
+# pytest --runveryslow --cov=/opt/afni/src/abin --cov-report xml:/opt/afni/src/coverage.xml --workers $NCPUS
+# cd /opt/afni/src
 # codecov
 
 # For python2 there is a --testpython2 option. Note though that this is not

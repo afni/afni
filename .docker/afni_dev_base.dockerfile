@@ -7,9 +7,9 @@ RUN TZ=Europe/Minsk \
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 
-RUN apt-get update && apt-get install -y wget \
+RUN apt-get update && apt-get install -y wget sudo \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # The gpg key import is a little flaky...
 # COPY .docker/neurodebian.gpg /usr/local/etc/neurodebian.gpg
 # RUN wget  -O- http://neuro.debian.net/lists/bionic.us-nh.full > /etc/apt/sources.list.d/neurodebian.sources.list && \
@@ -18,6 +18,43 @@ RUN apt-get update && apt-get install -y wget \
 
 RUN TZ=Europe/Minsk \
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Configure environment
+ENV SHELL=/bin/bash \
+    CONTAINER_USER="afni_user" \
+    CONTAINER_UID="1000" \
+    CONTAINER_GID="100" \
+    PYTHONUSERBASE=/opt/user_pip_packages \
+    AFNI_ROOT=/opt/afni/src
+
+ENV DESTDIR="$AFNI_ROOT/../install" \
+    PATH="$PYTHONUSERBASE/bin:$PATH" \
+    HOME=/home/$CONTAINER_USER
+# For any variables that should be present for all users of the container they
+# should be set in /etc/environment (variables set by ENV do not cleanly
+# propagate to all users). Should do this for PATH again later in the dockerfile (or
+# child files)
+ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH"
+RUN bash -c 'for val in $PRESERVED_VARS;do \
+             echo $val=${!val} >> /etc/environment ; \
+             done'
+
+# Copy a script that we will use to correct permissions after running certain commands
+COPY .docker/fix-permissions /usr/local/bin/fix-permissions
+RUN chmod a+rx /usr/local/bin/fix-permissions
+
+# Add a lightweight init for container
+RUN wget https://github.com/krallin/tini/releases/download/v0.19.0/tini-static -O /usr/local/bin/tini && chmod a+x /usr/local/bin/tini
+
+# Enable prompt color in the skeleton .bashrc before creating the default CONTAINER_USER
+RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc
+
+RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
+    sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
+    sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
+    useradd -m -s /bin/bash -N -u $CONTAINER_UID $CONTAINER_USER && \
+    chmod g+w /etc/passwd && \
+    fix-permissions $HOME
 
 # Install runtime and basic dependencies
 RUN apt-get update && apt-get install -y eatmydata && \
@@ -42,10 +79,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libxpm-dev \
     libxt-dev \
     libvolpack1-dev \
-    python3-dev \
     python3-rpy2 \
-    python3-scipy \
-    python3-tk \
     python3-wxgtk4.0 \
     python3.6-dev \
     qhull-bin \
@@ -53,14 +87,13 @@ RUN apt-get update && apt-get install -y eatmydata && \
     tcsh \
     xvfb \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install development dependencies
 RUN apt-get update && apt-get install -y eatmydata && \
     eatmydata apt-get install -y --no-install-recommends \
     build-essential \
     bzip2 \
-    cython3 \
     f2c \
     g++ \
     gcc \
@@ -70,38 +103,54 @@ RUN apt-get update && apt-get install -y eatmydata && \
     ncurses-dev \
     ninja-build \
     pkg-config \
-    python3-mpltoolkits.basemap \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install test dependencies and some useful tools
 RUN apt-get update && apt-get install -y eatmydata && \
     eatmydata apt-get install -y --no-install-recommends \
     gdb \
-    ipython3 \
     rsync \
     tree \
     valgrind \
     vim \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# set non interactive backend for matplotlib
+RUN mkdir -p /root/.config/matplotlib \
+    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+COPY .docker/start.sh /usr/local/bin
+RUN mkdir /usr/local/bin/image_startup.d && fix-permissions /usr/local/bin/image_startup.d
+RUN fix-permissions /opt
+USER $CONTAINER_UID
+
+
+###### Switch to non privileged user ######
+RUN bash -c 'mkdir -p $AFNI_ROOT/../{build,src,install} && fix-permissions $AFNI_ROOT/../..'
 
 ENV CMAKE_VER=3.14.7
-RUN wget -P /cmake  https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
-  ; cd /cmake \
+RUN wget -P /opt/cmake  https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
+  ; cd /opt/cmake \
   ; tar xzvf cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
-  ;rm -fr cmake-${CMAKE_VER}-Linux-x86_64.tar.gz 
-ENV PATH="/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
+  ;rm -fr cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
+  && fix-permissions /opt
+ENV PATH="/opt/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
 
+RUN mkdir $PYTHONUSERBASE
 # Add some more test dependencies
-RUN \
- curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
-  && pip3 install --no-cache-dir \
+RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
+     | python3 - --no-cache-dir --prefix $PYTHONUSERBASE
+RUN pip install \
+      --no-cache-dir \
         autopep8 \
         black \
         codecov \
+        cython \
         datalad \
+        ipython \
         matplotlib \
         nibabel \
         numpy \
@@ -109,8 +158,14 @@ RUN \
         pdbpp \
         pytest \
         pytest-cov \
-        pytest-parallel
+        pytest-parallel \
+        scipy \
+  && fix-permissions /opt
+
 # add pdb alias ipy for easier pdb debugging
 RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
-RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN mkdir $HOME/work && fix-permissions $HOME/work
+WORKDIR $HOME/
 
+ENTRYPOINT ["tini", "-g", "--"]
+CMD ["start.sh"]

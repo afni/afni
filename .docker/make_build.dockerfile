@@ -1,47 +1,46 @@
 FROM afni/afni_dev_base
 
 # Remove f2c dev header to ensure within repo f2c.h is used
+USER root
 RUN apt-get remove -y libf2c2-dev
 
+ENV DESTDIR=$AFNI_ROOT/../install
+ENV PATH=$DESTDIR:$PATH
 
-# set non interactive backend for matplotlib
-RUN mkdir -p /root/.config/matplotlib \
-    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
+# Copy AFNI source code. This will likely invalidate the build cache.
+COPY . $AFNI_ROOT/
+# Will work for docker version > 19.0.3 (and result in a smaller image). For
+# now just keep all image layers owned as root to keep the image size
+# manageable COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
 
-# Copy AFNI source code. This can invalidate the build cache.
-ARG AFNI_ROOT=/opt/src/afni
-COPY [".", "$AFNI_ROOT/"]
-
-ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
 ARG AFNI_WITH_COVERAGE="0"
-ENV PATH="/opt/abin:$PATH"
-
-WORKDIR "$AFNI_ROOT/src"
-RUN \
-    if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
-      echo "Adding testing and coverage components" \
-      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX ;\
-      fi \
+ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
+ARG KEEP_BUILD_DIR="0"
+RUN cd $AFNI_ROOT/src \
     && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
-    && mv afni_src.tgz .. \
-    && cd .. \
-    \
-    # Empty the src directory, and replace with the contents of afni_src.tgz
-    && rm -rf src/ && mkdir src \
-    && tar -xzf afni_src.tgz -C $AFNI_ROOT/src --strip-components=1 \
+    && tar -xzf afni_src.tgz -C $AFNI_ROOT/../build --strip-components=1 \
     && rm afni_src.tgz \
-    \
-    # Build AFNI.
-    && cd src \
+    # copy and possibly modify makefile
+    && cd $AFNI_ROOT/../build \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
-    # Clean in case there are some stray object files
+    # clean and move source code to build directory
     && make cleanest \
+    # Add coverage to build
+    && if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
+      echo "Adding testing and coverage components" \
+      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile ;\
+      fi \
+    # Build AFNI.
     && /bin/bash -c \
     'make itall 2>&1 | tee build_log.txt && test ${PIPESTATUS[0]} -eq 0' \
-    && mv $AFNI_MAKEFILE_SUFFIX /opt/abin
+    && mv $AFNI_MAKEFILE_SUFFIX/* $AFNI_ROOT/../install \
+    # Remove build tree to drop image size
+    && if [ "$KEEP_BUILD_DIR" = "0" ]; then \
+      rm -rf $AFNI_ROOT/../build; \
+      fi
 
+USER root
+RUN bash -c 'echo PATH=${PATH} >> /etc/environment'
+USER $CONTAINER_UID
 
-
-
-
-WORKDIR "$AFNI_ROOT"
+WORKDIR $HOME/work
