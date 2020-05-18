@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Large number of under-the-hood changes, as well as new opts .",
+   "More general handling of followers and choosing file abbrevs.\n"
+},
+
 { 14, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Large number of under-the-hood changes, for readability/clarity.",
    "Change echo->printf, spacing, clear comments, etc. No output changes.\n"
