@@ -1546,6 +1546,10 @@ if(any(!is.na(lop$vVars))) {
    lop$nVVars <- nlevels(lop$dataStr[,paste(lop$vQV[1], '_fn', sep='')])
 }                                             
 
+# show the range of input data
+rg <- range(inData)
+cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or the GLT coding\n')
 cat('is likely inappropriate.\n\n')
