@@ -767,6 +767,10 @@ if(is.na(lop$tStat)) require(lme4) else {
    comArr <- array(c(inData, inDataV), dim=c(dim(inData)[1:3], sum(dim(inData)[4], dim(inDataV)[4])))
 }
 
+# show the range of input data
+rg <- range(inData)
+cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
 cat('is likely inappropriate.\n\n')
