@@ -22,5 +22,5 @@ if [ ! -z "$gitemail" ];then
 fi
 
 # Run tests
-cd /opt/src/afni/tests
+cd /opt/afni/src/tests
 pytest scripts --runveryslow -vv --showlocals -r Esx --workers $NCPUS

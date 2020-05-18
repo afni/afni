@@ -38,7 +38,7 @@ run-hooks () {
     echo "$0: done running hooks in $1"
 }
 
-# run-hooks /usr/local/bin/start-notebook.d
+#run-hooks /usr/local/bin/image_startup.d
 
 # Handle special flags if we're root
 if [ $(id -u) == 0 ] ; then
@@ -101,7 +101,7 @@ if [ $(id -u) == 0 ] ; then
     # the environment preserved
     run-hooks /usr/local/bin/before-notebook.d
     echo "Executing the command: ${cmd[@]}"
-    exec sudo -E -H -u $CONTAINER_USER PATH=$PATH XDG_CACHE_HOME=/home/$CONTAINER_USER/.cache PYTHONPATH=${PYTHONPATH:-} "${cmd[@]}"
+    exec sudo -E -H -u $CONTAINER_USER PATH=$PATH XDG_CACHE_HOME=/home/$CONTAINER_USER/.cache  "${cmd[@]}"
 else
     if [[ "$CONTAINER_UID" == "$(id -u afni_user)" && "$CONTAINER_GID" == "$(id -g afni_user)" ]]; then
         # User is not attempting to override user/group via environment

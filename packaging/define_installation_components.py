@@ -8,7 +8,7 @@ import re
 import shutil
 
 build_dir = Path("/build")
-src_dir = Path("/opt/src/afni")
+src_dir = Path("/opt/afni/src")
 nifti_dir = src_dir.parent / 'nifti_clib'
 gifti_dir = src_dir.parent / 'gifti_clib'
 components = Path("components")
@@ -161,7 +161,7 @@ print("Built full build")
 sp.check_output(
     f"""
 ninja uninstall
-cmake /opt/src/afni \
+cmake /opt/afni/src \
     -DCOMP_ADD_RSTATS=ON \
     -DUSE_SYSTEM_NIFTI=OFF \
     -DUSE_SYSTEM_GIFTI=OFF \
