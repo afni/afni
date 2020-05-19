@@ -3052,7 +3052,7 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
          SUMA_S_Note("Eroding %d", erode);
          for (tt=0; tt<erode; ++tt) {
             THD_mask_erode_sym(DSET_NX(aset), DSET_NY(aset), DSET_NZ(aset), 
-                               b, 1);
+                               b, 1, 2);
          }
       }
       if (dilate) {
