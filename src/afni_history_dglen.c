@@ -50,6 +50,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19, MAY, 2020, DRG, "3dROIstats",
+     MINOR, TYPE_NEW_OPT,
+    "nzvolume - volume of nonzero voxels"
+},
+{ 19, MAY, 2020, DRG, "3dBrickStat",
+     MICRO, TYPE_BUG_FIX,
+    "Volume - absolute value of voxel dimensions used now"
+},
 { 30, MAR, 2020, DRG, "align_epi_anat.py",
      MINOR, TYPE_NEW_OPT,
     "rigid_equiv - rigid equivalent affine alignment"

@@ -123,6 +123,7 @@ void usage_3dROIstats(int detail) {
          "                 the opposite for the normal mean computed\n"
          "  -nzsum        Compute the sum using only non_zero voxels.  \n"
          "  -nzvoxels     Compute the number of non_zero voxels\n"
+         "  -nzvolume     Compute the volume of non-zero voxels\n"
          "  -minmax       Compute the min/max of all voxels\n"
          "  -nzminmax     Compute the min/max of non_zero voxels\n"
          "  -sigma        Compute the standard deviation of all voxels\n"
@@ -164,7 +165,8 @@ int main(int argc, char *argv[])
 {
    THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
    int mask_subbrik = 0;
-   int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0, nzcount = 0;
+   int sigma = 0, nzsigma = 0, mean = 1, nzmean = 0;
+   int nzcount = 0, nzvolume = 0;
    int debug = 0, quiet = 0, summary = 0;
    char wpc[2] = {""};
    int minmax = 0, nzminmax = 0, donzsum = 0;     /* 07 July, 2004 [rickr] */
@@ -428,8 +430,13 @@ int main(int argc, char *argv[])
          narg++;
          continue;
       }
-      if (strncmp(argv[narg], "-nzvoxels", 5) == 0) {
+      if (strcmp(argv[narg], "-nzvoxels") == 0) {
          nzcount = 1;
+         narg++;
+         continue;
+      }
+      if (strcmp(argv[narg], "-nzvolume") == 0) {
+         nzvolume = 1;
          narg++;
          continue;
       }
@@ -598,6 +605,8 @@ int main(int argc, char *argv[])
                fprintf(stdout, "\tNZMean_%s", sklab);
             if (nzcount)
                fprintf(stdout, "\tNZcount_%s", sklab);
+            if (nzvolume)
+               fprintf(stdout, "\tVolume_%s", sklab);
             if (sigma)
                fprintf(stdout, "\tSigma_%s", sklab);
             if (nzsigma)
@@ -670,6 +679,8 @@ int main(int argc, char *argv[])
                fprintf(stdout, "\tNZMean_%s", sklab );
             if (nzcount)
                fprintf(stdout, "\tNZcount_%s", sklab );
+            if (nzvolume)
+               fprintf(stdout, "\tVolume_%s", sklab );
             if (sigma)
                fprintf(stdout, "\tSigma_%s", sklab );
             if (nzsigma)
@@ -744,7 +755,7 @@ int main(int argc, char *argv[])
       Error_Exit("Memory allocation error");
    if ((voxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
       Error_Exit("Memory allocation error");
-   if (nzmean || nzcount || nzminmax || donzsum || nzsigma) {
+   if (nzmean || nzcount || nzvolume || nzminmax || donzsum || nzsigma) {
       if ((nzsum = (double *) malloc(num_ROI * sizeof(double))) == NULL)
          Error_Exit("Memory allocation error");
       if ((nzvoxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
@@ -803,7 +814,7 @@ int main(int argc, char *argv[])
          for (i = 0; i < num_ROI; i++) {
             sum[i] = 0;
             voxels[i] = 0;
-            if (nzmean || nzcount || donzsum || nzsigma) {
+            if (nzmean || nzcount || nzvolume || donzsum || nzsigma) {
                nzsum[i] = 0;
                nzvoxels[i] = 0;
                nzsumsq[i] = 0;
@@ -893,7 +904,7 @@ int main(int argc, char *argv[])
 
                sum[ROI] += (double) input_data[i];
                voxels[ROI]++;
-               if (nzmean || nzcount || nzminmax || donzsum || nzsigma) {
+               if (nzmean || nzcount || nzvolume || nzminmax || donzsum || nzsigma) {
                   if (input_data[i] != 0.0) {
                      nzsum[ROI] += (double) input_data[i];
                      nzvoxels[ROI]++;
@@ -1081,6 +1092,8 @@ int main(int argc, char *argv[])
                      fprintf(stdout, "\t%f", nzvoxels[i] ? (nzsum[i] / (double) nzvoxels[i]) : 0.0);
                   if (nzcount)
                      fprintf(stdout, "\t%ld", nzvoxels[i]);
+                  if (nzvolume)
+                     fprintf(stdout, "\t%f", (float) (DSET_VOXVOL(input_dset)*nzvoxels[i]));
                   if (sigma) {
                      double mean = sum[i] / (double) voxels[i];
                      sumsq[i] /= (double) voxels[i];
@@ -1153,6 +1166,8 @@ int main(int argc, char *argv[])
                   if (nzmean)
                      fprintf(stdout, "\t%s", zerofill);
                   if (nzcount)
+                     fprintf(stdout, "\t%s", zerofill);
+                  if (nzvolume)
                      fprintf(stdout, "\t%s", zerofill);
                   if (sigma)
                      fprintf(stdout, "\t%s", zerofill);
@@ -1230,7 +1245,8 @@ int main(int argc, char *argv[])
 
    free(sum);
    free(voxels);
-   if (nzmean || nzcount || donzsum) {
+
+   if (nzmean || nzcount || nzvolume || donzsum) {
       free(nzsum);
       free(nzvoxels);
    }
