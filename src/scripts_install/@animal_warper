@@ -1659,7 +1659,7 @@ if ( ($ok_to_exist == "1") &&              \
    echo "++ Reusing skullstripped+unifized original/input dset"
 else
 
-   echo "++ Unifizing input dset in template space"
+   echo "++ Unifizing input dset in input/source space"
    3dUnifize -overwrite                   \
       -GM                                 \
       -clfrac 0.4                         \

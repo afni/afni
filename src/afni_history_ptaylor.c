@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, May , 2020 , PT , "afni_seeds_per_space.txt" , MINOR , TYPE_GENERAL,
+   "Updated APQC seed locations for stereoNMT space.",
+   "More centralized now in GM and in specific ROIs; aud away from vessel.\n"
+},
+
 { 18, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
    "Large number of under-the-hood changes, as well as new opts .",
    "More general handling of followers and choosing file abbrevs.\n"
