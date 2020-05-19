@@ -1,10 +1,41 @@
 from .utils import misc
+from pathlib import Path
+import shutil
+import pytest
+import os
+
+if not shutil.which("xvfb-run"):
+    pytest.skip("Could not find xvfb-run", allow_module_level=True)
 
 
-def test_afni_gui():
+def test_afni_gui_basic():
 
     cmd = 'afni -no_detach -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"'
 
     res = misc.run_x_prog(cmd)
     assert "Fatal Signal 11" not in res
     assert "FATAL ERROR" not in res
+
+
+@pytest.mark.skipif(
+    "AFNI_PLUGIN_PATH" in os.environ or "AFNI_PLUGINPATH" in os.environ,
+    reason="plugin search behavior is overwritten",
+)
+def test_afni_gui_plugin_search():
+    afni_path = Path(shutil.which("afni"))
+    exe_dir = afni_path.parent.resolve()
+    rel_libdir = exe_dir / "../lib"
+    cmd = 'afni -no_detach -com "QUIT"'
+
+    res = misc.run_x_prog(cmd)
+    assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in res
+
+
+def test_afni_gui_plugin_search_with_env_var():
+    afni_path = Path(shutil.which("afni"))
+    cmd = 'afni -no_detach -com "QUIT"'
+    # Run AFNI with AFNI_PLUGINPATH defined
+    env_with_pluginpath = os.environ.copy()
+    env_with_pluginpath["AFNI_PLUGINPATH"] = "/tmp"
+    res = misc.run_x_prog(cmd, run_kwargs={"env": env_with_pluginpath})
+    assert f"Path(s) to be searched for plugins: \n/tmp" in res
