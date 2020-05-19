@@ -305,7 +305,6 @@ ENTRY("PLUG_get_many_plugins") ;
    if( epath == NULL )
      epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
-#ifdef WHATS_MY_EXEPATH
    if( epath == NULL ) {
       exe_path = (char *)malloc(sizeof(char)*size);
       if( whats_my_exepath(exe_path, size) ) {
@@ -328,12 +327,6 @@ ENTRY("PLUG_get_many_plugins") ;
       strcat(strcat(epath," "),lib_dir) ;
       free(lib_dir) ;
    }
-#else
-   /* fall back to previous PATH search */
-   if( epath == NULL ){
-      epath = getenv("PATH") ;
-   }
-#endif
 
    if( epath == NULL && pname != NULL && strchr(pname,'/') != NULL ){ /* 29 Mar 2001 */
      char *ep = strdup(pname) ;                                       /* get path    */
