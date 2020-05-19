@@ -362,9 +362,8 @@ ENTRY("PLUG_get_many_plugins") ;
    for( ii=0 ; ii < ll ; ii++ )
      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
-if(PRINT_TRACING)
-{ STATUS("paths to be searched for plugins follows:") ;
-  printf("Path: %s\n",elocal) ; fflush(stdout) ; }
+  printf("\nPath(s) to be searched for plugins: \n%s\n",elocal) ;
+  fflush(stdout) ;
 
    /*----- extract blank delimited strings;
            use as directory names to get libraries -----*/
