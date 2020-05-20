@@ -1099,6 +1099,7 @@ ENTRY("THD_mask_erode") ;
 
     Pass NN to specify NN=1,2,3, again to match THD_mask_dilate.
     The nerode count will be restricted by the given NN level.
+                                                         19 May 2020 [rickr]
 
     This allows for symmetric dilate/erode operations.
     It is symmetric with THD_mask_dilate.                 7 May 2012 [rickr]

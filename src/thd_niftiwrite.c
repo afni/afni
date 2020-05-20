@@ -119,6 +119,8 @@ ENTRY("THD_write_nifti") ;
   /* if we made a float copy, nuke it */
   if( dset != din ) THD_delete_3dim_dataset(dset, True) ;
 
+  free(fname); /* free copied name */
+
   RETURN(1) ;
 }
 
