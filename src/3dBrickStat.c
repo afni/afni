@@ -744,8 +744,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
      printf("%-13d", npts);
 
    if(Volflag)
-     printf("%-13.6f", dset->daxes->xxdel *  dset->daxes->yydel * 
-          dset->daxes->zzdel * npts);
+     printf("%-13.6f", DSET_VOXVOL(dset) * npts);
 
 
    if (Sumflag) 
