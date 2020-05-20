@@ -40,9 +40,12 @@ static char * g_history[] =
   "       to preserve any oblique matrix\n"
   "0.6  11 Dec 2017: fix result-dilation bug, noted by mwlee on MB\n",
   "     - if pad but not convert, inset == dnew, so do not delete\n"
+  "0.7  20 May 2020:\n",
+  "     - apply updated THD_mask_dilate\n"
+  "     - fix memory loss and lost dset history\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.6, 11 December 2017";
+static char g_version[] = "3dmask_tool version 0.7, 20 May 2020";
 
 #include "mrilib.h"
 
@@ -51,6 +54,7 @@ typedef struct
 { /* options */
    int_list            IND;       /* dilations/erodes to apply to inputs    */
    int_list            RESD;      /* dilations/erodes to apply to result    */
+   THD_3dim_dataset  * dfirst;    /* first input dataset - store until end  */
    THD_3dim_dataset ** dsets;     /* input and possibly modified datasets   */
    char             ** inputs;    /* list of input dataset names (in argv)  */
    char              * prefix;    /* prefix for output dataset              */
@@ -160,8 +164,9 @@ int main( int argc, char *argv[] )
    /* create output */
    if( write_result(params, countset, argc, argv) ) RETURN(1);
 
-   /* clean up a little memory */
+   /* clean up a little memory (first input was saved until the very end) */
    DSET_delete(countset);
+   DSET_delete(params->dfirst);
    free(params->dsets);
 
    RETURN(0);
@@ -175,7 +180,7 @@ int main( int argc, char *argv[] )
  * 3. dilate (using binary mask)
  * 4. if not converting, modify original data
  * 5. undo any zeropad
- * 6. return new dataset
+ * 6. return newly created dataset
  * 
  * dilations are passed as a list of +/- integers (- means erode)
  *
@@ -410,7 +415,7 @@ int limit_to_frac(THD_3dim_dataset * cset, int limit, int count, int verb)
  */
 int process_input_dsets(param_t * params)
 {
-   THD_3dim_dataset * dset, * dfirst=NULL;
+   THD_3dim_dataset * dset;
    int                iset, nxyz;
 
    ENTRY("process_input_dsets");
@@ -448,23 +453,26 @@ int process_input_dsets(param_t * params)
       if( params->verb>1 ) INFO_message("loaded dset %s, with %d volumes",
                                         DSET_PREFIX(dset), DSET_NVALS(dset));
 
-      if( nxyz == 0 ) { /* make an empty copy of the first dataset */
+      /* if first input, note dimension and store for program duration */
+      if( iset == 0 ) {
+         params->dfirst = dset;
          nxyz = DSET_NVOX(dset);
-         dfirst = EDIT_empty_copy(dset);
       }
 
       /* check for consistency in voxels and grid */
       if( DSET_NVOX(dset) != nxyz ) ERROR_exit("nvoxel mis-match");
-      if( ! EQUIV_GRIDS(dset, dfirst) )
+      if( ! EQUIV_GRIDS(dset, params->dfirst) )
          WARNING_message("grid from dset %s does not match that of dset %s",
-                         DSET_PREFIX(dset), DSET_PREFIX(dfirst));
+                         DSET_PREFIX(dset), DSET_PREFIX(params->dfirst));
 
       /* apply dilations to all volumes, returning bytemask datasets */
       params->dsets[iset] = apply_dilations(dset, &params->IND,1,params->verb);
+
+      /* delete anything but the first input */
+      if( iset > 0 ) DSET_delete(dset);
+
       if( ! params->dsets[iset] ) RETURN(1);
    } 
-
-   DSET_delete(dfirst); /* and nuke */
 
    RETURN(0);
 }
@@ -602,6 +610,8 @@ int write_result(param_t * params, THD_3dim_dataset * oset,
       break;
    }
 
+   /* track history (which was also applied when creating the dsets array */
+   tross_Copy_History( params->dfirst, oset );
    tross_Make_History( "3dmask_tool", argc, argv, oset );
 
    DSET_write(oset);
