@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
+   "fix history and memory loss",
+   NULL
+ } ,
+
+ { 20, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update THD_mask_erode_sym() akin to take NN param",
+   "This matches the dglen update to THD_mask_dilate()."
+ } ,
+
  { 11, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update web links to help pages in uber*.py",
    "Update uber_align_test.py, uber_skel.py, uber_subj.py and uber_ttest.py."
