@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_NEW_OPT,
+   "add options -NN1, -NN2 and -NN3",
+   "Also, fix tiny origin shift when large zero-padding is applied."
+ } ,
+
  { 20, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
    "fix history and memory loss",
    NULL
