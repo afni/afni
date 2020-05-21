@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, May 17, 2020
+Version 0.0.4, May 21, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -592,9 +592,11 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
-   if(lop$bounds[1] > lop$bounds[2]) 
-      errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1], 
-         ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   if(!(is.na(lop$bounds))) {
+      if(lop$bounds[1] > lop$bounds[2]) 
+         errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1], 
+            ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   }
 
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == lop$IF)  # assuming the input file is the last column here!
