@@ -72,19 +72,31 @@ class TrackedContainer(object):
             self.container.remove(force=True)
 
 
+def get_container(docker_client,image_name):
+    container = TrackedContainer(
+        docker_client,
+        image_name,
+        detach=True,
+    )
+    return container
+
 @pytest.fixture(scope='function')
 def container(docker_client, image_name):
     """Notebook container with initial configuration appropriate for testing
     (e.g., HTTP port exposed to the host for HTTP calls).
     Yields the container instance and kills it when the caller is done with it.
     """
-    container = TrackedContainer(
-        docker_client,
-        image_name,
-        detach=True,
-        ports={
-            '8888/tcp': 8888
-        }
-    )
+    container = get_container(docker_client,image_name)
     yield container
     container.remove()
+
+@pytest.fixture(scope='function')
+def named_container(docker_client, request):
+    """
+    Return a container whose image name is defined at the time of test execution
+    """
+    container = get_container(docker_client,request.param)
+    yield container
+    container.remove()
+
+
