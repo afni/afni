@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.1, May 17, 2020
+Version 2.0.1, May 21, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -792,9 +792,11 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
-   if(lop$bounds[1] > lop$bounds[2])
-      errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
-         ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   if(!(is.na(lop$bounds))) {
+      if(lop$bounds[1] > lop$bounds[2])
+         errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
+            ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   }
 
    # when user asks for outputting random effects
    if(!is.na(lop$RE)) {
