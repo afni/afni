@@ -481,9 +481,11 @@ process.ICC.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
-   if(lop$bounds[1] > lop$bounds[2]) 
-      errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1], 
-         ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   if(!(is.na(lop$bounds))) {
+      if(lop$bounds[1] > lop$bounds[2])
+         errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
+            ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   }
 
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == lop$IF)  # assuming the input file is the last column here!
