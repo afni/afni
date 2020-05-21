@@ -24,11 +24,14 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 #   - rename some cols in output
 #   - add more header info: any lost ROIs
 #
-VERSION   = "1.4" ; VER_DATE  = "May 21, 2020"
+#VERSION   = "1.4" ; VER_DATE  = "May 21, 2020"
 # + adjust 3dROIstats call in afni_3droistats, to account for ROIs
 #   having both long and short labels: use env var in cmd line to go
 #   for "names" (i.e., the short version) only
 # 
+VERSION   = "1.5" ; VER_DATE  = "May 21, 2020"
+# + require ${modesmooth} as input arg (-> modesmoo)
+#
 # =================================================================
 
 import sys       as sys
@@ -36,7 +39,7 @@ from   afnipy    import afni_util as au
 from   afnipy    import afni_base as BASE
 
 THIS_PROG = 'adjunct_aw_tableize_roi_info.py'
-NUM_ARGS  = 5
+NUM_ARGS  = 6
 EPS_FLT   = 10.**-6
 
 help_string = '''
@@ -56,6 +59,7 @@ Takes >= %d arguments:
    4) a reference atlas (i.e., same one but unwarped), with (same) 
       subbrick selector, if necessary.
    5) a mask for the reference atlas (same grid)
+   6) a "modesmooth" value, from modal smoothing used after warping
 
 The output file name will be simple text, containing ROI count/size
 information.
@@ -83,6 +87,7 @@ def get_arg(aa):
         mask_inp = aa[2]         # warped input file
         atl_ref  = aa[3]         # reference input file
         mask_ref = aa[4]         # warped input file
+        modesmoo = aa[5]         # ${mode_smooth} value in @animal_warper
 
         print("++ Output file : {}".format(ofile))
         #print("++ atlas input :", atl_inp)
@@ -90,7 +95,7 @@ def get_arg(aa):
         #print("++ atlas ref   :", atl_ref)
         #print("++ mask ref    :", mask_ref)
 
-    return ofile, atl_inp, mask_inp, atl_ref, mask_ref
+    return ofile, atl_inp, mask_inp, atl_ref, mask_ref, modesmoo
 
 # -------------------------------------------------------------
 
@@ -467,7 +472,8 @@ if __name__=="__main__":
     # --------------------- get input ------------------------
 
     print("++ Command line:\n   ", ' '.join(sys.argv))
-    (ofile, atl_inp, mask_inp, atl_ref, mask_ref) = get_arg(sys.argv[1:])
+    ( ofile, atl_inp, mask_inp, atl_ref, mask_ref, \
+      modesmoo ) = get_arg(sys.argv[1:])
 
     # check if inp atl+mask are on same grid;  check same for ref 
     inp_samegrid = afni_3dinfo_same_grid( atl_inp, mask_inp )
@@ -549,6 +555,7 @@ if __name__=="__main__":
     hh.append( '  Warped mask dset       : {}'.format(mask_inp) )
     hh.append( 'Unwarped atlas dset      : {}'.format(atl_ref) )
     hh.append( 'Unwarped mask dset       : {}'.format(mask_ref) )
+    hh.append( ' Mode_smooth size (nvox) : {}'.format(modesmoo) )
 
     hh.append( '  Warped vox size (mm)   : {}'.format(inp_voxdims_str)) 
     hh.append( 'Unwarped vox size (mm)   : {}'.format(ref_voxdims_str))

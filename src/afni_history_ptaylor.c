@@ -67,7 +67,17 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-{ 21, May , 2020 , PT , "adjunct_aw_tableize_roi_info" , MAJOR , TYPE_NEW_PROG,
+{ 21, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Require mode_smooth_size as input, and include it in table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Report now reports mode_smooth_size.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May, 2020, PT , "adjunct_aw_tableize_roi_info.py" , MAJOR , TYPE_NEW_PROG,
    "Adjunct program for @animal_warper.py; build ROI report table.",
    "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
 },

@@ -171,10 +171,13 @@ set progname = @animal_warper
 #set version = "2.01" ; set date = "May 19, 2020"
 # [PT] use NSU in do_view_${surf_dir}.tcsh
 #
-set version = "2.1" ; set date = "May 19, 2020"
+#set version = "2.1" ; set date = "May 19, 2020"
 # [PT] new adjunct* functionality: create table of ROI info
 #    + done using: adjunct_aw_tableize_roi_info.py
 #      - someday, might make this program more 'standalone' with real opts
+#
+set version = "2.11" ; set date = "May 21, 2020"
+# [PT] report mode_smooth_size in report*1D file
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1906,7 +1909,8 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                 "${segm_in_orig}[${nn}]"     \
                 "${src_abbrev}_mask.nii.gz"  \
                 "${segm_dset}[${nn}]"        \
-                "${base_mask_for_reps}"
+                "${base_mask_for_reps}"      \
+                "${modesmooth}"
 
            # ------- isosurfs in native space: only for ATLAS followers
 
