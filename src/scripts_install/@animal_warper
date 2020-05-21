@@ -165,8 +165,16 @@ set progname = @animal_warper
 #set version = "1.99" ; set date = "May 18, 2020"
 # [PT] create skullstripped+unifized dset in orig space
 #
-set version = "2.0" ; set date = "May 18, 2020"
+#set version = "2.0" ; set date = "May 18, 2020"
 # [PT] final adjustments
+#
+#set version = "2.01" ; set date = "May 19, 2020"
+# [PT] use NSU in do_view_${surf_dir}.tcsh
+#
+set version = "2.1" ; set date = "May 19, 2020"
+# [PT] new adjunct* functionality: create table of ROI info
+#    + done using: adjunct_aw_tableize_roi_info.py
+#      - someday, might make this program more 'standalone' with real opts
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -718,14 +726,6 @@ else
     set nlcostoption = ""
 endif
 
-# ------------------------- setup BRAINMASK 
-
-# [BTJ: Mar 29, 2020] template mask-based brainmasking code
-if ("${brainmask}" != "") then
-   # is the dataset somewhere else or current directory
-   set brainmask = `@FindAfniDsetPath -full_path -append_file "${brainmask}"`
-endif
-
 # ------------------------- setup input SRC dset
 
 # input datasets may not be +orig
@@ -821,16 +821,28 @@ endif
 
 # ----- SHOULD ALL FOLLOWERS BE COPIED HERE AS WELL ??? 
 
-# ------------------- copy  brainmask
+# ------------------------- setup BRAINMASK 
 
-if ( "${brainmask}" != "") then
+# [BTJ: Mar 29, 2020] template mask-based brainmasking code
+if ("${brainmask}" != "") then
+   # is the dataset somewhere else or current directory
+   set brainmask = `@FindAfniDsetPath -full_path -append_file "${brainmask}"`
+
    if ( ($ok_to_exist == 1) && \
         (-f ${outdir}/`basename "$brainmask"`) ) then
       echo "++ Reusing ${outdir}/$brainmask"
    else
       3dcopy "${brainmask}" ${outdir}/
    endif
+
+   # Need to specify a mask to use for 'base' dset for reports
+   set base_mask_for_reps = "${brainmask}"
+else
+   # If no brainmask is input, then the base dset itself is applied as
+   # the mask
+   set base_mask_for_reps = "${base_dset}"
 endif
+
 
 # ------------------ check/make abbrevs (for all followers)
 
@@ -1702,7 +1714,7 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
       if (${center_out} == "native") then
         @Align_Centers                                         \
             -no_cp                                             \
-            -base ${src_dset}                               \
+            -base ${src_dset}                                  \
             -dset ${template_in_orig}                          \
             -shift_xform_inv ${srcsh_shft_inv}
       endif
@@ -1856,55 +1868,69 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
             -label_mode 1 -label_size 3
    endif
 
-   if ( ${segm_type} == "SEG" ) then
+   if ( "${segm_type}" == "SEG" ) then
         printf "%-37s : %s\n"                                  \
                 "Seg follower in ${orig_fin}"                  \
                 "${segm_in_orig}"                              \
             >> ${animal_outs}
-   else if ( ${segm_type} == "ATL" ) then
+   else if ( "${segm_type}" == "ATL" ) then
         printf "%-37s : %s\n"                                  \
                 "Atlas follower in ${orig_fin}"                \
                 "${segm_in_orig}"                              \
             >> ${animal_outs}
+   endif
 
-        # --------------- atl foll isosurfs in native space
+   # ---------------- report info on atl/seg vols --------------------
 
-        if ( $make_orig_surfaces == "1" ) then
+   if ( -f ${segm_in_orig} ) then
+      # each atl dset could have multiple subbricks, like the
+      # CHARM atlas for macaques
+      set nvi = `3dinfo    \
+                     -nvi  \
+                     ${segm_in_orig}`
 
-            # ???? need to add in OK to exist stuff..
+      foreach nn ( `seq 0 1 ${nvi}` ) 
 
-            if ( -f ${segm_in_orig} ) then
-               # each atl dset could have multiple subbricks, like the
-               # CHARM atlas for macaques
-               set nvi = `3dinfo    \
-                              -nvi  \
-                              ${segm_in_orig}`
+           set report   = report_${segm_prefix}.1D
+           set surf_dir = surfaces_${segm_prefix}
+           if ( ${nvi} > 0 ) then
+               set nnn      = `printf %02d ${nn}`
+               set surf_dir = ${surf_dir}_${nnn}
+               set report   = report_${segm_prefix}_${nnn}.1D
+           endif
 
-               foreach nn ( `seq 0 1 ${nvi}` ) 
+           # reports on sizes of ROIs *after* warping, relative to
+           # those values *before* warping
+           adjunct_aw_tableize_roi_info.py   \
+                "${report}"                  \
+                "${segm_in_orig}[${nn}]"     \
+                "${src_abbrev}_mask.nii.gz"  \
+                "${segm_dset}[${nn}]"        \
+                "${base_mask_for_reps}"
 
-                    set surf_dir = surfaces_${segm_prefix}
-                    if ( ${nvi} > 0 ) then
-                        set nnn      = `printf %02d ${nn}`
-                        set surf_dir = ${surf_dir}_${nnn}
-                    endif
+           # ------- isosurfs in native space: only for ATLAS followers
 
-                    \rm -rf   ${surf_dir}
-                    \mkdir -p ${surf_dir}
-                    cd ${surf_dir}
+           if ( ( $make_orig_surfaces == "1" ) && \
+                ( -f ${segm_in_orig} ) ) then
 
-                    IsoSurface                               \
-                        -isorois+dsets                       \
-                        -o native.gii                        \
-                        -input ../${segm_in_orig}"[$nn]"     \
-                        -noxform                             \
-                        -Tsmooth 0.01 6
+              \rm -rf   ${surf_dir}
+              \mkdir -p ${surf_dir}
 
-                    cd ..
+              cd ${surf_dir}
 
-                    printf "%-37s : %s\n"                     \
-                        "Atlas follower surfs in ${orig_fin}" \
-                        "${surf_dir}"                         \
-                        >> ${animal_outs}
+              IsoSurface                               \
+                  -isorois+dsets                       \
+                  -o native.gii                        \
+                  -input ../${segm_in_orig}"[$nn]"     \
+                  -noxform                             \
+                  -Tsmooth 0.01 6
+
+              cd ..
+
+              printf "%-37s : %s\n"                     \
+                  "Atlas follower surfs in ${orig_fin}" \
+                  "${surf_dir}"                         \
+                  >> ${animal_outs}
 
 # a script to view all surfs together
 set oscript = do_view_${surf_dir}.tcsh
@@ -1912,7 +1938,7 @@ printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
 #!/bin/tcsh
     
-    set bkgd_vol = "${src_abbrev}_ns.nii.gz"
+    set bkgd_vol = "${src_abbrev}_nsu.nii.gz"
     set surf_dir = ${surf_dir}
 
     suma                               \
@@ -1922,10 +1948,9 @@ cat <<EOF >> ${oscript}
 
 EOF
 chmod 755 ${oscript}
-                end
-            endif
-        endif
-    endif
+           endif
+      end
+   endif
 end
 
 
@@ -2368,6 +2393,31 @@ Comments ~1~
        with the name of your dataset. For NMT and D99 templates, the output
        will contain NMT or D99 instead of template
 
+Outputs ~1~
+
+For all '-atlas ..' and '-atlas_follower ..' dsets, a complete set of
+surfaces is created of the ROIs after they have been warped into the
+'-input ..' subject space.  Subdirectories named 'surface_*' are
+created for each subbrick of each atlas; there are also do_view*.tcsh
+scripts automatically generated for viewing each one.
+
+For '-atlas ..' and '-atlas_follower ..' and '-seg_follower ..' dsets,
+tables of information about the ROI sizes before and after warping are
+created; these are stored in report*.1D files (text files which can be
+viewed in a regular text editor and also used for calculations with
+AFNI programs) for each subbrick of each these dsets.  Absolute
+volumes, volume fractions, and ratios of ROI sizes are reported in the
+table; any ROIs that exist before but not after warping are also
+catalogued.
+
+For the '-base ..' dset, a surface file (*.gii) is generated for it
+after it has been warped to the '-input ..' subject space.
+
+All atlas_points and labeltables on all input dsets should be passed
+along to their warped versions, preserving those useful
+functionalities and information.
+
+
 Integrating AW with afni_proc.py ~1~
 
 Let's say that you ran this command as the following (written with
@@ -2472,6 +2522,11 @@ echo ""                                              >> ${animal_outs}
 printf "%-37s : %s\n"                 \
         "QC directory of images"      \
         "QC/"                         \
+       >> ${animal_outs}
+
+printf "%-37s : %s\n"                 \
+        "Info on atl/seg follower(s)" \
+        "report_*.1D"                 \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                 \
