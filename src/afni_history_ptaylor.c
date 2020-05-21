@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 21, May , 2020 , PT , "afni_seeds_per_space.txt" , MAJOR , TYPE_GENERAL,
+   "Keep up with change of macaque standard space naming: stereoNMT -> NMT2.",
+   "'stereoNMT' is an ex-parrot.\n"
+},
+
 { 21, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
    "Require mode_smooth_size as input, and include it in table.",
    "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
