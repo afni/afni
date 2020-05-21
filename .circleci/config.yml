@@ -68,7 +68,7 @@ commands:
           command: |
             # Fail out if docker image does not exist. Should not be pulled from dockerhub...
             set -e
-            docker image inspect afni/afni_<< parameter.build_type >> 1>/dev/null
+            docker image inspect afni/afni_<< parameters.build_type >> 1>/dev/null
 
             # Run tests in contain built during build step:
             docker run \
@@ -88,6 +88,34 @@ commands:
           name: Return permissions to test data
           command: |
             sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
+
+  check_integrity_of_containers:
+    description: "Check some of the permissions/user/PATH basics of the containers"
+    parameters:
+      image_cache_version:
+        type: string
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: install some basic helper tools
+          command: |
+            apk add --no-cache pigz python3 py3-pip
+            pip3 install docker # python docker-api
+            pip3 install pytest
+      - setup_dev_base_image
+      - restore_afni_image_cache:
+          build_type: cmake_build
+          image_cache_version: << parameters.image_cache_version >>
+      - restore_afni_image_cache:
+          build_type: make_build
+          image_cache_version: << parameters.image_cache_version >>      
+      - run:
+          name: Run pytest in .docker
+          command: |
+            cd .docker;
+            pytest
+
 
   deploy_to_dockerhub:
     description: "Push images to dockerhub"
@@ -276,7 +304,7 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Install parallel gzip and Python 3
+          name: install some basic helper tools
           command: |
             apk add --no-cache pigz python3
       - build_afni_image:
@@ -284,13 +312,25 @@ jobs:
       - save_docker_image_to_disk:
           image_name: afni_<< parameters.build_type >>
       - save_cache:
-          # Store a run specific cache for later steps... Caching is used
+          # store a run specific cache for later steps... caching is used
           # instead of saving to the workspace because there are two builds
           # and the make_build cache is quite large so it would slow down
           # workspace loading for the cmake testing step
           key: v<< parameters.image_cache_version >>-docker-<< parameters.build_type >>-{{ .Revision }}-{{ epoch }}
           paths:
             - /tmp/cache/afni_<< parameters.build_type >>_docker.tar.gz
+
+
+  containers_check:
+    parameters:
+      image_cache_version:
+        type: string
+    docker:
+      - image: docker:18.01.0-ce-git
+    working_directory: /tmp/src/afni
+    steps:
+      - check_integrity_of_containers:
+          image_cache_version: << parameters.image_cache_version >>
 
   test:
     parameters:
@@ -320,6 +360,7 @@ jobs:
       #         pyenv local 3.6.3
       - run_afni_tests:
           build_type: << parameters.build_type >>
+          # Save test data as cache for subsequent runs if ideal is not already saved
       - save_cache:
           key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
           paths: /tmp/src/afni/tests/afni_ci_test_data
@@ -398,6 +439,15 @@ workflows:
               test_data_cache_version: ["5"]
           requires:
             - << matrix.build_type >>
+      - containers_check:
+          name: check containers for issues with users and permissions and environments
+          matrix:
+            parameters:
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+          requires:
+            - make_build
+            - cmake_build
       - deploy:
           name: deploy_<< matrix.build_type >>
           matrix:
@@ -408,6 +458,7 @@ workflows:
           requires:
             - test_<< matrix.build_type >>
             - macos_build
+            - containers_check
           filters:
             branches:
               ignore: /.*/
