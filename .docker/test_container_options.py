@@ -86,11 +86,11 @@ def test_sudo_path(container):
         tty=True,
         user='root',
         environment=['GRANT_SUDO=yes'],
-        command=['start.sh', 'sudo', 'which', 'ipython3']
+        command=['start.sh', 'sudo', 'which', 'apt-get']
     )
     rv = c.wait(timeout=10)
     assert rv == 0 or rv["StatusCode"] == 0
-    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith('/usr/bin/ipython3')
+    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith('/usr/local/bin/apt-get')
 
 
 def test_sudo_path_without_grant(container):
@@ -98,11 +98,11 @@ def test_sudo_path_without_grant(container):
     c = container.run(
         tty=True,
         user='root',
-        command=['start.sh', 'which', 'ipython3']
+        command=['start.sh', 'which', 'apt-get']
     )
     rv = c.wait(timeout=10)
     assert rv == 0 or rv["StatusCode"] == 0
-    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith('/usr/bin/ipython3')
+    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith('/usr/local/bin/apt-get')
 
 
 def test_group_add(container, tmpdir):
@@ -117,3 +117,43 @@ def test_group_add(container, tmpdir):
     rv = c.wait(timeout=5)
     assert rv == 0 or rv["StatusCode"] == 0
     assert 'uid=1010 gid=1010 groups=1010,100(users)' in c.logs(stdout=True).decode('utf-8')
+
+@pytest.mark.parametrize(
+    "env_tweaks",
+    (
+        ['GRANT_SUDO=yes'],
+        ['CONTAINER_UID=1010'],
+        ['CONTAINER_UID=1010','CONTAINER_GID=120','CHOWN_EXTRA=/opt','CHOWN_EXTRA_OPTS=-R'],
+    )
+)
+@pytest.mark.parametrize(
+    "program",
+    (
+       "afni",
+       "RetroTS.py",
+       "align_epi_anat.py",
+       "3dinfo",
+    ),
+)
+@pytest.mark.parametrize(
+    "named_container",
+    (
+        "afni/afni_make_build",
+        "afni/afni_cmake_build",
+    ),
+    indirect=True,
+)
+def test_various_programs_are_found(named_container,program,env_tweaks):
+    """Working containers should be able to find the installed binaries, scripts,etc"""
+    c = named_container.run(
+        tty=True,
+        user='root',
+        environment=[*env_tweaks],
+        command=['start.sh', 'which', program]
+    )
+    rv = c.wait(timeout=120)
+    assert rv == 0 or rv["StatusCode"] == 0
+    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith(program)
+
+
+
