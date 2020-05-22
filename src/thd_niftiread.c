@@ -69,7 +69,7 @@ ENTRY("THD_open_nifti") ;
    } else {
      NULLRET ;
    }
-   if( ! AFNI_yesenv("AFNI_NOREALPATH") ){        /* 21 Mar 2020 */
+   if( !AFNI_yesenv("AFNI_NOREALPATH") && !THD_is_symlink(pathnew) ){ /* 21 Mar 2020 */
      rpath = (char *)malloc(sizeof(char)*RPMAX) ;
      rp    = realpath( pathnew , rpath ) ;
      if( rp == NULL ){ free(rpath) ; NULLRET ; }
