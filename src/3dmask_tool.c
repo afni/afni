@@ -43,11 +43,11 @@ static char * g_history[] =
   "0.7  20 May 2020:\n",
   "     - apply updated THD_mask_dilate\n"
   "     - fix memory loss and lost dset history\n"
-  "0.8  21 May 2020: add -NN1, -NN2 and -NN3 options\n",
+  "0.8  22 May 2020: add -NN1, -NN2 and -NN3 options\n",
   "     - fix tiny origin shift due to zeropad truncation effects\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.8, 21 May 2020";
+static char g_version[] = "3dmask_tool version 0.8, 22 May 2020";
 
 #include "mrilib.h"
 
@@ -249,10 +249,10 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
          if(verb>2) INFO_message("... dilating vol %d by %d\n", ivol, dsize);
          if( dsize > 0 ) {
             for( id=0; id < dsize; id++ )
-               THD_mask_dilate(nx, ny, nz, bdata, 1, 2);
+               THD_mask_dilate(nx, ny, nz, bdata, 1, NN);
          } else if( dsize < 0 ) {
             for( id=0; id > dsize; id-- )
-               THD_mask_erode_sym(nx, ny, nz, bdata, 1, 2);
+               THD_mask_erode_sym(nx, ny, nz, bdata, 1, NN);
          }
       }
 
@@ -460,8 +460,8 @@ int process_input_dsets(param_t * params)
                                                sizeof(THD_3dim_dataset*));
    if( !params->dsets ) ERROR_exit("failed to allocate dset pointers");
 
-   if( params->verb ) INFO_message("processing %d input datasets...",
-                                   params->ndsets);
+   if( params->verb ) INFO_message("processing %d input dataset(s), NN=%d...",
+                                   params->ndsets, params->NN);
    
    /* warn user of dilations */
    if(params->verb && params->ndsets) {
