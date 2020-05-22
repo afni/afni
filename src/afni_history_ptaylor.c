@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, May , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Change this prog to do all work in a workdir that can be cleaned.",
+   "Should not have any effect on the usage or outputs.\n"
+},
 
 { 21, May , 2020 , PT , "afni_seeds_per_space.txt" , MAJOR , TYPE_GENERAL,
    "Keep up with change of macaque standard space naming: stereoNMT -> NMT2.",
