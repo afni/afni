@@ -43,9 +43,11 @@ static char * g_history[] =
   "0.7  20 May 2020:\n",
   "     - apply updated THD_mask_dilate\n"
   "     - fix memory loss and lost dset history\n"
+  "0.8  21 May 2020: add -NN1, -NN2 and -NN3 options\n",
+  "     - fix tiny origin shift due to zeropad truncation effects\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.7, 20 May 2020";
+static char g_version[] = "3dmask_tool version 0.8, 21 May 2020";
 
 #include "mrilib.h"
 
@@ -63,6 +65,7 @@ typedef struct
    int                 fill;      /* flag to fill holes in mask             */
    char              * fill_dirs; /* directions to apply hole filling over  */
    int                 datum;     /* output data type                       */
+   int                 NN;        /* NN 1,2 or 3                            */
    int                 verb;      /* verbose level                          */
 
    /* other parameters */
@@ -74,7 +77,8 @@ typedef struct
 param_t g_params;
 
 /*--------------- prototypes ---------------*/
-THD_3dim_dataset * apply_dilations (THD_3dim_dataset *, int_list *, int, int);
+THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
+                                   int convert, int NN, int verb);
 int apply_affected_voxels(void *, void *, int, byte *, int);
 int count_affected_voxels(void *, int, byte *, int, int);
 int convert_to_bytemask (THD_3dim_dataset * dset, int verb);
@@ -151,7 +155,8 @@ int main( int argc, char *argv[] )
    /* maybe apply dilations to output */
    if( params->RESD.num > 0 ) {
       THD_3dim_dataset * crm = countset;
-      countset = apply_dilations(countset, &params->RESD, 0, params->verb);
+      countset = apply_dilations(countset, &params->RESD, 0, 
+                                 params->NN, params->verb);
       DSET_delete(crm);
  
       if( !countset ) RETURN(1);
@@ -190,7 +195,7 @@ int main( int argc, char *argv[] )
  *       - foreach dilation: dilate or erode, as specified by sign
  */
 THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
-                                   int convert, int verb)
+                                   int convert, int NN, int verb)
 {
    THD_3dim_dataset * dnew = NULL, * inset = NULL;
    byte             * bdata = NULL;
@@ -200,6 +205,7 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
    ENTRY("apply_dilations");
 
    if( !dset || !D ) ERROR_exit("missing inputs to apply_dilations");
+   if( NN<1 || NN>3 ) ERROR_exit("illegal NN=%d", NN);
 
    /* note and apply any needed zeropadding */
    pad = needed_padding(D);
@@ -272,6 +278,8 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 
    /* undo any zeropadding (delete original and temporary datasets) */
    if( pad ) {
+      float diff, fmax = 0.0;
+
       /* if pad and not convert, dnew == inset    11 Dec 2017 [rickr] */
       if( dnew != inset ) DSET_delete(inset);
       inset = THD_zeropad(dnew, -pad, -pad, -pad, -pad, -pad, -pad, "pad", 0);
@@ -280,6 +288,26 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 
       /* copy original dicom_real, in case padding nuked oblique matrix */
       dnew->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom_real;
+
+      /* also, zero-padding can mess up the cardinal origin, because the
+       * corner voxel coords must be computed, so fix them if they differ */
+      if( DSET_XORG(dnew) != DSET_XORG(dset) ) {
+         diff = fabs(DSET_XORG(dnew) - DSET_XORG(dset));
+         if( diff > fmax) fmax = diff;
+         DSET_XORG(dnew) = DSET_XORG(dset);
+      }
+      if( DSET_YORG(dnew) != DSET_YORG(dset) ) {
+         diff = fabs(DSET_YORG(dnew) - DSET_YORG(dset));
+         if( diff > fmax) fmax = diff;
+         DSET_YORG(dnew) = DSET_YORG(dset);
+      }
+      if( DSET_ZORG(dnew) != DSET_ZORG(dset) ) {
+         diff = fabs(DSET_ZORG(dnew) - DSET_ZORG(dset));
+         if( diff > fmax) fmax = diff;
+         DSET_ZORG(dnew) = DSET_ZORG(dset);
+      }
+      if( diff > 0.0f && verb > 1 )
+         fprintf(stderr,"** fixing padded origin by max diff %f\n", diff);
    }
 
    RETURN(dnew);
@@ -466,7 +494,8 @@ int process_input_dsets(param_t * params)
                          DSET_PREFIX(dset), DSET_PREFIX(params->dfirst));
 
       /* apply dilations to all volumes, returning bytemask datasets */
-      params->dsets[iset] = apply_dilations(dset, &params->IND,1,params->verb);
+      params->dsets[iset] = apply_dilations(dset, &params->IND,1,
+                                            params->NN, params->verb);
 
       /* delete anything but the first input */
       if( iset > 0 ) DSET_delete(dset);
@@ -831,6 +860,21 @@ int show_help(void)
    "\n"
    "        An input dataset is allowed to have multiple sub-bricks.\n"
    "\n"
+   "    -NN1            : specify NN connection level: 1, 2 or 3\n"
+   "    -NN2            : specify NN connection level: 1, 2 or 3\n"
+   "    -NN3            : specify NN connection level: 1, 2 or 3\n"
+   "\n"
+   "            e.g. -NN1\n"
+   "            default: -NN2\n"
+   "\n"
+   "        Use this option to specify the nearest neighbor level, one of\n"
+   "        1, 2 or 3.  This defines which voxels are neighbors when\n"
+   "        dilating or eroding.  The default is NN2.\n"
+   "\n"
+   "           NN1  : face neighbors         (6   first  neighbors)\n"
+   "           NN2  : face or edge neighbors (+12 second neighbors)\n"
+   "           NN3  : face, edge or diagonal (+8  third  neighbors (27-1))\n"
+   "\n"
    "    -prefix PREFIX          : specify a prefix for the output dataset\n"
    "\n"
    "            e.g. -prefix intersect_mask\n"
@@ -879,6 +923,7 @@ int process_opts(param_t * params, int argc, char * argv[] )
 
    params->frac = -1.0;
    params->datum = MRI_byte;
+   params->NN = 2;   /* default to NN2 */
    params->verb = 1;
    params->ndsets = 0;
 
@@ -1003,6 +1048,15 @@ int process_opts(param_t * params, int argc, char * argv[] )
          if( params->ndsets == 0 ) ERROR_exit("need datasets after '-inputs'");
 
          /* already incremented: ac++; */  continue;
+      }
+
+      else if( strncmp(argv[ac],"-NN", 3) == 0 ) {
+         /* check that it is -NN1, -NN2 or -NN3 */
+         params->NN = argv[ac][3] - '0';
+         if( params->NN < 1 || params->NN > 3 )
+            ERROR_exit("bad option %s, must be -NN1, -NN2 or -NN3", argv[ac]);
+
+         ac++; continue;
       }
 
       else if( strcmp(argv[ac],"-prefix") == 0 ) {

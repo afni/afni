@@ -38,8 +38,11 @@
 #set version   = "1.2";  set rev_dat   = "Feb 22, 2020"
 #   + [PT] temp file prefix now contains a random string
 #
-set version   = "1.21";  set rev_dat   = "March 10, 2020"
+#set version   = "1.21";  set rev_dat   = "March 10, 2020"
 #   + [PT] add in -ulay_range as opt
+#
+set version   = "1.3";  set rev_dat   = "May 22, 2020"
+#   + [PT] add ${wdir} to work in -- easier to use/clean
 #
 # ----------------------------------------------------------------
 
@@ -66,11 +69,12 @@ endif
 set ulay    = ""
 set olay    = ""
 
-set odir           = "./QC"
+set odir           = "./QC_edgy"
 set opref          = "IMG_${tpname}"
 
 set pppp           = "`3dnewid -fun11`"
-set tpref          = "__eac_tmp_${pppp}"
+set wdir_name      = "__workdir_EAC_${pppp}"
+set tpref          = "eac"
 set olayE          = ${tpref}_olayE.nii.gz
 
 set Nx             = 7                   # num of mont wins, b/c Ny=1
@@ -196,13 +200,13 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
-if ( "$ulay" == "" ) then
-    echo "** ERROR: missing motion censor file! Use '-ulay ..'"
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: missing ulay file! Use '-ulay ..'"
     goto BAD_EXIT
 endif
 
-if ( "$olay" == "" ) then
-    echo "** ERROR: missing motion censor file! Use '-olay ..'"
+if ( "${olay}" == "" ) then
+    echo "** ERROR: missing olay file! Use '-olay ..'"
     goto BAD_EXIT
 endif
 
@@ -210,111 +214,95 @@ endif
  
 # check output directory, use input one if nothing given
 
-if ( ! -e $odir ) then
-    echo "++ Making new output directory: $odir"
-    \mkdir -p $odir
-endif
+\mkdir -p ${odir}
 
-if ( 0 ) then # !!! off
-# make the working directory
-if ( ! -e $odir/$wdir ) then
-    echo "++ Making working directory: $odir/$wdir"
-    \mkdir -p $odir/$wdir
-else
-    echo "+* WARNING: Somehow found a premade working directory (?):"
-    echo "      $odir/$wdir"
-endif
-endif
+# place wdir in the odir
+set wdir = "${odir}/${wdir_name}"
+
+\mkdir -p ${wdir}
 
 # =========================== Actual Plots ==============================
 
-\mkdir -p $odir
+# cp relevant dsets to ${wdir}, and do most of work there
 
 set idx  = 0
 
-set uin  = "$ulay"
+# copy ulay
+set uin  = "${ulay}"
 set uout = "${tpref}_${idx}_cp.nii"
 3dcalc                                      \
-    -a "$uin"                               \
-    -expr 'a'                               \
-    -prefix "$uout"
+    -a      "${uin}"                        \
+    -expr   'a'                             \
+    -prefix "${wdir}/${uout}"
 @ idx += 1
 
-set uin  = "$uout"
+cd ${wdir}
+
+# sharpen ulay
+set uin  = "${uout}"
 set uout = "${tpref}_${idx}_ulay_shrp.nii"
 3dSharpen \
     -prefix "${uout}"                       \
-    -phi 0.6                                \
-    -input "${uin}"
+    -phi    0.6                             \
+    -input  "${uin}"
 @ idx += 1
 
-set fin  = "$olay"
+cd -
+
+# process the olay
+
+set fin  = "${olay}"
 set fout = "${tpref}_${idx}_res.nii"
 3dAllineate \
-    -input  "$fin"            \
-    -master "$ulay"           \
-    -prefix "$fout"           \
+    -input  "${fin}"          \
+    -master "${wdir}/${uout}" \
+    -prefix "${wdir}/${fout}" \
     -1Dparam_apply IDENTITY   \
-    -final cubic
+    -final         cubic
 @ idx += 1
 
-set mout = ${tpref}_${idx}_mask.nii
+cd ${wdir} 
+
+set mout = "${tpref}_${idx}_mask.nii"
 3dAutomask                             \
     -prefix ${mout}                    \
-    "$fout"
+    "${fout}"
 @ idx += 1
 
-set fin  = "$fout"
+set fin  = "${fout}"
 set fout = "${tpref}_${idx}_mfilt.nii"
 3dMedianFilter                       \
-    -irad 1.01                       \
-    -iter 1                          \
-    -prefix "$fout"                  \
-    "$fin"
+    -irad    1.01                    \
+    -iter    1                       \
+    -prefix "${fout}"                \
+    "${fin}"
 @ idx += 1
 
-set fin  = "$fout"
+set fin  = "${fout}"
 set fout = "${tpref}_${idx}_edgy.nii"
-3dedge3 -overwrite -prefix "${fout}" -input "${fin}"
+3dedge3                     \
+    -overwrite              \
+    -prefix "${fout}"       \
+    -input  "${fin}"
 @ idx += 1
 
 set fin  = "$fout"
 set fout = "${tpref}_${idx}_edge_mskd.nii"
-3dcalc -a $mout -b $fin -expr 'a*b' -prefix "${fout}" 
+3dcalc                                 \
+    -a      "${mout}"                  \
+    -b      "${fin}"                   \
+    -expr   'a*b'                      \
+    -prefix "${fout}" 
 @ idx += 1
 
-set vvv  = `3dBrickStat -non-zero -percentile 1 1 1 ${fout}`
-set ethr = $vvv[2]
+set vvv  = `3dBrickStat                \
+                -non-zero              \
+                -percentile 1 1 1      \
+                ${fout}`
+set ethr = ${vvv[2]}
 
-# Like snapshot volreg
-## set opacity = 9, because one can't really see under the lines
-## usefully, anyways
-# Ulay isn't so dark to see more contrast in stuff
+# take image
 
-if ( 0 ) then
-# one set
-@chauffeur_afni                             \
-    -ulay  "${uout}"                        \
-    "${refbox_add[1]}"  "$refbox_add[2]"    \
-    -olay  "${fout}"                        \
-    -ulay_range "${umin}" "${umax}"         \
-    -func_range_perc_nz 33                  \
-    -cbar "Reds_and_Blues_Inv"              \
-    -set_subbricks 0 0 0                    \
-    -olay_alpha Yes                         \
-    -olay_boxed Yes                         \
-    -thr_olay $ethr                         \
-    -opacity 9                              \
-    -prefix   "$odir/${opref}"              \
-    -montx $Nx -monty 1                     \
-    -montgap $mgap -montcolor $mcolor       \
-    -save_ftype JPEG                        \
-    -set_xhairs OFF                         \
-    -label_mode 1 -label_size 3             \
-    $allclean
-endif
-
-# other type
 @chauffeur_afni                             \
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
@@ -327,7 +315,7 @@ endif
     -olay_boxed No                          \
     -thr_olay $ethr                         \
     -opacity 9                              \
-    -prefix   "$odir/${opref}"              \
+    -prefix   "../${opref}"                 \
     -montx $Nx -monty 1                     \
     -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
@@ -339,11 +327,15 @@ endif
 # ---------------------------------------------------------------------
 
 if ( $DO_CLEAN == 1 ) then
-    echo "\n+* Removing temporary files '${tpref}*'\n"
-    \rm ${tpref}*
+    echo "\n+* Removing temporary workdir '${wdir}*'\n"
+    # in working directory at present, so just go up and remove it
+    cd ..
+    \rm -rf ${wdir_name}
 else
-    echo "\n+* NOT removing temporary files '${tpref}*'\n"
+    echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
+
+cd ${here}
 
 echo ""
 echo "++ DONE! Image output:"

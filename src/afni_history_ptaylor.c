@@ -66,13 +66,43 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, May , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Change this prog to do all work in a workdir that can be cleaned.",
+   "Should not have any effect on the usage or outputs.\n"
+},
+
+{ 21, May , 2020 , PT , "afni_seeds_per_space.txt" , MAJOR , TYPE_GENERAL,
+   "Keep up with change of macaque standard space naming: stereoNMT -> NMT2.",
+   "'stereoNMT' is an ex-parrot.\n"
+},
+
+{ 21, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Require mode_smooth_size as input, and include it in table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Report now reports mode_smooth_size.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May, 2020, PT , "adjunct_aw_tableize_roi_info.py" , MAJOR , TYPE_NEW_PROG,
+   "Adjunct program for @animal_warper.py; build ROI report table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Add reports of warped and unwarped ROIs, via adjunct_aw_tableize*.py.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
 { 18, May , 2020 , PT , "afni_seeds_per_space.txt" , MINOR , TYPE_GENERAL,
    "Updated APQC seed locations for stereoNMT space.",
    "More centralized now in GM and in specific ROIs; aud away from vessel.\n"
 },
 
 { 18, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
-   "Large number of under-the-hood changes, as well as new opts .",
+   "Large number of under-the-hood changes, as well as new opts.",
    "More general handling of followers and choosing file abbrevs.\n"
 },
 

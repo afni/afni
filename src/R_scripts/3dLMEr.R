@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, May 21, 2020
+Version 0.0.4, May 22, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -303,7 +303,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the LME context the simplest model is \"1+(1|Subj1)+(1|Subj2)\" in",
+   "         In the LME context the simplest model is \"1+(1|Subj)\" in",
    "         which the random effect from each of the two subjects in a pair is",
    "         symmetrically incorporated in the model. Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
@@ -498,8 +498,6 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              mask   = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
 	     model  = lop$model  <- ops[[i]],
-             Subj1  = lop$Subj1  <- ops[[i]],
-	     Subj2  = lop$Subj2  <- ops[[i]],
 	     IF     = lop$IF     <- ops[[i]],
 	     #num_glt   = lop$num_glt   <- ops[[i]],
 	     gltCode   = lop$gltCode   <- ops[[i]],
