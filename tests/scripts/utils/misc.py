@@ -53,6 +53,14 @@ def try_to_import_afni_module(mod):
     Raises:
         EnvironmentError: If AFNI is not installed this error is raised.
     """
+    if mod != "1d_tool":
+        raise ImportError(
+            """This functionality is removed. If the afnipy package is
+                      not installed into the current python interpretter and
+                      you do not wish to do this you can instead set PYTHONPATH
+                      to AFNI's installation directory."""
+        )
+
     # For now the only place checked is the parent directory of a python executable from afni:
     executable = shutil.which("align_epi_anat.py")
     if not executable:
