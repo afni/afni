@@ -14,15 +14,15 @@ COPY . $AFNI_ROOT/
 # manageable COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
 
 ARG AFNI_WITH_COVERAGE="0"
-ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
+ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64_glw_local_shared
 ARG KEEP_BUILD_DIR="0"
 RUN cd $AFNI_ROOT/src \
-    && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
+    && make -f  other_builds/Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
     && tar -xzf afni_src.tgz -C $AFNI_ROOT/../build --strip-components=1 \
     && rm afni_src.tgz \
     # copy and possibly modify makefile
     && cd $AFNI_ROOT/../build \
-    && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
+    && cp other_builds/Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     # clean and move source code to build directory
     && make cleanest \
     # Add coverage to build
