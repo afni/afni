@@ -15,7 +15,7 @@
 
 #include "mcw_graf.h"
 #include "parser.h"
-
+#include "whats_my_exepath.h"
 /*========================================================================*/
 /*==== Compile this only if plugins are properly enabled in machdep.h ====*/
 
