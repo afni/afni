@@ -1790,7 +1790,7 @@ afni_version.o:afni_version.c
 
 afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a $(EXLIBS) libjpeg.a libXmHTML.a coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
-	$(CC)  -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
+	$(CC) -DWHATS_MY_EXEPATH -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS_X11) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -2223,7 +2223,7 @@ afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h
 afni_fimmer.o:afni_graph.h afni.h machdep.h
 afni_plugin.o:afni_plugin.h 3ddata.h xutil.h afni.h bbox.h afni_warp.h \
               machdep.h display.h imseq.h
-	$(CC) $(INFLAGS) -c afni_plugin.c
+	$(CC) $(INFLAGS) -DWHATS_MY_EXEPATH -c afni_plugin.c
 
 afni_plugout.o:afni_plugin.h afni_plugout.h machdep.h
 afni_setup.o:afni.h afni_setup.h pbar.h

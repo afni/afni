@@ -9,4 +9,5 @@ target_include_directories(
 if(APPLE)
 target_compile_definitions(whats_my_exepath PRIVATE DARWIN)
 endif()
+target_compile_definitions(whats_my_exepath INTERFACE WHATS_MY_EXEPATH)
 
