@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.1, May 21, 2020
+Version 2.0.1, May 23, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -557,7 +557,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
       lop$ranEff <- NA
       lop$qVars  <- NA   
-      lop$bounds <- NA
+      lop$bounds <- NULL
       lop$vVars  <- NA
       lop$vQV    <- NA
       lop$qVarCenters <- NA
@@ -792,7 +792,7 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
-   if(!(is.na(lop$bounds))) {
+   if(!(is.null(lop$bounds))) {
       if(lop$bounds[1] > lop$bounds[2])
          errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
             ' should be smaller than the upper bound ', lop$bounds[2], '!'))
@@ -1505,12 +1505,6 @@ if (!is.na(lop$maskFN)) {
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
 
-# outlier removal
-if(!is.na(lop$bounds)) {
-   inData[inData > lop$bounds[2]] <- NA
-   inData[inData < lop$bounds[1]] <- NA
-}
- 
 # voxel-wise covariate files
 if(!lop$LOGIT & !is.na(lop$vQV)) {
    tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
@@ -1551,6 +1545,13 @@ if(any(!is.na(lop$vVars))) {
 # show the range of input data
 rg <- range(inData)
 cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
+# outlier removal
+if(!is.null(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
+   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
+}
 
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or the GLT coding\n')
