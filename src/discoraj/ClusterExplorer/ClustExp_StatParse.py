@@ -407,9 +407,12 @@ SubjDict = [["InputFile","Subj"]]           ## for lookup subject id
 SubjInFile = []                             ## for matching history inputs
 with open(CleanTab,'rb') as f:
     for line in f:
-        # fields = line.split()
         fields = re.split('[ \t,]',line)
         fields[-1] = fields[-1].strip()
+        ## check for incomplete number of columns
+        if len(fields) != 3:
+                cleanUp(("ERROR: "+SubjTable+" must have 3 columns. Seek help."))
+                sys.exit(1)
         subj_dset_tab.append([fields[0],fields[2]])
         SubjDict.append([fields[2],fields[0]])
         SubjInFile.append(fields[2])
@@ -491,10 +494,16 @@ afni_cmd = ("3dmerge -1thresh "+ThrVal+" -1dindex "+MeanBrik+" -1tindex "
 subprocess.check_output(afni_cmd,shell=True)
 
 ## write out cluster mask and table
-afni_cmd = ("3dclust -DAFNI_ORIENT=LPI -savemask "+OutMask+" -nosum -1thresh "+ThrVal+
-            " -1dindex "+MeanBrik+" -1tindex "+ThreshBrik+" -dxyz=1 1.01 "+
-            MinVox+" "+StatFile+" > "+ClustTable)
+afni_cmd = ("3dclust -DAFNI_ORIENT=LPI -savemask "+OutMask+" -nosum -1thresh "
+            +ThrVal+" -1dindex "+MeanBrik+" -1tindex "+ThreshBrik+
+            " -dxyz=1 1.01 "+MinVox+" "+StatFile+" > "+ClustTable)
 subprocess.check_output(afni_cmd,shell=True)
+
+## check for output mask (no clusters?)
+if not os.path.isfile(OutMask):
+    cleanUp(("ERROR: "+OutMask+" not found! It is possible no clusters "+
+            "survived thresholding. Adjust -p or -MinVox."))
+    sys.exit(1)
 
 ## add the brik label
 afni_cmd = "3drefit -relabel_all_str "+StatLab+" "+OutDSET
