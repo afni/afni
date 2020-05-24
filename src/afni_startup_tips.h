@@ -1629,6 +1629,12 @@ static char *gby[] = {
      "hypothetical. They were all, one might say, nonexistent, but each non-existed\n"
      "in an entirely different way"                                                           ,
 
+     // Morpheus
+     "Remember: all I'm offering you is the truth, nothing more."                             ,
+
+     // *Not* No. 6
+     "I am not a number-- I am a free program!"                                               ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
