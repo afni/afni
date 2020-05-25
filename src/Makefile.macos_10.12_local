@@ -55,7 +55,7 @@ INSTALLDIR = $(SYSTEM_NAME)
 EXTRA_INSTALL_FILES = /sw/lib/libXm.4.dylib                        \
                       /sw/lib/libjpeg.9.dylib                      \
                       /sw/lib/libiconv.2.dylib                     \
-                      /sw/lib/python2.7/config/libpython2.7.dyli   \
+                      /sw/lib/python2.7/config/libpython2.7.dylib  \
                       /sw/lib/gcc7/lib/libgcc_s.1.dylib            \
                       /sw/lib/libglib-2.0.0.dylib                  \
                       /sw/lib/libgsl.0.dylib                       \
