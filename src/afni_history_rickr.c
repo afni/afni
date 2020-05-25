@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, May, 2020, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "add libexpat.1.dylib to EXTRA_INSTALL_FILES",
+   "R was upgraded to 3.6 (on the 10.12 build machine), since that is the\n"
+   "current G Chen version requirement, making R_io.so work for people with\n"
+   "only 3.6.  But libexpat was upgraded too, which afni depends on, meaning\n"
+   "systems needed that new version of libexpat, or afni would not work.\n"
+   "Instead, libexpat.1.dylib is now simply included with the binaries.\n"
+   "Thanks to S Gotts and K Tran for reporting the problem."
+ } ,
+
  { 21, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_NEW_OPT,
    "add options -NN1, -NN2 and -NN3",
    "Also, fix tiny origin shift when large zero-padding is applied."
