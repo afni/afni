@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, May 22, 2020
+Version 0.0.4, May 23, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -475,7 +475,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       #lop$ranEff <- NA
       lop$model  <- NA
       lop$qVars  <- NA
-      lop$bounds <- NA
+      lop$bounds <- NULL
       #lop$vVars  <- NA
       #lop$vQV    <- NA
       lop$qVarCenters <- NA
@@ -590,7 +590,7 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
-   if(!(is.na(lop$bounds))) {
+   if(!(is.null(lop$bounds))) {
       if(lop$bounds[1] > lop$bounds[2]) 
          errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1], 
             ' should be smaller than the upper bound ', lop$bounds[2], '!'))
@@ -833,12 +833,6 @@ if(!is.na(lop$maskFN)) {
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
 
-# outlier removal
-if(!is.na(lop$bounds)) {
-   inData[inData > lop$bounds[2]] <- NA
-   inData[inData < lop$bounds[1]] <- NA
-}
-
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's
 # for t tests (and catch potential problems as well)
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
@@ -855,6 +849,13 @@ if(any(!is.na(lop$vVars))) {
 # show the range of input data
 rg <- range(inData)
 cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
+# outlier removal
+if(!is.null(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
+   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
+}
 
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
