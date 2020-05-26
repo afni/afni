@@ -461,6 +461,6 @@ workflows:
             - containers_check
           filters:
             branches:
-              ignore: /.*/
+              only: /master/
             tags:
               only: /^AFNI_.*/
