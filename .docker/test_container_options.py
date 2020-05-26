@@ -5,6 +5,12 @@ import time
 
 import pytest
 
+PROG_LIST_TO_CHECK = (
+    "afni",
+    "RetroTS.py",
+    "align_epi_anat.py",
+    "3dinfo",
+    )
 
 def test_uid_change(container):
     """Container should change the UID of the default user."""
@@ -116,7 +122,8 @@ def test_group_add(container, tmpdir):
     )
     rv = c.wait(timeout=5)
     assert rv == 0 or rv["StatusCode"] == 0
-    assert 'uid=1010 gid=1010 groups=1010,100(users)' in c.logs(stdout=True).decode('utf-8')
+    expected = 'uid=1010 gid=1010 groups=1010,100(users)'
+    assert expected in c.logs(stdout=True).decode('utf-8')
 
 @pytest.mark.parametrize(
     "env_tweaks",
@@ -127,15 +134,6 @@ def test_group_add(container, tmpdir):
     )
 )
 @pytest.mark.parametrize(
-    "program",
-    (
-       "afni",
-       "RetroTS.py",
-       "align_epi_anat.py",
-       "3dinfo",
-    ),
-)
-@pytest.mark.parametrize(
     "named_container",
     (
         "afni/afni_make_build",
@@ -143,17 +141,23 @@ def test_group_add(container, tmpdir):
     ),
     indirect=True,
 )
-def test_various_programs_are_found(named_container,program,env_tweaks):
+def test_various_programs_are_found(named_container,env_tweaks):
     """Working containers should be able to find the installed binaries, scripts,etc"""
+
     c = named_container.run(
         tty=True,
         user='root',
         environment=[*env_tweaks],
-        command=['start.sh', 'which', program]
+        detach=True
     )
-    rv = c.wait(timeout=120)
-    assert rv == 0 or rv["StatusCode"] == 0
-    assert c.logs(stdout=True).decode('utf-8').rstrip().endswith(program)
+    # rv = c.wait(timeout=120)
+    # assert rv == 0 or rv["StatusCode"] == 0
+    # Check that each program is available (on the PATH and executable)
+    for prog in PROG_LIST_TO_CHECK:
+        res = c.exec_run(["which", prog])
+        assert res.output.decode('utf-8').rstrip().endswith(prog)
+
+
 
 
 
