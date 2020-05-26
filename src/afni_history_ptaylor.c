@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, May , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Two major changes in output: ve2a and LR-flipcheck now have EPI as ulay.",
+   "Most anats are SSed, so better edges?  Thanks for suggestion, O Esteban!\n"
+},
+
+{ 26, May , 2020 , PT , "@djunct_edgy_align_check" , MAJOR , TYPE_GENERAL,
+   "Several changes to make this appropriate using EPI as ulay.",
+   "New opts, couple small bug fixes, couple tweaks.\n"
+},
+
 { 26, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
    "Now output an AFNI-style string selector of 'lost' ROI values.",
    "This might make it easier to see the diffs the volumes.\n"
