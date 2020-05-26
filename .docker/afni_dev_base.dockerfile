@@ -25,6 +25,7 @@ ENV SHELL=/bin/bash \
     CONTAINER_UID="1000" \
     CONTAINER_GID="100" \
     PYTHONUSERBASE=/opt/user_pip_packages \
+    TINI_SUBREAPER="" \
     AFNI_ROOT=/opt/afni/src
 
 ENV DESTDIR="$AFNI_ROOT/../install" \
@@ -34,7 +35,7 @@ ENV DESTDIR="$AFNI_ROOT/../install" \
 # should be set in /etc/environment (variables set by ENV do not cleanly
 # propagate to all users). Should do this for PATH again later in the dockerfile (or
 # child files)
-ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH"
+ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER"
 RUN bash -c 'for val in $PRESERVED_VARS;do \
              echo $val=${!val} >> /etc/environment ; \
              done'
