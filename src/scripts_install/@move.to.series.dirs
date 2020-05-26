@@ -93,7 +93,7 @@ echo -n "" > $slist_file
 if ( "$globform" != "" ) then
    echo -- globbing on: "'$globform'"
    # pass through stdin so we do not need to delimit a list of glob forms
-   echo "$globform" | afni_util.py -listfunc glob2stdout - \
+   echo "$globform" | afni_python_wrapper.py -listfunc glob2stdout - \
                     | xargs dicom_hinfo -tag $series_tag >> $slist_file
    set nfiles = `cat $slist_file | wc -l`
    echo -- globbing to process $nfiles files

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, May, 2020, RCR, "@move.to.series.dirs", MICRO, TYPE_MODIFY,
+   "call afni_python_wrapper.py instead of old afni_util.py",
+   NULL
+ } ,
+
  { 25, May, 2020, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
    "add libexpat.1.dylib to EXTRA_INSTALL_FILES",
    "R was upgraded to 3.6 (on the 10.12 build machine), since that is the\n"
