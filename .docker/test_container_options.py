@@ -159,5 +159,21 @@ def test_various_programs_are_found(named_container,env_tweaks):
 
 
 
+@pytest.mark.parametrize( "named_container", ( "afni/afni_make_build",
+                                              "afni/afni_cmake_build",),
+                         indirect=True,)
+def test_singularity_like_restrictions(named_container):
+    """Working containers should be able to find the installed binaries,
+    scripts,etc even with restricted access"""
+    c = named_container.run(
+        tty=True,
+        detach=True,
+        read_only=True,
+        tmpfs = {'/run':'', '/tmp':''},
+    )
+    # Check that each program is available (on the PATH and executable)
+    for prog in PROG_LIST_TO_CHECK:
+        res = c.exec_run(["which", prog])
+        assert res.output.decode('utf-8').rstrip().endswith(prog)
 
 
