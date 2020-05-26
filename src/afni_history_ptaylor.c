@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Now output an AFNI-style string selector of 'lost' ROI values.",
+   "This might make it easier to see the diffs the volumes.\n"
+},
+
 { 22, May , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
    "Change this prog to do all work in a workdir that can be cleaned.",
    "Should not have any effect on the usage or outputs.\n"

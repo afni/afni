@@ -29,8 +29,13 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 #   having both long and short labels: use env var in cmd line to go
 #   for "names" (i.e., the short version) only
 # 
-VERSION   = "1.5" ; VER_DATE  = "May 21, 2020"
+#VERSION   = "1.5" ; VER_DATE  = "May 21, 2020"
 # + require ${modesmooth} as input arg (-> modesmoo)
+#
+VERSION   = "1.51" ; VER_DATE  = "May 21, 2020"
+# + if there are LOST_ROI_VALUES, now output an AFNI-style encoded
+#   string in the footer of the table, that could be grepped for and
+#   used
 #
 # =================================================================
 
@@ -525,13 +530,18 @@ if __name__=="__main__":
     
     all_lost_labs = ''
     all_lost_vals = ''
+    all_lost_vals_list = [] 
     for ii in range( len(lost_ref_labs) ):
         if not(ii % 5) :
             all_lost_labs+= '\n# '
             all_lost_vals+= '\n# '
         all_lost_labs+= '{:<10s} '.format(lost_ref_labs[ii])
         all_lost_vals+= '{:<10d} '.format(lost_ref_vals[ii])
+        all_lost_vals_list.append(lost_ref_vals[ii])
 
+    # for later reporting; makes a string of AFNI-encoded items
+    # separated with .. and ,
+    all_lost_vals_enc_1D = au.encode_1D_ints(all_lost_vals_list)
 
     # calc physical volumes size of ROIs and masks
     new_inp_vols     = nvox2phys_vol( new_inp_nvox, inp_voxvol )
@@ -551,23 +561,24 @@ if __name__=="__main__":
     #     'ref'    --> 'Unwarped', 'U'
 
     hh = []
-    hh.append( '  Warped atlas dset      : {}'.format(atl_inp) )
-    hh.append( '  Warped mask dset       : {}'.format(mask_inp) )
-    hh.append( 'Unwarped atlas dset      : {}'.format(atl_ref) )
-    hh.append( 'Unwarped mask dset       : {}'.format(mask_ref) )
-    hh.append( ' Mode_smooth size (nvox) : {}'.format(modesmoo) )
-
-    hh.append( '  Warped vox size (mm)   : {}'.format(inp_voxdims_str)) 
-    hh.append( 'Unwarped vox size (mm)   : {}'.format(ref_voxdims_str))
-    hh.append( '  Warped mask Nvox       : {:>9}'.format(inp_mask_size) )
-    hh.append( 'Unwarped mask Nvox       : {:>9}'.format(ref_mask_size) )
-    hh.append( '  Warped mask Vol (mm^3) : {:>13.3f}'.format(inp_mask_vol) )
-    hh.append( 'Unwarped mask Vol (mm^3) : {:>13.3f}'.format(ref_mask_vol) )
-    hh.append( '  Warped atlas Nroi      : {:>9}'.format(Nroi_inp) )
-    hh.append( 'Unwarped atlas Nroi      : {:>9}'.format(Nroi_ref) )
-    hh.append( '    Nroi difference      : {:>9}'.format(Nroi_diff) )
+    hh.append( '  Warped atlas dset         : {}'.format(atl_inp) )
+    hh.append( '  Warped mask dset          : {}'.format(mask_inp) )
+    hh.append( 'Unwarped atlas dset         : {}'.format(atl_ref) )
+    hh.append( 'Unwarped mask dset          : {}'.format(mask_ref) )
+    hh.append( ' Mode_smooth size (nvox)    : {}'.format(modesmoo) )
+ 
+    hh.append( '  Warped vox size (mm)      : {}'.format(inp_voxdims_str)) 
+    hh.append( 'Unwarped vox size (mm)      : {}'.format(ref_voxdims_str))
+    hh.append( '  Warped mask Nvox          : {:>9}'.format(inp_mask_size) )
+    hh.append( 'Unwarped mask Nvox          : {:>9}'.format(ref_mask_size) )
+    hh.append( '  Warped mask Vol (mm^3)    : {:>13.3f}'.format(inp_mask_vol) )
+    hh.append( 'Unwarped mask Vol (mm^3)    : {:>13.3f}'.format(ref_mask_vol) )
+    hh.append( '  Warped atlas Nroi         : {:>9}'.format(Nroi_inp) )
+    hh.append( 'Unwarped atlas Nroi         : {:>9}'.format(Nroi_ref) )
+    hh.append( '    Nroi difference         : {:>9}'.format(Nroi_diff) )
     if Nroi_diff :
-        hh.append( '**See list of missing ROIs at bottom of file.') 
+        hh.append( 'Selector of lost ROI values : {:}'.format(all_lost_vals_enc_1D) )
+        hh.append( '(And see list of lost ROIs at bottom of file.)') 
     hh.append( '='*78 )
 
     cl       = ['ROI_value', 
