@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.5,  May 17, 2020
+Version 4.0.5,  May 27, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -120,6 +120,7 @@ Example 1 --- 3 between-subjects and 2 within-subject variables: ~2~
    3dMVM  -prefix Example1 -jobs 4            \\
           -bsVars  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
+          -mask myMask+tlrc                   \\
           -SS_type 2                          \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'            \\
@@ -162,6 +163,7 @@ Example 2 --- 2 between-subjects, 1 within-subject, 2 quantitative variables: ~2
    (emotion) factor, plus two quantitative variables (age and IQ).
 
    3dMVM -prefix Example2 -jobs 24        \\
+          -mask myMask+tlrc               \\
           -bsVars  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
           -qVars  \"age,IQ\"               \\
@@ -208,6 +210,7 @@ Example 3 --- Getting more complicated: ~2~
    explored with GLTs in 3dMVM.
 
    3dMVM -prefix Example3 -jobs 12   \\
+         -mask myMask+tlrc           \\
          -bsVars Group               \\
          -wsVars 'Condition*Time'   \\
          -num_glt 32                \\
