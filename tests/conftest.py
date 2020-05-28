@@ -132,8 +132,11 @@ def get_tests_data_dir(config_obj):
 
     # remote should be configured or something is badly amiss...
     dl_dset = datalad.Dataset(str(tests_data_dir))
-    if dl_dset.is_installed() and not 'remote.afni_ci_test_data.url' in dl_dset.config.keys():
-        for f in dl_dset.pathobj.glob('**/*'):
+    if (
+        dl_dset.is_installed()
+        and not "remote.afni_ci_test_data.url" in dl_dset.config.keys()
+    ):
+        for f in dl_dset.pathobj.glob("**/*"):
             try:
                 f.chmod(0o700)
             except FileNotFoundError:
@@ -144,20 +147,13 @@ def get_tests_data_dir(config_obj):
 
     # datalad is required and the datalad repository is used for data.
     if not (tests_data_dir / ".datalad").exists():
-        try:
-            datalad.install(
-                str(tests_data_dir),
-                "https://github.com/afni/afni_ci_test_data.git",
-                recursive=True,
-            )
-            # Let file system do it's thing
-            time.sleep(5)
-        except FileExistsError as e:
-            # likely a race condition
-            print(e)
-            raise FileExistsError(race_error_msg)
-        except FileNotFoundError:
-            raise FileNotFoundError(race_error_msg)
+        datalad.install(
+            str(tests_data_dir),
+            "https://github.com/afni/afni_ci_test_data.git",
+            recursive=True,
+        )
+        time.sleep(10)
+
     return tests_data_dir
 
 
@@ -181,12 +177,6 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     test_name = get_current_test_name()
     tests_data_dir = get_test_data_path(pytestconfig)
 
-    # make sure datalad repo wasn't updated to git annex version 8. Not sure why this is happening
-    git_config_file = Path(tests_data_dir) / ".git" / "config"
-    git_config_file.write_text(
-        git_config_file.read_text().replace("version = 8", "version = 7")
-    )
-
     # Set module specific values:
     try:
         data_paths = request.module.data_paths
@@ -200,7 +190,6 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
 
     # This will be created as required later
     sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
-
     # start creating output dict, downloading test data as required
     out_dict = {
         k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
@@ -210,7 +199,6 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     comparison_dir = get_test_comparison_dir_path(
         base_comparison_dir_path, module_outdir
     )
-
     # Define output for calling module and get data as required:
     out_dict.update(
         {

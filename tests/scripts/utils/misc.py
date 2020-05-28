@@ -11,6 +11,9 @@ from datalad.support.exceptions import IncompleteResultsError, CommandError
 import pytest
 from time import sleep
 import random
+import multiprocessing
+
+lock = multiprocessing.Lock()
 
 
 def run_x_prog(cmd, run_kwargs=None):
@@ -152,18 +155,20 @@ def process_path_obj(path_obj, test_data_dir):
         Path or iterable of Paths: path_obj appropriately converted to pathlib Paths
         objects with files in test_data_dir data fetched as required.
     """
+    global lock
     dl_dset = datalad.Dataset(str(test_data_dir))
     if type(path_obj) == str:
         path_obj = Path(path_obj)
 
     attempt_count = 0
+    lock.acquire()
     while attempt_count < 5:
         try:
-            sleep(10 * random.random())
             if isinstance(path_obj, Path):
                 check_file_exists(path_obj, test_data_dir)
                 file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
                 dl_dset.get(path=file_fetch_list)
+                lock.release()
                 return test_data_dir / path_obj
             elif iter(path_obj):
                 file_fetch_list = []
@@ -174,19 +179,20 @@ def process_path_obj(path_obj, test_data_dir):
                         input_file, test_data_dir
                     )
                     dl_dset.get(path=file_fetch_list)
+                lock.release()
                 return [test_data_dir / p for p in path_obj]
             else:
-
+                lock.release()
                 raise TypeError(
                     "data_paths must contain values that are of type str or a "
                     "non-str iterable type. i.e. list, tuple... "
                 )
-        except (IncompleteResultsError, CommandError):
+        except (IncompleteResultsError, CommandError) as e:
             # Try another loop
             attempt_count += 1
             continue
 
     # datalad download attempts failed
-    raise EnvironmentError(
+    pytest.exit(
         "Datalad download failed 5 times, you may not be connected to the internet"
     )
