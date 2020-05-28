@@ -143,6 +143,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                     \\
+         -mask myMask+tlrc                                          \\
           -model  'emotion+(1|Subj)'                                \\
           -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\
@@ -181,6 +182,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                   \\
+          -mask myMask+tlrc                       \\
           -model  'emotion*RT+(RT|Subj)'          \\
           -bounds -2 2                            \\
           -qVars  'RT'                            \\
@@ -218,6 +220,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                       \\
+          -mask myMask+tlrc                           \\
           -model  'emotion+(1|Subj)+(1|site)'         \\
           -bounds -2 2                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
