@@ -120,7 +120,10 @@ typedef for complex is now ignored */
 /*----------------------------------------------------------------------------*/
 
 #ifndef PI
-#  define PI 3.14159265358979323846
+#  define PI  3.1415926535897932
+#endif
+#ifndef HPI
+#  define HPI 1.5707963267948966
 #endif
 
 #ifndef WAY_BIG
@@ -1472,6 +1475,20 @@ typedef struct { int nar ; double *ar , dx,x0 ; int kk ; } doublevec ;
         if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_floatvec malloc fails\n"); \
   }} while(0)
 
+#define COPY_doublevec(ev,fv)                          \
+ do{ int n = (fv)->nar ; MAKE_doublevec((ev),n) ;      \
+     (ev)->dx = (fv)->dx ; (ev)->x0 = (fv)->x0 ;       \
+     memcpy( (ev)->ar, (fv)->ar, sizeof(double)*n ) ;  \
+     (ev)->kk = (fv)->kk ;                             \
+ } while(0)
+
+#define RESIZE_doublevec(fv,m)                                      \
+  do{ if( (fv)->nar != (m) ){                                       \
+        (fv)->nar = (m) ;                                           \
+        (fv)->ar  = (double *)realloc((fv)->ar,sizeof(double)*(m)); \
+        if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_doublevec malloc fails\n"); \
+  }} while(0)
+
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
 extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
@@ -1675,6 +1692,14 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3],  \
       AA.m[3][0], AA.m[3][1], AA.m[3][2], AA.m[3][3] )
 
+/* load elements of a dmat44 */
+
+#undef  LOAD_DMAT44
+#define LOAD_DMAT44(A,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34,a41,a42,a43,a44) \
+ ( A.m[0][0] = (a11), A.m[0][1] = (a12), A.m[0][2] = (a13), A.m[0][3] = (a14),         \
+   A.m[1][0] = (a21), A.m[1][1] = (a22), A.m[1][2] = (a23), A.m[1][3] = (a24),         \
+   A.m[2][0] = (a31), A.m[2][1] = (a32), A.m[2][2] = (a33), A.m[2][3] = (a34),         \
+   A.m[3][0] = (a41), A.m[3][1] = (a42), A.m[3][2] = (a43), A.m[3][3] = (a44)  )
 
 /*------------------------------------------------------------------------*/
 
@@ -2190,6 +2215,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
 typedef unsigned short RBFKINT ;
+#define RBFKINT_MAX 65535u
 
 typedef struct {
   int nknot ;                    /* number of knots */

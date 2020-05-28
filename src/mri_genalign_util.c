@@ -1152,7 +1152,7 @@ ENTRY("GA_interp_quintic") ;
   : ((bt)==GA_BLOK_TOHD) ? GA_BLOK_inside_tohd((a),(b),(c),(s)) \
   : 0 )
 
-/** add 1 value to a dynamically allocated  integer array **/
+/** add 1 value to a dynamically allocated integer array **/
 
 #define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
  do{ if( (nar) == (nal) ){                                                  \

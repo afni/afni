@@ -87,7 +87,8 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
               Laconte Lisinski Clark Johnson Julia  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
-              Vovk Zosky Torres Schmidt Novak Hanke    )
+              Vovk Zosky Torres Schmidt Novak Hanke \
+              Gianfranco Markiewicz                   )
 
 # list of AFNI authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
@@ -142,7 +143,7 @@ set nfff = $#flist
 # number of git blames to run at one time
 # this speeds the script up a lot
 
-set nblame = 20
+set nblame = 1
 @   mblame = $nblame - 1
 
 set jffq = ( `count -dig 1 0 $mblame` )
@@ -178,7 +179,7 @@ foreach ifff ( `count -dig 1 1 $nfff $nblame` )
   end
 
  # wait until all jobs above are done, put results together in one file
-  wait
+  wait ; sync
   set junk = ( `find . -maxdepth 1 -name 'gitsum.junk*.txt'` )
   if( $#junk == 0 ) continue
 
