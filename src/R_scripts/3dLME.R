@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.1, May 23, 2020
+Version 2.0.1, May 27, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -96,6 +96,7 @@ be treated as outliers and considered as missing. If you want to set a range, ch
 the bounds that make sense with your input data.
 --------------------------------
    3dLME -prefix myOutput -jobs   4               \\
+         -mask myMask+tlrc                      \\
          -model '0+Time'                        \\
          -bounds  -2 2                          \\
          -qVars order                           \\
@@ -163,7 +164,8 @@ conditions. These subjects with missing data would have to be abandoned in
 the traditional ANOVA approach. All subjects can be included with 3dLME, and
 a random intercept is considered.
 -------------------------------------------------------------------------
-   3dLME -prefix Example3 -jobs 24                                     \\
+   3dLME  -prefix Example3 -jobs 24                                     \\
+          -mask myMask+tlrc                                             \\
           -model  \"cond*group\"                                         \\
           -bounds  -2 2                                                \\
           -ranEff '~1'                                                 \\
@@ -195,6 +197,7 @@ positive, negative, and neutral; Scanner: one, and two) plus subjects (factor
 Subj).
 -------------------------------------------------------------------------
    3dLME -prefix Example4 -jobs 12                                      \\
+         -mask myMask+tlrc                                              \\
           -model  \"1\"                                                   \\
           -bounds  -2 2                                                 \\
           -ranEff 'Cond+Scanner+Subj'                                   \\
