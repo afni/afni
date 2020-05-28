@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Now report DF information in vstat block.",
+   "Needed to be able to interpret F-stat and t-stat values.\n"
+},
+
 { 26, May , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Two major changes in output: ve2a and LR-flipcheck now have EPI as ulay.",
    "Most anats are SSed, so better edges?  Thanks for suggestion, O Esteban!\n"
