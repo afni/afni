@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.2, May 23, 2020
+Version 0.1.2, May 27, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -94,6 +94,7 @@ Usage:
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2 -jobs 12                                   \\
+          -mask myMask+tlrc                                       \\
           -model  '1+(1|session)+(1|Subj)'                        \\
           -bounds  -2 2                                           \\
           -dataTable                                              \\
@@ -119,6 +120,7 @@ Usage:
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC3 -jobs 12                                   \\
+          -mask myMask+tlrc                                       \\
           -model  '1+session+(1|Subj)'                            \\
           -bounds  -2 2                                           \\
           -dataTable                                              \\
@@ -143,6 +145,7 @@ Usage:
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2a -jobs 12                                     \\
+          -mask myMask+tlrc                                       \\
           -model  '1+age+(1|session)+(1|Subj)'                       \\
           -bounds  -2 2                                              \\
           -Subj   'subject'                                           \\
@@ -170,6 +173,7 @@ Usage:
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2a -jobs 12                                  \\
+          -mask myMask+tlrc                                       \\
           -model  '1+age+(1|session)+(1|Subj)'                    \\
           -bounds  -2 2                                           \\
           -Subj   'subjct'                                        \\
