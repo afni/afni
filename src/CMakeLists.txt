@@ -121,6 +121,14 @@ if(COMP_ADD_RSTATS)
   target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
 
+
+install(
+    DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/faces/
+        ${CMAKE_CURRENT_SOURCE_DIR}/poems/
+    DESTINATION ${AFNI_INSTALL_FUNSTUFF_DIR})
+
+
 # ##### Create list of programs built
 set(PROGRAMS_BUILT ${PROGRAM_BUILT})
 assemble_target_list(PROGRAMS_BUILT SHOW_UNBUILT_PROGS)

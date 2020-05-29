@@ -85,8 +85,8 @@ foreach(target plug_maxima plug_retroicor)
 
 add_afni_plugin(
   plug_3dsvm
-  svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c svm/plug_3dsvm.c
- ) 
+  svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c svm/plug_3dsvm.c svm/svm_common.c
+ )
 target_link_libraries(plug_3dsvm 
   PRIVATE
   libheaders

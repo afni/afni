@@ -14,7 +14,10 @@ if(USE_OMP)
 endif()
 
 if(COMP_ADD_RSTATS)
-  include(FindLibR)
+    find_package(LibR)
+    if(NOT LIBR_FOUND)
+        message(FATAL_ERROR "Could not find R. Consider installing R, or setting COMP_ADD_RSTATS to OFF")
+    endif()
 endif()
 
 # set(Python_FIND_VIRTUALENV FIRST)
@@ -51,6 +54,12 @@ if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   find_package(GLib2)
 
   if(USE_SYSTEM_GLW)
+      # Not that SUMA makes use of the glwDrawingAreaWidgetClass symbol that is
+      # not externed in the version of glw distributed with most operating 
+      # systems. Setting USE_SYSTEM_GLW to ON is generally a bad idea. The 
+      # build system should hopefully detected the error it causes at build time 
+      # though. By default a local version of glw is directly incorporated 
+      # into libSUMA.so
     find_package(GLw REQUIRED)
   endif()
 
@@ -132,11 +141,11 @@ if(USE_SYSTEM_NIFTI)
   find_package(NIFTI REQUIRED)
 else()
 FetchContent_Declare(
-  fetch_nifti_clib_git_repo   
+  nifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git 
   GIT_TAG 9563fa4ae56140d8d3d268688ff2386bf2daf2c8
   )
-FetchContent_MakeAvailable(fetch_nifti_clib_git_repo)
+FetchContent_MakeAvailable(nifti_clib)
 endif()
 
 if(USE_SYSTEM_GIFTI)
