@@ -406,6 +406,15 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define IGNORE_IS_THICK(gr) ((gr)->thick_index[7] != 0)
 #define DPLOT_IS_THICK(gr)  ((gr)->thick_index[8] != 0)
 
+#define DO_UPSAM(gr)        ((gr)->do_upsam)             /* [28 May 2020] */
+
+/* amount of resampling in plot_graphs                      [28 May 2020] */
+#define XUPSAM(www,npt) ( (int)( 0.499f + 0.25f*www / (npt+1.0f) ) )
+
+/* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
+void AFNI_XDrawLines( Display *display, Drawable d,
+                      GC gc, XPoint *points, int npoints, int mode , int nupsam ) ;
+
 /** 01 Aug 1998: redefine _POINTS and add _LINES **/
 
 #define FG_POINTS(gr)     ((gr)->points_index[0] != 0)
@@ -521,10 +530,12 @@ typedef struct {
    int points_index[NUM_COLOR_ITEMS] ;
    int fixed_colors_setting ;
 
-   MCW_arrowval *opt_ggap_av ; /* 12 Jan 1998 */
+   MCW_arrowval *opt_ggap_av ;   /* 12 Jan 1998 */
    int ggap ;
    MCW_arrowval *opt_gthick_av ; /* 06 Oct 2004 */
    int gthick ;
+   MCW_arrowval *opt_upsam_av ;  /* 28 May 2020 */
+   int do_upsam ;
 
    Widget opt_color_up_pb   , opt_save_pb ,
           opt_write_center_pb , opt_write_suffix_pb ;
@@ -763,8 +774,9 @@ extern char * GRA_transform_label( MCW_arrowval * , XtPointer ) ;
 
 extern void GRA_detrend_CB       ( MCW_arrowval * , XtPointer ) ;  /* 05 Dec 2012 */
 
-extern void GRA_ggap_CB( MCW_arrowval * , XtPointer ) ;
+extern void GRA_ggap_CB  ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_gthick_CB( MCW_arrowval * , XtPointer ) ;  /* 06 Oct 2004 */
+extern void GRA_upsam_CB ( MCW_arrowval * , XtPointer ) ;  /* 28 May 2020 */
 
 extern FIM_menu * AFNI_new_fim_menu( Widget , XtCallbackProc , int ) ;
 
