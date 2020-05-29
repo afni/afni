@@ -145,14 +145,14 @@ endif()
 
 # Define PATH modification required for within build tree tests execution
 # (used by the cmake file in python_scripts)
-set(BUILT_BINARIES ${PROJECT_BINARY_DIR}/src/targets)
+set(BUILT_BINARIES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(T_SCRIPTS ${PROJECT_SOURCE_DIR}/src/scripts_install)
 set(R_SCRIPTS ${PROJECT_SOURCE_DIR}/src/R_scripts)
 set(J_SCRIPTS ${PROJECT_SOURCE_DIR}/src/jzosky)
 set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
 set(TESTING_PATHS "${BUILT_BINARIES}:${T_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
 set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
-file(WRITE ${PROJECT_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
+file(WRITE ${PROJECT_BINARY_DIR}/TESTING_PATHS.txt ${PATH_FOR_TESTING})
 
 # Create test target for running tests within the build tree
 add_custom_target(
