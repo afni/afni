@@ -130,8 +130,11 @@ auth = 'PA Taylor'
 #ver = '3.5' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
 #
-ver = '3.6' ; date = 'May 26, 2020' 
+#ver = '3.6' ; date = 'May 26, 2020' 
 # [PT] ve2a and LR-flipcheck now show EPI under anat edges
+#
+ver = '3.61' ; date = 'May 28, 2020' 
+# [PT] in vstat maps, report DF value(s)
 #
 #########################################################################
 
@@ -2260,6 +2263,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
 ### [PT: July 2, 2019] this function now takes an object with lots of
 ### details of olay and thresh stuff for plotting.  This is because we
 ### have generalized the kind of stuff that can be plotted.
+##  [PT: May 28, 2020] this now reports DFs with each stat
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
 def apqc_vstat_stvol( obase, qcb, qci, 
@@ -2297,6 +2301,8 @@ def apqc_vstat_stvol( obase, qcb, qci,
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
     set thrbrick = {}
     set thrlabel = `3dinfo -label ${{stats_dset}}"[${{thrbrick}}]"`
+    set thr_staux = `3dAttribute BRICK_STATAUX ${{stats_dset}}"[${{thrbrick}}]"`
+    set thr_dof   = `echo ${{thr_staux[4-]}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
@@ -2479,7 +2485,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
     ttext = ''
     ttext+= '''"olay: [${olaybrick}] '${olaylabel}' (in ${olay_name})" ,, '''
-    ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
+    ttext+= '''" thr: [${thrbrick}] '${thrlabel}' (df = ${thr_dof})"'''
 
 
     # As default, use :: and ,, as major and minor delimiters,

@@ -147,8 +147,11 @@ auth = 'PA Taylor'
 #ver = '3.5' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
 #
-ver = '3.6' ; date = 'May 26, 2020' 
+#ver = '3.6' ; date = 'May 26, 2020' 
 # [PT] ve2a and LR-flipcheck now show EPI under anat edges
+#
+ver = '3.61' ; date = 'May 28, 2020' 
+# [PT] in vstat maps, report DF value(s)
 #
 #########################################################################
 
