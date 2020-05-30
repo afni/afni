@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , MAY , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add curve smoothing plot to graph viewer" ,
+   "Invoked from 'Colors Etc' menu, or by pressing the 's' key. [For GC]" } ,
+
  { 12 , MAY , 2020 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
    "Allow output of .jpg files for 2D images" ,
    "Actually, any AFNI program that writes a 2D 'dataset' will now do so in\n"

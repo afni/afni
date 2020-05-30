@@ -9,6 +9,9 @@
 #undef  LENTYP
 #define LENTYP unsigned short
 
+#undef  LENTYP_MAX
+#define LENTYP_MAX 65535u
+
 typedef struct {
   int     nrc ;    /* # of rows and columns */
   LENTYP *len ;    /* in row/column #i, there are len[i] elements */

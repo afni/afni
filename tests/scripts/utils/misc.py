@@ -11,6 +11,9 @@ from datalad.support.exceptions import IncompleteResultsError, CommandError
 import pytest
 from time import sleep
 import random
+from multiprocessing import Lock, Process
+
+lock = Lock()
 
 
 def run_x_prog(cmd, run_kwargs=None):
@@ -152,20 +155,52 @@ def process_path_obj(path_obj, test_data_dir):
         Path or iterable of Paths: path_obj appropriately converted to pathlib Paths
         objects with files in test_data_dir data fetched as required.
     """
-    dl_dset = datalad.Dataset(str(test_data_dir))
     if type(path_obj) == str:
         path_obj = Path(path_obj)
+        return_val = test_data_dir / path_obj
+    elif isinstance(path_obj, Path):
+        return_val = test_data_dir / path_obj
+    elif iter(path_obj):
+        return_val = [test_data_dir / p for p in path_obj]
+    else:
+        raise TypeError(
+            "data_paths must contain values that are of type str or a "
+            "non-str iterable type. i.e. list, tuple... "
+        )
 
+    # Fetching the data
+    process_for_fetching_data = Process(
+        target=try_data_download, args=(path_obj, test_data_dir)
+    )
+    # Repeated tries should eventually just be timed-out to deal with of
+    # unpredictable stalls.
+    process_for_fetching_data.start()
+    process_for_fetching_data.join(timeout=120)
+
+    if process_for_fetching_data.is_alive():
+        # terminate the process.
+        process_for_fetching_data.terminate()
+        raise ValueError(f"Data fetching timed out for {path_obj}")
+    elif process_for_fetching_data.exitcode != 0:
+        raise ValueError(f"Data fetching failed for {path_obj}")
+    else:
+        return return_val
+
+
+def try_data_download(path_obj, test_data_dir):
+    global lock
+    dl_dset = datalad.Dataset(str(test_data_dir))
     attempt_count = 0
+    lock.acquire()
     while attempt_count < 5:
         try:
-            sleep(10 * random.random())
             if isinstance(path_obj, Path):
                 check_file_exists(path_obj, test_data_dir)
                 file_fetch_list = generate_fetch_list(path_obj, test_data_dir)
                 dl_dset.get(path=file_fetch_list)
-                return test_data_dir / path_obj
-            elif iter(path_obj):
+                lock.release()
+                return
+            else:
                 file_fetch_list = []
                 for input_file in path_obj:
                     input_file = Path(input_file)
@@ -174,19 +209,14 @@ def process_path_obj(path_obj, test_data_dir):
                         input_file, test_data_dir
                     )
                     dl_dset.get(path=file_fetch_list)
-                return [test_data_dir / p for p in path_obj]
-            else:
-
-                raise TypeError(
-                    "data_paths must contain values that are of type str or a "
-                    "non-str iterable type. i.e. list, tuple... "
-                )
-        except (IncompleteResultsError, CommandError):
+                lock.release()
+                return
+        except (IncompleteResultsError, CommandError) as e:
             # Try another loop
             attempt_count += 1
             continue
 
     # datalad download attempts failed
-    raise EnvironmentError(
+    pytest.exit(
         "Datalad download failed 5 times, you may not be connected to the internet"
     )

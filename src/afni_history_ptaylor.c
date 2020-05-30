@@ -66,6 +66,30 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Default modal smoothing now is with replacement of any lost ROIs.",
+   "Uses @djunct_modal* script; opt to not replace. More QC images now, too.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_GENERAL,
+   "Now use *.nii.gz files for all intermeds, not *.nii.",
+   "Works better with @animal_warper this way.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_NEW_PROG,
+   "Perform modal smoothing, and go back and add in any ROIs that were lost.",
+   "May be useful in @animal_warper;  may be good to add mask stuff, too.\n"
+},
+
+{ 30, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "String selector of lost ROIs now is only comma-separated list.",
+   "Discovered couldn't have both comma- and '..'-separated list in selector.\n"
+},
+{ 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Now report DF information in vstat block.",
+   "Needed to be able to interpret F-stat and t-stat values.\n"
+},
+
 { 26, May , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Two major changes in output: ve2a and LR-flipcheck now have EPI as ulay.",
    "Most anats are SSed, so better edges?  Thanks for suggestion, O Esteban!\n"

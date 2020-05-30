@@ -139,6 +139,7 @@ commands:
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
             fi
       # Push dev_base image too though it is unlikely to change
+      - checkout
       - restore_an_exact_cache:
           version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
           version: "<< parameters.image_cache_version >>"
