@@ -3611,6 +3611,27 @@ def proj_out_vec(v1, v2, unit_v2=0):
 # statistical routines - stdev, variance, ttest
 # ----------------------------------------------------------------------
 
+def stat_mad(data):
+    """return the mean absolute deviation"""
+
+    if not data: return 0
+    length = len(data)
+    # length == 1 has MAD 0
+    if length <=  1: return 0
+
+    if type(data[0]) == str:
+       try: dd = [float(val) for val in data]
+       except:
+          print('** bad data for min_mean_max_stdev')
+          return 0, 0, 0, 0
+    else: dd = data
+
+    meanval = loc_sum(dd)/float(length)
+    dsum = 0.0
+    for val in dd:
+       dsum += abs(val-meanval)
+    return 1.0*dsum/length
+
 def min_mean_max_stdev(data):
     """return 4 values for data: min, mean, max, stdev (unbiased)"""
 
