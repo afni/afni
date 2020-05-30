@@ -66,6 +66,15 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_NEW_PROG,
+   "Perform modal smoothing, and go back and add in any ROIs that were lost.",
+   "May be useful in @animal_warper;  may be good to add mask stuff, too.\n"
+},
+
+{ 30, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "String selector of lost ROIs now is only comma-separated list.",
+   "Discovered couldn't have both comma- and '..'-separated list in selector.\n"
+},
 { 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Now report DF information in vstat block.",
    "Needed to be able to interpret F-stat and t-stat values.\n"

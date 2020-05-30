@@ -32,10 +32,14 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 #VERSION   = "1.5" ; VER_DATE  = "May 21, 2020"
 # + require ${modesmooth} as input arg (-> modesmoo)
 #
-VERSION   = "1.51" ; VER_DATE  = "May 21, 2020"
+#VERSION   = "1.51" ; VER_DATE  = "May 21, 2020"
 # + if there are LOST_ROI_VALUES, now output an AFNI-style encoded
 #   string in the footer of the table, that could be grepped for and
 #   used
+#
+VERSION   = "1.52" ; VER_DATE  = "May 30, 2020"
+# + have to just use comma-separated list for ROI-value selector that
+#   goes inside <>
 #
 # =================================================================
 
@@ -540,8 +544,10 @@ if __name__=="__main__":
         all_lost_vals_list.append(lost_ref_vals[ii])
 
     # for later reporting; makes a string of AFNI-encoded items
-    # separated with .. and ,
+    # separated with .. and , (which is NOT used right now), and a
+    # simple, comma-separated list in a string
     all_lost_vals_enc_1D = au.encode_1D_ints(all_lost_vals_list)
+    all_lost_vals_comma  = ','.join([str(x) for x in all_lost_vals_list])
 
     # calc physical volumes size of ROIs and masks
     new_inp_vols     = nvox2phys_vol( new_inp_nvox, inp_voxvol )
@@ -577,7 +583,7 @@ if __name__=="__main__":
     hh.append( 'Unwarped atlas Nroi         : {:>9}'.format(Nroi_ref) )
     hh.append( '    Nroi difference         : {:>9}'.format(Nroi_diff) )
     if Nroi_diff :
-        hh.append( 'Selector of lost ROI values : {:}'.format(all_lost_vals_enc_1D) )
+        hh.append( 'Selector of lost ROI values : {:}'.format(all_lost_vals_comma) )
         hh.append( '(And see list of lost ROIs at bottom of file.)') 
     hh.append( '='*78 )
 
