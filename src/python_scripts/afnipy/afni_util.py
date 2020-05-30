@@ -3611,7 +3611,7 @@ def proj_out_vec(v1, v2, unit_v2=0):
 # statistical routines - stdev, variance, ttest
 # ----------------------------------------------------------------------
 
-def stat_mad(data):
+def stat_mean_abs_dev(data):
     """return the mean absolute deviation"""
 
     if not data: return 0
