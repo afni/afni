@@ -179,11 +179,17 @@ set progname = @animal_warper
 #set version = "2.11" ; set date = "May 21, 2020"
 # [PT] report mode_smooth_size in report*1D file
 #
-set version = "2.2" ; set date = "May 30, 2020"
+#set version = "2.2" ; set date = "May 30, 2020"
 # [PT] 
 #    + modal smoothing with replacement, now default; is new opt to turn off
 #    + now, for multibrick ATL|SEG dsets, each subbrick will be snapshotted
 #      for QC dir
+#
+set version = "2.21" ; set date = "May 30, 2020"
+# [PT] 
+#    + change how input_abbrev gets applied-- will apply to copying
+#      and earliest transformed input/src dsets now, for
+#      simplicity/ease of reading if user is defining an inp abbr
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -742,17 +748,24 @@ endif
 
 # ------------------------- setup input SRC dset
 
-# input datasets may not be +orig
-# so match input view equivalent even for NIFTI
-set origview       = `3dinfo -av_space "${src_dset0}" |tr -d +` # not used
-set origspace      = `3dinfo -space "${src_dset0}"`
-set src_prefix     = `3dinfo -prefix_noext "${src_dset0}"`
-set src_dset       = ${src_prefix}.nii.gz   # copied into outdir, USED
-
 # this var used to describe warping:  BASE_in_${src_abbrev}.nii.gz
 if ( "${src_abbrev}" == "" ) then
     set src_abbrev = "${src_prefix}"
 endif
+
+# input datasets may not be +orig
+# so match input view equivalent even for NIFTI
+set origview       = `3dinfo -av_space     "${src_dset0}" |tr -d +` # unused
+set origspace      = `3dinfo -space        "${src_dset0}"`
+set src_prefix     = `3dinfo -prefix_noext "${src_dset0}"`
+set src_dset       = ${src_abbrev}.nii.gz   # cp of orig inp, used to proc
+
+# all the shifted forms
+set srcsh_prefix    = ${src_abbrev}_shft          # NOTE this name change
+set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
+set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
+set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
+
 
 if (($ok_to_exist == 1) && \
     (-f "${outdir}/${src_dset}" )) then
@@ -764,12 +777,6 @@ else
      -expr   'a'                               \
      -prefix "${outdir}/${src_dset}"
 endif
-
-# all the shifted forms
-set srcsh_prefix    = ${src_prefix}_shft          # NOTE this name change
-set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
-set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
-set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
 
 # -------------------- setup BASE dset
 
