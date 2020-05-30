@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Default modal smoothing now is with replacement of any lost ROIs.",
+   "Uses @djunct_modal* script; opt to not replace. More QC images now, too.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_GENERAL,
+   "Now use *.nii.gz files for all intermeds, not *.nii.",
+   "Works better with @animal_warper this way.\n"
+},
+
 { 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_NEW_PROG,
    "Perform modal smoothing, and go back and add in any ROIs that were lost.",
    "May be useful in @animal_warper;  may be good to add mask stuff, too.\n"

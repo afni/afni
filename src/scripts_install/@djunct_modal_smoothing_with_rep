@@ -8,10 +8,15 @@
 #set version   = "0.1";  set rev_dat   = "May 30"
 # [PT] bug fixing/checking
 #
-set version   = "0.2";  set rev_dat   = "May 30"
+#set version   = "0.2";  set rev_dat   = "May 30"
 # [PT] 
 #   + reattach any tables, 
 #   + and put in 'cmap INT_CMAP' properties
+#
+set version   = "0.3";  set rev_dat   = "May 30"
+# [PT] 
+#   + all intermediate files are now *.nii.gz, to play more nicerly
+#     with @animal_warper
 #
 # ----------------------------------------------------------------
 
@@ -130,8 +135,8 @@ set wdir = "${odir}/${wdir_name}"
 
 # ------------------------ copy and prep
 
-set dset_inp   = ${tpref}_00_cp.nii
-set dset_smoo0 = ${tpref}_01_modsmoo.nii
+set dset_inp   = ${tpref}_00_cp.nii.gz
+set dset_smoo0 = ${tpref}_01_modsmoo.nii.gz
 
 # cp input dset to wdir
 3dcalc ${owrite}                       \
@@ -231,7 +236,7 @@ else
             @ count_remake2 += 1
 
             set str_sel = "${check_lost[8]}"  # which ROIs to be put back
-            set remake  = ${gpref}_${nnn}_RE.nii
+            set remake  = ${gpref}_${nnn}_RE.nii.gz
 
             3dcalc  ${owrite}                                   \
                 -a      "${dset_smoo0}[${nn}]"                  \
@@ -242,7 +247,7 @@ else
             # DON'T REMAKE this volume
             echo "++ Modal smoothing check [${nnn}] : no remake"
 
-            set remake  = ${gpref}_${nnn}_OK.nii
+            set remake  = ${gpref}_${nnn}_OK.nii.gz
 
             3dcalc  ${owrite}                                   \
                 -a      "${dset_smoo0}[${nn}]"                  \
@@ -266,14 +271,14 @@ else
 
 
     3dTcat  ${owrite}         \
-        -prefix ALL_GLUED.nii \
+        -prefix ALL_GLUED.nii.gz \
         ${glue_list}
 
-    3drefit -cmap INT_CMAP            ALL_GLUED.nii 
-    3drefit -copytables "${dset_inp}" ALL_GLUED.nii 
+    3drefit -cmap INT_CMAP            ALL_GLUED.nii.gz
+    3drefit -copytables "${dset_inp}" ALL_GLUED.nii.gz
 
     3dcopy  ${owrite}         \
-        ALL_GLUED.nii         \
+        ALL_GLUED.nii.gz      \
         "../${opref}"
     # tables/CMAP done below
 

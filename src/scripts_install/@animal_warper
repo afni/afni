@@ -176,8 +176,14 @@ set progname = @animal_warper
 #    + done using: adjunct_aw_tableize_roi_info.py
 #      - someday, might make this program more 'standalone' with real opts
 #
-set version = "2.11" ; set date = "May 21, 2020"
+#set version = "2.11" ; set date = "May 21, 2020"
 # [PT] report mode_smooth_size in report*1D file
+#
+set version = "2.2" ; set date = "May 30, 2020"
+# [PT] 
+#    + modal smoothing with replacement, now default; is new opt to turn off
+#    + now, for multibrick ATL|SEG dsets, each subbrick will be snapshotted
+#      for QC dir
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -233,6 +239,7 @@ set all_known_dset_abbrev = ( )
 set feature_option     = ""
 set feature_size       = ""
 set modesmooth         = "3"   # 3 voxel modal smoothing
+set DO_MODE_SMOO_W_REP = 1     # use modal smoothing with rep (def)
 set supersize          = ""
 set keep_temp          = ""
 
@@ -650,6 +657,10 @@ while ($ac <= $#argv)
           echo "Please use a number to specify how many voxels"
           exit 1
         endif
+
+    # [PT: May 30, 2020] turn off replacement of lost ROIs in modal smooth
+    else if ("$argv[$ac]" == "-mode_smooth_replacement_off") then
+        set DO_MODE_SMOO_W_REP = 0
 
     else if ("$argv[$ac]" == "-supersize") then
         set supersize = "-supersize"
@@ -1424,7 +1435,12 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
    set follow_abbrev = "${all_abbrev[$ii]}"
    set follow_interp = "${all_interp[$ii]}"
 
-   set follow_in_std = ${follow_abbrev}_warp2std.nii.gz
+   # the main output
+   set follow_in_std     = ${follow_abbrev}_warp2std.nii.gz
+   # ... but if followset is int value AND is modally smoothed, then
+   # save the pre-modally smoothed version under this name:
+   set follow_in_std_pre = ${follow_abbrev}_w2s_PRE.nii.gz
+
 
    #  first check if output exists
    if ( ($ok_to_exist == "1") && \
@@ -1455,17 +1471,33 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
       if ( "${follow_interp}" == "NN" ) then
          echo "++ Created follower ROI dset: ${follow_in_std}"
 
-         if ($modesmooth != "0") then
-            3dLocalstat -overwrite                                    \
-               -stat mode                                             \
-               -nbhd "SPHERE(-$modesmooth)"                           \
-               -prefix ${follow_in_std}                               \
-               ${follow_in_std}
-         endif
+         if ( "${modesmooth}" != "0") then
+            # save the unsmoothed version as a backup
+            3dcopy -overwrite         \
+                ${follow_in_std}      \
+                ${follow_in_std_pre}
 
-         # make these show up in AFNI as labeled ROI or atlas datasets 
-         3drefit -copytables $followset ${follow_in_std}
-         3drefit -cmap INT_CMAP ${follow_in_std}
+            if ( ${DO_MODE_SMOO_W_REP} ) then
+               # Modal smoothing *with* replacement; output has
+               # INT_CMAP and tables copied
+               @djunct_modal_smoothing_with_rep                            \
+                    -overwrite                                             \
+                    -input ${follow_in_std_pre}                            \
+                    -prefix ${follow_in_std}                               \
+                    -modesmooth $modesmooth
+            else
+               # Standard modal smoothing (*no* replacement)
+               3dLocalstat -overwrite                                      \
+                    -stat   mode                                           \
+                    -nbhd   "SPHERE(-${modesmooth})"                       \
+                    -prefix ${follow_in_std}                               \
+                    ${follow_in_std_pre}
+
+               # make these show up in AFNI as labeled ROI or atlas datasets 
+               3drefit -copytables ${followset} ${follow_in_std}
+               3drefit -cmap INT_CMAP ${follow_in_std}
+            endif
+         endif
 
          echo "   ... and finished processing it"
          
@@ -1781,7 +1813,12 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
    set segm_prefix = "${all_tabbrev[$ii]}"
    set segm_type   = "${all_ttypes[$ii]}"
 
+   # the main output
    set segm_in_orig = "${segm_prefix}_in_${src_abbrev}.nii.gz"
+   # ... but if followset is int value AND is modally smoothed, then
+   # save the pre-modally smoothed version under this name:
+   set segm_in_orig_pre = "${segm_prefix}_in_${src_abbrev}_PRE.nii.gz"
+
 
    if ( ( $ok_to_exist == "1" ) && \
         ( -f  ${segm_in_orig} ) ) then
@@ -1826,49 +1863,120 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
        endif
 
        # modal smoothing
-       # overwrite its own dataset if enabled (default)
-       if ("${modesmooth}" != "0") then
-          3dLocalstat -overwrite                                 \
-            -stat mode                                           \
-            -nbhd "SPHERE(-${modesmooth})"                       \
-            -prefix ${segm_in_orig}                              \
-            ${segm_in_orig}
+       if ( "${modesmooth}" != "0") then
+          # save the unsmoothed version as a backup
+          3dcopy -overwrite         \
+              ${segm_in_orig}       \
+              ${segm_in_orig_pre}
+          \rm ${segm_in_orig}
+
+          # this extra step done here to make sure the space is
+          # correct (should be, from 3dNwarp*?)
+          3drefit                      \
+              -space ${origspace}      \
+              ${segm_in_orig_pre}
+
+          if ( ${DO_MODE_SMOO_W_REP} ) then
+             # Modal smoothing *with* replacement; output has
+             # INT_CMAP and tables copied
+             @djunct_modal_smoothing_with_rep                            \
+                  -overwrite                                             \
+                  -input      ${segm_in_orig_pre}                        \
+                  -prefix     ${segm_in_orig}                            \
+                  -modesmooth ${modesmooth}
+          else
+             # Standard modal smoothing (*no* replacement)
+             3dLocalstat -overwrite                                      \
+                  -stat   mode                                           \
+                  -nbhd   "SPHERE(-${modesmooth})"                       \
+                  -prefix ${segm_in_orig}                                \
+                  ${segm_in_orig_pre}
+
+             # make these show up in AFNI as labeled ROI or atlas datasets 
+             3drefit                      \
+                 -cmap  INT_CMAP          \
+                 ${segm_in_orig}
+             3drefit                      \
+                 -copytables ${segm_dset} \
+                 ${segm_in_orig}
+          endif
        endif
-       
+
+       ### OLD
+       # modal smoothing
+       # overwrite its own dataset if enabled (default)
+       #if ("${modesmooth}" != "0") then
+       #   3dLocalstat -overwrite                                 \
+       #     -stat mode                                           \
+       #     -nbhd "SPHERE(-${modesmooth})"                       \
+       #     -prefix ${segm_in_orig}                              \
+       #     ${segm_in_orig}
+       #endif
+       #
        # copy segmentation information from atlas to this
        # native-space segmentation dataset and mark to be shown
        # with integer colormap
-       3drefit                       \
-            -cmap  INT_CMAP          \
-            -space ${origspace}      \
-            ${segm_in_orig}
-       3drefit                       \
-            -copytables ${segm_dset} \
-            ${segm_in_orig}
+       #3drefit                       \
+       #     -cmap  INT_CMAP          \
+       #     -space ${origspace}      \
+       #     ${segm_in_orig}
+       #3drefit                       \
+       #     -copytables ${segm_dset} \
+       #     ${segm_in_orig}
 
        # Image : [ulay] edge enhanced orig dset;
        #         [olay] atlas warped to orig space
        set ulay  = "${src_abbrev}.nii.gz"
        set olay  = "${segm_in_orig}"
        set focus = ${src_abbrev}_mask.nii.gz
-       set opref = QC/qc_03_ee_input+wrpd_${segm_type}_${segm_prefix}
 
-       @chauffeur_afni                             \
-            -ulay "${ulay}"                        \
-            -edge_enhance_ulay 0.5                 \
-            -set_subbricks 0 0 0                   \
-            -olay "${olay}"                        \
-            -box_focus_slices "${focus}"           \
-            -montgap 1                             \
-            -montcolor 'black'                     \
-            -cbar ROI_i256                         \
-            -pbar_posonly                          \
-            -pbar_saveim "${opref}"                \
-            -prefix      "${opref}"                \
-            -opacity 4                             \
-            -montx 5 -monty 3                      \
-            -set_xhairs OFF                        \
-            -label_mode 1 -label_size 3
+       set nvi = `3dinfo -nvi "${olay}"`
+
+       if ( "${nvi}" == "0" ) then
+           set opref = QC/qc_03_ee_input+wrpd_${segm_type}_${segm_prefix}
+
+           @chauffeur_afni                             \
+                -ulay "${ulay}"                        \
+                -edge_enhance_ulay 0.5                 \
+                -set_subbricks 0 0 0                   \
+                -olay "${olay}"                        \
+                -box_focus_slices "${focus}"           \
+                -montgap 1                             \
+                -montcolor 'black'                     \
+                -func_range 256                        \
+                -cbar ROI_i256                         \
+                -pbar_posonly                          \
+                -pbar_saveim "${opref}"                \
+                -prefix      "${opref}"                \
+                -opacity 4                             \
+                -montx 5 -monty 3                      \
+                -set_xhairs OFF                        \
+                -label_mode 1 -label_size 3
+       else
+          foreach nn ( `seq 0 1 ${nvi}` )
+             set nnn = `printf %02d ${nn}`
+             set opref = QC/qc_03_ee_input+wrpd
+             set opref = ${opref}_${segm_type}_${segm_prefix}_${nnn}
+
+             @chauffeur_afni                             \
+                  -ulay "${ulay}"                        \
+                  -edge_enhance_ulay 0.5                 \
+                  -set_subbricks 0 ${nn} ${nn}           \
+                  -olay "${olay}"                        \
+                  -box_focus_slices "${focus}"           \
+                  -montgap 1                             \
+                  -montcolor 'black'                     \
+                  -func_range 256                        \
+                  -cbar ROI_i256                         \
+                  -pbar_posonly                          \
+                  -pbar_saveim "${opref}"                \
+                  -prefix      "${opref}"                \
+                  -opacity 4                             \
+                  -montx 5 -monty 3                      \
+                  -set_xhairs OFF                        \
+                -label_mode 1 -label_size 3
+          end
+       endif
    endif
 
    if ( "${segm_type}" == "SEG" ) then
@@ -2312,6 +2420,17 @@ Options ~1~
                          The default uses a 3 voxel radius.
                          Turn off by setting this to 0
 
+    -mode_smooth_replacement_off
+                        :the current default behavior for modal
+                         smoothing is to do both 1) modal smoothing
+                         (with 3dLocalstat) and then 2) check if any
+                         ROIs got lost in that process, and 3) if ROIs
+                         got lost, put them back in (those specific
+                         ones won't be smoothed, just re-placed).
+                         Using this opt will mean that steps #2 and #3
+                         do NOT happen -- you just get plain modal
+                         smoothing without replacement.
+
     -center_out         :center native-space output to native original 
                          space or to center-shifted space over the center
                          of template.
@@ -2496,8 +2615,9 @@ the following semi-cryptically named files:
   qc_03_ee_input+wrpd_ATL_*
   qc_03_ee_input+wrpd_SEG_*
     [ulay] 'edge enhanced' original input dset (in orig space)
-    [olay] warped atlas or seg dset (just the [0] subbrick, if
-           the dset has >1 volume)
+    [olay] warped atlas or seg dset 
+    + NB: if the olay dset has >1 subbrick, each will be snapshotted 
+          separately, because I heard the baying of the crowds for such.
 
 References ~1~
 
