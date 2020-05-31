@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, May, 2020, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "add -verb",
+   NULL
+ } ,
+
  { 26, May, 2020, RCR, "@move.to.series.dirs", MICRO, TYPE_MODIFY,
    "call afni_python_wrapper.py instead of old afni_util.py",
    NULL
