@@ -179,11 +179,22 @@ set progname = @animal_warper
 #set version = "2.11" ; set date = "May 21, 2020"
 # [PT] report mode_smooth_size in report*1D file
 #
-set version = "2.2" ; set date = "May 30, 2020"
+#set version = "2.2" ; set date = "May 30, 2020"
 # [PT] 
 #    + modal smoothing with replacement, now default; is new opt to turn off
 #    + now, for multibrick ATL|SEG dsets, each subbrick will be snapshotted
 #      for QC dir
+#
+#set version = "2.21" ; set date = "May 30, 2020"
+# [PT] 
+#    + change how input_abbrev gets applied-- will apply to copying
+#      and earliest transformed input/src dsets now, for
+#      simplicity/ease of reading if user is defining an inp abbr
+#
+set version = "2.3" ; set date = "May 31, 2020"
+# [PT] 2 bug fixes
+#    + one in defining ${src_prefix} (reorder to not have error)
+#    + one in passing along labels/atlases from SEG|atlas dsets
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -744,15 +755,20 @@ endif
 
 # input datasets may not be +orig
 # so match input view equivalent even for NIFTI
-set origview       = `3dinfo -av_space "${src_dset0}" |tr -d +` # not used
-set origspace      = `3dinfo -space "${src_dset0}"`
+set origview       = `3dinfo -av_space     "${src_dset0}" |tr -d +` # unused
+set origspace      = `3dinfo -space        "${src_dset0}"`
 set src_prefix     = `3dinfo -prefix_noext "${src_dset0}"`
-set src_dset       = ${src_prefix}.nii.gz   # copied into outdir, USED
-
-# this var used to describe warping:  BASE_in_${src_abbrev}.nii.gz
 if ( "${src_abbrev}" == "" ) then
     set src_abbrev = "${src_prefix}"
 endif
+set src_dset       = ${src_abbrev}.nii.gz   # cp of orig inp, used to proc
+
+# all the shifted forms
+set srcsh_prefix    = ${src_abbrev}_shft          # NOTE this name change
+set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
+set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
+set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
+
 
 if (($ok_to_exist == 1) && \
     (-f "${outdir}/${src_dset}" )) then
@@ -764,12 +780,6 @@ else
      -expr   'a'                               \
      -prefix "${outdir}/${src_dset}"
 endif
-
-# all the shifted forms
-set srcsh_prefix    = ${src_prefix}_shft          # NOTE this name change
-set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
-set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
-set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
 
 # -------------------- setup BASE dset
 
@@ -1450,7 +1460,7 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
    else 
       # copy dataset to temporary one - reused by multiple dset followers
       \rm -f tempfollow.nii.gz
-      3dcopy "$followset" tempfollow.nii.gz
+      3dcopy "${followset}" tempfollow.nii.gz
 
       # Move center of follower with same 1D shift as original dataset.
       # Funny that the opt has '_inv', but that appears to be correct!
@@ -1467,6 +1477,10 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
           -nwarp  "${srcsh_prefix}_osh2base_WARP.nii.gz"             \
           -source  tempfollow.nii.gz                                 \
           -master  "${base_dset}"
+
+      # keep propagating labels/atlases
+      3drefit -copytables "${followset}" ${follow_in_std}
+      3drefit -cmap INT_CMAP             ${follow_in_std}
  
       if ( "${follow_interp}" == "NN" ) then
          echo "++ Created follower ROI dset: ${follow_in_std}"
@@ -1484,7 +1498,7 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
                     -overwrite                                             \
                     -input ${follow_in_std_pre}                            \
                     -prefix ${follow_in_std}                               \
-                    -modesmooth $modesmooth
+                    -modesmooth $modesmooth 
             else
                # Standard modal smoothing (*no* replacement)
                3dLocalstat -overwrite                                      \
@@ -1862,6 +1876,11 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
             -prefix ${segm_in_orig}
        endif
 
+      # keep propagating labels/atlases
+      3drefit -copytables "${segm_dset}" ${segm_in_orig}
+      3drefit -cmap INT_CMAP             ${segm_in_orig}
+
+
        # modal smoothing
        if ( "${modesmooth}" != "0") then
           # save the unsmoothed version as a backup
@@ -1883,7 +1902,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -overwrite                                             \
                   -input      ${segm_in_orig_pre}                        \
                   -prefix     ${segm_in_orig}                            \
-                  -modesmooth ${modesmooth}
+                  -modesmooth ${modesmooth} 
           else
              # Standard modal smoothing (*no* replacement)
              3dLocalstat -overwrite                                      \
