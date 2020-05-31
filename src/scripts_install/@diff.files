@@ -121,6 +121,9 @@ if ( $missA || $missB ) then
               ls -ld $odir/$file
           endif
       end
+   echo ""
+   echo "   ... done with missing, on to diffs ..."
+
    endif
 
    echo ""
