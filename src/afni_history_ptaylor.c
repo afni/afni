@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Two bug fixes: 1) where src_prefix is defined.",
+   "2) Make sure labels/atlases of ATL|SEG followers are passed along.\n"
+},
+
 { 30, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Apply input_abbrev earlier in processing.",
    "Homogenize naming, I think, if it is being selected.\n"
