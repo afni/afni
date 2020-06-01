@@ -150,8 +150,11 @@ auth = 'PA Taylor'
 #ver = '3.6' ; date = 'May 26, 2020' 
 # [PT] ve2a and LR-flipcheck now show EPI under anat edges
 #
-ver = '3.61' ; date = 'May 28, 2020' 
+#ver = '3.61' ; date = 'May 28, 2020' 
 # [PT] in vstat maps, report DF value(s)
+#
+ver = '3.62' ; date = 'May 31, 2020' 
+# [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
 #
 #########################################################################
 

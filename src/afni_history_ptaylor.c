@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2020 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
+   "Add new funcs for convenient message printing, in the AFNI style.",
+   "IP(), EP() and WP(), which are wrappers to use APRINT().\n"
+},
+
+{ 31, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Change range of grayscale when EPI is ulay (ve2a and LR flipcheck).",
+   "Now 2-98percent (nonzero).\n"
+},
+
 { 31, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
    "Two bug fixes: 1) where src_prefix is defined.",
    "2) Make sure labels/atlases of ATL|SEG followers are passed along.\n"

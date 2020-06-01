@@ -133,8 +133,11 @@ auth = 'PA Taylor'
 #ver = '3.6' ; date = 'May 26, 2020' 
 # [PT] ve2a and LR-flipcheck now show EPI under anat edges
 #
-ver = '3.61' ; date = 'May 28, 2020' 
+#ver = '3.61' ; date = 'May 28, 2020' 
 # [PT] in vstat maps, report DF value(s)
+#
+ver = '3.62' ; date = 'May 31, 2020' 
+# [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
 #
 #########################################################################
 
@@ -1794,7 +1797,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     -box_focus_slices  ${focus_box}
     -ulay              ${final_epi_dset}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "96%"
+    -ulay_range_nz     "2%" "98%"
     -prefix  ${odir_img}/${opref}
     '''
 
@@ -3456,7 +3459,7 @@ those might have been flipped.'''
     -box_focus_slices  ${focus_box}
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "96%"
+    -ulay_range_nz     "2%" "98%"
     -prefix            ${odir_img}/${opref_o}
     '''
 #    cmd0 = '''
@@ -3478,7 +3481,7 @@ those might have been flipped.'''
     -box_focus_slices  ${focus_box}
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "96%"
+    -ulay_range_nz     "2%" "98%"
     -prefix            ${odir_img}/${opref_f}
     '''
 #    cmd1 = '''

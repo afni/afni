@@ -1245,3 +1245,56 @@ def isFloat(s):
         return True
     except:
         return False
+
+# -----------------------------------------------------------------------
+# [PT: Jun 1, 2020] simple functions to stylize printing of messages
+# in The AFNI Way.  APRINT() is the main workhorse; IP(), EP() and
+# WP() are just short/convenient wrappers
+
+def WP( S, indent=True):
+    '''Warning print string S'''
+    APRINT(S, ptype='WARNING', indent=indent)
+
+def EP( S, indent=True, end_exit=True):
+    '''Error print string S
+
+    By default, exit after printing'''
+    APRINT(S, ptype='ERROR', indent=indent)
+
+    if end_exit :
+       sys.exit(1)
+
+def IP( S, indent=True):
+    '''Info print string S'''
+    APRINT(S, ptype='INFO', indent=indent)
+
+def APRINT( S, ptype=None, indent=True):
+    '''Print Error/Warn/Info for string S
+
+    This function is not meant to be used directly, in general; use
+    {W|E|I}PRINT(), instead.
+
+    '''
+
+    if ptype == 'WARNING' :
+       ptype_str = "+* WARNING:"
+    elif ptype == 'ERROR' :
+       ptype_str = "** ERROR:"
+    elif ptype == 'INFO' :
+       ptype_str = "++"
+    else:
+       print("**** Unrecognized print type '{}'. So, error about\n"
+             "     a warning, error or info message!\n".format(ptype))
+       sys.exit(1)
+
+    if indent :
+       S = S.replace( "\n", "\n   ")
+
+    out = "{} ".format(ptype_str)
+    out+= S
+
+    if ptype == 'ERROR' :
+       out+= "\n"
+    
+    print(out)
+    
