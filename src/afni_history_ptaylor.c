@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 1, Jun , 2020 , PT , "lib_mat2d.py" , MINOR , TYPE_GENERAL,
+{ 1, June, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Reformat report*.1D tables a bit.",
+   "Add in a KEY; change U/W to A/B; minor format stuff.\n"
+},
+
+{ 1, June , 2020 , PT , "lib_mat2d.py" , MINOR , TYPE_GENERAL,
    "Start some new functionality for 2D matrices.",
    "In particular, these are for 3dTrackID and 3dNetCorr output.\n"
 },
@@ -110,6 +115,7 @@ afni_history_struct ptaylor_history[] = {
    "String selector of lost ROIs now is only comma-separated list.",
    "Discovered couldn't have both comma- and '..'-separated list in selector.\n"
 },
+
 { 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Now report DF information in vstat block.",
    "Needed to be able to interpret F-stat and t-stat values.\n"

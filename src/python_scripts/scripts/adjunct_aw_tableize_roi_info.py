@@ -7,39 +7,45 @@
 
 AUTHOR    = "PA Taylor (NIMH, NIH)"
 #VERSION   = "1.0" ; VER_DATE  = "May 19, 2020"
-# + birth
+# [PT] birth
 #
 #VERSION   = "1.1" ; VER_DATE  = "May 20, 2020"
-# + require masks as input
+# [PT] require masks as input
 #
 #VERSION   = "1.2" ; VER_DATE  = "May 20, 2020"
-# + header+table complete
-# + forms working beta version, rollable
+# [PT] header+table complete
+#    + forms working beta version, rollable
 #
 #VERSION   = "1.21" ; VER_DATE  = "May 20, 2020"
-# + fixed logic in creating new_inp* lists (merging inp/ref info)
+# [PT] fixed logic in creating new_inp* lists (merging inp/ref info)
 # 
 #VERSION   = "1.3" ; VER_DATE  = "May 20, 2020"
-# + Glenian updates
-#   - rename some cols in output
-#   - add more header info: any lost ROIs
+# [PT] Glenian updates
+#    + rename some cols in output
+#    + add more header info: any lost ROIs
 #
 #VERSION   = "1.4" ; VER_DATE  = "May 21, 2020"
-# + adjust 3dROIstats call in afni_3droistats, to account for ROIs
-#   having both long and short labels: use env var in cmd line to go
-#   for "names" (i.e., the short version) only
+# [PT] adjust 3dROIstats call in afni_3droistats, to account for ROIs
+#      having both long and short labels: use env var in cmd line to go
+#      for "names" (i.e., the short version) only
 # 
 #VERSION   = "1.5" ; VER_DATE  = "May 21, 2020"
-# + require ${modesmooth} as input arg (-> modesmoo)
+# [PT] require ${modesmooth} as input arg (-> modesmoo)
 #
 #VERSION   = "1.51" ; VER_DATE  = "May 21, 2020"
-# + if there are LOST_ROI_VALUES, now output an AFNI-style encoded
-#   string in the footer of the table, that could be grepped for and
-#   used
+# [PT] if there are LOST_ROI_VALUES, now output an AFNI-style encoded
+#      string in the footer of the table, that could be grepped for and
+#      used
 #
-VERSION   = "1.52" ; VER_DATE  = "May 30, 2020"
-# + have to just use comma-separated list for ROI-value selector that
-#   goes inside <>
+#VERSION   = "1.52" ; VER_DATE  = "May 30, 2020"
+# [PT] have to just use comma-separated list for ROI-value selector that
+#      goes inside <>
+#
+VERSION   = "1.6" ; VER_DATE  = "June 1, 2020"
+# [PT] new table format
+#    + {U,W} --> {A,B}
+#    + put in a KEY section, defining cols
+#    + remove a couple (once useful, but now annoying) print statements
 #
 # =================================================================
 
@@ -242,9 +248,9 @@ def afni_3droistats( fname  ) :
     # ['FILE_NAME', 'SUBBRICK_IDX', 'ROI_IDX', 'ROI_COUNT', ...]
     so_vals = so_lined[1].split() ; Nvals = len(so_vals)
 
-    print("HEY")
-    print(so_lined[0])
-    print(so_lined[1])
+    #print("HEY")
+    #print(so_lined[0])
+    #print(so_lined[1])
 
     if Nlabs != Nvals :
         print("** ERROR: length of labels {} does not match that of vals {}"
@@ -563,39 +569,60 @@ if __name__=="__main__":
     # -------------------- make HEADER of file ------------------------
 
     # Note about naming in report:
-    #     'input'  --> 'Warped', 'W'
-    #     'ref'    --> 'Unwarped', 'U'
+    #     'input'  --> 'Warped', 'W', 'A'
+    #     'ref'    --> 'Unwarped', 'U', 'B'
 
     hh = []
-    hh.append( '  Warped atlas dset         : {}'.format(atl_inp) )
-    hh.append( '  Warped mask dset          : {}'.format(mask_inp) )
-    hh.append( 'Unwarped atlas dset         : {}'.format(atl_ref) )
-    hh.append( 'Unwarped mask dset          : {}'.format(mask_ref) )
-    hh.append( ' Mode_smooth size (nvox)    : {}'.format(modesmoo) )
+    hh.append( ' A atlas dset           : {}'.format(atl_inp) )
+    hh.append( ' A mask dset            : {}'.format(mask_inp) )
+    hh.append( ' B atlas dset           : {}'.format(atl_ref) )
+    hh.append( ' B mask dset            : {}'.format(mask_ref) )
+    hh.append( 'Mode_smooth size (nvox) : {}'.format(modesmoo) )
  
-    hh.append( '  Warped vox size (mm)      : {}'.format(inp_voxdims_str)) 
-    hh.append( 'Unwarped vox size (mm)      : {}'.format(ref_voxdims_str))
-    hh.append( '  Warped mask Nvox          : {:>9}'.format(inp_mask_size) )
-    hh.append( 'Unwarped mask Nvox          : {:>9}'.format(ref_mask_size) )
-    hh.append( '  Warped mask Vol (mm^3)    : {:>13.3f}'.format(inp_mask_vol) )
-    hh.append( 'Unwarped mask Vol (mm^3)    : {:>13.3f}'.format(ref_mask_vol) )
-    hh.append( '  Warped atlas Nroi         : {:>9}'.format(Nroi_inp) )
-    hh.append( 'Unwarped atlas Nroi         : {:>9}'.format(Nroi_ref) )
-    hh.append( '    Nroi difference         : {:>9}'.format(Nroi_diff) )
+    hh.append( ' A vox size (mm)        : {}'.format(inp_voxdims_str)) 
+    hh.append( ' B vox size (mm)        : {}'.format(ref_voxdims_str))
+    hh.append( ' A mask Nvox            : {:>9}'.format(inp_mask_size) )
+    hh.append( ' B mask Nvox            : {:>9}'.format(ref_mask_size) )
+    hh.append( ' A mask Vol (mm^3)      : {:>13.3f}'.format(inp_mask_vol) )
+    hh.append( ' B mask Vol (mm^3)      : {:>13.3f}'.format(ref_mask_vol) )
+    hh.append( ' A atlas Nroi           : {:>9}'.format(Nroi_inp) )
+    hh.append( ' B atlas Nroi           : {:>9}'.format(Nroi_ref) )
+    hh.append( ' Nroi difference        : {:>9}'.format(Nroi_diff) )
     if Nroi_diff :
         hh.append( 'Selector of lost ROI values : {:}'.format(all_lost_vals_comma) )
         hh.append( '(And see list of lost ROIs at bottom of file.)') 
-    hh.append( '='*78 )
+    hh.append( ' ' )
 
-    cl       = ['ROI_value', 
-                'Nvox_W', 'Nvox_U', 
-                'Vol_W' , 'Vol_U',  'RatVol_W2U', 
-                'MaskFrac_W', 'MaskFrac_U', 'RatMFrac_W2U', 
-                'Label_str']
-    col_labs = ['{:^12s}'.format(x) for x in cl]
-    Ncol     = len(cl)
-    hh.append ( ' '.join(col_labs) )
-    hh.append ( ' '.join(['-'*12]*Ncol) )
+    # column labels
+    cl         = ['ROI_value', 
+                  'Nvox_A', 'Nvox_B', 
+                  'Vol_A' , 'Vol_B',  'RatVol_A2B', 
+                  'MaskFrac_A', 'MaskFrac_B', 'RatMFrac_A2B', 
+                  'Label_str']
+    col_labs   = ['{:^12s}'.format(x) for x in cl]
+    Ncol       = len(cl)
+    table_div  = ' '.join(['-'*12]*Ncol)
+    table_div2 = '='*len(table_div)
+    
+    key = '''  -- KEY --
+
+    ROI_value     = integer value of ROI
+    Nvox_A        = number of voxels in ROI in dset A
+    Nvox_B        = number of voxels in ROI in dset B
+    Vol_A         = volume of ROI in dset A (mm^3)
+    Vol_B         = volume of ROI in dset B (mm^3)
+    RatVol_A2B    = ratio of ROI volumes, Vol_A / Vol_B
+    VolFrac_A     = ROI volume fraction, Vol_A / maskVol_A
+    VolFrac_B     = ROI volume fraction, Vol_B / maskVol_B
+    RatVFrac_A2B  = ratio of ROI volume fractions, VolFrac_A / VolFrac_B
+    Label_str     = string label of ROI (if present) 
+    '''
+    hh.append( table_div2 )
+    hh.append( '\n#  '.join([x.strip() for x in key.split("\n")]))
+    
+    hh.append( table_div2 )
+    hh.append( ' '.join(col_labs) )
+    hh.append( table_div )
 
     header = '# ' + '\n# '.join(hh)
 
