@@ -79,7 +79,7 @@ commands:
                 -e CONTAINER_GID=$(id -g) \
                 --rm \
                 -ti \
-                -v $PWD:/opt/afni/src \
+                -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
                 afni/afni_<< parameters.build_type >> \
                 bash -c 'bash /opt/afni/src/tests/run_tests_<< parameters.build_type >>.sh'
       - run:
