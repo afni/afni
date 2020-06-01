@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jun, 2020, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_regs and -show_regs_style",
+   "Show column indices or labels of an xmat.1D file with empty (all-zero)\n"
+   "regressors.  An index list can be space or comma-separeated, or encoded.\n" 
+   "Example 30 shows typical use cases.\n"
+   "Added for S Haller."
+ } ,
+
  { 31, May, 2020, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
    "add -verb",
    NULL

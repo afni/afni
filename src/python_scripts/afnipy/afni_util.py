@@ -2319,7 +2319,9 @@ def vals_are_multiples(num, vals, digits=4):
     return 1
 
 def vals_are_constant(vlist, cval=None):
-   """determine whether every value in vlist is equal to cval
+   """vals_are_constant(vlist, cval=None)
+
+      determine whether every value in vlist is equal to cval
       (if cval == None, use vlist[0])"""
 
    if vlist == None: return 1
