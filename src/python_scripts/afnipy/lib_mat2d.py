@@ -12,11 +12,14 @@
 #
 # auth: 'PA Taylor'
 #
-ver = '0.0' ; date = 'June 1, 2020'
+#ver = '0.0' ; date = 'June 1, 2020'
 # [PT] matrix-related things, for plotting, stats and other calcs
 #
-ver = '0.1' ; date = 'June 1, 2020'
+#ver = '0.1' ; date = 'June 1, 2020'
 # [PT] debugged, testing on netcc and grid files
+#
+ver = '0.2' ; date = 'June 1, 2020'
+# [PT] tweaks with eletype
 #
 # --------------------------------------------------------------------------
 
@@ -158,8 +161,8 @@ class mat2d:
 
         if eletype :
             self.set_eletype(eletype)
-            ab.IP("Matrix elements set to be type: {}"
-                  "".format(eletype))
+            #ab.IP("Matrix elements set to be type: {}"
+            #      "".format(eletype))
 
     def set_eletype( self, ET ):
         """Set type of each element in the matrix
@@ -167,6 +170,7 @@ class mat2d:
         Allowed types are in the 'ok_eletypes' list.
         """
 
+        self.eletype = ET
 
         if ET == 'float' or ET == float :
             for i in range(self.ncol):
@@ -399,13 +403,13 @@ class file_grid_netcc:
                 line = [ x.strip() for x in self.data[idx+ii].split()]
                 M.append(line)
             if count_dots :
-                self.allmat[mat_lab] = mat2d(M, eletype='float',
+                self.allmat[mat_lab] = mat2d(M, eletype=float,
                                              col_strlabs=self.roi_strlabs,
                                              row_strlabs=self.roi_strlabs,
                                              col_intvals=self.roi_intvals,
                                              row_intvals=self.roi_intvals)
             else:
-                self.allmat[mat_lab] = mat2d(M, eletype='int',
+                self.allmat[mat_lab] = mat2d(M, eletype=int,
                                              col_strlabs=self.roi_strlabs,
                                              row_strlabs=self.roi_strlabs,
                                              col_intvals=self.roi_intvals,
