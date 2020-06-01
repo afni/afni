@@ -4286,6 +4286,11 @@ STATUS("zeropad weight dataset") ;
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
+     /* do not let time info from master confuse things, we'll go back */
+     /* to ntt > 1 later, if approprate             [1 Jun 2020 rickr] */
+     if( DSET_NUM_TIMES(dset_out) > 1 )
+         EDIT_dset_items( dset_out ,   ADN_ntt , 1 , ADN_none ) ;
+
        if( DSET_NUM_TIMES(dset_targ) > 1 )
          EDIT_dset_items( dset_out ,
                             ADN_ntt   , DSET_NVALS(dset_targ) ,

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jun, 2020, RCR, "3dAllinate", MICRO, TYPE_MODIFY,
+   "clear any initial ntt from master",
+   NULL
+ } ,
+
  {  1, Jun, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in populate_nifti_image(), call time series only if ntt>1 or NVALS==1",
    "This is to avoid confusion when a time series is used to master a\n"
