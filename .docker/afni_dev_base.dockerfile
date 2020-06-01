@@ -161,6 +161,7 @@ RUN pip install \
         pytest-cov \
         pytest-parallel \
         scipy \
+        xvfbwrapper \
   && fix-permissions /opt
 
 # add pdb alias ipy for easier pdb debugging

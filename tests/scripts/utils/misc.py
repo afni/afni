@@ -11,7 +11,9 @@ from datalad.support.exceptions import IncompleteResultsError, CommandError
 import pytest
 from time import sleep
 import random
+
 from multiprocessing import Lock, Process
+from xvfbwrapper import Xvfb
 
 lock = Lock()
 
@@ -20,10 +22,9 @@ def run_x_prog(cmd, run_kwargs=None):
     import subprocess as sp
 
     run_kwargs = run_kwargs or {}
+    with Xvfb() as xvfb:
+        res = sp.run(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs)
 
-    res = sp.run(
-        "xvfb-run -a " + cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs
-    )
     res.check_returncode()
     if "ERROR" in res.stdout.decode():
 
