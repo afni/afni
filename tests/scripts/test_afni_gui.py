@@ -4,9 +4,6 @@ import shutil
 import pytest
 import os
 
-if not shutil.which("xvfb-run"):
-    pytest.skip("Could not find xvfb-run", allow_module_level=True)
-
 
 def test_afni_gui_basic():
 
@@ -35,7 +32,6 @@ def test_afni_gui_plugin_search_with_env_var():
     afni_path = Path(shutil.which("afni"))
     cmd = 'afni -no_detach -com "QUIT"'
     # Run AFNI with AFNI_PLUGINPATH defined
-    env_with_pluginpath = os.environ.copy()
-    env_with_pluginpath["AFNI_PLUGINPATH"] = "/tmp"
-    res = misc.run_x_prog(cmd, run_kwargs={"env": env_with_pluginpath})
+    os.environ["AFNI_PLUGINPATH"] = "/tmp"
+    res = misc.run_x_prog(cmd)
     assert f"Path(s) to be searched for plugins: \n/tmp" in res
