@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Jun , 2020 , PT , "lib_mat2d.py" , MINOR , TYPE_GENERAL,
+   "Start some new functionality for 2D matrices.",
+   "In particular, these are for 3dTrackID and 3dNetCorr output.\n"
+},
+
 { 1, June , 2020 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
    "Add new funcs for convenient message printing, in the AFNI style.",
    "IP(), EP() and WP(), which are wrappers to use APRINT().\n"
