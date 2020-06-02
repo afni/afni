@@ -18,8 +18,14 @@
 #ver = '0.1' ; date = 'June 1, 2020'
 # [PT] debugged, testing on netcc and grid files
 #
-ver = '0.2' ; date = 'June 1, 2020'
+#ver = '0.2' ; date = 'June 1, 2020'
 # [PT] tweaks with eletype
+#
+#ver = '0.3' ; date = 'June 2, 2020'
+# [PT] add in writing/printing of the file
+#
+ver = '0.31' ; date = 'June 2, 2020'
+# [PT] ... fix printing bugs, add in other funcs to print subsets of things
 #
 # --------------------------------------------------------------------------
 
@@ -282,9 +288,12 @@ class mat2d:
 class file_grid_netcc:
     """
     Read in output from 3dNetCorr or from 3dTrackID.  
+
+    Default mode is to "read" (mode='r') an input filename.
+
     """
 
-    def __init__( self, fname ):
+    def __init__( self, fname='', mode='r', fout='' ):
 
         self.data        = []       # full file, read in 
         self.data_len    = 0        # nlines file file
@@ -301,18 +310,138 @@ class file_grid_netcc:
         self.roi_strlabs = []       # file might not have these
         self.roi_intvals = [] 
 
-        self.ext         = ''       # grid|netcc
+        self.ext         = ''       # grid|netcc|amat
         self.file_inp    = ''       # can record file basename
+        self.file_out    = ''       # can write to a diff file
         #self.file_base   = ''       # can record file basename
         #self.file_dir    = ''       # can record file dirname
 
 
         # --------- 
-
-        self.file_inp = fname
-        self.open_and_check_GoN( )
+        if mode == 'r' :
+            self.file_inp = fname
+            self.open_and_check_GoN( )
 
     # -----------------------------------------------------------
+    # -----------------------------------------------------------
+
+    def make_header_GoN(self):
+        """Form the header part for output.
+
+        Can be netcc, grid or 'amat' (generalized form, 'AFNI matrix')
+        """
+        
+        # haven't fully decided about "other" cases yet
+        if    self.ext == 'netcc' : mstr = "Number of netcc matrices"
+        elif  self.ext == 'grid'  : mstr = "Number of grid matrices"
+        elif  self.ext == 'amat'  : mstr = "Number of amat matrices"
+        else:                       mstr = "Number of amat matrices"
+
+        h = []
+
+        h.append( "# {}  # Number of network ROI".format(self.nroi) )
+        h.append( "# {}  # {}".format(self.nmat, mstr) )
+        if self.has_strlabs :
+            h.append( "# WITH_ROI_LABELS" )
+            h.append( ''.join([" {:>10s} \t".format(x) \
+                               for x in self.roi_strlabs]) )
+        h.append( ''.join([" {:10d} \t".format(x) \
+                           for x in self.roi_intvals]) )
+        return h
+
+    def make_table_mat_GoN(self):
+        """Form the table of matrix(ces) part for output.
+
+        Can be netcc, grid or 'amat' (generalized form, 'AFNI matrix')
+        """
+        
+        N = self.nmat
+        t = []
+
+        for ii in range(N):
+            lab = self.allmat_labs[ii]
+            mat = self.allmat[lab].mat
+            ele = self.allmat[lab].eletype
+            t.append("# {}".format( lab ))
+            for jj in range(self.nroi):
+                if ele == int or ele == bool :
+                    t.append( ''.join(["{:12d}\t".format(x) for 
+                                       x in mat[jj]]) )
+                elif ele == float :
+                    t.append( ''.join(["{:12e}\t".format(x) for 
+                                       x in mat[jj]]) )
+                else:
+                    t.append( ''.join(["{:12}\t".format(x) for 
+                                       x in mat[jj]]) )
+        return t
+
+    def make_full_out_str_GoN(self):
+        """Create full string version of grid/netcc/amat file to print or
+        write.
+
+        """
+
+        hdr_list       = self.make_header_GoN()
+        table_mat_list = self.make_table_mat_GoN()
+
+        full_out = '\n'.join(hdr_list)
+        full_out+= '\n'
+        full_out+= '\n'.join(table_mat_list)
+
+        return full_out
+
+
+    def disp_tab_mat(self):
+        """Print current table of matrix (non-header) information to terminal
+
+        """
+        
+        table_mat_list = self.make_table_mat_GoN()
+        full_out       = '\n'.join(table_mat_list)
+        print(full_out)
+
+    def disp_hdr(self):
+        """Print current header information to terminal
+
+        """
+        
+        hdr_list = self.make_header_GoN()
+        full_out = '\n'.join(hdr_list)
+        print(full_out)
+
+
+    def disp_full(self):
+        """Print current information (all) to terminal
+
+        """
+
+        full_out = self.make_full_out_str_GoN()
+        print(full_out)
+       
+
+    def write_to_file_GoN(self, fname=''):
+        """Write current information to a file on disk.
+
+        fname can be provided here (gets precedence), or have been
+        provided and stored in the obj previously.
+
+        """
+        full_out = self.make_full_out_str_GoN()
+
+        if fname :
+            ooo = fname
+        elif self.file_out :
+            ooo = self.file_out
+        else:
+            ab.EP("Don't have an output name for this file-- can't write")
+
+        fff = open(ooo, 'w')
+        fff.write(full_out)
+        fff.close()
+        ab.IP("Wrote {} file: {}".format(self.ext, ooo))
+
+
+    # ------------------------------------------------------------
 
     def read_in_GoN(self):
         '''
@@ -341,10 +470,12 @@ class file_grid_netcc:
             self.ext = 'grid'
         elif ext == 'netcc' :
             self.ext = 'netcc'
+        elif ext == 'amat' :
+            self.ext = 'amat'
         else:
             ab.WP("Unrecognized file extension on what should be "
-                  "grid/netcc file: {}".format(ext))
-            self.ext = 'OTHER'
+                  "grid/netcc/amat file: {}".format(ext))
+            self.ext = 'amat'
             
     def read_header_GoN(self):
         '''
@@ -354,7 +485,7 @@ class file_grid_netcc:
         '''
         
         if self.data_len < 3 :
-            ab.EP("Can't possibly be grid/netcc file: only {} lines"
+            ab.EP("Can't possibly be grid/netcc/amat file: only {} lines"
                   "".format(self.data_len))
 
         # Now read through each line ('idx'=line number)
@@ -374,7 +505,8 @@ class file_grid_netcc:
         line = [ x.strip() for x in self.data[idx].split("#")]
         if line[-1] == 'Number_of_grid_matrices'  or \
            line[-1] == 'Number of grid matrices'  or \
-           line[-1] == 'Number of netcc matrices' :
+           line[-1] == 'Number of netcc matrices' or \
+           line[-1] == 'Number of amat matrices' :
             self.nmat = int(line[1])
         else:
             ab.EP("Can't recognize line {} format in {}:\n"
@@ -475,7 +607,7 @@ class file_grid_netcc:
     def open_and_check_GoN(self):
 
         if not(os.path.isfile(self.file_inp)) :
-            ab.EP("Cannot find grid/netcc file: {}".format(file_inp))
+            ab.EP("Cannot find grid/netcc/amat file: {}".format(file_inp))
 
         self.set_ext()
         self.read_in_GoN()
