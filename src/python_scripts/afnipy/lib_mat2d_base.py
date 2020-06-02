@@ -24,8 +24,11 @@
 #ver = '0.3' ; date = 'June 2, 2020'
 # [PT] add in writing/printing of the file
 #
-ver = '0.31' ; date = 'June 2, 2020'
+#ver = '0.31' ; date = 'June 2, 2020'
 # [PT] ... fix printing bugs, add in other funcs to print subsets of things
+#
+ver = '0.32' ; date = 'June 2, 2020'
+# [PT] attach label to mat2d obj when reading in file
 #
 # --------------------------------------------------------------------------
 
@@ -585,13 +588,17 @@ class file_grid_netcc:
                 line = [ x.strip() for x in self.data[idx+ii].split()]
                 M.append(line)
             if count_dots :
-                self.allmat[mat_lab] = mat2d(M, eletype=float,
+                self.allmat[mat_lab] = mat2d(M,
+                                             label=mat_lab,
+                                             eletype=float,
                                              col_strlabs=self.roi_strlabs,
                                              row_strlabs=self.roi_strlabs,
                                              col_intvals=self.roi_intvals,
                                              row_intvals=self.roi_intvals)
             else:
-                self.allmat[mat_lab] = mat2d(M, eletype=int,
+                self.allmat[mat_lab] = mat2d(M,
+                                             label=mat_lab,
+                                             eletype=int,
                                              col_strlabs=self.roi_strlabs,
                                              row_strlabs=self.roi_strlabs,
                                              col_intvals=self.roi_intvals,
