@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add PM (plus/minus) curve plotting options" ,
+   "Added to the 'Colors Etc' menu. Curves, Bars, and Fill." } ,
+
  { 28 , MAY , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add curve smoothing plot to graph viewer" ,
    "Invoked from 'Colors Etc' menu, or by pressing the 's' key. [For GC]" } ,
