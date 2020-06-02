@@ -6,17 +6,15 @@ commands:
   setup_dev_base_image:
     description: "Get base image using cache and  docker build"
     parameters:
-        version:
+        image_cache_version:
             type: string
-            default: "0"
     steps:
       - restore_an_exact_cache:
-          version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
-          version: "<< parameters.version >>"
+          version_file: "/home/circleci/afni/.docker/afni_dev_base.dockerfile"
+          version: "<< parameters.image_cache_version >>"
       - load_cached_docker_image_from_disk:
           image_name: afni_dev_base
       - run:
-          working_directory: /tmp/src/afni
           command: |
             if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
             then
@@ -27,7 +25,7 @@ commands:
           image_name: afni_dev_base
       - save_cache:
           # store a cache for this dockerfile version
-          key: v<< parameters.version >>-/tmp/src/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/tmp/src/afni/.docker/afni_dev_base.dockerfile" }}
+          key: v<< parameters.image_cache_version >>-/home/circleci/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/home/circleci/afni/.docker/afni_dev_base.dockerfile" }}
           paths:
             # path named using pattern for load_cached_docker_image_from_disk
             - /tmp/cache/afni_dev_base_docker.tar.gz
@@ -37,14 +35,14 @@ commands:
     parameters:
       build_type:
         type: string
+      image_cache_version:
+        type: string
     steps:
-        # set the dev image cache version for when cache invalidation is required
       - setup_dev_base_image:
-          version: "0"
+          image_cache_version: << parameters.image_cache_version >>
       - run:
           name: Build image
           no_output_timeout: 30m
-          working_directory: /tmp/src/afni
           command: |
             THISVERSION=$(cat src/AFNI_version_base.txt)
             echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
@@ -103,7 +101,8 @@ commands:
             apk add --no-cache pigz python3 py3-pip
             pip3 install docker # python docker-api
             pip3 install pytest
-      - setup_dev_base_image
+      - setup_dev_base_image:
+          image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
@@ -140,13 +139,9 @@ commands:
             fi
       # Push dev_base image too though it is unlikely to change
       - checkout
-      - restore_an_exact_cache:
-          version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
-          version: "<< parameters.image_cache_version >>"
-      - load_cached_docker_image_from_disk:
-          image_name: afni_dev_base
+      - setup_dev_base_image:
+          image_cache_version: << parameters.image_cache_version >>
       - run:
-          working_directory: /tmp/src/afni
           command: |
             if [ $DOCKER_USER == 'afni' ]; then
               if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
@@ -167,7 +162,6 @@ commands:
         type: string
     steps:
       - run:
-          working_directory: /tmp/src/afni
           name: Retrieve id and write to a file
           command: |
             export test_data_info=$(git submodule status|grep afni_ci_test_data)
@@ -263,7 +257,6 @@ commands:
         type: string
       version:
         type: string
-        default: "0"
     steps:
       - restore_cache:
           keys:
@@ -300,7 +293,6 @@ jobs:
         type: string
     docker:
       - image: docker:18.01.0-ce-git
-    working_directory: /tmp/src/afni
     steps:
       - checkout
       - setup_remote_docker
@@ -310,6 +302,7 @@ jobs:
             apk add --no-cache pigz python3
       - build_afni_image:
           build_type: << parameters.build_type >>
+          image_cache_version: << parameters.image_cache_version >>
       - save_docker_image_to_disk:
           image_name: afni_<< parameters.build_type >>
       - save_cache:
@@ -328,7 +321,6 @@ jobs:
         type: string
     docker:
       - image: docker:18.01.0-ce-git
-    working_directory: /tmp/src/afni
     steps:
       - check_integrity_of_containers:
           image_cache_version: << parameters.image_cache_version >>
@@ -343,7 +335,6 @@ jobs:
         type: string
     machine:
       image: circleci/classic:201711-01
-    working_directory: /tmp/src/afni
     steps:
       - checkout
       - write_test_data_cache_version_file:
@@ -364,7 +355,7 @@ jobs:
           # Save test data as cache for subsequent runs if ideal is not already saved
       - save_cache:
           key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
-          paths: /tmp/src/afni/tests/afni_ci_test_data
+          paths: /home/circleci/afni/tests/afni_ci_test_data
 
   deploy:
     parameters:
@@ -382,19 +373,17 @@ jobs:
   macos_build:
     macos:
         xcode: "11.2.1"
-    working_directory: /tmp/src/afni
     steps: # a series of commands to run
       - checkout
       - setup_macos_for_afni
       - run:
           name: Build on macos
           command: |
-            cd /tmp/src/afni
             mkdir build
             cd build
             cmake ..                                                           \
                 -GNinja                                                             \
-                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/macos_toolchainfile.cmake      \
+                -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
                 -DUSE_SYSTEM_VOLPACK=OFF    \
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
