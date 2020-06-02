@@ -1325,3 +1325,8 @@ def APRINT( S, ptype=None, indent=True):
     
     print(out)
     
+
+def ARG_missing_arg(arg):
+    EP("missing argument after option flag: {}".format(arg))
+
+
