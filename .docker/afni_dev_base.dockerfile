@@ -169,5 +169,5 @@ RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
 RUN mkdir $HOME/work && fix-permissions $HOME/work
 WORKDIR $HOME/
 
-ENTRYPOINT ["tini", "-g", "--"]
-CMD ["start.sh"]
+ENTRYPOINT ["tini", "-g", "start.sh", "--"]
+
