@@ -1246,6 +1246,33 @@ def isFloat(s):
     except:
         return False
 
+def list_count_float_not_int(ll):
+   """see if list of numbers can be treated like ints; returns number of
+floats.
+
+   Note: for tiny decimals, this can be wrong:
+
+In [7]: ab.listContainsFloatVsInt([1,2,3,4.0000000001,5.0])
+Out[7]: 1
+
+In [8]: ab.listContainsFloatVsInt([1,2,3,4.000000000000000001,5.0])
+Out[8]: 0
+
+   """
+
+   if type(ll) != list : EP("Input is not a list")
+   N = len(ll)
+   
+   count = 0
+
+   for x in ll:
+      a = float(x)
+      b = float(int(x))
+      if b-a :
+         count+=1
+   return count
+
+
 # -----------------------------------------------------------------------
 # [PT: Jun 1, 2020] simple functions to stylize printing of messages
 # in The AFNI Way.  APRINT() is the main workhorse; IP(), EP() and

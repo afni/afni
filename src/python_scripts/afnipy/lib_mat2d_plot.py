@@ -29,12 +29,13 @@ ver = '0.12' ; date = 'June 2, 2020'
 
 import sys, os, copy
 
-import matplotlib.pyplot as plt
-import matplotlib.colors as clr
-from   matplotlib        import rcParams
+import matplotlib.pyplot       as     plt
+import matplotlib.colors       as     clr
+from   matplotlib              import rcParams
+from   mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from afnipy import afni_base as ab
-from afnipy import afni_util as UTIL
+from   afnipy import afni_base as ab
+from   afnipy import afni_util as UTIL
 #from afnipy import lib_mat2d_base as LM2D
 
 # ---------------------------------------------------------------------------
@@ -85,9 +86,15 @@ class plot_mat2d:
         self.plt_title_txt     = ''
         self.plt_title_FS      = 10
 
-        self.tight_layout_ON   = True
-        self.hold_image_ON     = False
+        self.cbar_width_perc   = 5
+        self.cbar_pad          = 0.1
+        self.cbar_loc          = "right"
+        self.cbar_n_interval   = 4
+        self.cbar_num_form     = None   # try to guess int/float from vals
 
+
+        self.do_tight_layout   = True
+        self.do_hold_image     = False
         self.do_show_cbar      = True
 
         # -------------
@@ -206,13 +213,45 @@ class plot_mat2d:
         plt.title( self.plt_title_txt,
                    fontsize=self.plt_title_FS )
 
-        ab.IP("Made plot: {}".format(self.file_out))
+        if self.do_show_cbar :
+            cbar_wid = "{}%".format(self.cbar_width_perc)
+            divider  = make_axes_locatable(ax)
+            TheCax   = divider.append_axes(self.cbar_loc, 
+                                           size = cbar_wid, 
+                                           pad  = self.cbar_pad )
+            ntick    = self.cbar_n_interval + 1
+            del_cbar = (self.vmax - self.vmin) / self.cbar_n_interval 
+            ColBar   = [(self.vmin+del_cbar*ii) for ii in range(ntick) ]
 
-        if self.tight_layout_ON :
-            #print("style1")
+            if self.cbar_num_form :
+                cbar_num_form = self.cbar_num_form
+            elif ab.list_count_float_not_int(ColBar) :
+                # looks like floats
+                max_cbar = max(ColBar)
+                if max_cbar < 0.01 :
+                    cbar_num_form = '%.2e'
+                elif max_cbar < 10 :
+                    cbar_num_form = '%.3f'
+                elif max_cbar < 1000 :
+                    cbar_num_form = '%.1f'
+                else: 
+                    cbar_num_form = '%.2e'
+            else:
+                # looks like ints
+                max_cbar = max(ColBar)
+                if max_cbar < 1000 :
+                    cbar_num_form = '%d'
+                else: 
+                    cbar_num_form = '%.2e'
+
+            cbar     = plt.colorbar( IM, 
+                                     cax    = TheCax, 
+                                     ticks  = ColBar, 
+                                     format = cbar_num_form )
+
+        if self.do_tight_layout :
             plt.tight_layout()
         else:
-            #print("style2")
             subb.set_position([ box.x0+box.width*0.0, 
                                 box.y0+box.height*0.05,  
                                 box.width*0.95, 
@@ -221,8 +260,10 @@ class plot_mat2d:
         # ------------ save -----------
         plt.savefig( self.file_out,
                      dpi = self.dpi )
+        ab.IP("Made plot: {}".format(self.file_out))
 
-        if self.hold_image_ON :
+        # ------------ display -------------
+        if self.do_hold_image :
             plt.ion()
             plt.show()
 
