@@ -10,7 +10,7 @@ commands:
             type: string
     steps:
       - restore_an_exact_cache:
-          version_file: "/home/circleci/afni/.docker/afni_dev_base.dockerfile"
+          version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
           version: "<< parameters.image_cache_version >>"
       - load_cached_docker_image_from_disk:
           image_name: afni_dev_base
@@ -25,7 +25,7 @@ commands:
           image_name: afni_dev_base
       - save_cache:
           # store a cache for this dockerfile version
-          key: v<< parameters.image_cache_version >>-/home/circleci/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/home/circleci/afni/.docker/afni_dev_base.dockerfile" }}
+          key: v<< parameters.image_cache_version >>-/tmp/src/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/tmp/src/afni/.docker/afni_dev_base.dockerfile" }}
           paths:
             # path named using pattern for load_cached_docker_image_from_disk
             - /tmp/cache/afni_dev_base_docker.tar.gz
@@ -286,6 +286,7 @@ commands:
 ############################################################################
 jobs:
   build:
+    working_directory: /tmp/src/afni
     parameters:
       build_type:
         type: string
@@ -316,6 +317,7 @@ jobs:
 
 
   containers_check:
+    working_directory: /tmp/src/afni
     parameters:
       image_cache_version:
         type: string
@@ -326,6 +328,7 @@ jobs:
           image_cache_version: << parameters.image_cache_version >>
 
   test:
+    working_directory: /tmp/src/afni
     parameters:
       build_type:
         type: string
@@ -355,9 +358,10 @@ jobs:
           # Save test data as cache for subsequent runs if ideal is not already saved
       - save_cache:
           key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
-          paths: /home/circleci/afni/tests/afni_ci_test_data
+          paths: /tmp/src/afni/tests/afni_ci_test_data
 
   deploy:
+    working_directory: /tmp/src/afni
     parameters:
       build_type:
         type: string
@@ -371,6 +375,7 @@ jobs:
           image_cache_version: << parameters.image_cache_version >>
 
   macos_build:
+    working_directory: /tmp/src/afni
     macos:
         xcode: "11.2.1"
     steps: # a series of commands to run
