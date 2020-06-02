@@ -20,10 +20,15 @@ ver = '0.1' ; date = 'June 2, 2020'
 #ver = '0.11' ; date = 'June 2, 2020'
 # [PT] fix using roi_intvals as labels
 #
-ver = '0.12' ; date = 'June 2, 2020'
+#ver = '0.12' ; date = 'June 2, 2020'
 # [PT] tested in py2 and py3
 #    + fixed plotting size stuff with tight layout
 #    + put in fix for matplotlib bug for yaxes range
+#
+ver = '0.12' ; date = 'June 2, 2020'
+# [PT] 
+#    + cbar functionality added
+#    + funcs for guessing fonts
 #
 # --------------------------------------------------------------------------
 
@@ -59,7 +64,7 @@ class plot_mat2d:
         self.fout_base = ''
         self.fout_ext  = ''
 
-        self.figsize   = (3.5, 2.8)    # (w, h), in inches
+        self.figsize   = None  # (3.5, 2.8) = (w, h) in inches; now guess good
         self.dpi       = 100
         self.facecolor = 'w'
         self.interp    = 'nearest'
@@ -84,14 +89,14 @@ class plot_mat2d:
         self.plt_yticks_FS     = 10
 
         self.plt_title_txt     = ''
-        self.plt_title_FS      = 10
+        self.plt_title_FS      = None
 
         self.cbar_width_perc   = 5
         self.cbar_pad          = 0.1
         self.cbar_loc          = "right"
         self.cbar_n_interval   = 4
         self.cbar_num_form     = None   # try to guess int/float from vals
-
+        self.cbar_FS           = None   # try to guess 
 
         self.do_tight_layout   = True
         self.do_hold_image     = False
@@ -171,12 +176,89 @@ class plot_mat2d:
         # plot title
         self.plt_title_txt = self.m.label
 
+    def guess_appropriate_figsize(self):
+        """Use fontsize and number of rows stacked in y-dir to figure out what
+        a good overall height.  Basically, we want the fontsize on the
+        yticks to be just a bit less than the col width.
+
+        The factor of 0.7 comes from practical experience with about
+        the fraction of the height taken up by the plot in the
+        vertical direction when things are fine.
+
+        Re. width: make plot approx. square if no cbar is used; add on
+        about 20% extra width if a cbar is used.
+
+        """
         
+        ### "actual" formula, but bc matplotlib fontsize uses PPI, not
+        ### DPI, then the DPI factors cancel!
+        #num = self.plt_yticks_N * 1.2*self.plt_yticks_FS * (self.dpi / 72.)
+        #den = 0.7 * self.dpi
+        #height = num / den
+
+        ### here, the factor of 2 includes the 'fudge factor' on row
+        ### height and the denominator factor of 0.7, as well as a
+        ### bit extra padding
+        height = 2 * self.plt_yticks_N * self.plt_yticks_FS / 72.
+
+        width  = (1 + 0.2 * int(self.do_show_cbar)) *height
+
+        ab.IP("figsize (h, w) guess (in): {:.2f}, {:.2f}"
+              "".format(height, width))
+
+        self.figsize = (width, height)
+
+    def guess_appropriate_cbar_fontsize(self):
+        """Similar goal/premise as guess_appropriate_figsize().  This if for
+        the cbar values.  Assumes the fig height is known at this
+        point (so would have to be calc'ed after
+        guess_appropriate_figsize(), potentially.
+
+        """
+
+        ###  some other ideas that didn't end up getting used...
+        #n_pix_fig_y = self.dpi * self.figsize[1]
+        #n_cbar_vals = self.cbar_n_interval+1
+        #n_pix_cbar_yticks = self.plt_yticks_FS * n_cbar_vals 
+        #n_pix_cbar_yticks*= (self.dpi / 72.)
+
+        #guess1 = 0.8 * self.plt_yticks_FS 
+
+        good_val = 2 + (0.7 / 32 ) * 100 * self.figsize[1]
+        ab.IP("cbar fontsize guess: {:.2f}".format(good_val))
+
+        self.cbar_FS = good_val
+
+    def guess_appropriate_title_fontsize(self):
+        """Similar goal/premise as guess_appropriate_figsize().  This if for
+        the cbar values.  Assumes the fig height is known at this
+        point (so would have to be calc'ed after
+        guess_appropriate_figsize(), potentially.
+
+        """
+
+        good_val = 3 + 1.1*(0.7 / 32 ) * 100 * self.figsize[1]
+        ab.IP("title fontsize guess: {:.2f}".format(good_val))
+
+        self.plt_title_FS = good_val
 
     def make_plot(self):
         """
         Construct the plot obj
         """
+
+        if not(self.figsize) :
+            # if one isn't entered, we'll try to *guess* a good one,
+            # based on fontsize, number of cols, etc. and whether
+            # there is a cbar
+            self.guess_appropriate_figsize()
+
+        if not(self.cbar_FS) :
+            self.guess_appropriate_cbar_fontsize()
+
+        if not(self.plt_title_FS) :
+            self.guess_appropriate_title_fontsize()
+
 
         fig = plt.figure( figsize=self.figsize, 
                           dpi=self.dpi, 
@@ -248,7 +330,8 @@ class plot_mat2d:
                                      cax    = TheCax, 
                                      ticks  = ColBar, 
                                      format = cbar_num_form )
-
+            cbar.ax.tick_params(labelsize=self.cbar_FS) 
+        
         if self.do_tight_layout :
             plt.tight_layout()
         else:
