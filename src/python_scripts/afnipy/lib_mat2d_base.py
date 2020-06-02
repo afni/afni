@@ -46,22 +46,30 @@ class mat2d:
     def __init__( self, M, label=None, 
                   eletype=None, allow_ragged=False, 
                   col_strlabs=None, row_strlabs=None,
-                  col_intvals=None, row_intvals=None ):
+                  col_intvals=None, row_intvals=None,
+                  file_inp=None ):
 
         self.mat         = []   # data vals
         self.nrow        = 0
         self.ncol        = 0
         self.nelements   = 0
         self.label       = ''   # what is matrix
+
+        self.min_ele     = None
+        self.max_ele     = None
+        self.is_square   = False
+        self.is_ragged   = False
+
         self.col_strlabs = []   # e.g., can be labeltable/atlaspoint labels
         self.row_strlabs = [] 
         self.col_intvals = []   # e.g., can be ROI int vals
         self.row_intvals = []
-        self.eletype     = None # int, float, bool...
-        self.file_base   = ''   # can record file basename
-        self.file_dir    = ''   # can record file dirname
-        
 
+        self.eletype     = None # int, float, bool...
+        self.file_inp    = None
+        #self.file_base   = ''   # can record file basename
+        #self.file_dir    = ''   # can record file dirname
+        
         # ---- set vals ------
 
         # set mat, nrow, ncol, is_square
@@ -72,6 +80,8 @@ class mat2d:
 
         if label :
             self.label = label
+        if file_inp :
+            self.file_inp = file_inp            
 
         if col_strlabs :
             self.set_col_strlabs(col_strlabs)
@@ -85,11 +95,41 @@ class mat2d:
 
     # -------------- methods -------------------        
 
-    def is_square(self):
-        if self.nrow and self.ncol and self.nrow == self.ncol :
-            return True
+    def get_mat_min_max(self):
+        '''calculate min and max values of entire array'''
+        amin = []
+        amax = []
+        for rrr in self.mat:
+            amin.append(min(rrr))
+            amax.append(max(rrr))
+        self.min_ele = min(amin)
+        self.max_ele = max(amax)
+
+    def mat_col_minrow_maxrow_ragged_square(self):
+        """ check 5 properties and return 5 values:
+        ncol      (int)
+        min nrow  (int)
+        max nrow  (int)
+        is_ragged (bool)
+        is_square (bool)
+        """
+
+        is_square = False         # just default; can change below
+
+        ncol      = len(self.mat) # get from mat, cd use attribute
+
+        all_rlen  = [len(r) for r in self.mat]
+        minrow    = min(all_rlen)
+        maxrow    = max(all_rlen)
+
+        if minrow == maxrow :
+            is_ragged = False
+            if minrow == ncol :
+                is_square = True
         else:
-            return False
+            is_ragged = True
+
+        return ncol, minrow, maxrow, is_ragged, is_square
 
     def set_col_strlabs(self, L):
         '''input a list of strings; must match number of mat cols'''
@@ -151,9 +191,12 @@ class mat2d:
         self.mat = [] # reset
 
         if type(M) == list or mform == 'LIST' :
-            # input M is a list (of lists) of numbers
+            # input M is a list (of lists) of numbers (or strings,
+            # actually, bc eletype can format them)
             for rrr in M :
                 self.mat.append(rrr)
+            # at this point, elements might be strings still; wait
+            # till after 'if eletype :' below to use values
         else:
             ab.EP("Unrecognized input mat format\n")
 
@@ -163,6 +206,14 @@ class mat2d:
             self.set_eletype(eletype)
             #ab.IP("Matrix elements set to be type: {}"
             #      "".format(eletype))
+
+        nc, nrmin, nrmax, is_rag, is_sq \
+            = self.mat_col_minrow_maxrow_ragged_square()                 
+        self.is_ragged = is_rag
+        self.is_square = is_sq
+
+        # store min and max of ele
+        self.get_mat_min_max()
 
     def set_eletype( self, ET ):
         """Set type of each element in the matrix
@@ -201,26 +252,25 @@ class mat2d:
         if not(self.mat) :
             ab.EP("Can't check dimensions of empty mat")
 
-        self.ncol = len(self.mat)
+        nc, nrmin, nrmax, is_rag, is_sq \
+            = self.mat_col_minrow_maxrow_ragged_square()                 
 
-        lrows = [len(r) for r in self.mat]
-        lmin  = min(lrows)
-        lmax  = max(lrows)
+        self.ncol = nc
 
-        if lmin != lmax :
+        if is_rag :
             if allow_ragged :
                 ab.WP("ragged matrix: min = {}, max = {}\n"
-                      "-> am zeropadding".format(lmin, lmax))
+                      "-> am zeropadding".format(nrmin, nrmax))
                 for ii in range(self.ncol):
-                    diff = lmax - lrows[ii]
+                    diff = nrmax - len(self.mat[ii])
                     if diff :
                         for jj in range(diff):
                             self.mat[ii].append(0)
             else:
                 ab.EP("ragged matrix: min = {}, max = {}\n"
-                      "no flag to allow ragged mats".format(lmin, lmax))
+                      "no flag to allow ragged mats".format(nrmin, nrmax))
 
-        self.nrow = lmax
+        self.nrow = nrmax
         
         self.nelements = self.nrow * self.ncol
 

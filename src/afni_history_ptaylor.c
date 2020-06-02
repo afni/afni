@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2020 , PT , "lib_mat2d_base.py" , MINOR , TYPE_GENERAL,
+   "Migrated from lib_mat2d.py; tweaks added.",
+   "Add in few more mat2d attributes; rearrange methods.\n"
+},
+
 { 1, June, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
    "Reformat report*.1D tables a bit.",
    "Add in a KEY; change U/W to A/B; minor format stuff.\n"
