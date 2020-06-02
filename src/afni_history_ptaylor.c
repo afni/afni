@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.2 as thr value of corr map.",
+   "The value 0.3 seemed pretty high (esp. if no smoothing is applied).\n"
+},
+
 { 1, June , 2020 , PT , "lib_mat2d_base.py" , MINOR , TYPE_GENERAL,
    "Migrated from lib_mat2d.py; tweaks added.",
    "Add in few more mat2d attributes; rearrange methods.\n"

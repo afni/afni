@@ -153,8 +153,11 @@ auth = 'PA Taylor'
 #ver = '3.61' ; date = 'May 28, 2020' 
 # [PT] in vstat maps, report DF value(s)
 #
-ver = '3.62' ; date = 'May 31, 2020' 
+#ver = '3.62' ; date = 'May 31, 2020' 
 # [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
+#
+ver = '3.63' ; date = 'May 31, 2020' 
+# [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
 #
 #########################################################################
 
