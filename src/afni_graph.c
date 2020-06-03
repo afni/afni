@@ -2213,8 +2213,8 @@ ENTRY("plot_graphs") ;
 
    xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor for plots */
 
-   if( DO_UPSAM(grapher) ){
-     nupsam = XUPSAM(grapher->gx,pnum) ; /* 28 May 2020 */
+   if( DO_UPSAM(grapher) ){               /* for smoothing [28 May 2020] */
+     nupsam = XUPSAM(grapher->gx,pnum) ;  /* XUPSAM is in afni_graph.h */
      if( nupsam > 1 && xxim != NULL ) nupsam *= 2 ;
      /** INFO_message("nupsam = %d",nupsam) ; **/
    }

@@ -424,7 +424,7 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0,0 } ;  /* Oct 1999 */
 #define DO_UPSAM(gr)        ((gr)->do_upsam)             /* 28 May 2020 */
 
 /* amount of resampling in plot_graphs                      28 May 2020 */
-#define XUPSAM(www,npt) ( (int)( 0.499f + 0.25f*www / (npt+1.0f) ) )
+#define XUPSAM(www,npt) ( (int)( 0.499f + 0.3456f*(www) / ((npt)+0.5f) ) )
 
 /* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
 void AFNI_XDrawLines( Display *display, Drawable d,
