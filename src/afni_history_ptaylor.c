@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, June , 2020 , PT , "epi_b0_correct.py" , MICRO , TYPE_BUG_FIX,
+   "Programming badness if user forgot to add a nec arg to an opt.",
+   "There should be no change in behavior when correct opts are added.\n"
+},
+
 { 3, June , 2020 , PT , "fat_mat2d_plot.py" , MAJOR , TYPE_NEW_PROG,
    "FINALLY, a python3 program to plot 3dTrackID and 3dNetCorr output.",
    "Plots *.grid and *.netcc files; replaces fat_mat_sel.py.\n"
