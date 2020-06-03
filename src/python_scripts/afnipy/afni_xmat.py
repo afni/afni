@@ -74,15 +74,15 @@ class AfniXmat:
         """append each AfniMat to the current one"""
         # test before trashing current matrix
         if not self.ready:
-            print '** append: AfniMat is not ready'
+            print('** append: AfniMat is not ready')
             return 1
 
         for mat in newmats:
             if not mat.ready:
-                print '** append: AfniMat is not ready'
+                print('** append: AfniMat is not ready')
                 return 1
             if mat.nrows != self.nrows:
-                print '** append: nrows is different'
+                print('** append: nrows is different')
                 return 2
 
         # update labels
@@ -144,15 +144,15 @@ class AfniXmat:
         if not self.have_SL():
             return '** cannot solve, need scipy package', None
 
-        if not acols: acols = range(self.ncols)
+        if not acols: acols = list(range(self.ncols))
 
-        if not list2_is_in_list1(range(self.ncols), acols):
+        if not list2_is_in_list1(list(range(self.ncols)), acols):
             return '** cannot solve, Xcols outside of range', None
         if col1D < 0 or col1D >= mat1D.ncols:
             return '** cannot solve, col1D outside of range', None
 
-        if self.verb > 1: print '++ solving Ax=b for x, shapes = %s, %s' % \
-                                (self.mat.shape, mat1D.mat.shape)
+        if self.verb > 1: print('++ solving Ax=b for x, shapes = %s, %s' % \
+                                (self.mat.shape, mat1D.mat.shape))
 
         # pass XtX and Xtb to SL.solve
         x = self.mat[:,acols]
@@ -184,16 +184,16 @@ class AfniXmat:
         if not self.ready:
             return '** linear_combo: mat not initialized', None
 
-        if not acols: acols = range(self.ncols)
+        if not acols: acols = list(range(self.ncols))
 
         if len(acols) != factmat.nrows:
             return '** linear_combo, col lengths do not match', None
 
-        if not list2_is_in_list1(range(self.ncols), acols):
+        if not list2_is_in_list1(list(range(self.ncols)), acols):
             return '** linear_combo, Xcols outside of range', None
 
         if self.verb > 1:
-            print '++ summing Ax over cols: %s' % acols
+            print('++ summing Ax over cols: %s' % acols)
 
         factors = factmat.mat.flatten()
 
@@ -261,10 +261,10 @@ class AfniXmat:
         if self.SLfirst:
            try:  from scipy import linalg as SL
            except:
-               print "** failed to import scipy.linalg"
-               print "   may want to install the package: scipy"
+               print("** failed to import scipy.linalg")
+               print("   may want to install the package: scipy")
            else:
-               if self.verb > 1: print '-- have scipy...'
+               if self.verb > 1: print('-- have scipy...')
                self.SL = SL
            self.SLfirst = 0
 
@@ -278,10 +278,10 @@ class AfniXmat:
         """return the euclidean norm, either from scipy or computed"""
 
         if self.have_SL():
-           if self.verb > 4: print '-- SL: using scipy norm'
+           if self.verb > 4: print('-- SL: using scipy norm')
            return self.SLnorm(vec)
 
-        if self.verb > 4: print '-- SL: using local norm'
+        if self.verb > 4: print('-- SL: using local norm')
 
         if len(vec) < 1: return 0.0
         sum = 0.0
@@ -297,7 +297,7 @@ class AfniXmat:
 
         if not self.cormat_ready: self.set_cormat() # create cormat
         if not self.cormat_ready: # then failure
-            print '** cormat_warnings: failed to create cormat'
+            print('** cormat_warnings: failed to create cormat')
             return 1
 
         cmat = self.cormat
@@ -308,8 +308,8 @@ class AfniXmat:
         roicols  = self.cols_by_group_list([],allroi=1)
 
         if self.verb > 1:
-            print '-- LCP: len(base, mot, roi) = (%d, %d, %d), cut = %.2f' % \
-                  (len(basecols), len(motcols), len(roicols), cutoff)
+            print('-- LCP: len(base, mot, roi) = (%d, %d, %d), cut = %.2f' % \
+                  (len(basecols), len(motcols), len(roicols), cutoff))
 
         # make a list of (abs(val),val,cos,r,c) tuples in lower triangle
         clist = []
@@ -341,7 +341,7 @@ class AfniXmat:
             badlist.append((val, cval, r, c))         # so keep this one
 
         if self.verb > 1:
-            print '-- LCP: badlist length = %d' % len(badlist)
+            print('-- LCP: badlist length = %d' % len(badlist))
 
         del(clist)
 
@@ -360,7 +360,7 @@ class AfniXmat:
 
         if not self.cormat_ready: self.set_cormat() # create cormat
         if not self.cormat_ready: # then failure
-            print '** cosmat_warnings: failed to create cormat'
+            print('** cosmat_warnings: failed to create cormat')
             return 1
 
         cmat = self.cormat
@@ -371,9 +371,9 @@ class AfniXmat:
         roicols  = self.cols_by_group_list([],allroi=1)
 
         if self.verb > 1:
-            print '-- LCosW: len(base, mot, roi) = (%d, %d, %d), cut = %.2f, ' \
+            print('-- LCosW: len(base, mot, roi) = (%d, %d, %d), cut = %.2f, ' \
                   'mot = %d' % (len(basecols), len(motcols),
-                                len(roicols), cutoff, check_mot_base)
+                                len(roicols), cutoff, check_mot_base))
 
         # make a list of (abs(cos),cos,cor,r,c) tuples in lower triangle
         clist = []
@@ -406,7 +406,7 @@ class AfniXmat:
             badlist.append((val, rval, r, c))         # so keep this one
 
         if self.verb > 1:
-            print '-- LCosW: badlist length = %d' % len(badlist)
+            print('-- LCosW: badlist length = %d' % len(badlist))
 
         del(clist)
 
@@ -424,7 +424,7 @@ class AfniXmat:
         try:
             base_ind = self.groups.index(-1)
             if base_ind < 0:
-                if self.verb > 1: print '-- no baseline group to set runs with'
+                if self.verb > 1: print('-- no baseline group to set runs with')
                 return
 
             b0 = self.mat[:,base_ind]
@@ -436,11 +436,11 @@ class AfniXmat:
             vals = vals.tolist()
             if len(vals) != 2:
                 if self.verb > 1:
-                    print '-- baseline without exactly 2 values : %s' % vals
+                    print('-- baseline without exactly 2 values : %s' % vals)
                 return
             if vals[0] != 0 or vals[1] != 1:
                 if self.verb > 1:
-                    print '-- baseline vals not just 0,1: %s' % vals
+                    print('-- baseline vals not just 0,1: %s' % vals)
                 return
 
             # looks good, find run length and the number of runs
@@ -449,7 +449,7 @@ class AfniXmat:
             except:     # base until end....
                 rnext = len(base0)
             if rnext <= first:
-                if self.verb > 1: print '-- odd run_len check...'
+                if self.verb > 1: print('-- odd run_len check...')
                 return
 
             # we have a run length 
@@ -458,8 +458,8 @@ class AfniXmat:
             nruns = len(base0)/rlen
             if rlen*nruns != len(base0):
                 if self.verb > 1:
-                   print '** nruns failure: rlen = %d, nruns = %d, len = %d' \
-                         % (rlen, nruns, len(base0))
+                   print('** nruns failure: rlen = %d, nruns = %d, len = %d' \
+                         % (rlen, nruns, len(base0)))
                 return
 
             # success!
@@ -471,7 +471,7 @@ class AfniXmat:
             return
 
     def show(self):
-        print self.make_show_str()
+        print(self.make_show_str())
 
     def make_show_str(self):
         if not self.ready: return "++ mat       : <unset>"
@@ -491,7 +491,7 @@ class AfniXmat:
         return mstr
 
     def show_conds(self):
-        print self.make_show_conds_str()
+        print(self.make_show_conds_str())
 
     def make_show_conds_str(self, extra_cols=[]):
         """return a string that displays condition numbers for matrix of:
@@ -521,7 +521,7 @@ class AfniXmat:
                '    motion + baseline   : %.1f\n'    \
                '    baseline            : %.1f\n'    \
                '    motion              : %.1f\n'    \
-              % ( self.cond_num_by_cols(range(self.ncols)),
+              % ( self.cond_num_by_cols(list(range(self.ncols))),
                   extra_str,
                   self.cond_num_by_cols(self.cols_by_group_list([],allroi=1)),
                   self.cond_num_by_cols(self.cols_by_group_list([-1],allroi=1)),
@@ -536,16 +536,16 @@ class AfniXmat:
         """given a column list, return the matrix condition number"""
 
         if not self.have_SL():
-           print '** missing scipy.linalg, cannot get condition numbers'
+           print('** missing scipy.linalg, cannot get condition numbers')
            return 0.0
 
         if len(cols) < 2: return 0.0
         if min(cols) < 0 or max(cols) >= self.ncols:
-            print '** column indices ouside range [0,%d]' % (self.ncols-1)
+            print('** column indices ouside range [0,%d]' % (self.ncols-1))
         mat = self.mat[:,cols]
         try: u,s,vh = self.SL.svd(mat)
         except:
-           print '** failed to compute condition for selected columns'
+           print('** failed to compute condition for selected columns')
            return 0.0
         return s[0]/s[-1]
 
@@ -556,12 +556,12 @@ class AfniXmat:
                 labs    : a list of column labels to choose from
                 groups  : a list of column groups to choose from"""
         if not self.have_SL():
-            print '** missing scipy.linalg, cannot evaluate X matrix'
+            print('** missing scipy.linalg, cannot evaluate X matrix')
             return
         sublist = []
         # start with cols, and make ordered list (order wrt self.ncols)
         if len(cols) > 0:
-            if not list2_is_in_list1(range(self.ncols), cols, "columns"):
+            if not list2_is_in_list1(list(range(self.ncols)), cols, "columns"):
                 return
             sublist.extend([val for val in range(self.ncols) if val in cols])
 
@@ -572,7 +572,7 @@ class AfniXmat:
             sublist.extend(self.cols_by_group_list(groups))
 
         # by default, choose all columns
-        if len(sublist) == 0: sublist = range(self.ncols)
+        if len(sublist) == 0: sublist = list(range(self.ncols))
 
         # and restrict sublist to sorted, unique list
         sublist.sort()
@@ -580,21 +580,21 @@ class AfniXmat:
         for val in sublist:     # yeah, this is slow...
             if not val in newlist: newlist.append(val)
         if len(newlist) < 2:    # verify that there is something to do
-            if mesg: print "** (%s) cannot get cond for short column list %s" \
-                           % (mesg, newlist)
-            else:    print "** cannot get cond for short column list %s" \
-                           % (newlist)
+            if mesg: print("** (%s) cannot get cond for short column list %s" \
+                           % (mesg, newlist))
+            else:    print("** cannot get cond for short column list %s" \
+                           % (newlist))
             return
 
         mat = self.mat[:,newlist]
         u,s,vh = self.SL.svd(mat)
 
         if self.verb > 1:
-            print "-- matrix from sublist: %s" % (newlist)
-            print mat
+            print("-- matrix from sublist: %s" % (newlist))
+            print(mat)
         cond = s[0]/s[-1]
-        if mesg: print '%s : condition number %f' % (mesg, cond.item())
-        else:    print 'condition number %f' % cond.item()
+        if mesg: print('%s : condition number %f' % (mesg, cond.item()))
+        else:    print('condition number %f' % cond.item())
 
     def cols_by_group_list(self, groups, allroi=0):
         """return a list of columns, given a list of groups
@@ -607,7 +607,7 @@ class AfniXmat:
         if allroi:
            for val in groups:
               if val > 0:
-                 print "** CBGL: cannot pass positive groups with 'allroi'"
+                 print("** CBGL: cannot pass positive groups with 'allroi'")
                  return []
            groups.extend([g for g in self.groups if g > 0])
         if len(groups) < 1 or len(self.groups) < 1: return []
@@ -625,11 +625,11 @@ class AfniXmat:
         if type(matrix) == type([]):        mat = N.array(matrix)
         elif isinstance(matrix, N.ndarray): mat = matrix
         else:
-            print '** matrix for init must be Numpy or [[float]] format'
+            print('** matrix for init must be Numpy or [[float]] format')
             return 1
         shape = list(mat.shape)
         if len(shape) < 1 or len(shape) > 2:
-            print '** cannot init AfniXmat from %d-D matrix' % len(shape)
+            print('** cannot init AfniXmat from %d-D matrix' % len(shape))
             return 1
 
         if len(shape) == 1: mat.shape = (shape[0], 1)
@@ -643,7 +643,7 @@ class AfniXmat:
         mat, clines = TD.read_data_file(fname)
         if not mat: return
         if not TD.data_is_rect(mat):
-            print '** matrix is not rectangular in %s' % fname
+            print('** matrix is not rectangular in %s' % fname)
             return
         self.mat   = N.array(mat)
         self.nrows  = len(mat)
@@ -661,54 +661,54 @@ class AfniXmat:
                     ncols, type = data.split('*')
                     ncols = int(ncols)
                     if self.verb > verb_level:
-                        print "-- label %s: cols = %d, type = %s" % \
-                              (label, ncols, type)
+                        print("-- label %s: cols = %d, type = %s" % \
+                              (label, ncols, type))
                     if ncols != self.ncols:
-                        print "** matrix cols %d != %s cols %d" % \
-                              (self.ncols, label, ncols)
+                        print("** matrix cols %d != %s cols %d" % \
+                              (self.ncols, label, ncols))
                 elif label == 'ni_dimen':
                     nrows = int(data)
                     if self.verb > verb_level:
-                        print "-- label %s: rows = %d" % (label, nrows)
+                        print("-- label %s: rows = %d" % (label, nrows))
                     if nrows != self.nrows:
-                        print "** matrix rows %d != %s rows %d" % \
-                              (self.nrows, label, nrows)
+                        print("** matrix rows %d != %s rows %d" % \
+                              (self.nrows, label, nrows))
                 elif label == 'ColumnLabels':
                     self.labels = [str.strip() for str in data.split(';')]
                     if self.verb > verb_level:
-                        print "-- label %s: labels = %s" % (label, self.labels)
+                        print("-- label %s: labels = %s" % (label, self.labels))
                     if self.ncols != len(self.labels):
-                        print "** %d ColumnLabels but %d columns" %     \
-                              (len(self.labels), self.ncols)
+                        print("** %d ColumnLabels but %d columns" %     \
+                              (len(self.labels), self.ncols))
                         self.labels = None
                 elif label == 'ColumnGroups':
                     self.groups = UTIL.decode_1D_ints(data)
                     if self.groups:
                         if len(self.groups) != self.ncols:
-                            print "** ColumnGroups len %d != ncols %d" % \
-                                  (len(self.groups), self.ncols)
+                            print("** ColumnGroups len %d != ncols %d" % \
+                                  (len(self.groups), self.ncols))
                     if self.verb > verb_level:
-                        print "-- label %s: groups %s" % (label,self.groups)
+                        print("-- label %s: groups %s" % (label,self.groups))
                 elif label == 'RowTR':
                     self.tr = float(data)
                     if self.verb > verb_level:
-                        print "-- label %s: TR %s" % (label,self.tr)
+                        print("-- label %s: TR %s" % (label,self.tr))
                 elif label == 'GoodList':
                     self.goodlist = UTIL.decode_1D_ints(data)
                     if self.goodlist:
                         if len(self.goodlist) != self.nrows:
-                            print "** GoodList missing %d rows" % \
-                                  self.nrows-len(self.goodlist)
+                            print("** GoodList missing %d rows" % \
+                                  self.nrows-len(self.goodlist))
                     if self.verb > verb_level:
-                        print "-- label %s: goodlist %s" % (label,self.goodlist)
+                        print("-- label %s: goodlist %s" % (label,self.goodlist))
                 elif label == 'NRowFull':
                     self.nrowfull = int(data)
                     if self.verb > verb_level:
-                        print "-- label %s: nrowfull %s" % (label,self.nrowfull)
+                        print("-- label %s: nrowfull %s" % (label,self.nrowfull))
                 elif self.verb > 2:
-                    print "** unknown comment label '%s'" % label
+                    print("** unknown comment label '%s'" % label)
             except:
-                print "** failed to process comment label '%s'" % label
+                print("** failed to process comment label '%s'" % label)
 
 
 def c1D_line2labelNdata(cline, verb=1):
@@ -718,7 +718,7 @@ def c1D_line2labelNdata(cline, verb=1):
 
     # check for problems
     if len(sline) < 4 or sline[0] != "#" or sline[2] != "=":
-        if verb > 2: print "-- skipping useless comment line: '%s'" % cline
+        if verb > 2: print("-- skipping useless comment line: '%s'" % cline)
         return None, None
 
     label = sline[1]    # store the line label
@@ -727,12 +727,12 @@ def c1D_line2labelNdata(cline, verb=1):
 
     # again, check for problems
     if len(dline) < 2 or dline[0] != '"' or dline[-1] != '"':
-        if verb > 1: print "** missing quotes in comment line: '%s'" % cline
+        if verb > 1: print("** missing quotes in comment line: '%s'" % cline)
         return None, None
 
     data = dline[1:-1]
 
-    if verb > 2: print "++ line2labelNdata returns '%s', '%s'" % (label,data)
+    if verb > 2: print("++ line2labelNdata returns '%s', '%s'" % (label,data))
 
     return label, data
 
@@ -745,7 +745,7 @@ def list2_is_in_list1(list1, list2, label=''):
 
     for item in list2:
         if not item in list1:
-            if label: print "-- list '%s' not subset in AfniXmat" % label
+            if label: print("-- list '%s' not subset in AfniXmat" % label)
             return 0
 
     return 1
