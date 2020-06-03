@@ -1329,4 +1329,28 @@ def APRINT( S, ptype=None, indent=True):
 def ARG_missing_arg(arg):
     EP("missing argument after option flag: {}".format(arg))
 
+def parse_help_text_for_opts( H ):
+    """Input:  help string H (likely, a multilined one).
+ 
+    This program will go through and try to find all option names,
+    basically by finding leftmost strings starting with a single '-'
+    char (like apsearch, I believe).
+
+    Output: list of option names, to be used in parsing user input
+    argv.
+
+    """
+
+    opts = []
+
+    hsplit = H.split('\n')
+    for x in hsplit:
+        if x.strip() :
+            start = x.split()[0].strip()
+            if start[0] == '-' :
+                if len(start) > 1 :
+                    if start[1] != '-':
+                        opts.append(start)
+
+    return opts
 
