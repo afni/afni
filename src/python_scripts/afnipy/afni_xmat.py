@@ -234,10 +234,20 @@ class AfniXmat:
         # and normalize
         norms = [self.norm(col) for col in xtn]
         for c in range(self.ncols):     # normalize each row
-            xtn[c] /= norms[c]
+            if norms[c]:
+               xtn[c] /= norms[c]
+            else:
+               if len(self.labels) == self.ncols:
+                  lstr = '(%s) ' % self.labels[c]
+               else:
+                  # could be efficient, but this is an error condition
+                  lstr = ''
+               print('** norm[%d] %s= 0' % (c, lstr))
+               xtn[c] = 0
         norms = [self.norm(col) for col in ctn]
         for c in range(self.ncols):     # normalize each cos0 row
-            ctn[c] /= norms[c]
+            if norms[c]: ctn[c] /= norms[c]
+            else:        ctn[c] = 0
 
         xn = N.transpose(xtn)           # transpose back to normalized xmat
         cn = N.transpose(ctn)          # transpose back to normalized xmat
