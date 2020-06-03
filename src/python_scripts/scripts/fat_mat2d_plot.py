@@ -63,41 +63,5 @@ if __name__ == "__main__" :
         # Apply user opts for plotting
         Mplot.make_plot() 
 
-        
-
 
     sys.exit(0)
-    # Make a mask from a magn dset, if need be
-    did_copy_inps = iopts.copy_inps_to_wdir()
-
-    # Make a mask from a magn dset, if need be
-    if not(iopts.dset_mask) :
-        did_mask_B0 = iopts.mask_B0()
-
-    # Do the main work
-    did_B0_corr = iopts.B0_corr()
-
-    iopts.write_params()
-    iopts.write_history()
-
-    self_vars = vars( iopts ) 
-    print("\n------------")
-    print("++ epi_b0_correct.py finishes.")
-    print("++ Text of commands :  {ocmds_fname}"
-          "".format( **self_vars ))
-    print("++ Text of params   :  {opars_fname}\n"
-          "".format( **self_vars ))
-    if iopts.do_qc_image :
-        print("++ QC images        :  {outdir}/{outdir_qc}/*.png\n"
-              "".format( **self_vars ))
-    print("++ MASK dset output :  {outdir}/{odset_mask}{dext}"
-          "".format( **self_vars ))
-    print("++ WARP dset output :  {outdir}/{odset_warp}{dext}"
-          "".format( **self_vars ))
-    print("++ EPI  dset output :  {outdir}/{odset_epi}{dext}\n"
-          "".format( **self_vars ))
-
-    sys.exit(0)
-
-
-
