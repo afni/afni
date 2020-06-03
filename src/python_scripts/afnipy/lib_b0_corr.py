@@ -91,11 +91,16 @@
 #ver='2.61' ; date='Oct 2, 2019'
 # + [PT] 3dmask_tool now to do dilate/erosion
 #
-ver='2.62' ; date='Oct 2, 2019'
+#ver='2.62' ; date='Oct 2, 2019'
 # + [PT] Move to use '3dWarp ...' rather than 'cat_matvec ...' for
 #        changing between EPI-freq dsets, which might have relative
 #        obliquity difference; should be minisculy better for rounding
 #        error considerations
+#
+ver='2.63' ; date='June 3, 2020'
+# [PT]
+#    + bug fix: ARG_missing_arg() called a func that didn't exist here!
+#      -> that func is now in afni_base, so use that.
 #
 ###############################################################################
 
@@ -1938,7 +1943,7 @@ def parse_args_b0_corr(full_argv):
 
         elif argv[i] == "{prefix}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_prefix(argv[i])
 
@@ -1951,7 +1956,7 @@ def parse_args_b0_corr(full_argv):
              argv[i] == "{in_epi}".format(**all_opts) :
             dt = argv[i][4:]
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             # this both reads in dset and gets useful specs/info on it
             # via 3dinfo, which can be used subsequently
@@ -1961,55 +1966,55 @@ def parse_args_b0_corr(full_argv):
 
         elif argv[i] == "{in_epi_json}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_epi_json(argv[i])
 
         elif argv[i] == "{epi_pe_echo_sp}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_epi_pe_echo_sp(argv[i])
 
         elif argv[i] == "{epi_pe_voxdim}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_epi_pe_voxdim(argv[i])
 
         elif argv[i] == "{epi_pe_dir}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_epi_pe_dir(argv[i])
 
         elif argv[i] == "{scale_freq}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_phaseDistScale(argv[i])
 
         elif argv[i] == "{do_recenter_freq}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_meth_recenter_freq(argv[i])
 
         elif argv[i] == "{out_cmds}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_ocmds_fname(argv[i])
 
         elif argv[i] == "{out_pars}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_opars_fname(argv[i])
 
         elif argv[i] == "{blur_sigma}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_blur_sigma(argv[i])
 
@@ -2017,7 +2022,7 @@ def parse_args_b0_corr(full_argv):
         # [PT: Oct 2, 2019] way to input erode/dilations now
         elif argv[i] == "{mask_dilate}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
 
             while i+1 < Narg:
                 if not(all_opts_vals.__contains__(argv[i+1])) :
@@ -2028,7 +2033,7 @@ def parse_args_b0_corr(full_argv):
 
         elif argv[i] == "{wdir_name}".format(**all_opts) :
             if i >= Narg:
-                ARG_missing_arg(argv[i])
+                BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_wdir_name(argv[i])
 
