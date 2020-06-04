@@ -27,8 +27,13 @@
 #ver = '0.31' ; date = 'June 2, 2020'
 # [PT] ... fix printing bugs, add in other funcs to print subsets of things
 #
-ver = '0.32' ; date = 'June 2, 2020'
+#ver = '0.32' ; date = 'June 2, 2020'
 # [PT] attach label to mat2d obj when reading in file
+#
+ver = '0.4' ; date = 'June 2, 2020'
+# [PT] new multifile object
+#    + checks that all files loading in to object match in terms of 
+#      nmat, nroi, labels, etc.
 #
 # --------------------------------------------------------------------------
 
@@ -365,6 +370,9 @@ class file_grid_netcc:
     # -----------------------------------------------------------
     # -----------------------------------------------------------
 
+    def set_file_inp(self, FF):
+        self.file_inp = FF
+
     def add_mat2d(self, Mobj, idx_pos=None, ext=None ):
         """Mobj : is a mat2d object, which can have str labels.
         
@@ -445,6 +453,12 @@ class file_grid_netcc:
                       "and those of new obj:\n{}"
                       "".format(self.roi_intvals, Mobj.col_intvals))
 
+        # check str labels
+        if self.has_strlabs != Mobj.col_strlabs :
+            ab.EP("mismatch in string labelling in current file obj ({}) "
+                  "and new obj ({})"
+                  "".format( self.has_strlabs, Mobj.col_strlabs ))
+
         # strlabs, if any
         if self.has_strlabs :
             for ii in range(self.nroi) :
@@ -452,9 +466,6 @@ class file_grid_netcc:
                     ab.EP("mismatch in strlabs of current file obj:\n{}\n"
                           "and those of new obj:\n{}"
                           "".format(self.roi_strlabs, Mobj.col_strlabs))
-        elif Mobj.col_strlabs :
-            ab.EP("mismatch, as current file obj has NO strlabs, but"
-                  "new obj does:\n{}".format(Mobj.col_strlabs))
 
         # check if a mat2d with this label already exists --> confusion!
         if self.allmat_labs.__contains__(Mobj.label) :
@@ -771,3 +782,121 @@ class file_grid_netcc:
         self.read_header_GoN()
         self.read_table_mat_GoN()
 
+# --------------------------------------------------------------------------
+
+class multi_file_GoN:
+    """An obj to store a collection of grid/netcc/amat files.
+
+    We will make a consistency check to ensure that they all have the same:
+    + number of matrices
+    + number of ROIs per matrix
+    + same int vals per ROI
+    + same str vals per ROI
+
+    General usage: start empty and append items.
+
+    Most info stored in dicts, with a master list.  Since we don't
+    know if fname paths are annoyingly long, use integers as keys for
+    dset and fname dictionaries, and a list with access to them.
+
+    """
+
+    def __init__( self ):
+
+        self.all_file    = {}       # keys are just numbers, at the moment
+        self.all_fname   = {}
+        
+        self.all_idx     = []       # this controls order and selection
+        self.nfile       = 0
+
+    
+
+    def add_file(self, FF, fname='', idx_pos=None ):
+        """
+        Add a 'file_grid_netcc' obj.
+
+        Basically, won't use idx_pos property, most likely
+        """
+
+        if not(fname) :    fname       = FF.file_inp
+        else:              FF.file_inp = fname
+
+        if fname :         ab.IP("Adding {}".format(fname))
+        else:              ab.IP("Adding unnamed file")
+
+        # 1 if nothing prior, 2 if things exist and we are OK, exit if bad
+        OK_TO_GO = self.check_new_file_with_current(FF)
+
+        if idx_pos == None :
+            idx_pos = self.nfile
+
+        self.all_file[idx_pos]  = FF
+        self.all_fname[idx_pos] = fname
+        self.all_idx.append(idx_pos)
+
+        self.nfile+= 1
+        
+    def check_new_file_with_current(self, FF):
+        """Check about info that needs to match if we already have files in
+        this obj
+
+        Output
+        ------
+        1      : if nothing exists
+        2      : if things exist, and this new file FF is OK to add
+        [exit] : if things are NOT ok
+
+        """
+
+        # trivial case: nothing to check
+        if self.nfile == 0:   return 1
+
+        # since at this point we know there is at least one prior
+        # file, use the [0]th one to compare for properties
+
+        CC = self.all_file[0]  # get from dictionary
+
+        # check nmat
+        if CC.nmat != FF.nmat :
+            ab.EP("mismatch in number of matrices in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.nroi, FF.nroi ))
+
+        # check nroi/mat
+        if CC.nroi != FF.nroi :
+            ab.EP("mismatch in number of ROIs per mat in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.nroi, FF.nroi ))
+
+        # check str labels
+        if CC.has_strlabs != FF.has_strlabs :
+            ab.EP("mismatch in string labelling in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.has_strlabs, FF.has_strlabs ))
+
+        # check roi intvals
+        for ii in range(CC.nroi):
+            if CC.roi_intvals[ii] != FF.roi_intvals[ii] :
+                ab.EP("mismatch in intvals of current existing file:\n{}\n"
+                      "and those of new file:\n{}"
+                      "".format(CC.roi_intvals, FF.roi_intvals))
+
+        # strlabs, if any
+        if CC.has_strlabs :
+            for ii in range(CC.nroi) :
+                if CC.roi_strlabs[ii] != FF.roi_strlabs[ii] :
+                    ab.EP("mismatch in strlabs of existing file:\n{}\n"
+                          "and those of new file:\n{}"
+                          "".format(CC.roi_strlabs, FF.roi_strlabs))
+
+        for ii in range(CC.nmat):
+            if CC.allmat_labs[ii] != FF.allmat_labs[ii] :
+                ab.EP("mismatch in matrix labels of existing file:\n{}\n"
+                      "and those of new file:\n{}"
+                      "".format(CC.allmat_labs, FF.allmat_labs))
+
+        # have we survived the gauntlet?
+        return 2
+
+
+    
