@@ -53,7 +53,7 @@ target_include_directories(
   coxplot PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR} 
   $<TARGET_PROPERTY:Motif::Motif,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:$<TARGET_NAME_IF_EXISTS:f2c>,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:f2c,INTERFACE_INCLUDE_DIRECTORIES>
 )
 set_target_properties(coxplot PROPERTIES PUBLIC_HEADER "coxplot.h")
-target_link_libraries(coxplot PRIVATE libheaders $<TARGET_NAME_IF_EXISTS:f2c> m)
+target_link_libraries(coxplot PRIVATE libheaders f2c m)

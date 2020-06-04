@@ -49,6 +49,60 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jun, 2020, RCR, "3dAllinate", MICRO, TYPE_MODIFY,
+   "clear any initial ntt from master",
+   NULL
+ } ,
+
+ {  1, Jun, 2020, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in populate_nifti_image(), call time series only if ntt>1 or NVALS==1",
+   "This is to avoid confusion when a time series is used to master a\n"
+   "non-time series dataset."
+ } ,
+
+ {  1, Jun, 2020, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_regs and -show_regs_style",
+   "Show column indices or labels of an xmat.1D file with empty (all-zero)\n"
+   "regressors.  An index list can be space or comma-separeated, or encoded.\n" 
+   "Example 30 shows typical use cases.\n"
+   "Added for S Haller."
+ } ,
+
+ { 31, May, 2020, RCR, "@diff.files", MICRO, TYPE_NEW_OPT,
+   "add -verb",
+   NULL
+ } ,
+
+ { 26, May, 2020, RCR, "@move.to.series.dirs", MICRO, TYPE_MODIFY,
+   "call afni_python_wrapper.py instead of old afni_util.py",
+   NULL
+ } ,
+
+ { 25, May, 2020, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "add libexpat.1.dylib to EXTRA_INSTALL_FILES",
+   "R was upgraded to 3.6 (on the 10.12 build machine), since that is the\n"
+   "current G Chen version requirement, making R_io.so work for people with\n"
+   "only 3.6.  But libexpat was upgraded too, which afni depends on, meaning\n"
+   "systems needed that new version of libexpat, or afni would not work.\n"
+   "Instead, libexpat.1.dylib is now simply included with the binaries.\n"
+   "Thanks to S Gotts and K Tran for reporting the problem."
+ } ,
+
+ { 21, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_NEW_OPT,
+   "add options -NN1, -NN2 and -NN3",
+   "Also, fix tiny origin shift when large zero-padding is applied."
+ } ,
+
+ { 20, May, 2020, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
+   "fix history and memory loss",
+   NULL
+ } ,
+
+ { 20, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update THD_mask_erode_sym() akin to take NN param",
+   "This matches the dglen update to THD_mask_dilate()."
+ } ,
+
  { 11, May, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update web links to help pages in uber*.py",
    "Update uber_align_test.py, uber_skel.py, uber_subj.py and uber_ttest.py."

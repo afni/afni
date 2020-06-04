@@ -14,16 +14,39 @@ if(USE_OMP)
 endif()
 
 if(COMP_ADD_RSTATS)
-  include(FindLibR)
+    find_package(LibR)
+    if(NOT LIBR_FOUND)
+        message(FATAL_ERROR "Could not find R. Consider installing R, or setting COMP_ADD_RSTATS to OFF")
+    endif()
 endif()
 
-# set(Python_FIND_VIRTUALENV FIRST)
-set(CMAKE_FIND_FRAMEWORK LAST)
-find_package(Python 3 REQUIRED COMPONENTS Interpreter)
-if(NOT ${Python_FOUND})
-  message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
-endif()
 
+if(COMP_ADD_PYTHON)
+  # The python interpreter used for the build (and subsequent testing if
+  # FORCE_CURRENT_PY_INTERP_FOR_TESTS is not set) is the first one found that
+  # satisfies the version requirements. The PATH variable is used for this,
+  # and OSX framework python is found last. If an environment is used for
+  # software isolation then python is only searched for in this environment.
+  # For more details see:
+  # https://cmake.org/cmake/help/git-stage/module/FindPython.html
+  set(CMAKE_FIND_FRAMEWORK LAST)
+  set(Python_FIND_VIRTUALENV ONLY)
+  set(Python_FIND_STRATEGY LOCATION)
+
+  # Unless overwritten, python > 3.6 is required since this is required to run
+  # the test suite. A minimum requirement is also defined in setup.py for
+  # installation of the python code if that is desired.
+  set_if_not_defined(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS ON)
+  if(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS)
+    set(PY_VER 3.6)
+  else()
+    set(PY_VER 3)
+  endif()
+  find_package(Python ${PY_VER} REQUIRED COMPONENTS Interpreter)
+  if(NOT ${Python_FOUND})
+    message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
+  endif()
+endif()
 
 if(NOT COMP_CORELIBS_ONLY)
   if(NOT USE_SYSTEM_QHULL)
@@ -51,6 +74,12 @@ if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   find_package(GLib2)
 
   if(USE_SYSTEM_GLW)
+      # Not that SUMA makes use of the glwDrawingAreaWidgetClass symbol that is
+      # not externed in the version of glw distributed with most operating 
+      # systems. Setting USE_SYSTEM_GLW to ON is generally a bad idea. The 
+      # build system should hopefully detected the error it causes at build time 
+      # though. By default a local version of glw is directly incorporated 
+      # into libSUMA.so
     find_package(GLw REQUIRED)
   endif()
 
@@ -132,11 +161,11 @@ if(USE_SYSTEM_NIFTI)
   find_package(NIFTI REQUIRED)
 else()
 FetchContent_Declare(
-  fetch_nifti_clib_git_repo   
-  GIT_REPOSITORY https://github.com/leej3/nifti_clib.git 
-  GIT_TAG 2b61eb8960341f64d349b03c78c8dd609fa3cc09
+  nifti_clib   
+  GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git 
+  GIT_TAG 65f801b9c2f1f15f4de4a19d45e6595c25765632
   )
-FetchContent_MakeAvailable(fetch_nifti_clib_git_repo)
+FetchContent_MakeAvailable(nifti_clib)
 endif()
 
 if(USE_SYSTEM_GIFTI)
@@ -144,8 +173,8 @@ if(USE_SYSTEM_GIFTI)
 else()
 FetchContent_Declare(
   gifti_clib   
-  GIT_REPOSITORY https://github.com/leej3/gifti_clib.git 
-  GIT_TAG 075b5933c29b259fff5ac8dddf5ce72d3f0f3f5c
+  GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib.git 
+  GIT_TAG 0f8b7c073d2c79a235687419a09523b203a4ced8
   )
 FetchContent_MakeAvailable(gifti_clib)
 endif()

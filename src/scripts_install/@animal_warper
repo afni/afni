@@ -165,8 +165,36 @@ set progname = @animal_warper
 #set version = "1.99" ; set date = "May 18, 2020"
 # [PT] create skullstripped+unifized dset in orig space
 #
-set version = "2.0" ; set date = "May 18, 2020"
+#set version = "2.0" ; set date = "May 18, 2020"
 # [PT] final adjustments
+#
+#set version = "2.01" ; set date = "May 19, 2020"
+# [PT] use NSU in do_view_${surf_dir}.tcsh
+#
+#set version = "2.1" ; set date = "May 19, 2020"
+# [PT] new adjunct* functionality: create table of ROI info
+#    + done using: adjunct_aw_tableize_roi_info.py
+#      - someday, might make this program more 'standalone' with real opts
+#
+#set version = "2.11" ; set date = "May 21, 2020"
+# [PT] report mode_smooth_size in report*1D file
+#
+#set version = "2.2" ; set date = "May 30, 2020"
+# [PT] 
+#    + modal smoothing with replacement, now default; is new opt to turn off
+#    + now, for multibrick ATL|SEG dsets, each subbrick will be snapshotted
+#      for QC dir
+#
+#set version = "2.21" ; set date = "May 30, 2020"
+# [PT] 
+#    + change how input_abbrev gets applied-- will apply to copying
+#      and earliest transformed input/src dsets now, for
+#      simplicity/ease of reading if user is defining an inp abbr
+#
+set version = "2.3" ; set date = "May 31, 2020"
+# [PT] 2 bug fixes
+#    + one in defining ${src_prefix} (reorder to not have error)
+#    + one in passing along labels/atlases from SEG|atlas dsets
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -222,6 +250,7 @@ set all_known_dset_abbrev = ( )
 set feature_option     = ""
 set feature_size       = ""
 set modesmooth         = "3"   # 3 voxel modal smoothing
+set DO_MODE_SMOO_W_REP = 1     # use modal smoothing with rep (def)
 set supersize          = ""
 set keep_temp          = ""
 
@@ -640,6 +669,10 @@ while ($ac <= $#argv)
           exit 1
         endif
 
+    # [PT: May 30, 2020] turn off replacement of lost ROIs in modal smooth
+    else if ("$argv[$ac]" == "-mode_smooth_replacement_off") then
+        set DO_MODE_SMOO_W_REP = 0
+
     else if ("$argv[$ac]" == "-supersize") then
         set supersize = "-supersize"
 
@@ -718,27 +751,24 @@ else
     set nlcostoption = ""
 endif
 
-# ------------------------- setup BRAINMASK 
-
-# [BTJ: Mar 29, 2020] template mask-based brainmasking code
-if ("${brainmask}" != "") then
-   # is the dataset somewhere else or current directory
-   set brainmask = `@FindAfniDsetPath -full_path -append_file "${brainmask}"`
-endif
-
 # ------------------------- setup input SRC dset
 
 # input datasets may not be +orig
 # so match input view equivalent even for NIFTI
-set origview       = `3dinfo -av_space "${src_dset0}" |tr -d +` # not used
-set origspace      = `3dinfo -space "${src_dset0}"`
+set origview       = `3dinfo -av_space     "${src_dset0}" |tr -d +` # unused
+set origspace      = `3dinfo -space        "${src_dset0}"`
 set src_prefix     = `3dinfo -prefix_noext "${src_dset0}"`
-set src_dset       = ${src_prefix}.nii.gz   # copied into outdir, USED
-
-# this var used to describe warping:  BASE_in_${src_abbrev}.nii.gz
 if ( "${src_abbrev}" == "" ) then
     set src_abbrev = "${src_prefix}"
 endif
+set src_dset       = ${src_abbrev}.nii.gz   # cp of orig inp, used to proc
+
+# all the shifted forms
+set srcsh_prefix    = ${src_abbrev}_shft          # NOTE this name change
+set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
+set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
+set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
+
 
 if (($ok_to_exist == 1) && \
     (-f "${outdir}/${src_dset}" )) then
@@ -750,12 +780,6 @@ else
      -expr   'a'                               \
      -prefix "${outdir}/${src_dset}"
 endif
-
-# all the shifted forms
-set srcsh_prefix    = ${src_prefix}_shft          # NOTE this name change
-set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
-set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
-set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
 
 # -------------------- setup BASE dset
 
@@ -821,16 +845,28 @@ endif
 
 # ----- SHOULD ALL FOLLOWERS BE COPIED HERE AS WELL ??? 
 
-# ------------------- copy  brainmask
+# ------------------------- setup BRAINMASK 
 
-if ( "${brainmask}" != "") then
+# [BTJ: Mar 29, 2020] template mask-based brainmasking code
+if ("${brainmask}" != "") then
+   # is the dataset somewhere else or current directory
+   set brainmask = `@FindAfniDsetPath -full_path -append_file "${brainmask}"`
+
    if ( ($ok_to_exist == 1) && \
         (-f ${outdir}/`basename "$brainmask"`) ) then
       echo "++ Reusing ${outdir}/$brainmask"
    else
       3dcopy "${brainmask}" ${outdir}/
    endif
+
+   # Need to specify a mask to use for 'base' dset for reports
+   set base_mask_for_reps = "${brainmask}"
+else
+   # If no brainmask is input, then the base dset itself is applied as
+   # the mask
+   set base_mask_for_reps = "${base_dset}"
 endif
+
 
 # ------------------ check/make abbrevs (for all followers)
 
@@ -1409,7 +1445,12 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
    set follow_abbrev = "${all_abbrev[$ii]}"
    set follow_interp = "${all_interp[$ii]}"
 
-   set follow_in_std = ${follow_abbrev}_warp2std.nii.gz
+   # the main output
+   set follow_in_std     = ${follow_abbrev}_warp2std.nii.gz
+   # ... but if followset is int value AND is modally smoothed, then
+   # save the pre-modally smoothed version under this name:
+   set follow_in_std_pre = ${follow_abbrev}_w2s_PRE.nii.gz
+
 
    #  first check if output exists
    if ( ($ok_to_exist == "1") && \
@@ -1419,7 +1460,7 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
    else 
       # copy dataset to temporary one - reused by multiple dset followers
       \rm -f tempfollow.nii.gz
-      3dcopy "$followset" tempfollow.nii.gz
+      3dcopy "${followset}" tempfollow.nii.gz
 
       # Move center of follower with same 1D shift as original dataset.
       # Funny that the opt has '_inv', but that appears to be correct!
@@ -1436,21 +1477,41 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
           -nwarp  "${srcsh_prefix}_osh2base_WARP.nii.gz"             \
           -source  tempfollow.nii.gz                                 \
           -master  "${base_dset}"
+
+      # keep propagating labels/atlases
+      3drefit -copytables "${followset}" ${follow_in_std}
+      3drefit -cmap INT_CMAP             ${follow_in_std}
  
       if ( "${follow_interp}" == "NN" ) then
          echo "++ Created follower ROI dset: ${follow_in_std}"
 
-         if ($modesmooth != "0") then
-            3dLocalstat -overwrite                                    \
-               -stat mode                                             \
-               -nbhd "SPHERE(-$modesmooth)"                           \
-               -prefix ${follow_in_std}                               \
-               ${follow_in_std}
-         endif
+         if ( "${modesmooth}" != "0") then
+            # save the unsmoothed version as a backup
+            3dcopy -overwrite         \
+                ${follow_in_std}      \
+                ${follow_in_std_pre}
 
-         # make these show up in AFNI as labeled ROI or atlas datasets 
-         3drefit -copytables $followset ${follow_in_std}
-         3drefit -cmap INT_CMAP ${follow_in_std}
+            if ( ${DO_MODE_SMOO_W_REP} ) then
+               # Modal smoothing *with* replacement; output has
+               # INT_CMAP and tables copied
+               @djunct_modal_smoothing_with_rep                            \
+                    -overwrite                                             \
+                    -input ${follow_in_std_pre}                            \
+                    -prefix ${follow_in_std}                               \
+                    -modesmooth $modesmooth 
+            else
+               # Standard modal smoothing (*no* replacement)
+               3dLocalstat -overwrite                                      \
+                    -stat   mode                                           \
+                    -nbhd   "SPHERE(-${modesmooth})"                       \
+                    -prefix ${follow_in_std}                               \
+                    ${follow_in_std_pre}
+
+               # make these show up in AFNI as labeled ROI or atlas datasets 
+               3drefit -copytables ${followset} ${follow_in_std}
+               3drefit -cmap INT_CMAP ${follow_in_std}
+            endif
+         endif
 
          echo "   ... and finished processing it"
          
@@ -1702,7 +1763,7 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
       if (${center_out} == "native") then
         @Align_Centers                                         \
             -no_cp                                             \
-            -base ${src_dset}                               \
+            -base ${src_dset}                                  \
             -dset ${template_in_orig}                          \
             -shift_xform_inv ${srcsh_shft_inv}
       endif
@@ -1766,7 +1827,12 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
    set segm_prefix = "${all_tabbrev[$ii]}"
    set segm_type   = "${all_ttypes[$ii]}"
 
+   # the main output
    set segm_in_orig = "${segm_prefix}_in_${src_abbrev}.nii.gz"
+   # ... but if followset is int value AND is modally smoothed, then
+   # save the pre-modally smoothed version under this name:
+   set segm_in_orig_pre = "${segm_prefix}_in_${src_abbrev}_PRE.nii.gz"
+
 
    if ( ( $ok_to_exist == "1" ) && \
         ( -f  ${segm_in_orig} ) ) then
@@ -1810,101 +1876,192 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
             -prefix ${segm_in_orig}
        endif
 
+      # keep propagating labels/atlases
+      3drefit -copytables "${segm_dset}" ${segm_in_orig}
+      3drefit -cmap INT_CMAP             ${segm_in_orig}
+
+
+       # modal smoothing
+       if ( "${modesmooth}" != "0") then
+          # save the unsmoothed version as a backup
+          3dcopy -overwrite         \
+              ${segm_in_orig}       \
+              ${segm_in_orig_pre}
+          \rm ${segm_in_orig}
+
+          # this extra step done here to make sure the space is
+          # correct (should be, from 3dNwarp*?)
+          3drefit                      \
+              -space ${origspace}      \
+              ${segm_in_orig_pre}
+
+          if ( ${DO_MODE_SMOO_W_REP} ) then
+             # Modal smoothing *with* replacement; output has
+             # INT_CMAP and tables copied
+             @djunct_modal_smoothing_with_rep                            \
+                  -overwrite                                             \
+                  -input      ${segm_in_orig_pre}                        \
+                  -prefix     ${segm_in_orig}                            \
+                  -modesmooth ${modesmooth} 
+          else
+             # Standard modal smoothing (*no* replacement)
+             3dLocalstat -overwrite                                      \
+                  -stat   mode                                           \
+                  -nbhd   "SPHERE(-${modesmooth})"                       \
+                  -prefix ${segm_in_orig}                                \
+                  ${segm_in_orig_pre}
+
+             # make these show up in AFNI as labeled ROI or atlas datasets 
+             3drefit                      \
+                 -cmap  INT_CMAP          \
+                 ${segm_in_orig}
+             3drefit                      \
+                 -copytables ${segm_dset} \
+                 ${segm_in_orig}
+          endif
+       endif
+
+       ### OLD
        # modal smoothing
        # overwrite its own dataset if enabled (default)
-       if ("${modesmooth}" != "0") then
-          3dLocalstat -overwrite                                 \
-            -stat mode                                           \
-            -nbhd "SPHERE(-${modesmooth})"                       \
-            -prefix ${segm_in_orig}                              \
-            ${segm_in_orig}
-       endif
-       
+       #if ("${modesmooth}" != "0") then
+       #   3dLocalstat -overwrite                                 \
+       #     -stat mode                                           \
+       #     -nbhd "SPHERE(-${modesmooth})"                       \
+       #     -prefix ${segm_in_orig}                              \
+       #     ${segm_in_orig}
+       #endif
+       #
        # copy segmentation information from atlas to this
        # native-space segmentation dataset and mark to be shown
        # with integer colormap
-       3drefit                       \
-            -cmap  INT_CMAP          \
-            -space ${origspace}      \
-            ${segm_in_orig}
-       3drefit                       \
-            -copytables ${segm_dset} \
-            ${segm_in_orig}
+       #3drefit                       \
+       #     -cmap  INT_CMAP          \
+       #     -space ${origspace}      \
+       #     ${segm_in_orig}
+       #3drefit                       \
+       #     -copytables ${segm_dset} \
+       #     ${segm_in_orig}
 
        # Image : [ulay] edge enhanced orig dset;
        #         [olay] atlas warped to orig space
        set ulay  = "${src_abbrev}.nii.gz"
        set olay  = "${segm_in_orig}"
        set focus = ${src_abbrev}_mask.nii.gz
-       set opref = QC/qc_03_ee_input+wrpd_${segm_type}_${segm_prefix}
 
-       @chauffeur_afni                             \
-            -ulay "${ulay}"                        \
-            -edge_enhance_ulay 0.5                 \
-            -set_subbricks 0 0 0                   \
-            -olay "${olay}"                        \
-            -box_focus_slices "${focus}"           \
-            -montgap 1                             \
-            -montcolor 'black'                     \
-            -cbar ROI_i256                         \
-            -pbar_posonly                          \
-            -pbar_saveim "${opref}"                \
-            -prefix      "${opref}"                \
-            -opacity 4                             \
-            -montx 5 -monty 3                      \
-            -set_xhairs OFF                        \
-            -label_mode 1 -label_size 3
+       set nvi = `3dinfo -nvi "${olay}"`
+
+       if ( "${nvi}" == "0" ) then
+           set opref = QC/qc_03_ee_input+wrpd_${segm_type}_${segm_prefix}
+
+           @chauffeur_afni                             \
+                -ulay "${ulay}"                        \
+                -edge_enhance_ulay 0.5                 \
+                -set_subbricks 0 0 0                   \
+                -olay "${olay}"                        \
+                -box_focus_slices "${focus}"           \
+                -montgap 1                             \
+                -montcolor 'black'                     \
+                -func_range 256                        \
+                -cbar ROI_i256                         \
+                -pbar_posonly                          \
+                -pbar_saveim "${opref}"                \
+                -prefix      "${opref}"                \
+                -opacity 4                             \
+                -montx 5 -monty 3                      \
+                -set_xhairs OFF                        \
+                -label_mode 1 -label_size 3
+       else
+          foreach nn ( `seq 0 1 ${nvi}` )
+             set nnn = `printf %02d ${nn}`
+             set opref = QC/qc_03_ee_input+wrpd
+             set opref = ${opref}_${segm_type}_${segm_prefix}_${nnn}
+
+             @chauffeur_afni                             \
+                  -ulay "${ulay}"                        \
+                  -edge_enhance_ulay 0.5                 \
+                  -set_subbricks 0 ${nn} ${nn}           \
+                  -olay "${olay}"                        \
+                  -box_focus_slices "${focus}"           \
+                  -montgap 1                             \
+                  -montcolor 'black'                     \
+                  -func_range 256                        \
+                  -cbar ROI_i256                         \
+                  -pbar_posonly                          \
+                  -pbar_saveim "${opref}"                \
+                  -prefix      "${opref}"                \
+                  -opacity 4                             \
+                  -montx 5 -monty 3                      \
+                  -set_xhairs OFF                        \
+                -label_mode 1 -label_size 3
+          end
+       endif
    endif
 
-   if ( ${segm_type} == "SEG" ) then
+   if ( "${segm_type}" == "SEG" ) then
         printf "%-37s : %s\n"                                  \
                 "Seg follower in ${orig_fin}"                  \
                 "${segm_in_orig}"                              \
             >> ${animal_outs}
-   else if ( ${segm_type} == "ATL" ) then
+   else if ( "${segm_type}" == "ATL" ) then
         printf "%-37s : %s\n"                                  \
                 "Atlas follower in ${orig_fin}"                \
                 "${segm_in_orig}"                              \
             >> ${animal_outs}
+   endif
 
-        # --------------- atl foll isosurfs in native space
+   # ---------------- report info on atl/seg vols --------------------
 
-        if ( $make_orig_surfaces == "1" ) then
+   if ( -f ${segm_in_orig} ) then
+      # each atl dset could have multiple subbricks, like the
+      # CHARM atlas for macaques
+      set nvi = `3dinfo    \
+                     -nvi  \
+                     ${segm_in_orig}`
 
-            # ???? need to add in OK to exist stuff..
+      foreach nn ( `seq 0 1 ${nvi}` ) 
 
-            if ( -f ${segm_in_orig} ) then
-               # each atl dset could have multiple subbricks, like the
-               # CHARM atlas for macaques
-               set nvi = `3dinfo    \
-                              -nvi  \
-                              ${segm_in_orig}`
+           set report   = report_${segm_prefix}.1D
+           set surf_dir = surfaces_${segm_prefix}
+           if ( ${nvi} > 0 ) then
+               set nnn      = `printf %02d ${nn}`
+               set surf_dir = ${surf_dir}_${nnn}
+               set report   = report_${segm_prefix}_${nnn}.1D
+           endif
 
-               foreach nn ( `seq 0 1 ${nvi}` ) 
+           # reports on sizes of ROIs *after* warping, relative to
+           # those values *before* warping
+           adjunct_aw_tableize_roi_info.py   \
+                "${report}"                  \
+                "${segm_in_orig}[${nn}]"     \
+                "${src_abbrev}_mask.nii.gz"  \
+                "${segm_dset}[${nn}]"        \
+                "${base_mask_for_reps}"      \
+                "${modesmooth}"
 
-                    set surf_dir = surfaces_${segm_prefix}
-                    if ( ${nvi} > 0 ) then
-                        set nnn      = `printf %02d ${nn}`
-                        set surf_dir = ${surf_dir}_${nnn}
-                    endif
+           # ------- isosurfs in native space: only for ATLAS followers
 
-                    \rm -rf   ${surf_dir}
-                    \mkdir -p ${surf_dir}
-                    cd ${surf_dir}
+           if ( ( $make_orig_surfaces == "1" ) && \
+                ( -f ${segm_in_orig} ) ) then
 
-                    IsoSurface                               \
-                        -isorois+dsets                       \
-                        -o native.gii                        \
-                        -input ../${segm_in_orig}"[$nn]"     \
-                        -noxform                             \
-                        -Tsmooth 0.01 6
+              \rm -rf   ${surf_dir}
+              \mkdir -p ${surf_dir}
 
-                    cd ..
+              cd ${surf_dir}
 
-                    printf "%-37s : %s\n"                     \
-                        "Atlas follower surfs in ${orig_fin}" \
-                        "${surf_dir}"                         \
-                        >> ${animal_outs}
+              IsoSurface                               \
+                  -isorois+dsets                       \
+                  -o native.gii                        \
+                  -input ../${segm_in_orig}"[$nn]"     \
+                  -noxform                             \
+                  -Tsmooth 0.01 6
+
+              cd ..
+
+              printf "%-37s : %s\n"                     \
+                  "Atlas follower surfs in ${orig_fin}" \
+                  "${surf_dir}"                         \
+                  >> ${animal_outs}
 
 # a script to view all surfs together
 set oscript = do_view_${surf_dir}.tcsh
@@ -1912,7 +2069,7 @@ printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
 #!/bin/tcsh
     
-    set bkgd_vol = "${src_abbrev}_ns.nii.gz"
+    set bkgd_vol = "${src_abbrev}_nsu.nii.gz"
     set surf_dir = ${surf_dir}
 
     suma                               \
@@ -1922,10 +2079,9 @@ cat <<EOF >> ${oscript}
 
 EOF
 chmod 755 ${oscript}
-                end
-            endif
-        endif
-    endif
+           endif
+      end
+   endif
 end
 
 
@@ -2283,6 +2439,17 @@ Options ~1~
                          The default uses a 3 voxel radius.
                          Turn off by setting this to 0
 
+    -mode_smooth_replacement_off
+                        :the current default behavior for modal
+                         smoothing is to do both 1) modal smoothing
+                         (with 3dLocalstat) and then 2) check if any
+                         ROIs got lost in that process, and 3) if ROIs
+                         got lost, put them back in (those specific
+                         ones won't be smoothed, just re-placed).
+                         Using this opt will mean that steps #2 and #3
+                         do NOT happen -- you just get plain modal
+                         smoothing without replacement.
+
     -center_out         :center native-space output to native original 
                          space or to center-shifted space over the center
                          of template.
@@ -2368,6 +2535,31 @@ Comments ~1~
        with the name of your dataset. For NMT and D99 templates, the output
        will contain NMT or D99 instead of template
 
+Outputs ~1~
+
+For all '-atlas ..' and '-atlas_follower ..' dsets, a complete set of
+surfaces is created of the ROIs after they have been warped into the
+'-input ..' subject space.  Subdirectories named 'surface_*' are
+created for each subbrick of each atlas; there are also do_view*.tcsh
+scripts automatically generated for viewing each one.
+
+For '-atlas ..' and '-atlas_follower ..' and '-seg_follower ..' dsets,
+tables of information about the ROI sizes before and after warping are
+created; these are stored in report*.1D files (text files which can be
+viewed in a regular text editor and also used for calculations with
+AFNI programs) for each subbrick of each these dsets.  Absolute
+volumes, volume fractions, and ratios of ROI sizes are reported in the
+table; any ROIs that exist before but not after warping are also
+catalogued.
+
+For the '-base ..' dset, a surface file (*.gii) is generated for it
+after it has been warped to the '-input ..' subject space.
+
+All atlas_points and labeltables on all input dsets should be passed
+along to their warped versions, preserving those useful
+functionalities and information.
+
+
 Integrating AW with afni_proc.py ~1~
 
 Let's say that you ran this command as the following (written with
@@ -2442,8 +2634,9 @@ the following semi-cryptically named files:
   qc_03_ee_input+wrpd_ATL_*
   qc_03_ee_input+wrpd_SEG_*
     [ulay] 'edge enhanced' original input dset (in orig space)
-    [olay] warped atlas or seg dset (just the [0] subbrick, if
-           the dset has >1 volume)
+    [olay] warped atlas or seg dset 
+    + NB: if the olay dset has >1 subbrick, each will be snapshotted 
+          separately, because I heard the baying of the crowds for such.
 
 References ~1~
 
@@ -2472,6 +2665,11 @@ echo ""                                              >> ${animal_outs}
 printf "%-37s : %s\n"                 \
         "QC directory of images"      \
         "QC/"                         \
+       >> ${animal_outs}
+
+printf "%-37s : %s\n"                 \
+        "Info on atl/seg follower(s)" \
+        "report_*.1D"                 \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                 \

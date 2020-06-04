@@ -85,6 +85,11 @@ int main( int argc , char * argv[] )
              "  wc -l afni.c                                          => 13836\n"
              "  uncomment afni.c | grep -v -e '^ *$' -e '^$' | wc -l  =>  9621\n" ) ;
       printf("\n") ;
+      printf("EXAMPLE: using on C code annotated by git blame\n"
+             "  git blame afni.c | uncomment -gitskip - | grep -v -e '[0-9]) *$' -e '^$' -e '^ *$' | head\n"
+             "See the gitsum.csh script for how this '-gitskip' option can be used to add\n"
+             "up how many lines of non-comment C code are tagged to various co-conspirators.\n" ) ;
+      printf("\n") ;
       exit(0) ;
    }
 

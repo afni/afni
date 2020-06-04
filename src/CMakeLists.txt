@@ -87,9 +87,14 @@ if(COMP_ADD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# Add scripts (includes shell, python, and R scripts)
+# Add scripts (includes shell and R scripts)
 if(COMP_ADD_TCSH)
   add_subdirectory(scripts_install)
+endif()
+
+# Add python code
+if(COMP_ADD_PYTHON)
+  add_subdirectory(python_scripts)
 endif()
 
 # Add targets with a dependency on X
@@ -120,6 +125,14 @@ if(COMP_ADD_RSTATS)
   )
   target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
+
+
+install(
+    DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/faces/
+        ${CMAKE_CURRENT_SOURCE_DIR}/poems/
+    DESTINATION ${AFNI_INSTALL_FUNSTUFF_DIR})
+
 
 # ##### Create list of programs built
 set(PROGRAMS_BUILT ${PROGRAM_BUILT})

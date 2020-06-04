@@ -127,8 +127,20 @@ auth = 'PA Taylor'
 # [PT] no vstat if 'surf' block was used in AP (-> stats dset is
 #      *.niml.dset)
 #
-ver = '3.5' ; date = 'March 27, 2020' 
+#ver = '3.5' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
+#
+#ver = '3.6' ; date = 'May 26, 2020' 
+# [PT] ve2a and LR-flipcheck now show EPI under anat edges
+#
+#ver = '3.61' ; date = 'May 28, 2020' 
+# [PT] in vstat maps, report DF value(s)
+#
+#ver = '3.62' ; date = 'May 31, 2020' 
+# [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
+#
+ver = '3.63' ; date = 'May 31, 2020' 
+# [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
 #
 #########################################################################
 
@@ -1770,25 +1782,30 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     pre = '''
     set opref = {}
     set focus_box = {}
-    set ulay_name = `3dinfo -prefix ${{final_anat}}`
-    set olay_name = `3dinfo -prefix ${{final_epi_dset}}`
+    set ulay_name = `3dinfo -prefix ${{final_epi_dset}}`
+    set olay_name = `3dinfo -prefix ${{final_anat}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     '''.format( opref, focusbox )
 
+    # [PT: May 26, 2020] update the way this is now, for cleaner views
+    #  -->  olay = anat edges
+    #  -->  ulay = EPI, regridded to anat
+    #  -->  ulay_range 2-95% 
     cmd = '''
     @djunct_edgy_align_check
-    -ulay    ${final_anat}
-    -box_focus_slices ${focus_box}
-    -olay    ${final_epi_dset}
+    -olay              ${final_anat}
+    -box_focus_slices  ${focus_box}
+    -ulay              ${final_epi_dset}
+    -use_olay_grid     wsinc5
+    -ulay_range_nz     "2%" "98%"
     -prefix  ${odir_img}/${opref}
-
     '''
 
-    ttext = '''"ulay: ${ulay_name} (anat)" ,, '''
-    ttext+= '''"olay: ${olay_name} (EPI edges)"'''
+    ttext = '''"ulay: ${ulay_name} (EPI)" ,, '''
+    ttext+= '''"olay: ${olay_name} (anat edges)"'''
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -2131,7 +2148,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     -cbar {cbar}
     -ulay_range 0% 120%  
     -func_range 0.6
-    -thr_olay 0.3
+    -thr_olay 0.2
     -olay_alpha Yes
     -olay_boxed Yes
     -set_subbricks 0 0 0
@@ -2252,6 +2269,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
 ### [PT: July 2, 2019] this function now takes an object with lots of
 ### details of olay and thresh stuff for plotting.  This is because we
 ### have generalized the kind of stuff that can be plotted.
+##  [PT: May 28, 2020] this now reports DFs with each stat
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
 def apqc_vstat_stvol( obase, qcb, qci, 
@@ -2289,6 +2307,8 @@ def apqc_vstat_stvol( obase, qcb, qci,
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
     set thrbrick = {}
     set thrlabel = `3dinfo -label ${{stats_dset}}"[${{thrbrick}}]"`
+    set thr_staux = `3dAttribute BRICK_STATAUX ${{stats_dset}}"[${{thrbrick}}]"`
+    set thr_dof   = `echo ${{thr_staux[4-]}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
@@ -2471,7 +2491,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
     ttext = ''
     ttext+= '''"olay: [${olaybrick}] '${olaylabel}' (in ${olay_name})" ,, '''
-    ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
+    ttext+= '''" thr: [${thrbrick}] '${thrlabel}' (df = ${thr_dof})"'''
 
 
     # As default, use :: and ,, as major and minor delimiters,
@@ -3365,8 +3385,9 @@ those might have been flipped.'''
     -prefix ${flip_json}
     '''
 
+    # [PT: May 26, 2020] emphasize the BETTER one
     post_flip = '''
-    set olay_flip = `@djunct_json_value.py ${flip_json} flip_base`
+    set ulay_flip = `@djunct_json_value.py ${flip_json} flip_base`
     set fcost_orig    = `@djunct_json_value.py ${flip_json} flip_cost_orig`
     set fcost_flipped = `@djunct_json_value.py ${flip_json} flip_cost_flipped`
     set fcost_func    = `@djunct_json_value.py ${flip_json} flip_cost_func`
@@ -3375,11 +3396,11 @@ those might have been flipped.'''
     printf   "" > ${odir_img}/${opref}.dat
 
     if ( "${flip_guess}" == "NO_FLIP" ) then
-    ~~~~set state_o = "better match"
+    ~~~~set state_o = "BETTER match"
     ~~~~set state_f = "worse match"
     else
     ~~~~set state_o = "worse match"
-    ~~~~set state_f = "better match"
+    ~~~~set state_f = "BETTER match"
     endif
 
     printf " %10s  %9s  %12s  %11s \\n" "flip guess" "cost func" "original val" "flipped val"  >> ${odir_img}/${opref}.dat
@@ -3393,12 +3414,12 @@ those might have been flipped.'''
     # because the automasking of the edgified dset might get rid of
     # *everything*
     pre = '''
-    set focus_box = ${olay_flip}
-    set ulay_name_o = `3dinfo -prefix ${fdset_0_orig}`
+    set focus_box = ${ulay_flip}
+    set olay_name_o = `3dinfo -prefix ${fdset_0_orig}`
     set opref_o = ${opref}_0
-    set ulay_name_f = `3dinfo -prefix ${fdset_1_flipped}`
+    set olay_name_f = `3dinfo -prefix ${fdset_1_flipped}`
     set opref_f = ${opref}_1
-    set olay_name = `3dinfo -prefix ${olay_flip}`
+    set ulay_name = `3dinfo -prefix ${ulay_flip}`
     set tjsonw  = _tmpw.txt
     set ojsonw  = ${odir_img}/${opref}.json
     set tjson  = _tmp.txt
@@ -3431,22 +3452,48 @@ those might have been flipped.'''
     '''
 
     # always 'orig' dset first
+    # [PT: May 26, 2020] update the way this is now, for cleaner views
+    #  -->  olay = anat edges
+    #  -->  ulay = EPI, regridded to anat
+    #  -->  ulay_range 2-95% 
     cmd0 = '''
     @djunct_edgy_align_check
-    -ulay    ${fdset_0_orig}
-    -box_focus_slices ${focus_box}
-    -olay    ${olay_flip}
-    -prefix  ${odir_img}/${opref_o}
+    -olay              ${fdset_0_orig}
+    -box_focus_slices  ${focus_box}
+    -ulay              ${ulay_flip}
+    -use_olay_grid     wsinc5
+    -ulay_range_nz     "2%" "98%"
+    -prefix            ${odir_img}/${opref_o}
     '''
+#    cmd0 = '''
+#    @djunct_edgy_align_check
+#    -ulay    ${fdset_0_orig}
+#    -box_focus_slices ${focus_box}
+#    -olay    ${olay_flip}
+#    -prefix  ${odir_img}/${opref_o}
+#    '''
 
     # ... followed by "flipped" one
+    # [PT: May 26, 2020] update the way this is now, for cleaner views
+    #  -->  olay = anat edges
+    #  -->  ulay = EPI, regridded to anat
+    #  -->  ulay_range 2-95% 
     cmd1 = '''
     @djunct_edgy_align_check
-    -ulay    ${fdset_1_flipped}
-    -box_focus_slices ${focus_box}
-    -olay    ${olay_flip}
-    -prefix  ${odir_img}/${opref_f}
+    -olay              ${fdset_1_flipped}
+    -box_focus_slices  ${focus_box}
+    -ulay              ${ulay_flip}
+    -use_olay_grid     wsinc5
+    -ulay_range_nz     "2%" "98%"
+    -prefix            ${odir_img}/${opref_f}
     '''
+#    cmd1 = '''
+#    @djunct_edgy_align_check
+#    -ulay    ${fdset_1_flipped}
+#    -box_focus_slices ${focus_box}
+#    -olay    ${olay_flip}
+#    -prefix  ${odir_img}/${opref_f}
+#    '''
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -3455,9 +3502,11 @@ those might have been flipped.'''
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    subtext     :: "ulay: ${{ulay_name_o}} (original anat, ${{state_o}})" ,, "olay: ${{olay_name}} (EPI edges)"
+    subtext     :: "ulay: ${{ulay_name}} (EPI)" ,, "olay: ${{olay_name_o}} (original anat edges, ${{state_o}})"
     EOF
     '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+
+#    subtext     :: "ulay: ${{ulay_name_o}} (original anat, ${{state_o}})" ,, "olay: ${{olay_name}} (EPI edges)"
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -3476,9 +3525,11 @@ those might have been flipped.'''
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    subtext     :: "ulay: ${{ulay_name_f}} (flipped anat, ${{state_f}})" ,, "olay: ${{olay_name}} (EPI edges)"
+    subtext     :: "ulay: ${{ulay_name}} (EPI)" ,, "olay: ${{olay_name_f}} (flipped anat edges, ${{state_f}})"
     EOF
     '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+
+#    subtext     :: "ulay: ${{ulay_name_f}} (flipped anat, ${{state_f}})" ,, "olay: ${{olay_name}} (EPI edges)"
 
     jsontxt2_cmd = '''
     abids_json_tool.py   

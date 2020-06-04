@@ -66,13 +66,143 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_GENERAL,
+   "Improve couple things in help file; change def cbar.",
+   "More useful 'divergent' class of cbar as default.\n"
+},
+
+{ 3, June , 2020 , PT , "epi_b0_correct.py" , MICRO , TYPE_BUG_FIX,
+   "Programming badness if user forgot to add a nec arg to an opt.",
+   "There should be no change in behavior when correct opts are added.\n"
+},
+
+{ 3, June , 2020 , PT , "fat_mat2d_plot.py" , MAJOR , TYPE_NEW_PROG,
+   "FINALLY, a python3 program to plot 3dTrackID and 3dNetCorr output.",
+   "Plots *.grid and *.netcc files; replaces fat_mat_sel.py.\n"
+},
+
+{ 3, June , 2020 , PT , "lib_mat2d_plot.py" , MAJOR , TYPE_GENERAL,
+   "Many updates to functioning, defaults, reading argv, applying user opts.",
+   "Help file added as well; works with main proc: fat_mat2d_plot.py.\n"
+},
+
+{ 1, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.2 as thr value of corr map.",
+   "The value 0.3 seemed pretty high (esp. if no smoothing is applied).\n"
+},
+
+{ 1, June , 2020 , PT , "lib_mat2d_base.py" , MINOR , TYPE_GENERAL,
+   "Migrated from lib_mat2d.py; tweaks added.",
+   "Add in few more mat2d attributes; rearrange methods.\n"
+},
+
+{ 1, June, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Reformat report*.1D tables a bit.",
+   "Add in a KEY; change U/W to A/B; minor format stuff.\n"
+},
+
+{ 1, June , 2020 , PT , "lib_mat2d.py" , MINOR , TYPE_GENERAL,
+   "Start some new functionality for 2D matrices.",
+   "In particular, these are for 3dTrackID and 3dNetCorr output.\n"
+},
+
+{ 1, June , 2020 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
+   "Add new funcs for convenient message printing, in the AFNI style.",
+   "IP(), EP() and WP(), which are wrappers to use APRINT().\n"
+},
+
+{ 31, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Change range of grayscale when EPI is ulay (ve2a and LR flipcheck).",
+   "Now 2-98percent (nonzero).\n"
+},
+
+{ 31, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Two bug fixes: 1) where src_prefix is defined.",
+   "2) Make sure labels/atlases of ATL|SEG followers are passed along.\n"
+},
+
+{ 30, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Apply input_abbrev earlier in processing.",
+   "Homogenize naming, I think, if it is being selected.\n"
+},
+
+{ 30, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Default modal smoothing now is with replacement of any lost ROIs.",
+   "Uses @djunct_modal* script; opt to not replace. More QC images now, too.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_GENERAL,
+   "Now use *.nii.gz files for all intermeds, not *.nii.",
+   "Works better with @animal_warper this way.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_NEW_PROG,
+   "Perform modal smoothing, and go back and add in any ROIs that were lost.",
+   "May be useful in @animal_warper;  may be good to add mask stuff, too.\n"
+},
+
+{ 30, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "String selector of lost ROIs now is only comma-separated list.",
+   "Discovered couldn't have both comma- and '..'-separated list in selector.\n"
+},
+
+{ 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Now report DF information in vstat block.",
+   "Needed to be able to interpret F-stat and t-stat values.\n"
+},
+
+{ 26, May , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Two major changes in output: ve2a and LR-flipcheck now have EPI as ulay.",
+   "Most anats are SSed, so better edges?  Thanks for suggestion, O Esteban!\n"
+},
+
+{ 26, May , 2020 , PT , "@djunct_edgy_align_check" , MAJOR , TYPE_GENERAL,
+   "Several changes to make this appropriate using EPI as ulay.",
+   "New opts, couple small bug fixes, couple tweaks.\n"
+},
+
+{ 26, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Now output an AFNI-style string selector of 'lost' ROI values.",
+   "This might make it easier to see the diffs the volumes.\n"
+},
+
+{ 22, May , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Change this prog to do all work in a workdir that can be cleaned.",
+   "Should not have any effect on the usage or outputs.\n"
+},
+
+{ 21, May , 2020 , PT , "afni_seeds_per_space.txt" , MAJOR , TYPE_GENERAL,
+   "Keep up with change of macaque standard space naming: stereoNMT -> NMT2.",
+   "'stereoNMT' is an ex-parrot.\n"
+},
+
+{ 21, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Require mode_smooth_size as input, and include it in table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Report now reports mode_smooth_size.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May, 2020, PT , "adjunct_aw_tableize_roi_info.py" , MAJOR , TYPE_NEW_PROG,
+   "Adjunct program for @animal_warper.py; build ROI report table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Add reports of warped and unwarped ROIs, via adjunct_aw_tableize*.py.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
 { 18, May , 2020 , PT , "afni_seeds_per_space.txt" , MINOR , TYPE_GENERAL,
    "Updated APQC seed locations for stereoNMT space.",
    "More centralized now in GM and in specific ROIs; aud away from vessel.\n"
 },
 
 { 18, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
-   "Large number of under-the-hood changes, as well as new opts .",
+   "Large number of under-the-hood changes, as well as new opts.",
    "More general handling of followers and choosing file abbrevs.\n"
 },
 

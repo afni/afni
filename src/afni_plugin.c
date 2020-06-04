@@ -15,7 +15,7 @@
 
 #include "mcw_graf.h"
 #include "parser.h"
-
+#include "whats_my_exepath.h"
 /*========================================================================*/
 /*==== Compile this only if plugins are properly enabled in machdep.h ====*/
 
@@ -281,6 +281,13 @@ AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
    AFNI_plugin_array * outar , * tmpar ;
    int epos , ll , ii , id ;
    THD_string_array *qlist ; /* 02 Feb 2002 */
+#ifdef DARWIN
+   int size = PATH_MAX;
+#else
+   int size = THD_MAX_NAME;
+#endif
+   char *exe_path=NULL, *exe_dir=NULL, *lib_dir=NULL;
+
 
    /*----- sanity checks -----*/
 
@@ -298,13 +305,27 @@ ENTRY("PLUG_get_many_plugins") ;
    if( epath == NULL )
      epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
-   if( epath == NULL ){
-     epath = getenv("PATH") ;              /* try yet another name? */
-#if 0
-     if( epath != NULL )
-       fprintf(stderr,
-               "\n++ WARNING: AFNI_PLUGINPATH not set; searching PATH\n") ;
-#endif
+   if( epath == NULL ) {
+      exe_path = (char *)malloc(sizeof(char)*size);
+      if( whats_my_exepath(exe_path, size) ) {
+         fprintf(stderr,"** failure\n");
+         RETURN(NULL);
+      }
+      exe_dir = strdup(dirname(exe_path)) ;
+      /* contents of exe_path not guaranteed */
+      free(exe_path) ;
+
+      /* get possible lib directory for alternative installation pattern */
+      lib_dir = malloc(strlen(exe_dir)+64) ;
+      strcpy(lib_dir,exe_dir) ; strcat(lib_dir,"/../lib") ;
+
+      /* use putative bin and lib dirs to search for plugins */
+      epath = (char *)malloc(size) ;
+      strcpy(epath,exe_dir) ;
+      free(exe_dir) ;
+
+      strcat(strcat(epath," "),lib_dir) ;
+      free(lib_dir) ;
    }
 
    if( epath == NULL && pname != NULL && strchr(pname,'/') != NULL ){ /* 29 Mar 2001 */
@@ -315,8 +336,8 @@ ENTRY("PLUG_get_many_plugins") ;
      else                 free(ep) ;      /* got zipperoni */
    }
 
-   if( epath == NULL )                                /* put in a fake path instead? */
-     epath = "./ /usr/local/bin /sw/bin /opt/local/bin /Applications/AFNI" ;
+   if( epath == NULL ) /* abandon plugin search */
+      RETURN(NULL) ;
 
    INIT_SARR(qlist) ; /* 02 Feb 2002: list of checked directories */
 
@@ -334,9 +355,8 @@ ENTRY("PLUG_get_many_plugins") ;
    for( ii=0 ; ii < ll ; ii++ )
      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
-if(PRINT_TRACING)
-{ STATUS("paths to be searched for plugins follows:") ;
-  printf("%s\n",elocal) ; fflush(stdout) ; }
+  printf("\nPath(s) to be searched for plugins: \n%s\n",elocal) ;
+  fflush(stdout) ;
 
    /*----- extract blank delimited strings;
            use as directory names to get libraries -----*/

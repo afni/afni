@@ -1,6 +1,13 @@
 #!/bin/bash
+
+#This script is used for continuous integration testing and should be executed
+# within the developer docker container (see .circleci/config.yml)
+
 # Exit on any errors.
 set -e
+
+export NCPUS=$(getconf _NPROCESSORS_ONLN)
+export OMP_NUM_THREADS=1
 
 # basic config for git
 gituser="git config user.name"
@@ -14,12 +21,6 @@ if [ ! -z "$gitemail" ];then
   git config --global user.email 'johnleenimh+circlecigitconfig@gmail.com'
 fi
 
-
-# Read in paths to be added to the PATH variable. This is created by the build
-# system
-TESTING_PATHS="$(< TESTING_PATHS.txt)"
-
 # Run tests
-export PATH="$TESTING_PATHS:$PATH"
-export ARGS="scripts --runveryslow --testpython2 -vv --showlocals"
-ARGS=$ARGS ninja pytest
+cd /opt/afni/src/tests
+pytest scripts --runveryslow -vv --showlocals -r Esx --workers $NCPUS

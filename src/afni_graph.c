@@ -254,6 +254,7 @@ ENTRY("new_MCW_grapher") ;
                        "         and central graph (polyphony)\n"
                        "K      = kill any running sound player\n"
                        "C      = cycle color scheme\n"
+                       "s      = draw smooth graph curves\n"
                        "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
@@ -448,11 +449,7 @@ ENTRY("new_MCW_grapher") ;
                       "                 the timeseries as a whole\n"
                       "Double Plot --> If 'Tran 1D' is active, then\n"
                       "                 plot the data timeseries AND\n"
-                      "                 the transformed timeseries;\n"
-                      "                Plus/Minus -> transformed data\n"
-                      "                 is added/subtracted from real\n"
-                      "                 data timeseries (use this with\n"
-                      "                 Dataset#2 to plot error bands)\n"
+                      "                 the transformed timeseries\n"
                       "Done        --> Close this graphing window\n"
                       "\n"
                       "The keystrokes indicated in the menus will\n"
@@ -641,16 +638,18 @@ ENTRY("new_MCW_grapher") ;
         gr_color_default[6] = INIT_GR_ort_color    ;
         gr_color_default[7] = INIT_GR_ignore_color ;
         gr_color_default[8] = INIT_GR_dplot_color  ;
+        gr_color_default[9] = INIT_GR_pmplot_color ;
 
         gr_thick_default[0] = INIT_GR_boxes_thick  ;
-        gr_thick_default[1] = -1  ;
+        gr_thick_default[1] = -1 ;
         gr_thick_default[2] = INIT_GR_grid_thick   ;
-        gr_thick_default[3] = -1   ;
+        gr_thick_default[3] = -1 ;
         gr_thick_default[4] = INIT_GR_data_thick   ;
         gr_thick_default[5] = INIT_GR_ideal_thick  ;
         gr_thick_default[6] = INIT_GR_ort_thick    ;
         gr_thick_default[7] = -1 ;
         gr_thick_default[8] = INIT_GR_dplot_thick  ;
+        gr_thick_default[9] = INIT_GR_pmplot_thick ;
 
         gr_setup_default = 0 ;
      }
@@ -690,7 +689,7 @@ ENTRY("new_MCW_grapher") ;
         /* 09 Jan 1998: add option to draw only points in graphs */
         /* 01 Aug 1998: allow points+lines to be drawn as well   */
 
-        if( grapher->points_index[ii] >= 0 ){
+        if( grapher->points_index[ii] >= 0 && ii != PMPLOT_INDEX ){
            int nbut = (ii==4) ? 3 : 2 ;
            grapher->opt_points_bbox[ii] =
               new_MCW_bbox( grapher->opt_colors_menu ,
@@ -704,6 +703,20 @@ ENTRY("new_MCW_grapher") ;
                             1 << (grapher->points_index[ii]-1) ) ;
         } else {
            grapher->opt_points_bbox[ii] = NULL ;
+        }
+
+        /* 01 Jun 2020: special case for PMPLOT */
+
+        if( ii == PMPLOT_INDEX ){
+          static char *pm_label[4] = { "Off" , "Curves" , "Bars" , "Fill" } ;
+          grapher->opt_points_bbox[ii] =
+             new_MCW_bbox( grapher->opt_colors_menu ,
+                           4 , pm_label , MCW_BB_radio_one , MCW_BB_noframe ,
+                           GRA_thick_CB , (XtPointer) grapher ) ;
+           MCW_reghint_children(  grapher->opt_points_bbox[ii]->wrowcol ,
+                                  "If & How to plot Dplot as Plus/Minus" ) ;
+           MCW_set_bbox( grapher->opt_points_bbox[ii] , 1 ) ; /* Off */
+           grapher->points_index[ii] = 0 ;
         }
 
         MENU_DLINE( opt_colors_menu ) ;
@@ -728,6 +741,20 @@ ENTRY("new_MCW_grapher") ;
      AVOPT_columnize( grapher->opt_gthick_av , 2 ) ;
      MCW_reghint_children( grapher->opt_gthick_av->wrowcol ,
                            "Width of 'Thick' lines" ) ;
+
+     /* 28 May 2020: control upsampling for smoother curves */
+
+     { static char *strlist[2] = { "No" , "Yes" } ;
+       grapher->opt_upsam_av =
+         new_MCW_optmenu( grapher->opt_colors_menu , "Smooth?  " ,
+                          0 , 1 , 0 , 0 ,
+                          GRA_upsam_CB , (XtPointer)grapher ,
+                          MCW_av_substring_CB , strlist ) ;
+       AVOPT_columnize( grapher->opt_gthick_av , 2 ) ;
+       MCW_reghint_children( grapher->opt_upsam_av->wrowcol ,
+                             "Draw smoother curves?" ) ;
+       grapher->do_upsam = 0 ;
+     }
 
    }
    /***** end colors submenu creation *****/
@@ -898,21 +925,20 @@ ENTRY("new_MCW_grapher") ;
                             "Time series transformations" ) ;
 
       /* 08 Nov 1996: dplot = double plot */
-      /* 07 Aug 2001: rewrite of dplot to make it have 3 states, not two */
 
-      { char *bbox_label[3] = { "DPlot Off" , "Overlay" , "Plus/Minus" } ;
+      { char *bbox_label[2] = { "DPlot Off" , "Dplot On" } ;
 
         OPT_MENU_PULLRIGHT(opt_dplot_menu,opt_dplot_cbut,
                            "Double Plot","Graph Dataset and Tran 1D?");
 
         grapher->opt_dplot_bbox =
             new_MCW_bbox( grapher->opt_dplot_menu ,
-                          3 , bbox_label , MCW_BB_radio_one , MCW_BB_noframe ,
+                          2 , bbox_label , MCW_BB_radio_one , MCW_BB_noframe ,
                           GRA_dplot_change_CB , (XtPointer)grapher ) ;
         MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
 
         MCW_reghint_children( grapher->opt_dplot_bbox->wrowcol ,
-                              "How to show 'Double Plot' curves" ) ;
+                              "Show 'Double Plot' graphs?" ) ;
       }
 
    } else {
@@ -1205,6 +1231,7 @@ STATUS("destroying arrowvals") ;
    FREE_AV( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
    FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
    FREE_AV( grapher->opt_gthick_av )       ;  /* 06 Oct 2004 */
+   FREE_AV( grapher->opt_upsam_av )        ;  /* 01 Jun 2020 */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )  /* 16 Jun 1997 */
      FREE_AV( grapher->opt_color_av[ii] ) ;
@@ -2004,6 +2031,50 @@ ENTRY("text_graphs") ;
 }
 
 /*-----------------------------------------------------------------------------*/
+/* Find the smallest/largest values in these images, for plotting [01 Jun 2020]
+   Usage is tsim = main plot
+            qim  = double plot
+   Either (or both) images can be NULL.
+   Smallest/largest values are found over index range tbot..ttop-1.
+*//*--------------------------------------------------------------------------*/
+
+float_pair GRA_find_range( int tbot, int ttop , MRI_IMAGE *tsim , MRI_IMAGE *qim )
+{
+   int tt , i , ibot=tbot , itop , first=1 ;
+   float *far , tsbot=0.0f , tstop=0.0f ; float_pair tsout ;
+
+ENTRY("GRA_find_range") ;
+
+   if( tsim != NULL && tsim->nx > 1 ){
+     far  = MRI_FLOAT_PTR(tsim) ;
+     itop = MIN( ttop , tsim->nx ) ;
+     if( first && ibot < itop ){ tsbot = tstop = far[ibot] ; first = 0 ; }
+     for( tt=0 ; tt < tsim->ny ; tt++ ){
+       for( i=ibot ; i < itop ; i++ ){
+         tsbot = MIN( tsbot , far[i] ) ;
+         tstop = MAX( tstop , far[i] ) ;
+       }
+       far += tsim->nx ;
+     }
+   }
+
+   if( qim != NULL && qim->nx > 1 ){
+     far  = MRI_FLOAT_PTR(qim) ;
+     itop = MIN( ttop , qim->nx ) ;
+     if( first && ibot < itop ){ tsbot = tstop = far[ibot] ; first = 0 ; }
+     for( tt=0 ; tt < qim->ny ; tt++ ){
+       for( i=ibot ; i < itop ; i++ ){
+         tsbot = MIN( tsbot , far[i] ) ;
+         tstop = MAX( tstop , far[i] ) ;
+       }
+       far += qim->nx ;
+     }
+   }
+
+   tsout.a = tsbot ; tsout.b = tstop ; RETURN(tsout) ;
+}
+
+/*-----------------------------------------------------------------------------*/
 /*! From the 'Detrend' menu */
 
 void GRA_detrend_CB( MCW_arrowval *av , XtPointer cd ) /* 05 Dec 2012 */
@@ -2020,23 +2091,24 @@ ENTRY("GRA_detrend_CB") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Detrend each column of an image */
+/* Detrend each column of an image (L1, for robustness to outliers) */
 
 static void GRA_detrend_im( int dord , MRI_IMAGE *im ) /* 05 Dec 2012 */
 {
    int jy , nx,ny ; float *iar ;
 
    if( dord < 0 || im == NULL || im->kind != MRI_float ) return ;
-   iar = MRI_FLOAT_PTR(im) ; if( iar == NULL ) return ;
-   nx = im->nx ; ny = im->ny ;
+   iar = MRI_FLOAT_PTR(im) ;           if( iar == NULL ) return ;
+   nx = im->nx ; ny = im->ny ;         if( dord > nx+1 ) return ;
    for( jy=0 ; jy < ny ; jy++ )
      THD_generic_detrend_L1( nx , iar+(jy*nx) , dord , 0,0,NULL ) ;
 
    return ;
 }
 
+#if 0
 /*-----------------------------------------------------------------------------*/
-/* Detrend each column of each image */
+/* Detrend each column of each image [no longer used] */
 
 static void GRA_detrend_imarr( int dord , MRI_IMARR *imar ) /* 05 Dec 2012 */
 {
@@ -2048,20 +2120,23 @@ static void GRA_detrend_imarr( int dord , MRI_IMARR *imar ) /* 05 Dec 2012 */
 
    return ;
 }
+#endif
 
 /*-----------------------------------------------------------
-    Plot real graphs to pixmap
+    Plot real graphs to pixmap [lots of code here]
 -------------------------------------------------------------*/
 
 void plot_graphs( MCW_grapher *grapher , int code )
 {
-   MRI_IMAGE *tsim ;
-   MRI_IMARR *tsimar ;
-   float     *tsar ;
-   float       tsbot=0.0 , ftemp,fwid,foff , tstop ;
+   MRI_IMAGE *tsim , *qim=NULL;
+   MRI_IMARR *tsimar=NULL ;
+   float     *tsar , *qar=NULL;
+   float      tsbot=0.0 , xpfac,ypfac,fwid,foff , tstop ;
    int i, m, index, ix, iy, xtemp,ytemp,ztemp, xoff=0,yoff=0, its,ibot,itop;
    int ptop,pbot,pnum,qnum , tbot,ttop,tnum , ntmax ;  /* 17 Mar 2004 */
    int pstep=1 ;
+   int nupsam=0 ; /* 28 May 2020 */
+   float_pair tsrange ; /* 01 Jun 2020 */
 
    static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
    static XPoint *a_line = NULL ;
@@ -2071,10 +2146,12 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMARR *xximar=NULL ;
    int do_xxim=0 ;
 
-   MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 */
+   MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 - for double plot */
    int        dplot = 0 ;
+   int        pmplot_mode = 0 ;    /* 01 Jun 2020 - new PLUSMINUS plot modes */
+   int        pmplot_color= 1 ;
 
-   MRI_IMARR *eximar ;
+   MRI_IMARR *eximar = NULL ;
    int        iex ;
 
    float nd_bot=0 , nd_top=0 , nd_dif=0 ;                  /* 03 Feb 1998 */
@@ -2113,6 +2190,8 @@ ENTRY("plot_graphs") ;
 
    mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
 
+   do_xxim = (grapher->xax_fdbr != NULL) && !DATA_BOXED(grapher) ;
+
    /* set colors and line widths */
 
    DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
@@ -2132,15 +2211,23 @@ ENTRY("plot_graphs") ;
    pnum = ptop-pbot ; tnum = ttop-tbot ;
    if( pnum <= 1 || tnum <= 1 ) EXRETURN ;   /* should never happen? */
 
+   xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor for plots */
+
+   if( DO_UPSAM(grapher) ){               /* for smoothing [28 May 2020] */
+     nupsam = XUPSAM(grapher->gx,pnum) ;  /* XUPSAM is in afni_graph.h */
+     if( nupsam > 1 && xxim != NULL ) nupsam *= 2 ;
+     /** INFO_message("nupsam = %d",nupsam) ; **/
+   }
+
    /* set aside space for plotting, etc. */
 
 #define NPLOT_INIT 9999  /* 29 Apr 1997 */
    itop = MAX( NPLOT_INIT , grapher->status->num_series ) ;
    if( nplot == 0 || nplot < itop ){
      myXtFree(a_line) ; myXtFree(plot) ;
-     nplot  = itop ;
-     plot   = (int *)    XtMalloc( sizeof(int)    * itop ) ;
-     a_line = (XPoint *) XtMalloc( sizeof(XPoint) * itop ) ;
+     nplot  = 2*itop+666 ; /* just to be safe */
+     plot   = (int *)    XtMalloc( sizeof(int)    * nplot ) ;
+     a_line = (XPoint *) XtMalloc( sizeof(XPoint) * nplot ) ;
    }
    if( grapher->ncen_line < itop ){
      myXtFree(grapher->cen_line) ;
@@ -2148,7 +2235,7 @@ ENTRY("plot_graphs") ;
      grapher->ncen_line = itop ;
    }
 
-   /* set the bottom point at which to compute time series statistics */
+   /* set the bottom point (ibot) at which to compute time series statistics */
 
    ibot = grapher->init_ignore ;
    if( ibot >= ttop-1 ) ibot = 0 ;
@@ -2158,7 +2245,6 @@ ENTRY("plot_graphs") ;
 
    INIT_IMARR(tsimar) ;
 
-   do_xxim = (grapher->xax_fdbr != NULL) && !DATA_BOXED(grapher) ;
    if( do_xxim ) INIT_IMARR(xximar) ;
 
    /** 08 Nov 1996: initialize second array for double plotting **/
@@ -2167,14 +2253,11 @@ ENTRY("plot_graphs") ;
    if( grapher->transform1D_func != NULL &&
        MCW_val_bbox(grapher->opt_dplot_bbox) != DPLOT_OFF ){
 
-     static int first=1 ;
-
-#if 0
-ININFO_message("  initialize graph for DPLOT") ;
-#endif
+     STATUS("  initialize graph for DPLOT") ;
 
      if( DATA_BOXED(grapher) ){
-       MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+       static int first=1 ;
+       MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ; dplot = 0 ;
        if( first ){
          (void) MCW_popup_message(
                    grapher->option_rowcol ,
@@ -2183,10 +2266,18 @@ ININFO_message("  initialize graph for DPLOT") ;
                    MCW_USER_KILL | MCW_TIMER_KILL ) ;
          first = 0 ;
        }
-     } else {
+     } else {                         /* get ready to save dplot data */
        INIT_IMARR(dplot_imar) ;
        dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
      }
+   }
+
+   /* how to do the plus/minus double plot overlay [01 Jun 2020] */
+
+   pmplot_mode = 0 ;
+   if( dplot && !do_xxim && xax_tsim == NULL ){
+     pmplot_mode = PMPLOT_MODE(grapher); if( pmplot_mode == 1 ) pmplot_mode = 0;
+     pmplot_color = PMPLOT_COLOR(grapher) ;
    }
 
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -2196,7 +2287,7 @@ ININFO_message("  initialize graph for DPLOT") ;
 
    ntmax = 0 ; /* will be length of longest time series found below */
 
-   for( ix=0 ; ix < grapher->mat ; ix++ ){
+   for( ix=0 ; ix < grapher->mat ; ix++ ){  /* get data for the 'main' plots */
 
       /** compute the 3D index of the desired time series **/
 
@@ -2216,8 +2307,8 @@ ININFO_message("  initialize graph for DPLOT") ;
          tsim = GRA_getseries( grapher , index ) ;
 
          if( do_xxim ){                                  /* 10 Feb 2015 */
-           xxim = GRA_getseries_xax( grapher , index ) ;
-           if( ix == grapher->xc && iy == grapher->yc ){
+           xxim = GRA_getseries_xax( grapher , index ) ; /* for user-supplied */
+           if( ix == grapher->xc && iy == grapher->yc ){ /* x-axis */
              xxim_cen = xxim ;
              mri_free(grapher->xax_cen) ; grapher->xax_cen = mri_copy(xxim) ;
            }
@@ -2235,151 +2326,130 @@ ININFO_message("  initialize graph for DPLOT") ;
 
          if( tsim == NULL ){
            ADDTO_IMARR(tsimar,NULL) ;
-           if( dplot ) ADDTO_IMARR(dplot_imar,NULL) ;
+           if( dplot_imar != NULL ) ADDTO_IMARR(dplot_imar,NULL) ;
            continue ;  /* skip to next iy */
          }
 
-         ntmax = MAX( ntmax , tsim->nx ) ;
+         ntmax = MAX( ntmax , tsim->nx ) ; /* longest seen thus far */
 
          /* 22 Oct 1996: transform each point, if ordered */
 
-         if( grapher->transform0D_func != NULL ){
+         if( grapher->transform0D_func != NULL ){  /* 0D = pointwise */
 STATUS("about to perform 0D transformation") ;
-#if 0
-            grapher->transform0D_func( tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
-#else
             AFNI_CALL_0D_function( grapher->transform0D_func ,
                                    tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
-#endif
          }
 
-         /* 03 Nov 1996: 1D transformations, too */
+         /* 03 Nov 1996: 1D transformations, too [more cases to manage] */
          /* 08 Nov 1996: double plotting, too */
+         /*              that is, the 'transformation' can */
+         /*              just be an entirely new time series */
 
          if( grapher->transform1D_func != NULL ){
-            MRI_IMAGE *qim ;                /* image to be transformed */
 
-#if 0
-ININFO_message("  execute transform1D_func") ;
-#endif
-
-            if( dplot ){                      /* copy and save original */
-#if 0
-ININFO_message("   - copy original data") ;
-#endif
+            if( dplot ){                     /* copy and save original */
               qim = mri_to_float(tsim) ;       /* if double plot is on */
-              ADDTO_IMARR(dplot_imar,qim) ;
-            }
+              ADDTO_IMARR(dplot_imar,qim) ; /* so we can plot original */
+            }                                 /* and the 'transformed' */
             else
-              qim = tsim ;                 /* transform original image */
+              qim = tsim ;            /* just transform original image */
 
 STATUS("about to perform 1D transformation") ;
 
             if( grapher->transform1D_flags & NEEDS_DSET_INDEX ){ /* 18 May 2000 */
 #ifdef BE_AFNI_AWARE
-               FD_brick *br = (FD_brick *)grapher->getaux ;
-               THD_ivec3 id ;
+               FD_brick *br=(FD_brick *)grapher->getaux ; THD_ivec3 id ;
                id = THD_fdind_to_3dind( br ,
                                         TEMP_IVEC3(xtemp,ytemp,grapher->zpoint) );
                AFNI_store_dset_index(
                              id.ijk[0]
                             +id.ijk[1] * br->nxyz.ijk[0]
                             +id.ijk[2] * br->nxyz.ijk[0] * br->nxyz.ijk[1] , 0 ) ;
-#if 0
-ININFO_message("   - store dset index") ;
-#endif
 #else
-               AFNI_store_dset_index(-1,0) ;
+               AFNI_store_dset_index(-1,0) ; /* older dumbshit code */
 #endif
             }
+
+            /* over the centuries, the number of ways to
+               call a 1D transform function kept metastasizing :( */
 
             if( ! (grapher->transform1D_flags & PROCESS_MRI_IMAGE) ){  /* older code:   */
                                                                        /* process image */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){   /* contents only */
-#if 0
-                 grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
-                                            MRI_FLOAT_PTR(qim) ) ;
-#else
-#if 0
-ININFO_message("   - old call 1D_function - no str") ;
-#endif
                  AFNI_CALL_1D_function( grapher->transform1D_func ,
-                                        qim->nx , qim->xo , qim->dx ,
-                                        MRI_FLOAT_PTR(qim) ) ;
-#endif
+                                        qim->nx , qim->xo , qim->dx , /* just change */
+                                        MRI_FLOAT_PTR(qim) ) ;        /* the data */
               } else {
                  char *quser = NULL ;
-#if 0
-                 grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
-                                            MRI_FLOAT_PTR(qim) , &quser ) ;
-#else
-#if 0
-ININFO_message("   - old call 1D_function - yes str") ;
-#endif
-                 AFNI_CALL_1D_funcstr( grapher->transform1D_func ,
-                                       qim->nx , qim->xo , qim->dx ,
+                 AFNI_CALL_1D_funcstr( grapher->transform1D_func ,    /* also returns */
+                                       qim->nx , qim->xo , qim->dx ,  /* a string */
                                        MRI_FLOAT_PTR(qim) , quser ) ;
-#endif
                  if( quser != NULL )
-                   grapher->tuser[ix][iy] = XtNewString(quser) ;
+                   grapher->tuser[ix][iy] = XtNewString(quser) ;      /* save string */
               }
+
             } else {                           /* 28 Mar 2002: process MRI_IMAGE struct */
                                                                             /* in place */
               if( ! (grapher->transform1D_flags & RETURNS_STRING) ){
-#if 0
-                 grapher->transform1D_func( qim ) ;
-#else
-#if 0
-ININFO_message("   - new call 1D_function - no str") ;
-#endif
                  AFNI_CALL_1D_funcmrim( grapher->transform1D_func , qim ) ;
-#endif
               } else {
                  char *quser = NULL ;
-#if 0
-                 grapher->transform1D_func( qim , &quser ) ;
-#else
-#if 0
-ININFO_message("   - new call 1D_function - yes str") ;
-#endif
                  AFNI_CALL_1D_funcmrimstr( grapher->transform1D_func , qim,quser ) ;
-#endif
                  if( quser != NULL )
                    grapher->tuser[ix][iy] = XtNewString(quser) ;
               }
-            }
 
-            /* 04 Oct 2007: discard transformations that did nothing */
+            } /* OK, the transformation/replacement of qim has happened */
 
-            if( dplot && mri_equal(tsim,qim) ){
-              mri_free(qim) ;
-#if 0
-ININFO_message("   - discard duplicate transformed data") ;
-#endif
+            /* 04 Oct 2007: discard double-plotted data when
+                            the transformation changed nothing */
+
+            if( dplot && mri_equal(tsim,qim) ){  /* every point is equal */
+              mri_free(qim) ; qim = NULL ; /* dplot is on, so qim is not tsim */
               IMARR_SUBIM( dplot_imar , IMARR_COUNT(dplot_imar)-1 ) = NULL ;
             }
 
-            /* At this point, qim is transformed;
-               if dplot is on, then it was saved in dplot_imar earlier;
-               if dplot is off, then qim==tsim, and it will be saved in tsimar, below */
+            /* if this is a plus/minus double plot, we need to do some
+               surgery on qim now:
+                 to make it 2 curves with tsim+qim and tsim-qim */
 
-         } /* end of transform1D */
+            if( pmplot_mode && qim != NULL ){ /* 01 Jun 2020 */
+              MRI_IMAGE *qqim; float *qqar,*qar ; int kk,nx ;
+              nx   = MIN( tsim->nx , qim->nx ) ;      /* length of substitute */
+              qqim = mri_new( nx , 2 , MRI_float ) ;  /* substitute image */
+              qqar = MRI_FLOAT_PTR(qqim) ;            /* data in substitute */
+              tsar = MRI_FLOAT_PTR(tsim) ;            /* data in base */
+              qar  = MRI_FLOAT_PTR(qim)  ;            /* data in plus/minus */
+              for( kk=0 ; kk < nx ; kk++ ){
+                qqar[kk+0*nx] = tsar[kk] + qar[kk] ;   /* plus */
+                qqar[kk+1*nx] = tsar[kk] - qar[kk] ;   /* minus */
+              }
+              mri_free(qim) ; qim = qqim ; /* get rid of qim, substitute it */
+              IMARR_SUBIM( dplot_imar , IMARR_COUNT(dplot_imar)-1 ) = qim ;
+            }
 
-         /* put this (possibly transformed) image on the list of those to plot */
+            /* if we are detrending data time series,
+               also detrend the other data to plot (if any) */
 
+            if( qim != tsim ) GRA_detrend_im( grapher->detrend , qim ) ;
+
+            /* At this point, qim is transformed and saved:
+               if dplot is on,  then qim was saved in dplot_imar earlier;
+               if dplot is off, then qim==tsim, will be saved in tsimar below */
+
+         } /* end of transform1D (at last) */
+
+         /* detrend and then put this base image on list of those to plot */
+
+         GRA_detrend_im( grapher->detrend , tsim ) ;
          ADDTO_IMARR(tsimar,tsim) ;
       }
    }
 
-   /* 05 Dec 2012: detrend? */
-
-   GRA_detrend_imarr( grapher->detrend , tsimar ) ;
-   GRA_detrend_imarr( grapher->detrend , dplot_imar ) ;
-
    /** find the average time series [27 Jan 2004] **/
 
    if( ntmax > 1 && IMARR_COUNT(tsimar) > 0 ){
-     float *avar , fac ; int nax ;
+     float *avar , fac ; int nax , nts=0 ;
 STATUS("about to make average time series") ;
      if( grapher->ave_tsim != NULL ) mri_free(grapher->ave_tsim) ;
      grapher->ave_tsim = mri_new( ntmax , 1 , MRI_float ) ;
@@ -2389,8 +2459,9 @@ STATUS("about to make average time series") ;
        tsar = MRI_FLOAT_PTR(tsim)       ; if( tsar == NULL ) continue ;
        nax  = MIN( ntmax , tsim->nx ) ;
        for( i=0 ; i < nax ; i++ ) avar[i] += tsar[i] ;
+       nts++ ;
      }
-     fac = 1.0 / IMARR_COUNT(tsimar) ;
+     fac = 1.0f / MAX(nts,1) ; /* in case there isn't any data! */
      for( i=0 ; i < grapher->ave_tsim->nx ; i++ ) avar[i] *= fac ;
 
      if( MCW_val_bbox(grapher->fmenu->fim_editref_winaver_bbox) ){
@@ -2411,9 +2482,7 @@ STATUS("finding statistics of time series") ;
 
    /* stuff for setting vertical scale */
 
-   if( set_scale ){
-     nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
-   }
+   nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
 
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
@@ -2421,24 +2490,28 @@ STATUS("finding statistics of time series") ;
          double qsum , qsumq ;
 
          tsim = IMARR_SUBIMAGE(tsimar,its) ;
-         if( tsim == NULL || tsim->nx < 2 ){
+         if( tsim == NULL || tsim->nx < 2 ){            /* unpleasant defaults */
            grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
              grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
-           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
-           grapher->sbot[ix][iy] = grapher->stop[ix][iy] = 0 ;    /* 19 Mar 2004 */
-           grapher->tbmv[ix][iy] = 0.0f ;                         /* 16 Oct 2009 */
-           continue ;
+           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0; /* 08 Mar 2001 */
+           grapher->sbot[ix][iy] = grapher->stop[ix][iy] = 0 ;  /* 19 Mar 2004 */
+           grapher->tbmv[ix][iy] = 0.0f ;                       /* 16 Oct 2009 */
+           grapher->dbot[ix][iy] = 0.0f ;                       /* 01 Jun 2020 */
+           grapher->dtop[ix][iy] = 0.0f ;
+           continue ;                                /* skip to next sub-image */
          }
 
          tsar = MRI_FLOAT_PTR(tsim) ;     /* stats from ibot..itop-1 */
          itop = MIN( ttop , tsim->nx ) ;  /* ibot was set earlier    */
 
-         if( itop-ibot < 2 ){                       /* too short to deal with */
+         if( itop-ibot < 2 ){                        /* too short to deal with */
            grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
              grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
-           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
-           grapher->tbmv[ix][iy] = 0.0f ;                         /* 16 Oct 2009 */
-           continue ;  /* to next iy */
+           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0; /* 08 Mar 2001 */
+           grapher->tbmv[ix][iy] = 0.0f ;                       /* 16 Oct 2009 */
+           grapher->dbot[ix][iy] = 0.0f ;                       /* 01 Jun 2020 */
+           grapher->dtop[ix][iy] = 0.0f ;
+           continue ;                                            /* to next iy */
          }
 
          qbot = qtop  = tsar[ibot] ;
@@ -2460,86 +2533,77 @@ STATUS("finding statistics of time series") ;
                            &(grapher->tmad[ix][iy]) ,
                            &(grapher->tbmv[ix][iy])  ) ;  /* tbmv: 16 Oct 2009 */
 
-         if( set_scale ){        /* 03 Feb 1998 */
+         /* get range of values to be plotted in this sub-graph [01 Jun 2020] */
+         /* - the old way was just to use the range of tsim,
+              but now us advanced types use the range of all the data :) */
 
-           if( tsim->ny > 1 ){
-             for( tt=1 ; tt < tsim->ny ; tt++ ){  /* get min/max over     */
-               tsar += tsim->nx ;                 /* multiple time series */
-               for( i=ibot ; i < itop ; i++ ){    /* if they are present  */
-                 qbot = MIN( qbot , tsar[i] ) ;
-                 qtop = MAX( qtop , tsar[i] ) ;
-               }
-             }
-           }
+         qim = (dplot_imar != NULL) ? IMARR_SUBIMAGE(dplot_imar,its) : NULL ;
+         tsrange = GRA_find_range( ibot,ttop , tsim , qim ) ;
+         grapher->dbot[ix][iy] = tsrange.a ;
+         grapher->dtop[ix][iy] = tsrange.b ;
 
-           nd_bot = MIN( nd_bot , qbot ) ;        /* vertical scale stuff */
-           nd_top = MAX( nd_top , qtop ) ;
-           nd_dif = MAX( nd_dif , (qtop-qbot) ) ;
-         }
+         /* and set the global values for ranges (for scale calculation) */
+
+         nd_bot = MIN( nd_bot , tsrange.a ) ;             /* smallest bottom */
+         nd_top = MAX( nd_top , tsrange.b ) ;             /* largest top */
+         nd_dif = MAX( nd_dif , (tsrange.b-tsrange.a) ) ; /* largest range */
       }
-   }
+   } /* end of loops over statistification of time series */
 
-   /* 03 Feb 1998: set the initial vertical scale factor */
+   /* 03 Feb 1998: set the vertical scale factor (maybe) */
 
-   if( set_scale && nd_bot < nd_top && nd_dif > 0.0 ){
+   if( set_scale && nd_bot < nd_top && nd_dif > 0.0f ){
 
       switch( grapher->common_base ){
          default:
          case BASELINE_INDIVIDUAL:
-            grapher->fscale = 0.9 * grapher->gy / nd_dif ;          /* biggest range */
+            grapher->fscale = 0.9f * grapher->gy / nd_dif ;          /* biggest range */
          break ;
 
          case BASELINE_COMMON:
-            grapher->fscale = 0.9 * grapher->gy / (nd_top-nd_bot) ; /* global range */
+            grapher->fscale = 0.9f * grapher->gy / (nd_top-nd_bot) ; /* global range */
          break ;
 
          case BASELINE_GLOBAL:{
             float vbot = (nd_top > grapher->global_base)
                         ? grapher->global_base : nd_bot ;
-            grapher->fscale = 0.9 * grapher->gy / (nd_top-vbot) ;
+            grapher->fscale = 0.9f * grapher->gy / (nd_top-vbot) ;
          }
          break ;
       }
 
-      if( grapher->fscale > 0.0 && grapher->fscale < 1.0 )       /* switcheroo */
-         grapher->fscale = -1.0 / grapher->fscale ;
+      /** switcheroo (holdover from old FD program):
+            fscale > 0 ==> this many pixels per unit of tsar
+            fscale < 0 ==> this many units of tsar per pixel **/
 
-           if( grapher->fscale > 4.0 )                           /* even value */
+      if( grapher->fscale > 0.0f && grapher->fscale < 1.0f )
+         grapher->fscale = -1.0f / grapher->fscale ;
+
+           if( grapher->fscale > 4.0f )                           /* even value */
                   grapher->fscale = (int) grapher->fscale ;
 
-      else if( grapher->fscale > 1.0 )
-                  grapher->fscale = 0.5 * ((int)(2.0*grapher->fscale)) ;
+      else if( grapher->fscale > 1.0f )
+                  grapher->fscale = 0.5f * ((int)(2.0f*grapher->fscale)) ;
 
-      else if( grapher->fscale < -4.0 )
-                  grapher->fscale = -((int)(1.0-grapher->fscale)) ;
+      else if( grapher->fscale < -4.0f )
+                  grapher->fscale = -((int)(1.0f-grapher->fscale)) ;
 
-      else if( grapher->fscale < -1.0 )
-                  grapher->fscale = -0.5 * ((int)(1.0-2.0*grapher->fscale)) ;
+      else if( grapher->fscale < -1.0f )
+                  grapher->fscale = -0.5f * ((int)(1.0f-2.0f*grapher->fscale)) ;
    }
 
-   /** find the smallest element in all the time series, if needed **/
+   /** if it will be the same for all graphs,
+       set the bottom magnitude for them all now = tsbot **/
 
    if( grapher->common_base == BASELINE_COMMON ){
-     int first = 1 ;
-
-STATUS("finding common base") ;
-
-     for( ix=0 ; ix < tsimar->num ; ix++ ){
-       tsim = IMARR_SUBIMAGE(tsimar,ix) ;
-       if( tsim == NULL || tsim->nx < 2 ) continue ;   /* skip */
-       tsar = MRI_FLOAT_PTR(tsim) ;
-       itop = MIN( ttop , tsim->nx ) ;
-       if( first && ibot < itop ){ tsbot = tsar[ibot] ; first = 0 ; }
-       for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002 */
-         for( i=ibot ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
-         tsar += tsim->nx ;
-       }
-     }
-   } else if( grapher->common_base == BASELINE_GLOBAL ){ /* 07 Aug 2001 */
+     tsbot = nd_bot ;
+   } else if( grapher->common_base == BASELINE_GLOBAL ){
      tsbot = grapher->global_base ;
    }
 
    /* do something to mark infra-threshold voxels [Mar 2013] */
+   /* note that this is done before plotting graphs, so that it
+      appears as background color - X11 has no idea about translucency */
 
    if( grapher->thresh_fade ){
      for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
@@ -2554,7 +2618,7 @@ STATUS("finding common base") ;
        }
      }
      DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;  /* must reset */
-     DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
+     DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;  /* drawing colors */
    }
 
    /**** loop over matrix of graphs and plot them all to the pixmap ****/
@@ -2565,23 +2629,23 @@ STATUS("starting time series graph loop") ;
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
 
          tsim = IMARR_SUBIMAGE(tsimar,its) ;
-         if( tsim == NULL || tsim->nx < 2 ) continue ; /* skip to next iy */
-         tsar = MRI_FLOAT_PTR(tsim) ;
-         itop = MIN( ttop , tsim->nx ) ;
-         qnum = itop - pbot ;          /* number of points to plot here */
-         if( qnum < 2 ) continue ;     /* skip to next iy */
+         if( tsim == NULL || tsim->nx < 2 ) continue ;    /* skip to next iy */
 
+         qim = (dplot_imar != NULL && pmplot_mode )       /* PLUSMINUS */
+               ? IMARR_SUBIMAGE(dplot_imar,its) : NULL ;  /* data */
+
+         itop = MIN( ttop , tsim->nx ) ;
+         qnum = itop - pbot ;             /* number of points to plot here */
+         if( qnum < 2 ) continue ;                      /* skip to next iy */
+
+                                         /* stuff for user-supplied x-axis */
          if( do_xxim ) xxim = IMARR_SUBIMAGE(xximar,its) ;  /* 10 Feb 2015 */
-         else          xxim = xax_tsim ;                    /* might be NULL */
+         else          xxim = xax_tsim ;                  /* might be NULL */
 
          /** find bottom value for this graph, if needed **/
 
          if( grapher->common_base == BASELINE_INDIVIDUAL ){
-           tsbot = tsar[ibot] ;
-           for( tt=0 ; tt < tsim->ny ; tt++ ){
-             for( i=ibot ; i < itop ; i++ ) tsbot = MIN(tsbot,tsar[i]) ;
-             tsar += tsim->nx ;
-           }
+           tsbot = grapher->dbot[ix][iy] ;
          }
          grapher->pmin[ix][iy] = tsbot ;  /* value at graph bottom */
 
@@ -2599,45 +2663,123 @@ STATUS("starting time series graph loop") ;
            }
          }
 
+         /** scale factor for vertical (y):
+              fscale > 0 ==> this many pixels per unit of tsar
+              fscale < 0 ==> this many units of tsar per pixel **/
+
+         ypfac = grapher->fscale ;
+              if( ypfac == 0.0 ) ypfac =  1.0 ;
+         else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
+
+         xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor */
+
+         /* X11 box for graph:
+             x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
+             y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
+
+         xoff  = grapher->xorigin[ix][iy] ;
+         yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
+
          tsar = MRI_FLOAT_PTR(tsim) ;
+         qar  = MRI_FLOAT_PTR(qim) ;  /* will be NULL if image is NULL */
+
+         /* do the plus/minus double plot first [01 Jun 2020],
+            since we will want to draw all later stuff on top of it */
+
+         if( pmplot_mode && qar != NULL && qim->ny == 2 ){
+           int jtop = MIN(ttop,qim->nx) , jnum = jtop-pbot ;
+           if( jnum > 1 ){
+             XPoint *d_line, *e_line, *f_line ; int nd_line = jnum+66 ;
+             d_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
+             e_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
+             /*--- plus lines = d_line array ---*/
+              for( i=pbot ; i < MIN(ibot,jtop) ; i++ ) /* pre-ignore */
+                plot[i-pbot] = (tsar[ibot] - tsbot) * ypfac ;
+              for( ; i < jtop ; i++ )                 /* post-ignore */
+                plot[i-pbot] = (qar[i] - tsbot) * ypfac ;
+              for( i=0 ; i < jnum ; i++ ){
+                d_line[i].x = xoff + i*xpfac ;
+                d_line[i].y = yoff - plot[i] ;
+              }
+             /*--- minus lines = e_line array ---*/
+              for( i=MIN(ibot,jtop); i < jtop ; i++ ) /* post-ignore */
+                plot[i-pbot] = (qar[i+qim->nx] - tsbot) * ypfac ;
+              for( i=0 ; i < jnum ; i++ ){
+                e_line[i].x = d_line[i].x ;
+                e_line[i].y = yoff - plot[i] ;
+              }
+              /*--- plotting choices ---*/
+              DC_fg_color ( grapher->dc , pmplot_color ) ;
+              DC_linewidth( grapher->dc , PMPLOT_THICK(grapher) ) ;
+              switch( pmplot_mode ){
+                default:
+                case PMPLOT_CURVES: /* pretty much the olden way */
+                  AFNI_XDrawLines( grapher->dc->display ,
+                                   grapher->fd_pxWind , grapher->dc->myGC ,
+                                   d_line , jnum , CoordModeOrigin , nupsam ) ;
+                  AFNI_XDrawLines( grapher->dc->display ,
+                                   grapher->fd_pxWind , grapher->dc->myGC ,
+                                   e_line , jnum , CoordModeOrigin , nupsam ) ;
+                break ;
+
+                case PMPLOT_FILL:{ /* filled solid color */
+                  f_line = (XPoint *)malloc(sizeof(XPoint)*nd_line*2) ;
+                  for( i=0 ; i < jnum ; i++ ) f_line[i]          = d_line[i] ;
+                  for( i=0 ; i < jnum ; i++ ) f_line[2*jnum-1-i] = e_line[i] ;
+                  AFNI_XFillPolygon( grapher->dc->display ,
+                                     grapher->fd_pxWind , grapher->dc->myGC ,
+                                     f_line, 2*jnum, Complex, CoordModeOrigin, nupsam ) ;
+                  free(f_line) ;
+                }
+                break ;
+
+                case PMPLOT_BARS:{ /* error bars, of a sort */
+                  XPoint q_line[6] ; short dx ; float xd ;
+                  xd = grapher->gx / ( 4.0f* jnum ) ; dx = SHORTIZE(xd) ;
+                  if( dx > 16 ) dx = 16 ;
+                  for( i=0 ; i < jnum ; i++ ){
+                    q_line[0].x = e_line[i].x - dx ; q_line[0].y = e_line[i].y ;
+                    q_line[1].x = e_line[i].x + dx ; q_line[1].y = e_line[i].y ;
+                    q_line[2].x = e_line[i].x      ; q_line[2].y = e_line[i].y ;
+                    q_line[3].x = d_line[i].x      ; q_line[3].y = d_line[i].y ;
+                    q_line[4].x = d_line[i].x - dx ; q_line[4].y = d_line[i].y ;
+                    q_line[5].x = d_line[i].x + dx ; q_line[5].y = d_line[i].y ;
+                    AFNI_XDrawLines( grapher->dc->display ,
+                                     grapher->fd_pxWind , grapher->dc->myGC ,
+                                     q_line , 6 ,  CoordModeOrigin , 0 ) ;
+                  }
+                }
+                break ;
+              }
+              free(e_line); free(d_line);
+           }
+         } /* end of dplot BEFORE tsim plot! */
+
+         DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
+         DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
          for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002: multi-plots */
-
-          /** scale graph vertically:
-               fscale > 0 ==> this many pixels per unit of tsar
-               fscale < 0 ==> this many units of tsar per pixel **/
-
-          ftemp = grapher->fscale ;
-               if( ftemp == 0.0 ) ftemp =  1.0 ;
-          else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
 
           /* scale to vertical pixels: before the ignore level */
 
           for( i=pbot ; i < MIN(ibot,itop) ; i++ )
-            plot[i-pbot] = (tsar[ibot] - tsbot) * ftemp ;
+            plot[i-pbot] = (tsar[ibot] - tsbot) * ypfac ;
 
           /* scale after the ignore level */
 
           for( i=ibot ; i < itop ; i++ )
-            plot[i-pbot] = (tsar[i] - tsbot) * ftemp ;
+            plot[i-pbot] = (tsar[i] - tsbot) * ypfac ;
 
           /* now have qnum points in plot[] */
 
-          grapher->pmax[ix][iy] = tsbot + grapher->gy / ftemp ; /* value at graph top */
+          grapher->pmax[ix][iy] = tsbot + grapher->gy / ypfac ; /* value at graph top */
 
           /** Compute X11 line coords from pixel heights in plot[].
               N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
 
           if( DATA_BOXED(grapher) )
-            ftemp = grapher->gx / (float)pnum ; /* x scale factor */
+            xpfac = grapher->gx / (float)pnum ; /* x scale factor */
           else
-            ftemp = grapher->gx / (pnum-1.0) ;  /* x scale factor */
-
-          /* X11 box for graph:
-             x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
-             y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
-
-          xoff  = grapher->xorigin[ix][iy] ;
-          yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
+            xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor */
 
           /* 09 Jan 1998: allow x-axis to be chosen by a
                          timeseries that ranges between 0 and 1 */
@@ -2645,33 +2787,32 @@ STATUS("starting time series graph loop") ;
 #define XPIX(ii)                                            \
    ( (xxim != NULL && (ii) < xxim->nx)                      \
      ? (MRI_FLOAT_PTR(xxim)[MAX((ii),ibot)] * grapher->gx)  \
-     : (((ii)-pbot) * ftemp) )
+     : (((ii)-pbot) * xpfac) )
 
-          for( i=0 ; i < qnum ; i++ ){         /* generate X11 plot lines */
+          for( i=0 ; i < qnum ; i++ ){        /* generate X11 plot lines */
             a_line[i].x = xoff + XPIX(i+pbot);
-            a_line[i].y = yoff - plot[i] ;
+            a_line[i].y = yoff - plot[i] ;    /* X11 y-axis is down the screen */
           }
 
           if( use_ovi )                       /* 29 Mar 2002: line color */
             DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
 
+#define DRAW_A_DATA_POINT(x,y)                               \
+  do{ if( ww < 3 ) GRA_small_circle(grapher,(x),(y),ww>1) ;  \
+      else         GRA_draw_disk   (grapher,(x),(y),ww+2) ;  \
+  } while(0)
+
           if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
             int ww = DATA_THICK(grapher) ;
-            if( ww < 3 ){
-              for( i=0 ; i < qnum ; i++ )
-                GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) );
-            } else {
-              for( i=0 ; i < qnum ; i++ )
-                GRA_draw_disk( grapher,a_line[i].x,a_line[i].y,ww+2 );
-            }
+            for( i=0 ; i < qnum ; i++ ) DRAW_A_DATA_POINT(a_line[i].x,a_line[i].y) ;
           }
           if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
-            XDrawLines( grapher->dc->display ,
+            AFNI_XDrawLines( grapher->dc->display ,
                         grapher->fd_pxWind , grapher->dc->myGC ,
-                        a_line , qnum ,  CoordModeOrigin ) ;
+                        a_line , qnum ,  CoordModeOrigin , nupsam ) ;
           }
           if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
-            XPoint q_line[4] ; short xb,xt ; float delt=ftemp/tsim->ny ;
+            XPoint q_line[4] ; short xb,xt ; float delt=ypfac/tsim->ny ;
             int labx=-1, aybas=0 ;
             char *eblab=my_getenv("AFNI_GRAPH_BOXLAB"), ecode='\0' ;
             if( eblab != NULL && grapher->mat == 1 ){
@@ -2694,9 +2835,9 @@ STATUS("starting time series graph loop") ;
               q_line[1].x = xb ; q_line[1].y = a_line[i].y-BOXOFF ;
               q_line[2].x = xt ; q_line[2].y = a_line[i].y-BOXOFF ;
               q_line[3].x = xt ; q_line[3].y = yoff ;
-              XDrawLines( grapher->dc->display ,
+              AFNI_XDrawLines( grapher->dc->display ,
                           grapher->fd_pxWind , grapher->dc->myGC ,
-                          q_line , 4 ,  CoordModeOrigin ) ;
+                          q_line , 4 ,  CoordModeOrigin , 0 ) ;
               if( labx > 0 ){
                 char *lab = GRA_getlabel(grapher,pbot+i) ;
                 if( ecode == 'M' || ecode == 'Z' )
@@ -2723,11 +2864,10 @@ STATUS("starting time series graph loop") ;
            DC_fg_color( grapher->dc , DATA_COLOR(grapher) ) ; /* reset color */
 
          /* 08 Nov 1996: double plot?  Duplicate the above drawing code! */
-         /* 07 Aug 2001: old method was DPLOT_OVERLAY,
-                         new method is  DPLOT_PLUSMINUS */
          /* 29 Mar 2002: allow multiple time series (dsim->ny > 1) */
+         /* 01 Jun 2020: PLUSMINUS (pmplot) now taken care of earlier */
 
-         if( dplot ){
+         if( dplot && pmplot_mode == 0 ){
             int dny , id , qq,qtop ;
             dsim = IMARR_SUBIMAGE(dplot_imar,its) ;
             if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip to next iy */
@@ -2736,9 +2876,6 @@ STATUS("starting time series graph loop") ;
             itop = MIN( ttop , dsim->nx ); /* ibot was set long ago */
             qnum = itop - pbot ;           /* number of points to plot here */
             if( qnum < 2 ) continue ;      /* skip to next iy = next sub-graph */
-
-            if( dplot == DPLOT_PLUSMINUS ) dny = 1 ;        /* 29 Mar 2002 */
-            else                           dny = dsim->ny ;
 
             /** 29 Mar 2002: decode 'color:' from dsim->name, if present **/
 
@@ -2754,11 +2891,13 @@ STATUS("starting time series graph loop") ;
               }
             }
 
+            dny = dsim->ny ;
+
             for( id=0 ; id < dny ; id++ ){          /* 29 Mar 2002: multi-plots */
 
-             ftemp = grapher->fscale ;
-                  if( ftemp == 0.0 ) ftemp =  1.0 ;
-             else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+             ypfac = grapher->fscale ;
+                  if( ypfac == 0.0 ) ypfac =  1.0 ;
+             else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
 
              /* 18 Mar 2004: scan backwards from itop to reject superlarge values */
 
@@ -2771,20 +2910,13 @@ STATUS("starting time series graph loop") ;
                default:
                case DPLOT_OVERLAY:                       /* plot curve */
                  for( i=pbot ; i < MIN(ibot,qtop) ; i++ )
-                   plot[i-pbot] = (dsar[ibot] - tsbot) * ftemp ;
+                   plot[i-pbot] = (dsar[ibot] - tsbot) * ypfac ;
                  for( i=ibot ; i < qtop ; i++ )
-                   plot[i-pbot] = (dsar[i] - tsbot) * ftemp ;
-               break ;
-
-               case DPLOT_PLUSMINUS:                     /* plus side */
-                 for( i=pbot ; i < MIN(ibot,qtop) ; i++ )
-                   plot[i-pbot] = (tsar[ibot]+dsar[ibot] - tsbot) * ftemp ;
-                 for( i=ibot ; i < qtop ; i++ )
-                   plot[i-pbot] = (tsar[i]   +dsar[i]    - tsbot) * ftemp ;
+                   plot[i-pbot] = (dsar[i] - tsbot) * ypfac ;
                break ;
              }
 
-             ftemp = grapher->gx / (pnum-1.0) ;  /* cf. XPIX */
+             xpfac = grapher->gx / (pnum-1.0) ;  /* cf. XPIX */
              xoff  = grapher->xorigin[ix][iy] ;
              yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
 
@@ -2799,41 +2931,15 @@ STATUS("starting time series graph loop") ;
                DC_fg_color( grapher->dc , DPLOT_COLOR(grapher) ) ;
 
              if( DPLOT_POINTS(grapher) ){       /* 09 Jan 1998 */
+               int ww = DPLOT_THICK(grapher) ;
                for( i=0 ; i < qnum ; i++ )
-                GRA_small_circle(grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher));
+                 DRAW_A_DATA_POINT(a_line[i].x,a_line[i].y) ;
              }
              if( DPLOT_LINES(grapher) ) {        /* 01 Aug 1998 */
                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
-               XDrawLines( grapher->dc->display ,
+               AFNI_XDrawLines( grapher->dc->display ,
                            grapher->fd_pxWind , grapher->dc->myGC ,
-                           a_line , qnum ,  CoordModeOrigin ) ;
-             }
-
-             /* plot minus side of plus/minus curve? */
-
-             if( dplot == DPLOT_PLUSMINUS ){  /* lots of duplicate code :-( */
-              ftemp = grapher->fscale ;
-                   if( ftemp == 0.0 ) ftemp =  1.0 ;
-              else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
-              for( i=pbot ; i < MIN(ibot,qtop) ; i++ )
-                plot[i-pbot] = (tsar[ibot]-dsar[ibot] - tsbot) * ftemp ;
-              for( i=ibot ; i < qtop ; i++ )
-                plot[i-pbot] = (tsar[i]   -dsar[i]    - tsbot) * ftemp ;
-              ftemp = grapher->gx / (pnum-1.0) ;
-              for( i=0 ; i < qnum ; i++ ){
-                a_line[i].x = xoff + XPIX(i+pbot) ;
-                a_line[i].y = yoff - plot[i] ;
-              }
-              if( DPLOT_POINTS(grapher) ){
-               for( i=0 ; i < qnum ; i++ )
-                GRA_small_circle(grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher));
-              }
-              if( DPLOT_LINES(grapher) ) {
-                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
-                XDrawLines( grapher->dc->display ,
-                            grapher->fd_pxWind , grapher->dc->myGC ,
-                            a_line , qnum ,  CoordModeOrigin ) ;
-              }
+                           a_line , qnum ,  CoordModeOrigin , nupsam ) ;
              }
 
              dsar += dsim->nx ;      /* 29 Mar 2002: next curve */
@@ -2851,13 +2957,13 @@ STATUS("starting time series graph loop") ;
            DC_linewidth( grapher->dc , GRID_THICK(grapher) ) ;
            DC_dashed_line( grapher->dc ) ;
 
-           ftemp = grapher->fscale ;
-                if( ftemp == 0.0 ) ftemp =  1.0 ;
-           else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+           ypfac = grapher->fscale ;
+                if( ypfac == 0.0 ) ypfac =  1.0 ;
+           else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
 
            XDrawLine( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
-                      (int) xoff                , (int)(yoff + tsbot * ftemp) ,
-                      (int)(xoff + grapher->gx) , (int)(yoff + tsbot * ftemp)  ) ;
+                      (int) xoff                , (int)(yoff + tsbot * ypfac) ,
+                      (int)(xoff + grapher->gx) , (int)(yoff + tsbot * ypfac)  ) ;
 
            DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
            DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
@@ -2870,7 +2976,7 @@ STATUS("starting time series graph loop") ;
    /** cast away the data timeseries! */
 
    DESTROY_IMARR(tsimar) ;
-   if( dplot_imar != NULL ) DESTROY_IMARR(dplot_imar) ;  /* 08 Nov 1996 */
+   if( dplot_imar != NULL ) DESTROY_IMARR(dplot_imar)     ;  /* 08 Nov 1996 */
 
    /*----- Now do extra plots in center frame, if any -----*/
 
@@ -2942,7 +3048,7 @@ STATUS("plotting extra graphs") ;
               /*** scale into a_line and draw it***/
 
               yscal = exfrac * grapher->gy / (tstop-tsbot) ;
-              xscal = ftemp = grapher->gx / (pnum-1.0) ;
+              xscal = xpfac = grapher->gx / (pnum-1.0) ;
 
               xoff  = grapher->xorigin[grapher->xc][grapher->yc] ;
               yoff  = grapher->fHIGH - grapher->yorigin[grapher->xc][grapher->yc]
@@ -2964,9 +3070,9 @@ STATUS("plotting extra graphs") ;
                 else
                   DC_fg_color( grapher->dc , excolor ) ;
                 DC_linewidth( grapher->dc , exthick ) ;
-                XDrawLines( grapher->dc->display ,
+                AFNI_XDrawLines( grapher->dc->display ,
                             grapher->fd_pxWind , grapher->dc->myGC ,
-                            a_line , qnum ,  CoordModeOrigin ) ;
+                            a_line , qnum ,  CoordModeOrigin , nupsam ) ;
               } else {
                 for( i=pbot ; i < itop-1 ; i++ ){
                   if( i >= ibot && tsar[i] < WAY_BIG && tsar[i+1] < WAY_BIG ){
@@ -2982,9 +3088,9 @@ STATUS("plotting extra graphs") ;
                       GRA_small_circle( grapher,a_line[i-pbot].x,a_line[i-pbot].y,0 );
                   }
 
-                  XDrawLines( grapher->dc->display ,
+                  AFNI_XDrawLines( grapher->dc->display ,
                               grapher->fd_pxWind , grapher->dc->myGC ,
-                              a_line + (i-pbot) , 2 ,  CoordModeOrigin ) ;
+                              a_line + (i-pbot) , 2 ,  CoordModeOrigin , 0 ) ;
                 }
                 if( grapher->mat < 4 &&
                     ( i < ibot || tsar[i] >= WAY_BIG ) )
@@ -3018,8 +3124,8 @@ STATUS("plotting extra graphs") ;
        }
        DC_fg_color ( grapher->dc , IDEAL_COLOR(grapher) ) ;
        DC_linewidth( grapher->dc , IDEAL_THICK(grapher) ) ;
-       XDrawLines( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
-                   a_line , npt-pbot ,  CoordModeOrigin ) ;
+       AFNI_XDrawLines( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
+                   a_line , npt-pbot ,  CoordModeOrigin , 0 ) ;
      }
    }
 
@@ -3905,6 +4011,14 @@ STATUS(str); }
                            GRA_saver_CB , (XtPointer) grapher ) ;
       break ;
 
+      case 's':{  /* 28 May 2020 */
+        int uu = ! grapher->do_upsam ;
+        grapher->do_upsam = uu ;
+        AV_assign_ival( grapher->opt_upsam_av , uu ) ;
+        init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
+      }
+      break ;
+
 #define POPUP_SOUND_ERROR_MESSAGE                                               \
  do{ if( first_sound ){                                                         \
        char msg[2048] ;                                                         \
@@ -4653,6 +4767,25 @@ ENTRY("GRA_gthick_CB") ;
 
    gg = grapher->gthick ; grapher->gthick = cbs->ival ;
    if( gg != grapher->gthick ){
+     init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void GRA_upsam_CB( MCW_arrowval *cbs , XtPointer cd )  /* 28 May 2020 */
+{
+   MCW_grapher *grapher = (MCW_grapher *) cd ;
+   int uu ;
+
+ENTRY("GRA_upsam_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   uu = grapher->do_upsam ; grapher->do_upsam = cbs->ival ;
+   if( uu != grapher->do_upsam ){
      init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
    }
 
@@ -6924,9 +7057,6 @@ void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
    if( grapher == NULL ) return ;
    tt = GRA_find_1D_transform( grapher , nam ) ; if( tt < 0 ) return ;
 
-#if 0
-ININFO_message("  found transform1D index to %d",tt) ;
-#endif
    AV_assign_ival( grapher->transform1D_av , tt+1 ) ;
 
    grapher->transform1D_func  = grapher->status->transforms1D->funcs[tt];
@@ -6934,9 +7064,6 @@ ININFO_message("  found transform1D index to %d",tt) ;
    grapher->transform1D_flags = grapher->status->transforms1D->flags[tt];
 
    if( (grapher->transform1D_flags & SET_DPLOT_OVERLAY) && !DATA_BOXED(grapher) ){
-#if 0
-ININFO_message("   - set DPLOT_OVERLAY") ;
-#endif
      MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
    }
 
@@ -6945,3 +7072,349 @@ ININFO_message("   - set DPLOT_OVERLAY") ;
 }
 
 /*--------------------------------------------------------------------------*/
+
+/*======================================================================*/
+/* Upsampling code, adapted from code in mri_dup.c [28 May 2020] */
+
+#ifndef SHORTIZE
+# define SHORTIZE(xx) (  ((xx) < -32767.0f) ? (short)-32767                    \
+                       : ((xx) >  32767.0f) ? (short) 32767 : (short)rint(xx) )
+#endif
+
+#define RENUP_VEC(vv,kk)  { (vv) = (float *)realloc((vv),(kk)*sizeof(float)); }
+
+/*-- seventh order interpolation polynomials --*/
+
+#define S_M3(x) (x*(x*x-1.0f)*(x*x-4.0f)*(x-3.0f)*(4.0f-x)*0.0001984126984f)
+#define S_M2(x) (x*(x*x-1.0f)*(x-2.0f)*(x*x-9.0f)*(x-4.0f)*0.001388888889f)
+#define S_M1(x) (x*(x-1.0f)*(x*x-4.0f)*(x*x-9.0f)*(4.0f-x)*0.004166666667f)
+#define S_00(x) ((x*x-1.0f)*(x*x-4.0f)*(x*x-9.0f)*(x-4.0f)*0.006944444444f)
+#define S_P1(x) (x*(x+1.0f)*(x*x-4.0f)*(x*x-9.0f)*(4.0f-x)*0.006944444444f)
+#define S_P2(x) (x*(x*x-1.0f)*(x+2.0f)*(x*x-9.0f)*(x-4.0f)*0.004166666667f)
+#define S_P3(x) (x*(x*x-1.0f)*(x*x-4.0f)*(x+3.0f)*(4.0f-x)*0.001388888889f)
+#define S_P4(x) (x*(x*x-1.0f)*(x*x-4.0f)*(x*x-9.0f)*0.0001984126984f)
+
+/* interpolate as floats, cast to short at end */
+
+#define INT7(k,i)                                                \
+  ( vout = ((k)==0) ? ( far[i] )                                 \
+                    : ( fm3[k] * far[i-3] + fm2[k] * far[i-2]    \
+                      + fm1[k] * far[i-1] + f00[k] * far[i  ]    \
+                      + fp1[k] * far[i+1] + fp2[k] * far[i+2]    \
+                      + fp3[k] * far[i+3] + fp4[k] * far[i+4]  ), SHORTIZE(vout) )
+
+/*----------------------------------------------------------------------------
+  Up sample a short-valued array sar[0..nar-1] nup times to produce
+  sout[0..(nar-1)*nup] -- so have (nar-1)*nup+1 output points.
+  Uses 7th order polynomial interpolation (mostly).
+  NOTE: the number of output points, and the use of shorts, is where
+        this function differs from the original in mri_dup.c
+  NOTE: for use in AFNI_XDrawLines()
+------------------------------------------------------------------------------*/
+
+static void upsample_7short( int nup , int nar , short *sar , short *sout )
+{
+   int kk,ii , ibot,itop ;
+   float nupi , val,vout ;
+   static int nupold = -1 ;
+   static int nupmax = 0;
+   static float *fm3=NULL, *fm2=NULL, *fm1=NULL, *f00=NULL,
+                *fp1=NULL, *fp2=NULL, *fp3=NULL, *fp4=NULL;
+   static float *far=NULL , *qar=NULL ;
+
+   /*-- sanity checks --*/
+
+   if( nup < 1 || nar < 2 || sar == NULL || sout == NULL ) return ;
+
+   if( nup == 1 ){ memcpy( sout, sar, sizeof(short)*nar ); return; }
+
+   /* temp float array for data;
+      with trickery (pointer arithmetic) to use negative subscripts,
+      because we need input [i-3]..[i+4] values to interpolate the
+      output values between input indexes i and i+1, for i=0..nar-2 */
+
+   qar = (float *)malloc(sizeof(float)*(nar+7)) ;
+   far = qar + 3 ; /* start the trickery! */
+   for( kk=0 ; kk < nar ; kk++ ) far[kk] = (float)sar[kk] ;
+   val = far[1] - far[0] ;
+   far[-1] = far[0] - 3.0f*val ; /* linear extrapolate before start */
+   far[-2] = far[0] - 2.0f*val ;
+   far[-3] = far[0] -      val ;
+   val = far[nar-1] - far[nar-2] ;
+   far[nar]   = far[nar-1] +      val ; /* and after end */
+   far[nar+1] = far[nar-1] + 2.0f*val ;
+   far[nar+2] = far[nar-1] + 3.0f*val ;
+   far[nar+3] = far[nar-1] + 4.0f*val ; /* this value not really needed */
+
+   nupi = 1.0f / (float)nup ;
+
+   /*-- initialize 7th order interpolation coefficients, if nup has changed --*/
+
+   if (nupmax < nup) { /* resize coefficient arrays if bigger than of old */
+      RENUP_VEC(fm3,nup); RENUP_VEC(fm2,nup);
+      RENUP_VEC(fm1,nup); RENUP_VEC(f00,nup);
+      RENUP_VEC(fp1,nup); RENUP_VEC(fp2,nup);
+      RENUP_VEC(fp3,nup); RENUP_VEC(fp4,nup);
+      nupmax = nup ; /* keep track of largest every used */
+   }
+
+   if( nup != nupold ){ /* recalculate if not the same as last time in */
+     for( kk=0 ; kk < nup ; kk++ ){
+       val = ((float)kk) * nupi ;
+       fm3[kk] = S_M3(val); fm2[kk] = S_M2(val); fm1[kk] = S_M1(val);
+       f00[kk] = S_00(val); fp1[kk] = S_P1(val); fp2[kk] = S_P2(val);
+       fp3[kk] = S_P3(val); fp4[kk] = S_P4(val);
+     }
+     nupold = nup ; /* for the historical records */
+   }
+
+   /*-- FINALLY: interpolate --*/
+
+   ibot = 0 ; itop = nar-2 ;  /* add points between [ii] and [ii+1] */
+
+   switch( nup ){
+      default:       /* outer and inner loops */
+        for( ii=ibot ; ii <= itop ; ii++ )
+          for( kk=0 ; kk < nup ; kk++ ) sout[kk+ii*nup] = INT7(kk,ii) ;
+      break ;
+
+      case 2:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INT7(0,ii) ; sout[ii*nup+1]  = INT7(1,ii) ;
+        }
+      break ;
+
+      case 3:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INT7(0,ii) ; sout[ii*nup+1]  = INT7(1,ii) ;
+          sout[ii*nup+2] = INT7(2,ii) ;
+        }
+      break ;
+
+      case 4:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INT7(0,ii) ; sout[ii*nup+1]  = INT7(1,ii) ;
+          sout[ii*nup+2] = INT7(2,ii) ; sout[ii*nup+3]  = INT7(3,ii) ;
+        }
+      break ;
+   }
+   sout[(nar-1)*nup] = sar[nar-1] ; /* need final value */
+
+   free(qar) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+/* Hermite spline basis funcs */
+
+#define H00(x) ( (x)*(x)*(2.0f*(x)-3.0f)+1.0f )
+#define H01(x) ( (x)*(x)*(3.0f-2.0f*(x)) )
+#define H10(x) ( (x)*((x)*(x)-2.0f*(x)+1.0f) )
+#define H11(x) ( (x)*(x)*((x)-1.0f) )
+
+/* interpolate as floats, cast to short at end */
+
+#define INTM(k,i)                                             \
+  ( vout = ((k)==0) ? ( far[i] )                              \
+                    : ( h00[k] * far[i] + h01[k] * far[i+1]   \
+                      + h10[k] * mk[i]  + h11[k] * mk[i+1] ) , SHORTIZE(vout) )
+
+/* Monotonic cubic spline interpolation:
+   https://en.wikipedia.org/wiki/Monotone_cubic_interpolation */
+
+static void upsample_monoshort( int nup , int nar , short *sar , short *sout )
+{
+   int kk,ii , ibot,itop ;
+   float nupi , val,vout , ak,bk,tk , dmax=0.0f,fmax=0.0f ;
+   static int nupold = -1 ;
+   static int nupmax = 0;
+   static float *far , *dk , *mk ;
+   static float *h00=NULL , *h01=NULL , *h10=NULL , *h11=NULL ;
+
+   /*-- sanity checks --*/
+
+   if( nup < 1 || nar < 2 || sar == NULL || sout == NULL ) return ;
+
+   if( nup == 1 ){ memcpy( sout, sar, sizeof(short)*nar ); return; }
+
+   /* temp float arrays for data, etc */
+
+   far = (float *)calloc(sizeof(float),nar) ;
+   dk  = (float *)calloc(sizeof(float),nar) ; /* secants */
+   mk  = (float *)calloc(sizeof(float),nar) ; /* slopes */
+
+   for( kk=0 ; kk < nar   ; kk++ ){  /* copy input to floats */
+     far[kk] = (float)sar[kk] ;
+     val     = fabsf(far[kk]) ; if( val > fmax ) fmax = val ;
+   }
+
+   for( kk=0 ; kk < nar-1 ; kk++ ){  /* get secants */
+     dk[kk] = far[kk+1]-far[kk] ;
+     val    = fabsf(dk[kk]) ; if( val > dmax ) dmax = val ;
+   }
+
+   mk[0] = dk[0] ; mk[nar-1] = dk[nar-2] ; /* get slopes */
+   for( kk=1 ; kk < nar-1 ; kk++ ) mk[kk]  = 0.5f*(dk[kk]*dk[kk-1]) ;
+
+   /* adjust slopes for monotonicity */
+
+   vout = 0.001f*dmax + 0.0000001f*fmax ;
+   for( kk=0 ; kk < nar-1 ; kk++ ){
+     if( fabsf(dk[kk]) <= vout ){
+       mk[kk] = mk[kk+1] = 0.0f ;
+     } else {
+       ak = mk[kk] / dk[kk] ; bk = mk[kk+1] / dk[kk] ;
+       if( ak < 0.0f ){ mk[kk]   = 0.0f ; ak = 0.0f ; }
+       if( bk < 0.0f ){ mk[kk+1] = 0.0f ; bk = 0.0f ; }
+       val = ak*ak+bk*bk ;
+       if( val > 9.0f ){
+         tk = 3.0f / sqrtf(val) ;
+         mk[kk]   = tk * ak * dk[kk] ;
+         mk[kk+1] = tk * bk * dk[kk] ;
+       }
+     }
+   }
+
+   nupi = 1.0f / (float)nup ;
+
+   /*-- initialize Hermite interpolation coefficients, if nup has changed --*/
+
+   if (nupmax < nup) { /* resize coefficient arrays if bigger than of old */
+      RENUP_VEC(h00,nup); RENUP_VEC(h01,nup);
+      RENUP_VEC(h10,nup); RENUP_VEC(h11,nup);
+      nupmax = nup ; /* keep track of largest every used */
+   }
+
+   if( nup != nupold ){ /* recalculate if not the same as last time in */
+     for( kk=0 ; kk < nup ; kk++ ){
+       val = ((float)kk) * nupi ;
+       h00[kk] = H00(val) ; h01[kk] = H01(val) ;
+       h10[kk] = H10(val) ; h11[kk] = H11(val) ;
+     }
+     nupold = nup ; /* for the historical records */
+   }
+
+   /*-- FINALLY: interpolate --*/
+
+   ibot = 0 ; itop = nar-2 ;  /* add points between [ii] and [ii+1] */
+
+   switch( nup ){
+      default:       /* outer and inner loops */
+        for( ii=ibot ; ii <= itop ; ii++ )
+          for( kk=0 ; kk < nup ; kk++ ) sout[kk+ii*nup] = INTM(kk,ii) ;
+      break ;
+
+      case 2:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INTM(0,ii) ; sout[ii*nup+1]  = INTM(1,ii) ;
+        }
+      break ;
+
+      case 3:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INTM(0,ii) ; sout[ii*nup+1]  = INTM(1,ii) ;
+          sout[ii*nup+2] = INTM(2,ii) ;
+        }
+      break ;
+
+      case 4:        /* inner loop unrolled for optimizer */
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          sout[ii*nup]   = INTM(0,ii) ; sout[ii*nup+1]  = INTM(1,ii) ;
+          sout[ii*nup+2] = INTM(2,ii) ; sout[ii*nup+3]  = INTM(3,ii) ;
+        }
+      break ;
+   }
+   sout[(nar-1)*nup] = sar[nar-1] ; /* need final value */
+
+   free(mk) ; free(dk) ; free(far) ;
+   return ;
+}
+
+
+static void upsample_comboshort( int nup , int nar , short *sar , short *sout )
+{
+   short *st1 , *st2 ; int ii,nout=(nar-1)*nup+1 ; float val ;
+
+   if( nup < 1 || nar < 2 || sar == NULL || sout == NULL ) return ;
+   if( nup == 1 ){ memcpy( sout, sar, sizeof(short)*nar ); return; }
+
+   st1 = (short *)malloc(sizeof(short)*nout) ;
+   st2 = (short *)malloc(sizeof(short)*nout) ;
+
+   upsample_7short   ( nup,nar,sar,st1 ) ;
+   upsample_monoshort( nup,nar,sar,st2 ) ;
+   for( ii=0 ; ii < nout ; ii++ ){
+     val = 0.3f*(float)st1[ii] + 0.7f*(float)st2[ii] ;
+     sout[ii] = (short)val ;
+   }
+   free(st2) ; free(st1) ; return ;
+}
+
+#define UPSAMPLE upsample_comboshort
+
+/*--------------------------------------------------------------------------*/
+/* Draw X11 lines, but upsampled to look smoother */
+
+void AFNI_XDrawLines( Display *display, Drawable d,
+                      GC gc, XPoint *points, int npoints, int mode , int nupsam )
+{
+   XPoint *new_points ;
+   int     new_npoints , ii ;
+   short  *old_xy , *new_xy ;
+
+   if( nupsam <= 1 ){
+     XDrawLines(display,d,gc,points,npoints,mode) ; return ;
+   }
+
+   new_npoints = (npoints-1)*nupsam+1 ;
+   new_points  = (XPoint *)malloc(sizeof(XPoint)*new_npoints) ;
+
+   old_xy = (short *)malloc(sizeof(short)*npoints) ;
+   new_xy = (short *)malloc(sizeof(short)*new_npoints) ;
+
+   for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].x ;
+   UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
+   for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].x = new_xy[ii] ;
+
+   for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].y ;
+   UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
+   for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].y = new_xy[ii] ;
+
+   XDrawLines(display,d,gc,new_points,new_npoints,mode) ;
+
+   free(new_xy) ; free(old_xy) ; free(new_points) ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void AFNI_XFillPolygon( Display *display, Drawable d,
+                        GC gc, XPoint *points, int npoints, int shape ,
+                        int mode , int nupsam )
+{
+   XPoint *new_points ;
+   int     new_npoints , ii ;
+   short  *old_xy , *new_xy ;
+
+   if( nupsam <= 1 ){
+     XFillPolygon(display,d,gc,points,npoints,shape,mode) ; return ;
+   }
+
+   new_npoints = (npoints-1)*nupsam+1 ;
+   new_points  = (XPoint *)malloc(sizeof(XPoint)*new_npoints) ;
+
+   old_xy = (short *)malloc(sizeof(short)*npoints) ;
+   new_xy = (short *)malloc(sizeof(short)*new_npoints) ;
+
+   for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].x ;
+   UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
+   for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].x = new_xy[ii] ;
+
+   for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].y ;
+   UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
+   for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].y = new_xy[ii] ;
+
+   XFillPolygon(display,d,gc,new_points,new_npoints,shape,mode) ;
+
+   free(new_xy) ; free(old_xy) ; free(new_points) ; return ;
+}

@@ -228,7 +228,7 @@ static const int64_t twogig = 2ll * 1024ll * 1024ll * 1024ll ;  /* 2 GB */
 MRI_shindss * GRINCOR_read_input( char *fname )
 {
    NI_element *nel=NULL ;
-   char *dfname=NULL , *atr ;
+   char *dfname="junque" , *atr ;
    NI_float_array *facar ; NI_int_array *nvar, *nnode=NULL, *ninmask=NULL;
    MRI_shindss *shd ;
    int64_t nbytes_needed , nbytes_dfname=0 ; int fdes ;

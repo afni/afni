@@ -144,8 +144,20 @@ auth = 'PA Taylor'
 # [PT] no vstat if 'surf' block was used in AP (-> stats dset is
 #      *.niml.dset)
 #
-ver = '3.5' ; date = 'March 27, 2020' 
+#ver = '3.5' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
+#
+#ver = '3.6' ; date = 'May 26, 2020' 
+# [PT] ve2a and LR-flipcheck now show EPI under anat edges
+#
+#ver = '3.61' ; date = 'May 28, 2020' 
+# [PT] in vstat maps, report DF value(s)
+#
+#ver = '3.62' ; date = 'May 31, 2020' 
+# [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
+#
+ver = '3.63' ; date = 'May 31, 2020' 
+# [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
 #
 #########################################################################
 

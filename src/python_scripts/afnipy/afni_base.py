@@ -1245,3 +1245,112 @@ def isFloat(s):
         return True
     except:
         return False
+
+def list_count_float_not_int(ll):
+   """see if list of numbers can be treated like ints; returns number of
+floats.
+
+   Note: for tiny decimals, this can be wrong:
+
+In [7]: ab.listContainsFloatVsInt([1,2,3,4.0000000001,5.0])
+Out[7]: 1
+
+In [8]: ab.listContainsFloatVsInt([1,2,3,4.000000000000000001,5.0])
+Out[8]: 0
+
+   """
+
+   if type(ll) != list : EP("Input is not a list")
+   N = len(ll)
+   
+   count = 0
+
+   for x in ll:
+      a = float(x)
+      b = float(int(x))
+      if b-a :
+         count+=1
+   return count
+
+
+# -----------------------------------------------------------------------
+# [PT: Jun 1, 2020] simple functions to stylize printing of messages
+# in The AFNI Way.  APRINT() is the main workhorse; IP(), EP() and
+# WP() are just short/convenient wrappers
+
+def WP( S, indent=True):
+    '''Warning print string S'''
+    APRINT(S, ptype='WARNING', indent=indent)
+
+def EP( S, indent=True, end_exit=True):
+    '''Error print string S
+
+    By default, exit after printing'''
+    APRINT(S, ptype='ERROR', indent=indent)
+
+    if end_exit :
+       sys.exit(1)
+
+def IP( S, indent=True):
+    '''Info print string S'''
+    APRINT(S, ptype='INFO', indent=indent)
+
+def APRINT( S, ptype=None, indent=True):
+    '''Print Error/Warn/Info for string S
+
+    This function is not meant to be used directly, in general; use
+    {W|E|I}PRINT(), instead.
+
+    '''
+
+    if ptype == 'WARNING' :
+       ptype_str = "+* WARNING:"
+    elif ptype == 'ERROR' :
+       ptype_str = "** ERROR:"
+    elif ptype == 'INFO' :
+       ptype_str = "++"
+    else:
+       print("**** Unrecognized print type '{}'. So, error about\n"
+             "     a warning, error or info message!\n".format(ptype))
+       sys.exit(1)
+
+    if indent :
+       S = S.replace( "\n", "\n   ")
+
+    out = "{} ".format(ptype_str)
+    out+= S
+
+    if ptype == 'ERROR' :
+       out+= "\n"
+    
+    print(out)
+    
+
+def ARG_missing_arg(arg):
+    EP("missing argument after option flag: {}".format(arg))
+
+def parse_help_text_for_opts( H ):
+    """Input:  help string H (likely, a multilined one).
+ 
+    This program will go through and try to find all option names,
+    basically by finding leftmost strings starting with a single '-'
+    char (like apsearch, I believe).
+
+    Output: list of option names, to be used in parsing user input
+    argv.
+
+    """
+
+    opts = []
+
+    hsplit = H.split('\n')
+    for x in hsplit:
+        if x.strip() :
+            start = x.split()[0].strip()
+            if start[0] == '-' :
+                if len(start) > 1 :
+                    if start[1] != '-':
+                        opts.append(start)
+
+    return opts
+

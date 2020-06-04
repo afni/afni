@@ -342,6 +342,8 @@ if(PRINT_TRACING){
                                RootWindowOfScreen(dc->screen) ,
                                GCFunction , &gcv ) ;
 
+     /** XSetFillRule( dc->display, dc->myGC, WindingRule ) ; **/
+
      xdef = XGetDefault(dc->display,"AFNI","gfont") ;
      if( xdef == NULL ) xdef = getenv("AFNI_GRAPH_FONT") ;
      if( xdef != NULL )

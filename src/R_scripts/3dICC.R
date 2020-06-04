@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.1, Mar 17, 2020
+Version 0.1.2, May 27, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -87,11 +87,16 @@ Usage:
 
 
    ex1 <-  
-"Example 1 --- Compute ICC(2,1) values between two sessions.
+"Example 1 --- Compute ICC(2,1) values between two sessions. With the option 
+  -bounds, values beyond [-2, 2] will be treated as outliers and considered 
+  as missing. If you want to set a range, choose the bounds that make sense 
+  with your input data. 
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2 -jobs 12                                   \\
+          -mask myMask+tlrc                                       \\
           -model  '1+(1|session)+(1|Subj)'                        \\
+          -bounds  -2 2                                           \\
           -dataTable                                              \\
           Subj      session        InputFile                      \\
           s1         one    s1_1+tlrc\'[pos#0_Coef]\'               \\
@@ -108,11 +113,16 @@ Usage:
    \n"
 
    ex2 <-
-"Example 2 --- Compute ICC(3,1) values between two sessions.
+"Example 2 --- Compute ICC(4,1) values between two sessions. With the option 
+  -bounds, values beyond [-2, 2] will be treated as outliers and considered 
+  as missing. If you want to set a range, choose the bounds that make sense 
+  with your input data.
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC3 -jobs 12                                   \\
+          -mask myMask+tlrc                                       \\
           -model  '1+session+(1|Subj)'                            \\
+          -bounds  -2 2                                           \\
           -dataTable                                              \\
           Subj      session        InputFile                      \\
           s1         one    s1_1+tlrc\'[pos#0_Coef]\'               \\
@@ -135,7 +145,9 @@ Usage:
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2a -jobs 12                                     \\
+          -mask myMask+tlrc                                       \\
           -model  '1+age+(1|session)+(1|Subj)'                       \\
+          -bounds  -2 2                                              \\
           -Subj   'subject'                                           \\
           -tStat 'tFile'                                             \\
           -dataTable                                                 \\
@@ -155,11 +167,15 @@ Usage:
 
       ex4 <-  
 "Example 4 --- Compute ICC(2,1) values between two sessions while controlling
-   for age effect.
+   for age effect. With the option -bounds, values beyond [-2, 2] will be
+   be treated as outliers and considered as missing. If you want to set a range, 
+   choose the bounds that make sense with your input data.
 
 -------------------------------------------------------------------------
     3dICC -prefix ICC2a -jobs 12                                  \\
+          -mask myMask+tlrc                                       \\
           -model  '1+age+(1|session)+(1|Subj)'                    \\
+          -bounds  -2 2                                           \\
           -Subj   'subjct'                                        \\
           -InputFile 'inputfile'                                  \\
           -dataTable                                              \\
@@ -266,6 +282,13 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
    "-dbgArgs: This option will enable R to save the parameters in a",
    "         file called .3dICC.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
+
+       '-bounds' = apl(n=2, h = paste(
+   "-bounds lb ub: This option is for outlier removal. Two numbers are expected from",
+   "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
+   "         be confined within [lb, ub]: any values in the input data that are beyond",
+   "         the bounds will be removed and treated as missing. Make sure the first number",
+   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
        
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -376,6 +399,7 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
       #lop$ranEff <- NA
       lop$model  <- NA
       lop$qVars  <- NA   
+      lop$bounds <- NULL
       #lop$vVars  <- NA
       #lop$vQV    <- NA
       lop$qVarCenters <- NA
@@ -402,6 +426,7 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
 	     IF     = lop$IF     <- ops[[i]],
 	     tStat  = lop$tStat  <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
+             bounds = lop$bounds <- ops[[i]],
              #vVars  = lop$vVars  <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
              #vVarCenters = lop$vVarCenters <- ops[[i]],
@@ -459,6 +484,12 @@ process.ICC.opts <- function (lop, verb = 0) {
    # assume the quantitative variables are separated by + here
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+
+   if(!(is.null(lop$bounds))) {
+      if(lop$bounds[1] > lop$bounds[2])
+         errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
+            ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   }
 
    len <- length(lop$dataTable)
    wd <- which(lop$dataTable == lop$IF)  # assuming the input file is the last column here!
@@ -744,8 +775,6 @@ if(!is.na(lop$maskFN)) {
 #   }
 #} else vQV <- NULL
 
-
-
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
@@ -770,6 +799,13 @@ if(is.na(lop$tStat)) require(lme4) else {
 # show the range of input data
 rg <- range(inData)
 cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
+# outlier removal
+if(!is.null(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
+   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
+}
 
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')

@@ -2285,6 +2285,7 @@ void start_job( char *cmd )   /* 10 Feb 2016 */
 
    /*--- we are the child -- run the command, then die die die ---*/
 
+   if( debug ) ININFO_message("start_job Running:\n    %s",cmd) ;
    system(cmd) ;
    _exit(0) ;
 }
@@ -4974,7 +4975,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( name_mask != NULL )
          sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
        sprintf( cmd+strlen(cmd) , " | tail -1 > %s.ACFparam.txt" , anam ) ;
-       INFO_message("Command to compute ACF from residuals now running:\n"
+       INFO_message("Command to compute ACF from residuals now Running:\n"
                     "   %s",cmd) ;
        system(cmd) ;
        INFO_message("ACF parameters output in %s.ACFparam.txt",anam) ;
@@ -5395,6 +5396,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            ININFO_message("3dttest++ ===== starting 3dClustSim %s: elapsed = %.1f s",
                           clab[icase] , COX_clock_time() ) ;
+           if( debug ) ININFO_message("Running\n  %s",cmd) ;
            system(cmd) ;
 
            /* load the 3drefit command from 3dClustSim */
@@ -5417,6 +5419,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            else
              sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
 
+           if( debug ) ININFO_message("Running\n  %s",cmd) ;
            system(cmd) ;
          }
 
@@ -5529,6 +5532,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            ININFO_message("3dttest++ ===== starting 3dXClustSim : elapsed = %.1f s",
                           COX_clock_time() ) ;
+           if( debug ) ININFO_message("Running\n  %s",cmd) ;
 
                           /*----------------------------------------------------*/
            system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
@@ -5551,6 +5555,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 prefix_clustsim , nam , clab[icase],sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                    if( do_global_etac ){
@@ -5562,6 +5567,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 gprefix , clab[icase] , sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                  }
@@ -5569,20 +5575,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                    sprintf( cmd ,  /* combine the masks */
                             "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,  /* combine the masks */
                             "3dmask_tool -input %s.ETACtmask.global.*.nii -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                } else {
@@ -5597,6 +5607,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 prefix_clustsim , nam , clab[icase],sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1pos.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                    if( do_global_etac ){
@@ -5608,6 +5619,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 gprefix , clab[icase] , sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.1pos.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                  }
@@ -5615,20 +5627,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  INFO_message("3dttest++ ----- merging %d blur cases to make neg 1-sided activation mask",ncase) ;
@@ -5642,6 +5658,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 prefix_clustsim , nam , clab[icase],sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1neg.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                    if( do_global_etac ){
@@ -5653,6 +5670,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                                 gprefix , clab[icase] , sfarp ) ;
                      sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.1neg.%s.nii %s" ,
                                                 prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
                  }
@@ -5660,25 +5678,30 @@ LABELS_ARE_DONE:  /* target for goto above */
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
                                   prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
                             "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                }
 #if 1
                sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim,prefix_clustsim );
+               if( debug ) ININFO_message("Running\n  %s",cmd) ;
                system(cmd);
 #endif
              } /* end of loop over farp goals */
@@ -5707,6 +5730,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          INFO_message("file cleanup command:\n  %s",cmd) ;
        } else {
          INFO_message("3dttest++ ----- Cleaning up intermediate files:") ;
+         if( debug ) ININFO_message("Running\n  %s",cmd) ;
          system(cmd) ;
        }
      }

@@ -1094,36 +1094,50 @@ ENTRY("THD_mask_erode") ;
     voxels.
 
     Pass nerode to match ndil from THD_mask_dilate.
-
     For each masked voxel, count unmasked neighbors.  If there are
     at least nerode, then erode the voxel.
+
+    Pass NN to specify NN=1,2,3, again to match THD_mask_dilate.
+    The nerode count will be restricted by the given NN level.
+                                                         19 May 2020 [rickr]
 
     This allows for symmetric dilate/erode operations.
     It is symmetric with THD_mask_dilate.                 7 May 2012 [rickr]
 ----------------------------------------------------------------------------*/
 
-void THD_mask_erode_sym( int nx, int ny, int nz, byte *mmm, int nerode )
+void THD_mask_erode_sym( int nx, int ny, int nz, byte *mmm, int nerode, 
+                         int NN )
 {
-   int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   /* use ix as well, for consistency at a tiny cost of speed */
+   int ii,jj,kk , ix,jy,kz, im,jm,km , ip,jp,kp , num ;
    int nxy=nx*ny , nxyz=nxy*nz, nmask ;
+   int nmax;   /* depends on NN */
    byte *nnn ;
 
 ENTRY("THD_mask_erode_sym") ;
 
    if( mmm == NULL ) EXRETURN ;
-        if( nerode < 1  ) nerode =  1 ;
-   else if( nerode > 17 ) nerode = 17 ;
 
-   /* erode if at least nerode empty neighbors, or at most 18-nerode masked */
-   nmask = 18-nerode;
+   /* set nmax to be the full neighbor count at the given NN level */
+   if( NN >= 3 )      nmax = 26;    /* 3x3x3 box minus center      */
+   else if( NN == 2 ) nmax = 18;    /* minus the 8 corners         */
+   else               nmax = 6;     /* count only face neighbors   */
+
+   /* for clarity, first restrict zero neighbor count to what is appropriate */
+   if     ( nerode < 1    ) nerode =  1 ;
+   else if( nerode > nmax ) nerode = nmax ;
+
+   /* then switch logic from (>= nerode zero neighbors)
+    *                     to (<= (nmax-nerode) set ones) */
+   nmask = nmax-nerode;
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
-   if( nnn == NULL ) EXRETURN ;               /* WTF? */
+   if( ! nnn ) EXRETURN ;                     /* death to Ming! */
 
-   /* mark for erosion interior voxels that do not have sufficient nonzero  */
-   /* nbhrs (the default case would erode if even 1 neighbor is not masked, */
-   /* i.e., if <= 17 neighbors are masked)                                  */
+   /* mark for erosion voxels that do not have sufficient nonzero nhbrs */
    STATUS("marking to erode") ;
+
+   /* check for edge voxels first, use planar duplication */
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
     if( kk == 0    ) km = kz ;
@@ -1135,28 +1149,40 @@ ENTRY("THD_mask_erode_sym") ;
      if( jj == ny-1 ) jp = jy ;
 
      for( ii=0 ; ii < nx ; ii++ ){
-       if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
-         im = ii-1 ; ip = ii+1 ;
-         if( ii == 0    ) im = 0 ;
-         if( ii == nx-1 ) ip = ii ;
-         /* NN1 count of 18 neighbors */
-              /* in plane below (km), include shared face and 4 shared edges,
-               * which means im and ip @ jy, plus jm,jy,jp @ ii */
-         num =  mmm[im+jy+km]
-              + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
-              + mmm[ip+jy+km]
-              /* in main plane (kz), include all 8 neighbors in 3x3 grid, which
-               * means all i and j pairs (9), except for ii,jy (center) */
-              + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
-              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
-              + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
-              /* plane above (kp), should match km, in section above */
-              + mmm[im+jy+kp]
-              + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
-              + mmm[ip+jy+kp] ;
-         if( num <= nmask ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
-       }
-   } } }
+       /* if this voxel is not set, skip it */
+       if( ! mmm[ii+jy+kz] ) continue;
+
+       ix = ii ; im = ii-1 ; ip = ii+1 ;
+       if( ii == 0    ) im = 0 ;
+       if( ii == nx-1 ) ip = ii ;
+
+       /* now count nonzero nbhrs, one NN level at a time */
+
+       /* NN1, where exactly one axis is not at the center */
+       /*      (and that can either plus or minus)         */
+       /*   mod:  i                  j                  k  */
+       num =  mmm[im+jy+kz] + mmm[ix+jm+kz] + mmm[ix+jy+km]
+            + mmm[ip+jy+kz] + mmm[ix+jp+kz] + mmm[ix+jy+kp];
+           
+       /* NN2, where exactly two axes are not at the center  */
+       if( NN >= 2 )
+          /*   fix:  i                  j                  k */
+          num += mmm[ix+jm+km] + mmm[im+jy+km] + mmm[im+jm+kz]
+               + mmm[ix+jm+kp] + mmm[im+jy+kp] + mmm[im+jp+kz]
+               + mmm[ix+jp+km] + mmm[ip+jy+km] + mmm[ip+jm+kz]
+               + mmm[ix+jp+kp] + mmm[ip+jy+kp] + mmm[ip+jp+kz];
+
+       /* NN3, where all three axes are not at the center */
+       if( NN >= 3 )
+          /*         im column       ip column */
+          num += mmm[im+jm+km] + mmm[ip+jm+km]
+               + mmm[im+jm+kp] + mmm[ip+jm+kp]
+               + mmm[im+jp+km] + mmm[ip+jp+km]
+               + mmm[im+jp+kp] + mmm[ip+jp+kp];
+
+       /* if not enough set neighbors, mark to erode */
+       if( num <= nmask ) nnn[ii+jy+kz] = 1 ;
+   } } } /* for kk,jj,ii loops */
 
    STATUS("eroding") ;
    for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */

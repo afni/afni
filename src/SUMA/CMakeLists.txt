@@ -248,7 +248,7 @@ if(TARGET gts)
 
   target_link_libraries(
     suma_gts
-    PUBLIC SUMA $<TARGET_NAME_IF_EXISTS:gts> GLib2::glib
+    PUBLIC SUMA gts GLib2::glib
     PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
   )
 

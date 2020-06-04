@@ -1,48 +1,394 @@
-
-version: 2
-jobs:
-              
-  cache_src_and_data_repo:
-    docker:
-      - image: markiewicz/datalad:0.0.1
-    working_directory: /tmp/src/afni
+version: 2.1
+############################################################################
+#Define commands that can be reused in the jobs section
+############################################################################
+commands:
+  setup_dev_base_image:
+    description: "Get base image using cache and  docker build"
+    parameters:
+        image_cache_version:
+            type: string
     steps:
-      - checkout
+      - restore_an_exact_cache:
+          version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
+          version: "<< parameters.image_cache_version >>"
+      - load_cached_docker_image_from_disk:
+          image_name: afni_dev_base
       - run:
           command: |
-            datalad install -r tests/afni_ci_test_data
-      - persist_to_workspace:
-          root: /tmp
-          paths:  
-            - src/afni
-  
-  macos_build:
-    macos:
-        xcode: "11.2.1"
-    steps: # a series of commands to run
-      - attach_workspace:
-          at: /tmp
+            if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
+            then
+                  docker build -t afni/afni_dev_base  \
+                  -f .docker/afni_dev_base.dockerfile .
+            fi
+      - save_docker_image_to_disk:
+          image_name: afni_dev_base
+      - save_cache:
+          # store a cache for this dockerfile version
+          key: v<< parameters.image_cache_version >>-/tmp/src/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/tmp/src/afni/.docker/afni_dev_base.dockerfile" }}
+          paths:
+            # path named using pattern for load_cached_docker_image_from_disk
+            - /tmp/cache/afni_dev_base_docker.tar.gz
+
+  build_afni_image:
+    description: "Build, save, and cache a docker image of AFNI"
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+    steps:
+      - setup_dev_base_image:
+          image_cache_version: << parameters.image_cache_version >>
+      - run:
+          name: Build image
+          no_output_timeout: 30m
+          command: |
+            THISVERSION=$(cat src/AFNI_version_base.txt)
+            echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
+            docker build \
+              -f .docker/<< parameters.build_type >>.dockerfile \
+              --rm=false \
+              --tag afni/afni_<< parameters.build_type >>:latest \
+              --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
+
+  run_afni_tests:
+    description: "Use previously built image to execute tests"
+    parameters:
+      build_type:
+        type: string
+    steps:
+      - run:
+          name: Run tests
+          no_output_timeout: 2h
+          command: |
+            # Fail out if docker image does not exist. Should not be pulled from dockerhub...
+            set -e
+            docker image inspect afni/afni_<< parameters.build_type >> 1>/dev/null
+
+            # Run tests in contain built during build step:
+            docker run \
+                --user=root  \
+                -e CHOWN_HOME="yes" \
+                -e CHOWN_HOME_OPTS='-R' \
+                -e CHOWN_EXTRA="/opt/" \
+                -e CHOWN_EXTRA_OPTS='-R' \
+                -e CONTAINER_UID=$(id -u) \
+                -e CONTAINER_GID=$(id -g) \
+                --rm \
+                -ti \
+                -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
+                afni/afni_<< parameters.build_type >> \
+                bash -c 'bash /opt/afni/src/tests/run_tests_<< parameters.build_type >>.sh'
+      - run:
+          name: Return permissions to test data
+          command: |
+            sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
+
+  check_integrity_of_containers:
+    description: "Check some of the permissions/user/PATH basics of the containers"
+    parameters:
+      image_cache_version:
+        type: string
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: install some basic helper tools
+          command: |
+            apk add --no-cache pigz python3 py3-pip
+            pip3 install docker # python docker-api
+            pip3 install pytest
+      - setup_dev_base_image:
+          image_cache_version: << parameters.image_cache_version >>
+      - restore_afni_image_cache:
+          build_type: cmake_build
+          image_cache_version: << parameters.image_cache_version >>
+      - restore_afni_image_cache:
+          build_type: make_build
+          image_cache_version: << parameters.image_cache_version >>      
+      - run:
+          name: Run pytest in .docker
+          command: |
+            cd .docker;
+            pytest
+
+
+  deploy_to_dockerhub:
+    description: "Push images to dockerhub"
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+    steps:
+      - restore_afni_image_cache:
+          build_type: << parameters.build_type >>
+          image_cache_version: << parameters.image_cache_version >>
+      - run:
+          name: Deploy to Docker Hub
+          no_output_timeout: 40m
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker push afni/afni_<< parameters.build_type >>:latest
+              docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
+              docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
+            fi
+      # Push dev_base image too though it is unlikely to change
+      - checkout
+      - setup_dev_base_image:
+          image_cache_version: << parameters.image_cache_version >>
+      - run:
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
+              then
+                echo Could not find the dev_base image used for release deployment.
+                exit 1
+              else
+                  docker push afni/afni_dev_base:latest
+                  docker tag afni/afni_dev_base afni/afni_dev_base:$CIRCLE_TAG
+                  docker push afni/afni_dev_base:$CIRCLE_TAG
+              fi
+            fi
+
+  write_test_data_cache_version_file:
+    description: "Determine commit id for the datalad tests directory."
+    parameters:
+      cache_name:
+        type: string
+    steps:
+      - run:
+          name: Retrieve id and write to a file
+          command: |
+            export test_data_info=$(git submodule status|grep afni_ci_test_data)
+            echo ${test_data_info:1:40} > /tmp/<< parameters.cache_name >>_version.txt
+            cat /tmp/<< parameters.cache_name >>_version.txt
+
+  setup_macos_for_afni:
+    description: "Install OSX dependencies and write out a dependencies file for cache versioning."
+    parameters:
+      osx_dep_cache_version:
+        type: string
+        default: "0"
+    steps:
+      - run:
+          name: Write osx dependencies to a file
+          command: |
+            echo \
+              cmake ninja llvm pkgconfig  \
+              jpeg gsl gts openmotif  netcdf libpng expat \
+              freetype fontconfig netpbm git-annex | \
+              tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
+      # circleci caching works with files owned by user (distiller on osx
+      # machines on circleci). If caching for macos is desired, homebrew files
+      # should be stored in home or /usr/local chowned. One thread mentioned
+      # that loading caches on macos is slower too so for now will not try to
+      # get this working:
+      # - restore_an_exact_cache:
+      #     version: "<< parameters.osx_dep_cache_version >>"
+      #     version_file: "/tmp/macos_dependencies_version.txt"
       - run:
           name: Setup on macos
           command: |
             brew cask install xquartz
             brew unlink python@2
-            brew install  \
-              cmake ninja llvm pkgconfig  \
-              jpeg gsl gts openmotif  netcdf libpng expat \
-              freetype fontconfig gsl \
-              netpbm git-annex 
-              # note other useful dependencies:
-              # ffmpeg
+            # Install dependency list
+            cat /tmp/macos_dependencies_version.txt | xargs brew install
+            # note other useful dependencies:
+            # ffmpeg
+      # - save_cache:
+      #     key: v<< parameters.osx_dep_cache_version >>-/tmp/macos_dependencies_version.txt-{{ checksum "/tmp/macos_dependencies_version.txt" }}
+      #     paths:
+      #       - /usr/local
+
+  restore_afni_image_cache:
+    description: "Restore cache from the build_afni_image command"
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+    steps:
+      - restore_cache:
+          key: v<< parameters.image_cache_version >>-docker-<< parameters.build_type >>-{{ .Revision }}
+      - load_cached_docker_image_from_disk:
+          image_name: afni_<< parameters.build_type >>
+
+  save_docker_image_to_disk:
+    description: "After an image is successfully built, write it to disk for circleci caching."
+    parameters:
+      image_name:
+        type: string
+    steps:
+      - run:
+          name: Docker save
+          no_output_timeout: 40m
+          command: |
+            if [[ ! -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]]; then
+              mkdir -p /tmp/cache
+              docker save afni/<< parameters.image_name >>:latest \
+              | pigz -2 -p 3 > /tmp/cache/<< parameters.image_name >>_docker.tar.gz
+            fi
+
+  restore_a_cache:
+    description: "Restore a cache based on a version file, with fallbacks used"
+    parameters:
+      version_file:
+        type: string
+      version:
+        type: string
+        default: "0"
+    steps:
+      - restore_cache:
+          keys:
+            # search for a cache for the current version file's checksum
+            - v<< parameters.version >>-<< parameters.version_file >>-{{ checksum "<< parameters.version_file >>" }}
+            # Load any pre-existing cache
+            - v<< parameters.version >>-<< parameters.version_file >>-
+
+  restore_an_exact_cache:
+    description: "Restore a cache based on a version file, otherwise allow cache miss"
+    parameters:
+      version_file:
+        type: string
+      version:
+        type: string
+    steps:
+      - restore_cache:
+          keys:
+            # search for a cache for the current version file's checksum
+            - v<< parameters.version >>-<< parameters.version_file >>-{{ checksum "<< parameters.version_file >>" }}
+
+  load_cached_docker_image_from_disk:
+    description: "Restore cached image from disk to docker"
+    parameters:
+      image_name:
+        type: string
+    steps:
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            set +o pipefail
+            if [ -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]; then
+              docker info
+              zcat /tmp/cache/<< parameters.image_name >>_docker.tar.gz | docker load
+              docker images
+            fi
+
+
+############################################################################
+#Define jobs for building, testing, and deploying
+############################################################################
+jobs:
+  build:
+    working_directory: /tmp/src/afni
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+    docker:
+      - image: docker:18.01.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: install some basic helper tools
+          command: |
+            apk add --no-cache pigz python3
+      - build_afni_image:
+          build_type: << parameters.build_type >>
+          image_cache_version: << parameters.image_cache_version >>
+      - save_docker_image_to_disk:
+          image_name: afni_<< parameters.build_type >>
+      - save_cache:
+          # store a run specific cache for later steps... caching is used
+          # instead of saving to the workspace because there are two builds
+          # and the make_build cache is quite large so it would slow down
+          # workspace loading for the cmake testing step
+          key: v<< parameters.image_cache_version >>-docker-<< parameters.build_type >>-{{ .Revision }}-{{ epoch }}
+          paths:
+            - /tmp/cache/afni_<< parameters.build_type >>_docker.tar.gz
+
+
+  containers_check:
+    working_directory: /tmp/src/afni
+    parameters:
+      image_cache_version:
+        type: string
+    docker:
+      - image: docker:18.01.0-ce-git
+    steps:
+      - check_integrity_of_containers:
+          image_cache_version: << parameters.image_cache_version >>
+
+  test:
+    working_directory: /tmp/src/afni
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+      test_data_cache_version:
+        type: string
+    machine:
+      image: circleci/classic:201711-01
+    steps:
+      - checkout
+      - write_test_data_cache_version_file:
+          cache_name: test_data
+      - restore_a_cache:
+          version_file: "/tmp/test_data_version.txt"
+          version: << parameters.test_data_cache_version >>
+      - restore_afni_image_cache:
+          build_type: << parameters.build_type >>
+          image_cache_version: << parameters.image_cache_version >>
+      # - run:
+      #     name: Install coverage and codecov
+      #     command: |
+      #         pyenv install 3.6.3
+      #         pyenv local 3.6.3
+      - run_afni_tests:
+          build_type: << parameters.build_type >>
+          # Save test data as cache for subsequent runs if ideal is not already saved
+      - save_cache:
+          key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
+          paths: /tmp/src/afni/tests/afni_ci_test_data
+
+  deploy:
+    working_directory: /tmp/src/afni
+    parameters:
+      build_type:
+        type: string
+      image_cache_version:
+        type: string
+    machine:
+      image: circleci/classic:201711-01
+    steps:
+      - deploy_to_dockerhub:
+          build_type: << parameters.build_type >>
+          image_cache_version: << parameters.image_cache_version >>
+
+  macos_build:
+    working_directory: /tmp/src/afni
+    macos:
+        xcode: "11.2.1"
+    steps: # a series of commands to run
+      - checkout
+      - setup_macos_for_afni
       - run:
           name: Build on macos
           command: |
-            cd /tmp/src/afni
             mkdir build
             cd build
             cmake ..                                                           \
                 -GNinja                                                             \
-                -DCMAKE_TOOLCHAIN_FILE=../afni/cmake/macos_toolchainfile.cmake      \
+                -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
                 -DUSE_SYSTEM_VOLPACK=OFF    \
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
@@ -52,220 +398,90 @@ jobs:
             ninja
 
 
-
-
-  build_and_test_makebuild:
-    machine: true
-    working_directory: /tmp/src/afni
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Pull and possibly rebuild base image
-          command: |
-            docker pull afni/afni_dev_base; \
-            docker build -t afni/afni_dev_base  \
-            -f .docker/afni_dev_base.dockerfile                                    \
-            .
-      - run:
-          name: Build using standard AFNI build system
-          command: |
-            docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6}  \
-            -f .docker/make_build.dockerfile                                    \
-            .
-      - run:
-          no_output_timeout: 2h
-          name: Run tests on standard AFNI build 
-          command: |
-            docker run afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/src/afni/tests/run_tests.sh'
-
-      - run:
-          no_output_timeout: 60m
-          name: AFNI account should upload successful builds
-          command: |
-            set +o pipefail
-            if [ $DOCKER_USER == 'afni' ]
-            then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
-              docker push afni/afni
-            fi
-
-
-  cmake_build:
-    docker:
-      - image: docker:18.01.0-ce-git
-    working_directory: /tmp/src/afni
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - run:
-          name: Install parallel gzip and Python 3
-          command: |
-            apk add --no-cache pigz python3
-      - setup_remote_docker
-      - run:
-          name: Pull and possibly rebuild base image
-          command: |
-            docker pull afni/afni_dev_base; \
-            docker build -t afni/afni_dev_base  \
-            -f .docker/afni_dev_base.dockerfile .
-      - run:
-          name: Build image
-          no_output_timeout: 30m
-          command: |
-            THISVERSION=$(cat src/AFNI_version_base.txt)
-            echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
-            docker build \
-              -f .docker/cmake_build.dockerfile \
-              --rm=false \
-              --tag afni/afni_cmake_build:latest \
-              --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
-              --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
-      - run:
-          name: Docker save
-          no_output_timeout: 40m
-          command: |
-            mkdir -p /tmp/cache
-            docker save afni/afni_cmake_build:latest \
-            | pigz -2 -p 3 > /tmp/cache/docker.tar.gz
-      - save_cache:
-          key: docker-v0-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
-          paths:
-            - /tmp/cache/docker.tar.gz
-
-  # Using caching between build and test jobs instead of making it all part of
-  # the same job is useful for restarting with ssh support upon tests failure.
-  test_cmake_build:
-    machine:
-      image: circleci/classic:201711-01
-    working_directory: /tmp/src/afni
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - restore_cache:
-          keys:
-            - docker-v0-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Install coverage and codecov
-          command: |
-              pyenv install 3.6.3
-              pyenv local 3.6.3
-      - run:
-          name: Load Docker image layer cache
-          no_output_timeout: 30m
-          command: |
-            docker info
-            set +o pipefail
-            if [ -f /tmp/cache/docker.tar.gz ]; then
-              sudo apt update && sudo apt -y install pigz
-              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
-              docker images
-            fi
-      - run:
-          name: Run tests
-          no_output_timeout: 2h
-          command: |
-            mkdir -p /tmp/src /tmp/out
-            chmod 777 /tmp/src /tmp/out
-            docker run --rm -it \
-                -v /tmp/src/afni:/opt/src/afni \
-                afni/afni_cmake_build \
-                bash -c 'bash /opt/src/afni/tests/run_tests_cmake.sh'
-
-          
-  deploy_docker_cmake:
-    machine:
-      image: circleci/classic:201711-01
-    working_directory: /tmp
-    steps:
-      - restore_cache:
-          keys:
-            - docker-v0-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Load Docker image layer cache
-          no_output_timeout: 30m
-          command: |
-            if [ $DOCKER_USER == 'afni' ]; then
-              docker info
-              set +o pipefail
-              if [ -f /tmp/cache/docker.tar.gz ]; then
-                zcat /tmp/cache/docker.tar.gz | docker load
-                docker images
-              fi
-            fi
-      - run:
-          name: Deploy to Docker Hub
-          no_output_timeout: 40m
-          command: |
-            if [ $DOCKER_USER == 'afni' ]; then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker push afni/afni_cmake_build:latest
-              docker tag afni/afni_cmake_build afni/afni_cmake_build:$CIRCLE_TAG
-              docker push afni/afni_cmake_build:$CIRCLE_TAG
-            fi
-
-
-
-
+############################################################################
+#Define the  workflow to organize the execution of the jobs on circleci
+############################################################################
 workflows:
-  version: 2
+  version: 2.1
   afni_tests:
     jobs:
-      - cache_src_and_data_repo:
-          filters:
-            branches:
-              ignore: /doc\/.*/
-            tags:
-              only: /.*/
       - macos_build:
           requires:
-            - cache_src_and_data_repo
             - test_cmake_build
           filters:
-            branches:
-              ignore: /doc\/.*/
             tags:
               only: /.*/
-      - cmake_build:
-          requires:
-            - cache_src_and_data_repo
+            branches:
+              only: /.*/
+      - build:
+          name: cmake_build
+          matrix:
+            parameters:
+              build_type: ["cmake_build"]
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
           filters:
-            branches:
-              ignore: /doc\/.*/
             tags:
               only: /.*/
-      - test_cmake_build:
+            branches:
+              only: /.*/
+      - build:
+          name: make_build
           requires:
+            - test_cmake_build
+          matrix:
+            parameters:
+              build_type: ["make_build"]
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - test:
+          name: test_<< matrix.build_type >>
+          matrix:
+            parameters:
+              build_type: ["make_build", "cmake_build"]
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+              test_data_cache_version: ["5"]
+          requires:
+            - << matrix.build_type >>
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - containers_check:
+          name: check containers for issues with users and permissions and environments
+          matrix:
+            parameters:
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+          requires:
+            - make_build
             - cmake_build
-            - cache_src_and_data_repo
           filters:
             tags:
               only: /.*/
-      - deploy_docker_cmake:
+            branches:
+              only: /.*/
+      - deploy:
+          name: deploy_<< matrix.build_type >>
+          matrix:
+            parameters:
+              build_type: ["make_build", "cmake_build"]
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
           requires:
-            - test_cmake_build
+            - test_<< matrix.build_type >>
+            - macos_build
+            - containers_check
           filters:
+            tags:
+              only: /AFNI_\d\d.\d.\d\d/
             branches:
               ignore: /.*/
-            tags:
-              only: /.*/
-      - build_and_test_makebuild:
-          requires:
-            - cache_src_and_data_repo
-            - test_cmake_build
-          filters:
-            branches:
-              ignore: /doc\/.*/
-            tags:
-              only: /.*/
-      # not yet implemented
-      # - deploy_docker_makebuild:
-      #     requires:
-      #       - build_and_test_makebuild
-      #     filters:
-      #       branches:
-      #         ignore: /.*/
-      #       tags:
-      #         only: /.*/
+

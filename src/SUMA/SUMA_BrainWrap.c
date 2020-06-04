@@ -1620,7 +1620,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
       for (vv=0; vv<DSET_NVOX(dset); ++vv) if (ok[vv]) okb[vv]=1;
       for (nlp=0; nlp<30; ++nlp) {
          THD_mask_erode_sym( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), 
-                             okb, mxblnk );
+                             okb, mxblnk, 2 );
          THD_mask_dilate(DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), 
                              okb, mxblnk, 2);
       }
