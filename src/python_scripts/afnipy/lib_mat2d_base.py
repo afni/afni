@@ -27,14 +27,33 @@
 #ver = '0.31' ; date = 'June 2, 2020'
 # [PT] ... fix printing bugs, add in other funcs to print subsets of things
 #
-ver = '0.32' ; date = 'June 2, 2020'
+#ver = '0.32' ; date = 'June 2, 2020'
 # [PT] attach label to mat2d obj when reading in file
+#
+ver = '0.4' ; date = 'June 2, 2020'
+# [PT] new multifile object
+#    + checks that all files loading in to object match in terms of 
+#      nmat, nroi, labels, etc.
 #
 # --------------------------------------------------------------------------
 
 import sys, os, copy
 from afnipy import afni_base as ab
 from afnipy import afni_util as UTIL
+
+# ---------------------------------------------------------------------------
+
+# string of grid/netcc/amat file labels in line [0] (all the same...)
+head0_str = "Number of network ROI"
+
+# dictionary of grid/netcc/amat labels in line [1]
+head1_dict = {
+    'netcc' : "Number of netcc matrices",
+    'grid'  : "Number of grid matrices",
+    'amat'  : "Number of amat matrices",
+}
+
+head2_str = "WITH_ROI_LABELS"
 
 # ---------------------------------------------------------------------------
 
@@ -76,6 +95,7 @@ class mat2d:
 
         self.eletype     = None # int, float, bool...
         self.file_inp    = None
+        self.ext         = None  # file type
         #self.file_base   = ''   # can record file basename
         #self.file_dir    = ''   # can record file dirname
         
@@ -91,6 +111,7 @@ class mat2d:
             self.label = label
         if file_inp :
             self.file_inp = file_inp            
+            self.set_ext_from_fname(file_inp)
 
         if col_strlabs :
             self.set_col_strlabs(col_strlabs)
@@ -103,6 +124,23 @@ class mat2d:
             self.set_row_intvals(row_intvals)
 
     # -------------- methods -------------------        
+
+    def set_ext_from_fname(self, FF ):
+        """set file extension, trying to parse filename FF
+
+        return name/ext str
+
+        NB: 'amat' == 'AFNI matrix', which means the form is OK, but
+        the type of netcc or grid specifically can't be identified.
+
+        """
+        
+        ffsplit = FF.split('.')
+        if len(ffsplit) < 2 :          return 'amat'
+
+        if ffsplit[-1] == 'netcc'  :   return 'netcc'
+        elif ffsplit[-1] == 'grid' :   return 'grid'
+        else:                          return 'amat'
 
     def get_mat_min_max(self):
         '''calculate min and max values of entire array'''
@@ -300,8 +338,12 @@ class file_grid_netcc:
 
         self.data        = []       # full file, read in 
         self.data_len    = 0        # nlines file file
+
+        # these can be regenerated as data is updated/added/removed
         self.header      = []       # just the header part of data
         self.header_len  = 0        # number of lines in header
+        self.table_mat     = []       # just the table of matrices part of data
+        self.table_mat_len = 0        # number of lines in table_mat
 
         self.nmat        = 0        
         self.nroi        = 0
@@ -321,36 +363,149 @@ class file_grid_netcc:
 
 
         # --------- 
-        if mode == 'r' :
+        if fname and mode == 'r' :
             self.file_inp = fname
             self.open_and_check_GoN( )
 
     # -----------------------------------------------------------
     # -----------------------------------------------------------
 
+    def set_file_inp(self, FF):
+        self.file_inp = FF
+
+    def add_mat2d(self, Mobj, idx_pos=None, ext=None ):
+        """Mobj : is a mat2d object, which can have str labels.
+        
+        idx_pos : can be an index position (zerobase counting, of
+                  course!) for inserting the current obj in the list
+                  of things.  NB: again, it is the allmat_labs that
+                  controls the order of mat2d obj.  Behaves as
+                  list.insert(idx_pos, SOMETHING) would.
+
+        This function adds to and updates the list of mat2d
+        information in the current file_grid_netcc obj, as well as
+        updating header and table (table_mat) info.
+
+        """
+        
+        # the output here contains info about whether a file_* obj
+        # exists already with mat2ds in it
+        OK_TO_GO = self.check_new_mat2d_with_current( Mobj )
+        
+        # this will insert it at the end, if no position has been
+        # specified
+        if idx_pos == None :
+            idx_pos = self.nmat
+
+        self.allmat_labs.insert(idx_pos, Mobj.label)
+        self.allmat[ Mobj.label ] =  Mobj
+        self.nmat+= 1
+
+        ab.IP("Inserted mat '{}' into index position [{}]"
+              "".format(Mobj.label, idx_pos))
+
+        if OK_TO_GO == 1 :
+
+            self.nroi        = Mobj.ncol
+            self.roi_intvals = copy.deepcopy(Mobj.col_intvals)
+
+            if Mobj.col_strlabs :
+                self.has_strlabs = True
+                self.roi_strlabs = copy.deepcopy(Mobj.col_strlabs)
+
+            if ext == None : 
+                if Mobj.ext :
+                    self.ext = Mobj.ext 
+                else:
+                    self.ext = 'amat'
+            else:
+                self.ext = ext
+
+        # update table+header
+        self.make_header_GoN()
+        self.make_table_mat_GoN()
+
+    def check_new_mat2d_with_current(self, Mobj):
+        """Check about info that needs to match if we already have mats in
+        this obj (e.g., nroi, roi_strlabs, roi_intvals, etc.)
+
+        Output
+        ------
+        1      : if nothing exists
+        2      : if things exist, and this new Mobj is OK to add
+        [exit] : if things are NOT ok
+
+        """
+
+        # trivial case: nothing to check
+        if self.nmat == 0:   return 1
+
+        # check nroi|size; also, must be square
+        if self.nroi != Mobj.nrow or self.nroi != Mobj.ncol :
+            ab.EP("mismatch in size of current file obj (nroi= {}) "
+                  "and new obj (row, col = {}, {})"
+                  "".format(self.nroi, Mobj.nrow, Mobj.ncol))
+
+        # intvals
+        for ii in range(self.nroi) :
+            if self.roi_intvals[ii] != Mobj.col_intvals[ii] :
+                ab.EP("mismatch in intvals of current file obj:\n{}\n"
+                      "and those of new obj:\n{}"
+                      "".format(self.roi_intvals, Mobj.col_intvals))
+
+        # check str labels
+        if self.has_strlabs != Mobj.col_strlabs :
+            ab.EP("mismatch in string labelling in current file obj ({}) "
+                  "and new obj ({})"
+                  "".format( self.has_strlabs, Mobj.col_strlabs ))
+
+        # strlabs, if any
+        if self.has_strlabs :
+            for ii in range(self.nroi) :
+                if self.roi_strlabs[ii] != Mobj.col_strlabs[ii] :
+                    ab.EP("mismatch in strlabs of current file obj:\n{}\n"
+                          "and those of new obj:\n{}"
+                          "".format(self.roi_strlabs, Mobj.col_strlabs))
+
+        # check if a mat2d with this label already exists --> confusion!
+        if self.allmat_labs.__contains__(Mobj.label) :
+            ab.EP("current file obj already contains that obj label: {}"
+                  "".format(Mobj.label))
+
+        # have we survived the gauntlet?
+        return 2
+
+
     def make_header_GoN(self):
         """Form the header part for output.
 
         Can be netcc, grid or 'amat' (generalized form, 'AFNI matrix')
+
+        Store internally
         """
         
-        # haven't fully decided about "other" cases yet
-        if    self.ext == 'netcc' : mstr = "Number of netcc matrices"
-        elif  self.ext == 'grid'  : mstr = "Number of grid matrices"
-        elif  self.ext == 'amat'  : mstr = "Number of amat matrices"
-        else:                       mstr = "Number of amat matrices"
-
         h = []
 
-        h.append( "# {}  # Number of network ROI".format(self.nroi) )
-        h.append( "# {}  # {}".format(self.nmat, mstr) )
+        # line-by-line labels to use; some are trivial copies
+        h0_label = head0_str
+        try:
+            h1_label = head1_dict[self.ext]
+        except:
+            ab.WP("Can't recognize extension?")
+            h1_label = head1_dict['amat']
+        h2_label = head2_str
+
+        h.append( "# {}  # {}".format(self.nroi, h0_label) )
+        h.append( "# {}  # {}".format(self.nmat, h1_label) )
         if self.has_strlabs :
-            h.append( "# WITH_ROI_LABELS" )
+            h.append( "# {}".format( h2_label ) )
             h.append( ''.join([" {:>10s} \t".format(x) \
                                for x in self.roi_strlabs]) )
         h.append( ''.join([" {:10d} \t".format(x) \
                            for x in self.roi_intvals]) )
-        return h
+        #return h
+        self.header     = h
+        self.header_len = len(h)
 
     def make_table_mat_GoN(self):
         """Form the table of matrix(ces) part for output.
@@ -376,7 +531,11 @@ class file_grid_netcc:
                 else:
                     t.append( ''.join(["{:12}\t".format(x) for 
                                        x in mat[jj]]) )
-        return t
+
+        self.table_mat     = t
+        self.table_mat_len = len(t)
+        #return t
+    
 
     def make_full_out_str_GoN(self):
         """Create full string version of grid/netcc/amat file to print or
@@ -384,33 +543,34 @@ class file_grid_netcc:
 
         """
 
-        hdr_list       = self.make_header_GoN()
-        table_mat_list = self.make_table_mat_GoN()
+        # make sure these are uptodate
+        self.make_header_GoN()
+        self.make_table_mat_GoN()
 
-        full_out = '\n'.join(hdr_list)
+        full_out = '\n'.join(self.header)
         full_out+= '\n'
-        full_out+= '\n'.join(table_mat_list)
+        full_out+= '\n'.join(self.table_mat)
 
         return full_out
 
 
-    def disp_tab_mat(self):
+    def disp_table_mat(self):
         """Print current table of matrix (non-header) information to terminal
 
         """
         
-        table_mat_list = self.make_table_mat_GoN()
-        full_out       = '\n'.join(table_mat_list)
-        print(full_out)
+        self.make_table_mat_GoN()
+        out = '\n'.join(self.table_mat)
+        print(out)
 
     def disp_hdr(self):
         """Print current header information to terminal
 
         """
         
-        hdr_list = self.make_header_GoN()
-        full_out = '\n'.join(hdr_list)
-        print(full_out)
+        self.make_header_GoN()
+        out = '\n'.join(self.header)
+        print(out)
 
 
     def disp_full(self):
@@ -418,8 +578,8 @@ class file_grid_netcc:
 
         """
 
-        full_out = self.make_full_out_str_GoN()
-        print(full_out)
+        out = self.make_full_out_str_GoN()
+        print(out)
        
 
     def write_to_file_GoN(self, fname=''):
@@ -518,7 +678,7 @@ class file_grid_netcc:
         # Check for str labs (opt)
         idx  = 2
         line = [ x.strip() for x in self.data[idx].split("#")]
-        if line[-1] == 'WITH_ROI_LABELS':
+        if line[-1] == head2_str :
             self.has_strlabs = True
             idx+= 1
             self.roi_strlabs = [ x.strip() for x in self.data[idx].split()]
@@ -555,7 +715,7 @@ class file_grid_netcc:
                   "".format(nleft_reality, self.nmat, self.nroi,
                             nleft_theory))
 
-    def read_table_mats_GoN(self):
+    def read_table_mat_GoN(self):
         '''Read all the matrix info in the main part of the table
         each matrix has a "matrix label" part
         self.nroi, self.nmat 
@@ -620,5 +780,123 @@ class file_grid_netcc:
         self.read_in_GoN()
 
         self.read_header_GoN()
-        self.read_table_mats_GoN()
+        self.read_table_mat_GoN()
 
+# --------------------------------------------------------------------------
+
+class multi_file_GoN:
+    """An obj to store a collection of grid/netcc/amat files.
+
+    We will make a consistency check to ensure that they all have the same:
+    + number of matrices
+    + number of ROIs per matrix
+    + same int vals per ROI
+    + same str vals per ROI
+
+    General usage: start empty and append items.
+
+    Most info stored in dicts, with a master list.  Since we don't
+    know if fname paths are annoyingly long, use integers as keys for
+    dset and fname dictionaries, and a list with access to them.
+
+    """
+
+    def __init__( self ):
+
+        self.all_file    = {}       # keys are just numbers, at the moment
+        self.all_fname   = {}
+        
+        self.all_idx     = []       # this controls order and selection
+        self.nfile       = 0
+
+    
+
+    def add_file(self, FF, fname='', idx_pos=None ):
+        """
+        Add a 'file_grid_netcc' obj.
+
+        Basically, won't use idx_pos property, most likely
+        """
+
+        if not(fname) :    fname       = FF.file_inp
+        else:              FF.file_inp = fname
+
+        if fname :         ab.IP("Adding {}".format(fname))
+        else:              ab.IP("Adding unnamed file")
+
+        # 1 if nothing prior, 2 if things exist and we are OK, exit if bad
+        OK_TO_GO = self.check_new_file_with_current(FF)
+
+        if idx_pos == None :
+            idx_pos = self.nfile
+
+        self.all_file[idx_pos]  = FF
+        self.all_fname[idx_pos] = fname
+        self.all_idx.append(idx_pos)
+
+        self.nfile+= 1
+        
+    def check_new_file_with_current(self, FF):
+        """Check about info that needs to match if we already have files in
+        this obj
+
+        Output
+        ------
+        1      : if nothing exists
+        2      : if things exist, and this new file FF is OK to add
+        [exit] : if things are NOT ok
+
+        """
+
+        # trivial case: nothing to check
+        if self.nfile == 0:   return 1
+
+        # since at this point we know there is at least one prior
+        # file, use the [0]th one to compare for properties
+
+        CC = self.all_file[0]  # get from dictionary
+
+        # check nmat
+        if CC.nmat != FF.nmat :
+            ab.EP("mismatch in number of matrices in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.nroi, FF.nroi ))
+
+        # check nroi/mat
+        if CC.nroi != FF.nroi :
+            ab.EP("mismatch in number of ROIs per mat in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.nroi, FF.nroi ))
+
+        # check str labels
+        if CC.has_strlabs != FF.has_strlabs :
+            ab.EP("mismatch in string labelling in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.has_strlabs, FF.has_strlabs ))
+
+        # check roi intvals
+        for ii in range(CC.nroi):
+            if CC.roi_intvals[ii] != FF.roi_intvals[ii] :
+                ab.EP("mismatch in intvals of current existing file:\n{}\n"
+                      "and those of new file:\n{}"
+                      "".format(CC.roi_intvals, FF.roi_intvals))
+
+        # strlabs, if any
+        if CC.has_strlabs :
+            for ii in range(CC.nroi) :
+                if CC.roi_strlabs[ii] != FF.roi_strlabs[ii] :
+                    ab.EP("mismatch in strlabs of existing file:\n{}\n"
+                          "and those of new file:\n{}"
+                          "".format(CC.roi_strlabs, FF.roi_strlabs))
+
+        for ii in range(CC.nmat):
+            if CC.allmat_labs[ii] != FF.allmat_labs[ii] :
+                ab.EP("mismatch in matrix labels of existing file:\n{}\n"
+                      "and those of new file:\n{}"
+                      "".format(CC.allmat_labs, FF.allmat_labs))
+
+        # have we survived the gauntlet?
+        return 2
+
+
+    

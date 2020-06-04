@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_GENERAL,
+   "Improve couple things in help file; change def cbar.",
+   "More useful 'divergent' class of cbar as default.\n"
+},
+
+{ 3, June , 2020 , PT , "epi_b0_correct.py" , MICRO , TYPE_BUG_FIX,
+   "Programming badness if user forgot to add a nec arg to an opt.",
+   "There should be no change in behavior when correct opts are added.\n"
+},
+
+{ 3, June , 2020 , PT , "fat_mat2d_plot.py" , MAJOR , TYPE_NEW_PROG,
+   "FINALLY, a python3 program to plot 3dTrackID and 3dNetCorr output.",
+   "Plots *.grid and *.netcc files; replaces fat_mat_sel.py.\n"
+},
+
+{ 3, June , 2020 , PT , "lib_mat2d_plot.py" , MAJOR , TYPE_GENERAL,
+   "Many updates to functioning, defaults, reading argv, applying user opts.",
+   "Help file added as well; works with main proc: fat_mat2d_plot.py.\n"
+},
+
 { 1, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "For vstat with seedbased corr (rest), use 0.2 as thr value of corr map.",
    "The value 0.3 seemed pretty high (esp. if no smoothing is applied).\n"

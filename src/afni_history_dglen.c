@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 04, JUN, 2020, DRG, "align_epi_anat.py epi stripping options",
+     MICRO, TYPE_NEW_OPT,
+    "epistrip_opts/dset2strip_opts"
+},
 { 19, MAY, 2020, DRG, "3dROIstats",
      MINOR, TYPE_NEW_OPT,
     "nzvolume - volume of nonzero voxels"
