@@ -8,9 +8,12 @@
 #ver='0.1' ; date='June 3, 2020'
 # + [PT] birth
 #
-ver='1.0' ; date='June 3, 2020'
+#ver='1.0' ; date='June 3, 2020'
 # [PT] initial debugging/running/testing done
 #    + ready to roll out-- others can point out bugs!
+#
+ver='1.1' ; date='June 4, 2020'
+# [PT] unnec line (from earlier testing)
 #
 ##########################################################################
 
@@ -29,9 +32,6 @@ if __name__ == "__main__" :
 
     ab.IP("ver : {} (libver : {})"
           "".format( ver, lm2p.ver ))
-
-    
-    mat   = 'CC'
     
     # create main object with matrix info
     M = lm2b.file_grid_netcc(iopts.input)
