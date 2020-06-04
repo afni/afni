@@ -625,6 +625,7 @@ class RegWrap:
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
       self.skullstrip_opt = "" # skullstripping options
+      self.epistrip_opt = "" # similar stripping/automask options for EPI/dset2
       self.cmass = "nocmass" # no center of mass option for 3dAllineate
       self.epi_base = None  # don't assume representative epi
       self.reg_mat = "" # volume registration matrix 1D file
@@ -942,6 +943,13 @@ class RegWrap:
       self.valid_opts.add_opt('-skullstrip_opts', -1, [], \
                helpstr="Alternate options for 3dSkullstrip.\n"
                        "like -rat or -blur_fwhm 2")
+      self.valid_opts.add_opt('-dset1strip_opts', -1, [], \
+               helpstr="Alternate name for skullstrip_opts")
+      self.valid_opts.add_opt('-epistrip_opts', -1, [], \
+               helpstr="Alternate options for 3dSkullstrip/3dAutomask.\n"
+                       "like -rat or -blur_fwhm 2 or -peels 2")
+      self.valid_opts.add_opt('-dset2strip_opts', -1, [], \
+               helpstr="Alternate name for epistrip_opts")
       self.valid_opts.add_opt('-feature_size', 1, [],\
             helpstr="Minimal size in mm of structures in images to match.\n"\
                     "Changes options for 3dAllineate for the coarse\n" \
@@ -1510,6 +1518,18 @@ class RegWrap:
       opt = self.user_opts.find_opt('-skullstrip_opts')
       if opt != None: 
          ps.skullstrip_opt = str.join(' ',opt.parlist)
+
+      opt = self.user_opts.find_opt('-dset1strip_opts')
+      if opt != None: 
+         ps.skullstrip_opt = str.join(' ',opt.parlist)
+
+      opt = self.user_opts.find_opt('-epistrip_opts')
+      if opt != None: 
+         ps.epistrip_opt = str.join(' ',opt.parlist)
+
+      opt = self.user_opts.find_opt('-dset2strip_opts')
+      if opt != None: 
+         ps.epistrip_opt = str.join(' ',opt.parlist)
 
       #get epi base type for alignment (specific sub-brick/median/mean)
       opt = self.user_opts.find_opt('-epi_base')
@@ -2969,8 +2989,8 @@ class RegWrap:
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
-                  "3dAutomask -apply_prefix %s %s" \
-                  % (   n.pp(), e.input()), ps.oexec)
+                  "3dAutomask %s -apply_prefix %s %s" \
+                  % ( skullstrip_opt,  n.pp(), e.input()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print("** ERROR: Could not strip skull with automask\n")
@@ -3197,7 +3217,7 @@ class RegWrap:
          prefix = "%s%s%s" \
          % (tempbasepathname,basesuff,baseviewext)
        
-      skullstrip_o = self.skullstrip_data( e, use_ss, ps.skullstrip_opt, prefix)
+      skullstrip_o = self.skullstrip_data( e, use_ss, ps.epistrip_opt, prefix)
 
       # use edges to align optionally
       if(ps.edge) :
