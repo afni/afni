@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_GENERAL,
+   "Improve couple things in help file; change def cbar.",
+   "More useful 'divergent' class of cbar as default.\n"
+},
+
 { 3, June , 2020 , PT , "epi_b0_correct.py" , MICRO , TYPE_BUG_FIX,
    "Programming badness if user forgot to add a nec arg to an opt.",
    "There should be no change in behavior when correct opts are added.\n"

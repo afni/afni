@@ -39,6 +39,16 @@ ver = '1.0' ; date = 'June 3, 2020'
 #    + read in user input opts, populate plotting with them
 #    + made defaults dict, list input opts and parse all
 #
+ver = '1.1' ; date = 'June 4, 2020'
+# [PT] 
+#    + update cbar link
+#    + fix help examples formatting
+#    + change def cbar
+#
+ver = '1.11' ; date = 'June 4, 2020'
+# [PT] 
+#    + change def cbar
+#
 # --------------------------------------------------------------------------
 
 import sys, os, copy, glob
@@ -51,8 +61,9 @@ from   mpl_toolkits.axes_grid1 import make_axes_locatable
 from   afnipy import afni_base      as ab
 from   afnipy import lib_mat2d_base as lm2b
 
-cbar_link = 'https://scipy.github.io/old-wiki/pages'
-cbar_link+= '/Cookbook/Matplotlib/Show_colormaps'
+#cbar_link = 'https://scipy.github.io/old-wiki/pages'
+#cbar_link+= '/Cookbook/Matplotlib/Show_colormaps'
+cbar_link = 'https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html'
 
 # ---------------------------------------------------------------------------
 
@@ -73,7 +84,7 @@ ddefs = {
     'DEF_plt_yticks_ON'     : True,
     'DEF_yticks_rot'        : 0,
     'DEF_yticks_FS'         : 10,
-    'DEF_cbar'              : 'jet',
+    'DEF_cbar'              : 'RdBu_r', # 'BrBg', 
     'DEF_cbar_link'         : cbar_link,
     'DEF_cbar_width_perc'   : 5,
     'DEF_cbar_pad'          : 0.1,
@@ -169,6 +180,10 @@ RUNNING ~1~
                  {DEF_cbar_link}
                  ... and for each, you can add an '_r' as suffix to
                  reverse it. (def: {DEF_cbar})
+                 Some perceptually uniform colormaps:
+                   viridis, plasma, inferno, magma, cividis
+                 Some divergent colormaps:
+                   BrBG, RdBu, coolwarm, seismic, bwr
                  
  -cbar_width_perc  CWP 
                 :width of cbar as a percentage of the image 
@@ -212,38 +227,38 @@ EXAMPLES ~1~
 
 0) Plot everything in this netcc file:
 
-   fat_mat2d_plot.py                   \
+   fat_mat2d_plot.py                   \\
        -input REST_corr_rz_003.netcc
 
 1) Plot the CC (correlation coefficient) values between [-1, 1]
 
-   fat_mat2d_plot.py                   \
-       -input REST_corr_rz_003.netcc   \
-       -vmin -1                        \
-       -vmax  1                        \
+   fat_mat2d_plot.py                   \\
+       -input REST_corr_rz_003.netcc   \\
+       -vmin -1                        \\
+       -vmax  1                        \\
        -pars CC
 
 2) Plot the FA (fractional anisotropy) values between [0, 1] using
    the 'cool' colorbar and with a specified prefix:
 
-   fat_mat2d_plot.py                   \
-       -input o.OME_000.grid           \
-       -vmin  0                        \
-       -vmax  1                        \
-       -pars   FA                      \
-       -prefix IMAGE                   \
+   fat_mat2d_plot.py                   \\
+       -input o.OME_000.grid           \\
+       -vmin  0                        \\
+       -vmax  1                        \\
+       -pars   FA                      \\
+       -prefix IMAGE                   \\
        -cbar   cool
 
 3) Plot the MD, L1 and RD values between [0, 3] (-> on a DTI note,
    these values are *probably* in units of x10^-3 mm^2/s, given this
    range) with the reversed Greens colorbar:
 
-   fat_mat2d_plot.py                   \
-       -input o.OME_000.grid           \
-       -vmin  0                        \
-       -vmax  3                        \
-       -pars   MD L1 RD                \
-       -prefix IMAGE2                  \
+   fat_mat2d_plot.py                   \\
+       -input o.OME_000.grid           \\
+       -vmin  0                        \\
+       -vmax  3                        \\
+       -pars   MD L1 RD                \\
+       -prefix IMAGE2                  \\
        -cbar   Greens_r
 
 
