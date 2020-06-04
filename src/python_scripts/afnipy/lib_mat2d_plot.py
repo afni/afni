@@ -45,6 +45,10 @@ ver = '1.1' ; date = 'June 4, 2020'
 #    + fix help examples formatting
 #    + change def cbar
 #
+ver = '1.11' ; date = 'June 4, 2020'
+# [PT] 
+#    + change def cbar
+#
 # --------------------------------------------------------------------------
 
 import sys, os, copy, glob
@@ -80,7 +84,7 @@ ddefs = {
     'DEF_plt_yticks_ON'     : True,
     'DEF_yticks_rot'        : 0,
     'DEF_yticks_FS'         : 10,
-    'DEF_cbar'              : 'RdBu', # 'BrBg', 
+    'DEF_cbar'              : 'RdBu_r', # 'BrBg', 
     'DEF_cbar_link'         : cbar_link,
     'DEF_cbar_width_perc'   : 5,
     'DEF_cbar_pad'          : 0.1,
