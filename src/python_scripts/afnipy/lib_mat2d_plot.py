@@ -33,13 +33,13 @@ ver = '0.1' ; date = 'June 2, 2020'
 # [PT] 
 #    + start to add arg parsing for use
 #
-ver = '1.0' ; date = 'June 3, 2020'
+#ver = '1.0' ; date = 'June 3, 2020'
 # [PT] 
 #    + many plotting funcs added
 #    + read in user input opts, populate plotting with them
 #    + made defaults dict, list input opts and parse all
 #
-ver = '1.1' ; date = 'June 4, 2020'
+#ver = '1.1' ; date = 'June 4, 2020'
 # [PT] 
 #    + update cbar link
 #    + fix help examples formatting
@@ -48,6 +48,7 @@ ver = '1.1' ; date = 'June 4, 2020'
 ver = '1.11' ; date = 'June 4, 2020'
 # [PT] 
 #    + change def cbar
+#    + add a minimum width of figure if we are 'guessing' size
 #
 # --------------------------------------------------------------------------
 
@@ -763,7 +764,7 @@ class plot_mat2d:
         # plot title
         self.plt_title_txt = self.m.label
 
-    def guess_appropriate_figsize(self):
+    def guess_appropriate_figsize(self, min_width=3.5):
         """Use fontsize and number of rows stacked in y-dir to figure out what
         a good overall height.  Basically, we want the fontsize on the
         yticks to be just a bit less than the col width.
@@ -774,6 +775,9 @@ class plot_mat2d:
 
         Re. width: make plot approx. square if no cbar is used; add on
         about 20% extra width if a cbar is used.
+
+        We now put a floor on the width; anything less than 3.5 in
+        seems pointless.
 
         """
         
@@ -789,6 +793,11 @@ class plot_mat2d:
         height = 2 * self.plt_yticks_N * self.plt_yticks_FS / 72.
 
         width  = self.calc_fig_w_from_h(height)
+
+        if width < min_width :
+            ab.IP("Invoke min width: {}".format(min_width))
+            width  = min_width
+            height = self.calc_fig_h_from_w(width)
 
         ab.IP("figsize (h, w) guess (in): {:.2f}, {:.2f}"
               "".format(height, width))
