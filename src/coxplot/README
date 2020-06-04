@@ -1,0 +1,6 @@
+When rebuilding .c files from .f, the struct variable declarations should
+be prepended with 'extern', particularly for systems for which -fcommon is
+not the default.  The actual struct definitions (with and without extern)
+are now in coxplot.h, and are defined in libcoxplot via ppak_commons.c.
+
+When running f2c, check a diff with the previous c file(s).
