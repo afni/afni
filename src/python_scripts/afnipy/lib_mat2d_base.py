@@ -895,6 +895,12 @@ class multi_file_GoN:
                       "and those of new file:\n{}"
                       "".format(CC.allmat_labs, FF.allmat_labs))
 
+        # check ext
+        if CC.ext != FF.ext :
+            ab.EP("mismatch in ext in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.ext, FF.ext ))
+
         # have we survived the gauntlet?
         return 2
 
