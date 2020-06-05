@@ -8,7 +8,7 @@
 # no longer usable as a main: see afni_python_wrapper.py
 # ------------------------------------------------------
 
-import sys, os, math
+import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
 import glob
@@ -1772,6 +1772,199 @@ def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
    if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
 
    return 0, rstr
+
+# ------------------
+# funcs for specific kind of matrix: list of 2D list matrices
+
+def check_list_2dmat_and_mask(L, mask=None):
+    """A check to see if L is a list of 2D matrices.
+
+    Also, check if any input mask matches the dimensions of the
+    submatrices of L.
+
+    This does not check if all submatrices have the same dimensions.
+    Maybe someday it will.
+
+    Returns 4 integers:
+    + 'success' value   :1 if L is 2D mat and any mask matches
+    + len(L)
+    + nrow in L submatrix
+    + ncol in L submatrix
+
+    """
+
+    # calc recursive list of embedded list lengths
+    Ldims = get_list_mat_dims(L)
+
+    # need a [N, nrow, ncol] here
+    if len(Ldims) != 3 :   
+        BASE.EP("Matrix fails test for being a list of 2D matrices;\m"
+                "instead of having 3 dims, it has {}".format(len(Ldims)))
+
+    if mask != None :
+        mdims = get_list_mat_dims(mask)
+        if mdims[0] != Ldims[1] or mdims[1] != Ldims[2] :
+            BASE.EP("matrix dimensions don't match:\n"
+                    "mask dims: {}, {}"
+                    "each matrix in list has dims: {}, {}"
+                    "".format(mdims[0], mdims[1], Ldims[1], Ldims[2]))
+
+    return 1, Ldims[0], Ldims[1], Ldims[2]
+
+def calc_list_2dmat_count_nonzero(L, mask=None, mode='count'):
+    """L is a list of 2D list matrices.  Each submatrix must be the same
+    shape.
+
+    Calculate the number of nonzero entries across len(L) for each
+    submatrix element.
+
+    Return a matrix of a different style, depending on the specified
+    'mode':
+    'count'   :integer number of nonzero elements, i.e., max value is
+               len(L); this is the default
+    'frac'    :output is floating point: number of nonzero values at a 
+               given matrix element, divided by len(L); therefore,  
+               values here are in a range [0, 1]
+    'all_nz'  :output is a matrix of binary vals, where 1 means that 
+               all values across the length of L are nonzero for that 
+               element, and 0 means that one or more value is zero
+    'any_nz'  :output is a matrix of binary vals, where 1 means that 
+               at least one value across the length of L is nonzero for
+               that element, and 0 means that all values are zero
+
+    A mask can be entered, so that all the above calcs are only done
+    in the mask; outside of it, all values are 0 or False.
+
+    if len(L) == 0:
+        1 empty matrix is returned
+    else:
+        normal calcs
+
+    """
+
+    # check if L is a list of 2D mats, and if the mask matches
+    # submatrices (if used)
+    IS_OK, N, nrow, ncol = check_list_2dmat_and_mask(L, mask)
+
+    mmat = [[0]*ncol]*nrow
+    Nfl  = float(N)
+
+    if mask == None :
+        mask = [[1]*ncol]*nrow
+
+    for ii in range(nrow) :
+        for jj in range(ncol) :
+            if mask[ii][jj] :
+                for ll in range(N) :
+                    if L[ll][ii][jj] :
+                        mmat[ii][jj]+= 1
+
+                if mode == 'frac':
+                    mmat[ii][jj]/= Nfl
+                elif mode == 'any_nz' :
+                    mmat[ii][jj] = int(bool(mmat[ii][jj]))
+                elif mode == 'all_nz' :
+                    if mmat[ii][jj] == N :
+                        mmat[ii][jj] = 1
+                    else:
+                        mmat[ii][jj] = 0
+
+    return mmat
+
+def calc_list_2dmat_mean_stdev_max_min(L, mask=None, ddof=1 ):
+    """L is a list of 2D list matrices.  Each submatrix must be the same
+    shape.
+
+    Calculate four elementwise properties across the length of L, and
+    return four separate matrices.  
+
+    NB: by "list of 2D matrices," we mean that having L[0] = [[1,2,3]]
+    would lead to actual calcs, but having L[0] = [1,2,3] would not.
+    That is, each element of L must have both a nonzero number of rows
+    and cols.
+
+    For any shape of list matrix that isn't a "list of 2D matrices",
+    we return all empty matrices.
+
+    mask    :An optional mask can be be input; it will be treated as
+             boolean.  Values outside the mask will simply be 0.
+ 
+    ddof    :control the 'delta degrees of freedom' in the divisor of
+             stdev calc; numpy's np.std() has ddof=1 by default, so the 
+             denominator is "N"; here, default is ddof=1, so that 
+             the denominator is N-1
+
+    if len(L) == 0:
+        4 empty matrices are returned
+    elif len(L) == 1: 
+        mean, min and max matrices are copies of input, and stdev is all 0s
+    else:
+        normal calcs
+
+    """
+    
+    # check if L is a list of 2D mats, and if the mask matches
+    # submatrices (if used)
+    IS_OK, N, nrow, ncol = check_list_2dmat_and_mask(L, mask)
+
+    if N == 1 :
+        mmean  = copy.deepcopy(L[0])
+        mstdev = [[0.]*ncol]*nrow
+        mmax   = copy.deepcopy(L[0])
+        mmin   = copy.deepcopy(L[0])
+        if mask != None :
+            for ii in range(nrow) :
+                for jj in range(ncol) :
+                    if not(mask[ii][jj]) :
+                        mmean[ii][jj] = 0
+                        mmin[ii][jj]  = 0
+                        mmax[ii][jj]  = 0
+        return mmean, mstdev, mmax, mmin
+
+    Nfl   = float(N)
+    Nstdev = Nfl - ddof  # ... and we know Nfl>1.0, if here
+
+    # Initialize mats
+    mmean  = [[0]*ncol]*nrow
+    mstdev = [[0]*ncol]*nrow
+    mmax   = copy.deepcopy(L[0]) 
+    mmin   = copy.deepcopy(L[0])
+
+    if mask == None :
+        mask = [[1]*ncol]*nrow
+
+    for ii in range(nrow) :
+        for jj in range(ncol) :
+            if mask[ii][jj] :
+                for ll in range(N) :
+                    x = L[ll][ii][jj]
+                    mmean[ii][jj]+= x
+                    mstdev[ii][jj]+= x*x
+                    if x < mmin[ii][jj] :
+                        mmin[ii][jj] = x
+                    if x > mmax[ii][jj] :
+                        mmax[ii][jj] = x
+                print(mmean[ii][jj],Nfl)
+                mmean[ii][jj]/= Nfl
+                mstdev[ii][jj]-= N*mmean[ii][jj]*mmean[ii][jj]
+                mstdev[ii][jj] = (mstdev[ii][jj]/Nstdev)**0.5
+
+    return mmean, mstdev, mmax, mmin
+    
+def get_list_mat_dims(L, lengths=[]) :
+    """Calc dims of list-style matrix.  Recursive.
+
+    Returns a list of lengths of embedded lists; does not check that
+    each list is the same length at a given level.
+
+    """
+
+    if type(L) == list:
+        a = copy.deepcopy(lengths)
+        a.append(len(L))
+        return get_list_mat_dims(L[0], lengths=a)
+    else:
+        return lengths
 
 
 # end matrix functions
