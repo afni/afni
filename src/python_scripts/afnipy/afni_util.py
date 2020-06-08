@@ -1495,7 +1495,34 @@ def is_matrix_square( mat, full_check=False ):
     # have we survived to here? then -> square.
     return 1
 
+def mat_row_mincol_maxcol_ragged_square(M):
+    """check 5 properties of a matrix (list of lists) and return 5 ints:
+      nrow
+      min ncol
+      max ncol  
+      is_ragged 
+      is_square
 
+    """
+
+    if not(M):  return 0,0,0,0,0
+
+    is_square = 0             # just default; can change below
+
+    nrow      = len(M)        
+    all_clen  = [len(r) for r in M]
+    ncolmin    = min(all_clen)
+    ncolmax    = max(all_clen)
+
+    if ncolmin == ncolmax :
+        is_ragged = 0
+        if ncolmin == nrow :
+            is_square = 1
+    else:
+        is_ragged = 1
+
+    return nrow, ncolmin, ncolmax, is_ragged, is_square
+    
 def transpose(matrix):
     """transpose a 2D matrix, returning the new one"""
     if matrix is None: return []
@@ -4763,6 +4790,21 @@ def match_listA_str_in_listB_str(A, B):
     #    print(A[db[key]] + '  <---> ' +  B[key]) 
 
     return FULL_MATCH, da, db
+
+def invert_dict(D):
+    """Take a dictionary D of key-value pairs and return a dictionary
+    Dinv, which the keys of D as values and the (matched) values of D
+    as keys.
+
+    """
+
+    if not(D) :      return {}
+
+    Dinv = {}
+    for k, v in D.items():     
+        Dinv[v] = k
+
+    return Dinv
 
 
 # ----------------------------------------------------------------------
