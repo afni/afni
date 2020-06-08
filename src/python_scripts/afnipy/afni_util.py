@@ -4572,6 +4572,116 @@ def test_tent_vecs(val, freq, length):
     return correlation_p(a,b)
 
 
+# -----------------------------------------------------------------------
+# [PT: June 8, 2020] for matching str entries in list (for the FATCAT
+# -> MVM and other group analysis programs)
+
+def match_listA_str_in_listB_str(A, B):
+    """Input:  two lists (A and B), each of whose elements are strings.
+
+    See if each string in A is contained is contained within one (and
+    only one) string in list B.  If yes, return:
+      1 
+      the dictionary of matches, A->B
+      the dictionary of matches, B->A
+    otherwise, error+exit.
+
+    The primary/first usage of this program is for the following case:
+    matching subject IDs from a CSV file (the list of which form A)
+    with path names for *.grid|*.netcc files (the list of which form
+    B), for combining all that information.  We want to find 1 subject
+    ID from the CSV file with 1 (and only 1) matrix file, for each
+    subject ID.
+
+    NB: in the above case, the users are alternatively able to enter
+    the list for matching subj ID with matrix file, if the above
+    name-matching wouldn't work.
+
+    """
+
+    if type(A) != list or type(B) != list :
+        BASE.EP("Both inputs A and B must be lists, not {} and {}, "
+              "respectively".format(type(A), type(B)))
+
+    na = len(A)
+    nb = len(B)
+
+    if not(na and nb) :
+        BASE.EP("One of the sets is empty: len(A) = {}; len(B) = {}"
+              "".format(na, nb))
+    elif na != nb :
+        BASE.EP("Mismatched length of lists: len(A) = {}; len(B) = {}"
+              "".format(na, nb))
+
+    # check that each ele is a str
+    ta = [type(x)!=str for x in A]
+    tb = [type(x)!=str for x in B]
+    if max(ta) or max(tb) :
+        BASE.EP("All elements of A and B must be str, but that is not true\n"
+              "for a least one list:  for A, it's {};  for B it's {}"
+              "".format(not(max(ta)), not(max(tb))))
+
+    checklist_a = [0]*na
+    checklist_b = [0]*na
+    matchlist_a = [-1]*na
+    matchlist_b = [-1]*na
+
+    for ii in range(nb):
+        for jj in range(na):
+            if B[ii].__contains__(A[jj]) :
+                checklist_a[jj]+= 1
+                checklist_b[ii]+= 1
+                matchlist_a[jj] = ii
+                matchlist_b[ii] = jj
+                # *should* be able to break here, but will check
+                # *all*, to verify there are no problems/ambiguities
+
+    CHECK_GOOD = True
+
+    # now check the outcomes
+    if min(checklist_a)==1 and max(checklist_a)==1:
+        BASE.IP("Found single matches for each element in A")
+    else:
+        BASE.WP("Did NOT find single matches for each element in A;\n"
+              "min and max number of matches are, respectively: {} and {}"
+              "".format(min(checklist_a), max(checklist_a)))
+        for ii in range(na):
+            if checklist_a[ii] < 1 :
+                print("\t unmatched: {}".format(A[ii]))
+            elif checklist_a[ii] > 1 :
+                print("\t overmatched: {}".format(A[ii]))
+        CHECK_GOOD = False
+
+    if min(checklist_b)==1 and max(checklist_b)==1:
+        BASE.IP("Found single matches for each element in B")
+    else:
+        BASE.WP("Did NOT find single matches for each element in B;\n"
+              "min and max number of matches are, respectively: {} and {}"
+              "".format(min(checklist_b), max(checklist_b)))
+        for ii in range(nb):
+            if checklist_b[ii] < 1 :
+                print("\t unmatched: {}".format(B[ii]))
+            elif checklist_b[ii] > 1 :
+                print("\t overmatched: {}".format(B[ii]))
+        CHECK_GOOD = False
+
+    if not(CHECK_GOOD) :
+        BASE.EP('Exiting')
+
+    # if we made it here, things are good
+    da = {}
+    db = {}
+    for ii in range(na):
+        da[ii] = matchlist_a[ii]
+        db[ii] = matchlist_b[ii]
+
+    # e.g., 
+    #for key in da: 
+    #    print(A[key] + '  <---> ' +  B[da[key]]) 
+    #for key in db: 
+    #    print(A[db[key]] + '  <---> ' +  B[key]) 
+
+    return 1, da, db
 
 
 # ----------------------------------------------------------------------
