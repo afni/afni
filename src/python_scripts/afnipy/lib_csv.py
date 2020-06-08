@@ -150,3 +150,27 @@ class csv_data:
         fff.close()
 
         self.parse_fulltext_list()
+
+    def get_table_col_by_idx(self, idx) :
+        """Get a whole column of data from the table by providing its index.
+
+        """
+
+        out = []
+        for ii in range(self.nrow_table):
+            out.append(self.table[ii][idx])
+
+        return out
+    
+    def get_table_col_by_header(self, hname) :
+        """Get a whole column of data from the table by providing its header
+        column name.
+        
+        """
+
+        idx = self.header.index(hname)
+        out = []
+        for ii in range(self.nrow_table):
+            out.append(self.table[ii][idx])
+
+        return out
