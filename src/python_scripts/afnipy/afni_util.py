@@ -2930,6 +2930,49 @@ def first_last_match_strs(slist):
 
    return slist[0][0:hmatch], tstr
 
+def list_files_by_glob(L, sort=False, exit_on_miss=False) :
+    """Input a list L of one or more strings to glob (fiiine, the input L
+    can also be a string, which will just be made into a list
+    immediately, L = [L]), and then glob each one, sort that piece's
+    results, and append it to the list of results.  Return the full
+    list of files.
+
+    The program can be made to exist if any piece fails to find a
+    result, by setting 'exit_on_miss=True'.
+
+    Sorting of the full/final list is NOT done by default (can be
+    turned on with 'sort=True').
+
+    """
+
+    if not(L): return []
+
+    if   type(L) == str :      L = [L]
+    elif type(L) != list :     BASE.EP("Input a list (or str)")
+
+    N        = len(L)
+    cbad     = 0
+    out      = []
+
+    for ii in range(N):
+        sublist = L[ii].split()
+        for item in sublist:
+            gout = glob.glob(item)
+            if not(gout) :
+                cbad+= 1 
+                BASE.WP("No files for this part of list: {}".format(item))
+            else:
+                gout.sort()
+                out.extend(gout)
+
+    if cbad and exit_on_miss :
+        BASE.EP("No findings for {} parts of this list.  Bye.".format(cbad))
+    
+    if sort :
+        out.sort()
+
+    return out
+
 def glob2stdout(globlist):
    """given a list of glob forms, print all matches to stdout
 
