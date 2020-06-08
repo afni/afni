@@ -4575,13 +4575,21 @@ def test_tent_vecs(val, freq, length):
 # -----------------------------------------------------------------------
 # [PT: June 8, 2020] for matching str entries in list (for the FATCAT
 # -> MVM and other group analysis programs)
+## [PT: June 8, 2020] updated to allow cases where only a subset of
+## either A or B is matched; but will still give errors if something
+## matches more than 1 item in the other list.
 
 def match_listA_str_in_listB_str(A, B):
-    """Input:  two lists (A and B), each of whose elements are strings.
+    """Input: two lists (A and B), each of whose elements are strings.  A
+    and B don't have to have the same length.
 
     See if each string in A is contained is contained within one (and
     only one) string in list B.  If yes, return:
       1 
+      the dictionary of matches, A->B
+      the dictionary of matches, B->A
+    elif only a subset of A is contained in B or vice versa, return:
+      0
       the dictionary of matches, A->B
       the dictionary of matches, B->A
     otherwise, error+exit.
@@ -4609,10 +4617,7 @@ def match_listA_str_in_listB_str(A, B):
     if not(na and nb) :
         BASE.EP("One of the sets is empty: len(A) = {}; len(B) = {}"
               "".format(na, nb))
-    elif na != nb :
-        BASE.EP("Mismatched length of lists: len(A) = {}; len(B) = {}"
-              "".format(na, nb))
-
+ 
     # check that each ele is a str
     ta = [type(x)!=str for x in A]
     tb = [type(x)!=str for x in B]
@@ -4622,9 +4627,9 @@ def match_listA_str_in_listB_str(A, B):
               "".format(not(max(ta)), not(max(tb))))
 
     checklist_a = [0]*na
-    checklist_b = [0]*na
+    checklist_b = [0]*nb
     matchlist_a = [-1]*na
-    matchlist_b = [-1]*na
+    matchlist_b = [-1]*nb
 
     for ii in range(nb):
         for jj in range(na):
@@ -4638,42 +4643,72 @@ def match_listA_str_in_listB_str(A, B):
 
     CHECK_GOOD = True
 
-    # now check the outcomes
-    if min(checklist_a)==1 and max(checklist_a)==1:
+    # --------- now check the outcomes
+    if min(checklist_a) == 1 and max(checklist_a) == 1 :
+        # all matches found, all singletons
         BASE.IP("Found single matches for each element in A")
     else:
-        BASE.WP("Did NOT find single matches for each element in A;\n"
-              "min and max number of matches are, respectively: {} and {}"
-              "".format(min(checklist_a), max(checklist_a)))
-        for ii in range(na):
-            if checklist_a[ii] < 1 :
-                print("\t unmatched: {}".format(A[ii]))
-            elif checklist_a[ii] > 1 :
-                print("\t overmatched: {}".format(A[ii]))
-        CHECK_GOOD = False
+        if min(checklist_a) == 0 :
+            # all found matches are singletons, but there are gaps;
+            # not a fatal error
+            BASE.WP("Some elements of A are unmatched:")
+            for ii in range(na):
+                if not(checklist_a[ii]) :
+                    print("\t unmatched: {}".format(A[ii]))
+        if max(checklist_a) > 1 :
+            # ambiguities in matching --> badness
+            CHECK_GOOD = False
+            BASE.WP("Some elements of A are overmatched:")
+            for ii in range(na):
+                if checklist_a[ii] > 1 :
+                    print("\t overmatched: {}".format(A[ii]))
+        if not(max(checklist_a)) :
+            CHECK_GOOD = False
+            BASE.WP("No elements in A matched??:")
 
-    if min(checklist_b)==1 and max(checklist_b)==1:
+    if min(checklist_b) == 1 and max(checklist_b) == 1 :
+        # all matches found, all singletons
         BASE.IP("Found single matches for each element in B")
     else:
-        BASE.WP("Did NOT find single matches for each element in B;\n"
-              "min and max number of matches are, respectively: {} and {}"
-              "".format(min(checklist_b), max(checklist_b)))
-        for ii in range(nb):
-            if checklist_b[ii] < 1 :
-                print("\t unmatched: {}".format(B[ii]))
-            elif checklist_b[ii] > 1 :
-                print("\t overmatched: {}".format(B[ii]))
-        CHECK_GOOD = False
+        if min(checklist_b) == 0 :
+            # all found matches are singletons, but there are gaps;
+            # not a fatal error
+            BASE.WP("Some elements of B are unmatched:")
+            for ii in range(nb):
+                if not(checklist_b[ii]) :
+                    print("\t unmatched: {}".format(B[ii]))
+        if max(checklist_b) > 1 :
+            # ambiguities in matching --> badness
+            CHECK_GOOD = False
+            BASE.WP("Some elements of B are overmatched:")
+            for ii in range(nb):
+                if checklist_b[ii] > 1 :
+                    print("\t overmatched: {}".format(B[ii]))
+        if not(max(checklist_b)) :
+            CHECK_GOOD = False
+            BASE.WP("No elements in B matched??:")
 
     if not(CHECK_GOOD) :
         BASE.EP('Exiting')
 
     # if we made it here, things are good
     da = {}
-    db = {}
     for ii in range(na):
-        da[ii] = matchlist_a[ii]
-        db[ii] = matchlist_b[ii]
+        if checklist_a[ii] :
+            da[ii] = matchlist_a[ii]
+    db = {}
+    for ii in range(nb):
+        if checklist_b[ii] :
+            db[ii] = matchlist_b[ii]
+
+    na_keys = len(da.keys())
+    nb_keys = len(db.keys())
+
+    # final check on consistency
+    if na_keys != nb_keys :
+        BASE.EP("Mismatch in number of keys in output lists?\n"
+                "There are {} for A and {} for B"
+                "".format(na_keys, nb_keys))
 
     # e.g., 
     #for key in da: 
