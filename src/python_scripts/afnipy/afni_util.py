@@ -4641,13 +4641,15 @@ def match_listA_str_in_listB_str(A, B):
                 # *should* be able to break here, but will check
                 # *all*, to verify there are no problems/ambiguities
 
-    CHECK_GOOD = True
+    CHECK_GOOD = True   # determines if we 'return' anything
+    FULL_MATCH = 1      # flags type of matching when returning
 
     # --------- now check the outcomes
     if min(checklist_a) == 1 and max(checklist_a) == 1 :
         # all matches found, all singletons
         BASE.IP("Found single matches for each element in A")
     else:
+        FULL_MATCH = 0
         if min(checklist_a) == 0 :
             # all found matches are singletons, but there are gaps;
             # not a fatal error
@@ -4670,6 +4672,7 @@ def match_listA_str_in_listB_str(A, B):
         # all matches found, all singletons
         BASE.IP("Found single matches for each element in B")
     else:
+        FULL_MATCH = 0
         if min(checklist_b) == 0 :
             # all found matches are singletons, but there are gaps;
             # not a fatal error
@@ -4716,7 +4719,7 @@ def match_listA_str_in_listB_str(A, B):
     #for key in db: 
     #    print(A[db[key]] + '  <---> ' +  B[key]) 
 
-    return 1, da, db
+    return FULL_MATCH, da, db
 
 
 # ----------------------------------------------------------------------
