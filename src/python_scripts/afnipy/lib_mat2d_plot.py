@@ -13,7 +13,7 @@ auth = 'PA Taylor'
 #ver = '0.0' ; date = 'June 1, 2020'
 # [PT] matrix-related things, for plotting, stats and other calcs
 #
-ver = '0.1' ; date = 'June 2, 2020'
+#ver = '0.1' ; date = 'June 2, 2020'
 # [PT] debugged, testing on netcc and grid files
 #
 #ver = '0.11' ; date = 'June 2, 2020'
@@ -45,10 +45,14 @@ ver = '0.1' ; date = 'June 2, 2020'
 #    + fix help examples formatting
 #    + change def cbar
 #
-ver = '1.11' ; date = 'June 4, 2020'
+#ver = '1.11' ; date = 'June 4, 2020'
 # [PT] 
 #    + change def cbar
 #    + add a minimum width of figure if we are 'guessing' size
+#
+ver = '1.12' ; date = 'June 9, 2020'
+# [PT] fix behavior when self.plt_{x,y}ticks_ON is False
+#    + that is, when an axis's ticks are turned off, show *nothing*
 #
 # --------------------------------------------------------------------------
 
@@ -871,19 +875,31 @@ class plot_mat2d:
                         vmax          = self.vmax,
                         cmap          = self.cbar )
 
-        if self.plt_xticks_ON:
+        if self.plt_xticks_ON :
             plt.xticks( self.plt_xticks_ticks,
                         self.plt_xticks_labels,
                         rotation = self.plt_xticks_rot,
                         ha       = self.plt_xticks_ha,
                         fontsize = self.plt_xticks_FS )
+        else:
+            plt.tick_params( axis='x',
+                             which='both',
+                             bottom=False,      
+                             top=False,         
+                             labelbottom=False ) 
 
-        if self.plt_yticks_ON:
+        if self.plt_yticks_ON :
             plt.yticks( self.plt_yticks_ticks,
                         self.plt_yticks_labels,
                         rotation = self.plt_yticks_rot,
                         fontsize = self.plt_yticks_FS )
-            
+        else:
+            plt.tick_params( axis='y',
+                             which='both',
+                             left=False,      
+                             right=False,         
+                             labelleft=False ) 
+
         # this is do deal with an apparent bug in some versions of
         # matplotlib:
         # https://github.com/matplotlib/matplotlib/issues/14751
