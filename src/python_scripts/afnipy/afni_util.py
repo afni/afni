@@ -1873,11 +1873,11 @@ def calc_list_2dmat_count_nonzero(L, mask=None, mode='count'):
     # submatrices (if used)
     IS_OK, N, nrow, ncol = check_list_2dmat_and_mask(L, mask)
 
-    mmat = [[0]*ncol]*nrow
+    mmat = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
     Nfl  = float(N)
 
     if mask == None :
-        mask = [[1]*ncol]*nrow
+        mask = [[1]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
 
     for ii in range(nrow) :
         for jj in range(ncol) :
@@ -1936,7 +1936,7 @@ def calc_list_2dmat_mean_stdev_max_min(L, mask=None, ddof=1 ):
 
     if N == 1 :
         mmean  = copy.deepcopy(L[0])
-        mstdev = [[0.]*ncol]*nrow
+        mstdev = [[0.]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
         mmax   = copy.deepcopy(L[0])
         mmin   = copy.deepcopy(L[0])
         if mask != None :
@@ -1952,13 +1952,13 @@ def calc_list_2dmat_mean_stdev_max_min(L, mask=None, ddof=1 ):
     Nstdev = Nfl - ddof  # ... and we know Nfl>1.0, if here
 
     # Initialize mats
-    mmean  = [[0]*ncol]*nrow
-    mstdev = [[0]*ncol]*nrow
+    mmean  = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+    mstdev = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
     mmax   = copy.deepcopy(L[0]) 
     mmin   = copy.deepcopy(L[0])
 
     if mask == None :
-        mask = [[1]*ncol]*nrow
+        mask = [[1]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
 
     for ii in range(nrow) :
         for jj in range(ncol) :
