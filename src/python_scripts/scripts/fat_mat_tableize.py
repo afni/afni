@@ -7,9 +7,15 @@
 #
 # In particular, these funcs are for interacting with 3dNetCorr and
 # 3dTrackID outputs.
-
-ver='0.0' ; date='June 8, 2020'
+#
+# -----------------------------------------------------------------------
+#ver='0.0' ; date='June 8, 2020'
 # + [PT] birth
+#
+ver = '0.1' ; date = 'June 9, 2020'
+# [PT] work toward storing mat info and choosing ROIs
+#    + merge with CSV better
+#    + new obj to store mat info (mat_info)
 #
 ##########################################################################
 
@@ -30,16 +36,11 @@ if __name__ == "__main__" :
 
     ab.IP("ver : {} (libver : {})"
           "".format( ver, lm2t.ver ))
-    
 
-    # ---------- read in CSV, if input
-    if iopts.in_csv :
-        csv = LCSV.csv_data(iopts.in_csv)
-        csv_ids = csv.get_table_col_by_idx(0) # [0] col is subj IDs
-        # Now, csv.table has the data (all str); csv.header has the
-        # col labels
+    # ------------------------- read in inputs -------------------------
 
-    # ---------- read in matrix files
+    # read in MATRIX FILES (req in one of 2 forms)
+
     # initialize main obj of matrices
     multi_mat = lm2b.multi_file_GoN()        
 
@@ -61,11 +62,26 @@ if __name__ == "__main__" :
         # should not get here
         ab.EP("No listfile or list of matrices entered??")
 
-    # ------------- match matfile to CSV (if latter is used)
-    if csv :
-        list_fnames = list(multi_mat.all_fname.values())  # list of vals
-        dict_all_fname_inv = UTIL.invert_dict(multi_mat.all_fname) # dict
+    # this obj contains a lot of info summarizing the matrices
+    mat_info = lm2t.mat_table_guide(multi_mat)
 
+    # Couple last matrix-related things for later: list of mat
+    # filenames, and inverse dictionary of fnames
+    list_fnames = list(multi_mat.all_fname.values())
+    dict_all_fname_inv = UTIL.invert_dict(multi_mat.all_fname) 
+
+    # read in CSV (opt)
+
+    if iopts.in_csv :
+        csv = LCSV.csv_data(iopts.in_csv)
+        csv_ids = csv.get_table_col_by_idx(0) # [0] col is subj IDs
+        # Now, csv.table has the data (all str); csv.header has the
+        # col labels
+
+
+    # --------- match matfile to CSV subj IDs (if latter is used) -------
+
+    if iopts.in_csv :
         # now, we have to make a dict whose keys are the indices
         # of the csv_ids, and whos values are the indices of the
         # filename dictionary of matrices
@@ -79,7 +95,7 @@ if __name__ == "__main__" :
                 dict_ids_fidx[csv_ids.index(ii_id)] \
                     = dict_all_fname_inv[ii_mat]
         else:
-            # have to find our own matching from file names
+            # have to find our own matching from file names and subj IDs
             FULL_MATCH, da, db \
                 = UTIL.match_listA_str_in_listB_str(csv_ids, 
                                                     list_fnames)
@@ -94,6 +110,44 @@ if __name__ == "__main__" :
     ## csv were supplied
 
 
+    # -------------- select matrices (= pars) to include ---------------
+
+
+    mat_info.set_pars_final( iopts.pars_list,
+                             empty_one_ok=True, 
+                             exit_on_empty=False )
+    if not(mat_info.npar) :
+        ab.EP("No parameters with which to build table?  Can't proceed.")
+
+
+    # ------------------ select ROIs/elements to include ----------------
+
+    # That is, here we need to make a mask for a matrix.  There are
+    # many ways this can be done; for 3dMVM, we only took elements
+    # that were nonzero across all subj, but we no longer need to be
+    # that strict.  Additionally, users can select ROI-pairs or
+    # col|row selectors for the mask.
+    # 
+    # For *.grid files, the 'NT' matrix of integers is the best one to
+    # use if one needs to find 'nonzero elements across a group'.  
+    # 
+    # For *.netcc files, there really isn't one to choose, since
+    # correlation values *can* be zero.
+    # 
+    # Note also that in general we will exclude diagonals, for both
+    # *.grid and *.netcc; in the latter, they are trivial, but even in
+    # the former where they have sooome meaning, they don't represent
+    # between-ROI connections, and hence we typically ignore them.
+
+    if 1 :    # !! put opt here later, based on iopt.*/input
+        mat_info.remove_diags_from_mask()
+
+
+
+
+
+
+    # ---------------------- build table ------------------------------
 
 
 

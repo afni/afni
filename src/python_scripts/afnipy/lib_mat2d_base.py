@@ -789,7 +789,6 @@ class multi_file_GoN:
         self.all_idx     = []       # this controls order and selection
         self.nfile       = 0
 
-    
 
     def add_file(self, FF, fname='', idx_pos=None ):
         """
@@ -863,7 +862,7 @@ class multi_file_GoN:
                       "and those of new file:\n{}"
                       "".format(CC.roi_intvals, FF.roi_intvals))
 
-        # strlabs, if any
+        # check ROI strlabs, if any
         if CC.has_strlabs :
             for ii in range(CC.nroi) :
                 if CC.roi_strlabs[ii] != FF.roi_strlabs[ii] :
@@ -871,6 +870,7 @@ class multi_file_GoN:
                           "and those of new file:\n{}"
                           "".format(CC.roi_strlabs, FF.roi_strlabs))
 
+        # check matrix names/types
         for ii in range(CC.nmat):
             if CC.allmat_labs[ii] != FF.allmat_labs[ii] :
                 ab.EP("mismatch in matrix labels of existing file:\n{}\n"

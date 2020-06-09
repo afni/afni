@@ -11,8 +11,13 @@
 # --------------------------------------------------------------------------
 auth = 'PA Taylor'
 #
-ver = '0.0' ; date = 'June 8, 2020'
+#ver = '0.0' ; date = 'June 8, 2020'
 # [PT] inputs
+#
+ver = '0.1' ; date = 'June 9, 2020'
+# [PT] work toward merging lists
+#    + new obj: mat_table_guide
+#    + merge_list() 
 #
 # --------------------------------------------------------------------------
 
@@ -22,10 +27,6 @@ from   afnipy import afni_base      as ab
 from   afnipy import afni_util      as UTIL
 from   afnipy import lib_mat2d_base as lm2b
 from   afnipy import lib_csv        as LCSV
-
-#cbar_link = 'https://scipy.github.io/old-wiki/pages'
-#cbar_link+= '/Cookbook/Matplotlib/Show_colormaps'
-cbar_link = 'https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html'
 
 # ---------------------------------------------------------------------------
 
@@ -177,6 +178,39 @@ def read_in_listfile(fname, lines=1, strip=1, noblank=1, verb=1):
     else:                     col1 = []
 
     return col0, col1
+
+def merge_lists(A, B, empty_one_ok=True, exit_on_empty=True) :
+    """Take two lists (of parameters), A and B.  If one is empty, just
+    return the other one (set empty_one_ok=False to not have this
+    happen at the start).  Otherwise, return the intersection of the 2
+    lists.
+
+    If the final result is empty, return empty (default) or set
+    'exit_on_empty' to error exit.
+
+    """
+
+    if empty_one_ok :
+        if   not(A) :    return copy.deepcopy(B)
+        elif not(B) :    return copy.deepcopy(A)
+
+    out = []
+
+    for item in A:
+        if B.__contains__(item) :
+            out.append(item)
+        else:
+            ab.WP("Item '{}' does not appear in list B.\n"
+                  "Continuing without it".format(item))
+                
+    if out :
+        return out
+    else:
+        if exit_on_empty :
+            ab.EP("No items matched in lists A and B. Exiting.")
+        else:
+            return []
+
 
 # ---------------------------------------------------------------------------
 
@@ -357,3 +391,77 @@ def parse_args(full_argv):
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
+class mat_table_guide:
+    """Grab some useful information from the multi_file_GoN() obj and
+    keep it around for easy access.
+
+    """
+
+    def __init__(self, mf_GoN=None):
+
+        self.nsubj            = 0      # how many subjects' files are
+                                       # we combining
+        self.ftype            = ''
+        self.mat_labs         = []     # what file has
+
+        self.nroi             = 0  
+        self.roi_intvals      = []
+        self.roi_strlabs      = None
+
+        self.main_mask        = None   # mask to apply to ALL mats
+
+        self.pars_final       = []     # what we end up using
+        self.npar             = 0      # len(tab_pars)
+
+        if mf_GoN :
+            self.nsubj = mf_GoN.nfile
+            if self.nsubj :
+                self.get_info_from_file_obj(mf_GoN.all_file[0])
+                self.init_mask()
+
+    # ---------- check ----------------
+
+    def init_mask(self):
+        """Initialize the mask to apply to everyone based just on the number
+        of ROIs.  Later we can do things like: remove diagonals,
+        select based on ROI strlabs or intvals (either as pairs or
+        indiv elements).
+
+        """
+        self.main_mask = [copy.deepcopy([1]*self.nroi) \
+                          for i in range(self.nroi)]
+        
+        ### NB: neither of these 'clever' opts would be good here, bc
+        ### of the way mutable collections work in Python
+        #self.main_mask = [[1]*self.nroi]*self.nroi
+        #self.main_mask = [copy.deepcopy([1]*self.nroi)]*self.nroi
+
+    def remove_diags_from_mask(self):
+        for ii in range(self.nroi):
+            self.main_mask[ii][ii] = 0
+
+    def get_info_from_file_obj(self, FO):
+        """The multi mat is mainly a list of file_grid_netcc objs; FO should
+        be one of those, from which we get much of this info
+
+        """
+        
+        if type(FO) != lm2b.file_grid_netcc :
+            ab.EP("Wrong type of input here: need 'lm2b.file_grid_netcc'")
+
+        self.ftype    = FO.ext
+        self.mat_labs = copy.deepcopy(FO.allmat_labs)
+
+        self.nroi        = FO.nroi
+        self.roi_intvals = copy.deepcopy(FO.roi_intvals)
+        if FO.roi_strlabs :
+            self.roi_strlabs = copy.deepcopy(FO.roi_strlabs)
+
+    def set_pars_final(self, listB, empty_one_ok=True, exit_on_empty=True):
+
+        self.pars_final = merge_lists( self.mat_labs, 
+                                       listB,
+                                       empty_one_ok  = empty_one_ok,
+                                       exit_on_empty = exit_on_empty )
+        self.npar = len(self.pars_final)
