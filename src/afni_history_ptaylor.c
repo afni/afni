@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MAJOR , TYPE_NEW_PROG,
+   "For GE scanners, we might want a cdiflist* file for DWI grad info.",
+   "This prog converts such beasts into usable grad/bvalue files for proc.\n"
+},
+
 { 9, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
    "Fix behavior when -xticks_off and/or -yticks_off are/is used.",
    "Now the specified axis will really be *empty*.\n"

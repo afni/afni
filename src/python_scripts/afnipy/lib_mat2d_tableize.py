@@ -314,7 +314,7 @@ def parse_args(full_argv):
 
         elif argv[i] == "{help}".format(**opts_dict) or \
              argv[i] == "{h}".format(**opts_dict) :
-            print(help_string_mat_plot)
+            print(help_string)
             sys.exit(0)
 
         elif argv[i] == "{hview}".format(**opts_dict) :
