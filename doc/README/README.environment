@@ -4389,6 +4389,18 @@ If this variable is not set, the default font size is used in the
 'Where am I?'  popup window.
 If this variable is set to 'BIG', then a larger font size is used.
 
+-------------------------------
+Variable: AFNI_ATLAS_NAME_TYPE
+-------------------------------
+Atlas region labels can be shown as either as a short name or with a
+longer, more descriptive name. Note that most atlases have only the
+short name available. The whereami GUI and command line can show either
+or both labels with this variable set to "longname", "both" or "name",
+where "name" is only the short, standard version. The overlay panel
+and image viewers can show this label too. The names are separated by
+a vertical pipe symbol if both are in the atlas header.
+The default is to show both names if they are available.
+
 -------------------------
 Variable: AFNI_WEBBY_WAMI
 -------------------------
