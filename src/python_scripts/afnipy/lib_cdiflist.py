@@ -10,8 +10,12 @@ auth = 'PA Taylor'
 #ver = '0.0' ; date = 'June 10, 2020'
 # [PT] inputs
 #
-ver = '0.1' ; date = 'June 10, 2020'
+#ver = '0.1' ; date = 'June 10, 2020'
 # [PT] debug/test
+#
+ver = '0.2' ; date = 'June 10, 2020'
+# [PT] update help-- note this should only be used at present on axial
+#      slice acq;  thanks, Joelle!
 #
 # --------------------------------------------------------------------------
 
@@ -92,6 +96,21 @@ RUNNING ~1~
  -h             :display help (in terminal)
 
  -hview         :display help (in separate text editor)
+
+------------------------------------------------------------------------------
+
+NOTES ~1~
+
+At this point in time, this program should only be used if the DWI
+acquisition used *axial slices*.  This tends to be (by far) the most
+common way to acquire the data, so this probably isn't a very
+prohibitive restriction.  However, more option(s) would need to be
+added for dealing with other slice acquisitions (based on how GE
+stores the data).
+
+Also, if you have any questions/uncertainty about the gradient info,
+just ask.  And if you *really* want a correct answer, of course you
+should ask Joelle, the real expert!
 
 ------------------------------------------------------------------------------
 
