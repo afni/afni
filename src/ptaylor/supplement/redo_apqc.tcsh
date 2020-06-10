@@ -1,5 +1,5 @@
 #!/bin/tcsh
-
+ 
 # move any existing QC_* dir, and build another
 
 set here = $PWD

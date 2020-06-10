@@ -8,7 +8,7 @@
 # no longer usable as a main: see afni_python_wrapper.py
 # ------------------------------------------------------
 
-import sys, os, math
+import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
 import glob
@@ -1495,7 +1495,34 @@ def is_matrix_square( mat, full_check=False ):
     # have we survived to here? then -> square.
     return 1
 
+def mat_row_mincol_maxcol_ragged_square(M):
+    """check 5 properties of a matrix (list of lists) and return 5 ints:
+      nrow
+      min ncol
+      max ncol  
+      is_ragged 
+      is_square
 
+    """
+
+    if not(M):  return 0,0,0,0,0
+
+    is_square = 0             # just default; can change below
+
+    nrow      = len(M)        
+    all_clen  = [len(r) for r in M]
+    ncolmin    = min(all_clen)
+    ncolmax    = max(all_clen)
+
+    if ncolmin == ncolmax :
+        is_ragged = 0
+        if ncolmin == nrow :
+            is_square = 1
+    else:
+        is_ragged = 1
+
+    return nrow, ncolmin, ncolmax, is_ragged, is_square
+    
 def transpose(matrix):
     """transpose a 2D matrix, returning the new one"""
     if matrix is None: return []
@@ -1772,6 +1799,199 @@ def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
    if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
 
    return 0, rstr
+
+# ------------------
+# funcs for specific kind of matrix: list of 2D list matrices
+
+def check_list_2dmat_and_mask(L, mask=None):
+    """A check to see if L is a list of 2D matrices.
+
+    Also, check if any input mask matches the dimensions of the
+    submatrices of L.
+
+    This does not check if all submatrices have the same dimensions.
+    Maybe someday it will.
+
+    Returns 4 integers:
+    + 'success' value   :1 if L is 2D mat and any mask matches
+    + len(L)
+    + nrow in L submatrix
+    + ncol in L submatrix
+
+    """
+
+    # calc recursive list of embedded list lengths
+    Ldims = get_list_mat_dims(L)
+
+    # need a [N, nrow, ncol] here
+    if len(Ldims) != 3 :   
+        BASE.EP("Matrix fails test for being a list of 2D matrices;\m"
+                "instead of having 3 dims, it has {}".format(len(Ldims)))
+
+    if mask != None :
+        mdims = get_list_mat_dims(mask)
+        if mdims[0] != Ldims[1] or mdims[1] != Ldims[2] :
+            BASE.EP("matrix dimensions don't match:\n"
+                    "mask dims: {}, {}"
+                    "each matrix in list has dims: {}, {}"
+                    "".format(mdims[0], mdims[1], Ldims[1], Ldims[2]))
+
+    return 1, Ldims[0], Ldims[1], Ldims[2]
+
+def calc_list_2dmat_count_nonzero(L, mask=None, mode='count'):
+    """L is a list of 2D list matrices.  Each submatrix must be the same
+    shape.
+
+    Calculate the number of nonzero entries across len(L) for each
+    submatrix element.
+
+    Return a matrix of a different style, depending on the specified
+    'mode':
+    'count'   :integer number of nonzero elements, i.e., max value is
+               len(L); this is the default
+    'frac'    :output is floating point: number of nonzero values at a 
+               given matrix element, divided by len(L); therefore,  
+               values here are in a range [0, 1]
+    'all_nz'  :output is a matrix of binary vals, where 1 means that 
+               all values across the length of L are nonzero for that 
+               element, and 0 means that one or more value is zero
+    'any_nz'  :output is a matrix of binary vals, where 1 means that 
+               at least one value across the length of L is nonzero for
+               that element, and 0 means that all values are zero
+
+    A mask can be entered, so that all the above calcs are only done
+    in the mask; outside of it, all values are 0 or False.
+
+    if len(L) == 0:
+        1 empty matrix is returned
+    else:
+        normal calcs
+
+    """
+
+    # check if L is a list of 2D mats, and if the mask matches
+    # submatrices (if used)
+    IS_OK, N, nrow, ncol = check_list_2dmat_and_mask(L, mask)
+
+    mmat = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+    Nfl  = float(N)
+
+    if mask == None :
+        mask = [[1]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+
+    for ii in range(nrow) :
+        for jj in range(ncol) :
+            if mask[ii][jj] :
+                for ll in range(N) :
+                    if L[ll][ii][jj] :
+                        mmat[ii][jj]+= 1
+
+                if mode == 'frac':
+                    mmat[ii][jj]/= Nfl
+                elif mode == 'any_nz' :
+                    mmat[ii][jj] = int(bool(mmat[ii][jj]))
+                elif mode == 'all_nz' :
+                    if mmat[ii][jj] == N :
+                        mmat[ii][jj] = 1
+                    else:
+                        mmat[ii][jj] = 0
+
+    return mmat
+
+def calc_list_2dmat_mean_stdev_max_min(L, mask=None, ddof=1 ):
+    """L is a list of 2D list matrices.  Each submatrix must be the same
+    shape.
+
+    Calculate four elementwise properties across the length of L, and
+    return four separate matrices.  
+
+    NB: by "list of 2D matrices," we mean that having L[0] = [[1,2,3]]
+    would lead to actual calcs, but having L[0] = [1,2,3] would not.
+    That is, each element of L must have both a nonzero number of rows
+    and cols.
+
+    For any shape of list matrix that isn't a "list of 2D matrices",
+    we return all empty matrices.
+
+    mask    :An optional mask can be be input; it will be treated as
+             boolean.  Values outside the mask will simply be 0.
+ 
+    ddof    :control the 'delta degrees of freedom' in the divisor of
+             stdev calc; numpy's np.std() has ddof=1 by default, so the 
+             denominator is "N"; here, default is ddof=1, so that 
+             the denominator is N-1
+
+    if len(L) == 0:
+        4 empty matrices are returned
+    elif len(L) == 1: 
+        mean, min and max matrices are copies of input, and stdev is all 0s
+    else:
+        normal calcs
+
+    """
+    
+    # check if L is a list of 2D mats, and if the mask matches
+    # submatrices (if used)
+    IS_OK, N, nrow, ncol = check_list_2dmat_and_mask(L, mask)
+
+    if N == 1 :
+        mmean  = copy.deepcopy(L[0])
+        mstdev = [[0.]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+        mmax   = copy.deepcopy(L[0])
+        mmin   = copy.deepcopy(L[0])
+        if mask != None :
+            for ii in range(nrow) :
+                for jj in range(ncol) :
+                    if not(mask[ii][jj]) :
+                        mmean[ii][jj] = 0
+                        mmin[ii][jj]  = 0
+                        mmax[ii][jj]  = 0
+        return mmean, mstdev, mmax, mmin
+
+    Nfl   = float(N)
+    Nstdev = Nfl - ddof  # ... and we know Nfl>1.0, if here
+
+    # Initialize mats
+    mmean  = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+    mstdev = [[0]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+    mmax   = copy.deepcopy(L[0]) 
+    mmin   = copy.deepcopy(L[0])
+
+    if mask == None :
+        mask = [[1]*ncol for i in range(nrow)]  # [PT: June 9, 2020] fixed
+
+    for ii in range(nrow) :
+        for jj in range(ncol) :
+            if mask[ii][jj] :
+                for ll in range(N) :
+                    x = L[ll][ii][jj]
+                    mmean[ii][jj]+= x
+                    mstdev[ii][jj]+= x*x
+                    if x < mmin[ii][jj] :
+                        mmin[ii][jj] = x
+                    if x > mmax[ii][jj] :
+                        mmax[ii][jj] = x
+                print(mmean[ii][jj],Nfl)
+                mmean[ii][jj]/= Nfl
+                mstdev[ii][jj]-= N*mmean[ii][jj]*mmean[ii][jj]
+                mstdev[ii][jj] = (mstdev[ii][jj]/Nstdev)**0.5
+
+    return mmean, mstdev, mmax, mmin
+    
+def get_list_mat_dims(L, lengths=[]) :
+    """Calc dims of list-style matrix.  Recursive.
+
+    Returns a list of lengths of embedded lists; does not check that
+    each list is the same length at a given level.
+
+    """
+
+    if type(L) == list:
+        a = copy.deepcopy(lengths)
+        a.append(len(L))
+        return get_list_mat_dims(L[0], lengths=a)
+    else:
+        return lengths
 
 
 # end matrix functions
@@ -2736,6 +2956,49 @@ def first_last_match_strs(slist):
    else:          tstr = ''
 
    return slist[0][0:hmatch], tstr
+
+def list_files_by_glob(L, sort=False, exit_on_miss=False) :
+    """Input a list L of one or more strings to glob (fiiine, the input L
+    can also be a string, which will just be made into a list
+    immediately, L = [L]), and then glob each one, sort that piece's
+    results, and append it to the list of results.  Return the full
+    list of files.
+
+    The program can be made to exist if any piece fails to find a
+    result, by setting 'exit_on_miss=True'.
+
+    Sorting of the full/final list is NOT done by default (can be
+    turned on with 'sort=True').
+
+    """
+
+    if not(L): return []
+
+    if   type(L) == str :      L = [L]
+    elif type(L) != list :     BASE.EP("Input a list (or str)")
+
+    N        = len(L)
+    cbad     = 0
+    out      = []
+
+    for ii in range(N):
+        sublist = L[ii].split()
+        for item in sublist:
+            gout = glob.glob(item)
+            if not(gout) :
+                cbad+= 1 
+                BASE.WP("No files for this part of list: {}".format(item))
+            else:
+                gout.sort()
+                out.extend(gout)
+
+    if cbad and exit_on_miss :
+        BASE.EP("No findings for {} parts of this list.  Bye.".format(cbad))
+    
+    if sort :
+        out.sort()
+
+    return out
 
 def glob2stdout(globlist):
    """given a list of glob forms, print all matches to stdout
@@ -4379,6 +4642,169 @@ def test_tent_vecs(val, freq, length):
     return correlation_p(a,b)
 
 
+# -----------------------------------------------------------------------
+# [PT: June 8, 2020] for matching str entries in list (for the FATCAT
+# -> MVM and other group analysis programs)
+## [PT: June 8, 2020] updated to allow cases where only a subset of
+## either A or B is matched; but will still give errors if something
+## matches more than 1 item in the other list.
+
+def match_listA_str_in_listB_str(A, B):
+    """Input: two lists (A and B), each of whose elements are strings.  A
+    and B don't have to have the same length.
+
+    See if each string in A is contained is contained within one (and
+    only one) string in list B.  If yes, return:
+      1 
+      the dictionary of matches, A->B
+      the dictionary of matches, B->A
+    elif only a subset of A is contained in B or vice versa, return:
+      0
+      the dictionary of matches, A->B
+      the dictionary of matches, B->A
+    otherwise, error+exit.
+
+    The primary/first usage of this program is for the following case:
+    matching subject IDs from a CSV file (the list of which form A)
+    with path names for *.grid|*.netcc files (the list of which form
+    B), for combining all that information.  We want to find 1 subject
+    ID from the CSV file with 1 (and only 1) matrix file, for each
+    subject ID.
+
+    NB: in the above case, the users are alternatively able to enter
+    the list for matching subj ID with matrix file, if the above
+    name-matching wouldn't work.
+
+    """
+
+    if type(A) != list or type(B) != list :
+        BASE.EP("Both inputs A and B must be lists, not {} and {}, "
+              "respectively".format(type(A), type(B)))
+
+    na = len(A)
+    nb = len(B)
+
+    if not(na and nb) :
+        BASE.EP("One of the sets is empty: len(A) = {}; len(B) = {}"
+              "".format(na, nb))
+ 
+    # check that each ele is a str
+    ta = [type(x)!=str for x in A]
+    tb = [type(x)!=str for x in B]
+    if max(ta) or max(tb) :
+        BASE.EP("All elements of A and B must be str, but that is not true\n"
+              "for a least one list:  for A, it's {};  for B it's {}"
+              "".format(not(max(ta)), not(max(tb))))
+
+    checklist_a = [0]*na
+    checklist_b = [0]*nb
+    matchlist_a = [-1]*na
+    matchlist_b = [-1]*nb
+
+    for ii in range(nb):
+        for jj in range(na):
+            if B[ii].__contains__(A[jj]) :
+                checklist_a[jj]+= 1
+                checklist_b[ii]+= 1
+                matchlist_a[jj] = ii
+                matchlist_b[ii] = jj
+                # *should* be able to break here, but will check
+                # *all*, to verify there are no problems/ambiguities
+
+    CHECK_GOOD = True   # determines if we 'return' anything
+    FULL_MATCH = 1      # flags type of matching when returning
+
+    # --------- now check the outcomes
+    if min(checklist_a) == 1 and max(checklist_a) == 1 :
+        # all matches found, all singletons
+        BASE.IP("Found single matches for each element in A")
+    else:
+        FULL_MATCH = 0
+        if min(checklist_a) == 0 :
+            # all found matches are singletons, but there are gaps;
+            # not a fatal error
+            BASE.WP("Some elements of A are unmatched:")
+            for ii in range(na):
+                if not(checklist_a[ii]) :
+                    print("\t unmatched: {}".format(A[ii]))
+        if max(checklist_a) > 1 :
+            # ambiguities in matching --> badness
+            CHECK_GOOD = False
+            BASE.WP("Some elements of A are overmatched:")
+            for ii in range(na):
+                if checklist_a[ii] > 1 :
+                    print("\t overmatched: {}".format(A[ii]))
+        if not(max(checklist_a)) :
+            CHECK_GOOD = False
+            BASE.WP("No elements in A matched??:")
+
+    if min(checklist_b) == 1 and max(checklist_b) == 1 :
+        # all matches found, all singletons
+        BASE.IP("Found single matches for each element in B")
+    else:
+        FULL_MATCH = 0
+        if min(checklist_b) == 0 :
+            # all found matches are singletons, but there are gaps;
+            # not a fatal error
+            BASE.WP("Some elements of B are unmatched:")
+            for ii in range(nb):
+                if not(checklist_b[ii]) :
+                    print("\t unmatched: {}".format(B[ii]))
+        if max(checklist_b) > 1 :
+            # ambiguities in matching --> badness
+            CHECK_GOOD = False
+            BASE.WP("Some elements of B are overmatched:")
+            for ii in range(nb):
+                if checklist_b[ii] > 1 :
+                    print("\t overmatched: {}".format(B[ii]))
+        if not(max(checklist_b)) :
+            CHECK_GOOD = False
+            BASE.WP("No elements in B matched??:")
+
+    if not(CHECK_GOOD) :
+        BASE.EP('Exiting')
+
+    # if we made it here, things are good
+    da = {}
+    for ii in range(na):
+        if checklist_a[ii] :
+            da[ii] = matchlist_a[ii]
+    db = {}
+    for ii in range(nb):
+        if checklist_b[ii] :
+            db[ii] = matchlist_b[ii]
+
+    na_keys = len(da.keys())
+    nb_keys = len(db.keys())
+
+    # final check on consistency
+    if na_keys != nb_keys :
+        BASE.EP("Mismatch in number of keys in output lists?\n"
+                "There are {} for A and {} for B"
+                "".format(na_keys, nb_keys))
+
+    # e.g., 
+    #for key in da: 
+    #    print(A[key] + '  <---> ' +  B[da[key]]) 
+    #for key in db: 
+    #    print(A[db[key]] + '  <---> ' +  B[key]) 
+
+    return FULL_MATCH, da, db
+
+def invert_dict(D):
+    """Take a dictionary D of key-value pairs and return a dictionary
+    Dinv, which the keys of D as values and the (matched) values of D
+    as keys.
+
+    """
+
+    if not(D) :      return {}
+
+    Dinv = {}
+    for k, v in D.items():     
+        Dinv[v] = k
+
+    return Dinv
 
 
 # ----------------------------------------------------------------------

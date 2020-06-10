@@ -30,10 +30,13 @@
 #ver = '0.32' ; date = 'June 2, 2020'
 # [PT] attach label to mat2d obj when reading in file
 #
-ver = '0.4' ; date = 'June 2, 2020'
+#ver = '0.4' ; date = 'June 2, 2020'
 # [PT] new multifile object
 #    + checks that all files loading in to object match in terms of 
 #      nmat, nroi, labels, etc.
+#
+ver = '0.41' ; date = 'June 8, 2020'
+# [PT] moved matrix dims/ragged/square calc to afni_utils.py
 #
 # --------------------------------------------------------------------------
 
@@ -152,32 +155,6 @@ class mat2d:
         self.min_ele = min(amin)
         self.max_ele = max(amax)
 
-    def mat_col_minrow_maxrow_ragged_square(self):
-        """ check 5 properties and return 5 values:
-        ncol      (int)
-        min nrow  (int)
-        max nrow  (int)
-        is_ragged (bool)
-        is_square (bool)
-        """
-
-        is_square = False         # just default; can change below
-
-        ncol      = len(self.mat) # get from mat, cd use attribute
-
-        all_rlen  = [len(r) for r in self.mat]
-        minrow    = min(all_rlen)
-        maxrow    = max(all_rlen)
-
-        if minrow == maxrow :
-            is_ragged = False
-            if minrow == ncol :
-                is_square = True
-        else:
-            is_ragged = True
-
-        return ncol, minrow, maxrow, is_ragged, is_square
-
     def set_col_strlabs(self, L):
         '''input a list of strings; must match number of mat cols'''
 
@@ -254,8 +231,9 @@ class mat2d:
             #ab.IP("Matrix elements set to be type: {}"
             #      "".format(eletype))
 
-        nc, nrmin, nrmax, is_rag, is_sq \
-            = self.mat_col_minrow_maxrow_ragged_square()                 
+        nrow, ncolmin, ncolmax, is_rag, is_sq \
+            = UTIL.mat_row_mincol_maxcol_ragged_square(self.mat)
+
         self.is_ragged = is_rag
         self.is_square = is_sq
 
@@ -271,16 +249,16 @@ class mat2d:
         self.eletype = ET
 
         if ET == 'float' or ET == float :
-            for i in range(self.ncol):
-                for j in range(self.nrow):
+            for i in range(self.nrow):
+                for j in range(self.ncol):
                     self.mat[i][j] = float(self.mat[i][j])
         elif ET == 'int' or ET == int :
-            for i in range(self.ncol):
-                for j in range(self.nrow):
+            for i in range(self.nrow):
+                for j in range(self.ncol):
                     self.mat[i][j] = int(self.mat[i][j])
         elif ET == 'bool' or ET == bool :
-            for i in range(self.ncol):
-                for j in range(self.nrow):
+            for i in range(self.nrow):
+                for j in range(self.ncol):
                     self.mat[i][j] = bool(self.mat[i][j])
         else:
             ab.EP("Don't have element type '{}' in recognized list\n"
@@ -299,29 +277,31 @@ class mat2d:
         if not(self.mat) :
             ab.EP("Can't check dimensions of empty mat")
 
-        nc, nrmin, nrmax, is_rag, is_sq \
-            = self.mat_col_minrow_maxrow_ragged_square()                 
+        #nc, nrmin, nrmax, is_rag, is_sq \
+        #    = UTIL.mat_col_minrow_maxrow_ragged_square(self.mat)
+        nr, ncmin, ncmax, is_rag, is_sq \
+            = UTIL.mat_row_mincol_maxcol_ragged_square(self.mat)
 
-        self.ncol = nc
+        self.nrow = nr
 
         if is_rag :
             if allow_ragged :
                 ab.WP("ragged matrix: min = {}, max = {}\n"
-                      "-> am zeropadding".format(nrmin, nrmax))
-                for ii in range(self.ncol):
-                    diff = nrmax - len(self.mat[ii])
+                      "-> am zeropadding".format(ncmin, ncmax))
+                for ii in range(self.nrow):
+                    diff = ncmax - len(self.mat[ii])
                     if diff :
                         for jj in range(diff):
                             self.mat[ii].append(0)
             else:
                 ab.EP("ragged matrix: min = {}, max = {}\n"
-                      "no flag to allow ragged mats".format(nrmin, nrmax))
+                      "no flag to allow ragged mats".format(ncmin, ncmax))
 
-        self.nrow = nrmax
+        self.ncol = ncmax
         
         self.nelements = self.nrow * self.ncol
 
-        ab.IP("mat dims (ncol, nrow): {}, {}".format(self.ncol, self.nrow))
+        ab.IP("mat dims (nrow, ncol): {}, {}".format(self.nrow, self.ncol))
 
 
 # ------------------------------------------------------------------------
@@ -809,11 +789,12 @@ class multi_file_GoN:
         self.all_idx     = []       # this controls order and selection
         self.nfile       = 0
 
-    
 
     def add_file(self, FF, fname='', idx_pos=None ):
         """
         Add a 'file_grid_netcc' obj.
+
+        FF is an instance of the  'file_grid_netcc' class.
 
         Basically, won't use idx_pos property, most likely
         """
@@ -881,7 +862,7 @@ class multi_file_GoN:
                       "and those of new file:\n{}"
                       "".format(CC.roi_intvals, FF.roi_intvals))
 
-        # strlabs, if any
+        # check ROI strlabs, if any
         if CC.has_strlabs :
             for ii in range(CC.nroi) :
                 if CC.roi_strlabs[ii] != FF.roi_strlabs[ii] :
@@ -889,11 +870,18 @@ class multi_file_GoN:
                           "and those of new file:\n{}"
                           "".format(CC.roi_strlabs, FF.roi_strlabs))
 
+        # check matrix names/types
         for ii in range(CC.nmat):
             if CC.allmat_labs[ii] != FF.allmat_labs[ii] :
                 ab.EP("mismatch in matrix labels of existing file:\n{}\n"
                       "and those of new file:\n{}"
                       "".format(CC.allmat_labs, FF.allmat_labs))
+
+        # check ext
+        if CC.ext != FF.ext :
+            ab.EP("mismatch in ext in current file ({}) "
+                  "and new file ({})"
+                  "".format( CC.ext, FF.ext ))
 
         # have we survived the gauntlet?
         return 2

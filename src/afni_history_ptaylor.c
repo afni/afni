@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior when -xticks_off and/or -yticks_off are/is used.",
+   "Now the specified axis will really be *empty*.\n"
+},
+
 { 4, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_GENERAL,
    "Improve couple things in help file; change def cbar.",
    "More useful 'divergent' class of cbar as default.\n"
