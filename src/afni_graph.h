@@ -168,35 +168,32 @@ typedef struct {
 
 #define MIN_PIN    2
 #define MAX_PIN    9999
-#define MAX_STRIDE 99
-#define ALLOW_STRIDE
+#define MAX_STRIDE 9
 
-/* plotting range is from time index NBOT to NTOP-1 */
+/* x-axis plotting range is from time index NBOT to NTOP-1 */
 
 #define NBOT(gr) ( ((gr)->pin_bot < (gr)->status->num_series) ? (gr)->pin_bot : 0 )
 
-#define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN                ) ? (gr)->pin_top            \
-                                                              : (gr)->status->num_series )
+#define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN && (gr)->pin_top < (gr)->status->num_series) \
+                  ? (gr)->pin_top : (gr)->status->num_series                              )
 
-#ifdef ALLOW_STRIDE
 #define NSTRIDE(gr) ( (gr)->pin_stride )
+
+#define ALLOW_IGNORE
+#ifdef  ALLOW_IGNORE
+# define NIGNORE(gr) (gr)->init_ignore
 #else
-#define NSTRIDE(gr) 1
+# define NIGNORE(gr) 0
 #endif
 
-#ifdef ALLOW_STRIDE
-# define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) )
-# define NPTS(gr)    NABC( NBOT(gr) , NTOP(gr) , NSTRIDE(gr) )
-#else
-# define NPTS(gr) (NTOP(gr)-NBOT(gr))   /* number of points visible in graph */
-#endif
+/* #define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) ) */
+#define NABC(a,b,c) ( ((b) - (a) - 1) / (c) + 1 )
+#define NPTS(gr)    NABC( NBOT(gr) , NTOP(gr) , NSTRIDE(gr) )
 
 /* data plotting range is from time index TBOT to TTOP-1 */
 
 #define TBOT(gr) NBOT(gr)
-
-#define TTOP(gr) ( ((gr)->pin_top >= MIN_PIN && (gr)->pin_top < (gr)->status->num_series) \
-                  ? (gr)->pin_top : (gr)->status->num_series                              )
+#define TTOP(gr) NTOP(gr)
 
 #define TPTS(gr) (TTOP(gr)-TBOT(gr))   /* number of data points visible in graph */
 
@@ -499,10 +496,10 @@ typedef struct {
    int xFD , yFD , gx,gy , xc,yc ;
    int grid_color , common_base , init_ignore , polort ;
    float fscale ;
-   int pin_top ;      /* 27 Apr 1997 */
-   int pin_bot ;      /* 17 Mar 2004 */
-   int pin_stride ;   /* 19 Jul 2013 */
-   int HorZ ;         /* 05 Jan 1999 */
+   int pin_top ;      /* 27 Apr 1997 - top index to show */
+   int pin_bot ;      /* 17 Mar 2004 - bottom index to show */
+   int pin_stride ;   /* 19 Jul 2013 - step thru data */
+   int HorZ ;         /* 05 Jan 1999 - horizontal line at 0? */
 
    int key_Nlock , key_lock_sum ;
    int time_index ;

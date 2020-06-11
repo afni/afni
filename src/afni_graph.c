@@ -554,6 +554,9 @@ ENTRY("new_MCW_grapher") ;
 #endif
 
    MENU_SLINE(opt_menu) ;
+   OPT_MENU_BUT(opt_pin_choose_pb   ,"Index Pin/Stride" , "Fix index range of graph window" ) ;
+
+   MENU_SLINE(opt_menu) ;
 
    OPT_MENU_PULLRIGHT(opt_scale_menu,opt_scale_cbut     ,"Scale"   ,"Change vertical scale" );
    OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_down_pb  ,"Down [-]","Shrink graph heights"  );
@@ -576,7 +579,6 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_up_pb    ,"Up   [G]", "Increase vertical grid spacing" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_auto_pb  ,"AutoGrid", "Set grid spacing automatically" ) ;
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_choose_pb,"Choose"  , "Set vertical grid spacing" ) ;
-   OPT_MENU_PULL_BUT( opt_grid_menu,opt_pin_choose_pb ,"Index Pin","Fix index range of graph window" ) ;  /* 17 Mar 2004 */
    OPT_MENU_PULL_BUT( opt_grid_menu,opt_grid_HorZ_pb  ,"HorZ [h]", "Horizontal line at Zero" ) ; /* 05 Jan 1999 */
 
    OPT_MENU_PULLRIGHT(opt_slice_menu,opt_slice_cbut      ,"Slice"   , "Change slice"  ) ;
@@ -860,7 +862,7 @@ ENTRY("new_MCW_grapher") ;
    }
 
    MENU_SLINE(opt_menu) ;
-   OPT_MENU_BUT(opt_save_pb         ,"Save PNM     [S]" , "Save graph as an image" ) ;
+   OPT_MENU_BUT(opt_save_pb         ,"Save Image   [S]" , "Save graph as an image" ) ;
 
    MENU_SLINE(opt_menu) ;
    OPT_MENU_BUT(opt_write_center_pb ,"Write Center [w]" , "Write central graph as a *.1D file" ) ;
@@ -960,7 +962,7 @@ ENTRY("new_MCW_grapher") ;
                           NULL , NULL ) ;
 
    MCW_reghint_children( grapher->detrend_av->wrowcol ,
-                         "Order of time series detrending / baseline removal" ) ;
+                         "Order of time series L1 detrending / baseline removal" ) ;
 
    /*------ menu to control the x-axis drawing (09 Jan 1998) ------*/
 
@@ -1219,8 +1221,10 @@ STATUS("freeing Pixmap") ;
 STATUS("destroying optmenus") ;
    FREE_AV(grapher->opt_mat_choose_av) ;
    FREE_AV(grapher->opt_slice_choose_av) ;
+#ifdef ALLOW_IGNORE
    FREE_AV(grapher->fmenu->fim_ignore_choose_av) ;
    FREE_AV(grapher->fmenu->fim_polort_choose_av) ;
+#endif
 #endif
 
 STATUS("destroying arrowvals") ;
@@ -1532,24 +1536,26 @@ ENTRY("GRA_redraw_overlay") ;
 
    boff = DATA_BOXED(grapher) ? BOXOFF : 0 ;
 
+#ifdef ALLOW_IGNORE
    /* draw some circles over ignored data points [23 May 2005] */
 
-   if( grapher->init_ignore > 0 && !grapher->textgraph ){
+   if( NIGNORE(grapher) > 0 && !grapher->textgraph && NSTRIDE(grapher) == 1 ){
      DC_fg_color( grapher->dc , IGNORE_COLOR(grapher) ) ;
      jj  = NBOT(grapher) ;                     /* first point to plot */
      xxx = NTOP(grapher) ;                     /* last */
-     xxx = MIN (xxx , grapher->init_ignore) ;  /* point */
+     xxx = MIN (xxx , NIGNORE(grapher)) ;      /* point */
      xxx = MIN (xxx , jj+grapher->nncen) ;     /* to plot */
      for( ii=jj ; ii < xxx ; ii++ )
        GRA_draw_circle( grapher , grapher->cen_line[ii-jj].x ,
                                   grapher->cen_line[ii-jj].y-boff , 4 ) ;
    }
+#endif
 
    /* 22 July 1996:
       draw a ball on the graph at the currently display time_index */
 
    ii = grapher->time_index ; jj = NBOT(grapher) ;
-   if( ii >= jj            &&
+   if( ii >= jj            && NSTRIDE(grapher) == 1  &&
        ii <  NTOP(grapher) && ii-jj < grapher->nncen && !grapher->textgraph ){
       int ww = MAX(4,DATA_THICK(grapher)) ;
 
@@ -1562,7 +1568,8 @@ ENTRY("GRA_redraw_overlay") ;
 
    /* draw text showing value at currently displayed time_index */
 
-   if( ii >= 0 && grapher->cen_tsim != NULL && ii < grapher->cen_tsim->nx ){
+   if( ii >= 0                    && grapher->cen_tsim != NULL &&
+       ii < grapher->cen_tsim->nx && NSTRIDE(grapher)  == 1      ){
       char *ilab=NULL ; MRI_IMAGE *xxim_cen=NULL ;
 
       val = MRI_FLOAT_PTR(grapher->cen_tsim)[ii] ;
@@ -1603,7 +1610,7 @@ ENTRY("GRA_redraw_overlay") ;
       xxx = MAX( grapher->xx_text_2 ,
                  grapher->xorigin[grapher->xc][grapher->yc]-39 ) ;
 
-      if( grapher->init_ignore > 0 || grapher->thresh_fade ){
+      if( NIGNORE(grapher) > 0 || grapher->thresh_fade ){
         xxx = MAX( xxx , grapher->xx_text_2p ) ;
         xxx = MAX( xxx , grapher->xx_text_igf ) ; /* this allows for Fading + Ignore together */
       }
@@ -1721,8 +1728,8 @@ ENTRY("redraw_graph") ;
    DC_linewidth( grapher->dc , 0 ) ;
    fd_line( grapher , xxx-7 , 41 , xxx-7 , 5 ) ;
 
-   if( grapher->init_ignore > 0 ){                    /* 23 May 2005 */
-     sprintf(strp,"Ignore%4d",grapher->init_ignore) ;
+   if( NIGNORE(grapher) > 0 ){                    /* 23 May 2005 */
+     sprintf(strp,"Ignore%4d",NIGNORE(grapher)) ;
      if( grapher->thresh_fade ) sprintf(strp+strlen(strp)," Fading") ;
      fd_txt( grapher , xxx , 35, strp) ; grapher->xx_text_igf = 1+xxx+DC_text_width(grapher->dc,strp) ;
    } else if( grapher->thresh_fade ){
@@ -1749,18 +1756,29 @@ ENTRY("redraw_graph") ;
 
    xxx = DC_text_width(grapher->dc,strp) ;           /* 19 Dec 2003 [rickr] */
 
-   { int bb=TBOT(grapher) , tt=TTOP(grapher)-1 ;
-     if( bb > 99 || tt > 99 )
-       sprintf(strp,"#%4d:%-4d" , bb,tt ) ;
-     else
-       sprintf(strp,"Num%3d:%-3d" , bb,tt ) ;
+   /* info about indexes we are viewing*/
+
+   { int bb=TBOT(grapher) , tt=TTOP(grapher)-1 , ss = NSTRIDE(grapher) ;
+     if( ss == 1 ){
+       if( bb > 999 || tt > 999 )
+         sprintf(strp,"#%4d:%-4d" , bb,tt ) ;
+       else
+         sprintf(strp,"Num%3d:%-3d" , bb,tt ) ;
+     } else {                                        /* 11 Jun 2020 */
+       if( bb > 999 || tt > 999 )
+         sprintf(strp,"%3d:%-4d@%1d"  , bb,tt,ss ) ;
+       else
+         sprintf(strp,"#%3d:%-3d@%1d" , bb,tt,ss ) ;
+     }
    }
    fd_line( grapher ,
             grapher->xx_text_2+rrr+3 ,
-            (grapher->init_ignore > 0 || grapher->thresh_fade) ? 41 : 31 ,
+            (NIGNORE(grapher) > 0 || grapher->thresh_fade) ? 41 : 31 ,
             grapher->xx_text_2+rrr+3 , 5 ) ;
 
    grapher->xx_text_2p = grapher->xx_text_2+rrr+7 ;  /* 23 May 2005 */
+
+   /* info about the baseline */
 
    if( !grapher->textgraph ){
      switch( grapher->common_base ){
@@ -2038,19 +2056,21 @@ ENTRY("text_graphs") ;
    Smallest/largest values are found over index range tbot..ttop-1.
 *//*--------------------------------------------------------------------------*/
 
-float_pair GRA_find_range( int tbot, int ttop , MRI_IMAGE *tsim , MRI_IMAGE *qim )
+float_pair GRA_find_range( int tbot, int ttop, int tstep, MRI_IMAGE *tsim , MRI_IMAGE *qim )
 {
    int tt , i , ibot=tbot , itop , first=1 ;
    float *far , tsbot=0.0f , tstop=0.0f ; float_pair tsout ;
 
 ENTRY("GRA_find_range") ;
 
-   if( tsim != NULL && tsim->nx > 1 ){
+   if( tstep < 1 ) tstep = 1 ; /* just to be safe */
+
+   if( tsim != NULL && tsim->nx > 1 ){  /* scan first image */
      far  = MRI_FLOAT_PTR(tsim) ;
      itop = MIN( ttop , tsim->nx ) ;
      if( first && ibot < itop ){ tsbot = tstop = far[ibot] ; first = 0 ; }
      for( tt=0 ; tt < tsim->ny ; tt++ ){
-       for( i=ibot ; i < itop ; i++ ){
+       for( i=ibot ; i < itop ; i+=tstep ){
          tsbot = MIN( tsbot , far[i] ) ;
          tstop = MAX( tstop , far[i] ) ;
        }
@@ -2058,12 +2078,12 @@ ENTRY("GRA_find_range") ;
      }
    }
 
-   if( qim != NULL && qim->nx > 1 ){
+   if( qim != NULL && qim->nx > 1 ){   /* scan second image */
      far  = MRI_FLOAT_PTR(qim) ;
      itop = MIN( ttop , qim->nx ) ;
      if( first && ibot < itop ){ tsbot = tstop = far[ibot] ; first = 0 ; }
      for( tt=0 ; tt < qim->ny ; tt++ ){
-       for( i=ibot ; i < itop ; i++ ){
+       for( i=ibot ; i < itop ; i+=tstep ){
          tsbot = MIN( tsbot , far[i] ) ;
          tstop = MAX( tstop , far[i] ) ;
        }
@@ -2131,16 +2151,19 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMAGE *tsim , *qim=NULL;
    MRI_IMARR *tsimar=NULL ;
    float     *tsar , *qar=NULL;
-   float      tsbot=0.0 , xpfac,ypfac,fwid,foff , tstop ;
+   float      tsbot=0.0f, xpfac=0.0f, ypfac,fwid,foff , tstop ;
    int i, m, index, ix, iy, xtemp,ytemp,ztemp, xoff=0,yoff=0, its,ibot,itop;
-   int ptop,pbot,pnum,qnum , tbot,ttop,tnum , ntmax ;  /* 17 Mar 2004 */
-   int pstep=1 ;
-   int nupsam=0 ; /* 28 May 2020 */
-   float_pair tsrange ; /* 01 Jun 2020 */
+   int ptop,pbot,pnum,qnum , ntmax , qq ;  /* 17 Mar 2004 */
+
+   int pstep =1 , nstep=0 ;        /* stride thru data */
+   int nupsam=0 ;                  /* 28 May 2020 */
+   float_pair tsrange ;            /* 01 Jun 2020 */
+   int          ntstemp=0 ;
+   static float *tstemp=NULL ;     /* 09 Jun 2020 */
 
    static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
    static XPoint *a_line = NULL ;
-   static int      nplot = 0 ;
+   static int  nplot_old = 0 ;
 
    MRI_IMAGE *xxim=NULL, *xxim_cen=NULL , *xax_tsim=NULL ; /* 10 Feb 2015 */
    MRI_IMARR *xximar=NULL ;
@@ -2197,37 +2220,38 @@ ENTRY("plot_graphs") ;
    DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
    DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
 
-   /* 17 Mar 2004: we will plot from pbot..ptop-1, with data from tbot..ttop-1 */
+   /* 17 Mar 2004: we will plot with x-axis = pbot..ptop-1 */
 
    ptop = NTOP(grapher) ; pbot = NBOT(grapher) ; pstep = NSTRIDE(grapher) ;
    if( pbot >= ptop ){
      pbot = 0 ; ptop = grapher->status->num_series ;
    }
-   if( pstep > 1 && NPTS(grapher) < 2 ){ grapher->pin_stride = pstep = 1 ; }
-   ttop = TTOP(grapher) ; ttop = MIN(ttop,ptop) ; tbot = pbot ;
-   if( ttop <= tbot || ttop > grapher->status->num_series ){
-     ttop = MIN(ptop,grapher->status->num_series) ;
+   if( pstep > 1 ){                     /* adjust ptop so that pbot..ptop-1 */
+     nstep = NABC(pbot,ptop,pstep) ;    /* is an integer number of steps */
+     if( nstep < 2 ){ grapher->pin_stride = pstep = 1 ; }
+     else           { ptop = pbot + (nstep-1)*pstep + 1 ; }
    }
-   pnum = ptop-pbot ; tnum = ttop-tbot ;
-   if( pnum <= 1 || tnum <= 1 ) EXRETURN ;   /* should never happen? */
-
-   xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor for plots */
+   if( ptop <= pbot || ptop > grapher->status->num_series ){
+     ptop = MIN(ptop,grapher->status->num_series) ;
+   }
+   pnum = NABC(pbot,ptop,pstep) ;  /* number of data points to plot */
+   if( pnum <= 1 ) EXRETURN ;      /* should never happen?! */
 
    if( DO_UPSAM(grapher) ){               /* for smoothing [28 May 2020] */
      nupsam = XUPSAM(grapher->gx,pnum) ;  /* XUPSAM is in afni_graph.h */
-     if( nupsam > 1 && xxim != NULL ) nupsam *= 2 ;
-     /** INFO_message("nupsam = %d",nupsam) ; **/
+     if( nupsam > 1 && xxim != NULL ) nupsam *= 2 ; /* ad hoc */
    }
 
-   /* set aside space for plotting, etc. */
+   /* set aside memory for plotting, etc. */
 
 #define NPLOT_INIT 9999  /* 29 Apr 1997 */
    itop = MAX( NPLOT_INIT , grapher->status->num_series ) ;
-   if( nplot == 0 || nplot < itop ){
+   if( nplot_old == 0 || nplot_old < itop ){
      myXtFree(a_line) ; myXtFree(plot) ;
-     nplot  = 2*itop+666 ; /* just to be safe */
-     plot   = (int *)    XtMalloc( sizeof(int)    * nplot ) ;
-     a_line = (XPoint *) XtMalloc( sizeof(XPoint) * nplot ) ;
+     nplot_old = 2*itop+666 ; /* just to be safe */
+     plot      = (int *)    XtMalloc( sizeof(int)    * nplot_old ) ;
+     a_line    = (XPoint *) XtMalloc( sizeof(XPoint) * nplot_old ) ;
+     tstemp    = (float *)  malloc  ( sizeof(float)  * nplot_old ) ; /* 09 Jun 2020 */
    }
    if( grapher->ncen_line < itop ){
      myXtFree(grapher->cen_line) ;
@@ -2237,9 +2261,14 @@ ENTRY("plot_graphs") ;
 
    /* set the bottom point (ibot) at which to compute time series statistics */
 
-   ibot = grapher->init_ignore ;
-   if( ibot >= ttop-1 ) ibot = 0 ;
-   ibot = MAX(ibot,tbot) ;                     /* 17 Mar 2004 */
+#ifdef ALLOW_IGNORE
+   ibot = NIGNORE(grapher) ;
+   if( pstep >  1      ) ibot = 0 ; /* disable ignore for strides > 1 */
+   if( ibot  >= ptop-1 ) ibot = 0 ; /* disable ignore if too long */
+#else
+   ibot = 0 ;
+#endif
+   ibot = MAX(ibot,pbot) ;
 
    /** loop over matrix of graphs and get all the time series for later **/
 
@@ -2276,8 +2305,8 @@ ENTRY("plot_graphs") ;
 
    pmplot_mode = 0 ;
    if( dplot && !do_xxim && xax_tsim == NULL ){
-     pmplot_mode = PMPLOT_MODE(grapher); if( pmplot_mode == 1 ) pmplot_mode = 0;
-     pmplot_color = PMPLOT_COLOR(grapher) ;
+     pmplot_mode  = PMPLOT_MODE(grapher) ; if( pmplot_mode == 1 ) pmplot_mode = 0;
+     pmplot_color = PMPLOT_COLOR(grapher);
    }
 
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -2296,6 +2325,7 @@ ENTRY("plot_graphs") ;
       else if( xtemp >= grapher->status->nx ) xtemp -= grapher->status->nx ;
 
       for( iy=0 ; iy < grapher->mat ; iy++ ){
+
          ytemp = grapher->ypoint - iy + grapher->yc ;
               if( ytemp <  0                   ) ytemp += grapher->status->ny;  /* wrap */
          else if( ytemp >= grapher->status->ny ) ytemp -= grapher->status->ny;
@@ -2484,61 +2514,59 @@ STATUS("finding statistics of time series") ;
 
    nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
 
+   /* set the default entries for time series stat values */
+
+#define DEFAULT_TSTAT(i,j)                               \
+ do{ grapher->tmean[i][j] = grapher->tbot[i][j] =        \
+      grapher->ttop[i][j] = grapher->tstd[i][j] = 0.0f;  \
+     grapher->tmed[i][j] = grapher->tmad[i][j] = 0.0f;   \
+     grapher->sbot[i][j] = grapher->stop[i][j] = 0 ;     \
+     grapher->tbmv[i][j] = 0.0f ;                        \
+     grapher->dbot[i][j] = 0.0f ;                        \
+     grapher->dtop[i][j] = 0.0f ;                        \
+ } while(0)
+
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
          float qbot,qtop ;
          double qsum , qsumq ;
 
          tsim = IMARR_SUBIMAGE(tsimar,its) ;
-         if( tsim == NULL || tsim->nx < 2 ){            /* unpleasant defaults */
-           grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
-             grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
-           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0; /* 08 Mar 2001 */
-           grapher->sbot[ix][iy] = grapher->stop[ix][iy] = 0 ;  /* 19 Mar 2004 */
-           grapher->tbmv[ix][iy] = 0.0f ;                       /* 16 Oct 2009 */
-           grapher->dbot[ix][iy] = 0.0f ;                       /* 01 Jun 2020 */
-           grapher->dtop[ix][iy] = 0.0f ;
-           continue ;                                /* skip to next sub-image */
-         }
+         DEFAULT_TSTAT(ix,iy) ;
+         if( tsim == NULL || tsim->nx < 2 ) continue ; /* skip ahead */
 
+         itop  = MIN( ptop , tsim->nx ) ; /* ibot was set earlier */
+         nstep = NABC(ibot,itop,pstep) ;  /* number of data points */
+         if( nstep < 2 ) continue ;
          tsar = MRI_FLOAT_PTR(tsim) ;     /* stats from ibot..itop-1 */
-         itop = MIN( ttop , tsim->nx ) ;  /* ibot was set earlier    */
-
-         if( itop-ibot < 2 ){                        /* too short to deal with */
-           grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
-             grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
-           grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0; /* 08 Mar 2001 */
-           grapher->tbmv[ix][iy] = 0.0f ;                       /* 16 Oct 2009 */
-           grapher->dbot[ix][iy] = 0.0f ;                       /* 01 Jun 2020 */
-           grapher->dtop[ix][iy] = 0.0f ;
-           continue ;                                            /* to next iy */
-         }
+         if( tsar == NULL ) continue ;
 
          qbot = qtop  = tsar[ibot] ;
          qsum = qsumq = 0.0 ;
-         for( i=ibot ; i < itop ; i++ ){      /* compute stats over visible data */
+         for( ntstemp=0,i=ibot ; i < itop ; i+=pstep ){ /* compute stats over visible data */
            qbot   = MIN( qbot , tsar[i] ) ;
            qtop   = MAX( qtop , tsar[i] ) ;
            qsum  += tsar[i] ;
            qsumq += tsar[i] * tsar[i] ;
+           tstemp[ntstemp++] = tsar[i] ; /* temp save data for qmedmadbmv below */
          }
          grapher->tbot[ix][iy] = qbot ; grapher->ttop[ix][iy] = qtop ;
-         grapher->sbot[ix][iy] = ibot ; grapher->stop[ix][iy] = itop-1 ; /* 19 Mar 2004 */
-         qsum  = qsum / (itop-ibot) ; grapher->tmean[ix][iy] = qsum ;
-         qsumq = (qsumq - (itop-ibot) * qsum * qsum) / (itop-ibot-1.0) ;
+         grapher->sbot[ix][iy] = ibot ; grapher->stop[ix][iy] = i-pstep ;
+         qsum  = qsum / ntstemp ; grapher->tmean[ix][iy] = qsum ;
+         qsumq = (qsumq - ntstemp * qsum * qsum) / (ntstemp-0.999999) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
 
-         qmedmadbmv_float( itop-ibot , tsar+ibot ,        /* 08 Mar 2001 */
+         qmedmadbmv_float( ntstemp , tstemp ,             /* 08 Mar 2001 */
                            &(grapher->tmed[ix][iy]) ,
                            &(grapher->tmad[ix][iy]) ,
                            &(grapher->tbmv[ix][iy])  ) ;  /* tbmv: 16 Oct 2009 */
 
          /* get range of values to be plotted in this sub-graph [01 Jun 2020] */
          /* - the old way was just to use the range of tsim,
-              but now us advanced types use the range of all the data :) */
+              but now us advanced types use the range of all the data shown :) */
 
          qim = (dplot_imar != NULL) ? IMARR_SUBIMAGE(dplot_imar,its) : NULL ;
-         tsrange = GRA_find_range( ibot,ttop , tsim , qim ) ;
+         tsrange = GRA_find_range( ibot,itop,pstep , tsim , qim ) ;
          grapher->dbot[ix][iy] = tsrange.a ;
          grapher->dtop[ix][iy] = tsrange.b ;
 
@@ -2631,12 +2659,12 @@ STATUS("starting time series graph loop") ;
          tsim = IMARR_SUBIMAGE(tsimar,its) ;
          if( tsim == NULL || tsim->nx < 2 ) continue ;    /* skip to next iy */
 
+         itop = MIN( ptop , tsim->nx ) ;  /* ibot was set earlier */
+         qnum = NABC(pbot,itop,pstep) ;   /* number of points to plot */
+         if( qnum < 2 ) continue ;        /* skip if too few */
+
          qim = (dplot_imar != NULL && pmplot_mode )       /* PLUSMINUS */
                ? IMARR_SUBIMAGE(dplot_imar,its) : NULL ;  /* data */
-
-         itop = MIN( ttop , tsim->nx ) ;
-         qnum = itop - pbot ;             /* number of points to plot here */
-         if( qnum < 2 ) continue ;                      /* skip to next iy */
 
                                          /* stuff for user-supplied x-axis */
          if( do_xxim ) xxim = IMARR_SUBIMAGE(xximar,its) ;  /* 10 Feb 2015 */
@@ -2668,42 +2696,54 @@ STATUS("starting time series graph loop") ;
               fscale < 0 ==> this many units of tsar per pixel **/
 
          ypfac = grapher->fscale ;
-              if( ypfac == 0.0 ) ypfac =  1.0 ;
-         else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
+              if( ypfac == 0.0 ) ypfac =  1.0f ;
+         else if( ypfac <  0.0 ) ypfac = -1.0f / ypfac ;
 
-         xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor */
+         xpfac = grapher->gx / (pnum-1.0f) ;  /* x scale factor */
 
-         /* X11 box for graph:
+         /* X11 pixel box for graph: (y runs DOWN the screen)
              x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
              y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
 
-         xoff  = grapher->xorigin[ix][iy] ;
+         xoff  = grapher->xorigin[ix][iy] ;                  /* offsets */
          yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
 
-         tsar = MRI_FLOAT_PTR(tsim) ;
+         tsar = MRI_FLOAT_PTR(tsim) ; /* data to be plotted */
          qar  = MRI_FLOAT_PTR(qim) ;  /* will be NULL if image is NULL */
 
          /* do the plus/minus double plot first [01 Jun 2020],
             since we will want to draw all later stuff on top of it */
 
          if( pmplot_mode && qar != NULL && qim->ny == 2 ){
-           int jtop = MIN(ttop,qim->nx) , jnum = jtop-pbot ;
+           int jtop = MIN(ptop,qim->nx) , jnum = NABC(pbot,jtop,pstep) ;
            if( jnum > 1 ){
              XPoint *d_line, *e_line, *f_line ; int nd_line = jnum+66 ;
              d_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
              e_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
              /*--- plus lines = d_line array ---*/
-              for( i=pbot ; i < MIN(ibot,jtop) ; i++ ) /* pre-ignore */
-                plot[i-pbot] = (tsar[ibot] - tsbot) * ypfac ;
-              for( ; i < jtop ; i++ )                 /* post-ignore */
-                plot[i-pbot] = (qar[i] - tsbot) * ypfac ;
-              for( i=0 ; i < jnum ; i++ ){
+#ifdef ALLOW_IGNORE
+              for( qq=0,i=pbot ; i < MIN(ibot,jtop) ; i+=pstep,qq++ ) /* pre-ignore */
+                plot[qq] = (tsar[ibot] - tsbot) * ypfac ;       /* plot first value */
+#else
+              i = pbot ; qq=0 ;
+#endif
+              for( ; i < jtop ; i+=pstep,qq++ )        /* post-ignore */
+                plot[qq] = (qar[i] - tsbot) * ypfac ;  /* plot the data */
+              jnum = qq ;
+
+              for( i=0 ; i < jnum ; i++ ){             /* convert to pixels */
                 d_line[i].x = xoff + i*xpfac ;
                 d_line[i].y = yoff - plot[i] ;
               }
              /*--- minus lines = e_line array ---*/
-              for( i=MIN(ibot,jtop); i < jtop ; i++ ) /* post-ignore */
-                plot[i-pbot] = (qar[i+qim->nx] - tsbot) * ypfac ;
+#ifdef ALLOW_IGNORE
+              for( qq=0,i=pbot ; i < MIN(ibot,jtop) ; i+=pstep,qq++ ) ; /*nada */
+#else
+              i = pbot ; qq = 0 ;
+#endif
+              for( ; i < jtop ; i+=pstep,qq++ )
+                plot[qq] = (qar[i+qim->nx] - tsbot) * ypfac ;
+
               for( i=0 ; i < jnum ; i++ ){
                 e_line[i].x = d_line[i].x ;
                 e_line[i].y = yoff - plot[i] ;
@@ -2755,19 +2795,27 @@ STATUS("starting time series graph loop") ;
            }
          } /* end of dplot BEFORE tsim plot! */
 
+         /*-- now do the tsim plot(s) --*/
+
          DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
          DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
+
          for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002: multi-plots */
 
           /* scale to vertical pixels: before the ignore level */
 
-          for( i=pbot ; i < MIN(ibot,itop) ; i++ )
-            plot[i-pbot] = (tsar[ibot] - tsbot) * ypfac ;
+#ifdef ALLOW_IGNORE
+          for( qq=0,i=pbot ; i < MIN(ibot,itop) ; i+=pstep,qq++ )
+            plot[qq] = (tsar[ibot] - tsbot) * ypfac ;
+#else
+          i = pbot ; qq = 0 ;
+#endif
 
           /* scale after the ignore level */
 
-          for( i=ibot ; i < itop ; i++ )
-            plot[i-pbot] = (tsar[i] - tsbot) * ypfac ;
+          for( ; i < itop ; i+=pstep,qq++ )
+            plot[qq] = (tsar[i] - tsbot) * ypfac ;
+          qnum = qq ;
 
           /* now have qnum points in plot[] */
 
@@ -2779,7 +2827,7 @@ STATUS("starting time series graph loop") ;
           if( DATA_BOXED(grapher) )
             xpfac = grapher->gx / (float)pnum ; /* x scale factor */
           else
-            xpfac = grapher->gx / (pnum-1.0) ;  /* x scale factor */
+            xpfac = grapher->gx / (pnum-1.0f) ; /* x scale factor */
 
           /* 09 Jan 1998: allow x-axis to be chosen by a
                          timeseries that ranges between 0 and 1 */
@@ -2812,7 +2860,7 @@ STATUS("starting time series graph loop") ;
                         a_line , qnum ,  CoordModeOrigin , nupsam ) ;
           }
           if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
-            XPoint q_line[4] ; short xb,xt ; float delt=ypfac/tsim->ny ;
+            XPoint q_line[4] ; short xb,xt ; float delt=xpfac/tsim->ny ;
             int labx=-1, aybas=0 ;
             char *eblab=my_getenv("AFNI_GRAPH_BOXLAB"), ecode='\0' ;
             if( eblab != NULL && grapher->mat == 1 ){
@@ -2873,8 +2921,8 @@ STATUS("starting time series graph loop") ;
             if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip to next iy */
             dsar = MRI_FLOAT_PTR(dsim) ;
             tsar = MRI_FLOAT_PTR(tsim) ;   /* 25 Feb 2003: reset this */
-            itop = MIN( ttop , dsim->nx ); /* ibot was set long ago */
-            qnum = itop - pbot ;           /* number of points to plot here */
+            itop = MIN( ptop , dsim->nx ); /* ibot was set long ago */
+            qnum = NABC(pbot,itop,pstep) ; /* number of points to plot here */
             if( qnum < 2 ) continue ;      /* skip to next iy = next sub-graph */
 
             /** 29 Mar 2002: decode 'color:' from dsim->name, if present **/
@@ -2893,8 +2941,8 @@ STATUS("starting time series graph loop") ;
 
             dny = dsim->ny ;
 
-            for( id=0 ; id < dny ; id++ ){          /* 29 Mar 2002: multi-plots */
-
+            for( id=0 ; id < dny ; id++ ){       /* 29 Mar 2002: multi-plots */
+                                                 /* from the same dplot image */
              ypfac = grapher->fscale ;
                   if( ypfac == 0.0 ) ypfac =  1.0 ;
              else if( ypfac <  0.0 ) ypfac = -1.0 / ypfac ;
@@ -2904,15 +2952,22 @@ STATUS("starting time series graph loop") ;
              for( qtop=itop-1 ; qtop >= pbot ; qtop-- )
                if( dsar[qtop] < WAY_BIG ) break ;
              if( qtop <= ibot ){ dsar += dsim->nx; continue; }  /* skip */
-             qtop++ ; qnum = qtop-pbot ;
+             qtop++ ; qnum = NABC(pbot,qtop,pstep) ;
+             if( qnum <  2    ){ dsar += dsim->nx; continue; }  /* skip */
 
              switch( dplot ){
                default:
                case DPLOT_OVERLAY:                       /* plot curve */
-                 for( i=pbot ; i < MIN(ibot,qtop) ; i++ )
-                   plot[i-pbot] = (dsar[ibot] - tsbot) * ypfac ;
-                 for( i=ibot ; i < qtop ; i++ )
-                   plot[i-pbot] = (dsar[i] - tsbot) * ypfac ;
+#ifdef ALLOW_IGNORE
+                 for( qq=0,i=pbot ; i < MIN(ibot,qtop) ; i+=pstep,qq++ )
+                   plot[qq] = (dsar[ibot] - tsbot) * ypfac ;
+#else
+                 qq = 0 ; i = pbot ;
+#endif
+                 for( ; i < qtop ; i+=pstep,qq++ )
+                   plot[qq] = (dsar[i] - tsbot) * ypfac ;
+
+                 qnum = qq ;
                break ;
              }
 
@@ -2990,6 +3045,8 @@ STATUS("starting time series graph loop") ;
 
    for( iex=0 ; iex <= 1 ; iex++ ){
 
+      if( pstep > 1 ) continue ;  /* 11 Jun 2020 */
+
       eximar = (iex==0) ? grapher->ref_ts : grapher->ort_ts ;
 
       if( do_xxim ) xxim = xxim_cen ;             /* 10 Feb 2015 */
@@ -3029,7 +3086,7 @@ STATUS("plotting extra graphs") ;
             if( tsim == NULL || tsim->kind != MRI_float || tsim->nx < 2 ) continue ;
 
             nx   = tsim->nx ;
-            itop = MIN( ttop , nx ) ;
+            itop = MIN( ptop , nx ) ;
             qnum = itop - pbot ; if( qnum < 2 ) continue ;
             nvec = (grapher->ref_ts_plotall) ? (tsim->ny) : 1 ;
 
@@ -3037,7 +3094,7 @@ STATUS("plotting extra graphs") ;
               if( ncstr > 0 ){ cnam = cstr->str[icc%ncstr] ; icc++ ; }
               tsar  = MRI_FLOAT_PTR(tsim) + (ivec*nx) ;
               tsbot = 99999999.0 ; tstop = -99999999.0 ;
-              nover = grapher->init_ignore ;
+              nover = NIGNORE(grapher) ;
               for( i=ibot ; i < itop ; i++ ){
                 val = tsar[i] ;
                 if( val < WAY_BIG ){ tstop = MAX(tstop,val); tsbot = MIN(tsbot,val); }
@@ -3107,7 +3164,7 @@ STATUS("plotting extra graphs") ;
    /*---- 09 Jan 1998: plot graph showing x-axis as well ----*/
 
    xxim = (do_xxim) ? xxim_cen : xax_tsim ;
-   if( xxim != NULL ){  /* show the x-axis vertically at the left */
+   if( pstep == 1 && xxim != NULL ){  /* show the x-axis vertically at the left */
      float yscal , ftemp , xscal , yoff ;
      int   npt ;
 
@@ -3115,7 +3172,7 @@ STATUS("plotting extra graphs") ;
      yscal = grapher->gy / (pnum-1.0) ;
      yoff  = grapher->fHIGH - grapher->yorigin[grapher->xc][grapher->yc] ;
      ftemp = 1.0 ;
-     npt   = ttop ;
+     npt   = ptop ;
      if( npt > xxim->nx ) npt = xxim->nx ;
      if( npt > pbot+1 ){
        for( i=pbot ; i < npt ; i++ ){
@@ -3501,9 +3558,9 @@ STATUS("button press") ;
          if( but == Button4 || but == Button5 ){
            int dd=(but==Button4)?-1:+1 , tt ;
            if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
-           tt = grapher->time_index + dd ;
+           tt = grapher->time_index + dd*NSTRIDE(grapher) ;
            EXRONE(grapher) ;
-           if( tt >= 0 && tt < grapher->status->num_series ){
+           if( tt >= 0 && tt < grapher->status->num_series && NSTRIDE(grapher) == 1 ){
              if( grapher->status->send_CB != NULL ){
                GRA_cbs cbs ;
                cbs.reason = graCR_setindex; cbs.key = tt; cbs.event = NULL;
@@ -3514,6 +3571,8 @@ STATUS("button press") ;
            }
            MCW_discard_events( w , ButtonPressMask ) ; EXRETURN;
          }
+
+         /*-- some other button --*/
 
          bx = event->x ; by = event->y ; but_state = event->state ;
          MCW_discard_events( w , ButtonPressMask ) ;
@@ -3615,7 +3674,8 @@ STATUS("button press") ;
                   NPTS(grapher) > 1               && !grapher->textgraph     &&
                   (but==Button1)                  && (bx > GL_DLX)           &&
                   (xloc == grapher->xpoint)       && yloc == grapher->ypoint &&
-                  grapher->cen_line != NULL       && grapher->nncen > 1        ){
+                  grapher->cen_line != NULL       && grapher->nncen > 1      &&
+                  NSTRIDE(grapher)  == 1                                        ){
 
            float dist , dmin=999999.9 ;
            int imin = 0 ;
@@ -3627,7 +3687,7 @@ STATUS("button press") ;
                    + abs( by - grapher->cen_line[i].y ) ;
              if( dist < dmin ){ dmin = dist; imin = i; if(dmin == 0) break; }
            }
-           i = imin + NBOT(grapher) ;
+           i = imin * NSTRIDE(grapher) + NBOT(grapher) ;
 
            if( i >= 0 && i < TTOP(grapher) ){
              if( grapher->status->send_CB != NULL ){
@@ -3693,7 +3753,7 @@ STATUS("button press") ;
 #endif
                sprintf( qstr, "Data Statistics\n"
                               "---------------\n"
-                              "Indexes = %d:%-d\n" /* 19 Mar 2004 */
+                              "Indexes = %d:%-d@%d\n" /* 19 Mar 2004 */
                               "x voxel = %d\n"
                               "y voxel = %d\n"
                               "z voxel = %d\n"
@@ -3705,6 +3765,7 @@ STATUS("button press") ;
                               "MAD*1.48=%s\n"
                               "BiwtMidV=%s"  ,    /* 16 Oct 2009 */
                         grapher->sbot[ix][iy], grapher->stop[ix][iy], /* 19 Mar 2004 */
+                        NSTRIDE(grapher) ,                            /* 11 Jun 2020 */
                         xd , yd , zd ,
                         bmin,bmax,bmean,bmed,bstd,bmad,bbmv ) ;
 
@@ -3928,8 +3989,9 @@ STATUS(str); }
         redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;         /* 03 Feb 1998 */
       break ;
 
+#ifdef ALLOW_IGNORE /*--------------------------------------------------------*/
       case 'i':
-        if( !grapher->textgraph && grapher->init_ignore > 0 ){ /* 24 May 2005 */
+        if( !grapher->textgraph && NIGNORE(grapher) > 0 ){     /* 24 May 2005 */
           GRA_cbs cbs ;
           cbs.reason = graCR_setignore ; cbs.key = grapher->init_ignore - 1 ;
           CALL_sendback( grapher , cbs ) ;
@@ -3947,6 +4009,7 @@ STATUS(str); }
           BEEPIT ; WARNING_message("Can't increase Ignore now") ;
         }
       break ;
+#endif              /*--------------------------------------------------------*/
 
       case 'm':
       case 'M':
@@ -4043,7 +4106,7 @@ STATUS(str); }
         if( !GLOBAL_library.local_display || GLOBAL_library.sound_player==NULL ){
           POPUP_SOUND_ERROR_MESSAGE ;
         } else if( grapher->cen_tsim != NULL ){
-          int ib = grapher->init_ignore ;
+          int ib = NIGNORE(grapher) ;
           PRINT_SOUND_INFO_MESSAGE ;
           mri_play_sound( grapher->cen_tsim , ib ) ;
         }
@@ -4054,7 +4117,7 @@ STATUS(str); }
         if( !GLOBAL_library.local_display || GLOBAL_library.sound_player==NULL ){
           POPUP_SOUND_ERROR_MESSAGE ;
         } else if( grapher->ave_tsim != NULL && grapher->cen_tsim != NULL ){
-          int ib = grapher->init_ignore ;
+          int ib = NIGNORE(grapher) ;
           MRI_IMARR *imar ; MRI_IMAGE *qim ;
           INIT_IMARR(imar) ;
           ADDTO_IMARR(imar,grapher->ave_tsim) ; /* glue the 2 */
@@ -4082,16 +4145,17 @@ STATUS(str); }
       case '>': case '.':
       case '[': case ']':
       case '1':
-      case 'l':
+      case 'l':{
+         int di ;
          EXRONE(grapher) ;  /* 22 Sep 2000 */
-
-              if( buf[0]=='<' || buf[0]==',' || buf[0]=='[' ) ii = grapher->time_index-1;
-         else if( buf[0]=='>' || buf[0]=='.' || buf[0]==']' ) ii = grapher->time_index+1;
+         di = NSTRIDE(grapher) ; /* 11 Jun 2020 */
+              if( buf[0]=='<' || buf[0]==',' || buf[0]=='[' ) ii = grapher->time_index-di;
+         else if( buf[0]=='>' || buf[0]=='.' || buf[0]==']' ) ii = grapher->time_index+di;
          else if( buf[0] == '1'  ) ii = 1 ;
          else if( buf[0] == 'l'  ) ii = grapher->status->num_series-1;
 
          ii = (ii+grapher->status->num_series) % grapher->status->num_series ;
-         if( ii >= 0 && ii < grapher->status->num_series ){
+         if( ii >= 0 && ii < grapher->status->num_series && di == 1 ){
            if( grapher->status->send_CB != NULL ){
              GRA_cbs cbs ;
 
@@ -4107,6 +4171,7 @@ STATUS(str); }
              (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)ITOP(ii)) ;
            }
          }
+      }
       break ;
 
       case 'v':  /* 04 Dec 2003: video */
@@ -4388,12 +4453,25 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_pin_choose_pb ){   /* 19 Mar 2004 */
-     char *lvec[2] = { "Bot" , "Top" } ;
-     float fvec[2] ;
-     fvec[0] = grapher->pin_bot ; fvec[1] = grapher->pin_top ;
+     char *lvec[3] = { "Bot..." , "Top..." , "Stride" } ;
+     float fvec[3] ;
+     int nav ; MCW_arrowval **av ;
+     fvec[0] = grapher->pin_bot ;
+     fvec[1] = grapher->pin_top ;
+     fvec[2] = grapher->pin_stride ;
      MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
-                        2 , lvec,fvec ,
-                        GRA_pin_choose_CB , (XtPointer) grapher ) ;
+                        3 , lvec,fvec ,
+                        GRA_pin_choose_CB , (XtPointer)grapher ) ;
+     /* adjust some stuff on the 'vector' choosers [08 Jun 2020] */
+     av = MCW_choose_vector_avarray( &nav ) ;
+     av[0]->fmin = av[0]->imin = 0 ;                    /* change min for Bot */
+     av[1]->fmin = av[1]->imin = 0 ;                           /* min for Top */
+     av[1]->fmax = av[1]->imax = grapher->status->num_series ; /* max for Top */
+     av[2]->fmin = av[2]->imin = 1 ;                        /* min for Stride */
+     av[2]->fmax = av[2]->imax = MAX_STRIDE ;               /* max for Stride */
+     MCW_reghint_children( av[0]->wrowcol , "First index to graph" ) ;
+     MCW_reghint_children( av[1]->wrowcol , "One AFTER last index to graph" ) ;
+     MCW_reghint_children( av[2]->wrowcol , "Spacing between graphed indexes") ;
      EXRETURN ;
    }
 
@@ -4521,7 +4599,7 @@ ENTRY("GRA_fixup_xaxis") ;
    npt = ptop ; nx = tsim->nx ; npt = MIN(npt,nx) ;
    xxx = MRI_FLOAT_PTR(tsim) ; if( xxx == NULL ) EXRETURN ;
 
-   ibot = grapher->init_ignore ;
+   ibot = NIGNORE(grapher) ;
    if( ibot >= npt-1 ) ibot = 0 ;
    ibot = MAX(ibot,pbot) ;
 
@@ -4717,21 +4795,28 @@ void GRA_pin_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
 {
    MCW_grapher *grapher = (MCW_grapher *) cd ;
    float *vec = (float *)(cbs->cval) ;
-   int pb=(int)vec[0] , pt=(int)vec[1] , ii ;
+   int pb=(int)vec[0], pt=(int)vec[1], ps=(int)vec[2], pvec[3] ;
 
 ENTRY("GRA_pin_choose_CB") ;
 
    GRA_timer_stop( grapher ) ;
 
-   if( pb >= grapher->status->num_series-2 ||
-       pb <  0                             ||
-       (pt > 0 && pt-pb < 2)                 ){   /* stupid user */
+   /* check for criminal behaviour */
 
-      BEEPIT ; WARNING_message("Illegal Pin indexes!?") ; EXRETURN ;
+   if( ps <= 0 ) ps = 1 ;
+   if( pt > grapher->status->num_series ) pt = grapher->status->num_series ;
+
+   if( pb >= grapher->status->num_series-2 ||
+       ps >  MAX_STRIDE                    ||
+       (pt > 0 && NABC(pb,pt,ps) < 2)        ){   /* stupid user */
+
+      BEEPIT ; WARNING_message("Illegal Pin/Stride indexes!?") ; EXRETURN ;
    }
 
-   ii = 100000*pt + pb ;
-   drive_MCW_grapher( grapher , graDR_setpins , (XtPointer)ITOP(ii) ) ;
+   pvec[0] = pb ;
+   pvec[1] = pt ;
+   pvec[2] = ps ;
+   drive_MCW_grapher( grapher , graDR_setpins , (XtPointer)pvec ) ;
    EXRETURN ;
 }
 
@@ -5060,9 +5145,9 @@ OK   drive_code       drive_data should be
 *    graDR_setpinnum       [same as newlength]
 *    graDR_setpintop       [same as newlength]
 
-*    graDR_setpinbot       (int) set the bottom index for plotting
-*    graDR_setpins         (int) set top AND bottom index for plotting;
-                             value = 100000*top + bot
+*    graDR_setpinbot       (int)   set the bottom index for plotting
+*    graDR_setpins         (int *) set top AND bottom index AND stride
+                                   for plotting; points to array of 3 ints
 
 *    graDR_setglobalbaseline (float *) Global baseline value
 
@@ -5177,7 +5262,7 @@ ENTRY("drive_MCW_grapher") ;
       /*------ set time index -----*/
 
       case graDR_setindex:{
-         int new_index = PTOI(drive_data) ;
+         int new_index = PTOI(drive_data) ; /* Pointer to Integer cast */
 
          if( new_index < 0 || new_index >= grapher->status->num_series )
            RETURN( False ) ;
@@ -5231,20 +5316,26 @@ ENTRY("drive_MCW_grapher") ;
       /*------ reset bot and top of time series plotting [19 Mar 2004] -----*/
 
       case graDR_setpins:{
-         int ii=PTOI(drive_data) , newbot,newtop ;
+         int *pvec = (int *)drive_data ;
+         int newbot,newtop,newstride ;
 
-         if( ii <= 0 ){
-           newbot = newtop = 0 ;
+         if( pvec == NULL ){
+           newbot = newtop = 0 ; newstride = 1 ;
          } else {
-           newbot = ii % 100000 ;
-           newtop = ii / 100000 ;
-           if( newtop < MIN_PIN ) newtop = 0 ;
+           newbot = pvec[0] ; if( newbot < 0       ) newbot = 0 ;
+           newtop = pvec[1] ; if( newtop < newbot  ) newtop = 0 ;
+                              if( newtop < MIN_PIN ) newtop = 0 ;
+           newstride = pvec[2] ;
+           if( newstride <= 0 || newstride > 9 ) newstride = 1 ;
          }
-         if( newtop > 0 && newtop-newbot < 2 ) newbot = 0 ;
-         if( newbot >= TTOP(grapher)         ) newbot = 0 ;
+         if( newtop > 0 && NABC(newbot,newtop,newstride) < 2 ){
+           newbot = newtop = 0 ; newstride = 1 ;
+         }
+         if( newbot >= TTOP(grapher) ) newbot = 0 ;
 
-         grapher->pin_bot = newbot ;
-         grapher->pin_top = newtop ;
+         grapher->pin_bot    = newbot ;
+         grapher->pin_top    = newtop ;
+         grapher->pin_stride = newstride ;
 
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
@@ -5258,6 +5349,7 @@ ENTRY("drive_MCW_grapher") ;
       case graDR_setignore:{
          int new_ignore = PTOI(drive_data) ;
 
+#ifdef ALLOW_IGNORE
          if( new_ignore >= 0 && new_ignore < TTOP(grapher)-1 ){
            grapher->init_ignore = new_ignore ;
            redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;
@@ -5265,6 +5357,9 @@ ENTRY("drive_MCW_grapher") ;
          } else {
            RETURN( False ) ;
          }
+#else
+         RETURN( True ) ;
+#endif
       }
 
       /*------- set polort [27 May 1999] --------*/
@@ -5710,6 +5805,7 @@ ENTRY("GRA_fim_CB") ;
 
    /*** Ignore stuff ***/
 
+#ifdef ALLOW_IGNORE /*-----------------------------------------------------------------*/
    else if( w == grapher->fmenu->fim_ignore_down_pb && grapher->status->send_CB != NULL ){
       GRA_cbs cbs ;
 
@@ -5743,6 +5839,7 @@ ENTRY("GRA_fim_CB") ;
                           GRA_ignore_choose_CB , (XtPointer) grapher ) ;
 #endif
    }
+#endif /* ALLOW_IGNORE */ /*-----------------------------------------------------------*/
 
    /* 27 May 1999: set polort */
 
@@ -6020,7 +6117,7 @@ ENTRY("GRA_doshift") ;
    nar    = MRI_FLOAT_PTR(newim) ;
 
    for( ii=0 ; ii < nx ; ii++ )
-      nar[ii] = (ii < grapher->init_ignore) ? WAY_BIG : tsar[ii] ;
+      nar[ii] = (ii < NIGNORE(grapher) ) ? WAY_BIG : tsar[ii] ;
 
    for( ivec=1 ; ivec <= nleft ; ivec++ ){
       tim = mri_shift_1D( newim , -ivec * shinc ) ;
@@ -6107,10 +6204,12 @@ ENTRY("AFNI_new_fim_menu") ;
                       "      Read      --> Input from external file\n"
                       "      Write     --> Output to external file\n"
                       "      Store     --> Save in internal list\n"
+#ifdef ALLOW_IGNORE
                       " Ignore: Set how many points to ignore\n"
                       "         at beginning of time series\n"
                       "         [ Applies both to graphing ]\n"
                       "         [ and to FIM computations. ]\n"
+#endif
                       "\n"
                       "FIM Plots:\n"
                       "  Can choose to graph only first vector in\n"
@@ -6141,10 +6240,12 @@ ENTRY("AFNI_new_fim_menu") ;
                       "\n"
                       "Pick Ideal --> Choose time series from a list.\n"
                       "Pick Ort   --> Choose time series from a list.\n"
+#ifdef ALLOW_IGNORE
                       "\n"
                       "Ignore --> Set how many points to ignore at the\n"
                       "   beginning of time series.\n"
                       "   [ Applies both to graphing and FIM-ing. ]\n"
+#endif
                       "\n"
                       "Refresh Freq --> Choose number of time steps\n"
                       "   between redisplay of the functional overlay\n"
@@ -6721,6 +6822,7 @@ ENTRY("GRA_fix_optmenus") ;
    else
       AV_assign_ival( grapher->opt_slice_choose_av , grapher->zpoint ) ;
 
+#ifdef ALLOW_IGNORE
    /** fim ignoration **/
 
    igtop = MIN( grapher->status->num_series-2 , 99 ) ;
@@ -6732,6 +6834,7 @@ ENTRY("GRA_fix_optmenus") ;
                          NULL , NULL ) ;
    else
       AV_assign_ival( grapher->fmenu->fim_ignore_choose_av , grapher->init_ignore ) ;
+#endif
 
    /** 27 May 1999: fim polort **/
 

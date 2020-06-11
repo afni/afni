@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add Stride to graphing (every n-th time point, n=1..9)" ,
+   NULL } ,
+
  { 2 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add PM (plus/minus) curve plotting options" ,
    "Added to the 'Colors Etc' menu. Curves, Bars, and Fill." } ,

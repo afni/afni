@@ -8532,14 +8532,14 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    newti = im3d->vinfo->anat_index ;
 
-   if( newti >= 0 && !doflash ){
+   if( newti >= 0 && !doflash ){  /* ITOP = Integer to Pointer cast */
      drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)ITOP(newti) );
      drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)ITOP(newti) );
      drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)ITOP(newti) );
    }
 
    if( do_lock && !doflash )        /* 11 Nov 1996 */
-      AFNI_space_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
+     AFNI_space_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
 
    /** Feb 1998: if desired, send coordinates to receiver **/
    /** Mar 1999: do it in an external routine, not here.  **/
