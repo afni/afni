@@ -896,7 +896,7 @@ ENTRY("THD_read_csv") ;
 
    /* try to read as a table of strings */
 
-   tnel = THD_string_table_read( fname , 3 ) ;
+   tnel = THD_string_table_read( fname , 5 ) ;
    if( tnel == NULL )                           RETURN(NULL) ;
 
    vnum = tnel->vec_num ;     /* number of columns */
