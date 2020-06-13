@@ -3,7 +3,7 @@
 #          x<0 --> R,   y<0 --> A,   z<0 --> I,  
 #          x>0 --> L,   y>0 --> P,   z>0 --> S.
 # -----------------------------------------------------------------------------
-# ver  = 1.4  ;  date = May 21, 2020
+# ver  = 1.5  ;  date = June 13, 2020
 # -----------------------------------------------------------------------------
 #    x       y      z       space                roi_label                netw
 # -----------------------------------------------------------------------------
@@ -13,3 +13,9 @@
      2.125   3.25  19.25    NMT2                 lh-PCC                   DMN
    -11.375  18.0   15.5     NMT2                 rh-cort-vis              Vis
     20.1    -5.0   21.0     NMT2                 lh-cort-aud              Aud
+     5      44     38       HaskinsPeds          lh-PCC                   DMN
+    -3      86      0       HaskinsPeds          rh-cort-vis              Vis
+    58      11      8       HaskinsPeds          lh-cort-aud              Aud
+     5      48     43       TT_N27               lh-PCC                   DMN
+    -7      85     -4       TT_N27               rh-cort-vis              Vis
+    59      11      4       TT_N27               lh-cort-aud              Aud
