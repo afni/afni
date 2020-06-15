@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.3 as thr value of corr map.",
+   "Returning value to what it had been for a long time, based on examples.\n"
+},
+
 { 10, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MAJOR , TYPE_NEW_PROG,
    "For GE scanners, we might want a cdiflist* file for DWI grad info.",
    "This prog converts such beasts into usable grad/bvalue files for proc.\n"
