@@ -1,11 +1,10 @@
 #!/bin/tcsh
 
-###  Quick build setup script 2.
-###  Run from command line (no admin):
-###  # from bash shell:
-###      tcsh qb_linux_ubuntu20_b_run.tcsh 2>&1 | tee o.qb_linux_ubuntu20_b_run.txt
-###  # from tcsh shell:
-###      tcsh qb_linux_ubuntu20_b_run.tcsh |& tee o.qb_linux_ubuntu20_b_run.txt
+# Quick build setup script 2.
+# From bash shell:
+#   tcsh OS_notes.linux_ubuntu_20_64_b_user.tcsh 2>&1 | tee o.ubu_20_b.txt
+# From tcsh shell:
+#   tcsh OS_notes.linux_ubuntu_20_64_b_user.tcsh |& tee o.ubu_20_b.txt
 
 echo "++ Get AFNI binaries"
 
