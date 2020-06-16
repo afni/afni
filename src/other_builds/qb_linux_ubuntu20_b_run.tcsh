@@ -15,10 +15,21 @@ tcsh @update.afni.binaries -package linux_ubuntu_16_64 -do_extras
 
 source ~/.cshrc
 
+
 echo "++ Setup AFNI env vars"
 
 cp $HOME/abin/AFNI.afnirc $HOME/.afnirc
 suma -update_env
+
+
+echo "++ Download Bootcamp data"
+
+curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
+tar xvzf CD.tgz
+cd CD
+tcsh s2.cp.files . ~
+cd ..
+
 
 echo "++ Prepare to install R and its packages (will take a while)"
 
@@ -29,12 +40,10 @@ echo  'setenv R_LIBS ~/R'     >> ~/.cshrc
 
 rPkgsInstall -pkgs ALL
 
-echo "++ Download Bootcamp data"
 
-curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
-tar xvzf CD.tgz
-cd CD
-tcsh s2.cp.files . ~
-cd ..
+set asc  = ~/o.afni_system_check.txt
+echo "++ Run system check, saving to: ${asc}"
+
+afni_system_check.py -check_all > ${asc}
 
 echo "++ Done with 2nd part of install"
