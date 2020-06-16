@@ -1,0 +1,21 @@
+Recording R needs for AFNI
+==========================
++ what version numbers we require, and why
++ any fixes for OSs
++ list current range of allowed R
+  - per OS, if necessary
+---------------------------------------------
+
+2020-06-16:  
++ Current R vers 
+  - [3.6.*], all 
+-----------------------------------------
++ R_io.so is currently built for R v3.6.3 (is this only
+  applicable to Mac OS? Probably any 3.6.x is fine, but
+  only 3.6.3 is available for download on CRAN)
++ For Gang's programs (pretty all R programs such as 
+  3dMVM, 3dLME, 3dLMEr, 3dICC, 3dISC, etc.), R > v3.5.* is required
+  - due to package dependencies ****
++ R-4.0.* does not currently work because (R_io.so 
+  is only built with R 3.6. This may change if we decide
+  to provide R_io.so for all recent R versions) ****
