@@ -2,10 +2,15 @@ Recording R needs for AFNI
 ==========================
 + what version numbers we require, and why
 + any fixes for OSs
++ list current range of allowed R
+  - per OS, if necessary
 ---------------------------------------------
 
-2020-06-16
-+ R_io.so is currently built for R-3.6.3
-+ For Gang's programs (****), at least R-3.5.* is required
+2020-06-16:  
++ Current R vers 
+  - [3.6.*], all 
+-----------------------------------------
++ R_io.so is currently built for R v3.6.3
++ For Gang's programs (****), R > v3.5.* is required
   - due to package dependencies ****
 + R-4.0.* does not currently work because ****
