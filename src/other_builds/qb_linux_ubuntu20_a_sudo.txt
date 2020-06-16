@@ -1,6 +1,10 @@
 ###  Quick build setup script 1.
 ###  Run from command line with 'sudo':
 ###     sudo bash qb_linux_ubuntu20_a_sudo.txt
+###  # from bash shell:
+###      sudo bash qb_linux_ubuntu20_a_sudo.txt 2>&1 | tee o.qb_linux_ubuntu20_a.txt
+###  # from tcsh shell:
+###      sudo bash qb_linux_ubuntu20_a_sudo.txt |& tee o.qb_linux_ubuntu20_a.txt
 
 
 sudo add-apt-repository universe
