@@ -1,3 +1,8 @@
+###  Quick build setup script 1.
+###  Run from command line with 'sudo':
+###     sudo bash qb_linux_ubuntu20_a_sudo.txt
+
+
 sudo add-apt-repository universe
 
 sudo apt-get update

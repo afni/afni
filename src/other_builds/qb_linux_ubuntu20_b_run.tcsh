@@ -1,5 +1,11 @@
 #!/bin/tcsh
 
+###  Quick build setup script 2.
+###  Run from command line (no admin):
+###    tcsh qb_linux_ubuntu20_b_run.tcsh
+
+
+
 cd
 curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
 tcsh @update.afni.binaries -package linux_ubuntu_16_64 -do_extras
