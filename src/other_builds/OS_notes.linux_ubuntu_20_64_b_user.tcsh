@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-# Quick build setup script 2.
+# Quick build setup script 2/3.
 # From bash shell:
 #   tcsh OS_notes.linux_ubuntu_20_64_b_user.tcsh 2>&1 | tee o.ubu_20_b.txt
 # From tcsh shell:
