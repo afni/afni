@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, June , 2020 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Add legend functionality, along with opts for label and loc specifying.",
+   "New opts: -legend_on, -legend_labels, -legend_locs.\n"
+},
+
 { 17, June , 2020 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
    "Add -hview functionality.",
    "Where has this been all my life??\n"

@@ -24,8 +24,11 @@ author    = "PA Taylor (NIMH, NIH)"
 #version   = "1.6"; date  = "July 23, 2019"
 # + [PT] can output PDF files directly
 #
-version   = "1.7"; date  = "June 17, 2020"
+#version   = "1.7"; date  = "June 17, 2020"
 # + [PT] update for hviewing
+#
+ver = '1.9' ; date = 'June 17, 2020' 
+# [PT] add in legend, legend_label and legend_loc functionality
 #
 # =================================================================
 

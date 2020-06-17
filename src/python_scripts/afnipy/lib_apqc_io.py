@@ -51,8 +51,11 @@
 # [PT] bug fix:  need MAXLEN defined here
 #    + also, fixed set_xvals() method
 #
-ver = '1.9' ; date = 'June 17, 2020' 
+#ver = '1.83' ; date = 'June 17, 2020' 
 # [PT] add in hview
+#
+ver = '1.9' ; date = 'June 17, 2020' 
+# [PT] add in legend, legend_label and legend_loc functionality
 #
 #########################################################################
 
@@ -243,6 +246,36 @@ COMMAND OPTIONS ~1~
                associated ylabels by providing the keyword 'VOLREG'
                (and this counts as 6 labels).  The order of ylabels
                should match the order of infiles.
+               These labels are plotted vertically along the y-axis of the
+               plot.
+
+-legend_on    :turn on the plotting of a legend in the plot(s).  Legend
+               will not be shown in the boxplot panels, if using.
+
+-legend_labels LL1 LL2 LL3 ...
+              :optional legend labels, if using '-legend_on' to show a
+               legend.  If no arguments are provided for this option,
+               then the labels will be the arguments to '-infiles ..'
+               (or '-yfiles ..').  If arguments ARE input, then they must
+               match the number of '-infiles ..' (or '-yfiles ..').
+
+-legend_locs  LOC1 LOC2 LOC3 ...
+              :optional legend locations, if using '-legend_on' to
+               show a legend.  If no arguments are provided for this
+               option, then the locations will be the ones picked by
+               Python (reasonable starting point) If arguments ARE
+               input, then they must match the number of '-infiles ..'
+               (or '-yfiles ..').  Valid entries are strings
+               recognizable by matplotlib's plt.legend()'s "loc" opt;
+               this includes: 'best', 'right', 'upper right', 'lower
+               right', 'center right', etc. Note that if you use a
+               two-word argument here, you MUST put it in quotes (or,
+               as a special treat, you can combine it with an
+               underscore, and it will be parsed correctly.  So, valid
+               values of LOC* could be:
+                  left
+                  'lower left'
+                  upper_center
 
 -xlabel XL    :optional text labels for the abscissa/x-axis.  Only one may  
                be entered, and it will *only* be displayed on the bottom 
@@ -296,6 +329,9 @@ COMMAND OPTIONS ~1~
                 infile column is given, a default palette of {def_num_col}
                 colors, chosen for their mutual-distinguishable-ness,
                 will be cycled through.
+                One of the colors can also be a decimal in range [0.0, 1.0],
+                which will correspond to grayscale in range [black, white],
+                respectively.
 
 -patches RL1 RL2 RL3 ...
                :when viewing data from multiple runs that have been
@@ -430,12 +466,16 @@ class figplobj:
         self.margin_on    = DEF_margin_on
         self.bplot_view   = ''
         self.boxplot_ycen = DEF_boxplot_ycen
+        self.legend_on    = False
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
 
     def set_censor_on(self, c):
         self.censor_on = c
+
+    def set_legend_on(self, c):
+        self.legend_on = c
 
     def set_boxplot(self, c):
         self.boxplot_on = c
@@ -585,6 +625,8 @@ class subplobj:
         self.ycen   = []    # will be a list of points after censoring
         self.xlabel = ""
         self.ylabel = ""
+        self.leglabel = ""
+        self.legloc = None
         self.xlim   = []
         self.ylim   = []
         self.npts   = -1
@@ -620,6 +662,12 @@ class subplobj:
 
     def set_ylabel(self, ylabel):
         self.ylabel = ylabel
+
+    def set_leglabel(self, sss):
+        self.leglabel = sss
+
+    def set_legloc(self, sss):
+        self.legloc = sss
 
     def set_censor_hline(self, hh): 
         val = set_valid_censor_hline_val(hh) # check number or 'NONE'
@@ -676,6 +724,12 @@ class apqc_1dplot_opts:
         self.prefix   = DEF_prefix
         self.ninfiles = 0
 
+        self.legend_on  = False 
+        self.leglabels  = []    # can have legend, def. labels are -yfiles arg
+        self.nleglabels = 0
+        self.leglocs    = []    
+        self.nleglocs   = 0
+
         # opt input
         self.ylabels  = []
         self.nylabels = 0    
@@ -720,7 +774,7 @@ class apqc_1dplot_opts:
         self.scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
         self.scale_type   = ''
 
-        self.patch_arr   = [] # list of run lengths, for alternating patches of plot
+        self.patch_arr   = [] # list of run lengths, for alt patches of plot
 
         # derived vals
         self.all_x  = []
@@ -987,6 +1041,14 @@ class apqc_1dplot_opts:
         self.ylabels.append(ylabel)
         self.nylabels+= 1
 
+    def add_leglabel(self, sss):
+        self.leglabels.append(sss)
+        self.nleglabels+= 1
+
+    def add_legloc(self, sss):
+        self.leglocs.append(sss)
+        self.nleglocs+= 1
+
     def set_xlabel(self, xlabel):
         self.xlabel = xlabel
 
@@ -1081,6 +1143,36 @@ class apqc_1dplot_opts:
         else:
             sys.exit("** ERROR: mismatch b/t number of data arrays "
                      "{} and num of ylabels {}".format(N, self.nylabels))
+
+        # [PT: Jun 17, 2020] check for legend label and loc str
+        if self.legend_on :
+            # check labels
+            if N == self.nleglabels :
+                print("++ Lists of names and legend labels match length")
+            elif self.nleglabels == 0 :
+                print("*+ No legend labels input: using '-infile ..' names")
+                for i in range(N):
+                    self.add_leglabel(self.infiles[i])
+            else:
+                sys.exit("** ERROR: mismatch b/t number of data arrays "
+                         "{} and num of leglabels {}".format(N, 
+                                                             self.nleglabels))
+            # check locations
+            if N == self.nleglocs :
+                print("++ Lists of names and legend locations match length")
+            elif self.nleglocs == 0 :
+                for i in range(N):
+                    self.add_legloc(None)
+            else:
+                sys.exit("** ERROR: mismatch b/t number of data arrays "
+                         "{} and num of legend locations {}".format(N, 
+                                                             self.nleglocs))
+        else:
+            # doesn't matter; not used; just place holder; 
+            for i in range(N):
+                self.add_leglabel("")
+            for i in range(N):
+                self.add_legloc(None)
 
         M = len(self.all_y[0])
         for i in range(1, N):
@@ -1195,19 +1287,10 @@ def parse_1dplot_args(full_argv):
         self-"check_req()" method, as well.
     '''
 
-    ### [PT: Dec 23, 2018] Important for adding to this program!!! 
-    ### One MUST include the option flag in this list, because some
-    ### options can take multiple arguments of unspecified length--
-    ### therefore, an argv is checked against this list to see if the
-    ### list continues or not in some cases.
-    all_opts = [ '-ver', '-h', '-help', "-infiles", "-yfiles",
-                 "-prefix", "-ylabels", "-xlabel", "-xvals", "-xfile",
-                 "-figsize", "-bkgd_color", "-fontsize",
-                 "-fontfamily", "-fontstyles", "-censor_trs",
-                 "-censor_files", "-censor_RGB", "-censor_hline",
-                 "-title", "-dpi", "-colors", "-sepscl",
-                 "-reverse_order", "-boxplot_on", "-bplot_view", 
-                 "-yaxis", "-patches", "-margin_off", "-scale" ]
+    ### [PT: June 17, 2020] no longer need to list help opts
+    ### separately: this is a better and safer way to get all opts!
+    ### no need for author-listing.
+    all_opts = ab.parse_help_text_for_opts(help_string_apqc_1dplot)
 
     argv = full_argv[1:]
     Narg = len(argv)
@@ -1276,6 +1359,42 @@ def parse_1dplot_args(full_argv):
                             iopts.add_ylabel(name)
                     else:
                         iopts.add_ylabel(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-legend_on":
+            iopts.legend_on = True
+
+        elif argv[i] == "-legend_labels":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])):
+                    iopts.add_leglabel(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-legend_locs":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])):
+                    #iopts.add_legloc(argv[i])
+                    iopts.add_legloc(' '.join(argv[i].split('_')))
                     count+=1
                     i+=1
                 else:
