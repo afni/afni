@@ -47,17 +47,21 @@
 #ver = '1.81' ; date = 'Mar 27, 2020' 
 # + [PT] remove double import of module
 #
-ver = '1.82' ; date = 'Apr 22, 2020' 
+#ver = '1.82' ; date = 'Apr 22, 2020' 
 # [PT] bug fix:  need MAXLEN defined here
 #    + also, fixed set_xvals() method
+#
+ver = '1.9' ; date = 'June 17, 2020' 
+# [PT] add in hview
 #
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
-import sys, copy
+import sys, copy, os
 from afnipy import lib_afni1D as LAD
 from afnipy import afni_util  as au
+from afnipy import afni_base  as ab
 
 # -------------------------------------------------------------------
 
@@ -1176,7 +1180,7 @@ Else:
 
 # !!! If adding an option to this 1dplot.py program, make sure you
 # !!! update the "all_opts' list here!!
-def parse_1dplot_args(argv):
+def parse_1dplot_args(full_argv):
 
     '''Parse arguments for Pythony 1dplotter.
 
@@ -1205,7 +1209,7 @@ def parse_1dplot_args(argv):
                  "-reverse_order", "-boxplot_on", "-bplot_view", 
                  "-yaxis", "-patches", "-margin_off", "-scale" ]
 
-
+    argv = full_argv[1:]
     Narg = len(argv)
 
     if not(Narg):
@@ -1224,6 +1228,12 @@ def parse_1dplot_args(argv):
 
         elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_1dplot)
+            sys.exit(0)
+
+        elif argv[i] == "-hview" :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            ab.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------

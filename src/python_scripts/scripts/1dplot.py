@@ -21,8 +21,11 @@ author    = "PA Taylor (NIMH, NIH)"
 #   DISPLAY is inherited, even if children shells no longer have access
 #   to it.
 #
-version   = "1.6"; date  = "July 23, 2019"
+#version   = "1.6"; date  = "July 23, 2019"
 # + [PT] can output PDF files directly
+#
+version   = "1.7"; date  = "June 17, 2020"
+# + [PT] update for hviewing
 #
 # =================================================================
 
@@ -47,7 +50,7 @@ from afnipy import lib_plot_1D as lpod
 
 if __name__ == "__main__":
 
-    iopts   = laio.parse_1dplot_args(sys.argv[1:])
+    iopts   = laio.parse_1dplot_args(sys.argv)
 
     # after the inputs have been read in, use this to: arrange/combine
     # lists and labels; check that lengths of lists and numbers of
