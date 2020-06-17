@@ -407,7 +407,7 @@ EXAMPLES ~1~
     -prefix  mot_cen_plot.jpg
 
 2) Plot the 6 solid body parameters from 3dvolreg, along with
-   the useful composite 'enorm' and outlier time series
+   the useful composite 'enorm' and outlier time series:
 1dplot.py                                    \\
     -sepscl                                  \\
     -boxplot_on                              \\
@@ -419,6 +419,32 @@ EXAMPLES ~1~
     -xlabel  "vols"                          \\
     -title   "Motion and outlier plots"      \\
     -prefix  mot_outlier_plot.png
+
+3) Use labels and locations to plot 3dhistog output (there will
+   be some minor whining about failing to process comment label
+   *.1D files, but won't cause any problems for plot); here, 
+   legend labels will be the args after '-yfiles ..' (with the 
+   part in square brackets, but without the quotes):
+1dplot.py                                    \\
+    -xfile  HOUT_A.1D'[0]'                   \\
+    -yfiles HOUT_A.1D'[1]' HOUT_B.1D'[1]'    \\
+    -prefix img_histog.png                   \\
+    -colors blue 0.6                         \\
+    -boxplot_on                              \\
+    -legend_on 
+
+4) Same as #3, but using some additional opts to control legends.
+   Here, am using 2 different formats of providing the legend
+   locations in each separate subplot, just for fun:
+1dplot.py                                    \\
+    -xfile  HOUT_A.1D'[0]'                   \\
+    -yfiles HOUT_A.1D'[1]' HOUT_B.1D'[1]'    \\
+    -prefix img_histog.png                   \\
+    -colors blue 0.6                         \\
+    -boxplot_on                              \\
+    -legend_on                               \\
+    -legend_locs upper_right "lower left"    \\
+    -legend_labels A B
 
 
 '''.format(**fill_in_help_vals)
