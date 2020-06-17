@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, June , 2020 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Add legend functionality, along with opts for label and loc specifying.",
+   "New opts: -legend_on, -legend_labels, -legend_locs.\n"
+},
+
+{ 17, June , 2020 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Add -hview functionality.",
+   "Where has this been all my life??\n"
+},
+
 { 14, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "For vstat with seedbased corr (rest), use 0.3 as thr value of corr map.",
    "Returning value to what it had been for a long time, based on examples.\n"
