@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jun, 2020, RCR, "afni_restproc.py", MICRO, TYPE_MODIFY,
+   "update for python3; add extra suggests that it is obsolete",
+   NULL
+ } ,
+
  {  1, Jun, 2020, RCR, "3dAllinate", MICRO, TYPE_MODIFY,
    "clear any initial ntt from master",
    NULL
