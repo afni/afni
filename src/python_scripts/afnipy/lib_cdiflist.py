@@ -13,9 +13,13 @@ auth = 'PA Taylor'
 #ver = '0.1' ; date = 'June 10, 2020'
 # [PT] debug/test
 #
-ver = '0.2' ; date = 'June 10, 2020'
+#ver = '0.2' ; date = 'June 10, 2020'
 # [PT] update help-- note this should only be used at present on axial
 #      slice acq;  thanks, Joelle!
+#
+ver = '0.3' ; date = 'June 22, 2020'
+# [PT] the column vectors should be scaled by bval, as help says; that
+# happens now
 #
 # --------------------------------------------------------------------------
 
@@ -242,7 +246,7 @@ def write_files_from_bval_bvec(B, VEC, prefix):
     fff = open(fname,'w')
     for ii in range(N):
         for jj in range(3):
-            fff.write(" {:>10.3f} ".format(VEC[ii][jj]))
+            fff.write(" {:>10.3f} ".format(VEC[ii][jj]*B[ii]))
         if jj != N-1:
             fff.write("\n")
     fff.close()

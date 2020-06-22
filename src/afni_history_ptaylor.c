@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_BUG_FIX,
+   "Output col grads file was *not* scaled by bvalues, as help said it would.",
+   "Fixed: now output col grads multiplied by bvalues.\n"
+},
+
 { 17, June , 2020 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
    "Add legend functionality, along with opts for label and loc specifying.",
    "New opts: -legend_on, -legend_labels, -legend_locs.\n"
