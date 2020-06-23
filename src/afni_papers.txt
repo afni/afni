@@ -350,3 +350,11 @@ G Chen, Y Xiao, PA Taylor, JK Rajendra, T Riggins, F Geng, E Redcay, RW Cox.
   * https://link.springer.com/article/10.1007/s12021-018-9409-6
   * https://www.biorxiv.org/content/10.1101/238998v1.abstract
 ----------------------------------------------------------------------------
+DR Glen, PA Taylor, BR Buchsbaum, RW Cox, and RC Reynolds.
+  Beware (Surprisingly Common) Left-Right Flips in Your MRI Data:
+  An Efficient and Robust Method to Check MRI Dataset Consistency Using AFNI.
+  Frontiers in Neuroinformatics, 25 May 2020.
+
+  * https://doi.org/10.3389/fninf.2020.00018
+  * https://www.medrxiv.org/content/10.1101/19009787v4
+----------------------------------------------------------------------------

@@ -1180,6 +1180,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
+   GLOBAL_argopt.read_tcsv      = 1 ;      /* 16 Jun 2020 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
    GLOBAL_argopt.disable_done   = 0 ;      /* 21 Aug 2008 */
@@ -1401,6 +1402,15 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-no1D",5) == 0 ){
          GLOBAL_argopt.read_1D = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -notcsv option (16 Jun 2020) ----- */
+
+      if( strncmp(argv[narg],"-notcsv",7) == 0 ||
+          strncmp(argv[narg],"-notsv" ,6) == 0 ||
+          strncmp(argv[narg],"-nocsv" ,6) == 0   ){
+         GLOBAL_argopt.read_tcsv = 0 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -6724,21 +6734,28 @@ END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
 STATUS("reading timeseries files") ;
 
       /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
-      /* 10 Feb 2016:broke sometime - allow skipping */
+      /* 10 Feb 2016: broke sometime - allow skipping */
       if(GLOBAL_argopt.read_1D)
          GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
       else
          GLOBAL_library.timeseries = NULL;
-
-/*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
-
       REFRESH ;
-
-      if( GLOBAL_library.timeseries == NULL )
+      if( GLOBAL_library.timeseries == NULL )     /* empty but not NULL */
          INIT_IMARR(GLOBAL_library.timeseries) ;
-
       sprintf( str , "\n Time series   = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
+      REPORT_PROGRESS(str) ;
+
+      /* 16 Jun 2020: same stuff for *.tsv and *.csv files */
+      if(GLOBAL_argopt.read_tcsv)
+         GLOBAL_library.tcsv_data = THD_get_many_tcsv(qlist);
+      else
+         GLOBAL_library.tcsv_data = NULL;
+      REFRESH ;
+      if( GLOBAL_library.tcsv_data == NULL )     /* empty but not NULL */
+         INIT_ELARR(GLOBAL_library.tcsv_data) ;
+      sprintf( str , "\n .[tc]sv data  = %d files read" ,
+               ELARR_COUNT(GLOBAL_library.tcsv_data) ) ;
       REPORT_PROGRESS(str) ;
 
       /*** throw away the list of directories that were scanned ***/

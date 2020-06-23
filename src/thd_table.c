@@ -248,12 +248,17 @@ void string_ectomy( char *src , char *bad )  /* 20 Jun 2012 */
 
    for( io=is=0 ; is < nsrc ; is++ ){
      ccc = src[is] ;
+     if( (unsigned char)ccc       == 194u &&
+         (unsigned char)src[is+1] == 160u   ){         /* nonbreaking space */
+       out[io++] = ' ' ; is++ ; continue ;     /* replaced by regular space */
+     }
+     if( !isprint(ccc) ) continue ;                /* non-printable == skip */
      for( ib=0 ; ib < nbad && bad[ib] != ccc ; ib++ ) ; /*nada*/
-     if( ib == nbad ) out[io++] = ccc ;
+     if( ib == nbad ) out[io++] = ccc ;         /* if not in bad list, keep */
    }
 
    if( io < nsrc ){
-     ININFO_message("Table reading: replaced string %s with %s",src,out) ;
+     ININFO_message("Table reading: replaced string  %s  -with-  %s",src,out) ;
      strcpy(src,out) ;
    }
 
@@ -528,8 +533,12 @@ ENTRY("THD_mixed_table_read") ;
 /* This table has only strings, and no header labels.
    Bit flags:
      1 = read as tsv (tab separated values)
-     2 = skip column selectors
+     2 = skip column selectors, if present
      4 = read as csv (comma separated values)
+   If neither 1 nor 4 is set, then whitespace and/or ';' are separators.
+   If 1 and 4 are both set, the separator is determined from fname;
+    however, if the suffix isn't .tsv or .csv (case-insensitive),
+    then you are back in the case where neither 1 nor 4 is set :(
 *//*----------------------------------------------------------------------*/
 
 NI_element * THD_string_table_read( char *fname , int flags )
@@ -619,6 +628,11 @@ ENTRY("THD_string_table_read") ;
 
      TRBUF(lbuf) ;
      if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
+
+     if( do_tsv && do_csv ){  /* 12 Jun 2020 */
+       do_tsv =            STRING_HAS_SUFFIX_CASE( dname , ".tsv" ) ;
+       do_csv = !do_tsv && STRING_HAS_SUFFIX_CASE( dname , ".csv" ) ;
+     }
 
      if( do_tsv )
        sar = NI_strict_decode_string_list( lbuf+ibot, "\t" ) ; /* 08 Feb 2018 */

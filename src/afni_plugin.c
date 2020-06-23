@@ -1158,6 +1158,48 @@ ENTRY("add_timeseries_to_PLUGIN_interface") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------
+   Routine to add a *.[tc]sv "chooser" to the most recently created
+   option within a plugin interface.
+
+   label = C string to go in the menu, next to the "chooser" for
+           the dataset.
+-------------------------------------------------------------------------*/
+
+void add_tcsv_to_PLUGIN_interface( PLUGIN_interface * plint, char * label )
+{
+   int nopt , nsv , ii ;
+   PLUGIN_option * opt ;
+   PLUGIN_subvalue * sv ;
+
+ENTRY("add_tcsv_to_PLUGIN_interface") ;
+
+   /*-- sanity checks --*/
+
+   if( plint == NULL || plint->option_count == 0 ) EXRETURN ;
+
+   if( label == NULL ) label = EMPTY_STRING ;
+
+   nopt = plint->option_count - 1 ;
+   opt  = plint->option[nopt] ;
+
+   nsv = opt->subvalue_count ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
+
+   /*-- load values into next subvalue --*/
+
+   sv = &(opt->subvalue[nsv]) ;
+
+   sv->data_type = PLUGIN_TCSV_TYPE ;
+   PLUGIN_LABEL_strcpy( sv->label , label ) ;
+
+   (opt->subvalue_count)++ ;
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------------*/
 
 static int initcolorindex=1 ;
@@ -1632,8 +1674,8 @@ STATUS("create Label for row") ;
          switch( sv->data_type ){
 
             /** type I can't handle yet, so just put some label there **/
-            fprintf(stderr,"Doing type %d\n", sv->data_type);
             default:
+               WARNING_message("Plugin: unknown subvalue type %d", sv->data_type);
                xstr = XmStringCreateLtoR( "** N/A **" , XmFONTLIST_DEFAULT_TAG ) ;
                ow->chtop[ib] =
                   XtVaCreateManagedWidget(
@@ -1989,6 +2031,71 @@ STATUS("create PLUGIN_TIMESERIES_TYPE") ;
                ow->chtop[ib]   = av->rowcol ;  /* get the top widget */
 
                ow->chooser_type[ib] = OP_CHOOSER_TIMESERIES ;
+               toff-- ;
+            }
+            break ;
+
+            /** single tcsv type (similiar to timeseries above) **/
+
+            case PLUGIN_TCSV_TYPE:{
+               PLUGIN_tcsvval * av = myXtNew(PLUGIN_tcsvval) ;
+
+STATUS("create PLUGIN_TCSV_TYPE") ;
+
+               av->sv          = sv ;                       /* a friend in need  */
+               av->elarr       = GLOBAL_library.tcsv_data ; /* to choose amongst */
+               av->tcsv_choice = -1 ;                       /* no initial choice */
+               av->tcsv_el     = NULL ;
+
+               av->rowcol =
+                  XtVaCreateWidget(
+                    "AFNI" , xmRowColumnWidgetClass , wid->workwin ,
+                       XmNpacking     , XmPACK_TIGHT ,
+                       XmNorientation , XmHORIZONTAL ,
+                       XmNmarginHeight, 0 ,
+                       XmNmarginWidth , 0 ,
+                       XmNspacing     , 0 ,
+                       XmNtraversalOn , True  ,
+                              XmNheight, 20,
+                              XmNwidth, 30,
+                       XmNinitialResourcesPersistent , False ,
+                    NULL ) ;
+
+               xstr = XmStringCreateLtoR( sv->label , XmFONTLIST_DEFAULT_TAG ) ;
+               av->label =
+                  XtVaCreateManagedWidget(
+                    "AFNI" , xmLabelWidgetClass , av->rowcol ,
+                       XmNlabelString , xstr ,
+                       XmNmarginWidth   , 0  ,
+                       XmNinitialResourcesPersistent , False ,
+                    NULL ) ;
+               XmStringFree( xstr ) ;
+
+               if( plint->flags & SHORT_CHOOSE_FLAG )
+                 xstr = XmStringCreateLtoR( "-*.[tc]sv-",XmFONTLIST_DEFAULT_TAG ) ;
+               else
+                 xstr = XmStringCreateLtoR( "-Choose *.[tc]sv -",XmFONTLIST_DEFAULT_TAG ) ;
+
+               av->pb = XtVaCreateManagedWidget(
+                           "AFNI" , xmPushButtonWidgetClass , av->rowcol ,
+                              XmNlabelString   , xstr ,
+                              XmNmarginHeight  , 0 ,
+                              XmNmarginWidth   , 0 ,
+                              XmNrecomputeSize , False ,
+                              XmNtraversalOn   , True  ,
+                              XmNuserData      , (XtPointer) av ,
+                              XmNinitialResourcesPersistent , False ,
+                           NULL ) ;
+
+               XtAddCallback( av->pb , XmNactivateCallback ,
+                              PLUG_choose_tcsv_CB , (XtPointer) plint ) ;
+
+               XtManageChild( av->rowcol ) ;
+
+               ow->chooser[ib] = (void *) av ;
+               ow->chtop[ib]   = av->rowcol ;  /* get the top widget */
+
+               ow->chooser_type[ib] = OP_CHOOSER_TCSV ;
                toff-- ;
             }
             break ;
@@ -2431,6 +2538,7 @@ ENTRY("PLUG_fillin_values") ;
               opt->callvalue[ib] = (void *) llist ;
            }
            break ;
+
            /** timeseries type **/
 
            case PLUGIN_TIMESERIES_TYPE:{
@@ -2439,6 +2547,19 @@ ENTRY("PLUG_fillin_values") ;
 
               imp  = myXtNew(MRI_IMAGE *) ;
               *imp = av->tsim ;
+
+              opt->callvalue[ib] = (void *) imp ;
+           }
+           break ;
+
+           /** tcsv type **/
+
+           case PLUGIN_TCSV_TYPE:{
+              PLUGIN_tcsvval * av = (PLUGIN_tcsvval *) ow->chooser[ib] ;
+              NI_element ** imp ;
+
+              imp  = myXtNew(NI_element *) ;
+              *imp = av->tcsv_el ;
 
               opt->callvalue[ib] = (void *) imp ;
            }
@@ -2763,6 +2884,21 @@ ENTRY("get_timeseries_from_PLUGIN_interface") ;
 
    imp = (MRI_IMAGE **)
          get_callvalue_from_PLUGIN_interface(plint,PLUGIN_TIMESERIES_TYPE) ;
+
+   if( imp == NULL ) RETURN(NULL) ;
+   RETURN(*imp) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+NI_element * get_tcsv_from_PLUGIN_interface( PLUGIN_interface * plint )
+{
+   NI_element ** imp ;
+
+ENTRY("get_tcsv_from_PLUGIN_interface") ;
+
+   imp = (NI_element **)
+         get_callvalue_from_PLUGIN_interface(plint,PLUGIN_TCSV_TYPE) ;
 
    if( imp == NULL ) RETURN(NULL) ;
    RETURN(*imp) ;
@@ -3457,6 +3593,50 @@ ENTRY("PLUG_choose_timeseries_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------
+   What happens when a tcsv chooser button is pressed:
+     Popup a tcsv chooser window.
+------------------------------------------------------------------------*/
+
+void PLUG_choose_tcsv_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   PLUGIN_interface * plint = (PLUGIN_interface *) cd ;
+   PLUGIN_tcsvval   * av = NULL ;
+   PLUGIN_subvalue  * sv = NULL ;
+   Three_D_View     * im3d ;
+   int init_ts ;
+
+ENTRY("PLUG_choose_tcsv_CB") ;
+
+   /** find the stuff that is associated with this button **/
+
+   XtVaGetValues( w , XmNuserData , &av , NULL ) ;
+
+   if( plint == NULL || av == NULL ) EXRETURN ;
+   sv = av->sv ;
+   if( sv == NULL ) EXRETURN ;
+   im3d = plint->im3d ;
+
+   av->elarr = GLOBAL_library.tcsv_data ; /* to choose amongst */
+   if( av->elarr==NULL || ELARR_COUNT(av->elarr)==0 ){
+      av->tcsv_choice = -1 ;
+      av->tcsv_el     = NULL ;
+      BEEPIT ; EXRETURN ;
+   }
+
+#if 0
+   init_ts = AFNI_ts_in_library( av->tsim ) ;
+#else
+   init_ts = -1 ;
+#endif
+
+   MCW_choose_tcsv( w , "Choose Timeseries" ,
+                          av->elarr , init_ts ,
+                          PLUG_finalize_tcsv_CB , (XtPointer) plint ) ;
+
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------------
   Called when the user actually selects a timeseries from the chooser.
   This routine just changes the original pushbutton label, and
@@ -3486,6 +3666,42 @@ ENTRY("PLUG_finalize_timeseries_CB") ;
       av->ts_choice = its ;
 
       xstr = XmStringCreateLtoR( av->tsim->name , XmFONTLIST_DEFAULT_TAG ) ;
+      XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
+      XmStringFree( xstr ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
+  Called when the user actually selects a tcsv from the chooser.
+  This routine just changes the original pushbutton label, and
+  notes the index of the choice in the right place, for later retrieval.
+-------------------------------------------------------------------------*/
+
+void PLUG_finalize_tcsv_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
+{
+   PLUGIN_interface * plint = (PLUGIN_interface *) fd ;
+   PLUGIN_tcsvval   * av = NULL ;
+   XmString           xstr ;
+   int                its ;
+
+ENTRY("PLUG_finalize_tcsv_CB") ;
+
+   /** find the stuff that is associated with this button **/
+
+   XtVaGetValues( w , XmNuserData , &av , NULL ) ;
+   if( plint == NULL || av == NULL || av->elarr == NULL ) EXRETURN ;
+   if( cbs->reason != mcwCR_tcsv ) EXRETURN ;  /* error */
+
+   /** store the choice, and change the widget label **/
+
+   its = cbs->ival ;
+   if( its >= 0 && its < ELARR_COUNT(av->elarr) ){
+      av->tcsv_el     = ELARR_SUBEL(av->elarr,its) ;
+      av->tcsv_choice = its ;
+
+      xstr = XmStringCreateLtoR( av->tcsv_el->filename , XmFONTLIST_DEFAULT_TAG ) ;
       XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
       XmStringFree( xstr ) ;
    }

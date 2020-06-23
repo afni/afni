@@ -121,7 +121,7 @@ extern "C" {
 
 /*! Max number of directories. */
 
-#define THD_MAX_NUM_SESSION    99
+#define THD_MAX_NUM_SESSION   199
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_SIZE
 
@@ -4442,6 +4442,9 @@ extern NI_element * THD_read_csv(char *fname) ;            /* 15 Apr 2019 */
 extern void THD_write_csv( char *fname , NI_element *nel ) ;
 extern void THD_set_csv_column_labels( NI_element *fnel , char **clab ) ;
 extern NI_element * THD_mri_to_csv_element( MRI_IMAGE *imin , char **clab ) ;
+
+extern NI_ELARR * THD_get_many_tcsv( THD_string_array * dlist ) ; /* 16 Jun 2020 */
+extern NI_ELARR * THD_get_all_tcsv( char * dname ) ;
 
 /*---------------------------------------------------------------------------*/
 

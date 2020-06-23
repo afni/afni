@@ -59,6 +59,7 @@ typedef struct {
       int left_is_left ;  /* 09 Oct 1998 */
       int read_tim ;      /* 19 Oct 1999 */
       int read_1D ;       /* 27 Jan 2000 */
+      int read_tcsv ;     /* 16 Jun 2020 */
 
       Boolean read_dsets ;    /* 17 Mar 2000 */
 
@@ -1688,6 +1689,7 @@ typedef struct {
    MCW_DC *dc ;                                  /* display context for everyone */
    THD_sessionlist *sslist ;                     /* all sessions viewable */
    MRI_IMARR *timeseries ;                       /* all timeseries available */
+   NI_ELARR  *tcsv_data ;                        /* all *.tsv and *.csv [16 Jun 2020] */
    Three_D_View *controllers[MAX_CONTROLLERS] ;  /* all controllers available */
    MCW_interruptables interruptables ;           /* windows and widgets */
 
