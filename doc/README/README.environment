@@ -319,6 +319,13 @@ AFNI_TSPATH are designed to contain extra timeseries files that
 you want loaded no matter what AFNI sessions and datasets are being
 viewed.
 
+---------------------------
+Variable: AFNI_TCSV_VIEWNUM
+---------------------------
+This numeric value sets the number of preview lines for the AFNI
+*.tsv/*.csv (TCSV) file chooser. If you don't set this to a
+positive value, then the default number of preview lines is 4.
+
 ------------------------
 Variable: AFNI_MODELPATH
 ------------------------

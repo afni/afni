@@ -4715,10 +4715,12 @@ printf("MCW_choose_CB: calling user supplied routine\n") ;
 
 #define NVIEW_TCSV 4
             if( view && nel != NULL ){
-              int ii , jj , qq ;
+              int ii , jj , qq , nview ;
               char *qpt,*zpt , *vstring ;
 
-              vstring = NI_preview_string( nel , NVIEW_TCSV , NULL ) ;
+              nview = AFNI_numenv("AFNI_TCSV_VIEWNUM") ;
+              if( nview < 1 ) nview = NVIEW_TCSV ;
+              vstring = NI_preview_string( nel , nview  , NULL ) ;
 
               /* popup the "view" window */
               if( vstring != NULL ){

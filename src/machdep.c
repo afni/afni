@@ -341,6 +341,7 @@ char * Random_Insult(void)
 
 /*---------------------------------------------------------------------------*/
 #define SOL_TO_LOWER(c) ( ((c) >= 'A' && (c) <= 'Z') ? (c + 'a' - 'A') : (c) )
+
 char *AFNI_strcasestr(const char *s1, const char *s2)
 {
    char *s1u=NULL;
