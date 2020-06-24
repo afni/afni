@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, June , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
+   "The -monty opt input was being ignored.",
+   "It now has a voice.\n"
+},
+
 { 22, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_BUG_FIX,
    "Output col grads file was *not* scaled by bvalues, as help said it would.",
    "Fixed: now output col grads multiplied by bvalues.\n"

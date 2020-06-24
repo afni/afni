@@ -5211,11 +5211,13 @@ int AFNI_rescan_session( int sss )
 
 void AFNI_rescan_timeseries_CB(Widget w, XtPointer cd, XtPointer cb)
 {
-   int iss , inew , jold , nnew , nold , nadd=0 ;
+   int iss , inew , jold , nnew , nold , nadd ;
    THD_string_array *dlist ;
    THD_session *ss ;
    MRI_IMARR *newtsar ;
    MRI_IMAGE *newim , *oldim ;
+   NI_ELARR  *newtsvar ;         /* 16 Jun 2020 */
+   NI_element *newel , *oldel ;
 
 ENTRY("AFNI_rescan_timeseries_CB") ;
 
@@ -5236,32 +5238,57 @@ ENTRY("AFNI_rescan_timeseries_CB") ;
    /** read timeseries into a new array **/
 
    newtsar = THD_get_many_timeseries( dlist ) ;
+   newtsvar = THD_get_many_tcsv( dlist ) ;
    DESTROY_SARR( dlist ) ;
-   if( newtsar == NULL ) EXRETURN ;
 
-   /** check to see which ones are in the old list **/
+   if( newtsar != NULL ){ /** check to see which ones are in the old list **/
 
-   nnew = IMARR_COUNT(newtsar) ;
-   nold = IMARR_COUNT(GLOBAL_library.timeseries) ;
+     nnew = IMARR_COUNT(newtsar) ;
+     nold = IMARR_COUNT(GLOBAL_library.timeseries) ;
 
-   for( inew=0 ; inew < nnew ; inew++ ){
-      newim = IMARR_SUBIMAGE(newtsar,inew) ;  /* new timeseries */
-      for( jold=0 ; jold < nold ; jold++ ){
-         oldim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,jold) ; /* old one */
+     for( nadd=inew=0 ; inew < nnew ; inew++ ){
+        newim = IMARR_SUBIMAGE(newtsar,inew) ;  /* new timeseries */
+        for( jold=0 ; jold < nold ; jold++ ){
+           oldim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,jold) ; /* old one */
 
-         if( oldim != NULL && oldim->name != NULL &&        /* break out of loop */
-             strcmp(oldim->name,newim->name) == 0 ) break ; /* when new == old */
-      }
+           if( oldim != NULL && oldim->name != NULL &&        /* break out of loop */
+               strcmp(oldim->name,newim->name) == 0 ) break ; /* when new == old */
+        }
 
-      if( jold == nold ){
-         ADDTO_IMARR(GLOBAL_library.timeseries,newim); nadd++;  /* is new */
-      } else {
-         mri_free(newim) ;                                      /* is old */
-      }
+        if( jold == nold ){
+           ADDTO_IMARR(GLOBAL_library.timeseries,newim); nadd++;  /* is new */
+        } else {
+           mri_free(newim) ;                                      /* is old */
+        }
+     }
+     if( nadd > 0 ) POPDOWN_timeseries_chooser ;
+     FREE_IMARR(newtsar) ; newtsar = NULL ;
    }
 
-   if( nadd > 0 ) POPDOWN_timeseries_chooser ;
-   FREE_IMARR(newtsar) ;
+   if( newtsvar != NULL ){  /* repeat for tcsv files */
+
+     nnew = ELARR_COUNT(newtsvar) ;
+     nold = ELARR_COUNT(GLOBAL_library.tcsv_data) ;
+
+     for( nadd=inew=0 ; inew < nnew ; inew++ ){
+        newel = ELARR_SUBEL(newtsvar,inew) ;  /* new data */
+        for( jold=0 ; jold < nold ; jold++ ){
+           oldel = ELARR_SUBEL(GLOBAL_library.tcsv_data,jold) ; /* old one */
+
+           if( oldel != NULL &&                                     /* break out of loop */
+               strcmp(oldel->filename,newel->filename) == 0 ) break ; /* when new == old */
+        }
+
+        if( jold == nold ){
+           ADDTO_ELARR(GLOBAL_library.tcsv_data,newel); nadd++;  /* is new */
+        } else {
+           NI_free_element(newel) ;                             /* is old */
+        }
+     }
+     if( nadd > 0 ) /*POPDOWN_timeseries_chooser*/ ;
+     FREE_ELARR(newtsvar) ;
+   }
+
    EXRETURN ;
 }
 

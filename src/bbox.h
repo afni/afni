@@ -31,6 +31,7 @@
 #include "display.h"
 #include "xutil.h"
 #include "mrilib.h"
+#include "niml.h"
 
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
@@ -251,6 +252,7 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 #define POPDOWN_integer_chooser    MCW_choose_integer(NULL,NULL,0,0,0,NULL,NULL)
 #define POPDOWN_timeseries_chooser MCW_choose_timeseries(NULL,NULL,NULL,0,NULL,NULL)
 #define POPDOWN_vector_chooser     MCW_choose_vector(NULL,NULL,0,NULL,NULL,NULL,NULL)
+#define POPDOWN_tcsv_chooser       MCW_choose_tcsv(NULL,NULL,NULL,0,NULL,NULL)
 
 #define POPDOWN_editable_strlist_chooser \
                                    MCW_choose_editable_strlist(NULL,NULL,NULL,0,NULL,NULL)
@@ -294,6 +296,9 @@ extern void   MCW_choose_multi_strlist( Widget, char *, int,
 extern void   MCW_choose_timeseries( Widget, char *, MRI_IMARR *,
                                      int, gen_func *, XtPointer ) ;
 
+extern void   MCW_choose_tcsv      ( Widget , char *, NI_ELARR *,
+                                     int , gen_func *, XtPointer ) ;
+
 extern void MCW_choose_editable_strlist( Widget, char *,
                                          THD_string_array *,
                                          int, gen_func *, XtPointer ) ;
@@ -330,6 +335,7 @@ typedef struct {
 #define mcwCT_string     703
 #define mcwCT_timeseries 707
 #define mcwCT_vector     708  /* 19 Mar 2004 */
+#define mcwCT_tcsv       709  /* 17 Jun 2020 */
 
 #define mcwCT_single_mode 222
 #define mcwCT_multi_mode  223
@@ -356,6 +362,7 @@ typedef struct {
 #define mcwCR_string     203
 #define mcwCR_timeseries 207
 #define mcwCR_vector     208  /* 19 Mar 2004 */
+#define mcwCR_tcsv       209  /* 17 Jun 2020 */
 
 /*---------------------------------------------------------------------------------*/
 /*---- arrowpad stuff ----*/

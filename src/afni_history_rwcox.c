@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUN , 2020 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Add support for *.tsv and *.csv files" ,
+   "Tab and Comma separated value files will be read in, like 1D files, and\n"
+   "can be selected by a chooser, including in a plugin." } ,
+
  { 11 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add Stride to graphing (every n-th time point, n=1..9)" ,
    NULL } ,

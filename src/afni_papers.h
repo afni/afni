@@ -352,5 +352,13 @@ static char *afni_papers[] = {
    "  * https://link.springer.com/article/10.1007/s12021-018-9409-6\n" ,
    "  * https://www.biorxiv.org/content/10.1101/238998v1.abstract\n" ,
    "----------------------------------------------------------------------------\n" ,
+   "DR Glen, PA Taylor, BR Buchsbaum, RW Cox, and RC Reynolds.\n" ,
+   "  Beware (Surprisingly Common) Left-Right Flips in Your MRI Data:\n" ,
+   "  An Efficient and Robust Method to Check MRI Dataset Consistency Using AFNI.\n" ,
+   "  Frontiers in Neuroinformatics, 25 May 2020.\n" ,
+   "\n" ,
+   "  * https://doi.org/10.3389/fninf.2020.00018\n" ,
+   "  * https://www.medrxiv.org/content/10.1101/19009787v4\n" ,
+   "----------------------------------------------------------------------------\n" ,
    NULL } ;
-#define NUM_afni_papers 352
+#define NUM_afni_papers 360

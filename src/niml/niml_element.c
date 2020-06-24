@@ -23,6 +23,8 @@ void NI_set_veclab_from_stringlist( NI_element *nel , char *vstr )
    return ;
 }
 
+/*-----------------------------------------------------------------------*/
+
 void NI_set_attribute_from_veclab_array( NI_element *nel , char **vec_lab )
 {
    char *vla ; int nvla , ii ;
@@ -96,6 +98,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
    nel->vec_lab = NULL ;  /* 11 Sep 2018 */
+   nel->filename= NULL ;  /* 16 Jun 2020 */
 
    nel->vec_filled = 0 ;  /* no data has been filled into vectors */
 
@@ -279,6 +282,7 @@ NI_group * make_empty_group_element( header_stuff *hs )
    ngr->part_num = 0 ;
    ngr->part_typ = NULL ;
    ngr->part     = NULL ;
+   ngr->filename = NULL ; /* 16 Jun 2020 */
 
    return ngr ;
 }
@@ -387,6 +391,8 @@ void NI_free_element( void *nini )
         NI_free(nel->vec_lab) ;
       }
 
+      NI_free( nel->filename ) ;  /* 16 Jun 2020 */
+
       NI_free( nel ) ;
 
    /*-- erase contents of group element --*/
@@ -409,6 +415,7 @@ void NI_free_element( void *nini )
       NI_free( ngr->part_typ ) ;
       NI_free( ngr->part ) ;
       NI_free( ngr->name ) ;    /* 03 Jun 2002 */
+      NI_free( ngr->filename ); /* 16 Jun 2020 */
       NI_free( ngr ) ;
 
    /*-- erase contents of processing instruction --*/
@@ -519,6 +526,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
    nel->vec_lab = NULL ;  /* 11 Sep 2018 */
+   nel->filename= NULL ;  /* 16 Jun 2020 */
 
    NI_init_veclen( nel , veclen ) ;  /* 19 Sep 2008 */
 
@@ -941,16 +949,17 @@ void NI_insert_value( NI_element *nel, int row, int col, void *dat )
 
    /* shallow copy of input data over data now present */
 
-   memcpy( cdat , idat , rt->size ) ;
+   memcpy( cdat , idat , rt->size ) ;  /* cdat now contains input data */
 
    /* copy any var dim arrays inside */
 
    if( ROWTYPE_is_varsize(rt) ){
      for( jj=0 ; jj < rt->part_num ; jj++ ){            /* loop over parts */
 
-       if( rt->part_typ[jj] == NI_STRING ){               /* a string part */
-         char **apt = (char **)(cdat+rt->part_off[jj]) ;   /* *apt => data */
-         qpt = NI_strdup(*apt) ; *apt = qpt ;
+       if( rt->part_typ[jj] == NI_STRING ){                   /* a string part */
+         char **apt = (char **)(cdat+rt->part_off[jj]) ; /* *apt => input data */
+         qpt = NI_strdup(*apt) ;                 /* qpt = copy of input string */
+        *apt = qpt ;                     /* reset *apt to copy of input string */
 
        } else if( rt->part_dim[jj] >= 0 ){                /* var dim array */
          char **apt = (char **)(cdat+rt->part_off[jj]) ;   /* *apt => data */
@@ -1047,6 +1056,62 @@ float NI_extract_float_value( NI_element *nel , int row , int col )
     }
 
     return 0.0f ; /* unreachable */
+}
+
+/*------------------------------------------------------------------------*/
+/* Return a malloc()-ed string value from one value in a data element.
+   Adapted from NI_write_columns().
+   Result should be free()-ed when you are done with it.
+                                          [19 Jun 2020 - RWCox == NIMLman]
+*//*----------------------------------------------------------------------*/
+
+char * NI_extract_text_value( NI_element *nel , int row , int col )
+{
+   int fsiz , col_typ , ii ;
+   NI_rowtype *rt ;
+   char *ptr , *col_dat , *outstr ;
+
+   /* check for stoopid stufff */
+
+   if( nel       == NULL                ) return NULL ;
+   if( nel->type != NI_ELEMENT_TYPE     ) return NULL ;
+   if( row < 0   || row >= nel->vec_len ) return NULL ;
+   if( col < 0   || col >= nel->vec_num ) return NULL ;
+
+   col_typ = nel->vec_typ[col] ;             /* type of data in column */
+   rt      = NI_rowtype_find_code( col_typ ) ;
+   if( rt == NULL                       ) return NULL ; /* impossible? */
+
+   fsiz    = rt->size ;                 /* fixed size of struct (w/padding) */
+   col_dat = (char *)nel->vec[col] ;    /* ptr to column data */
+   ptr     = col_dat + fsiz*row ;       /* ptr to row-th struct in column */
+
+   outstr = (char *)malloc(sizeof(char)*999*rt->part_num) ; outstr[0] = '\0' ;
+
+   /* write each part of this struct into the buffer */
+
+   for( ii=0 ; ii < rt->part_num ; ii++ ){  /*-- loop over parts --*/
+
+     if( rt->part_dim[ii] < 0 ){             /*-- a single value --*/
+       NI_val_to_text( rt->part_rtp[ii],
+                       ptr+rt->part_off[ii], outstr ) ;
+     } else {      /* a compound data type with variable size data */
+       int dim ;
+       char **apt = (char **)(ptr+rt->part_off[ii]); /* data in struct */
+                                                     /* is ptr to array */
+
+       dim = ROWTYPE_part_dimen(rt,ptr,ii) ;         /* dimension of part */
+       if( dim > 0 && *apt != NULL ){
+         NI_multival_to_text( rt->part_rtp[ii] , dim , *apt , outstr ) ;
+       }
+     }
+   }
+
+   /* pare down the output string size */
+
+   ii     = strlen(outstr) ;
+   outstr = realloc( outstr , ii+1 ) ;
+   return outstr ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1694,6 +1759,7 @@ NI_group * NI_new_group_element(void)
    ngr->part_typ = NULL ;
    ngr->part     = NULL ;
    ngr->name     = NULL ;  /* 03 Jun 2002 */
+   ngr->filename = NULL ;  /* 16 Jun 2020 */
 
    return ngr ;
 }
@@ -1894,4 +1960,106 @@ void NI_set_ni_type_atr( NI_element * nel )
    NI_free(buf) ;
 
    return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Return a preview string for the top of a data element [22 Jun 2020].
+   This string should be free()-ed after you are done with it.
+*//*---------------------------------------------------------------------*/
+
+char * NI_preview_string( NI_element *nel , int ntop , char *title )
+{
+   int *cwid , csum , ii , jj , qq , nview , ncol ;
+   char *qpt,*zpt , *vstring ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ) return NULL ;
+
+   ncol = nel->vec_num ; if( ncol <= 0 ) return NULL ;
+   cwid = (int *)malloc(sizeof(int)*ncol) ; /* column width */
+   if( ntop < 1 ) ntop = 1 ;
+   nview = (ntop < nel->vec_len) ? ntop : nel->vec_len ;
+
+   /* scan for max width of each column */
+
+   NI_set_raw_val_to_text(1) ;
+
+   for( jj=0 ; jj < ncol ; jj++ ){         /* col #jj */
+     cwid[jj] = 4 ;
+     if( nel->vec_lab != NULL ){           /* col label */
+       qq = NI_strlen(nel->vec_lab[jj]) ;
+       if( qq > cwid[jj] ) cwid[jj] = qq ;
+     }
+     qpt = NI_rowtype_code_to_name( nel->vec_typ[jj] ) ; /* type name */
+     qq  = NI_strlen(qpt) ;                       /* do NOT free qpt! */
+     if( qq > cwid[jj] ) cwid[jj] = qq ;
+     for( ii=0 ; ii < nview ; ii++ ){  /* col values down the rows */
+       qpt = NI_extract_text_value( nel , ii , jj ) ;
+       qq  = NI_strlen(qpt) ; free(qpt) ;
+       if( qq > cwid[jj] ) cwid[jj] = qq ;
+     }
+   }
+
+   /* sum up all widths, create output string */
+
+   for( csum=jj=0 ; jj < ncol ; jj++ ) csum += cwid[jj]+2 ;
+   if( title == NULL ) title = nel->filename ;
+   jj = NI_strlen( title ) ;
+   if( csum < jj+2 ) csum = jj+2 ;
+
+   vstring = (char *)calloc( sizeof(char), (nview+5)*(csum+1)+666 ) ;
+
+   if( jj > 0 ){
+     jj = (csum-jj)/2 ;  /* spacing to center title */
+     sprintf( vstring , "%-*s%s\n" , jj , " " , title ) ;
+   }
+
+   /* fill up output string */
+   /* first row of printout = column labels (if any) */
+
+   for( jj=0 ; jj < ncol ; jj++ ){         /* col #jj */
+     qpt = (nel->vec_lab != NULL ) ? nel->vec_lab[jj] : NULL ;
+     if( qpt != NULL ){
+       sprintf( vstring+strlen(vstring), " %-*s ", cwid[jj], qpt ) ;
+     } else {
+       char qstr[32] ;
+       sprintf(qstr,"[%d]",jj) ;
+       sprintf( vstring+strlen(vstring), " %-*s ", cwid[jj], qstr ) ;
+     }
+   }
+   sprintf( vstring+strlen(vstring), "\n" ) ;
+
+#if 0
+   /* next row = column type labels (e.g., "float") */
+
+   for( jj=0 ; jj < ncol ; jj++ ){
+     qpt = NI_rowtype_code_to_name( nel->vec_typ[jj] ) ;
+     sprintf( vstring+strlen(vstring), " %-*s ", cwid[jj], qpt ) ;
+   }
+   sprintf( vstring+strlen(vstring), "\n" ) ;
+#endif
+
+#if 1
+   /* next row = underlining of column labels */
+#define DASHES "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+   for( jj=0 ; jj < ncol ; jj++ ){
+     sprintf( vstring+strlen(vstring) ,
+              " %*.*s " , cwid[jj] , cwid[jj] , DASHES ) ;
+   }
+   sprintf( vstring+strlen(vstring), "\n" ) ;
+#endif
+
+   /* then do data rows */
+
+   for( ii=0 ; ii < nview ; ii++ ){
+     for( jj=0 ; jj < ncol ; jj++ ){
+       qpt = NI_extract_text_value( nel, ii, jj ) ;
+       sprintf( vstring+strlen(vstring), " %-*s ", cwid[jj], qpt ) ;
+       free(qpt) ; /* unlike the type labels, we free this string */
+     }
+     if( ii < nview-1 ) sprintf( vstring+strlen(vstring), "\n" ) ;
+   }
+
+   NI_set_raw_val_to_text(0) ;
+   free(cwid) ;
+   return vstring ;
 }

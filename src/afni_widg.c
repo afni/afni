@@ -11,6 +11,22 @@
 extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
                                               char *hint, char *help) ;
 
+#undef  USE_QQQQ  /* for testing TCSV */
+#ifdef  USE_QQQQ
+/*--------------------------------------------------------------------*/
+
+static void AFNI_qqqq_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   MCW_choose_tcsv( im3d->vwid->imag->topper ,
+                    "Choose .tsv or .csv file" ,
+                    GLOBAL_library.tcsv_data , -1 ,
+                    NULL , NULL ) ;
+   return ;
+}
+#endif
+
 /*---------------------------------------------------------------*/
 /*------------ Stuff for logos and pixmap definitions -----------*/
 #undef MAIN
@@ -5732,7 +5748,6 @@ STATUS("making prog->rowcol") ;
                        AFNI_ytube_CB , im3d ) ;
         MCW_set_widget_bg( vwid->ytube_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->ytube_pb , "#ffffaa" ) ;
-        
       }
    }
 #else
@@ -6179,6 +6194,20 @@ STATUS("making prog->rowcol") ;
                      AFNI_papers_CB , im3d ) ;
       MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
       MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
+
+#ifdef  USE_QQQQ
+      /*----------*/
+      { Widget qqqb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("TCSV test") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+        XtAddCallback( qqqb , XmNactivateCallback , AFNI_qqqq_CB , im3d ) ;
+      }
+#endif
 
       /*----------*/
 

@@ -1,3 +1,114 @@
+
+
+ AFNI Digest, week of 2020/06/23: general edition
+
+Contents
+0) New outlier removal option in some stats programs
+1) R-dependency note:  stay with 3.6 for now (esp. on Macs)
+2) Ubuntu 20.04 installation instructions are up
+3) New features in the AFNI graph viewer
+4) AFNI Academy update: better sound now in Regression Hands-on
+5) AFNI refacer/defacer tool with demo page
+
+0) These programs have a new outlier removal option:
+     3dLME, 3dLMEr, 3dICC, 3dISC
+   The option "-bounds" in these programs allows the user to set a
+   range beyond which any values would be considered as outliers and
+   excluded in data analysis
+
+1) On the Mac, specifically for package macos_10.12_local, the R
+   programs (3dMVM, 3dLME, etc.) now depend on R version 3.6 (not 3.5,
+   not 4.0).  We hope to ease this restriction in the future.
+
+2) Ubuntu 20.04 installation instructions (regular and quick versions)
+   are up and running:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_linux_ubuntu20.html
+   Note: we are discovering Windows Subsystem Linux version 2 presents
+   new challenges... we are working on notes for that.
+
+3) AFNI graph viewer update: new features
+   A) You can smooth the plotted curves by pressing the 's' key when
+   the graph viewer window has "focus" (e.g., when the mouse cursor is
+   over the window); you can also control this feature from the
+   Opt->Colors_Etc menu. The smoothing is interpolatory; that is, the
+   plotted curve still passes through the data points, but the
+   interpolated part of the graph will be smooth rather than
+   angular. Smooth plotting will be most evident when there is only
+   one sub-graph displayed. You can see an example in the attached image
+   (afni_graph_viewer.png), which is plotted with Points+Lines 
+   (selectable from Opt->Colors_Etc).
+
+   B) You can plot every N-th point for N=1,2,...,9 by using the
+   Opt->Index_Pin/Stride menu button (at the top of the Opt menu) -
+   this is called "striding" through the data. Not all features of the
+   graph viewer are available when the stride is greater than 1; in
+   particular, the current time point, which is usually marked with a
+   little ball, will not be so marked, and you cannot select a new
+   time point by clicking in the central sub-graph.
+
+   C) You can plot uncertainty in a few different ways;  the "pmfill" 
+   (= "plus/minus" fill) might be the prettiest-- see the attached
+   pmfill.png image.
+
+4) The "AFNI Academy: Regression Hands-on" video on youtube was
+   re-created, due to low sound in the initial version.  (Even though
+   it is in Dolby Surround Sound, you still need to bring your own
+   popcorn, though.)
+
+5) The @afni_refacer_run program for defacing/refacing data has a
+   handy tutorial page, showing how to use it and the helpful
+   automatic QC images generated:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/refacer/refacer_run.html
+   ... and it was also judged to be the "best" program for defacing
+   out there by another group's OHBM poster-- check it out!
+
+========================================================================
+
+
+AFNI Digest, week of 2020/06/23: New papers+posters edition!
+
+Contents
+0) Glen et al. (Frontiers): check for left-right consistency in YOUR data
+1) Chen et al. (bioRxiv): how to analyze task FMRI for generalizability
+2) OHBM-2020 posters from the AFNI group
+
+0) Daniel's LR flip paper:
+Beware (Surprisingly Common) Left-Right Flips in Your MRI Data:
+An Efficient and Robust Method to Check MRI Dataset Consistency Using AFNI
+https://www.frontiersin.org/articles/10.3389/fninf.2020.00018/full
+
+1) Gang's bioRxiv paper:
+To pool or not to pool: Can we ignore cross-trial variability in FMRI?
+https://www.biorxiv.org/content/10.1101/2020.05.19.102111v1?rss=1
+Trailer quotes:
+In this work, we investigate the importance of explicitly accounting
+for cross-trial variability in neuroimaging data analysis...
+To allow generalizing beyond the particular stimulus set employed, the
+cross-trial variability is modeled at the population level through
+partial pooling in a multilevel model, which permits accurate effect
+estimation and characterization...
+Furthermore, our approach allows appropriate accounting for serial
+correlation, handling outliers, adapting to data skew, and capturing
+nonlinear brain-behavior relationships.
+
+2) AFNI OHBM 2020 posters have uploaded:
+Have a sneak peek at the AFNI group's posters on:
++ AFNI's defacing/refacing tool (judged "best" out there, by another
+  group's OHBM poster):
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_reface_OHBM2020.pdf
++ Animal-FMRI pipeline from AFNI (with demos):
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/GlenEtal_aw_ap_OHBM_2020.pdf
++ More fun in afni_proc.py's automatic QC:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_FMRI_QC_OHBM2020.pdf
++ Stats! How to handle relatedness among subjects through LME modeling:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_Mixed_effects_OHBM2020.pdf
++ Determining representative center of mass for ROIs:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/GlenEtal_FindingYourCenter_OHBM2020.pdf
+
+
+========================================================================
+
+
  AFNI Digest, week of 2020/03/09.
 
 Contents:

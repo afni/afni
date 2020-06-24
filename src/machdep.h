@@ -271,7 +271,6 @@ extern long   strtol() ;
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 # undef  DONT_USE_HTMLWIN     /* 08 Jul 2011 */
 # define UNFONTIZE_HTMLWIN    /* 08 Jul 2011 */
-# define strcasestr AFNI_strcasestr 
 
 
 #ifdef SOLARIS_OLD            /* 03 Feb 2009 [rickr] */
@@ -424,6 +423,10 @@ extern char * GetAfniPDFViewer(void);
 extern char * GetAfniImageViewer(void);
 extern char * GetAfniTextEditor(void);
 extern char * AFNI_strcasestr(const char *s1, const char *s2);
+
+#ifndef strcasestr
+#define strcasestr AFNI_strcasestr  /* replacement [24 Jun 2020] */
+#endif
 
 extern void AFNI_do_nothing(void) ;
 

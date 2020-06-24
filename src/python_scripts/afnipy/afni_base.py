@@ -1275,8 +1275,16 @@ Out[8]: 0
 
 # -----------------------------------------------------------------------
 # [PT: Jun 1, 2020] simple functions to stylize printing of messages
-# in The AFNI Way.  APRINT() is the main workhorse; IP(), EP() and
+# in The AFNI Way.  APRINT() is the main workhorse; BP(), IP(), EP() and
 # WP() are just short/convenient wrappers
+
+def BP( S, indent=True):
+    '''Warning print string S'''
+    APRINT(S, ptype='BLANK', indent=indent)
+
+def IP( S, indent=True):
+    '''Info print string S'''
+    APRINT(S, ptype='INFO', indent=indent)
 
 def WP( S, indent=True):
     '''Warning print string S'''
@@ -1285,15 +1293,13 @@ def WP( S, indent=True):
 def EP( S, indent=True, end_exit=True):
     '''Error print string S
 
-    By default, exit after printing'''
+    By default, exit after printing
+
+    '''
     APRINT(S, ptype='ERROR', indent=indent)
 
     if end_exit :
        sys.exit(1)
-
-def IP( S, indent=True):
-    '''Info print string S'''
-    APRINT(S, ptype='INFO', indent=indent)
 
 def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S
@@ -1309,6 +1315,8 @@ def APRINT( S, ptype=None, indent=True):
        ptype_str = "** ERROR:"
     elif ptype == 'INFO' :
        ptype_str = "++"
+    elif ptype == 'BLANK' :
+       ptype_str = "  "
     else:
        print("**** Unrecognized print type '{}'. So, error about\n"
              "     a warning, error or info message!\n".format(ptype))

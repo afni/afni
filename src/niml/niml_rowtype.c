@@ -860,6 +860,10 @@ int NI_rowtype_vsize( NI_rowtype *rt , void *dpt )
     or NI_STRING.  Structs with var dim arrays must be handled separately.
 ---------------------------------------------------------------------------*/
 
+static int do_raw = 0 ;
+
+void NI_set_raw_val_to_text( int ii ){ do_raw = ii ; }
+
 void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
 {
    int jj = strlen(wbuf) ;
@@ -950,9 +954,13 @@ void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
 
      case NI_STRING:{                         /* 30 Dec 2002 */
        char **vpt = (char **)dpt , *str ;
-       str = quotize_string( *vpt ) ;
-       sprintf(wbuf+jj," %s",str) ;
-       NI_free(str) ;
+       if( !do_raw ){
+         str = quotize_string( *vpt ) ;
+         sprintf(wbuf+jj," %s",str) ;
+         NI_free(str) ;
+       } else {
+         sprintf(wbuf+jj," %s",*vpt) ;
+       }
      }
      break ;
 
