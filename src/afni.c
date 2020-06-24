@@ -645,7 +645,7 @@ void AFNI_syntax(void)
      "                  Has the same effect as choosing 'All_Datasets' in the GUI.\n"
      "                  Example: afni -all_dsets dir1 dir2 dir3\n"
      "                  Can be set to default in .afnirc with ALL_DSETS_STARTUP = YES.\n"
-     "                  Overiden silently by AFNI_ALL_DATASETS = NO.\n"
+     "                  Overidden silently by AFNI_ALL_DATASETS = NO.\n"
      "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging unused datasets from memory.\n"
