@@ -282,6 +282,7 @@ add_library(
   thd_floatscan.c
   thd_forcemalloc.c
   thd_get1D.c
+  thd_get_tcsv.c
   thd_getorient.c
   thd_getpathprogs.c
   thd_http.c
