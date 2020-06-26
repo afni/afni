@@ -18,6 +18,6 @@ setup(name='afnipy',
       author_email='afni.bootcamp@gmail.com',
       license='Public Domain',
       packages= find_packages(),
-      install_requires=["numpy", "matplotlib"],
+      install_requires=["numpy>=1.14.5", "matplotlib"],
       scripts=SCRIPTS,
       zip_safe=False)
