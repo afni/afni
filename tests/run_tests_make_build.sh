@@ -2,11 +2,11 @@
 # Exit on any errors.
 set -e
 export NCPUS=$(getconf _NPROCESSORS_ONLN)
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=$NCPUS
 
 # Run tests
 cd /opt/afni/src/tests
-pytest --runveryslow -v -r Esx --workers $NCPUS
+pytest --runveryslow -v -r Esx 
 # For coverage
 # pytest --runveryslow --cov=/opt/afni/src/abin --cov-report xml:/opt/afni/src/coverage.xml --workers $NCPUS
 # cd /opt/afni/src
