@@ -7,7 +7,7 @@
 set -e
 
 export NCPUS=$(getconf _NPROCESSORS_ONLN)
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=$NCPUS
 
 # basic config for git
 gituser="git config user.name"
@@ -23,4 +23,4 @@ fi
 
 # Run tests
 cd /opt/afni/src/tests
-pytest scripts --runveryslow -vv --showlocals -r Esx --workers $NCPUS
+pytest scripts --runveryslow -vv --showlocals -r Esx 
