@@ -154,7 +154,7 @@ RUN pip install \
         ipython \
         matplotlib \
         nibabel \
-        numpy \
+        'numpy>=1.14.5' \
         pandas \
         pdbpp \
         pytest \
