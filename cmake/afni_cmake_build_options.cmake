@@ -122,6 +122,7 @@ cmake_dependent_option(
 option(COMP_ADD_ATLASES "Use datalad to download data for distribution" OFF)
 set_if_not_defined(COMP_ADD_ALL_PLUGINS "By default a core set of plugins are built." ON)
 option(GENERATE_PACKAGING_COMPONENTS "For internal use only" OFF)
+option(REMOVE_BUILD_PARITY_CHECKS "For internal use only" OFF)
 option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 option(USE_CPACK "CPack can be used to generate source and binary distributions" OFF)
 option(ENABLE_TESTS "Enable tests" OFF)
