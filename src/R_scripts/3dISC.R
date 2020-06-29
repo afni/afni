@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.5, June 19, 2020
+Version 0.0.5, June 29, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -108,7 +108,7 @@ Introduction
 -------------------------------------------------------------------------
     3dISC -prefix ISC -jobs 12                    \\
           -mask myMask+tlrc                       \\
-          -model  '1+(1|Subj1)+(1|Subj2           \\
+          -model  '1+(1|Subj1)+(1|Subj2)          \\
           -dataTable                              \\
           Subj1   Subj2  InputFile                \\
           s1       s2    s1_s2+tlrc               \\
