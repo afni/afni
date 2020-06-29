@@ -1327,17 +1327,17 @@ def glob_with_afni_selectors(ilist, verb=0):
                 no_hits.append(word)
 
     if verb :
-        ab.IP("Found these from glob list: {}".format(' '.join(ilist)))
-        ab.BP('-'*40)
+        IP("Found these from glob list: {}".format(' '.join(ilist)))
+        BP('-'*40)
         for x in olist:
-            ab.BP('  ' + x)
-        ab.BP('-'*40)
+            BP('  ' + x)
+        BP('-'*40)
 
     if no_hits :
-        ab.WP("This part of the glob list contained no matches:")
+        WP("This part of the glob list contained no matches:")
         for x in no_hits:
-            ab.BP('  ' + x)
-        ab.BP('-'*40)
+            BP('  ' + x)
+        BP('-'*40)
 
     return olist
 
