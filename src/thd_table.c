@@ -258,7 +258,9 @@ void string_ectomy( char *src , char *bad )  /* 20 Jun 2012 */
    }
 
    if( io < nsrc ){
+#if 0
      ININFO_message("Table reading: replaced string  %s  -with-  %s",src,out) ;
+#endif
      strcpy(src,out) ;
    }
 
