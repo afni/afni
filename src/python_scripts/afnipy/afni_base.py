@@ -1326,7 +1326,7 @@ def glob_with_afni_selectors(ilist, verb=0):
             if not(lll) :
                 no_hits.append(word)
 
-    if 1: # verb :
+    if verb :
         ab.IP("Found these from glob list: {}".format(' '.join(ilist)))
         ab.BP('-'*40)
         for x in olist:
