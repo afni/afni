@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, July , 2020 , PT , "@Install_NMT" , MAJOR , TYPE_NEW_PROG,
+   "Installer for the NIMH Macaque Template(s) v2, and the CHARM (atlases).",
+   "Courtesy of Ben Jung, Adam Messinger, et al.\n"
+},
+
 { 22, June , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
    "The -monty opt input was being ignored.",
    "It now has a voice.\n"
@@ -247,8 +252,8 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
-   "Installer for the Indian Brain Templates.",
-   "Enjoy.\n"
+   "Installer for the Indian Brain Templates. Enjoy.",
+   "Courtesy of Dr. Bharath Holla, et al.\n"
 },
 
 { 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
