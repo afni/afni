@@ -13,6 +13,8 @@
     These restrictions are here because I feel these cover the useful cases
     for the types of data AFNI deals with, and then the programs don't have
     to waste time/memory trying to optimize over non-useful parameter ranges.
+
+    RWCox - 01 Jul 2020 - https://rb.gy/9t84mb
 *//****************************************************************************/
 
 /*------------------------------------------------------------------------------*/
@@ -39,14 +41,14 @@
    noise in the AR recurrence! ("vrt" == "variance ratio")
 
    A maximum of ncmax correlations are computed (ncmax < 4 ==> no limit).
-   Correlations are computed until three in a row are below corcut
-   (corcut <= 0 ==> 0.00001).
+   Correlations are computed until three in a row are below ccut
+   (ccut <= 0 ==> 0.00001).
 *//*----------------------------------------------------------------------------*/
 
-doublevec * arma3_correlations( double a , double r1 , double t1 ,
-                              double vrt , double corcut , int ncmax )
+doublevec * arma31_correlations( double a , double r1 , double t1 ,
+                                 double vrt , double ccut , int ncmax )
 {
-   double p1,p2,p3 , cnew , g1,g2 ;
+   double p1,p2,p3 , cnew , g1,g2 , c1 ;
    int kk , nzz , ncor ;
    doublevec *corvec=NULL ;
 
@@ -55,7 +57,7 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
    if( a < 0.0 || r1 < 0.0 ) return NULL ; /* bad user */
 
    if( vrt <= 0.01 ||                      /* no AR(3) noise? */
-       (a <= 0.01 && r1 <= 0.01 ){
+       (a <= 0.01 && r1 <= 0.01) ){
      MAKE_doublevec( corvec , 1 ) ;
      corvec->ar[0] = 1.0 ;
      return corvec ;
@@ -66,10 +68,10 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
    if( vrt > 1.0  ) vrt = 1.0  ;
    if( t1  > PI   ) t1  = PI   ; else if( t1 < 0.0 ) t1 = 0.0 ;
 
-   if( corcut <= 0.0 ) corcut = 0.00001 ;
-   if( ncmax  <  4   ) ncmax  = 6666 ;
+   if( ccut  <= 0.0 ) ccut  = 0.00001 ;
+   if( ncmax <  4   ) ncmax = 6666 ;
 
-   corcut = corcut / vrt ; if( corcut > 0.05 ) corcut = 0.05 ;
+   ccut = ccut / vrt ; if( ccut > 0.05 ) ccut = 0.05 ;
 
    /* compute polynomial coefficients from input parameters,
       by expansion of
@@ -90,9 +92,9 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
 
    if( fabs(cnew) < 0.001 ){                /* error, should not happen */
      ERROR_message("bad AR(3) setup:\n"
-                      a  = %g  r1 = %g  t1 = %g\n"
-                      p1 = %g  p2 = %g  p3 = %g\n"
-                     det = %g"   , a,r1,t1 , p1,p2,p3 , cnew ) ;
+                   "  a  = %g  r1 = %g  t1 = %g\n"
+                   "  p1 = %g  p2 = %g  p3 = %g\n"
+                   " det = %g"   , a,r1,t1 , p1,p2,p3 , cnew ) ;
      return NULL ;
    }
 
@@ -103,10 +105,10 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
 
    if( fabs(g1) >= 1.0 || fabs(g2) > 1.0 ){  /* error, should not happen */
      ERROR_message("bad AR(3) setup:\n"
-                      a  = %g  r1 = %g  t1 = %g\n"
-                      p1 = %g  p2 = %g  p3 = %g\n"
-                     det = %g\n"
-                      g1 = %g  g2 = %g" ,
+                   "  a  = %g  r1 = %g  t1 = %g\n"
+                   "  p1 = %g  p2 = %g  p3 = %g\n"
+                   " det = %g\n"
+                   "  g1 = %g  g2 = %g" ,
                    a,r1,t1 , p1,p2,p3 , cnew , g1,g2 ) ;
      return NULL ;
    }
@@ -133,7 +135,7 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < corcut ){
+     if( abs(cnew) < ccut ){
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
@@ -163,7 +165,7 @@ doublevec * arma3_correlations( double a , double r1 , double t1 ,
      x[n]   = p1*x[n-1] + p2*x[n-2] + p3*x[n-3] + p4*x[n-4] + p5*x[n-5] + w[n]
 *//*----------------------------------------------------------------------------*/
 
-double_quad arma5_gam1234( double p1, double p2, double p3, double p4, double p5 )
+double_quad arma51_gam1234( double p1, double p2, double p3, double p4, double p5 )
 {
    dmat44 amat , imat ;
    double_quad g1234 ;
@@ -212,16 +214,16 @@ double_quad arma5_gam1234( double p1, double p2, double p3, double p4, double p5
    noise in the AR(5) recurrence! ("vrt" == "variance ratio")
 
    A maximum of ncmax correlations are computed (ncmax < 4 ==> no limit).
-   Correlations are computed until three in a row are below corcut
-   (corcut <= 0 ==> 0.00001).
+   Correlations are computed until three in a row are below ccut
+   (ccut <= 0 ==> 0.00001).
 *//*----------------------------------------------------------------------------*/
 
-doublevec * arma5_correlations( double a , double r1 , double t1 ,
-                                           double r2 , double t2 ,
-                              double vrt , double corcut , int ncmax )
+doublevec * arma51_correlations( double a , double r1 , double t1 ,
+                                            double r2 , double t2 ,
+                                 double vrt , double ccut , int ncmax )
 {
    double_quad g1234 ;
-   double p1,p2,p3,p4,p5 , cnew ;
+   double p1,p2,p3,p4,p5 , cnew , c1,s1,c2,s2 ;
    int kk , nzz , ncor ;
    doublevec *corvec=NULL ;
 
@@ -241,10 +243,10 @@ doublevec * arma5_correlations( double a , double r1 , double t1 ,
    if( t1  > PI   ) t1  = PI   ; else if( t1 < 0.0 ) t1 = 0.0 ;
    if( t2  > PI   ) t2  = PI   ; else if( t2 < 0.0 ) t2 = 0.0 ;
 
-   if( corcut <= 0.0 ) corcut = 0.00001 ;
-   if( ncmax  <  4   ) ncmax  = 6666 ;
+   if( ccut  <= 0.0 ) ccut  = 0.00001 ;
+   if( ncmax <  4   ) ncmax = 6666 ;
 
-   corcut = corcut / vrt ; if( corcut > 0.05 ) corcut = 0.05 ;
+   ccut = ccut / vrt ; if( ccut > 0.05 ) ccut = 0.05 ;
 
    /* compute polynomial coefficients from input parameters,
       by expansion of the product
@@ -265,7 +267,7 @@ doublevec * arma5_correlations( double a , double r1 , double t1 ,
    /* compute first 4 gamma coefficients (correlations)
       from the linear equation connecting p1..p5 to g1..g4 */
 
-   g1234 = arma5_gam1234( p1, p2, p3, p4, p5 ) ;
+   g1234 = arma51_gam1234( p1, p2, p3, p4, p5 ) ;
 
    if( fabs(g1234.a) >= 1.0 ||
        fabs(g1234.b) >= 1.0 ||
@@ -307,7 +309,7 @@ doublevec * arma5_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < corcut ){
+     if( abs(cnew) < ccut ){
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
