@@ -95,6 +95,16 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
 )
 
+# Add build time check for correct linking in suma gui.
+# For further information see:
+# https://github.com/afni/afni/issues/131
+# https://github.com/afni/afni/issues/158
+if(NOT APPLE)
+# check for X linking error that occurs on some linux systems
+check_suma_binary()
+endif()
+
+
 # Programs (for which the source files have SUMA_ prepended)
 set(PROGRAMS
     prompt_user

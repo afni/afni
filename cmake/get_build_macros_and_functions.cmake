@@ -352,3 +352,12 @@ macro(set_if_not_defined var defaultvalue)
     set(${var} "${defaultvalue}")
   endif()
 endmacro()
+
+function(check_suma_binary)
+add_custom_command(TARGET suma
+                     COMMAND bash ${CMAKE_SOURCE_DIR}/cmake/check_suma_binary_linking.sh $<TARGET_FILE:suma>
+                     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                     COMMENT check that the suma binary linking has not run into the motif/xt issue
+                     USES_TERMINAL
+                     )
+endfunction()
