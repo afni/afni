@@ -62,19 +62,14 @@ target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
   PRIVATE AFNI::mrix
-          Motif::Motif
-          ${X11_Xt_LIB}
-          ${X11_LIBRARIES}
-          ${X11_Xmu_LIB}
-          AFNI::mri
           $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
-          ${X11_Xi_LIB}
           track_tools
           segtools
+          $<IF:$<BOOL:${APPLE}>,X11::Xmu,>
           AFNI::3DEdge
           NIFTI::nifti2
           NIFTI::nifticdf
@@ -86,10 +81,7 @@ target_link_libraries(
   suma
   PRIVATE SUMA
           AFNI::mrix
-          Motif::Motif
-          ${X11_Xt_LIB}
-          ${X11_LIBRARIES}
-          AFNI::track_tools
+         AFNI::track_tools
           AFNI::segtools
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
@@ -169,8 +161,6 @@ foreach(program ${PROGRAMS})
             AFNI::mrix
             AFNI::track_tools
             AFNI::segtools
-            ${X11_Xt_LIB}
-            ${X11_LIBRARIES}
             NIFTI::nifti2
             NIFTI::nifticdf
   )
@@ -197,8 +187,6 @@ foreach(prog_with_name_as_source prompt_popup)
     PRIVATE SUMA
             AFNI::mrix
             Motif::Motif
-            ${X11_Xt_LIB}
-            ${X11_LIBRARIES}
             NIFTI::nifti2
             NIFTI::nifticdf
   )
@@ -216,9 +204,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
     PRIVATE SUMA
             AFNI::mrix
             Motif::Motif
-            ${X11_Xt_LIB}
-            ${X11_LIBRARIES}
-            ${X11_Xmu_LIB}
+            X11::Xmu
             NIFTI::nifti2
             NIFTI::nifticdf
             $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
@@ -248,7 +234,7 @@ add_afni_executable(
   path_optimize SUMA_path_optimize.c SUMA_SurfWarp.c
 )
 target_link_libraries(
-  path_optimize PRIVATE SUMA AFNI::mri ${X11_Xt_LIB} NIFTI::nifti2
+  path_optimize PRIVATE SUMA AFNI::mri  X11::Xt NIFTI::nifti2
                         NIFTI::nifticdf
 )
 
