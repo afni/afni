@@ -339,18 +339,15 @@ add_afni_executable(3dBrainSync 3dBrainSync.c)
 target_link_libraries(3dBrainSync AFNI::mri)
 
 add_afni_executable(3dExchange 3dExchange.c)
-target_include_directories(3dExchange PRIVATE ${X11_INCLUDE_DIR})
-target_link_libraries(3dExchange AFNI::mri ${X11_LIBRARIES})
+target_link_libraries(3dExchange AFNI::mrix)
 
 add_afni_executable(3dMaskToASCII 3dMaskToASCII.c)
-target_include_directories(3dMaskToASCII PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(3dMaskToASCII AFNI::mri NIFTI::nifti2 NIFTI::nifticdf)
 
 add_afni_executable(3dTto1D 3dTto1D.c)
 target_link_libraries(3dTto1D AFNI::mri NIFTI::nifti2 NIFTI::nifticdf)
 
 add_afni_executable(3dedge3 3dedge3.c)
-target_include_directories(3dedge3 PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(3dedge3 AFNI::mri AFNI::3DEdge)
 
 add_afni_executable(3dfractionize 3dfractionize.c)
@@ -440,13 +437,12 @@ if(COMP_X_DEPENDENT_GUI_PROGS)
   add_afni_executable(1dplot 1dplot.c display.c)
   target_include_directories(1dplot PRIVATE AFNI::mri)
   target_link_libraries(
-    1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB}
-                   ${X11_LIBRARIES}
+    1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2
   )
 
   add_afni_executable(1dgrayplot 1dgrayplot.c)
   target_link_libraries(
-    1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB}
+    1dgrayplot PRIVATE AFNI::mrix AFNI::coxplot
   )
 
   add_afni_executable(3dAllineate 3dAllineate.c )
@@ -456,7 +452,7 @@ if(COMP_X_DEPENDENT_GUI_PROGS)
 
   foreach(target FD2 imreg)
     target_link_libraries(
-      ${target} PRIVATE AFNI::mrix ${X11_LIBRARIES} NIFTI::nifti2 NIFTI::nifticdf
+      ${target} PRIVATE AFNI::mrix  NIFTI::nifti2 NIFTI::nifticdf
     )
   endforeach(target)
 
@@ -465,7 +461,7 @@ if(COMP_X_DEPENDENT_GUI_PROGS)
 
   add_afni_executable(to3d to3d.c)
   target_link_libraries(
-    to3d PRIVATE AFNI::mrix Motif::Motif ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
+    to3d PRIVATE AFNI::mrix
                  NIFTI::nifti2
   )
 

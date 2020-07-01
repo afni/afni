@@ -19,10 +19,6 @@ add_subdirectory(include)
 # add the c files to XmHTML target sources
 add_subdirectory(lib)
 
-target_include_directories(
-  XmHTML PRIVATE ${X11_INCLUDE_DIR} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-                 $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
-)
 target_link_libraries(
-  XmHTML PRIVATE Motif::Motif ${X11_Xt_LIB} ${X11_Xpm_LIB} ${X11_LIBRARIES} JPEG::JPEG
+  XmHTML PRIVATE Motif::Motif  X11::Xt  X11::Xpm X11::Xext X11::X11  JPEG::JPEG
 )
