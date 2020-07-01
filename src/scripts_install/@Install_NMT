@@ -1,0 +1,212 @@
+#!/bin/tcsh -fe
+
+# written by Ben Jung (June 30, 2020)
+# additional contact people about NMT issues:
+#    * Adam Messinger (re. template/data itself)
+#    * Daniel Glen (of course)
+#    * Paul Taylor
+
+set stat = 0
+set sdir = $PWD
+
+goto PARSE
+RET_PARSE:
+if ("$NMT_ver" =~ 2*) then
+      set template = NMT_v${NMT_ver}_${sym}
+else
+      set template = NMT_v${NMT_ver}
+endif
+
+if ( -d ${install_dir}/$template) then
+  if (${overwrite} == "0") then
+    echo ""
+    echo "ERROR:"
+    echo "   Directory ${install_dir}/$template exists already"
+    echo "   If you want to reinstall the NMT, add -overwrite"
+    echo "   to your @Install_NMT command"
+    echo ""
+    goto END
+  else if (${overwrite} == "1") then
+    echo "WARNING: Removing currently installed ${install_dir}/$template"
+    rm -r ${install_dir}/$template
+  endif
+endif
+
+if ($use_curl == -1) then
+   which curl
+   if ($status) then
+      set use_curl = 0;
+   else
+      set use_curl = 1;
+   endif
+endif
+
+cd ${install_dir}
+
+echo "Downloading https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/${template}.tgz"
+if ($use_curl == 0) then
+   wget https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/${template}.tgz
+else
+   curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/${template}.tgz
+endif
+
+tar -xvzf $template.tgz
+rm $template.tgz
+
+cd $template
+   echo "********************************************************"
+   echo "Please read ${install_dir}/$template/README.txt for more information about this template"
+   echo "********************************************************"
+
+if ($set_env == 1) then
+  set atlas_dir = ${install_dir}
+  @AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
+  @AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
+  @AfniEnv -set AFNI_TEMPLATE_SPACE_LIST NMT,NMT2,D99_Macaque,D99_Macaque_book
+  @AfniEnv -set AFNI_WEBBY_WAMI YES
+endif
+cd -
+goto END
+
+PARSE:
+
+#------------------------ process user options --------------------------
+set use_curl = -1
+set NMT_ver = 2.0
+set sym = sym
+set install_dir = ${sdir}
+set overwrite = 0
+set ac = 1
+set set_env = 0
+while ($ac <= $#argv)
+   if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+       goto HELP
+
+   else if ("$argv[$ac]" == "-curl") then
+        set use_curl = 1
+
+   else if ("$argv[$ac]" == "-wget") then
+        set use_curl = 0
+
+   else if ("$argv[$ac]" == "-install_dir") then
+       set this_opt = "$argv[$ac]"
+       @ ac ++
+       if ( $ac > $#argv ) then
+           echo "** missing parameter for option '${this_opt}'"
+           exit 1
+       endif
+       set install_dir =  $argv[$ac]
+
+   else if ("$argv[$ac]" == "-overwrite") then
+       set overwrite = "1"
+
+   else if ("$argv[$ac]" == "-NMT_ver") then
+       set this_opt = "$argv[$ac]"
+       @ ac ++
+       if ( $ac > $#argv ) then
+           echo "** missing parameter for option '${this_opt}'"
+           exit 1
+       endif
+       set NMT_ver = $argv[$ac]
+       if (($NMT_ver != "1.2")  && \
+           ($NMT_ver != "1.3")  && \
+           ($NMT_ver != "2.0")) then
+             echo "NMT_ver $NMT_ver is not a valid choice"
+             exit 1
+       endif
+
+   else if ("$argv[$ac]" == "-sym") then
+       set this_opt = "$argv[$ac]"
+       @ ac ++
+       if ( $ac > $#argv ) then
+           echo "** missing parameter for option '${this_opt}'"
+           exit 1
+       endif
+       set sym = $argv[$ac]
+       if ($sym == "symmetric") then
+         set sym = sym
+       else if ($sym == "asymmetric") then
+         set sym = asym
+       endif
+
+   else if ("$argv[$ac]" == "-set_env") then
+       set set_env = "1"
+
+   else
+       echo "Error: Option or parameter '$argv[$ac]' not understood"
+       goto END
+   endif
+   @ ac ++
+end
+
+goto RET_PARSE
+
+HELP:
+cat << EOF
+
+   Installs the NIMH Macaque Template (NMT) with the accompanying
+   Cortical Hierarchy Atlas of the Rhesus Macaque (CHARM).
+
+   Note there are multiple versions and variants of the template to
+   choose from (see the "-ver .." and "-sym .." options, below), with
+   the default being the symmetric NMT v2.
+
+   The NMT v2 and the CHARM are described in:
+
+      Jung B, Taylor PA, Seidlitz PA, Sponheim C, Glen DR, Messinger A
+      (2020).  "A Comprehensive Macaque FMRI Pipeline and Hierarchical
+      Atlas."  NeuroImage, submitted.
+
+   while the previous template versions (the NMT v1.2 and NMT v1.3) are
+   described in:
+
+      Seidlitz J, Sponheim C, Glen DR, Ye FQ, Saleem KS, Leopold DA,
+      Ungerleider L, Messinger A (2018). "A Population MRI Brain
+      Template and Analysis Tools for the Macaque." NeuroImage 170:
+      121–31.  https://doi.org/10.1016/j.neuroimage.2017.04.063.
+
+   ** Please cite Jung et al. (2020) and/or Seidlitz et al. (2018) if you
+   make use of the respective templates in your work. **
+
+   After the archive is downloaded and unpacked (as the directory
+   "NMT_*", depending on your selected version+variant), see its
+   README.txt for details.
+
+   --------------------------------------------------------------------------
+
+   Options:
+
+   [-install_dir X]: The install location for the NMT
+                     (default = PWD)
+   [-NMT_ver X]:     The version of the NMT you wish to install
+                     (default = 2.0; valid = 1.2, 1.3, 2.0)
+   [-sym X]          The NMT v2 has both a symmetric and asymmetric variant.
+                     Specify the desired variant X as either "sym" or "asym".
+                     Option is valid for the NMT v2 only--in other cases it is
+                     ignored. (default = "sym")
+   [-set_env]:       Allows the script to modify the .afnirc file to increase
+                     NMT compatibility with AFNI (recommended, but not default)
+   [-overwrite]:     Allows the script to remove a pre-existing NMT directory
+   [-wget]:          Use wget to download archive. Script chooses by default
+                     with preference for curl
+   [-curl]:          Use curl to download archive. Script chooses by default
+                     with preference for curl
+   [-help]:          repeats this message
+
+   --------------------------------------------------------------------------
+
+   Please contact Dr. Adam Messinger (messinga@nih.gov) or Ben Jung
+   (benjamin.jung@nih.gov) with any questions or concerns regarding the
+   NMT.
+
+
+EOF
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+
+END:
+   exit $stat
