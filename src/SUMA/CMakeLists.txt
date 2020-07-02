@@ -62,7 +62,7 @@ target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
   PRIVATE AFNI::mrix
-          $<TARGET_NAME_IF_EXISTS:AFNI::GLUT>
+          $<IF:$<NOT:$<BOOL:${APPLE}>>,$<TARGET_NAME_IF_EXISTS:AFNI::GLUT>,>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
