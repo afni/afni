@@ -43,6 +43,10 @@ def is_omp(toolname):
     OMP = "is compiled using OpenMP" in run(
         [toolname, "-help"], stdout=PIPE
     ).stdout.decode("utf-8")
+
+    # for now skip all files that want use omp if that was not used in the build
+    if not OMP:
+        pytestmark = pytest.mark.skip('skipping entire module')
     return OMP
 
 
