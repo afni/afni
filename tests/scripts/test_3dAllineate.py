@@ -4,9 +4,6 @@ from .utils import tools
 
 # check for omp compilation
 OMP = is_omp("3dAllineate")
-if not OMP:
-    raise ValueError("Build should be using Open MP")
-
 
 # Define Data
 data_paths = {

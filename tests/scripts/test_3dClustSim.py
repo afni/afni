@@ -4,9 +4,6 @@ import pytest
 
 # check for omp compilation
 OMP = is_omp("3dClustSim")
-if not OMP:
-    raise ValueError("Build should be using OMP")
-
 
 # Define Data
 data_paths = {
