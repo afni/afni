@@ -52,7 +52,7 @@ target_include_directories(
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
             $<TARGET_PROPERTY:Motif::Motif,INTERFACE_INCLUDE_DIRECTORIES>
-            $<IF:$<BOOL:APPLE>,${X11_INCLUDE_DIR},"">
+            $<IF:$<BOOL:${APPLE}>,${X11_INCLUDE_DIR},>
 )
 target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
 set_source_files_properties(
@@ -282,6 +282,7 @@ add_library(
   thd_floatscan.c
   thd_forcemalloc.c
   thd_get1D.c
+  thd_get_tcsv.c
   thd_getorient.c
   thd_getpathprogs.c
   thd_http.c

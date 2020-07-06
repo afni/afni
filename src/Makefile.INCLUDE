@@ -1432,7 +1432,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o 3dSatCheck 3dSatCheck.o $(LFLAGS) $(LLIBS)
 
-3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c
+3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c armacor.c
 	$(RM) $@
 	$(CCOMP) -c 3dREMLfit.c $(INFLAGS)
 

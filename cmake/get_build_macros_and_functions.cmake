@@ -128,8 +128,10 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   # message("Installed:${afni_installed_targets}")
   list(REMOVE_ITEM expected_targets ${afni_installed_targets})
   if(NOT "${expected_targets}" STREQUAL "")
+  if(NOT REMOVE_BUILD_PARITY_CHECKS)
     message(FATAL_ERROR "The build has not built all the targets expected. It is\
      missing the following targets:${expected_targets}!!!!")
+  endif()
   endif()
   
   # ##### assessing parity with the make build
@@ -208,6 +210,9 @@ function(get_component_name component cmpnt_mapping targ_in)
   if(output)
     set(${component} "${output}" PARENT_SCOPE)
   else()
+    if(REMOVE_BUILD_PARIT_CHECKS)
+      return()
+    endif()
     message(FATAL_ERROR 
       "########################################################################## \
       ERROR: Installation component not found for ${targ_in}. This is             \
@@ -347,3 +352,12 @@ macro(set_if_not_defined var defaultvalue)
     set(${var} "${defaultvalue}")
   endif()
 endmacro()
+
+function(check_suma_binary)
+add_custom_command(TARGET suma
+                     COMMAND bash ${CMAKE_SOURCE_DIR}/cmake/check_suma_binary_linking.sh $<TARGET_FILE:suma>
+                     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                     COMMENT check that the suma binary linking has not run into the motif/xt issue
+                     USES_TERMINAL
+                     )
+endfunction()

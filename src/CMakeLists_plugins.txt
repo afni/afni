@@ -106,8 +106,6 @@ if(COMP_ADD_BINARIES)
     target_link_libraries(${target} 
       PRIVATE
         AFNI::mrix
-        Motif::Motif
-        ${X11_Xt_LIB}
         NIFTI::nifti2
         NIFTI::nifticdf
     )

@@ -63,7 +63,11 @@ if(MOTIF_FOUND)
                  "${MOTIF_LIBRARIES}" INTERFACE_INCLUDE_DIRECTORIES "${MOTIF_INCLUDE_DIR}"
     )
     get_target_property(TARGET_TYPE Motif TYPE)
-    target_link_options(Motif INTERFACE $<$<NOT:$<BOOL:APPLE>>:LINKER:--no-as-needed>)
+    target_link_options(Motif INTERFACE $<$<NOT:$<BOOL:${APPLE}>>:LINKER:--no-as-needed>)
+    set_target_properties(Motif 
+    PROPERTIES IMPORTED_LINK_INTERFACE_LIBRARIES 
+    X11::Xt
+    )
   endif()
   add_library(Motif::Motif ALIAS Motif)
 endif()

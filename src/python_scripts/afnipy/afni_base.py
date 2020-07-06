@@ -1272,6 +1272,74 @@ Out[8]: 0
          count+=1
    return count
 
+# -----------------------------------------------------------------------
+
+afni_sel_list = [ '{', '[', '<' ] # list of left-sided selectors
+
+def glob_with_afni_selectors(ilist, verb=0):
+    """Input: ilist is an input list (or str) of input names to be interpreted.
+
+    The ilist entries can contain wildcards and/or AFNI selectors,
+    such as:
+
+    sub_*.dat
+    sub_*.dat{0..5,7,9,12.$}
+    sub_*.dat{0..5,7,9,12.$}[1..3]
+    sub_*.dat[1..3]{0..5,7,9,12.$}
+
+    Return: a list of glob-expanded entries, with selectors (if
+    present) applied  to all appropriate ones, e.g.:
+
+    sub_*.dat{0..5,7,9,12.$}
+    -> 
+    ['sub_000.dat{0..5,7,9,12.$}', 'sub_001.dat{0..5,7,9,12.$}', ...]
+
+    """
+
+    if type(ilist) == str :        ilist = [ilist]
+
+    N     = len(ilist)
+    olist = []
+
+    no_hits = []
+
+    for ii in range(N):
+        # split at spaces first
+        lspaced = ilist[ii].split()
+        for word in lspaced:
+            lll = []
+            # check if any selectors are present; should only be one
+            # of each kind at most
+            for sel in afni_sel_list:
+                if word.__contains__(sel) :
+                    split = word.split(sel)
+                    lll   = glob.glob(split[0])
+                    if len(lll) > 0 :
+                        lll = [x + sel + ''.join(split[1:]) for x in lll]
+                        break
+            if lll :
+                olist.extend(lll)
+            else:
+                lll = glob.glob(word)           
+                if lll :
+                    olist.extend(lll)
+            if not(lll) :
+                no_hits.append(word)
+
+    if verb :
+        IP("Found these from glob list: {}".format(' '.join(ilist)))
+        BP('-'*40)
+        for x in olist:
+            BP('  ' + x)
+        BP('-'*40)
+
+    if no_hits :
+        WP("This part of the glob list contained no matches:")
+        for x in no_hits:
+            BP('  ' + x)
+        BP('-'*40)
+
+    return olist
 
 # -----------------------------------------------------------------------
 # [PT: Jun 1, 2020] simple functions to stylize printing of messages
