@@ -153,7 +153,7 @@ file(
 endif()
 
 
-
+set_if_not_defined(DOWNLOAD_TEST_DATA OFF)
 # Declare the direct dependencies. Can be used to avoid collisions with pre-existing
 # installations of the nifti libraries
 if(USE_SYSTEM_NIFTI)
