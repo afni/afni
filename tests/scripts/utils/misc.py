@@ -46,7 +46,7 @@ def is_omp(toolname):
 
     # for now skip all files that want use omp if that was not used in the build
     if not OMP:
-        pytestmark = pytest.mark.skip('skipping entire module')
+        pytestmark = pytest.mark.skip("skipping entire module")
     return OMP
 
 
