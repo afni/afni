@@ -174,7 +174,7 @@ else()
 FetchContent_Declare(
   gifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib.git 
-  GIT_TAG 0f8b7c073d2c79a235687419a09523b203a4ced8
+  GIT_TAG 5eae81ba1e87ef3553df3b6ba585f12dc81a0030
   )
 FetchContent_MakeAvailable(gifti_clib)
 endif()
