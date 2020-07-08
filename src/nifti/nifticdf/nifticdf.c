@@ -28,6 +28,7 @@
 
 #include "nifti1.h"   /* for the NIFTI_INTENT_* constants */
 #include "nifticdf.h"
+#include "nifticdf_version.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

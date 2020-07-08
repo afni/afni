@@ -16,10 +16,12 @@ addons:
     packages:
       - cmake
       - valgrind
+      - help2man
   homebrew:
     packages:
       - cmake
       - sed
+      - help2man
 
 # no poppler, openjpeg, uuid, json
 # no swig
@@ -68,6 +70,23 @@ matrix:
         - WITH_MEMCHECK="ON"
         - NIFTI_SHELL_SCRIPT_TESTS="OFF"
         - SCANBUILD_EXE=""
+    - compiler: gcc
+      os: linux
+      env:
+        - BLDPREFIX=use_prefix
+        - PARALLEL_LEVEL=3
+        - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
+        - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
+        - SYSTEM_PULLREQUEST_SOURCEBRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_SOURCEBRANCHNAME=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_BUILDID=${TRAVIS_BUILD_ID}
+        - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
+        - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
+        - INTERPROCEDURAL_OPTIMIZATION="ON"
+        - B_NAME=system_gcc
+        - WITH_MEMCHECK="OFF"
+        - NIFTI_PACKAGE_PREFIX=test_
+        - SCANBUILD_EXE=""
     - compiler: clang
       os: linux
       env:
@@ -80,7 +99,7 @@ matrix:
         - BUILD_BUILDID=${TRAVIS_BUILD_ID}
         - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
         - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
-        - ASAN_OPTIONS=verbosity=1:log_threads=1
+        - ASAN_OPTIONS=verbosity=1
         - CFLAGS="-Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings -fsanitize=address,undefined"
         - CXXFLAGS="-g -Wall -Wextra -m64 -fsanitize=address,undefined"
         - INTERPROCEDURAL_OPTIMIZATION="OFF"
@@ -93,6 +112,7 @@ matrix:
         - CCC_CXX=clang++
     - compiler: clang
       os: osx
+      osx_image: xcode11
       env:
         - BLDPREFIX=rel
         - PARALLEL_LEVEL=3

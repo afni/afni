@@ -1,6 +1,7 @@
 #define _NIFTI2_IO_C_
 
 #include "nifti2_io.h"   /* typedefs, prototypes, macros, etc. */
+#include "nifti2_io_version.h"
 
 /*****===================================================================*****/
 /*****     Sample functions to deal with NIFTI-1,2 and ANALYZE files     *****/
@@ -397,11 +398,12 @@ static char const * const gni2_history[] =
   "2.09 10 May, 2019 [rickr]: added NIFTI_ECODE_QUANTIPHYSE\n"
   "2.10 26 Sep, 2019 [rickr]: nifti_read_ascii_image no longer closes fp\n",
   "2.11  3 Oct, 2019 [rickr]: added nifti_[d]mat33_mul\n",
+  "2.1.0  18 Jun, 2020 [leej3,hmjohnson,rickr]:\n"
+  "     - changed to more formal library versioning\n",
   "----------------------------------------------------------------------\n"
 };
 
-static const char gni_version[]
-        = "nifti-2 library version 2.11 (3 Oct, 2019)";
+static const char gni_version[] = NIFTI2_IO_SOURCE_VERSION " (18 Jun, 2020)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */

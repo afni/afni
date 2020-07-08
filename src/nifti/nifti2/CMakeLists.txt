@@ -1,38 +1,35 @@
 set(NIFTI_NIFTILIB2_NAME ${NIFTI_PACKAGE_PREFIX}nifti2)
 
-add_library(${NIFTI_NIFTILIB2_NAME} nifti2_io.c )
+add_nifti_library(${NIFTI_NIFTILIB2_NAME} nifti2_io.c )
 target_link_libraries( ${NIFTI_NIFTILIB2_NAME} PUBLIC ${NIFTI_PACKAGE_PREFIX}znz ${NIFTI_SYSTEM_MATH_LIB})
-target_include_directories(${NIFTI_NIFTILIB2_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${NIFTI_INSTALL_INCLUDE_DIR}>
-        )
-
-if(NIFTI_BUILD_APPLICATIONS)
-  add_executable(${NIFTI_PACKAGE_PREFIX}nifti_tool nifti_tool.c)
-  target_link_libraries(${NIFTI_PACKAGE_PREFIX}nifti_tool PUBLIC ${NIFTI_NIFTILIB2_NAME})
-  set(NIFTI2_APPS ${NIFTI_PACKAGE_PREFIX}nifti_tool)
-endif()
-
+set_target_properties(
+  ${NIFTI_NIFTILIB2_NAME}
+  PROPERTIES
+    PUBLIC_HEADER
+    "${CMAKE_CURRENT_LIST_DIR}/nifti1.h;${CMAKE_CURRENT_LIST_DIR}/nifti2.h;${CMAKE_CURRENT_LIST_DIR}/nifti2_io.h"
+  )
 # Set library version when building shared libs.
 if(BUILD_SHARED_LIBS)
-  set_target_properties(${NIFTI_NIFTILIB2_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})
+    get_lib_version_vars("nifti2_io_version.h" NIFTI2_VERSION NIFTI2_MAJOR_VERSION)
+    set_target_properties(${NIFTI_NIFTILIB2_NAME}
+      PROPERTIES
+        ${NIFTI_LIBRARY_PROPERTIES}
+        VERSION ${NIFTI2_VERSION}
+        SOVERSION ${NIFTI2_MAJOR_VERSION}
+        )
 endif()
+install_nifti_target(${NIFTI_NIFTILIB2_NAME})
 
-if(NOT NIFTI_INSTALL_NO_LIBRARIES)
-  install(TARGETS ${NIFTI_NIFTILIB2_NAME} ${NIFTI2_APPS}
-          EXPORT ${NIFTI_INSTALL_EXPORT_NAME}
-          RUNTIME DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR} COMPONENT RuntimeLibraries
-          LIBRARY DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT RuntimeLibraries
-          ARCHIVE DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
-          INCLUDES DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-          )
-endif()
-
-if(NOT NIFTI_INSTALL_NO_DEVELOPMENT)
-  file(GLOB __files "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-  install(FILES ${__files}
-    DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+if(NIFTI_BUILD_APPLICATIONS)
+  set(NIFTI_TOOL ${NIFTI_PACKAGE_PREFIX}nifti_tool)
+  add_nifti_executable(${NIFTI_TOOL} nifti_tool.c)
+  target_link_libraries(${NIFTI_TOOL} PUBLIC ${NIFTI_NIFTILIB2_NAME})
+  install_nifti_target(${NIFTI_TOOL})
+  install_man_page(
+      ${NIFTI_TOOL}
+      OPTIONS_FOR_SECTIONS "-see_also"
+      OPTS "--help-option=-help;--version-option=-ver_man;--no-info"
+      )
 endif()
 
 
@@ -73,6 +70,12 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
   add_test( NAME ${TEST_PREFIX}_header_check COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_hdr -infiles ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data/anat0.nii )
   add_test( NAME ${TEST_PREFIX}_nim_check    COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_nim -infiles ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data/anat0.nii )
 
+  set_tests_properties(${TEST_PREFIX}_disp_hdr PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_disp_nim PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_disp_ext PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_header_check PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_nim_check PROPERTIES LABELS NEEDS_DATA)
+
   #The help screens always return 1; add_test( NAME ${NIFTI_PACKAGE_PREFIX}nifti1_tool1_help COMMAND $<TARGET_FILE:${TOOL_NAME}>)
   add_test( NAME ${TEST_PREFIX}_tool_n1  COMMAND $<TARGET_FILE:${TOOL_NAME}> -disp_hdr -infile ${CMAKE_CURRENT_BINARY_DIR}/n1 )
   add_test( NAME ${TEST_PREFIX}_tool_n2  COMMAND $<TARGET_FILE:${TOOL_NAME}> -disp_hdr -infile ${CMAKE_CURRENT_BINARY_DIR}/n2 )
@@ -94,6 +97,8 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
   #add_test( NAME ${TEST_PREFIX}_tool_rm_ext /bin/sh ${NIFTI_SOURCE_DIR}/niftilib/rmthenrun rm_ext.nii COMMAND $<TARGET_FILE:${TOOL_NAME}> -rm_ext ALL -prefix rm_ext.nii -infile ${CMAKE_CURRENT_BINARY_DIR}/zn1.nii.gz )
   add_test( NAME ${TEST_PREFIX}_tool_check_hdr COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_hdr -infile ${CMAKE_CURRENT_BINARY_DIR}/za2 )
   add_test( NAME ${TEST_PREFIX}_tool_check_nim COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_nim -infile ${CMAKE_CURRENT_BINARY_DIR}/za2 )
+  set_tests_properties(${TEST_PREFIX}_tool_check_hdr PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_tool_check_nim PROPERTIES LABELS NEEDS_DATA)
 
   #add_test( NAME ${TEST_PREFIX}_tool_copy_collapsed_image /bin/sh ${NIFTI_SOURCE_DIR}/niftilib/rmthenrun cci_zn1.nii COMMAND $<TARGET_FILE:${TOOL_NAME}> -cci 2 2 2 -1 -1 -1 -1 -prefix cci_zn1.nii -infile ${CMAKE_CURRENT_BINARY_DIR}/zn1.nii.gz )
 
@@ -114,6 +119,7 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
       message(STATUS "NiftiTestGeneratedFiles_${testsuffix}" )
     set_tests_properties( ${TEST_PREFIX}_tool_${testsuffix} ${TEST_PREFIX}_test_${testsuffix}
             PROPERTIES RESOURCE_LOCK Serial_${testsuffix}
+            LABELS NEEDS_DATA
             )
     set_tests_properties(cleanup_${testsuffix} PROPERTIES FIXTURES_CLEANUP  NiftiTestGeneratedFiles_${testsuffix} )
   endforeach()
@@ -132,22 +138,31 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
           ${TEST_PREFIX}_tool_copy_brick_list
           ${TEST_PREFIX}_tool_disp_ci ${TEST_PREFIX}_tool_disp_ts ${TEST_PREFIX}_tool_strip_extras
           PROPERTIES RESOURCE_LOCK Serial_zn1
+          LABELS NEEDS_DATA
           )
   #==END NIFTI1 and NIFTI2 common tests ============================================
 
   add_test( NAME ${TEST_PREFIX}_misc_tests COMMAND $<TARGET_FILE:${TOOL_NAME}> -run_misc_tests -debug 2 -infiles ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data/e4.60005.nii.gz )
+  set_tests_properties(${TEST_PREFIX}_misc_tests PROPERTIES LABELS NEEDS_DATA)
   if(UNIX AND NIFTI_SHELL_SCRIPT_TESTS) # unix needed to run shell scripts
       set(NIFTI_TEST_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR}/nifti_regress_test/cmake_testscripts)
       add_test( NAME ${TEST_PREFIX}_modhdr_exts        COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/mod_header_test.sh    $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
       add_test( NAME ${TEST_PREFIX}_bricks_test        COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/bricks_test.sh        $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
+
+      set_tests_properties(${TEST_PREFIX}_modhdr_exts PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_bricks_test PROPERTIES LABELS NEEDS_DATA)
 
       add_test( NAME ${TEST_PREFIX}_dci_test           COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/dci_test.sh           $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
       add_test( NAME ${TEST_PREFIX}_comment_test       COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/comment_test.sh       $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
       add_test( NAME ${TEST_PREFIX}_dsets_test         COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/dsets_test.sh         $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
       add_test( NAME ${TEST_PREFIX}_newfiles_test      COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/newfiles_test.sh      $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
 
+      set_tests_properties(${TEST_PREFIX}_dci_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_comment_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_newfiles_test PROPERTIES LABELS NEEDS_DATA)
+
       add_test( NAME ${TEST_PREFIX}_dts_test            COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/dts_test.sh          $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
-      set_tests_properties( ${TEST_PREFIX}_dts_test PROPERTIES DEPENDS ${TEST_PREFIX}_bricks_test)
+      set_tests_properties( ${TEST_PREFIX}_dts_test PROPERTIES DEPENDS ${TEST_PREFIX}_bricks_test LABELS NEEDS_DATA)
 
       add_test( NAME ${TEST_PREFIX}_mod_hdr2_test       COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/mod_header_2_test.sh $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
       add_test( NAME ${TEST_PREFIX}_c21_a_info_test     COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_a_info_test.sh   $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
@@ -155,7 +170,21 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
       add_test( NAME ${TEST_PREFIX}_c21_c_make_im_test  COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_c_make_im.sh     $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
       add_test( NAME ${TEST_PREFIX}_c21_d_misc_tests    COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_d_misc_tests.sh  $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
 
+      set_tests_properties(${TEST_PREFIX}_mod_hdr2_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_c21_a_info_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_c21_b_cifti_in_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_c21_c_make_im_test PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_c21_d_misc_tests PROPERTIES LABELS NEEDS_DATA)
+
+      # Test that installed linking works
+      if(TEST_INSTALL)
+        add_test(
+          NAME install_linking
+          COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/install_linking_test.sh ${CMAKE_MAKE_PROGRAM}
+          WORKING_DIRECTORY ${PROJECT_BINARY_DIR} )
+      endif()
   endif()
+
   unset(TEST_SUFFIX)
   unset(TEST_PREFIX)
   unset(TOOL_NAME)
