@@ -22,10 +22,17 @@ typedef   void*           RwcPointer ;
 # define  RwcNew(t)       ((t *)calloc(1,sizeof(t)))
 # define  RwcNewString(s) (strcpy(malloc(1+strlen(s)),s))
 
+typedef   unsigned char   RwcBoolean ;  /* 07 Jul 2020 */
+#undef  True
+#undef  False
+#define True  1
+#define False 0
+
 #else                        /* this is the crudesse */
 
 # include <X11/Intrinsic.h>
 # define  RwcPointer      XtPointer
+# define  RwcBoolean      Boolean
 # define  RwcFree         XtFree
 # define  RwcCalloc       XtCalloc
 # define  RwcOffsetOf     XtOffsetOf

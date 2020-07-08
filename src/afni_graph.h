@@ -760,12 +760,12 @@ extern void init_const( MCW_grapher * ) ;
 extern void GRA_small_circle( MCW_grapher * , int,int,int ) ;
 extern void GRA_overlay_circle( MCW_grapher * , int,int,int ) ;
 
-extern void GRA_drawing_EV( Widget  , XtPointer , XEvent * , Boolean * ) ;
+extern void GRA_drawing_EV( Widget  , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void GRA_handle_keypress( MCW_grapher * , char * , XEvent * ) ;
 extern void GRA_new_pixmap( MCW_grapher * , int,int,int ) ;
 extern void GRA_opt_CB( Widget , XtPointer , XtPointer ) ;
 extern void GRA_fim_CB( Widget , XtPointer , XtPointer ) ;
-extern Boolean drive_MCW_grapher( MCW_grapher * , int , XtPointer ) ;
+extern RwcBoolean drive_MCW_grapher( MCW_grapher * , int , XtPointer ) ;
 
 extern void GRA_scale_choose_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_grid_choose_CB    ( Widget , XtPointer , MCW_choose_cbs * ) ;

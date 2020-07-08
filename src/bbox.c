@@ -132,7 +132,7 @@ typedef struct {
 void MCW_enforce_radio_bbox( MCW_bbox *bb, int ikeep  )
 {
    int ib;
-   Boolean oset ;
+   RwcBoolean oset ;
 
 ENTRY("MCW_enforce_radio_bbox") ;
 
@@ -162,7 +162,7 @@ ENTRY("MCW_enforce_radio_bbox") ;
 void new_MCW_bbox_cbwrap ( Widget w, XtPointer client_data, XtPointer call_data )
 {
    int ib=0, icaller = -1;
-   Boolean oset = False;
+   RwcBoolean oset = False;
    cb_wrap_struct *cbws = (cb_wrap_struct *)client_data;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
    int dbg = 0;
@@ -463,7 +463,7 @@ void MCW_bbox_hints( MCW_bbox *bb , int nh , char **hh )
 void MCW_set_bbox( MCW_bbox *bb , int val )
 {
    int     ib ;
-   Boolean nset , oset ;
+   RwcBoolean nset , oset ;
 
 ENTRY("MCW_set_bbox") ;
 
@@ -485,7 +485,7 @@ ENTRY("MCW_set_bbox") ;
 int MCW_val_bbox( MCW_bbox *bb )
 {
    int ib , val ;
-   Boolean set ;
+   RwcBoolean set ;
 
    if( bb == NULL ) return 0 ;  /* 01 Feb 2000 */
    val = 0 ;
@@ -815,7 +815,7 @@ int AV_colsize()                      /* 11 Dec 2001 */
 
 #define COLSIZE AV_colsize()  /* 11 Dec 2001: redefined from a constant */
 
-static void optmenu_EV( Widget,XtPointer,XEvent *,Boolean *) ; /* prototype */
+static void optmenu_EV( Widget,XtPointer,XEvent *,RwcBoolean *) ; /* prototype */
 
 static volatile int allow_optmenu_EV = 1 ;
 
@@ -865,7 +865,7 @@ const char *text_EV(int v)
    return("weird");
 }
 void enter_EV( Widget w , XtPointer client_data ,
-                  XEvent * ev , Boolean * continue_to_dispatch )
+                  XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
    XButtonEvent *bev = (XButtonEvent *)ev;
@@ -1634,7 +1634,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str," now have %d to fix",nwid); STATU
 /*--------------------------------------------------------------------------*/
 
 static void optmenu_EV( Widget w , XtPointer cd ,
-                        XEvent *ev , Boolean *continue_to_dispatch )
+                        XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_arrowval *av = (MCW_arrowval *) cd ;
    int  ic , ival , sval , nstr ;
@@ -2134,7 +2134,7 @@ void AV_assign_fval( MCW_arrowval *av , float qval )
 /*----------------------------------------------------------------------*/
 
 void AV_leave_EV( Widget w , XtPointer client_data ,
-                  XEvent *ev , Boolean *continue_to_dispatch )
+                  XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_arrowval *av       = (MCW_arrowval *) client_data ;
    XLeaveWindowEvent *lev = (XLeaveWindowEvent *) ev ;
@@ -4281,7 +4281,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    static MCW_choose_cbs cbs ;  /* to be passed back to user */
    static int list_dbclick_use = LIST_DBCLICK_UNKNOWN ;
-   Boolean clear ;
+   RwcBoolean clear ;
    XEvent *cbev = (icbs != NULL) ? icbs->event : NULL ;  /* 03 Jun 2009 */
 
 ENTRY("MCW_choose_CB") ;
@@ -4321,7 +4321,7 @@ ENTRY("MCW_choose_CB") ;
       /*.....................*/
 
       case mcwCT_vector:{                    /* vector chooser [19 Mar 2004] */
-         Boolean done,call ;
+         RwcBoolean done,call ;
          int iv ; float *vec ;
          MCW_arrowval **aav = (MCW_arrowval **)cd->av ;
 
@@ -4356,7 +4356,7 @@ ENTRY("MCW_choose_CB") ;
       /*.....................*/
 
       case mcwCT_ovcolor:{                       /* color chooser */
-         Boolean done , call ;
+         RwcBoolean done , call ;
 
          done = strcmp(wname,OVC_apply_label) != 0 ;
          call = strcmp(wname,OVC_quit_label)  != 0 ;
@@ -4385,7 +4385,7 @@ ENTRY("MCW_choose_CB") ;
       /*.....................*/
 
       case mcwCT_integer:{                       /* integer chooser */
-         Boolean done , call , flash ;
+         RwcBoolean done , call , flash ;
 
          done  = strcmp(wname,OVC_apply_label) != 0 ;  /* done unless just "Apply" */
          flash = ! done ;                              /* flash if not done */
@@ -4400,7 +4400,7 @@ ENTRY("MCW_choose_CB") ;
 
          if( call && cd->sel_CB != NULL ){
             int pos_count=0 , *pos_list=NULL , ib ;
-            Boolean any ;
+            RwcBoolean any ;
 
             cbs.reason = mcwCR_integer ;    /* set structure for call to user */
             cbs.event  = cbev ;
@@ -4445,7 +4445,7 @@ ENTRY("MCW_choose_CB") ;
       /*.....................*/
 
       case mcwCT_string:{                 /* string chooser */
-         Boolean done , call , istextf ;
+         RwcBoolean done , call , istextf ;
 
          /* special action: "Clear" button */
 
@@ -4489,7 +4489,7 @@ ENTRY("MCW_choose_CB") ;
       /*.....................*/
 
       case mcwCT_timeseries:{                       /* timeseries chooser */
-         Boolean done , call , flash , any , plot ;
+         RwcBoolean done , call , flash , any , plot ;
          int pos_count , *pos_list ;
 
 #ifdef AFNI_DEBUG
@@ -4628,7 +4628,7 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
       /*.....................*/
 
       case mcwCT_tcsv:{                       /* *.[tc]sv chooser [19 Jun 2020] */
-         Boolean done=FALSE , call=FALSE , flash=FALSE , any=FALSE , view=FALSE ;
+         RwcBoolean done=FALSE , call=FALSE , flash=FALSE , any=FALSE , view=FALSE ;
 
 #ifdef AFNI_DEBUG
 printf("MCW_choose_CB: tcsv choice made\n") ;

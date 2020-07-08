@@ -50,7 +50,7 @@ ENTRY("mri_new_7D_generic") ;
    newim = (MRI_IMAGE *)calloc( 1, sizeof(MRI_IMAGE) ) ;
 
    if( newim == NULL ){
-     fprintf( stderr , "** malloc failure for new image pointer\n" ) ;
+     ERROR_message("** malloc failure for new image pointer") ;
      MRI_FATAL_ERROR ;
    }
 
@@ -118,7 +118,7 @@ ENTRY("mri_new_7D_generic") ;
                         newim->vdim       = 1                ; break ;
 
       default:
-        fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
+        ERROR_message("mri_new: unrecognized image kind %d",(int)kind) ;
         MRI_FATAL_ERROR ;
    }
 
@@ -195,8 +195,8 @@ void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
    /** make sure modified image has data space ready **/
 
    if( vpt == NULL ){
-     fprintf(stderr,"malloc failure for fvectim space: %lld bytes\n",
-             im->pixel_size*im->nvox );
+     ERROR_message("malloc failure for fvectim space: %lld bytes",
+                   im->pixel_size*im->nvox );
      MRI_FATAL_ERROR ;
    }
 

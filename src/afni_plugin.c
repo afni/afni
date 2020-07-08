@@ -5790,10 +5790,10 @@ ENTRY("PLUTO_remove_workproc") ;
 
 /*----------------------------------------------------------------------------*/
 
-Boolean PLUG_workprocess( XtPointer fred )
+RwcBoolean PLUG_workprocess( XtPointer fred )
 {
    int ii , ngood ;
-   Boolean done ;
+   RwcBoolean done ;
 
 #ifdef WPDEBUG
    { static int ncall=0 ;

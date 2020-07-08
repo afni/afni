@@ -147,7 +147,7 @@ int THD_datablock_from_atr( THD_datablock *dblk, char *dirname, char *headname )
    ATR_string        *atr_labs ;
    int   ii , view_type , func_type , dset_type , 
          nx,ny,nz,nvox , nvals , ibr,typ ;
-   Boolean ok ;
+   RwcBoolean ok ;
    char prefix[THD_MAX_NAME]="Unknown" ;
    MRI_IMAGE *qim ;
    int brick_ccode ;
@@ -475,7 +475,7 @@ int THD_daxes_from_atr( THD_datablock *dblk, THD_dataxes *daxes)
    ATR_string        *atr_labs ;
    int   ii , view_type , func_type , dset_type , 
          nx,ny,nz,nvox , nvals , ibr,typ ;
-   Boolean ok ;
+   RwcBoolean ok ;
    char prefix[THD_MAX_NAME]="Unknown" ;
    MRI_IMAGE *qim ;
    int brick_ccode ;
@@ -729,7 +729,7 @@ void THD_datablock_apply_atr( THD_3dim_dataset *dset )
    ATR_float         *atr_flt = NULL;
    ATR_string        *atr_str = NULL ;
    int ii , view_type , func_type , dset_type , nx,ny,nz,nvox , nvals , ibr,typ ;
-   Boolean ok ;
+   RwcBoolean ok ;
    char prefix[THD_MAX_NAME]="Unknown" ;
    MRI_IMAGE *qim ;
    int brick_ccode ;

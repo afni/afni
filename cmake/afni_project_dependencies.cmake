@@ -1,6 +1,7 @@
 include(CMakePackageConfigHelpers)
 include(FetchContent)
 find_package(Motif REQUIRED)
+find_package(X11 REQUIRED)
 include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
@@ -57,7 +58,6 @@ endif()
 
 if(COMP_X_DEPENDENT_GUI_PROGS)
   find_package(JPEG 62 REQUIRED)
-  find_package(X11 REQUIRED)
   optional_bundle(src/XmHTML)
 endif()
 
@@ -153,7 +153,7 @@ file(
 endif()
 
 
-
+set_if_not_defined(DOWNLOAD_TEST_DATA OFF)
 # Declare the direct dependencies. Can be used to avoid collisions with pre-existing
 # installations of the nifti libraries
 if(USE_SYSTEM_NIFTI)
@@ -174,7 +174,7 @@ else()
 FetchContent_Declare(
   gifti_clib   
   GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib.git 
-  GIT_TAG 0f8b7c073d2c79a235687419a09523b203a4ced8
+  GIT_TAG 5eae81ba1e87ef3553df3b6ba585f12dc81a0030
   )
 FetchContent_MakeAvailable(gifti_clib)
 endif()

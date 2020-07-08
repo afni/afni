@@ -3439,7 +3439,7 @@ void grid_up( MCW_grapher * grapher )
 -------------------------------------------------------------------------*/
 
 void GRA_drawing_EV( Widget w , XtPointer client_data ,
-                     XEvent * ev , Boolean * continue_to_dispatch )
+                     XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    MCW_grapher * grapher = (MCW_grapher *) client_data ;
 
@@ -5151,10 +5151,10 @@ OK   drive_code       drive_data should be
 
 *    graDR_setglobalbaseline (float *) Global baseline value
 
-The Boolean return value is True for success, False for failure.
+The RwcBoolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
-Boolean drive_MCW_grapher( MCW_grapher * grapher ,
+RwcBoolean drive_MCW_grapher( MCW_grapher * grapher ,
                            int drive_code , XtPointer drive_data )
 {
 

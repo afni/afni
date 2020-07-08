@@ -34,15 +34,15 @@ int THD_get_quiet_overwrite () { return(quiet_overwrite);}
    06 Apr 2005: might go all NIFTI on you
 ------------------------------------------------------------------*/
 
-Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
-                                THD_3dim_dataset *dset , Boolean write_brick )
+RwcBoolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
+                                THD_3dim_dataset *dset , RwcBoolean write_brick )
 {
    THD_datablock *blk ;
    int ii, cmode ;
    int is_nsd = 0, is_gifti = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
    int free_1d = 0 ;               /* write 1D using prefix */
    char *ppp ;  /* 06 Apr 2005 */
-   Boolean bb ;
+   RwcBoolean bb ;
 
 ENTRY("THD_write_3dim_dataset") ;
 
@@ -229,7 +229,7 @@ ENTRY("THD_write_3dim_dataset") ;
 
      free((void *)options.infile_name) ;
      if( ii==0 ) error_count++ ;
-     RETURN( (Boolean)ii ) ;
+     RETURN( (RwcBoolean)ii ) ;
    }
 
    /*------ 21 Mar 2003: use the .3D format? -----*/
@@ -266,7 +266,7 @@ ENTRY("THD_write_3dim_dataset") ;
 
    if( ( STRING_HAS_SUFFIX_CASE(ppp,".jpg") || STRING_HAS_SUFFIX_CASE(ppp,".png") )
       && DSET_HAS_2D(dset) && DSET_NVALS(dset) == 1 ){
-     bb = (Boolean)mri_write_jpg( ppp , DSET_BRICK(dset,0) ) ;
+     bb = (RwcBoolean)mri_write_jpg( ppp , DSET_BRICK(dset,0) ) ;
      if( bb == False ) error_count++ ;
      RETURN(bb) ;
    }

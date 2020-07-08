@@ -103,6 +103,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 }
 
 /*--------------------------------------------------------------------------*/
+#define ALLOW_ARMA51
 #include "armacor.c"  /* ARMA(p,1) models for p=3 and 5 [01 Jul 2020] */
 /*--------------------------------------------------------------------------*/
 
@@ -181,10 +182,12 @@ rcmat * rcmat_arma31( int nt , int *tau ,
   doublevec *corvec ;
 
   corvec = arma31_correlations( a , r1 , t1 , vrt , corcut , nt ) ;
-{ int ii ;
+{ int ii ; double ssum=0.0 ;
   INFO_message("Correlation count: %d",corvec->nar) ;
-  for( ii=0 ; ii < corvec->nar ; ii++ ) fprintf(stderr," %g",corvec->ar[ii]) ;
-  fprintf(stderr,"\n") ;
+  for( ii=0 ; ii < corvec->nar ; ii++ ){
+    fprintf(stderr," %g",corvec->ar[ii]) ; if( ii > 0 ) ssum += fabs(corvec->ar[ii]) ;
+  }
+  fprintf(stderr," : Gsum = %g\n",ssum) ;
 }
   rcm = rcmat_arma_gen( nt, tau, corvec ) ;
   KILL_doublevec( corvec ) ;
@@ -201,6 +204,13 @@ rcmat * rcmat_arma51( int nt , int *tau ,
   doublevec *corvec ;
 
   corvec = arma51_correlations( a , r1 , t1 , r2 , t2 , vrt , corcut , nt ) ;
+{ int ii ; double ssum=0.0 ;
+  INFO_message("Correlation count: %d",corvec->nar) ;
+  for( ii=0 ; ii < corvec->nar ; ii++ ){
+    fprintf(stderr," %g",corvec->ar[ii]) ; if( ii > 0 ) ssum += fabs(corvec->ar[ii]) ;
+  }
+  fprintf(stderr," : Gsum = %g\n",ssum) ;
+}
   rcm = rcmat_arma_gen( nt, tau, corvec ) ;
   KILL_doublevec( corvec ) ;
   return rcm ;
@@ -239,6 +249,7 @@ int main( int argc , char *argv[] )
       " -a a     = Specify ARMA(1,1) parameters 'a'.\n"
       " -b b     = Specify ARMA(1,1) parameter 'b' directly.\n"
       " -lam lam = Specify ARMA(1,1) parameter 'b' indirectly.\n"
+      "\n"
       " -sig ss  = Set standard deviation of results [default=1].\n"
       " -norm    = Normalize time series so sum of squares is 1.\n"
       " -seed dd = Set random number seed.\n"
@@ -260,6 +271,35 @@ int main( int argc , char *argv[] )
       "              The default cutoff is %.5f, but can be altered with\n"
       "              this option.  The usual reason to use this option is\n"
       "              to test the sensitivity of the results to the cutoff.\n"
+      "\n"
+      "-----------------------------\n"
+      "A restricted ARMA(3,1) model:\n"
+      "-----------------------------\n"
+      "Skip the '-a', '-b', and '-lam' options, and use a model with 3 roots\n"
+      "\n"
+      " -arma31 a r theta vrat\n"
+      "\n"
+      " where the roots are z = a, z = r*exp(I*theta), z = r*exp(-I*theta)\n"
+      " and vrat = s^2/(s^2+w^2) [so 0 < vrat < 1], where s = variance\n"
+      " of the pure AR(3) component and w = variance of extra white noise\n"
+      " added to the AR(3) process -- this is the 'restricted' ARMA(3,1).\n"
+      "\n"
+      " If the data has given TR, and you want a frequency of f Hz, in\n"
+      " the noise model, then theta = 2 * PI * TR * f. If theta > PI,\n"
+      " then you are modeling noise beyond the Nyquist frequency and\n"
+      " the gods (and this program) won't be happy.\n"
+      "\n"
+      "  # csh syntax for 'set' variable assignment commands\n"
+      "  set nt = 500\n"
+      "  set tr = 1\n"
+      "  set df = `ccalc \"1/($nt*$tr)\"`\n"
+      "  set f1 = 0.10\n"
+      "  set t1 = `ccalc \"2*PI*$tr*$f1\"`\n"
+      "  1dgenARMA11 -nvec 500 -len $nt -arma31 0.8 0.9 $t1 0.9 -CORcut 0.0001 \\\n"
+      "       | 1dfft -nodetrend stdin: > qqq.1D\n"
+      "  3dTstat -mean -prefix stdout: qqq.1D \\\n"
+      "       | 1dplot -stdin -num 201 -dt $df -xlabel 'frequency' -ylabel '|FFT|'\n"
+      "---------------------------------------------------------------------------\n"
       "\n"
       "Author: RWCox [for his own demented purposes]\n"
       "\n"

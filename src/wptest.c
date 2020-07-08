@@ -1,8 +1,8 @@
 #include <X11/Intrinsic.h>
 #include <stdio.h>
 
-Boolean workproc_A( XtPointer ) ;  /* protos */
-Boolean workproc_B( XtPointer ) ;
+RwcBoolean workproc_A( XtPointer ) ;  /* protos */
+RwcBoolean workproc_B( XtPointer ) ;
 void killit_CB( XtPointer , XtIntervalId * ) ;
 
 static XtAppContext app ;          /* global */
@@ -35,7 +35,7 @@ void killit_CB( XtPointer xyzzy , XtIntervalId * zork )
 
 #define WMAX 4
 
-Boolean workproc_A( XtPointer elvis )
+RwcBoolean workproc_A( XtPointer elvis )
 {
    static int ncall=0 ;
 
@@ -46,7 +46,7 @@ Boolean workproc_A( XtPointer elvis )
 
 /*------------------------------------------------------------------*/
 
-Boolean workproc_B( XtPointer presley )
+RwcBoolean workproc_B( XtPointer presley )
 {
    static int ncall=0 ;
    ncall++ ; printf("workproc_B: %d\n",ncall) ;

@@ -209,7 +209,7 @@ THD_brick_stats THD_get_brick_stats( MRI_IMAGE *im )
 
 void THD_update_statistics( THD_3dim_dataset *dset )
 {
-   Boolean good ;
+   RwcBoolean good ;
    int ii , mmin , mmax , ibr , nbsold , nbr ;
    THD_brick_stats *bsold ;
    short *brkk ;
@@ -271,7 +271,7 @@ void THD_update_statistics( THD_3dim_dataset *dset )
 
 void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
 {
-   Boolean good ;
+   RwcBoolean good ;
    int ii , mmin , mmax , ibr , nbsold , nbr ;
    THD_brick_stats *bsold ;
    short *brkk ;

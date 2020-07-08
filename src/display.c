@@ -1125,10 +1125,10 @@ int DC_char_width( MCW_DC *dc , char ccc )  /* 18 Apr 2011 */
 
 /*-------------------------------------------------------------------*/
 
-Boolean MCW_check_iconsize( int width , int height , MCW_DC *dc )
+RwcBoolean MCW_check_iconsize( int width , int height , MCW_DC *dc )
 {
    int ii ;
-   Boolean good ;
+   RwcBoolean good ;
    int nsl = 0 ;
    XIconSize * xsl = NULL ;
 

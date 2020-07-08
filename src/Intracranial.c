@@ -211,7 +211,7 @@ void segment_x_slices
 (
   short * cv,                  /* volume with 1's at non-brain locations */
   int cx,                      /* center slice location */
-  Boolean axial_slice          /* true if x-slices are axial slices */
+  RwcBoolean axial_slice          /* true if x-slices are axial slices */
 )
 
 {
@@ -394,7 +394,7 @@ void segment_y_slices
 (
   short * cv,                  /* volume with 1's at non-brain locations */
   int cy,                      /* center slice location */
-  Boolean axial_slice          /* true if y-slices are axial slices */
+  RwcBoolean axial_slice          /* true if y-slices are axial slices */
 )
 
 {
@@ -577,7 +577,7 @@ void segment_z_slices
 (
   short * cv,                  /* volume with 1's at non-brain locations */
   int cz,                      /* center slice location */
-  Boolean axial_slice          /* true if z-slices are axial slices */
+  RwcBoolean axial_slice          /* true if z-slices are axial slices */
 )
 
 {

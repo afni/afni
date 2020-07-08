@@ -126,7 +126,7 @@ STATUS("free attributes") ;
    destroy a 3D dataset (possibly including files)
 ---------------------------------------------------------------------*/
 
-void THD_delete_3dim_dataset( THD_3dim_dataset *dset, Boolean kill_files )
+void THD_delete_3dim_dataset( THD_3dim_dataset *dset, RwcBoolean kill_files )
 {
 ENTRY("THD_delete_3dim_dataset") ;
 

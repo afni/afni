@@ -765,7 +765,7 @@ extern void PLUTO_force_opacity_change( void ) ; /* 06 Jun 2019 */
 
 extern void PLUTO_register_workproc( XtWorkProc , XtPointer ) ;
 extern void PLUTO_remove_workproc  ( XtWorkProc ) ;
-extern Boolean PLUG_workprocess( XtPointer ) ;
+extern RwcBoolean PLUG_workprocess( XtPointer ) ;
 extern void PLUTO_register_timeout( int, generic_func *, XtPointer ) ;
 extern double PLUTO_cpu_time(void) ;
 extern double PLUTO_elapsed_time(void) ;

@@ -96,10 +96,10 @@ int THD_get_write_order(void)
      - The one exception to the above rule is the BYTEORDER attribute.
 -----------------------------------------------------------------------*/
 
-Boolean THD_write_datablock( THD_datablock *blk , Boolean write_brick )
+RwcBoolean THD_write_datablock( THD_datablock *blk , RwcBoolean write_brick )
 {
    THD_diskptr *dkptr ;
-   Boolean good ;
+   RwcBoolean good ;
    int id , nx , ny , nz , nv , nxy , nxyz , ibr ;
    int atrank[ATRSIZE_DATASET_RANK] , atdims[ATRSIZE_DATASET_DIMENSIONS] ;
    MRI_IMAGE *im ;
@@ -221,7 +221,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 
       case STORAGE_BY_BRICK:{
          FILE *far ;
-         Boolean purge_when_done = False , ok ;
+         RwcBoolean purge_when_done = False , ok ;
          int force_gzip=0 , csave=COMPRESS_NONE ;
 
          /** if we have a mmap-ed file, copy into RAM (ugh) **/

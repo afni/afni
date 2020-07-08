@@ -177,8 +177,8 @@ static int BG_array_send( DYNAMIC_handle handle )
 
 /**** Variables to mask the AFNI global functions called from plugins. ****/
 
-static Boolean (*BG_drive_MCW_grapher)( MCW_grapher * , int , XtPointer ) ;
-static Boolean (*BG_drive_MCW_imseq)( MCW_imseq * , int , XtPointer ) ;
+static RwcBoolean (*BG_drive_MCW_grapher)( MCW_grapher * , int , XtPointer ) ;
+static RwcBoolean (*BG_drive_MCW_imseq)( MCW_imseq * , int , XtPointer ) ;
 static MCW_arrowval * (*BG_new_MCW_arrowval)( Widget , char * , int,int,int,int,int,int , gen_func * , XtPointer , str_func * , XtPointer ) ;
 static MCW_arrowval * (*BG_new_MCW_colormenu)( Widget , char * label , MCW_DC * , int , int , int , gen_func * , XtPointer ) ;
 static MCW_arrowval * (*BG_new_MCW_optmenu)( Widget , char * , int,int,int,int, gen_func * , XtPointer , str_func * , XtPointer ) ;
@@ -237,11 +237,11 @@ static void   (*BG_PLUTO_imseq_rekill)( void *, generic_func *, void * ) ;
 static void   (*BG_PLUTO_imseq_retitle)( void * , char * ) ;
 static void * (*BG_PLUTO_imseq_popim)( MRI_IMAGE *, generic_func *, void * ) ;
 static void (*BG_AFNI_add_interruptable)( Widget ) ;
-static void (*BG_AFNI_force_adoption)( THD_session * , Boolean ) ;
+static void (*BG_AFNI_force_adoption)( THD_session * , RwcBoolean ) ;
 static void (*BG_AFNI_hintize_pbar)( MCW_pbar * ,  float ) ;
 static void (*BG_AFNI_initialize_view)( THD_3dim_dataset * , Three_D_View * ) ;
 static void (*BG_AFNI_make_descendants)( THD_sessionlist * ) ;
-static void (*BG_AFNI_modify_viewing)( Three_D_View * , Boolean ) ;
+static void (*BG_AFNI_modify_viewing)( Three_D_View * , RwcBoolean ) ;
 static void (*BG_AFNI_process_drawnotice)( Three_D_View * ) ;
 static void (*BG_AFNI_process_interrupts)( Widget ) ;
 static void (*BG_AFNI_purge_unused_dsets)(void) ;

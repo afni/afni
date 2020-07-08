@@ -59,7 +59,7 @@ void Syntax(void)
 /*---------------------------------------------------------------------------*/
 
 void F3D_initialize_user_data ( int Argc, char * Argv[],
-   Boolean * verbose, Boolean * nsize,
+   RwcBoolean * verbose, RwcBoolean * nsize,
    int * zfirst, int * zlast, int * tfirst, int * tlast,
    char * input_filename, char * prefix_filename )
    
@@ -246,7 +246,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * dset ;
    THD_diskptr * dskptr;
    int nx, ny, nz, nv, itim;
-   Boolean verbose, nsize;
+   RwcBoolean verbose, nsize;
    int ok;
    MRI_IMAGE * im, * im2d, * tim2d;
    MRI_TYPE kind;

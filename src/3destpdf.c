@@ -41,7 +41,7 @@ static THD_3dim_dataset * anat;                 /* input anatomical dataset  */
 static float min_val_float;                 /* minimum voxel intensity limit */
 static float max_val_float;                 /* maximum voxel intensity limit */
 
-static Boolean quiet = FALSE;            /* flag for suppress screen output */
+static RwcBoolean quiet = FALSE;            /* flag for suppress screen output */
 
 #define MAX_STRING_LENGTH 80
 
@@ -164,7 +164,7 @@ void initialize_program
 
 {
   float parameters [DIMENSION];    /* parameters for PDF estimation */
-  Boolean ok = TRUE;               /* flag for successful PDF estimation */
+  RwcBoolean ok = TRUE;               /* flag for successful PDF estimation */
 
   int nx, ny, nz, nxy, nxyz, ixyz;       /* voxel counters */
   int n;                                 /* histogram bin index */

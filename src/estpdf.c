@@ -217,7 +217,7 @@ void find_base_value( int nxyz , short * sfim )
 */
 
 
-Boolean estpdf_initialize ()
+RwcBoolean estpdf_initialize ()
 
 {
   int nx, ny, nz, nxy, nxyz, ixyz;       /* voxel counters */
@@ -869,10 +869,10 @@ void output_pdf_results (float * vertex, float sse)
   Estimate the PDF of the voxel intensities.
 */
 
-Boolean estpdf (float * parameters)
+RwcBoolean estpdf (float * parameters)
 {
   float sse;
-  Boolean ok;
+  RwcBoolean ok;
 
 
   /*----- Progress report -----*/

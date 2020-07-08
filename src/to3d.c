@@ -62,7 +62,7 @@ static int     ushort2float = 0;               /* 09 Jul 2013 [rickr] */
 static struct {
    int ncolor ;       /* -ncolor # */
    float gamma ;      /* -gamma #  */
-   Boolean xtwarns ;  /* -xtwarns  */
+   RwcBoolean xtwarns ;  /* -xtwarns  */
    float gsfac ;      /* -gsfac    */
    int   datum_all ;  /* -datum    */
 
@@ -184,7 +184,7 @@ int main( int argc , char * argv[] )
 {
    XtAppContext   app ;
    XtErrorHandler old_handler ;
-   Boolean        all_good ;
+   RwcBoolean        all_good ;
    mainENTRY("to3d:main") ;
    machdep() ; /* 20 Apr 2001 */
    PRINT_VERSION("to3d") ; AUTHOR("RW Cox") ;
@@ -3641,7 +3641,7 @@ void T3D_centered_CB( Widget w ,
                       XtPointer client_data , XtPointer call_data )
 {
    int val ;
-   Boolean sens ;
+   RwcBoolean sens ;
 
 ENTRY("T3D_centered_CB") ;
 
@@ -3673,7 +3673,7 @@ void T3D_voxcontig_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
    int val ;
-   Boolean sens ;
+   RwcBoolean sens ;
 
    user_inputs.voxcontig = val = MCW_val_bbox( wset.voxcontig_bbox ) ;
 
@@ -3772,7 +3772,7 @@ void T3D_voxshape_CB( Widget w ,
                       XtPointer client_data , XtPointer call_data )
 {
    int val ;
-   Boolean fov_sens , xsize_sens , ysize_sens , zsize_sens ;
+   RwcBoolean fov_sens , xsize_sens , ysize_sens , zsize_sens ;
 
 ENTRY("T3D_voxshape_CB") ;
 
@@ -3835,7 +3835,7 @@ void T3D_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 void T3D_quit_CB( Widget wcall ,
                   XtPointer client_data , XtPointer call_data )
 {
-   static Boolean first = True ;
+   static RwcBoolean first = True ;
    static Widget wquit  = NULL ;
 
 ENTRY("T3D_quit_CB") ;
@@ -3998,7 +3998,7 @@ void T3D_size_av_CB( MCW_arrowval * av , XtPointer cd )
 void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
 {
    int itype = av->ival ;
-   Boolean isfunc ;
+   RwcBoolean isfunc ;
    int nvals_old , nvals_new ;
 
    isfunc    = ISFUNCTYPE(user_inputs.dataset_type) ;
@@ -4977,7 +4977,7 @@ void T3D_imseq_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
 void T3D_save_file_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
-   Boolean good , isfunc ;
+   RwcBoolean good , isfunc ;
    int ii , jj , bigfile ;
    Widget wmsg = NULL ;
    int npad ;
@@ -5475,11 +5475,11 @@ void T3D_data_to_widgets(void)
 
 #define OUTERR "*** ILLEGAL INPUTS (cannot save) ***\n\n"
 
-Boolean T3D_check_data( Boolean perr )
+RwcBoolean T3D_check_data( RwcBoolean perr )
 {
    char xlab,ylab,zlab ;
    int ii , ll , ll_out , ll_sess ;
-   Boolean good = True , isfunc ;
+   RwcBoolean good = True , isfunc ;
    char new_name[THD_MAX_NAME] ;
 
 ENTRY("T3D_check_data") ;
@@ -5616,7 +5616,7 @@ STATUS("check stat aux") ;
 
 /*----------------------------------------------------------------*/
 
-void T3D_poperr( char * prefix_msg , char * msg, Boolean exit_flag )
+void T3D_poperr( char * prefix_msg , char * msg, RwcBoolean exit_flag )
 {
    static char * total_msg = NULL ;
    static int    len_total = 0 ;
@@ -5652,7 +5652,7 @@ ENTRY("T3D_poperr") ;
 -------------------------------------------------------------------*/
 
 void T3D_pointer_leave_EV( Widget w , XtPointer client_data ,
-                           XEvent * ev , Boolean * continue_to_dispatch )
+                           XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
    XmAnyCallbackStruct cbs ;
@@ -5885,7 +5885,7 @@ void T3D_anatomy_parent_CB( Widget w ,
    static char * old_name = NULL ;
    char * new_name ;
    char new_path[THD_MAX_NAME] , new_pref[THD_MAX_NAME] ;
-   Boolean isfunc ;
+   RwcBoolean isfunc ;
    THD_3dim_dataset * anat_dset ;
 
 ENTRY("T3D_anatomy_parent_CB") ;
@@ -6037,7 +6037,7 @@ void T3D_stat_aux_CB( Widget w ,
 void T3D_setup_stat_aux(void)
 {
    char lbuf[THD_MAX_NAME] ;
-   Boolean needit ;
+   RwcBoolean needit ;
 
 ENTRY("T3D_setup_stat_aux") ;
 
@@ -6046,7 +6046,7 @@ ENTRY("T3D_setup_stat_aux") ;
          FUNC_need_stat_aux[user_inputs.function_type] > 0 ) ;
 
    if( wset.topshell != NULL && wset.good ){
-      needit = (Boolean) user_inputs.need_stat_aux ;
+      needit = (RwcBoolean) user_inputs.need_stat_aux ;
 
       if( needit ){
          sprintf( lbuf , "%s: statistical parameters for %s" ,

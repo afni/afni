@@ -5,7 +5,7 @@
  *
  * THD_3dim_dataset * THD_open_gifti (char *fname)
  * THD_3dim_dataset * THD_load_gifti (THD_datablock *dblk)
- * Boolean            THD_write_gifti( THD_3dim_dataset *dset, 
+ * RwcBoolean            THD_write_gifti( THD_3dim_dataset *dset, 
                                        int write_data, int forcencode)
  *
  * NI_group         * NI_read_gifti (char *fname, int read_data)
@@ -141,7 +141,7 @@ int THD_load_gifti(THD_datablock * dblk)
     RETURN(0);
 }
 
-Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data, int forcencode)
+RwcBoolean THD_write_gifti(THD_3dim_dataset * dset, int write_data, int forcencode)
 {
     NI_group * ngr;
     char     * prefix;
