@@ -180,7 +180,7 @@ void T3D_swap_CB      (Widget, XtPointer, XtPointer );
 
 void T3D_geometry_parent_CB(Widget, XtPointer, XtPointer );
 void T3D_anatomy_parent_CB (Widget, XtPointer, XtPointer );
-void T3D_pointer_leave_EV  (Widget, XtPointer, XEvent * , Boolean * ) ;
+void T3D_pointer_leave_EV  (Widget, XtPointer, XEvent * , RwcBoolean * ) ;
 
 void T3D_imseq_CB( MCW_imseq * , FD_brick * , ISQ_cbs * ) ;
 
@@ -191,7 +191,7 @@ XtPointer T3D_getim( int , int , FD_brick * ) ;
 char * T3D_text_display( MCW_arrowval * , XtPointer ) ;
 
 void    T3D_initialize_user_data(void) ;
-Boolean T3D_check_data(Boolean) ;
+RwcBoolean T3D_check_data(RwcBoolean) ;
 
 void T3D_orient_av_CB ( MCW_arrowval * , XtPointer ) ;
 void T3D_origin_av_CB ( MCW_arrowval * , XtPointer ) ;
@@ -203,7 +203,7 @@ void T3D_set_dependent_geometries(void) ;
 void T3D_widgets_to_data(void) ;
 void T3D_data_to_widgets(void) ;
 
-void T3D_poperr(char *,char *, Boolean) ;
+void T3D_poperr(char *,char *, RwcBoolean) ;
 
 void T3D_fix_dataset_dimen(void) ;
 void Syntax() ;

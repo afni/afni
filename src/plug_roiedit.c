@@ -2268,7 +2268,7 @@ r_wt_cb_SB_toggle(
 	XtPointer call_data
 	)
 {
-    Boolean set;
+    RwcBoolean set;
     Arg     al[ 10 ];
     int     ac;
 

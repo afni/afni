@@ -1443,7 +1443,7 @@ if(PRINT_TRACING)
    03 Dec 1999: print messages about forced adoptions
 -------------------------------------------------------------------------*/
 
-void AFNI_force_adoption( THD_session *ss , Boolean do_anats )
+void AFNI_force_adoption( THD_session *ss , RwcBoolean do_anats )
 {
    int aa , ff , vv , apref=0 , aset=-1 ;
    THD_3dim_dataset *dset, *pref_dset, *anyanat_dset ;
@@ -2991,7 +2991,7 @@ void AFNI_underlay_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    int bval , force_redraw=(cb != NULL) ;
-   Boolean seq_exist ;
+   RwcBoolean seq_exist ;
 
 ENTRY("AFNI_underlay_CB") ;
 
@@ -3206,7 +3206,7 @@ char * AFNI_controller_label( Three_D_View *im3d )
 
 void AFNI_set_window_titles( Three_D_View *im3d )
 {
-   Boolean redo_title ;
+   RwcBoolean redo_title ;
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
    char *tnam , *clab ; int ilab ;
    char signum ; /* 08 Aug 2007 */
@@ -3252,7 +3252,7 @@ ENTRY("AFNI_set_window_titles") ;
      }
    }
 
-   redo_title = (Boolean) (strcmp(ttl,im3d->window_title) != 0 ) ;
+   redo_title = (RwcBoolean) (strcmp(ttl,im3d->window_title) != 0 ) ;
    if( redo_title ){
      strcpy( im3d->window_title , ttl ) ;
      XtVaSetValues( im3d->vwid->top_shell , XmNtitle , ttl , NULL ) ;
@@ -5375,7 +5375,7 @@ if(PRINT_TRACING){
    been altered
 ------------------------------------------------------------------*/
 
-void AFNI_modify_viewing( Three_D_View *im3d , Boolean rescaled )
+void AFNI_modify_viewing( Three_D_View *im3d , RwcBoolean rescaled )
 {
    THD_fvec3 fv ;
    THD_ivec3 iv ;
@@ -5560,7 +5560,7 @@ void AFNI_do_many_writes( Widget wpar , XtPointer cd , MCW_choose_cbs *cbs )
    THD_3dim_dataset *dset ;
    THD_dataxes      new_daxes ;
    int ib , resam_mode ;
-   Boolean good ;
+   RwcBoolean good ;
    Widget wmsg ;
    int cc , ccanat[MAX_CONTROLLERS] , ccfunc[MAX_CONTROLLERS] ;
 
@@ -5758,7 +5758,7 @@ void AFNI_write_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
    THD_dataxes        new_daxes ;
    Widget wmsg ;
    int resam_mode = 0;
-   Boolean good , destroy ;
+   RwcBoolean good , destroy ;
 
 ENTRY("AFNI_write_dataset_CB") ;
 
@@ -5918,13 +5918,13 @@ STATUS("resetting 'use func brick' button") ;
 
 /** 09 Dec 1997: resam_mode is now ignored **/
 
-Boolean AFNI_refashion_dataset( Three_D_View *im3d ,
+RwcBoolean AFNI_refashion_dataset( Three_D_View *im3d ,
                                 THD_3dim_dataset *dset ,
                                 THD_dataxes *daxes , int resam_mode )
 {
    THD_datablock *dblk  = dset->dblk ;
    THD_diskptr   *dkptr = dset->dblk->diskptr ;
-   Boolean good ;
+   RwcBoolean good ;
    int npix , nx,ny,nz,nv , kk , ival , code , nzv , dsiz , isfunc , cmode ;
    MRI_IMAGE *im ;
    void *imar ;
@@ -5932,7 +5932,7 @@ Boolean AFNI_refashion_dataset( Three_D_View *im3d ,
    float brfac_save ;
    int native_order , save_order ;  /* 23 Nov 1999 */
 
-   Boolean picturize ;
+   RwcBoolean picturize ;
    Pixmap brain_pixmap=XmUNSPECIFIED_PIXMAP ;
 
 #ifndef DONT_USE_METER
@@ -6268,12 +6268,12 @@ ENTRY("AFNI_mark_for_death") ;
   Mass death
 ---------------------------------------------------------------------*/
 
-void AFNI_andersonville( THD_sessionlist *ssl , Boolean kill_files )
+void AFNI_andersonville( THD_sessionlist *ssl , RwcBoolean kill_files )
 {
    int iss , jdd , kvv , num_killed=0 ;
    THD_session *ss ;
    THD_3dim_dataset *dset ;
-   Boolean kill_me ;
+   RwcBoolean kill_me ;
 
 ENTRY("AFNI_andersonville") ;
 
@@ -6531,7 +6531,7 @@ ENTRY("AFNI_autorange_label") ;
 void AFNI_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   Boolean new_auto ;
+   RwcBoolean new_auto ;
 
 ENTRY("AFNI_range_bbox_CB") ;
 
@@ -6641,7 +6641,7 @@ ENTRY("AFNI_range_av_CB") ;
 void AFNI_inten_bbox_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   Boolean new_pos ;
+   RwcBoolean new_pos ;
    int jm ;
    MCW_pbar *pbar ;
 
@@ -6714,7 +6714,7 @@ ENTRY("AFNI_inten_bbox_CB") ;
 void AFNI_reset_func_range( Three_D_View *im3d )
 {
    XmString xstr ;
-   Boolean  same ;
+   RwcBoolean  same ;
    int iqq = AFNI_controller_index(im3d) ;
 
 ENTRY("AFNI_reset_func_range") ;
@@ -8290,7 +8290,7 @@ static void AFNI_alter_controller_bg( Three_D_View *im3d , float fac )
 -------------------------------------------------------------------*/
 
 void AFNI_hidden_EV( Widget w , XtPointer cd ,
-                    XEvent *ev , Boolean *continue_to_dispatch )
+                    XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
 
@@ -8381,7 +8381,7 @@ void AFNI_hidden_pts_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    THD_3dim_dataset *dset_now ;
    THD_fvec3 xyz_vec ;
    THD_ivec3 ijk_vec ;
-   Boolean ijk_option , pause_it ;
+   RwcBoolean ijk_option , pause_it ;
    FILE *fil ;
    THD_vector_list *sv ;
    int ii ;

@@ -709,7 +709,6 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
    time_series *ideal;
    time_series *ort;
    char err_note[128];
-   Boolean ok;
    char input_filename[THD_MAX_NAME];
 
 
@@ -975,7 +974,7 @@ int main( int argc , char *argv[] )
 {
    line_opt  opt ;               /* holds data constructed from command line */
    THD_3dim_dataset * new_dset;  /* functional data set to be calculated */
-   Boolean ok;                   /* true if 3d write is successful */
+   RwcBoolean ok;                   /* true if 3d write is successful */
    
 
    /*----- Identify software -----*/

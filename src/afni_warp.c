@@ -328,7 +328,7 @@ STATUS("substituting vedim in dset") ;
 
    if( bar == NULL ){
      if( DSET_ARRAY(parent_dset,ival) == NULL ){  /* reload from disk */
-        Boolean good ;
+        RwcBoolean good ;
         good = THD_load_datablock( parent_dset->dblk ) ;
         if( ! good ){
 STATUS("couldn't load parent dataset!") ;

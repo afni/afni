@@ -190,7 +190,7 @@ extern void AV_assign_ival( MCW_arrowval * , int ) ;
 extern void AV_assign_fval( MCW_arrowval * , float ) ;
 extern void AV_textact_CB( Widget , XtPointer , XtPointer ) ;
 
-extern void AV_leave_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AV_leave_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 
 char * AV_default_text_CB( MCW_arrowval * , XtPointer ) ;
 
@@ -215,7 +215,7 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
     when simply using XtSetSensitive on av->wrowcol ) */
 
 #define AV_SENSITIZE(av,sss)                                    \
-   do{ Boolean sen = (Boolean) sss ;                            \
+   do{ RwcBoolean sen = (RwcBoolean) sss ;                            \
        if( av != NULL ) {                                       \
       int exp = (XtIsSensitive(av->wrowcol) != sen) ;           \
       if( av->wlabel != NULL ) XtSetSensitive(av->wlabel ,sen); \
@@ -416,7 +416,7 @@ extern void AP_timer_CB( XtPointer , XtIntervalId * ) ;
 /*! toggle sensitivity of an arrowpad */
 
 #define AP_SENSITIZE(ap,sss)                            \
-   do{ Boolean sen = (Boolean) sss ;                    \
+   do{ RwcBoolean sen = (RwcBoolean) sss ;                    \
        if( ap != NULL ) {                               \
         int exp = (XtIsSensitive(ap->wform) != sen) ;   \
         XtSetSensitive(ap->wbut[0],sen);                \

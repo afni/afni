@@ -153,7 +153,7 @@ static int viewpoint_key[MAX_CONTROLLERS] ;
 /* Internal prototypes */
 
 static void    AFNI_niml_atexit( void ) ;
-static Boolean AFNI_niml_workproc( XtPointer ) ;
+static RwcBoolean AFNI_niml_workproc( XtPointer ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_driver( char * , NI_stream_type *, NI_element * ) ;
@@ -351,7 +351,7 @@ void NIML_to_stderr( void *nini , int send )
    If the return is False, that means call this workproc again.......)
 -------------------------------------------------------------------------*/
 
-static Boolean AFNI_niml_workproc( XtPointer elvis )
+static RwcBoolean AFNI_niml_workproc( XtPointer elvis )
 {
    int cc , nn , ct , ngood=0 ;
    void *nini ;

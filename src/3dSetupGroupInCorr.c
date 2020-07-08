@@ -656,9 +656,9 @@ int main( int argc , char * argv[] )
 
         /* save memory by removing the two input dataset */
 
-        THD_delete_3dim_dataset( inset[ids] , (Boolean)do_delete ) ;
+        THD_delete_3dim_dataset( inset[ids] , (RwcBoolean)do_delete ) ;
         inset[ids] = NULL ;
-        THD_delete_3dim_dataset( inset[ids+1] , (Boolean)do_delete ) ;
+        THD_delete_3dim_dataset( inset[ids+1] , (RwcBoolean)do_delete ) ;
         inset[ids+1] = NULL ;
 
         THD_vectim_applyfunc( mv , prepfunc ) ;  /* prep each time series */
@@ -735,7 +735,7 @@ int main( int argc , char * argv[] )
 
         /* save memory by removing this input dataset */
 
-        THD_delete_3dim_dataset( inset[ids] , (Boolean)do_delete ) ;
+        THD_delete_3dim_dataset( inset[ids] , (RwcBoolean)do_delete ) ;
         inset[ids] = NULL ;
 #if 1
         /* find largest absolute value over all vectors */

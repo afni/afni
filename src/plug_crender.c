@@ -236,13 +236,13 @@ static MCW_arrowval * choose_av , * opacity_scale_av ;
 
   /* 08 Mar 2001 - stuff for colored xhairs */
 
-extern void RCREND_xhair_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void RCREND_xhair_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
 extern void RCREND_xhair_ovc_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 static int xhair_ovc = 0 ;
 
   /* 17 Jun 2005 - stuff for overlay labels */
 
-extern void RCREND_accum_lab_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void RCREND_accum_lab_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
 extern void RCREND_accum_lab_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 static char accum_label[256] = "\0" ;
 static int  accum_lab_replace = 0 ;
@@ -609,7 +609,7 @@ static MCW_arrowval * wfunc_pbar_palette_av ;
 static MCW_arrowval * wfunc_pbar_mixshade_av ;  /* 21 Dec 1999 */
 
 extern void RCREND_pbarmenu_CB( Widget , XtPointer , XtPointer ) ;
-extern void RCREND_pbarmenu_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void RCREND_pbarmenu_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void RCREND_palette_av_CB( MCW_arrowval * , XtPointer ) ;
 extern void RCREND_mixshade_av_CB( MCW_arrowval * , XtPointer ) ;  /* 21 Dec 1999 */
 extern void RCREND_set_pbar_top_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
@@ -3818,7 +3818,7 @@ ENTRY( "RCREND_xhair_CB" );
 --------------------------------------------------------------------------*/
 
 void RCREND_xhair_EV( Widget w , XtPointer cd ,
-                    XEvent * ev , Boolean * continue_to_dispatch )
+                    XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
 ENTRY( "RCREND_xhair_EV" );
 
@@ -3983,7 +3983,7 @@ ENTRY( "RCREND_xhair_recv" );
 --------------------------------------------------------------------------*/
 
 void RCREND_accum_lab_EV( Widget w , XtPointer cd ,
-                    XEvent *ev , Boolean *continue_to_dispatch )
+                    XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
 ENTRY( "RCREND_accum_lab_EV" );
 
@@ -4225,7 +4225,7 @@ ENTRY( "RCREND_cutout_type_CB" );
 #undef DESENS
 #ifdef DESENS
 {
-   Boolean sens ;
+   RwcBoolean sens ;
       sens = (val != CUT_EXPRESSION) ;                    /* deactivate */
       XtSetSensitive(cutouts[iv]->param_av->wup  ,sens) ; /* if is an   */
       XtSetSensitive(cutouts[iv]->param_av->wdown,sens) ; /* Expr > 0   */
@@ -5100,7 +5100,7 @@ void RCREND_autoflag_CB( Widget w , XtPointer client_data , XtPointer call_data 
    int flag = MCW_val_bbox( automate_bbox ) ;
 ENTRY( "RCREND_autoflag_CB" );
 
-   XtSetSensitive( autocompute_pb , (Boolean) flag ) ;
+   XtSetSensitive( autocompute_pb , (RwcBoolean) flag ) ;
 
 #ifdef ALLOW_INCROT  /* 26 Apr 2002 - RWCox */
    if( flag ) MCW_set_bbox( incrot_bbox , 0 ) ;
@@ -6675,7 +6675,7 @@ ENTRY( "RCREND_clusters_av_CB" );
 ---------------------------------------------------------------------------------*/
 
 void RCREND_pbarmenu_EV( Widget w , XtPointer cd ,
-                       XEvent * ev , Boolean * continue_to_dispatch )
+                       XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    static int old_paltab_num = 0 ;
 

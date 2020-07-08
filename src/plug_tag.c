@@ -1183,10 +1183,10 @@ static void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 static void TAG_onoff( int on )
 {
-   Boolean sen ;
+   RwcBoolean sen ;
    int ii ;
 
-   sen = (Boolean) on ;
+   sen = (RwcBoolean) on ;
    for( ii=0 ; onoff_wid[ii] != NULL ; ii++ )
       SENSITIZE( *(onoff_wid[ii]) , sen ) ;    /* see xutil.h */
 

@@ -64,10 +64,10 @@
 
 static char * anat_filename = NULL;      /* file name for input anat dataset */
 static char * prefix_filename = NULL;    /* prefix name for output dataset */
-static Boolean write_mask = FALSE;       /* flag for generate 'fim' mask */
-static Boolean quiet = FALSE;            /* flag for suppress screen output */
+static RwcBoolean write_mask = FALSE;       /* flag for generate 'fim' mask */
+static RwcBoolean quiet = FALSE;            /* flag for suppress screen output */
 static char * commandline = NULL ;       /* command line for history notes */
-static Boolean nosmooth = FALSE;         /* flag to delete spatial smoothing */
+static RwcBoolean nosmooth = FALSE;         /* flag to delete spatial smoothing */
 
 
 /*---------------------------------------------------------------------------*/
@@ -659,7 +659,7 @@ void write_afni_data
 void SEGMENT_auto ()
 {
   short * cv = NULL;           /* volume with 1's at target voxel locations */
-  int ok;                      /* Boolean for successful operation */
+  int ok;                      /* binary, for successful operation */
 
 
   /*----- Perform initialization for automatic segmentation algorithm -----*/

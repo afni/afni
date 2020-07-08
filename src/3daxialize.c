@@ -12,8 +12,8 @@
 
 /*** 06 Mar 2000: allow sagittal and coronal as well ***/
 
-static Boolean write_output = False;  /* 08 Aug 2006 [dg] -force rewrite as in 3drefit by rickr */
-static Boolean NIFTI_mode = False;    /* saving NIFTI output */
+static RwcBoolean write_output = False;  /* 08 Aug 2006 [dg] -force rewrite as in 3drefit by rickr */
+static RwcBoolean NIFTI_mode = False;    /* saving NIFTI output */
 static int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
 static int AXIAL_frugal = 0 ;         /* Saving sub-bricks one at a time is optional 18 Mar 2009 [dg] */
 

@@ -516,7 +516,7 @@ int main( int argc , char *argv[] )
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
    char *labeltable   = NULL;        /* 25 Feb 2010 ZSS */
    int denote         = 0 ;          /* 08 Jul 2005 */
-   Boolean write_output ;            /* 20 Jun 2006 [rickr] */
+   RwcBoolean write_output ;         /* 20 Jun 2006 [rickr] */
    int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
    float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
    int deoblique  = 0;               /* 20 Jun 2007 [drg] */

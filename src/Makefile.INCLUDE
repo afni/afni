@@ -1892,6 +1892,8 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
+1dgenARMA11.o: 1dgenARMA11.c armacor.c
+
 1dgenARMA11:1dgenARMA11.o
 	$(RM) $@
 	$(CC) -o 1dgenARMA11 1dgenARMA11.o $(LFLAGS) $(LLIBS)

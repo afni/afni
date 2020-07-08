@@ -455,7 +455,7 @@ static MCW_DC *       MAIN_dc ;
 static Widget         MAIN_shell=NULL ;
 static int            MAIN_argc ;
 static char         **MAIN_argv ;
-static Boolean        MAIN_workprocess( XtPointer ) ;
+static RwcBoolean        MAIN_workprocess( XtPointer ) ;
 
 /*----- Stuff saved from the '-com' command line arguments [29 Jul 2005] -----*/
 
@@ -1290,7 +1290,7 @@ ENTRY("AFNI_parse_args") ;
 #if MMAP_THRESHOLD > 0
    GLOBAL_argopt.auto_purge    = INIT_purge ;
 #else
-   GLOBAL_argopt.auto_purge    = (Boolean)!AFNI_noenv("AFNI_AUTOPURGE") ;
+   GLOBAL_argopt.auto_purge    = (RwcBoolean)!AFNI_noenv("AFNI_AUTOPURGE") ;
 #endif
    GLOBAL_argopt.resize_images = False ;       /* False means all images must match */
    GLOBAL_argopt.keep_logo     = False ;       /* For making pretty pictures? */
@@ -2831,7 +2831,7 @@ STATUS("start XtAppMainLoop") ;
 
 #define REFRESH XmUpdateDisplay(MAIN_im3d->vwid->top_shell)
 
-static Boolean MAIN_workprocess( XtPointer fred )
+static RwcBoolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 ;
@@ -6291,7 +6291,7 @@ ENTRY("AFNI_inconstancy_check") ;
 void AFNI_read_inputs( int argc , char *argv[] )
 {
    int id , last_color ;
-   Boolean isfunc ;
+   RwcBoolean isfunc ;
 
 
 ENTRY("AFNI_read_inputs") ;
@@ -6364,7 +6364,7 @@ ENTRY("AFNI_read_inputs") ;
    else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
       char str[256] ;
-      Boolean good ;
+      RwcBoolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
       THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;
       char *dname , *eee ;
@@ -7278,9 +7278,9 @@ ENTRY("AFNI_wrap_bbox_CB") ;
 
    bval = MCW_val_bbox( im3d->vwid->imag->wrap_bbox ) ;
 
-   if( (Boolean) bval == im3d->vinfo->xhairs_periodic ) EXRETURN ;
+   if( (RwcBoolean) bval == im3d->vinfo->xhairs_periodic ) EXRETURN ;
 
-   im3d->vinfo->xhairs_periodic = (Boolean) bval ;
+   im3d->vinfo->xhairs_periodic = (RwcBoolean) bval ;
 
    if( w != NULL ){
       drive_MCW_imseq( im3d->s123, isqDR_periodicmont, (XtPointer)ITOP(bval) );
@@ -7306,9 +7306,9 @@ ENTRY("AFNI_xhall_bbox_CB") ;
 
    bval = MCW_val_bbox( im3d->vwid->imag->xhall_bbox ) ;
 
-   if( (Boolean) bval == im3d->vinfo->xhairs_all ) EXRETURN ;
+   if( (RwcBoolean) bval == im3d->vinfo->xhairs_all ) EXRETURN ;
 
-   im3d->vinfo->xhairs_all = (Boolean) bval ;
+   im3d->vinfo->xhairs_all = (RwcBoolean) bval ;
 
    if( im3d->vinfo->crosshair_visible ){
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
@@ -7427,7 +7427,7 @@ ENTRY("AFNI_time_index_step_CB") ;
 /*------------------------------------------------------------------------*/
 
 void AFNI_time_index_EV( Widget w , XtPointer cd ,
-                         XEvent *ev , Boolean *continue_to_dispatch )
+                         XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -7995,7 +7995,7 @@ STATUS("realizing new grapher") ;
   } while(0)
 
 void AFNI_viewbut_EV( Widget w , XtPointer cd ,
-                      XEvent *ev , Boolean *continue_to_dispatch )
+                      XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    XButtonEvent *event=(XButtonEvent *)ev ;
@@ -8641,7 +8641,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
    MRI_IMAGE *im = NULL , *fov = NULL ;
    register short *oar ;
    int ii,jj , npix , xx,yy,zz , nx,ny , gap,ovc , icr,jcr,kcr ;
-   Boolean ovgood ;
+   RwcBoolean ovgood ;
    THD_ivec3 ib ;
    THD_3dim_dataset *dset ;
    FD_brick *br_fim ;
@@ -9353,7 +9353,7 @@ void AFNI_marks_action_CB( Widget w ,
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;
    int itog , ipt , setmask , vwarp ;
-   Boolean sens , transformable ;
+   RwcBoolean sens , transformable ;
    THD_marker_set *markers ;
    AFNI_marks_widgets *marks ;
    THD_fvec3 fv ;
@@ -9370,7 +9370,7 @@ ENTRY("AFNI_marks_action_CB") ;
 
    if( w == NULL ){  /* close down */
 
-      Boolean redisplay ;
+      RwcBoolean redisplay ;
 
       MCW_set_bbox( marks->edits_bbox , 0 ) ;
       AFNI_marks_edits_CB( NULL , (XtPointer) im3d , NULL ) ;
@@ -10081,11 +10081,11 @@ ENTRY("AFNI_setup_thrstat") ;
    30 Nov 1997: add bucket stuff
 ------------------------------------------------------------------------*/
 
-void AFNI_setup_viewing( Three_D_View *im3d , Boolean rescaled )
+void AFNI_setup_viewing( Three_D_View *im3d , RwcBoolean rescaled )
 {
    FD_brick **fbr ;
    XmString xstr ;
-   Boolean  same , dont_fix_pts , writer ,
+   RwcBoolean  same , dont_fix_pts , writer ,
             anat_brick_possible , func_brick_possible ;
    int      val , top ;
 
@@ -10270,7 +10270,7 @@ STATUS("forcing function WOD") ;
 
       { int scod=DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
             doit=FUNC_IS_STAT(scod) && DSET_INMEMORY(im3d->fim_now) ;
-        XtSetSensitive( im3d->vwid->func->thr_fdr_pb , (Boolean)doit ) ;
+        XtSetSensitive( im3d->vwid->func->thr_fdr_pb , (RwcBoolean)doit ) ;
       }
 
    } else {   /* 29 Jul 2003: no longer possible */
@@ -10319,15 +10319,15 @@ STATUS(" -- datamode widgets") ;
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
      writer = True ;
    } else {
-     writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
+     writer = (RwcBoolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
 
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
-     writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
+     writer = (RwcBoolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
    } else {
-     writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
+     writer = (RwcBoolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;
@@ -10342,8 +10342,8 @@ STATUS(" -- datamode widgets") ;
 
    /*--- function controls (always see them) ---*/
 
-   {  Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
-      Boolean have_thr = have_fim ;
+   {  RwcBoolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
+      RwcBoolean have_thr = have_fim ;
 
       static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
       if( first ){
@@ -10573,7 +10573,7 @@ STATUS(" -- managing Go to atlas position button, etc") ;
 
 #if 1
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol ,
-          (Boolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
+          (RwcBoolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
           TT_retrieve_atlas_dset(Current_Atlas_Default_Name(), 0) != NULL) ) ;
 #else
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol , False ) ;
@@ -10847,9 +10847,9 @@ STATUS("opening marks") ;
          } else {
             vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
             SENSITIZE( marks->edits_bbox->wrowcol ,
-                            (Boolean) ISVALID_VIEW(vwarp) ) ;
+                            (RwcBoolean) ISVALID_VIEW(vwarp) ) ;
             SENSITIZE( marks->tlrc_big_bbox->wrowcol ,
-                       (Boolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
+                       (RwcBoolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
             AV_SENSITIZE( marks->disp_scolor_av , True ) ;
             AV_SENSITIZE( marks->disp_size_av   , True ) ;
             AV_SENSITIZE( marks->disp_gap_av    , True ) ;
@@ -11010,7 +11010,7 @@ void AFNI_marks_edits_CB( Widget w ,
    Three_D_View *im3d = (Three_D_View *) client_data ;
    AFNI_marks_widgets *marks ;
    int bval , vwarp ;
-   Boolean transformable ;
+   RwcBoolean transformable ;
 
 ENTRY("AFNI_marks_edits_CB") ;
 
@@ -11091,7 +11091,7 @@ ENTRY("AFNI_see_marks_CB") ;
 --------------------------------------------------------------------------*/
 
 void AFNI_crosshair_EV( Widget w , XtPointer cd ,
-                        XEvent *ev , Boolean *continue_to_dispatch )
+                        XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -11167,7 +11167,7 @@ ENTRY("AFNI_crosshair_EV") ;
 void AFNI_crosshair_relabel( Three_D_View *im3d )
 {
    XmString xstr ;
-   Boolean same ;
+   RwcBoolean same ;
 
 ENTRY("AFNI_crosshair_relabel") ;
 
@@ -12342,7 +12342,7 @@ THD_warp * AFNI_make_warp( Three_D_View *im3d )
    THD_3dim_dataset *anat    = im3d->anat_now ;
    THD_marker_set   *markers = im3d->anat_now->markers ;
    THD_warp         *warp ;
-   Boolean good ;
+   RwcBoolean good ;
 
 ENTRY("AFNI_make_warp") ;
 
@@ -12626,7 +12626,7 @@ DUMP_LMAP(awarp->warp) ;
      error_list = (char*)XtRealloc( error_list , ll ) ;      \
      strcat( error_list , str ) ; num_report++ ; }
 
-Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View *im3d )
+RwcBoolean AFNI_marks_quality_check( RwcBoolean make_report, Three_D_View *im3d )
 {
    THD_3dim_dataset *anat    = im3d->anat_now ;
    THD_marker_set   *markers = im3d->anat_now->markers ;
@@ -12634,7 +12634,7 @@ Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View *im3d )
    char *error_list ;
    int   num_error , num_report ;
    char  msg[128] ;
-   Boolean good ;
+   RwcBoolean good ;
 
 ENTRY("AFNI_marks_quality_check") ;
 

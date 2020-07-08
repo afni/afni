@@ -17,7 +17,9 @@
     RWCox - 01 Jul 2020 - https://rb.gy/9t84mb
 *//****************************************************************************/
 
-/*------------------------------------------------------------------------------*/
+static int armacor_debug = 0 ;
+
+/*----------------------------------------------------------------------------*/
 /* Return the vector of correlations for an AR(3) model plus additive white
    noise [=restricted ARMA(3,1)], given the AR(5) generating polynomial as
      phi(z) = (z-a) * (z-r1*exp(+i*t1)) * (z-r1*exp(-i*t1))
@@ -27,7 +29,8 @@
      x[n]   = p1*x[n-1] + p2*x[n-2] + p3*x[n-3] + w[n]
    where
      a     = pure exponential decay component
-     r1,t1 = decaying oscillation 0 < t1 < PI
+     r1,t1 = decaying oscillation; 0 < r1 < 1;   0 < t1 < PI
+             t1 = 2 * PI * TR * f1 [TR = time step; f1 = frequency]
      w[n]  = stationary white noise process driving the linear recurrence
    The first formulation of the model, instead of using the polynomial
    coefficients as in the second formulation above, is simpler to understand
@@ -42,8 +45,8 @@
 
    A maximum of ncmax correlations are computed (ncmax < 4 ==> no limit).
    Correlations are computed until three in a row are below ccut
-   (ccut <= 0 ==> 0.00001).
-*//*----------------------------------------------------------------------------*/
+   (default when ccut <= 0 ==> 0.00001).
+*//*--------------------------------------------------------------------------*/
 
 doublevec * arma31_correlations( double a , double r1 , double t1 ,
                                  double vrt , double ccut , int ncmax )
@@ -65,7 +68,7 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
 
    if( a   > 0.95 ) a   = 0.95 ;  /* limits */
    if( r1  > 0.95 ) r1  = 0.95 ;
-   if( vrt > 1.0  ) vrt = 1.0  ;
+   if( vrt > 1.00 ) vrt = 1.00  ;
    if( t1  > PI   ) t1  = PI   ; else if( t1 < 0.0 ) t1 = 0.0 ;
 
    if( ccut  <= 0.0 ) ccut  = 0.00001 ;
@@ -104,14 +107,20 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
    g2 = ( (p1+p3)*p1 + (1.0-p2)*p2 ) / cnew ;
 
    if( fabs(g1) >= 1.0 || fabs(g2) > 1.0 ){  /* error, should not happen */
-     ERROR_message("bad AR(3) setup:\n"
-                   "  a  = %g  r1 = %g  t1 = %g\n"
-                   "  p1 = %g  p2 = %g  p3 = %g\n"
-                   " det = %g\n"
-                   "  g1 = %g  g2 = %g" ,
-                   a,r1,t1 , p1,p2,p3 , cnew , g1,g2 ) ;
-     return NULL ;
+     WARNING_message("bad AR(3) setup:\n"
+                     "  a  = %g  r1 = %g  t1 = %g\n"
+                     "  p1 = %g  p2 = %g  p3 = %g\n"
+                     " det = %g\n"
+                     "  g1 = %g  g2 = %g" ,
+                     a,r1,t1 , p1,p2,p3 , cnew , g1,g2 ) ;
    }
+
+#if 1
+{ double alp = ( g1 - r1*c1 ) / ( a - r1*c1 ) ;
+  INFO_message("a=%g r=%g t=%g  g1=%g g2=%g alp=%g",
+               a,r1,t1 , g1,g2,alp ) ;
+}
+#endif
 
    /* store them into the output vector */
 
@@ -158,12 +167,14 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
    return corvec ;
 }
 
-/*------------------------------------------------------------------------------*/
+/*============================================================================*/
+#ifdef ALLOW_ARMA51
+/*----------------------------------------------------------------------------*/
 /* Compute the first 4 gammas (correlations) from
    the AR(5) polynomial coefficients, using a linear system
      phi(z) = z^5 - p1*z^4 - p2*z^3 - p3*z^2 - p4*z - p5
      x[n]   = p1*x[n-1] + p2*x[n-2] + p3*x[n-3] + p4*x[n-4] + p5*x[n-5] + w[n]
-*//*----------------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
 double_quad arma51_gam1234( double p1, double p2, double p3, double p4, double p5 )
 {
@@ -180,12 +191,24 @@ double_quad arma51_gam1234( double p1, double p2, double p3, double p4, double p
 
    /* invert the matrix */
 
+   if( armacor_debug ){
+     ININFO_message("arma51_gam1234: p1 = %g p2 = %g p3 = %g p4 = %g p5 = %g",p1,p2,p3,p4,p5) ;
+     DUMP_DMAT44("matrix",amat) ;
+     ININFO_message(" determ = %g",generic_dmat44_determinant(amat)) ;
+   }
+
    imat = generic_dmat44_inverse( amat ) ;
 
    /* apply inverse to the pj coefficents themselves to get the gammas */
 
    DMAT44_VEC( imat , p1,p2,p3,p4 ,
                g1234.a , g1234.b , g1234.c , g1234.d ) ;
+
+   if( armacor_debug ){
+     DUMP_DMAT44("inverse",imat) ;
+     ININFO_message("  g1 = %g g2 = %g g3 = %g g4 = %g" ,
+                    g1234.a , g1234.b , g1234.c , g1234.d ) ;
+   }
 
    return g1234 ;
 }
@@ -262,7 +285,7 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
    p2 = -4.0*r1*r2*c1*c2 - 2.0*a*(r1*c1+r2*c2) - r1*r1 - r2*r2 ;
    p3 = a * ( r1*r1+r2*r2 + 4.0*r1*r2*c1*c2 )  + 2.0*r1*r2*(r2*c1+r1*c2) ;
    p4 = -2.0*a*r1*r2*(r2*c1+r1*c2)             - r1*r1*r2*r2 ;
-   p5 = a + r1*r1 + r2*r2 ;
+   p5 = a * r1*r1 * r2*r2 ;
 
    /* compute first 4 gamma coefficients (correlations)
       from the linear equation connecting p1..p5 to g1..g4 */
@@ -272,15 +295,14 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
    if( fabs(g1234.a) >= 1.0 ||
        fabs(g1234.b) >= 1.0 ||
        fabs(g1234.c) >= 1.0 ||
-       fabs(g1234.c) >= 1.0   ){  /* error, should not happen */
+       fabs(g1234.d) >= 1.0   ){  /* error, should not happen */
 
-     ERROR_message("bad AR(5) setup:\n"
-                   "  a  = %g  r1 = %g  t1 = %g  r2 = %g  t2 = %g\n"
-                   "  p1 = %g  p2 = %g  p3 = %g  p4 = %g  p5 = %g\n"
-                   "  g1 = %g  g2 = %g  g3 = %g  g4 = %g" ,
-                   a,r1,t1,r2,t2 , p1,p2,p3,p4,p5 ,
-                   g1234.a , g1234.b , g1234.c , g1234.d ) ;
-     return NULL ;
+     WARNING_message("bad AR(5) setup:\n"
+                     "  a  = %g  r1 = %g  t1 = %g  r2 = %g  t2 = %g\n"
+                     "  p1 = %g  p2 = %g  p3 = %g  p4 = %g  p5 = %g\n"
+                     "  g1 = %g  g2 = %g  g3 = %g  g4 = %g" ,
+                     a,r1,t1,r2,t2 , p1,p2,p3,p4,p5 ,
+                     g1234.a , g1234.b , g1234.c , g1234.d ) ;
    }
 
    /* store them into the output vector */
@@ -331,3 +353,5 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
 
    return corvec ;
 }
+#endif /* ALLOW_ARMA51 */
+/*============================================================================*/

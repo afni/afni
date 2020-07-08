@@ -41,7 +41,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
 #define SENSITIZE(w,sen)                         \
-   do{ Boolean fred = (Boolean) sen ;            \
+   do{ RwcBoolean fred = (RwcBoolean) sen ;            \
        if(w != NULL){                            \
           int exp = (XtIsSensitive(w) != fred) ; \
           XtSetSensitive(w,fred) ;               \
@@ -184,7 +184,7 @@ extern void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *cod
 extern int MCW_filetype( char * ) ;
 
 #if 0
-extern Boolean MCW_isitmwm( Widget ) ;
+extern RwcBoolean MCW_isitmwm( Widget ) ;
 #else
 #define MCW_isitmwm(ww) (!AFNI_noenv("AFNI_X11_REDECORATE"))
 #endif

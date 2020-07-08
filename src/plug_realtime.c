@@ -710,7 +710,7 @@ static PLUGIN_interface * plint = NULL ; /* AFNI plugin structure */
 DEFINE_PLUGIN_PROTOTYPE
 
 char * RT_main( PLUGIN_interface * ) ;
-Boolean RT_worker( XtPointer ) ;
+RwcBoolean RT_worker( XtPointer ) ;
 RT_input * new_RT_input( IOCHAN * ) ;
 int RT_check_listen(void) ;
 int RT_acquire_info( char * ) ;
@@ -1593,7 +1593,7 @@ void cleanup_rtinp( int keep_ioc_data )
   AFNI-izing, this should always return False.
 **********************************************************************/
 
-Boolean RT_worker( XtPointer elvis )
+RwcBoolean RT_worker( XtPointer elvis )
 {
    int jj ;
 

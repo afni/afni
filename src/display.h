@@ -288,7 +288,7 @@ extern void DC_gray_conbrio( MCW_DC * , int ) ;  /* 23 Oct 2003 */
 extern void DC_palette_setgray( MCW_DC * ) ;
 extern void DC_palette_setcolor( MCW_DC * ) ;
 
-extern Boolean MCW_check_iconsize( int,int,MCW_DC * ) ;
+extern RwcBoolean MCW_check_iconsize( int,int,MCW_DC * ) ;
 
 extern XColor * DCpix_to_XColor( MCW_DC * , Pixel , int ) ;
 
