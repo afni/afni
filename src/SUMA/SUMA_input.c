@@ -2156,7 +2156,7 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break;
       case XK_M:
          if (SUMA_CTRL_KEY(key) && (SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key)) ) {
-            #ifndef DONT_USE_MCW_MALLOC
+            #ifdef ALLOW_MCW_MALLOC
             /* write memtrace results to disk */
             if (!mcw_malloc_enabled()) {
                if (callmode && strcmp(callmode, "interactive") == 0) {

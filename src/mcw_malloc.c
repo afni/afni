@@ -12,6 +12,8 @@
 
 #include "mcw_malloc.h"
 #include "Amalloc.h"
+
+#ifdef ALLOW_MCW_MALLOC
 /*--------------------------------------------------------------------------
   24 Jan 2001: Modified heavily to use a hash table instead of a linear
                array to store the data about each allocated block.
@@ -742,7 +744,7 @@ void mcw_free( void *fred , char *fnam , int lnum )
    The actual replacement for XtMalloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtMalloc( Cardinal n , char *fnam , int lnum )
+char * mcw_XtMalloc( RwcCardinal n , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *)malloc_track(n,fnam,lnum) ;
    else               return (char *)RwcMalloc(n) ;
@@ -752,7 +754,7 @@ char * mcw_XtMalloc( Cardinal n , char *fnam , int lnum )
    The actual replacement for XtRealloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtRealloc( char *p, Cardinal n , char *fnam , int lnum )
+char * mcw_XtRealloc( char *p, RwcCardinal n , char *fnam , int lnum )
 {
    mallitem *ip ;
 
@@ -791,8 +793,14 @@ void mcw_XtFree( char *p )
   The actual replacement for XtCalloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtCalloc( Cardinal n , Cardinal m , char *fnam , int lnum )
+char * mcw_XtCalloc( RwcCardinal n , RwcCardinal m , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *) calloc_track( n , m , fnam,lnum ) ;
    else               return RwcCalloc( n , m ) ;
 }
+
+#else  /* just something, anything */
+
+long long mcw_malloc_total(void){ return 0 ; }
+
+#endif

@@ -45,7 +45,7 @@ int NI_malloc_replace( void *(*um)(size_t)        ,
   return 1 ;
 }
 
-#if defined(NIML_OLD_MALLOC) || defined(DONT_USE_MCW_MALLOC)
+#if defined(NIML_OLD_MALLOC) || !defined(ALLOW_MCW_MALLOC)
 
 /*--------------------------------------------------------------------------*/
 /*! Allocate memory (actually uses calloc); calls exit() if it fails.
@@ -104,7 +104,7 @@ void   NI_malloc_enable_tracking (void){ return;      }
 int    NI_malloc_tracking_enabled(void){ return 0;    }
 
 /*****************************************************************************/
-#else  /**  not NIML_OLD_MALLOC or DONT_USE_MCW_MALLOC                 *******/
+#else  /**  not NIML_OLD_MALLOC and ALLOW_MCW_MALLOC                   *******/
        /**  18 Nov 2002: keep track of mallocs, as in mcw_malloc.[ch]  *******/
 /*****************************************************************************/
 
@@ -782,4 +782,4 @@ void NI_free( void *p )
   hidden_NI_free( p , (char *)"Nada" , 0 ) ;
 }
 
-#endif  /* NIML_OLD_MALLOC or DONT_USE_MCW_MALLOC */
+#endif  /* NIML_OLD_MALLOC and ALLOW_MCW_MALLOC */

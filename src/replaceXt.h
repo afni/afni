@@ -28,6 +28,8 @@ typedef   unsigned char   RwcBoolean ;  /* 07 Jul 2020 */
 #define True  1
 #define False 0
 
+typedef unsigned int RwcCardinal ;      /* 08 Jul 2020 */
+
 #else                        /* this is the crudesse */
 
 # include <X11/Intrinsic.h>
