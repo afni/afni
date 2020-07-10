@@ -198,7 +198,7 @@ MODEL_interface * initialize_model ()
 
   /*----- allocate memory space for model interface -----*/
 
-  mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
+  mi = (MODEL_interface *) RwcMalloc (sizeof(MODEL_interface));
 
   /*----- name of this model -----*/
 
