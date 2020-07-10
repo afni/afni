@@ -4669,11 +4669,11 @@ GICOR_setup * GRINCOR_setup_dataset( NI_element *nel )
        if( cpt == NULL || cpt == nnatr || cpt-nnatr > 256 ) continue ;
        strncpy(aaname,nnatr,cpt-nnatr) ; aaname[cpt-nnatr] = '\0' ;
        cpt += 5 ; if( *cpt == '\0' ) continue ;
-       aatr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+       aatr = (ATR_string *)RwcMalloc(sizeof(ATR_string)) ;
        aatr->type = ATR_STRING_TYPE ;
-       aatr->name = XtNewString(aaname) ;
+       aatr->name = RwcNewString(aaname) ;
        aatr->nch  = strlen(cpt+1) ;
-       aatr->ch   = (char *)XtMalloc( sizeof(char) * aatr->nch ) ;
+       aatr->ch   = (char *)RwcMalloc( sizeof(char) * aatr->nch ) ;
        memcpy( aatr->ch , cpt , sizeof(char) * aatr->nch ) ;
        THD_insert_atr( dset->dblk , (ATR_any *)aatr ) ;
      }

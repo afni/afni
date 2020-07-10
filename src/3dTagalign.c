@@ -551,7 +551,7 @@ int main( int argc , char * argv[] )
         fprintf(stderr,"++ RMS distance between tags after  = %.2f mm\n" , dsum ) ;
 
      } else {
-        myXtFree(dset->tagset) ;  /* send it to the dustbin */
+        myRwcFree(dset->tagset) ;  /* send it to the dustbin */
      }
 
      /*-- rotate sub-bricks --*/

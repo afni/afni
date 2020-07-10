@@ -57,5 +57,4 @@ typedef void *       RwcWidget ;        /* 10 Jul 2020 */
 /*! Macro to allocate memory and zero-ize it. */
 #define myRwcNew(type) ((type *) RwcCalloc(1,(unsigned) sizeof(type)))
 
-
 #endif

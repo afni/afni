@@ -49,13 +49,6 @@
 #include "mrilib.h"
 #include "matrix.h"
 
-
-/*---------------------------------------------------------------------------*/
-
-#ifndef myXtFree
-#   define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 /*---------------------------------------------------------------------------*/
 
 /** macro to test a malloc-ed pointer for validity **/
