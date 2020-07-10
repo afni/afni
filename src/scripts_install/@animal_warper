@@ -249,7 +249,7 @@ set all_known_dset_abbrev = ( )
 
 set feature_option     = ""
 set feature_size       = ""
-set modesmooth         = "3"   # 3 voxel modal smoothing
+set modesmooth         = "1"   # 1 voxel modal smoothing
 set DO_MODE_SMOO_W_REP = 1     # use modal smoothing with rep (def)
 set supersize          = ""
 set keep_temp          = ""
@@ -2436,7 +2436,9 @@ Options ~1~
                          neighborhood for both ROI followers and segmentation
                          datasets. Voxel values are replaced with the mode
                          (most common value) in the spherical neighborhood.
-                         The default uses a 3 voxel radius.
+                         The default uses a 1 voxel radius. Use higher values
+                         depending on the irregularities of the edges of the
+                         regions and ROI thickness.
                          Turn off by setting this to 0
 
     -mode_smooth_replacement_off
