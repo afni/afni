@@ -11,6 +11,22 @@
 extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
                                               char *hint, char *help) ;
 
+#undef  USE_QQQQ  /* for testing TCSV */
+#ifdef  USE_QQQQ
+/*--------------------------------------------------------------------*/
+
+static void AFNI_qqqq_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   MCW_choose_tcsv( im3d->vwid->imag->topper ,
+                    "Choose .tsv or .csv file" ,
+                    GLOBAL_library.tcsv_data , -1 ,
+                    NULL , NULL ) ;
+   return ;
+}
+#endif
+
 /*---------------------------------------------------------------*/
 /*------------ Stuff for logos and pixmap definitions -----------*/
 #undef MAIN
@@ -5732,7 +5748,6 @@ STATUS("making prog->rowcol") ;
                        AFNI_ytube_CB , im3d ) ;
         MCW_set_widget_bg( vwid->ytube_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->ytube_pb , "#ffffaa" ) ;
-        
       }
    }
 #else
@@ -5749,7 +5764,7 @@ STATUS("making prog->rowcol") ;
 #ifdef WANT_AFNI_BITMAP
 #ifndef DONT_INSTALL_ICONS
    if( afni48_pixmap != XmUNSPECIFIED_PIXMAP ){
-      Boolean good ;
+      RwcBoolean good ;
 
       good = MCW_check_iconsize( afni48_width,afni48_height , im3d->dc ) ;
 
@@ -6180,6 +6195,20 @@ STATUS("making prog->rowcol") ;
       MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
       MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
 
+#ifdef  USE_QQQQ
+      /*----------*/
+      { Widget qqqb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("TCSV test") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+        XtAddCallback( qqqb , XmNactivateCallback , AFNI_qqqq_CB , im3d ) ;
+      }
+#endif
+
       /*----------*/
 
       (void) XtVaCreateManagedWidget(
@@ -6388,7 +6417,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->underlay_type     = UNDERLAY_ANAT ;       /* show anatomy */
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
-   im3d->vinfo->func_visible      = (Boolean)AFNI_yesenv("AFNI_SEE_OVERLAY") ;
+   im3d->vinfo->func_visible      = (RwcBoolean)AFNI_yesenv("AFNI_SEE_OVERLAY") ;
    im3d->vinfo->func_visible_count  = 0 ;
    im3d->vinfo->func_init_subbricks = 0 ;
 #ifdef ALLOW_DATASET_VLIST
@@ -6841,13 +6870,13 @@ void AFNI_controller_clonify(void)
 {
    Three_D_View *im3d ;
    int id ;
-   Boolean clone_on ;
+   RwcBoolean clone_on ;
 
 ENTRY("AFNI_controller_clonify") ;
 
    if( MAX_CONTROLLERS <= 1 ) EXRETURN ;
 
-   clone_on = (Boolean)( AFNI_count_controllers() < MAX_CONTROLLERS ) ;
+   clone_on = (RwcBoolean)( AFNI_count_controllers() < MAX_CONTROLLERS ) ;
 
    for( id=0 ; id < MAX_CONTROLLERS ; id++ ){
       im3d = GLOBAL_library.controllers[id] ;
@@ -7957,7 +7986,7 @@ int AFNI_set_dset_pbar(XtPointer *vp_im3d)
 /*-------------------------------------------------------------------------*/
 
 void AFNI_sesslab_EV( Widget w , XtPointer cd ,
-                      XEvent *ev , Boolean *continue_to_dispatch )
+                      XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 

@@ -1682,7 +1682,8 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
 
 #undef  DUMP_DMAT44
 #define DUMP_DMAT44(SS,AA)                             \
-     printf("# dmat44 %s:\n"                           \
+    fprintf(stderr,                                    \
+            "# dmat44 %s:\n"                           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \

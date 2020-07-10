@@ -74,8 +74,8 @@ class SysInfo:
       else:                    note = '  (current shell is %s)' % curshell
 
       if logshell not in ['csh', 'tcsh']:
-         self.comments.append("login shell '%s', trusting user to translate" \
-                              " code examples from 'tcsh'" % logshell)
+         self.comments.append("just be aware: login shell '%s', but our code" \
+                              " examples use 'tcsh'" % logshell)
 
       print('apparent login shell: %s%s' % (logshell, note))
 
@@ -752,9 +752,10 @@ class SysInfo:
             vf = self.get_python_ver_float()
             mesg = ''
             if vf >= 3.0:
-               mesg = 'have python version %s, some programs need 2.7.x' % vstr
+               mesg = 'have python version %s, but a few programs need 2.7.x' \
+                      % vstr
             elif vf < 2.7:
-               mesg = 'have python version %s, consider using 2.7.x' % vstr
+               mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
 

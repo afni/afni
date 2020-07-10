@@ -27,7 +27,7 @@ static void   AIVVV_imseq_retitle( void * , char * ) ;
 static XtPointer AIVVV_imseq_getim( int , int , XtPointer ) ;
 static void AIVVV_imseq_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
 static void AIVVV_imseq_addto( MRI_IMAGE *im ) ;  /* 25 Jul 2005 */
-static Boolean AIVVV_workproc( XtPointer ) ;      /* 25 Jul 2005 */
+static RwcBoolean AIVVV_workproc( XtPointer ) ;      /* 25 Jul 2005 */
 static void AIVVV_niml_quitter( char *, NI_stream , NI_element * ) ;
 
 /*------------------------------------------------------------------------*/
@@ -640,7 +640,7 @@ ENTRY("AIVVV_imseq_addto") ;
    appear.
 -----------------------------------------------------------------------------*/
 
-static Boolean AIVVV_workproc( XtPointer fred )
+static RwcBoolean AIVVV_workproc( XtPointer fred )
 {
    int nn ;
    NI_element *nel ;

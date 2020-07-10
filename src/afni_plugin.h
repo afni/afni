@@ -184,6 +184,7 @@ extern "C" {
 #define PLUGIN_4DIMAGE_TYPE         11
 #define PLUGIN_4DIMAGE_LIST_TYPE    12
 #define PLUGIN_OVERLAY_COLOR_TYPE   13
+#define PLUGIN_TCSV_TYPE            14
 
 /** macro to copy string into plugin label array,
     filling with blanks or truncating length, as needed **/
@@ -256,6 +257,7 @@ typedef struct {
 #define OP_CHOOSER_TEXTFIELD  5   /* TextField                    */
 #define OP_CHOOSER_TIMESERIES 6   /* PushButton                   */
 #define OP_CHOOSER_COLORMENU  7   /* optmenu for overlay colors   */
+#define OP_CHOOSER_TCSV       8   /* PushButton                   */
 
 #define OP_OPTMENU_LIMIT     99
 #define OP_OPTMENU_COLSIZE   20
@@ -297,6 +299,16 @@ typedef struct {
    MRI_IMAGE * tsim ;            /* the chosen timeseries */
    int         ts_choice ;       /* the chosen index */
 } PLUGIN_tsval ;
+
+typedef struct {
+   Widget rowcol , label , pb ;
+
+   NI_ELARR        * elarr ;    /* array of data elements to choose from */
+   PLUGIN_subvalue * sv ;       /* my good friend */
+
+   NI_element * tcsv_el ;        /* the chosen data element  */
+   int          tcsv_choice ;    /* the chosen index */
+} PLUGIN_tcsvval ;
 
 typedef struct {
    Widget toggle , label ;
@@ -387,6 +399,7 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 #define PLUTO_add_string         add_string_to_PLUGIN_interface
 #define PLUTO_add_dataset        add_dataset_to_PLUGIN_interface
 #define PLUTO_add_timeseries     add_timeseries_to_PLUGIN_interface
+#define PLUTO_add_tcsv           add_tcsv_to_PLUGIN_interface
 #define PLUTO_add_dataset_list   add_dataset_list_to_PLUGIN_interface
 #define PLUTO_add_overlaycolor   add_overlaycolor_to_PLUGIN_interface
 
@@ -428,6 +441,7 @@ extern void add_dataset_list_to_PLUGIN_interface( PLUGIN_interface *,
                                                   char *, int,int,int ) ;
 
 extern void add_timeseries_to_PLUGIN_interface( PLUGIN_interface *, char * ) ;
+extern void add_tcsv_to_PLUGIN_interface      ( PLUGIN_interface *, char * ) ;
 
 extern void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface *, char * );
 
@@ -446,6 +460,7 @@ extern char * PLUTO_commandstring( PLUGIN_interface * plint ) ;
 #define PLUTO_get_string       get_string_from_PLUGIN_interface
 #define PLUTO_get_idcode       get_idcode_from_PLUGIN_interface
 #define PLUTO_get_timeseries   get_timeseries_from_PLUGIN_interface
+#define PLUTO_get_tcsv         get_tcsv_from_PLUGIN_interface
 #define PLUTO_peek_callvalue   peek_callvalue_type_from_PLUGIN_interface
 #define PLUTO_peek_optiontag   peek_optiontag_from_PLUGIN_interface
 #define PLUTO_get_idclist      get_idclist_from_PLUGIN_interface
@@ -465,7 +480,8 @@ extern char * get_string_from_PLUGIN_interface      ( PLUGIN_interface * ) ;
 extern int    get_overlaycolor_from_PLUGIN_interface( PLUGIN_interface * ) ;
 
 extern MCW_idcode * get_idcode_from_PLUGIN_interface( PLUGIN_interface * ) ;
-extern MRI_IMAGE * get_timeseries_from_PLUGIN_interface( PLUGIN_interface * ) ;
+extern MRI_IMAGE *  get_timeseries_from_PLUGIN_interface( PLUGIN_interface * ) ;
+extern NI_element * get_tcsv_from_PLUGIN_interface( PLUGIN_interface * ) ;
 extern MCW_idclist * get_idclist_from_PLUGIN_interface( PLUGIN_interface * ) ;
 
 extern int    peek_callvalue_type_from_PLUGIN_interface( PLUGIN_interface * ) ;
@@ -572,11 +588,13 @@ extern void PLUG_optional_toggle_CB  ( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_choose_dataset_CB   ( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_startup_plugin_CB   ( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_choose_timeseries_CB( Widget , XtPointer , XtPointer ) ;
+extern void PLUG_choose_tcsv_CB      ( Widget , XtPointer , XtPointer ) ;
 
 extern void PLUTO_turnoff_options( PLUGIN_interface * ) ; /* 21 Feb 2001 */
 
 extern void PLUG_finalize_dataset_CB   (Widget, XtPointer, MCW_choose_cbs *);
 extern void PLUG_finalize_timeseries_CB(Widget, XtPointer, MCW_choose_cbs *);
+extern void PLUG_finalize_tcsv_CB      (Widget, XtPointer, MCW_choose_cbs *);
 
 extern void PLUTO_popup_dset_chooser( Widget, int, int,
                                       int_func *, void_func *, void * ) ;
@@ -720,6 +738,9 @@ extern int PLUTO_set_v2s_addrs(void ** vopt, char *** maps, char ** hist);
 #define PLUTO_cursorize(w)  NORMAL_cursorize(w)
 
 extern void PLUTO_register_timeseries( char * , MRI_IMAGE * ) ;
+#if 0
+extern void PLUTO_register_tcsv      ( char * , NI_element * ) ;
+#endif
 
 extern THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * ) ;
 extern THD_3dim_dataset * PLUTO_find_dset_idc( char * ) ;
@@ -744,7 +765,7 @@ extern void PLUTO_force_opacity_change( void ) ; /* 06 Jun 2019 */
 
 extern void PLUTO_register_workproc( XtWorkProc , XtPointer ) ;
 extern void PLUTO_remove_workproc  ( XtWorkProc ) ;
-extern Boolean PLUG_workprocess( XtPointer ) ;
+extern RwcBoolean PLUG_workprocess( XtPointer ) ;
 extern void PLUTO_register_timeout( int, generic_func *, XtPointer ) ;
 extern double PLUTO_cpu_time(void) ;
 extern double PLUTO_elapsed_time(void) ;

@@ -51,7 +51,7 @@ typedef struct UN_options
 {
   char * anat_filename;       /* file name for input anat dataset */
   char * prefix_filename;     /* prefix name for output dataset */
-  Boolean quiet;              /* flag for suppress screen output */
+  RwcBoolean quiet;              /* flag for suppress screen output */
   int lower_limit;    /* lower limit for voxel intensity */
   int upper_limit;    /* upper limit for voxel intensity 0 for ignoring this parameter*/
   int rpts;           /* #voxels in sub-sampled image (for pdf) */
@@ -894,7 +894,6 @@ void estimate_field (UN_options * option_data,
   int nx, ny, nz, nxy, nxyz;
   int rpts, spts, nbin, npar;
   float parameters [DIMENSION];    /* parameters for PDF estimation */
-  Boolean ok = TRUE;               /* flag for successful PDF estimation */
   char filename[MAX_STRING_LENGTH];
 
 

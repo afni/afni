@@ -60,9 +60,12 @@
 #set version   = "1.42";  set rev_dat   = "May 26, 2020"
 # [PT] bug fix on refbox, now that we have workdir
 #
-set version   = "1.43";  set rev_dat   = "May 26, 2020"
+#set version   = "1.43";  set rev_dat   = "May 26, 2020"
 # [PT] bug fix on olay regrid: don't jump to wdir yet
 #    + new opt : '-ulay_range_nz ..' for passing umin/umax to @chauff*
+#
+set version   = "1.44";  set rev_dat   = "June 22, 2020"
+# [PT] bug fix:  "-monty .." value was being ignored
 #
 # ----------------------------------------------------------------
 
@@ -439,7 +442,7 @@ set ethr = ${vvv[2]}
     -thr_olay $ethr                         \
     -opacity 9                              \
     -prefix   "../${opref}"                 \
-    -montx $Nx -monty 1                     \
+    -montx $Nx -monty ${Ny}                 \
     -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \

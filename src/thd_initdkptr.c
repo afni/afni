@@ -18,10 +18,10 @@
 void THD_init_diskptr_names( THD_diskptr *dkptr ,
                              char *dirname , char *headname ,
                              char *prefixname , int view_type ,
-                             Boolean do_datafiles )
+                             RwcBoolean do_datafiles )
 {
    int ii ;
-   Boolean redo_filecode = False ;
+   RwcBoolean redo_filecode = False ;
    char dname[THD_MAX_NAME]="\0" , pname[THD_MAX_PREFIX]="\0" ; /* 29 Feb 2001 */
 
 ENTRY("THD_init_diskptr_names") ;

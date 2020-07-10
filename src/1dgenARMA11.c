@@ -102,6 +102,120 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    return rcm ;
 }
 
+/*--------------------------------------------------------------------------*/
+#define ALLOW_ARMA51
+#include "armacor.c"  /* ARMA(p,1) models for p=3 and 5 [01 Jul 2020] */
+/*--------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+/*! Setup sparse banded correlation matrix (as an rcmat struct) for a
+    general shift-invariate structure, whose lagged correlations are given
+    in corvec.
+    * tau[i] is the 'true' time index of the i-th data point.  This
+      lets you allow for censoring and for inter-run gaps.
+    * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
+*//*------------------------------------------------------------------------*/
+
+rcmat * rcmat_arma_gen( int nt, int *tau, doublevec *corvec )
+{
+   rcmat  *rcm ;
+   LENTYP *len ;
+   MTYPE **rc , *rii , alam ;
+   int ii , jj , bmax , jbot , itt,jtt ;
+
+   if( nt < 2 || corvec == NULL ) return NULL ;
+
+   rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
+   len = rcm->len ;
+   rc  = rcm->rc ;
+
+   /* set maximum bandwidth */
+
+   bmax = corvec->nar - 1 ;  /* we have lags 0 .. bmax */
+
+   /* special and trivial case: identity matrix */
+
+   if( bmax == 0 ){
+     for( ii=0 ; ii < nt ; ii++ ){
+       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+     }
+     return rcm ;
+   }
+
+   /* First row/column has only 1 entry = diagonal value = 1 */
+
+   len[0] = 1 ; rc[0] = malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
+
+   /* Subsequent rows/columns: */
+
+   for( ii=1 ; ii < nt ; ii++ ){
+     itt  = TAU(ii) ;                            /* 'time' of the i'th index */
+     jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+       jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
+       if( jtt <= bmax ) break ;                /* if in OK region, stop now */
+     }
+     jbot = jj ;      /* this is the earliest index to be correlated with #i */
+     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+       continue ;
+     }
+     len[ii] = ii + 1 - jbot ;            /* number of entries in row/column */
+     rc[ii]  = calloc(sizeof(MTYPE),len[ii]) ;      /* space for the entries */
+     rii     = rc[ii] - jbot ;         /* shifted pointer to this row/column */
+     rii[ii] = 1.0 ;                                       /* diagonal entry */
+     for( jj=jbot ; jj < ii ; jj++ ){        /* compute off diagonal entries */
+       jtt = itt - TAU(jj) ;                      /* 'time' difference again */
+       rii[jj] = corvec->ar[jtt] ;        /* extract correlation from corvec */
+     }
+   }
+
+   return rcm ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+rcmat * rcmat_arma31( int nt , int *tau ,
+                      double a, double r1, double t1, double vrt )
+{
+  rcmat *rcm ;
+  doublevec *corvec ;
+
+  corvec = arma31_correlations( a , r1 , t1 , vrt , corcut , nt ) ;
+{ int ii ; double ssum=0.0 ;
+  INFO_message("Correlation count: %d",corvec->nar) ;
+  for( ii=0 ; ii < corvec->nar ; ii++ ){
+    fprintf(stderr," %g",corvec->ar[ii]) ; if( ii > 0 ) ssum += fabs(corvec->ar[ii]) ;
+  }
+  fprintf(stderr," : Gsum = %g\n",ssum) ;
+}
+  rcm = rcmat_arma_gen( nt, tau, corvec ) ;
+  KILL_doublevec( corvec ) ;
+  return rcm ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+rcmat * rcmat_arma51( int nt , int *tau ,
+                      double a, double r1, double t1,
+                                double r2, double t2, double vrt )
+{
+  rcmat *rcm ;
+  doublevec *corvec ;
+
+  corvec = arma51_correlations( a , r1 , t1 , r2 , t2 , vrt , corcut , nt ) ;
+{ int ii ; double ssum=0.0 ;
+  INFO_message("Correlation count: %d",corvec->nar) ;
+  for( ii=0 ; ii < corvec->nar ; ii++ ){
+    fprintf(stderr," %g",corvec->ar[ii]) ; if( ii > 0 ) ssum += fabs(corvec->ar[ii]) ;
+  }
+  fprintf(stderr," : Gsum = %g\n",ssum) ;
+}
+  rcm = rcmat_arma_gen( nt, tau, corvec ) ;
+  KILL_doublevec( corvec ) ;
+  return rcm ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -109,10 +223,13 @@ int main( int argc , char *argv[] )
    int nlen=0 , nvec=1 , iarg=1 , nbad=0 , kk,ii , do_norm=0 ;
    double aa=-666.0, bb=-666.0 , lam=-666.0 , sig=1.0 ;
    double *rvec ;
-   rcmat *rcm ;
+   rcmat *rcm=NULL ;
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
    long seed=0 ;
+
+   int do_arma31 = 0 , do_arma51 = 0 , do_arma11 = 1 ;
+   double r1=0.0,t1=0.0 , r2=0.0,t2=0.0 , vrt=0.0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -132,6 +249,7 @@ int main( int argc , char *argv[] )
       " -a a     = Specify ARMA(1,1) parameters 'a'.\n"
       " -b b     = Specify ARMA(1,1) parameter 'b' directly.\n"
       " -lam lam = Specify ARMA(1,1) parameter 'b' indirectly.\n"
+      "\n"
       " -sig ss  = Set standard deviation of results [default=1].\n"
       " -norm    = Normalize time series so sum of squares is 1.\n"
       " -seed dd = Set random number seed.\n"
@@ -154,6 +272,35 @@ int main( int argc , char *argv[] )
       "              this option.  The usual reason to use this option is\n"
       "              to test the sensitivity of the results to the cutoff.\n"
       "\n"
+      "-----------------------------\n"
+      "A restricted ARMA(3,1) model:\n"
+      "-----------------------------\n"
+      "Skip the '-a', '-b', and '-lam' options, and use a model with 3 roots\n"
+      "\n"
+      " -arma31 a r theta vrat\n"
+      "\n"
+      " where the roots are z = a, z = r*exp(I*theta), z = r*exp(-I*theta)\n"
+      " and vrat = s^2/(s^2+w^2) [so 0 < vrat < 1], where s = variance\n"
+      " of the pure AR(3) component and w = variance of extra white noise\n"
+      " added to the AR(3) process -- this is the 'restricted' ARMA(3,1).\n"
+      "\n"
+      " If the data has given TR, and you want a frequency of f Hz, in\n"
+      " the noise model, then theta = 2 * PI * TR * f. If theta > PI,\n"
+      " then you are modeling noise beyond the Nyquist frequency and\n"
+      " the gods (and this program) won't be happy.\n"
+      "\n"
+      "  # csh syntax for 'set' variable assignment commands\n"
+      "  set nt = 500\n"
+      "  set tr = 1\n"
+      "  set df = `ccalc \"1/($nt*$tr)\"`\n"
+      "  set f1 = 0.10\n"
+      "  set t1 = `ccalc \"2*PI*$tr*$f1\"`\n"
+      "  1dgenARMA11 -nvec 500 -len $nt -arma31 0.8 0.9 $t1 0.9 -CORcut 0.0001 \\\n"
+      "       | 1dfft -nodetrend stdin: > qqq.1D\n"
+      "  3dTstat -mean -prefix stdout: qqq.1D \\\n"
+      "       | 1dplot -stdin -num 201 -dt $df -xlabel 'frequency' -ylabel '|FFT|'\n"
+      "---------------------------------------------------------------------------\n"
+      "\n"
       "Author: RWCox [for his own demented purposes]\n"
       "\n"
       "Examples:\n"
@@ -166,6 +313,28 @@ int main( int argc , char *argv[] )
    }
 
    while( iarg < argc ){
+
+     if( strcasecmp(argv[iarg],"-ARMA31") == 0 ){ /* 01 Jul 2020 */
+       if( iarg+4 >= argc ) ERROR_exit("Need 4 arguments after option '%s'",argv[iarg]) ;
+       do_arma31 = 1 ; do_arma51 = do_arma11 = 0 ;
+       aa  = strtod( argv[++iarg] , NULL ) ;
+       r1  = strtod( argv[++iarg] , NULL ) ;
+       t1  = strtod( argv[++iarg] , NULL ) ;
+       vrt = strtod( argv[++iarg] , NULL ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-ARMA51") == 0 ){ /* 01 Jul 2020 */
+       if( iarg+6 >= argc ) ERROR_exit("Need 6 arguments after option '%s'",argv[iarg]) ;
+       do_arma11 = do_arma31 = 0 ; do_arma51 = 1 ;
+       aa  = strtod( argv[++iarg] , NULL ) ;
+       r1  = strtod( argv[++iarg] , NULL ) ;
+       t1  = strtod( argv[++iarg] , NULL ) ;
+       r2  = strtod( argv[++iarg] , NULL ) ;
+       t2  = strtod( argv[++iarg] , NULL ) ;
+       vrt = strtod( argv[++iarg] , NULL ) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-norm") == 0 ){
        do_norm = 1 ; iarg++ ; continue ;
@@ -240,20 +409,33 @@ int main( int argc , char *argv[] )
    /*-- check errors --*/
 
    if( nlen <= 3  ){ ERROR_message("Didn't you give the -num/-len option?"); nbad++; }
-   if( aa <= -1.0 ){ ERROR_message("Didn't you give the -a option?"); nbad++; }
-   if( bb <= -1.0 && lam <= -1.0 ){
-     ERROR_message("Didn't you give the -b or -lam option?"); nbad++;
+
+   if( do_arma11 ){
+     if( aa <= -1.0 ){ ERROR_message("Didn't you give the -a option?"); nbad++; }
+     if( bb <= -1.0 && lam <= -1.0 ){
+       ERROR_message("Didn't you give the -b or -lam option?"); nbad++;
+     }
+     if( nbad > 0 ) ERROR_exit("Can't continue past the above problem%s" ,
+                               (nbad==1)? "\0" : "s" ) ;
+
+     if( bb > -1.0 ){
+       lam = LAMBDA(aa,bb) ; INFO_message("lam(a=%.3f,b=%.3f) = %.3f",aa,bb,lam) ;
+     }
+
+     /* setup */
+
+     rcm = rcmat_arma11( nlen , NULL , aa , lam ) ;
+
+   } else if( do_arma31 ){
+
+     rcm = rcmat_arma31( nlen , NULL , aa,r1,t1,vrt ) ;
+
+   } else if( do_arma51 ){
+
+     rcm = rcmat_arma51( nlen , NULL , aa,r1,t1,r2,t2,vrt ) ;
+
    }
-   if( nbad > 0 ) ERROR_exit("Can't continue past the above problem%s" ,
-                             (nbad==1)? "\0" : "s" ) ;
 
-   if( bb > -1.0 ){
-     lam = LAMBDA(aa,bb) ; INFO_message("lam(a=%.3f,b=%.3f) = %.3f",aa,bb,lam) ;
-   }
-
-   /* setup */
-
-   rcm = rcmat_arma11( nlen , NULL , aa , lam ) ;
    if( rcm == NULL ) ERROR_exit("Can't setup matrix?!") ;  /* should be impossible */
 
    kk = rcmat_choleski( rcm ) ;

@@ -365,7 +365,7 @@ static void ICALC_tog_bbox_CB( Widget w, XtPointer cd, XtPointer cbs )
    ICALC_widget_set *iwid = (ICALC_widget_set *)cd ;
    Three_D_View     *im3d = iwid->im3d ;
    ICALC_setup      *ics  = im3d->icalc_setup ;
-   int                 aa = ICALC_find_index(iwid,w) ; Boolean bb ;
+   int                 aa = ICALC_find_index(iwid,w) ; int  bb ;
 
    if( aa < 0 ) return ;
    bb = MCW_val_bbox(iwid->war[aa].tog_bbox) ;

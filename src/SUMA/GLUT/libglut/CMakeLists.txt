@@ -8,7 +8,7 @@ glut_tablet.c glut_teapot.c glut_tr10.c glut_tr24.c glut_util.c glut_win.c
 glut_winmisc.c layerutil.c ) 
 target_include_directories(GLUT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set_target_properties(GLUT PROPERTIES PUBLIC_HEADER "GL/glut.h") 
-
+target_link_libraries(GLUT PRIVATE X11::Xi)
 
 # CFLAGS = -I.. -O ${SUMA_INCLUDE_PATH}
 

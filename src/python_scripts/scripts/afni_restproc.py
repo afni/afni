@@ -660,17 +660,17 @@ class RestInterface:
 
    def process_options(self):
       if len(sys.argv) <= 1:
-         print rickr_note
-         print help_string
+         print(rickr_note)
+         print(help_string)
          return 0
       if '-help' in sys.argv:
          if '-changelog' in sys.argv:
-            print change_string
-         print rickr_note
-         print help_string
+            print(change_string)
+         print(rickr_note)
+         print(help_string)
          return 0
       if '-changelog' in sys.argv:
-         print change_string
+         print(change_string)
          return 0
       if '-apply_censor' in sys.argv:
          #apply the censor file, cutting time points out of a timeseries
@@ -714,7 +714,7 @@ class RestInterface:
             elif val == 'off':
                self.despike = False
             else:
-               print "ERROR: %s following -despike is not on or off" % val
+               print("ERROR: %s following -despike is not on or off" % val)
                return 1
          elif opt.name == '-tsnr':
             self.tsnr = True
@@ -793,7 +793,7 @@ class RestInterface:
             elif val == 'off':
                self.align = False
             else:
-               print "ERROR: %s following -align is not on or off" % val
+               print("ERROR: %s following -align is not on or off" % val)
                return 1
          elif opt.name == '-anat_has_skull':
             val,err = uopts.get_string_opt('', opt=opt)
@@ -803,7 +803,7 @@ class RestInterface:
             elif val == 'no':
                self.ss = False
             else:
-               print "ERROR: %s following -anat_has_skull is not yes or no" % val
+               print("ERROR: %s following -anat_has_skull is not yes or no" % val)
                return 1
          elif opt.name == '-corrmap':
             self.corrmap = True
@@ -815,7 +815,7 @@ class RestInterface:
             elif val == 'off':
                self.execute = False
             else:
-               print "ERROR: %s following -execute is not on or off" % val
+               print("ERROR: %s following -execute is not on or off" % val)
                return 1
          elif opt.name == '-tlrclast':
             self.tlrclast = True
@@ -827,7 +827,7 @@ class RestInterface:
             elif val == 'off':
                self.smoothepi = False
             else:
-               print "ERROR: %s following -smooth is not on or off" % val
+               print("ERROR: %s following -smooth is not on or off" % val)
                return 1
          elif opt.name == '-smoothtogether':
             self.smoothtogether = True
@@ -915,31 +915,31 @@ class RestInterface:
 
       #make sure conflicting arguments aren't chosen
       if self.globalnorm and self.modenorm:
-         print "ERROR: Please choose either -globalnorm or -modenorm, not both."
+         print("ERROR: Please choose either -globalnorm or -modenorm, not both.")
          sys.exit(1)
       if self.tlrc and self.tlrclast:
-         print "ERROR: Please choose either -tlrc or -tlrclast, not both."
+         print("ERROR: Please choose either -tlrc or -tlrclast, not both.")
          sys.exit(1)
       if self.outcensor and self.dvarscensor:
-         print "ERROR: Please choose either -outcensor or -dvarscensor"
+         print("ERROR: Please choose either -outcensor or -dvarscensor")
          sys.exit(1)
       if self.tlrc and self.alignbase is not None:
-         print "ERROR: Please choose either -tlrc or -alignbase, not both."
+         print("ERROR: Please choose either -tlrc or -alignbase, not both.")
          sys.exit(1)
       if self.epi2anat and self.alignbase is not None:
-         print "ERROR: Please choose either -epi2anat or -alignbase, not both."
+         print("ERROR: Please choose either -epi2anat or -alignbase, not both.")
          sys.exit(1)
       if self.epi2anat and self.alignbase is not None:
-         print "ERROR: Please choose either -epi2anat or -alignbase, not both."
+         print("ERROR: Please choose either -epi2anat or -alignbase, not both.")
          sys.exit(1)
       if self.smoothfirst and not self.smoothepi:
-         print "ERROR: -smoothfirst and -nosmooth don't make sense together"
+         print("ERROR: -smoothfirst and -nosmooth don't make sense together")
          sys.exit(1)
       if self.bpassregs and not self.bandpass:
-         print "ERROR: -bpassregs selected without -bandpass"
+         print("ERROR: -bpassregs selected without -bandpass")
          sys.exit(1)
       if not self.align and (self.outcensor or self.dvarscensor):
-         print "ERROR: -align off is not compatible with -outcensor or -dvarscensor"
+         print("ERROR: -align off is not compatible with -outcensor or -dvarscensor")
          sys.exit(1)
          
       return
@@ -1186,7 +1186,7 @@ class RestInterface:
          elif self.regressors[i][-5:] == "+orig" or self.regressors[i][-5:] == "+tlrc" or self.regressors[i][-5:] == "+lcpc":
             self.regressors[i] = self.tcat_4d(self.regressors[i])
          else:
-            print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
+            print("ERROR: %s is not a .1D or a .BRIK file" % regs[i])
 
 
       return nextEPI, nextMOTION, nextRVT
@@ -1223,7 +1223,7 @@ class RestInterface:
          return ["mask.WM.resample.erode%s" % asegs, self.wmsize]
    
    def resample_regmasks(self, curEPI, curREGMASKS):
-      if len(filter(None, curREGMASKS)) == 0:
+      if len([_f for _f in curREGMASKS if _f]) == 0:
          #if there's nothing to do, return
          return curREGMASKS
       self.info("Resample regressor masks")
@@ -1319,7 +1319,7 @@ class RestInterface:
          elif regs[i][-5:] == "+orig" or regs[i][-5:] == "+tlrc" or regs[i][-5:] == "+lcpc":
             newregs.append(self.dif_4D(regs[i]))
          else:
-            print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
+            print("ERROR: %s is not a .1D or a .BRIK file" % regs[i])
       #regs = newregs
       return newregs
 
@@ -1338,7 +1338,7 @@ class RestInterface:
       return "%s.backdif%s" % (epip, epis)
 
    def detrend_all(self, regs):
-      if len(filter(None, regs)) == 0 or self.polort == "0":
+      if len([_f for _f in regs if _f]) == 0 or self.polort == "0":
          #if there's nothing to do, return
          return
       #detrend all regressors, including those supplied by the user
@@ -1351,7 +1351,7 @@ class RestInterface:
          elif regs[i][-5:] == "+orig" or regs[i][-5:] == "+tlrc" or regs[i][-5:] == "+lcpc":
             regs[i] = self.det_4d(regs[i])
          else:
-            print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
+            print("ERROR: %s is not a .1D or a .BRIK file" % regs[i])
 
    def det_1d(self, cur1D):
       if cur1D == None:
@@ -1550,7 +1550,7 @@ class RestInterface:
       elif channels == "32":
          cor = corr32
       else:
-         print ("ERROR unknown number of channels: %s" % channels)
+         print(("ERROR unknown number of channels: %s" % channels))
          sys.exit(1)
       cmd = "3dcalc -a %s\'[0]\' -expr \"a / (`1dcat %s.noise.1D\'[1]\'` * %s)\" -prefix %s.SNR" \
          % (origEPI, noisep, cor, epip)
@@ -1622,7 +1622,7 @@ class RestInterface:
       return self.bpass_4d(curEPI)
 
    def bpass_all_regs(self, regs):
-      if len(filter(None, regs)) == 0:
+      if len([_f for _f in regs if _f]) == 0:
          #if there's nothing to do, return
          return
       #bandpass filter all regressors, including those supplied by the user
@@ -1635,7 +1635,7 @@ class RestInterface:
          elif regs[i][-5:] == "+orig" or regs[i][-5:] == "+tlrc" or regs[i][-5:] == "+lcpc":
             regs[i] = self.bpass_4d(regs[i])
          else:
-            print "ERROR: %s is not a .1D or a .BRIK file" % regs[i]
+            print("ERROR: %s is not a .1D or a .BRIK file" % regs[i])
 
    def bpass_1d(self, cur1D):
       if cur1D == None:
@@ -1690,7 +1690,7 @@ class RestInterface:
    def process_data(self):
       #make sure the result directory doesn't already exist
       if os.path.exists(self.dest):
-         print "ERROR: Result directory %s already exists.  Will not overwrite." % self.dest
+         print("ERROR: Result directory %s already exists.  Will not overwrite." % self.dest)
          sys.exit(1)
       
       #get the cwd to be able to copy files specified by relative paths
@@ -1880,7 +1880,7 @@ def copy_input(infile, origdir):
       copy_or_error("%s/%s*" % (origdir, infile))
       return remove_path_and_convert(infile) 
       return remove_path(infile) 
-   print "ERROR: copying input %s.  This should never happen" % infile
+   print("ERROR: copying input %s.  This should never happen" % infile)
    sys.exit(1)
 
 def copy_or_error(infile):
@@ -1888,7 +1888,7 @@ def copy_or_error(infile):
    s = shell_com("cp %s ." % infile, capture=1)
    s.run()
    if s.se:
-      print "ERROR: Cannot find input file %s.  Exiting." % infile
+      print("ERROR: Cannot find input file %s.  Exiting." % infile)
       sys.exit(1)
 
 def nstr(s):
@@ -1943,5 +1943,7 @@ def main():
    return
         
 if __name__ == '__main__':
-   sys.exit(main())
+   rv = main()
+   print(rickr_note)
+   sys.exit(rv)
 

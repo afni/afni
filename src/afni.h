@@ -40,7 +40,7 @@
 
 typedef struct {
       float dy , dz , gamma , gsfac ;
-      Boolean read_images , read_sessions , auto_purge ,
+      RwcBoolean read_images , read_sessions , auto_purge ,
               resize_images , keep_logo , pos_func ,
               destruct , tlrc_big , warp_4D , unique_dcs ;
       int ncolor , datum , ignore , allow_rt , skip_afnirc ;
@@ -59,8 +59,9 @@ typedef struct {
       int left_is_left ;  /* 09 Oct 1998 */
       int read_tim ;      /* 19 Oct 1999 */
       int read_1D ;       /* 27 Jan 2000 */
+      int read_tcsv ;     /* 16 Jun 2020 */
 
-      Boolean read_dsets ;    /* 17 Mar 2000 */
+      RwcBoolean read_dsets ;    /* 17 Mar 2000 */
 
       char *layout_fname ;    /* 23 Sep 2000 */
 
@@ -270,7 +271,7 @@ typedef struct {
 
       int   i1_old , j2_old , k3_old ;  /* for jumpback */
 
-      Boolean   xhairs_show_montage , xhairs_periodic , xhairs_all ;
+      RwcBoolean   xhairs_show_montage , xhairs_periodic , xhairs_all ;
       THD_ivec3 xhairs_ndown , xhairs_nup , xhairs_nskip ; /* montage crosshairs */
       int       time_index , top_index , time_on ;
 
@@ -278,7 +279,7 @@ typedef struct {
 
       int       anat_index , fim_index , thr_index ; /* 30 Nov 1997 */
 
-      Boolean crosshair_visible , inverted_pause ;
+      RwcBoolean crosshair_visible , inverted_pause ;
       int     crosshair_gap , crosshair_ovcolor , crosshair_gap_old ;
 
       int view_type     ,  /* one of the VIEW_ constants in 3ddata.h */
@@ -288,7 +289,7 @@ typedef struct {
 
       XmString old_crosshair_label ;
 
-      Boolean    func_visible , force_anat_wod , force_func_wod ,
+      RwcBoolean    func_visible , force_anat_wod , force_func_wod ,
                  pts_visible , show_voxind ;
       int        func_visible_count , func_init_subbricks ;
       float      func_threshold , resam_vox ;
@@ -305,7 +306,7 @@ typedef struct {
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
 
-      Boolean  use_autorange , use_posfunc ;
+      RwcBoolean  use_autorange , use_posfunc ;
       float    fim_autorange , fim_range ;
       XmString old_range_label , autorange_label ;
 
@@ -436,7 +437,7 @@ typedef struct {
              image_xyz_pb , image_yzx_pb , image_zxy_pb ,   /* yzx = Sagittal */
              graph_xyz_pb , graph_yzx_pb , graph_zxy_pb  ;  /* zxy = Coronal  */
 
-      Boolean do_bkgd_lab ;
+      RwcBoolean do_bkgd_lab ;
 
       Widget pop_whereami_pb , pop_ttren_pb ;
       MCW_textwin *pop_whereami_twin ;
@@ -629,13 +630,13 @@ typedef struct {
       Widget session_rowcol, sess_lab , choose_sess_pb, read_sess_pb ; /* 03 Dec 2009 */
       int    session_horz ;                                            /* 29 Apr 2010 */
 
-      Boolean marks_pb_inverted , func_pb_inverted , dmode_pb_inverted ;
+      RwcBoolean marks_pb_inverted , func_pb_inverted , dmode_pb_inverted ;
 
       Widget choose_surf_pb ;  /* 19 Aug 2002 */
       AFNI_surface_widgets *swid ;
 } AFNI_viewing_widgets ;
 
-extern void AFNI_sesslab_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 30 Apr 2010 */
+extern void AFNI_sesslab_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ; /* 30 Apr 2010 */
 
 extern void flush_vinfo_sort(AFNI_view_info *vinfo, char *sel);/*ZSS: 04/26/12*/
 extern void flush_3Dview_sort(struct Three_D_View *im3d, char *sel);
@@ -677,7 +678,7 @@ typedef struct {
       Widget  always_popup[MARKS_MAXPOP] ,
               sometimes_popup[MARKS_MAXPOP] ;
       int     num_always_popup , num_sometimes_popup ;
-      Boolean inverted[MARKS_MAXNUM] , editable ;
+      RwcBoolean inverted[MARKS_MAXNUM] , editable ;
 
       Widget         control_frame , control_rowcol ;
       MCW_bbox *     edits_bbox ;
@@ -695,14 +696,14 @@ typedef struct {
       AFNI_ovtemplate ov_mask ;
 
       int     ov_pcolor , ov_scolor , ov_size , ov_gap ;
-      Boolean ov_visible , old_visible ;
+      RwcBoolean ov_visible , old_visible ;
 
       char tog_help[MARKS_MAXNUM][MARKS_MAXHELP] ;
 
-      Boolean isprimary[MARKS_MAXNUM] ;
-      Boolean changed ;
+      RwcBoolean isprimary[MARKS_MAXNUM] ;
+      RwcBoolean changed ;
 
-      Boolean tag_visible ;   /* 23 Oct 1998 */
+      RwcBoolean tag_visible ;   /* 23 Oct 1998 */
 } AFNI_marks_widgets ;
 
 /*---*/
@@ -931,7 +932,7 @@ typedef struct {
 
    Widget  rc_top , clone_pb , panel_pb ;
    Widget  rc_bot , button_help_pb , quit_pb ;
-   Boolean quit_first , panel_pb_inverted ;
+   RwcBoolean quit_first , panel_pb_inverted ;
 
 #ifdef USE_HIDDEN
 
@@ -979,7 +980,7 @@ typedef struct {
 #ifdef USE_HIDDEN
 
 extern void AFNI_hidden_CB    ( Widget , XtPointer , XtPointer );
-extern void AFNI_hidden_EV    ( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AFNI_hidden_EV    ( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void AFNI_hidden_pts_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 #ifdef USE_SONNETS
@@ -1688,6 +1689,7 @@ typedef struct {
    MCW_DC *dc ;                                  /* display context for everyone */
    THD_sessionlist *sslist ;                     /* all sessions viewable */
    MRI_IMARR *timeseries ;                       /* all timeseries available */
+   NI_ELARR  *tcsv_data ;                        /* all *.tsv and *.csv [16 Jun 2020] */
    Three_D_View *controllers[MAX_CONTROLLERS] ;  /* all controllers available */
    MCW_interruptables interruptables ;           /* windows and widgets */
 
@@ -1911,8 +1913,8 @@ extern void AFNI_view_xyz_CB         ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marktog_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_action_CB     ( Widget , XtPointer , XtPointer ) ;
 
-extern void AFNI_viewbut_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
-extern void AFNI_cluster_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void AFNI_viewbut_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
+extern void AFNI_cluster_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
 extern void AFNI_clus_update_widgets( Three_D_View *im3d ) ;
 extern void AFNI_clus_popdown( Three_D_View *im3d ) ;
 extern int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z ) ;
@@ -1920,7 +1922,7 @@ extern void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs ) ;
 extern int AFNI_clus_find_xyz_nearest(
                                Three_D_View *im3d , float x,float y,float z ) ;
 
-extern void AFNI_time_index_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 24 Feb 2014 */
+extern void AFNI_time_index_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ; /* 24 Feb 2014 */
 extern void AFNI_time_index_set_fstep( Three_D_View *im3d , int istep ) ;
 
 extern void AFNI_update_dataset_viewing( THD_3dim_dataset * ); /* 21 Jul 2009 */
@@ -1995,7 +1997,7 @@ extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ,
 extern void AFNI_jumpto_thminmax_CB  ( Widget , XtPointer , XtPointer ) ; /* 21 Jul 2014 */
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
-extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void AFNI_crosshair_relabel   ( Three_D_View * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
@@ -2087,7 +2089,7 @@ extern int    AFNI_icor_setref_xyz    ( Three_D_View *, float,float,float );
 extern int    AFNI_gicor_setref_xyz   ( Three_D_View *, float,float,float ); /* 23 Dec 2009 */
 extern void   AFNI_gicor_setapair_xyz ( Three_D_View *, float,float,float );    /* Apr 2013 */
 
-extern Boolean AFNI_refashion_dataset( Three_D_View * ,
+extern RwcBoolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;
 
 #define REDISPLAY_OPTIONAL 0
@@ -2147,8 +2149,8 @@ extern void AFNI_make_tagmask( int , int , AFNI_ovtemplate * ) ; /* Oct 1998 */
 
 extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 
-extern void AFNI_setup_viewing(  Three_D_View * , Boolean ) ;
-extern void AFNI_modify_viewing( Three_D_View * , Boolean ) ;
+extern void AFNI_setup_viewing(  Three_D_View * , RwcBoolean ) ;
+extern void AFNI_modify_viewing( Three_D_View * , RwcBoolean ) ;
 extern void AFNI_set_rinfo_labels( Three_D_View *im3d ) ;      /* 11 Mar 2020 */
 
 extern void AFNI_setup_thrstat( Three_D_View *im3d , int force ) ; /* 27 Jun 2019 */
@@ -2165,7 +2167,7 @@ extern THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
 
 extern THD_warp * AFNI_make_warp( Three_D_View * ) ;
 
-extern Boolean AFNI_marks_quality_check( Boolean , Three_D_View * ) ;
+extern RwcBoolean AFNI_marks_quality_check( RwcBoolean , Three_D_View * ) ;
 
 extern THD_3dim_dataset * AFNI_init_warp( Three_D_View * ,
                                           THD_3dim_dataset * ,
@@ -2224,8 +2226,8 @@ extern THD_3dim_dataset * AFNI_follower_dataset( THD_3dim_dataset * ,
 
 extern void AFNI_make_descendants( THD_sessionlist * ) ;
 extern void AFNI_mark_for_death  ( THD_sessionlist * ) ;
-extern void AFNI_andersonville   ( THD_sessionlist * , Boolean ) ;
-extern void AFNI_force_adoption  ( THD_session * , Boolean ) ;
+extern void AFNI_andersonville   ( THD_sessionlist * , RwcBoolean ) ;
+extern void AFNI_force_adoption  ( THD_session * , RwcBoolean ) ;
 
 extern MRI_IMAGE * AFNI_func_overlay( int , FD_brick * ) ;
 

@@ -121,7 +121,7 @@ extern "C" {
 
 /*! Max number of directories. */
 
-#define THD_MAX_NUM_SESSION    99
+#define THD_MAX_NUM_SESSION   199
 
 #define THD_MAX_CHOICES THD_MAX_SESSION_SIZE
 
@@ -656,7 +656,7 @@ typedef struct {
 
      int ovcolor[MARKS_MAXNUM] ;              /*!< Overlay color index; -1 --> use defaults */
 
-     Boolean valid[MARKS_MAXNUM] ;            /*!< True if actually set */
+     RwcBoolean valid[MARKS_MAXNUM] ;            /*!< True if actually set */
 
      float xyz[MARKS_MAXNUM][3] ;             /*!< Coordinates (3dmm, not DICOM) */
 
@@ -2861,7 +2861,7 @@ typedef struct THD_3dim_dataset {
 
 #ifdef ALLOW_DATASET_VLIST
       THD_vector_list * pts ;     /*!< in dataset coords (not DICOM order!) - for Ted Deyoe */
-      Boolean pts_original ;      /*!< true if was read from disk directly */
+      RwcBoolean pts_original ;      /*!< true if was read from disk directly */
 #endif
 
       int death_mark ;            /*!< dataset is marked for destruction */
@@ -4443,6 +4443,9 @@ extern void THD_write_csv( char *fname , NI_element *nel ) ;
 extern void THD_set_csv_column_labels( NI_element *fnel , char **clab ) ;
 extern NI_element * THD_mri_to_csv_element( MRI_IMAGE *imin , char **clab ) ;
 
+extern NI_ELARR * THD_get_many_tcsv( THD_string_array * dlist ) ; /* 16 Jun 2020 */
+extern NI_ELARR * THD_get_all_tcsv( char * dname ) ;
+
 /*---------------------------------------------------------------------------*/
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
@@ -4507,7 +4510,7 @@ extern void THD_set_char_atr ( THD_datablock * , char * , int , char  * ) ;
    THD_set_char_atr( (blk) , (name) , strlen(str)+1 , (str) )
 
 extern void THD_init_diskptr_names( THD_diskptr *, char *,char *,char * ,
-                                    int, Boolean ) ;
+                                    int, RwcBoolean ) ;
 
 extern THD_datablock *       THD_init_one_datablock( char *,char * ) ;
 extern THD_datablock_array * THD_init_prefix_datablocks( char *, THD_string_array * ) ;
@@ -4830,15 +4833,15 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
 
 /*----------------------------------------------------------------------------*/
 
-extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
+extern void THD_delete_3dim_dataset( THD_3dim_dataset * , RwcBoolean ) ;
 extern void *DSET_Label_Dtable(THD_3dim_dataset *dset);
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
 extern void THD_allow_empty_dataset( int ) ; /* 23 Mar 2001 */
 extern THD_3dim_dataset_array *
    THD_array_3dim_from_block( THD_datablock_array * blk_arr ) ;
 
-extern Boolean THD_write_3dim_dataset( char *,char * ,
-                                       THD_3dim_dataset * , Boolean );
+extern RwcBoolean THD_write_3dim_dataset( char *,char * ,
+                                       THD_3dim_dataset * , RwcBoolean );
 
 extern int THD_get_write_error_count(void) ;     /* 23 Sep 2013 */
 extern void THD_reset_write_error_count(void) ;
@@ -4847,9 +4850,9 @@ extern void THD_use_3D_format   ( int ) ;  /* 21 Mar 2003 */
 extern void THD_use_NIFTI_format( int ) ;  /* 06 Apr 2005 */
 extern void THD_set_quiet_overwrite ( int ) ;  /* 31 Jan 2011 */
 extern int THD_get_quiet_overwrite (void );/* 31 Jan 2011 */
-extern Boolean THD_write_datablock( THD_datablock * , Boolean ) ;
-extern Boolean THD_write_atr( THD_datablock * ) ;
-extern Boolean THD_write_nimlatr( THD_datablock * ) ;  /* 01 Jun 2005 */
+extern RwcBoolean THD_write_datablock( THD_datablock * , RwcBoolean ) ;
+extern RwcBoolean THD_write_atr( THD_datablock * ) ;
+extern RwcBoolean THD_write_nimlatr( THD_datablock * ) ;  /* 01 Jun 2005 */
 extern void THD_set_write_compression( int mm ) ;
 extern int THD_enviro_write_compression(void) ;
 extern int THD_get_write_compression(void) ;
@@ -4862,12 +4865,12 @@ extern int TRUST_host(char *) ;
 #define OKHOST(hh) TRUST_host(hh) ;
 extern void TRUST_addhost(char *) ;      /* 21 Feb 2001 */
 
-extern Boolean THD_load_datablock( THD_datablock * ) ;
+extern RwcBoolean THD_load_datablock( THD_datablock * ) ;
 extern void    THD_load_no_mmap(void) ;                         /* Apr 2013 */
 extern void    THD_load_datablock_verbose(int) ;             /* 21 Aug 2002 */
 extern void    THD_set_freeup( generic_func * ) ;            /* 18 Oct 2001 */
-extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
-extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
+extern RwcBoolean THD_purge_datablock( THD_datablock * , int ) ;
+extern RwcBoolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * ) ;
 extern int     THD_subset_loaded( THD_3dim_dataset *, int, int * ) ;
@@ -4903,9 +4906,9 @@ extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
-extern Boolean THD_write_niml( THD_3dim_dataset *, int);
-extern Boolean THD_write_niml_to_stream( THD_3dim_dataset *, char *, int);
-extern Boolean THD_write_gifti( THD_3dim_dataset *, int, int);
+extern RwcBoolean THD_write_niml( THD_3dim_dataset *, int);
+extern RwcBoolean THD_write_niml_to_stream( THD_3dim_dataset *, char *, int);
+extern RwcBoolean THD_write_gifti( THD_3dim_dataset *, int, int);
 
 extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
 extern int  write_niml_stream( char *, NI_group *);    /* 10 Oct 2019 [rickr] */

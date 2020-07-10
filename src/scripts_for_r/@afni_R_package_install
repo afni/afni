@@ -35,8 +35,8 @@ set circos  = "boo"
 set ChangeMirror = "boo"
 
 ## list of packages
-set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych','brms')"
-set discoPkgs = "c('shiny','shinydashboard','plotly','colourpicker','data.table','gplots','RColorBrewer')"
+set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','brms')"
+set discoPkgs = "c('shiny','shinydashboard','plotly','colourpicker','data.table','gplots','RColorBrewer','psych')"
 set custList  = ""
 
 ## show help
@@ -117,7 +117,7 @@ cat << EOF
       -afni   : Current list of packages for afni.
                 Similar to rPkgsInstall.
                 Installs:
-                afex phia snow nlme lme4 paran psych brms
+                afex phia snow nlme lme4 paran brms
 
       -shiny  : Current list of packages for afni based shiny apps.
                 May have trouble with openssl on some linux OS's.
@@ -125,7 +125,7 @@ cat << EOF
                 package manager (apt-get, yum, etc.).
                 Installs:
                 shiny shinydashboard plotly colourpicker data.table
-                gplots RColorBrewer
+                gplots RColorBrewer psych
 
       -circos : Packages for FATCAT_matplot.
                 Installs OmicCircos via biocLite.

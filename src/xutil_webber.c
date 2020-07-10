@@ -200,7 +200,7 @@ ENTRY("htmlize") ;
    of XmHTML did the trick ZSS March 2012 */
 
 void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
-                  XEvent * ev , Boolean * continue_to_dispatch )
+                  XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
 #if 0
     XmHTMLRefresh(client_data);

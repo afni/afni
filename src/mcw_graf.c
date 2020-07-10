@@ -225,7 +225,7 @@ int GRAF_changed( MCW_graf * gp )
 ----------------------------------------------------------------------*/
 
 void GRAF_drawing_EV( Widget w , XtPointer client_data ,
-                      XEvent * ev , Boolean * continue_to_dispatch )
+                      XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    MCW_graf * gp = (MCW_graf *) client_data ;
 
@@ -866,7 +866,7 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
 ----------------------------------------------------------------------*/
 
 void GRAF_pasdrawing_EV( Widget w , XtPointer client_data ,
-                         XEvent * ev , Boolean * continue_to_dispatch )
+                         XEvent * ev , RwcBoolean * continue_to_dispatch )
 {
    MCW_pasgraf * gp = (MCW_pasgraf *) client_data ;
 

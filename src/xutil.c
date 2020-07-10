@@ -822,11 +822,11 @@ void MCW_alter_widget_cursor( Widget w, int cur, char *fgname, char *bgname )
    Cursor ccc ;
    Colormap cmap ;
    Display  *dis ;
-   Boolean  good ;
+   RwcBoolean  good ;
    int ii ;
 
    static Cursor  cur_font[XC_num_glyphs] ;
-   static Boolean first = True ;
+   static RwcBoolean first = True ;
 
    if( AFNI_yesenv("AFNI_DISABLE_CURSORS") ) return ; /* 21 Mar 2004 */
 
@@ -1220,7 +1220,7 @@ int MCW_filetype( char *fname )
 /*-------------------------------------------------------------------*/
 
 #if 0
-Boolean MCW_isitmwm( Widget w )
+RwcBoolean MCW_isitmwm( Widget w )
 {
    Widget wsh ;
 
@@ -1437,7 +1437,7 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char *msg, int type,
    int swid , shi ;
    Position xroot , yroot ;
    Screen *scr ;
-   Boolean editable , cursorable ;
+   RwcBoolean editable , cursorable ;
    Arg wa[64] ; int na ; Widget ws ;
    char *wtype = "menu" ;
 
@@ -1502,7 +1502,7 @@ ENTRY("new_MCW_textwin_2001") ;
 
    /* create action area */
 
-   editable = (Boolean) (type == TEXT_EDITABLE) ;
+   editable = (RwcBoolean) (type == TEXT_EDITABLE) ;
    cursorable = True ;  /* 26 Feb 2007 */
 
    nact = (editable) ? EDIT_NUM : RONLY_NUM ;
@@ -2084,7 +2084,7 @@ static void RWC_drag_cursor( Display *dis )
 {
    XColor fg , bg ;
    Colormap cmap ;
-   Boolean  good ;
+   RwcBoolean  good ;
 
    if( cur == None ){
      cur  = XCreateFontCursor( dis , XC_arrow ) ;

@@ -52,12 +52,19 @@ target_include_directories(
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
             $<TARGET_PROPERTY:Motif::Motif,INTERFACE_INCLUDE_DIRECTORIES>
-            $<IF:$<BOOL:APPLE>,${X11_INCLUDE_DIR},"">
+            $<IF:$<BOOL:${APPLE}>,${X11_INCLUDE_DIR},>
 )
 target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
-set_source_files_properties(
-  gifti_choice.c PROPERTIES COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB"
-)
+
+# Make gifti use configurable
+set(USE_GIFTI ON)
+if(USE_GIFTI)
+  set_source_files_properties(
+    gifti_choice.c
+    PROPERTIES
+    COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB;HAVE_GIFTI"
+  )
+endif()
 
 # Generate various afni_slice files and store them in the build tree and object library
 add_library(afsliceobjs OBJECT "")
@@ -152,7 +159,11 @@ add_library(
   nifti_statlib.c
   vol2surf.c
 )
-target_link_libraries(misc_objs libheaders)
+target_link_libraries(misc_objs
+  PUBLIC
+    libheaders
+    $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
+  )
 
 add_library(
   suma_objs OBJECT suma_afni_surface.c suma_algorithms.c suma_datasets.c suma_niml.c
@@ -282,6 +293,7 @@ add_library(
   thd_floatscan.c
   thd_forcemalloc.c
   thd_get1D.c
+  thd_get_tcsv.c
   thd_getorient.c
   thd_getpathprogs.c
   thd_http.c
@@ -514,6 +526,7 @@ target_link_libraries(
           libheaders
           AFNI::coxplot
   PRIVATE 
+          $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
           AFNI::3DEdge
           AFNI::eispack
           volpack

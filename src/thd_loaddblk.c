@@ -122,7 +122,7 @@ void THD_set_freeup( generic_func *ff ){ freeup = ff; }
 
 /*---------------------------------------------------------------*/
 
-Boolean THD_load_datablock( THD_datablock *blk )
+RwcBoolean THD_load_datablock( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
    int nx,ny,nz , nxy,nxyz , nv , ii , ibr ;

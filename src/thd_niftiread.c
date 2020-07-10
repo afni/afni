@@ -780,11 +780,11 @@ ENTRY("THD_open_nifti") ;
                rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
                if( rhs != NULL ){                       /* dataset dimensions */
                  char buf[128] ;                              /* were altered */
-	         /* %ld fails on older systems            [17 Jul 2019 rickr] */
+                 /* %ld fails on older systems            [17 Jul 2019 rickr] */
                  sprintf(buf,"%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64
-			     ",%" PRId64 ",%d" ,        /* 12 May 2005 */
-			 nim->nx, nim->ny, nim->nz,
-			 nim->nt, nim->nu, nim->datatype );
+                             ",%" PRId64 ",%d" ,        /* 12 May 2005 */
+                         nim->nx, nim->ny, nim->nz,
+                         nim->nt, nim->nu, nim->datatype );
                  if( strcmp(buf,rhs) != 0 ){
                    static int nnn=0 ;
                    if(nnn==0){fprintf(stderr,"\n"); nnn=1;}

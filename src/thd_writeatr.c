@@ -21,12 +21,12 @@ static int has_locking_errno(void) {
 }
 
 
-Boolean THD_write_atr( THD_datablock *blk )
+RwcBoolean THD_write_atr( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
    int ia , code , ii ;
    ATR_any *atr_any ;
-   Boolean good = True ;
+   RwcBoolean good = True ;
    FILE *header_file ;
 
 ENTRY("THD_write_atr") ;
@@ -184,7 +184,7 @@ ENTRY("THD_write_atr") ;
 
 /*----------------------------------------------------------------------*/
 
-Boolean THD_write_nimlatr( THD_datablock *blk )  /* 01 Jun 2005 */
+RwcBoolean THD_write_nimlatr( THD_datablock *blk )  /* 01 Jun 2005 */
 {
    NI_stream ns ;
    NI_group  *ngr ;

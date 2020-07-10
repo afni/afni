@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: ready
+
 # system libraries
 import sys, os
 
@@ -98,7 +100,7 @@ R Reynolds    May, 2016
 """
 
 def show_help():
-   print g_help_01 + g_help_examples + g_help_02
+   print(g_help_01 + g_help_examples + g_help_02)
 
 g_todo = """
    todo list:
@@ -196,11 +198,11 @@ class MyInterface:
          return 1
 
       if '-help_examples' in argv:
-         print g_help_examples
+         print(g_help_examples)
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_valid_opts' in argv:
@@ -208,7 +210,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 1
 
       # ============================================================
@@ -233,13 +235,13 @@ class MyInterface:
          elif opt.name == '-logfile':
             self.logfile, err = uopts.get_string_opt('', opt=opt)
             if self.logfile == None or err:
-               print '** failed to read -logfile name'
+               print('** failed to read -logfile name')
                errs +=1
 
          elif opt.name == '-labels':
             self.labels, err = uopts.get_string_list('', opt=opt)
             if self.labels == None or err:
-               print '** option -labels: failed to process option'
+               print('** option -labels: failed to process option')
                errs +=1
 
          elif opt.name == '-show_all_orig':
@@ -253,7 +255,7 @@ class MyInterface:
 
       if self.user_opts.find_opt('-show_all_orig'):
          if not (self.show_vals & SHOW_ORIG):
-            print "** -show_all_orig requires showing orig"
+            print("** -show_all_orig requires showing orig")
             errs += 1
          self.show_vals |= SHOW_ALL_ORIG
 
@@ -264,11 +266,11 @@ class MyInterface:
       ## apply any trailing logic
 
       if self.logfile == '':
-         print '** missing -logfile option'
+         print('** missing -logfile option')
          errs += 1
 
       if len(self.labels) < 1:
-         print '** missing -labels to search for'
+         print('** missing -labels to search for')
          errs += 1
 
       if errs: return -1
@@ -294,7 +296,7 @@ class MyInterface:
          only allow lines that look like:   XXX  INTEGER   LABEL
       """
 
-      if self.verb: print
+      if self.verb: print()
 
       llist = []
       for line in lines:
@@ -315,12 +317,12 @@ class MyInterface:
          try: vv = int(rankstr)
          except: rankstr = 'not_found'
 
-         if self.verb: print '%-35s  %-5s -> %s' % (label, origstr, rankstr)
+         if self.verb: print('%-35s  %-5s -> %s' % (label, origstr, rankstr))
 
          if rankstr == 'not_found': rankstr = None
          llist.append([label, origstr, rankstr])
 
-      if self.verb: print
+      if self.verb: print()
 
       return llist
 
@@ -341,7 +343,7 @@ class MyInterface:
          if self.verb: pref = 'rank : '
          else:         pref = ''
          lshow = [ll[2] for ll in llist if ll[2] != None]
-         print '%s%s' % (pref, ','.join(lshow))
+         print('%s%s' % (pref, ','.join(lshow)))
       if self.show_vals & SHOW_ORIG:
          if self.verb: pref = 'orig : '
          else:         pref = ''
@@ -349,7 +351,7 @@ class MyInterface:
             lshow = [ll[1] for ll in llist]
          else:
             lshow = [ll[1] for ll in llist if ll[2] != None]
-         print '%s%s' % (pref, ','.join(lshow))
+         print('%s%s' % (pref, ','.join(lshow)))
 
       return 0
          
@@ -360,7 +362,7 @@ def main():
    rv = me.process_options()
    if rv > 0: return 0  # exit with success
    if rv < 0:           # exit with error status
-      print '** failed to process options...'
+      print('** failed to process options...')
       return 1
 
    if me.process_logfile(): return 1

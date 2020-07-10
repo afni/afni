@@ -262,7 +262,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    }
    
    /* form image */
-   if( G.verb > 1 ) {  
+   if( gifti_get_verb() > 1 ) {  
       fprintf(stderr,"++ creating gifti_image \n" );
    }
    
@@ -375,8 +375,9 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
       RETURN(gim);
    }
 
-   if( G.verb > 1 ) {  
-      gifti_disp_gifti_image("afni_surf_to_gifti_surf :",gim, G.verb > 3);  
+   if( gifti_get_verb() > 1 ) {  
+      gifti_disp_gifti_image("afni_surf_to_gifti_surf :",
+                             gim, gifti_get_verb() > 3);  
    }
    
    RETURN(gim);

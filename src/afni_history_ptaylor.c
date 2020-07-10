@@ -66,6 +66,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, July , 2020 , PT , "@Install_NMT" , MAJOR , TYPE_NEW_PROG,
+   "Installer for the NIMH Macaque Template(s) v2, and the CHARM (atlases).",
+   "Courtesy of Ben Jung, Adam Messinger, et al.\n"
+},
+
+{ 22, June , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
+   "The -monty opt input was being ignored.",
+   "It now has a voice.\n"
+},
+
+{ 22, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_BUG_FIX,
+   "Output col grads file was *not* scaled by bvalues, as help said it would.",
+   "Fixed: now output col grads multiplied by bvalues.\n"
+},
+
+{ 17, June , 2020 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Add legend functionality, along with opts for label and loc specifying.",
+   "New opts: -legend_on, -legend_labels, -legend_locs.\n"
+},
+
+{ 17, June , 2020 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Add -hview functionality.",
+   "Where has this been all my life??\n"
+},
+
+{ 14, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.3 as thr value of corr map.",
+   "Returning value to what it had been for a long time, based on examples.\n"
+},
+
+{ 10, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MAJOR , TYPE_NEW_PROG,
+   "For GE scanners, we might want a cdiflist* file for DWI grad info.",
+   "This prog converts such beasts into usable grad/bvalue files for proc.\n"
+},
+
 { 9, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
    "Fix behavior when -xticks_off and/or -yticks_off are/is used.",
    "Now the specified axis will really be *empty*.\n"
@@ -217,8 +252,8 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
-   "Installer for the Indian Brain Templates.",
-   "Enjoy.\n"
+   "Installer for the Indian Brain Templates. Enjoy.",
+   "Courtesy of Dr. Bharath Holla, et al.\n"
 },
 
 { 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,

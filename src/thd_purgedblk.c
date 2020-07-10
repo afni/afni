@@ -7,7 +7,7 @@
 #include "mrilib.h"
 #include "thd.h"
 
-Boolean THD_purge_datablock( THD_datablock *blk , int mem_type )
+RwcBoolean THD_purge_datablock( THD_datablock *blk , int mem_type )
 {
    int ibr ;
    void *ptr ;
@@ -57,7 +57,7 @@ STATUS("MEM_MMAP: unmapping") ;
    04 May 1998: purge just one sub-brick, if possible
 ------------------------------------------------------------*/
 
-Boolean THD_purge_one_brick( THD_datablock *blk , int iv )
+RwcBoolean THD_purge_one_brick( THD_datablock *blk , int iv )
 {
    void *ptr ;
 

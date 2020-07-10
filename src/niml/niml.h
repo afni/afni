@@ -182,6 +182,7 @@ extern int          NI_rowtype_code_to_size ( int ) ;
 
 extern int          NI_rowtype_vsize     ( NI_rowtype *, void * ) ;
 extern void         NI_val_to_text       ( NI_rowtype *, char *, char * ) ;
+extern void         NI_set_raw_val_to_text( int ) ;
 extern int          NI_val_to_binary     ( NI_rowtype *, char *, char * ) ;
 extern void         NI_multival_to_text  ( NI_rowtype *, int, char *, char * );
 extern int          NI_multival_to_binary( NI_rowtype *, int, char *, char * );
@@ -228,6 +229,8 @@ typedef struct {
    float *vec_axis_origin ; /*!< Array of origins, from ni_origin. */
    char **vec_axis_unit ;   /*!< Array of units, from ni_units. */
    char **vec_axis_label ;  /*!< Array of labels, from ni_axes. */
+
+   char  *filename ;        /*!< filename it came from, if any. [16 Jun 2020] */
 } NI_element ;
 #endif
 
@@ -247,6 +250,8 @@ typedef struct {
    void **part ;       /*!< Pointer to each part. */
 
    char  *name ;       /*!< Name (default="ni_group") - 03 Jun 2002 */
+
+   char  *filename ;   /*!< filename it came from, if any. [16 Jun 2020] */
 } NI_group ;
 #endif
 
@@ -609,6 +614,7 @@ extern void NI_set_column_label( NI_element *nel, int cc, char *lab ) ; /* 11 Se
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
 extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
 extern float NI_extract_float_value( NI_element *nel , int row , int col ) ; /* 14 Sep 2018 */
+extern char * NI_extract_text_value( NI_element *nel , int row , int col ) ; /* 19 Jun 2020 */
 extern void NI_remove_column(NI_element *nel, int irm);
 extern void NI_copy_all_attributes( void *nisrc , void *nitrg );
 void *NI_duplicate(void *vel, byte with_data);
@@ -722,6 +728,8 @@ extern int NI_write_element_tofile( char *, void *, int ) ;    /* 07 Mar 2007 */
 extern void * NI_read_element_fromfile( char * ) ;             /* 12 Mar 2007 */
 extern void * NI_read_element_fromstring( char *nstr );     /* 26 Feb 2010 ZSS*/
 extern char * NI_write_element_tostring( void *nel ); /* Oct 2011 ZSS */
+
+extern char * NI_preview_string( NI_element *, int , char *) ; /* 22 Jun 2020 */
 
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)
@@ -1331,6 +1339,77 @@ extern void   NI_convert_obj_to_elm( NI_objcontainer * ) ;
 extern void   NI_register_objconverters( char * ,
                                          NI_objconverter_func ,
                                          NI_objconverter_func  ) ;
+
+/**-------------------------------------------------------------------------**/
+/** Type: array of NI_element pointers [adapted from MRI_IMARR 16 Jun 2020] **/
+
+/*! Array of NI_element pointers */
+
+typedef struct NI_ELARR {
+      int num ;             /*!< Number of actual NI_element here */
+      int nall ;            /*!< Size of elarr array currently allocated */
+      NI_element **elarr ;  /*!< Array of NI_element pointers */
+} NI_ELARR ;
+
+/*! Get the nn-th element from the NIML array "name" */
+
+#define ELEMENT_IN_ELARR(name,nn) ((name)->elarr[(nn)])
+#define ELARR_SUBELEMENT          ELEMENT_IN_ELARR
+#define ELARR_SUBEL               ELEMENT_IN_ELARR
+
+/*! Get the number of elements in the array "name" */
+
+#define ELARR_COUNT(name)         ((name)->num)
+
+#define ELARR_LASTEL(name)        ((name)->elarr[(name)->num-1])
+#define ELARR_FIRSTEL(name)       ((name)->elarr[0])
+
+#define INC_ELARR 32
+
+/*! Initialize an NI_ELARR struct */
+
+#define INIT_ELARR(name)                                                           \
+   do{ int iq ; (name) = (NI_ELARR *) malloc(sizeof(NI_ELARR)) ;                   \
+       (name)->num = 0 ; (name)->nall = INC_ELARR ;                                \
+       (name)->elarr = (NI_element **)malloc(sizeof(NI_element *)*INC_ELARR) ;     \
+       for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->elarr[iq] = NULL ; \
+       break ; } while(0)
+
+/*! Add one NI_element to the NI_ELARR struct */
+
+#define ADDTO_ELARR(name,emm)                                                              \
+   do{ int nn , iq ;                                                                       \
+       if( (name)->num == (name)->nall ){                                                  \
+          nn = (name)->nall = 1.1*(name)->nall + INC_ELARR ;                               \
+          (name)->elarr = (NI_element **)realloc( (name)->elarr,sizeof(NI_element *)*nn ); \
+          for( iq=(name)->num ; iq < (name)->nall ; iq++ ) (name)->elarr[iq] = NULL ; }    \
+       nn = (name)->num ; ((name)->num)++ ;                                                \
+       (name)->elarr[nn] = (emm) ; break ; } while(0)
+
+/*! Free the NI_ELARR struct (but not the data within) */
+
+#define FREE_ELARR(name)                                                        \
+   do{ if( (name) != NULL ){                                                    \
+          free((name)->elarr); free((name)); (name) = NULL; } break; } while(0)
+
+/*! Free the NI_ELARR struct, including the data within */
+
+#define DESTROY_ELARR(name)                                                          \
+   do{ int nn ;                                                                      \
+       if( (name) != NULL ){                                                         \
+          for( nn=0 ; nn < (name)->num ; nn++ ) NI_free_element((name)->elarr[nn]) ; \
+          free((name)->elarr); free((name)); (name) = NULL; } break; } while(0)
+
+/*! Free all data elements at-and-after [qq] in the NI_ELARR struct. */
+
+#define TRUNCATE_ELARR(name,qq)                                                      \
+   do{ int nn ;                                                                      \
+       if( (name) != NULL && qq < (name)->num ){                                     \
+          for( nn=qq ; nn < (name)->num ; nn++ ) NI_free_element((name)->elarr[nn]); \
+          (name)->num = qq ;                                                         \
+       } } while(0)
+
+/**-------------------------------------------------------------------------**/
 
 #ifdef  __cplusplus
 }

@@ -12,7 +12,7 @@
 #include "cs.h"
 #endif
 
-static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
+static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, RwcBoolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, 
     MCW_choose_cbs *cbs, int max );
 static void PBAR_big_menu_CB( Widget , XtPointer , XtPointer ) ;
@@ -693,7 +693,7 @@ ENTRY("PBAR_read_bigmap") ;
     in "big" mode, to select a color map.
 -------------------------------------------------------------------------*/
 
-static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
+static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, RwcBoolean *ctd )
 {
    MCW_pbar *pbar = (MCW_pbar *) cd ;
    XButtonEvent *bev = (XButtonEvent *) ev ;
