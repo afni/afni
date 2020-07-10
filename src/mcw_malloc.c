@@ -807,5 +807,7 @@ void resume_mcw_malloc()        { return ; }
 int  mcw_malloc_enabled()       { return 0 ; }
 void mcw_malloc_dump_sort()     { return ; }
 void mcw_malloc_dump()          { return ; }
+void enable_mcw_malloc()        { return ; }
+char * mcw_malloc_status()      { return (char *)0 ; }
 
 #endif
