@@ -799,8 +799,13 @@ char * mcw_XtCalloc( RwcCardinal n , RwcCardinal m , char *fnam , int lnum )
    else               return RwcCalloc( n , m ) ;
 }
 
-#else  /* just something, anything */
+#else  /* just something, anything [fake functions] */
 
 long long mcw_malloc_total(void){ return 0 ; }
+void pause_mcw_malloc()         { return ; } 
+void resume_mcw_malloc()        { return ; }
+int  mcw_malloc_enabled()       { return 0 ; }
+void mcw_malloc_dump_sort()     { return ; }
+void mcw_malloc_dump()          { return ; }
 
 #endif
