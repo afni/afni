@@ -29,6 +29,7 @@ typedef   unsigned char   RwcBoolean ;  /* 07 Jul 2020 */
 #define False 0
 
 typedef unsigned int RwcCardinal ;      /* 08 Jul 2020 */
+typedef void *       RwcWidget ;        /* 10 Jul 2020 */
 
 #else                        /* this is the crudesse */
 
@@ -42,6 +43,8 @@ typedef unsigned int RwcCardinal ;      /* 08 Jul 2020 */
 # define  RwcMalloc       XtMalloc
 # define  RwcNew          XtNew
 # define  RwcNewString    XtNewString
+# define  RwcWidget       Widget
+# define  RwcCardinal     Cardinal
 
 #endif
 

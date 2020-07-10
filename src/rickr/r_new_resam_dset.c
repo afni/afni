@@ -240,7 +240,7 @@ THD_3dim_dataset * r_new_resam_dset_eng
     dout->vox_warp->type  = ILLEGAL_TYPE;       /* mark fo recomputation */
     *dout->wod_daxes      = new_daxes;          /* used for actual warp  */
 
-    dout->daxes->parent   = (XtPointer)dout;    /* parent is new dset    */
+    dout->daxes->parent   = (RwcPointer)dout;   /* parent is new dset    */
 
     /* moved from "fill", in case data is not added   24 Jul 2007 [rickr] */
     /* a basic warp is needed if header is written out - PLUTO_add_dset() */
