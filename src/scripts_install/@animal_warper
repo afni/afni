@@ -191,11 +191,14 @@ set progname = @animal_warper
 #      and earliest transformed input/src dsets now, for
 #      simplicity/ease of reading if user is defining an inp abbr
 #
-set version = "2.3" ; set date = "May 31, 2020"
+#set version = "2.3" ; set date = "May 31, 2020"
 # [PT] 2 bug fixes
 #    + one in defining ${src_prefix} (reorder to not have error)
 #    + one in passing along labels/atlases from SEG|atlas dsets
 #
+set version = "2.4" ; set date = "Jul 10, 2020"
+# [DRG]
+#    + changed default mode_smooth_size to 1 voxel
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -2438,7 +2441,7 @@ Options ~1~
                          (most common value) in the spherical neighborhood.
                          The default uses a 1 voxel radius. Use higher values
                          depending on the irregularities of the edges of the
-                         regions and ROI thickness.
+                         regions and ROI 
                          Turn off by setting this to 0
 
     -mode_smooth_replacement_off
