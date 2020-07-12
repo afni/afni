@@ -50,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, JUL, 2020, DRG, "atlas longnames change",
+     MICRO, TYPE_MODIFY,
+    "atlas longnames and labeling change",
+    "atlas labels and labeltable labels are not both printed if same\n"
+    "atlas labels and longnames not both printed if same\n"
+    "3dROIstats only shows regular labels now, no longname atlas labels"
+},
 { 04, JUN, 2020, DRG, "align_epi_anat.py epi stripping options",
      MICRO, TYPE_NEW_OPT,
     "epistrip_opts/dset2strip_opts"

@@ -3521,7 +3521,8 @@ void Show_Atlas_Region (AFNI_ATLAS_REGION *aar)
       }
       fprintf(stdout,"\n");
    } else {
-      if((aar->longname) && (strlen(aar->longname)!=0))
+      /* if there is a long name and the long name isn't the same as the regular name */
+      if((aar->longname) && (strlen(aar->longname)!=0) && (strcmp(aar->orig_label,aar->longname))) 
          fprintf(stdout,"%c:%s:%-3d [%s]\n",
                      aar->side, STR_PRINT(aar->orig_label), aar->id, aar->longname);
       else
@@ -3945,7 +3946,9 @@ char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur ,
             snprintf (lbuf, 480*sizeof(char),
                      "Best match for %s (code %-3d):", ur->orig_label, ur->id);
          for (ii=0; ii<as->nmatch; ++ii) {
-            if((aa->reg[as->iloc[ii]]->longname) && (strlen(aa->reg[as->iloc[ii]]->longname)!=0))
+            /* show long name if it exists and different from regular name */
+            if((aa->reg[as->iloc[ii]]->longname) && (strlen(aa->reg[as->iloc[ii]]->longname)!=0) && 
+               (strcmp(aa->reg[as->iloc[ii]]->longname,aa->reg[as->iloc[ii]]->orig_label)))
                 snprintf (lbuf, 480*sizeof(char), "%s\n   %s [%s]", lbuf,
                      aa->reg[as->iloc[ii]]->orig_label, aa->reg[as->iloc[ii]]->longname);
             else
@@ -6843,7 +6846,7 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
           break;
       /* combination - both name and long name with brackets around long name*/
       case 2:
-          if (atp->longname && strlen(atp->longname))
+          if (atp->longname && strlen(atp->longname) && strcmp(atp->longname, atp->name))
              sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
              sprintf(tmps, "%s", atp->name);               
@@ -9286,11 +9289,22 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    }
 
    if (str_lab1 && str_lab2 && strcmp(str_lab1,str_lab2)) {
-      snprintf(str,64, "%s|%s",str_lab1,str_lab2);
-   } else if (str_lab1) {
-      snprintf(str,64, "%s",str_lab1);
+      char *eee = getenv("AFNI_LABEL_PRIORITY");
+      if(eee){
+         if(strcasecmp(eee,"BOTH")==0) /* put pipe between labels - old default */
+            snprintf(str,64, "%s|%s",str_lab1,str_lab2);
+         else if (strcasecmp(eee,"LABEL")==0) {   /* labeltable label */
+            snprintf(str,64, "%s",str_lab1);
+         }
+         else if (strcasecmp(eee,"ATLAS")==0) {   /* atlas points label */
+            snprintf(str,64, "%s",str_lab2);
+         }
+      }
+      else snprintf(str,64,"%s",str_lab2);  /* atlas label is the default for now */ 
+   } else if (str_lab1) {  /* if only one take that label */
+      snprintf(str,64, "%s",str_lab1);  /* labeltable */
    } else if (str_lab2) {
-      snprintf(str,64, "%s",str_lab2);
+      snprintf(str,64, "%s",str_lab2);  /* atlas points label */
    }
 
    RETURN(0);

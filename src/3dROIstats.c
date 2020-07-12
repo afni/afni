@@ -210,6 +210,7 @@ int main(int argc, char *argv[])
 
    disp1d = 0;
    mean = 1;   /* LEAVE this as the default ZSS March 09 2010 */
+   set_atlas_name_code(0);  /* only show short atlas labels - not longnames */
    while (narg < argc && argv[narg][0] == '-') {
 
       if (strcmp(argv[narg], "-h") == 0 || strcmp(argv[narg], "-help") == 0) {
@@ -600,6 +601,7 @@ int main(int argc, char *argv[])
             if (sklab[0]=='\0') {
                sprintf(sklab,"%d",i - 32768);
             }
+
             if (mean) fprintf(stdout, "\tMean_%s  ", sklab);
             if (nzmean)
                fprintf(stdout, "\tNZMean_%s", sklab);
