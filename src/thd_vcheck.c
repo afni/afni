@@ -1,11 +1,10 @@
-#include "afni.h"
+
 #include <sys/utsname.h>
-
-/*------------------------------------------------------------------------*/
-
 #include <sys/time.h>
 #include <signal.h>
+#include <unistd.h>
 
+/*------------------------------------------------------------------------*/
 static void THD_death_now_now_now(int sig)
 {
 #if 0
@@ -41,6 +40,16 @@ void THD_death_setup( int msec )
 }
 
 /*------------------------------------------------------------------------*/
+#ifndef ENABLE_THD_check_AFNI_version   /* 13 Jul 2020 */
+
+void THD_check_AFNI_version( char *pname ){ return ; }
+
+/*------------------------------------------------------------------------*/
+#else  /*-------- version checking from a 3d*.c program ------------------*/
+
+#include "afni.h"
+
+/*------------------------------------------------------------------------*/
 
 #undef  VSIZE
 #define VSIZE  1066
@@ -62,13 +71,10 @@ void THD_check_AFNI_version( char *pname )
    char *motd=NULL ;
    NI_stream ns ;
 
-
    /* This function breaks MOTD usage.
       Ponder, do we use a new .afni.vctime.cmdline file?
                                    30 Dec 2015 [RCR/DRG] */
    return ;
-
-
 
    if( ! AFNI_yesenv("AFNI_VERSION_CHECK") || machdep_be_quiet() ) return ;
 
@@ -204,3 +210,4 @@ void THD_check_AFNI_version( char *pname )
 
    _exit(0) ;
 }
+#endif /* ENABLE_THD_check_AFNI_version */
