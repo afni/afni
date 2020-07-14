@@ -2162,8 +2162,6 @@ extern int AFNI_can_transform_vector( THD_3dim_dataset *, THD_3dim_dataset * );
 
 extern THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * ,
                                         THD_fvec3 , THD_3dim_dataset * ) ;
-extern THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
-extern THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
 
 extern THD_warp * AFNI_make_warp( Three_D_View * ) ;
 

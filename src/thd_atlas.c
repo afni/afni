@@ -3,7 +3,7 @@
 
 /* access current space of dataset */
 
-#include "afni.h"
+#include "mrilib.h"
 #define SUMA_noFunc
 #include "suma_objs.h" /* 21 Apr 2020 */
 /*------------------------------------------------------------*/

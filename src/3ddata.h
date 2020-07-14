@@ -976,6 +976,9 @@ static THD_warp tempA_warp ;
       NEGATE_FVEC3((ww).rig_bod.warp.svec) ;                     \
   } while(0)
 
+extern THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
+extern THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
+
 /*---------------------------------------------------------------------*/
 /*----------- structure to hold pointer to data on disk ---------------*/
 
