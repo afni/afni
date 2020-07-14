@@ -489,7 +489,7 @@ int r_dxyz_mod_dataxes( double dx, double dy, double dz,
  * use explicit boolean return values
  *----------------------------------------------------------------------
 */
-Boolean r_is_valid_orient_str ( char ostr [] )
+RwcBoolean r_is_valid_orient_str ( char ostr [] )
 {
     int o1, o2, o3;
 

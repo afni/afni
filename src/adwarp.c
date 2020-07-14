@@ -40,7 +40,7 @@
 #define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
 
 /*---------------------------------------------------------------------------*/
-
+#include "afni.h"
 #include "afni_warp.h"
 
 #define MAIN
