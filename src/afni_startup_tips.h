@@ -1617,6 +1617,10 @@ static char *gby[] = {
      "Later there will be, I hope, some people who\n"
      "  will find it to their advantage to decipher all this mess"                            ,
 
+     // Eliot
+     "                           Not fare well,\n"
+     "But fare forward, voyagers."                                                            ,
+
      // Lem
      "\n"
      "Everyone knows that dragons don't exist. But while this simplistic\n"
