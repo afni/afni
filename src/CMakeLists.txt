@@ -3,7 +3,6 @@ set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
 
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
-add_subdirectory(coxplot)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
@@ -98,6 +97,7 @@ endif()
 
 # Add targets with a dependency on X
 if(COMP_X_DEPENDENT_GUI_PROGS)
+  add_subdirectory(coxplot)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()

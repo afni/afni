@@ -1,6 +1,5 @@
 include(CMakePackageConfigHelpers)
 include(FetchContent)
-find_package(Motif REQUIRED)
 include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
@@ -56,8 +55,9 @@ if(NOT COMP_CORELIBS_ONLY)
 endif()
 
 if(COMP_X_DEPENDENT_GUI_PROGS)
-  find_package(JPEG 62 REQUIRED)
   find_package(X11 REQUIRED)
+  find_package(Motif REQUIRED)
+  find_package(JPEG 62 REQUIRED)
   optional_bundle(src/XmHTML)
 endif()
 

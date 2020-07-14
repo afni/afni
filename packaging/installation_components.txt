@@ -1,5 +1,5 @@
 3DEdge, corelibs
-coxplot, corelibs
+coxplot, gui
 eispack, corelibs
 model_beta, corelibs
 model_constant, corelibs
