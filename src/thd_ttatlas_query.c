@@ -9145,6 +9145,7 @@ int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
    ATR_string *atr=NULL;
 /*   char *pbar_name=NULL;*/
    char *str_lab=NULL;
+   int ival;
 
    ENTRY("AFNI_get_dset_label_val") ;
 
@@ -9168,6 +9169,10 @@ int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
                      str_lab ? str_lab:"NULL", str); */
       if (str_lab) *val = strtol(str_lab,NULL, 10);
    }
+
+   /* check for exact match against atlas labels too */
+   ival = dset_atlas_label_index(dset, str);
+   if(ival) *val = (double) ival;
 
    RETURN(0);
 }
@@ -9215,6 +9220,10 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
       }
    }
 
+   /* check for exact match against atlas labels too */
+   *val = dset_atlas_label_index(dset, str);
+   if (val) RETURN(1);
+
    RETURN(0);
 }
 
@@ -9239,7 +9248,7 @@ int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
    /* empty the list, but do not free it */
    ilist->num = 0;
 
-   /* see if this is a single lable in the dataset label table */
+   /* see if this is a single label in the dataset label table */
    rv = AFNI_get_dset_label_ival(dset, &ival, str);
    if( rv < 0 ) RETURN(-1);
    if( rv > 0 ) {
