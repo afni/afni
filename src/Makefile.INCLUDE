@@ -1325,7 +1325,7 @@ RSFgen:RSFgen.o
 
 adwarp:adwarp.o
 	$(RM) $@
-	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS)
+	$(CC) -o adwarp adwarp.o $(LFLAGS) -UREPLACE_XT $(LLIBS) $(LLIBS_X11)
 
 GLTsymtest:GLTsymtest.o
 	$(RM) $@
