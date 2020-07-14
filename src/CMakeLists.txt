@@ -8,7 +8,6 @@ add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 add_subdirectory(3DEdge)
-add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
 include(CMakeLists_mri.txt)
 
@@ -106,6 +105,7 @@ endif()
 # Add suma
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # segtools/avovk only used by suma so add it here
+  add_subdirectory(ptaylor)
   add_subdirectory(avovk)
   add_subdirectory(SUMA)
 endif()

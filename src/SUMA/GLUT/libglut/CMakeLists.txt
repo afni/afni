@@ -7,8 +7,16 @@ glut_roman.c glut_shapes.c glut_space.c glut_stroke.c glut_swidth.c
 glut_tablet.c glut_teapot.c glut_tr10.c glut_tr24.c glut_util.c glut_win.c
 glut_winmisc.c layerutil.c ) 
 target_include_directories(GLUT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-set_target_properties(GLUT PROPERTIES PUBLIC_HEADER "GL/glut.h") 
-target_link_libraries(GLUT PRIVATE X11::Xi)
+set_target_properties(GLUT PROPERTIES PRIVATE_HEADER "GL/glut.h") 
+target_link_libraries(GLUT 
+  PRIVATE
+  X11::Xi
+  $<IF:
+    $<BOOL:TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>,
+    OpenGL::GLU,
+    XQuartzGL::GLU
+    >
+   )
 
 # CFLAGS = -I.. -O ${SUMA_INCLUDE_PATH}
 
