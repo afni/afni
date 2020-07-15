@@ -74,14 +74,10 @@ foreach(
 
 
 add_afni_plugin(plug_maxima maxima.c plug_maxima.c)
+target_link_libraries(plug_maxima PRIVATE AFNI::mrix)
 add_afni_plugin(plug_retroicor plug_retroicor.c retroicor.c)
+target_link_libraries(plug_retroicor PRIVATE AFNI::mrix)
 
-foreach(target plug_maxima plug_retroicor) 
-  target_link_libraries(${target}
-    PRIVATE
-    AFNI::mrix
-    )
-  endforeach()
 
 add_afni_plugin(
   plug_3dsvm
@@ -106,8 +102,6 @@ if(COMP_ADD_BINARIES)
     target_link_libraries(${target} 
       PRIVATE
         AFNI::mrix
-        NIFTI::nifti2
-        NIFTI::nifticdf
     )
   endforeach(target)
 endif()
