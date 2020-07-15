@@ -8,6 +8,10 @@
    update: April, 2016
    + allow for b-value weighted grads to be input
 
+   [PT: July 15, 2020] fix help example, opt name was wrong
+   [PT: July 15, 2020] add ability to choose seed, for testing
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+
 */
 
 #include <stdio.h>
@@ -20,7 +24,7 @@
 #include "3ddata.h"     
 #include "editvol.h"
 #include "thd.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
@@ -92,7 +96,7 @@ void usage_DTtoNoisyDWI(int detail)
 "\n"
 "  + EXAMPLE:\n"
 "    3dDTtoNoisyDWI             \\\n"
-"      -dti_in DTI/DT_DT+orig   \\\n"
+"      -dt_in DTI/DT_DT+orig    \\\n"
 "      -grads GRADS.dat         \\\n"
 "      -noise_DWI 0.1           \\\n"
 "      -noise_B0  0             \\\n"
@@ -141,18 +145,11 @@ int main(int argc, char *argv[]) {
    float **dwi=NULL;
    THD_3dim_dataset *DWI_OUT=NULL;
 
+   int CHOOSE_SEED = 0;
    const gsl_rng_type * T;
    gsl_rng *r;
-   long seed;
+	long seed1, seed2;   
 
-
-   srand(time(0));
-   seed = time(NULL) ;
-   gsl_rng_env_setup();
-   T = gsl_rng_default;
-   r = gsl_rng_alloc (T);
-   gsl_rng_set (r, seed);
-   
    // ###################################################################
    // #########################  load  ##################################
    // ###################################################################
@@ -195,9 +192,19 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-grads") == 0) {
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-mask'");
+                     ERROR_exit("Need argument after '-grads'");
          gradsname = strdup(argv[iarg]) ;
       
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-choose_seed") == 0) {
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-choose_seed'");
+         CHOOSE_SEED = 1;
+         seed1 = atoi(argv[iarg]) ;
+         seed2 = atoi(argv[iarg]) ;
+
          iarg++ ; continue ;
       }
 
@@ -281,6 +288,16 @@ int main(int argc, char *argv[]) {
 
    // ###################################################################
 
+   if( !CHOOSE_SEED ) {
+      seed1 = time(NULL);
+      seed2 = time(NULL) ;
+   }
+   srand(seed1);
+   gsl_rng_env_setup();
+   T = gsl_rng_default;
+   r = gsl_rng_alloc (T);
+   gsl_rng_set (r, seed2);
+   
    if(dtsname) {
       DTS = THD_open_dataset(dtsname);
       DSET_load(DTS);  CHECK_LOAD_ERROR(DTS);

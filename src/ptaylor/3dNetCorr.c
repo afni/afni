@@ -38,6 +38,8 @@
    June 26, 2019:
    + add in weight_ts option: weight is applied when averaging time series
 
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+
 */
 
 
@@ -54,7 +56,7 @@
 #include "DoTrackit.h"
 #include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 //#define MAX_SELROI (200) // can't have more than this in SELROI
 

@@ -108,6 +108,10 @@
      the voxel_order setting.  This is for using TRK files in other
      software, such as DTK.
 
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+                    -> but note other headers might still have suma_suma.h
+                       at the moment
+
 */
 
 
@@ -129,7 +133,7 @@
 #include "readglob.h"
 #include "checks_and_balances.h"
 
-#include "suma_suma.h"
+#include "suma_objs.h"
 
 
 //#define MAX_PARAMS (11) // for *.trk output
