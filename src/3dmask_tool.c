@@ -126,7 +126,7 @@ int main( int argc, char *argv[] )
 
    /* general stuff */
    mainENTRY("3dmask_tool"); machdep(); AFNI_logger("3dmask_tool",argc,argv);
-#ifndef DONT_USE_MCW_MALLOC
+#ifdef ALLOW_MCW_MALLOC
    enable_mcw_malloc();
 #endif
 

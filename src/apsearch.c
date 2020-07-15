@@ -2,7 +2,6 @@
 #define SUMA_noFunc
 
 #include "mrilib.h"
-#include "afni.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"

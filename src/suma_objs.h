@@ -46,7 +46,7 @@
    #define SUMA_ifree(p)  { if ((p)) {SUMA_free((p));} (p)=NULL; }
    
    /* memory allocation section (SUMA_COMPILED-specific)*/
-   #ifndef DONT_USE_MCW_MALLOC 
+   #ifdef ALLOW_MCW_MALLOC 
    /*#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)*/
       #define SUMA_malloc(a) mcw_malloc((a),__FILE__,__LINE__)
       #define SUMA_calloc(a,b) mcw_calloc((a),(b),__FILE__,__LINE__)

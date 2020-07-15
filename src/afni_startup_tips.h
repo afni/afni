@@ -1689,6 +1689,11 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     "\n The 3 phases of software development:\n"
+     "   Design;\n"
+     "   Implement;\n"
+     "   Say 'Oh crap' over and over and over" ,
+
      "\n    Never should I forget this event\n"
      "    in the life of my fatigued retinas\n" ,
 

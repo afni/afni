@@ -11,10 +11,6 @@
   super-dataset.  Adapted from 3dbucket.c -- RWCox 21 Sep 1998.
 ----------------------------------------------------------------------------*/
 
-#ifndef myXtFree
-#   define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array *TCAT_dsar  = NULL ;  /* input datasets */
@@ -363,7 +359,7 @@ int * TCAT_get_subv( int nvals , char *str )
    /* No selection list ==> select it all */
 
    if( str == NULL || str[0] == '\0' ){
-      subv = (int *) XtMalloc( sizeof(int) * (nvals+1) ) ;
+      subv = (int *) RwcMalloc( sizeof(int) * (nvals+1) ) ;
       subv[0] = nvals ;
       for( ii=0 ; ii < nvals ; ii++ ) subv[ii+1] = ii ;
       return subv ;
@@ -371,7 +367,7 @@ int * TCAT_get_subv( int nvals , char *str )
 
    /* skip initial '[' */
 
-   subv    = (int *) XtMalloc( sizeof(int) * 2 ) ;
+   subv    = (int *) RwcMalloc( sizeof(int) * 2 ) ;
    subv[0] = nout = 0 ;
 
    ipos = 0 ;
@@ -394,10 +390,10 @@ int * TCAT_get_subv( int nvals , char *str )
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
-         if( ibot < 0 ){ myXtFree(subv) ; return NULL ; }
+         if( ibot < 0 ){ myRwcFree(subv) ; return NULL ; }
          if( ibot >= nvals ) ibot = nvals-1 ;
          nused = (cpt-(str+ipos)) ;
-         if( ibot == 0 && nused == 0 ){ myXtFree(subv) ; return NULL ; }
+         if( ibot == 0 && nused == 0 ){ myRwcFree(subv) ; return NULL ; }
          ipos += nused ;
       }
 
@@ -405,7 +401,7 @@ int * TCAT_get_subv( int nvals , char *str )
 
       if( str[ipos] == ',' || str[ipos] == '\0' || str[ipos] == ']' ){
          nout++ ;
-         subv = (int *) XtRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int *) RwcRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
          subv[0]    = nout ;
          subv[nout] = ibot ;
          ipos++ ; continue ;  /* re-start loop at next sub-selector */
@@ -418,7 +414,7 @@ int * TCAT_get_subv( int nvals , char *str )
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
       } else {
-         myXtFree(subv) ; return NULL ;
+         myRwcFree(subv) ; return NULL ;
       }
 
       /** get ending value for loop now **/
@@ -427,10 +423,10 @@ int * TCAT_get_subv( int nvals , char *str )
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
-         if( itop < 0 ){ myXtFree(subv) ; return NULL ; }
+         if( itop < 0 ){ myRwcFree(subv) ; return NULL ; }
          if( itop >= nvals ) itop = nvals-1 ;
          nused = (cpt-(str+ipos)) ;
-         if( itop == 0 && nused == 0 ){ myXtFree(subv) ; return NULL ; }
+         if( itop == 0 && nused == 0 ){ myRwcFree(subv) ; return NULL ; }
          ipos += nused ;
       }
 
@@ -443,7 +439,7 @@ int * TCAT_get_subv( int nvals , char *str )
       if( str[ipos] == '(' ){  /* decode an integer */
          ipos++ ;
          istep = strtol( str+ipos , &cpt , 10 ) ;
-         if( istep == 0 ){ myXtFree(subv) ; return NULL ; }
+         if( istep == 0 ){ myRwcFree(subv) ; return NULL ; }
          nused = (cpt-(str+ipos)) ;
          ipos += nused ;
          if( str[ipos] == ')' ) ipos++ ;
@@ -453,7 +449,7 @@ int * TCAT_get_subv( int nvals , char *str )
 
       for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
          nout++ ;
-         subv = (int *) XtRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int *) RwcRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
          subv[0]    = nout ;
          subv[nout] = ii ;
       }
@@ -835,7 +831,7 @@ int main( int argc , char *argv[] )
 
    /*** loop over input datasets ***/
 
-   if( ninp > 1 ) myXtFree( new_dset->keywords ) ;
+   if( ninp > 1 ) myRwcFree( new_dset->keywords ) ;
 
    ivout = 0 ;
    for( ids=0 ; ids < ninp ; ids++ ){

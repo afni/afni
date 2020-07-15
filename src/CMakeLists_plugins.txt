@@ -67,21 +67,17 @@ foreach(
   add_afni_plugin(${target} ${target}.c)
   target_link_libraries(
     ${target}
-    PRIVATE 
-    libheaders
+    PRIVATE
+    AFNI::mrix
   )
   endforeach(target)
 
 
 add_afni_plugin(plug_maxima maxima.c plug_maxima.c)
+target_link_libraries(plug_maxima PRIVATE AFNI::mrix)
 add_afni_plugin(plug_retroicor plug_retroicor.c retroicor.c)
+target_link_libraries(plug_retroicor PRIVATE AFNI::mrix)
 
-foreach(target plug_maxima plug_retroicor) 
-  target_link_libraries(${target}
-    PRIVATE
-    libheaders
-    )
-  endforeach()
 
 add_afni_plugin(
   plug_3dsvm
@@ -89,14 +85,14 @@ add_afni_plugin(
  )
 target_link_libraries(plug_3dsvm 
   PRIVATE
-  libheaders
+  AFNI::mrix
   )
 
 foreach(target plug_scatplot plug_nlfit)
   add_afni_plugin(${target} ${target}.c)
   target_link_libraries(${target} 
     PRIVATE
-    libheaders
+    AFNI::mrix
     )
 endforeach(target)
 
@@ -106,8 +102,6 @@ if(COMP_ADD_BINARIES)
     target_link_libraries(${target} 
       PRIVATE
         AFNI::mrix
-        NIFTI::nifti2
-        NIFTI::nifticdf
     )
   endforeach(target)
 endif()

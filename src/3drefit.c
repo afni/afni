@@ -673,7 +673,7 @@ int main( int argc , char *argv[] )
           iarg++ ; goto atrstring_done ;
         }
         xx  = argv[++iarg] ;
-        atr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+        atr = (ATR_string *)RwcMalloc(sizeof(ATR_string)) ;
 
         if( strncmp(xx,"file:",5) == 0 && strlen(xx) > 5 ){  /* 08 Jul 2010 */
           int ii ;
@@ -687,9 +687,9 @@ int main( int argc , char *argv[] )
         }
 
         atr->type = ATR_STRING_TYPE ;
-        atr->name = XtNewString( aname ) ;
+        atr->name = RwcNewString( aname ) ;
         atr->nch  = strlen(xx)+1 ; ;
-        atr->ch   = (char *)XtMalloc( sizeof(char) * atr->nch ) ;
+        atr->ch   = (char *)RwcMalloc( sizeof(char) * atr->nch ) ;
         memcpy( atr->ch , xx , sizeof(char) * atr->nch ) ;
 
         if( yy != NULL ) free(yy) ;  /* 08 Jul 2010 */
@@ -925,7 +925,7 @@ int main( int argc , char *argv[] )
          if( iv < 0 || iv == 0 && cpt == argv[iarg] )
             SynErr("illegal sub-brick index after -sublabel!") ;
 
-         sublab = (SUBlabel *) XtRealloc( (char *)sublab ,
+         sublab = (SUBlabel *) RwcRealloc( (char *)sublab ,
                                           sizeof(SUBlabel) * (nsublab+1) ) ;
 
          sublab[nsublab].iv = iv ;
@@ -953,7 +953,7 @@ int main( int argc , char *argv[] )
          if( iv < 0 || iv == 0 && cpt == argv[iarg] )
             SynErr("illegal sub-brick index after -sub...key!") ;
 
-         subkeyword = (SUBkeyword *) XtRealloc( (char *)subkeyword ,
+         subkeyword = (SUBkeyword *) RwcRealloc( (char *)subkeyword ,
                                                 sizeof(SUBkeyword)*(nsubkeyword+1) ) ;
 
          subkeyword[nsubkeyword].iv   = iv ;
@@ -1009,7 +1009,7 @@ int main( int argc , char *argv[] )
          if( ii > LAST_FUNC_TYPE )
             SynErr("unknown type code after -substatpar!") ;
 
-         substatpar = (SUBstatpar *) XtRealloc( (char *)substatpar ,
+         substatpar = (SUBstatpar *) RwcRealloc( (char *)substatpar ,
                                                 sizeof(SUBstatpar) * (nsubstatpar+1) ) ;
 
          substatpar[nsubstatpar].iv     = iv ;
@@ -2439,9 +2439,9 @@ Update_float_atr(char *aname, char *fvstring)
      RETURN(NULL) ;
    }
 
-   atr = (ATR_float *)XtMalloc(sizeof(ATR_float)) ;
+   atr = (ATR_float *)RwcMalloc(sizeof(ATR_float)) ;
    atr->type = ATR_FLOAT_TYPE ;
-   atr->name = XtNewString( aname ) ;
+   atr->name = RwcNewString( aname ) ;
 
    /* parse floats from string to attribute */
    /* try reading as float file or 1D: expression */
@@ -2458,7 +2458,7 @@ Update_float_atr(char *aname, char *fvstring)
    /* number of floats in attribute */
    nx = mri_matrix->nx; ny = mri_matrix->ny; acount = nx*ny;
    atr->nfl  = acount ;
-   atr->fl   = (float *) XtMalloc( sizeof(float) * acount ) ;
+   atr->fl   = (float *) RwcMalloc( sizeof(float) * acount ) ;
    fptr = MRI_FLOAT_PTR (mri_matrix);
    for( ii=0 ; ii < acount ; ii++ ){
       atr->fl[ii] = *fptr++;
@@ -2481,9 +2481,9 @@ Update_int_atr(char *aname, char *ivstring)
      RETURN(NULL) ;
    }
 
-   atr = (ATR_int *)XtMalloc(sizeof(ATR_int)) ;
+   atr = (ATR_int *)RwcMalloc(sizeof(ATR_int)) ;
    atr->type = ATR_INT_TYPE ;
-   atr->name = XtNewString( aname ) ;
+   atr->name = RwcNewString( aname ) ;
 
    /* parse floats from string to attribute */
    /* try reading as float file or 1D: expression */
@@ -2500,7 +2500,7 @@ Update_int_atr(char *aname, char *ivstring)
    /* number of floats in attribute */
    nx = mri_matrix->nx; ny = mri_matrix->ny; acount = nx*ny;
    atr->nin  = acount ;
-   atr->in   = (int *) XtMalloc( sizeof(int) * acount ) ;
+   atr->in   = (int *) RwcMalloc( sizeof(int) * acount ) ;
    fptr = MRI_FLOAT_PTR (mri_matrix);
    for( ii=0 ; ii < acount ; ii++ ){
       atr->in[ii] = *fptr++;

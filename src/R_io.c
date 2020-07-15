@@ -326,7 +326,7 @@ SEXP R_THD_write_dset(SEXP Sfname, SEXP Sdset, SEXP Opts)
       if (debug > 1) INFO_message("First node index value %d, total (%d)\n", 
                                   iv[0], length(node_list));
       dset->dblk->nnodes = length(node_list);
-      dset->dblk->node_list = (int *)XtMalloc(dset->dblk->nnodes * sizeof(int));
+      dset->dblk->node_list = (int *)RwcMalloc(dset->dblk->nnodes * sizeof(int));
       memcpy(dset->dblk->node_list, iv, dset->dblk->nnodes*sizeof(int));
    }
    

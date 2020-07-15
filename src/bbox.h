@@ -31,6 +31,7 @@
 #include "display.h"
 #include "xutil.h"
 #include "mrilib.h"
+#include "coxplot.h"
 #include "niml.h"
 
 #ifndef LABEL_ARG

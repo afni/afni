@@ -315,7 +315,7 @@
 
 #include "mrilib.h"           /* Keep after decision about matrix.h inclusion
                                                       ZSS  Nov. 21 2014*/
-
+#include "coxplot.h"
 
 #ifdef isfinite
 # define IS_GOOD_FLOAT(x) isfinite(x)
