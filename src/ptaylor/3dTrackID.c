@@ -109,8 +109,6 @@
      software, such as DTK.
 
    [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
-                    -> but note other headers might still have suma_suma.h
-                       at the moment
 
 */
 
