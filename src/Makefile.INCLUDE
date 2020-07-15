@@ -4098,12 +4098,12 @@ R_MAKEVARS_DEP = R_Makevars_default
 endif
 
 R_Makevars_default:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;
 
 # could set ~/.R/Makevars, or work harder to get '$$ORIGIN' into local one
 R_Makevars_mod_linux:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS = $(LFLAGS) $(LLIBS) $(RLIB_CONVERT)      \
           | sed s/.ORIGIN/\''$$$$ORIGIN'\'/ >> Makevars ;
 
