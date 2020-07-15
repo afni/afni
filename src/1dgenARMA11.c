@@ -20,6 +20,8 @@ static MTYPE corcut = 0.0001 ;
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
 
+#define ALLOW_ARMA51
+
 /*--------------------------------------------------------------------------*/
 /*! Setup sparse banded correlation matrix (as an rcmat struct):
       [ 1 lam lam*rho lam*rho^2 lam*rho^3 ... ]
@@ -103,7 +105,6 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 }
 
 /*--------------------------------------------------------------------------*/
-#define ALLOW_ARMA51
 #include "armacor.c"  /* ARMA(p,1) models for p=3 and 5 [01 Jul 2020] */
 /*--------------------------------------------------------------------------*/
 
@@ -194,6 +195,7 @@ rcmat * rcmat_arma31( int nt , int *tau ,
   return rcm ;
 }
 
+#ifdef ALLOW_ARMA51
 /*---------------------------------------------------------------------------*/
 
 rcmat * rcmat_arma51( int nt , int *tau ,
@@ -215,6 +217,7 @@ rcmat * rcmat_arma51( int nt , int *tau ,
   KILL_doublevec( corvec ) ;
   return rcm ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -300,8 +303,17 @@ int main( int argc , char *argv[] )
       "  3dTstat -mean -prefix stdout: qqq.1D \\\n"
       "       | 1dplot -stdin -num 201 -dt $df -xlabel 'frequency' -ylabel '|FFT|'\n"
       "---------------------------------------------------------------------------\n"
+#ifdef ALLOW_ARMA51
+      "A similar option is now available for a restricted ARMA(5,1) model:\n"
+      " -arma51 a r1 theta1 r2 theta2 vrat\n"
+      "where now the roots are\n"
+      " z = a  z = r1*exp(I*theta1)  z = r1*exp(-I*theta1)\n"
+      "        z = r2*exp(I*theta2)  z = r2*exp(-I*theta2)\n"
+      "This model allows the simulation of two separate frequencies in the 'noise'.\n"
+      "---------------------------------------------------------------------------\n"
+#endif
       "\n"
-      "Author: RWCox [for his own demented purposes]\n"
+      "Author: RWCox [for his own demented and deranged purposes]\n"
       "\n"
       "Examples:\n"
       "  1dgenARMA11 -num 200 -a .8 -lam 0.7 | 1dplot -stdin\n"
@@ -324,6 +336,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+#ifdef ALLOW_ARMA51
      if( strcasecmp(argv[iarg],"-ARMA51") == 0 ){ /* 01 Jul 2020 */
        if( iarg+6 >= argc ) ERROR_exit("Need 6 arguments after option '%s'",argv[iarg]) ;
        do_arma11 = do_arma31 = 0 ; do_arma51 = 1 ;
@@ -335,6 +348,7 @@ int main( int argc , char *argv[] )
        vrt = strtod( argv[++iarg] , NULL ) ;
        iarg++ ; continue ;
      }
+#endif
 
      if( strcmp(argv[iarg],"-norm") == 0 ){
        do_norm = 1 ; iarg++ ; continue ;
@@ -430,9 +444,11 @@ int main( int argc , char *argv[] )
 
      rcm = rcmat_arma31( nlen , NULL , aa,r1,t1,vrt ) ;
 
+#ifdef ALLOW_ARMA51
    } else if( do_arma51 ){
 
      rcm = rcmat_arma51( nlen , NULL , aa,r1,t1,r2,t2,vrt ) ;
+#endif
 
    }
 

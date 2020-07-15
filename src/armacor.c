@@ -239,6 +239,15 @@ double_quad arma51_gam1234( double p1, double p2, double p3, double p4, double p
    A maximum of ncmax correlations are computed (ncmax < 4 ==> no limit).
    Correlations are computed until three in a row are below ccut
    (ccut <= 0 ==> 0.00001).
+
+   NOTE WELL: For some combinations of the (a,r1,t1,r2,t2) parameters,
+              the function produced by the AR(5) recurrence is NOT a
+              valid (positive definite) autocorrelation function.
+              In such a case, a scale factor 'f' < 1 is computed to scale
+              down vrt for such parameter combinations. Thus, if you
+              input vrt=0.8 and then the program decides f=0.8, you will
+              actually get a correlation function with vrt=0.64 - that is,
+              the white noise 'floor' will be amplified. [RWC - 15 Jul 2020]
 *//*----------------------------------------------------------------------------*/
 
 doublevec * arma51_correlations( double a , double r1 , double t1 ,
@@ -246,7 +255,7 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
                                  double vrt , double ccut , int ncmax )
 {
    double_quad g1234 ;
-   double p1,p2,p3,p4,p5 , cnew , c1,s1,c2,s2 ;
+   double p1,p2,p3,p4,p5 , cnew , c1,s1,c2,s2 , vrtfac=1.0 ;
    int kk , nzz , ncor ;
    doublevec *corvec=NULL ;
 
@@ -340,8 +349,44 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
 
    } /* end of recurrence loop */
 
+   /*-- Check for legality as a correlation function, via FFT --*/
+   /*-- If not legal, have to scale vrt down! [15 Jul 2020]   --*/
+
+   { int    nfft = csfft_nextup_one35( 2*ncor+15 ) , nf2 = nfft/2 ;
+     complex *xc = (complex *)calloc( sizeof(complex) , nfft ) ;
+     float xcmin ;
+
+     /* load correlations (+reflections) into FFT array (float not double) */
+
+     xc[0].r = 1.0 ; xc[0].i = 0.0 ;
+     for( kk=1 ; kk <= ncor ; kk++ ){
+       xc[kk].r = corvec->ar[kk] ; xc[kk].i = 0.0 ;
+       xc[nfft-kk] = xc[kk] ; /* reflection from nfft downwards */
+     }
+
+     csfft_cox( -1 , nfft , xc ) ;  /* FFT */
+
+     /* find smallest value in FFT; for an acceptable
+        autocorrelation function, they should all be positive */
+
+     xcmin = xc[0].r ;
+     for( kk=1 ; kk < nf2 ; kk++ ){
+       if( xc[kk].r < xcmin ) xcmin = xc[kk].r ;
+     }
+     free(xc) ;  /* no longer needed by this copy of the universe */
+
+     /* if negative, must scale vrt downwards to avoid Choleski failure */
+
+     if( xcmin <= 0.0f )
+       vrtfac = 0.99 / ( 1.0 - (double)xcmin ) ;
+
+     INFO_message("ARMA(5) min FFT(%d) = %g   vrtfac = %g",nfft,xcmin,vrtfac) ;
+   }
+
    /* rescale lagged correlations to allow for additive white noise;
       note that we do NOT scale down the lag=0 correlation of 1.0   */
+
+   vrt *= vrtfac ;
 
    if( vrt < 1.0 ){
      for( kk=1 ; kk <= ncor ; kk++ ) corvec->ar[kk] *= vrt ;
