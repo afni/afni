@@ -3,6 +3,10 @@
    for particular use with AJJ coloring
 	
    P. Taylor, Oct 2015.
+
+   [PT: July 15, 2020] fix output to not give error when using
+                       "-in_scal" and outputting BRIK/HEAD
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
 */
 
 #include <stdio.h>
@@ -15,7 +19,7 @@
 #include "3ddata.h"     
 #include "editvol.h"
 #include "thd.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include "colorbasic.h"
@@ -96,6 +100,8 @@ int main(int argc, char *argv[]) {
 
 	int Nvox=-1;              // tot number vox
 	int Dim[4]={0,0,0,0};     // dim in each dir
+
+   int nv_out = 3;
 
    float magn2=0;
 
@@ -287,8 +293,13 @@ int main(int argc, char *argv[]) {
 
    OUT = EDIT_empty_copy( VEC ); 
    
+   if(inscal)
+      nv_out = 4;
+
 	EDIT_dset_items( OUT,
                     ADN_datum_all, MRI_float , 
+                    ADN_ntt       , nv_out, 
+                    ADN_nvals     , nv_out,
                     ADN_prefix, prefix,
                     ADN_none );                   // 3 for HSL 
    
@@ -296,8 +307,8 @@ int main(int argc, char *argv[]) {
    EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]); 
    EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]); 
    if(inscal) { // one more from scalar input, e.g., for FA in DTI case
-      EDIT_add_bricklist( OUT,
-                          1, NULL , NULL , NULL );   
+      //EDIT_add_bricklist( OUT,
+      //                    1, NULL , NULL , NULL );   
       EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
    }
    outarr=NULL;

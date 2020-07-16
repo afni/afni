@@ -45,7 +45,7 @@ extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
 
 /*---------------------------------------------------------------*/
 
-#ifdef DONT_USE_MCW_MALLOC
+#ifndef ALLOW_MCW_MALLOC
 
 # define MCHECK /* nada */
 # define MPROBE /* nada */
@@ -73,6 +73,7 @@ extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
 
 #include <signal.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #ifdef  __cplusplus
 extern "C" {

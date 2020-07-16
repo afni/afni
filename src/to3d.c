@@ -191,8 +191,8 @@ int main( int argc , char * argv[] )
    INFO_message("It is best to use to3d via the Dimon program.") ;
 
    if( DBG_trace ){                              /* 10 Sep 2002 */
-#ifndef DONT_USE_MCW_MALLOC
-     fprintf(stderr,"++ Enabling mcw_malloc()\n") ;
+#ifdef ALLOW_MCW_MALLOC
+     INFO_message("Enabling mcw_malloc()") ;
      enable_mcw_malloc() ;
 #endif
    }

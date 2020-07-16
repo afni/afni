@@ -92,7 +92,7 @@ MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif myget Xphace rmz aiv mycat quotize $(EXPROGS)
 
 # mpegtoppm in above list
 
@@ -1325,7 +1325,7 @@ RSFgen:RSFgen.o
 
 adwarp:adwarp.o
 	$(RM) $@
-	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS)
+	$(CC) -o adwarp adwarp.o $(LFLAGS) -UREPLACE_XT $(LLIBS) $(LLIBS_X11)
 
 GLTsymtest:GLTsymtest.o
 	$(RM) $@
@@ -4098,12 +4098,12 @@ R_MAKEVARS_DEP = R_Makevars_default
 endif
 
 R_Makevars_default:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;
 
 # could set ~/.R/Makevars, or work harder to get '$$ORIGIN' into local one
 R_Makevars_mod_linux:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS = $(LFLAGS) $(LLIBS) $(RLIB_CONVERT)      \
           | sed s/.ORIGIN/\''$$$$ORIGIN'\'/ >> Makevars ;
 

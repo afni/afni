@@ -1,6 +1,6 @@
 /* functions to access tables of datasets within a session */
 /* made to deal with transformations across generic spaces */
-#include "afni.h"
+#include "mrilib.h"
 #undef DEBUG_WARPTABLES
 /* extern atlas_space_list global_atlas_spaces; */
 

@@ -66,6 +66,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, July , 2020 , PT , "3dNetCorr" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dTORTOISEtoHere" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3ddot_beta" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dEigsToDT" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dDTtoNoisyDWI" , MINOR , TYPE_GENERAL,
+   "New opt for controlling random seed is available (for testing).",
+   "Also, moved dep of suma_suma.h -> suma_objs.h (shd be no output change).\n"
+},
+
+{ 15, July , 2020 , PT , "3dVecRGB_to_HSL" , MINOR , TYPE_BUG_FIX,
+   "Would whine when outputting BRIK/HEAD dset if -in_scal was used; fixed.",
+   "Also, moved dep of suma_suma.h -> suma_objs.h (shd be no output change).\n"
+},
+
 { 1, July , 2020 , PT , "@Install_NMT" , MAJOR , TYPE_NEW_PROG,
    "Installer for the NIMH Macaque Template(s) v2, and the CHARM (atlases).",
    "Courtesy of Ben Jung, Adam Messinger, et al.\n"

@@ -3,12 +3,10 @@ set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
 
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
-add_subdirectory(coxplot)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 add_subdirectory(3DEdge)
-add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
 include(CMakeLists_mri.txt)
 
@@ -99,6 +97,7 @@ endif()
 
 # Add targets with a dependency on X
 if(COMP_X_DEPENDENT_GUI_PROGS)
+  add_subdirectory(coxplot)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
@@ -106,6 +105,7 @@ endif()
 # Add suma
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # segtools/avovk only used by suma so add it here
+  add_subdirectory(ptaylor)
   add_subdirectory(avovk)
   add_subdirectory(SUMA)
 endif()

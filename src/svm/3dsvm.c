@@ -78,9 +78,10 @@ int main( int argc, char *argv[] )
   int myargc       = 0;
   char *myargv[LONG_STRING];
   char *errorString = NULL;    /* needed for error-handling of plugin */
+
+#ifdef ALLOW_MCW_MALLOC
   enable_mcw_malloc();         /* ZSS helps locate some memory problems*/
-
-
+#endif
 
   mainENTRY("3dsvm");           /* ZSS, see -trace option in input_parse*/
   

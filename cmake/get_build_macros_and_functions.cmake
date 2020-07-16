@@ -243,13 +243,12 @@ endfunction()
 function(add_afni_library target_in)
   add_library(${ARGV})
   target_link_options(${target_in}
-  PRIVATE 
-  LINKER:-undefined,error
-    )
-  target_link_options(${target_in}
-  PRIVATE 
-  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
-    )
+  PRIVATE
+  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
+  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
+  $<$<C_COMPILER_ID:GNU>:LINKER:--as-needed>
+  $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
+  )
   add_library(AFNI::${target_in} ALIAS ${target_in})
   add_afni_target_properties(${target_in})
 endfunction()
@@ -258,11 +257,13 @@ function(add_afni_executable target_in)
   add_executable(${ARGV})
   target_link_options(${target_in}
   PRIVATE 
-  LINKER:-undefined,error
+  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
+  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
+  $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
     )
   target_link_options(${target_in}
   PRIVATE 
-  $<$<NOT:$<BOOL:APPLE>>:LINKER:--as-needed>
+  $<$<C_COMPILER_ID:GNU>:LINKER:--as-needed>
     )
   add_afni_target_properties(${target_in})
 endfunction()
@@ -273,20 +274,34 @@ function(add_afni_plugin target_in)
 )
   add_library(${ARGV})
   add_afni_target_properties(${target_in})
-  if(RUN_PLUGIN_CHECK)
-      add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
-      target_link_libraries(
-          checking_${target_in}
-          PUBLIC
-          afni_all_objects
-          mri
-          mrix
-        )
-  endif()
   target_link_options(${target_in}
-  PRIVATE 
-  LINKER:-undefined,dynamic_lookup
+  PRIVATE
+  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,dynamic_lookup>
+  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,dynamic_lookup>
     )
+  if(RUN_PLUGIN_CHECK)
+    add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
+    # The following links against all dependencies of plugins so that all
+    # symbols are resolved at link time. It serves as a build timen check for
+    # missing symbols in the plugins (as in symbols not provided by afni at
+    # runtime).
+    target_link_libraries(
+        checking_${target_in}
+        PUBLIC
+        afni_all_objects
+        mrix
+        whats_my_exepath
+        NIFTI::nifti2
+        NIFTI::nifticdf
+      )
+    target_link_options(
+      checking_${target_in}
+      PRIVATE
+      $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
+      $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
+      $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
+      )
+  endif()
 endfunction()
 
 function(add_afni_target_properties target)

@@ -168,10 +168,7 @@ foreach(
   GLTsymtest
   Ifile
   RSFgen
-  Vecwarp
   abut
-  adwarp
-  afni_vcheck
   apsearch
   bitvec
   byteorder
@@ -308,7 +305,6 @@ add_afni_executable(3danisosmooth 3danisosmooth.c DWIstructtensor.c)
 target_link_libraries(3danisosmooth AFNI::mri m)
 
 add_afni_executable(gwarp mri_gwarp.c)
-add_afni_executable(3dmaxima 3dmaxima.c maxima.c)
 
 add_afni_executable(3dMSE 3dMSE.c sparse_array.c)
 target_link_libraries(3dMSE AFNI::mri m)
@@ -319,7 +315,7 @@ target_link_libraries(3dttest AFNI::mri m)
 add_afni_executable(3dretroicor 3dretroicor.c retroicor.c)
 target_link_libraries(3dretroicor PRIVATE AFNI::mri m)
 
-foreach(target 3dfim 3dTfitter fim2 gwarp 3dmaxima)
+foreach(target 3dfim 3dTfitter fim2 gwarp)
   target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
 endforeach(target)
 
@@ -337,9 +333,6 @@ target_link_libraries(3dresample AFNI::mri AFNI::audio NIFTI::nifti2)
 
 add_afni_executable(3dBrainSync 3dBrainSync.c)
 target_link_libraries(3dBrainSync AFNI::mri)
-
-add_afni_executable(3dExchange 3dExchange.c)
-target_link_libraries(3dExchange AFNI::mrix)
 
 add_afni_executable(3dMaskToASCII 3dMaskToASCII.c)
 target_link_libraries(3dMaskToASCII AFNI::mri NIFTI::nifti2 NIFTI::nifticdf)
@@ -416,13 +409,6 @@ target_link_libraries(3dTSgen AFNI::mri ${CMAKE_DL_LIBS})
 
 
 
-add_afni_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
-target_link_libraries(3dDeconvolve PRIVATE AFNI::mri f2c NIFTI::nifticdf m)
-
-add_afni_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
-target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
-target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri f2c NIFTI::nifticdf m)
-
 add_afni_executable(3dECM sparse_array.c)
 target_link_libraries(3dECM 
   PRIVATE
@@ -432,6 +418,28 @@ target_link_libraries(3dECM
   )
 
 if(COMP_X_DEPENDENT_GUI_PROGS)
+  add_afni_executable(Vecwarp Vecwarp.c)
+  target_link_libraries(Vecwarp PRIVATE AFNI::mri)
+
+   add_afni_executable(3dmaxima 3dmaxima.c maxima.c)
+  target_link_libraries(3dmaxima PRIVATE AFNI::mrix)
+
+  add_afni_executable(adwarp adwarp.c)
+  target_link_libraries(adwarp PRIVATE AFNI::mrix)
+
+  add_afni_executable(afni_vcheck afni_vcheck.c)
+  target_link_libraries(afni_vcheck PRIVATE AFNI::mrix)
+
+  add_afni_executable(3dExchange 3dExchange.c)
+  target_link_libraries(3dExchange AFNI::mrix)
+
+  add_afni_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
+  target_link_libraries(3dDeconvolve PRIVATE AFNI::coxplot AFNI::mrix f2c NIFTI::nifticdf m)
+
+  add_afni_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
+  target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
+  target_link_libraries(3dDeconvolve_f PRIVATE AFNI::coxplot AFNI::mrix f2c NIFTI::nifticdf m)
+
   add_afni_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
   add_afni_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
   add_afni_executable(1dplot 1dplot.c display.c)

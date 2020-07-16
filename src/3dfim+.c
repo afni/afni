@@ -1714,7 +1714,7 @@ WARNING_message("This program (3dfim+) is very old, may not be useful, and will 
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
 
-#ifndef DONT_USE_MCW_MALLOC
+#ifdef ALLOW_MCW_MALLOC
    enable_mcw_malloc();
 #endif
   

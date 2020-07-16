@@ -45,8 +45,8 @@ if(USE_SYSTEM_VOLPACK AND APPLE)
     consider setting USE_SYSTEM_VOLPACK to 'OFF']=])
 endif()
 
-if(USE_SYSTEM_GLUT AND APPLE)
-    message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
-    set(USE_SYSTEM_GLUT OFF)
+if(NOT USE_SYSTEM_GLUT AND APPLE)
+   message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
+   set(USE_SYSTEM_GLUT ON)
 endif()
 

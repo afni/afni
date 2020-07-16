@@ -5,7 +5,11 @@
 #include <suma_datasets.h> 
 #include "TrackIO.h"
 #include "readglob.h"      // need numbers of things for DTI in/out
-#include "suma_suma.h"
+#include "suma_objs.h"
+
+/* 
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+*/
 
 static int NI_tract_type = -1;
 int get_NI_tract_type(void) {

@@ -264,6 +264,18 @@ extern void set_memplot_X11_rectfill( int ) ;  /* 26 Oct 2005 */
 #define memplot_to_X11_free(d,w) \
    memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,1 )
 
+extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
+
+extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
+                                int start , int end , int freee    ) ;
+
+extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
+extern void memplot_to_png( char * , MEM_plotdata * ) ;
+extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */
+
+extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
+extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
+
 typedef struct {
    Widget top , dial , wtf , drawing , form, clonebut ;
    int valid ;

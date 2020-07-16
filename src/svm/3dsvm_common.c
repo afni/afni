@@ -7825,7 +7825,9 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
         DBG_trace = 1; 
       #endif 
     }
+#ifdef ALLOW_MCW_MALLOC
     if( !strcmp(argv[i],"-no_memcheck") )   { pause_mcw_malloc(); /* ZSS */ }
+#endif
     if( !strcmp(argv[i],"-nomodelmask") )   { parseFlag=1; optionsData->outModelNoMask = 1; }
     if( !strcmp(argv[i],"-nomodelfile") )   { parseFlag=1; optionsData->noModelOut = 1; } /* JL Oct. 2017 */
     if( !strcmp(argv[i],"-nodetrend") )     { parseFlag=1; optionsData->noPredDetrend = 1; }
