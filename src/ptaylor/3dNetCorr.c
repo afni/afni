@@ -54,6 +54,7 @@
 #include <gsl/gsl_rng.h>
 #include "3ddata.h"    
 #include "DoTrackit.h"
+#include "TrackIO.h"
 #include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>
 #include "suma_objs.h"
