@@ -23,7 +23,7 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3 $(USE_ZLIB) $(USE_GIFTI) -If2c
+INFLAGS  = $(IFLAGS) -Icoxplot -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3 $(USE_ZLIB) $(USE_GIFTI) -If2c
 ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB) -I../f2c
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
