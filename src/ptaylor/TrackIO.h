@@ -1,6 +1,8 @@
 #ifndef TRACKIO_INCLUDED
 #define TRACKIO_INCLUDED
 
+
+
 // ---------------- for param names while tracking -------------------------
 
 #define N_DEF_PAR_LABS (7) // we define a few things initially
@@ -196,5 +198,10 @@ int NI_getDTI_inputs( NI_element *nel,
                       char **NameSCAL,
                       char **NamePLUS, 
                       int *extrafile, int *pars_top);
+
+char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net, 
+                                int show_maxu, int show_maxub);
+char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu); 
+char *SUMA_Taylor_Tract_Info(TAYLOR_TRACT *tt, int show_maxu);
 
 #endif

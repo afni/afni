@@ -21,7 +21,6 @@
 
 /* SUMA's generic includes */
    #include "uthash.h"
-   #include "ptaylor/TrackIO.h"
    #include "mcw_malloc.h"
    #include "SUMA/SUMA_label.h"
    #include "suma_algorithms.h"
@@ -42,8 +41,7 @@
    #define SUMA_mainENTRY mainENTRY(FuncName)
    
       
-   #define SUMA_free(a) mcw_free(a,__FILE__,__LINE__)
-   #define SUMA_ifree(p)  { if ((p)) {SUMA_free((p));} (p)=NULL; }
+
    
    /* memory allocation section (SUMA_COMPILED-specific)*/
    #ifdef ALLOW_MCW_MALLOC 

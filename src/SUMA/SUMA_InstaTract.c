@@ -1,8 +1,8 @@
 #include "niml.h"
 #include "SUMA_niml_defines.h"
-#include <afni.h>
-#include <ptaylor/TrackIO.h>
-#include <SUMA_suma.h>
+#include "mrilib.h"
+#include "TrackIO.h"
+#include "SUMA_suma.h"
 
 #define NIML_DEBUG 1
 

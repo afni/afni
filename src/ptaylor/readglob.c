@@ -1,5 +1,5 @@
-#include <afni.h>
-#include "suma_objs.h"
+#include "mrilib.h"
+#include "suma_datasets.h"
 #include "readglob.h"
 
 /*
