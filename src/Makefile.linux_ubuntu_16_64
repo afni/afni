@@ -3,6 +3,7 @@
 
 
 SYSTEM_NAME = linux_ubuntu_16_64
+SYSTEM_TYPE = Linux
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
@@ -10,6 +11,14 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat  #/usr/lib64/libexpat.a
 
+# -----------------------------------
+#  # use shared libriaries (libmri.so)?
+MRI_SHARED = $(SYSTEM_TYPE)
+
+# use linux-style R_io.so building
+R_IO_MODIFY_LINUX = yes
+
+# -----------------------------------
 # default to having these off
 # D_USE_ACML = -DUSE_ACML
 # I_USE_ACML = -I/opt/acml3.1.0/gnu64/include
@@ -48,6 +57,12 @@ PLUGIN_CC     = $(CC)
 # PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
 PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
 
+# possibly modify from above
+ifdef MRI_SHARED
+LFLAGS  = -L. -L/usr/lib64 $(L_USE_ACML) -Wl,-rpath='$$ORIGIN'
+PLFLAGS = -rdynamic $(LFLAGS)
+endif
+
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 AR     = /usr/bin/ar
@@ -78,7 +93,11 @@ EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+# separate X11 libs from non-X11 ones
+LLIBS  = -lmri -lf2c $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS_X11 = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 \
+            $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
 #LLIBS  = -lmri -lf2c /usr/X11R6/lib64/libXm.a -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
@@ -102,7 +121,8 @@ SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/
 SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
+#
+SUMA_LINK_LIB = -lGLw -lGLU -lGL $(LLIBS_X11)
 #SUMA_LINK_LIB = /usr/X11R6/lib64/libXm.a -lGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar

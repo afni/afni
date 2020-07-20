@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Jul, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update for shared libmri.so: linux_centos_7_64, linux_ubuntu_16_64",
+   NULL
+ } ,
+
  { 19, Jun, 2020, RCR, "parse_fs_lt_log.py", MICRO, TYPE_ENHANCE,
    "update for python3, though this program might not be in use",
    NULL
