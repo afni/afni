@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jul, 2020, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
+   "add env var control over pre-comp e2x, limit and pieces",
+   "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"
+   "AFNI_MODEL_PRF_MAX_EXP_PIECES.\n"
+ } ,
+
+ { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
+   "add initial NT parameter",
+   NULL
+ } ,
+
  { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
    "add initial NT parameter",
    NULL
