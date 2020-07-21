@@ -28,6 +28,8 @@ data_paths = {
     "odtT": fatdir2 / "DT_TORTOISE_PREP.nii.gz",
     "uncert": fatdir2 / "o.UNCERT+orig.BRIK.gz",
     "mask_minisphere_dwi": fatdir2 / "mask_minisphere_dwi.nii.gz",
+    "mini_REST_proc_unfilt": fatdir2 / "mini_REST_proc_unfilt.nii.gz",
+    "mask_eroded_dwi": fatdir2 / "mask_eroded_dwi.nii.gz",
 }
 
 
@@ -248,7 +250,7 @@ def test_3dTrackID_DET(data):
         -echo_edu
         -mode DET
         -dti_in {data.tests_data_dir / fatdir2}/DT
-        -netrois {data.mask_DWI}
+        -netrois {data.mask_eroded_dwi}
         -logic OR
         -alg_Thresh_Len 30
         -alg_Nseed_X 1
@@ -343,9 +345,8 @@ def test_3dRSFC(data):
     cmd = f"""
     3dRSFC
         -echo_edu
-        -input {data.REST_in_DWI}'[5..100]'
+        -input {data.mini_REST_proc_unfilt}
         -prefix {opref}
-        -mask {data.mask_minisphere_dwi}
         -band 0.01 0.1
     """
     cmd = " ".join(cmd.split())
@@ -362,9 +363,8 @@ def test_3dLombScargle(data):
     3dLombScargle
         -echo_edu
         -nifti
-        -inset {data.REST_in_DWI}'[5..100]'
+        -inset {data.mini_REST_proc_unfilt}
         -prefix {olsamp}
-        -mask {data.mask_minisphere_dwi}
         -censor_str '[0..3,5,6..18,22..34,36..47,49,51..60,63..84,86..88,90,92..$]'
     """
     cmd = " ".join(cmd.split())
@@ -446,8 +446,7 @@ def test_3dReHo(data):
     cmd = f"""
     3dReHo
         -echo_edu
-        -mask {data.mask_DWI}
-        -inset {data.REST_in_DWI}'[5..50]'
+        -inset {data.mini_REST_proc_unfilt}'[0..45]'
         -nneigh 7
         -prefix {opref}
     """
