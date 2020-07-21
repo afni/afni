@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
+   "add initial NT parameter",
+   NULL
+ } ,
+
  { 16, Jul, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update for shared libmri.so: linux_centos_7_64, linux_ubuntu_16_64",
    NULL
