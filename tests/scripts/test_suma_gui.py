@@ -13,11 +13,7 @@ data_paths = {
     "gii_dset": Path("AFNI_data6/FT_analysis/FT/SUMA/std.60.lh.inflated.gii"),
 }
 
-suma_failure_patterns = [
-    "ERROR",
-    "Bottom of Debug Stack",
-    "Failed in",
-]
+suma_failure_patterns = ["ERROR", "Bottom of Debug Stack", "Failed in"]
 
 
 def test_suma_gii_read(data):
