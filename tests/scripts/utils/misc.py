@@ -17,6 +17,11 @@ from xvfbwrapper import Xvfb
 
 lock = Lock()
 
+try:
+    from afnipy import afni_base as ab
+except ImportError:
+    ab = try_to_import_afni_module("afni_base")
+
 
 def run_x_prog(cmd, run_kwargs=None):
     import subprocess as sp
@@ -122,83 +127,108 @@ def check_file_exists(file_path, test_data_dir):
 
 
 def generate_fetch_list(path_obj, test_data_dir):
-    """Summary
-    
+    """Provided with path_obj, a list of pathlib.Path objects, resolves to a
+    list containing 1 or more pathlib.Path objects.
+
     Args:
-        path_obj (TYPE): Description
+        path_obj (TYPE): may be a list of paths, a path, or a path that
+    contains a glob pattern at the end
         test_data_dir (TYPE): Description
-    
+
     Returns:
         List: List of paths as str type (including HEAD files if BRIK is used)
         Bool: needs_fetching, True if all data has not been downloaded
-    
+
     Raises:
         TypeError: Description
+    """
+    needs_fetching = False
+    fetch_list = []
+    for p in path_obj:
+        with_partners = add_partner_files(test_data_dir, p)
+        for pp in with_partners:
+            # fetch if any file does not "exist" (is a broken symlink)
+            needs_fetching = needs_fetching or not (test_data_dir / pp).exists()
+        fetch_list += with_partners
+
+    return [str(f) for f in fetch_list], needs_fetching
+
+
+def glob_if_necessary(test_data_dir, path_obj):
+    """
+    Check that path/paths exist in test_data_dir. Paths  may be a
+    glob, so tries globbing before raising an error that it doesn't exist. Return
+    the list of paths.
     """
     if type(path_obj) == str:
         path_obj = [Path(path_obj)]
     elif isinstance(path_obj, Path):
         path_obj = [path_obj]
     elif iter(path_obj):
-        return_val = [Path(p) for p in path_obj]
+        path_obj = [Path(p) for p in path_obj]
     else:
         raise TypeError(
-            "data_paths must contain values that are of type str or a "
-            "non-str iterable type. i.e. list, tuple... "
+            "data_paths must contain paths (values that are of type str, pathlib.Path) or a "
+            "non-str iterable type containing paths. i.e. list, tuple... "
         )
-    needs_fetching = False
-    fetch_list = []
-    for p in path_obj:
-        # add HEAD files if BRIK is given
-        current_file_list = get_extra_files(p, test_data_dir)
-        for pp in current_file_list:
+
+    outfiles = []
+
+    for file_in in path_obj:
+
+        try:
             # file should be found even if just as an unresolved symlink
-            check_file_exists(pp, test_data_dir)
-            # fetch if any file does not "exist" (is a broken symlink)
-            needs_fetching = needs_fetching or not (test_data_dir / pp).exists()
-        fetch_list += current_file_list
+            check_file_exists(file_in, test_data_dir)
+            outfiles.append(file_in)
+        except ValueError as e:
+            outfiles += [f for f in (test_data_dir / file_in.parent).glob(file_in.name)]
+            if not outfiles:
+                raise e
 
-    return fetch_list, needs_fetching
+    return outfiles
 
 
-def get_extra_files(input_file, test_data_dir):
-    """Given a file this function globs for similar files and returns a list
-    containing Paths.
-
-    Args:
-        input_file (pathlib.Path): A Path object for an relative reference to
-        an existing file within the test data directory.
-        test_data_dir (pathlib.Path): The test data directory
-
-    Returns:
-        list of paths: A list of files for datalad to fetch.
+def add_partner_files(test_data_dir, path_in):
     """
-    # skip tests without afnipy module but this function is required for all tests
-    try:
-        from afnipy import afni_base as ab
-    except ImportError:
-        ab = try_to_import_afni_module("afni_base")
-    parsed_obj = ab.parse_afni_name(str(test_data_dir / input_file))
-    if parsed_obj["type"] == "BRIK":
-        globbed_files = list(Path(parsed_obj["path"]).glob(parsed_obj["prefix"] + "*"))
-        return [f for f in globbed_files]
-    else:
-        return [input_file]
+    If the path is a brikor a head file the pair is returned for the purposes
+    of fetching the data via datalad
+    """
+    files_out = [path_in]
+    brik_pats = [".HEAD", ".BRIK"]
+    if any(pat in path_in.name for pat in brik_pats):
+        parsed_obj = ab.parse_afni_name(str(test_data_dir / path_in))
+        if parsed_obj["type"] == "BRIK":
+            globbed = Path(parsed_obj["path"]).glob(parsed_obj["prefix"] + "*")
+            files_out += list(globbed)
+            files_out = list(set(files_out))
+
+    return files_out
 
 
 def process_path_obj(path_obj, test_data_dir):
     """
-    Get the data for test_data_dir,
-    a datalad repository.
+    This function is used to process paths that have been defined in the
+    data_paths dictionary of test modules. Globs are resolved, and the data is
+    fetched using datalad. If HEAD files are provided, the corresponding BRIK
+    files are also downloaded.
 
     Args: path_obj (str/pathlib.Path or iterable): Paths as
         strings/pathlib.Path  or non-str iterables with elements of these
-        types can be passed as arguments for conversion to Path objects
+        types can be passed as arguments for conversion to Path objects.
+        Globbing at the final element of the path is also supported and will
+        be resolved before being returned.
 
-        test_data_dir (pathlib.Path): An existing datalad repository containing the test data.
+        test_data_dir (pathlib.Path): An existing datalad repository
+        containing the test data.
     Returns:
-        Iterable of Paths: iterable pathlib Paths fetched as required.
+
+        Iterable of Paths: Single pathlib.Path object or list of pathlib Paths
+        fetched as required.
     """
+
+    # Resolve all globs and return a list of pathlib objects
+    path_obj = glob_if_necessary(test_data_dir, path_obj)
+    # Search for any files that might be missing eg HEAD for a BRIK
     files_to_fetch, needs_fetching = generate_fetch_list(path_obj, test_data_dir)
 
     # Fetching the data
@@ -206,10 +236,11 @@ def process_path_obj(path_obj, test_data_dir):
         # fetch data with a global lock
         try_data_download(files_to_fetch, test_data_dir)
 
-    if isinstance(path_obj, list):
-        return [str(test_data_dir / p) for p in path_obj]
+    path_obj = [test_data_dir / p for p in path_obj]
+    if len(path_obj) == 1:
+        return path_obj[0]
     else:
-        return str(test_data_dir / path_obj)
+        return path_obj
 
 
 def try_data_download(file_fetch_list, test_data_dir):
