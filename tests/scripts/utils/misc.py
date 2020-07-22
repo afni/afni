@@ -17,11 +17,6 @@ from xvfbwrapper import Xvfb
 
 lock = Lock()
 
-try:
-    from afnipy import afni_base as ab
-except ImportError:
-    ab = try_to_import_afni_module("afni_base")
-
 
 def run_x_prog(cmd, run_kwargs=None):
     import subprocess as sp
@@ -193,6 +188,10 @@ def add_partner_files(test_data_dir, path_in):
     If the path is a brikor a head file the pair is returned for the purposes
     of fetching the data via datalad
     """
+    try:
+        from afnipy import afni_base as ab
+    except ImportError:
+        ab = try_to_import_afni_module("afni_base")
     files_out = [path_in]
     brik_pats = [".HEAD", ".BRIK"]
     if any(pat in path_in.name for pat in brik_pats):
