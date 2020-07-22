@@ -1345,12 +1345,25 @@ extern void mri_drawcircle( MRI_IMAGE *im ,
 }
 #endif
 
+#include "coxplot.h"
 #undef min
 #undef max
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
+
+extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
+
+extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
+                                int start , int end , int freee    ) ;
+
+extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
+extern void memplot_to_png( char * , MEM_plotdata * ) ;
+extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */
+
+extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
+extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
 extern MRI_IMAGE * mri_downsize_by2( MRI_IMAGE * ) ;    /* 27 Apr 2012 */
 
 /************************ Statistics routines *************************/
@@ -1640,6 +1653,7 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
 
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
+#include "thd_StatsPDL.h"
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
