@@ -104,7 +104,9 @@ def test_3dDWItoDT(data):
     """
     cmd = " ".join(cmd.split())
 
-    differ = tools.OutputDiffer(data, cmd)
+    differ = tools.OutputDiffer(
+        data, cmd, kwargs_scans={"data_kwargs": {"rtol": 0.01}},
+    )
     differ.run()
 
 
@@ -518,7 +520,12 @@ def test_3dSpaceTimeCorr(data):
         -prefix {opref}
     """
     cmd = " ".join(cmd.split())
-    differ = tools.OutputDiffer(data, cmd, kwargs_log={"append_to_ignored": [" min"]})
+    differ = tools.OutputDiffer(
+        data,
+        cmd,
+        kwargs_log={"append_to_ignored": [" min"]},
+        kwargs_scans={"data_kwargs": {"rtol": 0.01}},
+    )
     differ.run()
 
 
