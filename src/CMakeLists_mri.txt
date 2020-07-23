@@ -349,6 +349,7 @@ add_library(
   thd_selenium.c
   thd_shear3d.c
   thd_shift2.c
+  thd_StatsPDL.c
   thd_statpval.c
   thd_store_index.c
   thd_strfunc.c
