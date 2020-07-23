@@ -1,6 +1,5 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
-#include "TrackIO.h"
 #include "extrema.h"
 
 static int InteractiveQuit;
