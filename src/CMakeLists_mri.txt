@@ -34,6 +34,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_StatsPDL.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_CA_EZ.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
@@ -350,6 +351,7 @@ add_library(
   thd_shear3d.c
   thd_shift2.c
   thd_statpval.c
+  thd_StatsPDL.c
   thd_store_index.c
   thd_strfunc.c
   thd_svdblur.c
