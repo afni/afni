@@ -3,6 +3,7 @@
 
 #include "../suma_suma.h"
 #include "SUMA_DataSets.h"
+#include "TrackIO.h"
 
 /* memory allocation section, SUMA_COMPILED-specific */
    #if defined(USING_MCW_MALLOC) && defined(ALLOW_MCW_MALLOC) && !defined(USE_OMP)
