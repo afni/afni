@@ -23,7 +23,7 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3 $(USE_ZLIB) $(USE_GIFTI) -If2c
+INFLAGS  = $(IFLAGS) -Icoxplot -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3 $(USE_ZLIB) $(USE_GIFTI) -If2c
 ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB) -I../f2c
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
@@ -47,7 +47,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_version.o afni_lock.o afni_vol2surf.o             \
             afni_pplug_instacorr.o afni_pplug_instacalc.o          \
             afni_pplug_tstat.o                                     \
-            afni_whelp.o whats_my_exepath.o 
+            afni_whelp.o whats_my_exepath.o
 
 AFHEADS  = quotize readmes
 
@@ -92,7 +92,7 @@ MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif myget Xphace rmz aiv mycat quotize $(EXPROGS)
 
 # mpegtoppm in above list
 
@@ -1325,7 +1325,7 @@ RSFgen:RSFgen.o
 
 adwarp:adwarp.o
 	$(RM) $@
-	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS)
+	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS_X11)
 
 GLTsymtest:GLTsymtest.o
 	$(RM) $@
@@ -4098,12 +4098,12 @@ R_MAKEVARS_DEP = R_Makevars_default
 endif
 
 R_Makevars_default:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;
 
 # could set ~/.R/Makevars, or work harder to get '$$ORIGIN' into local one
 R_Makevars_mod_linux:
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_CPPFLAGS = $(INFLAGS) $(CEXTRA) > Makevars ;            \
 	echo PKG_LIBS = $(LFLAGS) $(LLIBS) $(RLIB_CONVERT)      \
           | sed s/.ORIGIN/\''$$$$ORIGIN'\'/ >> Makevars ;
 
