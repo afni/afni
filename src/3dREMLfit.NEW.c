@@ -502,11 +502,11 @@ int main( int argc , char *argv[] )
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv,rv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   double rhomax=0.8 , bmax  =0.8 ; int nlevab=3 ;
+   double rhomax=0.8 , bmax  =0.8 ; int nlevab=5 ;
    double rm_set=0.0 , bm_set=0.0 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
-   reml_collection *rrcol ;
+   reml_collection_generic *rrcol ;
    int nprefixO=0 , nprefixR=0 , vstep=0 ;
 
    char *Rbeta_prefix =NULL; THD_3dim_dataset *Rbeta_dset =NULL; FILE *Rbeta_fp =NULL; char *Rbeta_fn =NULL;
@@ -551,7 +551,7 @@ int main( int argc , char *argv[] )
    int nrega,nrego , nbad , ss,ssold , dmbase=1 , nregda , nregu ;
    int               nsli , nsliper ;
    matrix          **Xsli =NULL ;
-   reml_collection **RCsli=NULL ;
+   reml_collection_generic **RCsli=NULL ;
 
    int                   num_dsort = 0 ;
    THD_3dim_dataset_array *dsortar = NULL ;  /* 22 Jul 2015 */
@@ -566,7 +566,7 @@ int main( int argc , char *argv[] )
    int              last_nods_trip = 0 ;
    char         *dsort_nods_suffix = "_nods" ;
 
-   reml_setup *my_rset  = NULL ;
+   reml_setup *my_rset  = NULL ;  /* a single setup for special use */
    matrix     *my_Xmat  = NULL ;
    sparmat    *my_Xsmat = NULL ;
    int         my_kill  = 0 ;
@@ -2241,7 +2241,7 @@ STATUS("options done") ;
      if( atr != NULL && atr->nfl >= 3 ){
        atm = (double)atr->fl[0] ; if( atm > rhomax ) rhomax = atm ;
        atm = (double)atr->fl[1] ; if( atm > bmax   ) bmax   = atm ;
-       ii  = (int)  atr->fl[2] ; if( ii  > nlevab ) nlevab = ii  ;
+       ii  = (int)   atr->fl[2] ; if( ii  > nlevab ) nlevab = ii  ;
      }
      rhomax *= 1.00001 ; bmax *= 1.00001 ;
      if( verb )
@@ -3091,18 +3091,21 @@ STATUS("make GLTs from matrix file") ;
                                   afix,bfix,LAMBDA(afix,bfix) ) ;
    }
 
-   RCsli = (reml_collection **)calloc(sizeof(reml_collection *),nsli) ;
+   RCsli = (reml_collection_generic **)calloc(sizeof(reml_collection_generic *),nsli) ;
+
+   /* note that in the below, the number of 'slices' nsli is likely to be 1 */
 
    if( !usetemp_rcol ){  /* set up them all */
 
      if( verb > 1 ) REMLA_memsetup ;
      for( ss=0 ; ss < nsli ; ss++ ){  /* might take a while */
        if( abfixed )
-         rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;   /*XXX*/
+         rrcol = REML_setup_fixed_arma11( Xsli[ss] , tau , afix , bfix ) ;
        else {
-         if( verb && nsli > 1 && ntime*nrega > 9999 )
+         if( verb && nsli > 1 && ntime*nrega > 9999 ){
            ININFO_message(" start setup for slice #%d",ss) ;
-         rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;   /*XXX*/
+         }
+         rrcol = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
        }
        if( rrcol == NULL ) ERROR_exit("REML setup fails at ss=%d?!",ss ) ; /* really bad */
        RCsli[ss] = rrcol ;
@@ -3121,7 +3124,7 @@ STATUS("make GLTs from matrix file") ;
 
    } else {  /* just set up the first one (slice #0) */
 
-     rrcol = REML_setup_all( Xsli[0] , tau , nlevab, rhomax,bmax ) ;   /*XXX*/
+     rrcol = REML_setup_all_arma11( Xsli[0] , tau , nlevab, rhomax,bmax ) ;
      if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ; /* really bad */
      RCsli[0] = rrcol ;
 
@@ -3174,10 +3177,10 @@ STATUS("make GLTs from matrix file") ;
          reml_collection_save( RCsli[ssold] ) ;              /* setup to disk */
        if( RCsli[ss] == NULL ){                     /* create this slice now? */
          if( verb > 1 && vstep ) fprintf(stderr,"+") ;
-         RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;   /*XXX*/
+         RCsli[ss] = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
        }
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;   /*XXX*/
+       kbest = REML_find_best_case_generic_2D( &y , RCsli[ss] , nws,ws ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
@@ -3256,7 +3259,7 @@ STATUS("make GLTs from matrix file") ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ; /* really bad */
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;  /* the work */   /*XXX*/
+       kbest = REML_find_best_case_generic_2D( &y , RCsli[ss] , nws,ws ) ;  /* the work */
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
@@ -3630,14 +3633,14 @@ STATUS("setting up Rglt") ;
            reml_collection_destroy( RCsli[ssold] , 1 ) ;
          if( RCsli[ss] == NULL ){              /* create this slice setup now */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
-           RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;   /*XXX*/
+           RCsli[ss] = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
            if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
          } else if( RC_SAVED(RCsli[ss]) ){               /* restore from disk */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
            reml_collection_restore( RCsli[ss] ) ;
          }
          for( kk=0 ; kk < glt_num ; kk++ )     /* add GLT stuff to this setup */
-           REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;   /*XXX*/
+           REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
        }
 
        if( abfixed )  /* special case */
@@ -3657,7 +3660,7 @@ STATUS("setting up Rglt") ;
          /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
          /* (this voxel-wise REML setup is why -dsort is so slow) */
 
-         rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;   /*XXX*/
+         rsetp_dsort = REML_setup_plus_arma11( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
          if( rsetp_dsort == NULL ){  /* should not happen */
            ERROR_message("cannot compute REML_setup_plus() at voxel %d",vv) ;
          }
@@ -3666,7 +3669,7 @@ STATUS("setting up Rglt") ;
          my_Xsmat = rsetp_dsort->Xs ;
          my_kill  = 1 ;  /* flag to kill my_stuff when done with it */
          for( kk=0 ; kk < glt_num ; kk++ )     /* include GLTs */
-           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;   /*XXX*/
+           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;
        }
 
        if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
@@ -3676,9 +3679,9 @@ STATUS("setting up Rglt") ;
          double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          STATUS("new setup?") ;
-         RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;   /*XXX*/
+         RCsli[ss]->rs[jj] = REML_setup_one_arma11( Xsli[ss] , tau , aaa,bbb ) ;
          for( kk=0 ; kk < glt_num ; kk++ )     /* make sure GLTs are included */
-           REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;   /*XXX*/
+           REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;
        }
        if( my_rset == NULL ){
          my_rset  = RCsli[ss]->rs[jj] ;
@@ -3702,12 +3705,7 @@ STATUS("setting up Rglt") ;
                       (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
          sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ; /* debugging */
-#if 1
-         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;   /*XXX*/
-#else
-         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
-                          bbar , &bbsumq ) ;
-#endif
+         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
 
          /*--------- scatter the results to various datasets ---------*/
 
@@ -3762,7 +3760,7 @@ STATUS("setting up Rglt") ;
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
              { sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ; }
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,   /*XXX*/
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
                                         my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
                                         my_Xmat , my_Xsmat          ) ;
@@ -3790,7 +3788,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,   /*XXX*/
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
                                         my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
                                         my_Xmat , my_Xsmat          ) ;
@@ -4094,7 +4092,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
-         rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;   /*XXX*/
+         rsetp_dsort = REML_setup_plus_arma11( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
          if( rsetp_dsort == NULL ){  /* should not happen */
            ERROR_message("cannot compute REML_setup_plus() at voxel %d",vv) ;
          }
@@ -4103,7 +4101,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          my_Xsmat = rsetp_dsort->Xs ;
          my_kill  = 1 ;  /* flag to kill my_stuff when done with it */
          for( kk=0 ; kk < glt_num ; kk++ )     /* include GLTs */
-           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;   /*XXX*/
+           REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;
        }
 
        if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
@@ -4112,7 +4110,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          double aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
          double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
-         RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;   /*XXX*/
+         RCsli[ss]->rs[jj] = REML_setup_one_arma11( Xsli[ss] , tau , aaa,bbb ) ;
        }
        if( my_rset == NULL ){
          my_rset  = RCsli[ss]->rs[jj] ;
@@ -4130,15 +4128,10 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
          if( my_rset->nglt == 0 ){
            for( kk=0 ; kk < glt_num ; kk++ )
-             REML_add_glt_to_one( my_rset , glt_mat[kk]) ;   /*XXX*/
+             REML_add_glt_to_one( my_rset , glt_mat[kk]) ;
          }
 
-#if 1
-         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;   /*XXX*/
-#else
-         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
-                          bbar , &bbsumq ) ;
-#endif
+         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
@@ -4174,7 +4167,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,  /*XXX*/
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
                                         my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
                                         my_Xmat , my_Xsmat          ) ;
@@ -4202,7 +4195,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,   /*XXX*/
+             gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq  ,
                                         my_rset , my_rset->glt[kk] ,
                                         glt_mat[kk] , glt_smat[kk] ,
                                         my_Xmat , my_Xsmat          ) ;

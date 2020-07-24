@@ -80,8 +80,11 @@ rcmat * rcmat_copy( rcmat *rcm )
 
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a symmetric matrix, and
-    Choleski factor it in place.  Return value is 0 if all is OK.
-    A positive return indicates the row/column that had trouble. */
+    Choleski factor it in place
+    (so now it should be considered a triangular matrix).
+    Return value is 0 if all is OK.
+    A positive return indicates the row/column that had trouble.
+*//*------------------------------------------------------------------------*/
 
 int rcmat_choleski( rcmat *rcm )
 {
@@ -123,6 +126,9 @@ int rcmat_choleski( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+/* Multiply rcmat matrix into veclen, considering
+   the matrix as being lower triangular. Over-writes vec.
+*//*------------------------------------------------------------------------*/
 
 void rcmat_lowert_vecmul( rcmat *rcm , double *vec )  /* 02 Oct 2009 */
 {
@@ -158,8 +164,10 @@ void rcmat_lowert_vecmul( rcmat *rcm , double *vec )  /* 02 Oct 2009 */
 
 #define UNROLL
 
+/*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a lower triangular matrix,
-    and solve the matrix-vector equation [rcm][x] = [vec], in place. */
+    and solve the matrix-vector equation [rcm][x] = [vec], in place.
+*//*------------------------------------------------------------------------*/
 
 void rcmat_lowert_solve( rcmat *rcm , double *vec )
 {
@@ -200,7 +208,9 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a lower triangular matrix,
     and solve the matrix-vector equation [rcm][x] = [vec], in place.
-    Innermost vector loop unrolled.  (Doesn't seem to speed things up?!) */
+    Innermost vector loop completely unrolled.
+    (Doesn't seem to speed things up?!)
+*//*------------------------------------------------------------------------*/
 
 void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
 {
@@ -266,7 +276,8 @@ void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
 
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as an upper triangular matrix,
-    and solve the matrix-vector equation [rcm][x] = [vec], in place. */
+    and solve the matrix-vector equation [rcm][x] = [vec], in place.
+*//*------------------------------------------------------------------------*/
 
 void rcmat_uppert_solve( rcmat *rcm , double *vec )
 {

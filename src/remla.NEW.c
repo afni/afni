@@ -32,7 +32,7 @@ static Htable *remla_htable = NULL ;   /* table to keep track of it */
 
 /*........................................*/
 
-void * remla_malloc( size_t nb )     /* AR(3) safe */
+void * remla_malloc( size_t nb )
 {
   void *mmm ;
   if( nb == 0 ) return NULL ;
@@ -55,7 +55,7 @@ void * remla_malloc( size_t nb )     /* AR(3) safe */
 
 /*........................................*/
 
-void * remla_calloc( size_t na , size_t nb )     /* AR(3) safe */
+void * remla_calloc( size_t na , size_t nb )
 {
   void *mmm ; size_t nab=na*nb ;
   mmm = remla_malloc( nab ) ;
@@ -66,7 +66,7 @@ void * remla_calloc( size_t na , size_t nb )     /* AR(3) safe */
 
 /*........................................*/
 
-void remla_free( void *mmm )     /* AR(3) safe */
+void remla_free( void *mmm )
 {
    if( mmm == NULL ) return ;
 #pragma omp critical (remla_malloc)
@@ -87,7 +87,7 @@ void remla_free( void *mmm )     /* AR(3) safe */
 
 /*........................................*/
 
-void * remla_realloc( void *ptr , size_t nb )     /* AR(3) safe */
+void * remla_realloc( void *ptr , size_t nb )
 {
    void *mmm=NULL ;
 
@@ -373,7 +373,7 @@ static double corcut = CORCUT_default ;
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply( sparmat *a , double *b , double *c )     /* AR(3) safe */
+void vector_spc_multiply( sparmat *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols ;
    int k , j , cn , *ci ;
@@ -395,7 +395,7 @@ void vector_spc_multiply( sparmat *a , double *b , double *c )     /* AR(3) safe
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply_transpose( sparmat *a , double *b , double *c )     /* AR(3) safe */
+void vector_spc_multiply_transpose( sparmat *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols ;
    int i , k , cn , *ci ;
@@ -417,7 +417,7 @@ void vector_spc_multiply_transpose( sparmat *a , double *b , double *c )     /* 
 
 /*--------------------------------------------------------------------------*/
 
-void vector_full_multiply( matrix *a , double *b , double *c )     /* AR(3) safe */
+void vector_full_multiply( matrix *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols , i ;
    int j ; double sum , *aa ;
@@ -465,7 +465,7 @@ void vector_full_multiply( matrix *a , double *b , double *c )     /* AR(3) safe
 
 /*--------------------------------------------------------------------------*/
 
-void vector_full_multiply_transpose( matrix *a , double *b , double *c )     /* AR(3) safe */
+void vector_full_multiply_transpose( matrix *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols , j ;
    int i ; double bj , *aa ;
@@ -523,7 +523,7 @@ void vector_full_multiply_transpose( matrix *a , double *b , double *c )     /* 
 /*---------------------------------------------------------------------------*/
 /*! Solve [R] [x] = [b] for [x] where R is upper triangular full matrix */
 
-void vector_full_rr_solve( matrix *R , double *b , double *x )     /* AR(3) safe */
+void vector_full_rr_solve( matrix *R , double *b , double *x )
 {
    int n , ii,jj , n1 ;
    double sum , *rr ;
@@ -546,7 +546,7 @@ void vector_full_rr_solve( matrix *R , double *b , double *x )     /* AR(3) safe
 /*---------------------------------------------------------------------------*/
 /*! Solve [R]' [x] = [b] for [x] where R is upper triangular full matrix */
 
-void vector_full_rrtran_solve( matrix *R , double *b , double *x )     /* AR(3) safe */
+void vector_full_rrtran_solve( matrix *R , double *b , double *x )
 {
    int n , ii,jj , n1 ;
    double sum , *rr ;
@@ -578,7 +578,7 @@ void vector_full_rrtran_solve( matrix *R , double *b , double *x )     /* AR(3) 
    useful to determine if it's worth converting it to sparse storage
 *//*------------------------------------------------------------------------*/
 
-double sparsity_fraction( matrix a )     /* AR(3) safe */
+double sparsity_fraction( matrix a )
 {
    int rows=a.rows , cols=a.cols , i,j,k=0 ; double val ;
    for( j=0 ; j < cols ; j++ )
@@ -589,7 +589,7 @@ double sparsity_fraction( matrix a )     /* AR(3) safe */
 /*--------------------------------------------------------------------------*/
 /* Convert a full matrix to sparse format, for fun and PROFIT! */
 
-sparmat * matrix_to_sparmat( matrix a )     /* AR(3) safe */
+sparmat * matrix_to_sparmat( matrix a )
 {
    int rows=a.rows , cols=a.cols ;
    int i , j , k ;
@@ -630,7 +630,7 @@ sparmat * matrix_to_sparmat( matrix a )     /* AR(3) safe */
 /*--------------------------------------------------------------------------*/
 /* Looks like meat's back on the menu, boys! */
 
-void sparmat_destroy( sparmat *sa )     /* AR(3) safe */
+void sparmat_destroy( sparmat *sa )
 {
    int i , cols ;
    if( sa == NULL ) return ;
@@ -648,7 +648,7 @@ void sparmat_destroy( sparmat *sa )     /* AR(3) safe */
 /*============ Functions to save and restore REML stuff to disk ============*/
 /*--------------------------------------------------------------------------*/
 
-static void my_fwrite( const void *ptr, size_t size, size_t nitems, FILE *fp )     /* AR(3) safe */
+static void my_fwrite( const void *ptr, size_t size, size_t nitems, FILE *fp )
 {
    size_t jj ;
 
@@ -663,7 +663,7 @@ static void my_fwrite( const void *ptr, size_t size, size_t nitems, FILE *fp )  
 /*--------------------------------------------------------------------------*/
 /*! Write an rcmat struct to a file. */
 
-void rcmat_writebin( FILE *fp , rcmat *rcm )     /* AR(3) safe */
+void rcmat_writebin( FILE *fp , rcmat *rcm )
 {
    int ii , jj ;
 ENTRY("rcmat_writebin") ;
@@ -684,7 +684,7 @@ ENTRY("rcmat_writebin") ;
 /*--------------------------------------------------------------------------*/
 /*! Read an rcmat struct from a file. */
 
-rcmat * rcmat_readbin( FILE *fp )     /* AR(3) safe */
+rcmat * rcmat_readbin( FILE *fp )
 {
    rcmat *qcm ; int ii,nn=-666 ;
 ENTRY("rcmat_readbin") ;
@@ -706,7 +706,7 @@ ENTRY("rcmat_readbin") ;
 /*--------------------------------------------------------------------------*/
 /*! Write a full matrix to a file. */
 
-void matrix_writebin( FILE *fp , matrix *a )     /* AR(3) safe */
+void matrix_writebin( FILE *fp , matrix *a )
 {
    int ii ;
 ENTRY("matrix_writebin") ;
@@ -725,7 +725,7 @@ ENTRY("matrix_writebin") ;
 /*--------------------------------------------------------------------------*/
 /*! Read a full matrix from a file. */
 
-matrix * matrix_readbin( FILE *fp )     /* AR(3) safe */
+matrix * matrix_readbin( FILE *fp )
 {
    int rows=-666,cols=-666,ii ; matrix *a ;
 
@@ -749,7 +749,7 @@ ENTRY("matrix_readbin") ;
     The rest of the reml_setup struct is untouched.
 *//*------------------------------------------------------------------------*/
 
-void reml_setup_savemat( FILE *fp , reml_setup *rs )     /* AR(3) safe */
+void reml_setup_savemat( FILE *fp , reml_setup *rs )
 {
 ENTRY("reml_setup_savemat") ;
    if( fp     == NULL || rs     == NULL ) EXRETURN ;
@@ -764,7 +764,7 @@ ENTRY("reml_setup_savemat") ;
 /*--------------------------------------------------------------------------*/
 /*! Restore the matrices in a reml_setup struct from a file. */
 
-void reml_setup_restoremat( FILE *fp , reml_setup *rs )     /* AR(3) safe */
+void reml_setup_restoremat( FILE *fp , reml_setup *rs )
 {
 ENTRY("reml_setup_restoremat") ;
    if( fp     == NULL || rs     == NULL ) EXRETURN ;
@@ -794,14 +794,16 @@ static int do_logqsumq = 1 ; /* 28 Apr 2020 */
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X.
-    Note that this function is not dependend on the correlation model,
+    Note that this function is not dependent on the correlation model,
     since that was already used to setup the matrices in rset.
+
+    If some input is invalid, the return value is really really big.
 
     [24 Jun 2009] Modified to use workspace vectors passed in via bbar[],
                   rather than static or malloc-ed vectors, for OpenMP's sake.
 *//*------------------------------------------------------------------------*/
 
-double REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,    /* AR(3) safe */
+double REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
                   double *bbar[7] , double *bbsumq )
 {
    int n , ii ;
@@ -876,7 +878,7 @@ ENTRY("REML_func") ;
 
 /*--------------------------------------------------------------------------*/
 
-void gltfactors_destroy( gltfactors *gf )    /* AR(3) safe */
+void gltfactors_destroy( gltfactors *gf )
 {
    if( gf == NULL ) return ;
    if( gf->Jright != NULL ){ matrix_destroy(gf->Jright); remla_free(gf->Jright); }
@@ -887,7 +889,7 @@ void gltfactors_destroy( gltfactors *gf )    /* AR(3) safe */
 
 /*--------------------------------------------------------------------------*/
 
-void reml_setup_destroy( reml_setup *rset )    /* AR(3) safe */
+void reml_setup_destroy( reml_setup *rset )
 {
    int ii ;
 
@@ -902,43 +904,13 @@ void reml_setup_destroy( reml_setup *rset )    /* AR(3) safe */
 
 /*----------------------------------------------------------------------------*/
 
-void reml_setup_plus_destroy( reml_setup_plus *rsp )  /* 22 Jul 2015 */    /* AR(3) safe */
+void reml_setup_plus_destroy( reml_setup_plus *rsp )  /* 22 Jul 2015 */
 {
    if( rsp == NULL ) return ;
    reml_setup_destroy( rsp->rset ) ;
    if( rsp->X  != NULL ){ matrix_destroy(rsp->X) ; remla_free(rsp->X) ; }
    if( rsp->Xs != NULL ) sparmat_destroy(rsp->Xs) ;
    remla_free(rsp) ; return ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Destroy a reml_collection_generic struct:
-     - if zsave!=0, then it just
-       destroys all but the izero component and leaves that behind;
-     - if zsave==0, then it destroys and frees everything
-*//*------------------------------------------------------------------------*/
-
-void reml_collection_generic_destroy( reml_collection_generic *rcg , int zsave )    /* AR(3) safe */
-{
-   int ii ;
-
-   if( rcg == NULL ) return ;
-   if( !zsave && rcg->X  != NULL ) matrix_destroy ( rcg->X  ) ;
-   if( !zsave && rcg->Xs != NULL ) sparmat_destroy( rcg->Xs ) ;
-   if( rcg->rs != NULL ){
-     for( ii=0 ; ii < rcg->nset ; ii++ ){
-       if( !(ii == rcg->izero && zsave) ){
-         reml_setup_destroy(rcg->rs[ii]) ; rcg->rs[ii] = NULL ;
-       }
-     }
-     if( !zsave ) remla_free((void *)rcg->rs) ;
-   }
-   if( rcg->savfil != NULL ){
-     kill_purge(rcg->savfil) ;
-     remove(rcg->savfil) ; remla_free(rcg->savfil) ; rcg->savfil = NULL ;
-   }
-   if( !zsave ) remla_free((void *)rcg) ;
-   return ;
 }
 
 /*==========================================================================*/
@@ -959,7 +931,7 @@ static int atexit_called = 0 ;   /* was atexit() already called for this? */
 static int    npurge = 0 ;       /* number of filenames in qpurge array */
 static char **qpurge = NULL ;    /* filenames of REML_* files still alive */
 
-static void remla_atexit(void) /*--- called by exit(): delete REML_* files ---*/    /* AR(3) safe */
+static void remla_atexit(void) /*--- called by exit(): delete REML_* files ---*/
 {
    int ii , nn ;
    char *tmpdir=mri_purge_get_tmpdir() , *tsuf=mri_purge_get_tsuf() ;
@@ -975,7 +947,7 @@ static void remla_atexit(void) /*--- called by exit(): delete REML_* files ---*/
    return ;
 }
 
-static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/    /* AR(3) safe */
+static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
 {
    int ii ;
    if( fn == NULL || *fn == '\0' ) return ;
@@ -992,7 +964,7 @@ static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/   
    return ;
 }
 
-static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/    /* AR(3) safe */
+static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
 {
    int ii ;
    if( fn == NULL || *fn == '\0' || qpurge == NULL ) return ;
@@ -1005,7 +977,7 @@ static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/ 
 /*--------------------------------------------------------------------------*/
 /* Assign a quasi-random filename into the user-supplied string space. */
 
-void reml_setup_savfilnam( char **fnam )    /* AR(3) safe */
+void reml_setup_savfilnam( char **fnam )
 {
    char *pg , *un , *ts ;
 
@@ -1023,7 +995,7 @@ void reml_setup_savfilnam( char **fnam )    /* AR(3) safe */
     actually, only the matrices in the reml_setup's are saved.
 *//*------------------------------------------------------------------------*/
 
-void reml_collection_generic_save( reml_collection_generic *rcg )    /* AR(3) safe */
+void reml_collection_generic_save( reml_collection_generic *rcg )
 {
    int ii ;
    FILE *fp ;
@@ -1057,7 +1029,7 @@ ENTRY("reml_collection_generic_save") ;
 
 /*--------------------------------------------------------------------------*/
 
-void reml_collection_generic_restore( reml_collection_generic *rcg )    /* AR(3) safe */
+void reml_collection_generic_restore( reml_collection_generic *rcg )
 {
    int ii ; FILE *fp ;
 
@@ -1072,7 +1044,7 @@ ENTRY("reml_collection_generic_restore") ;
      EXRETURN ;
    }
 
-   for( ii=0 ; ii < rcg->nab ; ii++ )
+   for( ii=0 ; ii < rcg->nset ; ii++ )
      if( rcg->rs[ii] != NULL ) reml_setup_restoremat( fp , rcg->rs[ii] ) ;
 
    fclose(fp) ;
@@ -1080,8 +1052,41 @@ ENTRY("reml_collection_generic_restore") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Destroy a reml_collection_generic struct:
+     - if zsave!=0, then it just
+       destroys all but the izero component and leaves that behind;
+     - if zsave==0, then it destroys and frees everything
+*//*------------------------------------------------------------------------*/
 
-gltfactors * REML_get_gltfactors( matrix *D , matrix *G )   /* generic safe */
+void reml_collection_generic_destroy( reml_collection_generic *rcg , int zsave )
+{
+   int ii ;
+
+   if( rcg == NULL ) return ;
+   if( !zsave && rcg->X  != NULL ) matrix_destroy ( rcg->X  ) ;
+   if( !zsave && rcg->Xs != NULL ) sparmat_destroy( rcg->Xs ) ;
+   if( rcg->rs != NULL ){
+     for( ii=0 ; ii < rcg->nset ; ii++ ){
+       if( !(ii == rcg->izero && zsave) ){
+         reml_setup_destroy(rcg->rs[ii]) ; rcg->rs[ii] = NULL ;
+       }
+     }
+     if( !zsave ) remla_free((void *)rcg->rs) ;
+   }
+   if( rcg->savfil != NULL ){
+     kill_purge(rcg->savfil) ;
+     remove(rcg->savfil) ; remla_free(rcg->savfil) ; rcg->savfil = NULL ;
+   }
+   if( !zsave ) remla_free((void *)rcg) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Compute the matrix factors needed for REML-ized GLTs;
+   see 3dREMLfit_mathnotes.pdf for details
+*//*------------------------------------------------------------------------*/
+
+gltfactors * REML_get_gltfactors( matrix *D , matrix *G )
 {
    int nn , rr , i,j ; double ete ;
    gltfactors *gf ;
@@ -1169,8 +1174,10 @@ ENTRY("REML_get_gltfactors") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Add a GLT from matrix G to one REML setup */
+/*--------------------------------------------------------------------------*/
 
-void REML_add_glt_to_one( reml_setup *rs , matrix *G )   /* generic safe */
+void REML_add_glt_to_one( reml_setup *rs , matrix *G )
 {
    gltfactors *gf=NULL ; int ng ;
 
@@ -1199,30 +1206,28 @@ ENTRY("REML_add_glt_to_one") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Add a GLT from matrix G to all REML setups in a collection */
+/*--------------------------------------------------------------------------*/
 
-void REML_add_glt_to_all( reml_collection_arma11 *rc , matrix *G )   /* generic safe */
+void REML_add_glt_to_all( reml_collection_generic *rcg , matrix *G )
 {
-   int ia,jb , na,nb , kk ;
+   int kk ;
 
 ENTRY("REML_add_glt_to_all") ;
 
-   if( rc == NULL || G == NULL ) EXRETURN ;
+   if( rcg == NULL || G == NULL ) EXRETURN ;
 
-   if( rc->istwo ){
-     REML_add_glt_to_one( rc->rs[0] , G ) ;
-     REML_add_glt_to_one( rc->rs[1] , G ) ;
-   } else {
-     for( jb=0 ; jb <= rc->nb ; jb++ ){
-       for( ia=0 ; ia <= rc->na ; ia++ ){
-         kk = ia + (1+rc->na)*jb ;
-         REML_add_glt_to_one( rc->rs[kk] , G ) ;
-     }}
+   for( kk=0 ; kk < rcg->nset ; kk++ ){
+     REML_add_glt_to_one( rcg->rs[kk] , G ) ;
    }
+
    EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
-/* Return value is F statistic. */
+/* Compute a GLT F statistic from a REML setup,
+   the data, and the complete set of betas
+*//*------------------------------------------------------------------------*/
 
 static vector *betaG = NULL ;  /* GLT combinations  */
 static vector *betaT = NULL ;  /* GLT t-statistics  */
@@ -1232,7 +1237,7 @@ static double   betaF = 0.0  ;  /* GLT F statistic   */
 double REML_compute_gltstat( int ddof ,
                             vector *y, vector *bfull, double fsumq ,
                             reml_setup *rset, gltfactors *gf,
-                            matrix *G, sparmat *Gs, matrix *X, sparmat *Xs )   /* generic safe */
+                            matrix *G, sparmat *Gs, matrix *X, sparmat *Xs )
 {
    double fstat , rsumq ;
    vector ba , bb , br ;
@@ -1324,7 +1329,7 @@ ENTRY("REML_compute_gltstat") ;
 /**** This code replaces the ARMA(1,1) or _arma11 specific code of old.   ****/
 
 /*--------------------------------------------------------------------------*/
-/* number of parameters from model code
+/* number of parameters from the noise model code
 *//*------------------------------------------------------------------------*/
 
 static int number_of_parameters( int cod )
@@ -1341,7 +1346,7 @@ static int number_of_parameters( int cod )
 /* Copy parameter vector for a particular model.
 *//*------------------------------------------------------------------------*/
 
-void copy_generic_parameter_vector( int code , double *pvec , double *qvec )   /* generic safe */
+void copy_generic_parameter_vector( int code, double *pvec, double *qvec )
 {
    int np ;
    if( pvec == NULL || qvec == NULL ) return ;
@@ -1351,11 +1356,12 @@ void copy_generic_parameter_vector( int code , double *pvec , double *qvec )   /
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the correlation vector for some model given by 'code',
-    with paramters in 'pvec'.
+/*! Compute the temporal autocorrelations vector for some model given by
+   'code', with model parameters in 'pvec'. Just calls some external
+   functions (e.g., armacor.c) to get the vector of values.
 *//*------------------------------------------------------------------------*/
 
-doublevec * rcmat_generic_correlations( int code , double *pvec ,   /* generic safe */
+doublevec * rcmat_generic_correlations( int code , double *pvec ,
                                         double ccut , int ncmax  )
 {
    doublevec *corvec = NULL ;
@@ -1383,11 +1389,14 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,   /* generic s
     general shift-invariate structure, whose lagged correlations are given
     in corvec.
     * tau[i] is the 'true' time index of the i-th data point.  This
-      lets you allow for censoring and for inter-run gaps.
+      lets you allow for censoring and for inter-run gaps. It is
+      mandatory that tau[i] > tau[j] for i > j.
     * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
+    * The rcmat struct is lower triangular (or upper triangular), as it
+      represents a symmetric matrix.
 *//*------------------------------------------------------------------------*/
 
-rcmat * rcmat_generic( int nt , int *tau , int code , double *pvec )   /* generic safe */
+rcmat * rcmat_generic( int nt , int *tau , int code , double *pvec )
 {
    rcmat  *rcm ;
    LENTYP *len ;
@@ -1407,13 +1416,13 @@ ENTRY("rcmat_generic") ;
 
    corvec = rcmat_generic_correlations( code , pvec , corcut , nt ) ;
 
-   if( corvec == NULL ) RETURN( NULL ) ;
+   if( corvec == NULL || corvec->nar <= 0 ) RETURN( NULL ) ;
 
    /* set maximum bandwidth from actual number of correlations we got */
 
    bmax = corvec->nar - 1 ;  /* we have lags 0 .. bmax */
 
-   /* special and trivial case: identity matrix (only correlation [0]) */
+   /* special and trivial case: identity matrix (only got correlation [0]) */
 
    if( bmax == 0 ){
      for( ii=0 ; ii < nt ; ii++ ){
@@ -1423,7 +1432,7 @@ ENTRY("rcmat_generic") ;
      RETURN( rcm ) ;
    }
 
-   /* First row/column has only 1 entry = diagonal value = 1 */
+   /* First row/column always has only 1 entry = diagonal value = 1 */
 
    len[0] = 1 ; rc[0] = malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
 
@@ -1502,11 +1511,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    W = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(W) ;
    matrix_create(nt,mm,W) ;             /* this is a full matrix, not sparse */
    vec = (double *)remla_malloc(sizeof(double)*nt) ;  /* temp vector = 1 col */
+
    for( jj=0 ; jj < X->cols ; jj++ ){
      for( ii=0 ; ii < nt ; ii++ ) vec[ii] = X->elts[ii][jj] ; /* extract col */
      rcmat_lowert_solve( rcm , vec ) ;                          /* prewhiten */
      for( ii=0 ; ii < nt ; ii++ ) W->elts[ii][jj] = vec[ii] ;  /* put into W */
    }
+
    remla_free((void *)vec) ;
 
    /* compute QR decomposition of W, save R factor into D, toss W */
@@ -1566,7 +1577,8 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 }
 
 /*--------------------------------------------------------------------------*/
-/* A convenience function for 3dREMLfit.c */
+/* A convenience function, that's all */
+/*--------------------------------------------------------------------------*/
 
 reml_setup * REML_setup_one_generic( matrix *X, int *tau, int code, double *pvec )
 {
@@ -1576,13 +1588,25 @@ reml_setup * REML_setup_one_generic( matrix *X, int *tau, int code, double *pvec
 }
 
 /*--------------------------------------------------------------------------*/
+/* convenience function for ARMA(1,1) */
+/*--------------------------------------------------------------------------*/
+
+reml_setup * REML_setup_one_arma11( matrix *X, int *tau, double aa, double bb )
+{
+   double pvec[6] ;
+   pvec[0] = aa ; pvec[1] = bb ;
+   return REML_setup_one_generic( X , tau , ARMA11_MODEL , pvec ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Similar to above, BUT
      * first add columns in Z to matrix
      * then carry out the REML setup for this new matrix
-   This is to allow for voxel-wise regressors in 3dREMLfit.
+   This is to allow for voxel-wise regressors in 3dREMLfit,
+   once the 'optimal' pvec parameters are known.
 *//*------------------------------------------------------------------------*/
 
-reml_setup_plus * REML_setup_plus_generic( matrix *X, matrix *Z, int *tau,   /* generic safe */
+reml_setup_plus * REML_setup_plus_generic( matrix *X, matrix *Z, int *tau,
                                            int code , double *pvec        )
 {
    reml_setup_plus *rsetplus=NULL ;
@@ -1639,14 +1663,26 @@ ENTRY("REML_setup_plus_generic") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* convenience function for ARMA(1,1) */
+/*--------------------------------------------------------------------------*/
+
+reml_setup_plus * REML_setup_plus_arma11( matrix *X, matrix *Z, int *tau,
+                                          double aa , double bb          )
+{
+   double pvec[6] ;
+   pvec[0] = aa ; pvec[1] = bb ;
+   return REML_setup_plus_generic( X, Z, tau, ARMA11_MODEL , pvec ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Create a blank (protean) collection of REML setups,
    with regression matrix pointed to by X. Must be filled in later.
 *//*------------------------------------------------------------------------*/
 
-reml_collection_generic * REML_initialize_collection( matrix *X )   /* generic safe */
+reml_collection_generic * REML_initialize_collection( matrix *X )
 {
    reml_collection_generic *rcg = NULL ;
-   double lam ;
+   double lam , spcut ;
 
    if( X == NULL ){    /* who the hell called me like this? */
      ERROR_message("REML_initialize_colleciton: input matrix is NULL :(") ;
@@ -1673,6 +1709,8 @@ reml_collection_generic * REML_initialize_collection( matrix *X )   /* generic s
    if( lam <= spcut ) rcg->Xs = matrix_to_sparmat( *X ) ;
    else               rcg->Xs = NULL ;
 
+   /* initialize various constants to null values */
+
    rcg->na  = rcg->nb  = rcg->nc  = rcg->nd  = rcg->ne  = rcg->nf  = 0 ;
    rcg->pna = rcg->pnb = rcg->pnc = rcg->pnd = rcg->pne = rcg->pnf = 0 ;
    rcg->abot= rcg->bbot= rcg->cbot= rcg->dbot= rcg->ebot= rcg->fbot= 0.0 ;
@@ -1683,6 +1721,7 @@ reml_collection_generic * REML_initialize_collection( matrix *X )   /* generic s
    return rcg ;
 }
 
+#if 0
 /*--------------------------------------------------------------------------*/
 /* nlev >  0 ==> grids of size 2^nlev
    nlev == 0 ==> just setup 2 points: (a,b)=(0,0) and (abot,btop)
@@ -1690,7 +1729,7 @@ reml_collection_generic * REML_initialize_collection( matrix *X )   /* generic s
 
 reml_collection_generic * REML_setup_all_arma11_NEW(
                                matrix *X , int *tau ,
-                               int nlev, double atop, double btop )
+                               int nlev, double atop, double btop )   /* DOOMED */
 {
    int ii,jj,kk , nt , nset , pna,pnb , na,nb ;
    double da,db, bb,aa, lam , bbot,abot ;
@@ -1859,8 +1898,14 @@ reml_collection_generic * REML_setup_all_arma11_NEW(
    rrcol->nset = nset ; rrcol->savfil = NULL ; rrcol->avglen = avglen/nset ;
    return rrcol ;
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
+/* Fill in a 2D grid of REML setups, over a range of parameters.
+   Parameter (a,b) grid dimensions are 0..2^pna X 0..2^pnb.
+   Special case: pna==pnb==0 => only setup two cases (istwo):
+     [0] = (azer,bzer)   [1] = (amin,bmin)
+*//*------------------------------------------------------------------------*/
 
 reml_collection_generic * REML_setup_all_generic_2D(
                              matrix *X , int *tau , int model_code ,
@@ -1869,11 +1914,11 @@ reml_collection_generic * REML_setup_all_generic_2D(
                              double bmin , double bmax ,
                              double azer , double bzer  )
 {
-   int ii,jj,kk , nt , ndone=0 , pna,pnb , na,nb , istwo ;
+   int ii,jj,kk , nt , ndone=0 , na,nb , istwo ;
    double aa,bb ;
    reml_collection_generic *rcg=NULL ;
    float avglen=0.0f ;
-   double spcut , pvec[6] ;
+   double pvec[6] ;   /* for loading parameters (a,b) */
 
    /* check for stoopiditeeze */
 
@@ -1887,7 +1932,11 @@ reml_collection_generic * REML_setup_all_generic_2D(
      return rcg ;
    }
 
-   istwo = (pna == 0 && pnb == 0 ) ;  /* no grid to use? */
+   /* no grid to use? */
+
+   istwo = (pna == 0 && pnb == 0 ) ;
+
+   /* check if grid layout makes sense */
 
    if( !istwo &&
        ( (amin >= amax) || (azer < amin) || (azer > amax) ||
@@ -1899,6 +1948,8 @@ reml_collection_generic * REML_setup_all_generic_2D(
      return rcg ;
    }
 
+   /* check number of time points */
+
    nt = X->rows ;
    if( nt < 9 ){     /* just medium stoopid */
      ERROR_message(
@@ -1906,11 +1957,11 @@ reml_collection_generic * REML_setup_all_generic_2D(
      return rcg ;
    }
 
-   /* set grid in a and b parameters */
+   /* set grid size in a and b parameters (powers of two) */
 
    if( !istwo ){
-     if( pna < 3 ) pna = 3 ; else if( pna > 7 ) pna = 7 ;
-     if( pnb < 3 ) pnb = 3 ; else if( pnb > 7 ) pnb = 7 ;
+     if( pna < 3 ) pna = 3 ; else if( pna > 8 ) pna = 8 ;
+     if( pnb < 3 ) pnb = 3 ; else if( pnb > 8 ) pnb = 8 ;
    }
 
    /* create nearly empty collection */
@@ -1920,13 +1971,19 @@ reml_collection_generic * REML_setup_all_generic_2D(
    rcg->noise_model = model_code ;
    rcg->pnum        = 2 ;
 
-   RCG_setup(rcg,pna,pnb,0,0,0,0) ; /* factors for dimensional access */
+   RCG_setup(rcg,pna,pnb,0,0,0,0) ; /* setup factors for dimensional access */
+
+   /* get ready for array of REML setups */
 
    if( !istwo ){
-     rcg->nset  = rcg->nab1 ;
+     rcg->nset  = rcg->nab1 ;   /* number of setups */
      rcg->istwo = 0 ;
-     rcg->abot  = amin; rcg->atop = amax; rcg->azer = azer; rcg->da = (amax-amin)/na;
-     rcg->bbot  = bmin; rcg->btop = bmax; rcg->bzer = bzer; rcg->db = (bmax-bmin)/nb;
+     rcg->abot  = amin; rcg->atop = amax; rcg->da = (amax-amin)/na;   /* grid */
+     rcg->bbot  = bmin; rcg->btop = bmax; rcg->db = (bmax-bmin)/nb; /* coords */
+     /* might have to adjust (azer,bzer) to fall on a grid point */
+     kk = IAB(rcg,azero,bzer) ;
+     ii = iab % na1 ; rcg->azer = azer = rcg->abot + ii*rcg->da ;
+     jj = iab / na1 ; rcg->bzer = bzer = rcg->bbot + jj*rcg->db ;
    } else {
      rcg->nset  = 2 ;
      rcg->istwo = 2 ;
@@ -1934,24 +1991,26 @@ reml_collection_generic * REML_setup_all_generic_2D(
      rcg->bbot  = bmin; rcg->btop = amin; rcg->bzer = bzer; rcg->db = 0.0 ;
    }
 
-   /* allocate REML matrix setups:
+   /* calloc-ate REML matrix setups:
        all are NULL to start, and if a matrix setup (rs) element
        is never computed, then it will be skipped later in the
        optimizing function REML_find_best_case_2D */
 
    rcg->rs = (reml_setup **)remla_calloc(sizeof(reml_setup *),rcg->nset) ;
 
-   /** set up the (a,b)=middle case **/
+   /** set up the (a,b)='zero' case **/
 
    if( !istwo ){
-     rcg->izero = kk = IAB(rcg,azer,bzer) ;  /* index for middle case */
+     rcg->izero = kk = IAB(rcg,azer,bzer) ;  /* set index for middle case */
    } else {
-     rcg->izero = kk = 0 ;  /* middle case is first, then second case */
+     rcg->izero = kk = 0 ;      /* middle case is first, then second case */
    }
+
    rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, LOAD_pvec2(azer,bzer) ) ;
+
    if( rcg->rs[kk] != NULL ){
      ndone++ ;
-     avglen += rcmat_avglen( rcg->rs[kk]->cc ) ;
+     avglen += rcmat_avglen( rcg->rs[kk]->cc ) ; /* keep track of average row length */
    } else {
      ERROR_message("REML_setup_all_generic_2D: failure to setup model a=%g b=%g",azer,bzer) ;
    }
@@ -1969,16 +2028,20 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    } else {          /* general setup case with an (a,b) grid of cases */
 
+   /** stuff for use in multi-threaded code below **/
+
 #ifdef USE_OMP
     int nthr , *nset_th ; float *avg_th ; static int first=1 ;
     nthr    = omp_get_max_threads() ;
-    nset_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ;
-    avg_th  = (float *)remla_calloc(sizeof(float),nthr) ;
+    nset_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ; /* how many per thread */
+    avg_th  = (float *)remla_calloc(sizeof(float),nthr) ; /* row lengths per thread */
     if( first && verb && nthr > 1 ){
-      ININFO_message("starting %d OpenMP threads for REML setup",nthr) ;
+      ININFO_message("starting %d OpenMP threads for REML 2D setup",nthr) ;
       first = 0 ;
     }
 #endif
+
+    /** start of potentially multi-threaded code **/
 
  AFNI_OMP_START ;
 #pragma omp parallel if( maxthr > 1 && rcg->nset > 2 )
@@ -1989,24 +2052,24 @@ reml_collection_generic * REML_setup_all_generic_2D(
    double bb,aa, lam ; float avg ;
 
 #ifdef USE_OMP
-   ithr = omp_get_thread_num() ;
+   ithr = omp_get_thread_num() ; /* for saving things on a per-thread basis */
 #ifdef ENABLE_REMLA_MALLOC
    if( ithr == 0 && verb > 1 ) fprintf(stderr,"nset=%d ",rcg->nset) ;
 #endif
 #endif
 #pragma omp for
      for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
-       ii  = iab % na1 ;
-       jj  = iab / na1 ;
-       aa  = ii*da + abot ;
-       bb  = jj*db + bbot ;
+       ii  = iab % na1 ;     /* index in a-direction */
+       jj  = iab / na1 ;     /* index in b-direction */
+       aa  = ii*da + abot ;  /* actual value of a parameter */
+       bb  = jj*db + bbot ;  /* actual value of b parameter */
        kk  = ii + na1*jj ;   /* should == iab */
-       if( kk != rcg->izero ){
+       if( rcg->rs[kk] != NULL ){
          rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, LOAD_pvec2(aa,bb) ) ;
          if( rcg->rs[kk] != NULL ){
            avg = rcmat_avglen( rcg->rs[kk]->cc ) ;
 #ifdef USE_OMP
-           nset_th[ithr]++ ; avg_th[ithr] += avg ;
+           nset_th[ithr]++ ; avg_th[ithr] += avg ;  /* per thread counting */
 #ifdef ENABLE_REMLA_MALLOC
            if( ithr == 0 && verb > 1 ){
              fprintf(stderr," [%d]",kk) ;
@@ -2014,18 +2077,18 @@ reml_collection_generic * REML_setup_all_generic_2D(
            }
 #endif
 #else
-           ndone++ ; avglen += avg ;
+           ndone++ ; avglen += avg ; /* overall counting - not multi-threaded */
 #endif
          }
        }
      } /* end loop over (aa,bb) pairs */
 
- } /* end OpenMP */
+ } /* end OpenMP section */
  AFNI_OMP_END ;
 
 #ifdef USE_OMP
    for( ii=0 ; ii < nthr ; ii++ ){
-     ndone += nset_th[ii] ; avglen += avg_th[ii] ;
+     ndone += nset_th[ii] ; avglen += avg_th[ii] ; /* combine counts */
    }
    remla_free(avg_th) ; remla_free(nset_th) ;
 #endif
@@ -2034,14 +2097,45 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    /* fix a couple of details and vamoose */
 
-   rcg->nset = nset ; rcg->ndone = ndone ; rcg->avglen = avglen/ndone ;
+   rcg->nset   = nset ;         /* how many allocated in grid */
+   rcg->ndone  = ndone ;        /* how many actually stored */
+   rcg->avglen = avglen/ndone ; /* average of average row lengths */
    rcg->savfil = NULL ;
    return rcg ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* For ARMA(1,1) -- full grid */
+/*--------------------------------------------------------------------------*/
+
+reml_collection_generic * REML_setup_all_arma11(
+                             matrix *X , int *tau , int nlev ,
+                             double amax , double bmax        )
+{
+   return
+     REML_setup_all_generic_2D( X , tau , ARMA11_MODEL ,
+                                nlev , nlev ,
+                                -amax,amax , -bmax,bmax , 0.0,0.0 ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* For ARMA(1,1) -- just the fixed (a,b) pair and (0,0) */
+/*--------------------------------------------------------------------------*/
+
+reml_collection_generic * REML_setup_fixed_arma11(
+                             matrix *X, int *tau, double afix, double bfix )
+{
+   return
+     REML_setup_all_generic_2D( X , tau , ARMA11_MODEL ,
+                                0 , 0 ,
+                                afix,afix , bfix,bfix , 0.0,0.0 ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Inputs: y=data vector, rcg=collection of REML setup stuff.
-   Output: index of best case in the REML seteup stuff.
+           nws = size of workspace array ws (0 => use malloc)
+   Output: index of best case in the REML setup stuff.
+           if ws!=NULL, then ws[0] = the best (smallest) REML score
 *//*------------------------------------------------------------------------*/
 
 int REML_find_best_case_generic_2D(
@@ -2050,7 +2144,7 @@ int REML_find_best_case_generic_2D(
    double rbest , rval ;
    int   na,nb , pna,pnb , ltop , mm , na1,nb1 ;
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
-   int   klist[128] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
+   int   klist[1024] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
    double *bbar[7] , *rvab ;
 
 ENTRY("REML_find_best_case_generic_2D") ;
@@ -2062,11 +2156,11 @@ ENTRY("REML_find_best_case_generic_2D") ;
    na = rcg->na ; pna = rcg->pna ; na1 = rcg->na1 ;
    nb = rcg->nb ; pnb = rcg->pnb ; nb1 = rcg->nb1 ;
 
-   /* make workspace arrays for REML_func() [24 Jun 2009] */
+   /* make workspace arrays for REML_func() */
 
-   bb_ws     = 2*y->dim      + 16 ;
-   rv_ws     = (na+1)*(nb+1) + 16 ;
-   needed_ws = 7*bb_ws + rv_ws ;
+   bb_ws     = 2*y->dim + 16 ;
+   rv_ws     = na1*nb1  + 16 ;
+   needed_ws = 7*bb_ws  + rv_ws ;  /* 7 vectors plus 1 number per grid pt */
    if( nws >= needed_ws && ws != NULL ){
      rvab    = ws+1 ;
      bbar[0] = rvab + rv_ws ;
@@ -2080,42 +2174,48 @@ ENTRY("REML_find_best_case_generic_2D") ;
 
    /** do the 'zero' case, mark it as best so far **/
 
-   kbest = rrcol->izero ;
+   kbest = rcg->izero ;
    jbest = kbest / na1
    ibest = kbest % na1 ;
-   rbest = REML_func( y, rrcol->rs[kbest], rrcol->X,rrcol->Xs, bbar,NULL ) ;
+   rbest = REML_func( y, rcg->rs[kbest], rcg->X,rcg->Xs, bbar,NULL ) ;
 
-   /** do power-of-2 descent through the (a,b) grid to find the bestest pair **/
+   /* initialize all REML output values to be HUGE, except for the first */
 
    for( kk=0 ; kk < na1*nb1 ; kk++ ) rvab[kk] = BIGVAL ;
    rvab[kbest] = rbest ;
 
+   /** do power-of-2 descent through the (a,b) grid to find the bestest pair **/
+
    nab  = MIN(pna,pnb)  ; ltop = nab-2 ;
    ibot = 0 ; itop = na ;                 /* scan from ibot..itop, jbot..jtop */
-   jbot = 0 ; jtop = nb ;
+   jbot = 0 ; jtop = nb ;                          /* in steps of dab (below) */
+
    for( lev=ltop ; lev >= 0 ; lev-- ){     /* lev = power-of-2 grid scan size */
      dab = 1 << lev ;                      /* dab = 2^lev = step size in scan */
 
-     /* make list of grid points to visit in the REML_func loop below */
+     /* make list of not-yet visited (a,b) grid
+        points to visit in the REML_func loop below */
 
      for( nkl=0,jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
          kk = ia + jb*na1 ; if( rvab[kk] < BIGVAL ) continue;       /* did it */
-         if( rrcol->rs[kk] == NULL ) continue ;         /* invalid grid point */
+         if( rcg->rs[kk] == NULL ) continue ;           /* invalid grid point */
          klist[nkl++] = kk ;
      }}
      if( nkl == 0 ) continue ; /* should never happen */
 
      /* The reason the loop above is separate is to make the loop below
         be 1D rather than 2D, hoping that OpenMP would parallelize it better.
-        However, this didn't work out, but the code is left the way it is */
+        However, this didn't work out, but the code is left the way it is.
+        The goal of this loop is to fill in any gaps in the rvab[] array,
+        the list of REML cost function at the (a,b) parameter pairs.         */
 
      for( mm=0 ; mm < nkl ; mm++ ){  /* this usually takes a lot of CPU time */
        kk = klist[mm] ;
-       rvab[kk] = REML_func( y, rrcol->rs[kk], rrcol->X,rrcol->Xs , bbar,NULL ) ;
+       rvab[kk] = REML_func( y, rcg->rs[kk], rcg->X,rcg->Xs , bbar,NULL ) ;
      }
 
-     /* find the best one so far seen */
+     /* find the best one so far seen, in the patch we are looking at */
 
      for( jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
@@ -2128,6 +2228,7 @@ ENTRY("REML_find_best_case_generic_2D") ;
      /* at the next level down, scan near the best so far seen */
 
      if( lev > 0 ){
+       dab  = dab + dab/2 ;
        ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+dab ; if( itop > na ) itop = na ;
        jbot = jbest-dab ; if( jbot < 0  ) jbot = 0  ;
@@ -2136,10 +2237,14 @@ ENTRY("REML_find_best_case_generic_2D") ;
 
    } /* end of scan descent through different levels */
 
+   /* delete workspace if it was allocated inside here */
+
    if( bb_ws ){
      remla_free(rvab) ;
      for( ia=0 ; ia < 7 ; ia++ ) remla_free(bbar[ia]) ;
    }
+
+   /* save the smallest REML value found */
 
    if( ws != NULL ) ws[0] = rbest ;
 
