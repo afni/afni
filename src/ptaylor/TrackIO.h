@@ -1,18 +1,9 @@
 #ifndef TRACKIO_INCLUDED
 #define TRACKIO_INCLUDED
 
+
+
 // ---------------- for param names while tracking -------------------------
-
-#define N_DEF_PAR_LABS (7) // we define a few things initially
-#define N_XTR_PAR_LABS (3) // we define a few things initially
-
-static char *DEF_PAR_LABS[N_DEF_PAR_LABS] = { "NT", "fNT", "PV", 
-                                              "fNV", "NV", "BL",
-                                              "sBL"}; 
-static char *XTR_PAR_LABS[N_XTR_PAR_LABS] = { "NTpTarVol", 
-                                              "NTpTarSA",
-                                              "NTpTarSAFA"}; 
-
 
 // temporary candidate for NIML string reading based on ZSS's
 // int/float-reading definitions in */suma_afni_surface.h
@@ -196,5 +187,10 @@ int NI_getDTI_inputs( NI_element *nel,
                       char **NameSCAL,
                       char **NamePLUS, 
                       int *extrafile, int *pars_top);
+
+char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net, 
+                                int show_maxu, int show_maxub);
+char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu); 
+char *SUMA_Taylor_Tract_Info(TAYLOR_TRACT *tt, int show_maxu);
 
 #endif

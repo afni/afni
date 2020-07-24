@@ -21,6 +21,11 @@ if [ ! -z "$gitemail" ];then
   git config --global user.email 'johnleenimh+circlecigitconfig@gmail.com'
 fi
 
+# Make sure test data is checked out correctly
+cd /opt/afni/src/tests/afni_ci_test_data
+git checkout $(cat test_data_version.txt)
+datalad update
+
 # Run tests
 cd /opt/afni/src/tests
-pytest scripts --runveryslow -vv --showlocals -r Esx 
+pytest scripts --runveryslow -vv --showlocals -r Esx

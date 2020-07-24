@@ -1,4 +1,4 @@
-#include <afni.h>
+#include "mrilib.h"
 #include "basic_boring.h"
 #include <gsl/gsl_matrix.h>
 
