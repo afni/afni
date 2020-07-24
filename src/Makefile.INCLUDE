@@ -1440,6 +1440,14 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS)
 
+3dREMLfit.NEW.o: 3dREMLfit.NEW.c remla.NEW.c matrix.c rcmat.c armacor.c
+	$(RM) $@
+	$(CCOMP) -c 3dREMLfit.NEW.c $(INFLAGS)
+
+3dREMLfit.NEW:3dREMLfit.NEW.o
+	$(RM) $@
+	$(CCOMP) -o 3dREMLfit.NEW 3dREMLfit.NEW.o $(LFLAGS) $(LLIBS)
+
 3dBandpass.o: 3dBandpass.c mri_blur3d_variable.c
 	$(RM) $@
 	$(CCOMP) -c 3dBandpass.c $(INFLAGS)
