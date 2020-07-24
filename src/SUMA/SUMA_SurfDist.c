@@ -34,7 +34,7 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "                         each node pair as a SUMA Displayable\n"
 "                         object.\n"
 "  -Euclidian: Calculate Euclidian distance, rather than graph distance.\n" 
-"  -Graph: Calculate distance along the mesh (default).\n" 
+"  -graph: Calculate distance along the mesh (default).\n" 
 "\n"
 "  example 1:\n"
 "     echo make a toy surface\n"
