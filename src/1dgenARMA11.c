@@ -20,7 +20,7 @@ static MTYPE corcut = 0.0001 ;
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
 
-#define ALLOW_ARMA51
+#undef ALLOW_ARMA51
 
 /*--------------------------------------------------------------------------*/
 /*! Setup sparse banded correlation matrix (as an rcmat struct):
@@ -302,6 +302,9 @@ int main( int argc , char *argv[] )
       "       | 1dfft -nodetrend stdin: > qqq.1D\n"
       "  3dTstat -mean -prefix stdout: qqq.1D \\\n"
       "       | 1dplot -stdin -num 201 -dt $df -xlabel 'frequency' -ylabel '|FFT|'\n"
+      "\n"
+      "A simpler example:\n"
+      "  1dgenARMA11 -len 500 -arma31 0.4 0.9 0.3 1.0 | 1dplot -stdin\n"
       "---------------------------------------------------------------------------\n"
 #ifdef ALLOW_ARMA51
       "A similar option is now available for a restricted ARMA(5,1) model:\n"

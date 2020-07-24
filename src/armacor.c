@@ -20,6 +20,116 @@
 static int armacor_debug = 0 ;
 
 /*----------------------------------------------------------------------------*/
+/*-- Check for legality as a correlation function, via FFT.
+     Return value is scale down factor for correlations, if needed.
+*//*--------------------------------------------------------------------------*/
+
+static double vrt_factor( int ncor , doublevec *corvec )
+{
+   double vrtfac = 1.0 ;
+   int nfft , nf2 , icmin , kk ; complex *xc ; float xcmin ;
+
+   if( ncor < 1 || corvec == NULL ) return vrtfac ;
+
+   /* get FFT length to use */
+
+   nfft = csfft_nextup_one35( 4*ncor+31 ) ;
+   nf2  = nfft/2 ;
+   xc   = (complex *)calloc( sizeof(complex) , nfft ) ;
+
+   /* load correlations (+reflections) into FFT array (float not double) */
+
+   xc[0].r = 1.0 ; xc[0].i = 0.0 ;
+   for( kk=1 ; kk <= ncor ; kk++ ){
+     xc[kk].r = corvec->ar[kk] ; xc[kk].i = 0.0f ;
+     xc[nfft-kk] = xc[kk] ; /* reflection from nfft downwards */
+   }
+
+   csfft_cox( -1 , nfft , xc ) ;  /* FFT */
+
+   /* find smallest value in FFT; for an acceptable
+      autocorrelation function, they should all be positive */
+
+   xcmin = xc[0].r ; icmin = 0 ;
+   for( kk=1 ; kk < nf2 ; kk++ ){
+     if( xc[kk].r < xcmin ){ xcmin = xc[kk].r ; icmin = kk ; }
+   }
+   free(xc) ;  /* no longer needed by this copy of the universe */
+
+   /* if xcmin is negative, must scale vrt down to avoid Choleski failure */
+   /* the vrtfac value below is computed from the following idea:
+        x  = unaltered correlation values
+        xc = FFT of x
+        y  = altered correlation values (scaled down by factor f < 1):
+               y[0] = x[0] = 1  ;  y[k] = f * x[k] for k > 0
+        yc = FFT of y
+           = FFT( f * x ) + (1-f) * FFT( [1,0,0,...] )
+           = f * xc + (1-f)
+        Min value of yc = ycmin = f * xcmin + (1-f) -- recall xcmin < 0
+        We want                  ycmin > 0
+             or  -f * ( 1 - xcmin) + 1 > 0
+             or                      1 > f * ( 1 - xcmin )
+             or    ( 1 / ( 1 - xcmin ) > f
+        So the largest allowable value of 'f' is 1/(1-xcmin) < 1,
+        which is basically the formula below (with a little fudge factor) */
+
+   if( xcmin <= 0.0f )                /* note xcmin <= 0 so denom is >= 1 */
+     vrtfac = 0.99 / ( 1.0 - (double)xcmin ) ;
+
+   if( vrtfac < 1.0 )
+     INFO_message("AR() min FFT_%d[%d] = %g => f = %g",nfft,icmin,xcmin,vrtfac);
+
+   return vrtfac ;  /* 1.0 ==> all is OK; < 1.0 ==> shrinkage needed */
+}
+
+/*----------------------------------------------------------------------------*/
+/* Return the vector of correlations for an ARMA(1,1)model.
+*//*--------------------------------------------------------------------------*/
+
+doublevec * arma11_correlations( double a, double b, double ccut, int ncmax )
+{
+   double lam , cnew ;
+   doublevec *corvec=NULL ;
+   int kk , ncor ;
+
+   if( fabs(a) < 0.01 ){            /* triviality */
+     MAKE_doublevec( corvec , 1 ) ;
+     corvec->ar[0] = 1.0 ;
+     return corvec ;
+   }
+
+        if( a >  0.95 ) a =  0.95 ;  /* limits */
+   else if( a < -0.95 ) a = -0.95 ;
+
+        if( b >  0.95 ) b =  0.95 ;
+   else if( b < -0.95 ) b = -0.95 ;
+
+   if( ccut  <= 0.0 ) ccut  = 0.00001 ;
+   if( ncmax <  4   ) ncmax = 6666 ;
+
+   lam = ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b)) ;
+   if( fabs(lam) >= 1.0 ){
+     ERROR_message("arma11_correlations: bad params a=%g b=%g lam=%g",a,b,lam) ;
+   }
+
+   MAKE_doublevec( corvec , ncmax+1 ) ;
+
+   corvec->ar[0] = 1.0 ;      /* correlation at lag 0 */
+   corvec->ar[1] = lam ;      /* correlation at lag 1 */
+
+   for( ncor=1,kk=2 ; kk < ncmax ; kk++ ){
+     cnew = corvec->ar[kk] = a * corvec->ar[kk-1] ; ncor++ ;
+     if( fabs(cnew) < ccut ) break ;
+   }
+
+   /* shrink the output vector to fit what was actually stored */
+
+   RESIZE_doublevec( corvec , ncor+1 ) ;
+
+   return corvec ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Return the vector of correlations for an AR(3) model plus additive white
    noise [=restricted ARMA(3,1)], given the AR(5) generating polynomial as
      phi(z) = (z-a) * (z-r1*exp(+i*t1)) * (z-r1*exp(-i*t1))
@@ -51,7 +161,7 @@ static int armacor_debug = 0 ;
 doublevec * arma31_correlations( double a , double r1 , double t1 ,
                                  double vrt , double ccut , int ncmax )
 {
-   double p1,p2,p3 , cnew , g1,g2 , c1 ;
+   double p1,p2,p3 , cnew , g1,g2 , c1 , vrtfac ;
    int kk , nzz , ncor ;
    doublevec *corvec=NULL ;
 
@@ -144,7 +254,7 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < ccut ){
+     if( fabs(cnew) < ccut ){
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
@@ -152,6 +262,13 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
      }
 
    } /* end of recurrence loop */
+
+   /*-- Check for legality as a correlation function, via FFT --*/
+   /*-- If not legal, have to scale vrt down! [15 Jul 2020]   --*/
+   /*-- (This should not happen for the AR(3) model, I hope.) --*/
+
+   vrtfac = vrt_factor( ncor , corvec ) ;
+   vrt   *= vrtfac ;
 
    /* rescale lagged correlations to allow for additive white noise;
       note that we do NOT scale down the lag=0 correlation of 1.0   */
@@ -340,7 +457,7 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < ccut ){
+     if( fabs(cnew) < ccut ){
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
@@ -352,41 +469,11 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
    /*-- Check for legality as a correlation function, via FFT --*/
    /*-- If not legal, have to scale vrt down! [15 Jul 2020]   --*/
 
-   { int    nfft = csfft_nextup_one35( 2*ncor+15 ) , nf2 = nfft/2 ;
-     complex *xc = (complex *)calloc( sizeof(complex) , nfft ) ;
-     float xcmin ;
-
-     /* load correlations (+reflections) into FFT array (float not double) */
-
-     xc[0].r = 1.0 ; xc[0].i = 0.0 ;
-     for( kk=1 ; kk <= ncor ; kk++ ){
-       xc[kk].r = corvec->ar[kk] ; xc[kk].i = 0.0 ;
-       xc[nfft-kk] = xc[kk] ; /* reflection from nfft downwards */
-     }
-
-     csfft_cox( -1 , nfft , xc ) ;  /* FFT */
-
-     /* find smallest value in FFT; for an acceptable
-        autocorrelation function, they should all be positive */
-
-     xcmin = xc[0].r ;
-     for( kk=1 ; kk < nf2 ; kk++ ){
-       if( xc[kk].r < xcmin ) xcmin = xc[kk].r ;
-     }
-     free(xc) ;  /* no longer needed by this copy of the universe */
-
-     /* if negative, must scale vrt downwards to avoid Choleski failure */
-
-     if( xcmin <= 0.0f )
-       vrtfac = 0.99 / ( 1.0 - (double)xcmin ) ;
-
-     INFO_message("ARMA(5) min FFT(%d) = %g   vrtfac = %g",nfft,xcmin,vrtfac) ;
-   }
+   vrtfac = vrt_factor( ncor , corvec ) ;
+   vrt   *= vrtfac ;
 
    /* rescale lagged correlations to allow for additive white noise;
       note that we do NOT scale down the lag=0 correlation of 1.0   */
-
-   vrt *= vrtfac ;
 
    if( vrt < 1.0 ){
      for( kk=1 ; kk <= ncor ; kk++ ) corvec->ar[kk] *= vrt ;
