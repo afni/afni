@@ -257,9 +257,10 @@ endfunction()
 function(add_afni_executable target_in)
   add_executable(${ARGV})
   target_link_options(${target_in}
-  PRIVATE 
+  PRIVATE
   $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
   $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
+  $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
   $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
     )
   target_link_options(${target_in}
@@ -279,6 +280,7 @@ function(add_afni_plugin target_in)
   PRIVATE
   $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,dynamic_lookup>
   $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,dynamic_lookup>
+  $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,dynamic_lookup>
     )
   if(RUN_PLUGIN_CHECK)
     add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
@@ -300,6 +302,7 @@ function(add_afni_plugin target_in)
       PRIVATE
       $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
       $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
+      $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
       $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
       )
   endif()

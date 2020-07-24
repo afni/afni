@@ -6,8 +6,15 @@ find_package(ZLIB REQUIRED)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 
-if(USE_OMP)
-  find_package(OpenMP COMPONENTS C REQUIRED)
+
+find_package(OpenMP COMPONENTS C)
+# Fail if USE_OMP has been explicitly set and OMP was not found
+if(USE_OMP AND NOT OpenMP_FOUND)
+  message(FATAL_ERROR "
+  OMP was not found. There are various solutions: do not set USE_OMP=ON, add
+  your compiler's lib directory to LDFLAGS, if using MacOS have a look through
+  the toolchain file in the cmake directory in the root project directory,
+  check that you have libomp or similar appropriate library installed.")
 endif()
 
 if(COMP_RSTATS)
