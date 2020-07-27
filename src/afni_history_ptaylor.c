@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, July , 2019 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Insert a couple ifdefs around OMP functionality.",
+   "This should allow program to compile even without OpenMP.\n"
+},
+
 { 15, July , 2020 , PT , "3dNetCorr" , MINOR , TYPE_GENERAL,
    "Moved header dep of suma_suma.h -> suma_objs.h.",
    "Should be no output change.\n"
