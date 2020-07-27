@@ -218,16 +218,16 @@ typedef struct {
 #define ARMA51_MODEL  5  /* not implemented yet */
 #define ARMA51_NPARAM 6
 
-/* compute lambda from ARMA(1,1) (a,b) parameters */
-#undef  LAMBDA
-#define LAMBDA(a,b) ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b))
-
 /* macros to access parameters by names used in different models */
 
 /* for ARMA(1,1) */
-#define RS_arma11_rho(rs)  (rs)->pvec[0]  /* this is a */
-#define RS_arma11_lam(rs)  (rs)->pvec[1]  /* this is lambda */
-#define RS_arma11_barm(rs) (rs)->pvec[2]  /* this is b */
+#define RS_arma11_aa(rs)  (rs)->pvec[0]  /* this is a */
+#define RS_arma11_bb(rs)  (rs)->pvec[1]  /* this is b */
+#define RS_arma11_lam(rs) (rs)->pvec[2]  /* this is lambda - calculated from (a,b) */
+
+/* compute lambda from ARMA(1,1) (a,b) parameters */
+#undef  LAMBDA
+#define LAMBDA(a,b) ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b))
 
 /* for ARMA(3,1) */
 #define RS_arma31_aa(rs)   (rs)->pvec[0]  /* this is a */
@@ -1553,6 +1553,10 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    rset->noise_model = code ;
    copy_generic_parameter_vector( code , pvec , rset->pvec ) ;
 
+   /* save the lambda parameter - just for fun */
+
+   if( code == ARMA11_MODEL ) pvec[2] = LAMBDA( pvec[0] , pvec[1] ) ;
+
    rset->nglt = 0 ;             /* no GLTS attached yet */
    rset->glt  = NULL ;
 
@@ -1940,7 +1944,7 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    if( !istwo &&
        ( (amin >= amax) || (azer < amin) || (azer > amax) ||
-         (bmin >= bmax) || (bzer < bmin) || (bzer > bmax)   ){
+         (bmin >= bmax) || (bzer < bmin) || (bzer > bmax)   ) ){
      ERROR_message("REML_setup_all_generic_2D: (a,b) parameter ranges disordered\n"
                    "     amin = %g  azer = %g  amax = %g\n"
                    "     bmin = %g  bzer = %g  bmax = %g"  ,
@@ -1971,7 +1975,9 @@ reml_collection_generic * REML_setup_all_generic_2D(
    rcg->noise_model = model_code ;
    rcg->pnum        = 2 ;
 
-   RCG_setup(rcg,pna,pnb,0,0,0,0) ; /* setup factors for dimensional access */
+   RCG_setup(rcg,pna,pnb,0,0,0,0) ; /* setup dimensional factors for grid */
+
+   na = rcg->na ; nb = rcg->nb ;       /* local copies of grid dimensions */
 
    /* get ready for array of REML setups */
 
@@ -1981,9 +1987,9 @@ reml_collection_generic * REML_setup_all_generic_2D(
      rcg->abot  = amin; rcg->atop = amax; rcg->da = (amax-amin)/na;   /* grid */
      rcg->bbot  = bmin; rcg->btop = bmax; rcg->db = (bmax-bmin)/nb; /* coords */
      /* might have to adjust (azer,bzer) to fall on a grid point */
-     kk = IAB(rcg,azero,bzer) ;
-     ii = iab % na1 ; rcg->azer = azer = rcg->abot + ii*rcg->da ;
-     jj = iab / na1 ; rcg->bzer = bzer = rcg->bbot + jj*rcg->db ;
+     kk = IAB(rcg,azer,bzer) ;
+     ii = kk % rcg->na1 ; rcg->azer = azer = rcg->abot + ii*rcg->da ;
+     jj = kk / rcg->na1 ; rcg->bzer = bzer = rcg->bbot + jj*rcg->db ;
    } else {
      rcg->nset  = 2 ;
      rcg->istwo = 2 ;
@@ -2045,7 +2051,7 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
  AFNI_OMP_START ;
 #pragma omp parallel if( maxthr > 1 && rcg->nset > 2 )
- { int iab , nab , ii,jj,kk , ithr=0 ;
+ { int iab , ii,jj,kk , ithr=0 ;
    int na = rcg->na, na1 = rcg->na1, nb = rcg->nb, nab = rcg->nset ;
    double abot = rcg->abot, da = rcg->da ;
    double bbot = rcg->bbot, db = rcg->db ;
@@ -2097,8 +2103,7 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    /* fix a couple of details and vamoose */
 
-   rcg->nset   = nset ;         /* how many allocated in grid */
-   rcg->ndone  = ndone ;        /* how many actually stored */
+   rcg->ndone  = ndone ;        /* how many actually stored in grid */
    rcg->avglen = avglen/ndone ; /* average of average row lengths */
    rcg->savfil = NULL ;
    return rcg ;
@@ -2175,7 +2180,7 @@ ENTRY("REML_find_best_case_generic_2D") ;
    /** do the 'zero' case, mark it as best so far **/
 
    kbest = rcg->izero ;
-   jbest = kbest / na1
+   jbest = kbest / na1 ;
    ibest = kbest % na1 ;
    rbest = REML_func( y, rcg->rs[kbest], rcg->X,rcg->Xs, bbar,NULL ) ;
 

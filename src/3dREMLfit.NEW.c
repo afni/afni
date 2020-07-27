@@ -3174,15 +3174,15 @@ STATUS("make GLTs from matrix file") ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
        ssold = ss ; ss = vv / nsliper ;      /* slice index in Xsli and RCsli */
        if( usetemp_rcol && ss > ssold && ssold >= 0 )     /* purge last slice */
-         reml_collection_save( RCsli[ssold] ) ;              /* setup to disk */
+         reml_collection_generic_save( RCsli[ssold] ) ;      /* setup to disk */
        if( RCsli[ss] == NULL ){                     /* create this slice now? */
          if( verb > 1 && vstep ) fprintf(stderr,"+") ;
          RCsli[ss] = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
        }
        kbest = REML_find_best_case_generic_2D( &y , RCsli[ss] , nws,ws ) ;
-       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
-       bar[vv] = RCsli[ss]->rs[kbest]->barm ;
+       aar[vv] = RS_arma11_aa( RCsli[ss]->rs[kbest] ) ;
+       bar[vv] = RS_arma11_bb( RCsli[ss]->rs[kbest] ) ;
        rar[vv] = ws[0] ;
 
 #ifdef REML_DEBUG
@@ -3260,8 +3260,8 @@ STATUS("make GLTs from matrix file") ;
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ; /* really bad */
        kbest = REML_find_best_case_generic_2D( &y , RCsli[ss] , nws,ws ) ;  /* the work */
-       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
-       bar[vv] = RCsli[ss]->rs[kbest]->barm ;
+       aar[vv] = RS_arma11_aa( RCsli[ss]->rs[kbest] ) ;
+       bar[vv] = RS_arma11_bb( RCsli[ss]->rs[kbest] ) ;
        rar[vv] = ws[0] ;
 
 #ifdef REML_DEBUG
@@ -3295,7 +3295,7 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"\n") ;
      if( usetemp_rcol )               /* purge final slice's setup to disk? */
-       reml_collection_save( RCsli[nsli-1] ) ;
+       reml_collection_generic_save( RCsli[nsli-1] ) ;
 
      /*----- median filter (a,b)? -----*/
 
@@ -3630,14 +3630,14 @@ STATUS("setting up Rglt") ;
        if( ss > ssold ){                                   /* at a new slice! */
          STATUS("new slice") ;
          if( ssold >= 0 && last_nods_trip )
-           reml_collection_destroy( RCsli[ssold] , 1 ) ;
+           reml_collection_generic_destroy( RCsli[ssold] , 1 ) ;
          if( RCsli[ss] == NULL ){              /* create this slice setup now */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
            RCsli[ss] = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
            if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
-         } else if( RC_SAVED(RCsli[ss]) ){               /* restore from disk */
+         } else if( RCG_SAVED(RCsli[ss]) ){              /* restore from disk */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
-           reml_collection_restore( RCsli[ss] ) ;
+           reml_collection_generic_restore( RCsli[ss] ) ;
          }
          for( kk=0 ; kk < glt_num ; kk++ )     /* add GLT stuff to this setup */
            REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
@@ -3740,8 +3740,8 @@ STATUS("setting up Rglt") ;
          if( Rvar_dset != NULL ){
            int h1,h2 ;
 
-           iv[0] = my_rset->rho ; iv[1] = my_rset->barm ;
-           iv[2] = my_rset->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
+           iv[0] = RS_arma11_aa(my_rset) ; iv[1] = RS_arma11_bb(my_rset) ;
+           iv[2] = RS_arma11_lam(my_rset); iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
 
            /* Ljung-Box statistic (cf. thd_ljungbox.c) [21 Jan 2020] */
@@ -3819,7 +3819,7 @@ STATUS("setting up Rglt") ;
      } /* end of voxel loop */
 
      if( last_nods_trip )
-       reml_collection_destroy( RCsli[nsli-1] , 1 ) ;  /* keep just izero case (for OLSQ) */
+       reml_collection_generic_destroy( RCsli[nsli-1] , 1 ) ;  /* keep just izero case (for OLSQ) */
 
      for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
      vector_destroy(&qq5) ;
@@ -4264,7 +4264,7 @@ STATUS("dsortar_mean") ;
      }
 STATUS("RCsli") ;
      for( ss=0 ; ss < nsli ; ss++ ){
-       reml_collection_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
+       reml_collection_generic_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
      }
      free(RCsli) ; free(Xsli) ;
           if( abset != NULL ) DSET_delete(abset) ;
