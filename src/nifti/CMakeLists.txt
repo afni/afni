@@ -83,10 +83,8 @@ if(NOT NIFTI_ZLIB_LIBRARIES) # If using a custom zlib library, skip the find pac
 endif()
 #message(STATUS "---------------------ZLIB -${NIFTI_ZLIB_LIBRARIES}--")
 add_definitions(-DHAVE_ZLIB)
-set_if_not_defined(NIFTI_INSTALL_NO_DEVELOPMENT 0)
-set_if_not_defined(NIFTI_INSTALL_NO_LIBRARIES 0)
-set_if_not_defined(NIFTI_INSTALL_NO_APPLICATIONS 0)
-set_if_not_defined(NIFTI_INSTALL_NO_DOCS 0)
+
+set_if_not_defined(NIFTI_INSTALL_NO_DOCS FALSE)
 
 # Include test to verify linking in installed executables
 # The test should only be added when applications are built, and no prefix string is set.
