@@ -234,7 +234,11 @@ def test_3dDWUncert(data):
     """
     cmd = " ".join(cmd.split())
 
-    differ = tools.OutputDiffer(data, cmd, kwargs_log={"append_to_ignored": [" min"]})
+    differ = tools.OutputDiffer(
+        data,
+        cmd,
+        kwargs_log={"append_to_ignored": [" min", "Nvox progress proxy count"]},
+    )
 
     differ.run()
 
