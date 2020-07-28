@@ -6,6 +6,21 @@ find_package(ZLIB REQUIRED)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 
+# Check that the appropriate setup script has been sourced, otherwise some
+# linking issues with libirc etc. will occur. Current strategy for diagnosing
+# this is to check for the environnment variable MKLROOT
+if("${CMAKE_COMPILER_ID}" STREQUAL Intel OR "$ENV{CC}" MATCHES "icc$")
+  if(NOT DEFINED ENV{MKLROOT})
+    message(FATAL_ERROR "
+      You are using the Intel compiler but MKLROOT does not exist as an
+      environment variable. This suggests you have not sourced the appropriate
+      setup shell script in the intel bin directory. Please do so before using
+      the build system with the Intel compiler. The command you need will be
+      something like: 'source /opt/intel/bin/compilervars.sh  intel64'"
+      )
+  endif()
+endif()
+
 
 find_package(OpenMP COMPONENTS C)
 # Fail if USE_OMP has been explicitly set and OMP was not found
