@@ -28,9 +28,10 @@ static char g_history[] =
   "1.9  19 Jul 2010 [rickr] : added -check_date option\n"
   "1.10 30 Nov 2010 [rickr] : added -final_sort_by_prog option\n"
   "1.11 29 Mar 2017 [rickr] : added justin: JKR\n"
+  "1.12 28 Jul 2020 [rickr] : added laurenpd: PDL\n"
 };
 
-static char g_version[] = "afni_history version 1.11, 29 Mar 2017";
+static char g_version[] = "afni_history version 1.12, 28 Jul 2020";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -42,6 +43,7 @@ static  char * g_author_list[] = {
     "bpittman", "BGP",  BGP,
     "ptaylor",  "PT" ,  PT
     "discoraj", "JKR",  JKR,
+    "laurenpd", "PDL",  PDL,
 };
 
 
@@ -264,6 +266,11 @@ char * convert_author(char * name)
     if( !strcmp(name, "justin") )   return JKR;
     if( !strcmp(name, "Justin") )   return JKR;
     if( !strcmp(name, "rajendrajk"))return JKR;
+
+    if( !strcmp(name, "PDL") )      return PDL;
+    if( !strcmp(name, "laurenpd") ) return PDL;
+    if( !strcmp(name, "Peter") )    return PDL;
+    if( !strcmp(name, "peter") )    return PDL;
 
     return name;   /* give up and stick with what we have */
 }
@@ -1457,15 +1464,16 @@ int init_histlist( global_data * gd )
 
     plist = gd->histpairs;              /* for convenience */
     c = 0;
-    plist[c].hlist = discoraj_history;  plist[c++].author = JKR;
     plist[c].hlist = bpittman_history;  plist[c++].author = BGP;
     plist[c].hlist = christip_history;  plist[c++].author = PPC;
     plist[c].hlist = dglen_history;     plist[c++].author = DRG;
+    plist[c].hlist = discoraj_history;  plist[c++].author = JKR;
     plist[c].hlist = gangc_history;     plist[c++].author = GC;
+    plist[c].hlist = laurenpd_history;  plist[c++].author = PDL;
+    plist[c].hlist = ptaylor_history;   plist[c++].author = PT;
     plist[c].hlist = rickr_history;     plist[c++].author = RCR;
     plist[c].hlist = rwcox_history;     plist[c++].author = RWC;
     plist[c].hlist = ziad_history;      plist[c++].author = ZSS;
-    plist[c].hlist = ptaylor_history;   plist[c++].author = PT;
     gd->plen = c;
 
     if( gd->plen > NUM_HIST_USERS ) {
