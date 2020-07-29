@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 import os
 
-os.environ["AFNI_COMPRESSOR"] = "GZIP"
 
 fatdir = Path("AFNI_demos/FATCAT_DEMO")
 fatdir2 = fatdir / "test_extra"
@@ -35,7 +34,7 @@ data_paths = {
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-def test_3ddot_beta(data):
+def test_3ddot_beta(data, ptaylor_env):
     opref = data.outdir / "o.3ddot_beta"
     cmd = f"""
     3ddot_beta
@@ -54,7 +53,7 @@ def test_3ddot_beta(data):
 # -------------------------------------------------------------------------
 
 
-def test_1dDW_Grad_o_Mat_plus_plus_colmat(data):
+def test_1dDW_Grad_o_Mat_plus_plus_colmat(data, ptaylor_env):
     outfile = data.outdir / "o.1dDW_Grad_o_Mat++_BMAT.txt"
     cmd = f"""
     1dDW_Grad_o_Mat++
@@ -70,7 +69,7 @@ def test_1dDW_Grad_o_Mat_plus_plus_colmat(data):
     differ.run()
 
 
-def test_1dDW_Grad_o_Mat_plus_plus_colvec(data):
+def test_1dDW_Grad_o_Mat_plus_plus_colvec(data, ptaylor_env):
     outfile = data.outdir / "o.1dDW_Grad_o_Mat++_cvec_n-1.txt"
     cmd = f"""
     1dDW_Grad_o_Mat++
@@ -87,7 +86,7 @@ def test_1dDW_Grad_o_Mat_plus_plus_colvec(data):
 
 # -------------------------------------------------------------------------
 @pytest.mark.veryslow
-def test_3dDWItoDT(data):
+def test_3dDWItoDT(data, ptaylor_env):
     opref = data.outdir / "3dDWItoDT"
     # just using '-linear' for speed!
     cmd = f"""
@@ -104,16 +103,14 @@ def test_3dDWItoDT(data):
     """
     cmd = " ".join(cmd.split())
 
-    differ = tools.OutputDiffer(
-        data, cmd, kwargs_scans={"data_kwargs": {"rtol": 0.01}},
-    )
+    differ = tools.OutputDiffer(data, cmd, kwargs_scans={"data_kwargs": {"rtol": 0.01}})
     differ.run()
 
 
 # -------------------------------------------------------------------------
 
 
-def test_3dROIMaker(data):
+def test_3dROIMaker(data, ptaylor_env):
     opref = data.outdir / "o.3dROIMaker"
     cmd = f"""
     3dROIMaker
@@ -140,7 +137,7 @@ def test_3dROIMaker(data):
 
 
 @pytest.mark.slow
-def test_3dDTtoNoisyDWI(data):
+def test_3dDTtoNoisyDWI(data, ptaylor_env):
     opref = data.outdir / "o.3dDTtoNoisyDWI"
     cmd = f"""
     3dDTtoNoisyDWI
@@ -162,7 +159,7 @@ def test_3dDTtoNoisyDWI(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dEigsToDT(data):
+def test_3dEigsToDT(data, ptaylor_env):
     opref = data.outdir / "o.3dEigsToDT"
     cmd = f"""
     3dEigsToDT
@@ -180,7 +177,7 @@ def test_3dEigsToDT(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dVecRGB_to_HSL(data):
+def test_3dVecRGB_to_HSL(data, ptaylor_env):
     opref = data.outdir / "o.3dVecRGB_to_HSL"
     cmd = f"""
     3dVecRGB_to_HSL
@@ -199,7 +196,7 @@ def test_3dVecRGB_to_HSL(data):
 # ------------------------------------------------------------------------
 
 
-def test_3dTORTOISEtoHere(data):
+def test_3dTORTOISEtoHere(data, ptaylor_env):
     opref = data.outdir / "o.3dTORTOISEtoHere"
 
     cmd = f"""
@@ -218,7 +215,7 @@ def test_3dTORTOISEtoHere(data):
 
 
 @pytest.mark.veryslow
-def test_3dDWUncert(data):
+def test_3dDWUncert(data, ptaylor_env):
     opref = data.outdir / "o.3dDWUncert"
     cmd = f"""
     3dDWUncert
@@ -248,7 +245,7 @@ def test_3dDWUncert(data):
 
 @pytest.mark.slow
 @pytest.mark.xfail(raises=NotImplementedError)
-def test_3dTrackID_DET(data):
+def test_3dTrackID_DET(data, ptaylor_env):
     opref = data.outdir / "o.3dTrackID_DET"
 
     cmd = f"""
@@ -272,7 +269,7 @@ def test_3dTrackID_DET(data):
 
 @pytest.mark.veryslow
 @pytest.mark.xfail(raises=NotImplementedError)
-def test_3dTrackID_PROB(data):
+def test_3dTrackID_PROB(data, ptaylor_env):
     opref = data.outdir / "o.3dTrackID_PROB"
     cmd = f"""
     3dTrackID
@@ -303,7 +300,7 @@ def test_3dTrackID_PROB(data):
 
 @pytest.mark.slow
 @pytest.mark.xfail(raises=NotImplementedError)
-def test_3dNetCorr(data):
+def test_3dNetCorr(data, ptaylor_env):
     opref = data.outdir / "o.3dNetCorr"
     cmd = f"""
     3dNetCorr
@@ -325,7 +322,7 @@ def test_3dNetCorr(data):
 
 
 @pytest.mark.slow
-def test_3dMatch(data):
+def test_3dMatch(data, ptaylor_env):
     opref = data.outdir / "o.3dMatch"
     cmd = f"""
     3dMatch
@@ -346,7 +343,7 @@ def test_3dMatch(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dRSFC(data):
+def test_3dRSFC(data, ptaylor_env):
     opref = data.outdir / "o.3dRSFC"
     cmd = f"""
     3dRSFC
@@ -363,7 +360,7 @@ def test_3dRSFC(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dLombScargle(data):
+def test_3dLombScargle(data, ptaylor_env):
     olsamp = data.outdir / "o.3dLombScargle"
     cmd = f"""
     3dLombScargle
@@ -381,7 +378,7 @@ def test_3dLombScargle(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dAmpToRSFC(data):
+def test_3dAmpToRSFC(data, ptaylor_env):
 
     opref = data.outdir / "o.3dAmpToRSFC"
     cmd = f"""
@@ -400,7 +397,7 @@ def test_3dAmpToRSFC(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dClusterize(data):
+def test_3dClusterize(data, ptaylor_env):
     opref = data.outdir / "o.3dClusterize"
     cmd = f"""
     3dClusterize
@@ -421,7 +418,7 @@ def test_3dClusterize(data):
     differ.run()
 
 
-def test_3dClusterize_new(data):
+def test_3dClusterize_new(data, ptaylor_env):
     opref = data.outdir / "o.3dClusterize"
     cmd = f"""
     3dClusterize
@@ -446,7 +443,7 @@ def test_3dClusterize_new(data):
 
 
 @pytest.mark.slow
-def test_3dReHo(data):
+def test_3dReHo(data, ptaylor_env):
     opref = data.outdir / "o.3dReHo"
 
     cmd = f"""
@@ -461,7 +458,7 @@ def test_3dReHo(data):
     differ.run()
 
 
-def test_3dReHo_with_box(data):
+def test_3dReHo_with_box(data, ptaylor_env):
     # check with ROIs (and different kind of neighborhood opts
     opref = data.outdir / "o.3dReHo_ROI"
     cmd = f"""
@@ -481,7 +478,7 @@ def test_3dReHo_with_box(data):
 
 
 # -------------------------------------------------------------------------
-def test_3dSliceNDice(data):
+def test_3dSliceNDice(data, ptaylor_env):
     opref = data.outdir / "o.3dSliceNDice"
     # make masks first
     cmd = f"""
@@ -513,7 +510,7 @@ def test_3dSliceNDice(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dSpaceTimeCorr(data):
+def test_3dSpaceTimeCorr(data, ptaylor_env):
     opref = data.outdir / "o.3dSpaceTimeCorr"
     cmd = f"""
     3dSpaceTimeCorr
@@ -536,7 +533,7 @@ def test_3dSpaceTimeCorr(data):
 # -------------------------------------------------------------------------
 
 
-def test_3dZipperZapper(data):
+def test_3dZipperZapper(data, ptaylor_env):
     opref = data.outdir / "o.3dZipperZapper"
     cmd = f"""
     3dZipperZapper
