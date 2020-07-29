@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Jul, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "add initial afni_history_laurenpd.c",
+   NULL
+ } ,
+
  { 21, Jul, 2020, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
    "add env var control over pre-comp e2x, limit and pieces",
    "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"

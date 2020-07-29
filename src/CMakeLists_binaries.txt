@@ -368,6 +368,7 @@ add_afni_executable(
   afni_history_dglen.c
   afni_history_discoraj.c
   afni_history_gangc.c
+  afni_history_laurenpd.c
   afni_history_ptaylor.c
   afni_history_rickr.c
   afni_history_rwcox.c

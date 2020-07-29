@@ -3365,8 +3365,9 @@ imcalc:imcalc.o parser.o parser_int.o
 
 AFNI_HIST_FILES  = afni_history.c					     \
 	afni_history_bpittman.c afni_history_christip.c afni_history_dglen.c \
-	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	     \
-	afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c
+	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	      \
+	afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c   \
+	afni_history_laurenpd.c
 
 afni_history: $(AFNI_HIST_FILES)
 	$(RM) $@
