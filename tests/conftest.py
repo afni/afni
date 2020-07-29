@@ -46,6 +46,28 @@ def pytest_sessionstart(session):
 
 
 def pytest_generate_tests(metafunc):
+
+    # Do some environment tweaks to homogenize behavior across systems
+    os.environ["AFNI_SPLASH_ANIMATE"] = "NO"
+    unset_vars = [
+        "AFNI_PLUGINPATH",
+        "AFNI_PLUGIN_PATH",
+        "BRIKCOMPRESSOR",
+        "AFNI_MODELPATH",
+        "AFNI_COMPRESSOR",
+        "AFNI_NOREALPATH",
+        "AFNI_AUTOGZIP",
+        "AFNI_GLOBAL_SESSION",
+        "AFNI_ATLAS_LIST",
+        "AFNI_TEMPLATE_SPACE_LIST",
+        "AFNI_ATLAS_PATH",
+        "AFNI_SUPP_ATLAS",
+        "AFNI_LOCAL_ATLAS",
+        "AFNI_SUPP_ATLAS_DIR",
+    ]
+    for var in unset_vars:
+        os.unsetenv(var)
+
     if "python_interpreter" in metafunc.fixturenames:
         if metafunc.config.option.testpython2:
             metafunc.parametrize("python_interpreter", ["python3", "python2"])
