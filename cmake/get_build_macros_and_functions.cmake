@@ -210,7 +210,7 @@ function(get_component_name component cmpnt_mapping targ_in)
   if(output)
     set(${component} "${output}" PARENT_SCOPE)
   else()
-    if(REMOVE_BUILD_PARIT_CHECKS)
+    if(REMOVE_BUILD_PARITY_CHECKS)
       return()
     endif()
     message(FATAL_ERROR 
