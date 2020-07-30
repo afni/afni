@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_GENERAL,
+   "Now install MACAQUE_DEMO_2.1, which should be the new normal.",
+   "Script checks for things on install, makes recs, more full demo.\n"
+},
+
 { 30, July , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Make easier to find template in case data has moved around.",
    "Also use wildcard to clean intermed file, in case auto GZIP is on.\n"
