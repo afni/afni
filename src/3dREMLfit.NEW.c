@@ -1160,6 +1160,7 @@ int main( int argc , char *argv[] )
       "               * The program is somewhat slower as the -Grid size expands.\n"
       "                   And uses more memory, to hold various matrices for\n"
       "                   each (a,b) case.\n"
+#if 0
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
@@ -1189,6 +1190,7 @@ int main( int argc , char *argv[] )
       "                 [No median filtering is done unless -Mfilt is used.]\n"
       "               * This option is not recommended; it is just here for\n"
       "                 experimentation.\n"
+#endif
       "\n"
       " -CORcut cc = The exact ARMA(1,1) correlation matrix (for a != 0)\n"
       "                has no non-zero entries. The calculations in this\n"
@@ -1196,6 +1198,7 @@ int main( int argc , char *argv[] )
       "                The default cutoff is %.5f, but can be altered with\n"
       "                this option. The usual reason to use this option is\n"
       "                to test the sensitivity of the results to the cutoff.\n"
+#if 0
       "\n"
       " -ABfile ff = Instead of estimating the ARMA(a,b) parameters from the\n"
       "                data, read them from dataset 'ff', which should have\n"
@@ -1227,6 +1230,7 @@ int main( int argc , char *argv[] )
       "                 * The purpose of this special case is to facilitate\n"
       "                     comparison with Software PrograMs that use the same\n"
       "                     temporal correlation structure for all voxels.\n"
+#endif
       "\n"
       " -GOFORIT   = 3dREMLfit checks the regression matrix for tiny singular\n"
       "                values (as 3dDeconvolve does). If the matrix is too\n"
@@ -1236,9 +1240,8 @@ int main( int argc , char *argv[] )
       "                check, but you MUST check your results to see if they\n"
       "                make sense!\n"
       "              ** '-GOFORIT' is required if there are all zero columns\n"
-      "                   in the regression matrix. However, at this time\n"
-      "                   [15 Mar 2010], the all zero columns CANNOT come from\n"
-      "                   the '-slibase' inputs.\n"
+      "                   in the regression matrix. However, at this time, the\n"
+      "                   all zero columns CANNOT come from the '-slibase' inputs.\n"
       "                 ** Nor from the '-dsort' inputs.\n"
       "              ** If there are all zero columns in the matrix, a number\n"
       "                   of WARNING messages will be generated as the program\n"
@@ -1676,7 +1679,7 @@ int main( int argc , char *argv[] )
        if( argv[iarg][0] != '-' ){
          eglt_lab[eglt_num] = argv[iarg++] ;
        } else {
-         eglt_lab[eglt_num] = (char *)malloc(sizeof(char)*16) ;
+         eglt_lab[eglt_num] = (char *)malloc(sizeof(char)*24) ;
          sprintf( eglt_lab[eglt_num] , "GLTsym%02d" , eglt_num+1 ) ;
        }
        eglt_num++ ; continue ;
@@ -1859,7 +1862,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        nlevab = (int)strtod(argv[iarg],NULL) ;
             if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid re-set to 3 from %s",argv[iarg]); }
-       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid re-set to 7 from %s",argv[iarg]); }
+       else if( nlevab > 8 ){ nlevab = 8; WARNING_message("-Grid re-set to 8 from %s",argv[iarg]); }
        iarg++ ; continue ;
      }
 
@@ -3115,7 +3118,7 @@ STATUS("make GLTs from matrix file") ;
        float avg=0.0f ;
        ININFO_message(
         "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f Elapsed=%.2f",
-        ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time(),COX_clock_time()) ;
+        ntime,nrega,RCsli[0]->ndone,nsli,COX_cpu_time(),COX_clock_time()) ;
        for( ss=0 ; ss < nsli ; ss++ ) avg += RCsli[ss]->avglen ;
        avg /= nsli ; ININFO_message(" average case bandwidth = %.2f",avg) ;
        if( verb > 1 ) REMLA_memprint ;
@@ -3131,7 +3134,7 @@ STATUS("make GLTs from matrix file") ;
      if( verb > 1 )
        ININFO_message(
         "REML setup #0 finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f Elapsed=%.2f",
-        ntime,nrega,RCsli[0]->nset,COX_cpu_time(),COX_clock_time()) ;
+        ntime,nrega,RCsli[0]->ndone,COX_cpu_time(),COX_clock_time()) ;
      MEMORY_CHECK ;
 
    }
@@ -3155,8 +3158,8 @@ STATUS("make GLTs from matrix file") ;
 
   if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
     int ss,rv,vv,ssold,ii,kbest ;
-    int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 7*(2*niv+32) + 32 ;
+    int    na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
+    int    nws = nab + 7*(2*niv+32) + 1024 ;
     double *ws = (double *)malloc(sizeof(double)*nws) ;
 #ifdef REML_DEBUG
     char *fff ; FILE *fpp=NULL ;
@@ -3208,7 +3211,7 @@ STATUS("make GLTs from matrix file") ;
 
     int *vvar ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 7*(2*niv+32) + 32 ;
+    int   nws = nab + 7*(2*niv+32) + 1024 ;
 #ifdef REML_DEBUG
     char *fff ; FILE *fpp=NULL ;
     fff = getenv("REML_DEBUG") ;
@@ -3741,7 +3744,7 @@ STATUS("setting up Rglt") ;
            int h1,h2 ;
 
            iv[0] = RS_arma11_aa(my_rset) ; iv[1] = RS_arma11_bb(my_rset) ;
-           iv[2] = RS_arma11_lam(my_rset); iv[3] = sqrt( bbsumq / ddof ) ;
+           iv[2] = LAMBDA(iv[0],iv[1])   ; iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
 
            /* Ljung-Box statistic (cf. thd_ljungbox.c) [21 Jan 2020] */

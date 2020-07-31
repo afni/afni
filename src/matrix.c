@@ -265,6 +265,35 @@ zork:
   printf (" \n"); fflush(stdout) ;
 }
 
+/*--------------------------------------------------------------------------*/
+#ifndef isfinite
+# define isfinite finite
+#endif
+/*--------------------------------------------------------------------------*/
+
+int matrix_floatscan( matrix *m )
+{
+   int rows,cols,i,j,nbad=0  ;
+   if( m == NULL ) return 0 ;
+   rows = m->rows ;
+   cols = m->cols ;
+   for( i=0 ; i < rows ; i++ ){
+     for( j=0 ; j < cols ; j++ ){
+       if( !isfinite(m->elts[i][j]) ){ nbad++; m->elts[i][j] = 0.0; }
+   }}
+   return nbad ;
+}
+
+int vector_floatscan( vector *v )
+{
+   int i,rows,nbad=0 ;
+   if( v == NULL ) return 0 ;
+   rows = v->dim ;
+   for( i=0 ; i < rows ; i++ ){
+       if( !isfinite(v->elts[i]) ){ nbad++; v->elts[i] = 0.0; }
+   }
+   return nbad ;
+}
 
 /*---------------------------------------------------------------------------*/
 /*!

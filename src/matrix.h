@@ -71,11 +71,16 @@ typedef struct vector
 #define ISVALID_VECTOR(v) ((v).dim > 0 && (v).elts != NULL)
 
 /*---------------------------------------------------------------------------*/
+
+extern int matrix_floatscan( matrix *m ) ;
+extern int vector_floatscan( vector *v ) ;
+
+/*---------------------------------------------------------------------------*/
 /*
   Routine to print an error message and stop.
 */
 
-void matrix_error (char * message);
+extern void matrix_error (char * message);
 
 
 /*---------------------------------------------------------------------------*/
@@ -83,7 +88,7 @@ void matrix_error (char * message);
   Initialize matrix data structure.
 */
 
-void matrix_initialize (matrix * m);
+extern void matrix_initialize (matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -91,7 +96,7 @@ void matrix_initialize (matrix * m);
   Destroy matrix data structure by deallocating memory.
 */
 
-void matrix_destroy (matrix * m);
+extern void matrix_destroy (matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -99,7 +104,7 @@ void matrix_destroy (matrix * m);
   Create matrix data structure by allocating memory and initializing values.
 */
 
-void matrix_create (int rows, int cols, matrix * m);
+extern void matrix_create (int rows, int cols, matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -107,7 +112,7 @@ void matrix_create (int rows, int cols, matrix * m);
   Print contents of matrix m.
 */
 
-void matrix_print (matrix m);
+extern void matrix_print (matrix m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -115,7 +120,7 @@ void matrix_print (matrix m);
   Print label and contents of matrix m.
 */
 
-void matrix_sprint (char * s, matrix m);
+extern void matrix_sprint (char * s, matrix m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -123,7 +128,7 @@ void matrix_sprint (char * s, matrix m);
   Print contents of matrix m to specified file.
 */
 
-void matrix_file_write (char * filename, matrix m);
+extern void matrix_file_write (char * filename, matrix m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -131,7 +136,7 @@ void matrix_file_write (char * filename, matrix m);
   Manual entry of matrix data.
 */
 
-void matrix_enter (matrix * m);
+extern void matrix_enter (matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -142,7 +147,7 @@ void matrix_enter (matrix * m);
      Otherwise, return null matrix.
 */
 
-void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
+extern void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
                        int error_exit);
 
 
@@ -151,7 +156,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
   Convert simple array to matrix structure.
 */
 
-void array_to_matrix (int rows, int cols, float ** f, matrix * m);
+extern void array_to_matrix (int rows, int cols, float ** f, matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -159,8 +164,8 @@ void array_to_matrix (int rows, int cols, float ** f, matrix * m);
   Make a copy of the first matrix, return copy as the second matrix.
 */
 
-void matrix_equate (matrix a, matrix * b);
-void matrix_enlarge( int nradd , int ncadd , matrix *a )  ;
+extern void matrix_equate (matrix a, matrix * b);
+extern void matrix_enlarge( int nradd , int ncadd , matrix *a )  ;
 
 
 /*---------------------------------------------------------------------------*/
@@ -168,31 +173,31 @@ void matrix_enlarge( int nradd , int ncadd , matrix *a )  ;
   Extract p columns (specified by list) from matrix a.  Result is matrix b.
 */
 
-void matrix_extract (matrix a, int p, int * list, matrix * b);
+extern void matrix_extract (matrix a, int p, int * list, matrix * b);
 
 #define matrix_extract_cols matrix_extract
 
 /* add some 0-1 columns [16 Aug 2019] */
 
-void matrix_augment_01_columns( matrix a, int nadd, int *addlist, matrix *b ) ;
+extern void matrix_augment_01_columns( matrix a, int nadd, int *addlist, matrix *b ) ;
 
 /*---------------------------------------------------------------------------*/
 /*
   Extract p rows (specified by list) from matrix a.  Result is matrix b.
 */
 
-void matrix_extract_rows (matrix a, int p, int * list, matrix * b);
+extern void matrix_extract_rows (matrix a, int p, int * list, matrix * b);
 
 /* do what the name says [15 Mar 2010] */
 
-int matrix_delete_allzero_rows( matrix a , matrix *b ) ;
+extern int matrix_delete_allzero_rows( matrix a , matrix *b ) ;
 
 /*---------------------------------------------------------------------------*/
 /*
   Create n x n identity matrix.
 */
 
-void matrix_identity (int n, matrix * m);
+extern void matrix_identity (int n, matrix * m);
 
 
 /*---------------------------------------------------------------------------*/
@@ -200,7 +205,7 @@ void matrix_identity (int n, matrix * m);
   Add matrix a to matrix b.  Result is matrix c.
 */
 
-void matrix_add (matrix a, matrix b, matrix * c);
+extern void matrix_add (matrix a, matrix b, matrix * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -208,7 +213,7 @@ void matrix_add (matrix a, matrix b, matrix * c);
   Subtract matrix b from matrix a.  Result is matrix c.
 */
 
-void matrix_subtract (matrix a, matrix b, matrix * c);
+extern void matrix_subtract (matrix a, matrix b, matrix * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -216,7 +221,7 @@ void matrix_subtract (matrix a, matrix b, matrix * c);
   Multiply matrix a by matrix b.  Result is matrix c.
 */
 
-void matrix_multiply (matrix a, matrix b, matrix * c);
+extern void matrix_multiply (matrix a, matrix b, matrix * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -224,7 +229,7 @@ void matrix_multiply (matrix a, matrix b, matrix * c);
   Multiply matrix a by scalar constant k.  Result is matrix c.
 */
 
-void matrix_scale (double k, matrix a, matrix * c);
+extern void matrix_scale (double k, matrix a, matrix * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -232,7 +237,7 @@ void matrix_scale (double k, matrix a, matrix * c);
   Take transpose of matrix a.  Result is matrix t.
 */
 
-void matrix_transpose (matrix a, matrix * t);
+extern void matrix_transpose (matrix a, matrix * t);
 
 
 /*---------------------------------------------------------------------------*/
@@ -241,9 +246,9 @@ void matrix_transpose (matrix a, matrix * t);
   matrix ainv.
 */
 
-int matrix_inverse (matrix a, matrix * ainv);
+extern int matrix_inverse (matrix a, matrix * ainv);
 
-int matrix_inverse_dsc (matrix a, matrix * ainv);  /* 15 Jul 2004 */
+extern int matrix_inverse_dsc (matrix a, matrix * ainv);  /* 15 Jul 2004 */
 
 
 /*---------------------------------------------------------------------------*/
@@ -252,7 +257,7 @@ int matrix_inverse_dsc (matrix a, matrix * ainv);  /* 15 Jul 2004 */
   Result is matrix s.
 */
 
-int matrix_sqrt (matrix a, matrix * s);
+extern int matrix_sqrt (matrix a, matrix * s);
 
 
 /*---------------------------------------------------------------------------*/
@@ -260,7 +265,7 @@ int matrix_sqrt (matrix a, matrix * s);
   Initialize vector data structure.
 */
 
-void vector_initialize (vector * v);
+extern void vector_initialize (vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -268,7 +273,7 @@ void vector_initialize (vector * v);
   Destroy vector data structure by deallocating memory.
 */
 
-void vector_destroy (vector * v);
+extern void vector_destroy (vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -276,13 +281,13 @@ void vector_destroy (vector * v);
   Create vector v by allocating memory and initializing values.
 */
 
-void vector_create (int dim, vector * v);
+extern void vector_create (int dim, vector * v);
 
 /*---------------------------------------------------------------------------*/
 /*
   Create vector v by allocating memory, but do not initialize values.
 */
-void vector_create_noinit(int dim, vector * v);
+extern void vector_create_noinit(int dim, vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -290,7 +295,7 @@ void vector_create_noinit(int dim, vector * v);
   Print contents of vector v.
 */
 
-void vector_print (vector v);
+extern void vector_print (vector v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -298,7 +303,7 @@ void vector_print (vector v);
   Print label and contents of vector v.
 */
 
-void vector_sprint (char * s, vector v);
+extern void vector_sprint (char * s, vector v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -306,7 +311,7 @@ void vector_sprint (char * s, vector v);
   Copy vector a.  Result is vector b.
 */
 
-void vector_equate (vector a, vector * b);
+extern void vector_equate (vector a, vector * b);
 
 
 /*---------------------------------------------------------------------------*/
@@ -314,7 +319,7 @@ void vector_equate (vector a, vector * b);
   Convert simple array f into vector v.
 */
 
-void array_to_vector (int dim, float * f, vector * v);
+extern void array_to_vector (int dim, float * f, vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -322,8 +327,8 @@ void array_to_vector (int dim, float * f, vector * v);
   Convert column c of matrix m into vector v.
 */
 
-void column_to_vector (matrix m, int c, vector * v);
-void row_to_vector    (matrix m, int r, vector * v);
+extern void column_to_vector (matrix m, int c, vector * v);
+extern void row_to_vector    (matrix m, int r, vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -331,7 +336,7 @@ void row_to_vector    (matrix m, int r, vector * v);
   Convert vector v into array f.
 */
 
-void vector_to_array (vector v, float * f);
+extern void vector_to_array (vector v, float * f);
 
 
 /*---------------------------------------------------------------------------*/
@@ -339,7 +344,7 @@ void vector_to_array (vector v, float * f);
   Add vector a to vector b.  Result is vector c.
 */
 
-void vector_add (vector a, vector b, vector * c);
+extern void vector_add (vector a, vector b, vector * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -347,7 +352,7 @@ void vector_add (vector a, vector b, vector * c);
   Subtract vector b from vector a.  Result is vector c.
 */
 
-void vector_subtract (vector a, vector b, vector * c);
+extern void vector_subtract (vector a, vector b, vector * c);
 
 
 /*---------------------------------------------------------------------------*/
@@ -355,8 +360,8 @@ void vector_subtract (vector a, vector b, vector * c);
   Right multiply matrix a by vector b.  Result is vector c.
 */
 
-void vector_multiply (matrix a, vector b, vector * c);
-void vector_multiply_transpose (matrix a, vector b, vector * c);
+extern void vector_multiply (matrix a, vector b, vector * c);
+extern void vector_multiply_transpose (matrix a, vector b, vector * c);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -364,28 +369,28 @@ void vector_multiply_transpose (matrix a, vector b, vector * c);
   Also returns sum of squares of elements of d.
 */
 
-double vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
+extern double vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 /*---------------------------------------------------------------------------*/
 /*
   Calculate dot product of vector a with vector b.
 */
 
-double vector_dot (vector a, vector b);
+extern double vector_dot (vector a, vector b);
 
-double vector_dotself (vector a);  /* 28 Dec 2002: RWCox */
+extern double vector_dotself (vector a);  /* 28 Dec 2002: RWCox */
 
 /*---------------------------------------------------------------------------*/
 
-double matrix_norm     ( matrix a ) ;              /* 03 Mar 2003: RWCox */
-double matrix_frobenius( matrix a ) ;              /* 30 Jul 2008 */
-void matrix_colsqsums  ( matrix a , vector *v ) ;  /* 30 Jul 2008 */
+extern double matrix_norm     ( matrix a ) ;              /* 03 Mar 2003: RWCox */
+extern double matrix_frobenius( matrix a ) ;              /* 30 Jul 2008 */
+extern void matrix_colsqsums  ( matrix a , vector *v ) ;  /* 30 Jul 2008 */
 
-int * matrix_check_columns( matrix a , double eps ) ; /* 14 Jul 2004: RWCox */
+extern int * matrix_check_columns( matrix a , double eps ) ; /* 14 Jul 2004: RWCox */
 
-double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
+extern double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
 
-void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2004 */
+extern void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2004 */
 
 extern int matrix_collinearity_fixup( matrix X , matrix *Xa ) ; /* 12 Dec 2008 */
 

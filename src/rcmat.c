@@ -1,8 +1,32 @@
 #include "mrilib.h"
+#include <math.h>
+#include <stdlib.h>
 
 /****************************************************************************/
 /****** Generic functions to process a sparse matrix in rcmat format. *******/
 /****************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+#ifndef isfinite
+# define isfinite finite
+#endif
+/*--------------------------------------------------------------------------*/
+/* Scan rcmat structure for immoral entries [30 Jul 2020] */
+
+int rcmat_floatscan( rcmat *rcm )
+{
+   int ii,jj , nbad=0 ;
+
+   if( !ISVALID_RCMAT(rcm) ) return 0 ;
+
+   for( ii=0 ; ii < rcm->nrc ; ii++ ){
+     for( jj=0 ; jj < rcm->len[ii] ; jj++ ){
+       if( !isfinite( rcm->rc[ii][jj] ) ){ nbad++; rcm->rc[ii][jj] = 0.0; }
+     }
+   }
+
+   return nbad ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! Create a rcmat struct, ready to be filled up. */

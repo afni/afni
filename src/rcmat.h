@@ -60,6 +60,7 @@ extern int     rcmat_choleski     ( rcmat *rcm ) ;
 extern void    rcmat_lowert_solve ( rcmat *rcm , double *vec ) ;
 extern void    rcmat_uppert_solve ( rcmat *rcm , double *vec ) ;
 extern void    rcmat_lowert_vecmul( rcmat *rcm , double *vec ) ; /* 02 Oct 2009 */
+extern int     rcmat_floatscan    ( rcmat *rcm ) ;               /* 30 Jul 2020 */
 
 extern void    rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec ) ;
 extern float   rcmat_avglen( rcmat *rcm ) ;

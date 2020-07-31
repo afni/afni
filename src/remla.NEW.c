@@ -235,10 +235,10 @@ typedef struct {
 #define RS_arma31_th(rs)   (rs)->pvec[2]  /* this is theta */
 #define RS_arma31_sfac(rs) (rs)->pvec[3]  /* this is vrt (variance ratio) */
 
-/* macros to load an array named 'pvec' */
+/* macros to load a local array named 'pvec' */
 
-#define LOAD_pvec2(a,b)     ( pvec[0]=(a) , pvec[1]=(b) , pvec )
-#define LOAD_pvec4(a,b,c,d) ( pvec[0]=(a), pvec[1]=(b), pvec[2]=(c), pvec[3]=(d), pvec )
+#define LOAD_pvec2(a,b)     ( pvec[0]=(a), pvec[1]=(b) )
+#define LOAD_pvec4(a,b,c,d) ( pvec[0]=(a), pvec[1]=(b), pvec[2]=(c), pvec[3]=(d) )
 
 /*****
   Struct to hold the information needed to compute
@@ -248,6 +248,7 @@ typedef struct {
 typedef struct {
   int neq , mreg ;
   int noise_model ;  /* one of the _MODEL constants above */
+  int junk ;         /* 4 byte spacer */
 
   /* set of model parameters [see RS_arma... macros above] */
 
@@ -803,11 +804,16 @@ static int do_logqsumq = 1 ; /* 28 Apr 2020 */
                   rather than static or malloc-ed vectors, for OpenMP's sake.
 *//*------------------------------------------------------------------------*/
 
+#undef  RFDEBUG   /* only enable this if USE_OMP is NOT defined */
+#ifdef  RFDEBUG
+static double raa,rbb,rvv ;
+#endif
+
 double REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
                   double *bbar[7] , double *bbsumq )
 {
    int n , ii ;
-   double val ;
+   double val=-666.0 ;
    double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
    double qsumq ;
 
@@ -820,6 +826,8 @@ ENTRY("REML_func") ;
    bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
    bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
 
+/* ININFO_message("   REML_func 1: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
+
    n = rset->neq ;
 
    /** Seven matrix-vector steps to compute the prewhitened residuals **/
@@ -827,28 +835,35 @@ ENTRY("REML_func") ;
    for( ii=0 ; ii < n ; ii++ ) bb1[ii] = y->elts[ii] ;
    rcmat_lowert_solve( rset->cc , bb1 ) ;            /* bb1 = C^(-T) y */
                                                      /* prewhitened data */
+/* ININFO_message("   REML_func 2: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    for( ii=0 ; ii < n ; ii++ ) bb2[ii] = bb1[ii] ;
    rcmat_uppert_solve( rset->cc , bb2 ) ;            /* bb2 = C^(-1) bb1 */
 
+/* ININFO_message("   REML_func 3: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    if( Xs != NULL ){
      vector_spc_multiply_transpose( Xs , bb2, bb3 );
    } else {
      vector_full_multiply_transpose( X , bb2, bb3 ); /* bb3 = X^T bb2 */
    }
 
+/* ININFO_message("   REML_func 4: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    vector_full_rrtran_solve( rset->dd , bb3 , bb4 ); /* bb4 = D^(-T) bb3 */
 
+/* ININFO_message("   REML_func 5: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    vector_full_rr_solve(     rset->dd , bb4 , bb5 ); /* bb5 = D^(-1) bb4 */
                                                      /*     = beta_hat  */
+/* ININFO_message("   REML_func 6: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    if( Xs != NULL ){
      vector_spc_multiply( Xs , bb5 , bb6 ) ;
    } else {
      vector_full_multiply( X , bb5 , bb6 ) ;         /* bb6 = X bb5 */
    }                                                 /* fitted model */
 
+/* ININFO_message("   REML_func 7: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    for( ii=0 ; ii < n ; ii++ ) bb7[ii] = bb6[ii] ;
    rcmat_lowert_solve( rset->cc , bb7 ) ;            /* bb7 = C^(-T) bb6 */
                                                      /* prewhitened fit */
+/* ININFO_message("   REML_func 8: a = %g b = %g",rset->pvec[0],rset->pvec[1]) ; */
    qsumq = 0.0 ;
    for( ii=0 ; ii < n ; ii++ ){
      bb2[ii] = bb1[ii] - bb7[ii] ;                   /* result = bb1 - bb7 */
@@ -867,6 +882,13 @@ ENTRY("REML_func") ;
      val = qsumq + rset->dd_logdet + rset->cc_logdet ; /* 28 Apr 2020 */
    }
 
+#ifdef  RFDEBUG
+   raa = rset->pvec[0] ;
+   rbb = rset->pvec[1] ;
+   rvv = val ;
+#endif
+
+/* ININFO_message("   REML_func 9: a = %g b = %g val = %g",rset->pvec[0],rset->pvec[1],val) ; */
    RETURN(val) ;
 }
 
@@ -1343,7 +1365,7 @@ static int number_of_parameters( int cod )
 }
 
 /*--------------------------------------------------------------------------*/
-/* Copy parameter vector for a particular model.
+/* Copy parameter vector qvec into pvec, for a particular model.
 *//*------------------------------------------------------------------------*/
 
 void copy_generic_parameter_vector( int code, double *pvec, double *qvec )
@@ -1351,6 +1373,7 @@ void copy_generic_parameter_vector( int code, double *pvec, double *qvec )
    int np ;
    if( pvec == NULL || qvec == NULL ) return ;
    np = number_of_parameters( code ) ; if( np <= 0 ) return ;
+   if( np > 6 ) np = 6 ;
    AA_memcpy( pvec , qvec , sizeof(double)*np ) ;
    return ;
 }
@@ -1416,11 +1439,16 @@ ENTRY("rcmat_generic") ;
 
    corvec = rcmat_generic_correlations( code , pvec , corcut , nt ) ;
 
-   if( corvec == NULL || corvec->nar <= 0 ) RETURN( NULL ) ;
+   if( corvec == NULL || corvec->nar <= 0 ){
+     WARNING_message("rcmat_generic: pvec = %g %g ==> NULL",pvec[0],pvec[1]) ;
+     RETURN( NULL ) ;
+   }
 
    /* set maximum bandwidth from actual number of correlations we got */
 
    bmax = corvec->nar - 1 ;  /* we have lags 0 .. bmax */
+
+/* INFO_message("rcmat_generic: bmax=%d pvec = %g %g",bmax,pvec[0],pvec[1]) ; */
 
    /* special and trivial case: identity matrix (only got correlation [0]) */
 
@@ -1460,6 +1488,10 @@ ENTRY("rcmat_generic") ;
      }
    }
 
+   /* check for errors that should never happen */
+   ii = rcmat_floatscan(rcm) ;
+   if( ii > 0 ) ERROR_message("%d errors found in rcmat_generic matrix",ii);
+
    RETURN( rcm ) ;
 }
 
@@ -1478,13 +1510,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    double *vec , csum,dsum,val ;
 
    if( nt < 2 || X == NULL || X->rows != nt || pvec == NULL ){
-     if( verb ) ERROR_message("setup_generic_reml: bad inputs?!") ;
+     ERROR_message("setup_generic_reml: bad inputs?!") ;
      return NULL ;
    }
 
    mm = X->cols ;  /* number of regression parameters */
    if( mm >= nt || mm <= 0 ){
-     if( verb ) ERROR_message("setup_generic_reml: bad inputs?!!") ;
+     ERROR_message("setup_generic_reml: bad inputs?!!") ;
      return NULL ;
    }
 
@@ -1492,7 +1524,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 
    rcm = rcmat_generic( nt , tau , code , pvec ) ;
    if( rcm == NULL ){
-     if( verb ) ERROR_message("rcmat_generic fails!?") ;
+     ERROR_message("rcmat_generic fails!?") ;
      return NULL ;
    }
 
@@ -1500,10 +1532,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 
    ii = rcmat_choleski( rcm ) ;
    if( ii != 0 ){
-     if( verb )
-       ERROR_message("rcmat_choleski fails with code=%d for model %d :(",ii,code) ;
+     ERROR_message("rcmat_choleski fails with code=%d for model %d :(",ii,code) ;
      rcmat_destroy(rcm); return NULL;
    }
+
+   /* check for errors that should never happen */
+   ii = rcmat_floatscan(rcm) ;
+   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml C matrix",ii);
 
    /* prewhiten each column of X into W matrix */
    /* that is, W = inv(C) X */
@@ -1518,6 +1553,9 @@ reml_setup * setup_generic_reml( int nt, int *tau,
      for( ii=0 ; ii < nt ; ii++ ) W->elts[ii][jj] = vec[ii] ;  /* put into W */
    }
 
+   ii = matrix_floatscan( W ) ;
+   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml W matrix",ii) ;
+
    remla_free((void *)vec) ;
 
    /* compute QR decomposition of W, save R factor into D, toss W */
@@ -1526,8 +1564,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    ii = matrix_qrr( *W , D ) ;
    matrix_destroy(W) ; remla_free((void *)W) ;
    if( D->rows <= 0 ){
-     if( verb )
-       ERROR_message("matrix_qrr fails?!") ;
+     ERROR_message("matrix_qrr fails?!") ;
      matrix_destroy(D) ; remla_free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    } else if( ii > 0 ){
 #pragma omp critical (QRERR)
@@ -1543,6 +1580,9 @@ reml_setup * setup_generic_reml( int nt, int *tau,
  } /* end of OpenMP critical section */
    }
 
+   ii = matrix_floatscan( D ) ;
+   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml D matrix",ii) ;
+
    /* create the setup struct, save stuff into it */
 
    rset = (reml_setup *)remla_malloc(sizeof(reml_setup)) ;
@@ -1551,7 +1591,9 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    rset->cc          = rcm ;    /* Choleski factor of R matrix */
    rset->dd          = D ;      /* R factor of W matrix */
    rset->noise_model = code ;
-   copy_generic_parameter_vector( code , pvec , rset->pvec ) ;
+   copy_generic_parameter_vector( code , rset->pvec , pvec ) ;
+
+/* ININFO_message("  save pvec = %g %g",rset->pvec[0],rset->pvec[1]) ; */
 
    /* save the lambda parameter - just for fun */
 
@@ -1725,185 +1767,6 @@ reml_collection_generic * REML_initialize_collection( matrix *X )
    return rcg ;
 }
 
-#if 0
-/*--------------------------------------------------------------------------*/
-/* nlev >  0 ==> grids of size 2^nlev
-   nlev == 0 ==> just setup 2 points: (a,b)=(0,0) and (abot,btop)
-*//*------------------------------------------------------------------------*/
-
-reml_collection_generic * REML_setup_all_arma11_NEW(
-                               matrix *X , int *tau ,
-                               int nlev, double atop, double btop )   /* DOOMED */
-{
-   int ii,jj,kk , nt , nset , pna,pnb , na,nb ;
-   double da,db, bb,aa, lam , bbot,abot ;
-   reml_collection_generic *rcg=NULL ;
-   float avglen=0.0f ;
-   double spcut ;
-
-   if( X == NULL ){  /* super stoopid */
-     ERROR_message("REML_setup_all_arma11_NEW: input matrix is NULL???") ;
-     return rcg ;
-   }
-
-   nt = X->rows ;
-   if( nt < 9 ){     /* medium stoopid */
-     ERROR_message(
-       "REML_setup_all_arma11_NEW: number of time points %d is less than 9 -- not allowed!",nt) ;
-     return rcg ;
-   }
-
-   /* set grid in a and b parameters */
-
-   if( nlev > 0 ){
-     if( nlev < 3 ) nlev = 3 ; else if( nlev > 7 ) nlev = 7 ;
-     if( btop <= 0.0 ) btop = 0.08 ; else if( btop > 0.9 ) btop = 0.9 ;
-     nb = 1 << (nlev+1) ; pnb = nlev+1 ; bbot = -btop ; db = 2.0*btop / nb ;
-
-     if( atop <= 0.0 ) atop = 0.08 ; else if( atop > 0.9 ) atop = 0.9 ;
-     if( allow_negative_cor ){
-       na = 1 << (nlev+1) ; pna = nlev+1 ; abot = -atop ;
-     } else {
-       na = 1 << (nlev)   ; pna = nlev   ; abot = 0.0   ;
-     }
-     da = (atop-abot) / na ;
-   } else {                        /* special case of just 2 (a,b) pairs */
-     da = db = 0.0 ; na = nb = pna = pnb = 0 ;
-     abot = atop ; bbot = btop ;
-   }
-
-   rrcol = (reml_collection_arma11 *)remla_malloc(sizeof(reml_collection_arma11)) ;
-
-   rrcol->X = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
-   matrix_equate( *X , rrcol->X ) ;
-
-   spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
-
-   if( spcut <= 0.0 ) spcut = 1.01 ;  /* always use sparmat [29 Jun 2009] */
-
-   lam = sparsity_fraction( *X ) ;
-   if( lam <= spcut ) rrcol->Xs = matrix_to_sparmat( *X ) ;
-   else               rrcol->Xs = NULL ;
-#if 1
-   if( verb > 1 ){
-     static int first=1 ;
-     if( first ) ININFO_message("X matrix: %.3f%% of elements are nonzero" ,
-                                100.0*lam ) ;
-     first = 0 ;
-   }
-#endif
-
-   if( nlev > 0 ){
-     rrcol->nab   = (nb+1)*(na+1) ;  /* number of cases to create */
-     rrcol->istwo = 0 ;
-   } else {
-     rrcol->nab   = 2 ;
-     rrcol->istwo = 1 ;
-   }
-
-   /* allocate REML matrix setups:
-       all are NULL to start, and if a matrix setup (rs) element
-       is never computed, then it will be skipped later in the
-       optimizing function REML_find_best_case */
-
-   rrcol->rs = (reml_setup **)remla_calloc(sizeof(reml_setup *),rrcol->nab) ;
-
-   rrcol->abot = abot ; rrcol->da = da ; rrcol->na = na ; rrcol->pna = pna ;
-   rrcol->bbot = bbot ; rrcol->db = db ; rrcol->nb = nb ; rrcol->pnb = pnb ;
-
-   /** set up the (a,b)=(0,0) case **/
-
-   if( nlev > 0 ){
-     rrcol->izero = kk = IAB(rrcol,0.0,0.0) ;  /* index for a=b=0 case */
-   } else {
-     rrcol->izero = kk = 0 ;
-   }
-   rrcol->rs[kk] = setup_arma11_reml( nt , tau , 0.0 , 0.0 , X ) ;
-   rrcol->rs[kk]->barm = 0.0 ; nset = 1 ;
-   avglen = rcmat_avglen( rrcol->rs[kk]->cc ) ;
-
-   if( nlev == 0 ){  /* special setup with just 2 (a,b) cases */
-
-     bb = bbot ; aa = abot ; lam = LAMBDA(aa,bb) ; kk = 1 ;
-     rrcol->rs[kk] = setup_arma11_reml( nt,tau , aa,lam , X ) ;
-     if( rrcol->rs[kk] != NULL ){
-       rrcol->rs[kk]->barm = bb ; nset++ ;
-       avglen += rcmat_avglen( rrcol->rs[kk]->cc ) ;
-     }
-
-   } else {          /* general setup case with an (a,b) grid of cases */
-
-#ifdef USE_OMP
-    int nthr , *nset_th ; float *avg_th ; static int first=1 ;
-    nthr    = omp_get_max_threads() ;
-    nset_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ;
-    avg_th  = (float *)remla_calloc(sizeof(float),nthr) ;
-    if( first && verb && nthr > 1 ){
-      ININFO_message("starting %d OpenMP threads for REML setup",nthr) ;
-      first = 0 ;
-    }
-#endif
-
- AFNI_OMP_START ;
-#pragma omp parallel if( maxthr > 1 && rrcol->nab > 2 )
- { int iab , nab , ii,jj,kk , ithr=0 ;
-   double bb,aa, lam ; float avg ;
-   nab = rrcol->nab ;
-
-#ifdef USE_OMP
-   ithr = omp_get_thread_num() ;
-#ifdef ENABLE_REMLA_MALLOC
-   if( ithr == 0 && verb > 1 ) fprintf(stderr,"nab=%d ",nab) ;
-#endif
-#endif
-#pragma omp for
-     for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
-       ii  = iab % (na+1) ;
-       jj  = iab / (na+1) ;  /* the (na+1) is correct here! */
-       aa  = ii*da + abot ;                 /* AR parameter */
-       bb  = jj*db + bbot ;                 /* MA parameter */
-       lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
-       kk  = ii + (1+na)*jj ;
-       if( kk != rrcol->izero &&
-           ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
-         rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
-         if( rrcol->rs[kk] != NULL ){
-           rrcol->rs[kk]->barm = bb ;
-           avg = rcmat_avglen( rrcol->rs[kk]->cc ) ;
-#ifdef USE_OMP
-           nset_th[ithr]++ ; avg_th[ithr] += avg ;
-#ifdef ENABLE_REMLA_MALLOC
-           if( ithr == 0 && verb > 1 ){
-             fprintf(stderr," [%d]",kk) ;
-             if( kk%20 == 0 ) REMLA_memprint ;
-           }
-#endif
-#else
-           nset++ ; avglen += avg ;
-#endif
-         }
-       }
-     } /* end loop over (aa,bb) pairs */
-
- } /* end OpenMP */
- AFNI_OMP_END ;
-
-#ifdef USE_OMP
-   for( ii=0 ; ii < nthr ; ii++ ){
-     nset += nset_th[ii] ; avglen += avg_th[ii] ;
-   }
-   remla_free(avg_th) ; remla_free(nset_th) ;
-#endif
-
-   } /* end general setup */
-
-   /* fix a couple of details and vamoose */
-
-   rrcol->nset = nset ; rrcol->savfil = NULL ; rrcol->avglen = avglen/nset ;
-   return rrcol ;
-}
-#endif
-
 /*--------------------------------------------------------------------------*/
 /* Fill in a 2D grid of REML setups, over a range of parameters.
    Parameter (a,b) grid dimensions are 0..2^pna X 0..2^pnb.
@@ -1926,6 +1789,15 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    /* check for stoopiditeeze */
 
+#ifdef RFDEBUG
+INFO_message("REML_setup_all_generic_2D:\n"
+             "  model_code = %d\n"
+             "  pna = %d pnb = %d\n"
+             "  amin = %g amax = %g azer = %g\n"
+             "  bmin = %g bmax = %g bzer = %g\n" ,
+             model_code , pna,pnb , amin,amax,azer , bmin,bmax,bzer ) ;
+#endif
+
    if( X == NULL ){
      ERROR_message("REML_setup_all_generic_2D: input matrix is NULL") ;
      return rcg ;
@@ -1938,7 +1810,7 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    /* no grid to use? */
 
-   istwo = (pna == 0 && pnb == 0 ) ;
+   istwo = (pna == 0 && pnb == 0 ) ;  /* will set up just 2 cases */
 
    /* check if grid layout makes sense */
 
@@ -1964,8 +1836,8 @@ reml_collection_generic * REML_setup_all_generic_2D(
    /* set grid size in a and b parameters (powers of two) */
 
    if( !istwo ){
-     if( pna < 3 ) pna = 3 ; else if( pna > 8 ) pna = 8 ;
-     if( pnb < 3 ) pnb = 3 ; else if( pnb > 8 ) pnb = 8 ;
+     if( pna < 4 ) pna = 4 ; else if( pna > 8 ) pna = 8 ;
+     if( pnb < 4 ) pnb = 4 ; else if( pnb > 8 ) pnb = 8 ;
    }
 
    /* create nearly empty collection */
@@ -1997,6 +1869,10 @@ reml_collection_generic * REML_setup_all_generic_2D(
      rcg->bbot  = bmin; rcg->btop = amin; rcg->bzer = bzer; rcg->db = 0.0 ;
    }
 
+#ifdef RFDEBUG
+ININFO_message("  nset = %d  da=%g db=%g  na=%d nb=%d",rcg->nset,rcg->da,rcg->db,na,nb) ;
+#endif
+
    /* calloc-ate REML matrix setups:
        all are NULL to start, and if a matrix setup (rs) element
        is never computed, then it will be skipped later in the
@@ -2007,12 +1883,16 @@ reml_collection_generic * REML_setup_all_generic_2D(
    /** set up the (a,b)='zero' case **/
 
    if( !istwo ){
-     rcg->izero = kk = IAB(rcg,azer,bzer) ;  /* set index for middle case */
+     rcg->izero = kk = IAB(rcg,azer,bzer) ;  /* set index for 'zero' case */
    } else {
-     rcg->izero = kk = 0 ;      /* middle case is first, then second case */
+     rcg->izero = kk = 0 ;      /* 'zero' case is first, then second case */
    }
 
-   rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, LOAD_pvec2(azer,bzer) ) ;
+#ifdef RFDEBUG
+INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
+#endif
+   LOAD_pvec2(azer,bzer) ;
+   rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
 
    if( rcg->rs[kk] != NULL ){
      ndone++ ;
@@ -2023,8 +1903,9 @@ reml_collection_generic * REML_setup_all_generic_2D(
 
    if( istwo ){  /* special setup with just 2 (a,b) cases */
 
-     kk = 1 ;
-     rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, LOAD_pvec2(amin,bmin) ) ;
+     kk = ndone ;
+     LOAD_pvec2(amin,bmin) ;
+     rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
      if( rcg->rs[kk] != NULL ){
        ndone++ ;
        avglen += rcmat_avglen( rcg->rs[kk]->cc ) ;
@@ -2032,7 +1913,7 @@ reml_collection_generic * REML_setup_all_generic_2D(
        ERROR_message("REML_setup_all_generic_2D: failure to setup model a=%g b=%g",amin,bmin) ;
      }
 
-   } else {          /* general setup case with an (a,b) grid of cases */
+   } else {      /* general setup case with an (a,b) grid of cases */
 
    /** stuff for use in multi-threaded code below **/
 
@@ -2070,8 +1951,10 @@ reml_collection_generic * REML_setup_all_generic_2D(
        aa  = ii*da + abot ;  /* actual value of a parameter */
        bb  = jj*db + bbot ;  /* actual value of b parameter */
        kk  = ii + na1*jj ;   /* should == iab */
-       if( rcg->rs[kk] != NULL ){
-         rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, LOAD_pvec2(aa,bb) ) ;
+       if( rcg->rs[kk] == NULL ){
+/* ININFO_message("setup kk=%d  a=%g b=%g",kk,aa,bb) ; */
+         LOAD_pvec2(aa,bb) ;
+         rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
          if( rcg->rs[kk] != NULL ){
            avg = rcmat_avglen( rcg->rs[kk]->cc ) ;
 #ifdef USE_OMP
@@ -2086,6 +1969,9 @@ reml_collection_generic * REML_setup_all_generic_2D(
            ndone++ ; avglen += avg ; /* overall counting - not multi-threaded */
 #endif
          }
+#if 1
+       else { ININFO_message("setup kk=%d  a=%g b=%g FAILS",kk,aa,bb) ; }
+#endif
        }
      } /* end loop over (aa,bb) pairs */
 
@@ -2119,12 +2005,12 @@ reml_collection_generic * REML_setup_all_arma11(
 {
    return
      REML_setup_all_generic_2D( X , tau , ARMA11_MODEL ,
-                                nlev , nlev ,
+                                nlev , nlev , /* positive == 2D grid in a,b */
                                 -amax,amax , -bmax,bmax , 0.0,0.0 ) ;
 }
 
 /*--------------------------------------------------------------------------*/
-/* For ARMA(1,1) -- just the fixed (a,b) pair and (0,0) */
+/* For ARMA(1,1) -- just do the fixed (a,b) pair and (0,0) */
 /*--------------------------------------------------------------------------*/
 
 reml_collection_generic * REML_setup_fixed_arma11(
@@ -2132,7 +2018,7 @@ reml_collection_generic * REML_setup_fixed_arma11(
 {
    return
      REML_setup_all_generic_2D( X , tau , ARMA11_MODEL ,
-                                0 , 0 ,
+                                0 , 0 ,  /* 0,0 == flag for 'istwo' */
                                 afix,afix , bfix,bfix , 0.0,0.0 ) ;
 }
 
@@ -2155,6 +2041,9 @@ int REML_find_best_case_generic_2D(
 ENTRY("REML_find_best_case_generic_2D") ;
 
    if( y == NULL ) RETURN(-666) ; /* negative return = error message */
+
+   mm = vector_floatscan( y ) ;
+   if( mm > 0 ) ERROR_message("%d float errors in REML_find_best_case_generic_2D y input",mm) ;
 
    /* copy (a,b) grid parameters to local variables */
 
@@ -2182,7 +2071,20 @@ ENTRY("REML_find_best_case_generic_2D") ;
    kbest = rcg->izero ;
    jbest = kbest / na1 ;
    ibest = kbest % na1 ;
+
+#ifdef  RFDEBUG
+INFO_message("init at izero=%d  ia=%d  jb=%d  a=%g b=%g",
+              kbest , ibest , jbest ,
+              rcg->rs[kbest]->pvec[0],rcg->rs[kbest]->pvec[1] ) ;
+#endif
+
    rbest = REML_func( y, rcg->rs[kbest], rcg->X,rcg->Xs, bbar,NULL ) ;
+
+#ifdef  RFDEBUG
+ININFO_message("   rbest=%g at izero=%d a=%g b=%g",rbest,kbest,
+               rcg->rs[kbest]->pvec[0],rcg->rs[kbest]->pvec[1] ) ;
+ININFO_message("   vs raa=%g rbb=%g rvv=%g",raa,rbb,rvv) ;
+#endif
 
    /* initialize all REML output values to be HUGE, except for the first */
 
@@ -2227,6 +2129,10 @@ ENTRY("REML_find_best_case_generic_2D") ;
          kk = ia + jb*na1 ; rval = rvab[kk] ;
          if( rval < rbest ){                          /* the best so far seen */
            rbest = rval ; kbest = kk ; ibest = ia ; jbest = jb ;
+#ifdef  RFDEBUG
+ININFO_message("new rbest=%g at kk=%d a=%g b=%g",rbest,kbest ,
+               rcg->rs[kbest]->pvec[0],rcg->rs[kbest]->pvec[1] ) ;
+#endif
          }
      }}
 
@@ -2252,6 +2158,11 @@ ENTRY("REML_find_best_case_generic_2D") ;
    /* save the smallest REML value found */
 
    if( ws != NULL ) ws[0] = rbest ;
+
+#ifdef  RFDEBUG
+ININFO_message("final rbest=%g at kk=%d a=%g b=%g",rbest,kbest ,
+               rcg->rs[kbest]->pvec[0],rcg->rs[kbest]->pvec[1] ) ;
+#endif
 
    /*** deal with the winner ***/
 
