@@ -52,6 +52,7 @@ commands:
               --tag afni/afni_<< parameters.build_type >>:latest \
               --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
               --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              --build-arg AFNI_WITH_COVERAGE=$AFNI_WITH_COVERAGE \
               --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
 
   run_afni_tests:
@@ -61,31 +62,53 @@ commands:
         type: string
     steps:
       - run:
+          shell: /bin/bash -eo pipefail
           name: Run tests
           no_output_timeout: 2h
           command: |
             # Fail out if docker image does not exist. Should not be pulled from dockerhub...
-            set -e
             docker image inspect afni/afni_<< parameters.build_type >> 1>/dev/null
 
+            # Define environment for codecov in case it is used
+            ci_env=`bash <(curl -s https://codecov.io/env)`
+            echo $ci_env
+            if [ $(id -u) == "0" ]
+            then
+              # Depending on the environment this is executed the user is
+              # either root or circleci. If the former, nothing should be
+              # mounted and the user in the container should be used
+              other_docker_args=""
+            else
+              # If the circleci user is used, directories should be chowned,
+              # and the test data directory should be mounted into the
+              # container to facilitate data caching
+              other_docker_args='\
+                 --user=root  \
+                 -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
+                 -e CHOWN_HOME="yes" \
+                 -e CHOWN_HOME_OPTS='-R' \
+                 -e CHOWN_EXTRA="/opt/" \
+                 -e CHOWN_EXTRA_OPTS='-R' \
+                 -e CONTAINER_UID=$(id -u) \
+                 -e CONTAINER_GID=$(id -g)'
+            fi
             # Run tests in contain built during build step:
             docker run \
-                --user=root  \
-                -e CHOWN_HOME="yes" \
-                -e CHOWN_HOME_OPTS='-R' \
-                -e CHOWN_EXTRA="/opt/" \
-                -e CHOWN_EXTRA_OPTS='-R' \
-                -e CONTAINER_UID=$(id -u) \
-                -e CONTAINER_GID=$(id -g) \
+                $ci_env \
+                $other_docker_args \
+                -e AFNI_WITH_COVERAGE=$AFNI_WITH_COVERAGE \
                 --rm \
                 -ti \
-                -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
                 afni/afni_<< parameters.build_type >> \
                 bash -c 'bash /opt/afni/src/tests/run_tests.sh'
       - run:
           name: Return permissions to test data
           command: |
-            sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
+            if [ $(id -u) == "0" ]
+            then
+              # skipped during coverage testing
+              sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
+            fi
 
   check_integrity_of_containers:
     description: "Check some of the permissions/user/PATH basics of the containers"
@@ -301,13 +324,10 @@ jobs:
     docker:
       - image: docker:18.01.0-ce-git
     steps:
+      - run: apk add --no-cache pigz python3
       - checkout
       - setup_remote_docker:
           version: 19.03.13
-      - run:
-          name: install some basic helper tools
-          command: |
-            apk add --no-cache pigz python3
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -333,6 +353,7 @@ jobs:
     steps:
       - check_integrity_of_containers:
           image_cache_version: << parameters.image_cache_version >>
+
 
   test:
     working_directory: /tmp/src/afni
@@ -414,6 +435,26 @@ jobs:
                 -DUSE_SYSTEM_GIFTI=OFF
             ninja
 
+  coverage_check:
+    working_directory: /tmp/src/afni
+    parameters:
+      image_cache_version:
+        type: string
+      test_data_cache_version:
+        type: string
+    docker:
+      - image: docker:18.01.0-ce-git
+    environment:
+      AFNI_WITH_COVERAGE: true
+    steps:
+      - run: apk add --no-cache git pigz python3 bash curl
+      - checkout
+      - setup_remote_docker
+      - build_afni_image:
+          build_type: cmake_build
+          image_cache_version: << parameters.image_cache_version >>
+      - run_afni_tests:
+          build_type: cmake_build
 
 ############################################################################
 #Define the  workflow to organize the execution of the jobs on circleci
@@ -502,3 +543,14 @@ workflows:
             branches:
               ignore: /.*/
 
+      - coverage_check:
+          name: coverage_check
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+          requires:
+            - test_cmake_build
+          filters:
+            tags:
+              only: /AFNI_\d\d.\d.\d\d/
+            branches:
+              ignore: /.*/
