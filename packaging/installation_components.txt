@@ -665,7 +665,6 @@ plug_permtest, gui
 plug_power, gui
 plug_realtime, gui
 plug_rename, gui
-plug_render, gui
 plug_reorder, gui
 plug_retroicor, gui
 plug_roiedit, gui
@@ -730,7 +729,6 @@ SurfDsetInfo, suma
 SurfExtrema, suma
 SurfFWHM, suma
 SurfInfo, suma
-SurfLocalStat, suma
 SurfMeasures, suma
 SurfMesh, suma
 SurfPatch, suma

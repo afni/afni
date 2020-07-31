@@ -40,11 +40,6 @@ else()
     set(USE_SYSTEM_NETCDF ON)
 endif()
 
-if(USE_SYSTEM_VOLPACK AND APPLE)
-    message(WARNING [=[On OSX volpack is a little more difficult to install yourself,
-    consider setting USE_SYSTEM_VOLPACK to 'OFF']=])
-endif()
-
 if(NOT USE_SYSTEM_GLUT AND APPLE)
    message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
    set(USE_SYSTEM_GLUT ON)

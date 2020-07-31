@@ -4,7 +4,6 @@ include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
-optional_bundle(src/volpack)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 

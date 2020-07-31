@@ -139,6 +139,6 @@ set_if_not_defined(STANDARD_PYTHON_INSTALL ON)
 # fails, and netcdf and f2c because they are not currently supported.
 include(afni_system_dependency_overwrites)
 set_if_not_defined(USE_SYSTEM_ALL 0)
-foreach(OPTIONAL_LIB GLW NETCDF GIFTI NIFTI GTS DCMNIIX VOLPACK F2C GLUT XMHTML)
+foreach(OPTIONAL_LIB GLW NETCDF GIFTI NIFTI GTS DCMNIIX F2C GLUT XMHTML)
     set_if_not_defined(USE_SYSTEM_${OPTIONAL_LIB} ${USE_SYSTEM_ALL})
 endforeach()
