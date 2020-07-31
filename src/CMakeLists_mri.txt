@@ -456,7 +456,6 @@ add_library(
   mri_read_dicom.c
   mri_read_mpeg.c
   mri_read_stuff.c
-  mri_render.c
   mri_rgba_compose.c
   mri_rota.c
   mri_scale.c
