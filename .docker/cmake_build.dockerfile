@@ -1,6 +1,9 @@
 FROM afni/afni_dev_base
 
 ENV PATH=$DESTDIR/usr/local/bin:$PATH
+
+# Env variable, available only at build time of docker image to enable a
+# coverage build. Anything but a value of 0 will cause coverage to be used.
 ARG AFNI_WITH_COVERAGE="0"
 
 # Copy AFNI source code. This will likely invalidate the build cache.
@@ -13,15 +16,22 @@ USER $CONTAINER_UID
 
 WORKDIR $AFNI_ROOT/../build
 
-RUN  cmake \
-    -GNinja \
-    -DCOMP_ADD_BINARIES=ON \
-    -DUSE_SYSTEM_NIFTI=OFF \
-    -DUSE_SYSTEM_GIFTI=OFF \
-    -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
-    -DCOMP_ADD_PLUGINS=ON \
-    -DUSE_OMP=ON \
-    $AFNI_ROOT
+RUN \
+    export CC=`which gcc`;\
+    if [ "$AFNI_WITH_COVERAGE" != "0" ];then\
+        export CXXFLAGS="-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"; \
+        export CFLAGS="-g -O0 -Wall -W -fprofile-arcs -ftest-coverage"; \
+        export LDFLAGS="-fprofile-arcs -ftest-coverage";\
+    fi; \
+    cmake \
+        -GNinja \
+        -DCOMP_ADD_BINARIES=ON \
+        -DUSE_SYSTEM_NIFTI=OFF \
+        -DUSE_SYSTEM_GIFTI=OFF \
+        -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
+        -DCOMP_ADD_PLUGINS=ON \
+        -DUSE_OMP=ON \
+        $AFNI_ROOT
 
 RUN /bin/bash -oc pipefail \
 'ninja -v 2>&1 | tee verbose_build.log && test ${PIPESTATUS[0]} -eq 0'
