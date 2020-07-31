@@ -148,6 +148,8 @@ static int    f3mm_out_of_bounds(THD_fvec3 *cp, THD_fvec3 *min, THD_fvec3 *max);
 static int    float_list_alloc(float_list_t *f,int **ilist,int size,int trunc);
 static int    float_list_comp_mode(float_list_t *f, float *mode, int *nvals,
                                    int *index);
+static int    float_list_comp_nzmode(float_list_t *f, float *mode, int *nvals,
+                                   int *index);
 static int    float_list_slow_sort(float_list_t * f, int * ilist);
 static int    init_seg_endpoints(v2s_opts_t * sopt, v2s_param_t * p,
                                  range_3dmm * R, int node );
@@ -186,7 +188,7 @@ v2s_plugin_opts gv2s_plug_opts = {
                             /* this must match v2s_map_nums enum */
 char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                             "count", "min", "max", "max_abs", "seg_vals",
-                            "median", "mode", "nzave",
+                            "median", "mode", "nzmode", "nzave",
                             "nzmin", "nzmax"  };
 char gv2s_no_label[] = "undefined";
 
@@ -1030,6 +1032,7 @@ ENTRY("v2s_adjust_endpts");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZMODE:
         case E_SMAP_NZAVE:
         case E_SMAP_NZMIN:
         case E_SMAP_NZMAX:
@@ -1232,6 +1235,12 @@ ENTRY("v2s_apply_filter");
             comp = fval;
             if ( findex ) *findex = ind_list[source];
             break;
+
+        case E_SMAP_NZMODE:
+            float_list_comp_nzmode(&flist, &fval, &count, &source);
+            comp = fval;
+            if ( findex ) *findex = ind_list[source];
+            break;
     }
 
     RETURN((float)comp);
@@ -1247,7 +1256,7 @@ ENTRY("v2s_apply_filter");
 */
 static int v2s_map_needs_sort( int map )
 {
-    if ( (map == E_SMAP_MEDIAN) || (map == E_SMAP_MODE) )
+    if ( (map == E_SMAP_MEDIAN) || (map == E_SMAP_MODE) || (map == E_SMAP_NZMODE))
         return 1;
 
     return 0;
@@ -1284,7 +1293,7 @@ ENTRY("float_list_comp_mode");
             {
                 *mode  = fcur;
                 *nvals = ncur;
-                *index = c - ncur;   /* note first occurance */
+                *index = c - ncur;   /* note first occurrence */
             }
 
             fcur = f->list[c];
@@ -1296,9 +1305,65 @@ ENTRY("float_list_comp_mode");
     {
         *mode  = fcur;
         *nvals = ncur;
-        *index = c - ncur;   /* note first occurance */
+        *index = c - ncur;   /* note first occurrence */
     }
 
+    RETURN(0);
+}
+
+
+
+/*----------------------------------------------------------------------
+ * float_list_comp_nzmode         - compute the non-zero mode of the sorted list
+ *
+ * return  0 : on success
+ *        -1 : on error
+ *----------------------------------------------------------------------
+*/
+static int float_list_comp_nzmode( float_list_t *f, float *mode, int *nvals,
+                                 int *index )
+{
+    float fcur;
+    int   ncur, c;
+
+ENTRY("float_list_comp_nzmode");
+
+    /* init default results */
+    if(f->list[0] != 0.0) {
+       *nvals = ncur = 1;
+    }
+    else {
+       *nvals = ncur = 0;
+    }
+
+    *mode  = fcur = f->list[0];
+    *index = 0;
+
+    for ( c = 1; c < f->nused; c++ )
+    {
+        if ( f->list[c] == fcur )
+            ncur ++;
+        else                        /* found a new entry to count   */
+        {
+            if (( ncur > *nvals )  && (fcur != 0.0))    /* keep track of any new winner */
+            {
+                *mode  = fcur;
+                *nvals = ncur;
+                *index = c - ncur;   /* note first occurrence */
+            }
+
+            fcur = f->list[c];
+            ncur = 1;
+        }
+    }
+
+
+    if (( ncur > *nvals )  && (fcur != 0.0))    /* keep track of any new winner */
+    {
+        *mode  = fcur;
+        *nvals = ncur;
+        *index = c - ncur;   /* note first occurrence */
+    }
     RETURN(0);
 }
 
