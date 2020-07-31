@@ -128,7 +128,6 @@ set(PROGRAMS
     SpharmReco
     SpharmDeco
     SurfDsetInfo
-    SurfLocalStat
     SurfFWHM
     NikoMap
     SurfInfo

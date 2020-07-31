@@ -157,7 +157,7 @@ print("Built full build")
 
 # full with external, the full build and the external libraries that can be
 # built using the cmake build system:
-# e.g. nifti,gifti,jpeg,xmhtml,gts,glut,volpack,qhull,dcm2niix,f2c,netcdf
+# e.g. nifti,gifti,jpeg,xmhtml,gts,glut,qhull,dcm2niix,f2c
 sp.check_output(
     f"""
 ninja uninstall
@@ -170,11 +170,9 @@ cmake /opt/afni/src \
     -DUSE_SYSTEM_XMHTML=OFF \
     -DUSE_SYSTEM_GTS=OFF \
     -DUSE_SYSTEM_GLUT=OFF \
-    -DUSE_SYSTEM_VOLPACK=OFF \
     -DUSE_SYSTEM_QHULL=OFF \
     -DUSE_SYSTEM_DCM2NIIX=OFF \
-    -DUSE_SYSTEM_F2C=OFF \
-    -DUSE_SYSTEM_NETCDF=ON # not currently supported
+    -DUSE_SYSTEM_F2C=OFF
 ninja
 ninja install  > components/7_external_dependencies.txt
 """,

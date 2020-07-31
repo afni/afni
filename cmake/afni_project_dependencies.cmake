@@ -4,7 +4,6 @@ include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
-optional_bundle(src/volpack)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 
@@ -179,15 +178,4 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(gifti_clib)
 endif()
 
-if(USE_SYSTEM_NETCDF)
-  find_package(NetCDF REQUIRED)
-else()
-message(FATAL_ERROR "building netcdf not currently supported")
-FetchContent_Declare(
-  netcdf_lib   
-  GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
-  GIT_TAG 2a34eb2ac5996dc23339bdb72918eb5503393d77
-  )
-FetchContent_MakeAvailable(netcdf_lib)
-endif()
 
