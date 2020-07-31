@@ -15,6 +15,7 @@
 #include <X11/Intrinsic.h>
 
 #include "mrilib.h"
+#include "coxplot.h"
 #include "display.h"
 
 #ifdef  __cplusplus

@@ -61,13 +61,13 @@ endif()
 target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
+          AFNI::track_tools
   PRIVATE AFNI::mrix
           $<IF:$<NOT:$<BOOL:${APPLE}>>,$<TARGET_NAME_IF_EXISTS:AFNI::GLUT>,>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
-          track_tools
           segtools
           $<IF:$<BOOL:${APPLE}>,X11::Xmu,>
           AFNI::3DEdge
@@ -81,7 +81,6 @@ target_link_libraries(
   suma
   PRIVATE SUMA
           AFNI::mrix
-         AFNI::track_tools
           AFNI::segtools
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
@@ -215,26 +214,26 @@ endforeach()
 # Some other programs:
 add_afni_executable(SUMA_Read_SpecFile SUMA_Load_Surface_Object.c)
 target_link_libraries(
-  SUMA_Read_SpecFile PRIVATE SUMA AFNI::mri NIFTI::nifti2
+  SUMA_Read_SpecFile PRIVATE SUMA AFNI::mrix NIFTI::nifti2
                              NIFTI::nifticdf
 )
 
 add_afni_executable(CompareSurfaces SUMA_compare_surfaces.c)
 target_link_libraries(
-  CompareSurfaces PRIVATE SUMA AFNI::mri NIFTI::nifti2
+  CompareSurfaces PRIVATE SUMA AFNI::mrix NIFTI::nifti2
                           NIFTI::nifticdf
 )
 
 add_afni_executable(Surf2VolCoord SUMA_Surf2VolCoord_demo.c)
 target_link_libraries(
-  Surf2VolCoord PRIVATE SUMA AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+  Surf2VolCoord PRIVATE SUMA AFNI::mrix NIFTI::nifti2 NIFTI::nifticdf
 )
 
 add_afni_executable(
   path_optimize SUMA_path_optimize.c SUMA_SurfWarp.c
 )
 target_link_libraries(
-  path_optimize PRIVATE SUMA AFNI::mri  X11::Xt NIFTI::nifti2
+  path_optimize PRIVATE SUMA AFNI::mrix NIFTI::nifti2
                         NIFTI::nifticdf
 )
 
@@ -245,18 +244,18 @@ if(TARGET gts)
   target_link_libraries(
     suma_gts
     PUBLIC SUMA gts GLib2::glib
-    PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+    PRIVATE AFNI::mrix NIFTI::nifti2 NIFTI::nifticdf
   )
 
   add_afni_executable(SurfMesh SUMA_coarsen.c)
   target_link_libraries(
-    SurfMesh PRIVATE suma_gts AFNI::mri NIFTI::nifti2 NIFTI::nifticdf
+    SurfMesh PRIVATE suma_gts AFNI::mrix NIFTI::nifti2 NIFTI::nifticdf
   )
 
   foreach(program BrainSkin IsoSurface)
     add_afni_executable(${program} SUMA_${program}.c)
     target_link_libraries(
-      ${program} PRIVATE suma_gts AFNI::mri NIFTI::nifti2
+      ${program} PRIVATE suma_gts AFNI::mrix NIFTI::nifti2
                          NIFTI::nifticdf
     )
   endforeach()

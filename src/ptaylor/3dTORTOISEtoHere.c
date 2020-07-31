@@ -10,6 +10,7 @@
    NB: this program is likely no longer necessary if using 'AFNI
    export' from TORTOISE!
 
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
 */
 
 #include <stdio.h>
@@ -22,7 +23,7 @@
 #include "3ddata.h"     
 #include "editvol.h"
 #include "thd.h"
-#include "suma_suma.h"
+#include "suma_objs.h"
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 #include "DoTrackit.h"

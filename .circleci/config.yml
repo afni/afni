@@ -108,7 +108,7 @@ commands:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
           build_type: make_build
-          image_cache_version: << parameters.image_cache_version >>      
+          image_cache_version: << parameters.image_cache_version >>
       - run:
           name: Run pytest in .docker
           command: |
@@ -345,6 +345,9 @@ jobs:
       - restore_a_cache:
           version_file: "/tmp/test_data_version.txt"
           version: << parameters.test_data_cache_version >>
+      - run:
+          command: |
+            cp /tmp/test_data_version.txt /tmp/src/afni/tests/afni_ci_test_data
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>

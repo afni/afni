@@ -20,7 +20,7 @@
 #ifndef _SW__RETROICOR_H_
 #define _SW__RETROICOR_H_
 
-#include "afni.h"
+#include "mrilib.h"
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */

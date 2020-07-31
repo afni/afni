@@ -742,6 +742,7 @@ typedef struct {
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
+      Widget thr_setthresh_pb ;    /* 16 Jul 2020 discoraj */
       Widget thr_setpval_pb ;      /* 03 Dec 2013 */
       Widget thr_setqval_pb ;      /* 26 Feb 2014 */
       Widget thr_setpval_001_pb ;  /* 05 Nov 2018 */
@@ -828,6 +829,7 @@ typedef struct {
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
+extern void AFNI_func_setthresh_CB   (Widget,XtPointer,XtPointer) ; /* 16 Jul 2020 discoraj */
 extern void AFNI_func_setpval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_setqval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
@@ -2162,8 +2164,6 @@ extern int AFNI_can_transform_vector( THD_3dim_dataset *, THD_3dim_dataset * );
 
 extern THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * ,
                                         THD_fvec3 , THD_3dim_dataset * ) ;
-extern THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
-extern THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
 
 extern THD_warp * AFNI_make_warp( Three_D_View * ) ;
 

@@ -66,7 +66,7 @@
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
 /*#endif*/
-#include "afni.h"
+#include "mrilib.h"
 
 #define SIG_EPS 1E-8
 #define TINYNUMBER 1E-10

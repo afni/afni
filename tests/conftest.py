@@ -182,6 +182,10 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
         data_paths = request.module.data_paths
     except AttributeError:
         data_paths = {}
+    # start creating output dict, downloading test data as required
+    out_dict = {
+        k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
+    }
 
     module_outdir = output_dir / Path(request.module.__file__).stem.replace("test_", "")
     test_logdir = module_outdir / get_current_test_name() / "captured_output"
@@ -190,10 +194,6 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
 
     # This will be created as required later
     sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
-    # start creating output dict, downloading test data as required
-    out_dict = {
-        k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
-    }
 
     # Get the comparison directory and check if it needs to be downloaded
     comparison_dir = get_test_comparison_dir_path(

@@ -18,8 +18,7 @@ int     r_dxyz_mod_dataxes    ( double dx, double dy, double dz,
                    THD_dataxes * daxin, THD_dataxes * daxout, int bound_type );
 int     r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam_mode );
 int     r_orient_str2vec      ( char ostr [], THD_ivec3 * ovec );
-Boolean r_is_valid_orient_str ( char ostr [] );
-
+static RwcBoolean r_is_valid_orient_str ( char ostr [] );
 #ifdef  __cplusplus
 }
 #endif

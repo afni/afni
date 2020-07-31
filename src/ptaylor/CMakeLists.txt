@@ -15,9 +15,20 @@ add_afni_library(
   rsfc.c
   TrackIO.c
 )
-target_link_libraries(track_tools 
-  PUBLIC AFNI::mri 
-  PRIVATE AFNI::3DEdge NIFTI::nifti2 GSL::gsl)
+target_link_libraries(track_tools
+  PUBLIC
+    AFNI::mri
+    GSL::gsl
+  PRIVATE
+    $<TARGET_OBJECTS:suma_objs>
+    AFNI::3DEdge
+    NIFTI::nifti2
+    )
+target_include_directories(track_tools
+  INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
+  )
+
 
 
 if(COMP_ADD_BINARIES)
@@ -25,7 +36,6 @@ if(COMP_ADD_BINARIES)
     target
     1dDW_Grad_o_Mat
     1dDW_Grad_o_Mat++
-    3dAmpToRSFC
     3ddot_beta
     3dLombScargle
     3dReHo
@@ -33,56 +43,26 @@ if(COMP_ADD_BINARIES)
     3dSpaceTimeCorr
     3dTORTOISEtoHere
     3dVecRGB_to_HSL
-  )
-    add_afni_executable(${target} ${target}.c)
-    target_link_libraries(${target} track_tools)
-  endforeach(target)
-
-  foreach(
-    target
+    3dAmpToRSFC
     3dDTtoNoisyDWI
     3dMatch
     3dNetCorr
     3dRSFC
     3dTrackID
     map_TrackID
+    3dZipperZapper
+    3dSliceNDice
+    3dClusterize
+    3dProbTrackID
   )
     add_afni_executable(${target} ${target}.c)
-    target_link_libraries(${target} track_tools GSL::gsl)
+    target_link_libraries(${target} track_tools)
   endforeach(target)
-
-
-  add_afni_executable(3dZipperZapper 3dZipperZapper.c)
-  target_link_libraries(3dZipperZapper 
-    PRIVATE
-      AFNI::mri
-      GSL::gsl
-      )
-
-  add_afni_executable(3dSliceNDice 3dSliceNDice.c)
-  target_link_libraries(3dSliceNDice 
-    PRIVATE
-      AFNI::mri
-      track_tools
-      )
-
-  add_afni_executable(3dClusterize 3dClusterize.c)
-  target_link_libraries(3dClusterize 
-    PRIVATE
-      AFNI::mri
-      track_tools
-      )
-
-  add_afni_executable(3dProbTrackID 3dProbTrackID.c)
-  target_link_libraries(3dProbTrackID 
-    PRIVATE
-      AFNI::mri
-      )
 
   if(OPENMP_FOUND)
     foreach(target 3dEigsToDT 3dDWUncert)
       add_afni_executable(${target} ${target}.c)
-      target_link_libraries(${target} track_tools GSL::gsl OpenMP::OpenMP_C)
+      target_link_libraries(${target} track_tools OpenMP::OpenMP_C)
     endforeach(target)
   endif()
 endif()

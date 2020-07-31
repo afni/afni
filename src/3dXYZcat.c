@@ -5,10 +5,6 @@
   This program catenates multiple 3D datasets in various directions.
 ----------------------------------------------------------------------------*/
 
-#ifndef myXtFree
-#  define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array *XCAT_dsar  = NULL ;  /* input datasets */

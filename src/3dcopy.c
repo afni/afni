@@ -222,7 +222,7 @@ int main( int argc , char *argv[] )
          THD_marker_set *markers ;
          int ii , jj ;
 
-         markers = cset->markers = myXtNew( THD_marker_set ) ;
+         markers = cset->markers = myRwcNew( THD_marker_set ) ;
          markers->numdef = 0 ;
 
          for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */

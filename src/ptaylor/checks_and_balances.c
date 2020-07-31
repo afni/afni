@@ -1,4 +1,4 @@
-#include <afni.h>
+#include "mrilib.h"
 #include "checks_and_balances.h"
 #include "DoTrackit.h"
 #include "rsfc.h"

@@ -1,12 +1,15 @@
-#include <afni.h>
-#include "suma_suma.h"
+#include "mrilib.h"
+#include "suma_datasets.h"
 #include "readglob.h"
 
 /*
   'FULL' is a switch about whether all scalars are nec:  
   FULL=0 for 3dDWUncert, because not all scalars are used;
   FULL=1 for 3dTrackID, because we *do* rely on all of them.
- */
+
+   [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+*/
+
 int list_for_DTI( char *dti_listname,
                   THD_3dim_dataset **insetPARS,
                   THD_3dim_dataset **insetVECS,

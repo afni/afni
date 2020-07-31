@@ -243,6 +243,118 @@ ENTRY("mri_matrix_scale") ;
 }
 
 /*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_svals( MRI_IMAGE *imc ) /* 05 May 2020 */
+{
+   float *rmat ;
+   int m , n , ii,jj,kk ;
+   double *amat , *sval , smax ;
+   MRI_IMAGE *imp=NULL ; float *pmat ;
+
+ENTRY("mri_matrix_svals") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
+
+#undef  R
+#undef  A
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   imp  = mri_new( n , 1 , MRI_float ) ;
+   pmat = MRI_FLOAT_PTR(imp) ;
+
+   if( n == 1 && m == 1 ){
+     pmat[0] = fabsf(rmat[0]) ; RETURN(imp) ;   /* trivial case */
+   }
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+
+   sval = (double *)calloc( sizeof(double),n   );
+   svd_double( m , n , amat , sval , NULL,NULL ) ;
+
+   free(amat) ;  /* done with this */
+
+   for( ii=0 ; ii < n ; ii++ ) pmat[ii] = (float)sval[ii] ;
+
+   free(sval) ;
+   RETURN(imp) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_svprod( MRI_IMAGE *imc , int do_log ) /* 05 May 2020 */
+{
+   float *rmat ;
+   int m , n , ii,jj,kk ;
+   double *amat , *sval , smax ;
+   MRI_IMAGE *imp=NULL ; float *pmat ;
+
+ENTRY("mri_matrix_svprod") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
+
+#undef  R
+#undef  A
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
+
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   imp  = mri_new( 1 , 1 , MRI_float ) ;
+   pmat = MRI_FLOAT_PTR(imp) ;
+
+   if( n == 1 && m == 1 ){
+     pmat[0] = fabsf(rmat[0]) ; RETURN(imp) ;   /* trivial case */
+   }
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+
+   sval = (double *)calloc( sizeof(double),n   );
+   svd_double( m , n , amat , sval , NULL,NULL ) ;
+
+   free(amat) ;  /* done with this */
+
+   /* find largest singular value */
+
+   smax = sval[0] ;
+   for( ii=1 ; ii < n ; ii++ ) if( sval[ii] > smax ) smax = sval[ii] ;
+
+   if( smax <= 0.0 ){                        /* this is bad */
+     static int first = 1 ;
+#pragma omp critical (STDERR)
+     { if( first ) ERROR_message("SVD fails in mri_matrix_svprod()!\n"); }
+     free(sval); first = 0;
+     RETURN(imp);
+   }
+
+   if( do_log ){
+     smax = 0.0 ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( sval[ii] > 0.0 ) smax += log(sval[ii]) ;
+   } else {
+     smax = 1.0 ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( sval[ii] > 0.0 ) smax *= sval[ii] ;
+   }
+
+   free(sval) ;
+   pmat[0] = (float)smax ; RETURN(imp) ;
+}
+
+/*----------------------------------------------------------------------------*/
 static int force_svd = 0 ;
 void mri_matrix_psinv_svd( int i ){ force_svd = i; }
 /*----------------------------------------------------------------------------*/
@@ -1319,6 +1431,39 @@ ENTRY("mri_matrix_evalrpn") ;
         if( nn <= 0 ) ERREX("illegal dimension") ;
         imc = mri_new(nn,nn,MRI_float) ; car = MRI_FLOAT_PTR(imc) ;
         for( ii=0 ; ii < nn ; ii++ ) car[ii+ii*nn] = 1.0f ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** log product of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svprodlog") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svprod( ima , 1 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** product of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svprod") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svprod( ima , 0 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** vector of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svals") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svals( ima ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
         ADDTO_IMARR(imstk,imc) ;
       }
 

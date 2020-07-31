@@ -49,6 +49,32 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Jul, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "add initial afni_history_laurenpd.c",
+   NULL
+ } ,
+
+ { 21, Jul, 2020, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
+   "add env var control over pre-comp e2x, limit and pieces",
+   "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"
+   "AFNI_MODEL_PRF_MAX_EXP_PIECES.\n"
+ } ,
+
+ { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
+   "add initial NT parameter",
+   NULL
+ } ,
+
+ { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
+   "add initial NT parameter",
+   NULL
+ } ,
+
+ { 16, Jul, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "update for shared libmri.so: linux_centos_7_64, linux_ubuntu_16_64",
+   NULL
+ } ,
+
  { 19, Jun, 2020, RCR, "parse_fs_lt_log.py", MICRO, TYPE_ENHANCE,
    "update for python3, though this program might not be in use",
    NULL

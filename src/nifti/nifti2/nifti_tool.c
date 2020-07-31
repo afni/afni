@@ -5149,7 +5149,8 @@ int nt_run_misc_nim_tests(nifti_image * nim)
       int64_t rval;
       float * dptr=NULL;
       rval = nifti_read_subregion_image(nim, start_ind, size, (void**)&dptr);
-      printf("== subregion: rv=%" PRId64 ", dptr=%p, data=", rval, dptr);
+      printf("== subregion: rv=%" PRId64 ", dptr=%p, data=",
+             rval, (void *)dptr);
       if( dptr ) disp_raw_data((char *)dptr, nim->datatype, 1, ' ', 1);
       if( dptr ) free(dptr);
    }
@@ -5159,7 +5160,7 @@ int nt_run_misc_nim_tests(nifti_image * nim)
       int        * ilist = NULL;
       const char * istr = "7,4,2..5,11..$";
       ilist = nifti_get_intlist(15, istr);
-      printf("= ilist = %p, %d\n", ilist, ilist?ilist[0]:-1);
+      printf("= ilist = %p, %d\n", (void *)ilist, ilist?ilist[0]:-1);
       if( ilist ) free(ilist);
    }
 

@@ -3104,6 +3104,20 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_autothresh_pb ,
                       "Compute ad hoc threshold automatically NOW" ) ;
 
+   /*-- Set threshold button [16 Jul 2020] discoraj --*/
+
+   func->thr_setthresh_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set threshold") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setthresh_pb , XmNactivateCallback ,
+                  AFNI_func_setthresh_CB , im3d ) ;
+   MCW_register_hint( func->thr_setthresh_pb ,
+                      "Enter value to set threshold" ) ;
+
    /*-- Set pval button [03 Dec 2013] --*/
 
    func->thr_setpval_pb =

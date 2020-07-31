@@ -1,5 +1,5 @@
 #include "mrilib.h"
-#include "afni.h"
+/** #include "afni.h" **/
 #include "cs.h"
 
 #ifdef KILLTHIS /* Remove all old sections framed by #ifdef KILLTHIS
@@ -65,10 +65,10 @@ THD_string_array *recreate_working_atlas_name_list(void) {
  *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {
-	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0", 
+	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0",
 	  "CA_ML_18_MNI", "CA_MPM_22_MNI",
-      "DD_Desai_MPM", "DKD_Desai_MPM", 
-      "CA_GW_18_MNIA", "CA_N27_LR", 
+      "DD_Desai_MPM", "DKD_Desai_MPM",
+      "CA_GW_18_MNIA", "CA_N27_LR",
       "TT_Daemon", NULL};
    int i;
 
@@ -808,184 +808,6 @@ void TT_purge_atlas_big_old(void)
 
 #endif
 
-
-/*----------------------------------------------------------------------
-   Begin coordinate transformation functions
-------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------
-   Forward transform a vector following a warp
-   Don't mess with this function, many programs use it. ZSS Feb 06
---------------------------------------------------------------------------*/
-
-THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
-{
-   THD_fvec3 new_fv ;
-
-   if( warp == NULL ) return old_fv ;
-
-   switch( warp->type ){
-
-      default: new_fv = old_fv ; break ;
-
-      case WARP_TALAIRACH_12_TYPE:{
-         THD_linear_mapping map ;
-         int iw ;
-
-         /* forward transform each possible case,
-            and test if result is in bot..top of defined map */
-
-         for( iw=0 ; iw < 12 ; iw++ ){
-            map    = warp->tal_12.warp[iw] ;
-            new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
-
-            if( new_fv.xyz[0] >= map.bot.xyz[0] &&
-                new_fv.xyz[1] >= map.bot.xyz[1] &&
-                new_fv.xyz[2] >= map.bot.xyz[2] &&
-                new_fv.xyz[0] <= map.top.xyz[0] &&
-                new_fv.xyz[1] <= map.top.xyz[1] &&
-                new_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
-         }
-      }
-      break ;
-
-      case WARP_AFFINE_TYPE:{
-         THD_linear_mapping map = warp->rig_bod.warp ;
-         new_fv = MATVEC_SUB(map.mfor,old_fv,map.bvec) ;
-      }
-      break ;
-
-   }
-   return new_fv ;
-}
-
-/*------------------------------------------------------------------------
-   Backward transform a vector following a warp
-   Don't mess with this function, many programs use it. ZSS Feb 06
---------------------------------------------------------------------------*/
-THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
-{
-   THD_fvec3 new_fv ;
-
-   if( warp == NULL ) return old_fv ;
-
-   switch( warp->type ){
-
-      default: new_fv = old_fv ; break ;
-
-      case WARP_TALAIRACH_12_TYPE:{
-         THD_linear_mapping map ;
-         int iw ;
-
-         /* test if input is in bot..top of each defined map */
-
-         for( iw=0 ; iw < 12 ; iw++ ){
-            map = warp->tal_12.warp[iw] ;
-
-            if( old_fv.xyz[0] >= map.bot.xyz[0] &&
-                old_fv.xyz[1] >= map.bot.xyz[1] &&
-                old_fv.xyz[2] >= map.bot.xyz[2] &&
-                old_fv.xyz[0] <= map.top.xyz[0] &&
-                old_fv.xyz[1] <= map.top.xyz[1] &&
-                old_fv.xyz[2] <= map.top.xyz[2]   ) break ;  /* leave loop */
-         }
-         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
-      }
-      break ;
-
-      case WARP_AFFINE_TYPE:{
-         THD_linear_mapping map = warp->rig_bod.warp ;
-         new_fv = MATVEC_SUB(map.mbac,old_fv,map.svec) ;
-      }
-      break ;
-
-   }
-   return new_fv ;
-}
-
-/*!
-   Coordinate transformation between N27 MNI
-   and AFNI's TLRC. Transform was obtained by manually AFNI TLRCing
-   the N27 dset supplied in Eickhoff & Zilles' v12 dbase before
-   the volume itself was placed in MNI Anatomical space as was done in v13.
-   Input and output are in RAI
-*/
-THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
-{
-   static THD_talairach_12_warp *ww=NULL;
-   float tx,ty,tz ;
-   int iw, ioff;
-   THD_fvec3 tv2;
-
-   tx = ty = tz = -9000.0;
-/*   LOAD_FVEC3( tv , tx,ty,tz ) ;*/
-   LOAD_FVEC3( tv2 , tx,ty,tz ) ;
-
-   /* Meth 2, xform in code, more fool proof*/
-   if (!ww) {
-      /* load the transform */
-      ww = myRwcNew( THD_talairach_12_warp ) ;
-      ww->type = WARP_TALAIRACH_12_TYPE;
-      ww->resam_type = 0;
-      for (iw=0; iw < 12; ++iw) {
-         ww->warp[iw].type = MAPPING_LINEAR_TYPE ;
-
-         ioff = iw * MAPPING_LINEAR_FSIZE ;
-         COPY_INTO_STRUCT( ww->warp[iw] ,
-                           MAPPING_LINEAR_FSTART ,
-                           float ,
-                           &(MNI_N27_to_AFNI_TLRC_WRP_VEC[ioff]) ,
-                           MAPPING_LINEAR_FSIZE ) ;
-
-      }
-   }
-
-   if (!ww) {
-      ERROR_message("Failed to form built-in warp.");
-      return tv2;
-   } else {
-      if (dir > 0) tv2 = AFNI_forward_warp_vector((THD_warp *)ww, mv);
-      else tv2 = AFNI_backward_warp_vector((THD_warp *)ww, mv);
-   }
-
-   return tv2 ;
-}
-
-THD_fvec3 THD_mni_to_tta_N27( THD_fvec3 mv )
-{
-   return (THD_mni__tta_N27( mv , 1));
-}
-
-THD_fvec3 THD_tta_to_mni_N27( THD_fvec3 mv )
-{
-   return (THD_mni__tta_N27( mv , -1));
-}
-
-THD_fvec3 THD_mnia_to_tta_N27( THD_fvec3 mv )
-{
-   THD_fvec3 mva;
-   /*go from MNI Anat to MNI (remember, shift is in RAI space, not LPI. See also script @Shift_volume)*/
-   mva.xyz[0] = mv.xyz[0] + 0.0 ;
-   mva.xyz[1] = mv.xyz[1] - 4.0 ;
-   mva.xyz[2] = mv.xyz[2] - 5.0 ;
-
-   return (THD_mni__tta_N27( mva , 1));
-}
-
-THD_fvec3 THD_tta_to_mnia_N27( THD_fvec3 mv )
-{
-   THD_fvec3 mva;
-
-   mva = THD_mni__tta_N27( mv , -1);
-
-   /*go from MNI to MNI Anat (remember, shift is in RAI space, not LPI. See also script @Shift_volume)*/
-   mva.xyz[0] = mva.xyz[0] + 0.0 ;
-   mva.xyz[1] = mva.xyz[1] + 4.0 ;
-   mva.xyz[2] = mva.xyz[2] + 5.0 ;
-
-   return (mva);
-}
-
 /* drg - we need more robust way to find left/right than hard-coded CA_N27_LR */
 /* We should consider these choices:
     1. Add field to atlas to xref another atlas: lr_atlas_name
@@ -1168,7 +990,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    const char *spp = "  ";
    char *nsp = NULL;
    char *nspp = NULL;
-   
+
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
       ERROR_message("NULL wami");
@@ -1197,7 +1019,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       sprintf(hmarkend, "</b><br>");
   }
    else{
-      nsp = sp;    /* use a regular space. do not use html hard spaces */	   
+      nsp = sp;    /* use a regular space. do not use html hard spaces */	
       nspp = spp;
       histart[0] = '\0';
       hiend[0] = '\0';
@@ -1417,7 +1239,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               else
                                  sprintf(lbuf, "%s * Within %1d mm: %s%s",
                                     histart,
-                                    (int)wami->zone[iq]->radius[il], 
+                                    (int)wami->zone[iq]->radius[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     hiend);
                            }
@@ -1746,7 +1568,7 @@ char * get_linkrbrain_site(void)
 /*--------------------------------------------------------------------*/
 
 /* show links out to linkrbrain */
-/* linkrbrain server has been down for quite a while. 
+/* linkrbrain server has been down for quite a while.
  * Default to not try - DRG 08 Nov 2017 */
 int
 show_linkrbrain_link()
@@ -3522,7 +3344,7 @@ void Show_Atlas_Region (AFNI_ATLAS_REGION *aar)
       fprintf(stdout,"\n");
    } else {
       /* if there is a long name and the long name isn't the same as the regular name */
-      if((aar->longname) && (strlen(aar->longname)!=0) && (strcmp(aar->orig_label,aar->longname))) 
+      if((aar->longname) && (strlen(aar->longname)!=0) && (strcmp(aar->orig_label,aar->longname)))
          fprintf(stdout,"%c:%s:%-3d [%s]\n",
                      aar->side, STR_PRINT(aar->orig_label), aar->id, aar->longname);
       else
@@ -3609,7 +3431,7 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name, char
    aar->N_chnks = 0;
    aar->chnks = NULL;
 
-#if 0 
+#if 0
 took out number checking and processing for D99 macaque atlas
 not sure why it was there in the first place!
    int  isnum=0;
@@ -3623,7 +3445,7 @@ not sure why it was there in the first place!
 /* printf("atlas is all numbers %s, %d\n", lbl,aar->id);*/
 
 /*       isnum = atoi(lbl);
-      free(lbl); lbl = NULL; 
+      free(lbl); lbl = NULL;
       if (aar->id && isnum != aar->id) {
          ERROR_message("Information conflict!");
          RETURN(Free_Atlas_Region(aar)) ;
@@ -3947,7 +3769,7 @@ char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur ,
                      "Best match for %s (code %-3d):", ur->orig_label, ur->id);
          for (ii=0; ii<as->nmatch; ++ii) {
             /* show long name if it exists and different from regular name */
-            if((aa->reg[as->iloc[ii]]->longname) && (strlen(aa->reg[as->iloc[ii]]->longname)!=0) && 
+            if((aa->reg[as->iloc[ii]]->longname) && (strlen(aa->reg[as->iloc[ii]]->longname)!=0) &&
                (strcmp(aa->reg[as->iloc[ii]]->longname,aa->reg[as->iloc[ii]]->orig_label)))
                 snprintf (lbuf, 480*sizeof(char), "%s\n   %s [%s]", lbuf,
                      aa->reg[as->iloc[ii]]->orig_label, aa->reg[as->iloc[ii]]->longname);
@@ -6797,7 +6619,7 @@ char *NoLeftRight (char *name)
 
 /* get atlas name type - show either short name, long name or both together
  * This applies to individual region labels like
-*   amyl, amygdala or "amyl amygdala" */ 
+*   amyl, amygdala or "amyl amygdala" */
 int Atlas_name_type()
 {
    char *nametype;
@@ -6808,7 +6630,7 @@ int Atlas_name_type()
 
    /* maybe name something else? */
    nametype = my_getenv("AFNI_ATLAS_NAME_TYPE");
- 
+
 //   atlas_name_code = 0;
    atlas_name_code = 2;  /* make default - show both name - short name and long name */
 
@@ -6837,19 +6659,19 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
 
    /* get environment setting for name, long name or both names */
    switch(Atlas_name_type()){
-     /* just the long name */ 
+     /* just the long name */
       case 1:
-          if (atp->longname && strlen(atp->longname))          
+          if (atp->longname && strlen(atp->longname))
              sprintf(tmps, "%s", atp->longname);
           else
-             sprintf(tmps, "%s", atp->name);               
+             sprintf(tmps, "%s", atp->name);
           break;
       /* combination - both name and long name with brackets around long name*/
       case 2:
           if (atp->longname && strlen(atp->longname) && strcmp(atp->longname, atp->name))
              sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
-             sprintf(tmps, "%s", atp->name);               
+             sprintf(tmps, "%s", atp->name);
           break;
       /* just the short, original name */
       case 0:
@@ -7515,7 +7337,7 @@ byte is_probabilistic_atlas(ATLAS *atlas) {
 }
 
 /* return the label associated with a key,
-   see also Atlas_Val_Key_to_Val_Name 
+   see also Atlas_Val_Key_to_Val_Name
 *  main function to get label from index key*/
 char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac) {
    char *klab = NULL;
@@ -9300,7 +9122,7 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
             snprintf(str,64, "%s",str_lab2);
          }
       }
-      else snprintf(str,64,"%s",str_lab2);  /* atlas label is the default for now */ 
+      else snprintf(str,64,"%s",str_lab2);  /* atlas label is the default for now */
    } else if (str_lab1) {  /* if only one take that label */
       snprintf(str,64, "%s",str_lab1);  /* labeltable */
    } else if (str_lab2) {
@@ -9409,7 +9231,7 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
 /* Fill the int_list with a single label value or an expanded list
  *
  * return: -1 on error, else number of ints found
- * 
+ *
  * needs expanding
 */
 int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
@@ -9452,7 +9274,7 @@ int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
 
 /* top-level function for converting globally known labels to a corresponding
  * list of ints
- * 
+ *
  * e.g. AFNI_GLAB_FS5_WM might expand to a list of FreeSurfer 5 WM values
  * e.g. AFNI_GLAB_FS6_WM might be useful if FreeSurfer 6 changes the numbers
  *
@@ -10175,6 +9997,3 @@ wami_xform_xyz(float xi, float yi, float zi,
    free(xfl);
    RETURN(0);
 }
-
-
-

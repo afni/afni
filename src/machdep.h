@@ -38,11 +38,10 @@ extern void machdep() ;
                    in a set of data/functions that allows debug tracing
                    of execution.
 
-    DONT_USE_MCW_MALLOC = if this is set, then the malloc wrappers
-                          defined in mcw_malloc.[ch] will not be
-                          be used.  (These functions provide some
-                          ability to track and debug the use of
-                          malloc-ed memory space.)
+    ALLOW_MCW_MALLOC = if this is set, then the malloc wrappers
+                       defined in mcw_malloc.[ch] will be used.
+                       (These functions provide some ability to track
+                       and debug the use of malloc-ed memory space.)
 
     DONT_USE_METER  = if #define-d, won't show progress meter during
                        brick write operations (and other similar places)

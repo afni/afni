@@ -89,6 +89,7 @@ if(PRINT_TRACING)
 #ifndef DONT_USE_VOLPACK
       if( strstr(fname,"plug_render.") != NULL ) continue
 #endif
+      if( strstr(fname,"plug_nlfit.") != NULL ) continue ; /* 13 Jul 2020 */
 
       suff = strstr(fname,DYNAMIC_suffix) ;
       if( suff != NULL && strlen(suff) == strlen(DYNAMIC_suffix) ){

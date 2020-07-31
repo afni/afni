@@ -12,8 +12,8 @@
    therefore by RW Cox, A Jesmanowicz, and EC Wong.  It may not be
    copied or used for any commercial purpose without explicit permission.
 --------------------------------------------------------------------------*/
-
 #include "mrilib.h"
+#include "coxplot.h"
 #include "display.h"
 #include "xutil.h"
 #include "bbox.h"

@@ -6,7 +6,7 @@ target_include_directories(
                  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
 )
 set_target_properties(segtools PROPERTIES PUBLIC_HEADER "thd_segtools_fNM.h;cluster_floatNOMASK.h")
-target_link_libraries(segtools PRIVATE AFNI::mri ${GSL_LIBRARIES})
+target_link_libraries(segtools PRIVATE AFNI::mri GSL::gsl)
 
 if(COMP_ADD_BINARIES)
   # cluster_floatNOMASK.o

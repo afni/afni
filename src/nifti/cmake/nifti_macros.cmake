@@ -32,20 +32,16 @@ endmacro()
 function(add_nifti_library target_in)
     add_library(${ARGV})
     add_library(NIFTI::${target_in} ALIAS ${target_in})
-    if(NOT NIFTI_INSTALL_NO_LIBRARIES)
-      get_property(tmp GLOBAL PROPERTY nifti_installed_targets)
-      list(APPEND tmp "${target_in}")
-      set_property(GLOBAL PROPERTY nifti_installed_targets "${tmp}")
-    endif()
+    get_property(tmp GLOBAL PROPERTY nifti_installed_targets)
+    list(APPEND tmp "${target_in}")
+    set_property(GLOBAL PROPERTY nifti_installed_targets "${tmp}")
 endfunction()
 
 function(add_nifti_executable target_in)
   add_executable(${ARGV})
-  if(NOT NIFTI_INSTALL_NO_APPLICATIONS)
-    get_property(tmp GLOBAL PROPERTY nifti_installed_targets)
-    list(APPEND tmp "${target_in}")
-    set_property(GLOBAL PROPERTY nifti_installed_targets "${tmp}")
-  endif()
+  get_property(tmp GLOBAL PROPERTY nifti_installed_targets)
+  list(APPEND tmp "${target_in}")
+  set_property(GLOBAL PROPERTY nifti_installed_targets "${tmp}")
 endfunction()
 
 function(install_man_page target)
@@ -123,37 +119,24 @@ function(install_nifti_target target_name)
   endif()
 
   # Install the targets now that the appropriate directory is confirmed.
-  if(NIFTI_INSTALL_NO_DEVELOPMENT)
-    install(TARGETS ${target_name}
-            EXPORT ${NIFTI_INSTALL_EXPORT_NAME}
-            RUNTIME
-              COMPONENT RuntimeBinaries
-              DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR}
-            ARCHIVE
-              DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
-              COMPONENT RuntimeLibraries
-            LIBRARY
-              DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
-              COMPONENT RuntimeLibraries
-            )
-  else()
-    install(TARGETS ${target_name}
-            EXPORT ${NIFTI_INSTALL_EXPORT_NAME}
-            RUNTIME
-              COMPONENT RuntimeBinaries
-              DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR}
-            ARCHIVE
-              DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
-              COMPONENT RuntimeLibraries
-            LIBRARY
-              DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
-              COMPONENT RuntimeLibraries
-            PUBLIC_HEADER
-              DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-            INCLUDES
-              DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-            )
-    endif()
+  install(TARGETS ${target_name}
+          EXPORT ${NIFTI_INSTALL_EXPORT_NAME}
+          RUNTIME
+            COMPONENT RuntimeBinaries
+            DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR}
+          ARCHIVE
+            DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          LIBRARY
+            DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          PUBLIC_HEADER
+            DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
+            COMPONENT Development
+          INCLUDES
+            DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
+            COMPONENT Development
+          )
 endfunction()
 
 function(get_lib_version_var ver_header_text ver_type version_out)
