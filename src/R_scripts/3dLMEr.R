@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, July 24, 2020
+Version 0.0.6, Aug 2, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -342,18 +342,18 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              ) ),
 
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
-   "-gltCode label weights: Specify the label and weights of interest in a genearl";
-   "       linear t-style (GLT) formulation in which only one null relationship is";
-   "       involved (cf. -glfCode). The weights should be surrounded with quotes. For";
-   "       example, the specification '-gltCode AvB 'Condition : 1*A -1*B' compares A";
+   "-gltCode label weights: Specify the label and weights of interest in a general",
+   "       linear t-style (GLT) formulation in which only one null relationship is",
+   "       involved (cf. -glfCode). The weights should be surrounded with quotes. For",
+   "       example, the specification '-gltCode AvB 'Condition : 1*A -1*B' compares A",
    "       and B with a label 'AvB' for the output sub-bricks.  \n", sep = '\n'
                      ) ),
 
      '-glfCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-glfCode label CODING: Specify a general linear F-style (GLF) formulation",
-   "         with the weights among factor levels in which two or more null"
-   "         relationships (e.g., A-B=0 and B-C=0) are innvolved. The symbolic";
-   "         coding has to be within (single or double) quotes. For example, the";
+   "         with the weights among factor levels in which two or more null",
+   "         relationships (e.g., A-B=0 and B-C=0) are innvolved. The symbolic",
+   "         coding has to be within (single or double) quotes. For example, the",
    "         coding '-glfCode AvBvc 'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos''",
    "         examines the main effect of Condition at the positive Emotion with",
    "         the output labeled as AvBvC. Similarly the coding '-glfCode CondByEmo'",
@@ -429,25 +429,25 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         2) The order of the columns should not matter except that the last",
    "         column has to be the one for input files, 'InputFile'. Unlike 3dLME, the",
    "         subject column (Subj in 3dLME) does not have to be the first column;",
-   "         and it does not have to include a subject ID column under some situations";
-   "         Each row should contain only one input file in the table of long format";
-   "         (cf. wide format) as defined in R. Input files can be in AFNI, NIfTI or";
-   "         surface format. AFNI files can be specified with sub-brick selector (square";
+   "         and it does not have to include a subject ID column under some situations",
+   "         Each row should contain only one input file in the table of long format",
+   "         (cf. wide format) as defined in R. Input files can be in AFNI, NIfTI or",
+   "         surface format. AFNI files can be specified with sub-brick selector (square",
    "         brackets [] within quotes) specified with a number or label.\n",
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) When the table is part of the script, a backslash is needed at the end",
-   "         of each line (except for the last line) to indicate the continuation to the";
-   "         next line. Alternatively, one can save the context of the table as a separate";
-   "         file, e.g., calling it table.txt, and then in the script specify the data";
-   "         with '-dataTable @table.txt'. However, when the table is provided as a";
-   "         separate file, do NOT put any quotes around the square brackets for each";
+   "         of each line (except for the last line) to indicate the continuation to the",
+   "         next line. Alternatively, one can save the context of the table as a separate",
+   "         file, e.g., calling it table.txt, and then in the script specify the data",
+   "         with '-dataTable @table.txt'. However, when the table is provided as a",
+   "         separate file, do NOT put any quotes around the square brackets for each",
    "         sub-brick,otherwise the program would not properly read the files, unlike the",
    "         situation when quotes are required if the table is included as part of the",
    "         script. Backslash is also not needed at the end of each line, but it would",
    "         not cause any problem if present. This option of separating the table from",
    "         the script is useful: (a) when there are many input files so that the program",
-   "         complains with an 'Arg list too long' error; (b) when you want to try";
+   "         complains with an 'Arg list too long' error; (b) when you want to try",
    "         different models with the same dataset.\n",
              sep = '\n'
                      ) ),
