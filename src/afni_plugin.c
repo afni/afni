@@ -7,12 +7,6 @@
 #undef MAIN
 #include "afni.h"
 
-#define DONT_USE_VOLPACK  /* 23 Jan 2019 */
-
-#ifndef DONT_USE_VOLPACK
-#include "mri_render.h"
-#endif
-
 #include "mcw_graf.h"
 #include "parser.h"
 #include "whats_my_exepath.h"
@@ -86,9 +80,6 @@ if(PRINT_TRACING)
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
       if( strstr(fname,"plug") == NULL ) continue ;
-#ifndef DONT_USE_VOLPACK
-      if( strstr(fname,"plug_render.") != NULL ) continue
-#endif
       if( strstr(fname,"plug_nlfit.") != NULL ) continue ; /* 13 Jul 2020 */
 
       suff = strstr(fname,DYNAMIC_suffix) ;
@@ -5117,9 +5108,6 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) qsort_floatint ,
    (vptr_func *) qsort_floatfloat ,
    (vptr_func *) symeig_double ,
-#ifndef DONT_USE_VOLPACK
-   (vptr_func *) MREN_render ,
-#endif
    (vptr_func *) new_MCW_graf ,
    (vptr_func *) THD_makemask ,
    (vptr_func *) mri_copy ,
