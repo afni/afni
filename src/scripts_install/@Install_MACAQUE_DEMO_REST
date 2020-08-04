@@ -6,7 +6,8 @@ set sdir = $PWD
 # [PT: May 1, 2020]   updated version
 # [PT: July 30, 2020] updated version, run @Install_NMT here, too
 # [PT: July 31, 2020] option for getting smaller 'lite' version of demo
-set demo = MACAQUE_DEMO_REST_1.1
+# [PT: Aug 4, 2020]   just use simple dir names, without ver num
+set demo = MACAQUE_DEMO_REST
 
 goto PARSE
 RET_PARSE:
@@ -81,7 +82,7 @@ PARSE:
          set donext = 0; goto NEXT		
       endif
       if ($donext && "$argv[$cnt]" == "-lite_version") then
-         set demo = MACAQUE_DEMO_REST_1.1_LITE
+         set demo = MACAQUE_DEMO_REST_LITE
          set donext = 0; goto NEXT		
       endif
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
