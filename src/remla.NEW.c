@@ -357,7 +357,7 @@ typedef struct {
 /** correlation cutoff to control bandwidth of matrix **/
 /** the value of corcut might be changed in 3dREMLfit **/
 
-#define CORCUT_default 0.0001          /* reduced to 0.0001 [22 Aug 2019] */
+#define CORCUT_default 0.00002
 static double corcut = CORCUT_default ;
 
 /* pseudo-time of each index;
@@ -1253,8 +1253,8 @@ ENTRY("REML_add_glt_to_all") ;
 
 static vector *betaG = NULL ;  /* GLT combinations  */
 static vector *betaT = NULL ;  /* GLT t-statistics  */
-static double   betaR = 0.0  ;  /* GLT R^2 statistic */
-static double   betaF = 0.0  ;  /* GLT F statistic   */
+static double  betaR = 0.0  ;  /* GLT R^2 statistic */
+static double  betaF = 0.0  ;  /* GLT F statistic   */
 
 double REML_compute_gltstat( int ddof ,
                             vector *y, vector *bfull, double fsumq ,
@@ -1385,7 +1385,7 @@ void copy_generic_parameter_vector( int code, double *pvec, double *qvec )
 *//*------------------------------------------------------------------------*/
 
 doublevec * rcmat_generic_correlations( int code , double *pvec ,
-                                        double ccut , int ncmax  )
+                                        double ccut , int ncmax , void *ws )
 {
    doublevec *corvec = NULL ;
 
@@ -1394,12 +1394,23 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,
    switch( code ){
 
      case ARMA11_MODEL:
-       corvec = arma11_correlations( pvec[0] , pvec[1] , ccut , ncmax ) ;
+       if( ws == NULL ){
+         corvec = arma11_correlations( pvec[0] , pvec[1] , ccut , ncmax ) ;
+       } else {
+         corvec = (doublevec *)ws ;
+         arma11_correlations_inplace( pvec[0] , pvec[1] , ccut , corvec ) ;
+       }
      break ;
 
      case ARMA31_MODEL:
-       corvec = arma31_correlations( pvec[0] , pvec[1] , pvec[2] , pvec[3] ,
-                                     ccut , ncmax ) ;
+       if( ws == NULL ){
+         corvec = arma31_correlations( pvec[0] , pvec[1] , pvec[2] , pvec[3] ,
+                                       ccut , ncmax ) ;
+       } else {
+         corvec = (doublevec *)ws ;
+         arma31_correlations_inplace( pvec[0] , pvec[1] , pvec[2] , pvec[3] ,
+                                      ccut , corvec ) ;
+       }
      break ;
 
    }
@@ -1419,7 +1430,7 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,
       represents a symmetric matrix.
 *//*------------------------------------------------------------------------*/
 
-rcmat * rcmat_generic( int nt , int *tau , int code , double *pvec )
+rcmat * rcmat_generic( int nt, int *tau, int code, double *pvec, void *ws )
 {
    rcmat  *rcm ;
    LENTYP *len ;
@@ -1437,7 +1448,7 @@ ENTRY("rcmat_generic") ;
 
    /* get correlations (at most nt of them) */
 
-   corvec = rcmat_generic_correlations( code , pvec , corcut , nt ) ;
+   corvec = rcmat_generic_correlations( code , pvec , corcut , nt , ws ) ;
 
    if( corvec == NULL || corvec->nar <= 0 ){
      WARNING_message("rcmat_generic: pvec = %g %g ==> NULL",pvec[0],pvec[1]) ;
@@ -1446,7 +1457,12 @@ ENTRY("rcmat_generic") ;
 
    /* set maximum bandwidth from actual number of correlations we got */
 
-   bmax = corvec->nar - 1 ;  /* we have lags 0 .. bmax */
+   bmax = corvec->kk - 1 ;  /* we have lags 0 .. bmax */
+
+   if( bmax < 0 ){          /* should be impossible -- SHOULD be */
+     WARNING_message("rcmat_generic: pvec = %g %g ==> NULLity",pvec[0],pvec[1]) ;
+     RETURN( NULL ) ;
+   }
 
 /* INFO_message("rcmat_generic: bmax=%d pvec = %g %g",bmax,pvec[0],pvec[1]) ; */
 
@@ -1454,15 +1470,15 @@ ENTRY("rcmat_generic") ;
 
    if( bmax == 0 ){
      for( ii=0 ; ii < nt ; ii++ ){
-       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
      }
-     KILL_doublevec( corvec ) ;
+     if( ws == NULL ) KILL_doublevec( corvec ) ;
      RETURN( rcm ) ;
    }
 
    /* First row/column always has only 1 entry = diagonal value = 1 */
 
-   len[0] = 1 ; rc[0] = malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
+   len[0] = 1 ; rc[0] = remla_malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
 
    /* Subsequent rows/columns: */
 
@@ -1475,7 +1491,7 @@ ENTRY("rcmat_generic") ;
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
      if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
-       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
      len[ii] = ii + 1 - jbot ;            /* number of entries in row/column */
@@ -1492,6 +1508,7 @@ ENTRY("rcmat_generic") ;
    ii = rcmat_floatscan(rcm) ;
    if( ii > 0 ) ERROR_message("%d errors found in rcmat_generic matrix",ii);
 
+   if( ws == NULL ) KILL_doublevec( corvec ) ;
    RETURN( rcm ) ;
 }
 
@@ -1501,7 +1518,7 @@ ENTRY("rcmat_generic") ;
 *//*------------------------------------------------------------------------*/
 
 reml_setup * setup_generic_reml( int nt, int *tau,
-                                 int code, double *pvec, matrix *X )
+                                 int code, double *pvec, matrix *X, void *ws )
 {
    int ii , jj , mm ;
    reml_setup *rset ;
@@ -1522,7 +1539,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 
    /* Form R = sparse correlation matrix */
 
-   rcm = rcmat_generic( nt , tau , code , pvec ) ;
+   rcm = rcmat_generic( nt , tau , code , pvec , ws ) ;
    if( rcm == NULL ){
      ERROR_message("rcmat_generic fails!?") ;
      return NULL ;
@@ -1533,7 +1550,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    ii = rcmat_choleski( rcm ) ;
    if( ii != 0 ){
      ERROR_message("rcmat_choleski fails with code=%d for model %d :(",ii,code) ;
-     rcmat_destroy(rcm); return NULL;
+     rcmat_destroy(rcm);
+#if 0
+     rcm = rcmat_generic( nt , tau , code , pvec , ws ) ;
+     rcmat_to_stderr( rcm , "before Choleski") ;
+     rcmat_destroy(rcm);
+#endif
+     return NULL;
    }
 
    /* check for errors that should never happen */
@@ -1626,22 +1649,22 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 /* A convenience function, that's all */
 /*--------------------------------------------------------------------------*/
 
-reml_setup * REML_setup_one_generic( matrix *X, int *tau, int code, double *pvec )
+reml_setup * REML_setup_one_generic( matrix *X, int *tau, int code, double *pvec, void *ws )
 {
    reml_setup *rset ;
-   rset = setup_generic_reml( X->rows , tau , code , pvec , X ) ;
+   rset = setup_generic_reml( X->rows , tau , code , pvec , X , ws ) ;
    return rset ;
 }
 
 /*--------------------------------------------------------------------------*/
-/* convenience function for ARMA(1,1) */
+/* convenience function for ARMA(1,1) and 3dREMLfit */
 /*--------------------------------------------------------------------------*/
 
 reml_setup * REML_setup_one_arma11( matrix *X, int *tau, double aa, double bb )
 {
    double pvec[6] ;
    pvec[0] = aa ; pvec[1] = bb ;
-   return REML_setup_one_generic( X , tau , ARMA11_MODEL , pvec ) ;
+   return REML_setup_one_generic( X , tau , ARMA11_MODEL , pvec, NULL ) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1691,7 +1714,7 @@ ENTRY("REML_setup_plus_generic") ;
 
    /* setup the REML calculations for this fun fun fun matrix */
 
-   rsetplus->rset = REML_setup_one_generic( XZ , tau , code , pvec ) ;
+   rsetplus->rset = REML_setup_one_generic( XZ , tau , code , pvec , NULL ) ;
 
    if( rsetplus->rset == NULL ){        /* bad bad bad */
      remla_free(rsetplus) ; matrix_destroy(XZ) ; remla_free(XZ) ; RETURN(NULL) ;
@@ -1875,8 +1898,8 @@ ININFO_message("  nset = %d  da=%g db=%g  na=%d nb=%d",rcg->nset,rcg->da,rcg->db
 
    /* calloc-ate REML matrix setups:
        all are NULL to start, and if a matrix setup (rs) element
-       is never computed, then it will be skipped later in the
-       optimizing function REML_find_best_case_2D */
+       is never computed, then it will be skipped later
+       in the optimizing function REML_find_best_case_2D() */
 
    rcg->rs = (reml_setup **)remla_calloc(sizeof(reml_setup *),rcg->nset) ;
 
@@ -1892,7 +1915,7 @@ ININFO_message("  nset = %d  da=%g db=%g  na=%d nb=%d",rcg->nset,rcg->da,rcg->db
 INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 #endif
    LOAD_pvec2(azer,bzer) ;
-   rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
+   rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec , NULL ) ;
 
    if( rcg->rs[kk] != NULL ){
      ndone++ ;
@@ -1905,7 +1928,7 @@ INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 
      kk = ndone ;
      LOAD_pvec2(amin,bmin) ;
-     rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
+     rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec , NULL ) ;
      if( rcg->rs[kk] != NULL ){
        ndone++ ;
        avglen += rcmat_avglen( rcg->rs[kk]->cc ) ;
@@ -1915,28 +1938,35 @@ INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 
    } else {      /* general setup case with an (a,b) grid of cases */
 
-   /** stuff for use in multi-threaded code below **/
+   /** variables for use in multi-threaded code below **/
 
 #ifdef USE_OMP
-    int nthr , *nset_th ; float *avg_th ; static int first=1 ;
-    nthr    = omp_get_max_threads() ;
-    nset_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ; /* how many per thread */
+    int nthr,qt , *ndon_th ; float *avg_th ;
+    void **ws ; doublevec *dv ;
+    nthr    = omp_get_max_threads() ;                     /* number of threads */
+    ndon_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ; /* how many per thread */
     avg_th  = (float *)remla_calloc(sizeof(float),nthr) ; /* row lengths per thread */
-    if( first && verb && nthr > 1 ){
-      ININFO_message("starting %d OpenMP threads for REML 2D setup",nthr) ;
-      first = 0 ;
+    ws      = (void **)remla_calloc(sizeof(void*),nthr) ;
+    for( qt=0 ; qt < nthr ; qt++ ){
+      MAKE_doublevec(dv,nt) ; ws[qt] = (void *)dv ; /* make per-thread workspaces */
     }
+    if( verb && nthr > 1 ){
+      ININFO_message("starting %d OpenMP threads for REML 2D setup",nthr) ;
+    }
+# define WS(q) ws[q]   /* pre-allocated workspace for thread #q */
+#else
+# define WS(q) NULL    /* no pre-allocated workspace when no threads */
 #endif
 
     /** start of potentially multi-threaded code **/
 
  AFNI_OMP_START ;
-#pragma omp parallel if( maxthr > 1 && rcg->nset > 2 )
+#pragma omp parallel if( maxthr > 1 && rcg->nset > 7 )
  { int iab , ii,jj,kk , ithr=0 ;
    int na = rcg->na, na1 = rcg->na1, nb = rcg->nb, nab = rcg->nset ;
    double abot = rcg->abot, da = rcg->da ;
    double bbot = rcg->bbot, db = rcg->db ;
-   double bb,aa, lam ; float avg ;
+   double bb,aa, lam , pvec[6] ; float avg ;
 
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ; /* for saving things on a per-thread basis */
@@ -1946,19 +1976,19 @@ INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 #endif
 #pragma omp for
      for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
-       ii  = iab % na1 ;     /* index in a-direction */
-       jj  = iab / na1 ;     /* index in b-direction */
-       aa  = ii*da + abot ;  /* actual value of a parameter */
-       bb  = jj*db + bbot ;  /* actual value of b parameter */
-       kk  = ii + na1*jj ;   /* should == iab */
+       ii = iab % na1 ;     /* index in a-direction */
+       jj = iab / na1 ;     /* index in b-direction */
+       aa = ii*da + abot ;  /* actual value of a parameter */
+       bb = jj*db + bbot ;  /* actual value of b parameter */
+       kk = ii + na1*jj ;   /* should == iab */
        if( rcg->rs[kk] == NULL ){
 /* ININFO_message("setup kk=%d  a=%g b=%g",kk,aa,bb) ; */
          LOAD_pvec2(aa,bb) ;
-         rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec ) ;
+         rcg->rs[kk] = REML_setup_one_generic( X, tau, model_code, pvec, WS(ithr) ) ;
          if( rcg->rs[kk] != NULL ){
            avg = rcmat_avglen( rcg->rs[kk]->cc ) ;
 #ifdef USE_OMP
-           nset_th[ithr]++ ; avg_th[ithr] += avg ;  /* per thread counting */
+           ndon_th[ithr]++ ; avg_th[ithr] += avg ;  /* per thread counting */
 #ifdef ENABLE_REMLA_MALLOC
            if( ithr == 0 && verb > 1 ){
              fprintf(stderr," [%d]",kk) ;
@@ -1970,7 +2000,7 @@ INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 #endif
          }
 #if 1
-       else { ININFO_message("setup kk=%d  a=%g b=%g FAILS",kk,aa,bb) ; }
+       else { ININFO_message("setup kk=%d  a=%g b=%g (lam=%g) FAILS",kk,aa,bb,LAMBDA(aa,bb)) ; }
 #endif
        }
      } /* end loop over (aa,bb) pairs */
@@ -1980,12 +2010,13 @@ INFO_message("setup izero=%d  a=%g b=%g",kk,azer,bzer) ;
 
 #ifdef USE_OMP
    for( ii=0 ; ii < nthr ; ii++ ){
-     ndone += nset_th[ii] ; avglen += avg_th[ii] ; /* combine counts */
+     ndone += ndon_th[ii] ; avglen += avg_th[ii] ; /* combine counts */
+     dv = (doublevec *)ws[ii] ; KILL_doublevec(dv) ;
    }
-   remla_free(avg_th) ; remla_free(nset_th) ;
+   remla_free(avg_th) ; remla_free(ndon_th) ; remla_free(ws) ;
 #endif
 
-   } /* end general setup */
+   } /* end general 2D setup */
 
    /* fix a couple of details and vamoose */
 
@@ -2055,12 +2086,13 @@ ENTRY("REML_find_best_case_generic_2D") ;
    bb_ws     = 2*y->dim + 16 ;
    rv_ws     = na1*nb1  + 16 ;
    needed_ws = 7*bb_ws  + rv_ws ;  /* 7 vectors plus 1 number per grid pt */
-   if( nws >= needed_ws && ws != NULL ){
+
+   if( nws >= needed_ws && ws != NULL ){  /* user provided workspace */
      rvab    = ws+1 ;
      bbar[0] = rvab + rv_ws ;
      for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
      bb_ws = rv_ws = 0 ;
-   } else {
+   } else {                               /* make up our own workspace */
      rvab = (double *)remla_malloc(sizeof(double)*rv_ws) ;
      for( ia=0 ; ia < 7 ; ia++ )
        bbar[ia] = (double *)remla_malloc(sizeof(double)*bb_ws) ;
@@ -2077,6 +2109,8 @@ INFO_message("init at izero=%d  ia=%d  jb=%d  a=%g b=%g",
               kbest , ibest , jbest ,
               rcg->rs[kbest]->pvec[0],rcg->rs[kbest]->pvec[1] ) ;
 #endif
+
+   /* first evaluation of REML cost function for this data (y) */
 
    rbest = REML_func( y, rcg->rs[kbest], rcg->X,rcg->Xs, bbar,NULL ) ;
 
@@ -2105,17 +2139,17 @@ ININFO_message("   vs raa=%g rbb=%g rvv=%g",raa,rbb,rvv) ;
 
      for( nkl=0,jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
-         kk = ia + jb*na1 ; if( rvab[kk] < BIGVAL ) continue;       /* did it */
+         kk = ia + jb*na1 ; if( rvab[kk] < BIGVAL ) continue;  /* done before */
          if( rcg->rs[kk] == NULL ) continue ;           /* invalid grid point */
          klist[nkl++] = kk ;
      }}
      if( nkl == 0 ) continue ; /* should never happen */
 
      /* The reason the loop above is separate is to make the loop below
-        be 1D rather than 2D, hoping that OpenMP would parallelize it better.
+        be 1D rather than 2D, hoping that it would optimize better.
         However, this didn't work out, but the code is left the way it is.
         The goal of this loop is to fill in any gaps in the rvab[] array,
-        the list of REML cost function at the (a,b) parameter pairs.         */
+        the list of REML cost function values at the (a,b) parameter pairs. */
 
      for( mm=0 ; mm < nkl ; mm++ ){  /* this usually takes a lot of CPU time */
        kk = klist[mm] ;
@@ -2138,12 +2172,19 @@ ININFO_message("new rbest=%g at kk=%d a=%g b=%g",rbest,kbest ,
 
      /* at the next level down, scan near the best so far seen */
 
-     if( lev > 0 ){
-       dab  = dab + dab/2 ;
-       ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
-       itop = ibest+dab ; if( itop > na ) itop = na ;
-       jbot = jbest-dab ; if( jbot < 0  ) jbot = 0  ;
-       jtop = jbest+dab ; if( jtop > nb ) jtop = nb ;
+     if( lev > 0 ){           /* if lev == 0, there is no next level */
+
+       kk   = dab + dab/2 ;   /* The '+dab/2' expands the search at */
+                              /* the next level, costing CPU time, */
+                              /* but perhaps improving accuracy.  */
+                              /* Original code didn't add dab/2. */
+                              /* Note that at the next level,   */
+                              /* dab will be halved => kk must */
+                              /* a multiple of dab/2 here!    */
+       ibot = ibest-kk ; if( ibot < 0  ) ibot = 0  ;
+       itop = ibest+kk ; if( itop > na ) itop = na ;
+       jbot = jbest-kk ; if( jbot < 0  ) jbot = 0  ;
+       jtop = jbest+kk ; if( jtop > nb ) jtop = nb ;
      }
 
    } /* end of scan descent through different levels */
@@ -2167,4 +2208,349 @@ ININFO_message("final rbest=%g at kk=%d a=%g b=%g",rbest,kbest ,
    /*** deal with the winner ***/
 
    RETURN(kbest) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Fill in a 4D grid of REML setups, over a range of parameters.
+   Parameter (a,b,c,d) grid dimensions are
+     0..2^pna X 0..2^pnb X 0..2^pnc X 0..2^pnd
+*//*------------------------------------------------------------------------*/
+
+reml_collection_generic * REML_setup_all_generic_4D(
+                             matrix *X , int *tau , int model_code ,
+                             int pna , int pnb , int pnc , int pnd ,
+                             double amin , double amax ,
+                             double bmin , double bmax ,
+                             double cmin , double cmax ,
+                             double dmin , double dmax  )
+{
+   int ii,jj,kk , nt , ndone=0 , na,nb,nc,nd ;
+   double aa,bb,cc,dd ;
+   reml_collection_generic *rcg=NULL ;
+   float avglen=0.0f ;
+   double pvec[6] ;   /* for loading parameters (a,b,c,d) */
+
+   /* check for stoopiditeeze */
+
+#ifdef RFDEBUG
+INFO_message("REML_setup_all_generic_4D:\n"
+             "  model_code = %d\n"
+             "  pna = %d pnb = %d pnc = %d pnd = %d\n"
+             "  amin = %g amax = %g   bmin = %g bmax = %g\n" 
+             "  cmin = %g cmax = %g   dmin = %g dmax = %g"   ,
+             model_code , pna,pnb,pnc,pnd ,
+                          amin,amax, bmin,bmax, cmin,cmax, dmin,dmax  ) ;
+#endif
+
+   if( X == NULL ){
+     ERROR_message("REML_setup_all_generic_4D: input matrix is NULL") ;
+     return rcg ;
+   }
+
+   if( number_of_parameters(model_code) != 4 ){
+     ERROR_message("REML_setup_all_generic_4D: input model_code=%d is illegal here",model_code) ;
+     return rcg ;
+   }
+
+   /* check if grid layout makes sense */
+
+   if( (amin >= amax) || (bmin >= bmax) ||
+       (cmin >= cmax) || (dmin >= dmax)   ){
+     ERROR_message("REML_setup_all_generic_4D: (a,b,c,d) parameter ranges disordered\n"
+                   "     amin = %g amax = %g\n"
+                   "     bmin = %g bmax = %g\n"
+                   "     cmin = %g cmax = %g\n"
+                   "     dmin = %g dmax = %g"  ,
+                   amin,amax , bmin,bmax , cmin,cmax , dmin,dmax ) ;
+     return rcg ;
+   }
+
+   /* check number of time points */
+
+   nt = X->rows ;
+   if( nt < 9 ){     /* just medium stoopid */
+     ERROR_message(
+       "REML_setup_all_generic_4D: number of time points %d is less than 9 -- not allowed!",nt) ;
+     return rcg ;
+   }
+
+   /* set grid size in a and b parameters (powers of two) */
+
+   if( pna < 3 ) pna = 3 ; else if( pna > 5 ) pna = 5 ;  /* limitations */
+   if( pnb < 3 ) pnb = 3 ; else if( pnb > 5 ) pnb = 5 ;
+   if( pnc < 3 ) pnc = 3 ; else if( pnc > 5 ) pnc = 5 ;
+   if( pnd < 3 ) pnd = 3 ; else if( pnd > 5 ) pnd = 5 ;
+
+   /* create nearly empty collection */
+
+   rcg = REML_initialize_collection( X ) ;
+
+   rcg->noise_model = model_code ;
+   rcg->pnum        = 4 ;
+
+   RCG_setup(rcg,pna,pnb,pnc,pnd,0,0) ; /* setup dimensional factors for grid */
+
+   na = rcg->na ; nb = rcg->nb ;       /* local copies of grid dimensions */
+   nc = rcg->nc ; nd = rcg->nd ;
+
+   /* get ready for array of REML setups */
+
+   rcg->nset  = rcg->nabcd1 ;   /* number of setups */
+   rcg->istwo = 0 ;
+   rcg->abot  = amin; rcg->atop = amax; rcg->da = (amax-amin)/na;   /* grid */
+   rcg->bbot  = bmin; rcg->btop = bmax; rcg->db = (bmax-bmin)/nb; /* coords */
+   rcg->cbot  = cmin; rcg->ctop = cmax; rcg->dc = (cmax-cmin)/nc;
+   rcg->dbot  = dmin; rcg->dtop = dmax; rcg->dd = (dmax-dmin)/nd;
+
+   /* calloc-ate REML matrix setups:
+       all are NULL to start, and if a matrix setup (rs) element
+       is never computed, then it will be skipped later
+       in the optimizing function REML_find_best_case_2D() */
+
+   rcg->rs = (reml_setup **)remla_calloc(sizeof(reml_setup *),rcg->nset) ;
+
+   { /* general setup case with an (a,b,c,d) grid of cases */
+
+   /** variables for use in multi-threaded code below **/
+
+#ifdef USE_OMP
+    int nthr,qt , *ndon_th ; float *avg_th ;
+    void **ws ; doublevec *dv ;
+    nthr    = omp_get_max_threads() ;                     /* number of threads */
+    ndon_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ; /* how many per thread */
+    avg_th  = (float *)remla_calloc(sizeof(float),nthr) ; /* row lengths per thread */
+    ws      = (void **)remla_calloc(sizeof(void*),nthr) ;
+    for( qt=0 ; qt < nthr ; qt++ ){
+      MAKE_doublevec(dv,nt) ; ws[qt] = (void *)dv ; /* make per-thread workspaces */
+    }
+    if( verb && nthr > 1 ){
+      ININFO_message("starting %d OpenMP threads for REML 4D setup",nthr) ;
+    }
+# define WS(q) ws[q]   /* pre-allocated workspace for thread #q */
+#else
+# define WS(q) NULL    /* no pre-allocated workspace when no threads */
+#endif
+
+    /** start of potentially multi-threaded code **/
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( maxthr > 1 && rcg->nset > 7 )
+ { int iabcd , ii,jj,kk,ll,qq , ithr=0 ;
+   int na = rcg->na, na1 = rcg->na1, nb = rcg->nb, nb1 = rcg->nb1,
+       nc = rcg->nc, nc1 = rcg->nc1, nd = rcg->nd, nd1 = rcg->nd1,
+       nabcd = rcg->nset ;
+   double abot = rcg->abot, dda = rcg->da ;
+   double bbot = rcg->bbot, ddb = rcg->db ;
+   double cbot = rcg->cbot, ddc = rcg->dc ;
+   double dbot = rcg->dbot, ddd = rcg->dd ;
+   double dd,cc,bb,aa, pvec[6] ; float avg ;
+
+#ifdef USE_OMP
+   ithr = omp_get_thread_num() ; /* for saving things on a per-thread basis */
+#endif
+#pragma omp for
+     for( iabcd=0 ; iabcd < nabcd ; iabcd++ ){ /* loop over (aa,bb,cc,dd) */
+       qq = iabcd  ; ii = qq % na1 ; /* index in a-direction */
+       qq = qq/na1 ; jj = qq % nb1 ; /* index in b-direction */
+       qq = qq/nb1 ; kk = qq % nc1 ; /* index in c-direction */
+       qq = qq/nc1 ; ll = qq ;       /* index in d-direction */
+       qq = iabcd+1 ;
+       aa = ii*dda + abot ;   /* actual value of a parameter */
+       bb = jj*ddb + bbot ;   /* actual value of b parameter */
+       cc = kk*ddc + cbot ;   /* actual value of c parameter */
+       dd = kk*ddd + dbot ;   /* actual value of d parameter */
+       if( rcg->rs[iabcd] == NULL ){
+         LOAD_pvec4(aa,bb,cc,dd) ;
+         rcg->rs[iabcd] = REML_setup_one_generic( X, tau, model_code, pvec, WS(ithr) ) ;
+         if( rcg->rs[iabcd] != NULL ){
+           avg = rcmat_avglen( rcg->rs[iabcd]->cc ) ;
+#ifdef USE_OMP
+           ndon_th[ithr]++ ; avg_th[ithr] += avg ;  /* per thread counting */
+#else
+           ndone++ ; avglen += avg ; /* overall counting - not multi-threaded */
+#endif
+         }
+#if 1
+       else { ININFO_message("4D setup [%d]  a=%g b=%g c=%g d=%g FAILS",
+                             iabcd,aa,bb,cc,dd ) ; }
+#endif
+       }
+     } /* end loop over (aa,bb,cc,dd) */
+
+ } /* end OpenMP section */
+ AFNI_OMP_END ;
+
+#ifdef USE_OMP
+   for( ii=0 ; ii < nthr ; ii++ ){
+     ndone += ndon_th[ii] ; avglen += avg_th[ii] ; /* combine counts */
+     dv = (doublevec *)ws[ii] ; KILL_doublevec(dv) ;
+   }
+   remla_free(avg_th) ; remla_free(ndon_th) ; remla_free(ws) ;
+#endif
+
+   } /* end general 4D setup */
+
+   /* fix a couple of details and vamoose */
+
+   rcg->ndone  = ndone ;        /* how many actually stored in grid */
+   rcg->avglen = avglen/ndone ; /* average of average row lengths */
+   rcg->savfil = NULL ;
+   return rcg ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* For ARMA(3,1) -- full grid */
+/*--------------------------------------------------------------------------*/
+
+#define THETA_MIN (PI/32.0)
+#define THETA_MAX (31.0*THETA_MIN)
+
+reml_collection_generic * REML_setup_all_arma31(
+                             matrix *X , int *tau , int nlev ,
+                             double amax , double rmax ,
+                             double tbot , double ttop , double vmax )
+{
+   if( tbot < THETA_MIN ) tbot = THETA_MIN ;
+   if( ttop < THETA_MAX ) ttop = THETA_MAX ;
+   return
+     REML_setup_all_generic_4D( X , tau , ARMA31_MODEL ,
+                                nlev , nlev , nlev , nlev ,
+                                amax*0.03 , amax ,
+                                rmax*0.03 , rmax ,
+                                tbot      , ttop ,
+                                vmax*0.03 , vmax   ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Inputs: y=data vector, rcg=collection of REML setup stuff.
+           nws = size of workspace array ws (0 => use malloc)
+   Output: index of best case in the REML setup stuff.
+           if ws!=NULL, then ws[0] = the best (smallest) REML score
+*//*------------------------------------------------------------------------*/
+
+int REML_find_best_case_generic_4D(
+                vector *y, reml_collection_generic *rcg, int nws, double *ws )
+{
+   double rbest , rval ;
+   int   na,nb , pna,pnb , mm , na1,nb1 ;
+   int   nc,nd , pnc,pnd ,      nc1,nd1 ;
+   int   nab1 , nabc1 , nabcd1 ;
+   int   ibest,jbest,kbest,lbest , qbest ;
+   int   ibot,itop , jbot,jtop , kbot,ktop , lbot,ltop ;
+   int   lev,levtop , dab, ia,jb,kc,ld , qq ;
+   int   qlist[2048] , nql , needed_ws,bb_ws=0,rv_ws=0 ;
+   double *bbar[7] , *rvab ;
+
+ENTRY("REML_find_best_case_generic_4D") ;
+
+   if( y == NULL ) RETURN(-666) ; /* negative return = error message */
+
+   mm = vector_floatscan( y ) ;
+   if( mm > 0 ) ERROR_message("%d float errors in REML_find_best_case_generic_2D y input",mm) ;
+
+   /* copy (a,b) grid parameters to local variables */
+
+   na = rcg->na ; pna = rcg->pna ; na1 = rcg->na1 ;
+   nb = rcg->nb ; pnb = rcg->pnb ; nb1 = rcg->nb1 ;
+   nc = rcg->nc ; pnc = rcg->pnc ; nc1 = rcg->nc1 ;
+   nd = rcg->nd ; pnd = rcg->pnd ; nd1 = rcg->nd1 ;
+   nab1 = na1 * nb1 ; nabc1 = nab1 * nc1 ; nabcd1 = nabc1 * nd1 ;
+
+   /* make workspace arrays for REML_func() */
+
+   bb_ws     = 2*y->dim + 16 ;
+   rv_ws     = nabcd1   + 16 ;
+   needed_ws = 7*bb_ws  + rv_ws ;  /* 7 vectors plus 1 number per grid pt */
+
+   if( nws >= needed_ws && ws != NULL ){  /* user provided workspace */
+     rvab    = ws+1 ;
+     bbar[0] = rvab + rv_ws ;
+     for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
+     bb_ws = rv_ws = 0 ;
+   } else {                               /* make up our own workspace */
+     rvab = (double *)remla_malloc(sizeof(double)*rv_ws) ;
+     for( ia=0 ; ia < 7 ; ia++ )
+       bbar[ia] = (double *)remla_malloc(sizeof(double)*bb_ws) ;
+   }
+
+   qbest = -1 ;      /* will be index of best case */
+   rbest = BIGVAL ;  /* will be value of best case */
+   ibest = na/2 ; jbest = nb/2 ; kbest = nc/2 ; lbest = nd/2 ;
+   
+   for( qq=0 ; qq < nabcd1 ; qq++ ) rvab[qq] = BIGVAL ; /* mark all as bad */
+
+   /** do power-of-2 descent through the (a,b,c,d) grid to find the bestest pair **/
+
+   levtop = MIN(pna,pnb) ; lev = MIN(pnc,pnd) ; if( lev < levtop ) levtop = lev ;
+   levtop = levtop - 2 ;
+   ibot = 0 ; itop = na ;                 /* scan from ibot..itop, jbot..jtop */
+   jbot = 0 ; jtop = nb ;                          /* in steps of dab (below) */
+   kbot = 0 ; ktop = nc ;
+   lbot = 0 ; ltop = nd ;
+
+   for( lev=ltop ; lev >= 0 ; lev-- ){     /* lev = power-of-2 grid scan size */
+     dab = 1 << lev ;                      /* dab = 2^lev = step size in scan */
+
+     /* make list of not-yet visited (a,b) grid
+        points to visit in the REML_func loop below */
+
+     nql = 0 ;
+     for( ld=lbot ; ld <= ltop ; ld+=dab ){
+      for( kc=kbot ; kc <= ktop ; kc+=dab ){
+       for( jb=jbot ; jb <= jtop ; jb+=dab ){
+        for( ia=ibot ; ia <= itop ; ia+=dab ){
+          qq = ia + jb*na1 + kc*nab1 + ld*nabc1 ;
+          if( rvab[qq] < BIGVAL ) continue ;   /* did this before */
+          if( rcg->rs[qq] == NULL ) continue ; /* invalid grid point */
+          qlist[nql++] = qq ;
+     }}}}
+     if( nql == 0 ) continue ; /* should never happen */
+
+     for( mm=0 ; mm < nql ; mm++ ){  /* this usually takes a lot of CPU time */
+       qq = qlist[mm] ;
+       rvab[qq] = REML_func( y, rcg->rs[qq], rcg->X,rcg->Xs , bbar,NULL ) ;
+     }
+
+     /* find the best one so far seen, in the patch we are looking at */
+
+     for( ld=lbot ; ld <= ltop ; ld+=dab ){
+      for( kc=kbot ; kc <= ktop ; kc+=dab ){
+       for( jb=jbot ; jb <= jtop ; jb+=dab ){
+        for( ia=ibot ; ia <= itop ; ia+=dab ){
+          qq = ia + jb*na1 + kc*nab1 + ld*nabc1 ; rval = rvab[qq] ;
+          if( rval < rbest ){                          /* the best so far seen */
+            rbest = rval; qbest = qq; ibest = ia; jbest = jb; kbest = kc; lbest = ld;
+         }
+     }}}}
+
+     /* at the next level down, scan near the best so far seen */
+
+     if( lev > 0 ){           /* if lev == 0, there is no next level */
+       qq   = dab + dab/2 ;
+       ibot = ibest-qq ; if( ibot < 0  ) ibot = 0  ;
+       itop = ibest+qq ; if( itop > na ) itop = na ;
+       jbot = jbest-qq ; if( jbot < 0  ) jbot = 0  ;
+       jtop = jbest+qq ; if( jtop > nb ) jtop = nb ;
+       kbot = kbest-qq ; if( kbot < 0  ) kbot = 0  ;
+       ktop = kbest+qq ; if( ktop > nb ) ktop = nb ;
+       lbot = lbest-qq ; if( lbot < 0  ) lbot = 0  ;
+       ltop = lbest+qq ; if( ltop > nb ) ltop = nb ;
+     }
+
+   } /* end of scan descent through different levels */
+
+   /* delete workspace if it was allocated inside here */
+
+   if( bb_ws ){
+     remla_free(rvab) ;
+     for( ia=0 ; ia < 7 ; ia++ ) remla_free(bbar[ia]) ;
+   }
+
+   /* save the smallest REML value found */
+
+   if( ws != NULL ) ws[0] = rbest ;
+
+   /*** deal with the winner ***/
+
+   RETURN(qbest) ;
 }

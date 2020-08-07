@@ -103,6 +103,26 @@ rcmat * rcmat_copy( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Dump out a rcmat struct. */
+
+void rcmat_to_stderr( rcmat *rcm , char *str )
+{
+   int ii,jj,nn ;
+
+   if( !ISVALID_RCMAT(rcm) ) return ;
+
+   nn  = rcm->nrc ;
+   INFO_message("rcmat dump: %s" , (str!=NULL) ? str : '\0' ) ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     fprintf(stderr," row %3d [len %3d] :",ii+1,(int)rcm->len[ii]) ;
+     for( jj=0 ; jj < rcm->len[ii] ; jj ++ )
+       fprintf(stderr," %8.5f",rcm->rc[ii][jj] ) ;
+     fprintf(stderr,"\n") ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a symmetric matrix, and
     Choleski factor it in place
     (so now it should be considered a triangular matrix).

@@ -158,7 +158,7 @@ ENTRY("create_float_dataset") ;
   tross_Copy_History( tset , nset ) ;
   if( commandline != NULL )
     tross_multi_Append_History( nset , "Matrix source:" , commandline , NULL ) ;
-  tross_Make_History( "3dREMLfit" , Argc,Argv , nset ) ;
+  tross_Make_History( "3dREMLfit.NEW" , Argc,Argv , nset ) ;
 
   if( usetemp && fnam != NULL && fp != NULL &&
       DSET_TOTALBYTES(nset) > MTHRESH         ){
@@ -1644,7 +1644,7 @@ int main( int argc , char *argv[] )
    enable_mcw_malloc() ;
 #endif
 
-   PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
+   PRINT_VERSION("3dREMLfit.NEW"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
    SET_message_file("3dREMLfit.err") ;
    (void)COX_clock_time() ;
@@ -3057,7 +3057,7 @@ STATUS("make GLTs from matrix file") ;
    if( virtu_mrv || !AFNI_noenv("AFNI_REML_ALLOW_VECTIM") ){
      double vsiz = (double)THD_vectim_size( inset , mask ) ;
      double dsiz = (double)DSET_TOTALBYTES( inset ) ;
-     if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) ){
+     if( virtu_mrv || (vsiz < 0.9*dsiz && vsiz > 10.0e+6) || AFNI_yesenv("AFNI_REML_FORCE_VECTIM") ){
        if( verb ){
          INFO_message("Converting input dataset to vector image") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
@@ -3156,97 +3156,49 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ){ fprintf(stderr,"++ REML voxel loop: ") ; vn = 0 ; }
 
-  if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
-    int ss,rv,vv,ssold,ii,kbest ;
-    int    na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int    nws = nab + 7*(2*niv+32) + 1024 ;
-    double *ws = (double *)malloc(sizeof(double)*nws) ;
+     /** local variables for REML voxel loop **/
+
+   { int *vvar ;
+     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
+     int   nws = nab + 7*(2*niv+32) + 1024 ;
 #ifdef REML_DEBUG
-    char *fff ; FILE *fpp=NULL ;
-    fff = getenv("REML_DEBUG") ;
-    if( fff != NULL ) fpp = fopen( fff , "w" ) ;
+     char *fff ; FILE *fpp=NULL ;
+     fff = getenv("REML_DEBUG") ;
+     if( fff != NULL ) fpp = fopen( fff , "w" ) ;
 #endif
 
-     for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
-       if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
-       if( !INMASK(vv) ) continue ;
-       if( inset_mrv != NULL ){ /* 05 Nov 2008 */
-         VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
-       } else
-         (void)THD_extract_array( vv , inset , 0 , iv ) ;      /* data vector */
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
-       ssold = ss ; ss = vv / nsliper ;      /* slice index in Xsli and RCsli */
-       if( usetemp_rcol && ss > ssold && ssold >= 0 )     /* purge last slice */
-         reml_collection_generic_save( RCsli[ssold] ) ;      /* setup to disk */
-       if( RCsli[ss] == NULL ){                     /* create this slice now? */
-         if( verb > 1 && vstep ) fprintf(stderr,"+") ;
-         RCsli[ss] = REML_setup_all_arma11( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-         if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
-       }
-       kbest = REML_find_best_case_generic_2D( &y , RCsli[ss] , nws,ws ) ;
-       aar[vv] = RS_arma11_aa( RCsli[ss]->rs[kbest] ) ;
-       bar[vv] = RS_arma11_bb( RCsli[ss]->rs[kbest] ) ;
-       rar[vv] = ws[0] ;
+     vvar = (int *)malloc(sizeof(int)*nmask) ;
+     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
+     if( vstep ){
+       fprintf(stderr,"[%d thread%s]",
+               maxthr , ( (maxthr>1) ? "s" : "\0" ) ) ;
+       vn = 0 ;
+     }
 
-#ifdef REML_DEBUG
-       if( fpp != NULL ){
-         int qq ;
-         fprintf(fpp,"%d ",vv) ;
-         fprintf(fpp," y=") ;
-         for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
-         fprintf(fpp,"  R=") ;
-         for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
-         fprintf(fpp,"\n") ;
-       }
-#endif
-
-     } /* end of REML loop over voxels */
-
-     free(ws) ;
-#ifdef REML_DEBUG
-     if( fpp != NULL ) fclose(fpp) ;
-#endif
-
-  } else {  /**---------------- Parallelized (not paralyzed) ----------------**/
-
-    int *vvar ;
-    int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 7*(2*niv+32) + 1024 ;
-#ifdef REML_DEBUG
-    char *fff ; FILE *fpp=NULL ;
-    fff = getenv("REML_DEBUG") ;
-    if( fff != NULL ) fpp = fopen( fff , "w" ) ;
-#endif
-
-    vvar = (int *)malloc(sizeof(int)*nmask) ;
-    for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    if( vstep ){ fprintf(stderr,"[%d threads]",maxthr) ; vn = 0 ; }
-
-#ifdef USE_OMP
   AFNI_OMP_START ;
-#pragma omp parallel
-  {
-    int ss,vv,rv,ii,kbest , ithr , qstep ;
-    float *iv ; vector y ;  /* private arrays for each thread */
-    double *ws ;
-    FILE *mfp=NULL ;
+#pragma omp parallel  /* note all variables declared here are thread-private */
+   {
+     int ss,vv,rv,ii,kbest , ithr , qstep ;
+     float *iv ; vector y ;  /* private arrays for each thread */
+     double *ws ;
+     FILE *mfp=NULL ;
 
-    qstep = vstep / maxthr ;
+     qstep = vstep / maxthr ;
 
 #pragma omp critical (MALLOC)
- {
-   iv = (float *)malloc(sizeof(float)*(niv+1)) ;
-   vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
-   ws = (double *)malloc(sizeof(double)*nws) ;
-   if( virtu_mrv ){
-     mfp = fopen(fname_mrv,"r") ;
-     if( mfp == NULL ) ERROR_exit("cannot re-open temp file %s",fname_mrv) ;
-   }
- }
-   ithr = omp_get_thread_num() ;
+  {
+     iv = (float *)malloc(sizeof(float)*(niv+1)) ;
+     vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
+     ws = (double *)malloc(sizeof(double)*nws) ;
+     if( virtu_mrv ){
+       mfp = fopen(fname_mrv,"r") ;
+       if( mfp == NULL ) ERROR_exit("cannot re-open temp file %s",fname_mrv) ;
+     }
+  }
+     ithr = omp_get_thread_num() ;
 
 #pragma omp for
-     for( rv=0 ; rv < nmask ; rv++ ){
+     for( rv=0 ; rv < nmask ; rv++ ){     /* voxel loop */
        vv = vvar[rv] ;
        if( ithr == 0 && qstep && rv%qstep==1 ) vstep_print() ;
 #pragma omp critical (MEMCPY)
@@ -3287,9 +3239,7 @@ STATUS("make GLTs from matrix file") ;
 
   } /* end OpenMP */
   AFNI_OMP_END ;
-#else
-  ERROR_exit("This code should never be executed!!!") ; /* really bad */
-#endif
+
     free(vvar) ;
 #ifdef REML_DEBUG
     if( fpp != NULL ) fclose(fpp) ;
@@ -3323,7 +3273,7 @@ STATUS("make GLTs from matrix file") ;
          COX_cpu_time(),COX_clock_time() ) ;
      MEMORY_CHECK ;
 
-   } /***** end of REML estimation *****/
+   } /***** end of REML correlation parameter estimation *****/
 
    /*------- at this point, aim and bim contain the (a,b) parameters -------*/
    /*------- (either from -ABfile or from REML loop just done above) -------*/

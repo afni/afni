@@ -3303,9 +3303,11 @@ STATUS("make GLTs from matrix file") ;
 
   } /* end OpenMP */
   AFNI_OMP_END ;
+
 #else
   ERROR_exit("This code should never be executed!!!") ; /* really bad */
 #endif
+
     free(vvar) ;
 #ifdef REML_DEBUG
     if( fpp != NULL ) fclose(fpp) ;
