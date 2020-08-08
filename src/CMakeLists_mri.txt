@@ -321,8 +321,6 @@ add_library(
   thd_mattor.c
   thd_mean_dset.c
   thd_median.c
-  thd_mincread.c
-  thd_mincwrite.c
   thd_mismatch.c
   thd_mnicoords.c
   thd_mpegread.c
@@ -456,7 +454,6 @@ add_library(
   mri_read_dicom.c
   mri_read_mpeg.c
   mri_read_stuff.c
-  mri_render.c
   mri_rgba_compose.c
   mri_rota.c
   mri_scale.c
@@ -530,8 +527,6 @@ target_link_libraries(
           $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
           AFNI::3DEdge
           AFNI::eispack
-          volpack
           NIFTI::nifti2
           NIFTI::nifticdf
-          ${NETCDF_LIBRARIES_C}
 )

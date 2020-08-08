@@ -180,7 +180,7 @@ commands:
           command: |
             echo \
               cmake ninja llvm pkgconfig  \
-              jpeg gsl gts openmotif  netcdf libpng expat \
+              jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
       # circleci caching works with files owned by user (distiller on osx
@@ -392,7 +392,6 @@ jobs:
             cmake ..                                                           \
                 -GNinja                                                             \
                 -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
-                -DUSE_SYSTEM_VOLPACK=OFF    \
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
                 -DUSE_SYSTEM_F2C=OFF \

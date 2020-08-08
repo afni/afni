@@ -29,10 +29,7 @@ set(CPACK_SOURCE_IGNORE_FILES
       src/SUMA/GLUT
       src/SUMA/GLw_local
       src/jpeg-6b
-      src/volpack
       src/qhulldir
-      src/netcdf-3.5.0
-      src/netcdf.h
       src/dlcompat
       src/bzip2*
       src/fftw.h
