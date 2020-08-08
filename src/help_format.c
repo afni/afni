@@ -245,7 +245,7 @@ char * AFNI_suck_file( char *fname )
 
 static char *wlist_default =
    "afni afni_proc.py align_epi_anat.py "
-   "3dABoverlap 3dAFNIto3D 3dAFNItoANALYZE 3dAFNItoMINC 3dAFNItoNIFTI 3dAFNItoNIML "
+   "3dABoverlap 3dAFNIto3D 3dAFNItoANALYZE 3dAFNItoNIFTI 3dAFNItoNIML "
    "3dAFNItoRaw 3dANALYZEtoAFNI 3dANOVA 3dANOVA2 3dANOVA3 3dAcost 3dAllineate "
    "3dAnatNudge 3dAnhist 3dAttribute 3dAutoTcorrelate 3dAutobox 3dAutomask 3dBRAIN_VOYAGERtoAFNI "
    "3dBandpass 3dBlurInMask 3dBlurToFWHM 3dBrickStat 3dCM 3dCRUISEtoAFNI 3dClipLevel "
@@ -254,7 +254,7 @@ static char *wlist_default =
    "3dFWHM 3dFWHMx 3dFourier 3dFriedman 3dGetrow 3dGroupInCorr "
    "3dIntracranial 3dInvFMRI 3dKruskalWallis 3dLRflip "
    "3dLocalBistat 3dLocalCormat 3dLocalPV 3dLocalSVD 3dLocalstat 3dMEMA "
-   "3dMINCtoAFNI 3dMannWhitney 3dMax 3dMean 3dMedianFilter 3dNLfim 3dNotes "
+   "3dMannWhitney 3dMax 3dMean 3dMedianFilter 3dNLfim 3dNotes "
    "3dOverlap 3dPAR2AFNI.pl 3dPeriodogram 3dREMLfit 3dROIstats 3dRank 3dRegAna "
    "3dRowFillin 3dSatCheck 3dSetupGroupInCorr 3dSkullStrip 3dSpatNorm 3dStatClust 3dSurf2Vol "
    "3dSurfMask 3dSynthesize 3dTSgen 3dTagalign 3dTcat 3dTcorrMap 3dTcorrelate 3dTfitter "

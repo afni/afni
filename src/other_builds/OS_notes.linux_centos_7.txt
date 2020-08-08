@@ -9,7 +9,7 @@ sudo yum install epel-release
 
 # install everything needed to build
 sudo yum install gcc motif-devel gsl-devel libXpm-devel
-sudo yum install mesa-libGLw-devel mesa-libGLU-devel libXi-devel glib-devel
+sudo yum install mesa-libGLw-devel mesa-libGLU-devel libXi-devel glib2-devel
 sudo yum install python-devel R-devel
 
 

@@ -66,15 +66,13 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libglw1-mesa-dev \
     libgsl-dev \
     libgts-dev \
-    libjpeg62 \
+    libjpeg62-dev \
     libmotif-dev \
-    libnetcdf-dev \
     libxi-dev \
     libxmhtml-dev \
     libxmu-dev \
     libxpm-dev \
     libxt-dev \
-    libvolpack1-dev \
     python3-rpy2 \
     python3-wxgtk4.0 \
     python3.6-dev \

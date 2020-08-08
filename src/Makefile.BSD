@@ -28,15 +28,6 @@
 #           which is /usr/local/bin/gmake on BSD systems.  
 #           Be sure the MAKE macro below is set to gmake.
 #
-#   Note:   Compilation of netcdf-3.5.0 may fail due to m4's lack of
-#           support for the -B option.  Remove the -B10000 flag from
-#           netcdf-3.5.0/src/configure BEFORE running make to avoid
-#           this error.  ( Or force configure to use gm4 by reversing
-#           the order of "m4 gm4" to "gm4 m4" everywhere in the script )
-#           This problem has been reported to the netcdf development team.
-#           It seems to have been resolved as of the June, 2003 afni
-#           source distribution.
-#
 
 CC     = gcc
 CFLAGS = -O2 -ffast-math -DFreeBSD -DNO_GAMMA $(CEXTRA)

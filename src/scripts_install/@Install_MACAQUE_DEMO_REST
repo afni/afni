@@ -5,8 +5,9 @@ set sdir = $PWD
 
 # [PT: May 1, 2020]   updated version
 # [PT: July 30, 2020] updated version, run @Install_NMT here, too
-# [PT: Aug 4, 2020]   simplify directory numbering
-set demo = MACAQUE_DEMO
+# [PT: July 31, 2020] option for getting smaller 'lite' version of demo
+# [PT: Aug 4, 2020]   just use simple dir names, without ver num
+set demo = MACAQUE_DEMO_REST
 
 goto PARSE
 RET_PARSE:
@@ -80,6 +81,10 @@ PARSE:
          set use_curl = 0
          set donext = 0; goto NEXT		
       endif
+      if ($donext && "$argv[$cnt]" == "-lite_version") then
+         set demo = MACAQUE_DEMO_REST_LITE
+         set donext = 0; goto NEXT		
+      endif
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
          goto HELP
          set donext = 0;	 goto NEXT	
@@ -96,14 +101,35 @@ PARSE:
 goto RET_PARSE
 
 HELP:
-   echo "Installs the demo archive for AFNI's macaque-analysis demo."
-   echo "After the archive is downloaded and unpacked, see its README.txt"
-   echo "for details."
-   echo "Options:"
-   echo "[-wget]: Use wget to download archive. Script chooses by default"
-   echo "         with preference for curl"
-   echo "[-curl]: Use curl to download archive. Script chooses by default"
-   echo "         with preference for curl"
+
+cat <<EOF
+
+Installs the demo archive for AFNI's resting state FMRI
+macaque-analysis demo.  The Demo contains 6 subjects, each with 2 EPIs
+and one anatomical reference.  Processing includes using
+@animal_warper, afni_proc.py and 3dNetCorr.
+
+After the archive is downloaded and unpacked, see its README.txt for
+details.
+
+OPTIONS
+
+[-wget]         : Use wget to download archive. Script chooses by default
+                  with preference for curl
+
+[-curl]         : Use curl to download archive. Script chooses by default
+                  with preference for curl
+
+[-lite_version] : Download a version of the Demo in which the EPIs
+                  have been truncated to 75 points each.  This makes
+                  the download size less than half of the original,
+                  and means the afni_proc.py processing will run
+                  faster.  Note that the processing outputs will look
+                  a bit different-- but that might be fine for quicker
+                  learning purposes.
+
+EOF
+
    goto END
 
 BEND:

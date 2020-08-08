@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
+   "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",
+   "Has a '-lite_version' opt for truncated EPI version, smaller download.\n"
+},
+
+{ 31, July , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior file path contained dots.",
+   "Joining filenames for output now fixed.\n"
+},
+
 { 30, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_GENERAL,
    "Now install MACAQUE_DEMO_2.1, which should be the new normal.",
    "Script checks for things on install, makes recs, more full demo.\n"

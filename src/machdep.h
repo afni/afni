@@ -25,10 +25,6 @@ extern void machdep() ;
 }
 #endif
 
-#if 0   /* disallow MINC-1 datasets */
-#define DONT_ALLOW_MINC
-#endif
-
 /*----------------------------------------------------------------------------
   Flags that can be used to work around bugs on some systems
   (you could also use the -Dname command line switch in the Makefile

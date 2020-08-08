@@ -50,9 +50,13 @@ auth = 'PA Taylor'
 #    + change def cbar
 #    + add a minimum width of figure if we are 'guessing' size
 #
-ver = '1.12' ; date = 'June 9, 2020'
+#ver = '1.12' ; date = 'June 9, 2020'
 # [PT] fix behavior when self.plt_{x,y}ticks_ON is False
 #    + that is, when an axis's ticks are turned off, show *nothing*
+#
+ver = '1.14' ; date = 'July 31, 2020'
+# [PT] fix regluing of automatic names (split with '.', and need to
+#      rejoin with '.').  done in two places
 #
 # --------------------------------------------------------------------------
 
@@ -347,7 +351,8 @@ class iopts_to_plot_mat2d:
 
         if not(self.prefix) :
             # if no prefix is entered, get from name of input
-            iroot = ''.join(ifile.split('.')[:-1])
+            # [PT: July 31, 2020] fix the regluing
+            iroot = '.'.join(ifile.split('.')[:-1])
             if iroot :
                 self.prefix = iroot
             else:
@@ -726,9 +731,11 @@ class plot_mat2d:
             self.fout_base = FF 
             self.file_out  = '.'.join([self.fout_base, self.ext])
         else:
-            # fname is complete
+            # fname is complete 
+            # [PT: July 31, 2020] fix joining here, need dot in case 
+            #                     path has dots...
             self.ext       = ext
-            self.fout_base = ''.join(ff_split[:-1])
+            self.fout_base = '.'.join(ff_split[:-1])
             self.file_out  = '.'.join([self.fout_base, self.ext])
     
     def read_mat2d( self, MM ):

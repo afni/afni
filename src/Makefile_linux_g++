@@ -3,7 +3,7 @@
 # CPROF = -pg -g
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -fpermissive -fno-const-strings -DDONT_USE_VOLPACK
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -fpermissive -fno-const-strings
 
 CC     = g++ -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCVOL  = g++ -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)

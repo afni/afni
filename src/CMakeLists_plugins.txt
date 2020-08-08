@@ -1,6 +1,6 @@
 set(CORE_PLUGINS plug_afnihistory plug_crender
 plug_drawdset plug_histog plug_histog_multi plug_notes plug_nth_dataset
-plug_nudge plug_null plug_realtime plug_render plug_second_dataset plug_tag
+plug_nudge plug_null plug_realtime plug_second_dataset plug_tag
 plug_ttget plug_vol2sur)
 
 set_os_flags(plug_threshold.c)
@@ -41,7 +41,6 @@ foreach(
   plug_power
   plug_realtime
   plug_rename
-  plug_render
   plug_reorder
   plug_roiedit
   plug_roiplot
