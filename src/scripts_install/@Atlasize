@@ -60,12 +60,19 @@ if ($space != '') then
    3drefit -space $space $target_dset  >& /dev/null
 endif
 
+# if dataset is not already an atlas, make it so
 if ("$flab" != "IS_ATLAS") then
    if($lncol) then
       set lnarg = "-longnames $lncol"
    else
       set lnarg = ""
    endif
+   # once over for labeltable
+   @MakeLabelTable -lab_file_delim "$delim"  \
+                   -lab_file $flab $iL $iV $lnarg \
+                   -dset $target_dset  $replace \
+                   $skipnovoxopt
+   # second over for atlas_points_list (eventually only once over...)
    @MakeLabelTable -lab_file_delim "$delim"  \
                    -lab_file $flab $iL $iV $lnarg \
                    -atlas_pointlist keys_${RNS}_ \
@@ -77,6 +84,7 @@ if ("$flab" != "IS_ATLAS") then
       echo "Failed in @MakeLabelTable"
       goto BEND
    endif
+# otherwise just adding this atlasy dataset to the CustomAtlases.niml or SessionAtlases.niml
 else 
    @MakeLabelTable -add_atlas_dset $target_dset  $replace \
                    -atlas_file $atlas_file $aname \
