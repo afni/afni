@@ -2,7 +2,8 @@ import shutil
 from pathlib import Path
 import sys
 import subprocess
-from .utils.tools import run_cmd
+
+from afni_test_utils.tools import run_cmd
 import pytest
 
 # Until python dependencies are importable in the typical way use the

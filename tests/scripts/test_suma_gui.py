@@ -1,4 +1,4 @@
-from .utils import misc
+from afni_test_utils import misc
 from pathlib import Path
 import pytest
 

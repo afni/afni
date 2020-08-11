@@ -1,5 +1,6 @@
 import pytest
-from .utils.tools import run_cmd
+
+from afni_test_utils.tools import run_cmd
 from unittest.mock import MagicMock
 import platform
 from afnipy import lib_system_check as SC

@@ -1,0 +1,23 @@
+name: afni_dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - attrs
+  - autopep8
+  - black=20.8b1
+  - cmake
+  - datalad
+  - docker-py
+  - ipython
+  - matplotlib
+  - nibabel
+  - ninja
+  - pip
+  - pytest
+  - pytest-cov
+  - pip:
+    - git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading
+    - pytest-parallel
+    - pdbpp
+    - -e .

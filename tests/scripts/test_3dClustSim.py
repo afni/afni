@@ -1,5 +1,5 @@
-from .utils.misc import is_omp
-from .utils import tools
+from afni_test_utils.misc import is_omp
+from afni_test_utils import tools
 import pytest
 
 # check for omp compilation
