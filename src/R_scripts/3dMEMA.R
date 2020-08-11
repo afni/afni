@@ -556,7 +556,8 @@ Usage:
 
     Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
     and Their Variances. NeuroImage. NeuroImage 60: 747-765.
- 
+    https://pubmed.ncbi.nlm.nih.gov/22245637/
+
  The basic usage of 3dMEMA is to derive group effects of a
  condition, contrast, or linear combination (GLT) of multiple
  conditions. It can be used to analyze data from one, two, or
@@ -582,7 +583,9 @@ Usage:
  repeated-measures) factor and it contains two levels only. See
  more details at:
  
- https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+
+ and/or in this paper:  https://pubmed.ncbi.nlm.nih.gov/22245637/
 
  ... from which the following excerpt on calculated quantities
  originates:
@@ -604,7 +607,7 @@ Usage:
    comparing two groups, the investigator can presume the same or
    different within-group variability (homo- or hetero-
    scedasticity) in 3dMEMA, and in the latter case the two
-   within- group variances and their ratios are also provided.
+   within-group variances and their ratios are also provided.
 
 
  Notice: When comparing two groups, option "-groups groupA groupB" 
