@@ -62,53 +62,23 @@ commands:
         type: string
     steps:
       - run:
-          shell: /bin/bash -eo pipefail
           name: Run tests
           no_output_timeout: 2h
           command: |
-            # Fail out if docker image does not exist. Should not be pulled from dockerhub...
-            docker image inspect afni/afni_<< parameters.build_type >> 1>/dev/null
-
-            # Define environment for codecov in case it is used
-            ci_env=`bash <(curl -s https://codecov.io/env)`
-            echo $ci_env
-            if [ $(id -u) == "0" ]
-            then
-              # Depending on the environment this is executed the user is
-              # either root or circleci. If the former, nothing should be
-              # mounted and the user in the container should be used
-              other_docker_args=""
+            TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
+            # Add coverage args as appropriate
+            if [ "$AFNI_WITH_COVERAGE" != "0" ];then
+              TEST_ARGS="$TEST_ARGS --coverage container --reuse-build"
             else
-              # If the circleci user is used, directories should be chowned,
-              # and the test data directory should be mounted into the
-              # container to facilitate data caching
-              other_docker_args='\
-                 --user=root  \
-                 -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
-                 -e CHOWN_HOME="yes" \
-                 -e CHOWN_HOME_OPTS='-R' \
-                 -e CHOWN_EXTRA="/opt/" \
-                 -e CHOWN_EXTRA_OPTS='-R' \
-                 -e CONTAINER_UID=$(id -u) \
-                 -e CONTAINER_GID=$(id -g)'
+              TEST_ARGS="$TEST_ARGS -vvv container"
             fi
-            # Run tests in contain built during build step:
-            docker run \
-                $ci_env \
-                $other_docker_args \
-                -e AFNI_WITH_COVERAGE=$AFNI_WITH_COVERAGE \
-                --rm \
-                -ti \
-                afni/afni_<< parameters.build_type >> \
-                bash -c 'bash /opt/afni/src/tests/run_tests.sh'
-      - run:
-          name: Return permissions to test data
-          command: |
-            if [ $(id -u) == "0" ]
-            then
-              # skipped during coverage testing
-              sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
-            fi
+
+            # some extra arguments for container management
+            TEST_ARGS="$TEST_ARGS --image-name=afni/afni_<< parameters.build_type >> --source-mode=test-data-only --only-use-local"
+
+            echo $TEST_ARGS
+            /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
+
 
   check_integrity_of_containers:
     description: "Check some of the permissions/user/PATH basics of the containers"
@@ -116,14 +86,15 @@ commands:
       image_cache_version:
         type: string
     steps:
-      - checkout
-      - setup_remote_docker
       - run:
           name: install some basic helper tools
           command: |
             apk add --no-cache pigz python3 py3-pip
             pip3 install docker # python docker-api
             pip3 install pytest
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
@@ -147,6 +118,11 @@ commands:
       image_cache_version:
         type: string
     steps:
+      - run:
+          shell: /bin/sh
+          command: apk add --no-cache pigz python3 bash
+      - setup_remote_docker:
+          version: 19.03.13
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -323,8 +299,11 @@ jobs:
         type: string
     docker:
       - image: docker:18.01.0-ce-git
+    shell: /bin/bash -eo pipefail
     steps:
-      - run: apk add --no-cache pigz python3
+      - run:
+          shell: /bin/sh
+          command: apk add --no-cache pigz python3 bash
       - checkout
       - setup_remote_docker:
           version: 19.03.13
@@ -364,10 +343,17 @@ jobs:
         type: string
       test_data_cache_version:
         type: string
-    machine:
-      image: circleci/classic:201711-01
+    docker:
+      - image: docker:18.01.0-ce-git
+    shell: /bin/bash -eo pipefail
     steps:
+      - run:
+          shell: /bin/sh
+          command: apk add --no-cache pigz python3 bash curl
+      - run: pip3 install docker
       - checkout
+      - setup_remote_docker:
+          version: 19.03.13
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -379,11 +365,6 @@ jobs:
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
-      # - run:
-      #     name: Install coverage and codecov
-      #     command: |
-      #         pyenv install 3.6.3
-      #         pyenv local 3.6.3
       - run_afni_tests:
           build_type: << parameters.build_type >>
           # Save test data as cache for subsequent runs if ideal is not already saved
@@ -402,13 +383,6 @@ jobs:
       - image: docker:18.01.0-ce-git
     shell: /bin/bash -eo pipefail
     steps:
-      - run:
-          shell: /bin/sh
-          name: install some basic helper tools
-          command: |
-            apk add --no-cache pigz python3 bash
-      - setup_remote_docker:
-          version: 19.03.13
       - deploy_to_dockerhub:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -418,6 +392,9 @@ jobs:
     macos:
         xcode: "11.2.1"
     steps: # a series of commands to run
+      - run:
+          shell: /bin/sh
+          command: apk add --no-cache pigz python3 bash
       - checkout
       - setup_macos_for_afni
       - run:
@@ -444,12 +421,17 @@ jobs:
         type: string
     docker:
       - image: docker:18.01.0-ce-git
+    shell: /bin/bash -eo pipefail
     environment:
       AFNI_WITH_COVERAGE: true
     steps:
-      - run: apk add --no-cache git pigz python3 bash curl
+      - run:
+          shell: /bin/sh
+          command: apk add --no-cache git pigz python3 bash curl
+      - run: pip3 install docker
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.13
       - build_afni_image:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
