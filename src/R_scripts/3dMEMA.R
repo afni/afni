@@ -514,7 +514,7 @@ greeting.MEMA <- function ()
 Version: 1.0.3, March 14, 2019
 Author:  Gang Chen (gangchen@mail.nih.gov)
          SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
-Website: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
+Website: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
       
@@ -527,7 +527,7 @@ Please consider citing the following if this program is useful for you:
    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
 
 And see additional descriptions here:
-   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
    
 #######################################################################"
    )
@@ -540,51 +540,82 @@ help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 '
 Usage:
 ------ 
- 3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
- that models both within- and across- subjects variability, thereby requiring
- both regression coefficients, or general linear contrasts among them, and the 
- corresponding t-statistics from each subject as input.  To get accurate 
- t-statistics, 3dREMLfit should be used for the linear regression (a GLS
- regression program using an ARMA(1,1) model for the noise), rather than
- 3dDeconvolve.
+ 3dMEMA is a program for performing Mixed Effects Meta Analysis
+ at group level that models both within- and across- subjects
+ variability, thereby requiring both regression coefficients, or
+ general linear contrasts among them, and the corresponding
+ t-statistics from each subject as input.  To get accurate
+ t-statistics, 3dREMLfit should be used for the linear
+ regression (a GLS regression program using an ARMA(1,1) model
+ for the noise), rather than 3dDeconvolve.
 
- It\'s required to install R (https://www.r-project.org/), plus \'snow\' package
- if parallel computing is desirable. Version 1.0.1, Dec 21, 2016. If you want to
- cite the analysis approach, use the following at this moment:
+ It\'s required to install R (https://www.r-project.org/), plus the
+ \'snow\' package if parallel computing is desirable. Version
+ 1.0.1, Dec 21, 2016. If you want to cite the analysis approach,
+ use the following at this moment:
 
     Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
     and Their Variances. NeuroImage. NeuroImage 60: 747-765.
  
- The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
- or linear combination (GLT) of multiple conditions. It can be used to analyze
- data from one, two, or multiple groups. However, if there are more than two
- groups or more than one subject-grouping variables (e.g., sex, adolescent/adults,
- genotypes, etc.) involved in the analysis, dummy coding (zeros and ones) the 
- variables as covariates is required, and extremely caution should be exercised 
- in doing so because different coding strategy may lead to different 
- interpretation. In addition, covariates (quantiative variables) can be 
- incorporated in the model, but centering and potential interactions with other 
- effects in the model should be considered. 
+ The basic usage of 3dMEMA is to derive group effects of a
+ condition, contrast, or linear combination (GLT) of multiple
+ conditions. It can be used to analyze data from one, two, or
+ multiple groups. However, if there are more than two groups or
+ more than one subject-grouping variables (e.g., sex,
+ adolescent/adults, genotypes, etc.) involved in the analysis,
+ dummy coding (zeros and ones) the variables as covariates is
+ required, and extremely caution should be exercised in doing so
+ because different coding strategy may lead to different
+ interpretation. In addition, covariates (quantiative variables)
+ can be incorporated in the model, but centering and potential
+ interactions with other effects in the model should be
+ considered.
  
- Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
- ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
- a few exceptions. For instance, paired-test can be performed through feeding the 
- contrast of the two conditons as input. Multi-way ANOVA can be analyzed under the
- following two scnearios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
- measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
- repeated-measures) factor and it contains two levels only. See more details at
+ Basically, 3dMEMA can run one-sample, two-sample, and all types
+ of BETWEEN-SUBJECTS ANOVA and ANCOVA. Within-subject variables
+ mostly cannot be modeled, but there are a few exceptions. For
+ instance, paired-test can be performed through feeding the
+ contrast of the two conditons as input. Multi-way ANOVA can be
+ analyzed under the following two scnearios: 1) all factors have
+ only two levels (e.g., 2 X 2 repeated- measures ANOVA) can be
+ analyzed; or 1) there is only one within-subject (or
+ repeated-measures) factor and it contains two levels only. See
+ more details at:
  
- https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
 
- Notice:  When comparing two groups, option "-groups groupA groupB" has to be
- present, and the output includes the difference of groupB - groupA, which is
- consistent with most AFNI convention except for 3dttest++ where groupA - groupB is
- rendered.'
+ ... from which the following excerpt on calculated quantities
+ originates:
+
+   The software outputs the estimate (5) for each effect of
+   interest at the population level, and its corresponding
+   significance testing statistic TKH, plus the cross-subject
+   heterogeneity estimate (tau-hat)^2 and its Q-statistic. 3dMEMA
+   also provides λi, the proportion of total variability that
+   originates from the ith subject based on (18), and
+   Z-value (19) for the significance of residuals of the ith
+   subject. When the outlying within-subject variance is
+   relatively too big or small and when cross-subject variance is
+   moderate or large, the slightly liberal control of type I
+   errors in TKH especially with the Laplacian assumption may be
+   of some concern. However, the effect of potentially increased
+   false positives would be relatively negligible with regard to
+   cluster thresholding in multiple testing correction. When
+   comparing two groups, the investigator can presume the same or
+   different within-group variability (homo- or hetero-
+   scedasticity) in 3dMEMA, and in the latter case the two
+   within- group variances and their ratios are also provided.
+
+
+ Notice: When comparing two groups, option "-groups groupA groupB" 
+ has to be present, and the output includes the difference of
+ groupB - groupA, which is consistent with most AFNI convention
+ except for 3dttest++ where groupA - groupB is rendered.'
    
    ex1 <- 
 "
-Example 1 --- One-sample type (one regression coefficient or general linear 
-contrast from each subject in a group):
+Example 1 --- One-sample type (one regression coefficient or general  
+linear contrast from each subject in a group):
 --------------------------------
       3dMEMA   -prefix ex1  \\
                -jobs 4      \\
@@ -609,13 +640,14 @@ contrast from each subject in a group):
                -model_outliers \\        
                -residual_Z     \n"      
    ex2 <- 
-"Example 2 --- Two-sample type (one regression coefficient or general linear
-contrast from each subject in two groups with the constrast being the 2nd group 
-subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
-between the two groups), outlier modeling, covariates centering, no payment no 
-interest till Memorial Day next year. Notice that option -groups has to be
-present in this case, and the output includes the difference of the second group
-versus the first one.
+"Example 2 --- Two-sample type (one regression coefficient or
+general linear contrast from each subject in two groups with the
+constrast being the 2nd group subtracing the 1st one),
+heteroskedasticity (different cross-subjects variability between
+the two groups), outlier modeling, covariates centering, no
+payment no interest till Memorial Day next year. Notice that
+option -groups has to be present in this case, and the output
+includes the difference of the second group versus the first one.
 -------------------------------------------------------------------------
    3dMEMA   -prefix ex3  \\
             -jobs 4      \\
