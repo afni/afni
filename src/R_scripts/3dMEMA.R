@@ -511,10 +511,10 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.3, March 14, 2019
-Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/MEMA
-SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+Version: 1.0.3, March 14, 2019
+Author:  Gang Chen (gangchen@mail.nih.gov)
+         SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+Website: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
       
@@ -525,8 +525,9 @@ Please consider citing the following if this program is useful for you:
 
    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
-   
-   https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+
+And see additional descriptions here:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
    
 #######################################################################"
    )
