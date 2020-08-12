@@ -1,0 +1,66 @@
+
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ubuntu:eoan
+    working_directory: /tmp/src/gifti_clib
+    steps:
+      - run:
+          name: Install required software
+          command: |
+            apt-get update && apt-get install -y -q eatmydata \
+            && eatmydata apt-get update && apt-get install -y -q  \
+            libexpat1-dev \
+            zlib1g-dev \
+            git \
+            wget \
+            cmake \
+            make \
+            gcc 
+      - checkout
+      - run:
+          name: Build and test gifti
+          command: |
+            mkdir ../build
+            cd ../build
+            cmake ../gifti_clib
+            make
+            ctest --output-on-failure
+
+  # macos_build:
+  #   macos:
+  #       xcode: "11.2.1"
+  #   steps: # a series of commands to run
+  #     - checkout
+  #     - run:
+  #         name: Setup on macos
+  #         command: |
+  #           brew install expat cmake make
+  #     - run:
+  #         name: Build on macos
+  #         command: |
+  #           mkdir ../build
+  #           cd ../build
+  #           cmake ../gifti_clib
+  #           make
+  #           ctest --output-on-failure
+
+
+workflows:
+  version: 2
+  gifti_build_and_test:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      # - macos_build:
+      #     filters:
+      #       branches:
+      #         ignore: /doc\/.*/
+      #       tags:
+      #         only: /.*/
+

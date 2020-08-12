@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/NIFTI-Imaging/gifti_clib/tree/master.svg?style=shield)]
+
 These notes are with respect to the AFNI GIFTI C API.
 
 - This API is built on top of expat, and is released into the public domain.
