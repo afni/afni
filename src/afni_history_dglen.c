@@ -50,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9, AUG, 2020, DRG, "@ROI_decluster",
+     MINOR, TYPE_NEW_PROG,
+    "Remove small clusters or single voxels in datasets with many ROIs",
+    "Keeps only the largest part(s) of the ROI with adjustable\n"
+    "threshold. Used for datasets with many ROIs, like those\n"
+    "found in an atlas. Can be used in combination with @ROI_modal_grow"
+},
 { 30, JUL, 2020, DRG, "@ROI_modal_grow",
      MINOR, TYPE_NEW_PROG,
     "Grow ROIs using nonzero mode in 1 voxel neighborhood increments",

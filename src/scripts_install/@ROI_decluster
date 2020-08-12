@@ -1,11 +1,10 @@
 #!/bin/tcsh
-# @ROI_modal_grow
-# dilate ROIs in volumetric dataset with non-zero modal smoothing
-
+# @ROI_decluster
+# remove small clusters from regions based on fraction or number of voxels
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set progname = @ROI_modal_grow
+set progname = @ROI_decluster
 
 # --------------------- version history with changes -----------------------
 #
@@ -13,19 +12,21 @@ set version = "1.00"
 #
 
 set dset = ""
-set outdir = "rmgrow"
-set niters = ""
+set outdir = "roidc"
+set nvox_thresh = ""
+set frac_thresh = ""
 set maskset = ""
-set outprefix = "rmg"
+set outprefix = "rdc"
 set keep_rm_files = ""
-set NN = "-1"
+set NN = "1"
 
 set here = `pwd`
 # ------------------------ process user options --------------------------
-
-if ( $#argv == 0 ) goto HELP
-
 set ac = 1
+if ($#argv < 1) then
+   goto HELP
+endif
+
 while ($ac <= $#argv)
     if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
         goto HELP
@@ -60,14 +61,24 @@ while ($ac <= $#argv)
             exit 1
         endif
         set outdir =  $argv[$ac]
-    else if ("$argv[$ac]" == "-niters") then
+    else if ("$argv[$ac]" == "-nvox_thresh") then
         set this_opt = "$argv[$ac]"
         @ ac ++
         if ( $ac > $#argv ) then
             echo "** missing parameter for option '${this_opt}'"
             exit 1
         endif
-        set niters =  $argv[$ac]
+        set nvox_thresh =  $argv[$ac]
+
+    else if ("$argv[$ac]" == "-frac_thresh") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set frac_thresh =  $argv[$ac]
+
     else if ("$argv[$ac]" == "-prefix") then
         set this_opt = "$argv[$ac]"
         @ ac ++
@@ -86,13 +97,13 @@ while ($ac <= $#argv)
         endif
         if ("$argv[$ac]" == "1") then
            # facing neighbors only - default
-           set NN = "-1"
+           set NN = "1"
         else if ("$argv[$ac]" == "2") then
            # >sqrt 2 - 2D diagonal neighbors
-           set NN = "-1.415"
+           set NN = "2"
         else if ("$argv[$ac]" == "3") then
            # >sqrt 3 - 3D diagonal neighbors
-           set NN = "-1.74"
+           set NN = "3"
         else
            echo "Only values of 1,2,3 allowed"
            exit 1
@@ -120,9 +131,18 @@ if ($dset == "") then
     exit 1
 endif
 
-if ("${niters}" == "") then
-    echo "Must select number of iterations"
+if (("${nvox_thresh}" == "") && "${frac_thresh}" == "")then
+    echo "Must select either -nvox_thres or -frac_thresh option"
     exit 1
+endif
+
+# set high values for either that is not set
+if ("${frac_thresh}" == "") then
+   set frac_thresh = 1.0
+endif
+
+if ("${nvox_thresh}" == "") then
+   set nvox_thresh = 1E38
 endif
 
 # ------------------------- make OUTDIR
@@ -139,9 +159,9 @@ endif
 cd -
 
 # copy the datasets into the directory and rename
-3dcopy $dset "${outdir}/rm_rgm_00.nii.gz"
+3dcopy $dset "${outdir}/rdc_in.nii.gz"
 # copy any atlas and label tables over
-3drefit -copytables $dset "${outdir}/rm_rgm_00.nii.gz"
+3drefit -copytables $dset "${outdir}/rdc_in.nii.gz"
 
 if ("$maskset" != "") then
    3dcopy $maskset "${outdir}/maskset.nii.gz"
@@ -149,28 +169,58 @@ if ("$maskset" != "") then
 endif
 
 cd "${outdir}"
-set inset = rm_rgm_00.nii.gz
+set inset = rdc_in.nii.gz
 
-foreach iter (`count -digits 2 1 $niters`)
-    3dLocalstat -nbhd "SPHERE(${NN})" -stat nzmode -overwrite \
-       -prefix rm_rgm_${iter}.nii.gz $inset
-    set inset = rm_rgm_${iter}.nii.gz
+# find min and max regions
+set mvals = `3dBrickStat -slow -min -max -non-zero $inset`
+
+\rm rm_roi*.nii.gz
+# search each ROI one index at a time
+foreach roi (`count -digits 4 $mvals[1] $mvals[2]`)
+    set nvox = `3dBrickStat -count -non-zero "${inset}<$roi>"`
+
+    # missing value, skip ahead
+    if ("$nvox" == "0") then
+       continue
+    endif
+
+    # find minimum number of voxels to keep in cluster
+    set thresh = `ccalc -int -expr "min($nvox_thresh,${frac_thresh}*$nvox)"`
+
+    3dClusterize                                              \
+      -idat 0 -ithr 0                                         \
+      -1sided RIGHT_TAIL ${roi}                               \
+      -pref_dat rm_roi$roi.nii.gz                             \
+      -inset    "${inset}<$roi>"                              \
+      -mask     "${inset}<$roi>"                              \
+      -NN $NN   -overwrite                                    \
+      -clust_nvox  ${thresh} -overwrite
 end
 
-if ("$maskset" != "") then
-   3dcalc -datum short -nscale -a $inset -b $maskset  \
-      -expr 'a*step(b)' -prefix ${outprefix}.nii.gz -overwrite
-else
-   3dcalc -datum short -nscale -a $inset -expr a  \
-      -prefix ${outprefix}.nii.gz -overwrite
-endif
+# find non-zero values. There shouldn't be any overlap here
+3dMean -datum short -overwrite -max -prefix ${outprefix}.nii.gz rm_roi*.nii.gz
 
 # copy any atlas and label tables over to final output
-3drefit -cmap INT_CMAP -copytables rm_rgm_00.nii.gz ${outprefix}.nii.gz
+3drefit -cmap INT_CMAP -copytables $inset ${outprefix}.nii.gz
 
+# count how many voxels in starting dataset
+set nvoxstart = `3dBrickStat -count -non-zero ${inset}`
+
+# count how many voxels are left
+set nvoxremaining = `3dBrickStat -count -non-zero ${outprefix}.nii.gz`
+
+# how many voxels removed
+set nvoxremoved = `ccalc -int -expr "$nvoxstart -$nvoxremaining"`
+
+# save record
+echo "nvox start::$nvoxstart" > rdc_outs.txt
+echo "nvox remaining::$nvoxremaining" >> rdc_outs.txt
+echo "nvox removed::$nvoxremoved" >> rdc_outs.txt
+
+cat rdc_outs.txt
 
 if ($keep_rm_files != "") then
-   \rm rm_rgm_${iter}.nii.gz 
+   \rm rm_roi*.nii.gz 
 endif
 
 exit 0
@@ -183,20 +233,17 @@ cat << SCRIPT_HELP_STRING
 
 Overview ~1~
 
-Script to grow a set of regions in a volumetric dataset using modal
-smoothing.
+Script to remove small clusters or standalone voxels from an ROI/atlas dataset
 
 Usage Example ~1~
 
-    @ROI_modal_grow                                      \
+    @ROI_decluster                                       \
       -input  mydset.nii.gz                              \
       -outdir myoutdir                                   \
-      -niters 5                                          \
-      -mask mymask.nii.gz                                \
-      -prefix rmg_name                                  
+      -fracthresh  0.15                                  \
+      -prefix newroi_name                                  
 
-   Note only the input dataset and the number of iteration levels
-   are required.
+   Note only the input dataset and a threshold are required.
 
 Options ~1~
 
@@ -205,29 +252,27 @@ Options ~1~
                          approximate isotropic voxels.
 
     -outdir outdirname  :directory name for output. All output goes to
-                         this directory. Default is rmgrow.
+                         this directory. Default is roidc.
 
-    -niters nn          :number of iterations for modal growth - 
-                         something like dilation level here - generally
-                         this will make sense for values from about 1-10
-
-    -mask maskset       :mask dataset at same grid as the input dataset.
-                         this could be a dilated version of the original mask
-                         or a larger region like a cortical ribbon mask.
-                         Not required but often desirable.
+    -nvox_thresh nn     :number of voxels in a cluster to keep
+    -frac_thresh nn     :fraction of voxels in a cluster to keep [0.0-1.0]
+                         Both types of threshold can be specified at the same
+                         time, in which case, the minimum value would be used.
+                         For example, an nvox_thresh of 10 and a frac_thresh
+                         of 0.15 would remove all voxels that occupied at least
+                         15% of the number of voxels in the region and at least
+                         10 voxels.
 
     -prefix baseprefix  :base name of final output dataset, i.e. baseprefix.nii.gz
-                         Default is rmg, so output would be rmg.nii.gz
+                         Default is rdc, so output would be rdc.nii.gz
 
     -NN [1,2,3]         :neighborhood type using in finding mode, 
                          1 - facing neighbors, 2-edges, 3-corners
 
-Also see these programs with these similar functions: 
+Also see these programs with these related functions:
+   3dClusterize - reports and extracts clusters (main program called by this one)  
+   @ROI_modal_grow - grows regions using non-zero modal smoothing
    3dROImaker - grows regions using regular dilation iteratively
-   3dmask_tool - dilates and erodes sets of input files or a single output mask
-   3dmerge, 3dAutomask, 3dcalc - all can do dilation
-   3dLocalstat - modal and nonzero modal smoothing
-   ROIgrow - dilates surface ROI (patches) within the mesh of the surface
 
 SCRIPT_HELP_STRING
 
