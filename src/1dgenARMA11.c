@@ -48,6 +48,8 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    len = rcm->len ;
    rc  = rcm->rc ;
 
+   rcm->flag = 0 ;
+
         if( rho >  0.99 ) rho =  0.99 ;  /* max allowed NN correlation */
    else if( rho < -0.99 ) rho = -0.99 ;
 
@@ -129,6 +131,8 @@ rcmat * rcmat_arma_gen( int nt, int *tau, doublevec *corvec )
    rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
    len = rcm->len ;
    rc  = rcm->rc ;
+
+   rcm->flag = 0 ;
 
    /* set maximum bandwidth */
 

@@ -550,7 +550,7 @@ ENTRY("rcmat_writebin") ;
 
 rcmat * rcmat_readbin( FILE *fp )
 {
-   rcmat *qcm ; int ii,nn=-666 ;
+   rcmat *qcm ; int ii,nn=-666,nd1=0 ; LENTYP lmax=0 ;
 ENTRY("rcmat_readbin") ;
 
    if( fp == NULL ) RETURN(NULL) ;
@@ -562,6 +562,14 @@ ENTRY("rcmat_readbin") ;
    for( ii=0 ; ii < nn ; ii++ ){
      qcm->rc[ii] = remla_malloc( sizeof(double)*qcm->len[ii] ) ;
      fread( qcm->rc[ii] , sizeof(double) , qcm->len[ii] , fp ) ;
+     if( qcm->len[ii] > lmax ) lmax = qcm->len[ii] ;
+     if( qcm->len[ii] == 1 && qcm->rc[ii][0] == 1.0 ) nd1++ ;
+   }
+
+   if( lmax == 1 ){
+     qcm->flag = (nd1 == nn) ? RCMAT_IDENT : RCMAT_DIAG ;
+   } else {
+     qcm->flag = 0 ;
    }
 
    RETURN(qcm) ;
@@ -683,6 +691,8 @@ rcmat * rcmat_arma11( int nt, int *tau, double rho, double lam )
    len = rcm->len ;
    rc  = rcm->rc ;
 
+   rcm->flag = 0 ;
+
         if( rho >  0.9 ) rho =  0.9 ;  /* max allowed NN correlation */
    else if( rho < -0.9 ) rho = -0.9 ;
 
@@ -704,6 +714,7 @@ rcmat * rcmat_arma11( int nt, int *tau, double rho, double lam )
      for( ii=0 ; ii < nt ; ii++ ){
        len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
      }
+     rcm->flag = RCMAT_IDENT ;
      return rcm ;
    }
 
@@ -2006,6 +2017,8 @@ rcmat * rcmat_arma31( int nt, int *tau,
    len = rcm->len ;
    rc  = rcm->rc ;
 
+   rcm->flag = 0 ;
+
    /* edit input params for reasonability */
 
         if( aa >  0.9 ) aa =  0.9 ;
@@ -2038,6 +2051,7 @@ rcmat * rcmat_arma31( int nt, int *tau,
      for( ii=0 ; ii < nt ; ii++ ){
        len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
      }
+     rcm->flag = RCMAT_DIAG ;
      return rcm ;
    }
 

@@ -687,7 +687,7 @@ ENTRY("rcmat_writebin") ;
 
 rcmat * rcmat_readbin( FILE *fp )
 {
-   rcmat *qcm ; int ii,nn=-666 ;
+   rcmat *qcm ; int ii,nn=-666,nd1=0 ; LENTYP lmax=0 ;
 ENTRY("rcmat_readbin") ;
 
    if( fp == NULL ) RETURN(NULL) ;
@@ -699,8 +699,15 @@ ENTRY("rcmat_readbin") ;
    for( ii=0 ; ii < nn ; ii++ ){                  /* data from each row */
      qcm->rc[ii] = remla_malloc( sizeof(double)*qcm->len[ii] ) ;
      fread( qcm->rc[ii] , sizeof(double) , qcm->len[ii] , fp ) ;
+     if( qcm->len[ii] > lmax ) lmax = qcm->len[ii] ;
+     if( qcm->len[ii] == 1 && qcm->rc[ii][0] == 1.0 ) nd1++ ;
    }
 
+   if( lmax == 1 ){
+     qcm->flag = ( nd1 == nn ) ? RCMAT_IDENT : RCMAT_DIAG ;
+   } else {
+     qcm->flag = 0 ;
+   }
    RETURN(qcm) ;
 }
 
@@ -1446,6 +1453,8 @@ ENTRY("rcmat_generic") ;
    len = rcm->len ;
    rc  = rcm->rc ;
 
+   rcm->flag = 0 ;
+
    /* get correlations (at most nt of them) */
 
    corvec = rcmat_generic_correlations( code , pvec , corcut , nt , ws ) ;
@@ -1473,6 +1482,7 @@ ENTRY("rcmat_generic") ;
        len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
      }
      if( ws == NULL ) KILL_doublevec( corvec ) ;
+     rcm->flag = RCMAT_IDENT ;
      RETURN( rcm ) ;
    }
 
@@ -2034,6 +2044,9 @@ reml_collection_generic * REML_setup_all_arma11(
                              matrix *X , int *tau , int nlev ,
                              double amax , double bmax        )
 {
+   if( nlev <= 0   ) nlev = 6 ;
+   if( amax <  0.5 ) amax = 0.8 ; else if( amax > 0.9 ) amax = 0.9 ;
+   if( bmax <  0.5 ) bmax = 0.8 ; else if( bmax > 0.9 ) bmax = 0.9 ;
    return
      REML_setup_all_generic_2D( X , tau , ARMA11_MODEL ,
                                 nlev , nlev , /* positive == 2D grid in a,b */
@@ -2236,7 +2249,7 @@ reml_collection_generic * REML_setup_all_generic_4D(
 INFO_message("REML_setup_all_generic_4D:\n"
              "  model_code = %d\n"
              "  pna = %d pnb = %d pnc = %d pnd = %d\n"
-             "  amin = %g amax = %g   bmin = %g bmax = %g\n" 
+             "  amin = %g amax = %g   bmin = %g bmax = %g\n"
              "  cmin = %g cmax = %g   dmin = %g dmax = %g"   ,
              model_code , pna,pnb,pnc,pnd ,
                           amin,amax, bmin,bmax, cmin,cmax, dmin,dmax  ) ;
@@ -2293,10 +2306,12 @@ INFO_message("REML_setup_all_generic_4D:\n"
    na = rcg->na ; nb = rcg->nb ;       /* local copies of grid dimensions */
    nc = rcg->nc ; nd = rcg->nd ;
 
+   /** INFO_message("4D: na=%d nb=%d nc=%d nd=%d nabcd1=%d",na,nb,nc,nd,rcg->nabcd1) ; **/
+
    /* get ready for array of REML setups */
 
    rcg->nset  = rcg->nabcd1 ;   /* number of setups */
-   rcg->istwo = 0 ;
+   rcg->istwo = rcg->izero = 0 ;
    rcg->abot  = amin; rcg->atop = amax; rcg->da = (amax-amin)/na;   /* grid */
    rcg->bbot  = bmin; rcg->btop = bmax; rcg->db = (bmax-bmin)/nb; /* coords */
    rcg->cbot  = cmin; rcg->ctop = cmax; rcg->dc = (cmax-cmin)/nc;
@@ -2334,7 +2349,7 @@ INFO_message("REML_setup_all_generic_4D:\n"
     /** start of potentially multi-threaded code **/
 
  AFNI_OMP_START ;
-#pragma omp parallel if( maxthr > 1 && rcg->nset > 7 )
+#pragma omp parallel if( maxthr > 1 && rcg->nset > 66 )
  { int iabcd , ii,jj,kk,ll,qq , ithr=0 ;
    int na = rcg->na, na1 = rcg->na1, nb = rcg->nb, nb1 = rcg->nb1,
        nc = rcg->nc, nc1 = rcg->nc1, nd = rcg->nd, nd1 = rcg->nd1,
@@ -2354,7 +2369,6 @@ INFO_message("REML_setup_all_generic_4D:\n"
        qq = qq/na1 ; jj = qq % nb1 ; /* index in b-direction */
        qq = qq/nb1 ; kk = qq % nc1 ; /* index in c-direction */
        qq = qq/nc1 ; ll = qq ;       /* index in d-direction */
-       qq = iabcd+1 ;
        aa = ii*dda + abot ;   /* actual value of a parameter */
        bb = jj*ddb + bbot ;   /* actual value of b parameter */
        cc = kk*ddc + cbot ;   /* actual value of c parameter */
@@ -2402,23 +2416,37 @@ INFO_message("REML_setup_all_generic_4D:\n"
 /* For ARMA(3,1) -- full grid */
 /*--------------------------------------------------------------------------*/
 
-#define THETA_MIN (PI/32.0)
-#define THETA_MAX (31.0*THETA_MIN)
+#define THETA_MIN (PI/64.0)
+#define THETA_MAX (32.0*THETA_MIN)
 
 reml_collection_generic * REML_setup_all_arma31(
                              matrix *X , int *tau , int nlev ,
                              double amax , double rmax ,
                              double tbot , double ttop , double vmax )
 {
+   int pna,pnb,pnc,pnd ;
+
    if( tbot < THETA_MIN ) tbot = THETA_MIN ;
-   if( ttop < THETA_MAX ) ttop = THETA_MAX ;
+   if( ttop > THETA_MAX ) ttop = THETA_MAX ;
+   if( ttop <= tbot ){ tbot = THETA_MIN ; ttop = THETA_MAX ; }
+
+   if( amax > 0.90 ) amax = 0.90 ; else if( amax < 0.50 ) amax = 0.50 ;
+   if( rmax > 0.90 ) rmax = 0.90 ; else if( rmax < 0.50 ) rmax = 0.50 ;
+   if( vmax > 0.90 ) vmax = 0.90 ; else if( vmax < 0.50 ) vmax = 0.50 ;
+
+   if( nlev > 0 ){
+     pna = pnb = pnc = pnd = nlev ;
+   } else {
+     pna = pnb = 3 ; pnc = pnd = 4 ;  /* defaults */
+   }
+
    return
      REML_setup_all_generic_4D( X , tau , ARMA31_MODEL ,
-                                nlev , nlev , nlev , nlev ,
-                                amax*0.03 , amax ,
-                                rmax*0.03 , rmax ,
+                                pna , pnb , pnc , pnd ,
+                                amax*0.10 , amax ,
+                                rmax*0.10 , rmax ,
                                 tbot      , ttop ,
-                                vmax*0.03 , vmax   ) ;
+                                vmax*0.10 , vmax   ) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2476,7 +2504,7 @@ ENTRY("REML_find_best_case_generic_4D") ;
    qbest = -1 ;      /* will be index of best case */
    rbest = BIGVAL ;  /* will be value of best case */
    ibest = na/2 ; jbest = nb/2 ; kbest = nc/2 ; lbest = nd/2 ;
-   
+ 
    for( qq=0 ; qq < nabcd1 ; qq++ ) rvab[qq] = BIGVAL ; /* mark all as bad */
 
    /** do power-of-2 descent through the (a,b,c,d) grid to find the bestest pair **/
@@ -2526,7 +2554,7 @@ ENTRY("REML_find_best_case_generic_4D") ;
      /* at the next level down, scan near the best so far seen */
 
      if( lev > 0 ){           /* if lev == 0, there is no next level */
-       qq   = dab + dab/2 ;
+       qq   = dab ;
        ibot = ibest-qq ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+qq ; if( itop > na ) itop = na ;
        jbot = jbest-qq ; if( jbot < 0  ) jbot = 0  ;

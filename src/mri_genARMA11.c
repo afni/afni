@@ -38,6 +38,8 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    len = rcm->len ;
    rc  = rcm->rc ;
 
+   rcm->flag = 0 ;
+
         if( rho >  0.99 ) rho =  0.99 ;  /* max allowed NN correlation */
    else if( rho < -0.99 ) rho = -0.99 ;
 
@@ -59,6 +61,7 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
      for( ii=0 ; ii < nt ; ii++ ){
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
      }
+     rcm->flag = RCMAT_IDENT ;
      return rcm ;
    }
 

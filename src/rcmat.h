@@ -42,16 +42,22 @@
 #undef  LENTYP_MAX
 #define LENTYP_MAX 65535u      /* sets maximum row length */
 
+#define RCMAT_BAD   -1  /* codes for the flag field */
+#define RCMAT_IDENT  1  /* identity matrix */
+#define RCMAT_DIAG   2  /* diagonal matrix (not used yet) */
+
 typedef struct {
   int     nrc ;    /* # of rows and columns */
+  int    flag ;    /* flag for special cases */
   LENTYP *len ;    /* in row/column #i, there are len[i] elements */
   double **rc ;    /* so the first column/row index is i+1-len[i] */
                    /* diagonal element #i is in rc[i][len[i]-1]   */
 } rcmat ;
 
-#define ISVALID_RCMAT(rr)                                      \
-  ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 &&  \
-                    (rr)->rc  != NULL && (rr)->rc[0]  != NULL )
+#define ISVALID_RCMAT(rr)                      \
+  ( (rr)      != NULL && (rr)->flag   >= 0 &&  \
+    (rr)->len != NULL && (rr)->len[0] == 1 &&  \
+    (rr)->rc  != NULL && (rr)->rc[0]  != NULL    )
 
 extern rcmat * rcmat_init         ( int n ) ;
 extern void    rcmat_destroy      ( rcmat *rcm ) ;

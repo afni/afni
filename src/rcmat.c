@@ -43,6 +43,8 @@ ENTRY("rcmat_init") ;
    rcm->nrc = n ;
    rcm->len = (LENTYP * )calloc( n , sizeof(LENTYP  ) ) ;
    rcm->rc  = (double **)calloc( n , sizeof(double *) ) ;
+
+   rcm->flag = RCMAT_BAD ;
    RETURN(rcm) ;
 }
 
@@ -99,6 +101,7 @@ rcmat * rcmat_copy( rcmat *rcm )
      qcm->rc[ii] = malloc( sizeof(double)*qcm->len[ii] ) ;
      AAmemcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(double)*qcm->len[ii] ) ;
    }
+   qcm->flag = rcm->flag ;
    return qcm ;
 }
 
@@ -141,6 +144,8 @@ int rcmat_choleski( rcmat *rcm )
    rc  = rcm->rc ;
    len = rcm->len ;
 
+   if( rcm->flag == RCMAT_IDENT ) return 0 ; /* nothing to do */
+
    for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
        if( rc[ii][0] <= 0.0 ) return (ii+1) ;
@@ -180,6 +185,8 @@ void rcmat_lowert_vecmul( rcmat *rcm , double *vec )  /* 02 Oct 2009 */
    double **rc ; double *rii , sum , *vv , *uu ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
+
+   if( rcm->flag == RCMAT_IDENT ) return ; /* nothing to do */
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
@@ -223,6 +230,8 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
+   if( rcm->flag == RCMAT_IDENT ) return ; /* nothing to do */
+
    nn  = rcm->nrc ;
 #if 0
    if( nn > 999 ){ rcmat_lowert_solve_unrolled(rcm,vec) ; return ; }
@@ -249,6 +258,7 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
    return ;
 }
 
+#if 0
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a lower triangular matrix,
     and solve the matrix-vector equation [rcm][x] = [vec], in place.
@@ -262,6 +272,8 @@ void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
    double **rc ; double *rii , sum , *vv ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
+
+   if( rcm->flag == RCMAT_IDENT ) return ; /* nothing to do */
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
@@ -317,6 +329,7 @@ void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
    }
    return ;
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as an upper triangular matrix,
@@ -332,6 +345,8 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
 #endif
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
+
+   if( rcm->flag == RCMAT_IDENT ) return ; /* nothing to do */
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
@@ -494,6 +509,7 @@ for( ii=0 ; ii < nref ; ii++ ){
 }
 #endif
 
+   rcm->flag = 0 ;
    RETURN(rcm) ;
 }
 
@@ -580,5 +596,6 @@ ENTRY("rcmat_from_columns") ;
        rcii[jj] = (double)rr[ii][jj] ;
    }
 
+   rcm->flag = 0 ;
    RETURN(rcm) ;
 }
