@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, Aug 2, 2020
+Version 0.0.6, Aug 15, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -155,7 +155,7 @@ Introduction
           -gltCode em-eff1  'emotion : 0.5*pos +0.5*neg -1*neu'     \\
           -glfCode em-eff2  'emotion : 1*pos -1*neg & 1*pos -1*neu' \\
           -dataTable                              \\
-          Subj emotion  putFile                   \\
+          Subj emotion  InputFile                   \\
           s1    pos     s1_pos+tlrc               \\
           s1    neg     s1_neg+tlrc               \\
           s1    neu     s1_neu+tlrc               \\
