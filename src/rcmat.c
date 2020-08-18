@@ -49,6 +49,18 @@ ENTRY("rcmat_init") ;
 }
 
 /*--------------------------------------------------------------------------*/
+
+void rcmat_fill_identity( rcmat *rcm )
+{
+   int ii , nt = rcm->nrc ;
+   for( ii=0 ; ii < nt ; ii++ ){
+     rcm->len[ii] = 1 ; rcm->rc[ii] = malloc(sizeof(double)) ; rcm->rc[ii][0] = 1.0 ;
+   }
+   rcm->flag = RCMAT_IDENT ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Delete a rcmat structure. */
 
 void rcmat_destroy( rcmat *rcm )

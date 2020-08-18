@@ -106,6 +106,8 @@ doublevec * arma11_correlations( double a, double b, double ccut, int ncmax )
    return corvec ;
 }
 
+/*============================================================================*/
+#ifdef ALLOW_ARMA31
 /*----------------------------------------------------------------------------*/
 /* Return the vector of correlations for an AR(3) model plus additive white
    noise [=restricted ARMA(3,1)], given the AR(5) generating polynomial as
@@ -279,6 +281,8 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
 
    return corvec ;
 }
+#endif /* ALLOW_ARMA31 */
+/*============================================================================*/
 
 /*============================================================================*/
 #ifdef ALLOW_ARMA51  /* Not Ready For Prime Time */

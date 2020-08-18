@@ -11,6 +11,8 @@
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
+#undef ALLOW_ARMA35
+#ifdef ALLOW_ARMA35
 /*---------------------------------------------------------------------------*/
 /*** Some prototypes [May 2020] ***/
 
@@ -24,6 +26,7 @@ doublevec * REML_compute_arma51_correlations( double aa,
 
 rcmat * rcmat_arma31( int nt, int *tau,
                       double aa, double rr, double th , double sfac ) ;
+#endif
 
 /*===========================================================================*/
 #undef ENABLE_REMLA_MALLOC
@@ -711,10 +714,7 @@ rcmat * rcmat_arma11( int nt, int *tau, double rho, double lam )
    /* special and trivial case: identity matrix */
 
    if( bmax == 0 ){
-     for( ii=0 ; ii < nt ; ii++ ){
-       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
-     }
-     rcm->flag = RCMAT_IDENT ;
+     rcmat_fill_identity( rcm ) ;
      return rcm ;
    }
 
@@ -1750,6 +1750,8 @@ ENTRY("REML_compute_gltstat") ;
 }
 
 /*---------------------------------------------------------------------------*/
+#ifdef ALLOW_ARMA35
+/*---------------------------------------------------------------------------*/
 
 #define NSCUT 5  /* finsih when get this many 'small' correlations in a row */
 
@@ -2048,10 +2050,7 @@ rcmat * rcmat_arma31( int nt, int *tau,
    /* special and trivial case: identity matrix */
 
    if( bmax == 0 ){
-     for( ii=0 ; ii < nt ; ii++ ){
-       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
-     }
-     rcm->flag = RCMAT_DIAG ;
+     rcmat_fill_identity( rcm ) ;
      return rcm ;
    }
 
@@ -2085,3 +2084,4 @@ rcmat * rcmat_arma31( int nt, int *tau,
 
    return rcm ;
 }
+#endif  /* ALLOW_ARMA35 */

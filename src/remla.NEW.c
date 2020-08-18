@@ -169,8 +169,10 @@ void * remla_realloc( void *ptr , size_t nb )
 #include "matrix.c"    /* included here for optimization */
 #include "rcmat.c"     /* and for memory tracking, maybe */
 
-#undef ALLOW_ARMA51   /* not ready for prime time */
-#include "armacor.c"  /* contains code for autocorrelation vectors */
+#undef ALLOW_ARMA31    /* doesn't seem useful */
+#undef ALLOW_ARMA51    /* not ready for prime time */
+
+#include "armacor.c"   /* contains code for autocorrelation vectors */
 
 #ifdef ENABLE_REMLA_MALLOC      /* now turn these macros off */
 # undef malloc
@@ -208,6 +210,9 @@ typedef struct {
 } gltfactors ;
 
 /* codes for different temporal correlation models */
+
+#define WHITE_MODEL   0
+#define WHITE_NPARAM  0
 
 #define ARMA11_MODEL  1
 #define ARMA11_NPARAM 2
@@ -1364,6 +1369,7 @@ ENTRY("REML_compute_gltstat") ;
 static int number_of_parameters( int cod )
 {
   switch( cod ){
+    case WHITE_MODEL:  return WHITE_NPARAM ;
     case ARMA11_MODEL: return ARMA11_NPARAM ;
     case ARMA31_MODEL: return ARMA31_NPARAM ;
     case ARMA51_MODEL: return ARMA51_NPARAM ;
@@ -1396,7 +1402,7 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,
 {
    doublevec *corvec = NULL ;
 
-   if( pvec == NULL ) return corvec ;
+   if( pvec == NULL || code == WHITE_MODEL ) return corvec ;
 
    switch( code ){
 
@@ -1409,6 +1415,7 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,
        }
      break ;
 
+#ifdef ALLOW_ARMA31
      case ARMA31_MODEL:
        if( ws == NULL ){
          corvec = arma31_correlations( pvec[0] , pvec[1] , pvec[2] , pvec[3] ,
@@ -1419,6 +1426,7 @@ doublevec * rcmat_generic_correlations( int code , double *pvec ,
                                       ccut , corvec ) ;
        }
      break ;
+#endif
 
    }
 
@@ -1447,13 +1455,18 @@ rcmat * rcmat_generic( int nt, int *tau, int code, double *pvec, void *ws )
 
 ENTRY("rcmat_generic") ;
 
-   if( nt < 2 || pvec == NULL ) RETURN( NULL ) ;
+   if( nt < 2 || (pvec == NULL && code != WHITE_MODEL) ) RETURN( NULL ) ;
 
    rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
    len = rcm->len ;
    rc  = rcm->rc ;
 
    rcm->flag = 0 ;
+
+   if( code == WHITE_MODEL ){      /* the simplest case */
+     rcmat_fill_identity( rcm ) ;
+     RETURN( rcm ) ;
+   }
 
    /* get correlations (at most nt of them) */
 
@@ -1478,11 +1491,8 @@ ENTRY("rcmat_generic") ;
    /* special and trivial case: identity matrix (only got correlation [0]) */
 
    if( bmax == 0 ){
-     for( ii=0 ; ii < nt ; ii++ ){
-       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
-     }
+     rcmat_fill_identity( rcm ) ;
      if( ws == NULL ) KILL_doublevec( corvec ) ;
-     rcm->flag = RCMAT_IDENT ;
      RETURN( rcm ) ;
    }
 
@@ -1516,7 +1526,7 @@ ENTRY("rcmat_generic") ;
 
    /* check for errors that should never happen */
    ii = rcmat_floatscan(rcm) ;
-   if( ii > 0 ) ERROR_message("%d errors found in rcmat_generic matrix",ii);
+   if( ii > 0 ) ERROR_message("%d float errors found in rcmat_generic matrix",ii);
 
    if( ws == NULL ) KILL_doublevec( corvec ) ;
    RETURN( rcm ) ;
@@ -1536,7 +1546,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    matrix *W , *D ;
    double *vec , csum,dsum,val ;
 
-   if( nt < 2 || X == NULL || X->rows != nt || pvec == NULL ){
+   if( nt < 2 || X == NULL || X->rows != nt || (pvec == NULL && code != WHITE_MODEL) ){
      ERROR_message("setup_generic_reml: bad inputs?!") ;
      return NULL ;
    }
@@ -1571,7 +1581,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 
    /* check for errors that should never happen */
    ii = rcmat_floatscan(rcm) ;
-   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml C matrix",ii);
+   if( ii > 0 ) ERROR_message("%d float errors found in setup_generic_reml C matrix",ii);
 
    /* prewhiten each column of X into W matrix */
    /* that is, W = inv(C) X */
@@ -1587,13 +1597,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    }
 
    ii = matrix_floatscan( W ) ;
-   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml W matrix",ii) ;
+   if( ii > 0 ) ERROR_message("%d float errors found in setup_generic_reml W matrix",ii) ;
 
    remla_free((void *)vec) ;
 
    /* compute QR decomposition of W, save R factor into D, toss W */
 
-   D = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(D) ;
+   D  = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(D) ;
    ii = matrix_qrr( *W , D ) ;
    matrix_destroy(W) ; remla_free((void *)W) ;
    if( D->rows <= 0 ){
@@ -1614,7 +1624,7 @@ reml_setup * setup_generic_reml( int nt, int *tau,
    }
 
    ii = matrix_floatscan( D ) ;
-   if( ii > 0 ) ERROR_message("%d errors found in setup_generic_reml D matrix",ii) ;
+   if( ii > 0 ) ERROR_message("%d float errors found in setup_generic_reml D matrix",ii) ;
 
    /* create the setup struct, save stuff into it */
 
@@ -1645,10 +1655,13 @@ reml_setup * setup_generic_reml( int nt, int *tau,
 
    /* and 2 * log det[C] = part of REML cost function */
 
-   for( csum=0.0,ii=0 ; ii < nt ; ii++ ){
-     jj  = rcm->len[ii] ;
-     val = rcm->rc[ii][jj-1] ;
-     if( val > 0.0 ) csum += log(val) ;
+   csum = 0.0 ;
+   if( rcm->flag ! RCMAT_IDENT ){
+     for( ii=0 ; ii < nt ; ii++ ){
+       jj  = rcm->len[ii] ;
+       val = rcm->rc[ii][jj-1] ;
+       if( val > 0.0 ) csum += log(val) ;
+     }
    }
    rset->cc_logdet = 2.0 * csum ;
 
@@ -1678,6 +1691,16 @@ reml_setup * REML_setup_one_arma11( matrix *X, int *tau, double aa, double bb )
 }
 
 /*--------------------------------------------------------------------------*/
+/* convenience function for setting up OLSQ via rcmat struct
+   (which is basically using the QR decomposition for solution)
+*//*------------------------------------------------------------------------*/
+
+reml_setup * REML_setup_one_identity( matrix *X, int *tau )
+{
+   return REML_setup_one_generic( X , tau , WHITE_MODEL , NULL , NULL ) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Similar to above, BUT
      * first add columns in Z to matrix
      * then carry out the REML setup for this new matrix
@@ -1694,7 +1717,7 @@ reml_setup_plus * REML_setup_plus_generic( matrix *X, matrix *Z, int *tau,
 
 ENTRY("REML_setup_plus_generic") ;
 
-   if( X == NULL || pvec == NULL ) RETURN(rsetplus) ; /* bad */
+   if( X == NULL || (pvec == NULL && code != WHITE_MODEL) ) RETURN(rsetplus) ; /* bad */
 
    /* create the catenated matrix [ X Z ] */
 
@@ -2223,6 +2246,8 @@ ININFO_message("final rbest=%g at kk=%d a=%g b=%g",rbest,kbest ,
    RETURN(kbest) ;
 }
 
+/*==========================================================================*/
+#ifdef ALLOW_ARMA31
 /*--------------------------------------------------------------------------*/
 /* Fill in a 4D grid of REML setups, over a range of parameters.
    Parameter (a,b,c,d) grid dimensions are
@@ -2582,3 +2607,5 @@ ENTRY("REML_find_best_case_generic_4D") ;
 
    RETURN(qbest) ;
 }
+#endif /* ALLOW_ARMA31 */
+/*==========================================================================*/
