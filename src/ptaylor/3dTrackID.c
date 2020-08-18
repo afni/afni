@@ -141,6 +141,17 @@
 //#define N_plus_dtifile (4) // num of allowed additional param files in NIMLver
 //#define PreCalcParLabs (5) // we define a few things initially
 
+#define N_DEF_PAR_LABS (7) // we define a few things initially
+#define N_XTR_PAR_LABS (3) // we define a few things initially
+
+static char *DEF_PAR_LABS[N_DEF_PAR_LABS] = { "NT", "fNT", "PV",
+                                              "fNV", "NV", "BL",
+                                              "sBL"};
+static char *XTR_PAR_LABS[N_XTR_PAR_LABS] = { "NTpTarVol",
+                                              "NTpTarSA",
+                                              "NTpTarSAFA"};
+
+
 
 int GetSizesOfTargets( int ***ROI_SIZES,
                        int **MAPROI, int *Dim, 

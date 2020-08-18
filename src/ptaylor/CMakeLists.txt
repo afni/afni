@@ -15,9 +15,20 @@ add_afni_library(
   rsfc.c
   TrackIO.c
 )
-target_link_libraries(track_tools 
-  PUBLIC AFNI::mrix GSL::gsl
-  PRIVATE AFNI::3DEdge NIFTI::nifti2)
+target_link_libraries(track_tools
+  PUBLIC
+    AFNI::mri
+    GSL::gsl
+  PRIVATE
+    $<TARGET_OBJECTS:suma_objs>
+    AFNI::3DEdge
+    NIFTI::nifti2
+    )
+target_include_directories(track_tools
+  INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR}>
+  )
+
 
 
 if(COMP_ADD_BINARIES)
@@ -25,7 +36,6 @@ if(COMP_ADD_BINARIES)
     target
     1dDW_Grad_o_Mat
     1dDW_Grad_o_Mat++
-    3dAmpToRSFC
     3ddot_beta
     3dLombScargle
     3dReHo
@@ -33,6 +43,7 @@ if(COMP_ADD_BINARIES)
     3dSpaceTimeCorr
     3dTORTOISEtoHere
     3dVecRGB_to_HSL
+    3dAmpToRSFC
     3dDTtoNoisyDWI
     3dMatch
     3dNetCorr

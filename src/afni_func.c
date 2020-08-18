@@ -191,6 +191,64 @@ ENTRY("AFNI_set_pval") ;
    EXRETURN ;
 }
 
+/*--- set threshold 16 Jul 2020 discoraj --------------------*/
+
+void AFNI_func_setthresh_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   float thresh ;
+   char *cpt ;
+   char contlab[2] , threshstr[32];
+   char drvmsg[256] = "SET_THRESHNEW ";
+
+ENTRY("AFNI_func_setthresh_final_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   if( cbs->reason  != mcwCR_string ||
+       cbs->cval    == NULL         ||
+       cbs->cval[0] == '\0'           ){ TFLASH(im3d); EXRETURN; }
+
+   // get new threshold and no negatives to string
+   thresh = (float)strtod(cbs->cval,&cpt) ;
+   if( thresh < 0.0f ){ TFLASH(im3d); EXRETURN; }
+   sprintf(threshstr, "%f", thresh);
+
+   // fix the stat if dataset changes...
+   im3d->vinfo->fix_qval   = 0 ;
+   im3d->vinfo->fixed_qval = 0.0f ;
+   im3d->vinfo->fix_pval   = 0 ;
+   im3d->vinfo->fixed_pval = 0.0f ;
+
+   // get the controller label single letter only
+   memcpy( contlab, &AFNI_controller_label(im3d)[1], 1 );
+   contlab[1] = '\0';
+
+   // combine everything into 1 string
+   strcat(drvmsg,contlab) ; strcat(drvmsg," ") ; strcat(drvmsg,threshstr) ;
+
+   // drive to change the threshold
+   AFNI_driver(drvmsg);
+
+   // fix pbar size
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
+   EXRETURN ;
+}
+
+/*---------- set threshold 16 Jul 2020 discoraj ----------------------*/
+
+void AFNI_func_setthresh_CB( Widget w, XtPointer cd, XtPointer cb )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_func_setthresh_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   MCW_choose_string(w,"Enter threshold",NULL,AFNI_func_setthresh_final_CB,cd) ;
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------------*/
 
 void AFNI_func_setpval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )

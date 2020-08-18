@@ -4532,7 +4532,6 @@ extern THD_session * THD_init_session_recursive( char *dirname ) ;
 extern char * Add_plausible_path(char *fname);              /* ZSS:Aug. 08 */
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
-extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
 extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
 extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
@@ -4877,7 +4876,6 @@ extern RwcBoolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * ) ;
 extern int     THD_subset_loaded( THD_3dim_dataset *, int, int * ) ;
-extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
@@ -4905,7 +4903,6 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
 #define MINC_SWAPIZE_MASK 1<<1
-extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */

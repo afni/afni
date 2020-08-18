@@ -42,6 +42,10 @@
   Mar, 2019:
        + \% -> %% in text output-- thanks, Emperor Bob the Debugger!
 
+  July 27, 2020:
+       + hide a couple OMP things in ifdefs, so the program will
+         compile even without OpenMP
+
 */
 
 
@@ -995,12 +999,20 @@ int Calc_DTI_uncert( float **UU,
       //int iter = 0;
       //int whichvox=0;
 
+// [PT: July 27, 2020] wrap this OMP part in ifdef condition, to this
+// prog can be compiled+run even without OpenMP
+#ifdef USE_OMP
       ithr = omp_get_thread_num();
       if( !ithr ) {
          fprintf(stderr,"++ Nvox progress proxy count on thread[%d]: "
                  "start ...\n", ithr);
          t_start = time(NULL);
       }
+#else
+      fprintf(stderr,"++ Nvox progress proxy count on (only) thread: "
+              "start ...\n", ithr);
+      t_start = time(NULL);
+#endif
 
 #pragma omp for
       for( aa=0 ; aa<Ntodo ; aa++ ) {
@@ -1148,6 +1160,9 @@ int Calc_DTI_uncert( float **UU,
 
          }
 
+// [PT: July 27, 2020] wrap this OMP part in ifdef condition, to this
+// prog can be compiled+run even without OpenMP
+#ifdef USE_OMP
          ithr = omp_get_thread_num();
          // counter for user
          if( ithr == 0 ) {
@@ -1158,6 +1173,14 @@ int Calc_DTI_uncert( float **UU,
                        (float) difftime( time(NULL), t_start)/60. );
             }
          }
+#else
+         nprog++;
+         if( (nprog % ApproxTenPerc) == 0 ) {
+            fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+                    "[", nprog *10./ApproxTenPerc,"]", 
+                    (float) difftime( time(NULL), t_start)/60. );
+         }
+#endif
       }
       
 

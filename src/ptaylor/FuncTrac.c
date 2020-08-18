@@ -1,4 +1,4 @@
-#include "afni.h" 
+#include "mrilib.h" 
 #include "FuncTrac.h"
 
 

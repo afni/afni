@@ -59,11 +59,6 @@ set( SILLYDEMO_INSTALL_INCLUDE_DIR myincludes)
 find_package(ZLIB REQUIRED)
 set(SILLYDEMOZLIB_LIBRARIES ${ZLIB_LIBRARIES})
 
-# set to TRUE if SILLYDEMO* development are not exposed through your package to others 
-set(SILLYDEMO_INSTALL_NO_DEVELOPMENT FALSE)
-# set to TRUE if SILLYDEMO* libraries are not exposed through your package to others
-set(SILLYDEMO_INSTALL_NO_LIBRARIES FALSE)
-
 set(SILLYDEMO_TARGETS "SillyDemoTargets")
 
 ### STEP 1 -- set build configuration items to override nifti_clib defaults
@@ -88,8 +83,6 @@ set(NIFTI_INSTALL_ARCHIVE_DIR "${SILLYDEMONIFTI_INSTALL_ARCHIVE_DIR}" CACHE PATH
 set(NIFTI_INSTALL_INCLUDE_DIR "${SILLYDEMO_INSTALL_INCLUDE_DIR}/Utilities")
 
 set(NIFTI_ZLIB_LIBRARIES ${SILLYDEMOZLIB_LIBRARIES} CACHE STRING "Set the zlib library associated with SILLYDEMO" FORCE)
-set(NIFTI_INSTALL_NO_DEVELOPMENT ${SILLYDEMO_INSTALL_NO_DEVELOPMENT} CACHE BOOL "nifti development install preference" FORCE)
-set(NIFTI_INSTALL_NO_LIBRARIES ${SILLYDEMO_INSTALL_NO_LIBRARIES} CACHE BOOL "nifti libraries install preference" FORCE)
 
 
 ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.

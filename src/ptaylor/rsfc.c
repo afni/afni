@@ -1,4 +1,4 @@
-#include <afni.h>
+#include "mrilib.h"
 #include "rsfc.h"
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_sort.h>

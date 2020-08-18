@@ -662,8 +662,11 @@ int    nifti_valid_header_size(int ni_ver, int whine);
    https://quantiphyse.readthedocs.io/en/latest/advanced/nifti_extension.html*/
 #define NIFTI_ECODE_QUANTIPHYSE     42  /* Quantiphyse extension */
 
+/* Magnetic Resonance Spectroscopy (MRS)
+   link to come... */
+#define NIFTI_ECODE_MRS             44  /* MRS extension */
 
-#define NIFTI_MAX_ECODE             42  /******* maximum extension code *******/
+#define NIFTI_MAX_ECODE             44  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0         /* old ANALYZE */

@@ -51,6 +51,7 @@
 #define PPC "PP Christidis"  /* gone but not forgotten */
 #define BGP "BG Pittman"     /* AKA Brien (not Brienne) */
 #define JKR "JK Rajendra"    /* AKA discoraj */
+#define PDL "PD Lauren"      /* AKA Peter */
 
 /* importance levels */
 #define MIN_PROG_LEVEL  1  /* min in list */
@@ -103,6 +104,7 @@ extern afni_history_struct rickr_history[];
 extern afni_history_struct rwcox_history[];
 extern afni_history_struct ziad_history[];
 extern afni_history_struct discoraj_history[];
+extern afni_history_struct laurenpd_history[];
 
 
 /*----------------------------------------------------------------------*/

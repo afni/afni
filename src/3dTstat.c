@@ -77,7 +77,10 @@ static int perc_val = -666;
 #define METH_MEAN_SSDQ     44
 #define METH_MEDIAN_ASD    45
 
-#define MAX_NUM_OF_METHS   46
+#define METH_SKEWNESS      46 /* PDL 17 July 2020 */
+#define METH_KURTOSIS      47 /* PDL 17 July 2020 */
+
+#define MAX_NUM_OF_METHS   48
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -211,6 +214,10 @@ void usage_3dTstat(int detail)
  "\n"
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
+ " -skewness = measure of asymmetry in distribution - based on Pearson's moment\n"
+ "              coefficient of skewness.\n"
+ " -kurtosis = measure of the 'tailedness' of the probability distribution\n"
+ "             - the fourth standardized moment.  Never negative.\n"
  " -firstvalue = first value in dataset - typically just placeholder\n\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
@@ -432,6 +439,16 @@ int main( int argc , char *argv[] )
       }
       if( strcasecmp(argv[nopt],"-MASDx") == 0 ){  /* 19 Mar 2018 */
          meth[nmeths++] = METH_MEDIAN_ASD ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-skewness") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_SKEWNESS ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-kurtosis") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_KURTOSIS ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -1426,6 +1443,20 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         out_index+=(npts - 1);
       }
       break ;
+
+      /* New methods, added by PDL, 17 July 2020 */
+
+      case METH_SKEWNESS:{
+
+        val[out_index] = getSkewness(ts, npts);
+      }
+      break;
+
+      case METH_KURTOSIS:{
+
+        val[out_index] = getKurtosis(ts, npts);
+     }
+      break;
 
     }
    }

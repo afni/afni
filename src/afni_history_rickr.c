@@ -49,6 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Aug, 2020, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
+   "fix sB update when changing surf order from 0,1 to 1,0",
+   "In only the case of setting the plugin surf_A/surf_B order to 1,0, the\n"
+   "need to update the surf_B index was not recognized, and it stayed at 1\n"
+   "(instead of the requested 0).\n"
+   "Thanks to D Glen for reporting the problem."
+ } ,
+
+ { 28, Jul, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "add initial afni_history_laurenpd.c",
+   NULL
+ } ,
+
  { 21, Jul, 2020, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
    "add env var control over pre-comp e2x, limit and pieces",
    "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"

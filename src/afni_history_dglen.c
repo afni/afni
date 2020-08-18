@@ -50,6 +50,26 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9, AUG, 2020, DRG, "@ROI_decluster",
+     MINOR, TYPE_NEW_PROG,
+    "Remove small clusters or single voxels in datasets with many ROIs",
+    "Keeps only the largest part(s) of the ROI with adjustable\n"
+    "threshold. Used for datasets with many ROIs, like those\n"
+    "found in an atlas. Can be used in combination with @ROI_modal_grow"
+},
+{ 30, JUL, 2020, DRG, "@ROI_modal_grow",
+     MINOR, TYPE_NEW_PROG,
+    "Grow ROIs using nonzero mode in 1 voxel neighborhood increments",
+    "Similar functionality as in 3dROImaker but uses non-zero mode\n"
+    "to grow sets of regions, like those found in an atlas"
+},
+
+{ 30, JUL, 2020, DRG, "vol2surf nzmode",
+     MINOR, TYPE_NEW_OPT,
+    "nonzero mode option for 3dVol2surf and vol2surf plugin",
+    "Computes most common non-zero value along segment"
+},
+
 { 12, JUL, 2020, DRG, "atlas longnames change",
      MICRO, TYPE_MODIFY,
     "atlas longnames and labeling change",

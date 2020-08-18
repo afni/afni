@@ -1,3 +1,64 @@
+AFNI Digest, week of 2020/08/05.
+
+Contents:
+0) New AFNI Academy video playlist: Intro to SUMA
+1) Faster AFNI installation/downloads for some OSs.
+2) New citation page for documentation/program usage.
+3) PRIME-RE paper out---describes macaque processing tools.
+4) New webpages describing macaque processing demos, templates and atlases.
+5) New program for patching/smoothing ROIs: @ROI_modal_grow.
+
+
+0) Adding to the list of fun AFNI Academy videos online, we have a new
+   playlist about getting started with SUMA:
+     https://www.youtube.com/watch?v=QCh6HApyM0U&list=PL_CD549H9kgqSs51SCNZQ4q57IguXvFI8
+   It includes background, using the GUI, setting environment
+   variables, calculating distances along surfaces, drawing surface
+   ROIs (and translating them to the volume) and displaying multiple
+   surface ROIs that overlap.
+
+1) These OSs now have AFNI binary files that are about 85% smaller
+   than they used to be:
+     linux_ubuntu_16_64.tgz
+     linux_centos_7_64.tgz
+     linux_fedora_28_shared.tgz
+   The same great functionality is there, but someone (= Rick)
+   rearranged the shared libraries for greater efficiency.  This might
+   spread to further OSs, too...
+
+2) To make it easier to cite AFNI in your publications (and please
+   don't forget to do so when you use it...), we have this new page in
+   the documentation:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/main_toc.html
+   This also provides a convenient guide to AFNI functionality and
+   applications.
+
+3) A new open/sharing resource for primate/macaque MRI processing has
+   been created, called PRIME-RE (= PRIMate Resource Exchange), and it
+   is described here:
+     https://www.biorxiv.org/content/10.1101/2020.07.31.230185v1 It
+   contains tools, demos and programs from AFNI-land, among others.
+   Moreover, it is likely to grow over time, so watch that space.
+
+4) Speaking of macaques, there is new documentation about macaque
+   resources in AFNI, includes templates, atlases and demos, here:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_demos/main_toc.html
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_tempatl/main_toc.html
+   See relatedly the @Install_MACAQUE_DEMO* scripts and the
+   @animal_warper program (make sure you have the latest AFNI for
+   these, "@update.afni.binaries -d").  These projects were in
+   enjoyable collaboration with: Adam Messinger, Ben Jung, Jakob
+   Seidlitz, Caleb Sponheim, and Leslie Ungerleider-- so many thanks
+   to them.
+
+5) Grow your regions with @ROI_modal_grow. This new program uses
+   iterative, non-zero modal smoothing to grow regions to fill a
+   mask. It works by looking by filling unassigned voxels with its
+   most common (the mode) non-zero neighbors, and then keeps filling
+   until all the voxels in a mask are filled. Seems useful for
+   creating atlases and refilling dilated masks.
+
+========================================================================
 
 
  AFNI Digest, week of 2020/06/23: general edition

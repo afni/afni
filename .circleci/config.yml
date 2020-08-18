@@ -108,7 +108,7 @@ commands:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
           build_type: make_build
-          image_cache_version: << parameters.image_cache_version >>      
+          image_cache_version: << parameters.image_cache_version >>
       - run:
           name: Run pytest in .docker
           command: |
@@ -180,7 +180,7 @@ commands:
           command: |
             echo \
               cmake ninja llvm pkgconfig  \
-              jpeg gsl gts openmotif  netcdf libpng expat \
+              jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
       # circleci caching works with files owned by user (distiller on osx
@@ -345,6 +345,9 @@ jobs:
       - restore_a_cache:
           version_file: "/tmp/test_data_version.txt"
           version: << parameters.test_data_cache_version >>
+      - run:
+          command: |
+            cp /tmp/test_data_version.txt /tmp/src/afni/tests/afni_ci_test_data
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -389,7 +392,6 @@ jobs:
             cmake ..                                                           \
                 -GNinja                                                             \
                 -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake      \
-                -DUSE_SYSTEM_VOLPACK=OFF    \
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
                 -DUSE_SYSTEM_F2C=OFF \

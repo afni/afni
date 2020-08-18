@@ -14,8 +14,6 @@ LLIBS_X11 ?= $(LLIBS)
 CCOMP   = $(CCFAST) $(OMPFLAG)
 EXINCOM = echo '..... Extra install commands (if any) .....' ; $(EXTRA_INSTALL_COMMANDS)
 
-# EXLIBS  = libvolpack.a
-# LEXLIBS = -lvolpack
 EXLIBS  = 
 LEXLIBS = 
 
@@ -119,9 +117,9 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual 3dGetrow \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM fdrval     \
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dCM fdrval     \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
-           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat  \
+           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dBrickStat  \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd 2dcat
 
@@ -179,8 +177,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy     \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge       \
-                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE 3dAFNItoNIFTI siemens_vision \
-                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC       \
+                  Vecwarp 3dAFNItoANALYZE 3dAFNItoNIFTI siemens_vision \
+                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask        \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header 3dTnorm \
@@ -224,9 +222,9 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
                3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum   \
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
-               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dAFNItoNIFTI \
+               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dAFNItoNIFTI \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 1dsvd        \
-               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
+               3dAutoTcorrelate 3dFDR 3dAutomask 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool 3dresample serial_helper im2niml 3dUpsample nifti_tool   \
@@ -841,14 +839,6 @@ csfft_cache:csfft_cache.o
 3dBrickStat:3dBrickStat.o
 	$(RM) $@
 	$(CC) -o 3dBrickStat 3dBrickStat.o $(LFLAGS) $(LLIBS)
-
-3dMINCtoAFNI:3dMINCtoAFNI.o
-	$(RM) $@
-	$(CC) -o 3dMINCtoAFNI 3dMINCtoAFNI.o $(LFLAGS) $(LLIBS)
-
-3dAFNItoMINC:3dAFNItoMINC.o
-	$(RM) $@
-	$(CC) -o 3dAFNItoMINC 3dAFNItoMINC.o $(LFLAGS) $(LLIBS)
 
 3dAFNItoRaw:3dAFNItoRaw.o
 	$(RM) $@
@@ -2133,7 +2123,7 @@ afni_src.tgz:
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir                     ./afni_src
-	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
+	$(CP) -pr 3DEdge jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
 	$(CP) -pr XmHTML html other_builds Audio                                 ./afni_src
 	chmod -R ugo+rw                                                          ./afni_src
@@ -2493,7 +2483,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o           \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
-           thd_mincwrite.o thd_mnicoords.o thd_strfunc.o thd_niftiwrite.o \
+           thd_mnicoords.o thd_strfunc.o thd_niftiwrite.o \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
@@ -2504,7 +2494,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
            thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
            thd_remove_allzero.o thd_store_index.o thd_ljungbox.o          \
-           thd_get_tcsv.o thd_vecwarp.o
+           thd_get_tcsv.o thd_vecwarp.o thd_StatsPDL.o
 
 # these are now included in NIML
 
@@ -2590,18 +2580,6 @@ EIS_SRCS = $(EIS_DIR)/eis_bakvec.c $(EIS_DIR)/eis_balanc.c $(EIS_DIR)/eis_balbak
            $(EIS_DIR)/eis_trbak3.c $(EIS_DIR)/eis_tred1.c $(EIS_DIR)/eis_tred2.c $(EIS_DIR)/eis_tred3.c                           \
            $(EIS_DIR)/eis_tridib.c $(EIS_DIR)/eis_tsturm.c
 
-NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
-               netcdf_nc.o     netcdf_ncio.o  netcdf_ncx.o   netcdf_putget.o  \
-               netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
-               thd_mincread.o
-
-NETCDF_DIR = netcdf-3.5.0/libsrc/src
-
-NETSCR_SRCS = $(NETCDF_DIR)/attr.c   $(NETCDF_DIR)/dim.c    $(NETCDF_DIR)/error.c   \
-              $(NETCDF_DIR)/libvers.c $(NETCDF_DIR)/nc.c     $(NETCDF_DIR)/ncio.c   \
-              $(NETCDF_DIR)/ncx.c    $(NETCDF_DIR)/putget.c $(NETCDF_DIR)/string.c  \
-              $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c
-
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
             suma_string_manip.o suma_algorithms.o
 
@@ -2619,13 +2597,13 @@ MISC_SRCS  = afni_suma.c vol2surf.c nifti/nifti2/nifti2_io.c nifti/znzlib/znzlib
 # to make a completely resolved version of the header for Python
 
 mrilib_raw.h: AFNI_version.h 3ddata.h mrilib.h
-	gcc -E $(INFLAGS) mrilib.h netcdf.h | uniq > mrilib_raw.h
+	gcc -E $(INFLAGS) mrilib.h | uniq > mrilib_raw.h
 
 # to make one big file with all libmri source code (for Python)
 
 mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
 	cat $(NIML_SRCS) $(EDT_SRCS) $(CS_SRCS) $(SUMA_SRCS) $(MISC_SRCS) \
-            $(EIS_SRCS) $(NETCDF_SRCS) > mrilib_all.c
+            $(EIS_SRCS) > mrilib_all.c
 
 # same thing, but pre-processed
 
@@ -2641,11 +2619,11 @@ libmri: $(LIBMRI_OBJ)
 
 libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
 	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)   \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS)   \
          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)       \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS)       \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium.o
 	$(RANLIB) libmri.a
 
@@ -2679,9 +2657,9 @@ libmri.so: $(LIBMRI_DEP)
 # same as .a, but build as a shared object for OS X
 LIBMRI_MACOS: mrilib.h                                                       \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
-          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
+          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
-          Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
+          Aomp.h thd_selenium_off.o                       \
           $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so                                       \
@@ -2690,35 +2668,26 @@ LIBMRI_MACOS: mrilib.h                                                       \
                 $(XROOT_L) $(XLIBS) -lXm -lXt                                  \
                 -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                            \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)             \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS)             \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o
-	$(RM) netcdf_attr.o
 
 # a modified version of above, but using LFLAGS
 # works with a full build on fedora 25/28            4 Dec 2018 [rickr]
 #
-# if MRI_SHARED, might not want 2 $(RM) netcdf_attr.o commands
-# (here and in shared_netcdf_attr)
 LIBMRI_LINUX: niml.h mrilib.h                                                \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
-          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
+          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) 3ddata.h                   \
-          Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
+          Aomp.h thd_selenium_off.o                       \
           $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so                                     \
                 $(LFLAGS)                                                    \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                          \
-                $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
+                $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
 
   #             -lmrix -lcoxplot $(LEXLIBS)
-
-# remake netcdf objects with PIC
-shared_netcdf_attr:
-	# uncomment to bounce between shared and not
-	# $(RM) netcdf_attr.o
-	$(MAKE) netcdf_attr.o CCMIN="${CCMIN} -fPIC"
 
 # same as .a, but build as a shared object
 libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
@@ -2883,14 +2852,6 @@ plug_retroicor.$(SO):plug_retroicor.c retroicor.c
 	$(PLUGIN_CC) -c plug_retroicor.c retroicor.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
-
-# wipe out any existing renderer plugin
-# Note: mri_render.o has the MREN functions needed for this plugin,
-#       which were replaced by CREN functions in cox_render.c, used
-#       in the "newer" plug_crender.c.
-# If really compiling, depend on and link against mri_render.o.
-plug_render.$(SO):plug_null.o
-	$(LD) $(PLUGIN_LFLAGS) -o plug_render.$(SO) plug_null.o
 
 ### From Stephen LaConte
 plug_3dsvm.$(SO):
@@ -3150,21 +3111,6 @@ selenium_test: selenium_test.o
 
 
 #######
-# rendering library
-
-libvolpack.a:
-	( cd volpack ;                                                       \
-	  $(MAKE) libvolpack.a clean 'RM=$(RM)' 'CC=$(CCVOL)' 'AR=$(AR)'     \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
-	  $(MV) libvolpack.a .. ; )
-
-volpack.h:
-	$(CP) volpack/volpack.h ./
-
-volpack.tgz:
-	$(TAR) cf - ./volpack | $(GZIP) -9v > volpack.tgz
-
-#######
 # for Larry Frank
 
 qhull:
@@ -3202,32 +3148,6 @@ $(NIML_OBJS):niml.h
 
 niml.h:niml/niml.h
 	$(CP) niml/niml.h .
-
-#######
-# netcdf library files - make them and move them up here
-
-netcdf_attr.o:
-	( cd netcdf-3.5.0/src ;                           \
-          FC=""  ; export FC  ; F90=""   ; export F90 ;   \
-          CXX="" ; export CXX ; CC="${CCMIN}";export CC;  \
-          $(RM) config.cache config.log config.status ;   \
-          chmod ugo+x ./configure ;                       \
-          ./configure ; $(MAKE) libsrc/all ;              \
-          $(CP) libsrc/netcdf.h  ../.. ;                  \
-          $(MV) libsrc/attr.o    ../../netcdf_attr.o    ; \
-          $(MV) libsrc/dim.o     ../../netcdf_dim.o     ; \
-          $(MV) libsrc/error.o   ../../netcdf_error.o   ; \
-          $(MV) libsrc/libvers.o ../../netcdf_libvers.o ; \
-          $(MV) libsrc/nc.o      ../../netcdf_nc.o      ; \
-          $(MV) libsrc/ncio.o    ../../netcdf_ncio.o    ; \
-          $(MV) libsrc/ncx.o     ../../netcdf_ncx.o     ; \
-          $(MV) libsrc/putget.o  ../../netcdf_putget.o  ; \
-          $(MV) libsrc/string.o  ../../netcdf_string.o  ; \
-          $(MV) libsrc/v1hpg.o   ../../netcdf_v1hpg.o   ; \
-          $(MV) libsrc/v2i.o     ../../netcdf_v2i.o     ; \
-          $(MV) libsrc/var.o     ../../netcdf_var.o     ; \
-          $(RM) config.cache config.log config.status ;   \
-          $(MAKE) clean ; )
 
 #######
 # 27 Jul 2001 - for fun
@@ -3365,8 +3285,9 @@ imcalc:imcalc.o parser.o parser_int.o
 
 AFNI_HIST_FILES  = afni_history.c					     \
 	afni_history_bpittman.c afni_history_christip.c afni_history_dglen.c \
-	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	     \
-	afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c
+	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	      \
+	afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c   \
+	afni_history_laurenpd.c
 
 afni_history: $(AFNI_HIST_FILES)
 	$(RM) $@

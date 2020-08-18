@@ -66,6 +66,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
+   "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",
+   "Has a '-lite_version' opt for truncated EPI version, smaller download.\n"
+},
+
+{ 31, July , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior file path contained dots.",
+   "Joining filenames for output now fixed.\n"
+},
+
+{ 30, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_GENERAL,
+   "Now install MACAQUE_DEMO_2.1, which should be the new normal.",
+   "Script checks for things on install, makes recs, more full demo.\n"
+},
+
+{ 30, July , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Make easier to find template in case data has moved around.",
+   "Also use wildcard to clean intermed file, in case auto GZIP is on.\n"
+},
+
+{ 27, July , 2019 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Insert a couple ifdefs around OMP functionality.",
+   "This should allow program to compile even without OpenMP.\n"
+},
+
 { 15, July , 2020 , PT , "3dNetCorr" , MINOR , TYPE_GENERAL,
    "Moved header dep of suma_suma.h -> suma_objs.h.",
    "Should be no output change.\n"

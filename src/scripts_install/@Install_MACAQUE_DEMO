@@ -3,8 +3,10 @@
 set stat = 0
 set sdir = $PWD
 
-# [PT: May 1, 2020] updated version
-set demo = MACAQUE_DEMO_2.0
+# [PT: May 1, 2020]   updated version
+# [PT: July 30, 2020] updated version, run @Install_NMT here, too
+# [PT: Aug 4, 2020]   simplify directory numbering
+set demo = MACAQUE_DEMO
 
 goto PARSE
 RET_PARSE:
@@ -40,15 +42,24 @@ else
 endif
 tar xvzf $demo.tgz
 cd $demo
-   echo "********************************************************"
-   echo "Follow examples in ./$demo/README.txt "
-   #echo "---------------------------------------------------------"
-   #PT: Normally here you can consider running one or all of the"
-   #scripts and quide the users to look at the results.
-   #You could eventually script the whole deal to include self "
-   #executing AFNI/SUMA commands to show results.
-   echo "********************************************************"
+
+echo "++ Getting standard reference datasets:"
+echo "     symmetric NMT v2.0, CHARM, D99 atlas, and more."
+
+if ($use_curl == 0) then
+   @Install_NMT -wget -sym sym -nmt_ver 2.0
+else
+   @Install_NMT -curl -sym sym -nmt_ver 2.0
+endif
+
+echo "********************************************************"
+echo "Follow examples in ./${demo}/README.txt "
+echo "********************************************************"
+
+tcsh check_for_template.tcsh
+
 cd -
+
 goto END
 
 PARSE:

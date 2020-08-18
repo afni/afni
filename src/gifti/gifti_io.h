@@ -1,7 +1,14 @@
 #ifndef GIFTI_IO_H
 #define GIFTI_IO_H
 
-#include <zlib.h>
+#ifdef HAVE_ZLIB
+#if defined(ITKZLIB) && !defined(ITK_USE_SYSTEM_ZLIB)
+#include "itk_zlib.h"
+#else
+#include "zlib.h"
+#endif
+#endif
+
 #include <expat.h>
 
 /* this variable is currently not used, so 2 is default   13 Jul, 2015 */
