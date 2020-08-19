@@ -448,7 +448,7 @@ workflows:
               build_type: ["make_build", "cmake_build"]
               # cache version should match for all jobs
               image_cache_version: ["0"]
-              test_data_cache_version: ["5"]
+              test_data_cache_version: ["0"]
           requires:
             - << matrix.build_type >>
           filters:

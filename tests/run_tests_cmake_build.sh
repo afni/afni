@@ -22,9 +22,8 @@ if [ ! -z "$gitemail" ];then
 fi
 
 # Make sure test data is checked out correctly
-cd /opt/afni/src
-git submodule sync
 cd /opt/afni/src/tests/afni_ci_test_data
+git fetch origin
 git checkout $(cat test_data_version.txt)
 
 # Run tests
