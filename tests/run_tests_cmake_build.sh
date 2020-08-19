@@ -23,8 +23,13 @@ fi
 
 # Make sure test data is checked out correctly
 cd /opt/afni/src/tests/afni_ci_test_data
-git fetch origin
-git checkout $(cat test_data_version.txt)
+if [ ! -d .git ];then
+    cd ..
+    datalad install https://github.com/afni/afni_ci_test_data.git
+else
+    git fetch origin
+    git checkout $(cat test_data_version.txt)
+fi
 
 # Run tests
 cd /opt/afni/src/tests
