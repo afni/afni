@@ -421,7 +421,7 @@ int main( int argc , char *argv[] )
        inim = IMARR_SUBIM(in_imar,ii) ;
        jnim = IMARR_SUBIM(in_imar,ii+1) ;
        npurr = (npur != NULL) ? npur[ii] : npure ;
-       nfadd = (nfad != NULL) ? nfad[ii] : nfadd ;
+       nfadd = (nfad != NULL) ? nfad[ii] : nfade ;
        fac   = 1.0f / ( nfadd + 1.0f ) ;
 
 #ifdef USE_COPY /* write image once, then simply copy file several times */
@@ -493,7 +493,7 @@ int main( int argc , char *argv[] )
        inim = IMARR_SUBIM(in_imar,ii) ;
        jnim = IMARR_SUBIM(in_imar,ii+1) ;
        npurr = (npur != NULL) ? npur[ii] : npure ;
-       nfadd = (nfad != NULL) ? nfad[ii] : nfadd ;
+       nfadd = (nfad != NULL) ? nfad[ii] : nfade ;
        fac   = 1.0f / ( nfadd + 1.0f ) ;
 
 #ifdef USE_COPY /* write image once, then simply copy file several times */

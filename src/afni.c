@@ -2995,7 +2995,7 @@ STATUS("call 13") ;
 
         { int nad = (int)AFNI_numenv("AFNI_AdptMeanWidth1D") ;         /* 30 Sep 2016 */
           char lab[32] ;                                      /* user specified width */
-          if( nad > 9 && nad != 19 && nad < 100 ){
+          if( nad > 3 && nad != 9 && nad != 19 && nad < 100 ){
             if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
             sprintf(lab,"AdptMean%d",nad) ;
             AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
@@ -4052,7 +4052,7 @@ ININFO_message("  get new tmask") ;
           int ij = n % (br->n1 * br->n2) ;
           im->flags = (int)tar[ij] ;
 #if 0
-ININFO_message("  set flags = %d",im->flags) ;
+ININFO_message("  set tsim flags=%d at ij=%d",im->flags) ;
 #endif
         }
       }
