@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import pytest
 import os
+import subprocess as sp
 
 
 def test_afni_gui_basic():
@@ -23,8 +24,8 @@ def test_afni_gui_plugin_search():
     exe_dir = afni_path.parent.resolve()
     rel_libdir = exe_dir / "../lib"
     cmd = 'afni -no_detach -com "QUIT"'
-
-    res = misc.run_x_prog(cmd)
+    print(cmd)
+    res = sp.check_output(cmd)
     assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in res
 
 
