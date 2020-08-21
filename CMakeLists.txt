@@ -91,14 +91,14 @@ write_basic_package_version_file(
 )
 
 # Allow an uninstall (with some risk of messiness)
-if(NOT TARGET uninstall)
+if(NOT TARGET uninstall_afni)
   configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" IMMEDIATE @ONLY
   )
 
   add_custom_target(
-    uninstall COMMAND ${CMAKE_COMMAND} -P
+    uninstall_afni COMMAND ${CMAKE_COMMAND} -P
                       ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
   )
   if(STANDARD_PYTHON_INSTALL)
