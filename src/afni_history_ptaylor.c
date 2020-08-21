@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Aug , 2020 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Fix header deps of underlying progs (namely, readglob.c).",
+   "Was crashing on some NIML reading cases.\n"
+},
+
 { 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
    "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",
    "Has a '-lite_version' opt for truncated EPI version, smaller download.\n"
