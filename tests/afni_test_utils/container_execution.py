@@ -24,7 +24,8 @@ def run_containerized(tests_dir, **kwargs):
     image_name = kwargs["image_name"]
 
     client = docker.from_env()
-    if not client.images.search(image_name.split("/")[-1]):
+
+    if not client.images.list(image_name):
         if kwargs.get("only_use_local"):
             raise ValueError(f"Cannot find the image {image_name}")
         else:
