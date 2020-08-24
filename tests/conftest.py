@@ -6,11 +6,19 @@ import inspect
 import datetime
 import datetime as dt
 import time
-from scripts.utils import misc
+import contextlib
+import sys
+import logging
 
-pytest.register_assert_rewrite("scripts.utils.tools")
-import scripts.utils.tools as tools
-from scripts.utils.tools import get_current_test_name
+sys.path.append(str(Path(__file__).parent))
+
+from afni_test_utils import misc
+
+pytest.register_assert_rewrite("afni_test_utils.tools")
+
+
+import afni_test_utils.tools as tools
+from afni_test_utils.tools import get_current_test_name
 import attr
 
 missing_dependencies = (
@@ -205,10 +213,20 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
         k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
     }
 
-    module_outdir = output_dir / Path(request.module.__file__).stem.replace("test_", "")
+    current_test_module = Path(request.module.__file__)
+    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
     test_logdir = module_outdir / get_current_test_name() / "captured_output"
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
+
+
+    # Add steam and file logging as requested
+    logger = logging.getLogger(test_name)
+    logger = tools.logger_config(
+        logger,
+        file=output_dir / "all_tests.log",
+        log_file_level=pytestconfig.getoption("--log-file-level"),
+    )
 
     # This will be created as required later
     sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
@@ -221,6 +239,8 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     out_dict.update(
         {
             "module_outdir": module_outdir,
+            "logger": logger,
+            "current_test_module": current_test_module,
             "outdir": module_outdir / get_current_test_name(),
             "sampdir": sampdir,
             "logdir": test_logdir,
@@ -351,7 +371,12 @@ def save_output_to_repo(config_obj):
 
 def pytest_sessionfinish(session, exitstatus):
     output_dir = get_output_dir(session.config)
-    print("\nTest output is written to: ", output_dir)
+    if output_dir.exists():
+        print("\nTest output is written to: ", output_dir)
+
+    full_log = output_dir / 'all_tests.log'
+    if full_log.exists():
+        print("\nLog is written to: ", full_log)
 
     if session.config.getoption("--create_sample_output") and not bool(exitstatus):
         print(
@@ -374,3 +399,21 @@ def pytest_sessionfinish(session, exitstatus):
 @pytest.fixture()
 def ptaylor_env(monkeypatch):
     monkeypatch.setenv("AFNI_COMPRESSOR", "GZIP")
+
+
+@pytest.fixture(autouse=True)
+def _use_test_dir(request):
+    tests_dir = Path(__file__).parent
+    with working_directory(tests_dir):
+        yield
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)

@@ -11,6 +11,7 @@ from datalad.support.exceptions import IncompleteResultsError, CommandError
 import pytest
 from time import sleep
 import random
+import shlex
 
 from multiprocessing import Lock, Process
 from xvfbwrapper import Xvfb
@@ -23,7 +24,12 @@ def run_x_prog(cmd, run_kwargs=None):
 
     run_kwargs = run_kwargs or {}
     with Xvfb() as xvfb:
-        res = sp.run(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs)
+        # command needs to not fork the process (e.g. -no_detach needs to be
+        # passed to afni). Something goes wrong with quotes for shell equals
+        # true, so can't really use it, shlex.split parses a command into a
+        # list appropriately (string splitting messes up on quotes like
+        # 'QUIT')
+        res = sp.run(shlex.split(cmd), stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs)
 
     res.check_returncode()
     if "ERROR" in res.stdout.decode():

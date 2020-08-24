@@ -1,34 +1,51 @@
-import filecmp
+from numpy.testing import assert_allclose  # type: ignore
 from pathlib import Path
-import nibabel as nib  # type: ignore
-import difflib
-import subprocess
-import shutil
-import sys
-import numpy as np
-import socket
-import getpass
-import json
+from typing import Dict, List, Any, Union
+from afni_test_utils import misc
 import attr
-
-try:
-    import misc
-except ImportError:
-    from . import misc
-
-
-import tempfile
+import datalad.api as datalad
+import datetime as dt
+import difflib
+import filecmp
+import getpass
 import itertools as IT
+import json
+import logging
+import nibabel as nib  # type: ignore
+import numpy as np
 import os
 import pytest
-import datalad.api as datalad
-
-from numpy.testing import assert_allclose  # type: ignore
-
-from typing import Dict, List, Any, Union
 import re
+import shutil
+import socket
 import stat
-import datetime as dt
+import subprocess
+import sys
+import tempfile
+
+
+def logger_config(logger, file=None, stream_log_level="WARNING", log_file_level=None):
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(getattr(logging, stream_log_level))
+
+    # Create formatters and add it to handlers
+    c_format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    c_handler.setFormatter(c_format)
+    logger.addHandler(c_handler)
+
+    if log_file_level:
+        if not file:
+            file = "log.txt"
+        f_handler = logging.FileHandler(file)
+        f_handler.setLevel(getattr(logging, log_file_level))
+        f_format = logging.Formatter(
+            "%(levelname)s - %(name)s - %(asctime)s :\n %(message)s"
+        )
+        f_handler.setFormatter(f_format)
+        logger.addHandler(f_handler)
+
+    return logger
 
 
 def get_output_name():
@@ -53,7 +70,7 @@ def get_lines(filename, ignore_patterns):
             line.strip()
             for line in lines
             if not any(pat in line for pat in ignore_patterns)
-            and not line.replace(" ", "") is ""
+            and not line.replace(" ", "") == ""
         ]
         return lines
 
@@ -181,6 +198,7 @@ def update_sample_output(
 def run_cmd(
     data,
     cmd,
+    logger=None,
     add_env_vars={},
     merge_error_with_output=False,
     workdir=None,
@@ -218,11 +236,18 @@ def run_cmd(
     else:
         error = subprocess.PIPE
 
-    # Define log file paths, make the appropriate directories and check that
-    # the log files do not exist, otherwise (using uniquize) append a number:
-    stdout_log = data.logdir / (data.test_name + "_stdout.log")
-    os.makedirs(stdout_log.parent, exist_ok=True)
-    stdout_log = uniquify(stdout_log)
+    if not logger:
+        logger = data.logger
+
+        # Define log file paths, make the appropriate directories and check that
+        # the log files do not exist, otherwise (using uniquize) append a number:
+        stdout_log = data.logdir / (data.test_name + "_stdout.log")
+        os.makedirs(stdout_log.parent, exist_ok=True)
+        stdout_log = uniquify(stdout_log)
+    else:
+        logger = logging
+        stdout_log = Path(tempfile.mktemp("_stdout"))
+
     stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
     cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
 
@@ -252,14 +277,18 @@ def run_cmd(
     cmd = cmd.replace(str(workdir), ".")
 
     # Print and execute the command and log output
-    print(f"cd {workdir};{cmd}")
+    logger.info(f"cd {workdir};{cmd}")
     proc = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=error, cwd=workdir
     )
     stdout_log.write_text(proc.stdout.decode("utf-8"))
+    if logger:
+        logger.debug(proc.stdout.decode("utf-8"))
     if proc.stderr:
         err_text = proc.stderr.decode("utf-8")
         stderr_log.write_text(err_text)
+        if logger:
+            logger.debug(err_text)
     # cmd execution report
     hostname = socket.gethostname()
     user = getpass.getuser()
@@ -285,10 +314,6 @@ def write_command_info(path, cmd_info):
         v = str(v)
         out_dict[k] = v
     Path(path).write_text(json.dumps(out_dict))
-
-
-def get_workdir(data):
-    cmd_path = next(data.logdir.glob("*cmd.log"))
 
 
 def get_equivalent_name(data, fname):
@@ -428,8 +453,12 @@ class OutputDiffer:
         create_sample_output: bool = False,
         save_sample_output: bool = False,
         file_list: List = None,
+        logger=None,
     ):
         self._data = data
+
+        # use a logger: defined by user, conftest.py, or default root logger
+        self.logger = logger or getattr(data, "logger", None) or logging
 
         # Tune command execution
         self.cmd = cmd
@@ -481,6 +510,7 @@ class OutputDiffer:
         proc = run_cmd(
             self.data,
             self.cmd,
+            self.logger,
             add_env_vars=self.add_env_vars,
             merge_error_with_output=self.merge_error_with_output,
             workdir=self.workdir,
@@ -722,7 +752,7 @@ class OutputDiffer:
         files_required = [f.relative_to(self.data.outdir) for f in self.file_list]
         missing_files = []
         for f in files_required:
-            if not f in cmpr_files_rel:
+            if f not in cmpr_files_rel:
                 missing_files.append(str(cmpr_path / f))
         if missing_files:
             m_str = " ".join(missing_files)
