@@ -8,6 +8,8 @@ from itertools import compress
 import subprocess as sp
 import shutil
 
+from afni_test_utils.run_tests_examples import EXAMPLES
+
 PYTEST_GROUP_HELP = "pytest execution modifiers"
 PYTEST_MANUAL_HELP = (
     "Manual pytest management (conflicts with pytest execution modifiers)"
@@ -26,7 +28,7 @@ def parse_user_args():
         build system to make the iterative process of changing code and
         running tests easier; running the tests while making use of all the
         cores on the computer; subsetting the tests that are executed during a
-        test run""",
+        test run.""",
         add_help=False,
     )
     parser.add_argument(
@@ -35,7 +37,7 @@ def parse_user_args():
         "-h",
         dest="help",
         action="store_true",
-        help="show this help message and exit",
+        help="show this help message and exit (-help is more verbose)",
     )
     parser.add_argument(
         "--installation-help",
@@ -54,8 +56,7 @@ def parse_user_args():
             "test it and you don't accidentally test the wrong programs "
             "due to incorrect PATH etc. \n\nNote, in order to use this "
             "option you must have afnipy installed. "
-            )
-,
+        ),
     )
     dir_for_build_type.add_argument(
         "--abin",
@@ -257,6 +258,8 @@ def parse_user_args():
         container.print_help()
         print("SUB COMMAND: examples")
         examples.print_help()
+        if "-help" in sys.argv:
+            print(EXAMPLES)
         sys.exit(0)
     if args.installation_help:
         print(Path("README.md").read_text())
