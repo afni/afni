@@ -1173,7 +1173,7 @@ You Know My Methods, Watson ~2~
   #6  Restart the nonlinear warping, registering the output
       of #5 to the skull-off template brain volume (3dQwarp).
        ==> anatQQ.sub007.nii (et cetera)
-  #7  Use @snapshot_volreg3 to make the pretty pictures.
+  #7  Use @snapshot_volreg to make the pretty pictures.
        ==> AMsub007.jpg and MAsub007.jpg
 
 Temporary files ~2~
