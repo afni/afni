@@ -29,6 +29,7 @@ Dimon: Dimon.o realtime.o
 	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. \
                  $(LLIBS) $(R_SHARED_LOPTS)
 
+# not distributed 25 Aug 2020
 Dimon1: Dimon1.o realtime1.o
 	$(RM) $@
 	$(CC) -o Dimon1 Dimon1.o realtime1.o $(LFLAGS) -L.. \

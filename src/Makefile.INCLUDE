@@ -90,7 +90,7 @@ MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif myget Xphace rmz aiv mycat quotize $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif myget rmz aiv mycat quotize $(EXPROGS)
 
 # mpegtoppm in above list
 
@@ -100,34 +100,34 @@ EXTRAS   = cjpeg djpeg whirlgif myget Xphace rmz aiv mycat quotize $(EXPROGS)
 ## the program list is now split into 4 parts, to facilite the build process
 ## [RWC - Feb 2018]
 
-PROGS_1  = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
-           sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
-           fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
-               cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
+PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count   			  		  \
+           sfim tfim imrotate imreg imstat 3dnvals          		  		  		  \
+           fim2 imand immask imdump imaver 3dhistog 3daxialize 		  	  		  \
+               cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   			  \
            waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket         \
-           3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk       \
+           3dNLfim 3dTSgen plugout_tt plugout_ijk       		  			  			  \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna         \
-           2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat    \
+           2dImReg 3dmaskave byteorder imstack 3dDeconvolve 3dTcat    			  \
            3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam           \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose        \
-           3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump
+           3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump
 
 PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     \
-           3dWavelets 3dfim+ imcutup imcat 3dWinsor 3dZeropad 3dTagalign        \
+           3dfim+ imcutup imcat 3dWinsor 3dZeropad 3dTagalign        			  \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
-           3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
+           3dEntropy 3ddelay 3dRowFillin 1dgrayplot 3dToutcount 1dsum     		  \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual 3dGetrow \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dCM fdrval     \
-           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
+           3dTcorrelate 3dcopy Vecwarp 3dCM fdrval     								  \
+           3dAFNItoANALYZE 3dAFNItoNIFTI  			  			     					  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dBrickStat  \
-           3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
+           3dThreetoRGB 3dresample 3dAutobox 3dLRflip                     	     \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd 2dcat
 
-PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
+PROGS_3  = 3dAnhist 3dAFNIto3D 3dWarp nicat         					  				  \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
            nifti_tool 3dAllineate whereami plugout_drive 3dLSS                  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
-           DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
+           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth      		  \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat               \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
@@ -140,7 +140,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
-           1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
+           1dCorrelate 3dNwarpCalc dicom_hinfo apsearch 1dBport   				  \
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
@@ -162,28 +162,28 @@ progs_4:$(PROGS_4)
 
 PROGRAMS = $(PROGS_1) $(PROGS_2) $(PROGS_3) $(PROGS_4)
 
-PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
-                  sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
-                  fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim imupsam \
-                      cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit    \
+PROGRAMS_NOPLUG = afni to3d from3d 3dclust nsize 3dinfo 3dmerge      				   \
+                  sfim tfim imrotate imreg imstat count 										\
+                  fim2 imand immask imdump imaver 3dhistog imupsam 						\
+                      cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 3drefit    			\
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp fdrval \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna      \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
-                  24swap 3dTsmooth RSFgen float_scan 3dDeconvolve_f 1ddot 1dsvd     \
-                  3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3ddelay   \
+                  24swap 3dTsmooth RSFgen float_scan 1ddot 1dsvd     					\
+                  3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3ddelay   				\
                   3dDTeig 3dDWItoDT 1dtranspose whereami 3dAFNItoNIML 3dcopy imcat  \
                   3dDetrend 1dfft 3drename 1dnorm afni_vcheck 3ddot 3dBrickStat     \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+   \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy     \
-                  ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast \
-                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge       \
-                  Vecwarp 3dAFNItoANALYZE 3dAFNItoNIFTI siemens_vision \
-                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask        \
-                  3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
-                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
-                  3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header 3dTnorm \
+                  3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast 		\
+                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 						\
+                  Vecwarp 3dAFNItoANALYZE 3dAFNItoNIFTI 										\
+                  3dAutoTcorrelate 3dFDR 3dAutomask        									\
+                  3dThreetoRGB 3dresample 3dAutobox 3dLRflip 					   		\
+                  dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 						\
+                  3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor 3dTnorm 			   \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
-                  nifti_tool 3dAllineate Dimon1 Dimon 3danisosmooth                 \
+                  nifti_tool 3dAllineate Dimon 3danisosmooth                 			\
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter 1dBport    \
@@ -191,7 +191,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank 3dLocalPV 3dTcorr1D 3dClustSim 3dRetinoPhase     \
                   3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat 3dPolyfit        \
-                  3dNwarpApply 1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo    \
+                  3dNwarpApply 1dCorrelate 3dNwarpCalc dicom_hinfo    					\
                   apsearch 3dNormalityTest 3dmask_tool 2perm 3dClustCount           \
                   3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dTRfix  \
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
@@ -205,30 +205,30 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
 
-PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge   \
-               sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals count  \
-               fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3dGetrow \
-                   cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
+PROGRAMS_EXE = afni.exe to3d from3d 3dclust nsize 3dinfo 3dmerge   			 	    \
+               sfim tfim imrotate imreg imstat 3dnvals count  		 			 		 \
+               fim2 imand immask imdump imaver 3dhistog 3dGetrow 		    			 \
+                   cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta 		    \
                waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket       \
-               3dAFNItoNIML    AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk     \
+               3dAFNItoNIML plugout_tt plugout_ijk     			 			 			 \
                3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna       \
-               2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat  \
+               2dImReg 3dmaskave byteorder imstack 3dDeconvolve 3dTcat  			 \
                3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam 1dBport \
                3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose      \
-               3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 1ddot 3dBrickStat  \
+               3dNotes 3dROIstats 1deval 3dStatClust 1ddot 3dBrickStat  			 \
                3dDWItoDT 3dTstat 3dDTeig 3dmaskdump 3dretroicor 3daxialize imcat  \
                3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
-               3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump   \
+               3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump   				 \
                3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
-               3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum   \
+               3dEntropy 3ddelay 3dRowFillin 1dgrayplot 3dToutcount 1dsum   		 \
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
-               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dAFNItoNIFTI \
-               3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 1dsvd        \
-               3dAutoTcorrelate 3dFDR 3dAutomask 3dThreetoRGB Ifile  \
-               3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
-               dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
+               3dTcorrelate 3dcopy Vecwarp 3dAFNItoNIFTI 								 \
+               3dAFNItoANALYZE 1dsvd        			 					 					 \
+               3dAutoTcorrelate 3dFDR 3dAutomask 3dThreetoRGB 							 \
+               3dAutobox 3dLRflip dicom_hdr 3dDespike nicat       				    \
+               dicom_to_raw rotcom 3dWarp 3dWarpDrive 					 				 \
                file_tool 3dresample serial_helper im2niml 3dUpsample nifti_tool   \
-               3dAFNItoRaw DTIStudioFibertoSegments Dimon1 Dimon 3dREMLfit        \
+               3dAFNItoRaw DTIStudioFibertoSegments Dimon 3dREMLfit        		 \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
@@ -441,6 +441,7 @@ readme_afnigui.h:../doc/README/README.afnigui
 afni_papers.h:afni_papers.txt
 	quotize afni_papers < afni_papers.txt > afni_papers.h
 
+# not distributed 25 Aug 2020
 Ifile:Ifile.o
 	$(CC) -o Ifile Ifile.o $(LFLAGS) $(LLIBS)
 
@@ -461,6 +462,7 @@ Ifile:Ifile.o
 3dGrayplot:3dGrayplot.o
 	$(CC) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
 
@@ -470,9 +472,11 @@ Ifile:Ifile.o
 byteorder:byteorder.o
 	$(CC) -o byteorder byteorder.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dbuc2fim:3dbuc2fim.o
 	$(CC) -o 3dbuc2fim 3dbuc2fim.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 mritopgm:mritopgm.c
 	$(CC) -o mritopgm mritopgm.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
@@ -550,6 +554,7 @@ imswap:imswap.o
 immask:immask.o
 	$(CC) -o immask immask.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 sqwave:sqwave.o
 	$(CC) -o sqwave sqwave.o
 
@@ -569,6 +574,7 @@ pcorsh.o:pcor.c pcor.h
 
 FD2.o:FD2.c FD2_inc.c
 
+# not distributed 25 Aug 2020
 FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o FD2_inc.c
 	$(RM) $@
 	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o csfft_AJ.o $(LFLAGS) -lX11 -lm -lc
@@ -626,6 +632,7 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o dsetdup dsetdup.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3ddup:3ddup.o
 	$(RM) $@
 	$(CC) -o 3ddup 3ddup.o $(LFLAGS) $(LLIBS)
@@ -650,6 +657,7 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dAttribute 3dAttribute.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dproject:3dproject.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dproject 3dproject.o parser.o parser_int.o \
@@ -884,6 +892,7 @@ from3d:from3d.o
 	$(RM) $@
 	$(CC) -o from3d from3d.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dfim:3dfim.o afni_pcor_float.o ts.o
 	$(RM) $@
 	$(CC) -o 3dfim 3dfim.o ts.o afni_pcor_float.o $(LFLAGS) $(LLIBS)
@@ -981,6 +990,7 @@ d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CCD) -o d3dmerge 3dmerge.c $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dttest:3dttest.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
@@ -1026,6 +1036,7 @@ afni_open:afni_open.c
 	$(RM) $@
 	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dUniformize:3dUniformize.o
 	$(RM) $@
 	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) $(LLIBS)
@@ -1067,6 +1078,7 @@ afni_open:afni_open.c
 	$(RM) $@
 	$(CC) -o 3ddelay 3ddelay.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 ent16:ent16.o
 	$(RM) $@
 	$(CC) -o ent16 ent16.o $(LFLAGS) $(LLIBS)
@@ -1263,6 +1275,7 @@ RSFgen:RSFgen.o
 	$(RM) $@
 	$(CC) -o 3dWilcoxon 3dWilcoxon.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 3dWavelets:3dWavelets.o
 	$(RM) $@
 	$(CC) -o 3dWavelets 3dWavelets.o $(LFLAGS) $(LLIBS)
@@ -1466,6 +1479,7 @@ AlphaSim.o:AlphaSim.c zgaussian.c
 	$(RM) $@
 	$(CCOMP) -c AlphaSim.c $(INFLAGS)
 
+# not distributed 25 Aug 2020
 AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
@@ -1943,6 +1957,7 @@ qtest:thd_bstrap_corr.o
 	$(RM) $@
 	$(CC) -o 1dFlagMotion 1dFlagMotion.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 abut:abut.o
 	$(RM) $@
 	$(CC) -o abut abut.o $(LFLAGS) $(LLIBS)
@@ -1951,14 +1966,17 @@ stimband:stimband.o
 	$(RM) $@
 	$(CC) -o stimband stimband.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 siemens_vision:siemens_vision.o
 	$(RM) $@
 	$(CC) -o siemens_vision siemens_vision.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 ge_header:ge_header.o
 	$(RM) $@
 	$(CC) -o ge_header ge_header.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 mayo_analyze:mayo_analyze.o
 	$(RM) $@
 	$(CC) -o mayo_analyze mayo_analyze.o $(LFLAGS) $(LLIBS)
@@ -1983,6 +2001,7 @@ tfim:tfim.o
 	$(RM) $@
 	$(CC) -o tfim tfim.o $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 ftosh:ftosh.o
 	$(RM) $@
 	$(CC) -o ftosh ftosh.o $(LFLAGS) $(LLIBS)
@@ -2725,7 +2744,7 @@ PLIST_BASE =                                                           \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
         plug_zeropad.$(SO)  plug_nth_dataset.$(SO)                     \
         plug_roiplot.$(SO)  plug_ttget.$(SO)    plug_L1fit.$(SO)       \
-        plug_3ddup.$(SO)    plug_histog_multi.$(SO)                    \
+        plug_histog_multi.$(SO)                    						  \
         plug_afnihistory.$(SO)                                         \
 
 plugins: $(PLIST_BASE) models contrib_plugins
@@ -3030,6 +3049,7 @@ Dimon: rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
 	  'MRI_SHARED=$(MRI_SHARED)' ;                                  \
 	$(MV) Dimon .. ; )
 
+# not distributed 25 Aug 2020
 Dimon1: rickr/Dimon1.c rickr/Imon.h rickr/realtime1.c rickr/realtime.h
 	( cd rickr ; 							    \
 	$(MAKE) Dimon1 'RM=$(RM)' 'CC=$(CC)' 'MV=$(MV)' 'IFLAGS=$(ISFLAGS)' \
@@ -3410,6 +3430,7 @@ unu.o:unu.c
 unu:unu.o
 	$(CC) -o unu unu.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
+# not distributed 25 Aug 2020
 Xphace:Xphace.o
 	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  $(LLIBS_X11)
 

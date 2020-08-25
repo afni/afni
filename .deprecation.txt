@@ -250,3 +250,16 @@ src/scripts_install/@UpdateAfni
 src/scripts_install/@auto_align
 src/scripts_install/@make_stim_file
 src/scripts_install/@snapshot_volreg3
+
+
+
+Deprecation: distribution deletion of compiled programs
+Timestamp: 2020-08-25 17:40:01 -0400
+Commit: 1ac227bcc
+Author: rick reynolds
+Files affected:
+src/Makefile.INCLUDE
+src/afni_history_rickr.c
+src/ptaylor/Makefile.ptaylor.INCLUDE
+src/rickr/Makefile
+src/scripts_install/3dMax

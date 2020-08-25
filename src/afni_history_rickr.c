@@ -51,6 +51,161 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Aug, 2020, RCR, "1dDW_Grad_o_Mat", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 1dDW_Grad_o_Mat++",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dANALYZEtoAFNI", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dcopy or to3d",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dAnatNudge", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dCountSpikes", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dToutcount",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dDeconvolve_f", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dDeconvolve",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dFWHM", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dFWHMx",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dFourier", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dBandpass",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dMax", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dBrickStat",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dProbTrackID", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dTrackID",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dUniformize", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dUnifize",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dWavelets", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dbuc2fim", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3ddup", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dfim", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dDeconvolve",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dnoise", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dproject", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dttest", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dttest++",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "AlphaSim", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dClustSim",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Dimon1", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "FD2", MINOR, TYPE_REMOVE,
+   "removed from distribution - use afni",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Ifile", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Xphace", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "abut", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ent16", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ftosh", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ge_header", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "mayo_analyze", MINOR, TYPE_REMOVE,
+   "removed from distribution - use nifti_tool",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "mritopgm", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "siemens_vision", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "sqwave", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "plug_3ddup.so", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
  { 25, Aug, 2020, RCR, "3dICC_REML.R", MINOR, TYPE_REMOVE,
    "removed from distribution",
    NULL
