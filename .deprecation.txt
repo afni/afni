@@ -1,5 +1,50 @@
-This file serves as a log of removal of old functionality. For each entry a commit id is provided to indicate the relevant commit in which such a removal of code occurred. The command "git show <commit-id>" can be used to inspect this commit. To inspect this commit and preceding commits (preceding commits may include modifications to the build system etc) one can execute the command "git log --patch <commit-id>
+This file serves as a log of removal of old functionality.
 
+For each entry a commit id is provided to indicate the relevant commit in which
+such a removal of code occurred. The command "git show <commit-id>" can be used
+to inspect this commit. To inspect this commit and preceding commits (preceding
+commits may include modifications to the build system etc) one can execute the
+command "git log --patch <commit-id>.
+
+
+# ===========================================================================
+# overview of steps for deletion
+# ---------------------------------------------------------------------------
+
+0. update git, just to be sure we are current (no necessary, but preferable)
+
+      cd git/AFNI/afni
+      git checkout master
+      git pull
+
+1. create and checkout new branch
+
+      git checkout -b deletions
+
+2. remove scripts, for example, or copy in updates from elsewhere
+
+      rm src/scripts_install/@make_stim_file
+
+3. make afni_history updates (TYPE_REMOVE - per program/lib/functionality)
+
+      cp ~/afni/src/afni_history_rickr.c src
+
+4. commit changes
+
+      git commit -am 'script deletion'
+
+5. add entry of changes to .deprecation.txt
+   (this makes new git commit)
+
+      git deprecate
+
+
+# 7. separate:update git/afni_doc/educational/classified_progs.rst
+
+
+# ---------------------------------------------------------------------------
+# end deletion overview
+# ===========================================================================
 
 
 Deprecation: Remove netcdf, volpack and associated c code
