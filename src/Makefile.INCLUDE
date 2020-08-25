@@ -267,8 +267,9 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h \
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h     \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h         \
-             nifti/nifti2/nifti2_io.h nifti/nifticdf/nifticdf.h                \
-             nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                  \
+             nifti/nifti2/nifti2.h nifti/nifti2/nifti2_io.h                    \
+             nifti/nifticdf/nifticdf.h nifti/znzlib/znzlib.h                   \
+             Aomp.h rcmat.h misc_math.h                                        \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h           \
              thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h               \
              cs_qsort_small.h
