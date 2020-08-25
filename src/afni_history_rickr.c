@@ -26,6 +26,8 @@
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
                     TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
            - it may be nice to put the newest entries at the top
@@ -48,6 +50,11 @@
 */
 
 afni_history_struct rickr_history[] = {
+
+ { 25, Aug, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "added new types TYPE_REMOVE and TYPE_REINSTATE",
+   "This is to track when programs or notable functionality gets removed."
+ } ,
 
  {  3, Aug, 2020, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
    "fix sB update when changing surf order from 0,1 to 1,0",

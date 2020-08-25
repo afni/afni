@@ -71,7 +71,9 @@
 #define TYPE_BUG_FIX    4  /* enhancement of an existing bug */
 #define TYPE_MODIFY     5  /* a change (not new, not a bug fix) */
 #define TYPE_ENHANCE    6  /* general enhancement */
-#define MAX_TYPE_VAL    6  /* maximum type value */
+#define TYPE_REMOVE     7  /* was removed from the repository */
+#define TYPE_REINSTATE  8  /* was re-added to the repository */
+#define MAX_TYPE_VAL    8  /* maximum type value */
 
 
 typedef struct {
