@@ -29,9 +29,10 @@ static char g_history[] =
   "1.10 30 Nov 2010 [rickr] : added -final_sort_by_prog option\n"
   "1.11 29 Mar 2017 [rickr] : added justin: JKR\n"
   "1.12 28 Jul 2020 [rickr] : added laurenpd: PDL\n"
+  "1.13 25 Aug 2020 [rickr] : added TYPE_REMOVE, TYPE_REINSTATE\n"
 };
 
-static char g_version[] = "afni_history version 1.12, 28 Jul 2020";
+static char g_version[] = "afni_history version 1.13, 25 Aug 2020";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -1400,6 +1401,8 @@ char * type_string(int type)
         case TYPE_BUG_FIX:      return "BUG_FIX";
         case TYPE_MODIFY:       return "MODIFY";
         case TYPE_ENHANCE:      return "ENHANCE";
+        case TYPE_REMOVE:       return "REMOVE";
+        case TYPE_REINSTATE:    return "REINSTATE";
     }
 }
 
@@ -1417,6 +1420,8 @@ int type_string2type(char * tstring)
     if( ! strcmp("BUG_FIX",  tstring) ) return TYPE_BUG_FIX;
     if( ! strcmp("MODIFY",   tstring) ) return TYPE_MODIFY;
     if( ! strcmp("ENHANCE",  tstring) ) return TYPE_ENHANCE;
+    if( ! strcmp("REMOVE",   tstring) ) return TYPE_REMOVE;
+    if( ! strcmp("REINSTATE",tstring) ) return TYPE_REINSTATE;
 
     return TYPE_INVALID;
 }

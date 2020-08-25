@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Aug, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "added new types TYPE_REMOVE and TYPE_REINSTATE",
+   "This is to track when programs or notable functionality gets removed."
+ } ,
+
  {  3, Aug, 2020, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
    "fix sB update when changing surf order from 0,1 to 1,0",
    "In only the case of setting the plugin surf_A/surf_B order to 1,0, the\n"
