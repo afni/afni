@@ -26,6 +26,8 @@
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
                     TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
            - it may be nice to put the newest entries at the top
@@ -48,6 +50,61 @@
 */
 
 afni_history_struct rickr_history[] = {
+
+ { 25, Aug, 2020, RCR, "3dICC_REML.R", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dAOV.R", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "lpc_align.py", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "check_dset_for_fs.py", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "afni_restproc.py", MINOR, TYPE_REMOVE,
+   "removed from distribution - use afni_proc.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "DoPerRoi.py", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@snapshot_volreg3", MINOR, TYPE_REMOVE,
+   "removed from distribution - use @snapshot_volreg",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@make_stim_file", MINOR, TYPE_REMOVE,
+   "removed from distribution - use timing_tool.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@auto_align", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@UpdateAfni", MINOR, TYPE_REMOVE,
+   "removed from distribution - use @update.afni_binaries",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@DTI_studio_reposition", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
 
  { 25, Aug, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "added new types TYPE_REMOVE and TYPE_REINSTATE",
