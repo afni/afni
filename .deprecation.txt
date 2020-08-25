@@ -229,3 +229,24 @@ src/volpack/vp_warpA330N.c
 src/volpack/vp_warpA330R.c
 src/volpack/vp_warpA331N.c
 src/volpack/vp_warpA331R.c
+
+
+
+Deprecation: deletion of many scripts
+Timestamp: 2020-08-25 14:15:50 -0400
+Commit: a9b60b1f4
+Author: rick reynolds
+Files affected:
+src/R_scripts/3dAOV.R
+src/R_scripts/3dICC_REML.R
+src/afni_history_rickr.c
+src/python_scripts/afnipy/lib_fs.py
+src/python_scripts/scripts/DoPerRoi.py
+src/python_scripts/scripts/afni_restproc.py
+src/python_scripts/scripts/check_dset_for_fs.py
+src/python_scripts/scripts/lpc_align.py
+src/scripts_install/@DTI_studio_reposition
+src/scripts_install/@UpdateAfni
+src/scripts_install/@auto_align
+src/scripts_install/@make_stim_file
+src/scripts_install/@snapshot_volreg3
