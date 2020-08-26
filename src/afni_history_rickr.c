@@ -51,6 +51,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
+   "much limiting of line lengths to 80 chars - should be no real change",
+   NULL
+ } ,
+
  { 25, Aug, 2020, RCR, "1dDW_Grad_o_Mat", MINOR, TYPE_REMOVE,
    "removed from distribution - use 1dDW_Grad_o_Mat++",
    NULL
