@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Aug , 2020 , PT , "@animal_warper" , MICRO , TYPE_BUG_FIX,
+   "Fix case of running prog with no args.",
+   "Should show help; now it DOES show help, with no error.\n"
+},
+
 { 21, Aug , 2020 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
    "Fix header deps of underlying progs (namely, readglob.c).",
    "Was crashing on some NIML reading cases.\n"

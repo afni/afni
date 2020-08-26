@@ -196,17 +196,16 @@ set progname = @animal_warper
 #    + one in defining ${src_prefix} (reorder to not have error)
 #    + one in passing along labels/atlases from SEG|atlas dsets
 #
-set version = "2.4" ; set date = "Jul 10, 2020"
+#set version = "2.4" ; set date = "Jul 10, 2020"
 # [DRG]
 #    + changed default mode_smooth_size to 1 voxel
+#
+set version = "2.41" ; set date = "Aug 26, 2020"
+# [PT] fix location of jump-to-help when no args are input
+#    + was getting error message, because ${outdir} needed to be def
+#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
-
-# [PT: Oct 7, 2019] changed condition from ("$#" < "2"), so that args
-# get parsed and we can still get at script version number
-if ("$#" <  "1") then
-   goto HELP
-endif
 
 setenv AFNI_COMPRESSOR GZIP
 
@@ -261,6 +260,15 @@ set animal_outs        = "animal_outs.txt" # recreated, even with exist
 set backup_ao          = ""
 
 # ------------------------ process user options --------------------------
+
+# [PT: Oct 7, 2019] changed condition from ("$#" < "2"), so that args
+# get parsed and we can still get at script version number
+# [PT: Aug 26, 2020] moved this here, because it needs to be after
+# ${outdir} is defined, or an error is caused when trying to show help
+if ("$#" <  "1") then
+   goto HELP
+endif
+
 set ac = 1
 while ($ac <= $#argv)
     if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
