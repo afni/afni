@@ -7,10 +7,9 @@ import shutil
 import datetime as dt
 from datalad import api as datalad
 import os
-import json
+import asyncio
 
-
-def make_pretend_repo(dirname):
+async def make_pretend_repo(dirname):
     os.chdir(dirname)
     datalad.create(str(dirname), force=True)
     rev_log = datalad.save("add data", str(dirname))
@@ -83,6 +82,8 @@ def create_data_dir(dirname):
 def mock_data_orig(tmp_path_factory):
     orig_name = tmp_path_factory.mktemp(tools.get_output_name())
     create_data_dir(orig_name)
+
+    asyncio.set_event_loop(asyncio.new_event_loop())
     make_pretend_repo(orig_name)
     tools.remove_w_perms(orig_name)
     return orig_name
