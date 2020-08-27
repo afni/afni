@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
+   "Well, usage+output shouldn't really change, but it should be more stable.",
+   "There is also a new opt: -align_centers_meth (read the help).\n"
+},
+
 { 26, Aug , 2020 , PT , "@animal_warper" , MICRO , TYPE_BUG_FIX,
    "Fix case of running prog with no args.",
    "Should show help; now it DOES show help, with no error.\n"
