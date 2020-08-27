@@ -51,6 +51,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Aug, 2020, RCR, "@diff.tree", MICRO, TYPE_BUG_FIX,
+   "better handling of missing trailing directory args",
+   NULL
+ } ,
+
  { 26, Aug, 2020, RCR, "ClustExp_StatParse.py", MICRO, TYPE_ENHANCE,
    "python 3 update to decode() subprocess output",
    NULL
