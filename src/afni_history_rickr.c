@@ -51,6 +51,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Aug, 2020, RCR, "SUMA_test_DrawingAreaWidget", MICRO, TYPE_ENHANCE,
+   "set up for alternatively building without SUMA",
+   NULL
+ } ,
+
  { 27, Aug, 2020, RCR, "@diff.tree", MICRO, TYPE_BUG_FIX,
    "better handling of missing trailing directory args",
    NULL
