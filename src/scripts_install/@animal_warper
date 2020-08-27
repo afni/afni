@@ -2,7 +2,6 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-
 # Nomenclature note. We have multiple spaces, with the folling abbrevs:
 # + orig : original input dset space
 # + osh  : shifted version of original dset (by @Align_Centers)
@@ -200,10 +199,27 @@ set progname = @animal_warper
 # [DRG]
 #    + changed default mode_smooth_size to 1 voxel
 #
-set version = "2.41" ; set date = "Aug 26, 2020"
+#set version = "2.41" ; set date = "Aug 26, 2020"
 # [PT] fix location of jump-to-help when no args are input
 #    + was getting error message, because ${outdir} needed to be def
 #
+#set version = "2.5" ; set date = "Aug 26, 2020"
+# [PT] add opts to turn @Align_Centers OFF or to use
+#      "-cm", etc. 
+#
+set version = "2.51" ; set date = "Aug 27, 2020"
+# [PT] put specific space name for *base2osh* and *osh2base* dsets
+#    
+set version = "2.6" ; set date = "Aug 27, 2020"
+# [PT] put in 2nd shift-- well, it is a rearrangement: we combine the
+#      @Align_Centers shift with the translation part of 3dAllineate
+#    + and debugged a bit-- seems to run fine now
+#    + NOTE: the shifts from @Align_Centers now go with the "*_pshft*"
+#      files, and the "full" shift from combining the @Align_Center
+#      work with the translation from align_epi_anat.py are the
+#      "*_shft*" datasets, so there should be full continuity with the
+#      help files and with the reported afni_proc.py usage.
+#    
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -248,6 +264,9 @@ set USE_KNOWN_ROIDSET_ABBREV = 0
 set all_known_roidset_abbrev = ( )
 set USE_KNOWN_DSET_ABBREV = 0
 set all_known_dset_abbrev = ( )
+
+set DO_ALIGN_CENTERS   = 1
+set align_centers_meth = "-grid" 
 
 set feature_option     = ""
 set feature_size       = ""
@@ -372,6 +391,35 @@ while ($ac <= $#argv)
         set USE_KNOWN_SEG_ABBREV      = 1
         set USE_KNOWN_DSET_ABBREV     = 1
         set USE_KNOWN_ROIDSET_ABBREV  = 1
+
+    else if ("$argv[$ac]" == "-align_centers_meth") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+
+        set ac_opt = "$argv[$ac]"
+
+        if ( "${ac_opt}" == "OFF" ) then
+            set DO_ALIGN_CENTERS = 0
+        else
+            set align_centers_meth = "-${ac_opt}"
+            
+            if ( "${ac_opt}" == "shift_xform" || \
+                 "${ac_opt}" == "shift_xform_inv" ) then
+                @ ac ++
+                if ( $ac > $#argv ) then
+                    echo "** missing parameter for option '${this_opt}'"
+                    echo "   because you need another arg after '${ac_opt}'"
+                    exit 1
+                endif
+
+                set align_centers_meth = "${align_centers_meth} $argv[$ac]" 
+            endif
+        endif
+
 
     else if ("$argv[$ac]" == "-skullstrip") then
         set this_opt = "$argv[$ac]"
@@ -774,12 +822,18 @@ if ( "${src_abbrev}" == "" ) then
 endif
 set src_dset       = ${src_abbrev}.nii.gz   # cp of orig inp, used to proc
 
-# all the shifted forms
-set srcsh_prefix    = ${src_abbrev}_shft          # NOTE this name change
+# all the *p*reliminary shifted forms
+set srcsh_prefix    = ${src_abbrev}_pshft         # NOTE this name change
 set srcsh_dset      = ${srcsh_prefix}.nii.gz      # ... redefine $dset
 set srcsh_shft      = ${srcsh_prefix}.1D          # for convenience
 set srcsh_shft_inv  = ${srcsh_prefix}_inv.1D
 
+# [PT: Aug 27, 2020] this will be the combined @Align_Centers shift
+# with the translation part of 3dAllineate 
+set srcsh2_prefix    = ${src_abbrev}_shft           # NOTE this name change
+set srcsh2_dset      = ${srcsh2_prefix}.nii.gz      # ... redefine $dset
+set srcsh2_shft      = ${srcsh2_prefix}.1D          # for convenience
+set srcsh2_shft_inv  = ${srcsh2_prefix}_inv.1D
 
 if (($ok_to_exist == 1) && \
     (-f "${outdir}/${src_dset}" )) then
@@ -1055,9 +1109,21 @@ if ( ($ok_to_exist == "1") && \
      (-f  ${srcsh_dset}) ) then
    echo "++ Reusing center aligned  ${srcsh_dset}"
 else
-   @Align_Centers -overwrite           \
-        -base "${base_dset}"           \
-        -dset "${src_dset}"
+
+    if ( ${DO_ALIGN_CENTERS} ) then
+        @Align_Centers -overwrite          \
+            ${align_centers_meth}          \
+            -prefix "${srcsh_dset}"        \
+            -base   "${base_dset}"         \
+            -dset   "${src_dset}"
+    else
+        echo "++ Well, actually just COPYING dset as the center-alignment..."
+        3dcopy -overwrite                  \
+            "${src_dset}"                  \
+            "${srcsh_dset}"
+        echo "   ... and making an identity 'shift'"
+        echo "1 0 0 0 0 1 0 0 0 0 1 0" > ${srcsh_shft}
+    endif
 endif
 
 # *** After this point, the following files exist: 
@@ -1075,7 +1141,7 @@ else
 endif
 
 printf "%-37s : %s\n"                   \
-        "Dset, center-shifted to base"  \
+        "Dset, pre-shifted to base"     \
         "${srcsh_dset}"                 \
        >> ${animal_outs}
 
@@ -1114,9 +1180,65 @@ else
    \rm ${srcsh_prefix}_al2std${base_view}.*
 endif
 
-printf "%-37s : %s\n"                                               \
-        "Matrix, aff xform"                                         \
-        "${srcsh_prefix}_al2std_mat.aff12.1D"                       \
+# re-partition the translation part of aff alignment with the shift
+# from @Align_Centers
+
+if ( ( $ok_to_exist == "1" ) && \
+     (-f  ${srcsh2_dset} ) ) then
+   echo "++ Reusing re-partitioned shift"
+else
+
+    # extract the translation part and output it
+    set mat0 = `cat_matvec -ONELINE "${srcsh_prefix}_al2std_mat.aff12.1D"`
+    echo "1 0 0 ${mat0[4]} 0 1 0 ${mat0[8]} 0 0 1 ${mat0[12]}" > \
+        "${srcsh_prefix}_al2std_mat_TR.aff12.1D"
+
+    # ... and calc its inverse
+    cat_matvec -ONELINE                             \
+        "${srcsh_prefix}_al2std_mat_TR.aff12.1D" -I \
+        > "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"
+
+    # this is needed for shifting the origin, below
+    set inv_transl = `cat "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"`
+
+    # create the new full shift
+    cat_matvec -ONELINE                          \
+        ${srcsh_shft}                            \
+        "${srcsh_prefix}_al2std_mat_TR.aff12.1D" \
+        > ${srcsh2_shft}
+
+    # ... and inverse shift
+    cat_matvec -ONELINE                          \
+        ${srcsh2_shft} -I                        \
+        > ${srcsh2_shft_inv}
+
+    # THIS is the aff matrix that goes from shft2 to template space,
+    # and what we should use later; it should have NO translation
+    # component
+    cat_matvec -ONELINE                              \
+        "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
+        "${srcsh_prefix}_al2std_mat.aff12.1D"        \
+        >  "${srcsh2_prefix}_al2std_mat.aff12.1D"
+
+    # Finally, make the new shifted dset
+    3dcopy                                       \
+        -overwrite                               \
+        ${srcsh_dset}                            \
+        ${srcsh2_dset}
+    3drefit \
+        -dxorigin ${inv_transl[4]}               \
+        -dyorigin ${inv_transl[8]}               \
+        -dzorigin ${inv_transl[12]}              \
+        ${srcsh2_dset}
+
+    # *** From this point onward, the shft2 space is the more important
+    # jumping point between the original native space and the
+    # base/template space***
+endif
+
+printf "%-37s : %s\n"                   \
+        "Dset, 2nd-shifted to base"     \
+        "${srcsh2_dset}"                \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                                               \
@@ -1124,10 +1246,15 @@ printf "%-37s : %s\n"                                               \
         "${srcsh_prefix}_al2std.nii.gz"                             \
        >> ${animal_outs}
 
+printf "%-37s : %s\n"                                               \
+        "Matrix, aff xform (shft2 to base)"                         \
+        "${srcsh2_prefix}_al2std_mat.aff12.1D"                      \
+       >> ${animal_outs}
+
 if ($align_type == rigid_equiv) then
-    set affmat = ${srcsh_prefix}_al2std_mat_rigid.aff12.1D
+    set affmat = ${srcsh2_prefix}_al2std_mat_rigid.aff12.1D
     cat_matvec                                                \
-        ${srcsh_prefix}_al2std_mat.aff12.1D -P                \
+        ${srcsh2_prefix}_al2std_mat.aff12.1D -P               \
         > ${affmat}
 
     printf "%-37s : %s\n"                                   \
@@ -1135,31 +1262,32 @@ if ($align_type == rigid_equiv) then
             "${affmat}"                                     \
         >> ${animal_outs}
 else
-    set affmat = ${srcsh_prefix}_al2std_mat.aff12.1D
+    set affmat = ${srcsh2_prefix}_al2std_mat.aff12.1D
 endif
 
 ## put affine aligned data on template grid
 # similar to al2std dataset but with exactly same grid as the template
 if (($ok_to_exist == "1") && \
-    (-f ${srcsh_prefix}_aff.nii.gz)) then
+    (-f ${srcsh2_prefix}_aff.nii.gz)) then
    echo "reusing affine transformed dataset"
 else
    3dAllineate -overwrite                                       \
         -1Dmatrix_apply ${affmat}                               \
-        -prefix ${srcsh_prefix}_aff.nii.gz                      \
+        -prefix ${srcsh2_prefix}_aff.nii.gz                     \
         -base   "${base_dset}"                                  \
         -master BASE                                            \
-        -source "${srcsh_dset}"
+        -source "${srcsh2_dset}"
 endif
 
 printf "%-37s : %s\n"                                      \
         "Input, aff-xformed to base"                       \
-        "${srcsh_prefix}_aff.nii.gz"                       \
+        "${srcsh2_prefix}_aff.nii.gz"                      \
        >> ${animal_outs}
+
 
 # ---------------------- make inv and composite aff mats ----------------
 
-# Note on combining shft and affine 1D files for composite linear
+# Note on combining shft2 and affine 1D files for composite linear
 # transformation to template space: combining shift is dangerous! The
 # transformation distance can be very large, and 3dNwarpApply will
 # create a high resolution space that will likely eat up large amounts
@@ -1168,24 +1296,24 @@ printf "%-37s : %s\n"                                      \
 
 # Compute the inverse of the affine alignment transformation - all 12
 # numbers; creates 'template -> shifted input space' aff xform
-cat_matvec -ONELINE                             \
-    ${srcsh_prefix}_al2std_mat.aff12.1D -I      \
-    >! ${srcsh_prefix}_inv_al2std_mat.aff12.1D
+cat_matvec -ONELINE                              \
+    ${srcsh2_prefix}_al2std_mat.aff12.1D -I      \
+    >! ${srcsh2_prefix}_inv_al2std_mat.aff12.1D
 
 # full affine part, template to unshifted org space: don't want this
 # to be large (see note above); creates 'original input -> template
 # space' aff xform
-cat_matvec                                       \
-    -ONELINE                                     \
-    ${srcsh_prefix}_al2std_mat.aff12.1D          \
-    ${srcsh_shft}                                \
+cat_matvec                                        \
+    -ONELINE                                      \
+    ${srcsh2_prefix}_al2std_mat.aff12.1D          \
+    ${srcsh2_shft}                                \
     > ${src_abbrev}_composite_linear_to_template.1D
 
 #Now create the inverse composite warp from template to subject space;
 # creates 'template spac -> original input' aff xform
-cat_matvec -ONELINE                              \
-    ${srcsh_shft_inv}                            \
-    ${srcsh_prefix}_inv_al2std_mat.aff12.1D      \
+cat_matvec -ONELINE                               \
+    ${srcsh2_shft_inv}                            \
+    ${srcsh2_prefix}_inv_al2std_mat.aff12.1D      \
     > ${src_abbrev}_composite_linear_to_template_inv.1D
 
 printf "%-37s : %s\n"                                       \
@@ -1244,7 +1372,7 @@ endif
 \rm -rf ${awpy_dir}
 
 if ( ($ok_to_exist == "1") && \
-     (-f ${srcsh_prefix}_WARP.nii.gz) ) then
+     (-f ${srcsh2_prefix}_WARP.nii.gz) ) then
    echo "++ Reusing nonlinear WARP dataset"
 else
    # nonlinear warping via auto_warp script
@@ -1252,7 +1380,7 @@ else
       -base "${base_dset}"                                       \
       -affine_input_xmat ID                                      \
       -qworkhard 0 2                                             \
-      -input ${srcsh_prefix}_aff.nii.gz                          \
+      -input ${srcsh2_prefix}_aff.nii.gz                          \
       -output_dir ${awpy_dir}                                    \
       -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}
 
@@ -1260,26 +1388,26 @@ else
    # inverse warp don't copy the warped dataset - combine the
    # transformations instead below
 
-   # from orig+shft+aff -> base
+   # from orig+shft2+aff -> base
    3dcopy -overwrite                                \
         ${awpy_dir}/anat.*.qw_WARP.nii*             \
-        ${srcsh_prefix}_WARP.nii.gz
+        ${srcsh2_prefix}_WARP.nii.gz
 
-   # from base -> orig+shft+aff
+   # from base -> orig+shft2+aff
    3dcopy -overwrite                                \
         ${awpy_dir}/anat.*.qw_WARPINV.nii*          \
-        ${srcsh_prefix}_WARPINV.nii.gz
+        ${srcsh2_prefix}_WARPINV.nii.gz
 endif
 
 # THIS is what should be given to afni_proc.py
 printf "%-37s : %s\n"                                           \
         "NL warp, aff2base"                                     \
-        "${srcsh_prefix}_WARP.nii.gz"                           \
+        "${srcsh2_prefix}_WARP.nii.gz"                          \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                                           \
         "NL warp, base2aff"                                     \
-        "${srcsh_prefix}_WARPINV.nii.gz"                        \
+        "${srcsh2_prefix}_WARPINV.nii.gz"                       \
        >> ${animal_outs}
 
 # -----------------------------------------------------------------------
@@ -1290,19 +1418,19 @@ printf "%-37s : %s\n"                                           \
 # afni_proc.py.
 
 if ( ($ok_to_exist == "1") &&                  \
-     (-f "${srcsh_prefix}_osh2base_WARP.nii.gz" ) ) then
+     (-f "${srcsh2_prefix}_osh2base_WARP.nii.gz" ) ) then
     echo "++ Reusing osh2base_WARP dataset"
 else
-    # warp from orig+shft -> base
-    3dNwarpCat  -echo_edu                                         \
-        -warp1  "${srcsh_prefix}_WARP.nii.gz"                     \
-        -warp2  "${srcsh_prefix}_al2std_mat.aff12.1D"             \
-        -prefix "${srcsh_prefix}_osh2base_WARP.nii.gz"
+    # warp from orig+shft2 -> base
+    3dNwarpCat  -echo_edu                                          \
+        -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
+        -warp2  "${srcsh2_prefix}_al2std_mat.aff12.1D"             \
+        -prefix "${srcsh2_prefix}_osh2base_WARP.nii.gz"
 endif
 
 printf "%-37s : %s\n"                                             \
         "NL warp, osh2base (internal use)"                        \
-        "${srcsh_prefix}_osh2base_WARP.nii.gz"                    \
+        "${srcsh2_prefix}_osh2base_WARP.nii.gz"                   \
        >> ${animal_outs}
 
 # ------------------------- MAKE_WARP base2osh ------------------------
@@ -1312,19 +1440,25 @@ printf "%-37s : %s\n"                                             \
 # for all template -> original/native space transforms
 
 if ( ($ok_to_exist == "1") &&                  \
-     (-f "${srcsh_prefix}_base2osh_WARP.nii.gz" ) ) then
+     (-f "${srcsh2_prefix}_base2osh_WARP.nii.gz" ) ) then
     echo "++ Reusing base2osh_WARP dataset"
 else
-    # warp from base -> orig+shft
+    # warp from base -> orig+shft2
+
+    # [PT: Aug 27, 2020] get name of specific space (otherwise will
+    # just be generic "TLRC"
+    set space = `3dinfo -space "${srcsh2_prefix}_WARPINV.nii.gz"`
+
     3dNwarpCat  -echo_edu                                         \
-        -warp1  "${srcsh_prefix}_inv_al2std_mat.aff12.1D"         \
-        -warp2  "${srcsh_prefix}_WARPINV.nii.gz"                  \
-        -prefix "${srcsh_prefix}_base2osh_WARP.nii.gz"
+        -warp1  "${srcsh2_prefix}_inv_al2std_mat.aff12.1D"        \
+        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                 \
+        -space  "${space}"                                        \
+        -prefix "${srcsh2_prefix}_base2osh_WARP.nii.gz"
 endif
 
 printf "%-37s : %s\n"                                             \
         "NL warp, base2osh (internal use)"                        \
-        "${srcsh_prefix}_base2osh_WARP.nii.gz"                    \
+        "${srcsh2_prefix}_base2osh_WARP.nii.gz"                   \
        >> ${animal_outs}
 
 # -----------------------------------------------------------------------
@@ -1332,7 +1466,7 @@ printf "%-37s : %s\n"                                             \
 
 # NB: when *applying* warps to bring data into standard space, in this
 # case the input template is in the shifted location: that is why the
-# warp is only aff+WARP, and not oshft+aff+WARP.
+# warp is only aff+WARP, and not oshft2+aff+WARP.
 
 if ( ($ok_to_exist == "1") &&                  \
      (-f ${src_abbrev}_warp2std.nii.gz) && \
@@ -1341,10 +1475,10 @@ if ( ($ok_to_exist == "1") &&                  \
 else
    # [DRG: 07 Nov 2016] combine nonlinear and affine warps for dataset
    # warped to standard template space 
-   3dNwarpApply -overwrite                            \
-      -prefix "${src_abbrev}_warp2std.nii.gz"         \
-      -nwarp  "${srcsh_prefix}_osh2base_WARP.nii.gz"  \
-      -source "${srcsh_dset}"                         \
+   3dNwarpApply -overwrite                             \
+      -prefix "${src_abbrev}_warp2std.nii.gz"          \
+      -nwarp  "${srcsh2_prefix}_osh2base_WARP.nii.gz"  \
+      -source "${srcsh2_dset}"                         \
       -master "${base_dset}"
 
    # make masked version of orig dset in template space, using the
@@ -1479,13 +1613,13 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
           -no_cp                                      \
           -base "${base_dset}"                        \
           -dset tempfollow.nii.gz                     \
-          -shift_xform_inv ${srcsh_shft}
+          -shift_xform_inv ${srcsh2_shft}
 
       # apply NL warp
       3dNwarpApply  -overwrite                                       \
           -ainterp ${follow_interp}                                  \
           -prefix  ${follow_in_std}                                  \
-          -nwarp  "${srcsh_prefix}_osh2base_WARP.nii.gz"             \
+          -nwarp  "${srcsh2_prefix}_osh2base_WARP.nii.gz"             \
           -source  tempfollow.nii.gz                                 \
           -master  "${base_dset}"
 
@@ -1576,9 +1710,9 @@ else
    # warp to orig+shft space
    3dNwarpApply -overwrite                                 \
      -ainterp wsinc5                                       \
-     -nwarp "${srcsh_prefix}_base2osh_WARP.nii.gz"         \
+     -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"        \
      -source "${base_dset}"                                \
-     -master ${srcsh_prefix}.nii.gz                        \
+     -master ${srcsh2_dset}                                \
      -prefix ${templ_in_orig}
    
    # put back in non-shifted version (really native space); default
@@ -1587,9 +1721,9 @@ else
       # that the opt has '_inv', but this appears to be correct!
       @Align_Centers -overwrite                       \
           -no_cp                                      \
-          -base ${src_dset}                        \
+          -base ${src_dset}                           \
           -dset ${templ_in_orig}                      \
-          -shift_xform_inv ${srcsh_shft_inv}
+          -shift_xform_inv ${srcsh2_shft_inv}
    endif 
 
    # Return original dataset view (to view in AFNI)
@@ -1618,9 +1752,9 @@ else
          3dNwarpApply -overwrite                                 \
            -ainterp NN                                           \
            -short                                                \
-           -nwarp "${srcsh_prefix}_base2osh_WARP.nii.gz"         \
+           -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"         \
            -source ${brainmask}                                  \
-           -master ${srcsh_prefix}.nii.gz                        \
+           -master ${srcsh2_prefix}.nii.gz                        \
            -prefix ${src_abbrev}_mask.nii.gz
 
          # put back in non-shifted version (really native space);
@@ -1631,7 +1765,7 @@ else
                 -no_cp                                   \
                 -base ${src_dset}                     \
                 -dset ${src_abbrev}_mask.nii.gz      \
-                -shift_xform_inv ${srcsh_shft_inv}
+                -shift_xform_inv ${srcsh2_shft_inv}
          endif
 
          # Return original dataset view (to view in AFNI)
@@ -1765,9 +1899,9 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
       3dNwarpApply -overwrite                                  \
         -short                                                 \
         -ainterp wsinc5                                        \
-        -nwarp "${srcsh_prefix}_base2osh_WARP.nii.gz"          \
+        -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"          \
         -source ${template_dset}                               \
-        -master ${srcsh_prefix}.nii.gz                         \
+        -master ${srcsh2_dset}                                 \
         -prefix ${template_in_orig}
       
       # put back in non-shifted version (really native space) 
@@ -1776,7 +1910,7 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
             -no_cp                                             \
             -base ${src_dset}                                  \
             -dset ${template_in_orig}                          \
-            -shift_xform_inv ${srcsh_shft_inv}
+            -shift_xform_inv ${srcsh2_shft_inv}
       endif
 
       # Return original dataset view (to view in AFNI)
@@ -1855,9 +1989,9 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
        3dNwarpApply -overwrite                             \
           -ainterp NN                                      \
           -short                                           \
-          -nwarp "${srcsh_prefix}_base2osh_WARP.nii.gz"    \
+          -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"    \
           -source ${segm_dset}                             \
-          -master ${srcsh_prefix}.nii.gz                   \
+          -master ${srcsh2_dset}                           \
           -prefix ${segm_in_orig}
    
        # put back in non-shifted version (really native space) 
@@ -1866,7 +2000,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
             -no_cp                                                \
             -base ${src_dset}                                     \
             -dset ${segm_in_orig}                                 \
-            -shift_xform_inv ${srcsh_shft_inv}
+            -shift_xform_inv ${srcsh2_shft_inv}
        endif
 
        # change the datum type to byte to save space if values
@@ -2407,6 +2541,21 @@ Options ~1~
     -use_known_abbrev_ALL
                         :like using all the other '-use_known_abbrev*' 
                          opts.
+
+    -align_centers_meth ACM
+                        :By default, an early step here is to use
+                         "Align_Centers -grid .." to start the
+                         alignment (align centers of grids).  If you
+                         want to, you can enter any of the "Center
+                         options" that @Align_Centers permits by using
+                         the given option in place of "ACM" *without*
+                         the preceding minus (e.g. a useful one might
+                         be: cm).  
+                         You can also provide the keyword "OFF" as an
+                         argument, and then @Align_Centers won't be
+                         run at all (the dset is just copied at that
+                         step), which is useful if you have already
+                         centered your dataset nicely.
 
     -cost xxx           :choose a cost function for affine and nonlinear
                          alignment. The same or similar cost function
