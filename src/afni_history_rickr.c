@@ -51,6 +51,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2020, RCR, "ClustExp_StatParse.py", MICRO, TYPE_ENHANCE,
+   "python 3 update to decode() subprocess output",
+   NULL
+ } ,
+
  { 26, Aug, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
    "much limiting of line lengths to 80 chars - should be no real change",
    NULL
