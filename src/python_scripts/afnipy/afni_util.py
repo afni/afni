@@ -2657,6 +2657,46 @@ def lists_are_same(list1, list2, epsilon=0, doabs=0):
 
    return 1
 
+def list_intersect(listA, listB, sort=1):
+   """return a list of the elements that are in both lists
+
+      if sort, sort the result
+   """
+
+   # if either is empty, the match list is as well
+   if not listA or not listB: return []
+
+   rlist = [v for v in listA if v in listB]
+
+   if sort: rlist.sort()
+
+   return rlist
+
+def list_diff(listA, listB, dtype='A-B', sort=1):
+   """return a list of the elements differ between the lists
+
+      dtype:    A-B     : return elements in listA that are not list B
+                B-A     : return elements in listB that are not list A
+                all     : return all diffs (same as A-B and B-A)
+
+      return a list of newly created elements
+   """
+
+   # keep logic simple
+
+   if dtype == 'A-B':
+      rlist = [v for v in listA if v not in listB]
+   elif dtype == 'B-A':
+      rlist = [v for v in listB if v not in listA]
+   else:
+      rlist = [v for v in listA if v not in listB]
+      rlist.extend([v for v in listB if v not in listA])
+
+   if sort:
+      rlist.sort()
+
+   return rlist
+
 def string_to_float_list(fstring):
    """return a list of floats, converted from the string
       return None on error

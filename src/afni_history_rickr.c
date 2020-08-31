@@ -51,6 +51,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Aug, 2020, RCR, "afni_python_wrapper.py", MICRO, TYPE_NEW_OPT,
+   "add -joinn for list output; add list_intersect and list_diff funcs",
+   NULL
+ } ,
+
  { 27, Aug, 2020, RCR, "SUMA_test_DrawingAreaWidget", MICRO, TYPE_ENHANCE,
    "set up for alternatively building without SUMA",
    NULL
