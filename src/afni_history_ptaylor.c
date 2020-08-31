@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, Aug , 2020 , PT , "@compute_OC_weights" , MICRO , TYPE_MODIFY,
+   "Add in hview/h_web functionality.",
+   "Should be no change in other behavior.\n"
+},
+
 { 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
    "Well, usage+output shouldn't really change, but it should be more stable.",
    "There is also a new opt: -align_centers_meth (read the help).\n"
