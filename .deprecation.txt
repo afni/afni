@@ -331,3 +331,14 @@ src/afni_history_rickr.c
 src/ptaylor/Makefile.ptaylor.INCLUDE
 src/rickr/Makefile
 src/scripts_install/3dMax
+
+
+
+Deprecation: deletion/deprecation: fat_mvm_review.py, fat_proc_grad_plot
+Timestamp: 2020-09-01 15:15:34 -0400
+Commit: 509b759f3
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/scripts/fat_mvm_review.py
+src/scripts_install/fat_proc_grad_plot
