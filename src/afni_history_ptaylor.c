@@ -7,16 +7,16 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
-  
+                  (optional) long description with intermediate newlines
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- example --
@@ -65,11 +68,6 @@
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
-
-{ 31, Aug , 2020 , PT , "@compute_OC_weights" , MICRO , TYPE_MODIFY,
-   "Add in hview/h_web functionality.",
-   "Should be no change in other behavior.\n"
-},
 
 { 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
    "Well, usage+output shouldn't really change, but it should be more stable.",

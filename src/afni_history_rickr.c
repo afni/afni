@@ -3,18 +3,20 @@
 
 #include "afni_history.h"
 
-/*  basic format: 3-field date, user, program_name, impact_level,
+/*  (for starting a new file, search for CHANGE)
+
+    basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long description with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
-    Notes: - months are JAN ... DEC (see .h file)
+
+    Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
