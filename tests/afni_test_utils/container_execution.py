@@ -1,12 +1,63 @@
 from pathlib import Path
 import os
+import sys
 import subprocess as sp
+import inspect
 import docker
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     VALID_MOUNT_MODES,
     check_build_directory,
-    )
+    check_git_config,
+)
+
+
+def get_docker_image(client, image_name, only_use_local):
+
+    images_found = client.images.list(image_name)
+
+    # do a more extensive local search to see if a id hash was given
+    if not images_found and "/" not in image_name:
+        for image in client.images.list(all=True):
+            if image.id.replace("sha256:", "").startswith(image_name):
+                images_found.append(image)
+    # Check if the image can be pulled from dockerhub
+    if not images_found:
+        if only_use_local:
+            raise ValueError(f"Cannot find the image {image_name}")
+        else:
+            print(
+                f"Cannot find {image_name} locally. Will try to "
+                "download, this will take a while... "
+            )
+
+            if ":" not in image_name:
+                # Pull latest not all the images!
+                print(
+                    f"An image version for {image_name} was not "
+                    "specified, using 'latest' "
+                )
+
+                image_name += ":latest"
+            client.images.pull(f"{image_name}")
+            images_found = client.images.list(image_name)
+
+    if len(images_found) > 1:
+        print(f"More than one image has been found for '{image_name}'.")
+        for image in images_found:
+            if any(x.endswith(":latest") for x in image.tags):
+                print(f"Using image with the tags: {image.tags}")
+                return image
+        else:
+            raise ValueError(
+                f"Looking for image name: {image_name}. There is "
+                "ambiguity in this as there are more than one image by "
+                f"that name: {images_found}. Try using a more specific image_name."
+            )
+
+    else:
+        image = images_found[0]
+    return image
 
 
 def run_containerized(tests_dir, **kwargs):
@@ -25,13 +76,17 @@ def run_containerized(tests_dir, **kwargs):
 
     client = docker.from_env()
 
-    if not client.images.list(image_name):
-        if kwargs.get("only_use_local"):
-            raise ValueError(f"Cannot find the image {image_name}")
-        else:
-            print(f"Trying to download {image_name}. This will take a while...")
-            client.images.pull(f"{image_name}:latest")
+    docker_py_error = (
+        "It appears that you have pip installed docker-py. You should "
+        "either pip install docker, or conda install docker-py. "
+        "Confusing to be sure... docker-py via pip is a similar but "
+        "different package. "
+    )
 
+    if inspect.ismethod(client.images):
+        print(docker_py_error)
+        sys.exit(1)
+    image = get_docker_image(client, image_name, kwargs.get("only_use_local"))
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_vol_settings(tests_dir, **kwargs)
 
@@ -59,7 +114,7 @@ def run_containerized(tests_dir, **kwargs):
         docker_kwargs["detach"] = True
 
     # Convert parsed user args for execution in the container
-    converted_args = unparse_args_for_container(**kwargs)
+    converted_args = unparse_args_for_container(tests_dir, **kwargs)
 
     # Run the test script inside the container
     script_path = "/opt/afni/src/tests/run_afni_tests.py"
@@ -68,12 +123,13 @@ def run_containerized(tests_dir, **kwargs):
     # cmd = f"""/usr/bin/python -c 'import pdb;pdb.set_trace()'"""
     # cmd = f"""/bin/sh -c 'echo hello;sleep 5;echo bye bye'"""
     cmd = f"""/bin/sh -c '{script_path} {converted_args}'"""
-    output = client.containers.run(image_name, cmd, **docker_kwargs)
+    output = client.containers.run(image, cmd, **docker_kwargs)
     if not kwargs.get("debug"):
         for line in output.logs(stream=True):
             print(line.decode("utf-8"))
     else:
         print(output.decode("utf-8"))
+    output.remove(force=True)
 
 
 def add_coverage_env_vars(docker_kwargs, **kwargs):
@@ -102,18 +158,29 @@ def get_path_strs_for_mounting(tests_dir):
     return host_src, host_data, container_src, container_data
 
 
+def add_git_credential_env_vars(docker_kwargs, **kwargs):
+    if not kwargs.get("do_not_forward_git_credentials"):
+        name, email = check_git_config()
+
+        docker_kwargs["environment"].update(
+            {"GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email}
+        )
+    return docker_kwargs
+
+
 def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
     docker_kwargs = {"environment": {}, "volumes": {}}
 
     # Setup ci variables outside container if required
     docker_kwargs = add_coverage_env_vars(docker_kwargs, **kwargs)
+    # Pass git credentials into container
+    docker_kwargs = add_git_credential_env_vars(docker_kwargs, **kwargs)
 
     # Define some paths
     hsrc, hdata, csrc, cdata = get_path_strs_for_mounting(tests_dir)
     ctest = str(Path(csrc) / "tests")
 
-    # Mount build directory if provided (needs to be container perms if not
-    # combined with mounting the source):
+    # Mount build directory if provided (needs to be user perms)
     if kwargs.get("build_dir"):
         bdir = "/opt/afni/build"
         docker_kwargs["volumes"][kwargs["build_dir"]] = {"bind": bdir, "mode": "rw"}
@@ -123,14 +190,19 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
     if os.getuid != "0":
         docker_kwargs["user"] = "root"
 
-    if "test-data-only" == kwargs.get("source_mode"):
+    if kwargs.get("source_mode") == "test-data-only":
         docker_kwargs["volumes"][hdata] = {"bind": cdata, "mode": "rw"}
         docker_kwargs["environment"].update(
             {"CHOWN_EXTRA": f"{cdata}", "CHOWN_EXTRA_OPTS": "-R"}
         )
+    elif kwargs.get("source_mode") == "test-code" and kwargs.get("reuse_build"):
+        # test code being used in conjunction with the cmake build
+        # need to chown build, all source except test, and pip/home dirs
+        raise NotImplementedError()
     elif kwargs.get("source_mode") == "test-code":
-        # Chowning everything to the host id is the most robust approach when
-        # mounting the source
+        # test code being used in conjunction with code installed in the
+        # container. --abin may or may not have been used (for the cmake
+        # installation, and it probably won't work)
         docker_kwargs["volumes"][str(tests_dir)] = {"bind": ctest, "mode": "rw"}
         docker_kwargs["environment"].update(
             {
@@ -146,7 +218,9 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
         # Chowning everything to the host id is the most robust approach when
         # mounting the source.
         docker_kwargs["volumes"][hsrc] = {"bind": csrc, "mode": "rw"}
-        dirs_to_change = "/opt/afni/build,/opt/user_pip_packages"
+        dirs_to_change = "/opt/user_pip_packages"
+        if not kwargs.get("build_dir"):
+            dirs_to_change += ",/opt/afni/build"
         docker_kwargs["environment"].update(
             {
                 "CHOWN_HOME": "yes",
@@ -191,8 +265,9 @@ def check_user_container_args(tests_dir, **kwargs):
 
     if source_mode == "host" and not cmake_build_used:
         raise ValueError(
-            "--source-mode=host implies you want to rebuild using "
-            "cmake. You have not passed --reuse-build or --build-dir. "
+            "--source-mode=host implies you want to build using cmake. "
+            "You have not passed --reuse-build (as an option to the "
+            "container sub command) or --build-dir (as a general option). "
         )
 
     if build_dir and kwargs.get("reuse_build"):
@@ -244,17 +319,23 @@ def check_user_container_args(tests_dir, **kwargs):
             )
 
 
-def unparse_args_for_container(**kwargs):
+def unparse_args_for_container(tests_dir, **kwargs):
     """
     Reconstructs the arguments passed to run_afni_tests.py. This is along the
-    lines of unparsing the arguments but:
-    a) it also removes any arguments that were relevant and used for modifying
-       the behavior of the container execution (volume mounting etc)
-    b) the output is a string rather than the list from sys.argv
+    lines of unparsing the arguments but it also removes any arguments that
+    were relevant and used for modifying the behavior of the container
+    execution (volume mounting etc).
+
     """
     cmd = ""
     for k, v in kwargs.items():
-        if k in ["source_mode", "image_name", "only_use_local", "subparser"]:
+        if k in [
+            "source_mode",
+            "image_name",
+            "only_use_local",
+            "subparser",
+            "do_not_forward_git_credentials",
+        ]:
             pass
         elif v in [None, False]:
             pass
@@ -266,13 +347,13 @@ def unparse_args_for_container(**kwargs):
             cmd += f' -k="{v}"'
         elif k == "verbose":
             cmd += f" -{v * 'v'}"
+        elif k == "file":
+            cmd += f" --file=/opt/afni/src/tests/{Path(v).relative_to(tests_dir)}"
         elif v is True:
             cmd += f" --{k.replace('_','-')}"
         else:
             raise NotImplementedError(
                 f"Behavior for passing {k,v} to container is undefined"
-                )
+            )
     cmd += " local"
     return cmd
-
-
