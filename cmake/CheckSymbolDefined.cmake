@@ -135,7 +135,7 @@ if( ${SYMBOL} == NULL ) {
       "${SOURCEFILE}" @ONLY)
 
     if(NOT CMAKE_REQUIRED_QUIET)
-      message("Looking for ${SYMBOL}")
+      message("Looking for ${SYMBOL} in ${SOURCEFILE}:including ${CMAKE_SYMBOL_EXISTS_INCLUDES}")
     endif()
     try_compile(COMPILE_SUCCESS
       ${CMAKE_BINARY_DIR}
