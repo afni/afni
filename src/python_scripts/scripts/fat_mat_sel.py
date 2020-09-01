@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
 
 from afnipy import lib_fat_funcs as GR
 from afnipy import lib_fat_plot_sel as PS
 from numpy import set_printoptions
 import getopt, sys 
 from glob import glob
+
+# [PT: Sep 1, 2020] updated to Python 3 with "2to3 -w ..", and got rid
+# of 'end=...', for backwards compatibility, as well as
+# input/raw_input duality
 
 # wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps
 
@@ -155,7 +160,7 @@ def main(argv):
 
      or, equivalently:
        $ fat_mat_sel.py --matr_in 'o.NETS_AND_000.grid' --Pars 'FA'     \\
-            -A_plotmin 1 --Tight_layout_on --Hold_image --out_ind_matr
+            --A_plotmin 0 --Tight_layout_on --Hold_image --out_ind_matr
 
 
 
@@ -190,7 +195,7 @@ def main(argv):
 
     # allow status 0 on -help   24 Sep 2018 [rickr]
     if "-help" in argv:
-        print help_line
+        print(help_line)
         sys.exit()
 
     try:
@@ -222,11 +227,11 @@ def main(argv):
                          "Lab_size_font="])
 
     except getopt.GetoptError:
-        print help_line
+        print(help_line)
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help", "-help"):
-            print help_line
+            print(help_line)
             sys.exit()
         elif opt in ("-m", "--matr_in"):
             file_matr_glob = arg
@@ -276,16 +281,16 @@ def main(argv):
             LAB_SIZE_FONT = int(arg)
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-        print "** ERROR: missing a necessary matrix file input."
-        print "\t Need to use either '-m' or '-l'."
-        print "\t Use 'fat_mat_sel.py -h' for viewing helpfile."
+        print("** ERROR: missing a necessary matrix file input.")
+        print("\t Need to use either '-m' or '-l'.")
+        print("\t Use 'fat_mat_sel.py -h' for viewing helpfile.")
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
-        print "*+ Warning: both a path for globbing *and* a listfile have",
-        print " been input for the matrix file."
-        print "\tThe glob one after '-m' will be ignored."
+        print("*+ Warning: both a path for globbing *and* a listfile have "
+              " been input for the matrix file.")
+        print("\tThe glob one after '-m' will be ignored.")
     if not(par_str):
-        print "** Error! Got no parameters (-P, --Pars)."
+        print("** Error! Got no parameters (-P, --Pars).")
         sys.exit(5)
     if MAT_X < 0 :  # default option
         MAT_X = 3.5
@@ -295,24 +300,24 @@ def main(argv):
         else:
             MAT_Y = MAT_X
     if N_CBAR_INT < 0:
-        print "** Error! Bad number of colorbar divisions: ", N_CBAR_INT
+        print("** Error! Bad number of colorbar divisions: ", N_CBAR_INT)
         sys.exit(3)
     if MATDPI < 0:
-        print "** Error! Bad DPI choice: ", MATDPI
+        print("** Error! Bad DPI choice: ", MATDPI)
         sys.exit(3)
     if FS < 0:
-        print "** Error! Bad font size: ", FS
+        print("** Error! Bad font size: ", FS)
         sys.exit(3)
     if (MAT_X < 0) or (MAT_Y < 0) :
-        print "** Error! Negative dimension?: ", MAT_X, " by ", MAT_Y
+        print("** Error! Negative dimension?: ", MAT_X, " by ", MAT_Y)
         sys.exit(3)
 
     if not(DO_PLOT) and not( OUT_GRID):
-        print "** Error! Nothing to do: all outputfunctionality is off!"
-        print "\tDid you either want to:"
-        print "\t\t-> view a parameter's matrix (default; don't use: ",
-        print "-F, --File_off), or"
-        print "\t\t-> select matrices to a text file (-o, --out_ind_matr)?\n"
+        print("** Error! Nothing to do: all outputfunctionality is off!")
+        print("\tDid you either want to:")
+        print("\t\t-> view a parameter's matrix (default; don't use:  "
+              "-F, --File_off), or")
+        print("\t\t-> select matrices to a text file (-o, --out_ind_matr)?\n")
         sys.exit(2)
 
 
@@ -326,7 +331,7 @@ def main(argv):
 
 if __name__=="__main__":
     set_printoptions(linewidth=200)
-    print "\n"
+    print("\n")
     file_matr_glob, file_listmatch, ExternLabsOK, \
      par_str, FS, DO_COLORBAR, N_CBAR_INT, FTYPE, DO_PLOT, \
      TIGHT_LAY, MATDPI, MAT_X, MAT_Y, OUT_GRID, MATMIN_str, MATMAX_str, \
@@ -339,7 +344,7 @@ if __name__=="__main__":
         par_list = par_str.split()
         USER_LIST = 1
     else:
-        print "** Error! Got no parameters."
+        print("** Error! Got no parameters.")
         sys.exit(5)
 
 
@@ -349,11 +354,11 @@ if __name__=="__main__":
     elif file_matr_glob:
         list_all = glob(file_matr_glob)
     else:
-        print "** Error! Cannot read in matrix files."
+        print("** Error! Cannot read in matrix files.")
         sys.exit(4)
 
     if not(list_all):
-        print "** Error! Could not find/read in any matrix files."
+        print("** Error! Could not find/read in any matrix files.")
         sys.exit(4)
 
     # this one gets the matched pair name.
@@ -364,9 +369,9 @@ if __name__=="__main__":
         list_all_out, types_all_out = PS.DefaultNamingPrefType(list_all)
 
 
-    print list_all
-    print list_all_out
-    print types_all_out
+    print(list_all)
+    print(list_all_out)
+    print(types_all_out)
 
     image_list = []
     matfile_list = []
@@ -415,12 +420,12 @@ if __name__=="__main__":
                 matfile_list.append(matfile_out)
 
     if image_list:
-        print '++ Finished saving images:'
+        print('++ Finished saving images:')
         for x in image_list:
-            print '\t %s' % (x)
+            print('\t %s' % (x))
     if matfile_list:
-        print '\n++ Finished writing matrix files:'
+        print('\n++ Finished writing matrix files:')
         for x in matfile_list:
-            print '\t %s' % (x)
+            print('\t %s' % (x))
 
-    print "\n++ Done!\n"
+    print("\n++ Done!\n")
