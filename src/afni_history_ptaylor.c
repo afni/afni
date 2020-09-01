@@ -7,16 +7,16 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
-  
+                  (optional) long description with intermediate newlines
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- example --
@@ -65,6 +68,31 @@
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+{ 1, Sep , 2020 , PT , "fat_mvm_review.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "This program never even made it to full beta status.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_proc_grad_plot" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "Already have a better one (with fewer dependencies!) ready to go.\n"
+},
+
+{ 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
+   "Well, usage+output shouldn't really change, but it should be more stable.",
+   "There is also a new opt: -align_centers_meth (read the help).\n"
+},
+
+{ 26, Aug , 2020 , PT , "@animal_warper" , MICRO , TYPE_BUG_FIX,
+   "Fix case of running prog with no args.",
+   "Should show help; now it DOES show help, with no error.\n"
+},
+
+{ 21, Aug , 2020 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Fix header deps of underlying progs (namely, readglob.c).",
+   "Was crashing on some NIML reading cases.\n"
+},
 
 { 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
    "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",

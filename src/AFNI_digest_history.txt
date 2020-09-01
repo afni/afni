@@ -1,3 +1,85 @@
+AFNI Digest, week of 2020/08/19:  Special "Chopped" edition.
+
+AFNI has over 600 programs for your neuroimaging analysis amusement.
+To simplify things a bit, we are in the process of “cleaning house” on
+some functionality.  On Monday, Aug. 24, the programs listed below
+will be chopped (= no longer supplied in the AFNI distribution).
+
+If you are still using one of these old programs, you should follow
+the update recommendations provided.  Those without a specific update
+are probably “underlying” functionality that you do not use directly.
+If you have any questions or would like advice on how best to update
+your pipelines, please just ask your friendly AFNI guru on the Message
+Board.  (And if it turns out one of these programs really should not
+be removed, then its execution--in the Revolutionary France sense--can
+be stayed.  But you must raise such an issue before dawn on Monday,
+Aug. 24.)
+
+Once the following programs are removed, we will just assume you have
+the list of all remaining programs memorized, as well as their full
+help files and examples.  If that is not somehow the case, please be
+aware of the Classified list of AFNI programs:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html
+... the Tutorial pages:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+... and the online AFNI Bootcamp and Academy recordings:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+... and more help and examples on the main documentation pages.
+
+PROGRAMS SNEAKILY ALREADY CHOPPED
+---------------------------------
+3dMINCtoAFNI
+3dAFNItoMINC
+
+PROGRAMS ON THE CHOPPING BLOCK
+------------------------------
+AlphaSim                (obsolete -> used 3dClustSim)
+3dFWHM                  (obsolete -> use 3dFWHMx)
+3dMax                   (obsolete -> use 3dBrickStat)
+@auto_align             (obsolete -> use align_epi_anat.py or 3dAllineate)
+@UpdateAfni             (obsolete -> use @update.afni.binaries)
+3dANALYZEtoAFNI         (obsolete -> use 3dcopy or to3d)
+Dimon1                  (obsolete -> use Dimon)
+3dCountSpikes           (obsolete -> use 3dToutcount)
+3dfim                   (obsolete -> use 3dDeconvolve)
+3dUniformize            (obsolete -> use 3dUnifize)
+@DTI_studio_reposition  (probably obsolete)
+@make_stim_file         (obsolete -> use timing_tool.py)
+3dICC_REML.R            (obsolete -> use 3dICC)
+3dAOV.R                 (obsolete -> use 3dMVM)
+lpc_align.py            (obsolete -> use align_epi_anat.py or 3dAllineate)
+afni_restproc.py        (obsolete -> use afni_proc.py)
+@snapshot_volreg3       (obsolete -> use @snapshot_volreg)
+1dDW_Grad_o_Mat         (obsolete -> use 1dDW_Grad_o_Mat++)
+3dProbTrackID           (obsolete -> use 3dTrackID)
+3dAnatNudge             (obsolete -> use align_epi_anat.py or Nudge plugin)
+3dFourier               (obsolete -> use 3dBandpass)
+3dttest                 (obsolete -> use 3dttest++; for "3dttest -base .."
+                         functionality, use "3dttest++ -singletonA ..")
+3dAnatNudge             (obsolete -> use align_epi_anat.py, 3dAllineate or
+                         Nudge plugin)
+DoPerRoi.py
+3dbuc2fim
+3dDeconvolve_f 
+3ddup
+3dnoise
+3dproject
+3dWavelets
+abut
+ent16
+ftosh
+ge_header
+Ifile
+check_dset_for_fs.py 
+mayo_analyze          
+mritopgm
+siemens_vision
+sqwave
+Xphace
+FD2
+
+========================================================================
+
 AFNI Digest, week of 2020/08/05.
 
 Contents:

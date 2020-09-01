@@ -14,8 +14,13 @@ import random
 ## to do
 ## add MinVox to output
 
-## locations of stuff
+# note python version for subprocess output
+python_major_ver = float(sys.version.split()[0].split('.')[0])
+
+## locations of stuff (if python 3+: decode())
 afni_bin = subprocess.check_output("which afni",shell=True)
+if python_major_ver > 2: afni_bin = afni_bin.decode()
+
 afni_dir = os.path.dirname(afni_bin)
 HistProg = afni_dir+"/ClustExp_HistTable.py"
 ShinyFolder = afni_dir+"/shiny/ClustExp_ShinyTemplate"

@@ -3,10 +3,13 @@
 #include "gicor.h"
 #include "TrackIO.h"
 #include "readglob.h"      // need numbers of things for DTI in/out
-#include "suma_objs.h"
 
 /* 
    [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
+
+   [PT: Aug 21, 2020] 
+   + remove duplicate line: #include "suma_objs.h"
+   + remove old testing print message                      
 */
 
 static int NI_tract_type = -1;
@@ -1463,7 +1466,6 @@ int NI_getDTI_inputs( NI_element *nel,
          snprintf(NameVECT[i], N_CHAR_PATH, "%s", atr);
       }
    }
-         INFO_message(" CCC1  ");
 
    // for scalars
    for( i=0 ; i<N_DTI_SCAL ; i++ ) {

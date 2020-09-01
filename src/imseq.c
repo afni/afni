@@ -3135,6 +3135,15 @@ ENTRY("ISQ_binarize_overlay") ;
      }
      break ;
 
+     case MRI_rgba:{                 /* Oops, forgot about this [18 Aug 2020] */
+       rgba *tar = MRI_RGBA_PTR(tim) ; int ii ;
+       for( ii=0 ; ii < npix ; ii++ ){
+         bar[ii] = ( tar[ii].a > 254 ) &&
+                   ( tar[ii].r > 0 || tar[ii].g > 0 || tar[ii].b > 0 ) ;
+       }
+     }
+     break ;
+
    }
 
    RETURN(bim) ;

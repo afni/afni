@@ -166,6 +166,8 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
                 -float  : convert the list to floats before passing to FUNC()
                 -print  : print the result
                 -join   : print the results join()'d together
+                -joinc  : print the results join()'d together with commas
+                -joinn  : print the results join()'d together with newlines
 
          Examples for listfunc:
 
@@ -188,7 +190,6 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
            afni_python_wrapper.py -listfunc -join -float linear_fit \\
                                   2 3 5 4 8 5 8 9
 
-
          Also, if LIST contains -list2, then 2 lists can be input to do
          something like:
             -eval "FUNC([v1,v2,v3], [v4,v5,v6])"
@@ -204,6 +205,17 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
             afni_python_wrapper.py -listfunc -join -float linear_fit      \\
                                 `cat y.1D` -list2 `cat x.1D`
 
+           afni_python_wrapper.py -listfunc -join list_intersect \\
+                `cat fileA` -list2 `cat fileB`                   \\
+                | tr ' ' '\\n'
+
+           # same, but use -joinn instead of tr, for newline separation
+           afni_python_wrapper.py -listfunc -joinn list_intersect \\
+                `cat fileA` -list2 `cat fileB`
+
+           afni_python_wrapper.py -listfunc -joinn list_diff    \\
+                `cat fileA` -list2 `cat fileB`
+
    Author: R Reynolds  Feb, 2020  (moved from afni_util.py)
 """
 
@@ -218,16 +230,20 @@ def process_listfunc(argv, argbase=1):
 
    do_join = 0
    do_joinc = 0 # join with commas
+   do_joinn = 0 # join with newlines
    do_float = 0
    do_print = 0
    argbase += 1
 
-   while argv[argbase] in ['-join', '-joinc', '-print', '-float']:
+   while argv[argbase] in ['-join', '-joinc', '-joinn', '-print', '-float']:
       if argv[argbase] == '-join':
          do_join = 1
          argbase += 1
       elif argv[argbase] == '-joinc':
          do_joinc = 1
+         argbase += 1
+      elif argv[argbase] == '-joinn':
+         do_joinn = 1
          argbase += 1
       elif argv[argbase] == '-print':
          do_print = 1
@@ -273,6 +289,7 @@ def process_listfunc(argv, argbase=1):
    
    if   do_join:  print(' '.join(str(v) for v in ret))
    elif do_joinc: print(','.join(str(v) for v in ret))
+   elif do_joinn: print('\n'.join(str(v) for v in ret))
    elif do_print: print(ret)
    # else do nothing special
    return 0

@@ -3,18 +3,20 @@
 
 #include "afni_history.h"
 
-/*  basic format: 3-field date, user, program_name, impact_level,
+/*  (for starting a new file, search for CHANGE)
+
+    basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long description with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
-    Notes: - months are JAN ... DEC (see .h file)
+
+    Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -26,6 +28,8 @@
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
                     TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
            - it may be nice to put the newest entries at the top
@@ -48,6 +52,246 @@
 */
 
 afni_history_struct rickr_history[] = {
+
+ { 31, Aug, 2020, RCR, "afni_python_wrapper.py", MICRO, TYPE_NEW_OPT,
+   "add -joinn for list output; add list_intersect and list_diff funcs",
+   NULL
+ } ,
+
+ { 27, Aug, 2020, RCR, "SUMA_test_DrawingAreaWidget", MICRO, TYPE_ENHANCE,
+   "set up for alternatively building without SUMA",
+   NULL
+ } ,
+
+ { 27, Aug, 2020, RCR, "@diff.tree", MICRO, TYPE_BUG_FIX,
+   "better handling of missing trailing directory args",
+   NULL
+ } ,
+
+ { 26, Aug, 2020, RCR, "ClustExp_StatParse.py", MICRO, TYPE_ENHANCE,
+   "python 3 update to decode() subprocess output",
+   NULL
+ } ,
+
+ { 26, Aug, 2020, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
+   "much limiting of line lengths to 80 chars - should be no real change",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "1dDW_Grad_o_Mat", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 1dDW_Grad_o_Mat++",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dANALYZEtoAFNI", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dcopy or to3d",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dAnatNudge", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dCountSpikes", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dToutcount",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dDeconvolve_f", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dDeconvolve",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dFWHM", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dFWHMx",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dFourier", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dBandpass",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dMax", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dBrickStat",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dProbTrackID", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dTrackID",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dUniformize", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dUnifize",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dWavelets", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dbuc2fim", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3ddup", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dfim", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dDeconvolve",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dnoise", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dproject", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dttest", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dttest++",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "AlphaSim", MINOR, TYPE_REMOVE,
+   "removed from distribution - use 3dClustSim",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Dimon1", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "FD2", MINOR, TYPE_REMOVE,
+   "removed from distribution - use afni",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Ifile", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "Xphace", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "abut", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ent16", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ftosh", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "ge_header", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "mayo_analyze", MINOR, TYPE_REMOVE,
+   "removed from distribution - use nifti_tool",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "mritopgm", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "siemens_vision", MINOR, TYPE_REMOVE,
+   "removed from distribution - use Dimon",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "sqwave", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "plug_3ddup.so", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dICC_REML.R", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "3dAOV.R", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "lpc_align.py", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "check_dset_for_fs.py", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "afni_restproc.py", MINOR, TYPE_REMOVE,
+   "removed from distribution - use afni_proc.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "DoPerRoi.py", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@snapshot_volreg3", MINOR, TYPE_REMOVE,
+   "removed from distribution - use @snapshot_volreg",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@make_stim_file", MINOR, TYPE_REMOVE,
+   "removed from distribution - use timing_tool.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@auto_align", MINOR, TYPE_REMOVE,
+   "removed from distribution - use align_epi_anat.py",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@UpdateAfni", MINOR, TYPE_REMOVE,
+   "removed from distribution - use @update.afni_binaries",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "@DTI_studio_reposition", MINOR, TYPE_REMOVE,
+   "removed from distribution",
+   NULL
+ } ,
+
+ { 25, Aug, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "added new types TYPE_REMOVE and TYPE_REINSTATE",
+   "This is to track when programs or notable functionality gets removed."
+ } ,
 
  {  3, Aug, 2020, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
    "fix sB update when changing surf order from 0,1 to 1,0",

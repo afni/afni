@@ -1639,6 +1639,9 @@ static char *gby[] = {
      // *Not* No. 6
      "I am not a number-- I am a free program!"                                               ,
 
+     // Awoonor
+     "Who can tell where any bird will fall?"     ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
