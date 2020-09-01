@@ -181,6 +181,14 @@ def parse_user_args():
         help="Image used for testing container. Default is likely something like afni/afni_cmake_build",
     )
     container.add_argument(
+        "--intermediate",
+        action="store_true",
+        help=(
+            "Search intermediate image layers for the image-name. This  can sometimes "
+            "fail if layers have been pruned etc."
+        ),
+    )
+    container.add_argument(
         "--only-use-local",
         action="store_true",
         help="Raise error if image name does not exist locally.",

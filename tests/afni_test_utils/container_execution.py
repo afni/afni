@@ -12,12 +12,14 @@ from afni_test_utils.minimal_funcs_for_run_tests_cli import (
 )
 
 
-def get_docker_image(client, image_name, only_use_local):
+def get_docker_image(
+    client, image_name, only_use_local, search_intermediate_layers=False
+):
 
     images_found = client.images.list(image_name)
 
     # do a more extensive local search to see if a id hash was given
-    if not images_found and "/" not in image_name:
+    if not images_found and (search_intermediate_layers and "/" not in image_name):
         for image in client.images.list(all=True):
             if image.id.replace("sha256:", "").startswith(image_name):
                 images_found.append(image)
@@ -86,7 +88,9 @@ def run_containerized(tests_dir, **kwargs):
     if inspect.ismethod(client.images):
         print(docker_py_error)
         sys.exit(1)
-    image = get_docker_image(client, image_name, kwargs.get("only_use_local"))
+    image = get_docker_image(
+        client, image_name, kwargs.get("only_use_local"), kwargs.get("intermediate")
+    )
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_vol_settings(tests_dir, **kwargs)
 
