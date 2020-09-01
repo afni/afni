@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Sep , 2020 , PT , "fat_lat_csv.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution, with lib: lib_fat_Rfactor.py.",
+   "R deps are a mess between Py2 and Py3; might rewrite better in future.\n"
+},
+
 { 1, Sep , 2020 , PT , "fat_mvm_review.py" , MINOR , TYPE_REMOVE,
    "Remove program from distribution.",
    "This program never even made it to full beta status.\n"
