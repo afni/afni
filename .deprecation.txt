@@ -342,3 +342,14 @@ Files affected:
 src/afni_history_ptaylor.c
 src/python_scripts/scripts/fat_mvm_review.py
 src/scripts_install/fat_proc_grad_plot
+
+
+
+Deprecation: delete/deprecate: fat_lat_csv.py
+Timestamp: 2020-09-01 17:12:47 -0400
+Commit: 6ae08226b
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/afnipy/lib_fat_Rfactor.py
+src/python_scripts/scripts/fat_lat_csv.py
