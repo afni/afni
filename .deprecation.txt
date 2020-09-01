@@ -17,15 +17,17 @@ command "git log --patch <commit-id>.
       git checkout master
       git pull
 
-1. create and checkout new branch
+1. create and checkout new branch (that can be used for a pull request)
 
-      git checkout -b deletions
+      git checkout -b deletions_July_17
 
 2. remove scripts, for example, or copy in updates from elsewhere
 
       rm src/scripts_install/@make_stim_file
 
 3. make afni_history updates (TYPE_REMOVE - per program/lib/functionality)
+   and, assuming those edits were made in the non-git tree ~/afni/src,
+   copy them into the local git tree (still on branch deletions_July_17):
 
       cp ~/afni/src/afni_history_rickr.c src
 
@@ -33,13 +35,79 @@ command "git log --patch <commit-id>.
 
       git commit -am 'script deletion'
 
-5. add entry of changes to .deprecation.txt
-   (this makes new git commit)
+5. add log of most current file changes to .deprecation.txt, 
+   (see "making a 'git deprecate' alias", below)
+   (this makes new git commit, making this branch ready for a pull request)
 
       git deprecate
 
+6. push new branch
 
-# 7. separate:update git/afni_doc/educational/classified_progs.rst
+      git push origin deletions_July_17
+
+7. go to https://github.com/afni/afni and open a pull request
+   for that branch (deletions_July_17), and let the CI tests run
+
+
+
+# 99. separate option: update git/afni_doc/educational/classified_progs.rst
+
+
+# ----------------------------------------------------------------------
+# making a 'git deprecate' alias
+
+The purpose of the "deprecate" step is to add a list of files removed or
+modified by the most recent commit.  This alias *only* works for a single
+commit (comparing HEAD~1 to HEAD, the previous to the current commits).
+So it is preferable to run "git deprecate" after a single such change.
+
+
+a. First create an alias that lists that log difference (of the "last commit"),
+   along with a header.  Run "git lc" at any time to see the text.
+
+      git config --global alias.lc 'log --name-only --pretty=format:"%n%n%nDeprecation: %s%nTimestamp: %ai%nCommit: %h%nAuthor: %an%nFiles affected:" HEAD~1..HEAD'
+
+      git lc
+
+
+b. Then create an alias that appends that log difference to .deprecation.txt,
+   and commits that extra change.  Note that this alias should have an '!' in
+   it, which makes the way to create the alias shell-specific.
+
+   From bash:
+
+      git config --global alias.deprecate    \
+          '!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+   From tcsh (escape the initial '!' in the alias text):
+
+      git config --global alias.deprecate    \
+          '\!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+
+These should both be visible from your ~/.gitconfig file.
+
+
+# ----------------------------------------------------------------------
+# using the new aliases
+
+At this point, one can make deletions to the git tree:
+
+      rm -fr src/ptaylor
+ 
+Commit those important deletions:
+
+      git commit -am 'getting rid of malware'
+
+List the changes from that most recent commit
+(this is only for text output, it does not affect the repository):
+
+      git lc
+
+And make one more commit to append the list of removed files
+to .deprecate.txt:
+
+      git deprecate
 
 
 # ---------------------------------------------------------------------------
