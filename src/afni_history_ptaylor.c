@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Sep , 2020 , PT , "fat_mvm_review.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "This program never even made it to full beta status.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_proc_grad_plot" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "Already have a better one (with fewer dependencies!) ready to go.\n"
+},
+
 { 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
    "Well, usage+output shouldn't really change, but it should be more stable.",
    "There is also a new opt: -align_centers_meth (read the help).\n"
