@@ -69,6 +69,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Sep , 2020 , PT , "fat_roi_row.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_prep.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_gridconv.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mat_sel.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
 { 1, Sep , 2020 , PT , "fat_lat_csv.py" , MINOR , TYPE_REMOVE,
    "Remove program from distribution, with lib: lib_fat_Rfactor.py.",
    "R deps are a mess between Py2 and Py3; might rewrite better in future.\n"
