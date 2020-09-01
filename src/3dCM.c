@@ -210,7 +210,7 @@ int main( int argc , char * argv[] )
            printf("%d  %d  %d\n", (int) cmv.xyz[0], 
            (int) cmv.xyz[1], (int) cmv.xyz[2]) ;
            else*/
-         if(!Icent && !Dcent)
+         if(!Icent || !Dcent)
             printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
          else {
             printf("%g  %g  %g  Center of Mass\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
