@@ -190,6 +190,9 @@ def test_run_containerized(mocked_docker, mocked_image_fetch):
     assert "--coverage" in run_calls[0][0][1]
 
 
+@pytest.mark.skipif(
+    minfuncs.is_containerized(), reason=("This test is not run inside the container."),
+)
 def test_run_containerized_fails_with_unknown_image():
     # The image needs to exist locally with only_use_local
     with pytest.raises(ValueError):
