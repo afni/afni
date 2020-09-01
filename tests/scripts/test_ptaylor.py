@@ -2,7 +2,7 @@ from .utils import tools
 from pathlib import Path
 import pytest
 import os
-
+import sys
 
 fatdir = Path("AFNI_demos/FATCAT_DEMO")
 fatdir2 = fatdir / "test_extra"
@@ -269,6 +269,13 @@ def test_3dTrackID_DET(data, ptaylor_env):
 
 @pytest.mark.veryslow
 @pytest.mark.xfail(raises=NotImplementedError)
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason=(
+        "3dTrackID produces different output on MacOS. Different tracts "
+        "produce different output files."
+    ),
+)
 def test_3dTrackID_PROB(data, ptaylor_env):
     opref = data.outdir / "o.3dTrackID_PROB"
     cmd = f"""

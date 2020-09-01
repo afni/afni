@@ -1,9 +1,15 @@
 from .utils import tools
+import pytest
+import sys
 
 # Define Data
 data_paths = {"mask": "mini_data/mask_3mm.nii.gz", "epi": "mini_data/aligned.nii.gz"}
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason=("3dmaskdump removes all voxels on MacOS for some reason."),
+)
 def test_3dmaskdump_basic(data):
 
     outfile_path = data.outdir / ("Vrel_tstats.txt")
