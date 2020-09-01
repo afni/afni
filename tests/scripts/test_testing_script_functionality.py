@@ -173,7 +173,6 @@ def test_run_containerized(mocked_docker, mocked_image_fetch):
     container = Mock()
     container.logs.return_value = [b"success"]
     client = Mock()
-    client.images.search.return_value = True
     client.containers.run.return_value = container
     mocked_docker.from_env.return_value = client
     # Calling with coverage=True should result in --coverage being in the
@@ -622,11 +621,22 @@ def test_check_build_directory():
         minfuncs.check_build_directory(build_dir)
     tmpfile.unlink()
 
-    # this should fail, cache file refers to missing dir
-    with pytest.raises(FileNotFoundError):
-        cache_file.write_text("For build in directory: /opt/afni/build")
-        minfuncs.check_build_directory(build_dir)
-
     # this should pass, missing dir but will be in container
     cache_file.write_text("For build in directory: /opt/afni/build")
     minfuncs.check_build_directory(build_dir, within_container=True)
+
+@patch("afni_test_utils.minimal_funcs_for_run_tests_cli.is_containerized")
+@patch("afni_test_utils.minimal_funcs_for_run_tests_cli.Path")
+def test_wrong_build_dir_raise_file_not_found(mocked_path,mocked_containerized):
+    build_dir = "/opt/afni/build"
+    mocked_path_instance = Mock()
+    mocked_path_instance.exists.return_value = False
+    mocked_path.return_value = mocked_path_instance
+
+    # this should fail, as /opt/build/afni is mocked to not exist, simulating
+    # a local execution for which /opt/afni/build is specificed as the build
+    # dir
+    with pytest.raises(NotADirectoryError):
+        afni_test_utils.minimal_funcs_for_run_tests_cli.check_build_directory(
+            build_dir
+        )

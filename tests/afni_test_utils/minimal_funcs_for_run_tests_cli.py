@@ -262,6 +262,9 @@ def parse_user_args():
 
 def check_build_directory(build_dir, within_container=False):
     if build_dir:
+        if not within_container:
+            if not Path(build_dir).exists():
+                raise NotADirectoryError
         # check the ownership
         diruser = Path(build_dir).stat().st_uid
         is_local_gid = diruser == os.getuid()
@@ -315,7 +318,9 @@ def check_build_directory(build_dir, within_container=False):
                 )
 
             if not Path(build_dir).samefile(cache_path):
-                raise ValueError(mismatch_err.format(build_dir, cache_path))
+                raise ValueError(
+                    mismatch_err.format(build_dir=build_dir, cache_path=cache_path,)
+                )
 
 
 def get_dependency_requirements():
