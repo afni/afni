@@ -287,7 +287,7 @@ else
                -inset ${p}_strip_mask.nii.gz
     3dresample -overwrite -dxyz ${resamp_dim} -rmode Cu \
                -master ${p}_strip_mask.nii.gz \
-		       -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
+               -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
     if ( ${status} ) then
         echo "** ERROR: failure in resample 2"
         exit 1
@@ -374,14 +374,14 @@ while ( $finished == 0 )        ## keep going until you are satistfied
 
             ## check the strip in original voxel dimensions
             plugout_drive -com 'QUIET_PLUGOUTS' -com "RESCAN_THIS" \
-			  -com "SWITCH_UNDERLAY ${HeadImage}" \
-			  -com "SWITCH_OVERLAY ${p}_strip_manual.nii.gz" \
-			  -com "ALTER_WINDOW A.axialimage opacity=9" \
-			  -com "ALTER_WINDOW A.sagittalimage opacity=9" \
-			  -com "ALTER_WINDOW A.coronalimage opacity=9" \
-              -com "OPEN_PANEL A.Etc" \
-              -com "OPEN_PANEL A.Define_Overlay" \
-			  -quit
+                          -com "SWITCH_UNDERLAY ${HeadImage}" \
+                          -com "SWITCH_OVERLAY ${p}_strip_manual.nii.gz" \
+                          -com "ALTER_WINDOW A.axialimage opacity=9" \
+                          -com "ALTER_WINDOW A.sagittalimage opacity=9" \
+                          -com "ALTER_WINDOW A.coronalimage opacity=9" \
+                          -com "OPEN_PANEL A.Etc" \
+                          -com "OPEN_PANEL A.Define_Overlay" \
+                          -quit
 
             ## check if it is good
             unset check
@@ -445,7 +445,7 @@ while ( $finished == 0 )        ## keep going until you are satistfied
                 if ( $check == 2 ) then
                     exit 1
                 endif
-            endif	## end strip check
+            endif       ## end strip check
         endif   ## end check value
     endif  ## end check file
 end   ## end while
