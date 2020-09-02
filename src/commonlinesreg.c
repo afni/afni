@@ -24,8 +24,10 @@ NOTES
 */
 
 #include <stdio.h>
+#include <dirent.h>
 #include <malloc.h>
 #include <string.h>
+#include <unistd.h>
 #include "mrilib.h"
 
 int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din);
@@ -52,11 +54,12 @@ int main( int argc, char *argv[] )  {
         }
     }
 
-   if( open_input_dset(&din, inputFileName) )
+    if( open_input_dset(&din, inputFileName) )
     return Cleanup(inputFileName, outputFileNames, din);
 
     // Split volume into odd and even slices
-    unweave_sections(din, &dodd, &deven, inputFileName);
+    if (!unweave_sections(din, &dodd, &deven, inputFileName))
+        return Cleanup(inputFileName, outputFileNames, din);
 
     // Make projections
     // TODO: Add code
@@ -82,10 +85,10 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
     char *inputFileName){
     char    *outputFileName;
     int i, nz, ny, nx, nodd, neven, readInc, inIndex, outIndex, planeSize;
-    int evenDataVoxelCount, oddDataVoxelCount;
     size_t  bytes2Copy;
     float * indata, *oddData=NULL, *evenData=NULL;
-    THD_ivec3 iv_nxyz ;
+    THD_ivec3 iv_nxyz;
+    int bEvenFileExists=0, bOddFileExists=0;
 
     // Determine input dimensions
     nz = DSET_NZ(din);
@@ -133,18 +136,40 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
        return 0;
     }
 
+    // Determine whether files actually exist
+    char *searchPath = THD_filepath( inputFileName );
+    char *prefix=DSET_PREFIX(din);
+    struct dirent *dir;
+    DIR *d;
+    d = opendir(searchPath);
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+          sprintf(outputFileName,"%sEven",prefix);
+          if (strstr(dir->d_name,outputFileName)){
+            bEvenFileExists=1;
+          } else {
+              sprintf(outputFileName,"%sOdd",prefix);
+              if (strstr(dir->d_name,outputFileName)){
+                bOddFileExists=1;
+              }
+          }
+        }
+        closedir(d);
+      }
+
+
    /* Output even volume */
    *deven = EDIT_empty_copy(din);
    LOAD_IVEC3( iv_nxyz , nx , ny , neven ) ;
-   char *searchPath = THD_filepath( inputFileName );
-   char *prefix=DSET_PREFIX(din);
    sprintf(outputFileName,"%s%sEven",searchPath,prefix);
    EDIT_dset_items( *deven ,
                     ADN_prefix, outputFileName,
                     ADN_nxyz      , iv_nxyz ,
                     ADN_none ) ;
    EDIT_substitute_brick(*deven, 0, MRI_float, evenData);
-   RwcBoolean ret = DSET_write(*deven);
+   if( !bEvenFileExists ) {  // If even file does not already exist
+       DSET_write(*deven);
+    }
 
    *dodd = EDIT_empty_copy(din);
    LOAD_IVEC3( iv_nxyz , nx , ny , nodd ) ;
@@ -154,7 +179,9 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
                     ADN_nxyz      , iv_nxyz ,
                     ADN_none ) ;
    EDIT_substitute_brick(*dodd, 0, MRI_float, oddData);
-   ret = DSET_write(*dodd);
+   if( !bOddFileExists ) {  // If odd file does not already exist
+       DSET_write(*dodd);
+    }
 
    // Cleanup  (Don't free evenData or oddData)
    free(outputFileName);
