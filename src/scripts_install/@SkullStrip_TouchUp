@@ -1,4 +1,4 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
 
 ###########################################################################
 ## 07/05/2017 Justin Rajendra
@@ -7,7 +7,11 @@
 ## resample to 2mm (or not), edit, then change back
 ## you need the failed strip and the original head
 ## this will create a new folder with the edits
-
+##
+## [PT: Sep 1, 2020] replace having "-e" by shebang with lots of
+## ${status} checks dotted throughout, for simpler testing and more
+## generalized usage.  Also, put "exit 0" at end of showing help.
+##
 ###########################################################################
 ## parse command line arguments
 
@@ -191,6 +195,10 @@ if ( ! -d $OutFolder) then                      ## all new
     \mkdir -p $OutFolder
     3dcopy $head_path/$HeadImage $OutFolder/$HeadImage
     3dcopy $strip_path/$StripImage $OutFolder/$StripImage
+    if ( ${status} ) then
+        echo "** ERROR: failure in copy 1"
+        exit 1
+    endif
 else
     ## folder is there, are the same images there?
     set HeadOld = `3dinfo -exists $OutFolder/$HeadImage`
@@ -212,12 +220,20 @@ else
             set suffix=`date +"%m-%d-%y-%I%M%S"`
             3dcopy $OutFolder/$final_out $OutFolder/anat_strip_${suffix}.nii.gz
             3dcopy -overwrite $OutFolder/$final_out $OutFolder/$StripImage
+            if ( ${status} ) then
+                echo "** ERROR: failure in copy 2"
+                exit 1
+            endif
             \rm -v $OutFolder/$final_out
         else if ( $check == 3 ) then                 ## start over
             \rm -rv $OutFolder
             \mkdir -p $OutFolder
             3dcopy $head_path/$HeadImage $OutFolder/$HeadImage
             3dcopy $strip_path/$StripImage $OutFolder/$StripImage
+            if ( ${status} ) then
+                echo "** ERROR: failure in copy 3"
+                exit 1
+            endif
         endif
     endif
 endif
@@ -255,6 +271,10 @@ if ( -f "${p}_anat_resamp.nii.gz" ) then
         3dresample -overwrite -dxyz ${resamp_dim} -rmode Cu \
                    -master ${p}_strip_mask.nii.gz \
                    -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
+        if ( ${status} ) then
+            echo "** ERROR: failure in resample 1"
+            exit 1
+        endif
     endif
 else
     ## turn stripped image into mask
@@ -268,6 +288,10 @@ else
     3dresample -overwrite -dxyz ${resamp_dim} -rmode Cu \
                -master ${p}_strip_mask.nii.gz \
 		       -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
+    if ( ${status} ) then
+        echo "** ERROR: failure in resample 2"
+        exit 1
+    endif
 endif   ## end check previous
 
 ###########################################################################
@@ -336,13 +360,17 @@ while ( $finished == 0 )        ## keep going until you are satistfied
             ## resample back, fill holes, and mask the original
             3dresample -overwrite -dxyz $vox_dim -rmode NN \
                        -master ${HeadImage} \
-		               -prefix ${p}_strip_mask.orig_dim.nii.gz \
-		               -inset COPY_${p}_strip_mask_resamp.nii.gz
-		    3dmask_tool -overwrite -inputs ${p}_strip_mask.orig_dim.nii.gz \
+                       -prefix ${p}_strip_mask.orig_dim.nii.gz \
+                       -inset COPY_${p}_strip_mask_resamp.nii.gz
+            3dmask_tool -overwrite -inputs ${p}_strip_mask.orig_dim.nii.gz \
                         -prefix ${p}_strip_mask_dil.nii.gz \
                         -dilate_inputs 1 -1 -fill_holes
             3dcalc -overwrite -a ${HeadImage} -b ${p}_strip_mask_dil.nii.gz \
                    -expr "a*step(b)" -prefix ${p}_strip_manual.nii.gz
+            if ( ${status} ) then
+                echo "** ERROR: failure in 3dcalc 1"
+                exit 1
+            endif
 
             ## check the strip in original voxel dimensions
             plugout_drive -com 'QUIET_PLUGOUTS' -com "RESCAN_THIS" \
@@ -371,11 +399,19 @@ while ( $finished == 0 )        ## keep going until you are satistfied
                 ## get the originals just in case you started over
                 3dcopy -overwrite $head_path/$HeadImage $OutFolder/$HeadImage
                 3dcopy -overwrite $strip_path/$StripImage $OutFolder/$StripImage
+                if ( ${status} ) then
+                    echo "** ERROR: failure in copy 4"
+                    exit 1
+                endif
 
                 ## save as a mask
                 if ( $mask_out == 1 ) then
                     3dcalc -overwrite -a ${final_out} -expr 'step(a)' \
                            -prefix ${final_mask}
+                    if ( ${status} ) then
+                        echo "** ERROR: failure in 3dcalc 2"
+                        exit 1
+                    endif
                 endif
 
                 ## all done! stop
@@ -393,6 +429,10 @@ while ( $finished == 0 )        ## keep going until you are satistfied
                 ## overwrite previous image and remove the intermediate
                 3dcopy -overwrite COPY_${p}_strip_mask_resamp.nii.gz \
                        ${p}_strip_mask_resamp.nii.gz
+                if ( ${status} ) then
+                    echo "** ERROR: failure in copy 5"
+                    exit 1
+                endif
                 \rm -v ${p}_strip_manual.nii.gz \
                       COPY_${p}_strip_mask_resamp.nii.gz
                 unset check
@@ -445,3 +485,5 @@ cat << EOF
    Justin Rajendra 07/05/2017
 
 EOF
+
+exit 0

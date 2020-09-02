@@ -69,10 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Sep , 2020 , PT , "@SkullStrip_TouchUp" , MINOR , TYPE_GENERAL,
+   "Replace '-e' at top with several later status checks; 'exit 0' after help.",
+   "No effect on output, except being more general.\n"
+},
+
 { 1, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_BUG_FIX,
    "If '-skipwarp' was used, crashed at very end (sigh).",
    "Fixed that crash behavior; no changes in outputs.\n"
 },
+
 { 1, Sep , 2020 , PT , "fat_roi_row.py" , MINOR , TYPE_ENHANCE,
    "Update to run in Python 3 (using 2to3, plus extra tweaks).",
    "Should now run in both Python 2 and 3.\n"
