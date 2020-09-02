@@ -30,9 +30,10 @@ static char g_history[] =
   "1.11 29 Mar 2017 [rickr] : added justin: JKR\n"
   "1.12 28 Jul 2020 [rickr] : added laurenpd: PDL\n"
   "1.13 25 Aug 2020 [rickr] : added TYPE_REMOVE, TYPE_REINSTATE\n"
+  "1.14  2 Sep 2020 [rickr] : added -show_type, -show_type_names\n"
 };
 
-static char g_version[] = "afni_history version 1.13, 25 Aug 2020";
+static char g_version[] = "afni_history version 1.14, 2 Sep 2020";
 
 static char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -70,7 +71,7 @@ static char * g_show_fields[] = {
 
 /* field type values             (for show_field)               */
 #define FIELD_INVALID     -1  /* bad, naughty type             */
-#define FIELD_ALL          0  /* show_all_fields               */
+#define FIELD_ALL          0  /* show all fields               */
 #define FIELD_FIRST_LINE   1  /* show the standard first line */
 #define FIELD_DAY          2  /* day of month               */
 #define FIELD_MONTH        3  /* month of year             */
@@ -1243,6 +1244,22 @@ int show_help(void)
   "     a. afni_history -check_date 1 1 2010\n"
   "     b. afni_history -check_date 15 Mar 2050\n"
   "\n"
+  "  6. show particular fields\n"
+  "\n"
+  "     a. show the program name for the most recent 10 entries\n"
+  "           afni_history -show_field program 10\n"
+  "     b. show the program name for the most recent 10 NEW_PROG entries\n"
+  "           afni_history -type NEW_PROG -show_field program 10\n"
+  "     c. show the authors of the past 10 BUG_FIX entries\n"
+  "           afni_history -type BUG_FIX -show_field author 10\n"
+  "     d. show all unique program fields, sorted\n"
+  "           afni_history -show_field program | sort | uniq\n"
+  "     e. show all unique program fields of NEW_PROG entries, sorted\n"
+  "           afni_history -show_field program -type NEW_PROG | sort | uniq\n"
+  "\n"
+  "     f. list FIELD parameters available for use with -show_field\n"
+  "           afni_history -show_field_names\n"
+  "\n"
   "-----------------------------------------------------------------\n"
   "\n"
   "------------------ informational options: -----------------------\n"
@@ -1288,8 +1305,36 @@ int show_help(void)
   "  -reverse                 : reverse the sorting order\n"
   "                             (sort is by date, author, level, program)\n"
   "\n"
-  "  -show_field FIELD        :        .......  ***  ........\n"
+  "  -show_field FIELD        : restrict entry output to field FIELD\n"
+  "\n"
+  "     For each history entry printed in the output restrict the output\n"
+  "     to only that implied by FIELD.\n"
+  "\n"
+  "     Valid FIELDs include:\n"
+  "\n"
+  "        FIELD        : what to show\n"
+  "        ----------     ----------------------------------------\n"
+  "        all          : all fields (same as without -show_field)\n"
+  "        firstline    : only the standard first line\n"
+  "        day          : day of month\n"
+  "        month        : month of year\n"
+  "        year         : year of calendar system\n"
+  "        date         : year, month, day\n"
+  "        author       : author\n"
+  "        program      : program\n"
+  "        level        : level\n"
+  "        type         : type\n"
+  "        desc         : description\n"
+  "        verbtext     : verbtext\n"
+  "\n"
+  "     Only one -field option is allowed at the moment.\n"
+  "\n"
+  "     Valid FIELD values can be shown by\n"
+  "        afni_history -show_field_names\n"
+  "\n"
   "  -show_field_names        : list valid FIELD names for -show_field\n"
+  "\n"
+  "     Each entry in the output list can be passed to -show_field\n"
   "\n"
   "  -verb LEVEL              : request verbose output\n"
   "                             (LEVEL is from 0-6)\n"
