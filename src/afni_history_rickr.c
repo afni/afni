@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Sep, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "add options -show_field and -show_field_names",
+   "Using the new -show_field option, for each entry one can show:\n"
+   "   - the full entry (as before)\n"
+   "   - only the first/main line\n"
+   "   - only the program name, or date, or author, etc."
+ } ,
+
  { 31, Aug, 2020, RCR, "afni_python_wrapper.py", MICRO, TYPE_NEW_OPT,
    "add -joinn for list output; add list_intersect and list_diff funcs",
    NULL
