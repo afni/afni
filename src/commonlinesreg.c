@@ -32,10 +32,11 @@ NOTES
 
 int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
-int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven, char *inputFileName);
+int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
+int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
 
 int main( int argc, char *argv[] )  {
-    THD_3dim_dataset * din = NULL, *dodd, *deven;
+    THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj;
     int     i;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
@@ -58,13 +59,20 @@ int main( int argc, char *argv[] )  {
     return Cleanup(inputFileName, outputFileNames, din);
 
     // Split volume into odd and even slices
-    if (!unweave_sections(din, &dodd, &deven, inputFileName))
+    if (!unweave_sections(din, &dodd, &deven))
         return Cleanup(inputFileName, outputFileNames, din);
 
     // Make projections
+    makeProjection(dodd, &doddSagProj, 'c');
     // TODO: Add code
 
     // Free up 3D datasets
+    // TODO: Add code
+
+    // Float projections
+    // TODO: Add code
+
+    // Zero pad projections
     // TODO: Add code
 
     // Make Fourier transforms of projections
@@ -81,8 +89,133 @@ int main( int argc, char *argv[] )  {
     return 1;
 }
 
-int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven,
-    char *inputFileName){
+int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode){
+    int  nz, ny, nx, inInc, outInc, rows, cols, x;
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputCode=(projCode=='a')? "Axial" : ((projCode=='c')? "Coronal" : "Sagital");
+    char *outputFileName;
+    int  outputFileExists=0, outPixelCount, start;
+    THD_ivec3 iv_nxyz;
+    float   *outData=NULL;
+
+    // Determine input dimensions
+    nz = DSET_NZ(din);
+    ny = DSET_NY(din);
+    nx = DSET_NX(din);
+
+    // Get input voxel data
+    float   *indata = DSET_ARRAY(din, 0);
+
+    // Apply required projection
+    switch (projCode){
+    case 'a':        // Axial projection
+
+        // Determine output dimansions
+        rows=ny;
+        cols=nx;
+
+        // Allocate memory to output voxel data
+        outPixelCount=rows*cols;
+        if (!(outData=(float *)calloc(outPixelCount,sizeof(float)))) return 0;
+
+        // Fill output data
+        start=0;
+        for (inInc=0, outInc=0; outInc<outPixelCount; ++outInc){
+            inInc=start;
+            for (x=0; x<nz; ++x){
+                outData[outInc]+=indata[inInc];
+                inInc+=outPixelCount;
+            }
+            start+=1;
+        }
+        break;
+    case 'c':       // Coronal projection
+
+        // Determine output dimansions
+        rows=nz;
+        cols=nx;
+
+        // Allocate memory to output voxel data
+        outPixelCount=rows*cols;
+        if (!(outData=(float *)calloc(outPixelCount,sizeof(float)))) return 0;
+
+        // Fill output data
+        start=0;
+        // int yCount=ny*nz;
+        int startInc=nx*ny;
+        int z, i;
+        for (outInc=outPixelCount-1, z=0; z<nz; ++z){
+            start=z*nx*ny;
+            for (x=0; x<nx; ++x){
+                inInc=start;
+                for (i=0; i<ny; ++i){
+                    outData[outInc]+=indata[inInc];
+                    inInc+=nx;
+                }
+                start+=1;
+                --outInc;
+            }
+        }
+        break;
+    case 's':       // Sagital projection
+
+        // Determine output dimansions
+        rows=nz;
+        cols=ny;
+
+        // Allocate memory to output voxel data
+        outPixelCount=rows*cols;
+        if (!(outData=(float *)calloc(outPixelCount,sizeof(float)))) return 0;
+
+        // Fill output data
+        for (inInc=0, outInc=rows*cols-1; outInc>=0; --outInc){
+            for (x=0; x<nx; ++x) outData[outInc]+=indata[inInc++];
+        }
+        break;
+    }
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+64))){
+       free(outData);
+       return 0;
+    }
+
+    // Determine whether output file already exists
+    struct dirent *dir;
+    DIR *d;
+    d = opendir(searchPath);
+    sprintf(outputFileName,"%s%s",prefix,outputCode);
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+          if (strstr(dir->d_name,outputFileName)){
+            outputFileExists=1;
+          }
+        }
+        closedir(d);
+    }
+
+    /* Output 2D projection volume */
+    *dout = EDIT_empty_copy(din);
+    LOAD_IVEC3( iv_nxyz , cols , rows , 1 ) ;
+    sprintf(outputFileName,"%s%s%s",searchPath,prefix,outputCode);
+    EDIT_dset_items( *dout ,
+                    ADN_prefix, outputFileName,
+                    ADN_nxyz      , iv_nxyz ,
+                    ADN_none ) ;
+    EDIT_substitute_brick(*dout, 0, MRI_float, outData);
+    if( !outputFileExists ) {  // If even file does not already exist
+       DSET_write(*dout);
+    }
+
+
+    // Cleanup  (Don't free evenData or oddData)
+    free(outputFileName);
+
+    return 1;
+}
+
+int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven){
     char    *outputFileName;
     int i, nz, ny, nx, nodd, neven, readInc, inIndex, outIndex, planeSize;
     size_t  bytes2Copy;
@@ -129,16 +262,18 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
         outIndex+=planeSize;
     }
 
+    // Get search path, and prefix, from dataset
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+
     // Allocate memory to output name buffer
-    if (!(outputFileName=(char *)malloc(strlen(inputFileName)+8))){
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+32))){
        free(oddData);
        free(evenData);
        return 0;
     }
 
     // Determine whether files actually exist
-    char *searchPath = THD_filepath( inputFileName );
-    char *prefix=DSET_PREFIX(din);
     struct dirent *dir;
     DIR *d;
     d = opendir(searchPath);
