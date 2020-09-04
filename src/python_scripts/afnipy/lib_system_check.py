@@ -685,7 +685,7 @@ class SysInfo:
 
       return 1
 
-   def get_shell_value(self, shell, evar, verb=0):
+   def get_shell_value(self, shell, evar):
       """really cheap way to grab a value from a new shell"""
       cmd = "%s -ci 'echo $%s'" % (shell, evar)
       s, so, se = UTIL.limited_shell_exec(cmd)
@@ -693,7 +693,7 @@ class SysInfo:
       if len(so) > 0: so = so[-1]
       else: so = ''
 
-      if verb:
+      if self.verb > 1:
          print('++ status = %s for command: %s' % (s, cmd))
          print('   stdout = %s' % so)
          se = '\n'.join(se)
