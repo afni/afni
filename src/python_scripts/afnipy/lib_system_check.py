@@ -102,21 +102,22 @@ class SysInfo:
          # login shell ref: .profile"
          fname = '.profile'
          self.rc_file = fname
-         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
-            cc.append("shell sh  : found login shell setup file %s" % fname)
-         else: 
-            cc.append("shell sh  : MISSING login shell setup file %s" % fname)
+         if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
+            cc.append("shell sh : MISSING login shell setup file %s" % fname)
+         elif self.verb > 1: 
+            print("shell sh : good: found login shell setup file %s"%fname)
          
       if 'zsh' in slist:
          # general env file: .zshenv
-         # interactive file: .zprofile
+         # login shell file: .zprofile
+         # interactive file: .zshrc
          # order of files: .zshenv  .zprofile  .zshrc  .zlogin
-         fname = '.zshenv'
+         fname = '.zshrc'
          self.rc_file = fname
-         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
-            cc.append("shell zsh : good: found env shell setup file %s" %fname)
-         else: 
+         if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
             cc.append("shell zsh : MISSING env shell setup file %s" % fname)
+         elif self.verb > 1: 
+            print("shell zsh : good: found env shell setup file %s" %fname)
          
 
       if 'bash' in slist:
