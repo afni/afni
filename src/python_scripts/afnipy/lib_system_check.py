@@ -746,16 +746,13 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - add a comment if they are using version 3 (no continue)
-         #            - do not 'continue'
+         # and python - add a comment if they are using a version < 2.7
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
             vf = self.get_python_ver_float()
             mesg = ''
-            if vf >= 3.0:
-               mesg = 'have python version %s, but a few programs need 2.7.x' \
-                      % vstr
-            elif vf < 2.7:
+            # (removed old warning for 3.0+)
+            if vf < 2.7:
                mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
