@@ -36,10 +36,10 @@
 
 /*---------------------------------------------------------------------------*/
 
-static int verb = 0 ;
+static int pverb = 0 ;
 void powell_set_verbose( int v )
-{  if( verb == v ) return ;
-   verb = v; /** INFO_message("powell_set_verbose(%d)",verb) ; **/
+{  if( pverb == v ) return ;
+   pverb = v; /** INFO_message("powell_set_verbose(%d)",verb) ; **/
    return ;
 }
 
@@ -139,7 +139,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
      val = ufun( (int)(*n) , sx ) ;           /* input = scaled x[] */
 
 #if 0
-if( verb > 2 ){
+if( pverb > 2 ){
   fprintf(stderr," + calfun(") ;
   for( ii=0 ; ii < *n ; ii++ ){
     fprintf(stderr,"%7.4f",sx[ii]) ; if( ii+1 < *n ) fprintf(stderr,",") ;
@@ -169,7 +169,7 @@ if( verb > 2 ){
      val = ufun( (int)(*n) , sx ) ;           /* input = scaled x[] */
 
 #if 0
-if( verb > 2 ){
+if( pverb > 2 ){
   fprintf(stderr," + calfun(") ;
   for( ii=0 ; ii < *n ; ii++ ){
     fprintf(stderr,"%7.4f",sx[ii]) ; if( ii+1 < *n ) fprintf(stderr,",") ;
@@ -377,7 +377,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    (void)newuoa_( &n , &npt , (doublereal *)x01 ,
                   &rhobeg , &rhoend , &maxfun , w , &icode ) ;
 
-#if 0
+#if 1
    if( icode > 0 ) icode += ncall ;
 #endif
 
@@ -387,7 +387,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + x01[ii] * sxsiz[ii] ;
 
-   if( verb ){
+   if( pverb ){
      fprintf(stderr," +   output param:") ;
      for( ii=0 ; ii < ndim ; ii++ ) fprintf(stderr," %g",x[ii]) ;
      fprintf(stderr,"\n") ;
@@ -537,7 +537,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
 #undef  CALFUN_ERROR
 #define CALFUN_ERROR(xxx)                                      \
- do{ if( calfun_err ){                                         \
+ do{ if( pverb && calfun_err ){                                \
        int aa ;                                                \
        fprintf(stderr,"** calfun error:") ;                    \
        for( aa=0 ; aa < ndim ; aa++ )                          \
@@ -545,7 +545,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        fprintf(stderr,"\n") ;                                  \
    } } while(0)
 
-   if( verb )
+   if( pverb )
      INFO_message("Powell: evaluation at initial guess") ;
    for( ii=0 ; ii < ndim ; ii++ ){
      x01[0][ii] = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
@@ -572,7 +572,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
                 N.B.: we do NOT displace the input vector in x01[0];
                       therefore, there are nkeep+1 vectors being kept */
 
-     if( verb )
+     if( pverb )
        INFO_message("Powell: random search of %d vectors in %d-dim space",nrand,ndim);
 
      for( qq=0 ; qq < nrand ; qq++ ){
@@ -600,7 +600,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
      /* Step 2a: do a little first round optimization on each of the keepers */
 
-     if( verb )
+     if( pverb )
        INFO_message("Powell: 1st round optimization on %d vectors",nkeep);
 
      rb = 0.05 ; re = 0.005 ; mf = 9*ndim+7 ; tbest = 0 ; vbest = BIGVAL ;
@@ -611,7 +611,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
        (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
        CALFUN_ERROR(x01[tt]) ; if( !isfinite(x01val[tt]) ) x01val[tt] = BIGVAL ;
        if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
-       if( verb > 1 )
+       if( pverb > 1 )
          ININFO_message("%2d: cost = %g %c nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
      }
 
@@ -645,7 +645,9 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
      for( tt=0 ; tt <= nkeep && x01val[tt] < BIGVAL ; tt++ ) ; /* nada */
      nkeep = tt ;  /* number of keepers that weren't rejected above */
-     if( nkeep == 0 ) ERROR_message("Powell: nothing survived 1st round :-(") ;
+     if( pverb && nkeep == 0 ) ERROR_message("Powell: nothing survived 1st round :-(") ;
+
+     if( nkeep == 0 ) return -1 ;
 
      if( ntry > nkeep ) ntry = nkeep ;
 
@@ -657,7 +659,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
    /****** fully optimize each of the first ntry-th vectors in x01[] ******/
 
-   if( verb )
+   if( pverb )
      INFO_message("Powell: 2nd round optimization on %d vectors",ntry) ;
 
    tbest = 0 ; vbest = BIGVAL ;
@@ -669,10 +671,9 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
      CALFUN_ERROR(x01[tt]) ; if( !isfinite(x01val[tt]) ) x01val[tt] = BIGVAL ;
      if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
-     if( verb > 1 )
+     if( pverb > 1 )
        ININFO_message("%2d: cost = %g %c  nfunc=%d",tt,x01val[tt],(tbest==tt)?'*':' ',icode) ;
-   }
-
+   } 
    /*-- re-optimize the bestest one again --*/
 
    rb = 20.0 * rhoend ; if( rb > rhobeg ) rb = rhobeg ;

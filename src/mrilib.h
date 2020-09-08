@@ -1483,6 +1483,7 @@ extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+typedef struct { int nvec ; doublevec *dvar ; } doublevecvec ;
 
 extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
 extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;

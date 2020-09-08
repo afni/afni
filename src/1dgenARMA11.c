@@ -107,6 +107,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 }
 
 /*--------------------------------------------------------------------------*/
+#define  ALLOW_ARMA31
 #include "armacor.c"  /* ARMA(p,1) models for p=3 and 5 [01 Jul 2020] */
 /*--------------------------------------------------------------------------*/
 

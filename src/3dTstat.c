@@ -77,7 +77,12 @@ static int perc_val = -666;
 #define METH_MEAN_SSDQ     44
 #define METH_MEDIAN_ASD    45
 
-#define MAX_NUM_OF_METHS   46
+#define METH_ARMA31_FIT    46 /* 25 Aug 2020 */
+
+/*** If you add a method, you must update the constant below,
+     AND you must update file Tstat.h to match the new method ***/
+
+#define MAX_NUM_OF_METHS   47
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -87,7 +92,7 @@ static int valid_1_input_methods[NUM_1_INPUT_METHODS]
                METH_ABSSUM, METH_NZMEAN, METH_SUM_SQUARES, METH_FIRSTVALUE };
 
 
-static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
+static int meth[MAX_NUM_OF_METHS+9]= {METH_MEAN};
 static int nmeths                  = 0;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
@@ -111,7 +116,7 @@ static int do_tdiff = 0 ;  /* 25 May 2011 */
     "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
     "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
     "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-    "MSSDsqrt"      , "MASDx"
+    "MSSDsqrt"      , "MASDx"        , "arma31fit"
  };
 #endif
 
@@ -120,6 +125,8 @@ static void STATS_tsfunc( double tzero , double tdelta ,
                          double ts_slope , void *ud , int nbriks, float *val ) ;
 
 static void autocorr( int npts, float ints[], int numVals, float outcoeff[] ) ;
+
+static void ar3pX_func( int npts , float *ts , int ncor , float *outcor ) ; /* 25 Aug 2020 */
 
 static int Calc_duration(float *ts, int npts, float vmax, int max_index,
    int *onset, int *offset);
@@ -212,6 +219,9 @@ void usage_3dTstat(int detail)
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
  " -firstvalue = first value in dataset - typically just placeholder\n\n"
+ "\n"
+ " -arma31fit n = Test for ARMA(3,1) fit functions, that is all.\n"
+ "\n"
  " ** If no statistic option is given, then '-mean' is assumed **\n"
  "\n"
  "Other Options:\n"
@@ -314,6 +324,9 @@ int main( int argc , char *argv[] )
    /* bureaucracy */
    mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
    PRINT_VERSION("3dTstat"); AUTHOR("KR Hammett & RW Cox");
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
 
    /*--- scan command line for options ---*/
 
@@ -631,6 +644,18 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-arma31fit") == 0 ){  /* 25 Aug 2020 */
+         meth[nmeths++] = METH_ARMA31_FIT ;
+         if( ++nopt >= argc ) ERROR_exit("-arma31fit needs an argument!\n");
+         meth[nmeths++] = atoi(argv[nopt++]);
+         if (meth[nmeths - 1] <= 4) {
+           ERROR_exit("-arma31fit argument %d is too small",meth[nmeths-1]) ;
+         } else {
+           nbriks+=meth[nmeths - 1] ;
+         }
+         continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
          if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
@@ -828,6 +853,9 @@ int main( int argc , char *argv[] )
 
    /*------------- ready to compute new dataset -----------*/
 
+
+INFO_message("Creating new_dset with %d bricks",nbriks) ;
+
    new_dset = MAKER_4D_to_typed_fbuc(
                  old_dset ,             /* input dataset */
                  prefix ,               /* output prefix */
@@ -846,9 +874,10 @@ int main( int argc , char *argv[] )
       tross_Make_History( "3dTstat" , argc,argv , new_dset ) ;
       for (methIndex = 0,brikIndex = 0; methIndex < nmeths;
            methIndex++, brikIndex++) {
-        if ((meth[methIndex] == METH_AUTOCORR)   ||
+        if( (meth[methIndex] == METH_AUTOCORR)   ||
             (meth[methIndex] == METH_ACCUMULATE) ||
-            (meth[methIndex] == METH_AUTOREGP)) {
+            (meth[methIndex] == METH_AUTOREGP)   ||
+            (meth[methIndex] == METH_ARMA31_FIT) ) {
           numMultBriks = meth[methIndex+1];
 
           /* note: this looks like it should be NV-1   4 Mar 2008 [rickr] */
@@ -866,7 +895,7 @@ int main( int argc , char *argv[] )
             }
             EDIT_BRICK_LABEL(new_dset, (brikIndex + ii - 1), tmpstr) ;
           }
-          methIndex++;
+          methIndex++;  /* skipping the numMultBriks entry */
           brikIndex += numMultBriks - 1;
         } else if( meth[methIndex] == METH_PERCENTILE ){ /* 05 May 2016 */
           char plabel[32] ;
@@ -907,6 +936,8 @@ static void STATS_tsfunc( double tzero, double tdelta ,
    int meth_index, ii , out_index, nzpts, onset, offset, duration;
    float *ts_det, *ts_dif=NULL ;
 
+ENTRY("STATS_tsfunc") ;
+
    /** is this a "notification"? **/
 
    if( val == NULL ){
@@ -920,7 +951,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          /* nothing to do here */
 
       }
-      return ;
+      EXRETURN ;
    }
 
    /* RWC: first difference here [25 May 2011] */
@@ -1297,6 +1328,21 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break;
 
+      case METH_ARMA31_FIT:{  /* 25 Aug 2020 - adapted from AUTOCORR, infra */
+        int numVals;
+        float *ts_corr;
+        numVals = meth[meth_index + 1];
+        ts_corr = (float*)calloc(numVals+1,sizeof(float));
+        ar3pX_func(npts,ts,numVals,ts_corr);
+        for( ii = 0; ii < numVals; ii++) {
+          val[out_index + ii] = ts_corr[ii];
+        }
+        meth_index++;
+        out_index+=(numVals - 1);
+        free(ts_corr);
+      }
+      break ;
+
       case METH_AUTOCORR:{
         int numVals;
         float *ts_corr;
@@ -1431,7 +1477,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
    }
 
    free(ts_det); if( ts_dif == ts ) free(ts_dif) ;
-   ncall++ ; return ;
+   ncall++ ; EXRETURN ;
 }
 
 
@@ -1541,4 +1587,326 @@ Calc_centroid(float ts[], int npts)
    }
 
    RETURN(tvsum / sum);
+}
+
+/*============================================================================*/
+/********************* Functions for the ARMA(3,1) fit option *****************/
+/*============================================================================*/
+
+#undef  TAU
+#define TAU(i) ((tau==NULL) ? (i) : tau[i])  /* tau isn't used in 3dTstat.c */
+
+/*--------------------------------------------------------------------------*/
+/* Temporal autocorrelations.
+   Inputs:
+     nt   = number of time points in array xx[0..nt-1]
+     tau  = time index of points, must be monotonic increasing;
+              this allows for censoring
+              tau == NULL means tau[i] = i (no gaps)
+     xx   = input data
+              should be zero mean (e.g., residuals from regression)
+     ncor = maximum correlation lag
+   Output:
+     cor  = array of correlations (length ncor+1) - must be pre-allocated
+*//*------------------------------------------------------------------------*/
+
+static int get_sample_autocorr( int nt, int *tau, double *xx, int ncor , double *cor )
+{
+   int ii,jj,kk, tii, jbot,nnz ; double xvar,xbar,vv ;
+   int *ncc ;
+
+   /* check for stooooopid inputs */
+
+   if( nt < 9 || xx == NULL || ncor < 1 || cor == NULL ) return( 0 ) ;
+
+   /* compute mean of input */
+
+   xbar = 0.0 ;
+   for( ii=0 ; ii < nt ; ii++ ) xbar += xx[ii] ;
+   xbar /= nt ;
+
+#define XX(i) (xx[i]-xbar)
+
+   /* compute variance of input */
+
+   xvar = 0.0 ;
+   for( nnz=ii=0 ; ii < nt ; ii++ ){ vv = XX(ii); xvar += vv*vv; if( vv != 0.0 ) nnz++; }
+   xvar /= (nt-1.0) ;
+
+   if( xvar == 0.0 || nnz <= 2*ncor ) return( 0 ) ;
+
+   /* count of hits for each lag */
+
+   ncc = (int *)calloc(sizeof(int),ncor+1) ;  /* initialized to 0 */
+
+   /* loops correlating point [ii] with previous points [jj] */
+
+   for( ii=0 ; ii <= ncor ; ii++ ) cor[ii] = 0.0 ;
+
+   for( ii=1 ; ii < nt ; ii++ ){
+     jbot = ii - ncor ; if( jbot < 0 ) jbot = 0 ;
+     tii = TAU(ii) ;       /* 'time' index of point [ii] */
+     for( jj=jbot ; jj < ii ; jj++ ){
+       kk = tii-TAU(jj) ;  /* 'time' index difference = lag */
+       if( kk > ncor || kk <= 0 ) continue ;
+       cor[kk] += XX(ii)*XX(jj) ; ncc[kk]++ ;
+     }
+   }
+
+#undef XX
+
+   /* normalize autocovariances to get autocorrelations */
+
+   if( xvar > 0.0 ){
+     for( kk=1 ; kk <= ncor ; kk++ ){
+       if( ncc[kk] > 3 ) cor[kk] /= ( ncc[kk]*xvar ) ;
+       else              cor[kk]  = 0.0 ;
+     }
+     cor[0] = 1.0 ;  /* this is the flag that things are OK-ish */
+   }
+
+   free(ncc) ;
+   return( 1 ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*  Check for legality as a correlation function, via FFT.
+    Return value is required scale down factor for correlations, if needed.
+*//*--------------------------------------------------------------------------*/
+
+static double cor_factor_fft( int ncor , double *cor )
+{
+   double corfac = 1.0 ;
+   int nfft , nf2 , icmin , kk ; complex *xc ; float xcmin ;
+
+   if( ncor < 9 || cor == NULL ) return( corfac ) ;
+
+   /* get FFT length to use */
+
+   nfft = csfft_nextup_one35( 4*ncor+31 ) ;
+   nf2  = nfft/2 ;
+   xc   = (complex *)calloc( sizeof(complex) , nfft ) ;
+
+   /* load correlations (+reflections) into FFT array (floats not doubles) */
+   /* reflection symmetry means FFT will be pure real (except for roundoff) */
+
+   xc[0].r = 1.0 ; xc[0].i = 0.0 ;
+   for( kk=1 ; kk <= ncor ; kk++ ){
+     xc[kk].r = cor[kk] ; xc[kk].i = 0.0f ;
+     xc[nfft-kk] = xc[kk] ; /* reflection from nfft downwards */
+   }
+
+   csfft_cox( -1 , nfft , xc ) ;  /* FFT */
+
+   /* find smallest value in FFT; for an acceptable
+      autocorrelation function, they should all be positive */
+
+   xcmin = xc[0].r ; icmin = 0 ;
+   for( kk=1 ; kk < nf2 ; kk++ ){
+     if( xc[kk].r < xcmin ){ xcmin = xc[kk].r ; icmin = kk ; }
+   }
+   free(xc) ;  /* no longer needed by this copy of the universe */
+
+   /* if xcmin is negative, must scale cor down to avoid Choleski failure */
+   /* the corfac value below is computed from the following idea:
+        x  = unaltered correlation values
+        xc = FFT of x
+        y  = altered correlation values (scaled down by factor f < 1):
+               y[0] = x[0] = 1  ;  y[k] = f * x[k] for k > 0
+        yc = FFT of y
+           = FFT( f * x ) + (1-f) * FFT( [1,0,0,...] )
+           = f * xc + (1-f)
+        Min value of yc = ycmin = f * xcmin + (1-f) -- recall xcmin < 0
+        We want                  ycmin > 0
+             or  -f * ( 1 - xcmin) + 1 > 0
+             or                      1 > f * ( 1 - xcmin )
+             or    ( 1 / ( 1 - xcmin ) > f
+        So the largest allowable value of 'f' is 1/(1-xcmin) < 1,
+        which is basically the formula below (with a little fudge factor) */
+
+   if( xcmin <= 0.0f )                /* note xcmin <= 0 so denom is >= 1 */
+     corfac = 0.99 / ( 1.0 - (double)xcmin ) ;
+
+   return( corfac ) ;  /* 1.0 ==> all is OK; < 1.0 ==> shrinkage needed */
+}
+
+/*============================================================================*/
+
+/** include the Powell NEWUOA functions for nonlinear optimization **/
+
+#include "powell_int.c"
+#define max MAX
+#define min MIN
+#include "powell_newuoa.c"
+#undef max
+#undef min
+
+static double *sample_cor = NULL ;
+static int     sample_ncor= 0 ;
+
+/* Powell cost function basis - least squares? least absolute? */
+
+#define COSTFUN(x) ((x)*(x))
+
+/*============================================================================*/
+/**************************** Stuff for AR(3) model ***************************/
+
+/*----------------------------------------------------------------------------*/
+/* Get AR(3) recurrence coefficients from the (a,r,theta) parameters */
+
+static double_triple AR3_get_p123( double a , double r1 , double t1 )
+{
+   double_triple p123 ; double c1,p1,p2,p3 ;
+
+   c1 = cos(t1) ;
+   p1 = a + 2.0*r1*c1 ;
+   p2 = -2.0*a*r1*c1 - r1*r1 ;  /* Note: r1==0 => p2 = p3 = 0 */
+   p3 = a*r1*r1 ;               /*       which is AR(1) case */
+
+   p123.a = p1 ; p123.b = p2 ; p123.c = p3 ; return p123 ;
+}
+
+/*-----------------------------------------------------------------*/
+/* get first 3 correlations for AR(3), from recurrence p1,p2,p3 */
+
+#define AR3_get_g012                            \
+  ( ddd = (1.0-p2) - p3*(p1+p3) ,               \
+    g0  = 1.0 ,                                 \
+    g1  = (         p1 + p3      *p2 ) / ddd ,  \
+    g2  = ( (p1+p3)*p1 + (1.0-p2)*p2 ) / ddd  )
+
+/*-----------------------------------------------------------------*/
+/* given g0,g1,g2, recur to update to the next step for AR(3) */
+
+#define AR3_get_next                                        \
+  ( g3 = g2*p1 + g1*p2 + g0*p3, g0 = g1, g1 = g2, g2 = g3 )
+
+/*----------------------------------------------------------------------------*/
+/* cost function for nonlinear optimization of the 4 AR(3,1) parameters;
+   arts = 'a', 'r', 'theta', and 'scale'
+*//*--------------------------------------------------------------------------*/
+
+static double ar3pX_costfun( int npar , double *arts )
+{
+   double p1,p2,p3 , g0,g1,g2,g3, ddd,ss , cost=0.0 ;
+   double *cor ;
+   int ii , ncor ; double_triple p123 ;
+
+   if( npar != 4 || arts == NULL || sample_cor == NULL ) return( 0.0 ) ;
+
+   ncor = sample_ncor ;       if( ncor <= npar ) return( 0.0 ) ;
+   cor  = sample_cor ;
+
+   /* convert 'physical' params to phi's */
+
+   p123 = AR3_get_p123( arts[0] , arts[1] , arts[2] ) ;
+
+   p1 = p123.a ; p2 = p123.b ; p3 = p123.c ; ss = arts[3] ;
+
+   /* initialize recurrence */
+
+   AR3_get_g012 ;
+
+   /* initialize cost function */
+
+   ddd = cor[1]-ss*g1 ; cost  = COSTFUN(ddd)*0.7/(1.1-cor[1]*cor[1]) ;
+   ddd = cor[2]-ss*g2 ; cost += COSTFUN(ddd)*0.7/(1.1-cor[2]*cor[2]) ;
+
+   /* recur and add up cost function */
+
+   for( ii=3 ; ii <= ncor ; ii++ ){
+     AR3_get_next ;
+     ddd = cor[ii]-ss*g3 ; cost += COSTFUN(ddd)/(1.1-cor[ii]*cor[ii]);
+   }
+
+   return( cost ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* fit the correlations in cor to the AR(3,1) model */
+
+static int fit_ar3pX( int ncor , double *cor , double *qar )
+{
+   int ncall ;
+   double xpar[4] , xbot[4] , xtop[4] , finalcost ;
+
+   if( ncor < 9 || cor == NULL || qar == NULL ) return( 0 ) ;
+
+   sample_cor = cor ; sample_ncor = ncor ;
+
+   xbot[0] = 0.10 ; xtop[0] = 0.97 ;    /* a */
+   xbot[1] = 0.05 ; xtop[1] = 0.97 ;    /* r */
+   xbot[2] = 0.01 ; xtop[2] = 1.5708 ;  /* theta */
+   xbot[3] = 0.10 ; xtop[3] = 1.00 ;    /* scale down factor (WN addition) */
+
+   xpar[0] = 0.7 ; xpar[1] = 0.3 ; xpar[2] = 0.15708 ; xpar[3] = 0.5 ;
+
+   ncall = powell_newuoa_constrained(
+                       4 , xpar , &finalcost ,
+                       xbot , xtop ,
+                       127 , 13 , 5 ,
+                       0.2 , 0.002 , 6666 , ar3pX_costfun ) ;
+
+   sample_cor = NULL ; sample_ncor = 0 ;
+
+   /* compute/save output correlations */
+
+   { double p1,p2,p3, g0,g1,g2,g3, ss,ddd ; int ii ; ;
+     double_triple p123 ;
+     p123 = AR3_get_p123( xpar[0] , xpar[1] , xpar[2] ) ;
+     p1 = p123.a ; p2 = p123.b ; p3 = p123.c ; ss = xpar[3] ;
+     AR3_get_g012 ;
+     qar[0] = g0 ; qar[1] = g1 ; qar[2] = g2 ;
+     for( ii=3 ; ii <= ncor ; ii++ ){
+       AR3_get_next ; qar[ii] = g3 ;
+     }
+     for( ii=1 ; ii <= ncor ; ii++ ) qar[ii] *= ss ;
+   }
+
+   return( 1 ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* AR(3,1) fitting to a time series [Cox - Aug 2020] */
+
+static void ar3pX_func( int npts , float *ts , int ncor , float *outcor )
+{
+   double *dts , cf ;
+   double *cor, *corfit ;
+   int ii ;
+
+   if( npts < 9 || ts == NULL || ncor < 5 || outcor == NULL ) return ;
+
+   /* copy data to double array */
+
+   dts = (double *)malloc(sizeof(double)*npts) ;
+   for( ii=0 ; ii < npts ; ii++ ) dts[ii] = (double)ts[ii] ;
+
+   /* space for correlations */
+
+   cor = (double *)malloc(sizeof(double)*(ncor+1)) ;
+
+   /* compute correlations */
+
+   ii = get_sample_autocorr( npts , NULL , dts , ncor , cor ) ;
+   free(dts) ; if( ii == 0 ){ free(cor) ; return ; }
+
+   /* get max scale-down factor to ensure positive definiteness */
+
+   cf = cor_factor_fft ( ncor , cor ) ;
+   if( cf < 1.0 ){
+     for( ii=1 ; ii <= ncor ; ii++) cor[ii] *= cf ;  /* apply scale down */
+   }
+
+   /* compute the AR(3,1) fitted correlation model (a kind of smoothing) */
+
+   corfit = (double *)malloc(sizeof(double)*(ncor+1)) ;
+   ii = fit_ar3pX( ncor , cor , corfit ) ;
+   free(cor) ; if( ii == 0 ){ free(corfit) ; return ; }
+
+   /* copy result into output array (skipping  lag=0) */
+
+   for( ii=1 ; ii <= ncor ; ii++ ) outcor[ii-1] = (float)corfit[ii] ;
+
+   free(corfit) ; return ;
 }

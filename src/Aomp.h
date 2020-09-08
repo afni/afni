@@ -10,22 +10,28 @@
 /* to replace memcpy and memset, which cause trouble inside a parallel region */
 
 #ifdef USE_OMP
+
 static INLINE void AAmemcpy( void *ooo , void *iii , size_t nnn )
 { register size_t jj ; register char *oar, *iar ;
   if( ooo == NULL || iii == NULL || nnn == 0 ) return ;
   oar = (char *)ooo ; iar = (char *)iii ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = *iar++ ;
 }
+
 static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 { register size_t jj ; register char cc , *oar ;
   if( ooo == NULL || nnn == 0 ) return ;
   oar = (char *)ooo ; cc = (char)c ;
   for( jj=0 ; jj < nnn ; jj++ ) *oar++ = cc ;
 }
+
 #else
+
 # define AAmemcpy memcpy
 # define AAmemset memset
+
 #endif
+
 #define AA_memcpy AAmemcpy
 #define AA_memset AAmemset
 #define AO_memcpy AAmemcpy
@@ -34,16 +40,21 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 /* to disable ENTRY/RETURN macros (which use static variables) */
 
 #if defined(USE_OMP) && defined(USE_TRACING)
+
 # define AFNI_OMP_START DBG_stoff++
 # define AFNI_OMP_END   DBG_stoff--
+
 #else
+
 # define AFNI_OMP_START   /*nada*/
 # define AFNI_OMP_END     /*nada*/
+
 #endif
 
 /* Set max number of threads to be at most thn */
 
 #ifdef USE_OMP
+
 # define AFNI_SETUP_OMP(thn)                            \
   do{ int mm=omp_get_max_threads() , nn=thn , ee;       \
       ee = (int)AFNI_numenv("OMP_NUM_THREADS") ;        \
@@ -52,8 +63,11 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
         omp_set_num_threads(mm) ;                       \
       }                                                 \
   } while(0)
+
 #else
+
 # define AFNI_SETUP_OMP(thn) /*nada*/
+
 #endif
 
 /* Macro to use in -help output */
@@ -111,15 +125,28 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #endif
 
 /*----------------------------------------------------------------------------*/
-/* Some macros for allocating workspace arrays, per thread */
+/* Some macros for allocating static workspace arrays, per thread */
 
 #ifdef USE_OMP
 
-#define AOth omp_get_thread_num()
+#define AOth omp_get_thread_num()   /* what thread is this? */
 
-#define AO_NTH_MAX 99
+#define AO_NTH_MAX 99               /* max number of thread to allow for */
+
+/* define a per-thread scalar
+   - you use AO_VALUE to get the value of the scalar in your thread
+   - example:
+       AO_DEFINE_SCALAR(int,fred) ; int fred ;
+       .....
+       fred = AO_VALUE(fred) ; [assigns 'fred' to the per-thread value] */
 
 #define AO_DEFINE_SCALAR(typ,nam)   static typ  AO##nam[AO_NTH_MAX]
+
+/* define a per-thread 1D array
+   - you have to use AO_RESIZE_ARRAY to malloc the per-thread space
+   - you then use AO_VALUE to get the pointer to the per-thread array
+   - see powell_int.c for some real-life examples
+   - you can use AO_ARRAY_LEN to get the current per-thread array length */
 
 #define AO_DEFINE_ARRAY(typ,nam)    static typ *AO##nam[AO_NTH_MAX] ;  \
                                     static int AOL##nam[AO_NTH_MAX]
@@ -132,15 +159,16 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 
 #define AO_ARRAY_LEN(nam)           AOL##nam[AOth]
 
-#define AO_2DARRAY_LEN1(nam)        AOL1##nam[AOth]
-#define AO_2DARRAY_LNE2(nam)        AOL2##nam[AOth]
+/* use to set or change the size of a per-thread 1D array */
 
-#define AO_RESIZE_ARRAY(typ,nam,len)                                 \
-  do{ int hh=AOth ;                                                  \
-      if( AOL##nam[hh] < len ){                                      \
-        AO##nam[hh] = (typ *)realloc(AO##nam[hh],sizeof(typ)*len) ;  \
-        AOL##nam[hh] = len ;                                         \
+#define AO_RESIZE_ARRAY(typ,nam,len)                                   \
+  do{ int hh=AOth ;                                                    \
+      if( AOL##nam[hh] < (len) ){                                      \
+        AO##nam[hh] = (typ *)realloc(AO##nam[hh],sizeof(typ)*(len)) ;  \
+        AOL##nam[hh] = (len) ;                                         \
   } } while(0)
+
+/* used to free a single instance of a per-thread array */
 
 #define AO_FREE_ARRAY(nam)        \
   do{ int hh=AOth;                \
@@ -150,17 +178,22 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
        AOL##nam[hh] = 0 ;         \
   } } while(0)
 
-#define AO_RESIZE_2DARRAY(typ,nam,len1,len2)                                   \
-  do{ int hh=AOth, pp, ll1=AOL1##nam[hh], ll2=AOL2##nam[hh];                   \
-      if( ll1 < len1 ){                                                        \
-        AO##nam[hh] = (typ **)realloc(AO##nam[hh],sizeof(typ *)*len1) ;        \
-        for( pp=ll1 ; pp < len1 ; pp++ ) AO##nam[hh][pp] = NULL ;              \
-      }                                                                        \
-      if( ll1 != len1 || ll2 != len2 ){                                        \
-        for( pp=0 ; pp < len1 ; pp++ )                                         \
-          AO##nam[hh][pp] = (typ *)realloc(AO##nam[hh][pp],sizeof(typ)*len2) ; \
-        AOL1##nam[hh] = len1 ; AOL2##nam[hh] = len2 ;                          \
-      }                                                                        \
+/* similar (just more complicated) macros for 2D arrays */
+
+#define AO_2DARRAY_LEN1(nam)        AOL1##nam[AOth]
+#define AO_2DARRAY_LNE2(nam)        AOL2##nam[AOth]
+
+#define AO_RESIZE_2DARRAY(typ,nam,len1,len2)                                       \
+  do{ int hh=AOth, pp, ll1=AOL1##nam[hh], ll2=AOL2##nam[hh];                       \
+      if( ll1 < (len1) ){                                                          \
+        AO##nam[hh] = (typ **)realloc(AO##nam[hh],sizeof(typ *)*(len1)) ;          \
+        for( pp=ll1 ; pp < (len1) ; pp++ ) AO##nam[hh][pp] = NULL ;                \
+      }                                                                            \
+      if( ll1 != (len1) || ll2 != (len2) ){                                        \
+        for( pp=0 ; pp < (len1) ; pp++ )                                           \
+          AO##nam[hh][pp] = (typ *)realloc(AO##nam[hh][pp],sizeof(typ)*(len2)) ;   \
+        AOL1##nam[hh] = (len1) ; AOL2##nam[hh] = (len2) ;                          \
+      }                                                                            \
   } while(0)
 
 #define AO_FREE_2DARRAY(nam)                                     \
@@ -175,6 +208,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 
 /*----------------------------------------------------------------------------*/
 /* Same macros for allocating workspaces, but just one copy of each */
+/* Basically, the 1-thread version of the above, for portability */
 
 #else  /* not USE_OMP */
 
@@ -190,9 +224,9 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #define AO_VALUE(nam)               AO##nam
 
 #define AO_RESIZE_ARRAY(typ,nam,len)                        \
-  do{ if( AOL##nam < len ){                                 \
-        AO##nam = (typ *)realloc(AO##nam,sizeof(typ)*len) ; \
-        AOL##nam = len ;                                    \
+  do{ if( AOL##nam < (len) ){                                 \
+        AO##nam = (typ *)realloc(AO##nam,sizeof(typ)*(len)) ; \
+        AOL##nam = (len) ;                                    \
   } } while(0)
 
 #define AO_FREE_ARRAY(nam)                           \
@@ -201,17 +235,17 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
   } } while(0)
 
 
-#define AO_RESIZE_2DARRAY(typ,nam,len1,len2)                           \
-  do{ int pp, ll1=AOL1##nam, ll2=AOL2##nam;                            \
-      if( ll1 < len1 ){                                                \
-        AO##nam = (typ **)realloc(AO##nam,sizeof(typ *)*len1) ;        \
-        for( pp=ll1 ; pp < len1 ; pp++ ) AO##nam[pp] = NULL ;          \
-      }                                                                \
-      if( ll1 != len1 || ll2 != len2 ){                                \
-        for( pp=0 ; pp < len1 ; pp++ )                                 \
-          AO##nam[pp] = (typ *)realloc(AO##nam[pp],sizeof(typ)*len2) ; \
-        AOL1##nam = len1 ; AOL2##nam = len2 ;                          \
-      }                                                                \
+#define AO_RESIZE_2DARRAY(typ,nam,len1,len2)                               \
+  do{ int pp, ll1=AOL1##nam, ll2=AOL2##nam;                                \
+      if( ll1 < (len1) ){                                                  \
+        AO##nam = (typ **)realloc(AO##nam,sizeof(typ *)*(len1)) ;          \
+        for( pp=ll1 ; pp < (len1) ; pp++ ) AO##nam[pp] = NULL ;            \
+      }                                                                    \
+      if( ll1 != (len1) || ll2 != (len2) ){                                \
+        for( pp=0 ; pp < (len1) ; pp++ )                                   \
+          AO##nam[pp] = (typ *)realloc(AO##nam[pp],sizeof(typ)*(len2)) ;   \
+        AOL1##nam = (len1) ; AOL2##nam = (len2) ;                          \
+      }                                                                    \
   } while(0)
 
 #define AO_FREE_2DARRAY(nam)                             \

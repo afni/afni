@@ -11,21 +11,11 @@
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
-#undef ALLOW_ARMA35
-#ifdef ALLOW_ARMA35
-/*---------------------------------------------------------------------------*/
-/*** Some prototypes [May 2020] ***/
+/*------------------------------------------------------------------------*/
+#define ALLOW_ARMA31
 
-doublevec * REML_compute_arma31_correlations( double aa, double rr1, double th1,
-                                              int kmax , double sfac ) ;
-
-doublevec * REML_compute_arma51_correlations( double aa,
-                                              double rr1, double th1,
-                                              double rr2, double th2,
-                                              int kmax  , double sfac ) ;
-
-rcmat * rcmat_arma31( int nt, int *tau,
-                      double aa, double rr, double th , double sfac ) ;
+#ifdef ALLOW_ARMA31  /* prototype */
+double_quad ar3pX_func( int npts , double *dts , int ncor ) ;
 #endif
 
 /*===========================================================================*/
@@ -186,9 +176,6 @@ typedef struct {
 #undef  ARMA31_MODEL
 #define ARMA31_MODEL 3
 
-#undef  ARMA51_MODEL
-#define ARMA51_MODEL 5
-
 typedef struct {
   int neq , mreg ;
   int noise_model ;  /* one of the MODEL constants above */
@@ -196,8 +183,8 @@ typedef struct {
   /* params for ARMA11 */
   double rho , lam , barm ;
 
-  /* params for ARMA31 or ARMA51 */
-  double aa, rr1,th1 , rr2,th2 , sfac ;
+  /* params for ARMA31 */
+  double aa, rr1,th1 , sfac ;
 
   rcmat  *cc ;        /* banded matrix:    neq  X neq  */
   matrix *dd ;        /* upper triangular: mreg X mreg */
@@ -855,6 +842,8 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    rset->nglt = 0 ;
    rset->glt  = NULL ;
 
+   rset->aa = rset->rr1 = rset->th1 = rset->sfac = -1.0 ; /* ARMA(3,1) stuff */
+
    /* compute 2 * log det[D] */
 
    for( dsum=0.0,ii=0 ; ii < mm ; ii++ ){
@@ -965,14 +954,16 @@ static int do_logqsumq = 1 ; /* 28 Apr 2020 */
 
     [24 Jun 2009] Modified to use workspace vectors passed in via bbar[],
                   rather than static or malloc-ed vectors, for OpenMP's sake.
+
+    [Aug 2020] Modified to return 'plain' residuals in new vector bb8.
 *//*------------------------------------------------------------------------*/
 
 double REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
-                 double *bbar[7] , double *bbsumq )
+                  double *bbar[8] , double *bbsumq )
 {
    int n , ii ;
    double val ;
-   double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+   double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 , *bb8 ;
    double qsumq ;
 
 ENTRY("REML_func") ;
@@ -981,7 +972,7 @@ ENTRY("REML_func") ;
 
    /* assign pointers to workspace vectors */
 
-   bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
+   bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ; bb8 = bbar[7] ;
    bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
 
    n = rset->neq ;
@@ -1017,7 +1008,9 @@ ENTRY("REML_func") ;
    for( ii=0 ; ii < n ; ii++ ){
      bb2[ii] = bb1[ii] - bb7[ii] ;                   /* result = bb1 - bb7 */
      qsumq += bb2[ii]*bb2[ii] ;                      /* =prewhitened residual */
-   }                                                 /* qsumq = sum of sqrs */
+                                                     /* qsumq = sum of sqrs */
+     bb8[ii] = y->elts[ii] - bb6[ii] ;               /* result = plain residual */
+   }
 
    if( bbsumq != NULL ) *bbsumq = qsumq ;   /* output sum of residual squares */
 
@@ -1402,18 +1395,37 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 }
 
 /*--------------------------------------------------------------------------*/
+#ifdef ALLOW_ARMA31
+
+AO_DEFINE_2DARRAY(double,resid) ; /* per-thread storage for ARMA(3,1) resid */
+                                  /* used in REML_find_best_case() below    */
+void REML_free_arma31_resid(void)
+{
+   AO_FREE_2DARRAY(resid) ;
+}
+
+#endif
+/*--------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
 /* Inputs: y=data vector, rrcol=collection of REML setup stuff.
    Output: index of best case in the REML seteup stuff.
+   New [Sep 2020]:
+     If ncor > 4 and arts != NULL,
+     then compute the ARMA(3,1) parameters for the best case into *arts.
 *//*------------------------------------------------------------------------*/
 
 int REML_find_best_case( vector *y , reml_collection *rrcol ,
-                         int nws , double *ws )
+                         int nws , double *ws , int ncor , double_quad *arts )
 {
    double rbest , rval ;
-   int   na,nb , pna,pnb , ltop , mm ;
+   int   na,nb , pna,pnb , ltop , mm , nt ;
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
    int   klist[128] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
-   double *bbar[7] , *rvab ;
+   double *bbar[8] , *rvab ;
+#ifdef ALLOW_ARMA31
+   int do_arma31=0 ; double **resid=NULL ;
+#endif
 
 ENTRY("REML_find_best_case") ;
 
@@ -1422,23 +1434,36 @@ ENTRY("REML_find_best_case") ;
    /* copy (a,b) grid parameters to local variables */
 
    na = rrcol->na ; pna = rrcol->pna ;
-   nb = rrcol->nb ; pnb = rrcol->pnb ;
+   nb = rrcol->nb ; pnb = rrcol->pnb ; nt = y->dim ;
 
    /* make workspace arrays for REML_func() [24 Jun 2009] */
 
    bb_ws     = 2*y->dim      + 16 ;
    rv_ws     = (na+1)*(nb+1) + 16 ;
-   needed_ws = 7*bb_ws + rv_ws ;
+   needed_ws = 8*bb_ws + rv_ws ;
    if( nws >= needed_ws && ws != NULL ){
      rvab    = ws+1 ;
      bbar[0] = rvab + rv_ws ;
-     for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
+     for( ia=1 ; ia < 8 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
      bb_ws = rv_ws = 0 ;
    } else {
      rvab = (double *)remla_malloc(sizeof(double)*rv_ws) ;
-     for( ia=0 ; ia < 7 ; ia++ )
+     for( ia=0 ; ia < 8 ; ia++ )
        bbar[ia] = (double *)remla_malloc(sizeof(double)*bb_ws) ;
    }
+
+#ifdef ALLOW_ARMA31
+   /* (re)allocate space for storing residuals
+      for ARMA(3,1) analysis of the final best case [02 Sep 2020] */
+
+   do_arma31 = (ncor > 4) && (arts != NULL) ;
+
+   if( do_arma31 ){
+     AO_RESIZE_2DARRAY(double,resid,((na+1)*(nb+1)),nt) ;
+     resid = AO_VALUE(resid) ;
+     for( kk=0 ; kk < (na+1)*(nb+1) ; kk++ ) resid[kk][0] = BIGVAL ;
+   }
+#endif
 
    /** do the Ordinary Least Squares (olsq) case, mark it as best so far **/
 
@@ -1446,6 +1471,10 @@ ENTRY("REML_find_best_case") ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
    rbest = REML_func( y, rrcol->rs[kbest], rrcol->X,rrcol->Xs, bbar,NULL ) ;
+#ifdef ALLOW_ARMA31
+   /* save residuals if needed */
+   if( do_arma31 ) AAmemcpy( resid[kbest] , bbar[7] , sizeof(double)*nt ) ;
+#endif
 
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
 
@@ -1469,12 +1498,16 @@ ENTRY("REML_find_best_case") ;
      if( nkl == 0 ) continue ; /* should never happen */
 
      /* The reason the loop above is separate is to make the loop below
-        be 1D rather than 2D, hoping that OpenMP would parallelize it better.
-        However, this didn't work out, but the code is left the way it is */
+        be 1D rather than 2D, hoping that it would optimize/parallelize better.
+        However, this didn't work out, but the code is left the way like so. */
 
      for( mm=0 ; mm < nkl ; mm++ ){  /* this usually takes a lot of CPU time */
        kk = klist[mm] ;
        rvab[kk] = REML_func( y, rrcol->rs[kk], rrcol->X,rrcol->Xs , bbar,NULL ) ;
+#ifdef ALLOW_ARMA31
+       /* save residuals if needed */
+       if( do_arma31 ) AAmemcpy( resid[kk] , bbar[7] , sizeof(double)*nt ) ;
+#endif
      }
 
      /* find the best one so far seen */
@@ -1498,14 +1531,26 @@ ENTRY("REML_find_best_case") ;
 
    } /* end of scan descent through different levels */
 
+   /* free any locally allocated workspace (vs that which was passed in) */
+
    if( bb_ws ){
      remla_free(rvab) ;
-     for( ia=0 ; ia < 7 ; ia++ ) remla_free(bbar[ia]) ;
+     for( ia=0 ; ia < 8 ; ia++ ) remla_free(bbar[ia]) ;
    }
+
+   /* save REML 'cost' for best case */
 
    if( ws != NULL ) ws[0] = rbest ;
 
-   /*** deal with the winner ***/
+#ifdef ALLOW_ARMA31
+   /* deal with ARMA(3,1) fitting */
+
+   if( do_arma31 && resid[kbest][0] < BIGVAL ){
+     *arts = ar3pX_func( nt , resid[kbest] , ncor ) ;
+   }
+#endif
+
+   /*** let someone else deal with the winner ***/
 
    RETURN(kbest) ;
 }
@@ -1750,10 +1795,433 @@ ENTRY("REML_compute_gltstat") ;
 }
 
 /*---------------------------------------------------------------------------*/
-#ifdef ALLOW_ARMA35
+#ifdef ALLOW_ARMA31
+
+/*============================================================================*/
+/***************** Functions for the ARMA(3,1) fit to correlations ************/
+/*============================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/* This code uses the macros in Aomp.h to declare permanent (static)
+   arrays for use with multi-threaded (OpenMP/omp) code, to have
+   per-thread storage. See that file for details of how the AO_DEFINE_xxx
+   macros work to declare storage, and AO_VALUE is use to get the per-thread
+   element when needed.
+*//*------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+/* Estimate temporal autocorrelations from a time series.
+   Inputs:
+     nt   = number of time points in array xx[0..nt-1]
+     tau  = time index of points, must be monotonic increasing;
+              this allows for censoring
+              tau == NULL means tau[i] = i (no gaps)
+     xx   = input data (e.g., residuals from regression)
+     ncor = maximum correlation lag
+   Output:
+     cor  = array of correlations (length ncor+1) - must be pre-allocated
+   Return value:
+     0 ==> error
+     1 ==> life was good to us
+*//*------------------------------------------------------------------------*/
+
+int get_sample_autocorr( int nt, int *tau, double *xx, int ncor, double *cor )
+{
+   int ii,jj,kk, tii, jbot,nnz ; double xvar,xbar,vv ;
+
+   /* declare a static multi-thread array 'ncc', and
+      a local pointer which will be set to the per-thread instance of 'ncc' */
+
+   AO_DEFINE_ARRAY(int,ncc) ; int *ncc ;
+
+   /* check for stooooopid inputs */
+
+   if( nt < 9 || xx == NULL || ncor < 4 || cor == NULL ) return( 0 ) ;
+
+   /* compute mean of input */
+
+   xbar = 0.0 ;
+   for( ii=0 ; ii < nt ; ii++ ) xbar += xx[ii] ;
+   xbar /= nt ;
+
+#define XX(i) (xx[i]-xbar)
+
+   /* compute variance of input */
+
+   xvar = 0.0 ;
+   for( nnz=ii=0 ; ii < nt ; ii++ ){
+     vv = XX(ii); xvar += vv*vv;
+     if( vv != 0.0 ) nnz++;   /* also count number of nonzero values */
+   }
+   xvar /= (nt-1.0) ;
+
+   if( xvar <= 0.0 || nnz <= 2*ncor ) return( 0 ) ;  /* crappy data */
+
+   /* ncc = count of hits for each lag
+      * First, make sure the 'ncc' array is big enough
+        (if already this big, nothing will happen - recall array is static)
+      * Then for convenience, copy the
+        pointer to this thread's array to the local (transient) variable ncc */
+
+   AO_RESIZE_ARRAY(int,ncc,(ncor+1)) ;
+   ncc = AO_VALUE(ncc) ;
+
+   /* initialize counts and correlations to 0 */
+
+   for( ii=0 ; ii <= ncor ; ii++ ){
+     ncc[ii] = 0 ; cor[ii] = 0.0 ;
+   }
+
+   /* loops correlating point [ii] with previous points [jj] */
+
+   for( ii=1 ; ii < nt ; ii++ ){
+     jbot = ii - ncor ; if( jbot < 0 ) jbot = 0 ;
+     tii  = TAU(ii) ;         /* 'time' index of point [ii] */
+     for( jj=jbot ; jj < ii ; jj++ ){
+       kk = tii-TAU(jj) ;  /* 'time' index difference = lag */
+       if( kk > ncor || kk <= 0 ) continue ;
+       cor[kk] += XX(ii)*XX(jj) ; ncc[kk]++ ; /* accumulation */
+     }
+   }
+
+#undef XX
+
+   /* normalize accumulated sums to get autocorrelations */
+
+   for( kk=1 ; kk <= ncor ; kk++ ){
+     if( ncc[kk] > 3 ) cor[kk] /= ( ncc[kk]*xvar ) ;
+     else              cor[kk]  = 0.0 ;   /* should be pretty unlikely */
+   }
+   cor[0] = 1.0 ;  /* well duh */
+
+   /* Note that we do not get rid of the ncc work array for this
+      thread -- it will hang around (static) for the next call.
+      If we did want to kill off this thread's ncc, we'd do
+        AO_FREE_ARRAY(ncc) ;
+      Since the usual case is that this function will be called
+      many many times, killing off and recreating the workspace
+      over and over would be inefficient, and we don't like that! */
+
+   return( 1 ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*  Check for legality as a correlation function, via FFT.
+
+    Return value is required scale down factor for correlations, if needed.
+    The calculations are based on the fact the the (infinite) Fourier
+    transform of the (infinite) sequence of correlations should be
+    positive. Of course, we don't have an infinite amout of data (or time),
+    so we approximate this via the FFT.
+
+    Return value is a number 0 < c <= 1.0 which is the factor by which the
+    correlations values cor[1..ncor] would have to be scaled by to make
+    the FFT positive definite.
+*//*--------------------------------------------------------------------------*/
+
+double cor_factor_fft( int ncor , double *cor )
+{
+   double corfac = 1.0 ; /* default output = 1 = no scaling needed */
+   int nfft , nf2 , kk ; float xcmin ;
+
+   /* defining static multi-thread workspace array 'xc' for use with FFT */
+
+   AO_DEFINE_ARRAY(complex,xc) ; complex *xc ;
+
+   /* nonsense input? */
+
+   if( ncor < 9 || cor == NULL ) return( corfac ) ;
+
+   /* get FFT length to use (see csfft.c);
+      note that FFTs used herein are floats, not doubles */
+
+   nfft = csfft_nextup_one35( 4*ncor+7 ) ;
+   nf2  = nfft/2 ;
+
+   /* resize (if needed) and fetch pointer to local workspace array 'xc' */
+
+   AO_RESIZE_ARRAY(complex,xc,nfft) ; xc = AO_VALUE(xc) ;
+
+   /* initialize xc to zero */
+
+   for( kk=0 ; kk < nfft ; kk++ ) xc[kk].r = xc[kk].i = 0.0f ;
+
+   /* load correlations (+reflections) into FFT array (floats not doubles) */
+   /* reflection symmetry means FFT will be pure real (except for roundoff) */
+
+   xc[0].r = 1.0 ; xc[0].i = 0.0 ;
+   for( kk=1 ; kk <= ncor ; kk++ ){
+     xc[kk].r = cor[kk] ; xc[kk].i = 0.0f ;
+     xc[nfft-kk] = xc[kk] ; /* reflection from nfft downwards */
+   }
+
+   csfft_cox( -1 , nfft , xc ) ;  /* FFT */
+
+   /* find smallest value in FFT; for an acceptable
+      autocorrelation function, they should all be positive */
+
+   xcmin = xc[0].r ;
+   for( kk=1 ; kk < nf2 ; kk++ ){
+     if( xc[kk].r < xcmin ) xcmin = xc[kk].r ;
+   }
+
+   /* if xcmin is negative, must scale cor down to avoid Choleski failure */
+
+   /* the corfac value below is computed from the following idea:
+        x  = unaltered correlation values (as used above)
+        xc = FFT of x
+        y  = altered correlation values (scaled down by factor f < 1):
+               y[0] = x[0] = 1  ;  y[k] = f * x[k] for k > 0
+        yc = FFT of y
+           = FFT( f * x ) + (1-f) * FFT( [1,0,0,...] )
+           = f * xc + (1-f)
+        Min value of yc = ycmin = f * xcmin + (1-f) -- recall xcmin < 0
+        We want                  ycmin > 0
+             or  -f * ( 1 - xcmin) + 1 > 0
+             or                      1 > f * ( 1 - xcmin )
+             or    ( 1 / ( 1 - xcmin ) > f
+        So the largest allowable value of 'f' is 1/(1-xcmin) < 1,
+        which is basically the formula below (with a little fudge factor) */
+
+   if( xcmin <= 0.0f )                /* note xcmin <= 0 so denom is >= 1 */
+     corfac = 0.99 / ( 1.0 - (double)xcmin ) ;
+
+   return( corfac ) ;  /* 1.0 ==> all is OK; < 1.0 ==> shrinkage needed */
+}
+
+/*============================================================================*/
+
+/** include the Powell NEWUOA functions for nonlinear optimization **/
+
+#include "powell_int.c"
+#define max MAX
+#define min MIN
+#include "powell_newuoa.c"
+#undef max
+#undef min
+
+/* Declare per-thread global array and global scalar for OpenMP usage:
+   - sample_cor is an array of arrays of doubles,
+     with one array of doubles per thread;
+   - sample_ncor is an array of ints, with one int per thread;
+   - that way, we can have static global data that is OpenMP thread safe
+   - this stuff is used to pass in the data used in ar3pX_costfun(),
+     which function must conform to the Powell calfun() format, and so
+     can't have extra parameters -- we sneak them in through global data :) */
+
+AO_DEFINE_ARRAY(double,sample_cor) ;
+AO_DEFINE_SCALAR(int,sample_ncor) ;
+
+/* Powell cost function basis - least squares? least absolute? */
+
+#if 1
+# define COSTFUN(x) ((x)*(x))
+#else
+# define COSTFUN(x) fabs(x)
+#endif
+
+/*============================================================================*/
+/************************* Specifically for AR(3) model ***********************/
+
+/*----------------------------------------------------------------------------*/
+/* We use 3 'physical' parameters for the AR(3) model, instead of the
+   classical 3 recurrence coefficients. Our paramters are
+     a  = pure power law decay; cor[n] proportional to a^n  } 0 < a < 1
+     r1 = power law decay for oscillatory part              } 0 < r < 1
+     t1 = theta = angular (frequency) for oscillatory part
+          cor[n] proportional to r1^n * cos(t1*n)
+          If the time spacing between indexes is TR, then 't1' corresponds
+          to radian frequency t1/TR and to cyclic frequency t1/(2*PI*TR) Hz.
+          In particular, t1 = PI corresponds to the Nyquist frequency,
+          and so the range for t1 is 0 < t1 < PI.
+   These parameters were chosen because they are easily understood, and
+   also because they restrict the AR(3) model to one pure decay component
+   and one oscillatory decay component, rather than allow the case with
+   three pure decay components -- which we do not feel is useful for
+   FMRI time series analyis. YMMV.
+*//*--------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/* Get the classical AR(3) recurrence coefficients p1,p2,p3 from the
+   (a,r,theta) parameters
+*//*--------------------------------------------------------------------------*/
+
+INLINE double_triple AR3_get_p123( double a , double r1 , double t1 )
+{
+   double_triple p123 ; double rc1,p1,p2,p3 ;
+
+   rc1 = cos(t1)*r1 ;
+   p1  = a + 2.0*rc1 ;
+   p2  = -2.0*a*rc1 - r1*r1 ;  /* Note: r1==0 => p2 = p3 = 0 */
+   p3  = a*r1*r1 ;             /*       which is AR(1) case */
+
+   p123.a = p1 ; p123.b = p2 ; p123.c = p3 ; return p123 ;
+}
+
+/*-----------------------------------------------------------------*/
+/* Get first 3 correlations for AR(3), from recurrence p1,p2,p3.
+   As this is a macro, the variables
+     p1,p2,p3, g0,g1,g2, ddd
+   must be declared (as double) in the function that uses this.
+*//*---------------------------------------------------------------*/
+
+#define AR3_get_g012                            \
+  ( ddd = (1.0-p2) - p3*(p1+p3) ,               \
+    g0  = 1.0 ,                                 \
+    g1  = (         p1 + p3      *p2 ) / ddd ,  \
+    g2  = ( (p1+p3)*p1 + (1.0-p2)*p2 ) / ddd  )
+
+/*-----------------------------------------------------------------*/
+/* Given g0,g1,g2, recur to update to next correlation for AR(3).
+   As this is a macro, variables
+     p1,p2,p3 , g0,g1,g2,g3
+   must be declared (as double) in the function that uses this.
+*//*---------------------------------------------------------------*/
+
+#define AR3_get_next                                        \
+  ( g3 = g2*p1 + g1*p2 + g0*p3, g0 = g1, g1 = g2, g2 = g3 )
+
+/*----------------------------------------------------------------------------*/
+/* cost function for nonlinear optimization of the 4 ARMA(3,1) parameters;
+     arts = 'a', 'r', 'theta', 'scale'
+   Here, 'scale' corresponds to a scaling down of the lag > 0 correlations,
+   allowing for additive white noise on top of the 'pure' AR(3) model;
+   this is what makes our model a restricted version of ARMA(3,1).
+*//*--------------------------------------------------------------------------*/
+
+double ar3pX_costfun( int npar , double *arts )
+{
+   double p1,p2,p3 , g0,g1,g2,g3, ddd,ss , cost=0.0 ;
+   double *cor ;
+   int ii , ncor ; double_triple p123 ;
+
+   if( npar != 4 || arts == NULL ) return( BIGVAL ) ;
+
+   /* retrieve the sample correlations to which we fit the model */
+
+   ncor = AO_VALUE(sample_ncor) ; if( ncor <= npar ) return( 1.e+9 ) ;
+   cor  = AO_VALUE(sample_cor)  ; if( cor  == NULL ) return( 1.e+9 ) ;
+
+   /* convert 'physical' params to phi's */
+
+   p123 = AR3_get_p123( arts[0] , arts[1] , arts[2] ) ;
+
+   p1 = p123.a ; p2 = p123.b ; p3 = p123.c ; ss = arts[3] ;
+
+   /* initialize recurrence for model AR(3) correlations */
+
+   AR3_get_g012 ;
+
+   /* initialize cost function;
+      note the downweighting of the AR(3) correlations by 'ss';
+      also, we discount the first two lags a little because
+      those correlations are usually big and we don't want
+      them to totally dominate the cost function (alert: totally ad hoc) */
+
+   ddd = cor[1]-ss*g1 ; cost  = COSTFUN(ddd)*0.7/(1.1-cor[1]*cor[1]) ;
+   ddd = cor[2]-ss*g2 ; cost += COSTFUN(ddd)*0.7/(1.1-cor[2]*cor[2]) ;
+
+   /* recur on AR(3) model and add up cost function */
+
+   for( ii=3 ; ii <= ncor ; ii++ ){
+     AR3_get_next ; /* g0,g1,g2 are updated; g3 = newest correlation */
+     ddd = cor[ii]-ss*g3 ; cost += COSTFUN(ddd)/(1.1-cor[ii]*cor[ii]);
+   }
+
+   return( cost ) ;  /* take it away, Goldie! */
+}
+
+/*----------------------------------------------------------------------------*/
+/* fit the correlations in cor to the ARMA(3,1) model */
+/*----------------------------------------------------------------------------*/
+
+double_quad fit_ar3pX( int ncor , double *cor )
+{
+   int ncall ;
+   double xpar[4] , xbot[4] , xtop[4] , finalcost ;
+   double_quad qarts = { 0.0 , 0.0 , 0.0 , 0.0 } ;  /* the output parameters */
+
+   if( ncor < 9 || cor == NULL ) return( qarts ) ;  /* user is a loser? */
+
+   /* store pointer to correlations in per-thread global variable,
+      and also store the number of correlations - for ar3pX_costfun() above */
+
+   AO_VALUE(sample_cor)  = cor ;   /* pointer assignment */
+   AO_VALUE(sample_ncor) = ncor ;  /* integer assignment */
+
+   /* set limits on the parameters to be estimated */
+
+   xbot[0] = 0.10 ; xtop[0] = 0.97 ;    /* a */
+   xbot[1] = 0.05 ; xtop[1] = 0.97 ;    /* r */
+   xbot[2] = 0.01 ; xtop[2] = HPI  ;    /* theta up to PI/2 = half of Nyquist */
+   xbot[3] = 0.10 ; xtop[3] = 1.00 ;    /* scale down factor (WN addition) */
+
+   /* initial values - just made up from thin air */
+
+   xpar[0] = 0.7 ;
+   xpar[1] = 0.4 ;
+   xpar[2] = 0.15708 ;
+   xpar[3] = 0.5 ;
+
+   /* nonlinear optimization (cf. powell_int.c) */
+
+   ncall = powell_newuoa_constrained(
+                       4 , xpar , &finalcost ,
+                       xbot , xtop ,
+                       127 , 13 , 5 ,
+                       0.2 , 0.004 , 6666 , ar3pX_costfun ) ;
+
+   AO_VALUE(sample_cor)  = NULL ;  /* clear the global pointer and value */
+   AO_VALUE(sample_ncor) = 0 ;     /* so there is no confusion later */
+
+   /* return fitted parameters */
+
+   qarts.a = xpar[0] ; qarts.b = xpar[1] ;
+   qarts.c = xpar[2] ; qarts.d = xpar[3] ;
+
+   return( qarts ) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* ARMA(3,1) model fitting to a time series (e.g., regression residuals) */
+/*----------------------------------------------------------------------------*/
+
+double_quad ar3pX_func( int npts , double *dts , int ncor )
+{
+   double cf ;
+   double_quad arts = { 0.0 , 0.0 , 0.0 , 0.0 } ;  /* output parameters */
+   int ii ; size_t nws=0 ;
+   /* local per-thread static storage for autocorrelations */
+   AO_DEFINE_ARRAY(double,cor) ; double *cor ;
+
+   if( npts < 9 || dts == NULL || ncor < 5 ) return arts ;
+
+   /* make thread-safe space for autocorrelations */
+
+   AO_RESIZE_ARRAY(double,cor,(ncor+1)) ; cor = AO_VALUE(cor) ;
+
+   /* compute correlations from time series data */
+
+   ii = get_sample_autocorr( npts , NULL , dts , ncor , cor ) ;
+   if( ii == 0 ) return arts ;
+
+   /* get max scale-down factor to ensure positive definiteness */
+
+   cf = cor_factor_fft( ncor , cor ) ;
+   if( cf < 1.0 ){
+     for( ii=1 ; ii <= ncor ; ii++) cor[ii] *= cf ;  /* apply scale down */
+   }
+
+   /* compute the ARMA(3,1) fitted correlation model (a kind of smoothing) */
+
+   arts = fit_ar3pX( ncor , cor ) ;  /* the 4 parameters are returned */
+
+   return arts ;
+}
+
 /*---------------------------------------------------------------------------*/
 
-#define NSCUT 5  /* finsih when get this many 'small' correlations in a row */
+#define NSCUT 5  /* finish when get this many 'small' correlations in a row */
 
 /*---------------------------------------------------------------------------*/
 /*  Compute correlations for AR(3) model with one real root [aa] and two
@@ -1794,13 +2262,13 @@ doublevec * REML_compute_arma31_correlations( double aa,
                                               int kmax  , double sfac )
 {
    doublevec *cvec=NULL ;
-   double p1 , p2 , p3 , rc1 ;
-   double m11,m12,m21,m22 , mdd , gg1,gg2,ggk , ccut ;
+   double p1 , p2 , p3 ; double_triple p123 ;
+   double g0,g1,g2,g3 , ddd ;
    int kk , nsmall ;
 
 ENTRY("REML_compute_arma31_correlations") ;
 
-   if( aa <= 0.0 || rr1 <= 0.0 || rr1 >= 1.0 || th1 <= 0.0 || th1 >= HPI ){
+   if( aa <= 0.0 || rr1 <= 0.0 || rr1 >= 1.0 || th1 <= 0.0 || th1 > HPI ){
      ERROR_message("REML_compute_arma31_correlations(%g,%g,%g) is bad",aa,rr1,th1);
      RETURN(NULL) ;
    }
@@ -1814,181 +2282,44 @@ ENTRY("REML_compute_arma31_correlations") ;
      RETURN(cvec) ;
    }
 
-   rc1 = rr1 * cos(th1) ;      /* compute polynomial coefficients */
-   p1  = aa + 2.0*rc1 ;        /* from the input polynomial roots */
-   p2 = -2.0 * aa * rc1 - rr1*rr1 ;
-   p3 = rr1*rr1 + aa ;
+   p123 = AR3_get_p123( aa , rr1 , th1 ) ;   /* get polynomial coefficients */
+   p1 = p123.a ; p2 = p123.b ; p3 = p123.c ; /* from input parameters */
 
-   m11 = 1.0 - p2 ;           /* setup 2x2 matrix for first two gammas */
-   m12 = -p3 ;
-   m21 = -( p3 + p1 ) ;
-   m22 = 1.0 ;
-
-   mdd = m11*m22 - m12*m21 ;  /* determinant of matrix */
-   if( mdd == 0.0 ){          /* should never happen */
-     ERROR_message("REML_compute_arma31_correlations(%g,%g,%g) bad det",aa,rr1,th1);
-     RETURN(NULL) ;
-   }
-
-   /* first two correlations (gammas) by solving above 2x2 system */
-
-   gg1 = (  m22 * p1 - m12 * p2 ) / mdd ;
-   gg2 = ( -m21 * p1 + m11 * p2 ) / mdd ;
+   AR3_get_g012 ;  /* get first correlations from polynomial coefficients */
 
    /* create and initialize output vector of correlations */
 
    if( kmax <= 0 ) kmax = 9999 ;  /* I hope we never need more than this */
    MAKE_doublevec(cvec,kmax+1) ;
 
-   cvec->ar[0] = 1.0 ;
-   cvec->ar[1] = gg1 ;
-   cvec->ar[2] = gg2 ;
+   cvec->ar[0] = g0 ;
+   cvec->ar[1] = sfac*g1 ;
+   cvec->ar[2] = sfac*g2 ;
 
-   if( kmax == 2 ){  /* unusually short output! */
-     cvec->ar[1] *= sfac ;
-     cvec->ar[2] *= sfac ;
-     RETURN(cvec) ;
-   }
-
-   ccut = MAX(10.0,1.0/sfac) * corcut ;
+   if( kmax == 2 ) RETURN(cvec) ;  /* unusually short output! */
 
    /* load further correlations recursively */
+#define AR3_get_next                                        \
+  ( g3 = g2*p1 + g1*p2 + g0*p3, g0 = g1, g1 = g2, g2 = g3 )
 
    for( nsmall=0,kk=3 ; kk <= kmax ; kk++ ){
-     ggk = p1*cvec->ar[kk-1] + p2*cvec->ar[kk-2] + p3*cvec->ar[kk-3] ;
-     cvec->ar[kk] = ggk ;
+     AR3_get_next ;  /* update g0,g1,g2 */
+     cvec->ar[kk] = sfac*g3 ;
 
-     if( fabs(ggk) >= ccut ){        /* still big enough */
+     if( fabs(cvec->ar[kk]) >= corcut ){  /* still big enough */
        nsmall = 0 ;
-     } else {                        /* too small */
+     } else {                             /* too small */
        nsmall++ ;
-       if( nsmall >= NSCUT ) break ; /* too many small in a row */
+       if( nsmall >= NSCUT ) break ;      /* too many smalls in a row */
      }
    }
    if( kk == kmax ) kk-- ; /* so kk = last value actually assigned */
 
    kmax = kk+1-nsmall ;    /* 1 past last 'big' value assigned */
 
-   /* truncate, if we didn't get all the way to the end */
+   /* truncate output vector, if we didn't get all the way to the end */
 
    RESIZE_doublevec(cvec,kmax) ;
-
-   if( sfac < 1.0 ){
-     for( kk=1 ; kk < kmax ; kk++ ) cvec->ar[kk] *= sfac ;
-   }
-
-   RETURN(cvec) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/*  Similar to above but for AR(5) model model with one real root [aa] and
-    four complex roots [rr1 exp(+-I*th1) , rr2 exp(+-I*th2)],
-    with 0 < aa,rr1 < 1 and 0 < th1,th2 < PI/2
-*//*-------------------------------------------------------------------------*/
-
-doublevec * REML_compute_arma51_correlations( double aa,
-                                              double rr1, double th1,
-                                              double rr2, double th2,
-                                              int kmax  , double sfac )
-{
-   doublevec *cvec=NULL ;
-   double p1,p2,p3,p4,p5 , rc1,rc2 , ct1,ct2 , rcp , r1q,r2q ;
-   dmat44 M44 , M44inv ;
-   double gg1,gg2,gg3,gg4,ggk , ccut ;
-   int kk , nsmall ;
-
-ENTRY("REML_compute_arma51_correlations") ;
-
-   if( aa <= 0.0 || rr1 <= 0.0 || rr1 >= 1.0 || th1 <= 0.0 || th1 >= HPI ||
-                    rr2 <= 0.0 || rr2 >= 1.0 || th2 <= 0.0 || th2 >= HPI   ){
-     ERROR_message("REML_compute_arma51_correlations(%g,%g,%g,%g,%g) is bad",aa,rr1,th1,rr2,th2);
-     RETURN(NULL) ;
-   }
-
-   if( sfac <= 0.0 ) kmax = 1 ;    /* adjustments */
-   if( sfac >  1.0 ) sfac = 1.0 ;
-
-   if( kmax == 1 ){             /* very trivial case */
-     MAKE_doublevec(cvec,1) ;
-     cvec->ar[0] = 1.0 ;
-     RETURN(cvec) ;
-   }
-
-   ct1 = cos(th1) ;      /* compute polynomial coefficients */
-   ct2 = cos(th2) ;      /* formulas from yacas, massaged */
-   rc1 = rr1 * ct1 ;
-   rc2 = rr2 * ct2 ;
-   rcp = rr1 * ct2 + rr2 * ct1 ;
-   r1q = rr1 * rr1 ;
-   r2q = rr2 * rr2 ;
-
-   p1  = 2.0*rc1 + 2.0*rc2 + aa ;
-   p2  = -( 4.0*rc1*rc2 + 2.0*(rc1+rc2)*aa + (r1q+r2q) ) ;
-   p3  = aa*( (r1q+r2q) + 4.0*rc1*rc2 ) + 2.0*rr1*rr2*rcp ;
-   p4  = -( 2.0*rr1*rr2*aa*rcp + r1q*r2q ) ;
-   p5  = aa + r1q + r2q ;
-
-   /* Fill 4x4 matrix (from yacas) */
-
-   LOAD_DMAT44( M44 ,
-                  1.0-p2 ,   -p3    , -p4 , -p5  ,
-                -(p3+p1) ,  1.0-p4  , -p5 ,  0.0 ,
-                -(p4+p2) , -(p5+p1) , 1.0 ,  0.0 ,
-                -(p5+p3) ,   -p2    , -p1 ,  1.0  ) ;
-
-   M44inv = generic_dmat44_inverse( M44 ) ;  /* invert matrix */
-
-   /* get first 4 gammas (correlations) by solving [M44] [gg(1-4)] = [p(1-4)] */
-
-   DMAT44_VEC( M44inv , p1,p2,p3,p4 , gg1,gg2,gg3,gg4 ) ;
-
-   /* create and initialize output vector of correlations */
-
-        if( kmax <= 0 ) kmax = 9999 ;  /* I hope we never need more than this */
-   else if( kmax <  4 ) kmax = 4 ;
-   MAKE_doublevec(cvec,kmax+1) ;
-
-   cvec->ar[0] = 1.0 ;
-   cvec->ar[1] = gg1 ;
-   cvec->ar[2] = gg2 ;
-   cvec->ar[3] = gg3 ;
-   cvec->ar[4] = gg4 ;
-
-   if( kmax == 4  ){  /* unusually short output! */
-     cvec->ar[1] *= sfac ;
-     cvec->ar[2] *= sfac ;
-     cvec->ar[3] *= sfac ;
-     cvec->ar[4] *= sfac ;
-     RETURN(cvec) ;
-   }
-
-   ccut = MAX(10.0,1.0/sfac) * corcut ;
-
-   /* load further correlations recursively */
-
-   for( nsmall=0,kk=5 ; kk <= kmax ; kk++ ){
-     ggk =   p1*cvec->ar[kk-1] + p2*cvec->ar[kk-2]
-           + p3*cvec->ar[kk-3] + p4*cvec->ar[kk-4] + p5*cvec->ar[kk-5] ;
-     cvec->ar[kk] = ggk ;
-
-     if( fabs(ggk) >= ccut ){        /* still big enough */
-       nsmall = 0 ;
-     } else {                        /* too small */
-       nsmall++ ;
-       if( nsmall >= NSCUT ) break ; /* too many small in a row */
-     }
-   }
-   if( kk == kmax ) kk-- ; /* so kk = last value actually assigned */
-
-   kmax = kk+1-nsmall ;    /* 1 past last 'big' value assigned */
-
-   /* truncate, if we didn't get all the way to the end */
-
-   RESIZE_doublevec(cvec,kmax) ;
-
-   if( sfac < 1.0 ){
-     for( kk=1 ; kk < kmax ; kk++ ) cvec->ar[kk] *= sfac ;
-   }
 
    RETURN(cvec) ;
 }
@@ -2023,14 +2354,14 @@ rcmat * rcmat_arma31( int nt, int *tau,
 
    /* edit input params for reasonability */
 
-        if( aa >  0.9 ) aa =  0.9 ;
-   else if( aa < -0.9 ) aa = -0.9 ;
+        if( aa >  0.9 ) aa =  0.97 ;
+   else if( aa < -0.9 ) aa = -0.97 ;  /* we don't actually use aa < 0 */
 
-        if( rr >  0.9  ) rr =  0.9 ;
-   else if( rr <  0.05 ) rr = 0.05 ;
+        if( rr >  0.9  ) rr = 0.97 ;
+   else if( rr <  0.01 ) rr = 0.01 ;
 
-        if( th >= HPI ) th = 0.95 * HPI ;
-   else if( th <= 0.0 ) th = 0.05 * HPI ;
+        if( th >  HPI ) th = HPI ;
+   else if( th <= 0.0 ) th = 0.01 * HPI ;
 
         if( sfac < 0.0 ) sfac = 0.0 ;
    else if( sfac > 1.0 ) sfac = 1.0 ;
@@ -2084,4 +2415,7 @@ rcmat * rcmat_arma31( int nt, int *tau,
 
    return rcm ;
 }
-#endif  /* ALLOW_ARMA35 */
+/*---------------------------------------------------------------------------*/
+
+#endif  /* ALLOW_ARMA31 */
+/*---------------------------------------------------------------------------*/

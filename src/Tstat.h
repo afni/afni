@@ -12,7 +12,7 @@ static char *meth_names[] = {
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-   "MSSDsqrt"      , "MASDx"
+   "MSSDsqrt"      , "MASDx"        , "arma31fit"
 };
 
 static int meth_pluginned[] = {
@@ -27,6 +27,6 @@ static int meth_pluginned[] = {
    1               , 1              , 1               , 1             ,
    1               , 1              , 1               , 1             ,
    0               , 1              , 1               , 1             ,
-   1               , 1 
+   1               , 1              , 0
 };
 #endif

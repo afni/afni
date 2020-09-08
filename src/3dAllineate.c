@@ -6018,9 +6018,11 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- squash super-large values down to reasonability --*/
 
-   clip = 3.0f * THD_cliplevel(qim,0.5f) ;
-   if( verb > 1 ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
+   if( acod < 2 ){
+     clip = 3.0f * THD_cliplevel(qim,0.5f) ;
+     if( verb > 1 ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
+   }
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
@@ -6042,15 +6044,18 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    /*-- clip off small values, and
         keep only the largest cluster of supra threshold voxels --*/
 
-   clip  = 0.05f * mri_max(wim) ;
-   clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
-   clip  = MAX(clip,clip2) ;
-   if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
-   for( jj=ii=0 ; ii < nxyz ; ii++ ){
-     if( wf[ii] >= clip ){ jj++ ; mmm[ii] = 1 ; }
-     else                {        mmm[ii] = 0 ; }
+   if( acod < 2 ){
+     clip  = 0.05f * mri_max(wim) ;
+     clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
+     clip  = MAX(clip,clip2) ;
+     if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
+     for( jj=ii=0 ; ii < nxyz ; ii++ ){
+       if( wf[ii] >= clip ){ jj++ ; mmm[ii] = 1 ; }
+       else                {        mmm[ii] = 0 ; }
+     }
+     if( verb > 1 ) ININFO_message("Weightize: %d voxels survive clip",jj) ;
    }
-   if( verb > 1 ) ININFO_message("Weightize: %d voxels survive clip",jj) ;
+
    if( ! doing_2D ){                          /* 28 Apr 2020 */
      THD_mask_clust( nx,ny,nz, mmm ) ;
      THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c NN2 */

@@ -509,6 +509,17 @@ int main( int argc , char *argv[] )
    reml_collection *rrcol ;
    int nprefixO=0 , nprefixR=0 , vstep=0 ;
 
+#ifdef ALLOW_ARMA31
+   int          do_arma31    = 0 ;                  /* 02 Sep 2020 */
+   int          ncor_arma31  = 0 ;
+   double_quad  arts_arma31  = { 0.0,0.0,0.0,0.0 } ;
+   double_quad *parts_arma31 = &arts_arma31 ;
+#else
+# define do_arma31    0
+# define ncor_arma31  0
+# define parts_arma31 NULL
+#endif
+
    char *Rbeta_prefix =NULL; THD_3dim_dataset *Rbeta_dset =NULL; FILE *Rbeta_fp =NULL; char *Rbeta_fn =NULL;
    char *Rvar_prefix  =NULL; THD_3dim_dataset *Rvar_dset  =NULL; FILE *Rvar_fp  =NULL; char *Rvar_fn  =NULL;
    char *Rfitts_prefix=NULL; THD_3dim_dataset *Rfitts_dset=NULL; FILE *Rfitts_fp=NULL; char *Rfitts_fn=NULL;
@@ -3172,10 +3183,11 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ){ fprintf(stderr,"++ REML voxel loop: ") ; vn = 0 ; }
 
+#if 0 /**** TO BE KILLED ***/
   if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
     int ss,rv,vv,ssold,ii,kbest ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 7*(2*niv+32) + 32 ;
+    int   nws = nab + 8*(2*niv+32) + 256 ;
     double *ws = (double *)malloc(sizeof(double)*nws) ;
 #ifdef REML_DEBUG
     char *fff ; FILE *fpp=NULL ;
@@ -3199,7 +3211,7 @@ STATUS("make GLTs from matrix file") ;
          RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
        }
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
+       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws , ncor_arma31,parts_arma31 ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
@@ -3224,10 +3236,10 @@ STATUS("make GLTs from matrix file") ;
 #endif
 
   } else {  /**---------------- Parallelized (not paralyzed) ----------------**/
-
-    int *vvar ;
+#else
+  { int *vvar ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 7*(2*niv+32) + 32 ;
+    int   nws = nab + 8*(2*niv+32) + 256 ;
 #ifdef REML_DEBUG
     char *fff ; FILE *fpp=NULL ;
     fff = getenv("REML_DEBUG") ;
@@ -3236,7 +3248,7 @@ STATUS("make GLTs from matrix file") ;
 
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    if( vstep ){ fprintf(stderr,"[%d threads]",maxthr) ; vn = 0 ; }
+    if( vstep && maxthr > 1 ){ fprintf(stderr,"[%d threads]",maxthr); vn = 0; }
 
 #ifdef USE_OMP
   AFNI_OMP_START ;
@@ -3278,7 +3290,7 @@ STATUS("make GLTs from matrix file") ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ; /* really bad */
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;  /* the work */
+       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws , ncor_arma31,parts_arma31 ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
@@ -3297,6 +3309,10 @@ STATUS("make GLTs from matrix file") ;
 #endif
 
      } /* end of REML loop over voxels */
+
+#ifdef ALLOW_ARMA31
+     REML_free_arma31_resid() ; /* 02 Sep 2020 */
+#endif
 
 #pragma omp critical (MALLOC)
    { free(ws); free(iv); vector_destroy(&y); if(mfp!=NULL) fclose(mfp); } /* destroy private copies */
@@ -3564,8 +3580,8 @@ STATUS("setting up Rglt") ;
    }  /* end of setting up -dsort stuff */
 
    if( do_Rstuff ){
-     double *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
-     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     double *bbar[8] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 , *bb8 ;
      vector qq5 ;
 
      /* how many regressors will be used this time through? */
@@ -3576,10 +3592,10 @@ STATUS("setting up Rglt") ;
      last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
 
      /* make some space for vectors */
-     for( ii=0 ; ii < 7 ; ii++ )
+     for( ii=0 ; ii < 8 ; ii++ )
        bbar[ii] = (double *)malloc(sizeof(double)*(2*ntime+66)) ;
-     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
-     bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
+     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ; bb4 = bbar[3] ;
+     bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ; bb8 = bbar[7] ;
      vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
 
      /* ss = slice index, rv = VECTIM index, vv = voxel index */
@@ -3664,7 +3680,9 @@ STATUS("setting up Rglt") ;
            REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
        }
 
-       if( abfixed )  /* special case */
+       /* choose the index jj as the ARMA11(a,b) best case fo this voxel */
+
+       if( abfixed )  /* special case - nothing to actually choose */
          jj = 1 ;
        else
          jj = IAB(RCsli[ss],aar[vv],bar[vv]) ; /* closest point in (a,b) grid */
@@ -3672,6 +3690,9 @@ STATUS("setting up Rglt") ;
        /* select/create the REML setup to use [22 Jul 2015] */
 
        my_rset = NULL ; my_Xmat = NULL ; my_Xsmat = NULL ; my_kill = 0 ; rsetp_dsort = NULL ;
+
+       /* possiblity 1: voxel-specific regression */
+
        if( num_dsort > 0 && !doing_nods ){    /* create modified REML setup for */
          int   ia  = jj % (1+RCsli[ss]->na);  /* voxel-specific regression matrix */
          int   ib  = jj / (1+RCsli[ss]->na);  /* the na+1 denom is correct here - RWC */
@@ -3682,9 +3703,11 @@ STATUS("setting up Rglt") ;
          /* (this voxel-wise REML setup is why -dsort is so slow) */
 
          rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
+
          if( rsetp_dsort == NULL ){  /* should not happen */
            ERROR_message("cannot compute REML_setup_plus() at voxel %d",vv) ;
          }
+
          my_rset  = rsetp_dsort->rset ;
          my_Xmat  = rsetp_dsort->X ;
          my_Xsmat = rsetp_dsort->Xs ;
@@ -3693,6 +3716,8 @@ STATUS("setting up Rglt") ;
            REML_add_glt_to_one( my_rset , glt_mat[kk] ) ;
        }
 
+       /* possibility 2: missing setup #jj for some reason, so make it now */
+
        if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);               /* by creating needed setup now */
          int   ib  = jj / (1+RCsli[ss]->na);
@@ -3700,15 +3725,23 @@ STATUS("setting up Rglt") ;
          double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          STATUS("new setup?") ;
+
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
+
          for( kk=0 ; kk < glt_num ; kk++ )     /* make sure GLTs are included */
            REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;
        }
+
+       /* possibility 3: get it from the collection of setups already manufactured */
+
        if( my_rset == NULL ){
          my_rset  = RCsli[ss]->rs[jj] ;
          my_Xmat  = RCsli[ss]->X ;
          my_Xsmat = RCsli[ss]->Xs ;
        }
+
+       /* possibility 4: the unthinkable has happened */
+
        if( my_rset == NULL ){ /* should never happen */
          ERROR_message("bad REML! voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
                          vv, DSET_index_to_ix(inset,vv) ,
@@ -3718,16 +3751,17 @@ STATUS("setting up Rglt") ;
        } else {
 
          /*--- do the fitting; various results are in the bb? vectors:
-                bb5 = estimated betas       (nregu)
-                bb6 = fitted model          (ntime)
+                bb5 = estimated betas       (nregu) [-Rbuck and -Rbeta]
+                bb6 = fitted model          (ntime) [-Rfitts]
                 bb7 = whitened fitted model (ntime) [not used below]
                 bb1 = whitened data         (ntime) [not used below]
-                bb2 = whitened residuals    (ntime)
-                      (sum of squares of bb2 = bbsumq = noise variance) ------*/
+                bb2 = whitened residuals    (ntime) [-Rwherr]
+                bb8 = plain residuals       (ntime) [-Rerrts]
+                     (sum of squares of bb2 = bbsumq => noise variance) ------*/
 
          sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ; /* debugging */
 #if 1
-         (void)REML_func( &y , my_rset , my_Xmat , my_Xsmat , bbar , &bbsumq ) ;
+         (void)REML_func( &y, my_rset, my_Xmat, my_Xsmat, bbar, &bbsumq ) ;
 #else
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
                           bbar , &bbsumq ) ;
@@ -3744,7 +3778,7 @@ STATUS("setting up Rglt") ;
          if( Rerrts_dset != NULL ){  /* jv contains copy of original data */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
-             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
+             iv[goodlist[ii]] = bb8[ii] ;
            sprintf(sslab,"%s %d", "Rerrts" ,vv); /* debugging */
            save_series( vv , Rerrts_dset , nfull , iv , Rerrts_fp ) ;
          }
@@ -3847,7 +3881,7 @@ STATUS("setting up Rglt") ;
      if( last_nods_trip )
        reml_collection_destroy( RCsli[nsli-1] , 1 ) ;  /* keep just izero case (for OLSQ) */
 
-     for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
+     for( ii=0 ; ii < 8 ; ii++ ) free(bbar[ii]) ;
      vector_destroy(&qq5) ;
 
      if( vstep ) fprintf(stderr,"\n") ;
@@ -4032,8 +4066,8 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
    /*---------------- and do the third (OLSQ) voxel loop ----------------*/
 
    if( do_Ostuff ){
-     double *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
-     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     double *bbar[8] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 , *bb8;
      vector qq5 ;
 
      /* how many regressors will be used this time through? */
@@ -4043,10 +4077,10 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
 
      last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
 
-     for( ii=0 ; ii < 7 ; ii++ )
+     for( ii=0 ; ii < 8 ; ii++ )
        bbar[ii] = (double *)malloc(sizeof(double)*(2*ntime+66)) ;
-     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
-     bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
+     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ; bb4 = bbar[3] ;
+     bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ; bb8 = bbar[7] ;
      vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
 
      /* rv = VECTIM index, vv = voxel index */
@@ -4174,7 +4208,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          if( Oerrts_dset != NULL ){  /* jv contains copy of original data */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
-             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
+             iv[goodlist[ii]] = bb8[ii] ;
            sprintf(sslab,"%s %d", "Oerrts" ,vv); /* debugging */
            save_series( vv , Oerrts_dset , nfull , iv , Oerrts_fp ) ;
          }
@@ -4256,7 +4290,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
        }
      } /* end of voxel loop */
 
-     for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
+     for( ii=0 ; ii < 8 ; ii++ ) free(bbar[ii]) ;
      vector_destroy(&qq5) ;
 
      if( vstep ) fprintf(stderr,"\n") ;

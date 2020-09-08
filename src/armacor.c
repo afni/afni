@@ -206,10 +206,10 @@ void arma31_correlations_inplace( double a, double r1, double t1,
                      a,r1,t1 , p1,p2,p3 , cnew , g1,g2 ) ;
    }
 
-#if 0
+#if 1
 { double alp = ( g1 - r1*c1 ) / ( a - r1*c1 ) ;
-  INFO_message("a=%g r=%g t=%g  g1=%g g2=%g alp=%g",
-               a,r1,t1 , g1,g2,alp ) ;
+  INFO_message("a=%g r=%g t=%g  g1=%g g2=%g alp=%g p1=%g p2=%g p3=%g",
+               a,r1,t1 , g1,g2,alp , p1,p2,p3 ) ;
 }
 #endif
 
