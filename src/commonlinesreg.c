@@ -14,7 +14,7 @@ DESCRIPTION
 
 NOTES
 
-    1/ The current implementation simply generates the projections and outputs them as JPEG files.
+    1/ The current implementation aligns volumes made from unweaving the interlaced sections of a brick.
     2/ Two to three projection axes must be chosen:
         - ac: Axial and Coronal
         - as: Axial and Sagital
@@ -34,10 +34,12 @@ int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din)
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
 int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
+int float2DImage(THD_3dim_dataset *dset);
+int getLargestDimension(THD_3dim_dataset *din);
 
 int main( int argc, char *argv[] )  {
     THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj;
-    int     i;
+    int     i, largestDimension;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
 
@@ -63,14 +65,17 @@ int main( int argc, char *argv[] )  {
         return Cleanup(inputFileName, outputFileNames, din);
 
     // Make projections
-    makeProjection(dodd, &doddSagProj, 'c');
+    makeProjection(dodd, &doddSagProj, 's');
+
+    // Get largest dimension from data set
+    largestDimension=getLargestDimension(dodd);
     // TODO: Add code
 
     // Free up 3D datasets
-    // TODO: Add code
+    DSET_delete(din);
 
     // Float projections
-    // TODO: Add code
+    float2DImage(doddSagProj);
 
     // Zero pad projections
     // TODO: Add code
@@ -87,6 +92,53 @@ int main( int argc, char *argv[] )  {
     // TODO: Add code
     Cleanup(inputFileName, outputFileNames, din);
     return 1;
+}
+
+int float2DImage(THD_3dim_dataset *dset){
+    // Subtract mean of perimeter from entire image to avoid spurious edge effects
+    //  in Fourier transform
+    float   mean=0;
+    int     count=0, x, y;
+
+    // Get input pixel data
+    float   *indata = DSET_ARRAY(dset, 0);
+
+    // Determine input dimensions
+    int ny = DSET_NY(dset);
+    int nx = DSET_NX(dset);
+    int lastY = ny-1;
+    int lastX = nx-1;
+
+    // Get mean value arount perimeter
+    int offset=lastY*nx;
+    for (x=0; x<nx; ++x){
+        mean += indata[x]+indata[offset++];
+        count+=2;
+    }
+    offset=nx;
+    for (y=0; y<lastY; ++y){
+        mean += indata[offset];
+        offset += lastX;
+        mean += indata[offset++];
+        count+=2;
+    }
+    mean /= count;
+
+    // Subtract perimeter mean from whole image
+    int pixelCount=nx*ny;
+    for (x=0; x<pixelCount; ++x) indata[x]-=mean;
+
+    return 1;
+}
+
+int getLargestDimension(THD_3dim_dataset *din){
+
+    // Determine input dimensions
+    int nz = DSET_NZ(din);
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+
+    return (nx>ny)? ((nx>nz)? nx : nz) : ((ny>nz)? ny : nz);
 }
 
 int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode){
@@ -209,7 +261,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     }
 
 
-    // Cleanup  (Don't free evenData or oddData)
+    // Cleanup  (Don't free outData)
     free(outputFileName);
 
     return 1;
