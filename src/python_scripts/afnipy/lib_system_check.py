@@ -708,8 +708,13 @@ class SysInfo:
       verlist = verlist[0].split('.')
       if len(verlist) < 2: return 0
       if verlist[0] != '10': return 0
-      try: vint = int(verlist[1])
-      except: return 0
+
+      # get version
+      try:
+         vint = int(verlist[1])
+      except:
+         print("** OSX ver: have Darwin, but dist = %s" % self.os_dist)
+         return 0
 
       # have something useful
       return vint
@@ -863,17 +868,22 @@ class SysInfo:
                print('    %-20s%s' % (pdir, rstr))
             print('')
 
-   def show_path_vars(self, header=1):
+   def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
       for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if evar in os.environ:
+            if self.verb > 2: print("-- SEV: getting var from current env ...")
             print("%s = %s\n" % (evar, os.environ[evar]))
          elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+            if self.verb > 2:
+               print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
             print("%s (sub-shell) = %s" % (evar, so))
          else:
+            if self.verb > 2:
+               print("-- SEV: env var not set ...")
             print("%s = " % evar)
       print('')
 
@@ -1260,7 +1270,7 @@ class SysInfo:
       self.show_general_sys_info()
       self.show_general_afni_info()
       self.show_python_lib_info()
-      self.show_path_vars()
+      self.show_env_vars()
       self.show_data_info()
       self.show_os_specific()
 
@@ -1276,6 +1286,7 @@ def distribution_string():
    sysname = platform.system()
    checkdist = 0        # set in any failure case
    dstr = 'bad pizza'
+   dtest = 'NOT SET'
 
    if sysname == 'Linux':
       # through python 3.7 (if they still use mac_ver, why not linux?)
@@ -1285,23 +1296,26 @@ def distribution_string():
          try:
             # python 3.4+
             import distro
-            dstr = tup_str(distro.linux_distribution( \
-                           full_distribution_name=False))
+            dtest = distro.linux_distribution(full_distribution_name=False)
+            dstr = tup_str(dtest)
          except:
             print("-- failed distro.linux_dist()")
             # deprecated since 2.6, but why not give it a try?
-            try:    dstr = tup_str(platform.dist())
+            dtest = platform.dist()
+            try:    dstr = tup_str(dtest)
             except: checkdist = 1
    elif sysname == 'Darwin':
-      try:    dstr = tup_str(platform.mac_ver())
+      dtest = platform.mac_ver()
+      try:    dstr = tup_str(dtest)
       except: checkdist = 1
    else:
-      try:    dstr = tup_str(platform.dist())
+      dtest = platform.dist()
+      try:    dstr = tup_str(dtest)
       except: checkdist = 1
 
    # backup plan
    if checkdist:
-      dstr = 'unknown %s' % sysname
+      dstr = 'unknown %s (%s)' % (sysname, dtest)
 
    return dstr
 
