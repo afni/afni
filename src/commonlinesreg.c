@@ -36,10 +36,12 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
 int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
 int float2DImage(THD_3dim_dataset *dset);
 int getLargestDimension(THD_3dim_dataset *din);
+int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int largestDimension, int factor);
+int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
 
 int main( int argc, char *argv[] )  {
-    THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj;
-    int     i, largestDimension;
+    THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj, *doddSagProjPad;
+    int     i, largestDimension, paddingFactor=2;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
 
@@ -69,7 +71,6 @@ int main( int argc, char *argv[] )  {
 
     // Get largest dimension from data set
     largestDimension=getLargestDimension(dodd);
-    // TODO: Add code
 
     // Free up 3D datasets
     DSET_delete(din);
@@ -78,23 +79,120 @@ int main( int argc, char *argv[] )  {
     float2DImage(doddSagProj);
 
     // Zero pad projections
-    // TODO: Add code
+    if (!(zeroPadProjection(doddSagProj, &doddSagProjPad, largestDimension, paddingFactor)))
+        Cleanup(inputFileName, outputFileNames, doddSagProj);
+    DSET_delete(doddSagProj);
 
     // Make Fourier transforms of projections
     // TODO: Add code
 
-    // Output Fourier spectra, of projections, to a common image file format.
+    // Output Fourier spectra, of projections.
     // TODO: Add code
 
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
     // TODO: Add code
 
     // TODO: Add code
-    Cleanup(inputFileName, outputFileNames, din);
+    Cleanup(inputFileName, outputFileNames, doddSagProj);
     return 1;
 }
 
+int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int largestDimension, int factor){
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputFileName;
+    float   *outData;
+    int  outputDimension=largestDimension*factor;
+    int  y, inInc;
+    char  appendage[8];
+    THD_ivec3 iv_nxyz;
+
+    // Set output name appendage
+    sprintf(appendage, "pad%d", factor);
+
+    // Make output array
+    if (!(outData=(float*)calloc(outputDimension*outputDimension,sizeof(float)))) return 0;
+
+    // Determine input dimensions
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+
+    // Determine where input begins in output
+    int xOffset=(int)((outputDimension-nx)/2);
+    int yOffset=(int)((outputDimension-ny)/2);
+    int offset=(outputDimension*yOffset)+xOffset;
+
+    // Get input array
+    float   *indata = DSET_ARRAY(din, 0);
+
+    // Write input to output
+    size_t  bytes2Copy = nx*sizeof(float);
+    for (y=inInc=0; y<ny; ++y){
+        memcpy((void *)&(outData[offset]), (void *)&(indata[inInc]), bytes2Copy);
+        offset+=outputDimension;
+        inInc+=nx;
+    }
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+64))){
+       free(outData);
+       return 0;
+    }
+
+    // Determine whether output file already exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+
+    // Make output dataset
+    *dout = EDIT_empty_copy(din);
+    LOAD_IVEC3( iv_nxyz , outputDimension , outputDimension , 1 ) ;
+    sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+    EDIT_dset_items( *dout ,
+                    ADN_prefix, outputFileName,
+                    ADN_nxyz      , iv_nxyz ,
+                    ADN_none ) ;
+    EDIT_substitute_brick(*dout, 0, MRI_float, outData);
+
+    // Debug: Get output dimensions
+    ny = DSET_NY(*dout);
+    nx = DSET_NX(*dout);
+
+    // Output padded image to file
+    if( !outputFileExists ) {  // If even file does not already exist
+       DSET_write(*dout);
+    }
+
+    // Cleanup
+    free(outputFileName);
+
+    return 1;
+}
+
+int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName){
+    int outputFileExists=0;
+
+    struct dirent *dir;
+    DIR *d;
+    d = opendir(searchPath);
+    sprintf(outputFileName,"%s%s",prefix,appendage);
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+          if (strstr(dir->d_name,outputFileName)){
+            outputFileExists=1;
+            break;
+          }
+        }
+        closedir(d);
+    }
+
+    return outputFileExists;
+}
+
 int float2DImage(THD_3dim_dataset *dset){
+    char *prefix=DSET_PREFIX(dset);
+    char *searchPath=DSET_DIRNAME(dset);
+    char *outputFileName;
+    char  appendage[8];
+
     // Subtract mean of perimeter from entire image to avoid spurious edge effects
     //  in Fourier transform
     float   mean=0;
@@ -127,6 +225,29 @@ int float2DImage(THD_3dim_dataset *dset){
     // Subtract perimeter mean from whole image
     int pixelCount=nx*ny;
     for (x=0; x<pixelCount; ++x) indata[x]-=mean;
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+64))){
+       return 0;
+    }
+
+    // Set output name appendage
+    sprintf(appendage, "float");
+
+    // See if image exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+
+    // Output floated image to file
+    sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+    EDIT_dset_items( dset ,
+                    ADN_prefix, outputFileName,
+                    ADN_none ) ;
+    if( !outputFileExists ) {  // If even file does not already exist
+       DSET_write(dset);
+    }
+
+    // Cleanup
+    free(outputFileName);
 
     return 1;
 }
@@ -194,8 +315,6 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
 
         // Fill output data
         start=0;
-        // int yCount=ny*nz;
-        int startInc=nx*ny;
         int z, i;
         for (outInc=outPixelCount-1, z=0; z<nz; ++z){
             start=z*nx*ny;
@@ -259,7 +378,6 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     if( !outputFileExists ) {  // If even file does not already exist
        DSET_write(*dout);
     }
-
 
     // Cleanup  (Don't free outData)
     free(outputFileName);
