@@ -9,6 +9,7 @@ import time
 import contextlib
 import sys
 import logging
+import xvfbwrapper
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -19,7 +20,6 @@ pytest.register_assert_rewrite("afni_test_utils.tools")
 
 import afni_test_utils.tools as tools
 from afni_test_utils.tools import get_current_test_name
-import attr
 
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
@@ -38,6 +38,14 @@ from datalad.support.exceptions import IncompleteResultsError
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+if 'environ' not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
+    raise EnvironmentError(
+        "Version of xvfbwrapper does not have the environ keyword. "
+        "Consider installing one that does. e.g. 'pip install git+git://"
+        "github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_m"
+        "ulti_threading' "
+    )
 
 
 def pytest_sessionstart(session):
