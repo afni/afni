@@ -30,7 +30,12 @@ NOTES
 #include <unistd.h>
 #include "mrilib.h"
 
-int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din);
+typedef struct{
+    float real;
+    float imag;
+} COMPLEX;
+
+int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din, COMPLEX **TwoDFt);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
 int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
@@ -38,18 +43,23 @@ int float2DImage(THD_3dim_dataset *dset);
 int getLargestDimension(THD_3dim_dataset *din);
 int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int largestDimension, int factor);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
+int FFT2D(COMPLEX **c,int nx,int ny,int dir);
+int FFT(int dir,int m,double *x,double *y);
+int Powerof2(int n,int *m,int *twopm);
+int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT);
 
 int main( int argc, char *argv[] )  {
     THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj, *doddSagProjPad;
     int     i, largestDimension, paddingFactor=2;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
+    COMPLEX **TwoDFt=NULL;
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName, outputFileNames, din);
+                return Cleanup(inputFileName, outputFileNames, din, **TwoDFt);
             sprintf(inputFileName,"%s",argv[i]);
             break;
 
@@ -60,11 +70,11 @@ int main( int argc, char *argv[] )  {
     }
 
     if( open_input_dset(&din, inputFileName) )
-    return Cleanup(inputFileName, outputFileNames, din);
+    return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
 
     // Split volume into odd and even slices
     if (!unweave_sections(din, &dodd, &deven))
-        return Cleanup(inputFileName, outputFileNames, din);
+        return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
 
     // Make projections
     makeProjection(dodd, &doddSagProj, 's');
@@ -76,15 +86,18 @@ int main( int argc, char *argv[] )  {
     DSET_delete(din);
 
     // Float projections
-    float2DImage(doddSagProj);
+    // Currently skipped because of head voxels on the edge of the projection image.  Apart from that,
+    //  the edge defaults to zero.  Floating creates edge effects rather than suppressing them.
+    // float2DImage(doddSagProj);
 
     // Zero pad projections
     if (!(zeroPadProjection(doddSagProj, &doddSagProjPad, largestDimension, paddingFactor)))
-        Cleanup(inputFileName, outputFileNames, doddSagProj);
+        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
     DSET_delete(doddSagProj);
 
     // Make Fourier transforms of projections
-    // TODO: Add code
+    if (!(get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT)))
+        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
 
     // Output Fourier spectra, of projections.
     // TODO: Add code
@@ -93,7 +106,41 @@ int main( int argc, char *argv[] )  {
     // TODO: Add code
 
     // TODO: Add code
-    Cleanup(inputFileName, outputFileNames, doddSagProj);
+    Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
+    return 1;
+}
+
+int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
+    int x, y, inc;
+    float   *inputImage;
+
+    // Get dimensions
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+
+    // Allocate memory to complex Fourier plane
+    if (!(*TwoDFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) return 0;
+    for (y=0; y<ny: ++y) if (!((*TwoDFT)[y]=(COMPLEX *)malloc(nx*sizeof(COMPLEX)))){
+        for (--y; y>=0; --y) free((*TwoDFT)[y]);
+        free((*TwoDFT));
+        return 0;
+    }
+
+    // Fill real components with spatial image data
+    inputImage = DSET_ARRAY(din, 0);
+    for (y=inc=0; y<ny; ++y){
+        for (x=0; x<nx; ++x)
+            (*TwoDFT)[y][x] = inputImage[inc++];
+    }
+
+    // Fouier transform plane
+    if (!FFT2D(COMPLEX **c,int nx,int ny,int dir)){
+        for (y=0; y<ny: ++y) free((*TwoDFT)[y]);
+        free(*TwoDFT);
+        *TwoDFT = NULL;
+        return 0;
+    }
+
     return 1;
 }
 
@@ -109,6 +156,9 @@ int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int larges
 
     // Set output name appendage
     sprintf(appendage, "pad%d", factor);
+
+    // Raise output dimension to the next integral power of two (for Fourier transform)
+    outputDimension = pow(2, ceil(log(outputDimension)/log(2)));
 
     // Make output array
     if (!(outData=(float*)calloc(outputDimension*outputDimension,sizeof(float)))) return 0;
@@ -516,12 +566,203 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
    return 0;
 }
 
-int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din){
-    int i;
+int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din, COMPLEX **TwoDFt){
+    int i, ny;
 
     if (inputFileName) free(inputFileName);
     for (i=0; i<3; ++i) if (outputFileNames[i]) free(outputFileNames[i]);
-    if (din) free(din);
+    if (din) free(din
+
+    if (TwoDFt){
+        ny = DSET_NY(din);
+        for (i=0; i<ny; ++i) free(TwoDFt[i]);
+        free(TwoDFt);
+    }
 
     return 0;
 }
+
+
+/************************************ 2D FFT by Paul Bourke, 1993 ***************************/
+
+
+
+/*-------------------------------------------------------------------------
+   Perform a 2D FFT inplace given a complex 2D array
+   The direction dir, 1 for forward, -1 for reverse
+   The size of the array (nx,ny)
+   Return false if there are memory problems or
+      the dimensions are not powers of 2
+*/
+int FFT2D(COMPLEX **c,int nx,int ny,int dir)
+{
+   int i,j;
+   int m,twopm;
+   double *real,*imag;
+
+   /* Transform the rows */
+   real = (double *)malloc(nx * sizeof(double));
+   imag = (double *)malloc(nx * sizeof(double));
+   if (real == NULL || imag == NULL)
+      return(FALSE);
+   if (!Powerof2(nx,&m,&twopm) || twopm != nx)
+      return(FALSE);
+   for (j=0;j<ny;j++) {
+      for (i=0;i<nx;i++) {
+         real[i] = c[i][j].real;
+         imag[i] = c[i][j].imag;
+      }
+      FFT(dir,m,real,imag);
+      for (i=0;i<nx;i++) {
+         c[i][j].real = real[i];
+         c[i][j].imag = imag[i];
+      }
+   }
+   free(real);
+   free(imag);
+
+   /* Transform the columns */
+   real = (double *)malloc(ny * sizeof(double));
+   imag = (double *)malloc(ny * sizeof(double));
+   if (real == NULL || imag == NULL)
+      return(FALSE);
+   if (!Powerof2(ny,&m,&twopm) || twopm != ny)
+      return(FALSE);
+   for (i=0;i<nx;i++) {
+      for (j=0;j<ny;j++) {
+         real[j] = c[i][j].real;
+         imag[j] = c[i][j].imag;
+      }
+      FFT(dir,m,real,imag);
+      for (j=0;j<ny;j++) {
+         c[i][j].real = real[j];
+         c[i][j].imag = imag[j];
+      }
+   }
+   free(real);
+   free(imag);
+
+   return(TRUE);
+}
+
+/*-------------------------------------------------------------------------
+   This computes an in-place complex-to-complex FFT
+   x and y are the real and imaginary arrays of 2^m points.
+   dir =  1 gives forward transform
+   dir = -1 gives reverse transform
+
+     Formula: forward
+                  N-1
+                  ---
+              1   \          - j k 2 pi n / N
+      X(n) = ---   >   x(k) e                    = forward transform
+              N   /                                n=0..N-1
+                  ---
+                  k=0
+
+      Formula: reverse
+                  N-1
+                  ---
+                  \          j k 2 pi n / N
+      X(n) =       >   x(k) e                    = forward transform
+                  /                                n=0..N-1
+                  ---
+                  k=0
+*/
+int FFT(int dir,int m,double *x,double *y)
+{
+   long nn,i,i1,j,k,i2,l,l1,l2;
+   double c1,c2,tx,ty,t1,t2,u1,u2,z;
+
+   /* Calculate the number of points */
+   nn = 1;
+   for (i=0;i<m;i++)
+      nn *= 2;
+
+   /* Do the bit reversal */
+   i2 = nn >> 1;
+   j = 0;
+   for (i=0;i<nn-1;i++) {
+      if (i < j) {
+         tx = x[i];
+         ty = y[i];
+         x[i] = x[j];
+         y[i] = y[j];
+         x[j] = tx;
+         y[j] = ty;
+      }
+      k = i2;
+      while (k <= j) {
+         j -= k;
+         k >>= 1;
+      }
+      j += k;
+   }
+
+   /* Compute the FFT */
+   c1 = -1.0;
+   c2 = 0.0;
+   l2 = 1;
+   for (l=0;l<m;l++) {
+      l1 = l2;
+      l2 <<= 1;
+      u1 = 1.0;
+      u2 = 0.0;
+      for (j=0;j<l1;j++) {
+         for (i=j;i<nn;i+=l2) {
+            i1 = i + l1;
+            t1 = u1 * x[i1] - u2 * y[i1];
+            t2 = u1 * y[i1] + u2 * x[i1];
+            x[i1] = x[i] - t1;
+            y[i1] = y[i] - t2;
+            x[i] += t1;
+            y[i] += t2;
+         }
+         z =  u1 * c1 - u2 * c2;
+         u2 = u1 * c2 + u2 * c1;
+         u1 = z;
+      }
+      c2 = sqrt((1.0 - c1) / 2.0);
+      if (dir == 1)
+         c2 = -c2;
+      c1 = sqrt((1.0 + c1) / 2.0);
+   }
+
+   /* Scaling for forward transform */
+   if (dir == 1) {
+      for (i=0;i<nn;i++) {
+         x[i] /= (double)nn;
+         y[i] /= (double)nn;
+      }
+   }
+
+   return(TRUE);
+}
+
+/*-------------------------------------------------------------------------
+   Calculate the closest but lower power of two of a number
+   twopm = 2**m <= n
+   Return TRUE if 2**m == n
+*/
+int Powerof2(int n,int *m,int *twopm)
+{
+   if (n <= 1) {
+      *m = 0;
+      *twopm = 1;
+      return(FALSE);
+   }
+
+   *m = 1;
+   *twopm = 2;
+   do {
+      (*m)++;
+      (*twopm) *= 2;
+   } while (2*(*twopm) <= n);
+
+   if (*twopm != n)
+      return(FALSE);
+   else
+      return(TRUE);
+}
+
+
