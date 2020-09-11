@@ -53,6 +53,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10, SEP, 2020, DRG, "Driving AFNI to get values",
+     MINOR, TYPE_ENHANCE,
+    "Drive AFNI to get current value in OLay, Threshold or ULay+",
+    "Can also get ULay and OLay prefixes"
+},
+
 { 9, AUG, 2020, DRG, "@ROI_decluster",
      MINOR, TYPE_NEW_PROG,
     "Remove small clusters or single voxels in datasets with many ROIs",
