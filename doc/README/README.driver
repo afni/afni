@@ -532,9 +532,21 @@ SET_INDEX     [c] ijk
   same as 'index' displayed in the top left corner of AFNI's controller when
   Datamode-->Misc-->Voxel Coords is turned on.
 
+Get different kinds of information from the AFNI GUI
 GET_DICOM_XYZ [c]
 GET_IJK       [c]
-  Have AFNI print the controller current coordinates (to stdout).
+  Have AFNI print the controller current coordinates (to stdout by default -
+   see SET_OUTPLUG).
+GET_OLAY_VAL  [c]
+GET_THR_VAL   [c]
+GET_ULAY_VAL  [c]
+  Have AFNI print the controller value for underlay, overlay or threshold sub-bricks
+  at current coordinates (to stdout by default - see SET_OUTPLUG).
+GET_ULAY_NAME [c]
+GET_OLAY_NAME [c]
+  Have AFNI print the prefix of the dataset name for underlay or overlay
+  (to stdout by default - see SET_OUTPLUG).
+
 SET_OUTPLUG fname
   Set plugout drive commands like GET_DICOM_XYZ,GET_IJK,GETENV to append output
   to a selected text file. The default output is to stdout of the afni GUI rather
