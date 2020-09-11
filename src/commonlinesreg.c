@@ -47,6 +47,7 @@ int FFT2D(COMPLEX **c,int nx,int ny,int dir);
 int FFT(int dir,int m,double *x,double *y);
 int Powerof2(int n,int *m,int *twopm);
 int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT);
+int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din);
 
 int main( int argc, char *argv[] )  {
     THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj, *doddSagProjPad;
@@ -59,7 +60,7 @@ int main( int argc, char *argv[] )  {
         switch(argv[i][1]){
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName, outputFileNames, din, **TwoDFt);
+                return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
             sprintf(inputFileName,"%s",argv[i]);
             break;
 
@@ -96,10 +97,12 @@ int main( int argc, char *argv[] )  {
     DSET_delete(doddSagProj);
 
     // Make Fourier transforms of projections
-    if (!(get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT)))
+    if (!(get2DFourierTransform(doddSagProjPad, &TwoDFt)))
         Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
 
     // Output Fourier spectra, of projections.
+    if (!(outputFourierSpectrum(TwoDFt, doddSagProjPad)))
+        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
     // TODO: Add code
 
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
@@ -110,9 +113,59 @@ int main( int argc, char *argv[] )  {
     return 1;
 }
 
+int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din){
+    int  x, y, inc;
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputFileName;
+    float   *outData;
+    char  appendage[] = "FTSpect";
+    COMPLEX *row;
+
+    // Determine input dimensions
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+
+    // Make output array
+    if (!(outData=(float*)malloc(nx*ny*sizeof(float)))) return 0;
+
+    // Fill output data with Fourier spectral data
+    for (y=inc=0; y<ny; ++y){
+        row = TwoDFT[y];
+        for (x=0; x<nx; ++x)
+            outData[inc++]=hypot(row[x].real,row[x].imag);
+    }
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+64))){
+       free(outData);
+       return 0;
+    }
+
+    // Determine whether output file already exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+
+    // Output Fourier spectrum image (if it does not already exist)
+    if (!outputFileExists){
+        THD_3dim_dataset *dout = EDIT_empty_copy(din);
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+        EDIT_dset_items( dout ,
+                        ADN_prefix, outputFileName,
+                        ADN_none ) ;
+        EDIT_substitute_brick(dout, 0, MRI_float, outData);
+        DSET_write(dout);
+    }
+
+    // Cleanup
+    free(outputFileName);
+
+    return 1;
+}
+
 int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
     int x, y, inc;
     float   *inputImage;
+    COMPLEX *row;
 
     // Get dimensions
     int ny = DSET_NY(din);
@@ -120,7 +173,7 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
 
     // Allocate memory to complex Fourier plane
     if (!(*TwoDFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) return 0;
-    for (y=0; y<ny: ++y) if (!((*TwoDFT)[y]=(COMPLEX *)malloc(nx*sizeof(COMPLEX)))){
+    for (y=0; y<ny; ++y) if (!((*TwoDFT)[y]=(COMPLEX *)calloc(nx,sizeof(COMPLEX)))){
         for (--y; y>=0; --y) free((*TwoDFT)[y]);
         free((*TwoDFT));
         return 0;
@@ -129,13 +182,14 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
     // Fill real components with spatial image data
     inputImage = DSET_ARRAY(din, 0);
     for (y=inc=0; y<ny; ++y){
+        row = (*TwoDFT)[y];
         for (x=0; x<nx; ++x)
-            (*TwoDFT)[y][x] = inputImage[inc++];
+            row[x].real = inputImage[inc++];
     }
 
     // Fouier transform plane
-    if (!FFT2D(COMPLEX **c,int nx,int ny,int dir)){
-        for (y=0; y<ny: ++y) free((*TwoDFT)[y]);
+    if (!FFT2D(*TwoDFT, nx, ny, 1)){
+        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
         free(*TwoDFT);
         *TwoDFT = NULL;
         return 0;
@@ -201,10 +255,6 @@ int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int larges
                     ADN_nxyz      , iv_nxyz ,
                     ADN_none ) ;
     EDIT_substitute_brick(*dout, 0, MRI_float, outData);
-
-    // Debug: Get output dimensions
-    ny = DSET_NY(*dout);
-    nx = DSET_NX(*dout);
 
     // Output padded image to file
     if( !outputFileExists ) {  // If even file does not already exist
@@ -571,7 +621,6 @@ int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din,
 
     if (inputFileName) free(inputFileName);
     for (i=0; i<3; ++i) if (outputFileNames[i]) free(outputFileNames[i]);
-    if (din) free(din
 
     if (TwoDFt){
         ny = DSET_NY(din);
