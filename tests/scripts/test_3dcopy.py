@@ -10,7 +10,6 @@ def test_3dcopy_basic(data):
     3dcopy {data.anatomical} {outfile}
     """
     cmd = " ".join(cmd.format(**locals()).split())
-    # assert cmd == "bamboozle"
     # Run command and test all outputs match
     differ = tools.OutputDiffer(data, cmd)
     differ.run()
