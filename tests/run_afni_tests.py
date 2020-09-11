@@ -33,9 +33,10 @@ like...
 
 AFNIPY_ERR = """
 Tried and failed to import from afnipy. To solve this you can:
-A: install afnipy:
-    pip install afni/src/python_scripts
+A: Use the --build-dir option (see the help)
 B: define AFNI's installation directory using the --abin flag
+C: install afnipy... something like:
+    pip install afni/src/python_scripts
 """
 
 # Check the installation mode
@@ -59,7 +60,8 @@ from afni_test_utils.run_tests_examples import EXAMPLES, examples
 
 # Make imports when the user is doing something other than requesting help
 dep_reqs = minfunc.get_dependency_requirements()
-if dep_reqs == 'full' and not '--abin' in sys.argv:
+no_afnipy_imp = ['--abin', '--build-dir']
+if dep_reqs == 'full' and not any(pat in ''.join(sys.argv) for pat in no_afnipy_imp):
     try:
         import afnipy
     except ImportError as err:
