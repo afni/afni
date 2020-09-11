@@ -163,9 +163,9 @@ int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din){
 }
 
 int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
-    int x, y, inc;
+    int x, y, X, Y, inc;
     float   *inputImage;
-    COMPLEX *row;
+    COMPLEX *row, *newRow, **centeredFT;
 
     // Get dimensions
     int ny = DSET_NY(din);
@@ -194,6 +194,39 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
         *TwoDFT = NULL;
         return 0;
     }
+
+    // Center Fourier transform
+    if (!(centeredFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) {
+        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
+        free(*TwoDFT);
+        *TwoDFT = NULL;
+        return 0;
+    }
+    for (y=0; y<ny; ++y) if (!(centeredFT[y]=(COMPLEX *)calloc(nx,sizeof(COMPLEX)))){
+        for (--y; y>=0; --y) free(centeredFT[y]);
+        free(centeredFT);
+        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
+        free(*TwoDFT);
+        *TwoDFT = NULL;
+        return 0;
+    }
+    for (y=0, Y=ny/2; Y<ny; ++y, ++Y){
+        newRow=centeredFT[Y];
+        row = (*TwoDFT)[y];
+        for (x=0, X=nx/2; X<nx; ++x, ++X){
+            newRow[x]=row[X];
+            newRow[X]=row[x];
+        }
+        newRow=centeredFT[y];
+        row = (*TwoDFT)[Y];
+        for (x=0, X=nx/2; X<nx; ++x, ++X){
+            newRow[x]=row[X];
+            newRow[X]=row[x];
+        }
+    }
+    for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
+    free(*TwoDFT);
+    *TwoDFT = centeredFT;
 
     return 1;
 }
