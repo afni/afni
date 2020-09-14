@@ -66,6 +66,11 @@ echo "$N_change redundant help files deleted, $nleft help files left."
 echo "Combining all command completions into all_progs.COMP(.bash)"
 cat *.complete > all_progs.COMP
 cat *.complete.bash > all_progs.COMP.bash
+
+# do this for zsh, if the files exist
+if ( -f afni.complete.zsh ) then
+   cat *.complete.zsh > all_progs.COMP.zsh
+endif
    
 # suggest to the user how to apply this, based on $SHELL
 #Get the user's shell type
@@ -98,7 +103,6 @@ if ("$shh" == 'csh' || "$shh" == 'tcsh') then
    endif
 else if ("$shh" == 'bash') then
    echo "Combining all command completions into all_progs.COMP.bash"
-   cat *.complete.bash > all_progs.COMP.bash
    \grep all_progs.COMP.bash ~/.bashrc > & /dev/null
    set is_set = $status
    if ($is_set != 0) then
@@ -121,6 +125,31 @@ else if ("$shh" == 'bash') then
       echo ""
       echo "For the updates to take effect in this shell, run:"
       echo ". ~/.bashrc"
+      echo "Otherwise just open a new shell."
+      echo ""
+   endif
+else if ("$shh" == 'zsh') then
+   echo "Combining all command completions into all_progs.COMP.zsh"
+   \grep all_progs.COMP.zsh ~/.zshrc > & /dev/null
+   set is_set = $status
+   if ($is_set != 0) then
+      echo ""
+      echo "Add the following lines to your ~/.zshrc"
+      echo ''
+      echo ''
+      echo 'ahdir=`apsearch -afni_help_dir`'
+      echo 'if [ -f "$ahdir/all_progs.COMP.zsh" ]'
+      echo 'then'
+      echo '   . $ahdir/all_progs.COMP.zsh'
+      echo 'fi'
+      echo ''
+      echo 'Then run from this shell: . ~/.zshrc'
+      echo 'or just open a new shell'
+      echo ''
+   else
+      echo ""
+      echo "For the updates to take effect in this shell, run:"
+      echo ". ~/.zshrc"
       echo "Otherwise just open a new shell."
       echo ""
    endif
