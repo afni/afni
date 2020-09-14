@@ -218,7 +218,7 @@ static char * MRI_TYPE_name[9] =
 #define MRI_type_string(iq) \
   ( ((iq) < 0 || (iq) > LAST_MRI_TYPE ) ? "unknown" : MRI_TYPE_name[iq] )
 
-#define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
+#define MRI_TYPE_NAME(imm)  MRI_type_string((imm)->kind)
 
 /*! Max value of a byte. */
 
@@ -1064,6 +1064,7 @@ extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
+extern void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask ) ;
 
 extern MRI_IMAGE * mri_4to_rgba( MRI_IMAGE *rim , MRI_IMAGE *gim , MRI_IMAGE *bim , MRI_IMAGE *aim ) ;
 extern MRI_IMARR * mri_rgba_to_4float( MRI_IMAGE *oldim ) ;

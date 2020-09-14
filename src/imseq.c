@@ -1758,6 +1758,14 @@ if( PRINT_TRACING ){
      MCW_reghint_children(newseq->wbar_amask_bbox->wrowcol,"Automatically zero out image exterior") ;
    }
 
+   { char *blab[1] = { "Invert?" } ;
+     newseq->wbar_invrt_bbox = new_MCW_bbox( newseq->wbar_menu ,  /* 14 Jun 2010 */
+                                             1 , blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             ISQ_wbar_invrt_CB , (XtPointer)newseq ) ;
+     MCW_reghint_children(newseq->wbar_invrt_bbox->wrowcol,"Invert contrast?") ;
+   }
+
 
    newseq->wbar_flat_but =
       XtVaCreateManagedWidget(
@@ -4004,6 +4012,12 @@ STATUS("call ISQ_perpoints") ;
      }
    } else {
        KILL_1MRI(seq->last_automask) ;
+   }
+
+   /* 14 Sep 2020: invert contrast */
+
+   if( MCW_val_bbox(seq->wbar_invrt_bbox) > 0 ){
+     mri_invertcontrast_inplace( newim , 91.1f , NULL ) ;
    }
 
    /** Aug 31, 1995: put zer_color in at bottom, if nonzero **/
@@ -9238,6 +9252,16 @@ void ISQ_wbar_amask_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
 ENTRY("ISQ_wbar_amask_CB") ;
    KILL_1MRI(seq->last_automask) ;
+   if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void ISQ_wbar_invrt_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
+ENTRY("ISQ_wbar_invrt_CB") ;
    if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
    EXRETURN ;
 }
