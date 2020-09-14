@@ -135,25 +135,25 @@ PARSE:
    set shh = ''
    set cnt = 1
    while ($cnt <= $Narg)
-		set donext = 1;
+      set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
          set echo
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
 
       if ($donext && "$argv[$cnt]" == "-quiet") then
          set quiet = 1
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
 
       if ($donext && "$argv[$cnt]" == "-verb") then
          set quiet = 0
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
       
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
          goto HELP
-         set donext = 0;	 goto NEXT	
+         set donext = 0;    goto NEXT  
       endif
       
       if ($donext == 1) then
@@ -162,8 +162,8 @@ PARSE:
       endif
       
       NEXT:
-		@ cnt ++
-	end
+      @ cnt ++
+   end
    
    if ("$uhdir" != '') set hdir = $uhdir
       
