@@ -80,6 +80,7 @@ history for $prog :
   3.14 29 Apr 2020 : default recur from pub/dist/bin/misc
                    - terminate on failed test download
   3.15  4 May 2020 : fixed download of test file
+  3.16  7 Jul 2020 : populate .zshrc like .bashrc
 
 -------------------------------------------------------------------------------
 EOF
@@ -88,7 +89,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.15, May 4, 2020"
+set aub_version = "3.16, July 7, 2020"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -1281,35 +1282,37 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       endif
 
       # ---------------------------
-      # do this for .bashrc, too...
-      set brcfile = ~/.bashrc
-      # to simplify, make sure the file exists
-      if ( ! -f $brcfile ) touch $brcfile
+      # do this for .bashrc and .zshrc, too...
+      # (be lazy and just populate)
+      foreach brcfile ( ~/.bashrc ~/.zshrc )
+         # to simplify, make sure the file exists
+         if ( ! -f $brcfile ) touch $brcfile
 
-      # and possibly edit
-      \grep $abin:t $brcfile >& /dev/null
-      if ( $status ) then
-         # not found, so append to file
-         echo "++ adding $abin to PATH in $brcfile ..."
-         # add a newline, just in case
-         echo ''                                           >> $brcfile
-         echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
-         echo 'export PATH=$PATH:'$abin                    >> $brcfile
-      endif
-
-      # bash: set DYLD_LIBRARY_PATH on macs (.bashrc)
-      if ( $sysname == Darwin ) then
-         \grep $flatdir $brcfile >& /dev/null
+         # and possibly edit
+         \grep $abin:t $brcfile >& /dev/null
          if ( $status ) then
-            # finally, update .csrhc and our current path
-            echo "++ setting DYLD_LIBRARY_PATH in $brcfile ..."
-            # newline, in case they are missing one?
+            # not found, so append to file
+            echo "++ adding $abin to PATH in $brcfile ..."
+            # add a newline, just in case
             echo ''                                           >> $brcfile
             echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
-            echo 'export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:'$flatdir \
-                                                              >> $brcfile
+            echo 'export PATH=$PATH:'$abin                    >> $brcfile
          endif
-      endif
+
+         # bash: set DYLD_LIBRARY_PATH on macs (.bashrc)
+         if ( $sysname == Darwin ) then
+            \grep $flatdir $brcfile >& /dev/null
+            if ( $status ) then
+               # finally, update .csrhc and our current path
+               echo "++ setting DYLD_LIBRARY_PATH in $brcfile ..."
+               # newline, in case they are missing one?
+               echo ''                                           >> $brcfile
+               echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+               echo 'export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:'$flatdir \
+                                                                 >> $brcfile
+            endif
+         endif
+      end # .bashrc/.zshrc loop
 
       # ---------------------------
       # and .bash_profile, but only if it exists (unless on a mac, sigh)
@@ -1424,6 +1427,37 @@ fi
 
 EOF
 
+   endif
+
+   # udpates for zsh
+   set brcfile = ~/.zshrc
+   \grep all_progs.COMP.zsh $brcfile >& /dev/null
+   set pstatus = $status
+   if ( -f $brcfile && $pstatus ) then
+      echo "++ adding source of all_progs.COMP.zsh to $brcfile"
+
+      cat << EOF >> $brcfile
+
+# set up tab completion for AFNI programs
+if [ -f \$HOME/.afni/help/all_progs.COMP.zsh ]
+then
+   . \$HOME/.afni/help/all_progs.COMP.zsh
+fi
+
+EOF
+   endif
+
+   # zsh: warn user if all_progs.COMP.bash is sourced
+   \grep all_progs.COMP.bash $brcfile >& /dev/null
+   if ( ! $status ) then
+      echo ""
+      echo "**************************************************************"
+      echo "** warning: all_progs.COMP.bash is sourced from $brcfile,"
+      echo "**          please remove bash version"
+      echo "**"
+      echo "**  -> so keep all_progs.COMP.zsh, but not all_progs.COMP.bash"
+      echo "**************************************************************"
+      echo ""
    endif
 
 endif

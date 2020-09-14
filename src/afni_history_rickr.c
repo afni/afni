@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Sep, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "update .zshrc: set PATH and DYLD_L_P..., and source all_progs.COMP.zsh",
+   NULL
+ } ,
+
  { 14, Sep, 2020, RCR, "apsearch", MINOR, TYPE_ENHANCE,
    "create complete.zsh files - like bash ones, but cleaned a little",
    NULL
