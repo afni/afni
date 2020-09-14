@@ -1365,6 +1365,12 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
 
+3dBallMatch.o:3dBallMatch.c thd_ballcorr.c
+
+3dBallMatch:3dBallMatch.o
+	$(RM) $@
+	$(CC) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
+
 # --------------------------------------------------------------------------
 # this is the list of nonlinear warping program, and is here just for Zhark
 # --------------------------------------------------------------------------
@@ -2481,7 +2487,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o mri_invert.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
