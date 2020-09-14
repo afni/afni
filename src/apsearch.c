@@ -228,7 +228,10 @@ int apsearch_usage(TFORM targ, int detail)
 "                                to allow option autocompletion for program\n"
 "                                PROG.\n"
 "                          See also option -bash and -update_all_afni_help\n" 
+"                          See also option -zsh and -update_all_afni_help\n" 
 "  -bash: Use bash format for the complete command. Default is csh/tcsh\n"
+"         This option MUST PRECEDE option -popts_complete_command\n"
+"  -zsh: Use zsh format for the complete command. Default is csh/tcsh\n"
 "         This option MUST PRECEDE option -popts_complete_command\n"
 "  -ci: Case insensitive search (default)\n"
 "  -cs: Case sensitive search\n"
@@ -255,7 +258,7 @@ int apsearch_usage(TFORM targ, int detail)
 "                  Little differences would be the compile date or the\n"
 "                  version number. See @clean_help_dir code for details.\n"
 "                  This option also creates autocompletion code for \n"
-"                  csh/tcsh and bash shells.\n"
+"                  csh/tcsh, bash and zsh shells.\n"
 "  -recreate_all_afni_help: Like -update_all_afni_help but force receration\n"
 "                           even if nothing changed in the help\n"
 "  -afni_help_dir: Print afni help directory location and quit.\n"
@@ -1051,6 +1054,12 @@ int main(int argc, char **argv)
       
       
       if (strcmp(argv[iarg],"-bash") == 0) {
+         shtp = 1;
+         ++iarg; 
+         continue;
+      }
+      
+      if (strcmp(argv[iarg],"-zsh") == 0) {
          shtp = 1;
          ++iarg; 
          continue;

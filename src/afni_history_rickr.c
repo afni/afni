@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Sep, 2020, RCR, "apsearch", MINOR, TYPE_ENHANCE,
+   "create complete.zsh files - like bash ones, but cleaned a little",
+   NULL
+ } ,
+
  {  2, Sep, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "add options -show_field and -show_field_names",
    "Using the new -show_field option, for each entry one can show:\n"
