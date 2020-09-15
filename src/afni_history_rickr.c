@@ -54,7 +54,7 @@
 afni_history_struct rickr_history[] = {
 
  { 15, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
-   "whine if .zshrc references all_progs.COMP.bash",
+   "whine if .zshrc references all_progs.COMP.bash; backup for distro",
    NULL
  } ,
 

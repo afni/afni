@@ -222,7 +222,9 @@ g_history = """
    1.10 Sep  4, 2020
         - for zsh, look for .zshrc rather than .zshenv
         - remove 'some progs need 2.7.x' warning for python 3+
-   1.11 Sep 15, 2020 - whine if .zshrc references all_progs.COMP.bash
+   1.11 Sep 15, 2020
+        - whine if .zshrc references all_progs.COMP.bash
+        - some python 3.8 distribution do not come with distro
 """
 
 g_version = "afni_system_check.py version 1.11, September 15, 2020"
