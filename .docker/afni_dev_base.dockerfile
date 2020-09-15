@@ -144,6 +144,7 @@ RUN pip install \
         codecov \
         cython \
         datalad \
+        distro \
         ipython \
         matplotlib \
         nibabel \
