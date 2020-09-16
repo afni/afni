@@ -199,7 +199,7 @@ commands:
 
             # add hack for git upgrade to not raise an error
             set +o pipefail
-            brew upgrade --force git| true
+            brew upgrade --force git || true
             set -o pipefail
 
             # Install dependency list
