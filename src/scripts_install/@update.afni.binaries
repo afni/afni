@@ -80,7 +80,7 @@ history for $prog :
   3.14 29 Apr 2020 : default recur from pub/dist/bin/misc
                    - terminate on failed test download
   3.15  4 May 2020 : fixed download of test file
-  3.16  7 Jul 2020 : populate .zshrc like .bashrc
+  3.16 16 Sep 2020 : populate .zshrc like .bashrc, and with autoload commands
 
 -------------------------------------------------------------------------------
 EOF
@@ -89,7 +89,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.16, July 7, 2020"
+set aub_version = "3.16, September 16, 2020"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -1383,7 +1383,8 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
 
       cat << EOF >> $rcfile
 
-# set up tab completion for AFNI programs
+# auto-inserted by @update.afni.binaries :
+#    set up tab completion for AFNI programs
 if ( -f \$HOME/.afni/help/all_progs.COMP ) then
    source \$HOME/.afni/help/all_progs.COMP
 endif
@@ -1399,7 +1400,8 @@ EOF
 
       cat << EOF >> $brcfile
 
-# set up tab completion for AFNI programs
+# auto-inserted by @update.afni.binaries :
+#    set up tab completion for AFNI programs
 if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
 then
    . \$HOME/.afni/help/all_progs.COMP.bash
@@ -1419,7 +1421,8 @@ EOF
 
       cat << EOF >> $brcfile
 
-# set up tab completion for AFNI programs
+# auto-inserted by @update.afni.binaries :
+#    set up tab completion for AFNI programs
 if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
 then
    . \$HOME/.afni/help/all_progs.COMP.bash
@@ -1438,7 +1441,10 @@ EOF
 
       cat << EOF >> $brcfile
 
-# set up tab completion for AFNI programs
+# auto-inserted by @update.afni.binaries :
+#    set up tab completion for AFNI programs
+autoload -U +X bashcompinit && bashcompinit
+autoload -U +X compinit && compinit
 if [ -f \$HOME/.afni/help/all_progs.COMP.zsh ]
 then
    . \$HOME/.afni/help/all_progs.COMP.zsh
