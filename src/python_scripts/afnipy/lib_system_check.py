@@ -887,6 +887,58 @@ class SysInfo:
             print("%s = " % evar)
       print('')
 
+      self.check_for_bash_complete_under_zsh()
+
+   def check_for_bash_complete_under_zsh(self):
+      """check for source of all_progs.COMP.bash in .zshrc and similar files
+
+         whine if:
+            all_progs.COMP.bash is referenced on a line before a comment char
+      """
+      badfile = 'all_progs.COMP.bash'
+      goodfile = 'all_progs.COMP.zsh'
+      for zfile in ['.zshrc', '.zshenv', '.zprofile']:
+         zpath = '%s/%s' % (self.home_dir, zfile)
+
+         # if the file is missing, skip
+         if not os.path.isfile(zpath):
+            continue
+
+         # otherwise, search the lines of the found file
+         lines = UTIL.read_text_file(zpath, lines=1, verb=0)
+
+         for zline in lines:
+            # note any bad file name or comment character
+            badposn = zline.find(badfile)
+            composn = zline.find('#')
+
+            # if there is no bad text, skip line
+            if badposn < 0:
+               continue
+
+            # if there is a comment character to the left of the bad word, skip
+            if composn >= 0 and composn < badposn:
+               continue
+
+            # -----------------------------------------------------------
+            # so we have found the bad file name without any comment char
+
+            whine = 'reference to %s in %s, might comment or remove' \
+                    % (badfile, zfile)
+            self.comments.append(whine)
+
+            if self.verb > 1:
+               print("** %s" % whine)
+               print("   (please reference %s, instead)" % goodfile)
+
+               zcomp = '%s/.afni/help/%s' % (self.home_dir, goodfile)
+               if not os.path.isfile(zcomp):
+                  print("** also, missing %s" % zcomp)
+                  print("   consider running: apsearch -update_all_afni_help")
+
+            # finished whining, we are done with this file
+            break
+
    def split_env_var(self, evar, sep=':'):
       """get env var and split on sep, returning list"""
 
