@@ -511,10 +511,10 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version: 1.0.3, March 14, 2019
-Author:  Gang Chen (gangchen@mail.nih.gov)
-         SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
-Website: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+Version 1.1.0, Sept 12, 2020
+Author: Gang Chen (gangchen@mail.nih.gov)
+Website - https://afni.nimh.nih.gov/MEMA
+SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
       
@@ -525,9 +525,8 @@ Please consider citing the following if this program is useful for you:
 
    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
-
-And see additional descriptions here:
-   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+   
+   https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
    
 #######################################################################"
    )
@@ -540,85 +539,51 @@ help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 '
 Usage:
 ------ 
- 3dMEMA is a program for performing Mixed Effects Meta Analysis
- at group level that models both within- and across- subjects
- variability, thereby requiring both regression coefficients, or
- general linear contrasts among them, and the corresponding
- t-statistics from each subject as input.  To get accurate
- t-statistics, 3dREMLfit should be used for the linear
- regression (a GLS regression program using an ARMA(1,1) model
- for the noise), rather than 3dDeconvolve.
+ 3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
+ that models both within- and across- subjects variability, thereby requiring
+ both regression coefficients, or general linear contrasts among them, and the 
+ corresponding t-statistics from each subject as input.  To get accurate 
+ t-statistics, 3dREMLfit should be used for the linear regression (a GLS
+ regression program using an ARMA(1,1) model for the noise), rather than
+ 3dDeconvolve.
 
- It\'s required to install R (https://www.r-project.org/), plus the
- \'snow\' package if parallel computing is desirable. Version
- 1.0.1, Dec 21, 2016. If you want to cite the analysis approach,
- use the following at this moment:
+ It\'s required to install R (https://www.r-project.org/), plus \'snow\' package
+ if parallel computing is desirable. Version 1.0.1, Dec 21, 2016. If you want to
+ cite the analysis approach, use the following at this moment:
 
     Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
     and Their Variances. NeuroImage. NeuroImage 60: 747-765.
-    https://pubmed.ncbi.nlm.nih.gov/22245637/
-
- The basic usage of 3dMEMA is to derive group effects of a
- condition, contrast, or linear combination (GLT) of multiple
- conditions. It can be used to analyze data from one, two, or
- multiple groups. However, if there are more than two groups or
- more than one subject-grouping variables (e.g., sex,
- adolescent/adults, genotypes, etc.) involved in the analysis,
- dummy coding (zeros and ones) the variables as covariates is
- required, and extremely caution should be exercised in doing so
- because different coding strategy may lead to different
- interpretation. In addition, covariates (quantiative variables)
- can be incorporated in the model, but centering and potential
- interactions with other effects in the model should be
- considered.
  
- Basically, 3dMEMA can run one-sample, two-sample, and all types
- of BETWEEN-SUBJECTS ANOVA and ANCOVA. Within-subject variables
- mostly cannot be modeled, but there are a few exceptions. For
- instance, paired-test can be performed through feeding the
- contrast of the two conditons as input. Multi-way ANOVA can be
- analyzed under the following two scnearios: 1) all factors have
- only two levels (e.g., 2 X 2 repeated- measures ANOVA) can be
- analyzed; or 1) there is only one within-subject (or
- repeated-measures) factor and it contains two levels only. See
- more details at:
+ The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
+ or linear combination (GLT) of multiple conditions. It can be used to analyze
+ data from one, two, or multiple groups. However, if there are more than two
+ groups or more than one subject-grouping variables (e.g., sex, adolescent/adults,
+ genotypes, etc.) involved in the analysis, dummy coding (zeros and ones) the 
+ variables as covariates is required, and extremely caution should be exercised 
+ in doing so because different coding strategy may lead to different 
+ interpretation. In addition, covariates (quantiative variables) can be 
+ incorporated in the model, but centering and potential interactions with other 
+ effects in the model should be considered. 
  
-   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+ Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
+ ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
+ a few exceptions. For instance, paired-test can be performed through feeding the 
+ contrast of the two conditons as input. Multi-way ANOVA can be analyzed under the
+ following two scnearios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
+ measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
+ repeated-measures) factor and it contains two levels only. See more details at
+ 
+ https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 
- and/or in this paper:  https://pubmed.ncbi.nlm.nih.gov/22245637/
-
- ... from which the following excerpt on calculated quantities
- originates:
-
-   The software outputs the estimate (5) for each effect of
-   interest at the population level, and its corresponding
-   significance testing statistic TKH, plus the cross-subject
-   heterogeneity estimate (tau-hat)^2 and its Q-statistic. 3dMEMA
-   also provides λi, the proportion of total variability that
-   originates from the ith subject based on (18), and
-   Z-value (19) for the significance of residuals of the ith
-   subject. When the outlying within-subject variance is
-   relatively too big or small and when cross-subject variance is
-   moderate or large, the slightly liberal control of type I
-   errors in TKH especially with the Laplacian assumption may be
-   of some concern. However, the effect of potentially increased
-   false positives would be relatively negligible with regard to
-   cluster thresholding in multiple testing correction. When
-   comparing two groups, the investigator can presume the same or
-   different within-group variability (homo- or hetero-
-   scedasticity) in 3dMEMA, and in the latter case the two
-   within-group variances and their ratios are also provided.
-
-
- Notice: When comparing two groups, option "-groups groupA groupB" 
- has to be present, and the output includes the difference of
- groupB - groupA, which is consistent with most AFNI convention
- except for 3dttest++ where groupA - groupB is rendered.'
+ Notice:  When comparing two groups, option "-groups groupA groupB" has to be
+ present, and the output includes the difference of groupB - groupA, which is
+ consistent with most AFNI convention except for 3dttest++ where groupA - groupB is
+ rendered.'
    
    ex1 <- 
 "
-Example 1 --- One-sample type (one regression coefficient or general  
-linear contrast from each subject in a group):
+Example 1 --- One-sample type (one regression coefficient or general linear 
+contrast from each subject in a group):
 --------------------------------
       3dMEMA   -prefix ex1  \\
                -jobs 4      \\
@@ -643,14 +608,13 @@ linear contrast from each subject in a group):
                -model_outliers \\        
                -residual_Z     \n"      
    ex2 <- 
-"Example 2 --- Two-sample type (one regression coefficient or
-general linear contrast from each subject in two groups with the
-constrast being the 2nd group subtracing the 1st one),
-heteroskedasticity (different cross-subjects variability between
-the two groups), outlier modeling, covariates centering, no
-payment no interest till Memorial Day next year. Notice that
-option -groups has to be present in this case, and the output
-includes the difference of the second group versus the first one.
+"Example 2 --- Two-sample type (one regression coefficient or general linear
+contrast from each subject in two groups with the constrast being the 2nd group 
+subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
+between the two groups), outlier modeling, covariates centering, no payment no 
+interest till Memorial Day next year. Notice that option -groups has to be
+present in this case, and the output includes the difference of the second group
+versus the first one.
 -------------------------------------------------------------------------
    3dMEMA   -prefix ex3  \\
             -jobs 4      \\
@@ -788,10 +752,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "                            pb05.Jane.Regression+tlrc'[face#0_Tstat]' \\\n" 
                         ) ),
                         
-#      '-conditions' = apl(n = c(1,2), h = paste (
-#   "-conditions COND1 [COND2]: Name of 1 or 2 conditions, tasks, or GLTs.\n",
-#   "                           Default is one condition named 'c1'\n"   
-#                  ) ),
+      '-conditions' = apl(n = c(1,2), h = paste (
+   "-conditions COND1 [COND2]: Name of 1 or 2 conditions, tasks, or GLTs.\n",
+   "                           Default is one condition named 'c1'\n"   
+                  ) ),
                   
       '-max_zeros' = apl(n = 1, d = 0, h = paste(
    "-max_zeros MM: Do not compute statistics at any voxel that has \n",
@@ -1009,7 +973,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              jobs   = lop$nNodes <- ops[[i]],
              groups = lop$grpName <- ops[[i]],
-#             conditions = lop$conLab <- ops[[i]],
+             conditions = lop$conLab <- ops[[i]],
              set  = lop <- MEMA.parse.set(lop, ops[[i]]),
              n_nonzero = lop$nNonzero <- ops[[i]],
              max_zeros = lop$nMaxzero <- ops[[i]],
@@ -2261,46 +2225,46 @@ tTop <- 100   # upper bound for t-statistic
       }
    }
    
-#   if(lop$anaType==3) {  # case with two conditions
-#      for(ii in 1:lop$nLevel) {
-#         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
-#         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
-#         lop$varList[[ii]] <- 
-#            mapply(function(x, y) 
-#                   ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
-#                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
-#         for (jj in 1:lop$nSubj[1]) 
-#            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+   if(lop$anaType==3) {  # case with two conditions
+      for(ii in 1:lop$nLevel) {
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
+         lop$varList[[ii]] <- 
+            mapply(function(x, y) 
+                   ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
+                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
+         for (jj in 1:lop$nSubj[1]) 
+            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
                 # replace those 0 variances with a big number
-#      }
-#      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
-#         grpDFList <- vector('list', lop$nLevel)      
+      }
+      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
+         grpDFList <- vector('list', lop$nLevel)      
          # missing data is defined as 0 values at each voxel
-#         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
-#            for(ii in 1:lop$nLevel) {
+         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
+            for(ii in 1:lop$nLevel) {
                # here grpDFList[[ii]] is the number of 0 variances at each voxel for ii-th group
-#               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
+               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
                # add #0s in other subjects in the group
-#               for(jj in 2:lop$nSubj[1]) 
-#               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
-#            } } 
-#         } else 
-#         if(is.character(lop$missing_dataFN))  # missing data info provided by user
-#            for(ii in 1:lop$nLevel) {
-#               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
-#                                    verb=lop$verb, meth=lop$iometh)$brk
-#            }
-###      }
+               for(jj in 2:lop$nSubj[1]) 
+               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
+            } } 
+         } else 
+         if(is.character(lop$missing_dataFN))  # missing data info provided by user
+            for(ii in 1:lop$nLevel) {
+               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
+                                    verb=lop$verb, meth=lop$iometh)$brk
+            }
+      }
    
       # 2nd minus 1st: keep consistent with 3dttset and the two-sample types 2 and 4
-#      contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
-#      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
-#                              SIMPLIFY = FALSE)
+      contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
+      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
+                              SIMPLIFY = FALSE)
       
       # if one of the 2 conditions has 0 t-value, force the contrast beta ZERO here
       # even if the other beta is nonzerio since it's not worth considering a contrast for this voxel      
-#      for (jj in 1:lop$nSubj[1]) contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
-#   }
+      for (jj in 1:lop$nSubj[1]) contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
+   }
    
    #rm(lop$tList)
    lop$tList <- list();
