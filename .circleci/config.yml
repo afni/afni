@@ -196,6 +196,12 @@ commands:
           command: |
             brew cask install xquartz
             brew unlink python@2
+
+            # add hack for git upgrade to not raise an error
+            set +o pipefail
+            brew upgrade --force git || true
+            set -o pipefail
+
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
             # note other useful dependencies:
