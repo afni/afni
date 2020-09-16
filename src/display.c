@@ -342,6 +342,8 @@ if(PRINT_TRACING){
                                RootWindowOfScreen(dc->screen) ,
                                GCFunction , &gcv ) ;
 
+     /** XSetFillRule( dc->display, dc->myGC, WindingRule ) ; **/
+
      xdef = XGetDefault(dc->display,"AFNI","gfont") ;
      if( xdef == NULL ) xdef = getenv("AFNI_GRAPH_FONT") ;
      if( xdef != NULL )
@@ -1123,10 +1125,10 @@ int DC_char_width( MCW_DC *dc , char ccc )  /* 18 Apr 2011 */
 
 /*-------------------------------------------------------------------*/
 
-Boolean MCW_check_iconsize( int width , int height , MCW_DC *dc )
+RwcBoolean MCW_check_iconsize( int width , int height , MCW_DC *dc )
 {
    int ii ;
-   Boolean good ;
+   RwcBoolean good ;
    int nsl = 0 ;
    XIconSize * xsl = NULL ;
 

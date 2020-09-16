@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.14, Oct 17, 2019
+Version 0.0.15, May 11, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -959,10 +959,10 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       oo <- vv(psa[jj,,,] - psa[kk,,,], ns, nR)
-      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5),   lop$outFN, 'region pairs') else {
-      prnt(90, 1, res(bb, oo, 0.1),   lop$outFN, 'region pairs')
-      prnt(95, 1, res(bb, oo, 0.05),  lop$outFN, 'region pairs')
-      prnt(95, 2, res(bb, oo, 0.025), lop$outFN, 'region pairs')
+      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5, 3),   lop$outFN, 'region pairs') else {
+      prnt(90, 1, res(bb, oo, 0.1, 3),   lop$outFN, 'region pairs')
+      prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
+      prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
       }
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) else

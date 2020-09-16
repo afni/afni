@@ -74,8 +74,8 @@ class SysInfo:
       else:                    note = '  (current shell is %s)' % curshell
 
       if logshell not in ['csh', 'tcsh']:
-         self.comments.append("login shell '%s', trusting user to translate" \
-                              " code examples from 'tcsh'" % logshell)
+         self.comments.append("just be aware: login shell '%s', but our code" \
+                              " examples use 'tcsh'" % logshell)
 
       print('apparent login shell: %s%s' % (logshell, note))
 
@@ -102,21 +102,22 @@ class SysInfo:
          # login shell ref: .profile"
          fname = '.profile'
          self.rc_file = fname
-         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
-            cc.append("shell sh  : found login shell setup file %s" % fname)
-         else: 
-            cc.append("shell sh  : MISSING login shell setup file %s" % fname)
+         if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
+            cc.append("shell sh : MISSING login shell setup file %s" % fname)
+         elif self.verb > 1: 
+            print("shell sh : good: found login shell setup file %s"%fname)
          
       if 'zsh' in slist:
          # general env file: .zshenv
-         # interactive file: .zprofile
+         # login shell file: .zprofile
+         # interactive file: .zshrc
          # order of files: .zshenv  .zprofile  .zshrc  .zlogin
-         fname = '.zshenv'
+         fname = '.zshrc'
          self.rc_file = fname
-         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
-            cc.append("shell zsh : good: found env shell setup file %s" %fname)
-         else: 
+         if not os.path.isfile('%s/%s' % (self.home_dir,fname)):
             cc.append("shell zsh : MISSING env shell setup file %s" % fname)
+         elif self.verb > 1: 
+            print("shell zsh : good: found env shell setup file %s" %fname)
          
 
       if 'bash' in slist:
@@ -684,7 +685,7 @@ class SysInfo:
 
       return 1
 
-   def get_shell_value(self, shell, evar, verb=0):
+   def get_shell_value(self, shell, evar):
       """really cheap way to grab a value from a new shell"""
       cmd = "%s -ci 'echo $%s'" % (shell, evar)
       s, so, se = UTIL.limited_shell_exec(cmd)
@@ -692,7 +693,7 @@ class SysInfo:
       if len(so) > 0: so = so[-1]
       else: so = ''
 
-      if verb:
+      if self.verb > 1:
          print('++ status = %s for command: %s' % (s, cmd))
          print('   stdout = %s' % so)
          se = '\n'.join(se)
@@ -707,8 +708,13 @@ class SysInfo:
       verlist = verlist[0].split('.')
       if len(verlist) < 2: return 0
       if verlist[0] != '10': return 0
-      try: vint = int(verlist[1])
-      except: return 0
+
+      # get version
+      try:
+         vint = int(verlist[1])
+      except:
+         print("** OSX ver: have Darwin, but dist = %s" % self.os_dist)
+         return 0
 
       # have something useful
       return vint
@@ -745,16 +751,14 @@ class SysInfo:
             print('%-20s : %s' % ('%s version'%prog, v))
             continue
 
-         # and python - add a comment if they are using version 3 (no continue)
-         #            - do not 'continue'
+         # and python - add a comment if they are using a version < 2.7
          elif prog == 'python':
             s, vstr = self.get_prog_version(prog)
             vf = self.get_python_ver_float()
             mesg = ''
-            if vf >= 3.0:
-               mesg = 'have python version %s, some programs need 2.7.x' % vstr
-            elif vf < 2.7:
-               mesg = 'have python version %s, consider using 2.7.x' % vstr
+            # (removed old warning for 3.0+)
+            if vf < 2.7:
+               mesg = 'have python version %s, consider using 2.7+' % vstr
             if mesg != '':
                self.comments.append(mesg)
 
@@ -864,19 +868,76 @@ class SysInfo:
                print('    %-20s%s' % (pdir, rstr))
             print('')
 
-   def show_path_vars(self, header=1):
+   def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
       for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if evar in os.environ:
+            if self.verb > 2: print("-- SEV: getting var from current env ...")
             print("%s = %s\n" % (evar, os.environ[evar]))
          elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+            if self.verb > 2:
+               print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
             print("%s (sub-shell) = %s" % (evar, so))
          else:
+            if self.verb > 2:
+               print("-- SEV: env var not set ...")
             print("%s = " % evar)
       print('')
+
+      self.check_for_bash_complete_under_zsh()
+
+   def check_for_bash_complete_under_zsh(self):
+      """check for source of all_progs.COMP.bash in .zshrc and similar files
+
+         whine if:
+            all_progs.COMP.bash is referenced on a line before a comment char
+      """
+      badfile = 'all_progs.COMP.bash'
+      goodfile = 'all_progs.COMP.zsh'
+      for zfile in ['.zshrc', '.zshenv', '.zprofile']:
+         zpath = '%s/%s' % (self.home_dir, zfile)
+
+         # if the file is missing, skip
+         if not os.path.isfile(zpath):
+            continue
+
+         # otherwise, search the lines of the found file
+         lines = UTIL.read_text_file(zpath, lines=1, verb=0)
+
+         for zline in lines:
+            # note any bad file name or comment character
+            badposn = zline.find(badfile)
+            composn = zline.find('#')
+
+            # if there is no bad text, skip line
+            if badposn < 0:
+               continue
+
+            # if there is a comment character to the left of the bad word, skip
+            if composn >= 0 and composn < badposn:
+               continue
+
+            # -----------------------------------------------------------
+            # so we have found the bad file name without any comment char
+
+            whine = 'reference to %s in %s, might comment or remove' \
+                    % (badfile, zfile)
+            self.comments.append(whine)
+
+            if self.verb > 1:
+               print("** %s" % whine)
+               print("   (please reference %s, instead)" % goodfile)
+
+               zcomp = '%s/.afni/help/%s' % (self.home_dir, goodfile)
+               if not os.path.isfile(zcomp):
+                  print("** also, missing %s" % zcomp)
+                  print("   consider running: apsearch -update_all_afni_help")
+
+            # finished whining, we are done with this file
+            break
 
    def split_env_var(self, evar, sep=':'):
       """get env var and split on sep, returning list"""
@@ -1261,7 +1322,7 @@ class SysInfo:
       self.show_general_sys_info()
       self.show_general_afni_info()
       self.show_python_lib_info()
-      self.show_path_vars()
+      self.show_env_vars()
       self.show_data_info()
       self.show_os_specific()
 
@@ -1277,6 +1338,7 @@ def distribution_string():
    sysname = platform.system()
    checkdist = 0        # set in any failure case
    dstr = 'bad pizza'
+   dtest = 'NOT SET'
 
    if sysname == 'Linux':
       # through python 3.7 (if they still use mac_ver, why not linux?)
@@ -1286,23 +1348,26 @@ def distribution_string():
          try:
             # python 3.4+
             import distro
-            dstr = tup_str(distro.linux_distribution( \
-                           full_distribution_name=False))
+            dtest = distro.linux_distribution(full_distribution_name=False)
+            dstr = tup_str(dtest)
          except:
             print("-- failed distro.linux_dist()")
             # deprecated since 2.6, but why not give it a try?
-            try:    dstr = tup_str(platform.dist())
+            dtest = platform.dist()
+            try:    dstr = tup_str(dtest)
             except: checkdist = 1
    elif sysname == 'Darwin':
-      try:    dstr = tup_str(platform.mac_ver())
+      dtest = platform.mac_ver()
+      try:    dstr = tup_str(dtest)
       except: checkdist = 1
    else:
-      try:    dstr = tup_str(platform.dist())
+      dtest = platform.dist()
+      try:    dstr = tup_str(dtest)
       except: checkdist = 1
 
    # backup plan
    if checkdist:
-      dstr = 'unknown %s' % sysname
+      dstr = 'unknown %s (%s)' % (sysname, dtest)
 
    return dstr
 

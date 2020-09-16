@@ -326,9 +326,9 @@ def db_cmd_tcat(proc, block):
                return
 
         cmd = cmd + "3dTcat -prefix %s/%s %s%s\n" \
-                    % (proc.od_var, pre_form, dset.rel_input(), selstr)
+                    % (proc.od_var, pre_form, dset.nice_input(), selstr)
 
-        proc.tlist.add(dset.rel_input(sel=1), pre_form, 'tcat', ftype='dset')
+        proc.tlist.add(dset.nice_input(sel=1), pre_form, 'tcat', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
@@ -381,7 +381,7 @@ def tcat_make_blip_in_for(proc, block):
 
     # populate proc.blip_in_for
     forinput = proc.prefix_form(block, 1, view=1)
-    revinput = proc.blip_in_rev.rel_input(sel=1)
+    revinput = proc.blip_in_rev.nice_input(sel=1)
     nt = UTIL.get_3dinfo_nt(revinput)
     if nt == 0: return 1, ''
 
@@ -2099,7 +2099,7 @@ def db_cmd_volreg(proc, block):
     # volreg base should now either be external or locally created
     if proc.vr_ext_base != None or proc.vr_int_name != '':
        proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
-       basevol = proc.vr_base_dset.rel_input()
+       basevol = proc.vr_base_dset.nice_input()
     else:
        print("** warning: basevol should always be set now")
        return
@@ -3364,7 +3364,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '%s'                                                          \
        '          --out-dir tedana_r$run\n'                          \
        'end\n\n'                                                     \
-       % (method, mstr, prev_prefix, proc.mask.rel_input(head=1), exoptstr)
+       % (method, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
 
 
    # ----------------------------------------------------------------------
@@ -10754,7 +10754,7 @@ g_help_notes = """
         rcr - todo
 
     In the case of multi-echo data, there are many things to consider.
-    -combine method
+    -combine_method
     -mask_epi_anat yes
     -blocks ... mask combine ...
 

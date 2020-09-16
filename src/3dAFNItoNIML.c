@@ -33,7 +33,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dAFNItoNIML main"); machdep(); PRINT_VERSION("3dAFNItoNIML");
    if( PRINT_TRACING ){
      STATUS("Enable mcw_malloc()");
-#ifndef DONT_USE_MCW_MALLOC
+#ifdef ALLOW_MCW_MALLOC
      enable_mcw_malloc();
 #endif
    }

@@ -23,6 +23,16 @@ This module will set the following variables in your project:
   true if the Motif headers and libraries were found.
 
 #]=======================================================================]
+if(NOT TARGET X11::Xt)
+message(FATAL_ERROR
+
+"If you are using Motif (libXm.so) you should also use find_package(X11) in
+cmake so that the XT target is available. The Motif find module forces them to
+be linked against consecutively  to prevent pernicious errors in the AFNI/SUMA
+builds"
+)
+endif()
+
 find_package(PkgConfig QUIET)
 pkg_check_modules(PC_MOTIF QUIET Motif)
 
@@ -63,7 +73,11 @@ if(MOTIF_FOUND)
                  "${MOTIF_LIBRARIES}" INTERFACE_INCLUDE_DIRECTORIES "${MOTIF_INCLUDE_DIR}"
     )
     get_target_property(TARGET_TYPE Motif TYPE)
-    target_link_options(Motif INTERFACE $<$<NOT:$<BOOL:APPLE>>:LINKER:--no-as-needed>)
+    target_link_options(Motif INTERFACE $<$<NOT:$<BOOL:${APPLE}>>:LINKER:--no-as-needed>)
+    set_target_properties(Motif 
+    PROPERTIES IMPORTED_LINK_INTERFACE_LIBRARIES 
+    X11::Xt
+    )
   endif()
   add_library(Motif::Motif ALIAS Motif)
 endif()

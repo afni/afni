@@ -25,9 +25,9 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.0, Sept 10, 2019
+Version 2.0.3, July 22, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/lme_model.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -53,7 +53,7 @@ Usage:
  
  Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
  
- In addition to R installtion, the following two R packages need to be acquired
+ In addition to R installation, the following two R packages need to be acquired
  in R first before running 3dLME: "nlme", "lme4" and "phia". In addition, the "snow"
  package is also needed if one wants to take advantage of parallel computing.
  To install these packages, run the following command at the terminal:
@@ -91,10 +91,14 @@ Usage:
    ex1 <- 
 "
 Example 1 --- one condition modeled with 8 basis functions (e.g., TENT or TENTzero)
-for one group of 13 subjects:
+for one group of 13 subjects. With the option -bounds, values beyond the range will
+be treated as outliers and considered as missing. If you want to set a range, choose
+the bounds that make sense with your input data.
 --------------------------------
    3dLME -prefix myOutput -jobs   4               \\
+         -mask myMask+tlrc                      \\
          -model '0+Time'                        \\
+         -bounds  -2 2                          \\
          -qVars order                           \\
          -qVarCenters 0                         \\
          -ranEff '~1'                              \\
@@ -122,10 +126,13 @@ for one group of 13 subjects:
 within-subject quantitative variable (reaction time, RT) and one between-
 subjects covariate (age). RT values don't differ significantly between the
 two conditions, and thus are centered via grand mean. Random effects are
-intercept and RT effect whose correlation is estimated from the data.
+intercept and RT effect whose correlation is estimated from the data. With 
+the option -bounds, values beyond [-2, 2] will be treated as outliers and 
+considered as missing.
 -------------------------------------------------------------------------
    3dLME -prefix Example2 -jobs 24                                         \\
           -model  \"cond*RT+age\"                                            \\
+          -bounds  -2 2                                                      \\
           -qVars \"RT,age\"                                                  \\
           -qVarCenters \"105.35,34.7\"                                       \\
           -ranEff '~1+RT'                                                  \\
@@ -157,8 +164,10 @@ conditions. These subjects with missing data would have to be abandoned in
 the traditional ANOVA approach. All subjects can be included with 3dLME, and
 a random intercept is considered.
 -------------------------------------------------------------------------
-   3dLME -prefix Example3 -jobs 24                                     \\
+   3dLME  -prefix Example3 -jobs 24                                     \\
+          -mask myMask+tlrc                                             \\
           -model  \"cond*group\"                                         \\
+          -bounds  -2 2                                                \\
           -ranEff '~1'                                                 \\
           -SS_type 3                                                   \\
           -num_glt 6                                                   \\
@@ -188,7 +197,9 @@ positive, negative, and neutral; Scanner: one, and two) plus subjects (factor
 Subj).
 -------------------------------------------------------------------------
    3dLME -prefix Example4 -jobs 12                                      \\
+         -mask myMask+tlrc                                              \\
           -model  \"1\"                                                   \\
+          -bounds  -2 2                                                 \\
           -ranEff 'Cond+Scanner+Subj'                                   \\
           -ICCb                                                         \\
           -dataTable                                                    \\
@@ -312,6 +323,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "-dbgArgs: This option will enable R to save the parameters in a",
    "         file called .3dLME.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
+
+       '-bounds' = apl(n=2, h = paste(
+   "-bounds lb ub: This option is for outlier removal. Two numbers are expected from",
+   "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
+   "         be confined within [lb, ub]: any values in the input data that are beyond",
+   "         the bounds will be removed and treated as missing. Make sure the first number",
+   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
        
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -346,7 +364,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         commas (,) without any other characters such as spaces and should",
    "         be surrounded within (single or double) quotes. The order of the",
    "         values should match that of the quantitative variables in -qVars.",
-   "         Default (absence of option -qVarsCetners) means centering on the",
+   "         Default (absence of option -qVarsCenters) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
@@ -358,7 +376,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         identified under -vVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
    "         values should match that of the quantitative variables in -qVars.",
-   "         Default (absence of option -vVarsCetners) means centering on the",
+   "         Default (absence of option -vVarsCenters) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the files are fed into -dataTable.\n",
@@ -507,11 +525,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not forget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable @table.txt'.",
-   "         This option is useful: (a) when there are many input files so that",
-   "         the program complains with an 'Arg list too long' error; (b) when",
-   "         you want to try different models with the same dataset.\n",
+   "         called table.txt. In the script specify the information with '-dataTable",
+   "         @table.txt'. This option is useful: (a) when there are many input",
+   "         files so that the program complains with an 'Arg list too long' error;",
+   "         (b) when you want to try different models with the same dataset.",
+   "         When the table is a stand-alone file, quotes should NOT be added around",
+   "         the sub-brick selector -- square brackets [...]. Also, there is no need",
+   "         to add a backslash at the end of each line.\n",
              sep = '\n'
                      ) ),
 
@@ -542,6 +562,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
       lop$ranEff <- NA
       lop$qVars  <- NA   
+      lop$bounds <- NULL
       lop$vVars  <- NA
       lop$vQV    <- NA
       lop$qVarCenters <- NA
@@ -580,6 +601,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              model  = lop$model  <- ops[[i]],
              ranEff = lop$ranEff  <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
+             bounds = lop$bounds <- ops[[i]],
              vVars  = lop$vVars <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
              vVarCenters = lop$vVarCenters <- ops[[i]],
@@ -775,6 +797,12 @@ process.LME.opts <- function (lop, verb = 0) {
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
+   if(!(is.null(lop$bounds))) {
+      if(lop$bounds[1] > lop$bounds[2])
+         errex.AFNI(paste0('Incorrect setting with option -bounds! The lower bound ', lop$bounds[1],
+            ' should be smaller than the upper bound ', lop$bounds[2], '!'))
+   }
+
    # when user asks for outputting random effects
    if(!is.na(lop$RE)) {
       lop$RE <- strsplit(lop$RE, '\\,')[[1]]
@@ -857,6 +885,8 @@ process.LME.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
+         lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
    }
 
    # number of fixed-effects variables involved in the model
@@ -944,11 +974,11 @@ process.LME.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk
+      lop$maskData <- mm$brk[,,,1]
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
    if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -1478,10 +1508,10 @@ if(lop$LOGIT)
 cat('Reading input files: Done!\n\n')
 
 if (!is.na(lop$maskFN)) {
-   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
+   #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
-   
+
 # voxel-wise covariate files
 if(!lop$LOGIT & !is.na(lop$vQV)) {
    tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
@@ -1519,15 +1549,31 @@ if(any(!is.na(lop$vVars))) {
    lop$nVVars <- nlevels(lop$dataStr[,paste(lop$vQV[1], '_fn', sep='')])
 }                                             
 
+# show the range of input data
+rg <- range(inData)
+cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
+# outlier removal
+if(!is.null(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
+   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
+}
+
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or the GLT coding\n')
 cat('is likely inappropriate.\n\n')
 
-xinit <- dimx%/%3
-if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
-if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
-
-ii <- xinit; jj <- yinit; kk <- zinit
+if(!is.na(lop$maskFN)) {
+   idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- idx[floor(dim(idx)[1]/2),1:3]
+   ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+} else {
+   xinit <- dimx%/%3
+   if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
+   if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
+   ii <- xinit; jj <- yinit; kk <- zinit
+}
 
 fm<-NULL
 gltRes <- vector('list', lop$num_glt)

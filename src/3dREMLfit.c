@@ -15,8 +15,7 @@
 static int verb=1 ;
 static int goforit=0 ;
 
-#undef FLOATIZE      /* we will use double precision for matrices */
-#include "remla.c"   /* do NOT change this to FLOATIZE !!! */
+#include "remla.c"
 
 #undef  INMASK
 #define INMASK(i) ( mask[i] != 0 )
@@ -503,8 +502,8 @@ int main( int argc , char *argv[] )
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv,rv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   MTYPE rhomax=0.8 , bmax  =0.8 ; int nlevab=3 ;
-   MTYPE rm_set=0.0 , bm_set=0.0 ;
+   double rhomax=0.8 , bmax  =0.8 ; int nlevab=3 ;
+   double rm_set=0.0 , bm_set=0.0 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
    reml_collection *rrcol ;
@@ -1173,11 +1172,13 @@ int main( int argc , char *argv[] )
       "                the default, you don't actually need this option.\n"
       "                [FMRI data doesn't seem to need the modeling  ]\n"
       "                [of negative correlations, but you never know.]\n"
-      " -WNplus    = Do not allow negative correlations, and only allow\n"
+      " -WNplus    = Do not allow negative correlations, AND only allow\n"
       "                (a,b) parameter combinations that fit the model\n"
       "                AR(1) + white noise:\n"
       "               * a > 0  and  -a < b < 0\n"
       "               * see 'What is ARMA(1,1)' far below\n"
+      "               * you should use '-Grid 5' with this option, since\n"
+      "                 it restricts the number of possible ARMA(1,1) models\n"
       "\n"
       " -Mfilt mr  = After finding the best fit parameters for each voxel\n"
       "                in the mask, do a 3D median filter to smooth these\n"
@@ -1275,7 +1276,7 @@ int main( int argc , char *argv[] )
       "    is a proper subset of ARMA(1,1) -- and also a proper subset of the default\n"
       "    -POScor setting (which also allows 0 < a < lam via b > 0).\n"
       "  + This restricted model can be specified with the '-WNplus' option.\n"
-      "    With '-Wnplus', you should use '-Grid 5', since you are restricting\n"
+      "    With '-WNplus', you should use '-Grid 5', since you are restricting\n"
       "    the number of available noise models fairly substantially.\n"
       "  + If the variance of the white noise is T and the variance of the AR(1) noise\n"
       "    is U, then lam = (a*U)/(U+T*(1-a^2)), and U/T = (lam*(1-a^2))/(a^2-lam).\n"
@@ -1650,8 +1651,14 @@ int main( int argc , char *argv[] )
 
    if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ;
 
+   if( AFNI_yesenv("AFNI_3dDeconvolve_VERB") ) verb++ ;  /* 19 May 2020 */
+
    iarg = 1 ;
    while( iarg < argc ){
+
+     if( strcasecmp(argv[iarg],"-qsumq") == 0 ){     /* HIDDEN [28 Apr 2020] */
+       do_logqsumq = 0 ; iarg++ ; continue ;         /* should NOT BE USED */
+     }
 
      /**==========   -virtvec  ==========**/
 
@@ -1842,7 +1849,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-MAXrho") == 0 || strcasecmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
+       rhomax = strtod(argv[iarg],NULL) ;
             if( rhomax < 0.1 ){ rhomax = 0.1; WARNING_message("-MAXa re-set to 0.1 from %s",argv[iarg]); }
        else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9 from %s",argv[iarg]); }
        rm_set = rhomax ; iarg++ ; continue ;
@@ -1858,7 +1865,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-MAXb") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       bmax = (MTYPE)strtod(argv[iarg],NULL) ;
+       bmax = strtod(argv[iarg],NULL) ;
             if( bmax < 0.1 ){ bmax = 0.1; WARNING_message("-MAXb re-set to 0.1 from %s",argv[iarg]); }
        else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9 from %s",argv[iarg]); }
        bm_set = bmax ; iarg++ ; continue ;
@@ -1899,7 +1906,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-CORcut") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        dx = (float)strtod(argv[iarg],NULL) ;
-       if( dx > 0.0f && dx <= 0.01f ) corcut = (MTYPE)dx ;
+       if( dx > 0.0f && dx <= 0.01f ) corcut = (double)dx ;
        else WARNING_message("Illegal value after -CORcut -- ignoring it (should be between 0 and 0.01)") ;
        iarg++ ; continue ;
      }
@@ -2221,7 +2228,7 @@ STATUS("options done") ;
    /*--------- check out and read the -ABfile, if there is one ---------*/
 
    if( abset != NULL ){
-     float abot,atop , bbot,btop ; ATR_float *atr ; MTYPE atm ;
+     float abot,atop , bbot,btop ; ATR_float *atr ; double atm ;
 
      if( DSET_NX(abset) != nx || DSET_NY(abset) != ny || DSET_NZ(abset) != nz )
        ERROR_exit("-input and -ABfile datasets don't match in grid sizes!") ;
@@ -2253,8 +2260,8 @@ STATUS("options done") ;
      if( bmax   < bm_set ) bmax   = bm_set ;
      atr = THD_find_float_atr( abset->dblk , "REMLFIT_abmax" ) ;
      if( atr != NULL && atr->nfl >= 3 ){
-       atm = (MTYPE)atr->fl[0] ; if( atm > rhomax ) rhomax = atm ;
-       atm = (MTYPE)atr->fl[1] ; if( atm > bmax   ) bmax   = atm ;
+       atm = (double)atr->fl[0] ; if( atm > rhomax ) rhomax = atm ;
+       atm = (double)atr->fl[1] ; if( atm > bmax   ) bmax   = atm ;
        ii  = (int)  atr->fl[2] ; if( ii  > nlevab ) nlevab = ii  ;
      }
      rhomax *= 1.00001 ; bmax *= 1.00001 ;
@@ -2434,13 +2441,13 @@ STATUS("re-create matrix from NIML element") ;
      float *cd ;
      for( jj=0 ; jj < nrego ; jj++ ){
        cd = (float *)nelmat->vec[jj] ;
-       for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
+       for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (double)cd[ii] ;
      }
    } else if( nelmat->vec_typ[0] == NI_DOUBLE ){  /* from 3dDeconvolve */
      double *cd ;
      for( jj=0 ; jj < nrego ; jj++ ){
        cd = (double *)nelmat->vec[jj] ;
-       for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
+       for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (double)cd[ii] ;
      }
    } else {
      ERROR_exit("Matrix file stored with illegal data type (not float or double)!?") ;
@@ -2527,7 +2534,7 @@ STATUS("process -addbase images") ;
            csum /= ntime ;
            for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
          }
-         for( pp=0 ; pp < ntime ; pp++ ) X.elts[pp][kk] = (MTYPE)iar[pp] ;
+         for( pp=0 ; pp < ntime ; pp++ ) X.elts[pp][kk] = (double)iar[pp] ;
        }
      }
 
@@ -2673,7 +2680,7 @@ STATUS("process -slibase images") ;
              csum /= ntime ;
              for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
            }
-           for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (MTYPE)iar[pp] ;
+           for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (double)iar[pp] ;
 
            for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
            if( pp == ntime ){
@@ -3110,6 +3117,7 @@ STATUS("make GLTs from matrix file") ;
 
    if( !usetemp_rcol ){  /* set up them all */
 
+     if( verb > 1 ) REMLA_memsetup ;
      for( ss=0 ; ss < nsli ; ss++ ){  /* might take a while */
        if( abfixed )
          rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
@@ -3129,6 +3137,7 @@ STATUS("make GLTs from matrix file") ;
         ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time(),COX_clock_time()) ;
        for( ss=0 ; ss < nsli ; ss++ ) avg += RCsli[ss]->avglen ;
        avg /= nsli ; ININFO_message(" average case bandwidth = %.2f",avg) ;
+       if( verb > 1 ) REMLA_memprint ;
      }
      MEMORY_CHECK ;
 
@@ -3167,7 +3176,7 @@ STATUS("make GLTs from matrix file") ;
     int ss,rv,vv,ssold,ii,kbest ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
-    MTYPE *ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+    double *ws = (double *)malloc(sizeof(double)*nws) ;
 #ifdef REML_DEBUG
     char *fff ; FILE *fpp=NULL ;
     fff = getenv("REML_DEBUG") ;
@@ -3181,7 +3190,7 @@ STATUS("make GLTs from matrix file") ;
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
        } else
          (void)THD_extract_array( vv , inset , 0 , iv ) ;      /* data vector */
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
        ssold = ss ; ss = vv / nsliper ;      /* slice index in Xsli and RCsli */
        if( usetemp_rcol && ss > ssold && ssold >= 0 )     /* purge last slice */
          reml_collection_save( RCsli[ssold] ) ;              /* setup to disk */
@@ -3235,7 +3244,7 @@ STATUS("make GLTs from matrix file") ;
   {
     int ss,vv,rv,ii,kbest , ithr , qstep ;
     float *iv ; vector y ;  /* private arrays for each thread */
-    MTYPE *ws ;
+    double *ws ;
     FILE *mfp=NULL ;
 
     qstep = vstep / maxthr ;
@@ -3244,7 +3253,7 @@ STATUS("make GLTs from matrix file") ;
  {
    iv = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
-   ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+   ws = (double *)malloc(sizeof(double)*nws) ;
    if( virtu_mrv ){
      mfp = fopen(fname_mrv,"r") ;
      if( mfp == NULL ) ERROR_exit("cannot re-open temp file %s",fname_mrv) ;
@@ -3265,7 +3274,7 @@ STATUS("make GLTs from matrix file") ;
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        }
  }
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ; /* really bad */
@@ -3553,8 +3562,8 @@ STATUS("setting up Rglt") ;
    }  /* end of setting up -dsort stuff */
 
    if( do_Rstuff ){
-     MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
-     MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     double *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
      vector qq5 ;
 
      /* how many regressors will be used this time through? */
@@ -3566,7 +3575,7 @@ STATUS("setting up Rglt") ;
 
      /* make some space for vectors */
      for( ii=0 ; ii < 7 ; ii++ )
-       bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
+       bbar[ii] = (double *)malloc(sizeof(double)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
      vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
@@ -3664,8 +3673,8 @@ STATUS("setting up Rglt") ;
        if( num_dsort > 0 && !doing_nods ){    /* create modified REML setup for */
          int   ia  = jj % (1+RCsli[ss]->na);  /* voxel-specific regression matrix */
          int   ib  = jj / (1+RCsli[ss]->na);  /* the na+1 denom is correct here - RWC */
-         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
-         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+         double aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
          /* (this voxel-wise REML setup is why -dsort is so slow) */
@@ -3685,8 +3694,8 @@ STATUS("setting up Rglt") ;
        if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);               /* by creating needed setup now */
          int   ib  = jj / (1+RCsli[ss]->na);
-         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
-         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+         double aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          STATUS("new setup?") ;
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
@@ -3766,10 +3775,10 @@ STATUS("setting up Rglt") ;
            save_series( vv , Rvar_dset , 6 , iv , Rvar_fp ) ;
          }
 
-         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(double)*nregu ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Rbuckt_dset != NULL ){
-           MTYPE gv ; GLT_index *gin ; int nr ;
+           double gv ; GLT_index *gin ; int nr ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
@@ -3797,7 +3806,7 @@ STATUS("setting up Rglt") ;
          }
 
          if( Rglt_dset != NULL ){
-           MTYPE gv ; GLT_index *gin ; int nr , isub ;
+           double gv ; GLT_index *gin ; int nr , isub ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            isub = glt_ind[oglt_num]->ivbot ;  /* first index in first extra GLT */
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
@@ -4021,8 +4030,8 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
    /*---------------- and do the third (OLSQ) voxel loop ----------------*/
 
    if( do_Ostuff ){
-     MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
-     MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     double *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
      vector qq5 ;
 
      /* how many regressors will be used this time through? */
@@ -4033,7 +4042,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
      last_nods_trip = (num_dsort == 0) || (num_dsort > 0 && doing_nods) ;
 
      for( ii=0 ; ii < 7 ; ii++ )
-       bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
+       bbar[ii] = (double *)malloc(sizeof(double)*(2*ntime+66)) ;
      bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
      bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
      vector_initialize(&qq5) ; vector_create_noinit(nregu,&qq5) ;
@@ -4055,7 +4064,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        }
        AAmemcpy( jv , iv , sizeof(float)*nfull ) ;
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
 
        /* extract dsort vectors into dsort_Zmat matrix? [22 Jul 2015] */
 
@@ -4103,8 +4112,8 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
        if( num_dsort > 0 && !doing_nods ){    /* create modified REML setup for */
          int   ia  = jj % (1+RCsli[ss]->na);  /* voxel-specific regression matrix */
          int   ib  = jj / (1+RCsli[ss]->na);
-         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
-         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+         double aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
          rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
@@ -4122,8 +4131,8 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
        if( my_rset == NULL && RCsli[ss]->rs[jj] == NULL ){ /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);
          int   ib  = jj / (1+RCsli[ss]->na);
-         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
-         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+         double aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         double bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
        }
@@ -4180,10 +4189,10 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
-         AAmemcpy( qq5.elts , bb5 , sizeof(MTYPE)*nregu ) ; /* 24 Jun 2009 */
+         AAmemcpy( qq5.elts , bb5 , sizeof(double)*nregu ) ; /* 24 Jun 2009 */
 
          if( glt_num > 0 && Obuckt_dset != NULL ){
-           MTYPE gv ; GLT_index *gin ; int nr ;
+           double gv ; GLT_index *gin ; int nr ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
@@ -4210,7 +4219,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          }
 
          if( Oglt_dset != NULL ){
-           MTYPE gv ; GLT_index *gin ; int nr , isub ;
+           double gv ; GLT_index *gin ; int nr , isub ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            isub = glt_ind[oglt_num]->ivbot ;  /* first index in first extra GLT */
            for( kk=oglt_num ; kk < glt_num ; kk++ ){

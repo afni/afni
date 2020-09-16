@@ -49,7 +49,7 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock *blk )
    THD_diskptr      *dkptr ;
    THD_dataxes      *daxes ;
 
-   Boolean dset_ok = True ;
+   RwcBoolean dset_ok = True ;
    int iq ;
 
    ATR_int    *atr_int ;

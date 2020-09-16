@@ -3,9 +3,10 @@
 
 /* access current space of dataset */
 
-#include "afni.h"
+#include "mrilib.h"
 #define SUMA_noFunc
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 extern int * SUMA_Dijkstra_generic (int N_Node, 
                      float *NodeList, int NodeDim, int dist_metric,
@@ -373,6 +374,79 @@ ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr)
    }    
 
    RETURN(apl); 
+}
+
+
+/* search niml atlas label attribute for label 
+ * if label matches regular or longname, return index of structure 
+ * atlas does not need to be in atlas list */
+int dset_atlas_label_index(THD_3dim_dataset *dset, char *label)
+{
+   ATLAS_POINT_LIST *apl=NULL;
+   int LocalHead = wami_lh();
+   NI_element *nel=NULL;
+   NI_group *ngr=NULL;
+   ATR_string *atr=NULL;
+
+   int i, tdlev, tdval;
+   char *temp_str1, *temp_str2;
+   ATLAS_POINT *at_pt;
+   
+   ENTRY("dset_atlas_label_index");
+   
+   atr = THD_find_string_atr( dset->dblk ,
+                              "ATLAS_LABEL_TABLE" ) ;
+
+   if (atr) {
+      if (LocalHead) fprintf(stderr, "Label table found in attributes.\n");
+
+      ngr = NI_read_element_fromstring(atr->ch);
+      if ((ngr==NULL) || (ngr->part_num == 0)) {
+         WARNING_message("** WARNING: Poorly formatted ATLAS_LABEL_TABLE\n");
+         if(ngr) NI_free_element(ngr) ;
+         RETURN(0);
+      }
+   }
+   else {
+      RETURN(0);
+   }
+
+   if (!ngr) RETURN(0);
+   
+   /* get each segmented region - the "atlas point" from 
+      a NIML formatted string */ 
+   apl = (ATLAS_POINT_LIST *) calloc(1, sizeof(ATLAS_POINT_LIST));
+   /* assume the number of elements in the group is the number of structures */
+   apl->n_points = ngr->part_num; 
+   apl->at_point = (ATLAS_POINT *) calloc(apl->n_points,sizeof(ATLAS_POINT));
+   if(apl->at_point == NULL) {         
+         free(apl);
+         RETURN(0);
+      }
+
+   for(i=0;i<apl->n_points;i++){
+       /* read the NIML string from the NIML file */
+      nel = (NI_element *)ngr->part[i] ;
+      if(!nel) {
+          free(apl);
+          NI_free_element(ngr) ;
+          RETURN(0);
+      }
+      NI_GET_INT(nel, "VAL", tdval);
+
+      temp_str1 = NI_get_attribute(nel, "STRUCT");
+      temp_str2 = NI_get_attribute(nel, "LONGNAME");
+      /* match either short or longname */
+      if((strcmp(label, temp_str1)==0) || (strcmp(label, temp_str2)==0)) {
+        free(apl);
+        NI_free_element(ngr) ;
+        RETURN(tdval);
+      }
+   }    
+   free(apl);
+   NI_free_element(ngr);
+  
+   RETURN(0); 
 }
 
 ATLAS_XFORM_LIST *identity_xform_chain(char *space_name) 

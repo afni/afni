@@ -134,7 +134,7 @@ ENTRY("NLFIT_read_MODEL") ;
 
    /*----- make space for new MODEL -----*/
 
-   model = (NLFIT_MODEL *) XtMalloc( sizeof(NLFIT_MODEL) ) ;
+   model = (NLFIT_MODEL *) RwcMalloc( sizeof(NLFIT_MODEL) ) ;
    model->type = NLFIT_MODEL_TYPE ;
 
    /*----- copy name into model structure -----*/
@@ -151,7 +151,7 @@ ENTRY("NLFIT_read_MODEL") ;
       er = (char *)DYNAMIC_ERROR_STRING ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       else             fprintf(stderr,"\n") ;
-      myXtFree(model) ;
+      myRwcFree(model) ;
       RETURN (NULL) ;
    }
 
@@ -182,7 +182,7 @@ ENTRY("NLFIT_read_MODEL") ;
       fprintf(stderr,"model %s lacks initialize_model() function\n",fname) ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       DYNAMIC_CLOSE( model->libhandle ) ;
-      myXtFree(model) ;
+      myRwcFree(model) ;
       RETURN (NULL) ;
    }
 
@@ -192,7 +192,7 @@ ENTRY("NLFIT_read_MODEL") ;
    if( model->interface == NULL ) 
      {
        DYNAMIC_CLOSE( model->libhandle ) ;
-       myXtFree(model) ;
+       myRwcFree(model) ;
        RETURN (NULL) ;
      }
 
@@ -238,7 +238,7 @@ ENTRY("NLFIT_get_many_MODELs") ;
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;
-   elocal = (char *) XtMalloc( sizeof(char) * (ll+2) ) ;
+   elocal = (char *) RwcMalloc( sizeof(char) * (ll+2) ) ;
 
    /*----- put a blank at the end -----*/
 
@@ -293,7 +293,7 @@ ENTRY("NLFIT_get_many_MODELs") ;
       }
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
-   myXtFree(elocal) ;
+   myRwcFree(elocal) ;
 
    if (NL_DEBUG)
      { 

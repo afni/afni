@@ -46,7 +46,7 @@ typedef struct _menu_item
 ** callback for PushButton or ToggleButton menu items.
 */
 Widget BuildMenu (Widget parent, int menu_type, char *menu_title, char menu_mnemonic, 
-                  Boolean tear_off, MenuItem *items)
+                  RwcBoolean tear_off, MenuItem *items)
 {
    Widget app_wid, top_wid, button, option_menu, rc;
    XtAppContext  app;

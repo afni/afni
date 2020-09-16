@@ -3,18 +3,20 @@
 
 #include "afni_history.h"
 
-/*  basic format: 3-field date, user, program_name, impact_level,
+/*  (for starting a new file, search for CHANGE)
+
+    basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
 
     copy entire section: { ... } ,
 
-    Notes: - months are JAN ... DEC (see .h file)
+    Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -25,14 +27,17 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- examples --
 
- { 26 , FEB , 2008 , RCR , "my_program" , MAJOR ,
+ { 26 , FEB , 2008 , RCR , "my_program" , MAJOR , TYPE_GENERAL ,
    "short description of change" ,
    "(optional) detailed description, or where to get more information\n"
    "   - with newlines, if you babble for multiple lines\n"
@@ -43,6 +48,54 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 23 , JUN , 2020 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Add support for *.tsv and *.csv files" ,
+   "Tab and Comma separated value files will be read in, like 1D files, and\n"
+   "can be selected by a chooser, including in a plugin." } ,
+
+ { 11 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add Stride to graphing (every n-th time point, n=1..9)" ,
+   NULL } ,
+
+ { 2 , JUN , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add PM (plus/minus) curve plotting options" ,
+   "Added to the 'Colors Etc' menu. Curves, Bars, and Fill." } ,
+
+ { 28 , MAY , 2020 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add curve smoothing plot to graph viewer" ,
+   "Invoked from 'Colors Etc' menu, or by pressing the 's' key. [For GC]" } ,
+
+ { 12 , MAY , 2020 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Allow output of .jpg files for 2D images" ,
+   "Actually, any AFNI program that writes a 2D 'dataset' will now do so in\n"
+   "JPEG format if the prefix ends in '.jpg'. Similarly for '.png' and PNG\n"
+   "format. However, note that most programs produce scalar (non-RGB)\n"
+   "images, which will thus be monochrome - even if the input is color." } ,
+
+ { 5 , May , 2020 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with Lock menu toggle switches" ,
+   "Only one controller could be clicked on at a time!\n"
+   "Which was caused a long time ago by the LessTif patrol,\n"
+   "enforcing radio behavior even if it wasn't a radio box.\n"
+   "Also: rearranged buttons on menu so that main stuff\n"
+   "      is now at top, where it's more convenient."
+ } ,
+
+ { 4 , MAY , 2020 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "-nosquash, to avoid soft cap on large intensities" ,
+   "In other words, to skip the change of 30 Jan 2019, which\n"
+   "was causing trouble for someone doing oinker imaging!"
+ } ,
+
+ { 28 , APR , 2020 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
+   "Patch failure to register 2D images (I hope)" ,
+   "Turns out the cluster-izing step added to the weight production\n"
+   "zeroed out the 2D images. Cheap fix = just remove isolas instead."
+ } ,
+
+ { 10 , APR , 2020 , RWC , "AFNI gui" , MINOR , TYPE_NEW_OPT ,
+   "Add -norm option for normal font sizes" , NULL } ,
 
  { 8 , APR , 2020 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
    "Add '0' to the -dashed option" ,

@@ -225,7 +225,7 @@ typedef struct {
 #define NHISTOG 500
 
 typedef struct {
-      Boolean one_done , glob_done ;
+      RwcBoolean one_done , glob_done ;
       float   min,max , per02,per98 ,
               scl_mm,lev_mm , scl_per,lev_per ;
       float   entropy ;
@@ -234,7 +234,7 @@ typedef struct {
 } ISQ_indiv_statistics ;
 
 typedef struct {
-      Boolean mm_done , per_done ;
+      RwcBoolean mm_done , per_done ;
       float   min,max , per02,per98 ,
               scl_mm,lev_mm , scl_per,lev_per ;
       int hist[NHISTOG] ;
@@ -401,7 +401,7 @@ typedef struct MCW_imseq {
      float scl , lev ;       /* for scaling intensities */
      int   bot , top ;       /* for clipping intensities */
 
-     Boolean done_first ;    /* for the done button */
+     RwcBoolean done_first ;    /* for the done button */
 
      MCW_DC *dc ;            /* graphics data (copy of a pointer) */
 
@@ -418,6 +418,7 @@ typedef struct MCW_imseq {
      Widget wbar_menu , wbar_rng_but , wbar_zer_but  , wbar_flat_but ,
             wbar_sharp_but , wbar_vgize_but ;
      MCW_bbox *wbar_amask_bbox ;  /* 14 Jun 2010 */
+     MCW_bbox *wbar_invrt_bbox ;  /* 14 Sep 2020 */
      float  rng_bot,rng_top,rng_ztop , flat_bot,flat_top , sharp_fac , vgize_fac ;
      int    zer_color , rng_extern ;
 
@@ -750,9 +751,9 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_save_raw        710  /* 13 Nov 2007 */
 #define isqDR_save_rawmont    711  /* 13 Nov 2007 */
 
-extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
+extern RwcBoolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
-extern Boolean ISQ_setup_new( MCW_imseq * , XtPointer ) ;
+extern RwcBoolean ISQ_setup_new( MCW_imseq * , XtPointer ) ;
 
 /*** prototypes: internals ***/
 
@@ -768,6 +769,7 @@ extern void ISQ_wbar_plots_CB( Widget , XtPointer , XtPointer ) ; /* 20 Sep 2001
 extern void ISQ_wbar_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_globrange_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_amask_CB( Widget , XtPointer , XtPointer ) ; /* 14 Jun 2010 */
+extern void ISQ_wbar_invrt_CB( Widget , XtPointer , XtPointer ) ; /* 14 Sep 2020 */
 extern void ISQ_wbar_crop_CB ( Widget , XtPointer , XtPointer ) ; /* 15 Jan 2014 */
 
 extern void ISQ_wbar_menu_CB( Widget , XtPointer , XtPointer ) ;
@@ -797,8 +799,8 @@ extern void ISQ_place_widget( Widget, Widget ) ;  /* 27 Oct 2003 */
 
 extern void ISQ_disp_act_CB( Widget , XtPointer , XtPointer ) ;
 
-extern void ISQ_drawing_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
-extern void ISQ_button2_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void ISQ_drawing_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
+extern void ISQ_button2_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 
 extern void ISQ_make_image( MCW_imseq * ) ;
 extern void ISQ_show_image( MCW_imseq * ) ;
@@ -850,7 +852,7 @@ extern void ISQ_free_alldata( MCW_imseq * ) ;
 
 extern int ISQ_set_image_number( MCW_imseq * , int ) ;
 
-extern Boolean ISQ_disp_options( MCW_imseq * , Boolean ) ;
+extern RwcBoolean ISQ_disp_options( MCW_imseq * , RwcBoolean ) ;
 
 /* type for defining buttons */
 
@@ -861,10 +863,10 @@ typedef struct {
    XtPointer parent , aux ;
 } ISQ_bdef ;
 
-Boolean ISQ_statistics_WP( XtPointer ) ;
+RwcBoolean ISQ_statistics_WP( XtPointer ) ;
 
 void ISQ_statify_one( MCW_imseq * , int , MRI_IMAGE * ) ;
-void ISQ_statify_all( MCW_imseq * , Boolean ) ;
+void ISQ_statify_all( MCW_imseq * , RwcBoolean ) ;
 
 void ISQ_perpoints( float,float , int h[] , float * , float * ) ;
 
@@ -927,9 +929,9 @@ extern MEM_plotdata * ISQ_plot_label( MCW_imseq *, char * ) ; /* 20 Sep 2001 */
 
 extern void ISQ_record_button( MCW_imseq * ) ;
 extern void ISQ_record_CB( Widget,XtPointer,XtPointer ) ;
-extern void ISQ_butsave_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
-extern void ISQ_butcrop_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
-extern void ISQ_butdisp_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void ISQ_butsave_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
+extern void ISQ_butcrop_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
+extern void ISQ_butdisp_EV( Widget, XtPointer, XEvent *, RwcBoolean * ) ;
 
 extern void ISQ_record_open( MCW_imseq * ) ;
 extern void ISQ_record_update( MCW_imseq * , int ) ;

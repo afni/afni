@@ -581,15 +581,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    Opt->overwrite = 0;
    Opt->bmall = 0;
    Opt->wght_name=NULL;
-	brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfSmooth(ps, strlen(argv[kar]) > 3 ? 2:1);
+   brk = NOPE;
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_SurfSmooth(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
       if (!brk && (strcmp(argv[kar],"-detrend_master") == 0 )){         
          Opt->detrend_master = -1 ;
@@ -614,13 +614,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-no_detrend_master") == 0)) {
-			Opt->detrend_master = -2;
-			brk = YUP;
-		}
+         Opt->detrend_master = -2;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-bmall") == 0)) {
-			Opt->bmall = 1;
-			brk = YUP;
-		}
+         Opt->bmall = 1;
+         brk = YUP;
+      }
       if( strcmp(argv[kar],"-detprefix_master") == 0 ){
          if (kar+1 >= argc)
          {
@@ -653,9 +653,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-no_detrend_in") == 0)) {
-			Opt->detrend_in = -2;
-			brk = YUP;
-		}
+         Opt->detrend_in = -2;
+         brk = YUP;
+      }
       if( strcmp(argv[kar],"-detprefix_in") == 0 ){
          if (kar+1 >= argc)
          {
@@ -667,115 +667,115 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       }
       
       if (!brk && strcmp(argv[kar], "-dist") == 0)
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -dist \n");
-				exit (1);
-			}
-			Opt->OffsetLim = atof(argv[kar]);
+      {
+         kar ++;
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -dist \n");
+            exit (1);
+         }
+         Opt->OffsetLim = atof(argv[kar]);
          if (Opt->OffsetLim <= 0 && Opt->OffsetLim != -1.0) {
             SUMA_S_Errv("Bad value (%f) for OffsetLim\n", Opt->OffsetLim);
-				exit (1);
+            exit (1);
          }
 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
      
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -debug \n");
-				exit (1);
-			}
-			Opt->debug = atoi(argv[kar]); 
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 argument after -debug \n");
+            exit (1);
+         }
+         Opt->debug = atoi(argv[kar]); 
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -dbg_n \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 argument after -dbg_n \n");
+            exit (1);
+         }
          if (!Opt->debug) Opt->debug = 1;
-			Opt->ShowNode = atoi(argv[kar]); 
+         Opt->ShowNode = atoi(argv[kar]); 
          SUMA_Set_SurfSmooth_NodeDebug(Opt->ShowNode);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-Niter") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 arguments after -Niter \n");
-				exit (1);
-			}
-			Opt->N_iter = atoi(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 arguments after -Niter \n");
+            exit (1);
+         }
+         Opt->N_iter = atoi(argv[kar]);
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-rseed") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 positive integer after -rseed \n");
-				exit (1);
-			}
-			Opt->rseed = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 positive integer after -rseed \n");
+            exit (1);
+         }
+         Opt->rseed = atoi(argv[kar]);
          if (Opt->rseed < 0) {
             SUMA_S_Errv("-rseed needs a +ve integer. Have %d\n", Opt->rseed);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-kpb") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 arguments after -kpb \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 arguments after -kpb \n");
+            exit (1);
+         }
          if (Opt->l != -1.0  || Opt->m != -1.0) {
             SUMA_S_Err("options -lm and -kpb are mutually exclusive\n");
-				exit (1);
+            exit (1);
          }
-			Opt->kpb = atof(argv[kar]); 
-			brk = YUP;
-		}
+         Opt->kpb = atof(argv[kar]); 
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-surf_out") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 arguments after -surf_out\n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 arguments after -surf_out\n");
+            exit (1);
+         }
          if (outname) {
             fprintf (SUMA_STDERR, 
                      "-output and -surf_out are mutually exclusive.\n");
             exit(1);
          }
-			Opt->surf_out = argv[kar]; 
-			brk = YUP;
-		}
+         Opt->surf_out = argv[kar]; 
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-lm") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -lm \n");
-				exit (1);
-			}
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need 2 arguments after -lm \n");
+            exit (1);
+         }
          if (Opt->kpb != -1.0) {
             fprintf (SUMA_STDERR, 
                      "options -lm and -kpb are mutually exclusive\n");
-				exit (1);
+            exit (1);
          }
-			Opt->l = atof(argv[kar]); kar ++;
+         Opt->l = atof(argv[kar]); kar ++;
          Opt->m = atof(argv[kar]);  
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-iw") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -iw \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -iw \n");
+            exit (1);
+         }
          SUMA_TO_LOWER(argv[kar]);
          if (strcmp(argv[kar], "equal") == 0 ) {
             SUMA_Set_Taubin_Weights(SUMA_EQUAL);
@@ -789,179 +789,179 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
                      argv[kar]);
             exit (1);
          } 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -input \n");
-				exit (1);
-			}
-			Opt->in_name = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -input \n");
+            exit (1);
+         }
+         Opt->in_name = argv[kar];
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-blurmaster") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -blurmaster \n");
-				exit (1);
-			}
-			Opt->master_name = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -blurmaster \n");
+            exit (1);
+         }
+         Opt->master_name = argv[kar];
+         brk = YUP;
+      }
       
       
       if (!brk && (strcmp(argv[kar], "-output") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "need argument after -output\n");
-				exit (1);
-			}
-			if (Opt->surf_out) {
+            exit (1);
+         }
+         if (Opt->surf_out) {
             fprintf (SUMA_STDERR, 
                      "options -surf_out and -output are mutually exclusive\n");
-				exit (1);
+            exit (1);
          }
          outname = argv[kar];
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-add_index") == 0)) {
-			Opt->AddIndex = 1;
-			brk = YUP;
-		}
+         Opt->AddIndex = 1;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-use_neighbors_outside_mask") == 0)) {
-			Opt->strict_mask = 0;
-			brk = YUP;
-		}
+         Opt->strict_mask = 0;
+         brk = YUP;
+      }
       
       
       if (!brk && (strcmp(argv[kar], "-lim") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -lim \n");
-				exit (1);
-			}
-			Opt->lim = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -lim \n");
+            exit (1);
+         }
+         Opt->lim = atof(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_center") == 0)) {
          Opt->MatchCenter = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_size") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -match_size \n");
-				exit (1);
-			}
-			Opt->lim = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -match_size \n");
+            exit (1);
+         }
+         Opt->lim = atof(argv[kar]);
          Opt->MatchMethod = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_vol") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -match_vol \n");
-				exit (1);
-			}
-			Opt->lim = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -match_vol \n");
+            exit (1);
+         }
+         Opt->lim = atof(argv[kar]);
          Opt->MatchMethod = 2;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_area") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -match_area \n");
-				exit (1);
-			}
-			Opt->lim = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -match_area \n");
+            exit (1);
+         }
+         Opt->lim = atof(argv[kar]);
          Opt->MatchMethod = 3;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_sphere") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -match_sphere \n");
-				exit (1);
-			}
-			Opt->lim = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -match_sphere \n");
+            exit (1);
+         }
+         Opt->lim = atof(argv[kar]);
          Opt->MatchMethod = 4;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-match_surf") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -match_surf \n");
-				exit (1);
-			}
-			Opt->enclosing_surf = argv[kar];
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -match_surf \n");
+            exit (1);
+         }
+         Opt->enclosing_surf = argv[kar];
          Opt->MatchMethod = 5;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-fwhm") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -fwhm \n");
-				exit (1);
-			}
-			Opt->fwhm = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -fwhm \n");
+            exit (1);
+         }
+         Opt->fwhm = atof(argv[kar]);
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-target_fwhm") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -target_fwhm \n");
-				exit (1);
-			}
-			Opt->tfwhm = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -target_fwhm \n");
+            exit (1);
+         }
+         Opt->tfwhm = atof(argv[kar]);
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-sigma") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -sigma \n");
-				exit (1);
-			}
-			Opt->sigma = atof(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -sigma \n");
+            exit (1);
+         }
+         Opt->sigma = atof(argv[kar]);
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-anchor_each") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -anchor_each \n");
-				exit (1);
-			}
-			Opt->anchor_each = atoi(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -anchor_each \n");
+            exit (1);
+         }
+         Opt->anchor_each = atoi(argv[kar]);
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-node_weights") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -node_weights \n");
-				exit (1);
-			}
-			Opt->wght_name = argv[kar];
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -node_weights \n");
+            exit (1);
+         }
+         Opt->wght_name = argv[kar];
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-met") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -met \n");
-				exit (1);
-			}
-			if (strcmp(argv[kar], "LB_FEM_1D") == 0)  
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -met \n");
+            exit (1);
+         }
+         if (strcmp(argv[kar], "LB_FEM_1D") == 0)  
                      Opt->Method = SUMA_LB_FEM_1D;
          else if (strcmp(argv[kar], "LB_FEM") == 0)  
                      Opt->Method = SUMA_LB_FEM;
@@ -988,7 +988,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
             exit(1);
          } else {
             fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
-				exit (1);
+            exit (1);
          }
          if (Opt->Method == SUMA_HEAT_05_Pre_07 || Opt->Method == SUMA_HEAT_07) {
             if (Opt->N_iter < 0) {
@@ -999,19 +999,19 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
                Opt->N_iter = -Opt->N_iter;
             }  
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s:\nOption %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    Opt->overwrite = THD_ok_overwrite();
 
@@ -1416,7 +1416,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfSmooth"}; 
-	int kar, icol, nvec, ncol=0, i, ii, N_inmask = -1;
+   int kar, icol, nvec, ncol=0, i, ii, N_inmask = -1;
    float *data_old = NULL, *far = NULL;
    void *SO_name = NULL;
    SUMA_SurfaceObject *SO = NULL, *SOnew = NULL;
@@ -1440,11 +1440,11 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
    
    
-	/* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   /* Allocate space for DO structure */
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-t;-spec;-s;-sv;-talk;-mask;");
    
    Opt = SUMA_SurfSmooth_ParseInput (argv, argc, ps);
@@ -2935,7 +2935,7 @@ int main (int argc,char *argv[])
    if (Opt->out_name) SUMA_free(Opt->out_name); Opt->out_name = NULL;
    if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;
    if (Opt) SUMA_free(Opt);
- 	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }

@@ -1,5 +1,13 @@
 #include "SUMA_suma.h"
 
+/*
+  [PT: July 24, 2020] Fix some option names
+
+  + new opt '-Euclidean', synonym (or synonim) for 'Euclidian'
+  + fix help that '-graph' is the real opt name
+
+*/
+
 void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_SurfDist"};
@@ -33,8 +41,9 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "  -node_path_do PATH_DO: Output the shortest path between\n"
 "                         each node pair as a SUMA Displayable\n"
 "                         object.\n"
-"  -Euclidian: Calculate Euclidian distance, rather than graph distance.\n" 
-"  -Graph: Calculate distance along the mesh (default).\n" 
+"  -Euclidean: Calculate Euclidean distance, rather than graph distance.\n" 
+"  -Euclidian: synonym for '-Euclidean'.\n" 
+"  -graph: Calculate distance along the mesh (default).\n" 
 "\n"
 "  example 1:\n"
 "     echo make a toy surface\n"
@@ -92,7 +101,7 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "     echo 416 489 >> nodelist.1D\n"
 "     echo 415 412 >> nodelist.1D\n"
 "     echo 123 32414 >> nodelist.1D\n"
-"     echo Get Euclidian distances and write out results to file\n"
+"     echo Get Euclidean distances and write out results to file\n"
 "     SurfDist -i CreateIco_surf.asc \\\n"
 "              -input nodelist.1D \\\n"
 "              -Euclidian   > example3.1D\n"   
@@ -127,19 +136,25 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    Opt->b2 = 0;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 ps->hverb = 1;
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          ps->hverb = 1;
           usage_SurfDist(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-for_Daniel") == 0))
       {
          Opt->b1 = 1;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-Euclidean") == 0))
+      {
+         Opt->b2 = 1;
          brk = YUP;
       }
 
@@ -148,7 +163,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
          Opt->b2 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-graph") == 0))
       {
          Opt->b2 = 0;
@@ -192,14 +207,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood.\n"
+         SUMA_S_Errv("Option %s not understood.\n"
                      "Try -help for usage\n", 
                      argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
       
    }
    
@@ -226,10 +241,10 @@ int main (int argc,char *argv[])
    float cout[4];
    
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-s;-sv;-spec;-dset;-mask;-cmap"); 
 
    

@@ -222,9 +222,10 @@ static char g_history[] =
     "6.9  Jan 14, 2009 [rickr] - allow f_steps == 1\n"
     "6.10 Aug 30, 2010 [rickr] - check for -sv dset\n"
     "6.11 Sep 13, 2018 [rickr] - terminal options return 0\n"
+    "6.12 July 29, 2020 [drg]  - nonzero mode\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.11 (September 13, 2018)"
+#define VERSION "version  6.12 (July 29, 2020)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -865,6 +866,7 @@ ENTRY("set_smap_opts");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZMODE:
         case E_SMAP_NZAVE:
         case E_SMAP_NZMIN:
         case E_SMAP_NZMAX:
@@ -1614,6 +1616,7 @@ ENTRY("check_map_func");
         case E_SMAP_SEG_VALS:
         case E_SMAP_MEDIAN:
         case E_SMAP_MODE:
+        case E_SMAP_NZMODE:
         case E_SMAP_NZAVE:
         case E_SMAP_NZMIN:
         case E_SMAP_NZMAX:
@@ -1811,6 +1814,7 @@ ENTRY("usage");
             "    median    : output the median value from the segment\n"
             "    midpoint  : output the dataset value at the segment midpoint\n"
             "    mode      : output the mode of the values along the segment\n"
+            "    nzmode    : output the non-zero mode of the values along the segment\n"
             "    max       : output the maximum volume value over the segment\n"
             "    max_abs   : output the dataset value with max abs over seg\n"
             "    min       : output the minimum volume value over the segment\n"
@@ -2118,7 +2122,7 @@ ENTRY("usage");
             "                     the connecting segment.\n"
             "                     (the minimum mode, if more than one)\n"
             "\n"
-            "          nzave, nzmin, nzmax :\n"
+            "          nzave, nzmin, nzmax, nzmode :\n"
             "                     Non-zero equivalents to ave, min, max.\n"
             "                     (does not include any zero values in the\n"
             "                     computation)\n"

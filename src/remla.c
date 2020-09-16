@@ -2,32 +2,150 @@
 
 #undef  MTYPE
 #undef  MPAIR
-#ifndef FLOATIZE
-# include "matrix.h"
-# define MTYPE double
-# define MPAIR double_pair
-#else                           /*** do NOT define FLOATIZE! ***/
-# include "matrix_f.h"
-# define MTYPE float
-# define MPAIR float_pair
-#endif
+#include "matrix.h"
+#define MTYPE double
+#define MPAIR double_pair
 
 #include "mrilib.h"  /* Keep after decision about matrix.h inclusion
                                                       ZSS  Nov. 21 2014*/
-
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
-#ifdef USE_OMP
-#undef  RETURN
-#undef  EXRETURN
-#undef  ENTRY
-#define ENTRY(x)  /*nada*/
-#define RETURN(x) return(x)
-#define EXRETURN  return
-#include "matrix.c"
-#include "rcmat.c"
+/*---------------------------------------------------------------------------*/
+/*** Some prototypes [May 2020] ***/
+
+doublevec * REML_compute_arma31_correlations( double aa, double rr1, double th1,
+                                              int kmax , double sfac ) ;
+
+doublevec * REML_compute_arma51_correlations( double aa,
+                                              double rr1, double th1,
+                                              double rr2, double th2,
+                                              int kmax  , double sfac ) ;
+
+rcmat * rcmat_arma31( int nt, int *tau,
+                      double aa, double rr, double th , double sfac ) ;
+
+/*===========================================================================*/
+#undef ENABLE_REMLA_MALLOC
+#ifdef ENABLE_REMLA_MALLOC   /* only for tracking memory usage [20 May 2020] */
+                             /* will make it run much more slowly with OMP! */
+
+static int64_t remla_memtot = 0 ;      /* total memory used herein */
+static Htable *remla_htable = NULL ;   /* table to keep track of it */
+
+#undef malloc  /* make sure library functions are used below */
+#undef calloc
+#undef free
+
+/*........................................*/
+
+void * remla_malloc( size_t nb )
+{
+  void *mmm ;
+  if( nb == 0 ) return NULL ;
+#pragma omp critical (remla_malloc)
+  { mmm = malloc(nb) ;
+    if( mmm == NULL ){
+      ERROR_message("remla_malloc(%ull) fails :(",nb) ;
+    } else {
+      remla_memtot += nb ;
+      if( remla_htable != NULL ){
+        char key[32] , *len ;
+        sprintf(key,"%p",mmm) ;
+        len = malloc(32) ; sprintf(len,"%lld",nb) ;
+        addto_Htable( key , len , remla_htable ) ;
+      }
+    }
+  }
+  return mmm ;
+}
+
+/*........................................*/
+
+void * remla_calloc( size_t na , size_t nb )
+{
+  void *mmm ; size_t nab=na*nb ;
+  mmm = remla_malloc( nab ) ;
+#pragma omp critical (remla_malloc)
+  { if( mmm != NULL ) memset(mmm,0,nab) ; }
+  return mmm ;
+}
+
+/*........................................*/
+
+void remla_free( void *mmm )
+{
+   if( mmm == NULL ) return ;
+#pragma omp critical (remla_malloc)
+   { if( remla_htable != NULL ){
+       char key[32] , *len ;
+       sprintf(key,"%p",mmm) ;
+       len = findin_Htable( key , remla_htable ) ;
+       if( len != NULL ){
+         size_t nb=0 ; sscanf(len,"%lld",&nb) ;
+         remla_memtot -= nb ;
+         removefrom_Htable( key , remla_htable ) ;
+       }
+     }
+     free(mmm) ;
+   }
+   return ;
+}
+
+/*........................................*/
+
+#define REMLA_memprint                                            \
+  INFO_message("REML setup memory = %s (%s)",                     \
+               approximate_number_string((double)remla_memtot) ,  \
+               commaized_integer_string(remla_memtot)            )
+
+#define REMLA_memreset  \
+  do{ remla_memtot=0; destroy_Htable(remla_htable); remla_htable=NULL; } while(0)
+
+#define REMLA_memsetup  \
+  do{ remla_memtot=0; destroy_Htable(remla_htable); remla_htable=new_Htable(999); Htable_set_vtkill(1); } while(0)
+
+#else  /*----------------- ENABLE_REMLA_MALLOC not defined -----------------*/
+
+#define REMLA_memreset /*nada*/
+#define REMLA_memsetup /*nada*/
+#define REMLA_memprint /*nada*/
+
+#define remla_malloc malloc
+#define remla_calloc calloc
+#define remla_free   free
+
+#endif /*--------------- ENABLE_REMLA_MALLOC ---------------*/
+
+/*===========================================================================*/
+
+#ifdef USE_OMP     /* disable tracking macros from debugtrace.h */
+
+# undef  RETURN
+# undef  EXRETURN
+# undef  ENTRY
+# define ENTRY(x)  /*nada*/
+# define RETURN(x) return(x)
+# define EXRETURN  return
+
+#endif /* USE_OMP */
+
+#ifdef ENABLE_REMLA_MALLOC     /* cf. supra */
+# define malloc remla_malloc   /* these are just for matrix.c */
+# define calloc remla_calloc   /* and rcmat.c, included below */
+# define free   remla_free
 #endif
+
+#include "matrix.c"    /* included here for optimization */
+#include "rcmat.c"     /* and for memory tracking, maybe */
+
+#ifdef ENABLE_REMLA_MALLOC
+# undef malloc
+# undef calloc
+# undef free
+#endif
+
+/*------------------------------------------------------------------------*/
 
 /*****
  Struct to hold a random sparse rectangular matrix.
@@ -37,7 +155,7 @@ typedef struct {
    int rows , cols ;
    int *cnum ;        /* cnum[j] is number of elements in col #j */
    int **cii ;        /* cii[j][k] is the i-index of cee[j][k]   */
-   MTYPE **cee ;      /* for j=0..cols-1 , k=0..cnum[j]-1        */
+   double **cee ;     /* for j=0..cols-1 , k=0..cnum[j]-1        */
 } sparmat ;
 
 /*****
@@ -59,12 +177,28 @@ typedef struct {
 #undef  LAMBDA
 #define LAMBDA(a,b) ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b))
 
+#undef  ARMA11_MODEL
+#define ARMA11_MODEL 1
+
+#undef  ARMA31_MODEL
+#define ARMA31_MODEL 3
+
+#undef  ARMA51_MODEL
+#define ARMA51_MODEL 5
+
 typedef struct {
   int neq , mreg ;
-  MTYPE rho , lam , barm ;
+  int noise_model ;  /* one of the MODEL constants above */
+
+  /* params for ARMA11 */
+  double rho , lam , barm ;
+
+  /* params for ARMA31 or ARMA51 */
+  double aa, rr1,th1 , rr2,th2 , sfac ;
+
   rcmat  *cc ;        /* banded matrix:    neq  X neq  */
   matrix *dd ;        /* upper triangular: mreg X mreg */
-  MTYPE cc_logdet , dd_logdet ;
+  double cc_logdet , dd_logdet ;
 
   int         nglt ;
   gltfactors **glt ;
@@ -82,7 +216,7 @@ typedef struct {             /* for voxel-wise regression */
 
 typedef struct {
   int na,nb , nab , pna,pnb , nset , izero , istwo ;
-  MTYPE abot,da , bbot,db ;
+  double abot,da , bbot,db ;
   matrix *X ; sparmat *Xs ;
   reml_setup **rs ;
   char *savfil ;
@@ -102,7 +236,7 @@ typedef struct {
 /** the value of corcut might be changed in 3dREMLfit **/
 
 #define CORCUT_default 0.0001          /* reduced to 0.0001 [22 Aug 2019] */
-static MTYPE corcut = CORCUT_default ;
+static double corcut = CORCUT_default ;
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
@@ -113,11 +247,11 @@ static MTYPE corcut = CORCUT_default ;
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply( sparmat *a , MTYPE *b , MTYPE *c )
+void vector_spc_multiply( sparmat *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols ;
    int k , j , cn , *ci ;
-   MTYPE *ce , bj ;
+   double *ce , bj ;
 
    for( k=0 ; k < rows ; k++ ) c[k] = 0.0 ;
 
@@ -135,11 +269,11 @@ void vector_spc_multiply( sparmat *a , MTYPE *b , MTYPE *c )
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply_transpose( sparmat *a , MTYPE *b , MTYPE *c )
+void vector_spc_multiply_transpose( sparmat *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols ;
    int i , k , cn , *ci ;
-   MTYPE *ce , bj , sum ;
+   double *ce , bj , sum ;
 
    for( i=0 ; i < cols ; i++ ){
      cn = a->cnum[i] ;
@@ -157,10 +291,10 @@ void vector_spc_multiply_transpose( sparmat *a , MTYPE *b , MTYPE *c )
 
 /*--------------------------------------------------------------------------*/
 
-void vector_full_multiply( matrix *a , MTYPE *b , MTYPE *c )
+void vector_full_multiply( matrix *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols , i ;
-   int j ; MTYPE sum , *aa ;
+   int j ; double sum , *aa ;
 
    switch( cols%4 ){
      case 0:
@@ -205,10 +339,10 @@ void vector_full_multiply( matrix *a , MTYPE *b , MTYPE *c )
 
 /*--------------------------------------------------------------------------*/
 
-void vector_full_multiply_transpose( matrix *a , MTYPE *b , MTYPE *c )
+void vector_full_multiply_transpose( matrix *a , double *b , double *c )
 {
    int rows=a->rows , cols=a->cols , j ;
-   int i ; MTYPE bj , *aa ;
+   int i ; double bj , *aa ;
 
    for( i=0 ; i < cols ; i++ ) c[i] = 0.0 ;
 
@@ -263,10 +397,10 @@ void vector_full_multiply_transpose( matrix *a , MTYPE *b , MTYPE *c )
 /*---------------------------------------------------------------------------*/
 /*! Solve [R] [x] = [b] for [x] where R is upper triangular. */
 
-void vector_full_rr_solve( matrix *R , MTYPE *b , MTYPE *x )
+void vector_full_rr_solve( matrix *R , double *b , double *x )
 {
    int n , ii,jj , n1 ;
-   MTYPE sum , *rr ;
+   double sum , *rr ;
 
    n = R->rows ; n1 = n-1 ;
 
@@ -286,10 +420,10 @@ void vector_full_rr_solve( matrix *R , MTYPE *b , MTYPE *x )
 /*---------------------------------------------------------------------------*/
 /*! Solve [R]' [x] = [b] for [x] where R is upper triangular. */
 
-void vector_full_rrtran_solve( matrix *R , MTYPE *b , MTYPE *x )
+void vector_full_rrtran_solve( matrix *R , double *b , double *x )
 {
    int n , ii,jj , n1 ;
-   MTYPE sum , *rr ;
+   double sum , *rr ;
 
    n = R->rows ; n1 = n-1 ;
 
@@ -315,12 +449,12 @@ void vector_full_rrtran_solve( matrix *R , MTYPE *b , MTYPE *x )
 
 /*--------------------------------------------------------------------------*/
 
-MTYPE sparsity_fraction( matrix a )
+double sparsity_fraction( matrix a )
 {
-   int rows=a.rows , cols=a.cols , i,j,k=0 ; MTYPE val ;
+   int rows=a.rows , cols=a.cols , i,j,k=0 ; double val ;
    for( j=0 ; j < cols ; j++ )
      for( i=0 ; i < rows ; i++ ) if( a.elts[i][j] != 0.0 ) k++ ;
-   val = k / (MTYPE)(rows*cols) ; return val ;
+   val = k / (double)(rows*cols) ; return val ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -331,16 +465,16 @@ sparmat * matrix_to_sparmat( matrix a )
    int i , j , k ;
    sparmat *sa ;
 
-   sa = (sparmat *)malloc(sizeof(sparmat)) ;
+   sa = (sparmat *)remla_malloc(sizeof(sparmat)) ;
 
    sa->rows = rows ; sa->cols = cols ;
-   sa->cnum = (int *)   calloc(sizeof(int)    ,cols) ;
-   sa->cii  = (int **)  calloc(sizeof(int *)  ,cols) ;
-   sa->cee  = (MTYPE **)calloc(sizeof(MTYPE *),cols) ;
+   sa->cnum = (int *)   remla_calloc(sizeof(int)    ,cols) ;
+   sa->cii  = (int **)  remla_calloc(sizeof(int *)  ,cols) ;
+   sa->cee  = (double **)remla_calloc(sizeof(double *),cols) ;
 
    for( j=0 ; j < cols ; j++ ){
-     sa->cii[j] = (int *)  malloc(sizeof(int)  *rows) ;
-     sa->cee[j] = (MTYPE *)malloc(sizeof(MTYPE)*rows) ;
+     sa->cii[j] = (int *)  remla_malloc(sizeof(int)  *rows) ;
+     sa->cee[j] = (double *)remla_malloc(sizeof(double)*rows) ;
      for( k=i=0 ; i < rows ; i++ ){
        if( a.elts[i][j] != 0.0 ){
          sa->cii[j][k] = i; sa->cee[j][k] = a.elts[i][j]; k++;
@@ -350,14 +484,14 @@ sparmat * matrix_to_sparmat( matrix a )
 
      if( k < (int)(0.7*rows+1) ){  /* column is sparse: truncate arrays */
        sa->cii[j] = (int *)  realloc( (void *)sa->cii[j] , sizeof(int)  *k ) ;
-       sa->cee[j] = (MTYPE *)realloc( (void *)sa->cee[j] , sizeof(MTYPE)*k ) ;
+       sa->cee[j] = (double *)realloc( (void *)sa->cee[j] , sizeof(double)*k ) ;
 
      } else if( k < rows ){        /* column is nearly full: re-create as full */
-       free(sa->cii[j]); sa->cii[j] = NULL; sa->cnum[j] = rows;
+       remla_free(sa->cii[j]); sa->cii[j] = NULL; sa->cnum[j] = rows;
        for( i=0 ; i < rows ; i++ ) sa->cee[j][i] = a.elts[i][j] ;
 
      } else {                      /* column is completely full */
-       free(sa->cii[j]); sa->cii[j] = NULL;
+       remla_free(sa->cii[j]); sa->cii[j] = NULL;
      }
    }
    return sa ;
@@ -371,10 +505,10 @@ void sparmat_destroy( sparmat *sa )
    if( sa == NULL ) return ;
    cols = sa->cols ;
    for( i=0 ; i < cols ; i++ ){
-     if( sa->cii[i] != NULL ) free(sa->cii[i]) ;
-     if( sa->cee[i] != NULL ) free(sa->cee[i]) ;
+     if( sa->cii[i] != NULL ) remla_free(sa->cii[i]) ;
+     if( sa->cee[i] != NULL ) remla_free(sa->cee[i]) ;
    }
-   free(sa->cee) ; free(sa->cii) ; free(sa->cnum) ; free(sa) ; return ;
+   remla_free(sa->cee) ; remla_free(sa->cii) ; remla_free(sa->cnum) ; remla_free(sa) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -406,7 +540,7 @@ ENTRY("rcmat_writebin") ;
    my_fwrite( &(rcm->nrc) , sizeof(int) , 1 , fp ) ;
    my_fwrite( rcm->len    , sizeof(LENTYP) , rcm->nrc , fp ) ;
    for( ii=0 ; ii < rcm->nrc ; ii++ )
-     my_fwrite( rcm->rc[ii] , sizeof(MTYPE) , rcm->len[ii] , fp ) ;
+     my_fwrite( rcm->rc[ii] , sizeof(double) , rcm->len[ii] , fp ) ;
 
    EXRETURN ;
 }
@@ -426,8 +560,8 @@ ENTRY("rcmat_readbin") ;
    qcm = rcmat_init(nn) ;
    fread( qcm->len , sizeof(LENTYP) , nn , fp ) ;
    for( ii=0 ; ii < nn ; ii++ ){
-     qcm->rc[ii] = malloc( sizeof(MTYPE)*qcm->len[ii] ) ;
-     fread( qcm->rc[ii] , sizeof(MTYPE) , qcm->len[ii] , fp ) ;
+     qcm->rc[ii] = remla_malloc( sizeof(double)*qcm->len[ii] ) ;
+     fread( qcm->rc[ii] , sizeof(double) , qcm->len[ii] , fp ) ;
    }
 
    RETURN(qcm) ;
@@ -447,7 +581,7 @@ ENTRY("matrix_writebin") ;
    my_fwrite( &(a->cols) , sizeof(int) , 1 , fp ) ;
 
    for( ii=0 ; ii < a->rows ; ii++ )
-     my_fwrite( a->elts[ii] , sizeof(MTYPE) , a->cols , fp ) ;
+     my_fwrite( a->elts[ii] , sizeof(double) , a->cols , fp ) ;
 
    EXRETURN ;
 }
@@ -466,10 +600,10 @@ ENTRY("matrix_readbin") ;
    fread( &rows , sizeof(int) , 1 , fp ) ; if( rows < 1 || rows > 999999 ) RETURN(NULL);
    fread( &cols , sizeof(int) , 1 , fp ) ; if( cols < 1 || cols > 999999 ) RETURN(NULL);
 
-   a = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(a) ;
+   a = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(a) ;
    matrix_create( rows , cols , a ) ;
    for( ii=0 ; ii < rows ; ii++ )
-     fread( a->elts[ii] , sizeof(MTYPE) , cols , fp ) ;
+     fread( a->elts[ii] , sizeof(double) , cols , fp ) ;
 
    RETURN(a) ;
 }
@@ -483,8 +617,8 @@ ENTRY("reml_setup_savemat") ;
    if( fp     == NULL || rs     == NULL ) EXRETURN ;
    if( rs->cc == NULL || rs->dd == NULL ) EXRETURN ;
 
-   rcmat_writebin (fp,rs->cc); rcmat_destroy (rs->cc);               rs->cc = NULL;
-   matrix_writebin(fp,rs->dd); matrix_destroy(rs->dd); free(rs->dd); rs->dd = NULL;
+   rcmat_writebin (fp,rs->cc); rcmat_destroy (rs->cc);                     rs->cc = NULL;
+   matrix_writebin(fp,rs->dd); matrix_destroy(rs->dd); remla_free(rs->dd); rs->dd = NULL;
 
    EXRETURN ;
 }
@@ -533,11 +667,11 @@ void REML_allow_only_pos_white_noise( int i ){
     * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
 *//*------------------------------------------------------------------------*/
 
-rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
+rcmat * rcmat_arma11( int nt, int *tau, double rho, double lam )
 {
    rcmat  *rcm ;
    LENTYP *len ;
-   MTYPE **rc , *rii , alam ;
+   double **rc , *rii , alam ;
    int ii , jj , bmax , jbot , itt,jtt ;
 
    if( nt < 2 ){
@@ -568,14 +702,14 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 
    if( bmax == 0 ){
      for( ii=0 ; ii < nt ; ii++ ){
-       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
      }
      return rcm ;
    }
 
    /* First row/column has only 1 entry = diagonal value = 1 */
 
-   len[0] = 1 ; rc[0] = malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
+   len[0] = 1 ; rc[0] = remla_malloc(sizeof(double)) ; rc[0][0] = 1.0 ;
 
    /* Subsequent rows/columns: */
 
@@ -588,11 +722,11 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
      if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
-       len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
      len[ii] = ii + 1 - jbot ;            /* number of entries in row/column */
-     rc[ii]  = calloc(sizeof(MTYPE),len[ii]) ;      /* space for the entries */
+     rc[ii]  = remla_calloc(sizeof(double),len[ii]); /* space for the entries */
      rii     = rc[ii] - jbot ;         /* shifted pointer to this row/column */
      rii[ii] = 1.0 ;                                       /* diagonal entry */
      for( jj=jbot ; jj < ii ; jj++ ){        /* compute off diagonal entries */
@@ -619,20 +753,20 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
     set of parameters, and for a particular regression matrix X.       */
 
 reml_setup * setup_arma11_reml( int nt, int *tau,
-                                MTYPE rho, MTYPE lam , matrix *X )
+                                double rho, double lam , matrix *X )
 {
    int ii , jj , mm ;
    reml_setup *rset ;
    rcmat *rcm ;
    matrix *W , *D ;
-   MTYPE *vec , csum,dsum,val ;
+   double *vec , csum,dsum,val ;
 
    if( nt < 2 || X == NULL || X->rows != nt ){
      if( verb ) ERROR_message("setup_arma11_reml: bad inputs?!") ;
      return NULL ;
    }
 
-   /* check if matrix parameters are allowed [02 Jan 2020] */
+   /* check if correlation matrix parameters are allowable [02 Jan 2020] */
 
    if( ! allow_negative_cor && ( rho < 0.0 || lam < 0.0 ) ) return NULL ;
 
@@ -664,25 +798,25 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
    /* prewhiten each column of X into W matrix */
 
-   W = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(W) ;
+   W = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(W) ;
    matrix_create(nt,mm,W) ;
-   vec = (MTYPE *)malloc(sizeof(MTYPE)*nt) ;
+   vec = (double *)remla_malloc(sizeof(double)*nt) ;
    for( jj=0 ; jj < X->cols ; jj++ ){
      for( ii=0 ; ii < nt ; ii++ ) vec[ii] = X->elts[ii][jj] ; /* extract col */
      rcmat_lowert_solve( rcm , vec ) ;                          /* prewhiten */
      for( ii=0 ; ii < nt ; ii++ ) W->elts[ii][jj] = vec[ii] ;  /* put into W */
    }
-   free((void *)vec) ;
+   remla_free((void *)vec) ;
 
    /* compute QR decomposition of W, save R factor into D, toss W */
 
-   D = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(D) ;
+   D = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(D) ;
    ii = matrix_qrr( *W , D ) ;
-   matrix_destroy(W) ; free((void *)W) ;
+   matrix_destroy(W) ; remla_free((void *)W) ;
    if( D->rows <= 0 ){
      if( verb )
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
-     matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
+     matrix_destroy(D) ; remla_free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    } else if( ii > 0 ){
 #pragma omp critical (QRERR)
  {  static int iold=0 ;
@@ -699,7 +833,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
    /* create the setup struct, save stuff into it */
 
-   rset = (reml_setup *)malloc(sizeof(reml_setup)) ;
+   rset = (reml_setup *)remla_malloc(sizeof(reml_setup)) ;
    rset->neq  = nt ;
    rset->mreg = mm ;
    rset->rho  = rho ;
@@ -732,10 +866,10 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
 /*--------------------------------------------------------------------------*/
 
-reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
+reml_setup * REML_setup_one( matrix *X , int *tau , double rho , double bb )
 {
    reml_setup *rset ;
-   MTYPE lam = LAMBDA(rho,bb) ;
+   double lam = LAMBDA(rho,bb) ;
 
    rset = setup_arma11_reml( X->rows , tau , rho , lam , X ) ;
    if( rset != NULL ) rset->barm = bb ;
@@ -749,7 +883,7 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
    This is to allow for voxel-wise regressors in 3dREMLfit.    [22 Jul 2015]
 *//*------------------------------------------------------------------------*/
 
-reml_setup_plus * REML_setup_plus( matrix *X, matrix *Z, int *tau, MTYPE rho, MTYPE bb )
+reml_setup_plus * REML_setup_plus( matrix *X, matrix *Z, int *tau, double rho, double bb )
 {
    reml_setup_plus *rsetplus=NULL ;
    matrix *XZ=NULL ;
@@ -761,12 +895,12 @@ ENTRY("REML_setup_plus") ;
 
    /* create the catenated matrix XZ */
 
-   XZ = (matrix *)malloc(sizeof(matrix)) ;
+   XZ = (matrix *)remla_malloc(sizeof(matrix)) ;
    if( Z == NULL || Z->cols == 0 ){
      matrix_initialize(XZ) ;
      matrix_equate(*X,XZ) ;
    } else {
-     int ii,jj , nr,ncX,ncZ ; MTYPE *Xar, *Zar, *XZar ;
+     int ii,jj , nr,ncX,ncZ ; double *Xar, *Zar, *XZar ;
      nr = X->rows ; ncX = X->cols ; ncZ = Z->cols ;
      if( nr != Z->rows ) RETURN(rsetplus) ;    /* matrices don't conform?! */
      matrix_initialize(XZ) ;
@@ -778,13 +912,13 @@ ENTRY("REML_setup_plus") ;
      }
    }
 
-   rsetplus = (reml_setup_plus *)calloc(1,sizeof(reml_setup_plus)) ;
+   rsetplus = (reml_setup_plus *)remla_calloc(1,sizeof(reml_setup_plus)) ;
 
    /* setup the REML calculations for this fun fun fun matrix */
 
    rsetplus->rset = REML_setup_one( XZ , tau , rho , bb ) ;
    if( rsetplus->rset == NULL ){        /* bad bad bad */
-     free(rsetplus) ; matrix_destroy(XZ) ; free(XZ) ; RETURN(NULL) ;
+     remla_free(rsetplus) ; matrix_destroy(XZ) ; remla_free(XZ) ; RETURN(NULL) ;
    }
 
    rsetplus->X = XZ ;  /* store matrix, then maybe its sparsification */
@@ -798,6 +932,22 @@ ENTRY("REML_setup_plus") ;
 }
 
 /*==========================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/* Variable do_logqsumq controls how the REML function uses the residuals.
+   * For the case where the matrices are CORRELATION matrices with
+      unit diagonals, and the variance is estimated from the residuals,
+      this variable should be 1. This case is for the ARMA estimation of
+      (residual) time series correlation structure.
+   * For the case (not yet implemented) where the matrices are COVARIANCE
+      matrices, so that the variances are embedded in the matrices, then
+      this variable should be 0. This case is for the linear mixed model
+      stuff (to come), where there are different variance components added
+      together in the covariance matrix.
+*//*------------------------------------------------------------------------*/
+
+static int do_logqsumq = 1 ; /* 28 Apr 2020 */
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X.
@@ -806,13 +956,13 @@ ENTRY("REML_setup_plus") ;
                   rather than static or malloc-ed vectors, for OpenMP's sake.
 *//*------------------------------------------------------------------------*/
 
-MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
-                 MTYPE *bbar[7] , MTYPE *bbsumq )
+double REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
+                 double *bbar[7] , double *bbsumq )
 {
    int n , ii ;
-   MTYPE val ;
-   MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
-   MTYPE qsumq ;
+   double val ;
+   double *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+   double qsumq ;
 
 ENTRY("REML_func") ;
 
@@ -860,11 +1010,15 @@ ENTRY("REML_func") ;
 
    if( bbsumq != NULL ) *bbsumq = qsumq ;   /* output sum of residual squares */
 
-   if( qsumq > 0.0 )
-     val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
-          + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
-   else
-     val = 0.0 ;                                     /* should not happen */
+   if( do_logqsumq ){
+     if( qsumq > 0.0 )
+       val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
+            + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
+     else
+       val = 0.0 ;                                     /* should not happen */
+   } else {
+     val = qsumq + rset->dd_logdet + rset->cc_logdet ; /* 28 Apr 2020 */
+   }
 
    RETURN(val) ;
 }
@@ -875,10 +1029,10 @@ ENTRY("REML_func") ;
 void gltfactors_destroy( gltfactors *gf )
 {
    if( gf == NULL ) return ;
-   if( gf->Jright != NULL ){ matrix_destroy(gf->Jright); free(gf->Jright); }
-   if( gf->Jleft  != NULL ){ matrix_destroy(gf->Jleft ); free(gf->Jleft ); }
-   if( gf->sig    != NULL ){ vector_destroy(gf->sig   ); free(gf->sig   ); }
-   free(gf) ;
+   if( gf->Jright != NULL ){ matrix_destroy(gf->Jright); remla_free(gf->Jright); }
+   if( gf->Jleft  != NULL ){ matrix_destroy(gf->Jleft ); remla_free(gf->Jleft ); }
+   if( gf->sig    != NULL ){ vector_destroy(gf->sig   ); remla_free(gf->sig   ); }
+   remla_free(gf) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -889,10 +1043,10 @@ void reml_setup_destroy( reml_setup *rset )
 
    if( rset == NULL ) return ;
    if( rset->cc != NULL ) rcmat_destroy( rset->cc ) ;
-   if( rset->dd != NULL ){ matrix_destroy( rset->dd ); free(rset->dd); }
+   if( rset->dd != NULL ){ matrix_destroy( rset->dd ); remla_free(rset->dd); }
    for( ii=0 ; ii < rset->nglt ; ii++ ) gltfactors_destroy( rset->glt[ii] ) ;
-   if( rset->glt != NULL ) free(rset->glt) ;
-   free((void *)rset) ;
+   if( rset->glt != NULL ) remla_free(rset->glt) ;
+   remla_free((void *)rset) ;
    return ;
 }
 
@@ -902,9 +1056,9 @@ void reml_setup_plus_destroy( reml_setup_plus *rsp )  /* 22 Jul 2015 */
 {
    if( rsp == NULL ) return ;
    reml_setup_destroy( rsp->rset ) ;
-   if( rsp->X  != NULL ){ matrix_destroy(rsp->X) ; free(rsp->X) ; }
+   if( rsp->X  != NULL ){ matrix_destroy(rsp->X) ; remla_free(rsp->X) ; }
    if( rsp->Xs != NULL ) sparmat_destroy(rsp->Xs) ;
-   free(rsp) ; return ;
+   remla_free(rsp) ; return ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -959,7 +1113,7 @@ static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
    if( fn == NULL || *fn == '\0' || qpurge == NULL ) return ;
    for( ii=0 ; ii < npurge ; ii++ )  /* find in list */
      if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
-   if( ii < npurge ){ free(qpurge[ii]) ; qpurge[ii] = NULL ; }
+   if( ii < npurge ){ remla_free(qpurge[ii]) ; qpurge[ii] = NULL ; }
    return ;
 }
 
@@ -973,9 +1127,9 @@ void reml_setup_savfilnam( char **fnam )
    un = UNIQ_idcode() ;
    un[0] = 'R' ; un[1] = 'E'   ; un[2] = 'M'   ; un[3] = 'L' ;
    un[4] = '_' ; un[5] = ts[0] ; un[6] = ts[1] ; un[7] = ts[2] ;
-   *fnam = malloc(strlen(pg)+64) ;
+   *fnam = remla_malloc(strlen(pg)+64) ;
    strcpy(*fnam,pg); strcat(*fnam,"/"); strcat(*fnam,un);
-   free(un) ; return ;
+   remla_free(un) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -992,7 +1146,7 @@ ENTRY("reml_collection_save") ;
    if( rcol == NULL || rcol->rs[rcol->izero] == NULL ) EXRETURN ;
    if( rcol->savfil != NULL ){
      kill_purge(rcol->savfil) ;
-     remove(rcol->savfil) ; free(rcol->savfil) ; rcol->savfil = NULL ;
+     remove(rcol->savfil) ; remla_free(rcol->savfil) ; rcol->savfil = NULL ;
    }
 
    reml_setup_savfilnam( &(rcol->savfil) ) ;
@@ -1000,7 +1154,7 @@ ENTRY("reml_collection_save") ;
    fp = fopen( rcol->savfil , "wb" ) ;
    if( fp == NULL ){
      ERROR_message("3dREMLfit can't write to -usetemp file %s",rcol->savfil) ;
-     free(rcol->savfil) ; rcol->savfil = NULL ;
+     remla_free(rcol->savfil) ; rcol->savfil = NULL ;
      EXRETURN ;
    }
    add_purge( rcol->savfil ) ;  /* add to list of files to be purged at exit */
@@ -1024,7 +1178,7 @@ ENTRY("reml_collection_restore") ;
    fp = fopen( rcol->savfil , "rb" ) ;
    if( fp == NULL ){
      ERROR_message("3dREMLfit can't read from -usetemp file %s",rcol->savfil) ;
-     free(rcol->savfil) ; rcol->savfil = NULL ;
+     remla_free(rcol->savfil) ; rcol->savfil = NULL ;
      EXRETURN ;
    }
 
@@ -1055,23 +1209,23 @@ void reml_collection_destroy( reml_collection *rcol , int zsave )
          reml_setup_destroy(rcol->rs[ii]) ; rcol->rs[ii] = NULL ;
        }
      }
-     if( !zsave ) free((void *)rcol->rs) ;
+     if( !zsave ) remla_free((void *)rcol->rs) ;
    }
    if( rcol->savfil != NULL ){
      kill_purge(rcol->savfil) ;
-     remove(rcol->savfil) ; free(rcol->savfil) ; rcol->savfil = NULL ;
+     remove(rcol->savfil) ; remla_free(rcol->savfil) ; rcol->savfil = NULL ;
    }
-   if( !zsave ) free((void *)rcol) ;
+   if( !zsave ) remla_free((void *)rcol) ;
    return ;
 }
 
 /*--------------------------------------------------------------------------*/
 
 reml_collection * REML_setup_all( matrix *X , int *tau ,
-                                  int nlev , MTYPE atop , MTYPE btop )
+                                  int nlev , double atop , double btop )
 {
    int ii,jj,kk , nt , nset , pna,pnb , na,nb ;
-   MTYPE da,db, bb,aa, lam , bbot,abot ;
+   double da,db, bb,aa, lam , bbot,abot ;
    reml_collection *rrcol=NULL ;
    float avglen=0.0f ;
    double spcut ;
@@ -1107,9 +1261,9 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
      abot = atop ; bbot = btop ;
    }
 
-   rrcol = (reml_collection *)malloc(sizeof(reml_collection)) ;
+   rrcol = (reml_collection *)remla_malloc(sizeof(reml_collection)) ;
 
-   rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
+   rrcol->X = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
    matrix_equate( *X , rrcol->X ) ;
 
    spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
@@ -1139,7 +1293,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
        is never computed, then it will be skipped later in the
        optimizing function REML_find_best_case */
 
-   rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),rrcol->nab) ;
+   rrcol->rs = (reml_setup **)remla_calloc(sizeof(reml_setup *),rrcol->nab) ;
 
    rrcol->abot = abot ; rrcol->da = da ; rrcol->na = na ; rrcol->pna = pna ;
    rrcol->bbot = bbot ; rrcol->db = db ; rrcol->nb = nb ; rrcol->pnb = pnb ;
@@ -1169,8 +1323,8 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 #ifdef USE_OMP
     int nthr , *nset_th ; float *avg_th ; static int first=1 ;
     nthr    = omp_get_max_threads() ;
-    nset_th = (int   *)calloc(sizeof(int)  ,nthr) ;
-    avg_th  = (float *)calloc(sizeof(float),nthr) ;
+    nset_th = (int   *)remla_calloc(sizeof(int)  ,nthr) ;
+    avg_th  = (float *)remla_calloc(sizeof(float),nthr) ;
     if( first && verb && nthr > 1 ){
       ININFO_message("starting %d OpenMP threads for REML setup",nthr) ;
       first = 0 ;
@@ -1180,11 +1334,15 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
  AFNI_OMP_START ;
 #pragma omp parallel if( maxthr > 1 && rrcol->nab > 2 )
  { int iab , nab , ii,jj,kk , ithr=0 ;
-   MTYPE bb,aa, lam ; float avg ;
+   double bb,aa, lam ; float avg ;
+   nab = rrcol->nab ;
+
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
+#ifdef ENABLE_REMLA_MALLOC
+   if( ithr == 0 && verb > 1 ) fprintf(stderr,"nab=%d ",nab) ;
 #endif
-   nab = rrcol->nab ;
+#endif
 #pragma omp for
      for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
        ii  = iab % (na+1) ;
@@ -1201,6 +1359,12 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
            avg = rcmat_avglen( rrcol->rs[kk]->cc ) ;
 #ifdef USE_OMP
            nset_th[ithr]++ ; avg_th[ithr] += avg ;
+#ifdef ENABLE_REMLA_MALLOC
+           if( ithr == 0 && verb > 1 ){
+             fprintf(stderr," [%d]",kk) ;
+             if( kk%20 == 0 ) REMLA_memprint ;
+           }
+#endif
 #else
            nset++ ; avglen += avg ;
 #endif
@@ -1215,7 +1379,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    for( ii=0 ; ii < nthr ; ii++ ){
      nset += nset_th[ii] ; avglen += avg_th[ii] ;
    }
-   free(avg_th) ; free(nset_th) ;
+   remla_free(avg_th) ; remla_free(nset_th) ;
 #endif
 
    } /* end general setup */
@@ -1232,13 +1396,13 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 *//*------------------------------------------------------------------------*/
 
 int REML_find_best_case( vector *y , reml_collection *rrcol ,
-                         int nws , MTYPE *ws )
+                         int nws , double *ws )
 {
-   MTYPE rbest , rval ;
+   double rbest , rval ;
    int   na,nb , pna,pnb , ltop , mm ;
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
    int   klist[128] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
-   MTYPE *bbar[7] , *rvab ;
+   double *bbar[7] , *rvab ;
 
 ENTRY("REML_find_best_case") ;
 
@@ -1260,9 +1424,9 @@ ENTRY("REML_find_best_case") ;
      for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
      bb_ws = rv_ws = 0 ;
    } else {
-     rvab = (MTYPE *)malloc(sizeof(MTYPE)*rv_ws) ;
+     rvab = (double *)remla_malloc(sizeof(double)*rv_ws) ;
      for( ia=0 ; ia < 7 ; ia++ )
-       bbar[ia] = (MTYPE *)malloc(sizeof(MTYPE)*bb_ws) ;
+       bbar[ia] = (double *)remla_malloc(sizeof(double)*bb_ws) ;
    }
 
    /** do the Ordinary Least Squares (olsq) case, mark it as best so far **/
@@ -1324,8 +1488,8 @@ ENTRY("REML_find_best_case") ;
    } /* end of scan descent through different levels */
 
    if( bb_ws ){
-     free(rvab) ;
-     for( ia=0 ; ia < 7 ; ia++ ) free(bbar[ia]) ;
+     remla_free(rvab) ;
+     for( ia=0 ; ia < 7 ; ia++ ) remla_free(bbar[ia]) ;
    }
 
    if( ws != NULL ) ws[0] = rbest ;
@@ -1339,7 +1503,7 @@ ENTRY("REML_find_best_case") ;
 
 gltfactors * REML_get_gltfactors( matrix *D , matrix *G )
 {
-   int nn , rr , i,j ; MTYPE ete ;
+   int nn , rr , i,j ; double ete ;
    gltfactors *gf ;
    matrix *JL , *JR , *GT , *E,*F,*Z ; vector *S ;
 
@@ -1352,16 +1516,16 @@ ENTRY("REML_get_gltfactors") ;
 
    /* [D] is nn X nn (upper triangular); [G] is rr X nn, with rr < nn */
 
-   GT = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
+   GT = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
    matrix_transpose( *G , GT ) ;         /* GT = [G'] = nn X rr matrix */
 
 /* INFO_message("GLT GT matrix") ; matrix_print( *GT ) ; */
 
-   F = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(F) ;
+   F = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(F) ;
    matrix_rrtran_solve( *D , *GT , F ) ; /* F = inv[D'] [G'] = nn X rr matrix */
-   matrix_destroy(GT); free(GT);
+   matrix_destroy(GT); remla_free(GT);
 
-   S = (vector *)malloc(sizeof(vector)) ; vector_initialize(S) ;
+   S = (vector *)remla_malloc(sizeof(vector)) ; vector_initialize(S) ;
 
 /* INFO_message("GLT F matrix") ; matrix_print( *F ) ; */
 
@@ -1378,15 +1542,15 @@ ENTRY("REML_get_gltfactors") ;
  } /* end of OpenMP critical section */
      }
      ete = 1.0 / ete ;                       /* scale factor */
-     JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
+     JR = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      matrix_create(rr,nn,JR) ;
      for( i=0 ; i < nn ; i++ )
        JR->elts[0][i] = G->elts[0][i] * ete ;  /* scale G to get JR */
 
    } else {                     /* QR factor F to get E, then solve for JR */
-     E  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(E) ;
-     Z  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
-     JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
+     E  = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(E) ;
+     Z  = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
+     JR = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      i = matrix_qrr( *F , E ) ;
      if( i > 0 ){
 #pragma omp critical (QRERR)
@@ -1403,19 +1567,19 @@ ENTRY("REML_get_gltfactors") ;
      matrix_rrtran_solve( *E , *G , Z ) ;
      matrix_rr_solve( *E , *Z , JR ) ;  /* JR = inv[E] inv[E'] G = rr X nn */
      matrix_colsqsums( *E , S ) ;       /* S = [sig] = rr vector */
-     matrix_destroy(Z); free(Z);
-     matrix_destroy(E); free(E);
+     matrix_destroy(Z); remla_free(Z);
+     matrix_destroy(E); remla_free(E);
    }
 
    /* compute JL */
 
-   JL = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JL) ;
+   JL = (matrix *)remla_malloc(sizeof(matrix)) ; matrix_initialize(JL) ;
    matrix_rr_solve( *D , *F , JL ) ;  /* JL = inv[D] [F] = nn X rr matrix */
-   matrix_destroy(F); free(F);
+   matrix_destroy(F); remla_free(F);
 
    /* save results into struct */
 
-   gf = (gltfactors *)malloc(sizeof(gltfactors)) ;
+   gf = (gltfactors *)remla_malloc(sizeof(gltfactors)) ;
    gf->mpar   = nn ;  /* number of parameters */
    gf->rglt   = rr ;  /* number of rows in matrix */
    gf->Jright = JR ;
@@ -1482,28 +1646,28 @@ ENTRY("REML_add_glt_to_all") ;
 
 static vector *betaG = NULL ;  /* GLT combinations  */
 static vector *betaT = NULL ;  /* GLT t-statistics  */
-static MTYPE   betaR = 0.0  ;  /* GLT R^2 statistic */
-static MTYPE   betaF = 0.0  ;  /* GLT F statistic   */
+static double   betaR = 0.0  ;  /* GLT R^2 statistic */
+static double   betaF = 0.0  ;  /* GLT F statistic   */
 
-MTYPE REML_compute_gltstat( int ddof ,
-                            vector *y, vector *bfull, MTYPE fsumq ,
+double REML_compute_gltstat( int ddof ,
+                            vector *y, vector *bfull, double fsumq ,
                             reml_setup *rset, gltfactors *gf,
                             matrix *G, sparmat *Gs, matrix *X, sparmat *Xs )
 {
-   MTYPE fstat , rsumq ;
+   double fstat , rsumq ;
    vector ba , bb , br ;
 
 ENTRY("REML_compute_gltstat") ;
 
    if( betaG == NULL ){
-     betaG = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaG) ;
-     betaT = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaT) ;
+     betaG = (vector *)remla_malloc(sizeof(vector)) ; vector_initialize(betaG) ;
+     betaT = (vector *)remla_malloc(sizeof(vector)) ; vector_initialize(betaT) ;
    }
 
    if( y     == NULL || bfull == NULL ||
        rset  == NULL || gf    == NULL || fsumq <= 0.0 ){
      vector_destroy(betaG) ; vector_destroy(betaT) ;
-     free(betaG) ; free(betaT) ; betaG = betaT = NULL ; betaR = 0.0 ;
+     remla_free(betaG) ; remla_free(betaT) ; betaG = betaT = NULL ; betaR = 0.0 ;
      RETURN( 0.0 );
    }
 
@@ -1551,7 +1715,7 @@ ENTRY("REML_compute_gltstat") ;
    /* compute GLT combinations of beta coefficients, and t-statistics */
 
    if( G != NULL ){
-     MTYPE fsig ; int ii ;
+     double fsig ; int ii ;
      fsig = sqrt( fsumq / ddof ) ;  /* noise estimate */
 
      if( G->cols < bfull->dim ){  /* 22 Jul 2015 */
@@ -1572,4 +1736,338 @@ ENTRY("REML_compute_gltstat") ;
    }
 
    RETURN( fstat );
+}
+
+/*---------------------------------------------------------------------------*/
+
+#define NSCUT 5  /* finsih when get this many 'small' correlations in a row */
+
+/*---------------------------------------------------------------------------*/
+/*  Compute correlations for AR(3) model with one real root [aa] and two
+    complex roots [rr1 exp(+-I*th1)], with 0 < aa,rr1 < 1 and 0 < th1 < PI/2
+
+    AR(3) model
+      Noise process is
+        x[n]   = w[n] + p1 * x[n-1] + p2 * x[n-2] + p3 * x[n-3]
+                 where w[n] is white noise iid
+      Polynomial of noise process in terms of roots is
+        phi(z) = (z-aa)*(z-rr1*exp(I*th1))*(z-rr1*exp(-I*th1))
+      In terms of coefficients above is
+        phi(z) = z^3 - p1 * z^2 - p2 * z - p3
+      Auto-correlations g[k] are given by g[0] = 1, linear equations
+      for the next 2
+        [  (1-p2)  -p3 ] [ g[1] ]   [ p1 ]
+        [ -(p1+p2)  1  ] [ g[2] ] = [ p2 ]
+      and then recurrence
+        g[k] = p1*g[k-1] + p2*g[k-2] + p3*g[k-3] for k > 2
+
+      Finally, sfac is the ratio sig^2/(sig^2+kap^2) where
+        sig^2 = variance of AR(3) process
+        kap^2 = variance of WN process added into AR(3) process
+      The final off-diagonal (k > 0) correlations are adjusted to be
+      sfac*g[k] to allow for this. Note that sfac == 0 is just white noise,
+      and sfac == 1 is pure AR(3).
+
+      I call this "ARMA(3,1)" but it is a restricted subset of a full
+      ARMA(3,1) model, as phi(z) in the ARMA portion is required to have
+      1 real and 2 complex (conjugate) roots, and the MA portion is
+      restricted to allow only models that correspond to AR(3) plus some
+      extra white noise - unlike the ARMA(1,1) models allowed in other
+      parts of this hideous hackwork.
+*//*-------------------------------------------------------------------------*/
+
+doublevec * REML_compute_arma31_correlations( double aa,
+                                              double rr1, double th1,
+                                              int kmax  , double sfac )
+{
+   doublevec *cvec=NULL ;
+   double p1 , p2 , p3 , rc1 ;
+   double m11,m12,m21,m22 , mdd , gg1,gg2,ggk , ccut ;
+   int kk , nsmall ;
+
+ENTRY("REML_compute_arma31_correlations") ;
+
+   if( aa <= 0.0 || rr1 <= 0.0 || rr1 >= 1.0 || th1 <= 0.0 || th1 >= HPI ){
+     ERROR_message("REML_compute_arma31_correlations(%g,%g,%g) is bad",aa,rr1,th1);
+     RETURN(NULL) ;
+   }
+
+   if( sfac <= 0.0 ) kmax = 1 ;    /* adjustments */
+   if( sfac >  1.0 ) sfac = 1.0 ;
+
+   if( kmax == 1 ){             /* very trivial case */
+     MAKE_doublevec(cvec,1) ;
+     cvec->ar[0] = 1.0 ;
+     RETURN(cvec) ;
+   }
+
+   rc1 = rr1 * cos(th1) ;      /* compute polynomial coefficients */
+   p1  = aa + 2.0*rc1 ;        /* from the input polynomial roots */
+   p2 = -2.0 * aa * rc1 - rr1*rr1 ;
+   p3 = rr1*rr1 + aa ;
+
+   m11 = 1.0 - p2 ;           /* setup 2x2 matrix for first two gammas */
+   m12 = -p3 ;
+   m21 = -( p3 + p1 ) ;
+   m22 = 1.0 ;
+
+   mdd = m11*m22 - m12*m21 ;  /* determinant of matrix */
+   if( mdd == 0.0 ){          /* should never happen */
+     ERROR_message("REML_compute_arma31_correlations(%g,%g,%g) bad det",aa,rr1,th1);
+     RETURN(NULL) ;
+   }
+
+   /* first two correlations (gammas) by solving above 2x2 system */
+
+   gg1 = (  m22 * p1 - m12 * p2 ) / mdd ;
+   gg2 = ( -m21 * p1 + m11 * p2 ) / mdd ;
+
+   /* create and initialize output vector of correlations */
+
+   if( kmax <= 0 ) kmax = 9999 ;  /* I hope we never need more than this */
+   MAKE_doublevec(cvec,kmax+1) ;
+
+   cvec->ar[0] = 1.0 ;
+   cvec->ar[1] = gg1 ;
+   cvec->ar[2] = gg2 ;
+
+   if( kmax == 2 ){  /* unusually short output! */
+     cvec->ar[1] *= sfac ;
+     cvec->ar[2] *= sfac ;
+     RETURN(cvec) ;
+   }
+
+   ccut = MAX(10.0,1.0/sfac) * corcut ;
+
+   /* load further correlations recursively */
+
+   for( nsmall=0,kk=3 ; kk <= kmax ; kk++ ){
+     ggk = p1*cvec->ar[kk-1] + p2*cvec->ar[kk-2] + p3*cvec->ar[kk-3] ;
+     cvec->ar[kk] = ggk ;
+
+     if( fabs(ggk) >= ccut ){        /* still big enough */
+       nsmall = 0 ;
+     } else {                        /* too small */
+       nsmall++ ;
+       if( nsmall >= NSCUT ) break ; /* too many small in a row */
+     }
+   }
+   if( kk == kmax ) kk-- ; /* so kk = last value actually assigned */
+
+   kmax = kk+1-nsmall ;    /* 1 past last 'big' value assigned */
+
+   /* truncate, if we didn't get all the way to the end */
+
+   RESIZE_doublevec(cvec,kmax) ;
+
+   if( sfac < 1.0 ){
+     for( kk=1 ; kk < kmax ; kk++ ) cvec->ar[kk] *= sfac ;
+   }
+
+   RETURN(cvec) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*  Similar to above but for AR(5) model model with one real root [aa] and
+    four complex roots [rr1 exp(+-I*th1) , rr2 exp(+-I*th2)],
+    with 0 < aa,rr1 < 1 and 0 < th1,th2 < PI/2
+*//*-------------------------------------------------------------------------*/
+
+doublevec * REML_compute_arma51_correlations( double aa,
+                                              double rr1, double th1,
+                                              double rr2, double th2,
+                                              int kmax  , double sfac )
+{
+   doublevec *cvec=NULL ;
+   double p1,p2,p3,p4,p5 , rc1,rc2 , ct1,ct2 , rcp , r1q,r2q ;
+   dmat44 M44 , M44inv ;
+   double gg1,gg2,gg3,gg4,ggk , ccut ;
+   int kk , nsmall ;
+
+ENTRY("REML_compute_arma51_correlations") ;
+
+   if( aa <= 0.0 || rr1 <= 0.0 || rr1 >= 1.0 || th1 <= 0.0 || th1 >= HPI ||
+                    rr2 <= 0.0 || rr2 >= 1.0 || th2 <= 0.0 || th2 >= HPI   ){
+     ERROR_message("REML_compute_arma51_correlations(%g,%g,%g,%g,%g) is bad",aa,rr1,th1,rr2,th2);
+     RETURN(NULL) ;
+   }
+
+   if( sfac <= 0.0 ) kmax = 1 ;    /* adjustments */
+   if( sfac >  1.0 ) sfac = 1.0 ;
+
+   if( kmax == 1 ){             /* very trivial case */
+     MAKE_doublevec(cvec,1) ;
+     cvec->ar[0] = 1.0 ;
+     RETURN(cvec) ;
+   }
+
+   ct1 = cos(th1) ;      /* compute polynomial coefficients */
+   ct2 = cos(th2) ;      /* formulas from yacas, massaged */
+   rc1 = rr1 * ct1 ;
+   rc2 = rr2 * ct2 ;
+   rcp = rr1 * ct2 + rr2 * ct1 ;
+   r1q = rr1 * rr1 ;
+   r2q = rr2 * rr2 ;
+
+   p1  = 2.0*rc1 + 2.0*rc2 + aa ;
+   p2  = -( 4.0*rc1*rc2 + 2.0*(rc1+rc2)*aa + (r1q+r2q) ) ;
+   p3  = aa*( (r1q+r2q) + 4.0*rc1*rc2 ) + 2.0*rr1*rr2*rcp ;
+   p4  = -( 2.0*rr1*rr2*aa*rcp + r1q*r2q ) ;
+   p5  = aa + r1q + r2q ;
+
+   /* Fill 4x4 matrix (from yacas) */
+
+   LOAD_DMAT44( M44 ,
+                  1.0-p2 ,   -p3    , -p4 , -p5  ,
+                -(p3+p1) ,  1.0-p4  , -p5 ,  0.0 ,
+                -(p4+p2) , -(p5+p1) , 1.0 ,  0.0 ,
+                -(p5+p3) ,   -p2    , -p1 ,  1.0  ) ;
+
+   M44inv = generic_dmat44_inverse( M44 ) ;  /* invert matrix */
+
+   /* get first 4 gammas (correlations) by solving [M44] [gg(1-4)] = [p(1-4)] */
+
+   DMAT44_VEC( M44inv , p1,p2,p3,p4 , gg1,gg2,gg3,gg4 ) ;
+
+   /* create and initialize output vector of correlations */
+
+        if( kmax <= 0 ) kmax = 9999 ;  /* I hope we never need more than this */
+   else if( kmax <  4 ) kmax = 4 ;
+   MAKE_doublevec(cvec,kmax+1) ;
+
+   cvec->ar[0] = 1.0 ;
+   cvec->ar[1] = gg1 ;
+   cvec->ar[2] = gg2 ;
+   cvec->ar[3] = gg3 ;
+   cvec->ar[4] = gg4 ;
+
+   if( kmax == 4  ){  /* unusually short output! */
+     cvec->ar[1] *= sfac ;
+     cvec->ar[2] *= sfac ;
+     cvec->ar[3] *= sfac ;
+     cvec->ar[4] *= sfac ;
+     RETURN(cvec) ;
+   }
+
+   ccut = MAX(10.0,1.0/sfac) * corcut ;
+
+   /* load further correlations recursively */
+
+   for( nsmall=0,kk=5 ; kk <= kmax ; kk++ ){
+     ggk =   p1*cvec->ar[kk-1] + p2*cvec->ar[kk-2]
+           + p3*cvec->ar[kk-3] + p4*cvec->ar[kk-4] + p5*cvec->ar[kk-5] ;
+     cvec->ar[kk] = ggk ;
+
+     if( fabs(ggk) >= ccut ){        /* still big enough */
+       nsmall = 0 ;
+     } else {                        /* too small */
+       nsmall++ ;
+       if( nsmall >= NSCUT ) break ; /* too many small in a row */
+     }
+   }
+   if( kk == kmax ) kk-- ; /* so kk = last value actually assigned */
+
+   kmax = kk+1-nsmall ;    /* 1 past last 'big' value assigned */
+
+   /* truncate, if we didn't get all the way to the end */
+
+   RESIZE_doublevec(cvec,kmax) ;
+
+   if( sfac < 1.0 ){
+     for( kk=1 ; kk < kmax ; kk++ ) cvec->ar[kk] *= sfac ;
+   }
+
+   RETURN(cvec) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Setup sparse banded correlation matrix (as an rcmat struct)
+    for AR(3)+WN noise model with 4 parameters (aa,rr,th,sfac).
+    * tau[i] is the 'true' time index of the i-th data point.  This
+      lets you allow for censoring and for inter-run gaps.
+    * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
+*//*------------------------------------------------------------------------*/
+
+rcmat * rcmat_arma31( int nt, int *tau,
+                      double aa, double rr, double th , double sfac )
+{
+   rcmat  *rcm ;
+   LENTYP *len ;
+   double **rc , *rii ;
+   int ii , jj , bmax , jbot , itt,jtt ;
+   doublevec *corvec ;
+
+   if( nt < 2 ){
+     if( verb ) ERROR_message("rcmat_arma31: nt=%d < 2",nt) ;
+     return NULL ;
+   }
+
+   rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
+   len = rcm->len ;
+   rc  = rcm->rc ;
+
+   /* edit input params for reasonability */
+
+        if( aa >  0.9 ) aa =  0.9 ;
+   else if( aa < -0.9 ) aa = -0.9 ;
+
+        if( rr >  0.9  ) rr =  0.9 ;
+   else if( rr <  0.05 ) rr = 0.05 ;
+
+        if( th >= HPI ) th = 0.95 * HPI ;
+   else if( th <= 0.0 ) th = 0.05 * HPI ;
+
+        if( sfac < 0.0 ) sfac = 0.0 ;
+   else if( sfac > 1.0 ) sfac = 1.0 ;
+
+   corvec = REML_compute_arma31_correlations( aa, rr, th, nt, sfac ) ;
+
+   if( corvec == NULL ){
+     if( verb ) ERROR_message("rcmat_arma31 - fails to compute correlations :(") ;
+     rcmat_destroy( rcm ) ;
+     return NULL ;
+   }
+
+   /* set maximum bandwidth */
+
+   bmax = corvec->nar - 1 ;
+
+   /* special and trivial case: identity matrix */
+
+   if( bmax == 0 ){
+     for( ii=0 ; ii < nt ; ii++ ){
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
+     }
+     return rcm ;
+   }
+
+   /* First row/column has only 1 entry = diagonal value = 1 */
+
+   len[0] = 1 ; rc[0] = remla_malloc(sizeof(double)) ; rc[0][0] = 1.0 ;
+
+   /* Subsequent rows/columns: */
+
+   for( ii=1 ; ii < nt ; ii++ ){
+     itt  = TAU(ii) ;                            /* 'time' of the i'th index */
+     jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+       jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
+       if( jtt <= bmax ) break ;                /* if in OK region, stop now */
+     }
+     jbot = jj ;      /* this is the earliest index to be correlated with #i */
+     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+       len[ii] = 1 ; rc[ii] = remla_malloc(sizeof(double)) ; rc[ii][0] = 1.0 ;
+       continue ;
+     }
+     len[ii] = ii + 1 - jbot ;            /* number of entries in row/column */
+     rc[ii]  = remla_calloc(sizeof(double),len[ii]); /* space for the entries */
+     rii     = rc[ii] - jbot ;         /* shifted pointer to this row/column */
+     rii[ii] = 1.0 ;                                       /* diagonal entry */
+     for( jj=jbot ; jj < ii ; jj++ ){        /* compute off diagonal entries */
+       jtt = itt - TAU(jj) ;                      /* 'time' difference again */
+       rii[jj] = corvec->ar[jtt] ;            /* from the correlation vector */
+     }
+   }
+
+   return rcm ;
 }

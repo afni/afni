@@ -51,6 +51,7 @@
 #define PPC "PP Christidis"  /* gone but not forgotten */
 #define BGP "BG Pittman"     /* AKA Brien (not Brienne) */
 #define JKR "JK Rajendra"    /* AKA discoraj */
+#define PDL "PD Lauren"      /* AKA Peter */
 
 /* importance levels */
 #define MIN_PROG_LEVEL  1  /* min in list */
@@ -70,7 +71,9 @@
 #define TYPE_BUG_FIX    4  /* enhancement of an existing bug */
 #define TYPE_MODIFY     5  /* a change (not new, not a bug fix) */
 #define TYPE_ENHANCE    6  /* general enhancement */
-#define MAX_TYPE_VAL    6  /* maximum type value */
+#define TYPE_REMOVE     7  /* was removed from the repository */
+#define TYPE_REINSTATE  8  /* was re-added to the repository */
+#define MAX_TYPE_VAL    8  /* maximum type value */
 
 
 typedef struct {
@@ -103,6 +106,7 @@ extern afni_history_struct rickr_history[];
 extern afni_history_struct rwcox_history[];
 extern afni_history_struct ziad_history[];
 extern afni_history_struct discoraj_history[];
+extern afni_history_struct laurenpd_history[];
 
 
 /*----------------------------------------------------------------------*/
@@ -126,6 +130,7 @@ typedef struct {
     int        min_level;
     int        past_days, past_months, past_years, past_entries;
     int        sort_dir;
+    int        show_field;   /* show only the given struct field */
     int        final_sort_by_prog;
     int        verb;
 
@@ -168,11 +173,13 @@ int check_date          (global_data * gd, hist_type ** hlist, int len);
 int compare_hlist       (const void *v0, const void *v1);
 int compare_hist_dates  (hist_type *h0, hist_type *h1);    /* RWC */
 int disp_global_data    (char * mesg, global_data * gd);
+int field_name2index    (char * fname);
 int histlists_are_valid (histpair * hpairs, int plen);
 int hlist_is_sorted     (hist_type * hlist);
 int hlist_len           (hist_type * hlist);
 int init_histlist       (global_data * gd);
 int process_options     (int argc, char * argv[], global_data * gd);
+int quick_field_test    (void);
 int restrict_by_date    (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
@@ -183,13 +190,14 @@ int set_dates           (global_data * gd, int * dd, int * mm, int * yy );
 int show_author_list    (void);
 int show_command        (FILE * fp, int argc, char ** argv);
 int show_help           (void);
-int show_hist_type      (hist_type * hp, FILE * fp);
+int show_hist_entry     (hist_type * hp, FILE * fp, int field);
 int show_history        (global_data * gd, hist_type ** hlist, int len);
 int show_html_footer    (FILE * fp);
 int show_html_header    (global_data * gd, FILE * fp, int min_level);
 int show_html_separator (FILE * fp);
 int show_dline_separator(FILE * fp);
 int show_results        (global_data * gd);
+int show_valid_fields   (void);
 int show_valid_types    (void);
 int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
 int type_string2type    (char * tstring);

@@ -8,7 +8,7 @@ import re
 import shutil
 
 build_dir = Path("/build")
-src_dir = Path("/opt/src/afni")
+src_dir = Path("/opt/afni/src")
 nifti_dir = src_dir.parent / 'nifti_clib'
 gifti_dir = src_dir.parent / 'gifti_clib'
 components = Path("components")
@@ -157,11 +157,11 @@ print("Built full build")
 
 # full with external, the full build and the external libraries that can be
 # built using the cmake build system:
-# e.g. nifti,gifti,jpeg,xmhtml,gts,glut,volpack,qhull,dcm2niix,f2c,netcdf
+# e.g. nifti,gifti,jpeg,xmhtml,gts,glut,qhull,dcm2niix,f2c
 sp.check_output(
     f"""
 ninja uninstall
-cmake /opt/src/afni \
+cmake /opt/afni/src \
     -DCOMP_ADD_RSTATS=ON \
     -DUSE_SYSTEM_NIFTI=OFF \
     -DUSE_SYSTEM_GIFTI=OFF \
@@ -170,11 +170,9 @@ cmake /opt/src/afni \
     -DUSE_SYSTEM_XMHTML=OFF \
     -DUSE_SYSTEM_GTS=OFF \
     -DUSE_SYSTEM_GLUT=OFF \
-    -DUSE_SYSTEM_VOLPACK=OFF \
     -DUSE_SYSTEM_QHULL=OFF \
     -DUSE_SYSTEM_DCM2NIIX=OFF \
-    -DUSE_SYSTEM_F2C=OFF \
-    -DUSE_SYSTEM_NETCDF=ON # not currently supported
+    -DUSE_SYSTEM_F2C=OFF
 ninja
 ninja install  > components/7_external_dependencies.txt
 """,

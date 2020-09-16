@@ -117,6 +117,35 @@ class afni_name(object):
       else:
          return self.rppve() 
 
+   def nice_input(self, head=0, sel=0):
+      """return a path to the input, where rel/abs path matches original
+           - the path being relative or absolute will match self.initname
+                                                      14 Apr 2020 [rickr]
+      """
+      # if relative path, rel_input does the job
+      if not self.initname.startswith('/'):
+         return self.rel_input(head=head, sel=sel)
+
+      # absolute path
+
+      # if not head or not BRIK type, easy return
+      if not head or self.type != 'BRIK':
+         return self.ppv(sel=sel)
+
+      # have head AND type==BRIK,
+      # temporarily alter the extension and use it
+
+      save_ext = self.extension
+      self.extension = '.HEAD'
+
+      # get return value, including extension, without expanding links
+      retval = self.ppve(sel=sel)
+
+      # and restore previous extension before return
+      self.extension = save_ext
+
+      return retval
+
    def rel_input(self, head=0, sel=0):
       """relative path to dataset in 'input' format
          e.g. +orig, but no .HEAD
@@ -1216,3 +1245,188 @@ def isFloat(s):
         return True
     except:
         return False
+
+def list_count_float_not_int(ll):
+   """see if list of numbers can be treated like ints; returns number of
+floats.
+
+   Note: for tiny decimals, this can be wrong:
+
+In [7]: ab.listContainsFloatVsInt([1,2,3,4.0000000001,5.0])
+Out[7]: 1
+
+In [8]: ab.listContainsFloatVsInt([1,2,3,4.000000000000000001,5.0])
+Out[8]: 0
+
+   """
+
+   if type(ll) != list : EP("Input is not a list")
+   N = len(ll)
+   
+   count = 0
+
+   for x in ll:
+      a = float(x)
+      b = float(int(x))
+      if b-a :
+         count+=1
+   return count
+
+# -----------------------------------------------------------------------
+
+afni_sel_list = [ '{', '[', '<' ] # list of left-sided selectors
+
+def glob_with_afni_selectors(ilist, verb=0):
+    """Input: ilist is an input list (or str) of input names to be interpreted.
+
+    The ilist entries can contain wildcards and/or AFNI selectors,
+    such as:
+
+    sub_*.dat
+    sub_*.dat{0..5,7,9,12.$}
+    sub_*.dat{0..5,7,9,12.$}[1..3]
+    sub_*.dat[1..3]{0..5,7,9,12.$}
+
+    Return: a list of glob-expanded entries, with selectors (if
+    present) applied  to all appropriate ones, e.g.:
+
+    sub_*.dat{0..5,7,9,12.$}
+    -> 
+    ['sub_000.dat{0..5,7,9,12.$}', 'sub_001.dat{0..5,7,9,12.$}', ...]
+
+    """
+
+    if type(ilist) == str :        ilist = [ilist]
+
+    N     = len(ilist)
+    olist = []
+
+    no_hits = []
+
+    for ii in range(N):
+        # split at spaces first
+        lspaced = ilist[ii].split()
+        for word in lspaced:
+            lll = []
+            # check if any selectors are present; should only be one
+            # of each kind at most
+            for sel in afni_sel_list:
+                if word.__contains__(sel) :
+                    split = word.split(sel)
+                    lll   = glob.glob(split[0])
+                    if len(lll) > 0 :
+                        lll = [x + sel + ''.join(split[1:]) for x in lll]
+                        break
+            if lll :
+                olist.extend(lll)
+            else:
+                lll = glob.glob(word)           
+                if lll :
+                    olist.extend(lll)
+            if not(lll) :
+                no_hits.append(word)
+
+    if verb :
+        IP("Found these from glob list: {}".format(' '.join(ilist)))
+        BP('-'*40)
+        for x in olist:
+            BP('  ' + x)
+        BP('-'*40)
+
+    if no_hits :
+        WP("This part of the glob list contained no matches:")
+        for x in no_hits:
+            BP('  ' + x)
+        BP('-'*40)
+
+    return olist
+
+# -----------------------------------------------------------------------
+# [PT: Jun 1, 2020] simple functions to stylize printing of messages
+# in The AFNI Way.  APRINT() is the main workhorse; BP(), IP(), EP() and
+# WP() are just short/convenient wrappers
+
+def BP( S, indent=True):
+    '''Warning print string S'''
+    APRINT(S, ptype='BLANK', indent=indent)
+
+def IP( S, indent=True):
+    '''Info print string S'''
+    APRINT(S, ptype='INFO', indent=indent)
+
+def WP( S, indent=True):
+    '''Warning print string S'''
+    APRINT(S, ptype='WARNING', indent=indent)
+
+def EP( S, indent=True, end_exit=True):
+    '''Error print string S
+
+    By default, exit after printing
+
+    '''
+    APRINT(S, ptype='ERROR', indent=indent)
+
+    if end_exit :
+       sys.exit(1)
+
+def APRINT( S, ptype=None, indent=True):
+    '''Print Error/Warn/Info for string S
+
+    This function is not meant to be used directly, in general; use
+    {W|E|I}PRINT(), instead.
+
+    '''
+
+    if ptype == 'WARNING' :
+       ptype_str = "+* WARNING:"
+    elif ptype == 'ERROR' :
+       ptype_str = "** ERROR:"
+    elif ptype == 'INFO' :
+       ptype_str = "++"
+    elif ptype == 'BLANK' :
+       ptype_str = "  "
+    else:
+       print("**** Unrecognized print type '{}'. So, error about\n"
+             "     a warning, error or info message!\n".format(ptype))
+       sys.exit(1)
+
+    if indent :
+       S = S.replace( "\n", "\n   ")
+
+    out = "{} ".format(ptype_str)
+    out+= S
+
+    if ptype == 'ERROR' :
+       out+= "\n"
+    
+    print(out)
+    
+
+def ARG_missing_arg(arg):
+    EP("missing argument after option flag: {}".format(arg))
+
+def parse_help_text_for_opts( H ):
+    """Input:  help string H (likely, a multilined one).
+ 
+    This program will go through and try to find all option names,
+    basically by finding leftmost strings starting with a single '-'
+    char (like apsearch, I believe).
+
+    Output: list of option names, to be used in parsing user input
+    argv.
+
+    """
+
+    opts = []
+
+    hsplit = H.split('\n')
+    for x in hsplit:
+        if x.strip() :
+            start = x.split()[0].strip()
+            if start[0] == '-' :
+                if len(start) > 1 :
+                    if start[1] != '-':
+                        opts.append(start)
+
+    return opts
+

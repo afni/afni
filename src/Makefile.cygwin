@@ -23,7 +23,7 @@ CCSVD  = gcc -O0
 PLUGIN_SUFFIX = dll
 PLUGIN_LFLAGS = -Wl,-Bshareable -Wl,--export-all-symbols                    \
                 -L. -L/usr/X11R6/lib                                        \
-                -lcoxplot -lmri -lvolpack -lf2c -lXm -lXp -lXpm       \
+                -lcoxplot -lmri -lf2c -lXm -lXp -lXpm       \
                 -lXext -lXmu -lXt -lSM -lICE -lX11 -lc -lkernel32
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -L. -L/usr/X11R6/lib

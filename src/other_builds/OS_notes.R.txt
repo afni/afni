@@ -1,0 +1,26 @@
+Recording R needs for AFNI
+==========================
++ what version numbers we require, and why
++ any fixes for OSs
++ list current range of allowed R
+  - per OS, if necessary
+---------------------------------------------
+
+2020-06-16:  
++ Current R vers 
+  - [3.6.*], all 
+-----------------------------------------
++ For macos_10.12_local (our only current mac package), R_io.so is built
+  against R 3.6.3, and no R version (besides 3.6.*) will work, including 4.x.
+
++ We can consider distributing other versions of R_io.so for the 10.12_local
+  build, or consider making a new macos package (based on 10.15?) for R 4.*.
+
++ For Gang's programs (pretty much all R programs, such as 3dMVM, 3dLME,
+  3dLMEr, 3dICC, 3dISC, etc.), the required versions of R are: 3.5.* or 3.6.*
+
++ A package note: package 'psych' appears to require R-4.0.* (as noted
+  here: https://emilkirkegaard.dk/en/?p=8783) so it is being removed
+  from rPkgsInstall ('psych' does not directly require 4+, but depends on
+  packages that DO require 4+).
+  - 'psych' is required by 3dGC and the cluster explorer

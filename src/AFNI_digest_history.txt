@@ -1,3 +1,257 @@
+AFNI Digest, week of 2020/08/19:  Special "Chopped" edition.
+
+AFNI has over 600 programs for your neuroimaging analysis amusement.
+To simplify things a bit, we are in the process of “cleaning house” on
+some functionality.  On Monday, Aug. 24, the programs listed below
+will be chopped (= no longer supplied in the AFNI distribution).
+
+If you are still using one of these old programs, you should follow
+the update recommendations provided.  Those without a specific update
+are probably “underlying” functionality that you do not use directly.
+If you have any questions or would like advice on how best to update
+your pipelines, please just ask your friendly AFNI guru on the Message
+Board.  (And if it turns out one of these programs really should not
+be removed, then its execution--in the Revolutionary France sense--can
+be stayed.  But you must raise such an issue before dawn on Monday,
+Aug. 24.)
+
+Once the following programs are removed, we will just assume you have
+the list of all remaining programs memorized, as well as their full
+help files and examples.  If that is not somehow the case, please be
+aware of the Classified list of AFNI programs:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html
+... the Tutorial pages:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+... and the online AFNI Bootcamp and Academy recordings:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+... and more help and examples on the main documentation pages.
+
+PROGRAMS SNEAKILY ALREADY CHOPPED
+---------------------------------
+3dMINCtoAFNI
+3dAFNItoMINC
+
+PROGRAMS ON THE CHOPPING BLOCK
+------------------------------
+AlphaSim                (obsolete -> used 3dClustSim)
+3dFWHM                  (obsolete -> use 3dFWHMx)
+3dMax                   (obsolete -> use 3dBrickStat)
+@auto_align             (obsolete -> use align_epi_anat.py or 3dAllineate)
+@UpdateAfni             (obsolete -> use @update.afni.binaries)
+3dANALYZEtoAFNI         (obsolete -> use 3dcopy or to3d)
+Dimon1                  (obsolete -> use Dimon)
+3dCountSpikes           (obsolete -> use 3dToutcount)
+3dfim                   (obsolete -> use 3dDeconvolve)
+3dUniformize            (obsolete -> use 3dUnifize)
+@DTI_studio_reposition  (probably obsolete)
+@make_stim_file         (obsolete -> use timing_tool.py)
+3dICC_REML.R            (obsolete -> use 3dICC)
+3dAOV.R                 (obsolete -> use 3dMVM)
+lpc_align.py            (obsolete -> use align_epi_anat.py or 3dAllineate)
+afni_restproc.py        (obsolete -> use afni_proc.py)
+@snapshot_volreg3       (obsolete -> use @snapshot_volreg)
+1dDW_Grad_o_Mat         (obsolete -> use 1dDW_Grad_o_Mat++)
+3dProbTrackID           (obsolete -> use 3dTrackID)
+3dAnatNudge             (obsolete -> use align_epi_anat.py or Nudge plugin)
+3dFourier               (obsolete -> use 3dBandpass)
+3dttest                 (obsolete -> use 3dttest++; for "3dttest -base .."
+                         functionality, use "3dttest++ -singletonA ..")
+3dAnatNudge             (obsolete -> use align_epi_anat.py, 3dAllineate or
+                         Nudge plugin)
+DoPerRoi.py
+3dbuc2fim
+3dDeconvolve_f 
+3ddup
+3dnoise
+3dproject
+3dWavelets
+abut
+ent16
+ftosh
+ge_header
+Ifile
+check_dset_for_fs.py 
+mayo_analyze          
+mritopgm
+siemens_vision
+sqwave
+Xphace
+FD2
+
+========================================================================
+
+AFNI Digest, week of 2020/08/05.
+
+Contents:
+0) New AFNI Academy video playlist: Intro to SUMA
+1) Faster AFNI installation/downloads for some OSs.
+2) New citation page for documentation/program usage.
+3) PRIME-RE paper out---describes macaque processing tools.
+4) New webpages describing macaque processing demos, templates and atlases.
+5) New program for patching/smoothing ROIs: @ROI_modal_grow.
+
+
+0) Adding to the list of fun AFNI Academy videos online, we have a new
+   playlist about getting started with SUMA:
+     https://www.youtube.com/watch?v=QCh6HApyM0U&list=PL_CD549H9kgqSs51SCNZQ4q57IguXvFI8
+   It includes background, using the GUI, setting environment
+   variables, calculating distances along surfaces, drawing surface
+   ROIs (and translating them to the volume) and displaying multiple
+   surface ROIs that overlap.
+
+1) These OSs now have AFNI binary files that are about 85% smaller
+   than they used to be:
+     linux_ubuntu_16_64.tgz
+     linux_centos_7_64.tgz
+     linux_fedora_28_shared.tgz
+   The same great functionality is there, but someone (= Rick)
+   rearranged the shared libraries for greater efficiency.  This might
+   spread to further OSs, too...
+
+2) To make it easier to cite AFNI in your publications (and please
+   don't forget to do so when you use it...), we have this new page in
+   the documentation:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/main_toc.html
+   This also provides a convenient guide to AFNI functionality and
+   applications.
+
+3) A new open/sharing resource for primate/macaque MRI processing has
+   been created, called PRIME-RE (= PRIMate Resource Exchange), and it
+   is described here:
+     https://www.biorxiv.org/content/10.1101/2020.07.31.230185v1 It
+   contains tools, demos and programs from AFNI-land, among others.
+   Moreover, it is likely to grow over time, so watch that space.
+
+4) Speaking of macaques, there is new documentation about macaque
+   resources in AFNI, includes templates, atlases and demos, here:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_demos/main_toc.html
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_tempatl/main_toc.html
+   See relatedly the @Install_MACAQUE_DEMO* scripts and the
+   @animal_warper program (make sure you have the latest AFNI for
+   these, "@update.afni.binaries -d").  These projects were in
+   enjoyable collaboration with: Adam Messinger, Ben Jung, Jakob
+   Seidlitz, Caleb Sponheim, and Leslie Ungerleider-- so many thanks
+   to them.
+
+5) Grow your regions with @ROI_modal_grow. This new program uses
+   iterative, non-zero modal smoothing to grow regions to fill a
+   mask. It works by looking by filling unassigned voxels with its
+   most common (the mode) non-zero neighbors, and then keeps filling
+   until all the voxels in a mask are filled. Seems useful for
+   creating atlases and refilling dilated masks.
+
+========================================================================
+
+
+ AFNI Digest, week of 2020/06/23: general edition
+
+Contents
+0) New outlier removal option in some stats programs
+1) R-dependency note:  stay with 3.6 for now (esp. on Macs)
+2) Ubuntu 20.04 installation instructions are up
+3) New features in the AFNI graph viewer
+4) AFNI Academy update: better sound now in Regression Hands-on
+5) AFNI refacer/defacer tool with demo page
+
+0) These programs have a new outlier removal option:
+     3dLME, 3dLMEr, 3dICC, 3dISC
+   The option "-bounds" in these programs allows the user to set a
+   range beyond which any values would be considered as outliers and
+   excluded in data analysis
+
+1) On the Mac, specifically for package macos_10.12_local, the R
+   programs (3dMVM, 3dLME, etc.) now depend on R version 3.6 (not 3.5,
+   not 4.0).  We hope to ease this restriction in the future.
+
+2) Ubuntu 20.04 installation instructions (regular and quick versions)
+   are up and running:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_linux_ubuntu20.html
+   Note: we are discovering Windows Subsystem Linux version 2 presents
+   new challenges... we are working on notes for that.
+
+3) AFNI graph viewer update: new features
+   A) You can smooth the plotted curves by pressing the 's' key when
+   the graph viewer window has "focus" (e.g., when the mouse cursor is
+   over the window); you can also control this feature from the
+   Opt->Colors_Etc menu. The smoothing is interpolatory; that is, the
+   plotted curve still passes through the data points, but the
+   interpolated part of the graph will be smooth rather than
+   angular. Smooth plotting will be most evident when there is only
+   one sub-graph displayed. You can see an example in the attached image
+   (afni_graph_viewer.png), which is plotted with Points+Lines 
+   (selectable from Opt->Colors_Etc).
+
+   B) You can plot every N-th point for N=1,2,...,9 by using the
+   Opt->Index_Pin/Stride menu button (at the top of the Opt menu) -
+   this is called "striding" through the data. Not all features of the
+   graph viewer are available when the stride is greater than 1; in
+   particular, the current time point, which is usually marked with a
+   little ball, will not be so marked, and you cannot select a new
+   time point by clicking in the central sub-graph.
+
+   C) You can plot uncertainty in a few different ways;  the "pmfill" 
+   (= "plus/minus" fill) might be the prettiest-- see the attached
+   pmfill.png image.
+
+4) The "AFNI Academy: Regression Hands-on" video on youtube was
+   re-created, due to low sound in the initial version.  (Even though
+   it is in Dolby Surround Sound, you still need to bring your own
+   popcorn, though.)
+
+5) The @afni_refacer_run program for defacing/refacing data has a
+   handy tutorial page, showing how to use it and the helpful
+   automatic QC images generated:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/refacer/refacer_run.html
+   ... and it was also judged to be the "best" program for defacing
+   out there by another group's OHBM poster-- check it out!
+
+========================================================================
+
+
+AFNI Digest, week of 2020/06/23: New papers+posters edition!
+
+Contents
+0) Glen et al. (Frontiers): check for left-right consistency in YOUR data
+1) Chen et al. (bioRxiv): how to analyze task FMRI for generalizability
+2) OHBM-2020 posters from the AFNI group
+
+0) Daniel's LR flip paper:
+Beware (Surprisingly Common) Left-Right Flips in Your MRI Data:
+An Efficient and Robust Method to Check MRI Dataset Consistency Using AFNI
+https://www.frontiersin.org/articles/10.3389/fninf.2020.00018/full
+
+1) Gang's bioRxiv paper:
+To pool or not to pool: Can we ignore cross-trial variability in FMRI?
+https://www.biorxiv.org/content/10.1101/2020.05.19.102111v1?rss=1
+Trailer quotes:
+In this work, we investigate the importance of explicitly accounting
+for cross-trial variability in neuroimaging data analysis...
+To allow generalizing beyond the particular stimulus set employed, the
+cross-trial variability is modeled at the population level through
+partial pooling in a multilevel model, which permits accurate effect
+estimation and characterization...
+Furthermore, our approach allows appropriate accounting for serial
+correlation, handling outliers, adapting to data skew, and capturing
+nonlinear brain-behavior relationships.
+
+2) AFNI OHBM 2020 posters have uploaded:
+Have a sneak peek at the AFNI group's posters on:
++ AFNI's defacing/refacing tool (judged "best" out there, by another
+  group's OHBM poster):
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_reface_OHBM2020.pdf
++ Animal-FMRI pipeline from AFNI (with demos):
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/GlenEtal_aw_ap_OHBM_2020.pdf
++ More fun in afni_proc.py's automatic QC:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_FMRI_QC_OHBM2020.pdf
++ Stats! How to handle relatedness among subjects through LME modeling:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/AFNI_Mixed_effects_OHBM2020.pdf
++ Determining representative center of mass for ROIs:
+  https://afni.nimh.nih.gov/pub/dist/HBM2020/GlenEtal_FindingYourCenter_OHBM2020.pdf
+
+
+========================================================================
+
+
  AFNI Digest, week of 2020/03/09.
 
 Contents:

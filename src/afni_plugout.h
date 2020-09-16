@@ -98,7 +98,7 @@ typedef struct {
 
 /** prototypes **/
 
-Boolean AFNI_plugout_workproc( XtPointer ) ;
+RwcBoolean AFNI_plugout_workproc( XtPointer ) ;
 PLUGOUT_spec * new_PLUGOUT_spec( int , char * ) ;
 int AFNI_process_plugout( PLUGOUT_spec * ) ;
 void AFNI_plugout_exit(void) ;

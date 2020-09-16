@@ -38,10 +38,6 @@ Removed the '-b3' type of input from the help menu
 #include "mrilib.h"
 #include "parser.h"
 
-#ifndef myXtFree
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 #undef SHOW_B3
 
 /*-------------------------- global data --------------------------*/

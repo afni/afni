@@ -9,6 +9,8 @@
 
 /*--------------------------------------------------------------------------*/
 
+static int colorize_prefix = 0 ;  /* use ANSI codes to change prefix colors? */
+
 static FILE *messfp = NULL ;
 static char *messfn = NULL ;
 
@@ -112,8 +114,6 @@ void SET_message_outbuf( int use_outbuf )
 /* Write the message to stderr or the message buffer string.
    If ump != 0, also write it to the message file pointer, if it is open.
 *//*-------------------------------------------------------------------------*/
-
-static int colorize_prefix = 0 ;  /* use ANSI codes to change prefix colors? */
 
 static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
@@ -265,7 +265,7 @@ void STATUS_message( char *fmt , ... )
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
    ll = strlen(fmt) ; if( ll < 128 ) ll = 128 ;
-   msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
+   msg = malloc(sizeof(char)*16*ll+666) ; msg[0] = '\0' ;
    sprintf(msg,"%*.*s%s -- ",DBG_num,DBG_num," ",DBROUT) ;
    ll = strlen(msg) ;
    vsprintf(msg+ll,fmt,vararg_ptr) ; ll = strlen(msg) ;

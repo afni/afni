@@ -454,7 +454,7 @@ ENTRY("RBF_setup_kranges") ;
    if( rbg->klast != NULL ){ free(rbg->klast) ; rbg->klast = NULL; }
    if( rbg->kfirst!= NULL ){ free(rbg->kfirst); rbg->kfirst= NULL; }
 
-   if( rbk->nknot > 65535 ) EXRETURN ; /* can't store as unsigned short */
+   if( rbk->nknot > RBFKINT_MAX ) EXRETURN ; /* too many to store r/
 
    /* load some local variables */
 

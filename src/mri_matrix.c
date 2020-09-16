@@ -3,6 +3,11 @@
 /****** functions used mostly in 1dmatcalc.c, but elsewhere as well ******/
 /***** these functions operate on matrices stored in 2D float images *****/
 
+/*----------------------------------------------------------------------------*/
+
+static int verb_rpn = 0 ;
+void mri_matrix_evalrpn_verb(int i){ verb_rpn = i ; }
+
 /*-----------------------------------------------------------------------*/
 
 void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label )
@@ -238,6 +243,118 @@ ENTRY("mri_matrix_scale") ;
 }
 
 /*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_svals( MRI_IMAGE *imc ) /* 05 May 2020 */
+{
+   float *rmat ;
+   int m , n , ii,jj,kk ;
+   double *amat , *sval , smax ;
+   MRI_IMAGE *imp=NULL ; float *pmat ;
+
+ENTRY("mri_matrix_svals") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
+
+#undef  R
+#undef  A
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   imp  = mri_new( n , 1 , MRI_float ) ;
+   pmat = MRI_FLOAT_PTR(imp) ;
+
+   if( n == 1 && m == 1 ){
+     pmat[0] = fabsf(rmat[0]) ; RETURN(imp) ;   /* trivial case */
+   }
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+
+   sval = (double *)calloc( sizeof(double),n   );
+   svd_double( m , n , amat , sval , NULL,NULL ) ;
+
+   free(amat) ;  /* done with this */
+
+   for( ii=0 ; ii < n ; ii++ ) pmat[ii] = (float)sval[ii] ;
+
+   free(sval) ;
+   RETURN(imp) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_svprod( MRI_IMAGE *imc , int do_log ) /* 05 May 2020 */
+{
+   float *rmat ;
+   int m , n , ii,jj,kk ;
+   double *amat , *sval , smax ;
+   MRI_IMAGE *imp=NULL ; float *pmat ;
+
+ENTRY("mri_matrix_svprod") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
+
+#undef  R
+#undef  A
+#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
+#define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
+
+   rmat = MRI_FLOAT_PTR(imc) ;
+
+   imp  = mri_new( 1 , 1 , MRI_float ) ;
+   pmat = MRI_FLOAT_PTR(imp) ;
+
+   if( n == 1 && m == 1 ){
+     pmat[0] = fabsf(rmat[0]) ; RETURN(imp) ;   /* trivial case */
+   }
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+
+   sval = (double *)calloc( sizeof(double),n   );
+   svd_double( m , n , amat , sval , NULL,NULL ) ;
+
+   free(amat) ;  /* done with this */
+
+   /* find largest singular value */
+
+   smax = sval[0] ;
+   for( ii=1 ; ii < n ; ii++ ) if( sval[ii] > smax ) smax = sval[ii] ;
+
+   if( smax <= 0.0 ){                        /* this is bad */
+     static int first = 1 ;
+#pragma omp critical (STDERR)
+     { if( first ) ERROR_message("SVD fails in mri_matrix_svprod()!\n"); }
+     free(sval); first = 0;
+     RETURN(imp);
+   }
+
+   if( do_log ){
+     smax = 0.0 ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( sval[ii] > 0.0 ) smax += log(sval[ii]) ;
+   } else {
+     smax = 1.0 ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( sval[ii] > 0.0 ) smax *= sval[ii] ;
+   }
+
+   free(sval) ;
+   pmat[0] = (float)smax ; RETURN(imp) ;
+}
+
+/*----------------------------------------------------------------------------*/
 static int force_svd = 0 ;
 void mri_matrix_psinv_svd( int i ){ force_svd = i; }
 /*----------------------------------------------------------------------------*/
@@ -273,7 +390,7 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
    double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww , alp ;
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
-   int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
+   int do_svd = (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
    int *kbot=NULL,*ktop=NULL , ibot,itop,jbot,jtop , mn ;  /* 12 Feb 2009 */
 
 ENTRY("mri_matrix_psinv") ;
@@ -495,6 +612,13 @@ STATUS("SVD") ;
 
      for( ii=0 ; ii < n ; ii++ )
        if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;  /* should not happen */
+
+     if( verb_rpn ){
+       fprintf(stderr,"  singular values:") ;
+       for( ii=0 ; ii < n ; ii++ )
+         fprintf(stderr," %g",sval[ii]) ;
+       fprintf(stderr,"\n") ;
+     }
 
      /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
@@ -1163,11 +1287,6 @@ static int command_check( char *str , char *cmd )
   } while(0)
 
 /*----------------------------------------------------------------------------*/
-
-static int verb_rpn = 0 ;
-void mri_matrix_evalrpn_verb(int i){ verb_rpn = i ; }
-
-/*----------------------------------------------------------------------------*/
 /*! Evaluate a space delimited RPN expression to evaluate matrices:
      - The operations allowed are described in the output of
        function  mri_matrix_evalrpn_help().
@@ -1205,7 +1324,19 @@ ENTRY("mri_matrix_evalrpn") ;
       cmd = sar->str[ss] ;
       nstk = IMARR_COUNT(imstk) ;
 
-      if(verb_rpn)fprintf(stderr," + nstk=%d  cmd='%s'\n",nstk,cmd) ;
+      if(verb_rpn){
+        int ss , na,nb ; float *amat ;
+        fprintf(stderr," + nstk=%d  cmd='%s'\n",nstk,cmd) ;
+        for( ss=nstk-1 ; ss >= 0 ; ss-- ){
+          ima = IMARR_SUBIM(imstk,ss) ;
+          fprintf(stderr,"  [%d] %d X %d",ss,ima->nx,ima->ny) ;
+          if( ima->nx == 1 && ima->ny == 1 ){
+            amat = MRI_FLOAT_PTR(ima) ;
+            fprintf(stderr," = %g",amat[0]) ;
+          }
+          fprintf(stderr,"\n") ;
+        }
+      }
 
       if( *cmd == '\0' ) continue ;      /* WTF? */
 
@@ -1230,6 +1361,12 @@ ENTRY("mri_matrix_evalrpn") ;
 
       else if( command_check(cmd,"clear") ){
         DESTROY_IMARR(matar) ;
+      }
+
+      /** purge the stack; named matrices are unchanged **/
+
+      else if( command_check(cmd,"purge") ){  /* 05 May 2020 */
+        TRUNCATE_IMARR(imstk,0) ;
       }
 
       /** transpose matrix on top of stack, replacing it **/
@@ -1297,12 +1434,45 @@ ENTRY("mri_matrix_evalrpn") ;
         ADDTO_IMARR(imstk,imc) ;
       }
 
+      /** log product of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svprodlog") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svprod( ima , 1 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** product of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svprod") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svprod( ima , 0 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      /** vector of singular values [05 May 2020] **/
+
+      else if( command_check(cmd,"svals") ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_svals( ima ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
       /** pseudo-inverse **/
 
       else if( command_check(cmd,"Psinv") ){
         if( nstk < 1 ) ERREX("no matrix") ;
         ima = IMARR_SUBIM(imstk,nstk-1) ;
-        imc = mri_matrix_psinv( ima , NULL , 0.0f ) ;
+        imc = mri_matrix_psinv( ima , NULL , 0.00001f ) ;
         if( imc == NULL ) ERREX("can't compute") ;
         TRUNCATE_IMARR(imstk,nstk-1) ;
         ADDTO_IMARR(imstk,imc) ;
@@ -1500,7 +1670,7 @@ char * mri_matrix_evalrpn_help(void)
     " * Operations mostly contain characters such as '&' and '*' that\n"
     "   are special to Unix shells, so you'll probably need to put\n"
     "   the arguments to this program in 'single quotes'.\n"
-    " * You can use '%%' or '@' in place of the '&' character, if you wish.\n"
+    " * You can use '%' or '@' in place of the '&' character, if you wish.\n"
     "\n"
     " STACK OPERATIONS\n"
     " -----------------\n"
@@ -1511,6 +1681,8 @@ char * mri_matrix_evalrpn_help(void)
     "                 names start with an alphabetic character\n"
     " &clear     == erase all named matrices (to save memory);\n"
     "                 does not affect the stack at all\n"
+    " &purge     == erase the stack;\n"
+    "                 does not affect named matrices\n"
     " &read(FF)  == read ASCII (.1D) file onto top of stack from file 'FF'\n"
     " &read4x4Xform(FF)\n"
     "            == Similar to &read(FF), except that it expects data\n"

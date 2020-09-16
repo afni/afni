@@ -88,7 +88,23 @@ foreach istr ( $ignore_list )
    set iglist = ( $iglist -e $istr )
 end
 
+# we should have 2 directories yet to come
+if ( $#argv <= $narg ) then
+   echo ""
+   echo "** options should be followed by 2 directory names"
+   if ( $#argv == $narg ) then
+      echo "   have only one ($argv[$narg])"
+   else
+      echo "   have neither"
+   endif
+   echo ""
+   exit 1
+else if ( ! -d "$argv[$narg]" ) then
+   echo "** last 2 args expected to be directories, but '$argv[$narg]' is not"
+   exit 1
+endif
 
+# set the new and old dirs
 set ndir = $argv[$narg]
 @ narg ++
 set odir = $argv[$narg]

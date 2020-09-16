@@ -2,11 +2,35 @@
 # Coordinate locations are in DICOM order, what AFNI calls 'RAI':
 #          x<0 --> R,   y<0 --> A,   z<0 --> I,  
 #          x>0 --> L,   y>0 --> P,   z>0 --> S.
-# --------------------------------------------------------------------------------
-# ver  = 1.0  ;  date = Jan 13, 2020
-# --------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# ver  = 1.6  ;  date = June 30, 2020
+# -----------------------------------------------------------------------------
 #    x       y      z       space                roi_label                netw
-# --------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
      5      49     40       MNI                  lh-PCC                   DMN
     -4      91     -3       MNI                  rh-cort-vis              Vis
-    64      12      2       MNI                  rh-cort-aud              Aud
+    64      12      2       MNI                  lh-cort-aud              Aud
+     2.125   3.25  19.25    NMT2                 lh-PCC                   DMN
+   -11.375  18.0   15.5     NMT2                 rh-cort-vis              Vis
+    20.1    -5.0   21.0     NMT2                 lh-cort-aud              Aud
+     5      44     38       HaskinsPeds          lh-PCC                   DMN
+    -3      86      0       HaskinsPeds          rh-cort-vis              Vis
+    58      11      8       HaskinsPeds          lh-cort-aud              Aud
+     5      48     43       TT_N27               lh-PCC                   DMN
+    -7      85     -4       TT_N27               rh-cort-vis              Vis
+    59      11      4       TT_N27               lh-cort-aud              Aud
+     6      41     34       IBT_C1               lh-PCC                   DMN
+    -4      82     -5       IBT_C1               rh-cort-vis              Vis
+    60       9      5       IBT_C1               lh-cort-aud              Aud
+     5      42     35       IBT_C2               lh-PCC                   DMN
+    -4      82     -3       IBT_C2               rh-cort-vis              Vis
+    61      10      3       IBT_C2               lh-cort-aud              Aud
+     5      42     36       IBT_C3               lh-PCC                   DMN
+    -4      83     -4       IBT_C3               rh-cort-vis              Vis
+    60       8      3       IBT_C3               lh-cort-aud              Aud
+     5      42     36       IBT_C4               lh-PCC                   DMN
+    -5      82     -4       IBT_C4               rh-cort-vis              Vis
+    59       7      2       IBT_C4               lh-cort-aud              Aud
+     4      45     36       IBT_C5               lh-PCC                   DMN
+    -4      83     -5       IBT_C5               rh-cort-vis              Vis
+    59      10      3       IBT_C5               lh-cort-aud              Aud

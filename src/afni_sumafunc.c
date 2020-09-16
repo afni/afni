@@ -795,7 +795,7 @@ ENTRY("AFNI_update_surface_widgets") ;
 
    STATUS("sensitizing") ;
 
-   SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
+   SENSITIZE( im3d->vwid->view->choose_surf_pb , (RwcBoolean)(num > 0) ) ;
 
    if( swid == NULL ) EXRETURN ;  /* nothing to update */
 

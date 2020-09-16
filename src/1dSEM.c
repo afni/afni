@@ -7,7 +7,7 @@
 /* the best model                                                        */
 /*************************************************************************/
 #include "matrix.h"
-#include "afni.h"
+#include "mrilib.h"
 #include "sqrmat.h"
 
 #define TINYNUMBER 1E-10

@@ -550,7 +550,7 @@ char * AFNI_palette_label_CB( MCW_arrowval *av , XtPointer cd )
 -------------------------------------------------------------------*/
 
 void AFNI_pbar_EV( Widget w , XtPointer cd ,
-                   XEvent *ev , Boolean *continue_to_dispatch )
+                   XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 

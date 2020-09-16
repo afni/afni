@@ -63,6 +63,17 @@
 
    R. Reynolds      June, 2014
 ******************************************************************************/
+
+/* todo
+ *   - all coordinates to be computed in mm mask-space
+ *     (rather than as a fraction of the mask radius)
+ *     - this might push for different g_exp_ts construction
+ *     - this includes X, Y, Sigma being in mm
+ *     - for Sigma, see genv_sigma_max, genv_sigma_nsteps,
+ *                      genv_sigma_ratio_nsteps
+ *   x env var to turn on/off g_exp_ts (see do_precompute_e2x)
+ *   x should g_exp_maxval/ipieces be user-controllable?
+ */
    
 #include "NLfit_model.h"
 
@@ -74,9 +85,9 @@ static int     g_iter    = -1;     /* iteration number */
 
 static char  * g_model_ver = "model_conv_PRF_6, version 1.2, 20 Jun, 2018";
 
-/* exp variables, parameters */
-static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
-static int   g_exp_ipieces = 1000; /* vals per unit length */
+/* exp variables, parameters - from 8,1000 */
+static float g_exp_maxval  = 1000.0;  /* max x in exp(-x) */
+static int   g_exp_ipieces = 100; /* vals per unit length */
 
 /* exp variables, implied */
 static int     g_exp_nvals = 0;   /* maxval*ipieces + 1 */
@@ -137,9 +148,10 @@ static float  genv_sigma_max    = 1.0; /* on_grid: maximum blur sigma */
 static int    genv_sigma_nsteps = 100; /* on_grid: number of blur steps */
 static int    genv_sigma_ratio_nsteps = 4; /* integers >= 1, or any >= 1 if 0 */
 static int    genv_theta_nsteps = 6;   /* truncate [-PI/2,PI/2) to S steps
-					  (if > 0) */
+					                           (if > 0) */
+static int    genv_precompute_e2x = 0; /* do we use g_exp_ts? */
 
-static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL/HELP_CONV_PRF_6 */
+static int    genv_get_help = 0;       /* AFNI_MODEL_HELP_ALL/HELP_CONV_PRF_6 */
 
 static int set_env_vars(void)
 {
@@ -173,12 +185,52 @@ static int set_env_vars(void)
               genv_sigma_max, genv_sigma_nsteps,
               genv_sigma_ratio_nsteps, genv_theta_nsteps);
 
+   /* control contents of g_exp_ts (pre-computed e^x values) */
+   g_exp_maxval = AFNI_numenv_def("AFNI_MODEL_PRF_MAX_EXP", g_exp_maxval);
+   g_exp_ipieces = AFNI_numenv_def("AFNI_MODEL_PRF_MAX_EXP_PIECES",
+                                   g_exp_ipieces);
+
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
 
    /* write a Gaussian mask? */
    genv_gauss_file = my_getenv("AFNI_MODEL_PRF_GAUSS_FILE");
+
+   /* should we precompute e^x array? */
+   genv_precompute_e2x = AFNI_yesenv("AFNI_MODEL_PRF_PRECOMPUTE_EX");
+
+
+   if( genv_debug > 1 ) {
+      fprintf(stderr,"++ params set by AFNI_MODEL_PRF_* env vars:\n");
+      fprintf(stderr,"      %-35s : %s\n",
+                     "AFNI_CONVMODEL_REF", genv_conv_ref);
+      fprintf(stderr,"      %-35s : %s\n",
+                     "AFNI_MODEL_PRF_STIM_DSET", genv_prf_stim);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_DITER", genv_diter);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_DEBUG", genv_debug);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_PRF_ON_GRID", genv_on_grid);
+      fprintf(stderr,"      %-35s : %g\n",
+                     "AFNI_MODEL_PRF_SIGMA_MAX", genv_sigma_max);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_PRF_SIGMA_NSTEPS", genv_sigma_nsteps);
+      fprintf(stderr,"      %-35s : %d\n", "AFNI_MODEL_PRF_SIGMA_RATIO_NSTEPS",
+                                         genv_sigma_ratio_nsteps);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_PRF_THETA_NSTEPS", genv_theta_nsteps);
+      fprintf(stderr,"      %-35s : %g\n",
+                     "AFNI_MODEL_PRF_MAX_EXP", g_exp_maxval);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_PRF_MAX_EXP_PIECES", g_exp_ipieces);
+      fprintf(stderr,"      %-35s : %s\n",
+                     "AFNI_MODEL_PRF_GAUSS_FILE", genv_gauss_file);
+      fprintf(stderr,"      %-35s : %d\n",
+                     "AFNI_MODEL_PRF_PRECOMPUTE_EX", genv_precompute_e2x);
+
+   }
 
    return 0;
 }
@@ -256,6 +308,8 @@ static int reset_stim_aperture_dset(int needed_length)
    g_saset = THD_open_dataset(genv_prf_stim);
    if( ! g_saset ) return 1;
 
+   if( genv_debug > 1 ) fprintf(stderr,"=== reset_stim_aperature_dset ...\n");
+
    /* check for square dataset and sufficient nt */
    if( fabs(DSET_DX(g_saset) - DSET_DY(g_saset)) > 0.0001 ) {
       fprintf(stderr,"** PRF: stimset voxels not square (%f, %f)\n",
@@ -302,6 +356,8 @@ static int reset_stim_aperture_dset(int needed_length)
 
       if( ! g_saset ) return 1;
    }
+
+   if( genv_debug > 2 ) fprintf(stderr,"=== reset_SAD ... done\n");
 
    return 0;
 }
@@ -417,8 +473,12 @@ static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
    if(genv_debug)
       fprintf(stderr, "++ making blurred time series: %d x %d x %d  x nt=%d\n",
               DSET_NX(dnew), DSET_NY(dnew), DSET_NZ(dnew), DSET_NVALS(dnew));
-   if(genv_debug>1)fprintf(stderr, "++ starting blur at time %6.1f\n",
-                           0.001*NI_clock_time());
+   if(genv_debug>1) {
+     fprintf(stderr, "-- sigma_max = %f, nsteps = %d\n",
+             genv_sigma_max, genv_sigma_nsteps);
+     fprintf(stderr, "++ starting blur at time %6.1f\n",
+             0.001*NI_clock_time());
+   }
 
    for( vind = 0; vind < nt; vind++ ) {
       if( genv_debug > 1 ) fputc('.', stderr);
@@ -565,12 +625,14 @@ static float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz)
 }
 
 
-/* want e^-x computed out to x=7 (c^-7 goes below 0.001)
+/* want e^-x computed out to x=1000, as exponents are large
+ * (since sigma is a fraction of the window "radius")
+ * (or we should change coordinates to be in image space)
  *
- * g_exp_maxval = 7
- * g_exp_ipieces = 1000
- * so step = 1/1000
- * g_exp_nvals = g_exp_maxval * g_exp_ipieces + 1 (for 0), plus a few
+ * g_exp_maxval = 1000 (from 8)
+ * g_exp_ipieces = 100 (from 1000)
+ * so compute values 0..1000, step 0.01
+ * g_exp_nvals = g_exp_maxval * g_exp_ipieces + 1 (for 0)
  */
 static int reset_exp_time_series(void)
 {
@@ -579,8 +641,10 @@ static int reset_exp_time_series(void)
 
    g_exp_nvals = (int)(g_exp_maxval * g_exp_ipieces) + 1;
 
-   if(genv_debug) fprintf(stderr, "-- exp nvals = %d, max = %f, pieces = %d\n",
-                         g_exp_nvals, g_exp_maxval, g_exp_ipieces);
+   if(genv_debug)
+      fprintf(stderr, 
+              "-- exp (precomp = %d) nvals = %d, max = %f, pieces = %d\n",
+              genv_precompute_e2x, g_exp_nvals, g_exp_maxval, g_exp_ipieces);
 
    if( g_exp_ts ) free(g_exp_ts);
    g_exp_ts = (float *)malloc(g_exp_nvals * sizeof(float));
@@ -778,7 +842,7 @@ MODEL_interface * initialize_model ()
 
   /*----- allocate memory space for model interface -----*/
 
-  mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
+  mi = (MODEL_interface *) RwcMalloc (sizeof(MODEL_interface));
 
   /*----- name of this model -----*/
 
@@ -1145,7 +1209,7 @@ static int get_ABC(float sigma, float sigrat, float theta,
  * old: fill with e^-[((x-x0)^2 + (y-y0)^2) / (2*sigma^2)]
  * new: e^-[A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2], where
  *      A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
- *      B = (1-R^2) * sin(2theta) / [4R^2sigma^2]
+ *      B = (1-R^2) * sin(2theta)             / [4R^2sigma^2]
  *      C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  *
  * We do not have to be too efficient in computing A,B,C, since those
@@ -1161,9 +1225,15 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
    float  * eptr, eval;
    double   wscale, sum;
    double   xoff, yoff, expval;
+   double   A, B, C;
    int      ix, iy, eind;
 
-   double   A, B, C;
+   /* maybe we want to track exponent and evaluated exp limits */
+   float    min_epow=1000, max_epow = 0; /* possibly do limit tracking */
+   float    min_e2x=1e40, max_e2x = 0;
+   int      track_limits = (g_iter == genv_diter || 
+                           (g_iter == 0 && genv_debug > 1));
+
 
    wscale = 2.0/(nx-1.0);       /* scale [0,nx-1] to [0,2] */
 
@@ -1178,6 +1248,14 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
 
          /* compute (positive) power of e, will scale by g_exp_ipieces */
          eval = A*xoff*xoff + 2*B*xoff*yoff + C*yoff*yoff;
+
+         /* do limit tracking (on exponents) */
+         if( track_limits ) {
+            if( eval < min_epow ) min_epow = eval;
+            if( eval > max_epow ) max_epow = eval;
+         }
+
+         /* if large, do not bother computing e^-eval */
          if( eval > g_exp_maxval ) {
            *eptr++ = 0.0f;
            continue;
@@ -1185,13 +1263,24 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
 
          if( eval < 0.0f ) eval = 0.0f;
 
-         /* could do expval = exp(-eval); */
-         eind = (int)(eval*g_exp_ipieces);  /* truncate towards 0? */
-         if ( eind < g_exp_nvals ) {
-            expval = g_exp_ts[eind];
-            sum += expval;
-         } else expval = 0.0f;
+         /* either use precomputed results, or compute e^-x directly */
+         if( genv_precompute_e2x ) {
+            eind = (int)(eval*g_exp_ipieces);  /* truncate towards 0? */
+            if ( eind < g_exp_nvals )
+               expval = g_exp_ts[eind];
+            else
+               expval = 0.0f;
+         } else
+            expval = exp(-eval);
+
+         sum += expval;
          *eptr++ = expval;
+
+         /* more limit tracking (on e^-x) */
+         if( track_limits ) {
+            if( expval < min_e2x ) min_e2x = expval;
+            if( expval > max_e2x ) max_e2x = expval;
+         }
       }
    }
 
@@ -1200,6 +1289,14 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
       sum = 1.0/sum;
       for( ix = 0, eptr = e; ix < nx*ny; ix++, eptr++ )
          if( *eptr ) *eptr *= sum;
+   }
+
+   /* report results of limit tracking */
+   if ( track_limits ) {
+      fprintf(stderr, "=== e2x limits: min_epow = %g, max_epow = %g\n",
+              min_epow, max_epow);
+      fprintf(stderr, "=== e2x limits: min_e2x = %g,  max_e2x = %g\n",
+              min_e2x, max_e2x);
    }
 
    return 0;
@@ -1428,7 +1525,7 @@ static int model_help(void)
 "\n"
 "      AFNI_MODEL_PRF_GAUSS_FILE   : specify dataset prefix for Gauss curve\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_PRF_GAUSS_FILE guass_curve\n"
+"         e.g. setenv AFNI_MODEL_PRF_GAUSS_FILE gauss_curve\n"
 "\n"
 "         Write a 2-D image with the Gaussian curve, which is helpful\n"
 "         for checking the parameters.  This works best when used via\n"

@@ -244,18 +244,18 @@ int main (int argc,char *argv[])
    char *oname=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    
-	SUMA_STANDALONE_INIT;
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
-	/* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   /* Allocate space for DO structure */
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
    
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
-	brk = NOPE;
+   brk = NOPE;
    xmat_name = NULL;
    xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
    Do_cen = NOPE;
@@ -289,126 +289,126 @@ int main (int argc,char *argv[])
    for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
    spec_file = NULL;
 
-	while (kar < argc) { /* loop accross command ine options */
-		/* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
+   while (kar < argc) { /* loop accross command ine options */
+      /* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
-		}
-		
+      }
+      
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-sph_coords_center") == 0)) {
          kar ++;
-			if (kar+2 >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar+2 >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "need 3 arguments after -sph_coords_center \n");
-				exit (1);
-			}
-			sph_center[0] = atof(argv[kar]); kar ++;
+            exit (1);
+         }
+         sph_center[0] = atof(argv[kar]); kar ++;
          sph_center[1] = atof(argv[kar]); kar ++;
          sph_center[2] = atof(argv[kar]);
          NewCent = YUP;
          Do_sph = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-seed") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
-				exit (1);
-			}
-			randseed = atoi(argv[kar]); 
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
+            exit (1);
+         }
+         randseed = atoi(argv[kar]); 
+         brk = YUP;
+      }
       if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) ||
                     (strcmp(argv[kar], "-xmat_1D") == 0) ) ) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
-				exit (1);
-			}
-			xmat_name = argv[kar]; 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
+            exit (1);
+         }
+         xmat_name = argv[kar]; 
          Do_xmat = YUP;
          Do_inv = 0;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) ||
                     (strcmp(argv[kar], "-ixmat_1D") == 0) ) ) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
-				exit (1);
-			}
-			xmat_name = argv[kar]; 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
+            exit (1);
+         }
+         xmat_name = argv[kar]; 
          Do_xmat = YUP;
          Do_inv = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
          Do_PolDec = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
          kar ++;
-			if (kar+2>= argc)  {
-		  		fprintf (SUMA_STDERR, "need 3 arguments after -xcenter\n");
-				exit (1);
-			}
-			xcen[0] = atof(argv[kar]); ++kar;
-			xcen[1] = atof(argv[kar]); ++kar;
-			xcen[2] = atof(argv[kar]); 
+         if (kar+2>= argc)  {
+            fprintf (SUMA_STDERR, "need 3 arguments after -xcenter\n");
+            exit (1);
+         }
+         xcen[0] = atof(argv[kar]); ++kar;
+         xcen[1] = atof(argv[kar]); ++kar;
+         xcen[2] = atof(argv[kar]); 
          Do_cen = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-quiet") == 0)) {
          quiet = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-tri_sines") == 0)) {
          Do_TriSine = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-tri_angles") == 0)) {
          Do_TriAngles = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-node_angles") == 0)) {
          Do_NodeAngles = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-tri_cosines") == 0)) {
          Do_TriCosine = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-tri_CoSines") == 0)) {
          Do_TriCoSine = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-sph_coords") == 0)) {
          Do_sph = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-coords") == 0)) {
          Do_cord = YUP;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
-				exit (1);
-			}
-			OutPrefix = SUMA_copy_string(argv[kar]);
-			brk = YUP;
-		}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix ");
+            exit (1);
+         }
+         OutPrefix = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          if (0 && iType == SUMA_FT_NOT_SPECIFIED) {
@@ -418,23 +418,23 @@ int main (int argc,char *argv[])
             exit(1);
          }
          kar ++;
-			if (iType == SUMA_SUREFIT) {
+         if (iType == SUMA_SUREFIT) {
             if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, 
+               fprintf (SUMA_STDERR, 
                   "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
-				   exit (1);
-			   }
+               exit (1);
+            }
             sv_name = argv[kar]; kar ++;
             vp_name = argv[kar];
          } else {
             if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need argument after -sv ");
-				   exit (1);
-			   }
-			   sv_name = argv[kar];
+               fprintf (SUMA_STDERR, "need argument after -sv ");
+               exit (1);
+            }
+            sv_name = argv[kar];
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
          Do_tlrc = YUP;
@@ -450,19 +450,19 @@ int main (int argc,char *argv[])
       }
       if (!brk && (strcmp(argv[kar], "-normals_scale") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -normals_scale ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -normals_scale ");
+            exit (1);
+         }
          NormScale = atof(argv[kar]);
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-closest_node") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -closest_node ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -closest_node ");
+            exit (1);
+         }
          closest_to_xyz = argv[kar];
          brk = YUP;
       }
@@ -512,15 +512,15 @@ int main (int argc,char *argv[])
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    if (argc < 4)
     {
@@ -1745,7 +1745,7 @@ int main (int argc,char *argv[])
    if (!SUMA_FreeSpecFields(pSpec)) {
       SUMA_S_Err("Failed to free Spec fields");
    } SUMA_free(pSpec); pSpec = NULL; 
- 	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    
    /* dset and its contents are freed in SUMA_Free_CommonFields */
    if (!SUMA_Free_CommonFields(SUMAg_CF)) 

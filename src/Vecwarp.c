@@ -10,8 +10,8 @@
 
 /*** Some prototypes ***/
 
-static THD_fvec3 AFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
-static THD_fvec3 AFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
+THD_fvec3 myAFNI_forward_warp_vector ( THD_warp * , THD_fvec3 ) ;
+THD_fvec3 myAFNI_backward_warp_vector( THD_warp * , THD_fvec3 ) ;
 
 #if 0
 static THD_fvec3 THD_dicomm_to_surefit( THD_3dim_dataset *, THD_fvec3 ) ;
@@ -438,8 +438,8 @@ DUMP_FVEC3("surefit_to_dicomm",vin) ;
 #endif
          }
 
-         if( backward ) vout = AFNI_backward_warp_vector( warp , vin ) ;
-         else           vout = AFNI_forward_warp_vector ( warp , vin ) ;
+         if( backward ) vout = myAFNI_backward_warp_vector( warp , vin ) ;
+         else           vout = myAFNI_forward_warp_vector ( warp , vin ) ;
 
 #ifdef DEBUG
 DUMP_FVEC3("vout             ",vout) ;
@@ -478,7 +478,7 @@ DUMP_FVEC3("dicomm_to_surefit",vout) ;
    Forward transform a vector following a warp
 --------------------------------------------------------------------------*/
 
-static THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+THD_fvec3 myAFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
 {
    THD_fvec3 new_fv ;
 
@@ -523,7 +523,7 @@ static THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    Backward transform a vector following a warp
 --------------------------------------------------------------------------*/
 
-static THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+THD_fvec3 myAFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
 {
    THD_fvec3 new_fv ;
 

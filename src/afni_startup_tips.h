@@ -989,6 +989,7 @@ static char *gby[] = {
      "I came, I saw, I got confused"                                 ,
      "Inconceivable!"                                                ,
      "Computers are useless -- they can only give you answers"       ,
+     "Remember: Plans are useless, but planning is indispensable"    ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
@@ -1292,7 +1293,7 @@ static char *gby[] = {
      /* Longer quotes */
 
      "Where did the time go? I thought growing old would take longer"                 ,
-     "I'll say this:  Often bumpy roads lead to beautiful places"                     ,
+     "I'll say this: Often bumpy roads lead to beautiful places"                      ,
      "Never pay attention to criticism from someone you wouldn't take advice from"    ,
      "80% of our problems would go away if we'd just sit down and wait"               ,
      "Despite what FMRI says, tears come from the heart not from the brain"           ,
@@ -1320,7 +1321,7 @@ static char *gby[] = {
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
      "In a billion years, the sun gets so hot Earth will be fried. Are you ready?"    ,
-     "May your results be like the Velvet Hammer:  bold flavor, smooth finish!"     ,
+     "May your results be like the Velvet Hammer: bold flavor, smooth finish!"        ,
 
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
@@ -1577,6 +1578,11 @@ static char *gby[] = {
      "\n  One great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
 
+     "\n The 3 phases of programming:\n"
+     "  Design\n"
+     "  Implementation\n"
+     "  Blasphemy (repeat as needed)"                                                         ,
+
      "\n  When someone says: I'm going to simplify things.\n"
      "  They mean:         Be confused. Be very, very confused"                               ,
 
@@ -1611,6 +1617,10 @@ static char *gby[] = {
      "Later there will be, I hope, some people who\n"
      "  will find it to their advantage to decipher all this mess"                            ,
 
+     // Eliot
+     "                           Not fare well,\n"
+     "But fare forward, voyagers."                                                            ,
+
      // Lem
      "\n"
      "Everyone knows that dragons don't exist. But while this simplistic\n"
@@ -1622,6 +1632,15 @@ static char *gby[] = {
      "distinct kinds of dragon: the mythical, the chimerical, and the purely\n"
      "hypothetical. They were all, one might say, nonexistent, but each non-existed\n"
      "in an entirely different way"                                                           ,
+
+     // Morpheus
+     "Remember: all I'm offering you is the truth, nothing more."                             ,
+
+     // *Not* No. 6
+     "I am not a number-- I am a free program!"                                               ,
+
+     // Awoonor
+     "Who can tell where any bird will fall?"     ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
@@ -1672,6 +1691,11 @@ static char *gby[] = {
      "\n There comes a time when you look into the mirror and you realize\n"
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
+
+     "\n The 3 phases of software development:\n"
+     "   Design;\n"
+     "   Implement;\n"
+     "   Say 'Oh crap' over and over and over" ,
 
      "\n    Never should I forget this event\n"
      "    in the life of my fatigued retinas\n" ,

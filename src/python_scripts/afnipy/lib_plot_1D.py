@@ -16,10 +16,13 @@ author    = "PA Taylor (NIMH, NIH)"
 #version   = "1.4"; date  = "Jan 14, 2019"
 # + [PT] calc 1D-plot LW from Npts
 #
-ver = '1.5' ; date = 'Feb 216, 2020' 
+#ver = '1.5' ; date = 'Feb 16, 2020' 
 # + [PT] add in ability for -censor_hline to contain a 'NONE' argument 
 #        ... bc that is useful as a placeholder when some images have
 #        censor vals and others don't
+#
+ver = '1.9' ; date = 'June 17, 2020' 
+# [PT] add in legend, legend_label and legend_loc functionality
 #
 # =================================================================
 
@@ -135,7 +138,8 @@ lots of individual subject 'ss' instances of the subplobj object.
         #    pp.axis('off')
         sp = pp.plot( ss.x, ss.y, 
                       color = ss.color,
-                      lw=calc_lw_from_npts(ss.npts) )
+                      lw=calc_lw_from_npts(ss.npts),
+                      label=ss.leglabel )
         
         pp.set_xlim(ss.xlim)
         pp.set_ylim(ss.ylim)
@@ -168,6 +172,10 @@ lots of individual subject 'ss' instances of the subplobj object.
             # cheating with title because tight layout doesn't know about
             # suptitle
             pp.set_title(bf.title, fontsize=bf.fontsize)
+
+        if bf.legend_on :
+            pp.legend(loc=ss.legloc)
+
 
         # ----------------- Optional plot: boxplot ---------------------
 
@@ -325,6 +333,7 @@ def populate_1dplot_fig(iopts):
     bigfig.set_boxplot( iopts.boxplot_on )
     bigfig.set_margin( iopts.margin_on )
     bigfig.set_bplot_view( iopts.bplot_view )
+    bigfig.set_legend_on( iopts.legend_on )
 
     for i in range(iopts.ndsets):
 
@@ -367,6 +376,10 @@ def populate_1dplot_fig(iopts):
         else:
             ss.set_ylim( ext_ylim=iopts.yaxran[ii] )
         ss.set_ylabel( iopts.ylabels[ii] )
+
+        if bigfig.legend_on :
+            ss.set_leglabel( iopts.leglabels[ii] )
+            ss.set_legloc( iopts.leglocs[ii] )
 
         bigfig.add_sub(ss)
 

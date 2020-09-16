@@ -11,6 +11,7 @@ set savediffs = 0
 set xxdiff = 0
 set diffprog = ''       # can pass any, like xxdiff
 set diffopts = ()
+set verb = 1
 
 if ( $#argv < 2 ) then
     goto SHOW_HELP
@@ -57,10 +58,21 @@ while ( $ac < $#argv )
         set diffprog = xxdiff
         set exit_on_missing = 0
         @ ac ++
+    else if ( "$argv[$ac]" == '-verb' ) then
+        @ ac ++
+        set verb = "$argv[$ac]"
+        @ ac ++
+        if ( $verb > 2 ) then
+           set echo
+        endif
     else
         break
     endif
 end
+
+if ( $verb > 1 ) then
+   set list_missing = 1
+endif
 
 # if a diffprog is requested, make sure it exists...
 if ( $diffprog != "" ) then
@@ -121,6 +133,9 @@ if ( $missA || $missB ) then
               ls -ld $odir/$file
           endif
       end
+   echo ""
+   echo "   ... done with missing, on to diffs ..."
+
    endif
 
    echo ""
@@ -167,7 +182,11 @@ foreach file ( $files )
            ls -l $file $odir/$file
            echo ""
         else if ( $showfiles ) then
-           echo "    $file"
+           if ( $verb > 1 ) then
+              echo "    diff: $file"
+           else
+              echo "    $file"
+           endif
         endif
         @ count ++
 
@@ -186,6 +205,8 @@ foreach file ( $files )
                          | enscript -Ge -p - | ps2pdf - diffs/$dfile.pdf
             endif
         endif
+    else if ( $verb > 1 ) then
+       echo "    no diff: $file"
     endif
 end
 
@@ -231,6 +252,7 @@ cat << EOF
       -show              : show diffs using 'diff'
       -xxdiff            : show diffs using 'xxdiff'
       -X                 : implies -xxdiff and -ignore_missing'
+      -verb LEVEL        : be more chatty at 2 (set echo at 3)
 
    ----------------------------------------------------------------------
    examples:

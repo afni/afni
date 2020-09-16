@@ -122,7 +122,6 @@ int main( int argc , char * argv[] )
    FD_brick        ** brarr , * baxi , * bsag , * bcor ;
 
    int iarg , ii ;
-   Boolean ok ;
    MRI_IMAGE * pim , * flim , * slim ;
    float * flar ;
    dset_range dr ;

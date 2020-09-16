@@ -34,6 +34,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_StatsPDL.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_CA_EZ.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
@@ -42,22 +43,26 @@ target_sources(
 target_include_directories(
   libheaders
   INTERFACE 
-            $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::3DEdge,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:$<TARGET_NAME_IF_EXISTS:f2c>,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:f2c,INTERFACE_INCLUDE_DIRECTORIES>
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
-            $<TARGET_PROPERTY:Motif::Motif,INTERFACE_INCLUDE_DIRECTORIES>
-            ${X11_INCLUDE_DIR}
 )
 target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
-set_source_files_properties(
-  gifti_choice.c PROPERTIES COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB"
-)
+
+# Make gifti use configurable
+set(USE_GIFTI ON)
+if(USE_GIFTI)
+  set_source_files_properties(
+    gifti_choice.c
+    PROPERTIES
+    COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB;HAVE_GIFTI"
+  )
+endif()
 
 # Generate various afni_slice files and store them in the build tree and object library
 add_library(afsliceobjs OBJECT "")
@@ -84,11 +89,12 @@ target_link_libraries(afsliceobjs PRIVATE libheaders)
 
 # Generate various pcor files and store them in the build tree and as object library
 add_library(pcor_objs OBJECT "")
+target_compile_definitions(pcor_objs PRIVATE REPLACE_XT)
 set(PCOR_DIR ${CMAKE_CURRENT_BINARY_DIR}/configured_pcor)
 configure_file(pcor.h "${PCOR_DIR}/pcor.h" COPYONLY)
 target_include_directories(
   pcor_objs
-  PRIVATE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+  PRIVATE
           $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
           $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
           ${CMAKE_CURRENT_SOURCE_DIR}
@@ -134,14 +140,13 @@ add_library(parser OBJECT ${CMAKE_CURRENT_BINARY_DIR}/parser.c parser_int.c)
 target_include_directories(
   parser PRIVATE $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
 )
-
+target_compile_definitions(parser PRIVATE REPLACE_XT)
 set_source_files_properties(
   thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
 )
 set_os_flags(thd_filestuff.c)
 set_os_flags(machdep.c)
-add_library(someafobjs OBJECT afni_warp.c pbar_color_defs.c afni_ports.c)
-target_link_libraries(someafobjs libheaders)
+
 add_library(
   misc_objs OBJECT
   afni_suma.c
@@ -152,7 +157,11 @@ add_library(
   nifti_statlib.c
   vol2surf.c
 )
-target_link_libraries(misc_objs libheaders)
+target_link_libraries(misc_objs
+  PUBLIC
+    libheaders
+    $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
+  )
 
 add_library(
   suma_objs OBJECT suma_afni_surface.c suma_algorithms.c suma_datasets.c suma_niml.c
@@ -282,6 +291,7 @@ add_library(
   thd_floatscan.c
   thd_forcemalloc.c
   thd_get1D.c
+  thd_get_tcsv.c
   thd_getorient.c
   thd_getpathprogs.c
   thd_http.c
@@ -311,8 +321,6 @@ add_library(
   thd_mattor.c
   thd_mean_dset.c
   thd_median.c
-  thd_mincread.c
-  thd_mincwrite.c
   thd_mismatch.c
   thd_mnicoords.c
   thd_mpegread.c
@@ -341,6 +349,7 @@ add_library(
   thd_shear3d.c
   thd_shift2.c
   thd_statpval.c
+  thd_StatsPDL.c
   thd_store_index.c
   thd_strfunc.c
   thd_svdblur.c
@@ -353,6 +362,7 @@ add_library(
   thd_ttatlas_query.c
   thd_ttest.c
   thd_vcheck.c
+  thd_vecwarp.c
   thd_warp_tables.c
   thd_warps.c
   thd_winsor.c
@@ -365,7 +375,7 @@ add_library(
 )
 target_link_libraries(thd_objs 
 PUBLIC libheaders
-PRIVATE coxplot)
+)
 
 add_library(
   mri_objs OBJECT
@@ -394,7 +404,6 @@ add_library(
   mri_complex_arith.c
   mri_copy.c
   mri_counter.c
-  mri_coxplot.c
   mri_cut.c
   mri_dicom_hdr.c
   mri_dicom_stuff.c
@@ -445,7 +454,6 @@ add_library(
   mri_read_dicom.c
   mri_read_mpeg.c
   mri_read_stuff.c
-  mri_render.c
   mri_rgba_compose.c
   mri_rota.c
   mri_scale.c
@@ -488,6 +496,9 @@ add_library(
 )
 target_link_libraries(mri_objs PRIVATE libheaders)
 
+add_library(someafobjs OBJECT afni_warp.c afni_ports.c)
+target_link_libraries(someafobjs libheaders)
+
 add_afni_library(mri "")
 target_sources(
   mri
@@ -512,12 +523,10 @@ target_link_libraries(
   mri
   PUBLIC  m 
           libheaders
-          AFNI::coxplot
   PRIVATE 
+          $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
           AFNI::3DEdge
           AFNI::eispack
-          $<TARGET_NAME_IF_EXISTS:volpack>
           NIFTI::nifti2
           NIFTI::nifticdf
-          ${NETCDF_LIBRARIES_C}
 )

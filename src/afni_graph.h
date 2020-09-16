@@ -12,8 +12,8 @@
    therefore by RW Cox, A Jesmanowicz, and EC Wong.  It may not be
    copied or used for any commercial purpose without explicit permission.
 --------------------------------------------------------------------------*/
-
 #include "mrilib.h"
+#include "coxplot.h"
 #include "display.h"
 #include "xutil.h"
 #include "bbox.h"
@@ -168,35 +168,32 @@ typedef struct {
 
 #define MIN_PIN    2
 #define MAX_PIN    9999
-#define MAX_STRIDE 99
-#define ALLOW_STRIDE
+#define MAX_STRIDE 9
 
-/* plotting range is from time index NBOT to NTOP-1 */
+/* x-axis plotting range is from time index NBOT to NTOP-1 */
 
 #define NBOT(gr) ( ((gr)->pin_bot < (gr)->status->num_series) ? (gr)->pin_bot : 0 )
 
-#define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN                ) ? (gr)->pin_top            \
-                                                              : (gr)->status->num_series )
+#define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN && (gr)->pin_top < (gr)->status->num_series) \
+                  ? (gr)->pin_top : (gr)->status->num_series                              )
 
-#ifdef ALLOW_STRIDE
 #define NSTRIDE(gr) ( (gr)->pin_stride )
+
+#define ALLOW_IGNORE
+#ifdef  ALLOW_IGNORE
+# define NIGNORE(gr) (gr)->init_ignore
 #else
-#define NSTRIDE(gr) 1
+# define NIGNORE(gr) 0
 #endif
 
-#ifdef ALLOW_STRIDE
-# define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) )
-# define NPTS(gr)    NABC( NBOT(gr) , NTOP(gr) , NSTRIDE(gr) )
-#else
-# define NPTS(gr) (NTOP(gr)-NBOT(gr))   /* number of points visible in graph */
-#endif
+/* #define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) ) */
+#define NABC(a,b,c) ( ((b) - (a) - 1) / (c) + 1 )
+#define NPTS(gr)    NABC( NBOT(gr) , NTOP(gr) , NSTRIDE(gr) )
 
 /* data plotting range is from time index TBOT to TTOP-1 */
 
 #define TBOT(gr) NBOT(gr)
-
-#define TTOP(gr) ( ((gr)->pin_top >= MIN_PIN && (gr)->pin_top < (gr)->status->num_series) \
-                  ? (gr)->pin_top : (gr)->status->num_series                              )
+#define TTOP(gr) NTOP(gr)
 
 #define TPTS(gr) (TTOP(gr)-TBOT(gr))   /* number of data points visible in graph */
 
@@ -222,7 +219,8 @@ typedef struct {
 #include "pbar_color_defs.h"
 
 #define NUM_FIXED_COLORS_SETTING 4
-#define NUM_COLOR_ITEMS          9
+#define NUM_COLOR_ITEMS          10
+#define PMPLOT_INDEX             9    /* 02 Jun 2020 */
 
 #define BRIGHTEST_COLOR   -1
 #define DARKEST_COLOR     -2
@@ -239,6 +237,7 @@ typedef struct {
 #define DEFAULT_GR_ORT_COLOR      GREENEST_COLOR
 #define DEFAULT_GR_IGNORE_COLOR   BLUEST_COLOR
 #define DEFAULT_GR_DPLOT_COLOR    REDDEST_COLOR
+#define DEFAULT_GR_PMPLOT_COLOR   COL_cyan    /* 02 Jun 2020 */
 
 #define INVERTT_GR_BOXES_COLOR    BRIGHTEST_COLOR
 #define INVERTT_GR_BACKG_COLOR    DARKEST_COLOR
@@ -249,6 +248,7 @@ typedef struct {
 #define INVERTT_GR_ORT_COLOR      GREENEST_COLOR
 #define INVERTT_GR_IGNORE_COLOR   BLUEST_COLOR
 #define INVERTT_GR_DPLOT_COLOR    REDDEST_COLOR
+#define INVERTT_GR_PMPLOT_COLOR   COL_cyan    /* 02 Jun 2020 */
 
 #ifdef MAIN
 int INIT_GR_boxes_color  = DEFAULT_GR_BOXES_COLOR  ,
@@ -259,14 +259,16 @@ int INIT_GR_boxes_color  = DEFAULT_GR_BOXES_COLOR  ,
     INIT_GR_ideal_color  = DEFAULT_GR_IDEAL_COLOR  ,
     INIT_GR_ort_color    = DEFAULT_GR_ORT_COLOR    ,
     INIT_GR_ignore_color = DEFAULT_GR_IGNORE_COLOR ,
-    INIT_GR_dplot_color  = DEFAULT_GR_DPLOT_COLOR   ;
+    INIT_GR_dplot_color  = DEFAULT_GR_DPLOT_COLOR  ,
+    INIT_GR_pmplot_color = DEFAULT_GR_PMPLOT_COLOR  ;    /* 02 Jun 2020 */
 
-int INIT_GR_boxes_thick  = 0 ,
-    INIT_GR_grid_thick   = 0 ,
+int INIT_GR_boxes_thick  = 0 ,  /* if >= 0, then gets a 'Thick Lines' */
+    INIT_GR_grid_thick   = 0 ,  /* and these are initial settings */
     INIT_GR_data_thick   = 1 ,
     INIT_GR_ideal_thick  = 1 ,
     INIT_GR_ort_thick    = 1 ,
-    INIT_GR_dplot_thick  = 1  ;
+    INIT_GR_dplot_thick  = 1 , 
+    INIT_GR_pmplot_thick = 1  ;
 
 int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
 int INIT_GR_gthick       = 2 ;  /* 06 Oct 2004 */
@@ -282,7 +284,8 @@ int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
          DEFAULT_GR_IDEAL_COLOR,
          DEFAULT_GR_ORT_COLOR,
          DEFAULT_GR_IGNORE_COLOR,
-         DEFAULT_GR_DPLOT_COLOR   } ,
+         DEFAULT_GR_DPLOT_COLOR,
+         DEFAULT_GR_PMPLOT_COLOR   } ,
        { INVERTT_GR_BOXES_COLOR,
          INVERTT_GR_BACKG_COLOR,
          INVERTT_GR_GRID_COLOR,
@@ -291,7 +294,8 @@ int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
          INVERTT_GR_IDEAL_COLOR,
          INVERTT_GR_ORT_COLOR,
          INVERTT_GR_IGNORE_COLOR,
-         INVERTT_GR_DPLOT_COLOR   } ,
+         INVERTT_GR_DPLOT_COLOR,
+         INVERTT_GR_PMPLOT_COLOR   } ,
        { COL_dk_blue ,
          COL_yellow ,
          COL_blue_cyan ,
@@ -300,7 +304,8 @@ int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
          DEFAULT_GR_IDEAL_COLOR,
          COL_rbgyr20_07 ,
          DEFAULT_GR_IGNORE_COLOR,
-         DEFAULT_GR_DPLOT_COLOR   } ,
+         DEFAULT_GR_DPLOT_COLOR,
+         DEFAULT_GR_PMPLOT_COLOR   } ,
        { COL_yell_oran ,
          COL_dk_blue ,
          COL_lt_blue2 ,
@@ -309,7 +314,8 @@ int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
          COL_hotpink ,
          COL_green ,
          COL_blue_cyan ,
-         COL_red                  } ,
+         COL_red,
+         COL_violet                  } ,
      } ;
 #else
 extern int INIT_GR_boxes_color  ,
@@ -320,14 +326,16 @@ extern int INIT_GR_boxes_color  ,
            INIT_GR_ideal_color  ,
            INIT_GR_ort_color    ,
            INIT_GR_ignore_color ,
-           INIT_GR_dplot_color   ;
+           INIT_GR_dplot_color  ,
+           INIT_GR_pmplot_color  ;
 
 extern int INIT_GR_boxes_thick ,
            INIT_GR_grid_thick  ,
            INIT_GR_data_thick  ,
            INIT_GR_ideal_thick ,
            INIT_GR_ort_thick   ,
-           INIT_GR_dplot_thick  ;
+           INIT_GR_dplot_thick ,
+           INIT_GR_pmplot_thick  ;
 
 extern int INIT_GR_ggap ;
 extern int INIT_GR_gthick ;  /* 06 Oct 2004 */
@@ -344,10 +352,11 @@ extern int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] ;
 #define ORT_COLOR(gr)    ((gr)->color_index[6])
 #define IGNORE_COLOR(gr) ((gr)->color_index[7])
 #define DPLOT_COLOR(gr)  ((gr)->color_index[8])
+#define PMPLOT_COLOR(gr) ((gr)->color_index[9])    /* 02 Jun 2020 */
 
 static char *gr_color_label[NUM_COLOR_ITEMS] = {
   "Boxes " , "BackG " , "Grid  " , "Text  " ,
-  "Data  " , "Ideal " , "Ort   " , "Ignore" , "Dplot "
+  "Data  " , "Ideal " , "Ort   " , "Ignore" , "Dplot " , "PMplot"
 } ;
 
 static char *gr_color_hint[NUM_COLOR_ITEMS] = {
@@ -359,7 +368,8 @@ static char *gr_color_hint[NUM_COLOR_ITEMS] = {
   "Color for Ideal overplot graph",
   "Color for Ort overplot graph"  ,
   "Color for Ignored timepoints"  ,
-  "Color for Dplot overlay"
+  "Color for Dplot overlay"       ,
+  "Color for PMplot overlay"
 } ;
 
 static int gr_setup_default = 1 ;
@@ -368,15 +378,15 @@ static int gr_thick_default[NUM_COLOR_ITEMS] ;
 
 static int gr_points_default[NUM_COLOR_ITEMS] = {
   -1 , -1 , -1 , -1 ,
-   0 , -1 , -1 , -1 , 0
+   0 , -1 , -1 , -1 , 0 , 0
 } ;
 
 static int gr_color_start[NUM_COLOR_ITEMS] = {
-  1 , 1 , 0 , 1 ,
-  1 , 1 , 1 , 1 , 1
+  1 , 1 , 0 , 1 ,        /* 0 = start with 'none' */
+  1 , 1 , 1 , 1 , 1 , 1  /* 1 = skip 'none' color */
 } ;
 
-static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
+static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0,0 } ;  /* Oct 1999 */
 
 #define GRA_COLOR(cd)                                              \
    ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest) \
@@ -386,15 +396,16 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
     :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest)    \
     :(cd) )
 
-#define FG_THICK(gr)     ((gr)->thick_index[0] * (gr)->gthick)
-#define BG_THICK(gr)     ((gr)->thick_index[1] * (gr)->gthick)
-#define GRID_THICK(gr)   ((gr)->thick_index[2] * (gr)->gthick)
-#define TEXT_THICK(gr)   ((gr)->thick_index[3] * (gr)->gthick)
-#define DATA_THICK(gr)   ((gr)->thick_index[4] * (gr)->gthick)
-#define IDEAL_THICK(gr)  ((gr)->thick_index[5] * (gr)->gthick)
-#define ORT_THICK(gr)    ((gr)->thick_index[6] * (gr)->gthick)
-#define IGNORE_THICK(gr) ((gr)->thick_index[7] * (gr)->gthick)
-#define DPLOT_THICK(gr)  ((gr)->thick_index[8] * (gr)->gthick)
+#define FG_THICK(gr)      ((gr)->thick_index[0] * (gr)->gthick)
+#define BG_THICK(gr)      ((gr)->thick_index[1] * (gr)->gthick)
+#define GRID_THICK(gr)    ((gr)->thick_index[2] * (gr)->gthick)
+#define TEXT_THICK(gr)    ((gr)->thick_index[3] * (gr)->gthick)
+#define DATA_THICK(gr)    ((gr)->thick_index[4] * (gr)->gthick)
+#define IDEAL_THICK(gr)   ((gr)->thick_index[5] * (gr)->gthick)
+#define ORT_THICK(gr)     ((gr)->thick_index[6] * (gr)->gthick)
+#define IGNORE_THICK(gr)  ((gr)->thick_index[7] * (gr)->gthick)
+#define DPLOT_THICK(gr)   ((gr)->thick_index[8] * (gr)->gthick)
+#define PMPLOT_THICK(gr)  ((gr)->thick_index[9] * (gr)->gthick)    /* 02 Jun 2020 */
 
 #define FG_IS_THICK(gr)     ((gr)->thick_index[0] != 0)
 #define BG_IS_THICK(gr)     ((gr)->thick_index[1] != 0)
@@ -405,6 +416,21 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define ORT_IS_THICK(gr)    ((gr)->thick_index[6] != 0)
 #define IGNORE_IS_THICK(gr) ((gr)->thick_index[7] != 0)
 #define DPLOT_IS_THICK(gr)  ((gr)->thick_index[8] != 0)
+#define PMPLOT_IS_THICK(gr) ((gr)->thick_index[9] != 0)  /* 02 Jun 2020 */
+
+#define DO_UPSAM(gr)        ((gr)->do_upsam)             /* 28 May 2020 */
+
+/* amount of resampling in plot_graphs                      28 May 2020 */
+#define XUPSAM(www,npt) ( (int)( 0.499f + 0.3456f*(www) / ((npt)+0.5f) ) )
+
+/* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
+void AFNI_XDrawLines( Display *display, Drawable d,
+                      GC gc, XPoint *points, int npoints, int mode , int nupsam ) ;
+
+/* Replacement for XFillPolygon, with champagne truffles [01 Jun 2020] */
+void AFNI_XFillPolygon( Display *display, Drawable d,
+                        GC gc, XPoint *points, int npoints, int shape ,
+                        int mode , int nupsam ) ;
 
 /** 01 Aug 1998: redefine _POINTS and add _LINES **/
 
@@ -417,6 +443,13 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define ORT_POINTS(gr)    ((gr)->points_index[6] != 0)
 #define IGNORE_POINTS(gr) ((gr)->points_index[7] != 0)
 #define DPLOT_POINTS(gr)  ((gr)->points_index[8] != 0)
+#define PMPLOT_POINTS(gr) 0                          /* 02 Jun 2020 */
+
+#define PMPLOT_MODE(gr)   ((gr)->points_index[9])    /* 02 Jun 2020 */
+#define PMPLOT_OFF           1
+#define PMPLOT_CURVES        2
+#define PMPLOT_BARS          4
+#define PMPLOT_FILL          8
 
 #define FG_LINES(gr)     ((gr)->points_index[0] != 1)
 #define BG_LINES(gr)     ((gr)->points_index[1] != 1)
@@ -454,6 +487,7 @@ typedef struct {
 
    float tmean[MAT_MAX][MAT_MAX] , tbot[MAT_MAX][MAT_MAX] ,    /* statistics */
          ttop[MAT_MAX][MAT_MAX]  , tstd[MAT_MAX][MAT_MAX]  ;
+   float dbot[MAT_MAX][MAT_MAX]  , dtop[MAT_MAX][MAT_MAX]  ;   /* 01 Jun 2020 */
 
    char * tuser[MAT_MAX][MAT_MAX] ;                            /* user strings */
 
@@ -462,10 +496,10 @@ typedef struct {
    int xFD , yFD , gx,gy , xc,yc ;
    int grid_color , common_base , init_ignore , polort ;
    float fscale ;
-   int pin_top ;      /* 27 Apr 1997 */
-   int pin_bot ;      /* 17 Mar 2004 */
-   int pin_stride ;   /* 19 Jul 2013 */
-   int HorZ ;         /* 05 Jan 1999 */
+   int pin_top ;      /* 27 Apr 1997 - top index to show */
+   int pin_bot ;      /* 17 Mar 2004 - bottom index to show */
+   int pin_stride ;   /* 19 Jul 2013 - step thru data */
+   int HorZ ;         /* 05 Jan 1999 - horizontal line at 0? */
 
    int key_Nlock , key_lock_sum ;
    int time_index ;
@@ -521,10 +555,12 @@ typedef struct {
    int points_index[NUM_COLOR_ITEMS] ;
    int fixed_colors_setting ;
 
-   MCW_arrowval *opt_ggap_av ; /* 12 Jan 1998 */
+   MCW_arrowval *opt_ggap_av ;   /* 12 Jan 1998 */
    int ggap ;
    MCW_arrowval *opt_gthick_av ; /* 06 Oct 2004 */
    int gthick ;
+   MCW_arrowval *opt_upsam_av ;  /* 28 May 2020 */
+   int do_upsam ;
 
    Widget opt_color_up_pb   , opt_save_pb ,
           opt_write_center_pb , opt_write_suffix_pb ;
@@ -724,12 +760,12 @@ extern void init_const( MCW_grapher * ) ;
 extern void GRA_small_circle( MCW_grapher * , int,int,int ) ;
 extern void GRA_overlay_circle( MCW_grapher * , int,int,int ) ;
 
-extern void GRA_drawing_EV( Widget  , XtPointer , XEvent * , Boolean * ) ;
+extern void GRA_drawing_EV( Widget  , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void GRA_handle_keypress( MCW_grapher * , char * , XEvent * ) ;
 extern void GRA_new_pixmap( MCW_grapher * , int,int,int ) ;
 extern void GRA_opt_CB( Widget , XtPointer , XtPointer ) ;
 extern void GRA_fim_CB( Widget , XtPointer , XtPointer ) ;
-extern Boolean drive_MCW_grapher( MCW_grapher * , int , XtPointer ) ;
+extern RwcBoolean drive_MCW_grapher( MCW_grapher * , int , XtPointer ) ;
 
 extern void GRA_scale_choose_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_grid_choose_CB    ( Widget , XtPointer , MCW_choose_cbs * ) ;
@@ -763,8 +799,9 @@ extern char * GRA_transform_label( MCW_arrowval * , XtPointer ) ;
 
 extern void GRA_detrend_CB       ( MCW_arrowval * , XtPointer ) ;  /* 05 Dec 2012 */
 
-extern void GRA_ggap_CB( MCW_arrowval * , XtPointer ) ;
+extern void GRA_ggap_CB  ( MCW_arrowval * , XtPointer ) ;
 extern void GRA_gthick_CB( MCW_arrowval * , XtPointer ) ;  /* 06 Oct 2004 */
+extern void GRA_upsam_CB ( MCW_arrowval * , XtPointer ) ;  /* 28 May 2020 */
 
 extern FIM_menu * AFNI_new_fim_menu( Widget , XtCallbackProc , int ) ;
 

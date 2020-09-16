@@ -3,12 +3,21 @@
 # It was originally based off linux_openmp_64.
 
 SYSTEM_NAME = linux_centos_7_64
+SYSTEM_TYPE = Linux
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
+
+
+# -----------------------------------
+#  # use shared libriaries (libmri.so)?
+MRI_SHARED = $(SYSTEM_TYPE)
+
+# use linux-style R_io.so building
+R_IO_MODIFY_LINUX = yes
 
 # ------------------------------
 # python from C
@@ -23,7 +32,7 @@ XLIBS = -lXm -lXt
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) \
-         -DDONT_USE_XTDESTROY -D_GNU_SOURCE
+         -DDONT_USE_XTDESTROY -D_GNU_SOURCE -DREPLACE_XT
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = $(CC)
@@ -47,6 +56,12 @@ PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared -fPIC
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -rdynamic -L. -L/usr/lib64
+
+# possibly modify from above
+ifdef MRI_SHARED
+LFLAGS  = -L. -L/usr/lib64 -Wl,-rpath='$$ORIGIN'
+PLFLAGS = -rdynamic $(LFLAGS)
+endif
 
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
@@ -78,7 +93,9 @@ EXPROGS = $(GSLPROGS)
 
 # link choices are made above
 
-LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+# separate X11 libs from non-X11 ones
+LLIBS  = -lmri -lf2c $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS_X11 = -lmri -lf2c $(XLIBS) -lXft -lXpm -lXext -lXmu -lSM -lICE -lX11 \
          $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
@@ -110,7 +127,7 @@ SUMA_INCLUDE_PATH = $(IFLAGS) -I.. -I../niml -Igts/src 		\
 SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = $(GLw_LIB) -lGLU -lGL $(LLIBS)
+SUMA_LINK_LIB = $(GLw_LIB) -lGLU -lGL $(LLIBS_X11)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 SUMA_MDEFS = 

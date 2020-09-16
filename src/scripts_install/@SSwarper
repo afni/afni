@@ -88,8 +88,11 @@
 #set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
 #   + [PT] fix paths in the ulay/olay of extra QC*jpg images
 #
-set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
+#set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
 #   + [PT] new warpscale opt for 3dQwarp, courtesy of RWC
+#
+set version   = "2.21"; set rev_dat   = "Sep 1, 2020"
+#   + [PT] if '-skipwarp' is used, now set DO_EXTRA_WC = 0.
 #
 # ----------------------------------------------------------------
 
@@ -366,6 +369,13 @@ if ( "$odir" == "" ) then
     echo "++ Based on input, the output directory will be:"
     echo "     $odir"
     echo ""
+endif
+
+# [PT: Sep 1, 2020] skipwarp basically means a lot of other stuff gets
+# skipped...  Have it turn off "extra" QC:
+if ( ${skipwarp} ) then
+    echo "+* Since we are skipping the warp, there is no 'extra' QC"
+    set DO_EXTRA_QC = 0
 endif
 
 \mkdir -p ${odir}
@@ -1173,7 +1183,7 @@ You Know My Methods, Watson ~2~
   #6  Restart the nonlinear warping, registering the output
       of #5 to the skull-off template brain volume (3dQwarp).
        ==> anatQQ.sub007.nii (et cetera)
-  #7  Use @snapshot_volreg3 to make the pretty pictures.
+  #7  Use @snapshot_volreg to make the pretty pictures.
        ==> AMsub007.jpg and MAsub007.jpg
 
 Temporary files ~2~

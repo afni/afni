@@ -176,13 +176,17 @@ MRI_IMAGE * mri_rgb_scaledown_by4( MRI_IMAGE *inim )
 
 int main( int argc , char *argv[] )
 {
-   int npure=18 , nfade=6 , iarg=1 , ii,jj,kk,nkk , nbad , nx,ny,nin ;
-   char *prefix="i2m" , *outname ; char **fcopy ;
+   int npure=18 , nfade=6 , iarg=1 , ii,jj,kk,nkk , nbad=0 , nx=0,ny=0,nin=0 ;
+   char *prefix="i2m" , *outname=NULL ; char **fcopy=NULL ;
    MRI_IMARR *in_imar=NULL ;
-   MRI_IMAGE *inim , *qim , *jnim ; MRI_IMAGE *im0=NULL ;
-   float fac ;
+   MRI_IMAGE *inim=NULL , *qim=NULL , *jnim=NULL ; MRI_IMAGE *im0=NULL ;
+   float fac=1.0f ;
    int down=1 ; int do_jpg=0 ; int do_loop=0 ;
    int do_resize=0 , rnx=0,rny=0 ;
+   MRI_IMAGE *npurim = NULL , *nfadim = NULL ; /* 05 Jun 2020 */
+   int       *npur   = NULL , *nfad   = NULL ;
+   int npure_sum=0 , nfade_sum=0 , npure_max=0 , nfade_max=0 , nimag=0 ;
+   int nfadd=6 , npurr=18 ;
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("\n") ;
@@ -261,15 +265,25 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-npure") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need arg after -npure") ;
-       npure = (int)strtod(argv[iarg],NULL) ;
-       if( npure < 1 ) ERROR_exit("Illegal value after -npure") ;
+       if( strstr(argv[iarg],"1D") != NULL ){
+         npurim = mri_read_1D(argv[iarg]) ;
+         if( npurim == NULL ) ERROR_exit("Cannot read -npure file %s",argv[iarg]) ;
+       } else {
+         npure = (int)strtod(argv[iarg],NULL) ;
+         if( npure < 1 ) ERROR_exit("Illegal value after -npure") ;
+       }
        iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-nfade") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need arg after -nfade") ;
-       nfade = (int)strtod(argv[iarg],NULL) ;
-       if( nfade < 0 ) ERROR_exit("Illegal value after -nfade") ;
+       if( strstr(argv[iarg],"1D") != NULL ){
+         nfadim = mri_read_1D(argv[iarg]) ;
+         if( nfadim == NULL ) ERROR_exit("Cannot read -nfade file %s",argv[iarg]) ;
+       } else {
+         nfade = (int)strtod(argv[iarg],NULL) ;
+         if( nfade < 0 ) ERROR_exit("Illegal value after -nfade") ;
+       }
        iarg++ ; continue ;
      }
 
@@ -302,9 +316,48 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /*--- read input images ---*/
+   /*--- some quick setup ---*/
 
-   if( argc-iarg < 2 ) ERROR_exit("Need at least 2 input images!") ;
+   nimag = argc-iarg ;
+   if( nimag  < 2 ) ERROR_exit("Need at least 2 input images!") ;
+
+   if( npurim != NULL ){
+     int nnn = npurim->nx ;
+     float *fpur = MRI_FLOAT_PTR(npurim) ;
+     if( nnn < nimag )
+       ERROR_exit("-npure file length is %d but have %d images :(",
+                  nnn , nimag ) ;
+     npur = (int *)malloc(sizeof(int)*nimag) ;
+     for( ii=0 ; ii < nimag ; ii++ ){
+       npur[ii] = (int)(fpur[ii]+0.01f) ;
+       if( npur[ii] < 1 ) npur[ii] = 1 ;
+       if( npure_max < npur[ii] ) npure_max = npur[ii] ;
+       npure_sum += npur[ii] ;
+     }
+     INFO_message("-npure file: max=%d sum=%d",npure_max,npure_sum) ;
+   } else {
+     npure_max = npure ; npure_sum = nimag*npure ;
+   }
+
+   if( nfadim != NULL ){
+     int nnn = nfadim->nx ;
+     float *ffad = MRI_FLOAT_PTR(nfadim) ;
+     if( nnn < nimag )
+       ERROR_exit("-nfade file length is %d but have %d images :(",
+                  nnn , nimag ) ;
+     nfad = (int *)malloc(sizeof(int)*nimag) ;
+     for( ii=0 ; ii < nimag ; ii++ ){
+       nfad[ii] = (int)(ffad[ii]+0.01f) ;
+       if( nfad[ii] < 1 ) nfad[ii] = 0 ;
+       if( nfade_max < nfad[ii] ) nfade_max = nfad[ii] ;
+       nfade_sum += nfad[ii] ;
+     }
+     INFO_message("-nfade file: max=%d sum=%d",nfade_max,nfade_sum) ;
+   } else {
+     nfade_max = nfade ; nfade_sum = nimag*nfade ;
+   }
+
+   /*--- read input images ---*/
 
    INIT_IMARR(in_imar) ;
 
@@ -360,31 +413,34 @@ int main( int argc , char *argv[] )
 
      fprintf(stderr,"++ Writing JPEGs ") ;
 
-     fcopy = (char **)malloc(sizeof(char *)*npure) ;
-     for( jj=0 ; jj < npure ; jj++ )
+     fcopy = (char **)malloc(sizeof(char *)*npure_max) ;
+     for( jj=0 ; jj < npure_max ; jj++ )
        fcopy[jj] = (char *)malloc(sizeof(char)*strlen(outname)) ;
 
      for( kk=ii=0 ; ii < nin-1 ; ii++ ){
        inim = IMARR_SUBIM(in_imar,ii) ;
        jnim = IMARR_SUBIM(in_imar,ii+1) ;
+       npurr = (npur != NULL) ? npur[ii] : npure ;
+       nfadd = (nfad != NULL) ? nfad[ii] : nfade ;
+       fac   = 1.0f / ( nfadd + 1.0f ) ;
 
 #ifdef USE_COPY /* write image once, then simply copy file several times */
        sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
        mri_write_jpg(outname,inim) ;
-       if( npure > 1 ){
-         for( jj=0 ; jj < npure-1 ; jj++ ){
+       if( npurr > 1 ){
+         for( jj=0 ; jj < npurr-1 ; jj++ ){
            sprintf(fcopy[jj],"%s_%06d.jpg",prefix,kk) ; kk++ ;
          }
-         file_copy( outname , npure-1 , fcopy ) ;
+         file_copy( outname , npurr-1 , fcopy ) ;
        }
 #else  /* just write image repeatedly */
-       for( jj=0 ; jj < npure ; jj++ ){  /* copies of ii-th input */
+       for( jj=0 ; jj < npurr ; jj++ ){  /* copies of ii-th input */
          sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
          mri_write_jpg(outname,inim) ;
        }
 #endif
 
-       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+       for( jj=0 ; jj < nfadd ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , inim , (jj+1)*fac , jnim ) ;
          sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
          mri_write_jpg(outname,qim) ; mri_free(qim) ;
@@ -398,21 +454,21 @@ int main( int argc , char *argv[] )
 #ifdef USE_COPY
        sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
        mri_write_jpg(outname,jnim) ;
-       if( npure > 1 ){
-         for( jj=0 ; jj < npure-1 ; jj++ ){
+       if( npurr > 1 ){
+         for( jj=0 ; jj < npurr-1 ; jj++ ){
            sprintf(fcopy[jj],"%s_%06d.jpg",prefix,kk) ; kk++ ;
          }
-         file_copy( outname , npure-1 , fcopy ) ;
+         file_copy( outname , npurr-1 , fcopy ) ;
        }
 #else
-     for( jj=0 ; jj < npure ; jj++ ){
+     for( jj=0 ; jj < npurr ; jj++ ){
        sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
        mri_write_jpg(outname,jnim) ;
      }
 #endif
 
      if( do_loop && im0 != NULL ){
-       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+       for( jj=0 ; jj < nfadd ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
          sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
          mri_write_jpg(outname,qim) ; mri_free(qim) ;
@@ -427,33 +483,36 @@ int main( int argc , char *argv[] )
 
    } else { /*------------- PPM then MPEG ------------------------------------------*/
 
-     fprintf(stderr,"++ Writing PPMs ") ;
+     fprintf(stderr,"++ Writing PPMs (for movie-izing)") ;
 
-     fcopy = (char **)malloc(sizeof(char *)*npure) ;
-     for( jj=0 ; jj < npure ; jj++ )
+     fcopy = (char **)malloc(sizeof(char *)*npure_max) ;
+     for( jj=0 ; jj < npure_max ; jj++ )
        fcopy[jj] = (char *)malloc(sizeof(char)*strlen(outname)) ;
 
      for( kk=ii=0 ; ii < nin-1 ; ii++ ){
        inim = IMARR_SUBIM(in_imar,ii) ;
        jnim = IMARR_SUBIM(in_imar,ii+1) ;
+       npurr = (npur != NULL) ? npur[ii] : npure ;
+       nfadd = (nfad != NULL) ? nfad[ii] : nfade ;
+       fac   = 1.0f / ( nfadd + 1.0f ) ;
 
 #ifdef USE_COPY /* write image once, then simply copy file several times */
        sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
        mri_write_pnm(outname,inim) ;
-       if( npure > 1 ){
-         for( jj=0 ; jj < npure-1 ; jj++ ){
+       if( npurr > 1 ){
+         for( jj=0 ; jj < npurr-1 ; jj++ ){
            sprintf(fcopy[jj],"%s_%06d.ppm",prefix,kk) ; kk++ ;
          }
-         file_copy( outname , npure-1 , fcopy ) ;
+         file_copy( outname , npurr-1 , fcopy ) ;
        }
 #else  /* just write image repeatedly */
-       for( jj=0 ; jj < npure ; jj++ ){  /* copies of ii-th input */
+       for( jj=0 ; jj < npurr ; jj++ ){  /* copies of ii-th input */
          sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
          mri_write_pnm(outname,inim) ;
        }
 #endif
 
-       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+       for( jj=0 ; jj < nfadd ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , inim , (jj+1)*fac , jnim ) ;
          sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
          mri_write_pnm(outname,qim) ; mri_free(qim) ;
@@ -467,21 +526,21 @@ int main( int argc , char *argv[] )
 #ifdef USE_COPY
        sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
        mri_write_pnm(outname,jnim) ;
-       if( npure > 1 ){
-         for( jj=0 ; jj < npure-1 ; jj++ ){
+       if( npurr > 1 ){
+         for( jj=0 ; jj < npurr-1 ; jj++ ){
            sprintf(fcopy[jj],"%s_%06d.ppm",prefix,kk) ; kk++ ;
          }
-         file_copy( outname , npure-1 , fcopy ) ;
+         file_copy( outname , npurr-1 , fcopy ) ;
        }
 #else
-     for( jj=0 ; jj < npure ; jj++ ){
+     for( jj=0 ; jj < npurr ; jj++ ){
        sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
        mri_write_pnm(outname,jnim) ;
      }
 #endif
 
      if( do_loop && im0 != NULL ){
-       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+       for( jj=0 ; jj < nfadd ; jj++ ){  /* interpolate for fade */
          qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
          sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
          mri_write_pnm(outname,qim) ; mri_free(qim) ;

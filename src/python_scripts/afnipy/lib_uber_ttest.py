@@ -29,9 +29,10 @@ g_history = """
          - added help
     1.1  18 Oct, 2012: minor updates to match library changes
     2.0  28 Dec, 2017: python3 compatible
+    2.1  11 May, 2020: updated web links to help pages
 """
 
-g_version = '2.0 (December 28, 2017)'
+g_version = '2.1 (May 11, 2020)'
 
 # ----------------------------------------------------------------------
 # global definitions

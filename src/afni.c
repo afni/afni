@@ -167,6 +167,9 @@ static void AFNI_set_4fonts(char *AA,char *BB, char *CC, char *DD) ;
      "-adobe-courier-bold-r-normal--20-140-100-100-m-110-iso8859-1" ,   \
      "-adobe-courier-bold-r-normal--17-120-100-100-m-100-iso8859-1"  )
 
+#define XXX_NORM_FONTS \
+   AFNI_set_4fonts("9x15bold","8x13bold","7x13","6x10")
+
 static char *FALLback[] =
   {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
       "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
@@ -295,6 +298,9 @@ static void process_XXX_options( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-minus") == 0 ){
        XXX_MINUS_FONTS ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-norm") == 0 ){  /* 10 Apr 2020 */
+       XXX_NORM_FONTS ; nopt++ ; continue ;
      }
 
      if( strncasecmp(argv[nopt],"-XXX",4) != 0 ){ nopt++; continue; }
@@ -449,7 +455,7 @@ static MCW_DC *       MAIN_dc ;
 static Widget         MAIN_shell=NULL ;
 static int            MAIN_argc ;
 static char         **MAIN_argv ;
-static Boolean        MAIN_workprocess( XtPointer ) ;
+static RwcBoolean        MAIN_workprocess( XtPointer ) ;
 
 /*----- Stuff saved from the '-com' command line arguments [29 Jul 2005] -----*/
 
@@ -549,25 +555,26 @@ void AFNI_syntax(void)
      "   afni [options] [session_directory ...]\n"
      "\n"
      "   -bysub       This new [01 Feb 2018] option allows you to have 'sessions'\n"
-     "                  made up from files scattered across multiple directories.\n"
-     "                  The purpose of this option is to gather all the datasets\n"
+     "    *OR*          made up from files scattered across multiple directories.\n"
+     "   -BIDS          The purpose of this option is to gather all the datasets\n"
      "                  corresponding to a single subject identifier, as is done\n"
      "                  in the BIDS file hierarchy -- http://bids.neuroimaging.io/\n"
      "             **** There are two methods for using this option.\n"
      "    method (1) ** In the first method, you put one or more subject identifiers,\n"
-     "                  which are of the form 'sub-XXX' where 'XXX' is some\n"
+     "     [OLDER]      which are of the form 'sub-XXX' where 'XXX' is some\n"
      "                  subject code (it does not have to be exactly 3 characters).\n"
      "                 ++ If an identifier does NOT start with 'sub-', then that\n"
      "                    4 letter string will be added to the front. This allows\n"
      "                    you to specify your subjects by their numbers 'XXX' alone.\n"
      "    method (2) ** In the second method, you put one or more directory names,\n"
-     "                  and all sub-directories whose name starts with 'sub-' will\n"
-     "                  be included. With this method, you can end up reading in\n"
-     "                  an entire BIDS hierarchy of datasets, which might take\n"
-     "                  a significant amount of time if there are many subjects.\n"
-     "               **** Note that if an identifier following '-bysub' is a directory\n"
-     "                    name that starts with 'sub-', it will be treated using\n"
-     "                    method (1), not using method (2).\n"
+     "     [NEWER]      and all immediate sub-directories whose name starts with\n"
+     "                  'sub-' will be included. With this method, you can end up\n"
+     "                  reading in an entire BIDS hierarchy of datasets, which\n"
+     "                  might take a significant amount of time if there are many\n"
+     "                  subjects.\n"
+     "               **** Note that if an identifier following '-bysub' on the\n"
+     "                    command line is a directory name that starts with 'sub-',\n"
+     "                    it will be treated using method (1), not using method (2).\n"
      "  both methods ** In either method, the list of names following '-bysub' ends\n"
      "                  with any argument that starts with '-' (or with the end of\n"
      "                  all command line arguments).\n"
@@ -580,14 +587,17 @@ void AFNI_syntax(void)
      "                  put into a single session for viewing in AFNI.\n"
      "                ++ In addition, all datasets from all subjects will be\n"
      "                   available in the 'All_Datasets' session in the GUI.\n"
-     "  both methods ** Remember: if no directories are given on the command\n"
-     "                  line after the various options, then the current working\n"
-     "                  directory ('.' or 'echo $cwd') is used.\n"
-     "    method (1) ** If a directory on the command line does NOT have any\n"
-     "                  subdirectories that match any of the '-bysub' identifiers,\n"
-     "                  then that directory will be read in the normal way, with\n"
-     "                  all the datasets in that particular directory (but not\n"
-     "                  subdirectories) read into the session.\n"
+     "                   (Unless environment variable AFNI_ALL_DATASETS is set to NO)\n"
+     "                ++ If you do NOT put any directories or subject identifiers\n"
+     "                   directly after the '-bysub' (or '-BIDS') option, the\n"
+     "                   program will act as if you put '.' there, and it will\n"
+     "                   search below the current working directory - the directory\n"
+     "                   you were 'in' when you started the AFNI GUI.\n"
+     "    method (1) ** If a directory on the command line after this option does\n"
+     "                  NOT have any subdirectories that match any of the '-bysub'\n"
+     "                  identifiers, then that directory will be read in the normal\n"
+     "                  way, with all the datasets in that particular directory\n"
+     "                  (but not subdirectories) read into the session.\n"
      "  both methods ** Please note that '-bysub' sessions will NOT be rescanned\n"
      "                  for new datasets that might get placed there after the\n"
      "                  AFNI GUI starts, unlike normal (single directory) sessions.\n"
@@ -611,7 +621,7 @@ void AFNI_syntax(void)
      "                   opened in the AFNI GUI using the Axial image viewer.\n"
      "                   (You might want to turn the AFNI crosshairs off!)\n"
      "              ++++ If you do NOT want .png and .jpg files read into AFNI,\n"
-     "                   set UNIX environment variable AFNI_IMAGE_DATASETS to 'NO'.\n"
+     "                   set Unix environment variable AFNI_IMAGE_DATASETS to 'NO'.\n"
      "                ++ You can put multiple subject IDs after '-bysub', as\n"
      "                   in the example above. You can also use the '-bysub' option\n"
      "                   more than once, if you like. Each distinct subect ID will\n"
@@ -621,7 +631,22 @@ void AFNI_syntax(void)
      "                  This will read in all datasets from all subjects. In this\n"
      "                  particular example, there are hundreds of subjects, so this\n"
      "                  command may not actually be a good idea - unless you want to\n"
-     "                  go get a cup of chai or coffee.\n"
+     "                  go get a cup of chai or coffee, and then sip it very slowly.\n"
+     "               ** Example (method 2):\n"
+     "                    afni -BIDS\n"
+     "                  This will read all 'sub-*' directories from the current\n"
+     "                  working directory, and is the same as 'afni -BIDS .' \n"
+     "                  As noted earlier, this recursive operation may take a long\n"
+     "                  time (especially if the datasets are compressed), as AFNI\n"
+     "                  reads the headers from ALL datasets as it finds them,\n"
+     "                  to build a table for you to use in the 'OverLay' and\n"
+     "                  'UnderLay' dataset choosers.\n"
+     "\n"
+     "   -all_dsets   Read in all datasets from all listed folders together.\n"
+     "                  Has the same effect as choosing 'All_Datasets' in the GUI.\n"
+     "                  Example: afni -all_dsets dir1 dir2 dir3\n"
+     "                  Can be set to default in .afnirc with ALL_DSETS_STARTUP = YES.\n"
+     "                  Overidden silently by AFNI_ALL_DATASETS = NO.\n"
      "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging unused datasets from memory.\n"
@@ -633,7 +658,7 @@ void AFNI_syntax(void)
 #endif
      "                  [When a dataset is needed, it will be re-read from disk.]\n"
      "\n"
-     "   -posfunc     Set up the color 'pbar' to use only positive function values.\n"
+     "   -posfunc     Start up the color 'pbar' to use only positive function values.\n"
      "\n"
      "   -R           Recursively search each session_directory for more session\n"
      "                  subdirectories.\n"
@@ -643,6 +668,7 @@ void AFNI_syntax(void)
      "                  recursion to 5 levels (for example), use -R5.\n"
      "             ** Use of '-bysub' disables recursive descent, since '-bysub'\n"
      "                will do that for you.\n"
+#if 0
      "\n"
      "   -ignore N    Tells the program to 'ignore' the first N points in\n"
      "                  time series for graphs and FIM calculations.\n"
@@ -653,6 +679,7 @@ void AFNI_syntax(void)
      "   -tlrc_small  These options set whether to use the 'small' or 'big'\n"
      "   -tlrc_big      Talairach brick size.  The compiled in default for\n"
      "                  the program is now 'big', unlike AFNI 1.0x.\n"
+#endif
      "\n"
 #ifndef WARP_4D
      "   -warp_4D     Allows the program to Talairach transform and write\n"
@@ -665,9 +692,11 @@ void AFNI_syntax(void)
      "                  directories listed in the AFNI_TSPATH environment\n"
      "                  variable will still be read (if this variable is\n"
      "                  not set, then './' will be scanned for *.1D files.)\n"
+#if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
      "                  making the transformations to +acpc and +tlrc.\n"
+#endif
      "\n"
      "   -unique      Tells the program to create a unique set of colors\n"
      "                  for each AFNI controller window.  This allows\n"
@@ -1002,22 +1031,27 @@ void AFNI_syntax(void)
     "                         ++ This should be a somewhat dark color,\n"
     "                            or parts of the interface may be hard\n"
     "                            to read.\n"
+    "                         ++ EXAMPLE:\n"
+    "                              afni -XXXfgcolor #00ffaa -XXXbgcolor #330000 -plus\n"
+    "                            You can create command aliases to open AFNI with\n"
+    "                            different color schemes, to make your life simpler.\n"
     "\n"
     " -XXXfontsize plus     = set all the X11 fonts used by AFNI to be one\n"
     "   *OR*                  size larger ('plus') or to be one size smaller\n"
     " -XXXfontsize minus      ('minus').  The 'plus' version I find useful for\n"
     "   *OR*                  a screen resolution of about 100 dots per inch\n"
-    " -XXXfontsize big        (39 dots per cm) -- you can find what the system\n"
+    " -XXXfontsize big        (40 dots per cm) -- you can find what the system\n"
     "   *OR*                  thinks your screen resolution is by the command\n"
     " -big                      xdpyinfo | grep -i resolution\n"
     "   *OR*                  ++ Applying 'plus' twice is the same as 'big'.\n"
-    " -plus                   ++ Using 'big' will use larger Adobe Courier fonts.\n"  
+    " -plus                   ++ Using 'big' will use large Adobe Courier fonts.\n"
     "   *OR*                  ++ Alternatively, you can control each of the 4 fonts\n"
     " -minus                     that AFNI uses, via the 4 following options ...\n"
-    "                         ++ You can also set the fontsize for your copy\n"
-    "                            of AFNI in your ~/.afnirc file by setting\n"
+    "   *OR*                  ++ You can also set the fontsize for your copy\n"
+    " -norm                      of AFNI in your ~/.afnirc file by setting\n"
     "                            environment variable AFNI_FONTSIZE to one of:\n"
     "                              big *OR* minus *or* plus\n"
+    "                         ++ Using 'norm' gives the default AFNI font sizes.\n"
     "\n"
     " -XXXfontA fontname    = set the X11 font name for the main AFNI\n"
     "                         controller\n"
@@ -1037,7 +1071,7 @@ void AFNI_syntax(void)
     "                            For higher resolutions ('Retina'), you might\n"
     "                            want to use larger fonts.  Adding these\n"
     "                            '-XXXfont?' options is one way to address this\n"
-    "                            problem.\n"
+    "                            problem. (Also see '-plus' above.)\n"
     "                         ++ An example of two quite large fonts on my computer\n"
     "                            (which at this time has a 108 dot per inch display):\n"
     "       '-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1\n"
@@ -1167,6 +1201,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
+   GLOBAL_argopt.read_tcsv      = 1 ;      /* 16 Jun 2020 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
    GLOBAL_argopt.disable_done   = 0 ;      /* 21 Aug 2008 */
@@ -1255,7 +1290,7 @@ ENTRY("AFNI_parse_args") ;
 #if MMAP_THRESHOLD > 0
    GLOBAL_argopt.auto_purge    = INIT_purge ;
 #else
-   GLOBAL_argopt.auto_purge    = (Boolean)!AFNI_noenv("AFNI_AUTOPURGE") ;
+   GLOBAL_argopt.auto_purge    = (RwcBoolean)!AFNI_noenv("AFNI_AUTOPURGE") ;
 #endif
    GLOBAL_argopt.resize_images = False ;       /* False means all images must match */
    GLOBAL_argopt.keep_logo     = False ;       /* For making pretty pictures? */
@@ -1285,6 +1320,9 @@ ENTRY("AFNI_parse_args") ;
 
    GLOBAL_argopt.cat_sess = !AFNI_noenv("AFNI_ALL_DATASETS") ; /* 02 Jun 2016 */
 
+   /* 04/06/2020 discoraj */
+   GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
+
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
@@ -1311,29 +1349,42 @@ ENTRY("AFNI_parse_args") ;
       }
 #endif
 
-      /*-----   -bysub   -----*/
+      /*-----   -bysub or -BIDS  -----*/
 
-      if( strcmp(argv[narg],"-bysub") == 0 ){  /* 01 Feb 2018 */
-        int bb ;
-        if( ++narg >= argc ) ERROR_exit("need an argument after -bysub!") ;
-        for( ; narg < argc && argv[narg][0] != '-' ; narg++ ){
+      if( strcasecmp(argv[narg],"-bysub") == 0 ||
+          strcasecmp(argv[narg],"-BIDS")  == 0   ){  /* 01 Feb 2018 */
+        int bb ; char **alist ; int nba,nta,aa , inc_narg ;
 
-          if( THD_is_directory(argv[narg])      &&
-              strncmp(argv[narg],"sub-",4) != 0 &&
-              argv[narg][0] != '-'                ){  /* check for all sub- names [15 Apr 2019] */
+        narg++ ;
+        if( narg >= argc || argv[narg][0] == '-' ){     /* trickery to use */
+          alist = (char **)malloc(sizeof(char *)*1) ;   /* "." if aren't */
+          alist[0] = "." ; nba = 0 ; nta = 1 ;          /* any args here */
+          inc_narg = 0 ;
+        } else {                                 /* scan the full arg list */
+          alist = argv ; nba = narg ; nta = argc ; inc_narg = 1 ;
+        }
+
+        for( aa=nba ;                             /* loop over args */
+             aa < nta && alist[aa][0] != '-' ;    /* following option */
+             aa++ , narg += inc_narg           ){
+
+          if( THD_is_directory(alist[aa])        &&
+              strncmp(alist[aa],"sub-",4) != 0   &&    /* method 2 */
+              alist[aa][0]                != '-'   ){  /* find all sub- names [15 Apr 2019] */
 
             char *cmd=NULL , *flist=NULL , *qmd=NULL ; NI_str_array *qsar=NULL ; int qq ;
-            cmd = (char *)malloc(sizeof(char)*(128+strlen(argv[narg]))) ;
-            sprintf( cmd, "find %s -maxdepth 1 -type d -name 'sub-*'", argv[narg] ) ;
+            cmd = (char *)malloc(sizeof(char)*(128+strlen(alist[aa]))) ;
+            sprintf( cmd, "find %s -maxdepth 1 -type d -name 'sub-*'", alist[aa] ) ;
             flist = THD_suck_pipe( cmd ) ; free(cmd) ;
             if( flist == NULL || strlen(flist) < 4 ){
-              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",argv[narg]) ;
+              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",alist[aa]) ;
               continue ;
             }
             qsar = NI_decode_string_list( flist , ";" ) ;
             if( qsar == NULL || qsar->num == 0 ){    /* should never happen */
-              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",argv[narg]) ;
-              free(flist) ; continue ;
+              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",alist[aa]) ;
+              free(flist) ;
+              continue ;
             }
             for( qq=0 ; qq < qsar->num ; qq++ ){
               cmd = qsar->str[qq] ; if( cmd == NULL ) continue ;
@@ -1344,17 +1395,17 @@ ENTRY("AFNI_parse_args") ;
               bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
               bysub[num_bysub++] = strdup(qmd) ;
               bysub_dir = (char **)realloc(bysub_dir,sizeof(char *)*(num_bysub_dir+1)) ;
-              bysub_dir[num_bysub_dir++] = strdup(argv[narg]) ;
+              bysub_dir[num_bysub_dir++] = strdup(alist[aa]) ;
             }
 
-          } else {                             /* the old way: a sub-XXX name */
+          } else {                             /* method 1: a sub-XXX name */
 
             bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
-            if( strncmp(argv[narg],"sub-",4) == 0 ){
-              bysub[num_bysub] = strdup(argv[narg]) ;
+            if( strncmp(alist[aa],"sub-",4) == 0 ){
+              bysub[num_bysub] = strdup(alist[aa]) ;
             } else {
-              bysub[num_bysub] = (char *)malloc(sizeof(char)*(strlen(argv[narg])+8)) ;
-              sprintf( bysub[num_bysub] , "sub-%s" , argv[narg] ) ;
+              bysub[num_bysub] = (char *)malloc(sizeof(char)*(strlen(alist[aa])+8)) ;
+              sprintf( bysub[num_bysub] , "sub-%s" , alist[aa] ) ;
             }
             bb = strlen(bysub[num_bysub]) ;
             if( bb > 1 && bysub[num_bysub][bb-1] == '/' )
@@ -1364,6 +1415,7 @@ ENTRY("AFNI_parse_args") ;
 
         } /* end of loop over -bysub args */
 
+        if( alist != argv ) free(alist) ;
         if( narg < argc && strcmp(argv[narg],"-") == 0 ) narg++ ;
         continue ;
       }
@@ -1385,6 +1437,15 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-no1D",5) == 0 ){
          GLOBAL_argopt.read_1D = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -notcsv option (16 Jun 2020) ----- */
+
+      if( strncmp(argv[narg],"-notcsv",7) == 0 ||
+          strncmp(argv[narg],"-notsv" ,6) == 0 ||
+          strncmp(argv[narg],"-nocsv" ,6) == 0   ){
+         GLOBAL_argopt.read_tcsv = 0 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -1527,6 +1588,7 @@ ENTRY("AFNI_parse_args") ;
       if( strcasecmp(argv[narg],"-big")   == 0 ){ narg++; continue; }
       if( strcasecmp(argv[narg],"-plus")  == 0 ){ narg++; continue; }
       if( strcasecmp(argv[narg],"-minus") == 0 ){ narg++; continue; }
+      if( strcasecmp(argv[narg],"-norm")  == 0 ){ narg++; continue; }
 
       /*----- -destruct option -----*/
 
@@ -1880,6 +1942,22 @@ ENTRY("AFNI_parse_args") ;
       /*----- -q option -----*/
 
       if( strcmp(argv[narg],"-q") == 0 ){            /* was handled in main() */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- all data sets 04/06/2020 discoraj -----*/
+      if( strcmp(argv[narg],"-all_dsets") == 0 ){
+
+          // check for env variable that overides -all_dsets
+          if( AFNI_noenv("AFNI_ALL_DATASETS") ){
+              fprintf(stderr,
+                  "\n\n** WARNING: option -all_dsets is ignored silently.") ;
+              fprintf(stderr,"\n            AFNI_ALL_DATASETS = NO.\n") ;
+              GLOBAL_argopt.all_dsets_startup = 0 ;
+           }
+           else { GLOBAL_argopt.all_dsets_startup = 1 ; }
+
+         GLOBAL_argopt.all_dsets_startup = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -2411,6 +2489,7 @@ int main( int argc , char *argv[] )
             if( strcasecmp(ep,"minus") == 0 ) XXX_MINUS_FONTS ;
        else if( strcasecmp(ep,"plus")  == 0 ) XXX_PLUS_FONTS ;
        else if( strcasecmp(ep,"big")   == 0 ) XXX_BIG_FONTS ;
+       else if( strcasecmp(ep,"norm")  == 0 ) XXX_NORM_FONTS ;
      }
    }
 
@@ -2752,7 +2831,7 @@ STATUS("start XtAppMainLoop") ;
 
 #define REFRESH XmUpdateDisplay(MAIN_im3d->vwid->top_shell)
 
-static Boolean MAIN_workprocess( XtPointer fred )
+static RwcBoolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 ;
@@ -2916,7 +2995,7 @@ STATUS("call 13") ;
 
         { int nad = (int)AFNI_numenv("AFNI_AdptMeanWidth1D") ;         /* 30 Sep 2016 */
           char lab[32] ;                                      /* user specified width */
-          if( nad > 9 && nad != 19 && nad < 100 ){
+          if( nad > 3 && nad != 9 && nad != 19 && nad < 100 ){
             if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
             sprintf(lab,"AdptMean%d",nad) ;
             AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
@@ -3001,6 +3080,12 @@ STATUS("initialize plugins") ;
 #endif
 
         TT_setup_popup_func( AFNI_popup_message ) ;  /* 26 May 2006 */
+
+        /* 04/06/2020 discoraj */
+        if( GLOBAL_argopt.all_dsets_startup ){
+            ii = AFNI_find_session( "All_Datasets") ;
+            if( ii >= 0 ) MAIN_im3d->vinfo->sess_num = ii ;
+        }
       }
       break ;
 
@@ -3967,7 +4052,7 @@ ININFO_message("  get new tmask") ;
           int ij = n % (br->n1 * br->n2) ;
           im->flags = (int)tar[ij] ;
 #if 0
-ININFO_message("  set flags = %d",im->flags) ;
+ININFO_message("  set tsim flags=%d at ij=%d",im->flags) ;
 #endif
         }
       }
@@ -6206,7 +6291,7 @@ ENTRY("AFNI_inconstancy_check") ;
 void AFNI_read_inputs( int argc , char *argv[] )
 {
    int id , last_color ;
-   Boolean isfunc ;
+   RwcBoolean isfunc ;
 
 
 ENTRY("AFNI_read_inputs") ;
@@ -6279,7 +6364,7 @@ ENTRY("AFNI_read_inputs") ;
    else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
       char str[256] ;
-      Boolean good ;
+      RwcBoolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
       THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;
       char *dname , *eee ;
@@ -6305,6 +6390,7 @@ ENTRY("AFNI_read_inputs") ;
           GLOBAL_library.session = THD_init_session( eee ); /* try to read datasets */
 
          if( gss != NULL ){                               /* got at least one */
+            REPORT_PROGRESS("[Global]") ;
             gss->parent = NULL ;                          /* parentize them */
             for( qd=0 ; qd < gss->num_dsset ; qd++ )
               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
@@ -6410,6 +6496,7 @@ STATUS("normalizing directory list") ;
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
       num_ss = qlist->num ;
+
       for( id=0 ; id < num_ss ; id++ ){
 
 if(PRINT_TRACING)
@@ -6423,8 +6510,10 @@ if(PRINT_TRACING)
          new_ssar = NULL ; num_ssar = 0 ;
 
          if( THD_is_directory(dname) ){   /* directory? read session(s) */
+           static int first=1 ;
 
            for( qss=0 ; qss < num_bysub ; qss++ ){   /* bysub [01 Feb 2018] */
+             if( first ){ fprintf(stderr,"[bysub/BIDS]"); first = 0; }
              new_ss = THD_init_session_bysub(dname,bysub[qss]) ;
              if( new_ss != NULL ){
                new_ssar = (THD_session **)realloc( new_ssar ,
@@ -6684,21 +6773,28 @@ END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
 STATUS("reading timeseries files") ;
 
       /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
-      /* 10 Feb 2016:broke sometime - allow skipping */
+      /* 10 Feb 2016: broke sometime - allow skipping */
       if(GLOBAL_argopt.read_1D)
          GLOBAL_library.timeseries = THD_get_many_timeseries(qlist);
       else
          GLOBAL_library.timeseries = NULL;
-
-/*      THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;*/
-
       REFRESH ;
-
-      if( GLOBAL_library.timeseries == NULL )
+      if( GLOBAL_library.timeseries == NULL )     /* empty but not NULL */
          INIT_IMARR(GLOBAL_library.timeseries) ;
-
       sprintf( str , "\n Time series   = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
+      REPORT_PROGRESS(str) ;
+
+      /* 16 Jun 2020: same stuff for *.tsv and *.csv files */
+      if(GLOBAL_argopt.read_tcsv)
+         GLOBAL_library.tcsv_data = THD_get_many_tcsv(qlist);
+      else
+         GLOBAL_library.tcsv_data = NULL;
+      REFRESH ;
+      if( GLOBAL_library.tcsv_data == NULL )     /* empty but not NULL */
+         INIT_ELARR(GLOBAL_library.tcsv_data) ;
+      sprintf( str , "\n .[tc]sv data  = %d files read" ,
+               ELARR_COUNT(GLOBAL_library.tcsv_data) ) ;
       REPORT_PROGRESS(str) ;
 
       /*** throw away the list of directories that were scanned ***/
@@ -7084,6 +7180,7 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
       XtUnmanageChild(im3d->vwid->forum_pb) ;
       XtUnmanageChild(im3d->vwid->phelp_pb) ;
+      XtUnmanageChild(im3d->vwid->ytube_pb) ;
 
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
       SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
@@ -7097,6 +7194,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
       XtManageChild(im3d->vwid->forum_pb) ;
       XtManageChild(im3d->vwid->phelp_pb) ;
+      XtManageChild(im3d->vwid->ytube_pb) ;
+
 
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
@@ -7179,9 +7278,9 @@ ENTRY("AFNI_wrap_bbox_CB") ;
 
    bval = MCW_val_bbox( im3d->vwid->imag->wrap_bbox ) ;
 
-   if( (Boolean) bval == im3d->vinfo->xhairs_periodic ) EXRETURN ;
+   if( (RwcBoolean) bval == im3d->vinfo->xhairs_periodic ) EXRETURN ;
 
-   im3d->vinfo->xhairs_periodic = (Boolean) bval ;
+   im3d->vinfo->xhairs_periodic = (RwcBoolean) bval ;
 
    if( w != NULL ){
       drive_MCW_imseq( im3d->s123, isqDR_periodicmont, (XtPointer)ITOP(bval) );
@@ -7207,9 +7306,9 @@ ENTRY("AFNI_xhall_bbox_CB") ;
 
    bval = MCW_val_bbox( im3d->vwid->imag->xhall_bbox ) ;
 
-   if( (Boolean) bval == im3d->vinfo->xhairs_all ) EXRETURN ;
+   if( (RwcBoolean) bval == im3d->vinfo->xhairs_all ) EXRETURN ;
 
-   im3d->vinfo->xhairs_all = (Boolean) bval ;
+   im3d->vinfo->xhairs_all = (RwcBoolean) bval ;
 
    if( im3d->vinfo->crosshair_visible ){
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
@@ -7328,7 +7427,7 @@ ENTRY("AFNI_time_index_step_CB") ;
 /*------------------------------------------------------------------------*/
 
 void AFNI_time_index_EV( Widget w , XtPointer cd ,
-                         XEvent *ev , Boolean *continue_to_dispatch )
+                         XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -7896,7 +7995,7 @@ STATUS("realizing new grapher") ;
   } while(0)
 
 void AFNI_viewbut_EV( Widget w , XtPointer cd ,
-                      XEvent *ev , Boolean *continue_to_dispatch )
+                      XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    XButtonEvent *event=(XButtonEvent *)ev ;
@@ -8489,14 +8588,14 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    newti = im3d->vinfo->anat_index ;
 
-   if( newti >= 0 && !doflash ){
+   if( newti >= 0 && !doflash ){  /* ITOP = Integer to Pointer cast */
      drive_MCW_grapher( im3d->g123, graDR_setindex, (XtPointer)ITOP(newti) );
      drive_MCW_grapher( im3d->g231, graDR_setindex, (XtPointer)ITOP(newti) );
      drive_MCW_grapher( im3d->g312, graDR_setindex, (XtPointer)ITOP(newti) );
    }
 
    if( do_lock && !doflash )        /* 11 Nov 1996 */
-      AFNI_space_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
+     AFNI_space_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
 
    /** Feb 1998: if desired, send coordinates to receiver **/
    /** Mar 1999: do it in an external routine, not here.  **/
@@ -8542,7 +8641,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
    MRI_IMAGE *im = NULL , *fov = NULL ;
    register short *oar ;
    int ii,jj , npix , xx,yy,zz , nx,ny , gap,ovc , icr,jcr,kcr ;
-   Boolean ovgood ;
+   RwcBoolean ovgood ;
    THD_ivec3 ib ;
    THD_3dim_dataset *dset ;
    FD_brick *br_fim ;
@@ -9254,7 +9353,7 @@ void AFNI_marks_action_CB( Widget w ,
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;
    int itog , ipt , setmask , vwarp ;
-   Boolean sens , transformable ;
+   RwcBoolean sens , transformable ;
    THD_marker_set *markers ;
    AFNI_marks_widgets *marks ;
    THD_fvec3 fv ;
@@ -9271,7 +9370,7 @@ ENTRY("AFNI_marks_action_CB") ;
 
    if( w == NULL ){  /* close down */
 
-      Boolean redisplay ;
+      RwcBoolean redisplay ;
 
       MCW_set_bbox( marks->edits_bbox , 0 ) ;
       AFNI_marks_edits_CB( NULL , (XtPointer) im3d , NULL ) ;
@@ -9982,11 +10081,11 @@ ENTRY("AFNI_setup_thrstat") ;
    30 Nov 1997: add bucket stuff
 ------------------------------------------------------------------------*/
 
-void AFNI_setup_viewing( Three_D_View *im3d , Boolean rescaled )
+void AFNI_setup_viewing( Three_D_View *im3d , RwcBoolean rescaled )
 {
    FD_brick **fbr ;
    XmString xstr ;
-   Boolean  same , dont_fix_pts , writer ,
+   RwcBoolean  same , dont_fix_pts , writer ,
             anat_brick_possible , func_brick_possible ;
    int      val , top ;
 
@@ -10171,7 +10270,7 @@ STATUS("forcing function WOD") ;
 
       { int scod=DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
             doit=FUNC_IS_STAT(scod) && DSET_INMEMORY(im3d->fim_now) ;
-        XtSetSensitive( im3d->vwid->func->thr_fdr_pb , (Boolean)doit ) ;
+        XtSetSensitive( im3d->vwid->func->thr_fdr_pb , (RwcBoolean)doit ) ;
       }
 
    } else {   /* 29 Jul 2003: no longer possible */
@@ -10220,15 +10319,15 @@ STATUS(" -- datamode widgets") ;
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
      writer = True ;
    } else {
-     writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
+     writer = (RwcBoolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
 
    if( GLOBAL_argopt.destruct ){  /* not currently implemented */
-     writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
+     writer = (RwcBoolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
    } else {
-     writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
+     writer = (RwcBoolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */
    }
 
    SENSITIZE( im3d->vwid->dmode->write_func_pb , writer ) ;
@@ -10243,8 +10342,8 @@ STATUS(" -- datamode widgets") ;
 
    /*--- function controls (always see them) ---*/
 
-   {  Boolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
-      Boolean have_thr = have_fim ;
+   {  RwcBoolean have_fim = ISVALID_3DIM_DATASET(im3d->fim_now) ;
+      RwcBoolean have_thr = have_fim ;
 
       static int first=1, zfim[MAX_CONTROLLERS] ; int qq ;
       if( first ){
@@ -10474,7 +10573,7 @@ STATUS(" -- managing Go to atlas position button, etc") ;
 
 #if 1
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol ,
-          (Boolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
+          (RwcBoolean)( im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE &&
           TT_retrieve_atlas_dset(Current_Atlas_Default_Name(), 0) != NULL) ) ;
 #else
    XtSetSensitive( im3d->vwid->func->see_ttatlas_bbox->wrowcol , False ) ;
@@ -10748,9 +10847,9 @@ STATUS("opening marks") ;
          } else {
             vwarp = WARPED_VIEW(im3d->vinfo->view_type) ;
             SENSITIZE( marks->edits_bbox->wrowcol ,
-                            (Boolean) ISVALID_VIEW(vwarp) ) ;
+                            (RwcBoolean) ISVALID_VIEW(vwarp) ) ;
             SENSITIZE( marks->tlrc_big_bbox->wrowcol ,
-                       (Boolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
+                       (RwcBoolean) (vwarp==VIEW_TALAIRACH_TYPE) ) ;
             AV_SENSITIZE( marks->disp_scolor_av , True ) ;
             AV_SENSITIZE( marks->disp_size_av   , True ) ;
             AV_SENSITIZE( marks->disp_gap_av    , True ) ;
@@ -10911,7 +11010,7 @@ void AFNI_marks_edits_CB( Widget w ,
    Three_D_View *im3d = (Three_D_View *) client_data ;
    AFNI_marks_widgets *marks ;
    int bval , vwarp ;
-   Boolean transformable ;
+   RwcBoolean transformable ;
 
 ENTRY("AFNI_marks_edits_CB") ;
 
@@ -10992,7 +11091,7 @@ ENTRY("AFNI_see_marks_CB") ;
 --------------------------------------------------------------------------*/
 
 void AFNI_crosshair_EV( Widget w , XtPointer cd ,
-                        XEvent *ev , Boolean *continue_to_dispatch )
+                        XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -11068,7 +11167,7 @@ ENTRY("AFNI_crosshair_EV") ;
 void AFNI_crosshair_relabel( Three_D_View *im3d )
 {
    XmString xstr ;
-   Boolean same ;
+   RwcBoolean same ;
 
 ENTRY("AFNI_crosshair_relabel") ;
 
@@ -12243,7 +12342,7 @@ THD_warp * AFNI_make_warp( Three_D_View *im3d )
    THD_3dim_dataset *anat    = im3d->anat_now ;
    THD_marker_set   *markers = im3d->anat_now->markers ;
    THD_warp         *warp ;
-   Boolean good ;
+   RwcBoolean good ;
 
 ENTRY("AFNI_make_warp") ;
 
@@ -12527,7 +12626,7 @@ DUMP_LMAP(awarp->warp) ;
      error_list = (char*)XtRealloc( error_list , ll ) ;      \
      strcat( error_list , str ) ; num_report++ ; }
 
-Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View *im3d )
+RwcBoolean AFNI_marks_quality_check( RwcBoolean make_report, Three_D_View *im3d )
 {
    THD_3dim_dataset *anat    = im3d->anat_now ;
    THD_marker_set   *markers = im3d->anat_now->markers ;
@@ -12535,7 +12634,7 @@ Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View *im3d )
    char *error_list ;
    int   num_error , num_report ;
    char  msg[128] ;
-   Boolean good ;
+   RwcBoolean good ;
 
 ENTRY("AFNI_marks_quality_check") ;
 
@@ -13944,4 +14043,18 @@ void AFNI_fix_scale_size_timer_CB( XtPointer client_data , XtIntervalId *id )
                            AFNI_fix_scale_size_timer_CB , NULL ) ;
 
    return ;
+}
+
+/* 04/06/2020 discoraj */
+int AFNI_find_session( char *dname ) {
+
+    int ic ;
+    /* find session name in list of sessions (sloppy compare) */
+    for( ic=0 ; ic < GLOBAL_library.sslist->num_sess ; ic++ )
+       if( strstr(GLOBAL_library.sslist->ssar[ic]->sessname,dname) != NULL )
+        break;
+
+    if( ic == GLOBAL_library.sslist->num_sess ) RETURN(-1) ;
+
+    return ic ;
 }

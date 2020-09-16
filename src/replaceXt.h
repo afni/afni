@@ -22,10 +22,20 @@ typedef   void*           RwcPointer ;
 # define  RwcNew(t)       ((t *)calloc(1,sizeof(t)))
 # define  RwcNewString(s) (strcpy(malloc(1+strlen(s)),s))
 
+typedef   unsigned char   RwcBoolean ;  /* 07 Jul 2020 */
+#undef  True
+#undef  False
+#define True  1
+#define False 0
+
+typedef unsigned int RwcCardinal ;      /* 08 Jul 2020 */
+typedef void *       RwcWidget ;        /* 10 Jul 2020 */
+
 #else                        /* this is the crudesse */
 
 # include <X11/Intrinsic.h>
 # define  RwcPointer      XtPointer
+# define  RwcBoolean      Boolean
 # define  RwcFree         XtFree
 # define  RwcCalloc       XtCalloc
 # define  RwcOffsetOf     XtOffsetOf
@@ -33,6 +43,8 @@ typedef   void*           RwcPointer ;
 # define  RwcMalloc       XtMalloc
 # define  RwcNew          XtNew
 # define  RwcNewString    XtNewString
+# define  RwcWidget       Widget
+# define  RwcCardinal     Cardinal
 
 #endif
 
@@ -44,6 +56,5 @@ typedef   void*           RwcPointer ;
 
 /*! Macro to allocate memory and zero-ize it. */
 #define myRwcNew(type) ((type *) RwcCalloc(1,(unsigned) sizeof(type)))
-
 
 #endif

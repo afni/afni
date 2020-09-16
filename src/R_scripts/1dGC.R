@@ -4,8 +4,9 @@ print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Packa
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("Version 1.2.2,  Jan. 19, 2012")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
-print("Website: https://afni.nimh.nih.gov/sscc/gangc/VAR.html")
-print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
+# [PT: Aug 12, 2020] commented out, bc link no longer works
+#print("Website: https://afni.nimh.nih.gov/sscc/gangc/VAR.html")
+print("        SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 first.in.path <- function(file) {
@@ -382,10 +383,11 @@ rma <- function(yi, vi, mods=NULL, method="REML", addint=TRUE, ci=95, digits=4, 
 
 pkgLoad('network')
 
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print("Visit https://afni.nimh.nih.gov/sscc/gangc/VAR.html and makse sure")
-print("you've acquired the data for the analysis in desirable data format.")
-print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+# [PT: Aug 12, 2020] commented out, bc link no longer works
+#print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+#print("Visit https://afni.nimh.nih.gov/sscc/gangc/VAR.html and make sure")
+#print("you've acquired the data for the analysis in desirable data format.")
+#print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 print("################################################################")
 print("Please consider citing the following if this program is useful for you:")

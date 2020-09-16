@@ -17,7 +17,7 @@ GLWLIB = libGLws.a
 
 ## 07 Dec 2005 -- Modify include path (RWCox)
 
-SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr -IGLUT -I../f2c
+SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr -IGLUT -I../f2c -I.. -I../niml -I../coxplot -I../ptaylor
 
 SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
 		 SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\

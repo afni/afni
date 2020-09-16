@@ -120,7 +120,10 @@ typedef for complex is now ignored */
 /*----------------------------------------------------------------------------*/
 
 #ifndef PI
-#  define PI 3.14159265358979323846
+#  define PI  3.1415926535897932
+#endif
+#ifndef HPI
+#  define HPI 1.5707963267948966
 #endif
 
 #ifndef WAY_BIG
@@ -215,7 +218,7 @@ static char * MRI_TYPE_name[9] =
 #define MRI_type_string(iq) \
   ( ((iq) < 0 || (iq) > LAST_MRI_TYPE ) ? "unknown" : MRI_TYPE_name[iq] )
 
-#define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
+#define MRI_TYPE_NAME(imm)  MRI_type_string((imm)->kind)
 
 /*! Max value of a byte. */
 
@@ -637,7 +640,7 @@ static int MRI_mm ;
 
 /*! Order-statistic filter of 3. */
 
-#define OSFSUM(p,q,r) (0.70*(p)+0.15*((q)+(r)))
+#define OSFSUM(p,q,r) (0.60*(p)+0.20*((q)+(r)))
 
 /*! Order-statistic filter of 3. */
 
@@ -1061,6 +1064,7 @@ extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
+extern void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask ) ;
 
 extern MRI_IMAGE * mri_4to_rgba( MRI_IMAGE *rim , MRI_IMAGE *gim , MRI_IMAGE *bim , MRI_IMAGE *aim ) ;
 extern MRI_IMARR * mri_rgba_to_4float( MRI_IMAGE *oldim ) ;
@@ -1342,25 +1346,12 @@ extern void mri_drawcircle( MRI_IMAGE *im ,
 }
 #endif
 
-#include "coxplot.h"
 #undef min
 #undef max
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
-
-extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
-
-extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
-                                int start , int end , int freee    ) ;
-
-extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
-extern void memplot_to_png( char * , MEM_plotdata * ) ;
-extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */
-
-extern void memplot_to_mri_set_dothick( int ) ;         /* 30 Apr 2012 */
-extern void memplot_to_mri_set_dofreee( int ) ;         /* 30 Apr 2012 */
 extern MRI_IMAGE * mri_downsize_by2( MRI_IMAGE * ) ;    /* 27 Apr 2012 */
 
 /************************ Statistics routines *************************/
@@ -1472,6 +1463,20 @@ typedef struct { int nar ; double *ar , dx,x0 ; int kk ; } doublevec ;
         if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_floatvec malloc fails\n"); \
   }} while(0)
 
+#define COPY_doublevec(ev,fv)                          \
+ do{ int n = (fv)->nar ; MAKE_doublevec((ev),n) ;      \
+     (ev)->dx = (fv)->dx ; (ev)->x0 = (fv)->x0 ;       \
+     memcpy( (ev)->ar, (fv)->ar, sizeof(double)*n ) ;  \
+     (ev)->kk = (fv)->kk ;                             \
+ } while(0)
+
+#define RESIZE_doublevec(fv,m)                                      \
+  do{ if( (fv)->nar != (m) ){                                       \
+        (fv)->nar = (m) ;                                           \
+        (fv)->ar  = (double *)realloc((fv)->ar,sizeof(double)*(m)); \
+        if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_doublevec malloc fails\n"); \
+  }} while(0)
+
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
 extern double interp_doublevec( doublevec *dv , double x ) ;
 extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
@@ -1479,6 +1484,7 @@ extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+typedef struct { int nvec ; doublevec *dvar ; } doublevecvec ;
 
 extern MRI_IMAGE *mri_to_pval  ( MRI_IMAGE *im , int , float * ) ;
 extern MRI_IMAGE *mri_to_zscore( MRI_IMAGE *im , int , float * ) ;
@@ -1636,6 +1642,7 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
 
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
+#include "thd_StatsPDL.h"     /* 22 Jul 2020 [PDL] */
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
@@ -1665,7 +1672,8 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
 
 #undef  DUMP_DMAT44
 #define DUMP_DMAT44(SS,AA)                             \
-     printf("# dmat44 %s:\n"                           \
+    fprintf(stderr,                                    \
+            "# dmat44 %s:\n"                           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \
             " %13.6g %13.6g %13.6g %13.6g\n"           \
@@ -1675,6 +1683,14 @@ extern double generic_dmat44_determinant( dmat44 P ) ;
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3],  \
       AA.m[3][0], AA.m[3][1], AA.m[3][2], AA.m[3][3] )
 
+/* load elements of a dmat44 */
+
+#undef  LOAD_DMAT44
+#define LOAD_DMAT44(A,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34,a41,a42,a43,a44) \
+ ( A.m[0][0] = (a11), A.m[0][1] = (a12), A.m[0][2] = (a13), A.m[0][3] = (a14),         \
+   A.m[1][0] = (a21), A.m[1][1] = (a22), A.m[1][2] = (a23), A.m[1][3] = (a24),         \
+   A.m[2][0] = (a31), A.m[2][1] = (a32), A.m[2][2] = (a33), A.m[2][3] = (a34),         \
+   A.m[3][0] = (a41), A.m[3][1] = (a42), A.m[3][2] = (a43), A.m[3][3] = (a44)  )
 
 /*------------------------------------------------------------------------*/
 
@@ -2190,6 +2206,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
 typedef unsigned short RBFKINT ;
+#define RBFKINT_MAX 65535u
 
 typedef struct {
   int nknot ;                    /* number of knots */

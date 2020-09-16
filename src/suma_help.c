@@ -9,8 +9,15 @@ be used from AFNI */
 #include "mrilib.h"
 #include "niml.h"
 #include "../niml/niml_private.h"
-#include "xutil.h"
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
+#ifndef _MCW_XUTIL_HEADER_   /* 10 Jul 2020 */
+extern void MCW_register_hint( RwcWidget , char * ) ;
+extern void MCW_reghint_children( RwcWidget , char * ) ;
+extern void MCW_register_help( RwcWidget , char * ) ;
+extern void MCW_reghelp_children( RwcWidget , char * ) ;
+#endif
+/*------------------------------------------------------------*/
 
 static DList *All_GUI_Help = NULL;
 static char *DocumentedWidgets = NULL; /*!< Widget names for which a Sphinx 
@@ -506,7 +513,7 @@ calls to MCW_register_help and _hint.
    help webpage
 */
 
-SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name, 
+SUMA_Boolean SUMA_Register_Widget_Help(RwcWidget w, int type, char *name, 
                                        char *hint, char *help)
 {
    static char FuncName[]={"SUMA_Register_Widget_Help"};
@@ -540,7 +547,7 @@ SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
    SUMA_RETURN(YUP);
 }  
 
-SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget w, int type, char *name, 
+SUMA_Boolean SUMA_Register_Widget_Children_Help(RwcWidget w, int type, char *name, 
                                                 char *hint, char *help)
 {
    static char FuncName[]={"SUMA_Register_Widget_Children_Help"};
@@ -677,7 +684,7 @@ GUI_WIDGET_HELP *SUMA_Get_GUI_Help( char *gname, TFORM format,
    Return the help struct for a certain widget.
    
 */ 
-GUI_WIDGET_HELP *SUMA_Get_Widget_Help( Widget w )
+GUI_WIDGET_HELP *SUMA_Get_Widget_Help( RwcWidget w )
 {
    static char FuncName[]={"SUMA_Get_Widget_Help"};
    char *s = NULL;
@@ -747,7 +754,7 @@ void SUMA_Show_All_GUI_Help(DList *dl, FILE *fout, int detail, int format)
 }
 
 int SUMA_Register_GUI_Help(char *which, char *hint, char *help, 
-                           Widget widget, int type)
+                           RwcWidget widget, int type)
 {
    static char FuncName[]={"SUMA_Register_GUI_Help"};
    GUI_WIDGET_HELP *gwh=NULL, *gwhc=NULL;

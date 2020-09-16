@@ -3,8 +3,8 @@
 
 #include "replaceXt.h"  /* 09 Nov 2018 */
 
+#include "suma_objs.h"
 #include "matrix.h"
-#include "ptaylor/TrackIO.h"
 #include "suma_afni_surface.h"
 
 #define MAX_ERRLOG_MSG 1000
@@ -31,6 +31,9 @@
    #define NIGRP_CAST NI_group *
 #endif
 
+
+#define SUMA_free(a) mcw_free(a,__FILE__,__LINE__)
+#define SUMA_ifree(p)  { if ((p)) {SUMA_free((p));} (p)=NULL; }
 
 #ifdef USE_TRACING
 #define SUMA_DUMP_TRACE( ... ) { /* taken from dbtrace.h */\
@@ -1722,10 +1725,6 @@ DListElmt * SUMA_FindDsetEl_ns (char *idcode, DList *DsetList);
 SUMA_DSET * SUMA_FindDset_eng (char *idcode_str, DList *DsetList, 
                                  DListElmt **elp, char *itype);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
-char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net, 
-                                int show_maxu, int show_maxub);
-char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu); 
-char *SUMA_Taylor_Tract_Info(TAYLOR_TRACT *tt, int show_maxu);
 void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out);
 char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, 
                        int mxshow, char *title);

@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-#
+
+# python3 status: compatible
+
 # Version 1.0, Sept, 2014.
 # written:  PA Taylor (UCT, AIMS).
 # Updated, ver 1.2: Sept 2014
+# [PT: Aug 31, 2020] updated to Python 3 with "2to3 -w ..", 
+#                    plus a bit extra
 #
 # Select a single row out of a connectivity matrix file (*.grid
 # or *.netcc) for viewing and/or further analysis.
@@ -91,7 +95,7 @@ def main(argv):
 
     # allow status 0 on -help   24 Sep 2018 [rickr]
     if "-help" in argv:
-        print help_line
+        print(help_line)
         sys.exit()
 
     try:
@@ -101,11 +105,11 @@ def main(argv):
                                                      "list_match=",
                                                      "roi="])
     except getopt.GetoptError:
-        print help_line
+        print(help_line)
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print help_line
+            print(help_line)
             sys.exit()
         elif opt in ("-m", "--matr_in"):
             file_matr_glob = arg
@@ -117,13 +121,13 @@ def main(argv):
             SWITCH_ExternLabsOK = 0
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-        print "** ERROR: missing a necessary matrix file input."
-        print "\t Need to use either '-m' or '-l'."
+        print("** ERROR: missing a necessary matrix file input.")
+        print("\t Need to use either '-m' or '-l'.")
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
-        print "*+ Warning: both a path for globbing *and* a listfile have",
-        print " been input for the matrix file."
-        print "\tThe glob one after '-m' will be ignored."
+        print("*+ Warning: both a path for globbing *and* a listfile have", end=' ')
+        print(" been input for the matrix file.")
+        print("\tThe glob one after '-m' will be ignored.")
 
     return file_matr_glob, file_listmatch, ele, SWITCH_ExternLabsOK
 
@@ -133,7 +137,7 @@ def main(argv):
 
 if __name__=="__main__":
     set_printoptions(linewidth=200)
-    print "\n"
+    print("\n")
     file_matr_glob, file_listmatch, ele,  ExternLabsOK \
      = main(sys.argv[1:])
 
@@ -143,11 +147,11 @@ if __name__=="__main__":
     elif file_matr_glob:
         list_all = glob(file_matr_glob)
     else:
-        print "** Error! Cannot read in matrix files."
+        print("** Error! Cannot read in matrix files.")
         sys.exit(4)
 
     if not(list_all):
-        print "** Error! Could not find/read in any matrix files."
+        print("** Error! Could not find/read in any matrix files.")
         sys.exit(4)
 
     # this one gets the matched pair name.
@@ -171,7 +175,7 @@ if __name__=="__main__":
 
     N = len(list_all)
     if not( N ==len(list_all_out)) :
-        print '** Error: unmatched input and output names'
+        print('** Error: unmatched input and output names')
         sys.exit(6)
 
     for i in range(N):
@@ -180,10 +184,10 @@ if __name__=="__main__":
                                        ele,
                                        ExternLabsOK)
 
-        print "++ Wrote:  %s" % list_all_out[i]
+        print("++ Wrote:  %s" % list_all_out[i])
 
     if 1:
-        print "++ DONE.\n\n"
+        print("++ DONE.\n\n")
 
 
 

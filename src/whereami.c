@@ -4,12 +4,11 @@
 #define SUMA_noFunc
 
 #include "mrilib.h"
-#include "afni.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"
-#include "suma_suma.h"
-
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 /**Original code by Mike Angstadt *******************************************
   Main function added by Mike Angstadt on 1/12/05

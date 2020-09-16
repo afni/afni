@@ -4,7 +4,8 @@
  *----------------------------------------------------------------------
 */
 #include "mrilib.h"
-#include "suma_suma.h"
+#include "suma_objs.h" /* 21 Apr 2020 */
+/*------------------------------------------------------------*/
 
 /* globals to control I/O of niml data      3 Aug 2006 [rickr] */
 typedef struct {
@@ -476,7 +477,7 @@ ENTRY("write_niml_stream");
 /*! Write out a NIML dataset (3D, NIML, NI_SURF_DSET).
     Return True or False, based on success.
 */
-Boolean THD_write_niml( THD_3dim_dataset * dset, int write_data )
+RwcBoolean THD_write_niml( THD_3dim_dataset * dset, int write_data )
 {
     NI_group * ngr;
     char     * prefix, * outfile;
@@ -549,7 +550,7 @@ ENTRY("THD_write_niml");
                  (which will generally require adding some code...)
     Return True or False, based on success.     [10 Oct 2019 rickr]
 */
-Boolean THD_write_niml_to_stream( THD_3dim_dataset * dset, char * stream,
+RwcBoolean THD_write_niml_to_stream( THD_3dim_dataset * dset, char * stream,
                                   int by_smode )
 {
     NI_group * ngr;

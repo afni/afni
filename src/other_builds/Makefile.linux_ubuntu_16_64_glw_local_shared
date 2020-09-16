@@ -1,0 +1,69 @@
+SYSTEM_NAME = linux_ubuntu_16_64_glw_local_shared
+SYSTEM_TYPE = Linux
+MRI_SHARED = $(SYSTEM_TYPE)
+# CPROF = -pg -g
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat  #/usr/lib64/libexpat.a
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY -D_GNU_SOURCE -DREPLACE_XT
+CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCOLD  = $(CC)
+OMPFLAG = -fopenmp -DUSE_OMP  # for OpenMP
+CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/X11R6/include $(I_USE_ACML)
+
+LFLAGS = -L. -L/usr/X11R6/lib64 $(L_USE_ACML) -Wl,-rpath='$$ORIGIN'
+CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -fPIC
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64 -Wl,-rpath='$$ORIGIN'
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /bin/gzip
+LD     = /usr/bin/gcc $(CPROF)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./$(SYSTEM_NAME)
+LIBDIR = $(INSTALLDIR)
+
+INSTALL_PREREQ = suma_gts
+GSLPROGS = balloon
+EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
+
+XLIBS = -lXm -lXt -lXpm -lXext -lXmu  -lX11 
+LLIBS  = -lmri -lf2c $(LDPYTHON) $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS_X11  = -lmri -lf2c $(XLIBS) $(LDPYTHON) $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+SUMA_GLIB_VER = -2.0
+GLw_IPATH  = -IGLw_local
+GLw_LIB = libGLws.a
+SUMA_LINK_LIB = $(GLw_LIB) -lGLU -lGL $(LLIBS_X11)
+SUMA_LINK_PATH = -L.. $(LFLAGS)
+SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src           \
+    -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib/include \
+    -I/usr/lib64/glib-2.0/include -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+SUMA_MDEFS = 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
+

@@ -383,7 +383,7 @@
  atlas_name="MNI_Glasser_HCP_v1.0"
  dset_name="MNI_Glasser_HCP_v1.0.nii.gz"
  template_space="MNI"
- description="Glasser HCP atlas 2016 surface-based parcellation"
+ description="Glasser HCP 2016 surface-based parcellation"
  comment="Glasser, et al,A multi-modal parcellation of human cerebral cortex,
     Nature,2016. 
     Atlas was constructed from surface analysis in Contee grayordinates.
@@ -445,11 +445,14 @@
    AFNI adaptation by
     Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
+
 <ATLAS
   atlas_name="CA_MPM_22_TT"
   dset_name="TT_caez_mpm_22+tlrc"
   template_space="TT_N27"
-  description="Eickhoff-Zilles MPM atlas - Talairach space"
+  description="Eickhoff-Zilles MPM atlas 2.2 - Talairach space"
+  comment="Eickhoff-Zilles maximum probability map- 2.2 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 #Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
@@ -496,31 +499,34 @@
    dset_name="TT_caez_mpm_18+tlrc"
    template_space="TT_N27"
    description="Cytoarch. Max. Prob. Maps"
-   comment="Eickhoff-Zilles maximum probability map on TT_N27 from post-mortem analysis"
+   comment="Eickhoff-Zilles maximum probability map-1.8 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_PM"   
    dset_name="TT_caez_pmaps_18+tlrc"
    template_space="TT_N27"
-   description="Cytoarch. Probabilistic Maps"
-   comment="Eickhoff-Zilles probablity maps on TT_N27 from post-mortem analysis"
+   description="Cytoarch. Probabilistic Maps 1.8"
+   comment="Eickhoff-Zilles probablity maps 1.8 version on TT_N27
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_GW"   
    dset_name="TT_caez_gw_18+tlrc"
    template_space="TT_N27"
-   description="Cytoarch. Prob. Maps for gray/white matter"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+   description="Cytoarch. Prob. Maps for gray/white matter 1.8"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 1.8 version
+    from post-mortem analysis"
 ></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_LR"
    dset_name="TT_caez_lr_18+tlrc"
    template_space="TT_N27"
-   description="Left/Right (N27)"
-   comment="Simple left, right hemisphere segmentation"
+   description="Left/Right (N27) 1.8"
+   comment="Simple left, right hemisphere segmentation 1.8 version"
 ></ATLAS>
 
 #Cytoarchitectonic atlases shifted to MNI space
@@ -537,7 +543,8 @@
    dset_name="MNI_caez_mpm_18+tlrc"
    template_space="MNI"
    description="Cytoarch. Max. Prob. Maps (MNI)"
-   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis (MNI space)"
+   comment="Eickhoff-Zilles maximum probability map on MNI-152 
+     from post-mortem analysis (MNI space)"
 ></ATLAS>
 
 <ATLAS
@@ -617,7 +624,7 @@
    atlas_name="FS_Desai_PM"
    dset_name="TT_desai_fspmaps+tlrc"
    template_space="TT_N27"
-   description="Contains 40 subcortical areas"
+   description="40 subcortical areas"
    comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
 ></ATLAS>
 
@@ -625,7 +632,7 @@
    atlas_name="DD_Desai_MPM"
    dset_name="TT_desai_dd_mpm+tlrc"
    template_space="TT_N27"
-   description="Contains the maximum probability maps of Desai DD and FS maps"
+   description="Maximum probability maps of Desai DD and FS maps"
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
@@ -633,7 +640,7 @@
    atlas_name="DKD_Desai_MPM"
    dset_name="TT_desai_dk_mpm+tlrc"
    template_space="TT_N27"
-   description="Contains the maximum probability maps of Desai DKD and FS maps"
+   description="Maximum probability maps of Desai DKD and FS maps"
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
@@ -663,8 +670,9 @@
  dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas. 
-     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June).
+     The Haskins Pediatric Brain Atlas. 
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 #*******Template datasets ************************
@@ -776,17 +784,17 @@
 <TEMPLATE
    template_name="HaskinsPeds_NL_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas. Poster session presented at the 
-     Organization for Human Brain Mapping, Honolulu, HI"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas. 
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="HaskinsPeds_aff_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas Poster session presented at the 
-     Organization for Human Brain Mapping, Honolulu, HI"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas
+     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 #**********************************************

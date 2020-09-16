@@ -1094,36 +1094,50 @@ ENTRY("THD_mask_erode") ;
     voxels.
 
     Pass nerode to match ndil from THD_mask_dilate.
-
     For each masked voxel, count unmasked neighbors.  If there are
     at least nerode, then erode the voxel.
+
+    Pass NN to specify NN=1,2,3, again to match THD_mask_dilate.
+    The nerode count will be restricted by the given NN level.
+                                                         19 May 2020 [rickr]
 
     This allows for symmetric dilate/erode operations.
     It is symmetric with THD_mask_dilate.                 7 May 2012 [rickr]
 ----------------------------------------------------------------------------*/
 
-void THD_mask_erode_sym( int nx, int ny, int nz, byte *mmm, int nerode )
+void THD_mask_erode_sym( int nx, int ny, int nz, byte *mmm, int nerode, 
+                         int NN )
 {
-   int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   /* use ix as well, for consistency at a tiny cost of speed */
+   int ii,jj,kk , ix,jy,kz, im,jm,km , ip,jp,kp , num ;
    int nxy=nx*ny , nxyz=nxy*nz, nmask ;
+   int nmax;   /* depends on NN */
    byte *nnn ;
 
 ENTRY("THD_mask_erode_sym") ;
 
    if( mmm == NULL ) EXRETURN ;
-        if( nerode < 1  ) nerode =  1 ;
-   else if( nerode > 17 ) nerode = 17 ;
 
-   /* erode if at least nerode empty neighbors, or at most 18-nerode masked */
-   nmask = 18-nerode;
+   /* set nmax to be the full neighbor count at the given NN level */
+   if( NN >= 3 )      nmax = 26;    /* 3x3x3 box minus center      */
+   else if( NN == 2 ) nmax = 18;    /* minus the 8 corners         */
+   else               nmax = 6;     /* count only face neighbors   */
+
+   /* for clarity, first restrict zero neighbor count to what is appropriate */
+   if     ( nerode < 1    ) nerode =  1 ;
+   else if( nerode > nmax ) nerode = nmax ;
+
+   /* then switch logic from (>= nerode zero neighbors)
+    *                     to (<= (nmax-nerode) set ones) */
+   nmask = nmax-nerode;
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
-   if( nnn == NULL ) EXRETURN ;               /* WTF? */
+   if( ! nnn ) EXRETURN ;                     /* death to Ming! */
 
-   /* mark for erosion interior voxels that do not have sufficient nonzero  */
-   /* nbhrs (the default case would erode if even 1 neighbor is not masked, */
-   /* i.e., if <= 17 neighbors are masked)                                  */
+   /* mark for erosion voxels that do not have sufficient nonzero nhbrs */
    STATUS("marking to erode") ;
+
+   /* check for edge voxels first, use planar duplication */
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
     if( kk == 0    ) km = kz ;
@@ -1135,28 +1149,40 @@ ENTRY("THD_mask_erode_sym") ;
      if( jj == ny-1 ) jp = jy ;
 
      for( ii=0 ; ii < nx ; ii++ ){
-       if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
-         im = ii-1 ; ip = ii+1 ;
-         if( ii == 0    ) im = 0 ;
-         if( ii == nx-1 ) ip = ii ;
-         /* NN1 count of 18 neighbors */
-              /* in plane below (km), include shared face and 4 shared edges,
-               * which means im and ip @ jy, plus jm,jy,jp @ ii */
-         num =  mmm[im+jy+km]
-              + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
-              + mmm[ip+jy+km]
-              /* in main plane (kz), include all 8 neighbors in 3x3 grid, which
-               * means all i and j pairs (9), except for ii,jy (center) */
-              + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
-              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
-              + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
-              /* plane above (kp), should match km, in section above */
-              + mmm[im+jy+kp]
-              + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
-              + mmm[ip+jy+kp] ;
-         if( num <= nmask ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
-       }
-   } } }
+       /* if this voxel is not set, skip it */
+       if( ! mmm[ii+jy+kz] ) continue;
+
+       ix = ii ; im = ii-1 ; ip = ii+1 ;
+       if( ii == 0    ) im = 0 ;
+       if( ii == nx-1 ) ip = ii ;
+
+       /* now count nonzero nbhrs, one NN level at a time */
+
+       /* NN1, where exactly one axis is not at the center */
+       /*      (and that can either plus or minus)         */
+       /*   mod:  i                  j                  k  */
+       num =  mmm[im+jy+kz] + mmm[ix+jm+kz] + mmm[ix+jy+km]
+            + mmm[ip+jy+kz] + mmm[ix+jp+kz] + mmm[ix+jy+kp];
+           
+       /* NN2, where exactly two axes are not at the center  */
+       if( NN >= 2 )
+          /*   fix:  i                  j                  k */
+          num += mmm[ix+jm+km] + mmm[im+jy+km] + mmm[im+jm+kz]
+               + mmm[ix+jm+kp] + mmm[im+jy+kp] + mmm[im+jp+kz]
+               + mmm[ix+jp+km] + mmm[ip+jy+km] + mmm[ip+jm+kz]
+               + mmm[ix+jp+kp] + mmm[ip+jy+kp] + mmm[ip+jp+kz];
+
+       /* NN3, where all three axes are not at the center */
+       if( NN >= 3 )
+          /*         im column       ip column */
+          num += mmm[im+jm+km] + mmm[ip+jm+km]
+               + mmm[im+jm+kp] + mmm[ip+jm+kp]
+               + mmm[im+jp+km] + mmm[ip+jp+km]
+               + mmm[im+jp+kp] + mmm[ip+jp+kp];
+
+       /* if not enough set neighbors, mark to erode */
+       if( num <= nmask ) nnn[ii+jy+kz] = 1 ;
+   } } } /* for kk,jj,ii loops */
 
    STATUS("eroding") ;
    for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
@@ -1774,6 +1800,90 @@ ENTRY("THD_mask_clust2D") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* 2D version of peeling/restoring code [14 Sep 2020 - birthday of SL Cox!] */
+/*--------------------------------------------------------------------------*/
+
+void THD_mask_erodemany2D( int nx, int ny, byte *mmm, int npeel )
+{
+   int ii,jj , jy, im,jm , ip,jp , num , pp ;
+   int nxy=nx*ny ;
+   byte *nnn,*qqq , bpp , bth ;
+   const int realpeelthr = 6 ;
+
+ENTRY("THD_mask_erodemany2D") ;
+
+   if( mmm == NULL || npeel < 1 || nxy < 16 ) EXRETURN ;
+
+   nnn = (byte *)calloc(sizeof(byte),nxy) ;   /* mask of eroded voxels */
+   if( nnn == NULL ) EXRETURN ;               /* WTF? */
+   qqq = (byte *)malloc(sizeof(byte)*nxy) ;   /* another copy */
+   if( qqq == NULL ){ free(nnn); EXRETURN; }  /* WTF-squared? */
+
+   /* mark interior voxels that don't have 'peelthr' out of 8 nonzero nbhrs */
+
+   STATUS("peelings, nothing more than peelings") ;
+   for( pp=1 ; pp <= npeel ; pp++ ){   /* pp = peel layer index */
+
+     bpp = (byte)pp ;
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+       if( jj == 0    ) jm = jy ;
+       if( jj == ny-1 ) jp = jy ;
+
+       for( ii=0 ; ii < nx ; ii++ ){
+         if( mmm[ii+jy] ){           /* count nonzero nbhrs */
+           im = ii-1 ; ip = ii+1 ;
+           if( ii == 0    ) im = 0 ;
+           if( ii == nx-1 ) ip = ii ;
+           num =   mmm[im+jm] + mmm[ii+jm] + mmm[ip+jm]
+                 + mmm[im+jy]              + mmm[ip+jy]
+                 + mmm[im+jp] + mmm[ii+jp] + mmm[ip+jp] ;
+           if( num < realpeelthr ) nnn[ii+jy] = bpp ;  /* mark to erode */
+         }
+     }} /* end of ii,jj loops */
+
+     for( ii=0 ; ii < nxy ; ii++ )                    /* actually erode */
+       if( nnn[ii] ) mmm[ii] = 0 ;
+
+   } /* end of loop over peeling layers */
+
+   /* re-dilate eroded voxels that are next to survivors */
+
+   STATUS("unpeelings") ;
+   for( pp=npeel ; pp >= 1 ; pp-- ){  /* loop from innermost peel to outer */
+
+     bpp = (byte)pp ; memset(qqq,0,sizeof(byte)*nxy) ;
+     bth = (pp==npeel) ? 0 : 1 ; /* threshold */
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+       if( jj == 0    ) jm = jy ;
+       if( jj == ny-1 ) jp = jy ;
+
+       for( ii=0 ; ii < nx ; ii++ ){
+         if( nnn[ii+jy] >= bpp && !mmm[ii+jy] ){  /* was eroded before */
+           im = ii-1 ; ip = ii+1 ;
+           if( ii == 0    ) im = 0 ;
+           if( ii == nx-1 ) ip = ii ;
+           qqq[ii+jy] =                   /* count any surviving nbhrs */
+                  mmm[im+jm] + mmm[ii+jm] + mmm[ip+jm]
+                + mmm[im+jy]              + mmm[ip+jy]
+                + mmm[im+jp] + mmm[ii+jp] + mmm[ip+jp] ;
+         }
+     }} /* end of ii,jj loops */
+
+     /* actually do the dilation */
+
+     for( ii=0 ; ii < nxy ; ii++ )
+       if( qqq[ii] > bth ) mmm[ii] = 1 ;
+
+   } /* end of redilate loop */
+
+   free(qqq); free(nnn); EXRETURN;
+}
+
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask from an image (2D).
 -----------------------------------------------------------------------*/
@@ -1803,6 +1913,8 @@ ENTRY("mri_automask_image2D") ;
    mri_free(medim) ;
    if( nmm == 0 ){ free(mmm) ; RETURN(NULL) ; }  /* should not happen */
    if( nmm <= 2 || nmm == nvox ) RETURN(mmm) ;   /* very unlikely */
+
+   THD_mask_erodemany2D( im->nx,im->ny, mmm, 3 ) ;         /* 14 Sep 2020 */
 
    THD_mask_clust2D( im->nx,im->ny,0.5f, mmm ) ;
 

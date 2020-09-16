@@ -366,7 +366,7 @@ ENTRY("AFNI_cluster_dispize") ;
 /*---------------------------------------------------------------------------*/
 
 void AFNI_cluster_EV( Widget w , XtPointer cd ,
-                      XEvent *ev , Boolean *continue_to_dispatch )
+                      XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;
@@ -558,7 +558,7 @@ ENTRY("AFNI_clus_linknum_CB") ;
 /* Right-click handler for linkRbrain button - asks for number [09 Sep 2015] */
 
 void AFNI_clus_linknum_EV( Widget w , XtPointer client_data ,
-                           XEvent *ev , Boolean *continue_to_dispatch )
+                           XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)client_data ;
    AFNI_clu_widgets *cwid ;
@@ -1554,17 +1554,16 @@ ENTRY("AFNI_clus_makedetails") ;
    } else {
      cwid = im3d->vwid->func->cwid ;
      icent_flag = 0 ;
-     if( cwid ) {
-        if(cwid->coord_mode == ICENT_MODE)
-			icent_flag = 1;
-     }			
+     if( cwid != NULL ){
+       if( cwid->coord_mode == ICENT_MODE ) icent_flag = 1;
+     }
 
      im3d->vwid->func->clu_num = nclu = clar->num_clu ;
      im3d->vwid->func->clu_det = (mri_cluster_detail *)
                                  realloc( (void *)im3d->vwid->func->clu_det ,
                                           sizeof(mri_cluster_detail)*nclu    );
      for( ii=0 ; ii < nclu ; ii++ )
-       im3d->vwid->func->clu_det[ii] = 
+       im3d->vwid->func->clu_det[ii] =
               mri_clusterize_detailize(clar->clar[ii], icent_flag);
    }
 
@@ -1754,7 +1753,7 @@ ENTRY("AFNI_clus_update_widgets") ;
    }
 
    if( do_wami ) {
-       Boolean show_linkr;
+       RwcBoolean show_linkr;
        SENSITIZE( cwid->whermask_pb ,                /* 04 Aug 2010 */
                             (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
        show_linkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) &&
@@ -3146,7 +3145,7 @@ ENTRY("AFNI_clus_3dclust") ;
 -------------------------------------------------------------------*/
 
 void AFNI_thr_EV( Widget w , XtPointer cd ,
-                  XEvent *ev , Boolean *continue_to_dispatch )
+                  XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 

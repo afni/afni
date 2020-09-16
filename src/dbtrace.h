@@ -25,7 +25,7 @@
 
 /*---------------------------------------------------------------*/
 
-#ifdef DONT_USE_MCW_MALLOC
+#ifndef ALLOW_MCW_MALLOC
 
 # define MCHECK /* nada */
 # define MPROBE /* nada */

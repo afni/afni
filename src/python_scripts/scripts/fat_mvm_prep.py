@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-#
+
+# python3 status: compatible
+
 # Version 1.0, July, 2014.
 # written:  PA Taylor (UCT, AIMS).
 # Updated, ver 1.2: Sept 2014
@@ -28,6 +30,8 @@
 #      --> will result in zeros model, hopefully user is choosing 
 #      those to be meaningful.
 #
+# [PT: Aug 31, 2020] updated to Python 3 with "2to3 -w ..",
+#                    plus a bit extra
 
 
 from afnipy import lib_fat_funcs as GR
@@ -185,7 +189,7 @@ def main(argv):
 
     # allow status 0 on -help   24 Sep 2018 [rickr]
     if "-help" in argv:
-        print help_line
+        print(help_line)
         sys.exit()
 
     try:
@@ -198,14 +202,14 @@ def main(argv):
                                                        "prefix=",
                                                        "list_match="])
     except getopt.GetoptError:
-        print "** Error reading options. Try looking at the helpfile:"
-        print "\t $  fat_mvm_prep.py -h\n"
+        print("** Error reading options. Try looking at the helpfile:")
+        print("\t $  fat_mvm_prep.py -h\n")
         sys.exit(2)
         #print help_line
         #sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print help_line
+            print(help_line)
             sys.exit()
         elif opt in ("-c", "--csv_in"):
             file_csv = arg
@@ -220,21 +224,21 @@ def main(argv):
         elif opt in ("-E", "--ExternLabsNo"):
             SWITCH_ExternLabsOK = 0
         elif opt in ("-u", "--unionize_rois"):
-            print "++ 'Unionizing': will make list of ROIs as the *union*"
-            print "   of nonzero elements across the entered group."
+            print("++ 'Unionizing': will make list of ROIs as the *union*")
+            print("   of nonzero elements across the entered group.")
             SWITCH_union = 1
 
     if ( file_csv == '' ) or ( file_prefix == '' ) :
-        print "** ERROR: missing a necessary input."
+        print("** ERROR: missing a necessary input.")
         sys.exit()
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-        print "** ERROR: missing a necessary matrix file input."
-        print "\t Need to use either '-m' or '-l'."
+        print("** ERROR: missing a necessary matrix file input.")
+        print("\t Need to use either '-m' or '-l'.")
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
-        print "*+ Warning: both a path for globbing *and* a listfile have",
-        print " been input for the matrix file."
-        print "\tThe glob one after '-m' will be ignored."
+        print("*+ Warning: both a path for globbing *and* a listfile have "
+              " been input for the matrix file.")
+        print("\tThe glob one after '-m' will be ignored.")
 
     return file_csv, file_matr_glob, file_prefix, file_listmatch, \
      SWITCH_NAwarn, SWITCH_ExternLabsOK, SWITCH_union
@@ -244,12 +248,12 @@ def main(argv):
 
 if __name__=="__main__":
     set_printoptions(linewidth=200)
-    print "\n"
+    print("\n")
     file_csv, file_matr_glob, file_prefix, file_listmatch, NA_WARN, \
      ExternLabsOK, opt_union = main(sys.argv[1:])
 
     if not(NA_WARN):
-        print "++ Won't warn about NAs in the data."
+        print("++ Won't warn about NAs in the data.")
 
     arg_list = sys.argv
     str_sep = ' '
@@ -266,15 +270,15 @@ if __name__=="__main__":
                                                        0)
 
     if len(grid_subj)==0:
-        print "** ERROR: Ended up with no subjects when reading '%s'." \
-         %  file_matr_glob
+        print("** ERROR: Ended up with no subjects when reading '%s'." \
+         %  file_matr_glob)
         sys.exit(1)
 
     ## check about grid or not...
     MTYPE = GR.Check_Matr_type(grid_subj)
     
     if not(MTYPE=='GRID' or MTYPE=='NETCC'):
-        print "** ERROR: Badness in matrix file reading."
+        print("** ERROR: Badness in matrix file reading.")
         sys.exit(2)
 
     if grid_subj:
@@ -300,8 +304,8 @@ if __name__=="__main__":
 
 
     if not(csv_subj):
-        print "\n**Error!",
-        print "Must not have found any matches between CSV data and matrices!\n"
+        print("\n**Error!  Must not have found any matches between CSV "
+              "data and matrices!\n")
         sys.exit(26)
 
 
@@ -327,12 +331,12 @@ if __name__=="__main__":
                                   grid_tabled)
 
     if temp2:
-        print "\n++ Success!"
-        print "++ The logfile of CSV and matrix matches is:  %s%s" % \
-         (file_prefix, GR.MVM_matchlog_postfix)
-        print "++ The data table for reading into 3dMVM is:  %s%s" % \
-         (file_prefix, GR.MVM_file_postfix)
-        print "++ DONE.\n\n"
+        print("\n++ Success!")
+        print("++ The logfile of CSV and matrix matches is:  %s%s" % \
+         (file_prefix, GR.MVM_matchlog_postfix))
+        print("++ The data table for reading into 3dMVM is:  %s%s" % \
+         (file_prefix, GR.MVM_file_postfix))
+        print("++ DONE.\n\n")
     else:
-        print "\n** Some error in file writing of table file."
-        print "\tSo close, yet so far."
+        print("\n** Some error in file writing of table file.")
+        print("\tSo close, yet so far.")

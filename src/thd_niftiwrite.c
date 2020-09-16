@@ -119,6 +119,8 @@ ENTRY("THD_write_nifti") ;
   /* if we made a float copy, nuke it */
   if( dset != din ) THD_delete_3dim_dataset(dset, True) ;
 
+  free(fname); /* free copied name */
+
   RETURN(1) ;
 }
 
@@ -195,7 +197,9 @@ ENTRY("populate_nifti_image") ;
 
   if (dset->dblk->nvals > 1) {
     STATUS("4D dataset") ;
-    nim->ndim = (dset->taxis != NULL) ? 4 : 5 ;  /* RWC: bucket stored as 5th dimen */
+    /* RWC: bucket stored as 5th dimen (but require ntt > 1) */
+    if (dset->taxis && dset->taxis->ntt > 1) nim->ndim = 4;
+    else                                     nim->ndim = 5;
 
     /*-- check sub-bricks for uniformity in type and scale --*/
 
@@ -440,11 +444,12 @@ ENTRY("populate_nifti_image") ;
   nim->ny = axnum[1] ;
   nim->nz = axnum[2] ;
 
-  if (dset->taxis == NULL) {
-    nim->nu = DSET_NVALS(dset) ;   /* RWC: bucket is 5th dimension */
-  } else {
+  /* taxis might be set via EDIT_empty_copy, even if dset is not time series */
+  /*                                                      [1 Jun 2020 rickr] */
+  if (dset->taxis != NULL && (dset->taxis->ntt > 1 || DSET_NVALS(dset) == 1))
     nim->nt = DSET_NUM_TIMES(dset) ;  /* time is 4th dimension */
-  }
+  else
+    nim->nu = DSET_NVALS(dset) ;   /* RWC: bucket is 5th dimension */
 
   if ( nim->nt > 1){
     float TR = dset->taxis->ttdel ;

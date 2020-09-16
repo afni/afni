@@ -158,15 +158,15 @@ class AlignTest(object):
       self.LV.short_names = short_names # if top_dir is used, they are under it
 
       if self.uvars.verb > 2:
-         print '-- set_dirs: top_dir    = %s\n' \
+         print('-- set_dirs: top_dir    = %s\n' \
                '             short_anat = %s\n' \
                '             short_epi  = %s\n' \
-               % (self.LV.top_dir, short_names[0][0], short_names[0][1])
+               % (self.LV.top_dir, short_names[0][0], short_names[0][1]))
 
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
          self.LV.top_dir = ''
-         if self.uvars.verb > 2: print '   (top_dir not worth using...)'
+         if self.uvars.verb > 2: print('   (top_dir not worth using...)')
 
    def create_script(self):
       """attempt to generate an alignment script
@@ -407,7 +407,7 @@ class AlignTest(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
 
       if os.path.isdir(self.uvars.results_dir):
-         print '-- nuking old results: %s' % self.uvars.results_dir
+         print('-- nuking old results: %s' % self.uvars.results_dir)
          os.system('rm -fr %s' % self.uvars.results_dir)
 
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
@@ -423,9 +423,9 @@ class AlignTest(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.uvars.verb > 1: print '++ exec: %s' % cmd
+         if self.uvars.verb > 1: print('++ exec: %s' % cmd)
          os.system(cmd)
-      elif self.uvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.uvars.verb > 1: print("** no proc '%s' to copy" % pfile)
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -436,7 +436,7 @@ class AlignTest(object):
       """
 
       if not self.align_script:
-         print '** no alignment script to write out'
+         print('** no alignment script to write out')
          return 1
       if fname: name = fname
       else:
@@ -447,7 +447,7 @@ class AlignTest(object):
       self.rvars.file_proc = name # store which file we have written to
       self.rvars.output_proc = 'output.%s' % name # file for command output
 
-      if self.uvars.verb > 0: print '++ writing script to %s' % name
+      if self.uvars.verb > 0: print('++ writing script to %s' % name)
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)

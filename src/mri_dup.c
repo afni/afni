@@ -233,6 +233,10 @@ ENTRY("mri_dup2D") ;
 #define S_P3(x) (x*(x*x-1.0)*(x*x-4.0)*(x+3.0)*(4.0-x)*0.001388888889)
 #define S_P4(x) (x*(x*x-1.0)*(x*x-4.0)*(x*x-9.0)*0.0001984126984)
 
+/* ZFILL (zero fill off edges) is not set by default:
+    would have to be set by compile command
+    or by a file #include-ing this one                */
+
 #ifdef ZFILL
 #  define FINS(i) ( ((i)<0 || (i)>=nar) ? 0.0 : far[(i)] )
 #else
@@ -255,6 +259,7 @@ ENTRY("mri_dup2D") ;
   Up sample an array far[0..nar-1] nup times to produce fout[0..nar*nup-1].
   Uses 7th order polynomial interpolation.
 ------------------------------------------------------------------------------*/
+
 void upsample_7( int nup , int nar , float * far , float * fout )
 {
    int kk,ii , ibot,itop ;
@@ -269,14 +274,10 @@ void upsample_7( int nup , int nar , float * far , float * fout )
 
    if (nupmax < nup) {
       nupmax = nup;
-      RENUP_VEC(fm3,nup);
-      RENUP_VEC(fm2,nup);
-      RENUP_VEC(fm1,nup);
-      RENUP_VEC(f00,nup);
-      RENUP_VEC(fp1,nup);
-      RENUP_VEC(fp2,nup);
-      RENUP_VEC(fp3,nup);
-      RENUP_VEC(fp4,nup);
+      RENUP_VEC(fm3,nup); RENUP_VEC(fm2,nup);
+      RENUP_VEC(fm1,nup); RENUP_VEC(f00,nup);
+      RENUP_VEC(fp1,nup); RENUP_VEC(fp2,nup);
+      RENUP_VEC(fp3,nup); RENUP_VEC(fp4,nup);
    }
    if( nup == 1 ){ memcpy( fout, far, sizeof(float)*nar ); return; }
 
@@ -298,25 +299,25 @@ void upsample_7( int nup , int nar , float * far , float * fout )
    ibot = 3 ; itop = nar-5 ;
 
    switch( nup ){
-      default:
+      default:       /* outer and inner loops */
         for( ii=ibot ; ii <= itop ; ii++ )
           for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT7(kk,ii) ;
       break ;
 
-      case 2:
+      case 2:        /* unrolled for optimizer */
         for( ii=ibot ; ii <= itop ; ii++ ){
           fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
         }
       break ;
 
-      case 3:
+      case 3:        /* unrolled for optimizer */
         for( ii=ibot ; ii <= itop ; ii++ ){
           fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
           fout[ii*nup+2] = INT7(2,ii) ;
         }
       break ;
 
-      case 4:
+      case 4:        /* unrolled for optimizer */
         for( ii=ibot ; ii <= itop ; ii++ ){
           fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
           fout[ii*nup+2] = INT7(2,ii) ; fout[ii*nup+3] = INT7(3,ii) ;
@@ -324,13 +325,21 @@ void upsample_7( int nup , int nar , float * far , float * fout )
       break ;
    }
 
-   /*-- interpolate the outside edges --*/
+   /*-- do what has not be done --*/
 
-   for( ii=0 ; ii < ibot ; ii++ )
-     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
+   if( ibot > itop ){    /* for very short input arrays (nar < 8) */
 
-   for( ii=itop+1 ; ii < nar ; ii++ )
-     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT7(kk,ii) ;
+     for( ii=0 ; ii < nar ; ii++ )
+       for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
+
+   } else {              /* just the edges for longer arrays */
+
+     for( ii=0 ; ii < ibot ; ii++ )
+       for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
+     for( ii=itop+1 ; ii < nar ; ii++ )
+       for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
+
+   }
 
    return ;
 }
@@ -498,7 +507,7 @@ ENTRY("mri_dup2D_rgb_NN") ;
    bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
 
    for( jj=0 ; jj < ny ; jj++ ){   /* loop over input rows */
-     
+
      for ( kk= 0; kk < nup; kk++ ) { /* do rows nup times */
 
        bin1 = bin;
@@ -506,7 +515,7 @@ ENTRY("mri_dup2D_rgb_NN") ;
        for( ii=0 ; ii < nx ; ii++ ){
 
          for ( ll= 0; ll < nup; ll++ ) {
-	     *bout++ = *bin1;
+           *bout++ = *bin1;
          }
 
          bin1++;

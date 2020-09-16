@@ -98,8 +98,8 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-sv1")) == 0) {
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -sv1");
-	exit (1);
+        fprintf (SUMA_STDERR, "need argument after -sv1");
+        exit (1);
       }
       Vol1Parent_FileName = argv[kar];
       brk = YUP;
@@ -107,8 +107,8 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-sv2")) == 0) {
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -sv2");
-	exit (1);
+        fprintf (SUMA_STDERR, "need argument after -sv2");
+        exit (1);
       }
       Vol2Parent_FileName = argv[kar];
       brk = YUP;
@@ -116,8 +116,8 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-prefix")) == 0) {
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -prefix");
-	exit (1);
+        fprintf (SUMA_STDERR, "need argument after -prefix");
+        exit (1);
       }
       fout = argv[kar];
       brk = YUP;
@@ -125,17 +125,17 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-hemi")) == 0) {
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -hemi");
-	exit (1);
-	 }
+        fprintf (SUMA_STDERR, "need argument after -hemi");
+        exit (1);
+         }
       hemi = argv[kar];
       brk = YUP;
     }
     if (!brk && (strcmp(argv[kar], "-spec")) == 0) {
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -spec ");
-	exit (1);
+        fprintf (SUMA_STDERR, "need argument after -spec ");
+        exit (1);
       }
       specfilename = argv[kar];
       brk = YUP;
@@ -144,13 +144,13 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-onenode")) == 0) {
       if (Partial) {
          fprintf (SUMA_STDERR, "-onenode is incompatible with -noderange");
-	      exit (1);
+              exit (1);
       }
       kar ++;
       if (kar >= argc) {
-	fprintf (SUMA_STDERR, "need argument after -onenode");
-	exit (1);
-	   }
+        fprintf (SUMA_STDERR, "need argument after -onenode");
+        exit (1);
+           }
       istart = atoi(argv[kar]);
       istop = istart;
       Partial = YUP;
@@ -160,13 +160,13 @@ int main (int argc,char *argv[])
     if (!brk && (strcmp(argv[kar], "-noderange")) == 0) {
       if (Partial) {
          fprintf (SUMA_STDERR, "-noderange is incompatible with -onenode");
-	      exit (1);
+              exit (1);
       }
       kar ++;
       if (kar+1 >= argc) {
-	fprintf (SUMA_STDERR, "need 2 arguments after -noderange");
-	exit (1);
-	   }
+        fprintf (SUMA_STDERR, "need 2 arguments after -noderange");
+        exit (1);
+           }
       istart = atoi(argv[kar]); kar ++;
       istop = atoi(argv[kar]);
       Partial = YUP;
@@ -178,7 +178,7 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
       exit (1);
     } 
-    else {	
+    else {      
       brk = NOPE;
       kar ++;
     }
@@ -186,10 +186,10 @@ int main (int argc,char *argv[])
   
 
   /* allocate for the surface objects */
-  Surf1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));	
-  SO1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));	
+  Surf1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));       
+  SO1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject)); 
 
-	
+        
   if (specfilename == NULL) {
     fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
     exit(1);
@@ -201,7 +201,7 @@ int main (int argc,char *argv[])
   if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
     exit(1);
-  }	
+  }     
 
   /**** loading the first surface *****/
   if (SUMA_iswordin(Spec.SurfaceType[0], "FreeSurfer") == 1) {
@@ -280,10 +280,10 @@ int main (int argc,char *argv[])
 
   if (SUMA_filexists(colorfilename) || SUMA_filexists(distancefilename)) {
     fprintf (SUMA_STDERR,"Error %s: One or both of output files %s, %s exists.\nWill not overwrite.\n", \
-	     FuncName, distancefilename, colorfilename);
+             FuncName, distancefilename, colorfilename);
     exit(1);
   }
-	 
+         
   /***********************************************************************************************/
 
   SO1 = Surf1;
@@ -524,7 +524,7 @@ float minimum (int N, float *inarray)
   for (i = 1; i < N; i++)
     {
       if (inarray[i] < min)
-	min = inarray[i];
+        min = inarray[i];
     }
   return min;
 }
@@ -536,7 +536,7 @@ float maximum (int N, float *inarray)
   for (i = 1; i < N; i++)
     {
       if (inarray[i] > max)
-	max = inarray[i];
+        max = inarray[i];
     }
   return max;
 }

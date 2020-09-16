@@ -6,10 +6,6 @@
   -- RWCox - 08 Aug 2001
 ----------------------------------------------------------------------------*/
 
-#ifndef myXtFree
-#   define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array * ZCAT_dsar  = NULL ;  /* input datasets */
@@ -26,8 +22,8 @@ static int                      ZCAT_frugal = 0 ;    /* 05 Apr 2006 */
 #define DSUB(id) DSET_IN_3DARR(ZCAT_dsar,(id))
 
 static char ZCAT_output_prefix[THD_MAX_PREFIX] = "zcat" ;
-static Boolean write_output = False;  /* 21 Jun 2006 [dg] -force rewrite as in 3drefit by rickr */
-static Boolean NIFTI_mode = False;    /* saving NIFTI output */
+static RwcBoolean write_output = False;  /* 21 Jun 2006 [dg] -force rewrite as in 3drefit by rickr */
+static RwcBoolean NIFTI_mode = False;    /* saving NIFTI output */
 static int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
 
 /*--------------------------- prototypes ---------------------------*/

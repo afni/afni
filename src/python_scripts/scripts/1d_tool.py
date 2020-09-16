@@ -541,6 +541,32 @@ examples (very basic for now): ~1~
           set clustsize = `1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D \\
                                       -csim_show_clustsize -verb 0`
 
+   Example 30. Display columns that are all-zero (e.g. censored out) ~2~
+
+       Given a regression matrix, list columns that are entirely zero, such
+       as those for which there were no events, or those for which event
+       responses were censored out.
+
+       a. basic output
+
+          Show the number of such columns and a list of labels
+
+            1d_tool.py -show_regs allzero -infile zerocols.X.xmat.1D
+
+       b. quiet output (do not include the number of such columns)
+
+            1d_tool.py -show_regs allzero -infile zerocols.X.xmat.1D -verb 0
+
+       c. quiet encoded index list
+
+            1d_tool.py -show_regs allzero -infile zerocols.X.xmat.1D \\
+                       -show_regs_style encoded -verb 0
+
+       d. list all labels of regressors of interest (with no initial count)
+
+            1d_tool.py -show_regs set -infile zerocols.X.xmat.1D \\
+                       -select_groups POS -verb 0
+
 ---------------------------------------------------------------------------
 command-line options: ~1~
 ---------------------------------------------------------------------------
@@ -939,6 +965,35 @@ general options: ~2~
                                   - the maximum pairwise distance (enorm)
    -show_mmms                   : display min, mean, max, stdev of columns
    -show_num_runs               : display number of runs found
+   -show_regs PROPERTY          : display regressors with the given property
+
+        Show column indices or labels for those columns where PROPERTY holds:
+
+           allzero  : the entire column is exactly 0
+           set      : (NOT allzero) the column has some set (non-zero) value
+
+        How the columns are displayed is controlled by -show_regs_style 
+        (label, encoded, comma, space) and -verb (0, 1 or 2).
+
+        With -verb > 0, the number of matching columns is also output.
+         
+        See also -show_regs_style, -verb.
+        See example 30.
+
+   -show_regs_style STYLE       : use STYLE for how to -show_regs
+
+        This only applies when using -show_regs, and specifies the style for
+        how to show matching columns.
+
+           space    : show indices as a space-separated list
+           comma    : show indices as a comma-separated list
+           encoded  : succinct selector list (like sub-brick selectors)
+           label    : if xmat.1D has them, show space separated labels
+           set      : (NOT allzero) the column has some set (non-zero) value
+
+        How the columns are displayed is controlled by -show_regs_style 
+        (label, encoded, comma, space) and -verb (0, 1 or 2).
+
    -show_rows_cols              : display the number of rows and columns
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
@@ -1160,7 +1215,7 @@ g_history = """
    1.26 Nov  4, 2015 - added -slice_order_to_times
    1.27 Sep 23, 2016 - added -select_runs; tiny nruns adjust
    1.28 Apr 17, 2017
-        - clarify source in -show_censored_trs (if Xmat, use header info)
+        - clarify source in -show_trs_censored (if Xmat, use header info)
    2.00 Nov  7, 2017 - python3 compatible
    2.01 Apr 18, 2018 - added -csim_show_clustsize and related options
    2.02 May 18, 2018 - handle '3dttest++ -Clustsim' files, with no blur
@@ -1170,10 +1225,15 @@ g_history = """
    2.06 Jul  3, 2019 - allow writing of empty stim files
    2.07 Aug  9, 2019 - tiny: make formatting more specific
    2.08 Dec 17, 2019 - allow labels as column selectors when reading xmat.1D
+   2.09 Jun  1, 2020 - added -show_regs and -show_regs_style
 """
 
-g_version = "1d_tool.py version 2.08, December 17, 2019"
+g_version = "1d_tool.py version 2.09, June 1, 2020"
 
+# g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
+g_show_regs_list = ['allzero', 'set']
+g_show_regs_style_list = ['comma', 'space', 'encoded', 'label']
+g_tr_list_styles = ['comma', 'space', 'encoded', 'verbose']
 
 class A1DInterface:
    """interface class for Afni1D"""
@@ -1245,6 +1305,8 @@ class A1DInterface:
       self.show_mmms       = 0          # show min, mean, max, stdev
       self.show_num_runs   = 0          # show the number of runs found
       self.show_rows_cols  = 0          # show the number of rows and columns
+      self.show_regs       = ''         # see g_show_regs_list
+      self.show_regs_style = 'label'    # see g_show_regs_style_list
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
       self.show_trs_censored = ''       # style variable can be in:
@@ -1534,6 +1596,14 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_num_runs', 0, [], 
                    helpstr='display the number of runs found')
+
+      self.valid_opts.add_opt('-show_regs', 1, [], 
+                   acplist=g_show_regs_list,
+                   helpstr='list given X-matrix regressors')
+
+      self.valid_opts.add_opt('-show_regs_style', 1, [], 
+                   acplist=g_show_regs_style_list,
+                   helpstr='style to show regs in (label/index)')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -1981,6 +2051,16 @@ class A1DInterface:
          elif opt.name == '-show_num_runs':
             self.show_num_runs = 1
 
+         elif opt.name == '-show_regs':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_regs = val
+
+         elif opt.name == '-show_regs_style':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_regs_style = val
+
          elif opt.name == '-show_tr_run_counts':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -2278,6 +2358,8 @@ class A1DInterface:
 
       if self.show_num_runs: self.show_nruns()
 
+      if self.show_regs != '': self.show_regressors()
+
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
@@ -2376,6 +2458,67 @@ class A1DInterface:
       else:
          print('** invalid -show_tr_run_counts STYLE %s' \
                % self.show_tr_run_counts)
+
+   def show_regressors(self):
+      """show regressors (indices or labels) according to the given style
+            self.show_regs : one of {'allzero', 'set'}
+            self.show_regs_style : comma, space, encoded, label
+            self.verb : verbosity level
+
+         return status (0 == success)
+      """
+      show = self.show_regs
+      style = self.show_regs_style
+      verb = self.verb
+
+      if show not in g_show_regs_list \
+            or style not in g_show_regs_style_list:
+         print("** bad show_regs opts %s, %s" % (show, style))
+         return 1
+
+      # pass only 'label' or 'index' here
+      if style == 'label':
+         gstyle = style
+      else:
+         gstyle = 'index'
+
+      # ----------- decide which columns to show -------------------
+
+      rv, tlist = self.adata.get_allzero_cols()
+      if rv: return 1
+
+      # if showing 'set' columns, invert the allzero list
+      if show == 'set':
+         tlist = UTIL.invert_int_list(tlist, top=(self.adata.nvec-1))
+
+      # ----------- prepare to print -------------------------------
+
+      # get header string, based on verbosity
+      if self.verb > 1:
+         hstr = "have %d %s columns : " % (len(tlist), show)
+      elif self.verb == 1:
+         hstr = "%d " % len(tlist)
+      else:
+         hstr = ''
+
+      # if there is nothing, just leave
+      if len(tlist) == 0:
+         print("%s" % hstr)
+         return 0
+
+      # get data string, based on style
+      dstr = 'INVALID'
+      if   style == 'comma':   dstr = UTIL.int_list_string(tlist, sepstr=',')
+      elif style == 'space':   dstr = UTIL.int_list_string(tlist, sepstr=' ')
+      elif style == 'encoded': dstr = UTIL.encode_1D_ints(tlist)
+      elif style == 'label':
+         if len(self.adata.labels) == self.adata.nvec:
+            tlist = [self.adata.labels[ind] for ind in tlist]
+            dstr = ' '.join(tlist)
+
+      print("%s%s" % (hstr, dstr))
+
+      return 0
 
    def show_TR_censor_list(self, censored=0):
       """output either the cencored or uncensored TR index list in the

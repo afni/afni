@@ -4,16 +4,19 @@ import sys
 
 # verify system libraries
 from afnipy import module_test_lib
-g_testlibs = ['os', 'time', 'gc', 'numpy', 'wx', 'matplotlib']
+g_testlibs = ['os', 'time', 'gc', 'numpy', 'wx', 'matplotlib', 'platform']
 if module_test_lib.num_import_failures(g_testlibs,details=0):
-   print """
+   print("""
      -- for details, consider xmat_tool -test_libs
      -- also, many computations do not require the GUI
         (e.g. 'xmat_tool -load_xmat X.xmat.1D -show_cormat_warnings')
-   """
+   """)
    sys.exit(1)
 
-import os, gc, time
+import os, gc, time, platform
+
+# ** There are version differences to iron out, test with python version.
+g_py_ver = platform.python_version().split('.')[0]
 
 import numpy as N
 
@@ -49,8 +52,8 @@ from afnipy import ui_xmat as UIX
 def set_wx_id(idstr, defval):
     """set idstr as a variable to wx.idstr
        if that fails, use the integer 'defval'"""
-    try:    exec('val = wx.%s' % idstr)
-    except: val = defval
+    if hasattr(wx, idstr): val = getattr(wx, idstr)
+    else:                  val = defval
     return val
 
 # try to get some IDs from wx
@@ -171,7 +174,7 @@ class MainFrame(wx.Frame):
       wx.Frame.__init__(self, parent, ID, title, wx.DefaultPosition, (500,400))
 
       if not xinter:
-         print '** cannot init MainFrame without XmatInterface'
+         print('** cannot init MainFrame without XmatInterface')
          return False
 
       # init all local variables
@@ -199,7 +202,7 @@ class MainFrame(wx.Frame):
 
       self.Bind(wx.EVT_CLOSE, self.cb_exit)
 
-      if self.XM.verb > 2: print '-- MainFrame initialized'
+      if self.XM.verb > 2: print('-- MainFrame initialized')
 
    # ------------------------------------------------------------
    # fill the main frame with descriptive text widgets
@@ -226,14 +229,15 @@ class MainFrame(wx.Frame):
       self.tw_stlist = []
       tlen = len(g_textlist)
       if tlen != len(g_textnames): # be sure
-         print '*** textlist lengths do not match'
+         print('*** textlist lengths do not match')
          sys.exit(1)
 
       gs = wx.GridSizer(tlen, 2, 5, 5)
       for data in g_textlist:
          # add label
          st = wx.StaticText(panel2, -1, data[0])
-         st.SetFont(self.fixed_font)
+         # need to find fixed with font
+         # st.SetFont(self.fixed_font)
          gs.Add(st, flag=wx.EXPAND, border=4)
 
          # add and store data section
@@ -244,9 +248,11 @@ class MainFrame(wx.Frame):
 
       # and fill in sizer
       sizer = wx.BoxSizer(wx.VERTICAL)
-      sizer.AddSpacer((20,20))
+      if g_py_ver == '2': sizer.AddSpacer((20,20))
+      else:               sizer.AddSpacer(20)
       sizer.Add(panel1, 0)
-      sizer.AddSpacer((20,20))
+      if g_py_ver == '2': sizer.AddSpacer((20,20))
+      else:               sizer.AddSpacer(20)
       sizer.Add(panel2, 0)
       self.SetSizerAndFit(sizer)
 
@@ -263,7 +269,7 @@ class MainFrame(wx.Frame):
          if opt.name == '-gui_plot_xmat_as_one':
             self.plot_as_one = 1
          else:
-            print "** unknown -gui option '%s'" % opt.name
+            print("** unknown -gui option '%s'" % opt.name)
 
       # in case either has previousely been set...
       self.update_textlist_from_xmat()
@@ -285,8 +291,11 @@ class MainFrame(wx.Frame):
    # ------------------------------------------------------------
    # convert system font to fixed-width, and save as self.fixed_font
    def assign_fixed_font(self):
-      font = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT)
-      self.set_fixed_width_font(font) # and set
+      # rcr - ponder how to find fixed with font...
+      if g_py_ver == '2':
+        font = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT)
+        self.set_fixed_width_font(font) # and set
+      # else: pass
 
    # ------------------------------------------------------------
    # menu bar
@@ -319,8 +328,8 @@ class MainFrame(wx.Frame):
       menu = wx.Menu()
       menu.Append(ID_PLOT_XMAT, "Plot X&mat", "Graph selected X matrix columns")
       self.check_plot_as_one =  \
-           menu.Append(ID_PLOT_AS_ONE, "   plot Xmat as &one",
-                  help='plot all regressors in one graph', kind=wx.ITEM_CHECK)
+           menu.Append(ID_PLOT_AS_ONE, "   plot Xmat as &one", kind=wx.ITEM_CHECK)
+                  # help='plot all regressors in one graph', kind=wx.ITEM_CHECK)
       # maintain the check box in case this is updated externally
       self.check_plot_as_one.Check(self.plot_as_one)
       menu.Append(ID_PLOT_1D, "Plot &1D", "Graph 1D time series")
@@ -349,33 +358,39 @@ class MainFrame(wx.Frame):
 
       # ------------------------------
       # set menu call-backs
-      wx.EVT_MENU(self, ID_EXIT, self.cb_exit)
-      wx.EVT_MENU(self, ID_ABOUT, self.cb_about)
-      wx.EVT_MENU(self, ID_HELP, self.cb_help)
-      wx.EVT_MENU(self, ID_HELP_CMD, self.cb_help_cmd)
-      wx.EVT_MENU(self, ID_HIST, self.cb_history)
+      self.set_event_handler(ID_EXIT, self.cb_exit)
+      self.set_event_handler(ID_ABOUT, self.cb_about)
+      self.set_event_handler(ID_HELP, self.cb_help)
+      self.set_event_handler(ID_HELP_CMD, self.cb_help_cmd)
+      self.set_event_handler(ID_HIST, self.cb_history)
 
-      wx.EVT_MENU(self, ID_LOAD_XMAT, self.cb_load_mat)
-      wx.EVT_MENU(self, ID_LOAD_1D, self.cb_load_mat)
+      self.set_event_handler(ID_LOAD_XMAT, self.cb_load_mat)
+      self.set_event_handler(ID_LOAD_1D, self.cb_load_mat)
 
-      wx.EVT_MENU(self, ID_SHOW_XMAT, self.cb_show_mat)
-      wx.EVT_MENU(self, ID_SHOW_XMAT_CONDS, self.cb_show_xmat_conds)
-      wx.EVT_MENU(self, ID_SHOW_CORMAT, self.cb_show_xmat_cormat)
-      wx.EVT_MENU(self, ID_SHOW_CORMAT_EVIL, self.cb_show_xmat_cormat_warns)
-      wx.EVT_MENU(self, ID_SHOW_COSMAT, self.cb_show_xmat_cosmat)
-      wx.EVT_MENU(self, ID_SHOW_COSMAT_EVIL, self.cb_show_xmat_cosmat_warns)
-      wx.EVT_MENU(self, ID_SHOW_1D, self.cb_show_mat)
-      wx.EVT_MENU(self, ID_SHOW_FIT_BETAS, self.cb_show_fit_betas)
+      self.set_event_handler(ID_SHOW_XMAT, self.cb_show_mat)
+      self.set_event_handler(ID_SHOW_XMAT_CONDS, self.cb_show_xmat_conds)
+      self.set_event_handler(ID_SHOW_CORMAT, self.cb_show_xmat_cormat)
+      self.set_event_handler(ID_SHOW_CORMAT_EVIL, self.cb_show_xmat_cormat_warns)
+      self.set_event_handler(ID_SHOW_COSMAT, self.cb_show_xmat_cosmat)
+      self.set_event_handler(ID_SHOW_COSMAT_EVIL, self.cb_show_xmat_cosmat_warns)
+      self.set_event_handler(ID_SHOW_1D, self.cb_show_mat)
+      self.set_event_handler(ID_SHOW_FIT_BETAS, self.cb_show_fit_betas)
 
-      wx.EVT_MENU(self, ID_PLOT_XMAT, self.cb_plot_mat)
-      wx.EVT_MENU(self, ID_PLOT_AS_ONE, self.cb_plot_as_one)
-      wx.EVT_MENU(self, ID_PLOT_1D, self.cb_plot_1D)
-      wx.EVT_MENU(self, ID_PLOT_BEST_FIT, self.cb_plot_fit)
-      wx.EVT_MENU(self, ID_PLOT_CORMAT, self.cb_graph_corr_mat)
+      self.set_event_handler(ID_PLOT_XMAT, self.cb_plot_mat)
+      self.set_event_handler(ID_PLOT_AS_ONE, self.cb_plot_as_one)
+      self.set_event_handler(ID_PLOT_1D, self.cb_plot_1D)
+      self.set_event_handler(ID_PLOT_BEST_FIT, self.cb_plot_fit)
+      self.set_event_handler(ID_PLOT_CORMAT, self.cb_graph_corr_mat)
 
-      wx.EVT_MENU(self, ID_OPT_CORMAT_CUT, self.cb_set_cormat_cutoff)
-      wx.EVT_MENU(self, ID_OPT_COSMAT_CUT, self.cb_set_cosmat_cutoff)
-      wx.EVT_MENU(self, ID_OPT_VERB, self.cb_set_verb)
+      self.set_event_handler(ID_OPT_CORMAT_CUT, self.cb_set_cormat_cutoff)
+      self.set_event_handler(ID_OPT_COSMAT_CUT, self.cb_set_cosmat_cutoff)
+      self.set_event_handler(ID_OPT_VERB, self.cb_set_verb)
+
+   def set_event_handler(self, cbid, callback):
+      if g_py_ver == '2':
+         wx.EVT_MENU(self, cbid, callback)
+      else:
+         wx.EvtHandler.Bind(self, wx.EVT_MENU, callback, id=cbid)
 
    # ----------------------------------------------------------------------
    # In general, the cb_ functions are the callbacks that call the respective
@@ -419,7 +434,7 @@ class MainFrame(wx.Frame):
       """create a text window describing the fit betas"""
 
       clist = self.XM.col_list
-      if not clist: clist = range(len(self.XM.col_list))
+      if not clist: clist = list(range(len(self.XM.col_list)))
 
       # ignore failure, to show error string in text window
       rv, rstr = self.XM.make_matrix_fit_betas_string(clist)
@@ -538,7 +553,7 @@ class MainFrame(wx.Frame):
       if not mat.cormat_ready: mat.set_cormat() # initialize?
 
       if self.XM.verb > 1:
-         print '++ showing cormat, size = %s' % str(mat.cormat.shape)
+         print('++ showing cormat, size = %s' % str(mat.cormat.shape))
 
       self.cormat_grid = MatFrame(mat.cormat,'correlation matrix',
                                   rlabels=mat.labels, rind=1, corr_colors=1)
@@ -548,7 +563,7 @@ class MainFrame(wx.Frame):
 
    def cb_close_grid(self, event):
       if self.cormat_grid:
-         if self.XM.verb > 2: print '-- destroying cormat_grid'
+         if self.XM.verb > 2: print('-- destroying cormat_grid')
          self.cormat_grid.Destroy()
          self.cormat_grid = None
          self.XM.cleanup_memory()
@@ -556,7 +571,7 @@ class MainFrame(wx.Frame):
    def cb_plot_as_one(self, event):        # gui event
       self.plot_as_one = 1 - self.plot_as_one
       if self.XM.verb > 1:
-         print '++ toggling plot_as_one to %d' % self.plot_as_one
+         print('++ toggling plot_as_one to %d' % self.plot_as_one)
 
    def cb_plot_mat(self, event):        # gui event
       self.gui_plot_xmat()
@@ -576,7 +591,7 @@ class MainFrame(wx.Frame):
          self.plotx_frame.Raise()
          return
 
-      if self.XM.verb > 1: print '++ showing xmat with cols : %s' % str(cols)
+      if self.XM.verb > 1: print('++ showing xmat with cols : %s' % str(cols))
 
       if len(cols) < 1:
          self.popup_warning("no columns chosen for X matrix")
@@ -592,7 +607,7 @@ class MainFrame(wx.Frame):
 
       self.plotx_frame.Bind(wx.EVT_CLOSE, self.cb_close_plot)
 
-      if self.XM.verb > 1: print '-- xmat done'
+      if self.XM.verb > 1: print('-- xmat done')
 
    def cb_plot_fit(self, event):
       self.gui_plot_fit()
@@ -622,7 +637,7 @@ class MainFrame(wx.Frame):
          self.popup_warning("X-matrix appending failed")
          return
 
-      if self.XM.verb > 1: print '++ showing fit plot'
+      if self.XM.verb > 1: print('++ showing fit plot')
 
       self.plotfit_frame = CanvasFrame(title='fit time series',
                                        verb=self.XM.verb)
@@ -636,7 +651,7 @@ class MainFrame(wx.Frame):
 
       self.plotfit_frame.Bind(wx.EVT_CLOSE, self.cb_close_plot_fit)
 
-      if self.XM.verb > 1: print '-- plot fit done'
+      if self.XM.verb > 1: print('-- plot fit done')
 
    def cb_plot_1D(self, event):
       self.gui_plot_1D()
@@ -654,7 +669,7 @@ class MainFrame(wx.Frame):
          self.plot1D_frame.Raise()
          return
 
-      if self.XM.verb > 1: print '++ showing 1D plot'
+      if self.XM.verb > 1: print('++ showing 1D plot')
 
       self.plot1D_frame = CanvasFrame(title='1D time series',verb=self.XM.verb)
       self.plot1D_redo = 0
@@ -665,7 +680,7 @@ class MainFrame(wx.Frame):
 
       self.plot1D_frame.Bind(wx.EVT_CLOSE, self.cb_close_plot_1D)
 
-      if self.XM.verb > 1: print '-- plot 1D done'
+      if self.XM.verb > 1: print('-- plot 1D done')
 
    def cb_set_cormat_cutoff(self, event):
       dlg = wx.TextEntryDialog(self, 'correlation warning cutoff',
@@ -679,7 +694,7 @@ class MainFrame(wx.Frame):
          except: pass
          else:
             self.XM.cormat_cut = val
-            if self.XM.verb > 1: print '++ applying new cormat_cut = %s' % val
+            if self.XM.verb > 1: print('++ applying new cormat_cut = %s' % val)
       dlg.Destroy()
 
    def cb_set_cosmat_cutoff(self, event):
@@ -693,7 +708,7 @@ class MainFrame(wx.Frame):
          try: val = float(dlg.GetValue())
          except: pass
          else: self.XM.cosmat_cut = val
-         if self.XM.verb > 1: print '++ applying new cosmat_cut = %s' % val
+         if self.XM.verb > 1: print('++ applying new cosmat_cut = %s' % val)
       dlg.Destroy()
 
    def cb_set_verb(self, event):
@@ -707,12 +722,16 @@ class MainFrame(wx.Frame):
          except: pass
          else:
             self.XM.verb = val
-            if self.XM.verb > 1: print '++ applying new verb = %s' % val
+            if self.XM.verb > 1: print('++ applying new verb = %s' % val)
       dlg.Destroy()
 
    def cb_load_mat(self, event):        # gui event
-      fname = wx.FileSelector(default_path=os.getcwd(),default_extension='1D',
-                                                       wildcard='*.1D')
+      if g_py_ver == '2':
+         fname = wx.FileSelector(default_path=os.getcwd(),
+                                 default_extension='1D', wildcard='*.1D')
+      else:
+         fname = wx.FileSelector('select X-matrix', default_path=os.getcwd(),
+                                 default_extension='1D', wildcard='*.1D')
       if fname == '': return
 
       id = event.GetId()
@@ -723,7 +742,7 @@ class MainFrame(wx.Frame):
 
    def gui_load_xmat(self, fname):
       if self.XM.verb > 2:
-         print '-- gui_load_xmat, file = %s' % fname
+         print('-- gui_load_xmat, file = %s' % fname)
 
       rv = self.XM.set_xmat(fname)
 
@@ -742,7 +761,7 @@ class MainFrame(wx.Frame):
 
    def gui_load_1D(self, fname):
       if self.XM.verb > 2:
-         print '-- gui_load_xmat, file = %s' % fname
+         print('-- gui_load_xmat, file = %s' % fname)
 
       rv = self.XM.set_1D(fname)
 
@@ -772,7 +791,7 @@ class MainFrame(wx.Frame):
       matx = self.XM.matX
 
       ccols = self.XM.col_list
-      if self.XM.verb > 1: print '++ updating text for columns: %s' % ccols
+      if self.XM.verb > 1: print('++ updating text for columns: %s' % ccols)
 
       ind = self.textlist_index(gSTR_XMAT_FILE)
       if ind >= 0: self.tw_stlist[ind].SetLabel(os.path.basename(matx.fname))
@@ -783,7 +802,7 @@ class MainFrame(wx.Frame):
                               str=UTIL.encode_1D_ints(ccols))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_ALL),
-                              str=UTIL.encode_1D_ints(range(matx.ncols)))
+                              str=UTIL.encode_1D_ints(list(range(matx.ncols))))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_MAIN),
                   str=UTIL.encode_1D_ints(matx.cols_by_group_list([],allroi=1)))
@@ -799,7 +818,7 @@ class MainFrame(wx.Frame):
       cond = matx.cond_num_by_cols(ccols)
       self.set_textlist_label(self.textlist_index(gSTR_COND_CHOSEN), val=cond)
 
-      cond = matx.cond_num_by_cols(range(matx.ncols))
+      cond = matx.cond_num_by_cols(list(range(matx.ncols)))
       self.set_textlist_label(self.textlist_index(gSTR_COND_ALL), val=cond)
 
       cond = matx.cond_num_by_cols(matx.cols_by_group_list([],allroi=1))
@@ -823,7 +842,7 @@ class MainFrame(wx.Frame):
          If str='' and val=-666.6, then clear the label."""
 
       if ind < 0 or ind > len(self.tw_stlist):
-         if self.XM.verb > 1: print '** STL: index %d out of range' % ind
+         if self.XM.verb > 1: print('** STL: index %d out of range' % ind)
          return
 
       if val != -666.6:
@@ -844,7 +863,7 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot(self):
       if self.plotx_frame:
-         if self.XM.verb > 2: print '-- destroying plotx'
+         if self.XM.verb > 2: print('-- destroying plotx')
          self.plotx_frame.Destroy()
          self.plotx_frame = None
          del(self.plotx_cols)
@@ -856,7 +875,7 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot_1D(self):
       if self.plot1D_frame:
-         if self.XM.verb > 2: print '-- destroying plot1D'
+         if self.XM.verb > 2: print('-- destroying plot1D')
          self.plot1D_frame.Destroy()
          self.plot1D_frame = None
          self.plot1D_redo = 0
@@ -866,12 +885,12 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot_fit(self):
       if self.plotfit_frame:
-         if self.XM.verb > 2: print '-- destroying plotfit'
+         if self.XM.verb > 2: print('-- destroying plotfit')
          self.plotfit_frame.Destroy()
          self.plotfit_frame = None
 
    def cb_exit(self, event):
-      if self.XM.verb > 1: print 'exiting GUI...'
+      if self.XM.verb > 1: print('exiting GUI...')
       if self.plotx_frame:
          self.cb_close_plot(1)
       self.Destroy()
@@ -923,7 +942,8 @@ class MainFrame(wx.Frame):
       ctrl.SetValue(text)
 
       # adjust the font style to be fixed-width
-      ctrl.SetFont(self.fixed_font)
+      if g_py_ver == '2':
+         ctrl.SetFont(self.fixed_font)
 
       # note the size for 80 character lines
       size = self.get_textwin_size(ctrl)
@@ -988,7 +1008,7 @@ class MainFrame(wx.Frame):
       height *= 25      # 25 lines of text
 
       if self.XM.verb > 2:
-         print "-- setting default textwin size to (%d,%d)" % (width,height)
+         print("-- setting default textwin size to (%d,%d)" % (width,height))
 
       self.textwin_size = (width,height)
 
@@ -998,27 +1018,27 @@ class MainFrame(wx.Frame):
       win = event.GetEventObject()
       win = win.GetTopLevelParent()
       if self.XM.verb > 3:
-         print "-- cb: save text from window '%s' ..." % win.GetTitle()
+         print("-- cb: save text from window '%s' ..." % win.GetTitle())
       try:
          ctrl = win.ctrl
          text = ctrl.GetValue()
       except:
-         print '** no ctrl/text for save_text window'
+         print('** no ctrl/text for save_text window')
          return
 
       fname = wx.SaveFileSelector('text', '')
       if fname == '': return
 
       if self.XM.verb > 1:
-         print "-- saving text from window '%s' to file '%s'" %   \
-               (win.GetTitle(), fname)
+         print("-- saving text from window '%s' to file '%s'" %   \
+               (win.GetTitle(), fname))
       UTIL.write_text_to_file(fname, text)
 
    def cb_close_win(self, event):       # no gui_ for generic close
       win = event.GetEventObject()
       win = win.GetTopLevelParent()
       if self.XM.verb > 2:
-         print "-- closing window '%s' ..." % win.GetTitle()
+         print("-- closing window '%s' ..." % win.GetTitle())
       win.Destroy()
 
    def set_fixed_width_font(self, font):
@@ -1026,19 +1046,19 @@ class MainFrame(wx.Frame):
 
       if self.fixed_font: return self.fixed_font    # been here, did this
 
-      if self.XM.verb > 1: print '-- testing for fixed-width font...'
+      if self.XM.verb > 1: print('-- testing for fixed-width font...')
 
       if font.IsFixedWidth():   # nothing to do but save for later
          return self.set_fixed_font(font)
 
-      if self.XM.verb > 1: print '-- trying specific families ...'
+      if self.XM.verb > 1: print('-- trying specific families ...')
 
       for family in [wx.NORMAL, wx.TELETYPE]:   # try different families
          font.SetFamily(family)
          if font.IsFixedWidth():
             return self.set_fixed_font(font)
 
-      if self.XM.verb > 1: print '-- trying specific facenames ...'
+      if self.XM.verb > 1: print('-- trying specific facenames ...')
 
       for name in ['Courier', 'Courier New', 'MiscFixed', 'Fixed',
                    'Monospace', 'LucidaTypewriter']:
@@ -1047,7 +1067,7 @@ class MainFrame(wx.Frame):
          if font.IsFixedWidth():                # verify
             return self.set_fixed_font(font)
 
-      if self.XM.verb > 1: print '-- searching all facenames for first...'
+      if self.XM.verb > 1: print('-- searching all facenames for first...')
 
       # no luck, search through faces and take the first one
       # (but don't further corrupt passed font)
@@ -1061,14 +1081,14 @@ class MainFrame(wx.Frame):
             return self.set_fixed_font(tfont)
 
       # failure, use what we have
-      print '** cannot find fixed-width font, sorry...'
+      print('** cannot find fixed-width font, sorry...')
       return self.set_fixed_font(font)
 
    def set_fixed_font(self, font):
       if self.XM.verb > 1:
-         print '++ setting font to face=%s, family=%s, style=%s, fixed=%s' % \
+         print('++ setting font to face=%s, family=%s, style=%s, fixed=%s' % \
                (font.GetFaceName(), font.GetFamily(), font.GetStyle(),
-                font.IsFixedWidth())
+                font.IsFixedWidth()))
       self.fixed_font = font
       return font
 
@@ -1301,36 +1321,36 @@ class CanvasFrame(wx.Frame):
       # first attempt is to look for simple array return
       try: posn = ax.get_position()
       except:
-         if self.verb > 1: print '** failed ax.get_position()'
+         if self.verb > 1: print('** failed ax.get_position()')
          return 1, None
 
       # have list, ready for some return
       if type(posn) == type([]):
          if len(posn) < 4:
             if self.verb > 1:
-               print '** get_position returns len %d list' % len(posn)
+               print('** get_position returns len %d list' % len(posn))
             return 1, None
-         if self.verb > 2: print '-- get_position returns list %s' % \
-                         UTIL.float_list_string(posn)
+         if self.verb > 2: print('-- get_position returns list %s' % \
+                         UTIL.float_list_string(posn))
          return 0, posn
 
       # no list, assume Bbox and expect get_points() to return 2x2 numpy array
       try: plist = posn.get_points()
       except:
-         if self.verb > 1: print '** failed posn.get_points()'
+         if self.verb > 1: print('** failed posn.get_points()')
          return 1, None
 
       if type(plist) != type(N.array([])):
-         if self.verb > 1: print '** posn.get_points() does not return N.array?'
+         if self.verb > 1: print('** posn.get_points() does not return N.array?')
          return 1, None
 
       try: pnlist = [plist[0][0], plist[0][1], plist[1][0], plist[1][1]]
       except:
-         if self.verb > 1: print '** bad plist shape %s' % plist.shape
+         if self.verb > 1: print('** bad plist shape %s' % plist.shape)
          return 1, None
 
-      if self.verb > 2: print '-- get_position returns Bbox list: %s' % \
-                        UTIL.float_list_string(pnlist)
+      if self.verb > 2: print('-- get_position returns Bbox list: %s' % \
+                        UTIL.float_list_string(pnlist))
 
       return 0, pnlist
 
@@ -1404,7 +1424,7 @@ class CanvasFrame(wx.Frame):
 
             if amat.run_len > 10 and amat.nruns > 1:
                ax.set_xticks(N.array([r*amat.run_len
-                                      for r in range(amat.nruns+1)]))
+                                      for r in range(int(amat.nruns)+1)]))
 
          if i < ncols - 1: ax.set_xticklabels([])
          else:             ax.set_xlabel('TRs')

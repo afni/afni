@@ -1225,6 +1225,18 @@ class Afni1D:
 
       return 0
 
+   def get_allzero_cols(self):
+      """return a list of column indices for which the column is all zero
+         (these might represent regressors which were censored out)
+
+         return status (0=success) and the column index list
+      """
+
+      return 0, [ind for ind in range(self.nvec) \
+                   if UTIL.vals_are_constant(self.mat[ind], 0)]
+
+      return 0, rlist
+
    def get_censored_trs(self, run_index=-1):
       """return a list of TRs that were censored
          (basically, return an inverted goodlist)

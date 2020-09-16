@@ -160,9 +160,10 @@ g_history = """
          - def vol registration base:  third -> MIN_OUTLIER
          - def EPI/anat cost function: lpc -> lpc+ZZ
     1.2  Apr  5, 2018: always apply -regress_motion_per_run
+    1.3  May 11, 2020: update web links to help pages
 """
 
-g_version = '1.2 (April 5, 2018)'
+g_version = '1.3 (May 11, 2020)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks

@@ -44,6 +44,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    char form_priority = 'S' ;             /* 23 Mar 2006 */
    static int n_xform_warn=0;
    char *pathnew = NULL ;
+   char *rpath   = NULL , *rp=NULL ;;
    
 ENTRY("THD_open_nifti") ;
 
@@ -68,6 +69,15 @@ ENTRY("THD_open_nifti") ;
    } else {
      NULLRET ;
    }
+   if( !AFNI_yesenv("AFNI_NOREALPATH") && !THD_is_symlink(pathnew) ){ /* 21 Mar 2020 */
+     rpath = (char *)malloc(sizeof(char)*RPMAX) ;
+     rp    = realpath( pathnew , rpath ) ;
+     if( rp == NULL ){ free(rpath) ; NULLRET ; }
+     KILL_pathnew ; pathnew = rpath ;
+   }
+#if 0
+   INFO_message("NIFTI - opening dataset %s",pathnew) ;
+#endif
 
    /*-- Read read read --*/
 
@@ -75,7 +85,7 @@ ENTRY("THD_open_nifti") ;
 
    if( nim == NULL || nim->nifti_type == 0 ) NULLRET ;
 
-   if( pathname != pathnew )
+   if( pathname != pathnew && pathnew != rpath )
      ININFO_message("reading %s instead of non-existing %s",pathnew,pathname) ;
 
    /*-- extract some useful AFNI-ish information from the nim struct --*/
@@ -770,11 +780,11 @@ ENTRY("THD_open_nifti") ;
                rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
                if( rhs != NULL ){                       /* dataset dimensions */
                  char buf[128] ;                              /* were altered */
-	         /* %ld fails on older systems            [17 Jul 2019 rickr] */
+                 /* %ld fails on older systems            [17 Jul 2019 rickr] */
                  sprintf(buf,"%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64
-			     ",%" PRId64 ",%d" ,        /* 12 May 2005 */
-			 nim->nx, nim->ny, nim->nz,
-			 nim->nt, nim->nu, nim->datatype );
+                             ",%" PRId64 ",%d" ,        /* 12 May 2005 */
+                         nim->nx, nim->ny, nim->nz,
+                         nim->nt, nim->nu, nim->datatype );
                  if( strcmp(buf,rhs) != 0 ){
                    static int nnn=0 ;
                    if(nnn==0){fprintf(stderr,"\n"); nnn=1;}

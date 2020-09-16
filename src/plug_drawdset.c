@@ -46,7 +46,7 @@ void DRAW_fillin_CB( Widget , XtPointer , XtPointer ) ; /* 19 Mar 2001 */
 void DRAW_ttatlas_CB( Widget , XtPointer , XtPointer ) ; /* 22 Aug 2001 */
 
 void DRAW_label_CB( Widget , XtPointer , XtPointer ) ; /* 15 Oct 2003 */
-void DRAW_label_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+void DRAW_label_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 void DRAW_attach_dtable( Dtable *, char *, THD_3dim_dataset * ) ;
 
 void DRAW_receiver( int , int , void * , void * ) ;
@@ -723,8 +723,8 @@ void DRAW_make_widgets(void)
                            XmNtraversalOn , True  ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
-     XtSetSensitive( label_label , (Boolean)(value_int != 0) ) ;
-     XtSetSensitive( label_textf , (Boolean)(value_int != 0) ) ;
+     XtSetSensitive( label_label , (RwcBoolean)(value_int != 0) ) ;
+     XtSetSensitive( label_textf , (RwcBoolean)(value_int != 0) ) ;
 
      XtAddCallback( label_textf, XmNactivateCallback    ,
                                  DRAW_label_CB , NULL ) ; /* return key */
@@ -2178,7 +2178,7 @@ static void DRAW_label_getfile( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 /*---------------------------------------------------------------------*/
 
 void DRAW_label_EV( Widget w , XtPointer cld ,
-                    XEvent *ev , Boolean *continue_to_dispatch )
+                    XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
 
    /* handle leave event in text field */

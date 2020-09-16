@@ -129,23 +129,23 @@ class AlignInterface(object):
       # ------------------------------------------------------------
       # check for terminal options before processing the rest
       if '-help' in argv:
-         print g_command_help
+         print(g_command_help)
          return 1
 
       if '-help_gui' in argv:
-         print USKEL.helpstr_gui
+         print(USKEL.helpstr_gui)
          return 1
 
       if '-help_howto_program' in argv:
-         print USKEL.helpstr_create_program
+         print(USKEL.helpstr_create_program)
          return 1
 
       if '-help_todo' in argv:
-         print USKEL.helpstr_todo
+         print(USKEL.helpstr_todo)
          return 1
 
       if '-hist' in argv:
-         print USKEL.g_history
+         print(USKEL.g_history)
          return 1
 
       if '-show_default_vars' in argv:
@@ -157,7 +157,7 @@ class AlignInterface(object):
          return 1
 
       if '-ver' in argv:
-         print 'uber_skel.py: version %s' % USKEL.g_version
+         print('uber_skel.py: version %s' % USKEL.g_version)
          return 1
 
       # ------------------------------------------------------------
@@ -240,14 +240,14 @@ class AlignInterface(object):
       """create alignment script and print to terminal"""
 
       atest, cmd = self.get_script()
-      print cmd
+      print(cmd)
 
    def save_script(self, fname):
       atest, cmd = self.get_script()
       if cmd == '': return
 
       if atest.write_script(fname):
-         print '** failed to write afni_proc.py command to disk'
+         print('** failed to write afni_proc.py command to disk')
 
    def get_script(self):
       """return the AlignTest object and script
@@ -259,10 +259,10 @@ class AlignInterface(object):
       status, mesg = atest.get_script()
 
       if status:        # only show errors
-         print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
+         print('%s\nERRORS:\n\n%s\n' % (75*'*', mesg))
          cmd = ''
       else:
-         if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
+         if wstr: print('%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-'))
          cmd = '### alignment test script:\n\n%s\n' % mesg
 
       return atest, cmd
@@ -271,9 +271,9 @@ class AlignInterface(object):
    def run_gui(self):
       try: from PyQt4 import QtGui
       except:
-         print '\n**** failed to import PyQt4.QtGui ****\n\n'                \
+         print('\n**** failed to import PyQt4.QtGui ****\n\n'                \
                '   PyQt4 must be installed to run the uber_subject.py GUI\n' \
-               '   --> see the output of: uber_subject.py -help_install\n'
+               '   --> see the output of: uber_subject.py -help_install\n')
          return 1
 
       # if the above worked, let any GUI import errors show normally

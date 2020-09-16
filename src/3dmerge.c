@@ -37,10 +37,6 @@
 #define MAIN
 #define MEGA  1048576  /* 2^20 */
 
-#ifndef myXtFree
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
 #define ALLOW_SUBV  /* 21 Feb 2001 */
 
 #ifdef ALLOW_SUBV
@@ -1349,7 +1345,7 @@ int main( int argc , char * argv[] )
             }
 
             efim = DSET_ARRAY(dset,ival) ;
-            dfim = (void *) XtMalloc( mri_datum_size(output_thdatum) * nxyz ) ;
+            dfim = (void *) RwcMalloc( mri_datum_size(output_thdatum) * nxyz ) ;
 
             switch( output_thdatum ){
                default: fprintf(stderr,"** illegal output_thdatum = %d\n",
@@ -1491,17 +1487,17 @@ int main( int argc , char * argv[] )
 
    /* make space for the merger computations */
 
-   tfim = (float *) XtMalloc( sizeof(float) * nxyz ) ;  /* dataset copy */
-   gfim = (float *) XtMalloc( sizeof(float) * nxyz ) ;  /* results */
-   gnum = (short *) XtMalloc( sizeof(short) * nxyz ) ;  /* counts */
+   tfim = (float *) RwcMalloc( sizeof(float) * nxyz ) ;  /* dataset copy */
+   gfim = (float *) RwcMalloc( sizeof(float) * nxyz ) ;  /* results */
+   gnum = (short *) RwcMalloc( sizeof(short) * nxyz ) ;  /* counts */
    for( ii=0 ; ii < nxyz ; ii++ ) gfim[ii] = 0.0 ;      /* initialize */
    for( ii=0 ; ii < nxyz ; ii++ ) gnum[ii] = 0 ;
 
    /* 29 Aug 1996: make space for merger of thresholds, if desired */
 
    if( MRG_cflag_gthr != THFLAG_NONE ){
-      ttfim = (float *) XtMalloc( sizeof(float) * nxyz ) ;  /* thresh copy */
-      ggfim = (float *) XtMalloc( sizeof(float) * nxyz ) ;  /* thresh results */
+      ttfim = (float *) RwcMalloc( sizeof(float) * nxyz ) ;  /* thresh copy */
+      ggfim = (float *) RwcMalloc( sizeof(float) * nxyz ) ;  /* thresh results */
       for( ii=0 ; ii < nxyz ; ii++ ) ggfim[ii] = 0.0 ;      /* initialize */
 
       for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) thr_stataux[ii] = 0 ;
@@ -1725,8 +1721,8 @@ int main( int argc , char * argv[] )
       num_dset++ ;
    }  /* end of combiner loop over datasets */
 
-   myXtFree(tfim) ;                      /* not needed any more */
-   if( ttfim != NULL ) myXtFree(ttfim) ;
+   myRwcFree(tfim) ;                      /* not needed any more */
+   if( ttfim != NULL ) myRwcFree(ttfim) ;
 
    if( MRG_edopt.nfmask > 0 ){
      free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
@@ -1804,7 +1800,7 @@ int main( int argc , char * argv[] )
    /**** at this point, don't need the count brick "gnum" anymore;
          "gfim" contains the results we'll eventually write to disk ****/
 
-   myXtFree( gnum ) ;
+   myRwcFree( gnum ) ;
 
    /*** if desired, edit the result for cluster size ***/
 
@@ -1860,9 +1856,9 @@ int main( int argc , char * argv[] )
 
       case MRI_complex:{
          void * dfim ;
-         dfim = (void *) XtMalloc( sizeof(complex) * nxyz ) ;
+         dfim = (void *) RwcMalloc( sizeof(complex) * nxyz ) ;
          EDIT_coerce_type( nxyz , MRI_float,gfim , MRI_complex,dfim ) ;
-         myXtFree( gfim ) ;
+         myRwcFree( gfim ) ;
          EDIT_substitute_brick( new_dset , ivout , MRI_complex , dfim ) ;
          DSET_BRICK_FACTOR(new_dset,ivout) = 0.0 ;
       }
@@ -1890,9 +1886,9 @@ int main( int argc , char * argv[] )
             fimfac = MRI_TYPE_maxval[output_datum] / gtop ;
          }
 
-         dfim = (void *) XtMalloc( mri_datum_size(output_datum) * nxyz ) ;
+         dfim = (void *) RwcMalloc( mri_datum_size(output_datum) * nxyz ) ;
          EDIT_coerce_scale_type( nxyz,fimfac , MRI_float,gfim , output_datum,dfim ) ;
-         myXtFree( gfim ) ;
+         myRwcFree( gfim ) ;
          EDIT_substitute_brick( new_dset , ivout , output_datum , dfim ) ;
          DSET_BRICK_FACTOR(new_dset,ivout) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
       }
@@ -1904,10 +1900,10 @@ int main( int argc , char * argv[] )
    if( MRG_cflag_gthr != THFLAG_NONE ){
       short * dfim ;
 
-      dfim   = (short *) XtMalloc( sizeof(short) * nxyz ) ;
+      dfim   = (short *) RwcMalloc( sizeof(short) * nxyz ) ;
       thrfac = FUNC_COR_SCALE_SHORT ;
       EDIT_coerce_scale_type( nxyz,thrfac , MRI_float,ggfim , MRI_short,dfim ) ;
-      myXtFree( ggfim ) ;
+      myRwcFree( ggfim ) ;
       EDIT_substitute_brick( new_dset , DSET_THRESH_VALUE(new_dset) ,
                              MRI_short , dfim ) ;
       DSET_BRICK_FACTOR(new_dset,1) = 1.0/thrfac ;

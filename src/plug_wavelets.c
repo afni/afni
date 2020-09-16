@@ -495,7 +495,7 @@ void WA_fwt (int nt, double to, double dt, float * vec, char ** label)
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int n;                   /* time index */
-  int ok;                  /* Boolean for successful calculation */
+  int ok;                  /* RwcBoolean for successful calculation */
   float * coefts  = NULL;     /* forward wavelet transform coefficients */
   float * fitts   = NULL;     /* wavelet filtered time series */
   float * sgnlts  = NULL;     /* signal model fitted time series */
@@ -547,7 +547,7 @@ void WA_fit (int nt, double to, double dt, float * vec, char ** label)
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int n;                   /* time index */
-  int ok;                  /* Boolean for successful calculation */
+  int ok;                  /* RwcBoolean for successful calculation */
   float * coefts  = NULL;     /* forward wavelet transform coefficients */
   float * fitts   = NULL;     /* wavelet filtered time series */
   float * sgnlts  = NULL;     /* signal model fitted time series */
@@ -599,7 +599,7 @@ void WA_sgnl (int nt, double to, double dt, float * vec, char ** label)
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int n;                   /* time index */
-  int ok;                  /* Boolean for successful calculation */
+  int ok;                  /* RwcBoolean for successful calculation */
   float * coefts  = NULL;     /* forward wavelet transform coefficients */
   float * fitts   = NULL;     /* wavelet filtered time series */
   float * sgnlts  = NULL;     /* signal model fitted time series */
@@ -651,7 +651,7 @@ void WA_err (int nt, double to, double dt, float * vec, char ** label)
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int n;                   /* time index */
-  int ok;                  /* Boolean for successful calculation */
+  int ok;                  /* RwcBoolean for successful calculation */
   float * coefts  = NULL;     /* forward wavelet transform coefficients */
   float * fitts   = NULL;     /* wavelet filtered time series */
   float * sgnlts  = NULL;     /* signal model fitted time series */

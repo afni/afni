@@ -271,6 +271,9 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_timeseries( plint , "1D file" ) ;
    PLUTO_add_number    ( plint , "#PC" , 0 , 9 , 0 , 0 , TRUE ) ;
 
+   if( AFNI_yesenv("TCSV_EXPERIMENT") )         /* just for fun */
+     PLUTO_add_tcsv( plint , "[tc]sv file" ) ;
+
 #if 0
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
@@ -408,9 +411,20 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
      if( strcmp(tag,"GlobalOrts") == 0 ){
        MRI_IMAGE *qim = PLUTO_get_timeseries(plint) ;
+       NI_element *nel ;
        if( qim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
        else              gortim = mri_copy(qim) ;
        gortnpc = (int)PLUTO_get_number(plint) ;
+
+       if( AFNI_yesenv("TCSV_EXPERIMENT") ){         /* just for fun */
+         NI_element *nel = PLUTO_get_tcsv(plint) ;
+         char *vstring = NI_preview_string(nel,9,"--- Just For Fun ---") ;
+         if( vstring != NULL ){
+           (void) MCW_popup_message( THE_TOPSHELL , vstring , MCW_USER_KILL ) ;
+           free( vstring ) ;
+         }
+       }
+
        continue ;
      }
 

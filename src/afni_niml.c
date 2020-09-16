@@ -153,7 +153,7 @@ static int viewpoint_key[MAX_CONTROLLERS] ;
 /* Internal prototypes */
 
 static void    AFNI_niml_atexit( void ) ;
-static Boolean AFNI_niml_workproc( XtPointer ) ;
+static RwcBoolean AFNI_niml_workproc( XtPointer ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_driver( char * , NI_stream_type *, NI_element * ) ;
@@ -351,7 +351,7 @@ void NIML_to_stderr( void *nini , int send )
    If the return is False, that means call this workproc again.......)
 -------------------------------------------------------------------------*/
 
-static Boolean AFNI_niml_workproc( XtPointer elvis )
+static RwcBoolean AFNI_niml_workproc( XtPointer elvis )
 {
    int cc , nn , ct , ngood=0 ;
    void *nini ;
@@ -1104,8 +1104,10 @@ static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
       if ( posn >= 0 ) {
          done = 1;
          lsurf->use_v2s = 1;                            /* ready for v2s   */
+
+         lsurf->sA   = surfs[posn];
+         /* if not the default position, swap */
          if ( posn != 0 ) {                             /* swap and set sA */
-             lsurf->sA   = surfs[posn];
              surfs[posn] = surfs[0];
              surfs[0]    = lsurf->sA;
          }
@@ -1115,9 +1117,15 @@ static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
             lsurf->sB = -1;
          else {
             posn = int_list_posn(surfs+1, lsurf->nsurf-1, po->s0B) + 1;
-            if ( posn >= 1 ) {                          /* we've added 1   */
-               if ( posn != 1 ) {                       /* swap and set sB */
-                   lsurf->sB   = surfs[posn];
+            if ( posn >= 1 ) {                           /* we've added 1   */
+               /* set sB even if posn == 1, since the list may get modified */
+               /* -- this was a bug noticed by dglen when user changed surf */
+               /*    order from 0,1 to 1,0, as def posn 1 was now altered   */
+               /* -- it ONLY applies to switching 0,1 to 1,0     3 Aug 2020 */
+               lsurf->sB   = surfs[posn];
+
+               /* if not the default position, swap */
+               if ( posn != 1 ) {
                    surfs[posn] = surfs[1];
                    surfs[1]    = lsurf->sB;
                }

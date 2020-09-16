@@ -7,16 +7,16 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
-  
+                  (optional) long description with intermediate newlines
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- example --
@@ -65,6 +68,361 @@
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+{ 2, Sep , 2020 , PT , "@SkullStrip_TouchUp" , MINOR , TYPE_GENERAL,
+   "Replace '-e' at top with several later status checks; 'exit 0' after help.",
+   "No effect on output, except being more general.\n"
+},
+
+{ 1, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_BUG_FIX,
+   "If '-skipwarp' was used, crashed at very end (sigh).",
+   "Fixed that crash behavior; no changes in outputs.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_roi_row.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_prep.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_gridconv.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mat_sel.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_lat_csv.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution, with lib: lib_fat_Rfactor.py.",
+   "R deps are a mess between Py2 and Py3; might rewrite better in future.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_review.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "This program never even made it to full beta status.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_proc_grad_plot" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "Already have a better one (with fewer dependencies!) ready to go.\n"
+},
+
+{ 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
+   "Well, usage+output shouldn't really change, but it should be more stable.",
+   "There is also a new opt: -align_centers_meth (read the help).\n"
+},
+
+{ 26, Aug , 2020 , PT , "@animal_warper" , MICRO , TYPE_BUG_FIX,
+   "Fix case of running prog with no args.",
+   "Should show help; now it DOES show help, with no error.\n"
+},
+
+{ 21, Aug , 2020 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Fix header deps of underlying progs (namely, readglob.c).",
+   "Was crashing on some NIML reading cases.\n"
+},
+
+{ 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
+   "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",
+   "Has a '-lite_version' opt for truncated EPI version, smaller download.\n"
+},
+
+{ 31, July , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior file path contained dots.",
+   "Joining filenames for output now fixed.\n"
+},
+
+{ 30, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_GENERAL,
+   "Now install MACAQUE_DEMO_2.1, which should be the new normal.",
+   "Script checks for things on install, makes recs, more full demo.\n"
+},
+
+{ 30, July , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Make easier to find template in case data has moved around.",
+   "Also use wildcard to clean intermed file, in case auto GZIP is on.\n"
+},
+
+{ 27, July , 2019 , PT , "3dDWUncert" , MINOR , TYPE_GENERAL,
+   "Insert a couple ifdefs around OMP functionality.",
+   "This should allow program to compile even without OpenMP.\n"
+},
+
+{ 15, July , 2020 , PT , "3dNetCorr" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dTORTOISEtoHere" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3ddot_beta" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dEigsToDT" , MINOR , TYPE_GENERAL,
+   "Moved header dep of suma_suma.h -> suma_objs.h.",
+   "Should be no output change.\n"
+},
+
+{ 15, July , 2020 , PT , "3dDTtoNoisyDWI" , MINOR , TYPE_GENERAL,
+   "New opt for controlling random seed is available (for testing).",
+   "Also, moved dep of suma_suma.h -> suma_objs.h (shd be no output change).\n"
+},
+
+{ 15, July , 2020 , PT , "3dVecRGB_to_HSL" , MINOR , TYPE_BUG_FIX,
+   "Would whine when outputting BRIK/HEAD dset if -in_scal was used; fixed.",
+   "Also, moved dep of suma_suma.h -> suma_objs.h (shd be no output change).\n"
+},
+
+{ 1, July , 2020 , PT , "@Install_NMT" , MAJOR , TYPE_NEW_PROG,
+   "Installer for the NIMH Macaque Template(s) v2, and the CHARM (atlases).",
+   "Courtesy of Ben Jung, Adam Messinger, et al.\n"
+},
+
+{ 22, June , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
+   "The -monty opt input was being ignored.",
+   "It now has a voice.\n"
+},
+
+{ 22, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_BUG_FIX,
+   "Output col grads file was *not* scaled by bvalues, as help said it would.",
+   "Fixed: now output col grads multiplied by bvalues.\n"
+},
+
+{ 17, June , 2020 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Add legend functionality, along with opts for label and loc specifying.",
+   "New opts: -legend_on, -legend_labels, -legend_locs.\n"
+},
+
+{ 17, June , 2020 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Add -hview functionality.",
+   "Where has this been all my life??\n"
+},
+
+{ 14, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.3 as thr value of corr map.",
+   "Returning value to what it had been for a long time, based on examples.\n"
+},
+
+{ 10, June , 2020 , PT , "convert_cdiflist_to_grads.py" , MAJOR , TYPE_NEW_PROG,
+   "For GE scanners, we might want a cdiflist* file for DWI grad info.",
+   "This prog converts such beasts into usable grad/bvalue files for proc.\n"
+},
+
+{ 9, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior when -xticks_off and/or -yticks_off are/is used.",
+   "Now the specified axis will really be *empty*.\n"
+},
+
+{ 4, June , 2020 , PT , "fat_mat2d_plot.py" , MINOR , TYPE_GENERAL,
+   "Improve couple things in help file; change def cbar.",
+   "More useful 'divergent' class of cbar as default.\n"
+},
+
+{ 3, June , 2020 , PT , "epi_b0_correct.py" , MICRO , TYPE_BUG_FIX,
+   "Programming badness if user forgot to add a nec arg to an opt.",
+   "There should be no change in behavior when correct opts are added.\n"
+},
+
+{ 3, June , 2020 , PT , "fat_mat2d_plot.py" , MAJOR , TYPE_NEW_PROG,
+   "FINALLY, a python3 program to plot 3dTrackID and 3dNetCorr output.",
+   "Plots *.grid and *.netcc files; replaces fat_mat_sel.py.\n"
+},
+
+{ 3, June , 2020 , PT , "lib_mat2d_plot.py" , MAJOR , TYPE_GENERAL,
+   "Many updates to functioning, defaults, reading argv, applying user opts.",
+   "Help file added as well; works with main proc: fat_mat2d_plot.py.\n"
+},
+
+{ 1, June , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "For vstat with seedbased corr (rest), use 0.2 as thr value of corr map.",
+   "The value 0.3 seemed pretty high (esp. if no smoothing is applied).\n"
+},
+
+{ 1, June , 2020 , PT , "lib_mat2d_base.py" , MINOR , TYPE_GENERAL,
+   "Migrated from lib_mat2d.py; tweaks added.",
+   "Add in few more mat2d attributes; rearrange methods.\n"
+},
+
+{ 1, June, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Reformat report*.1D tables a bit.",
+   "Add in a KEY; change U/W to A/B; minor format stuff.\n"
+},
+
+{ 1, June , 2020 , PT , "lib_mat2d.py" , MINOR , TYPE_GENERAL,
+   "Start some new functionality for 2D matrices.",
+   "In particular, these are for 3dTrackID and 3dNetCorr output.\n"
+},
+
+{ 1, June , 2020 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
+   "Add new funcs for convenient message printing, in the AFNI style.",
+   "IP(), EP() and WP(), which are wrappers to use APRINT().\n"
+},
+
+{ 31, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Change range of grayscale when EPI is ulay (ve2a and LR flipcheck).",
+   "Now 2-98percent (nonzero).\n"
+},
+
+{ 31, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Two bug fixes: 1) where src_prefix is defined.",
+   "2) Make sure labels/atlases of ATL|SEG followers are passed along.\n"
+},
+
+{ 30, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Apply input_abbrev earlier in processing.",
+   "Homogenize naming, I think, if it is being selected.\n"
+},
+
+{ 30, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Default modal smoothing now is with replacement of any lost ROIs.",
+   "Uses @djunct_modal* script; opt to not replace. More QC images now, too.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_GENERAL,
+   "Now use *.nii.gz files for all intermeds, not *.nii.",
+   "Works better with @animal_warper this way.\n"
+},
+
+{ 30, May, 2020, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_NEW_PROG,
+   "Perform modal smoothing, and go back and add in any ROIs that were lost.",
+   "May be useful in @animal_warper;  may be good to add mask stuff, too.\n"
+},
+
+{ 30, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "String selector of lost ROIs now is only comma-separated list.",
+   "Discovered couldn't have both comma- and '..'-separated list in selector.\n"
+},
+
+{ 28, May , 2020 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Now report DF information in vstat block.",
+   "Needed to be able to interpret F-stat and t-stat values.\n"
+},
+
+{ 26, May , 2020 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Two major changes in output: ve2a and LR-flipcheck now have EPI as ulay.",
+   "Most anats are SSed, so better edges?  Thanks for suggestion, O Esteban!\n"
+},
+
+{ 26, May , 2020 , PT , "@djunct_edgy_align_check" , MAJOR , TYPE_GENERAL,
+   "Several changes to make this appropriate using EPI as ulay.",
+   "New opts, couple small bug fixes, couple tweaks.\n"
+},
+
+{ 26, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Now output an AFNI-style string selector of 'lost' ROI values.",
+   "This might make it easier to see the diffs the volumes.\n"
+},
+
+{ 22, May , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Change this prog to do all work in a workdir that can be cleaned.",
+   "Should not have any effect on the usage or outputs.\n"
+},
+
+{ 21, May , 2020 , PT , "afni_seeds_per_space.txt" , MAJOR , TYPE_GENERAL,
+   "Keep up with change of macaque standard space naming: stereoNMT -> NMT2.",
+   "'stereoNMT' is an ex-parrot.\n"
+},
+
+{ 21, May, 2020 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Require mode_smooth_size as input, and include it in table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Report now reports mode_smooth_size.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May, 2020, PT , "adjunct_aw_tableize_roi_info.py" , MAJOR , TYPE_NEW_PROG,
+   "Adjunct program for @animal_warper.py; build ROI report table.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 21, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Add reports of warped and unwarped ROIs, via adjunct_aw_tableize*.py.",
+   "Thanks to D Glen and A Messinger for helpful feedback+inputs.\n"
+},
+
+{ 18, May , 2020 , PT , "afni_seeds_per_space.txt" , MINOR , TYPE_GENERAL,
+   "Updated APQC seed locations for stereoNMT space.",
+   "More centralized now in GM and in specific ROIs; aud away from vessel.\n"
+},
+
+{ 18, May , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Large number of under-the-hood changes, as well as new opts.",
+   "More general handling of followers and choosing file abbrevs.\n"
+},
+
+{ 14, May , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Large number of under-the-hood changes, for readability/clarity.",
+   "Change echo->printf, spacing, clear comments, etc. No output changes.\n"
+},
+
+{ 4, May , 2020 , PT , "@Install_IBT_DATASETS" , MINOR , TYPE_NEW_PROG,
+   "Installer for the Indian Brain Templates. Enjoy.",
+   "Courtesy of Dr. Bharath Holla, et al.\n"
+},
+
+{ 27, Apr , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added a help example for integrating output into afni_proc.py.",
+   "... because otherwise *I* forget how to use the outputs.\n"
+},
+
+{ 24, Apr , 2020 , PT , "3dLMEr" , MINOR , TYPE_GENERAL,
+   "Updating this R file for GC. So I don't really know what the changes do.",
+   "... though I reeeallly want to pretend the changes were mine, ALL MINE.\n"
+},
+
+{ 24, Apr , 2020 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "Sidedness of testing will no longer be checked for non-stat thr vols.",
+   "It must be Daniel Glen's birthday today (two-sided, non-stat p<0.9999).\n"
+},
+
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Added new help example.",
+   "Demonstrates useful colorbar-entry functionality.\n"
+},
+
+{ 23, Apr , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Use '-colorscale_idx_file ..' to control AFNI env var AFNI_COLORSCALE_xx.",
+   "Provides a way for user-created cbar info to be input+used.\n"
+},
+
+{ 22, Apr , 2020 , PT , "1dplot.py" , MICRO , TYPE_BUG_FIX,
+   "The '-xvals ..' opt was broken, but now is fixed.",
+   "*Now* the brain can be solved.\n"
+},
+
+{ 16, Apr , 2020 , PT , "adjunct_simplify_cost.py" , MICRO , TYPE_NEW_PROG,
+   "Adjunct program for (soon to be updated) @SSwarper.",
+   "Convert cost name to simpler version, for some application(s).\n"
+},
+
+{ 16, Apr , 2020 , PT , "@djunct_ssw_intermed_edge_imgs" , MICRO , TYPE_NEW_PROG,
+   "Adjunct program for (soon to be updated) @SSwarper.",
+   "Generates images for intermediate QC/tracking.\n"
+},
 
 { 27, Mar , 2020 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
    "Rearrange variable/function definitions in afnipy libs (no more interdep).",

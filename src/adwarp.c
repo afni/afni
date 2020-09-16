@@ -40,7 +40,7 @@
 #define PROGRAM_LATEST "15 August 2001"     /* date of last program revision */
 
 /*---------------------------------------------------------------------------*/
-
+#include "afni.h"
 #include "afni_warp.h"
 
 #define MAIN
@@ -653,7 +653,7 @@ ENTRY("adwarp_follower_dataset") ;
 */
 
 
-Boolean adwarp_refashion_dataset
+RwcBoolean adwarp_refashion_dataset
 (
   adwarp_options   *option_data,  /* adwarp program options */
   THD_3dim_dataset *dset,         /* new (output) dataset */
@@ -662,7 +662,7 @@ Boolean adwarp_refashion_dataset
 {
   THD_datablock *dblk  = dset->dblk ;
   THD_diskptr   *dkptr = dset->dblk->diskptr ;
-  Boolean good ;
+  RwcBoolean good ;
   int npix , nx,ny,nz,nv , kk , ival , code , nzv , dsiz , isfunc , cmode ;
   MRI_IMAGE *im ;
   void *imar ;

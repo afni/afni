@@ -1,39 +1,34 @@
 set(NIFTI_CDFLIB_NAME ${NIFTI_PACKAGE_PREFIX}nifticdf)
 
-add_library(${NIFTI_CDFLIB_NAME} nifticdf.c )
+add_nifti_library(${NIFTI_CDFLIB_NAME} nifticdf.c )
+set_target_properties(
+  ${NIFTI_CDFLIB_NAME}
+  PROPERTIES
+    PUBLIC_HEADER
+    "${CMAKE_CURRENT_LIST_DIR}/nifticdf.h"
+  )
 target_compile_options(${NIFTI_CDFLIB_NAME} PRIVATE "-D__COMPILE_UNUSED_FUNCTIONS__")
 target_link_libraries(${NIFTI_CDFLIB_NAME} PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio)
-target_include_directories(${NIFTI_CDFLIB_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${NIFTI_INSTALL_INCLUDE_DIR}>
-        )
-if(NIFTI_BUILD_APPLICATIONS)
-  add_executable(${NIFTI_PACKAGE_PREFIX}nifti_stats nifti_stats.c)
-  target_link_libraries( ${NIFTI_PACKAGE_PREFIX}nifti_stats PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio ${NIFTI_PACKAGE_PREFIX}nifticdf)
-  set(NIFTICDF_APPS ${NIFTI_PACKAGE_PREFIX}nifti_stats)
-endif()
-
+get_lib_version_vars("nifticdf_version.h" NIFTICDF_VERSION NIFTICDF_MAJOR_VERSION)
 if(BUILD_SHARED_LIBS)
-  set_target_properties(${NIFTI_CDFLIB_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})
+    set_target_properties(${NIFTI_CDFLIB_NAME}
+      PROPERTIES
+        ${NIFTI_LIBRARY_PROPERTIES}
+        VERSION ${NIFTICDF_VERSION}
+        SOVERSION ${NIFTICDF_MAJOR_VERSION}
+        )
+endif()
+install_nifti_target(${NIFTI_CDFLIB_NAME})
+if(NIFTI_BUILD_APPLICATIONS)
+  add_nifti_executable(${NIFTI_PACKAGE_PREFIX}nifti_stats nifti_stats.c)
+  target_link_libraries( ${NIFTI_PACKAGE_PREFIX}nifti_stats PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio ${NIFTI_PACKAGE_PREFIX}nifticdf)
+  install_nifti_target(${NIFTI_PACKAGE_PREFIX}nifti_stats)
+  install_man_page(
+    ${NIFTI_PACKAGE_PREFIX}nifti_stats
+    OPTS "--help-option=-help;--version-string=${NIFTICDF_VERSION};--no-info"
+              )
 endif()
 
-
-if(NOT NIFTI_INSTALL_NO_LIBRARIES)
-  install(TARGETS ${NIFTI_CDFLIB_NAME} ${NIFTICDF_APPS}
-          EXPORT NIFTITargets
-          RUNTIME DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR} COMPONENT RuntimeLibraries
-          LIBRARY DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT RuntimeLibraries
-          ARCHIVE DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
-          INCLUDES DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-          )
-endif()
-
-if(NOT NIFTI_INSTALL_NO_DEVELOPMENT)
-  file(GLOB __files "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-  install(FILES ${__files}
-    DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
-endif()
 
 if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
   foreach(DISTRIBUTION CORREL TTEST FTEST ZSCORE CHISQ BETA BINOM GAMMA POISSON NORMAL FTEST_NONC CHISQ_NONC LOGISTIC LAPLACE UNIFORM TTEST_NONC WEIBULL CHI INVGAUSS EXTVAL PVAL LOGPVAL LOG10PVAL )

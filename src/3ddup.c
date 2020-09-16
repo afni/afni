@@ -187,7 +187,7 @@ WARNING_message("This program (3ddup) is old, not maintained, and probably usele
                        ADN_none ) ;
    }
 
-   warp = myXtNew( THD_warp ) ; *warp = IDENTITY_WARP ;
+   warp = myRwcNew( THD_warp ) ; *warp = IDENTITY_WARP ;
 
    EDIT_dset_items( dset_out ,
                        ADN_warp        , warp    ,

@@ -7,7 +7,7 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
+                  (optional) long description with intermediate newlines
 
     copy entire section: { ... } ,
 
@@ -15,8 +15,8 @@
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- examples (newest at top) --
@@ -51,6 +54,12 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 30 , APR , 2020 , JKR , "afni" , MINOR , TYPE_GENERAL ,
+   "Added YouTube button to afni GUI."
+ } ,
+ { 21 , APR , 2020 , JKR , "afni" , MINOR , TYPE_NEW_OPT ,
+   "Added -all_dsets to load all datasets togther."
+ } ,
  { 16 , AUG , 2019 , JKR , "FATCAT_matplot" , MICRO , TYPE_BUG_FIX ,
    "Fix for FATCAT_matplot header reading."
  } ,

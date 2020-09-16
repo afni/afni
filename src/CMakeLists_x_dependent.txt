@@ -1,6 +1,7 @@
 # ##### Build X dependent programs...
 
 add_subdirectory(svm)
+add_subdirectory(leej3)
 add_afni_library(
   mrix
   bbox.c
@@ -8,9 +9,11 @@ add_afni_library(
   coxplot/plot_strip.c
   coxplot/plot_ts.c
   coxplot/plot_x11.c
+  mri_coxplot.c
   display.c
   imseq.c
   LiteClue.c
+  pbar_color_defs.c
   suma_help.c
   xim.c
   xutil.c
@@ -21,9 +24,14 @@ set_target_properties(
 )
 target_link_libraries(
   mrix
-  PUBLIC AFNI::mri
-  PRIVATE AFNI::coxplot $<TARGET_NAME_IF_EXISTS:XmHTML> Motif::Motif ${X11_Xt_LIB} 
-          ${X11_LIBRARIES}
+  PUBLIC
+           AFNI::mri
+           AFNI::coxplot
+           Motif::Motif
+           X11::Xt
+           X11::X11
+  PRIVATE
+          $<IF:$<BOOL:${USE_SYSTEM_XMHTML}>,XmTHML::XmHTML,AFNI::XmHTML>
 )
 
 set_source_files_properties(
@@ -73,16 +81,15 @@ add_library(
   mcw_graf.c
   pbar.c
 )
-target_link_libraries(afni_all_objects 
+target_link_libraries(afni_all_objects
   PUBLIC
     libheaders
   PRIVATE
+    whats_my_exepath
     AFNI::mrix
-    Motif::Motif
-    ${X11_Xt_LIB}
-    ${X11_LIBRARIES}
     ${CMAKE_DL_LIBS}
     )
+
 
 add_afni_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
 target_link_options(afni PRIVATE "-rdynamic")
@@ -90,6 +97,8 @@ target_link_libraries(
   afni
   PRIVATE
     afni_all_objects
+    whats_my_exepath
     NIFTI::nifti2
     NIFTI::nifticdf
 )
+

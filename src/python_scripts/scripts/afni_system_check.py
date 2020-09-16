@@ -211,7 +211,7 @@ g_history = """
    1.01 Nov 27, 2017 - warn user on python 3 (!= 2.7 even)
    1.02 Oct 11, 2018 - check for consistency between python and PyQt4 paths
    1.03 Oct 16, 2018 - if no AFNI prog errors, skip library linking warnings
-   1.04 Oct 29, 2018 - check for .zshenv if zsh
+   1.04 Oct 29, 2018 - check for .zshenv (changed to .zshrc) if zsh
    1.05 Aug  6, 2019 - check for matplotlib.pyplot; use simpl_import_test
    1.06 Aug 27, 2019
         - added check for dyn.load error in R_io.so via 3dMVM
@@ -219,9 +219,13 @@ g_history = """
    1.07 Sep 13, 2019 - report XQuartz/X11 version
    1.08 Sep 16, 2019 - check /usr/local/bin/python files, along with /sw/bin
    1.09 Nov 13, 2019 - unless asked for, omit any final mention of PyQt4
+   1.10 Sep  4, 2020
+        - for zsh, look for .zshrc rather than .zshenv
+        - remove 'some progs need 2.7.x' warning for python 3+
+   1.11 Sep 15, 2020 - whine if .zshrc references all_progs.COMP.bash
 """
 
-g_version = "afni_system_check.py version 1.09, November 13, 2019"
+g_version = "afni_system_check.py version 1.11, September 15, 2020"
 
 
 class CmdInterface:

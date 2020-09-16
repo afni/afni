@@ -70,7 +70,7 @@ extern MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * , char * title ,
                                 gen_func * cbfunc , void * cbdata ) ;
 
 extern void GRAF_drawing_EV( Widget w , XtPointer client_data ,
-                             XEvent * ev , Boolean * continue_to_dispatch ) ;
+                             XEvent * ev , RwcBoolean * continue_to_dispatch ) ;
 
 extern void drawGraf( MCW_graf * gp , int erase ) ;
 
@@ -124,7 +124,7 @@ typedef struct {
 
 extern MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title ) ;
 extern void GRAF_pasdrawing_EV( Widget w , XtPointer client_data ,
-                         XEvent * ev , Boolean * continue_to_dispatch ) ;
+                         XEvent * ev , RwcBoolean * continue_to_dispatch ) ;
 extern void redraw_MCW_pasgraf( MCW_pasgraf * gp ) ;
 extern void set_MCW_pasgraf( MCW_pasgraf * gp , byte * func ) ;
 

@@ -68,6 +68,7 @@ INFO_message("---------- mri_free(%p)",im) ; TRACEBACK ; INFO_message("---------
 }
 
 /*-------------------------------------------------------------------------*/
+/* Delete the data, but keep the shell of the image */
 
 void mri_clear( MRI_IMAGE *im )  /* 31 Jan 2007 */
 {

@@ -38,8 +38,34 @@
 #set version   = "1.2";  set rev_dat   = "Feb 22, 2020"
 #   + [PT] temp file prefix now contains a random string
 #
-set version   = "1.21";  set rev_dat   = "March 10, 2020"
+#set version   = "1.21";  set rev_dat   = "March 10, 2020"
 #   + [PT] add in -ulay_range as opt
+#
+#set version   = "1.3";  set rev_dat   = "May 22, 2020"
+#   + [PT] add ${wdir} to work in -- easier to use/clean
+#
+#set version   = "1.4";  set rev_dat   = "May 26, 2020"
+# [PT] several additional features via opts
+#    + '-label_mode ..' opt
+#    + use olay grid: mainly, can have EPI as ulay with anat edges
+#      - new opt '-use_olay_grid INTERP'; need to provide NN, wsinc5, etc.
+#    + '-sharpen_ulay_off' (might use when use olay grid, or not)
+#    + '-mask_olay_edges'
+#       - now off by def, bc we often have skullstripped anat as olay edges
+# 
+#set version   = "1.41";  set rev_dat   = "May 26, 2020"
+# [PT] bug fix on conditions
+#    + also, echo version number of this prog when running
+#
+#set version   = "1.42";  set rev_dat   = "May 26, 2020"
+# [PT] bug fix on refbox, now that we have workdir
+#
+#set version   = "1.43";  set rev_dat   = "May 26, 2020"
+# [PT] bug fix on olay regrid: don't jump to wdir yet
+#    + new opt : '-ulay_range_nz ..' for passing umin/umax to @chauff*
+#
+set version   = "1.44";  set rev_dat   = "June 22, 2020"
+# [PT] bug fix:  "-monty .." value was being ignored
 #
 # ----------------------------------------------------------------
 
@@ -66,11 +92,12 @@ endif
 set ulay    = ""
 set olay    = ""
 
-set odir           = "./QC"
+set odir           = "./QC_edgy"
 set opref          = "IMG_${tpname}"
 
 set pppp           = "`3dnewid -fun11`"
-set tpref          = "__eac_tmp_${pppp}"
+set wdir_name      = "__workdir_EAC_${pppp}"
+set tpref          = "eac"
 set olayE          = ${tpref}_olayE.nii.gz
 
 set Nx             = 7                   # num of mont wins, b/c Ny=1
@@ -79,6 +106,7 @@ set mgap           = 1                   # gapsize (in px) bt montage slices
 set mcolor         = 'black'             # color of montage gap
 set cbar           = "Reds_and_Blues_Inv" # default colorbar; can adjust
 
+set urange_meth    = "-ulay_range"
 set umin           = "0%"
 set umax           = "120%"
 
@@ -88,6 +116,14 @@ set DO_CLEAN       = 1                    # default: do remove
 set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
 
 set user_coors     = "-pass"
+set label_mode     = 1
+
+set DO_USE_REFBOX    = 0
+set DO_USE_OLAY_GRID = 0
+set ulay_interp      = "" 
+
+set DO_SHARPEN_ULAY  = 1
+set DO_MASK_EDGES    = 0                 # this now OFF by def
 
 # ------------------- process options, a la rr ----------------------
 
@@ -130,6 +166,7 @@ while ( $ac <= $#argv )
         @ ac += 1
         set refbox_add[1] = "-box_focus_slices"
         set refbox_add[2] = "$argv[$ac]"
+        set DO_USE_REFBOX = 1
 
     # [PT: Jan 30, 2019] extra montage feature: gap
     else if ( "$argv[$ac]" == "-montgap" ) then
@@ -151,6 +188,25 @@ while ( $ac <= $#argv )
         @ ac += 1
         set umax = "$argv[$ac]"
 
+    # [PT: May 26, 2020] can use this alternate ulay range method for
+    # @chauffeur_afni
+    else if ( "$argv[$ac]" == "-ulay_range_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set urange_meth = "-ulay_range_nz"
+
+    # [PT: May 26, 2020] use olay grid; specify interp func type,
+    # e.g., wsinc5 or NN
+    else if ( "$argv[$ac]" == "-use_olay_grid" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay_interp = "$argv[$ac]"
+        set DO_USE_OLAY_GRID = 1
+
     # [PT: Dec 30, 2019] extra montage feature: cbar to use
     else if ( "$argv[$ac]" == "-cbar" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -168,6 +224,19 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set Ny = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-label_mode" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set label_mode = "$argv[$ac]"
+
+    # [PT: May 22, 2020] 
+    else if ( "$argv[$ac]" == "-sharpen_ulay_off" ) then
+        set DO_SHARPEN_ULAY = 0
+
+    # [PT: May 26, 2020] 
+    else if ( "$argv[$ac]" == "-mask_olay_edges" ) then
+        set DO_MASK_EDGES = 1
 
     # [PT: Dec 30, 2019] can place coord loc
     else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
@@ -196,13 +265,15 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
-if ( "$ulay" == "" ) then
-    echo "** ERROR: missing motion censor file! Use '-ulay ..'"
+echo "++ Prepare for running ${this_prog} (ver = ${version})"
+
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: missing ulay file! Use '-ulay ..'"
     goto BAD_EXIT
 endif
 
-if ( "$olay" == "" ) then
-    echo "** ERROR: missing motion censor file! Use '-olay ..'"
+if ( "${olay}" == "" ) then
+    echo "** ERROR: missing olay file! Use '-olay ..'"
     goto BAD_EXIT
 endif
 
@@ -210,116 +281,159 @@ endif
  
 # check output directory, use input one if nothing given
 
-if ( ! -e $odir ) then
-    echo "++ Making new output directory: $odir"
-    \mkdir -p $odir
-endif
+\mkdir -p ${odir}
 
-if ( 0 ) then # !!! off
-# make the working directory
-if ( ! -e $odir/$wdir ) then
-    echo "++ Making working directory: $odir/$wdir"
-    \mkdir -p $odir/$wdir
-else
-    echo "+* WARNING: Somehow found a premade working directory (?):"
-    echo "      $odir/$wdir"
-endif
-endif
+# place wdir in the odir
+set wdir = "${odir}/${wdir_name}"
+
+\mkdir -p ${wdir}
 
 # =========================== Actual Plots ==============================
 
-\mkdir -p $odir
+# cp relevant dsets to ${wdir}, and do most of work there
+
+# preliminary: now that we have a workdir, need to copy any refbox
+# dset there
+
+if ( ${DO_USE_REFBOX} ) then
+    echo "++ Copy refbox (${refbox_add[2]}) to workdir"
+    3dcalc                                  \
+        -a       "${refbox_add[2]}"         \
+        -expr    'a'                        \
+        -prefix  ${wdir}/REFBOX.nii
+    # ... and this will become our new refbox dset name
+    set refbox_add[2] = REFBOX.nii
+endif
 
 set idx  = 0
 
-set uin  = "$ulay"
+# copy ulay; from startdir
+set uin  = "${ulay}"
 set uout = "${tpref}_${idx}_cp.nii"
 3dcalc                                      \
-    -a "$uin"                               \
-    -expr 'a'                               \
-    -prefix "$uout"
+    -a      "${uin}"                        \
+    -expr   'a'                             \
+    -prefix "${wdir}/${uout}"
 @ idx += 1
 
-set uin  = "$uout"
-set uout = "${tpref}_${idx}_ulay_shrp.nii"
-3dSharpen \
-    -prefix "${uout}"                       \
-    -phi 0.6                                \
-    -input "${uin}"
-@ idx += 1
+if ( ${DO_USE_OLAY_GRID} ) then
+    if ( "${ulay_interp}" == "" ) then
+        echo "** ERROR: no interpolation value given, even though"
+        echo "          ulay must be moved to olay grid"
+        exit 1
+    endif
 
-set fin  = "$olay"
-set fout = "${tpref}_${idx}_res.nii"
-3dAllineate \
-    -input  "$fin"            \
-    -master "$ulay"           \
-    -prefix "$fout"           \
-    -1Dparam_apply IDENTITY   \
-    -final cubic
-@ idx += 1
-
-set mout = ${tpref}_${idx}_mask.nii
-3dAutomask                             \
-    -prefix ${mout}                    \
-    "$fout"
-@ idx += 1
-
-set fin  = "$fout"
-set fout = "${tpref}_${idx}_mfilt.nii"
-3dMedianFilter                       \
-    -irad 1.01                       \
-    -iter 1                          \
-    -prefix "$fout"                  \
-    "$fin"
-@ idx += 1
-
-set fin  = "$fout"
-set fout = "${tpref}_${idx}_edgy.nii"
-3dedge3 -overwrite -prefix "${fout}" -input "${fin}"
-@ idx += 1
-
-set fin  = "$fout"
-set fout = "${tpref}_${idx}_edge_mskd.nii"
-3dcalc -a $mout -b $fin -expr 'a*b' -prefix "${fout}" 
-@ idx += 1
-
-set vvv  = `3dBrickStat -non-zero -percentile 1 1 1 ${fout}`
-set ethr = $vvv[2]
-
-# Like snapshot volreg
-## set opacity = 9, because one can't really see under the lines
-## usefully, anyways
-# Ulay isn't so dark to see more contrast in stuff
-
-if ( 0 ) then
-# one set
-@chauffeur_afni                             \
-    -ulay  "${uout}"                        \
-    "${refbox_add[1]}"  "$refbox_add[2]"    \
-    -olay  "${fout}"                        \
-    -ulay_range "${umin}" "${umax}"         \
-    -func_range_perc_nz 33                  \
-    -cbar "Reds_and_Blues_Inv"              \
-    -set_subbricks 0 0 0                    \
-    -olay_alpha Yes                         \
-    -olay_boxed Yes                         \
-    -thr_olay $ethr                         \
-    -opacity 9                              \
-    -prefix   "$odir/${opref}"              \
-    -montx $Nx -monty 1                     \
-    -montgap $mgap -montcolor $mcolor       \
-    -save_ftype JPEG                        \
-    -set_xhairs OFF                         \
-    -label_mode 1 -label_size 3             \
-    $allclean
+    # presumably, upsampling; still in stardir, to be able to still
+    # find ${olay}
+    set uin  = "${wdir}/${uout}"
+    set uout = "${tpref}_${idx}_grid2olay.nii"
+    3dAllineate                        \
+        -input  "${uin}"               \
+        -master "${olay}"              \
+        -prefix "${wdir}/${uout}"      \
+        -1Dparam_apply IDENTITY        \
+        -final         ${ulay_interp}
+    @ idx += 1
 endif
 
-# other type
+cd ${wdir}  # work in workdir
+
+if ( ${DO_SHARPEN_ULAY} ) then
+    # sharpen ulay; prob don't do if regridded
+    set uin  = "${uout}"
+    set uout = "${tpref}_${idx}_ulay_shrp.nii"
+    3dSharpen \
+        -prefix "${uout}"                       \
+        -phi    0.6                             \
+        -input  "${uin}"
+    @ idx += 1
+endif
+
+# at this point, from opts above, the ulay to continue with is still
+# just contained in the var ${uout}
+
+cd -   # jump back from workdir
+ 
+# process the olay
+
+if ( ${DO_USE_OLAY_GRID} ) then
+    # just copy
+    echo "++ Just copy olay, bc ulay will get regridded"
+    set fin  = "${olay}"
+    set fout = "${tpref}_${idx}_cp.nii"
+    3dcalc                                      \
+        -a      "${fin}"                        \
+        -expr   'a'                             \
+        -prefix "${wdir}/${fout}"
+    @ idx += 1
+else
+    # cubic interp, bc we don't want extra/subtle edges from wsinc5
+    # (since we are making edges of this dset)
+    set fin  = "${olay}"
+    set fout = "${tpref}_${idx}_res.nii"
+    3dAllineate \
+        -input  "${fin}"          \
+        -master "${wdir}/${uout}" \
+        -prefix "${wdir}/${fout}" \
+        -1Dparam_apply IDENTITY   \
+        -final         cubic
+    @ idx += 1
+endif 
+
+
+cd ${wdir}  # jump to workdir
+
+set mout = "${tpref}_${idx}_mask.nii"
+3dAutomask                             \
+    -prefix ${mout}                    \
+    "${fout}"
+@ idx += 1
+
+set fin  = "${fout}"
+set fout = "${tpref}_${idx}_mfilt.nii"
+3dMedianFilter                       \
+    -irad    1.01                    \
+    -iter    1                       \
+    -prefix "${fout}"                \
+    "${fin}"
+@ idx += 1
+
+set fin  = "${fout}"
+set fout = "${tpref}_${idx}_edgy.nii"
+3dedge3                     \
+    -overwrite              \
+    -prefix "${fout}"       \
+    -input  "${fin}"
+@ idx += 1
+
+if ( ${DO_MASK_EDGES} ) then
+    # this is now OFF by def, because we often have a masked anat as
+    # olay, anyways
+    set fin  = "$fout"
+    set fout = "${tpref}_${idx}_edge_mskd.nii"
+    3dcalc                                 \
+        -a      "${mout}"                  \
+        -b      "${fin}"                   \
+        -expr   'a*b'                      \
+        -prefix "${fout}" 
+    @ idx += 1
+endif
+
+# at this point, ${fout} is the final edgy dset
+
+set vvv  = `3dBrickStat                \
+                -non-zero              \
+                -percentile 1 1 1      \
+                ${fout}`
+set ethr = ${vvv[2]}
+
+# take image, from the workdir
+
 @chauffeur_afni                             \
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
     -olay  "${fout}"                        \
-    -ulay_range "${umin}" "${umax}"         \
+    "${urange_meth}" "${umin}" "${umax}"    \
     -func_range_perc_nz 33                  \
     -cbar "${cbar}"                         \
     -set_subbricks 0 0 0                    \
@@ -327,23 +441,27 @@ endif
     -olay_boxed No                          \
     -thr_olay $ethr                         \
     -opacity 9                              \
-    -prefix   "$odir/${opref}"              \
-    -montx $Nx -monty 1                     \
+    -prefix   "../${opref}"                 \
+    -montx $Nx -monty ${Ny}                 \
     -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
-    -label_mode 1 -label_size 3             \
+    -label_mode ${label_mode} -label_size 3 \
     $allclean                               \
     ${user_coors}
 
 # ---------------------------------------------------------------------
 
 if ( $DO_CLEAN == 1 ) then
-    echo "\n+* Removing temporary files '${tpref}*'\n"
-    \rm ${tpref}*
+    echo "\n+* Removing temporary workdir '${wdir}*'\n"
+    # in working directory at present, so just go up and remove it
+    cd ..
+    \rm -rf ${wdir_name}
 else
-    echo "\n+* NOT removing temporary files '${tpref}*'\n"
+    echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
+
+cd ${here}
 
 echo ""
 echo "++ DONE! Image output:"
@@ -376,17 +494,22 @@ COMMAND OPTIONS ~1~
 -hview
 -help
 -ver
--ulay
--olay
--prefix
--box_focus_slices
--montgap
--montcolor
--cbar
--set_dicom_xyz
--ulay_range
--montx
--monty
+-ulay              ULAY
+-olay              OLAY
+-prefix            PREFIX
+-box_focus_slices  DSET_BFS
+-montgap           MG
+-montcolor         MC
+-cbar              CBAR
+-set_dicom_xyz     XX YY ZZ
+-ulay_range        umin umax
+-ulay_range_nz     umin umax
+-montx             MX
+-monty             MY
+-use_olay_grid     INTERP
+-label_mode        LM
+-sharpen_ulay_off
+-mask_olay_edges
 -no_clean
 
 NOTES TO SELF ~1~

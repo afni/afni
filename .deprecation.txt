@@ -1,0 +1,355 @@
+This file serves as a log of removal of old functionality.
+
+For each entry a commit id is provided to indicate the relevant commit in which
+such a removal of code occurred. The command "git show <commit-id>" can be used
+to inspect this commit. To inspect this commit and preceding commits (preceding
+commits may include modifications to the build system etc) one can execute the
+command "git log --patch <commit-id>.
+
+
+# ===========================================================================
+# overview of steps for deletion
+# ---------------------------------------------------------------------------
+
+0. update git, just to be sure we are current (no necessary, but preferable)
+
+      cd git/AFNI/afni
+      git checkout master
+      git pull
+
+1. create and checkout new branch (that can be used for a pull request)
+
+      git checkout -b deletions_July_17
+
+2. remove scripts, for example, or copy in updates from elsewhere
+
+      rm src/scripts_install/@make_stim_file
+
+3. make afni_history updates (TYPE_REMOVE - per program/lib/functionality)
+   and, assuming those edits were made in the non-git tree ~/afni/src,
+   copy them into the local git tree (still on branch deletions_July_17):
+
+      cp ~/afni/src/afni_history_rickr.c src
+
+4. commit changes
+
+      git commit -am 'script deletion'
+
+5. add log of most current file changes to .deprecation.txt, 
+   (see "making a 'git deprecate' alias", below)
+   (this makes new git commit, making this branch ready for a pull request)
+
+      git deprecate
+
+6. push new branch
+
+      git push origin deletions_July_17
+
+7. go to https://github.com/afni/afni and open a pull request
+   for that branch (deletions_July_17), and let the CI tests run
+
+
+
+# 99. separate option: update git/afni_doc/educational/classified_progs.rst
+
+
+# ----------------------------------------------------------------------
+# making a 'git deprecate' alias
+
+The purpose of the "deprecate" step is to add a list of files removed or
+modified by the most recent commit.  This alias *only* works for a single
+commit (comparing HEAD~1 to HEAD, the previous to the current commits).
+So it is preferable to run "git deprecate" after a single such change.
+
+
+a. First create an alias that lists that log difference (of the "last commit"),
+   along with a header.  Run "git lc" at any time to see the text.
+
+      git config --global alias.lc 'log --name-only --pretty=format:"%n%n%nDeprecation: %s%nTimestamp: %ai%nCommit: %h%nAuthor: %an%nFiles affected:" HEAD~1..HEAD'
+
+      git lc
+
+
+b. Then create an alias that appends that log difference to .deprecation.txt,
+   and commits that extra change.  Note that this alias should have an '!' in
+   it, which makes the way to create the alias shell-specific.
+
+   From bash:
+
+      git config --global alias.deprecate    \
+          '!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+   From tcsh (escape the initial '!' in the alias text):
+
+      git config --global alias.deprecate    \
+          '\!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+
+These should both be visible from your ~/.gitconfig file.
+
+
+# ----------------------------------------------------------------------
+# using the new aliases
+
+At this point, one can make deletions to the git tree:
+
+      rm -fr src/ptaylor
+ 
+Commit those important deletions:
+
+      git commit -am 'getting rid of malware'
+
+List the changes from that most recent commit
+(this is only for text output, it does not affect the repository):
+
+      git lc
+
+And make one more commit to append the list of removed files
+to .deprecate.txt:
+
+      git deprecate
+
+
+# ---------------------------------------------------------------------------
+# end deletion overview
+# ===========================================================================
+
+
+Deprecation: Remove netcdf, volpack and associated c code
+Timestamp: 2020-08-03 10:56:28 -0400
+Commit: 7942d7255
+Author: leej3
+Files affected:
+src/3dAFNItoMINC.c
+src/3dMINCtoAFNI.c
+src/3ddata.h
+src/afni_plugin.c
+src/afni_pplug_env.c
+src/aren.c
+src/aren.h
+src/arentest.c
+src/help_format.c
+src/machdep.h
+src/mri_render.c
+src/mri_render.h
+src/netcdf-3.5.0/src/COMPATIBILITY
+src/netcdf-3.5.0/src/COPYRIGHT
+src/netcdf-3.5.0/src/INSTALL.html
+src/netcdf-3.5.0/src/MANIFEST
+src/netcdf-3.5.0/src/Makefile
+src/netcdf-3.5.0/src/README
+src/netcdf-3.5.0/src/RELEASE_NOTES
+src/netcdf-3.5.0/src/VERSION
+src/netcdf-3.5.0/src/aclocal.m4
+src/netcdf-3.5.0/src/configure
+src/netcdf-3.5.0/src/configure.in
+src/netcdf-3.5.0/src/cxx/Makefile
+src/netcdf-3.5.0/src/cxx/README
+src/netcdf-3.5.0/src/cxx/depend
+src/netcdf-3.5.0/src/cxx/example.c
+src/netcdf-3.5.0/src/cxx/expected
+src/netcdf-3.5.0/src/f90/Makefile
+src/netcdf-3.5.0/src/f90/NOTES
+src/netcdf-3.5.0/src/f90/Readme
+src/netcdf-3.5.0/src/f90/example_good.cdl
+src/netcdf-3.5.0/src/f90/f90aux.m4
+src/netcdf-3.5.0/src/f90/gen.m4
+src/netcdf-3.5.0/src/f90/nvea.m4
+src/netcdf-3.5.0/src/f90/nves.m4
+src/netcdf-3.5.0/src/fortran/Makefile
+src/netcdf-3.5.0/src/fortran/depend
+src/netcdf-3.5.0/src/fortran/fills.nc
+src/netcdf-3.5.0/src/fortran/netcdf.inc
+src/netcdf-3.5.0/src/fortran/nfconfig.in
+src/netcdf-3.5.0/src/fortran/nfconfig.inc
+src/netcdf-3.5.0/src/libsrc/Makefile
+src/netcdf-3.5.0/src/libsrc/attr.c
+src/netcdf-3.5.0/src/libsrc/attr.m4
+src/netcdf-3.5.0/src/libsrc/depend
+src/netcdf-3.5.0/src/libsrc/dim.c
+src/netcdf-3.5.0/src/libsrc/error.c
+src/netcdf-3.5.0/src/libsrc/fbits.h
+src/netcdf-3.5.0/src/libsrc/ffio.c
+src/netcdf-3.5.0/src/libsrc/libvers.c
+src/netcdf-3.5.0/src/libsrc/nc.c
+src/netcdf-3.5.0/src/libsrc/nc.h
+src/netcdf-3.5.0/src/libsrc/ncconfig.h
+src/netcdf-3.5.0/src/libsrc/ncconfig.in
+src/netcdf-3.5.0/src/libsrc/ncio.c
+src/netcdf-3.5.0/src/libsrc/ncio.h
+src/netcdf-3.5.0/src/libsrc/ncx.c
+src/netcdf-3.5.0/src/libsrc/ncx.h
+src/netcdf-3.5.0/src/libsrc/ncx.m4
+src/netcdf-3.5.0/src/libsrc/ncx_cray.c
+src/netcdf-3.5.0/src/libsrc/netcdf.3
+src/netcdf-3.5.0/src/libsrc/netcdf.h
+src/netcdf-3.5.0/src/libsrc/onstack.h
+src/netcdf-3.5.0/src/libsrc/posixio.c
+src/netcdf-3.5.0/src/libsrc/putget.m4
+src/netcdf-3.5.0/src/libsrc/rnd.h
+src/netcdf-3.5.0/src/libsrc/string.c
+src/netcdf-3.5.0/src/libsrc/t_nc.c
+src/netcdf-3.5.0/src/libsrc/t_ncio.c
+src/netcdf-3.5.0/src/libsrc/t_ncx.c
+src/netcdf-3.5.0/src/libsrc/t_ncxx.c
+src/netcdf-3.5.0/src/libsrc/t_ncxx.m4
+src/netcdf-3.5.0/src/libsrc/test_nc.sav
+src/netcdf-3.5.0/src/libsrc/v1hpg.c
+src/netcdf-3.5.0/src/libsrc/v2i.c
+src/netcdf-3.5.0/src/libsrc/var.c
+src/netcdf-3.5.0/src/macros.make.def
+src/netcdf-3.5.0/src/macros.make.in
+src/netcdf-3.5.0/src/man/Makefile
+src/netcdf-3.5.0/src/man/netcdf.m4
+src/netcdf-3.5.0/src/nc_test/Makefile
+src/netcdf-3.5.0/src/nc_test/depend
+src/netcdf-3.5.0/src/nc_test/error.h
+src/netcdf-3.5.0/src/nc_test/test_get.m4
+src/netcdf-3.5.0/src/nc_test/test_put.m4
+src/netcdf-3.5.0/src/nc_test/tests.h
+src/netcdf-3.5.0/src/ncdump/Makefile
+src/netcdf-3.5.0/src/ncdump/depend
+src/netcdf-3.5.0/src/ncdump/dumplib.c
+src/netcdf-3.5.0/src/ncdump/dumplib.h
+src/netcdf-3.5.0/src/ncdump/ncdump.1
+src/netcdf-3.5.0/src/ncdump/ncdump.c
+src/netcdf-3.5.0/src/ncdump/ncdump.h
+src/netcdf-3.5.0/src/ncdump/test0.cdl
+src/netcdf-3.5.0/src/ncdump/vardata.c
+src/netcdf-3.5.0/src/ncdump/vardata.h
+src/netcdf-3.5.0/src/ncgen/Makefile
+src/netcdf-3.5.0/src/ncgen/c0.cdl
+src/netcdf-3.5.0/src/ncgen/depend
+src/netcdf-3.5.0/src/ncgen/ncgen.1
+src/netcdf-3.5.0/src/ncgen/ncgen.l
+src/netcdf-3.5.0/src/ncgen/ncgen.y
+src/netcdf-3.5.0/src/nctest/Makefile
+src/netcdf-3.5.0/src/nctest/README
+src/netcdf-3.5.0/src/nctest/depend
+src/netcdf-3.5.0/src/nctest/testfile_nc.sav
+src/netcdf-3.5.0/src/nctest/timesum.awk
+src/netcdf-3.5.0/src/nf_test/Makefile
+src/netcdf-3.5.0/src/nf_test/depend
+src/netcdf-3.5.0/src/nf_test/test_get.m4
+src/netcdf-3.5.0/src/nf_test/test_put.m4
+src/netcdf-3.5.0/src/nf_test/tests.inc
+src/netcdf-3.5.0/src/rules.make
+src/netcdf.h
+src/plug_render.c
+src/prog_opts.c
+src/thd_initsess.c
+src/thd_loaddblk.c
+src/thd_mincread.c
+src/thd_mincwrite.c
+src/thd_opendset.c
+src/volpack.h
+src/volpack/CMakeLists.txt
+src/volpack/Makefile
+src/volpack/config.h
+src/volpack/makeopts.c
+src/volpack/patchlevel.h
+src/volpack/volpack.h
+src/volpack/vp_check.c
+src/volpack/vp_compAC00G.c
+src/volpack/vp_compAC11B.c
+src/volpack/vp_compAC1NB.c
+src/volpack/vp_compAC1NS.c
+src/volpack/vp_compAC1PB.c
+src/volpack/vp_compAC31B.c
+src/volpack/vp_compAC32B.c
+src/volpack/vp_compAC3NB.c
+src/volpack/vp_compAC3NS.c
+src/volpack/vp_compAC3PB.c
+src/volpack/vp_compAR00G.c
+src/volpack/vp_compAR11B.c
+src/volpack/vp_compAR1NB.c
+src/volpack/vp_compAR1NS.c
+src/volpack/vp_compAR1PB.c
+src/volpack/vp_compAR31B.c
+src/volpack/vp_compAR32B.c
+src/volpack/vp_compAR3NB.c
+src/volpack/vp_compAR3NS.c
+src/volpack/vp_compAR3PB.c
+src/volpack/vp_context.c
+src/volpack/vp_extract.c
+src/volpack/vp_file.c
+src/volpack/vp_global.h
+src/volpack/vp_linalg.c
+src/volpack/vp_octree.c
+src/volpack/vp_opts.c
+src/volpack/vp_renderA.c
+src/volpack/vp_renderB.c
+src/volpack/vp_renderC.c
+src/volpack/vp_renderR.c
+src/volpack/vp_resample.c
+src/volpack/vp_rle.c
+src/volpack/vp_shade.c
+src/volpack/vp_transpose.c
+src/volpack/vp_userguide.html
+src/volpack/vp_util.c
+src/volpack/vp_view.c
+src/volpack/vp_warp.c
+src/volpack/vp_warpA101N.c
+src/volpack/vp_warpA110N.c
+src/volpack/vp_warpA111N.c
+src/volpack/vp_warpA301N.c
+src/volpack/vp_warpA330N.c
+src/volpack/vp_warpA330R.c
+src/volpack/vp_warpA331N.c
+src/volpack/vp_warpA331R.c
+
+
+
+Deprecation: deletion of many scripts
+Timestamp: 2020-08-25 14:15:50 -0400
+Commit: a9b60b1f4
+Author: rick reynolds
+Files affected:
+src/R_scripts/3dAOV.R
+src/R_scripts/3dICC_REML.R
+src/afni_history_rickr.c
+src/python_scripts/afnipy/lib_fs.py
+src/python_scripts/scripts/DoPerRoi.py
+src/python_scripts/scripts/afni_restproc.py
+src/python_scripts/scripts/check_dset_for_fs.py
+src/python_scripts/scripts/lpc_align.py
+src/scripts_install/@DTI_studio_reposition
+src/scripts_install/@UpdateAfni
+src/scripts_install/@auto_align
+src/scripts_install/@make_stim_file
+src/scripts_install/@snapshot_volreg3
+
+
+
+Deprecation: distribution deletion of compiled programs
+Timestamp: 2020-08-25 17:40:01 -0400
+Commit: 1ac227bcc
+Author: rick reynolds
+Files affected:
+src/Makefile.INCLUDE
+src/afni_history_rickr.c
+src/ptaylor/Makefile.ptaylor.INCLUDE
+src/rickr/Makefile
+src/scripts_install/3dMax
+
+
+
+Deprecation: deletion/deprecation: fat_mvm_review.py, fat_proc_grad_plot
+Timestamp: 2020-09-01 15:15:34 -0400
+Commit: 509b759f3
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/scripts/fat_mvm_review.py
+src/scripts_install/fat_proc_grad_plot
+
+
+
+Deprecation: delete/deprecate: fat_lat_csv.py
+Timestamp: 2020-09-01 17:12:47 -0400
+Commit: 6ae08226b
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/afnipy/lib_fat_Rfactor.py
+src/python_scripts/scripts/fat_lat_csv.py

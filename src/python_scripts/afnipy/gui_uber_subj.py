@@ -2330,10 +2330,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       obj = self.sender()
       if   obj == self.gvars.act_browse_all_progs:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/program_help/index.html')
+                            '/htmldoc/programs/main_toc.html')
       elif obj == self.gvars.act_browse_AP_help:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
-                            '/program_help/afni_proc.py.html')
+                            '/htmldoc/programs/afni_proc.py_sphx.html')
       elif obj == self.gvars.act_browse_SS_tutor:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu/data' \
                             '/CD.expanded/AFNI_data6/FT_analysis/tutorial')

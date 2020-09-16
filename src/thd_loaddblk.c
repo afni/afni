@@ -122,7 +122,7 @@ void THD_set_freeup( generic_func *ff ){ freeup = ff; }
 
 /*---------------------------------------------------------------*/
 
-Boolean THD_load_datablock( THD_datablock *blk )
+RwcBoolean THD_load_datablock( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
    int nx,ny,nz , nxy,nxyz , nv , ii , ibr ;
@@ -178,20 +178,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*-- 29 Oct 2001: MINC input (etc.) --*/
 
    if( dkptr->storage_mode == STORAGE_BY_MINC ){
-#ifndef DONT_ALLOW_MINC
-     THD_load_minc( blk ) ;
-     ii = THD_count_databricks( blk ) ;
-     if( ii == blk->nvals ){
-       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
-       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
-       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
-       RETURN( True ) ;
-     }
-     STATUS("can't read MINC file?!") ;
-     RETURN( False ) ;
-#else
      ERROR_message("MINC-1 dataset input support is disabled") ;
-#endif
    }
 
    { THD_3dim_dataset *ds = (THD_3dim_dataset *)blk->parent ;  /* 04 Aug 2004 */

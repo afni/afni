@@ -25,10 +25,6 @@ extern void machdep() ;
 }
 #endif
 
-#if 0   /* disallow MINC-1 datasets */
-#define DONT_ALLOW_MINC
-#endif
-
 /*----------------------------------------------------------------------------
   Flags that can be used to work around bugs on some systems
   (you could also use the -Dname command line switch in the Makefile
@@ -38,11 +34,10 @@ extern void machdep() ;
                    in a set of data/functions that allows debug tracing
                    of execution.
 
-    DONT_USE_MCW_MALLOC = if this is set, then the malloc wrappers
-                          defined in mcw_malloc.[ch] will not be
-                          be used.  (These functions provide some
-                          ability to track and debug the use of
-                          malloc-ed memory space.)
+    ALLOW_MCW_MALLOC = if this is set, then the malloc wrappers
+                       defined in mcw_malloc.[ch] will be used.
+                       (These functions provide some ability to track
+                       and debug the use of malloc-ed memory space.)
 
     DONT_USE_METER  = if #define-d, won't show progress meter during
                        brick write operations (and other similar places)
@@ -271,7 +266,6 @@ extern long   strtol() ;
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 # undef  DONT_USE_HTMLWIN     /* 08 Jul 2011 */
 # define UNFONTIZE_HTMLWIN    /* 08 Jul 2011 */
-# define strcasestr AFNI_strcasestr 
 
 
 #ifdef SOLARIS_OLD            /* 03 Feb 2009 [rickr] */
@@ -424,6 +418,10 @@ extern char * GetAfniPDFViewer(void);
 extern char * GetAfniImageViewer(void);
 extern char * GetAfniTextEditor(void);
 extern char * AFNI_strcasestr(const char *s1, const char *s2);
+
+#ifndef strcasestr
+#define strcasestr AFNI_strcasestr  /* replacement [24 Jun 2020] */
+#endif
 
 extern void AFNI_do_nothing(void) ;
 

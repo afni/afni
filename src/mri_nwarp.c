@@ -54,13 +54,14 @@
 
 #define DEBUG_CATLIST   /* used to check progress of warp catenation */
 
-/*--- for debugging memory usage, when there is a problem       ---*/
-/*--- not a good idea with OpenMP: mcw_malloc isn't thread safe ---*/
+/*----------------------------------------------------------------------------*/
+/*--- for debugging memory usage, when there is a problem       --------------*/
+/*--- not a good idea with OpenMP: mcw_malloc isn't thread safe --------------*/
 
 #define DEBUG_MEMORY
 #undef  MEMORY_CHECK
 
-#if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC)
+#if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC) /*---------------------*/
 
 # define MEMORY_CHECK(mm)                                              \
    do{ long long nb = mcw_malloc_total() ;                             \
@@ -81,12 +82,36 @@ static char * wans(void)
 
 # define MEMORY_SHORT wans()
 
-#else  /*--- don't do anything for memory checking ---*/
+#else  /*--- try something else for memory checking --------------------------*/
 
-# define MEMORY_CHECK(mm) /*nada*/
+# define MEMORY_CHECK(mm)  show_malloc_stats(mm) ;
 # define MEMORY_SHORT     "\0"
 
+#if defined(__FreeBSD__)
+  #include <stdlib.h>
+  #include <malloc_np.h>
 #endif
+
+static void show_malloc_stats(char *mesg)  /*-- stolen from Rick R --*/
+{
+#if defined(__linux__)
+      INFO_message("Memory usage: %s",mesg) ;
+      malloc_stats();
+#elif defined(__FreeBSD__)
+      INFO_message("Memory usage: %s",mesg) ;
+      malloc_stats_print(NULL, NULL, "g");
+#endif
+}
+
+#endif /* #if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC) -------------*/
+
+#ifndef MEMORY_CHECK
+# define MEMORY_CHECK(mm) /* nada */
+#endif
+#ifndef MEMORY_SHORT
+# define MEMORY_SHORT     "\0"
+#endif
+/*----------------------------------------------------------------------------*/
 
 /*..........................................................................*/
 /** Note that the functions needed only in 3dQwarp (4000+ lines of code)
@@ -11023,6 +11048,7 @@ ENTRY("IW3D_warpomatic") ;
      INFO_message("AFNI warpomatic: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d [clock=%s]",
                   Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax,
                   nice_time_string(NI_clock_time())          ) ;
+   if( Hverb > 1 ) MEMORY_CHECK("starting") ;
 
    /*------ do the top level (global warps) --------*/
 
@@ -11280,7 +11306,7 @@ ENTRY("IW3D_warpomatic") ;
                       nice_time_string(NI_clock_time()) ) ;
      else if( Hverb == 1 )
        fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
-
+     if( Hverb > 1 ) MEMORY_CHECK("continuing") ;
      Hdone = Hskipped = 0 ;
 
      /* alternate the direction of sweeping at different levels;
@@ -11397,6 +11423,7 @@ DoneDoneDone:  /* breakout */
 
    OutWarp = IW3D_copy( Haawarp , 1.0f ) ;
    IW3D_cleanup_improvement() ;
+   if( Hverb > 1 ) MEMORY_CHECK("finished") ;
 
    RETURN(OutWarp) ;
 }

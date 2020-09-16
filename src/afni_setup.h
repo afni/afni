@@ -80,7 +80,7 @@ extern void AFNI_process_setup( char * , int , MCW_DC * ) ;
 extern int check_PBAR_palette( PBAR_palette * ) ;
 extern char * dump_PBAR_palette_table(int) ;
 extern void AFNI_pbar_CB( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 extern char * AFNI_palette_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_palette_av_CB( MCW_arrowval * , XtPointer ) ;
 extern void load_PBAR_palette_array( MCW_pbar * , PBAR_palette_array * , int ) ;
@@ -91,7 +91,7 @@ extern void AFNI_finalize_write_palette_CB( Widget, XtPointer, MCW_choose_cbs * 
 extern void AFNI_finalize_saveim_CB( Widget, XtPointer, MCW_choose_cbs * );
 extern void AFNI_palette_tran_CB( MCW_arrowval * , XtPointer ) ;
 
-extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
+extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , RwcBoolean * ) ;
 extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_thronoff_change_CB( Widget, XtPointer, XtPointer ) ;

@@ -148,7 +148,7 @@ void AFNI_plugout_exit( void )
 
 #define CONTROL_BUFSIZE (16*1024)
 
-Boolean AFNI_plugout_workproc( XtPointer elvis )
+RwcBoolean AFNI_plugout_workproc( XtPointer elvis )
 {
    int jj , ngood , pcode , ii , opcount=0 , cc ;
    PLUGOUT_spec *pp ;

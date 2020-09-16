@@ -22,6 +22,7 @@ NB: seeks for writable files with compression are quite restricted
  */
 
 #include "znzlib.h"
+#include "znzlib_version.h"
 
 /*
 znzlib.c  (zipped or non-zipped library)

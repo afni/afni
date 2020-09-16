@@ -185,6 +185,7 @@ target_include_directories(f2c PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(f2c PROPERTIES PUBLIC_HEADER f2c.h)
 target_link_libraries(
   f2c
-  PUBLIC NIFTI::nifticdf
-  PRIVATE m
+  PRIVATE
+          NIFTI::nifticdf
+          m
 )

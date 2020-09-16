@@ -1,38 +1,33 @@
 set(NIFTI_NIFTILIB_NAME ${NIFTI_PACKAGE_PREFIX}niftiio)
 
-add_library(${NIFTI_NIFTILIB_NAME} nifti1_io.c )
+add_nifti_library(${NIFTI_NIFTILIB_NAME} nifti1_io.c )
 target_link_libraries( ${NIFTI_NIFTILIB_NAME} PUBLIC ${NIFTI_PACKAGE_PREFIX}znz ${NIFTI_SYSTEM_MATH_LIB})
-target_include_directories(${NIFTI_NIFTILIB_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${NIFTI_INSTALL_INCLUDE_DIR}>
-        )
-
-if(NIFTI_BUILD_APPLICATIONS)
-  add_executable(${NIFTI_PACKAGE_PREFIX}nifti1_tool nifti1_tool.c)
-  target_link_libraries(${NIFTI_PACKAGE_PREFIX}nifti1_tool PUBLIC ${NIFTI_NIFTILIB_NAME})
-  set(NIFTI1_APPS ${NIFTI_PACKAGE_PREFIX}nifti1_tool)
-endif()
-
+set_target_properties(
+  ${NIFTI_NIFTILIB_NAME}
+  PROPERTIES
+    PUBLIC_HEADER
+      "${CMAKE_CURRENT_LIST_DIR}/nifti1_io.h;${CMAKE_CURRENT_LIST_DIR}/nifti1.h"
+  )
 # Set library version when building shared libs.
 if(BUILD_SHARED_LIBS)
-  set_target_properties(${NIFTI_NIFTILIB_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})
+    get_lib_version_vars("nifti1_io_version.h" NIFTI_VERSION NIFTI_MAJOR_VERSION)
+    set_target_properties(${NIFTI_NIFTILIB_NAME}
+      PROPERTIES
+        ${NIFTI_LIBRARY_PROPERTIES}
+        VERSION ${NIFTI_VERSION}
+        SOVERSION ${NIFTI_MAJOR_VERSION}
+        )
 endif()
+install_nifti_target(${NIFTI_NIFTILIB_NAME})
 
-if(NOT NIFTI_INSTALL_NO_LIBRARIES)
-  install(TARGETS ${NIFTI_NIFTILIB_NAME} ${NIFTI1_APPS}
-          EXPORT ${NIFTI_INSTALL_EXPORT_NAME}
-          RUNTIME DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR} COMPONENT RuntimeLibraries
-          LIBRARY DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT RuntimeLibraries
-          ARCHIVE DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
-          INCLUDES DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-          )
-endif()
-
-if(NOT NIFTI_INSTALL_NO_DEVELOPMENT)
-  file(GLOB __files "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-  install(FILES ${__files}
-    DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+if(NIFTI_BUILD_APPLICATIONS)
+  add_nifti_executable(${NIFTI_PACKAGE_PREFIX}nifti1_tool nifti1_tool.c)
+  target_link_libraries(${NIFTI_PACKAGE_PREFIX}nifti1_tool PUBLIC ${NIFTI_NIFTILIB_NAME})
+  install_nifti_target(${NIFTI_PACKAGE_PREFIX}nifti1_tool)
+  install_man_page(
+    ${NIFTI_PACKAGE_PREFIX}nifti1_tool
+    OPTS "--help-option=-help;--version-option=-ver_man;--no-info"
+    )
 endif()
 
 
@@ -81,6 +76,12 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
   add_test( NAME ${TEST_PREFIX}_header_check COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_hdr -infiles ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data/anat0.nii )
   add_test( NAME ${TEST_PREFIX}_nim_check    COMMAND $<TARGET_FILE:${TOOL_NAME}> -check_nim -infiles ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data/anat0.nii )
 
+  set_tests_properties(${TEST_PREFIX}_disp_hdr PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_disp_nim PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_disp_ext PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_header_check PROPERTIES LABELS NEEDS_DATA)
+  set_tests_properties(${TEST_PREFIX}_nim_check PROPERTIES LABELS NEEDS_DATA)
+
   #The help screens always return 1; add_test( NAME ${NIFTI_PACKAGE_PREFIX}nifti1_tool1_help COMMAND $<TARGET_FILE:${TOOL_NAME}>)
   add_test( NAME ${TEST_PREFIX}_tool_n1  COMMAND $<TARGET_FILE:${TOOL_NAME}> -disp_hdr -infile ${CMAKE_CURRENT_BINARY_DIR}/n1 )
   add_test( NAME ${TEST_PREFIX}_tool_n2  COMMAND $<TARGET_FILE:${TOOL_NAME}> -disp_hdr -infile ${CMAKE_CURRENT_BINARY_DIR}/n2 )
@@ -122,6 +123,7 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
       message(STATUS "NiftiTestGeneratedFiles_${testsuffix}" )
     set_tests_properties( ${TEST_PREFIX}_tool_${testsuffix} ${TEST_PREFIX}_test_${testsuffix}
             PROPERTIES RESOURCE_LOCK Serial_${testsuffix}
+            LABELS NEEDS_DATA
             )
     set_tests_properties(cleanup_${testsuffix} PROPERTIES FIXTURES_CLEANUP  NiftiTestGeneratedFiles_${testsuffix} )
   endforeach()
@@ -132,14 +134,15 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
   set_tests_properties( ${TEST_PREFIX}_tool_disp_ci          PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_zn1)
   set_tests_properties( ${TEST_PREFIX}_tool_disp_ts          PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_zn1)
   set_tests_properties( ${TEST_PREFIX}_tool_strip_extras     PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_zn1)
-  set_tests_properties( ${TEST_PREFIX}_tool_check_hdr        PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_za2)
-  set_tests_properties( ${TEST_PREFIX}_tool_check_nim        PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_za2)
+  set_tests_properties( ${TEST_PREFIX}_tool_check_hdr        PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_za2  LABELS NEEDS_DATA)
+  set_tests_properties( ${TEST_PREFIX}_tool_check_nim        PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFiles_za2  LABELS NEEDS_DATA)
   #set_tests_properties( ${TEST_PREFIX}_tool_copy_collapsed_image PROPERTIES FIXTURES_REQUIRED NiftiTestGeneratedFileszn1)
 
   set_tests_properties( ${TEST_PREFIX}_tool_diff_hdr ${TEST_PREFIX}_tool_diff_nims
           ${TEST_PREFIX}_tool_copy_brick_list
           ${TEST_PREFIX}_tool_disp_ci ${TEST_PREFIX}_tool_disp_ts ${TEST_PREFIX}_tool_strip_extras
           PROPERTIES RESOURCE_LOCK Serial_zn1
+          LABELS NEEDS_DATA
           )
   #==END NIFTI1 and NIFTI2 common tests ============================================
 

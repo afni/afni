@@ -39,7 +39,7 @@ XLIBS = -lXm -ljpeg.9 -lXt
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
-	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+	 -DDONT_USE_MCW_MALLOC -DREPLACE_XT $(LESSTIF_DEFS)
 CC     = /sw/bin/gcc-7 -O2  -DDARWIN $(CEXTRA)
 CCVOL  = $(CC)
 CCFAST = $(CC)
@@ -52,19 +52,20 @@ OMPFLAG = -fopenmp -DUSE_OMP
 SYSTEM_NAME = macos_10.12_local
 INSTALLDIR = $(SYSTEM_NAME)
 
-EXTRA_INSTALL_FILES = /sw/lib/libXm.4.dylib			  \
-		      /sw/lib/libjpeg.9.dylib			  \
-		      /sw/lib/libiconv.2.dylib			  \
-		      /sw/lib/python2.7/config/libpython2.7.dylib \
-		      /sw/lib/gcc7/lib/libgcc_s.1.dylib		  \
-		      /sw/lib/libglib-2.0.0.dylib		  \
-		      /sw/lib/libgsl.0.dylib			  \
-		      /sw/lib/libgslcblas.0.dylib		  \
-		      /sw/lib/gcc7/lib/libgomp.1.dylib		  \
-		      /sw/lib/freetype219/lib/libfreetype.6.dylib \
-		      /sw/lib/libpng16.16.dylib			  \
-		      /sw/lib/libbz2.1.dylib			  \
-		      /sw/lib/libintl.8.dylib
+EXTRA_INSTALL_FILES = /sw/lib/libXm.4.dylib                        \
+                      /sw/lib/libjpeg.9.dylib                      \
+                      /sw/lib/libiconv.2.dylib                     \
+                      /sw/lib/python2.7/config/libpython2.7.dylib  \
+                      /sw/lib/gcc7/lib/libgcc_s.1.dylib            \
+                      /sw/lib/libglib-2.0.0.dylib                  \
+                      /sw/lib/libgsl.0.dylib                       \
+                      /sw/lib/libgslcblas.0.dylib                  \
+                      /sw/lib/gcc7/lib/libgomp.1.dylib             \
+                      /sw/lib/freetype219/lib/libfreetype.6.dylib  \
+                      /sw/lib/libpng16.16.dylib                    \
+                      /sw/lib/libbz2.1.dylib                       \
+                      /sw/lib/libintl.8.dylib                      \
+                      /sw/lib/libexpat.1.dylib
 
 EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            chmod u+w *.dylib ;                                \

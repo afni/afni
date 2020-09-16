@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Aug 11, 2019
+Version 0.0.5, Aug 15, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -107,7 +107,8 @@ Introduction
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC -jobs 12                    \\
-          -model  '1+(1|Subj1)+(1|Subj2           \\
+          -mask myMask+tlrc                       \\
+          -model  '1+(1|Subj1)+(1|Subj2)          \\
           -dataTable                              \\
           Subj1   Subj2  InputFile                \\
           s1       s2    s1_s2+tlrc               \\
@@ -143,6 +144,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC2a -jobs 12                \\
+          -mask myMask+tlrc                     \\
           -model  'grp+(1|Subj1)+(1|Subj2)'     \\
           -gltCode ave     '1 0 -0.5'           \\
           -gltCode G11     '1 1 0'              \\
@@ -153,7 +155,7 @@ Introduction
           -gltCode G12vG22 '0 1 2'              \\
           -gltCode ave-G12 '0 0 -1.5'           \\
           -dataTable                            \\
-          Subj1 Subj2    grp      InputFi       \\
+          Subj1 Subj2    grp      InputFile       \\
           s1     s2      G11      s1_2+tlrc     \\
           s1     s3      G11      s1_3+tlrc     \\
           s1     s4      G11      s1_4+tlrc     \\
@@ -242,6 +244,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC3 -jobs 12                       \\
+          -mask myMask+tlrc                           \\
           -model  'Age+(1|Subj1)+(1|Subj2)'           \\
           -qVars   Age                                \\
           -gltCode ave     '1 0'                      \\
@@ -272,6 +275,7 @@ Introduction
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC2c -jobs 12                          \\
+          -mask myMask+tlrc                               \\
           -model  'Sex+Age+SA+(1|Subj1)+(1|Subj2)'        \\
           -qVars  'Sex,Age,SA'                            \\
           -gltCode ave       '1   0  0  0'                \\
@@ -642,6 +646,9 @@ process.ISC.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
+         lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
+
    }
    
    if(lop$iometh == 'Rlib') {
@@ -672,11 +679,11 @@ process.ISC.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk
+      lop$maskData <- mm$brk[,,,1]
       if(verb) cat("Done read ", lop$maskFN,'\n')
    }
    if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData[,,,1])==lop$myDim[1:3])) 
+      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
          stop("Mask dimensions don't match the input files!")
 
    return(lop)
@@ -918,8 +925,8 @@ tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
 cat('Reading input files for effect estimates: Done!\n\n')
 
 if (!is.na(lop$maskFN)) {
-   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
-   inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
+   #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
 
@@ -963,15 +970,26 @@ if(any(!is.na(lop$vVars))) {
    lop$nVVars <- nlevels(lop$dataStr[,paste(lop$vQV[1], '_fn', sep='')])
 }                                             
 
+# show the range of input data
+rg <- range(inData)
+cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
+
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or something else\n')
 cat('is likely inappropriate.\n\n')
 
-xinit <- dimx%/%3
-if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+# pick up a test voxel
+if(!is.na(lop$maskFN)) {
+   idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- idx[floor(dim(idx)[1]/2),1:3]
+   ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+} else {
+   xinit <- dimx%/%3
+   if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
+   if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+   ii <- xinit; jj <- yinit; kk <- zinit
+}
 
-ii <- xinit; jj <- yinit; kk <- zinit
 if(unlist(strsplit(lop$model, split="[+]"))[1]==1) {
    intercept <- 1
    lop$NoBrick <- 2

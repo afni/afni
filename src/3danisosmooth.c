@@ -21,7 +21,7 @@
 #include "thd_shear3d.h"
 #include "matrix.h"
 /*#include "matrix.c"*/
-#include "afni.h"
+#include "mrilib.h"
 
 
 #define TINYNUMBER 1E-10

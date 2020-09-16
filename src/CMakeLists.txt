@@ -3,12 +3,10 @@ set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
 
 # ##### Add core targets from elsewhere
 add_subdirectory(rickr)
-add_subdirectory(coxplot)
 add_subdirectory(niml)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 add_subdirectory(3DEdge)
-add_subdirectory(ptaylor)
 add_subdirectory(mpeg_encodedir)
 include(CMakeLists_mri.txt)
 
@@ -87,13 +85,19 @@ if(COMP_ADD_BINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
-# Add scripts (includes shell, python, and R scripts)
+# Add scripts (includes shell and R scripts)
 if(COMP_ADD_TCSH)
   add_subdirectory(scripts_install)
 endif()
 
+# Add python code
+if(COMP_ADD_PYTHON)
+  add_subdirectory(python_scripts)
+endif()
+
 # Add targets with a dependency on X
 if(COMP_X_DEPENDENT_GUI_PROGS)
+  add_subdirectory(coxplot)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
@@ -101,6 +105,7 @@ endif()
 # Add suma
 if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
   # segtools/avovk only used by suma so add it here
+  add_subdirectory(ptaylor)
   add_subdirectory(avovk)
   add_subdirectory(SUMA)
 endif()
@@ -120,6 +125,14 @@ if(COMP_ADD_RSTATS)
   )
   target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
+
+
+install(
+    DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/faces/
+        ${CMAKE_CURRENT_SOURCE_DIR}/poems/
+    DESTINATION ${AFNI_INSTALL_FUNSTUFF_DIR})
+
 
 # ##### Create list of programs built
 set(PROGRAMS_BUILT ${PROGRAM_BUILT})

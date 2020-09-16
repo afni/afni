@@ -10,25 +10,20 @@
 /*----- 24 Jan 2001: modified slightly to add some comments, and
                      to fit in with the hashtable-ized mcw_malloc.c -----*/
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-
-/* Use mrix for X dependent programs */
-#ifdef __BUILDING_QUICKLOOK_PLUGIN__
-  #include "IntrinsicQuickLook.h"
-#else
-  #include <X11/Intrinsic.h>
-#endif
-
-#include "machdep.h"
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
+#ifndef ALLOW_MCW_MALLOC
+# define DONT_USE_MCW_MALLOC  /* old way to mark  mcw_malloc usage/non-usage */
+#else
+# undef  DONT_USE_MCW_MALLOC
+#endif
+
 /*---------------------------------------------------------------------------*/
 #ifdef DONT_USE_MCW_MALLOC
+
+#undef USING_MCW_MALLOC
 
 #define MCW_MALLOC_enabled 0
 
@@ -53,12 +48,28 @@ extern "C" {
 #undef  mcw_strdup
 #define mcw_strdup  strdup
 
-extern void   mcw_malloc_dump_fp(FILE *fp) ;
+#define mcw_malloc_dump_fp(x) /*nada*/
+
+/***** extern void   mcw_malloc_dump_fp(FILE *fp) ; *****/
 
 /*---------------------------------------------------------------------------*/
 #else
 
 #define USING_MCW_MALLOC
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "replaceXt.h"
+
+/* Use mrix for X dependent programs */
+#ifdef __BUILDING_QUICKLOOK_PLUGIN__
+  #include "IntrinsicQuickLook.h"
+#else
+  #include <X11/Intrinsic.h>
+#endif
+
+#include "machdep.h"
 
 /*-- define macros to replace the source code's use of malloc(), etc. --*/
 
@@ -115,9 +126,9 @@ extern long long mcw_malloc_total(void) ; /* 01 Feb 2007 */
 #define XtCalloc(a,b)   mcw_XtCalloc((a),(b),__FILE__,__LINE__)
 #define XtFree(a)       mcw_XtFree((char *)(a))
 
-extern char * mcw_XtMalloc( Cardinal , char * ,  int ) ;
-extern char * mcw_XtRealloc( char * , Cardinal , char * ,  int ) ;
-extern char * mcw_XtCalloc( Cardinal , Cardinal , char * ,  int ) ;
+extern char * mcw_XtMalloc( RwcCardinal , char * ,  int ) ;
+extern char * mcw_XtRealloc( char * , RwcCardinal , char * ,  int ) ;
+extern char * mcw_XtCalloc( RwcCardinal , RwcCardinal , char * ,  int ) ;
 extern void   mcw_XtFree( char * ) ;
 
 #endif /* DONT_USE_MCW_MALLOC */
@@ -125,8 +136,8 @@ extern void   mcw_XtFree( char * ) ;
 
 /*-- some macros used in various AFNI places --*/
 
-#define myXtFree(xp)  (XtFree((char *)(xp)) , (xp)=NULL)
-#define myXtNew(type) ((type *) XtCalloc(1,(Cardinal) sizeof(type)))
+#define myXtFree(xp)  (RwcFree((char *)(xp)) , (xp)=NULL)
+#define myXtNew(type) ((type *) RwcCalloc(1,(RwcCardinal) sizeof(type)))
 #define myfree(xp)    (free((xp)) , (xp)=NULL)
 
 #ifdef  __cplusplus

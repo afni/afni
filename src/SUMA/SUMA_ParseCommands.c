@@ -3158,7 +3158,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->UseSkull = 0;
    Opt->send_hull = 0;
    Opt->bot_lztclip = 0.0; /* 0.5 is OK but causes too much leakage below cerebellum in most dsets, 0.65 seems better. 0 if you do not want to use it*/
-	Opt->var_lzt = 0.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
+   Opt->var_lzt = 0.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
                            chunks of CSF just below the brain */
    Opt->DemoPause = 0;
    Opt->DoSpatNorm = 0;
@@ -3930,17 +3930,17 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
    ps->N_DO = 0;
    ps->cs = SUMA_Create_CommSrtuct();
    kar = 1;
-	brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+   brk = NOPE;
+   while (kar < argc) { /* loop accross command ine options */
       /* envs */
       if (!brk) {
          if (!strcmp(argv[kar],"-setenv")) {
             ps->arg_checked[kar]=1; kar ++;
             if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need quoted env string after %s \n",
+               fprintf (SUMA_STDERR, "need quoted env string after %s \n",
                                      argv[kar-1]);
-				   exit (1);
-			   }
+               exit (1);
+            }
             if (!SUMA_setenv_option(argv[kar])) {
                exit(1);
             }  
@@ -3960,10 +3960,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             }
             ps->arg_checked[kar]=1; kar ++;
             if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after %s \n",
+               fprintf (SUMA_STDERR, "need 1 argument after %s \n",
                                      argv[kar-1]);
-				   exit (1);
-			   }
+               exit (1);
+            }
             /* put the flags up */
             if (strcmp(argv[kar], "-cmap") == 0) {
                ps->cmap = SUMA_copy_string(argv[kar]); 
@@ -4023,7 +4023,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->cmap = SUMA_copy_string(Cmap->Name);
             }
             ps->arg_checked[kar]=1; 
-			   brk = YUP;
+            brk = YUP;
             
          }
          if (!brk && (  (strcmp(argv[kar], "-cmapdb") == 0) ) ) {
@@ -4034,10 +4034,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             }
             ps->arg_checked[kar]=1; kar ++;
             if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after %s \n",
+               fprintf (SUMA_STDERR, "need 1 argument after %s \n",
                                      argv[kar]);
-				   exit (1);
-			   }
+               exit (1);
+            }
             if (!SUMA_filexists(argv[kar])) {
                fprintf (SUMA_STDERR,"cmapdb file %s not found\n",
                                     argv[kar]);
@@ -4057,48 +4057,48 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                exit(1);
             }
             ps->arg_checked[kar]=1; 
-			   brk = YUP;
+            brk = YUP;
          }
       }
       if (!brk && ps->accept_mask) {
          if (!brk && (strcmp(argv[kar], "-n_mask") == 0)) {
             ps->arg_checked[kar]=1; kar ++;
-			   if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after -n_mask \n");
-				   exit (1);
-			   }
-			   ps->nmaskname = SUMA_copy_string(argv[kar]);
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need 1 argument after -n_mask \n");
+               exit (1);
+            }
+            ps->nmaskname = SUMA_copy_string(argv[kar]);
             ps->arg_checked[kar]=1; 
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
          if (!brk && (strcmp(argv[kar], "-cmask") == 0 || 
                       strcmp(argv[kar], "-c_mask") == 0)) {
             ps->arg_checked[kar]=1; kar ++;
-			   if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after -c_mask \n");
-				   exit (1);
-			   }
-			   ps->cmask = SUMA_copy_string(argv[kar]); 
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need 1 argument after -c_mask \n");
+               exit (1);
+            }
+            ps->cmask = SUMA_copy_string(argv[kar]); 
             ps->arg_checked[kar]=1;
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
          if (!brk && (strcmp(argv[kar], "-b_mask") == 0)) {
              ps->arg_checked[kar]=1; kar ++;
-			   if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after -b_mask \n");
-				   exit (1);
-			   }
-			   ps->bmaskname = SUMA_copy_string(argv[kar]); 
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need 1 argument after -b_mask \n");
+               exit (1);
+            }
+            ps->bmaskname = SUMA_copy_string(argv[kar]); 
             ps->arg_checked[kar]=1;
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
       }
       if (!brk && ps->accept_dset) {
         if (!brk && (strcmp(argv[kar], "-input") == 0)) {
-			   if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after -input \n");
-				   exit (1);
-			   }
+            if (kar+1 >= argc)  {
+               fprintf (SUMA_STDERR, "need 1 argument after -input \n");
+               exit (1);
+            }
             ps->N_dsetname = 0;
             do {
                ps->arg_checked[kar]=1; ++kar;
@@ -4106,9 +4106,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                if (argv[kar][0] == '-') {
                   fprintf (SUMA_STDERR, 
                            "no option should directly follow -input \n");
-				      exit (1);
+                  exit (1);
                }
-			      if (ps->N_dsetname+1 < SUMA_MAX_DSET_ON_COMMAND) {
+               if (ps->N_dsetname+1 < SUMA_MAX_DSET_ON_COMMAND) {
                   ps->dsetname[ps->N_dsetname] = SUMA_copy_string(argv[kar]);
                   SUMA_LHv("Got %s\n", ps->dsetname[ps->N_dsetname]);
                   ++ps->N_dsetname;
@@ -4123,8 +4123,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   SUMA_LH("No more input"); MoreInput = 0; }
                else { SUMA_LH("More input"); MoreInput = 1; }
             } while (MoreInput);             
-			   brk = YUP;
-		  } 
+            brk = YUP;
+        } 
       }
       if (!brk && ps->accept_do) {
         if (!brk && 
@@ -4133,20 +4133,20 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   (strcmp(argv[kar], "-vol") == 0)   ||
                   (strcmp(argv[kar], "-cdset") == 0) ||
                   (strcmp(argv[kar], "-mask") == 0) )) {
-			   if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR,
+            if (kar+1 >= argc)  {
+               fprintf (SUMA_STDERR,
                      "need 1 argument after -tract/-cdset/-gdset/-vol/-mask \n");
-				   exit (1);
-			   }
+               exit (1);
+            }
             do {
                ps->arg_checked[kar]=1; ++kar;
                /* do we have a - as the first char ? */
                if (argv[kar][0] == '-') {
                   fprintf (SUMA_STDERR,
               "no option should directly follow -tract/-cdset/-gdset/-vol \n");
-				      exit (1);
+                  exit (1);
                }
-			      if (ps->N_DO+1 < SUMA_MAX_DO_ON_COMMAND) {
+               if (ps->N_DO+1 < SUMA_MAX_DO_ON_COMMAND) {
                   ps->DO_name[ps->N_DO] = SUMA_copy_string(argv[kar]);
                           if ((strcmp(argv[kar-1], "-tract") == 0)) {
                      ps->DO_type[ps->N_DO] = TRACT_type;
@@ -4177,8 +4177,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   SUMA_LH("No more input"); MoreInput = 0; }
                else { SUMA_LH("More input"); MoreInput = 1; }
             } while (MoreInput);             
-			   brk = YUP;
-		  } 
+            brk = YUP;
+        } 
       }
 
       
@@ -4196,90 +4196,90 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
          }
          
          if (!brk && strcmp(argv[kar], "-send_kth") == 0)
-		   {
+         {
             ps->arg_checked[kar]=1;
-			   kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err("need argument after -send_kth \n");
-				   exit (1);
-			   }
-			   ps->cs->kth = atoi(argv[kar]);
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+               SUMA_S_Err("need argument after -send_kth \n");
+               exit (1);
+            }
+            ps->cs->kth = atoi(argv[kar]);
             if (ps->cs->kth <= 0) {
                fprintf (SUMA_STDERR, 
                         "Bad value (%d) for send_kth\n", ps->cs->kth);
-				   exit (1);
+               exit (1);
             }
 
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
          
          if (!brk && strcmp(argv[kar], "-ni_text") == 0)
-		   {
+         {
             ps->arg_checked[kar]=1;
             ps->cs->comm_NI_mode = NI_TEXT_MODE;
             brk = YUP;
          }
 
          if (!brk && strcmp(argv[kar], "-ni_binary") == 0)
-		   {
+         {
             ps->arg_checked[kar]=1;
             ps->cs->comm_NI_mode = NI_BINARY_MODE;
             brk = YUP;
          }
 
-		   if (!brk && strcmp(argv[kar], "-sh") == 0)
-		   {
+         if (!brk && strcmp(argv[kar], "-sh") == 0)
+         {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err("need argument after -sh \n");
-				   exit (1);
-			   }
-			   if (strcmp(argv[kar],"localhost") != 0) {
+            if (kar >= argc)  {
+               SUMA_S_Err("need argument after -sh \n");
+               exit (1);
+            }
+            if (strcmp(argv[kar],"localhost") != 0) {
                ps->cs->suma_host_name = SUMA_copy_string(argv[kar]);
             }else {
               SUMA_S_Note ("localhost is the default for -sh\n"
                            "No need to specify it.\n");
             }
 
-			   brk = YUP;
-		   }
-         	
+            brk = YUP;
+         }
+            
          if (!brk && strcmp(argv[kar], "-ah") == 0)
-		   {
+         {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err("need argument after -ah \n");
-				   exit (1);
-			   }
-			   if (strcmp(argv[kar],"localhost") != 0) {
+            if (kar >= argc)  {
+               SUMA_S_Err("need argument after -ah \n");
+               exit (1);
+            }
+            if (strcmp(argv[kar],"localhost") != 0) {
                ps->cs->afni_host_name = SUMA_copy_string(argv[kar]);
             }else {
               SUMA_S_Note ("localhost is the default for -ah\n"
                            "No need to specify it.\n");
             }
 
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
          
          
          if (!brk && strcmp(argv[kar], "-refresh_rate") == 0)
-		   {
+         {
             ps->arg_checked[kar]=1;
-			   kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err("need argument after -refresh_rate \n");
-				   exit (1);
-			   }
-			   ps->cs->rps = atof(argv[kar]);
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+               SUMA_S_Err("need argument after -refresh_rate \n");
+               exit (1);
+            }
+            ps->cs->rps = atof(argv[kar]);
             if (ps->cs->rps <= 0) {
                SUMA_S_Errv("Bad value (%f) for refresh_rate\n", ps->cs->rps);
-				   exit (1);
+               exit (1);
             }
 
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
            
       }
       
@@ -4287,15 +4287,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
          if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err("need 1 or 2 arguments after -sv ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err("need 1 or 2 arguments after -sv ");
+               exit (1);
+            }
             if (ps->N_sv >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed sv files...");
                exit(1);   
             }
-			   ps->sv[ps->N_sv] = SUMA_copy_string(argv[kar]);
+            ps->sv[ps->N_sv] = SUMA_copy_string(argv[kar]);
             /* is there a volparam option ?*/
             if (kar+1 < argc) {
                /* maybe a volparam file */
@@ -4306,19 +4306,19 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ++ps->N_vp;
                }
             }
-			   ++ps->N_sv;
+            ++ps->N_sv;
             brk = YUP;
-		   }   
+         }   
       }
       if (!brk && (ps->accept_spec || ps->accept_s)) {
          char *pdspec=NULL, *pdsv=NULL;
          if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -spec ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err( "need argument after -spec ");
+               exit (1);
+            }
             if (ps->N_spec_names >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed spec files...");
                exit(1);   
@@ -4330,12 +4330,12 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->sv[ps->N_sv] = pdsv; pdsv = NULL;
                ++ps->N_vp;
             } else {
-			      ps->spec_names[ps->N_spec_names] = SUMA_copy_string(argv[kar]);
-			      ++ps->N_spec_names;
+               ps->spec_names[ps->N_spec_names] = SUMA_copy_string(argv[kar]);
+               ++ps->N_spec_names;
             }
             SUMA_ifree(pdspec); SUMA_ifree(pdsv);
             brk = YUP;
-		   }
+         }
          
       }
       if (!brk && ps->accept_s) {
@@ -4343,18 +4343,18 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                && (strlen(argv[kar])==7 )
                && (strncmp(argv[kar], "-surf_", 6) == 0)) {
             ps->arg_checked[kar]=1;
-		      if (kar + 1>= argc)  {
-		  	      SUMA_S_Err( "need argument after -surf_X SURF_NAME \n");
-			      exit (1);
-		      }
-		      ind = argv[kar][6] - 'A';
+            if (kar + 1>= argc)  {
+               SUMA_S_Err( "need argument after -surf_X SURF_NAME \n");
+               exit (1);
+            }
+            ind = argv[kar][6] - 'A';
             if (ind < 0 || ind >= ('Z'-'A')) {
                fprintf (SUMA_STDERR,   
                   "Error %s:\n -surf_X SURF_NAME option (%s)is out of range.\n"
                   "Only %d surfaces are allowed. \n"
                   "Must start with surf_A for first surface.\n", 
                         FuncName, argv[kar], ('Z'-'A'));
-			      exit (1);
+               exit (1);
             }
             if (ps->s_surfnames[ind]) {
                SUMA_S_Errv("It looks like %s has been used already.\n",
@@ -4371,14 +4371,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             
             ++ps->s_N_surfnames;
             brk = YUP;
-	      } 
+         } 
          if (!brk && (strcmp(argv[kar], "-surf") == 0)) {
             ps->arg_checked[kar]=1;
-		      if (kar + 1>= argc)  {
-		  	      SUMA_S_Err( "need argument after -surf SURF_NAME \n");
-			      exit (1);
-		      }
-		      ind = 0;
+            if (kar + 1>= argc)  {
+               SUMA_S_Err( "need argument after -surf SURF_NAME \n");
+               exit (1);
+            }
+            ind = 0;
             
             kar ++;
             ps->arg_checked[kar]=1;
@@ -4393,7 +4393,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->s_surfnames[ps->s_N_surfnames+ind] = SUMA_copy_string(argv[kar]);
             ++ps->s_N_surfnames;
             brk = YUP;
-	      }  
+         }  
       }
       if (!brk && (strcmp(argv[kar], "-anatomical")==0 )) {
          ps->arg_checked[kar]=1;
@@ -4418,8 +4418,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
          do {
             if (strcmp(argv[kar], "-i_") == 0 || strcmp(argv[kar], "-i") == 0) {
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_ ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_ ");
+                  exit (1);
                }
                SUMA_LH("Checking %s, readmore = %d", argv[skar], readmore);
                switch(SUMA_GuessSurfFormatFromExtension_core(argv[skar],
@@ -4482,8 +4482,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_bv ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_bv ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4508,8 +4508,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_byu ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_byu ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4535,8 +4535,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_gii ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_gii ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4561,8 +4561,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_fs ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_fs ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4591,8 +4591,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar+1 >= argc)  {
-	               SUMA_S_Err( "need 2 arguments after -i_sf");
-	               exit (1);
+                  SUMA_S_Err( "need 2 arguments after -i_sf");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4625,8 +4625,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar+1 >= argc)  {
-	               SUMA_S_Err( "need 2 argument after -i_vec or -i_1d");
-	               exit (1);
+                  SUMA_S_Err( "need 2 argument after -i_vec or -i_1d");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4660,8 +4660,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_stl ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_stl ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4688,8 +4688,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_ply ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_ply ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4715,8 +4715,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_mni ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_mni ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4742,8 +4742,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_dx ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_dx ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4769,8 +4769,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_obj ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_obj ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4796,8 +4796,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_pre ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_pre ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4817,8 +4817,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                ps->arg_checked[kar]=1;
                ps->arg_checked[skar]=1;
                if (skar >= argc)  {
-	               SUMA_S_Err( "need argument after -i_iv ");
-	               exit (1);
+                  SUMA_S_Err( "need argument after -i_iv ");
+                  exit (1);
                }
                if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                   SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4857,8 +4857,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_bv ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_bv ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4877,8 +4877,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_byu ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_byu ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4898,8 +4898,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_gii ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_gii ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4918,8 +4918,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_fs ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_fs ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -4942,8 +4942,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
-	            SUMA_S_Err( "need 2 arguments after -ipar_sf");
-	            exit (1);
+               SUMA_S_Err( "need 2 arguments after -ipar_sf");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -4975,8 +4975,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
-	            SUMA_S_Err( "need 2 argument after -ipar_vec or -ipar_1d");
-	            exit (1);
+               SUMA_S_Err( "need 2 argument after -ipar_vec or -ipar_1d");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5007,8 +5007,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_stl ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_stl ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5027,8 +5027,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_ply ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_ply ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5047,8 +5047,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_mni ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_mni ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5067,8 +5067,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_dx ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_dx ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5087,8 +5087,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_dx ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_dx ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5106,8 +5106,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-	            SUMA_S_Err( "need argument after -ipar_iv ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -ipar_iv ");
+               exit (1);
             }
             if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
@@ -5126,10 +5126,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
          if (!brk && (strcmp(argv[kar], "-tn") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "Type argument must follow -tn ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err( "Type argument must follow -tn ");
+               exit (1);
+            }
             if (ps->t_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
@@ -5146,9 +5146,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
             else N_name = 1;
             if (kar+N_name >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				   exit (1);
-			   }
+               fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+               exit (1);
+            }
             kar ++; ps->arg_checked[kar]=1;
             if (!SUMA_isExtension(argv[kar], ".topo")) { 
                ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
@@ -5171,16 +5171,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             } 
 
             ++ps->t_N_surfnames; 
-			   brk = YUP;
-		   } 
+            brk = YUP;
+         } 
          
          if (!brk && (strcmp(argv[kar], "-tsn") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
+               exit (1);
+            }
             if (ps->t_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
@@ -5194,10 +5194,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             }
             /* get the state */
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "STATE argument must follow TYPE with -tsn ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err( "STATE argument must follow TYPE with -tsn ");
+               exit (1);
+            }
             ps->t_state[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
 
             /* get the name */
@@ -5205,11 +5205,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
             else N_name = 1;
             if (kar+N_name >= argc)  {
-		  		   fprintf (SUMA_STDERR, 
+               fprintf (SUMA_STDERR, 
                         "Error %s:\nneed %d elements for NAME \n"
                         , FuncName, N_name);
-				   exit (1);
-			   }
+               exit (1);
+            }
             kar ++; ps->arg_checked[kar]=1;
             if (!SUMA_isExtension(argv[kar], ".topo")) { 
                ps->t_surfnames[ps->t_N_surfnames] = 
@@ -5257,16 +5257,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             }
             
             ++ps->t_N_surfnames;  
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
           
       }
       if (!brk && ps->accept_o) {
          char *tmp_o = NULL;
          if (strcmp(argv[kar], "-o_") == 0 || strcmp(argv[kar], "-o") == 0) {
             if (kar+1 >= argc)  {
-	            SUMA_S_Err( "need argument after -o_ ");
-	            exit (1);
+               SUMA_S_Err( "need argument after -o_ ");
+               exit (1);
             }
             switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1], 
                                                           NULL, NULL, NULL)) {
@@ -5320,11 +5320,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                         (strcmp(tmp_o, "-o_FS") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_fs ");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+            if (kar >= argc)  {
+               SUMA_S_Err( "need argument after -o_fs ");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
@@ -5333,38 +5333,38 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             ++ps->o_N_surfnames;    
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
       
          if (!brk && (  (strcmp(tmp_o, "-o_fsp") == 0) || 
                         (strcmp(tmp_o, "-o_FSP") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_fsp ");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+            if (kar >= argc)  {
+               SUMA_S_Err( "need argument after -o_fsp ");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            
+            ps->o_surfnames[ps->o_N_surfnames] = 
                SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER_PATCH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER_PATCH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_BINARY;
-			   ++ps->o_N_surfnames;   
+            ++ps->o_N_surfnames;   
             brk = YUP;
-		   }
+         }
 
          if (!brk && (  (strcmp(tmp_o, "-o_sf") == 0) || 
                         (strcmp(tmp_o, "-o_SF") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
+               exit (1);
+            }
             if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
@@ -5375,7 +5375,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             /* is there another argument ?*/
             if (kar+1 < argc)  {
-		  		   if (argv[kar+1][0] == '-') {
+               if (argv[kar+1][0] == '-') {
                   /* that is an option flag */ 
                   ps->o_surftopo[ps->o_N_surfnames] = 
                      SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
@@ -5384,10 +5384,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ps->o_surftopo[ps->o_N_surfnames] = 
                      SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
                }
-			   }
+            }
             ++ps->o_N_surfnames;   
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
       
       
          if (!brk && (  (strcmp(tmp_o, "-o_vec") == 0) || 
@@ -5396,10 +5396,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                         (strcmp(tmp_o, "-o_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
-			   if (kar >= argc)  {
-		  		   SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
-				   exit (1);
-			   }
+            if (kar >= argc)  {
+               SUMA_S_Err( "need 1 or 2 argument after -o_sf ");
+               exit (1);
+            }
             if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
@@ -5408,9 +5408,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
             ps->o_FT[ps->o_N_surfnames] = SUMA_VEC;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   /* is there another argument ?*/
+            /* is there another argument ?*/
             if (kar+1 < argc)  {
-		  		   if (argv[kar+1][0] == '-') {
+               if (argv[kar+1][0] == '-') {
                   /* that is an option flag */ 
                   ps->o_surftopo[ps->o_N_surfnames] = 
                      SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
@@ -5419,10 +5419,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ps->o_surftopo[ps->o_N_surfnames] = 
                      SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
                }
-			   }
+            }
             ++ps->o_N_surfnames;   
-			   brk = YUP;
-		   }
+            brk = YUP;
+         }
       
          if (!brk && (  (strcmp(tmp_o, "-o_dx") == 0) || 
                         (strcmp(tmp_o, "-o_DX") == 0) 
@@ -5430,120 +5430,120 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_dx \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_dx \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OPENDX_MESH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_OPENDX_MESH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }         
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }         
          if (!brk && (  (strcmp(tmp_o, "-o_obj") == 0) || 
                         (strcmp(tmp_o, "-o_OBJ") == 0) 
                      || (strcmp(tmp_o, "-o_Obj") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_obj \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_obj \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OBJ_MESH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_OBJ_MESH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }         
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }         
          if (!brk && ( (strcmp(tmp_o, "-o_ply") == 0) || 
                         (strcmp(tmp_o, "-o_PLY") == 0) 
                      || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_ply \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_ply \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                   SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_PLY;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }
          if (!brk && ( (strcmp(tmp_o, "-o_stl") == 0) || 
                         (strcmp(tmp_o, "-o_STL") == 0) 
                      || (strcmp(tmp_o, "-o_Stl") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_stl \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_stl \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                   SUMA_RemoveSurfNameExtension(argv[kar], SUMA_STL); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_STL;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }
          if (!brk && ( (strcmp(tmp_o, "-o_mni") == 0) || 
                         (strcmp(tmp_o, "-o_MNI") == 0) 
                      || (strcmp(tmp_o, "-o_Mni") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_mni \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_mni \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                   SUMA_RemoveSurfNameExtension(argv[kar], SUMA_MNI_OBJ); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_MNI_OBJ;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }
          if (!brk && (  (strcmp(tmp_o, "-o_byu") == 0) || 
                         (strcmp(tmp_o, "-o_BYU") == 0) 
                      || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_byu \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_byu \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                         SUMA_RemoveSurfNameExtension(argv[kar], SUMA_BYU); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_BYU;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }
          if (!brk && (  (strncmp(tmp_o, "-o_gii",6) == 0) || 
                         (strncmp(tmp_o, "-o_GII",6) == 0) ||
                         (strncmp(tmp_o, "-o_gifti",8) == 0) ||
@@ -5551,14 +5551,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
-		  		   SUMA_S_Err( "need argument after -o_gii \n");
-				   exit (1);
-			   }
-			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err( "need argument after -o_gii \n");
+               exit (1);
+            }
+            if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = 
+            ps->o_surfnames[ps->o_N_surfnames] = 
                         SUMA_RemoveSurfNameExtension(argv[kar], SUMA_GIFTI); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_GIFTI;
             if (SUMA_iswordin_ci(tmp_o,"asc") == 1) 
@@ -5568,15 +5568,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             else   if (SUMA_iswordin_ci(tmp_o,"b64") == 1)
                ps->o_FF[ps->o_N_surfnames] = SUMA_XML_B64_SURF; 
             else   ps->o_FF[ps->o_N_surfnames] = SUMA_XML_SURF;
-			   ++ps->o_N_surfnames;  
-			   brk = YUP;
-		   }
+            ++ps->o_N_surfnames;  
+            brk = YUP;
+         }
          
          if (tmp_o) SUMA_free(tmp_o); tmp_o = NULL;
       }
 
-		brk = NOPE;
-		kar ++;
+      brk = NOPE;
+      kar ++;
    }   
    
    if (ps->cs->rps > 0) { 

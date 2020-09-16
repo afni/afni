@@ -2,7 +2,7 @@
 #include <ctype.h>
 
 #undef DEBUG_MEM
-#if 0 && !defined(DONT_USE_MCW_MALLOC)
+#if 0 && defined(ALLOW_MCW_MALLOC)
 # define DEBUG_MEM
 #endif
 

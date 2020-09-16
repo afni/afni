@@ -132,7 +132,7 @@ int main (int argc, char * argv[]) {
    int delnotes[MAX_DSET_NOTES], delindex=0, delnum;
    int HH=0 ;  /* 09 Dec 2000 */
    int ShowString;
-   Boolean write_output;  /* 21 Jun 2006 [dg] - similar to change in 3drefit by rickr */
+   RwcBoolean write_output;  /* 21 Jun 2006 [dg] - similar to change in 3drefit by rickr */
    if (argc == 1)   /* no file listed */
       Show_Help();
 

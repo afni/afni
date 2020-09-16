@@ -18,7 +18,7 @@ THD_3dim_dataset_array *
    THD_3dim_dataset_array *dset_arr ;
    THD_3dim_dataset       *dset ;
    int id ;
-   Boolean dset_ok = True , all_anat , all_func ;
+   RwcBoolean dset_ok = True , all_anat , all_func ;
 
 ENTRY("THD_array_3dim_from_block") ;
 

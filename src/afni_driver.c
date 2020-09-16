@@ -44,6 +44,11 @@ static int AFNI_drive_save_alljpeg( char *cmd ) ;   /* 07 Dec 2006 */
 static int AFNI_drive_set_view( char *cmd ) ;       /* 28 Jul 2005 */
 static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
 static int AFNI_drive_get_dicom_xyz( char *cmd ) ;  /* 07 Oct 2010 */
+static int AFNI_drive_get_olay_val( char *cmd ) ;   /* 11 Sep 2020 */
+static int AFNI_drive_get_ulay_val( char *cmd ) ;   /* 11 Sep 2020 */
+static int AFNI_drive_get_thr_val( char *cmd ) ;    /* 11 Sep 2020 */
+static int AFNI_drive_get_olay_name( char *cmd ) ;  /* 11 Sep 2020 */
+static int AFNI_drive_get_ulay_name( char *cmd ) ;  /* 11 Sep 2020 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_get_ijk( char *cmd ) ;        /* 07 Oct 2010 */
@@ -166,6 +171,11 @@ static AFNI_driver_pair dpair[] = {
  { "SET_VIEW"         , AFNI_drive_set_view          } ,
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
  { "GET_DICOM_XYZ"    , AFNI_drive_get_dicom_xyz     } ,
+ { "GET_OLAY_VAL"     , AFNI_drive_get_olay_val      } ,
+ { "GET_ULAY_VAL"     , AFNI_drive_get_ulay_val      } ,
+ { "GET_THR_VAL"      , AFNI_drive_get_thr_val       } ,
+ { "GET_ULAY_NAME"    , AFNI_drive_get_ulay_name     } ,
+ { "GET_OLAY_NAME"    , AFNI_drive_get_olay_name     } ,
  { "SET_SPM_XYZ"      , AFNI_drive_set_spm_xyz       } ,
  { "SET_IJK"          , AFNI_drive_set_ijk           } ,
  { "GET_IJK"          , AFNI_drive_get_ijk           } ,
@@ -3257,6 +3267,106 @@ static int AFNI_drive_get_dicom_xyz( char *cmd )
 
    fprintf(afniout, "RAI xyz: %f %f %f\n", x, y, z);
 /*   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);*/
+   fflush(afniout);
+
+   return 0 ;
+}
+
+
+/*--------------------------------------------------------------------*/
+/*! GET_OLAY_VAL [c.] */
+/* get the value of the overlay sub-brick at the current crosshairs */
+static int AFNI_drive_get_olay_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "OLay value: %s \n", im3d->vinfo->func_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_ULAY_VAL [c.] */
+/* get the value of the underlay sub-brick at the current crosshairs */
+static int AFNI_drive_get_ulay_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "ULay value: %s \n", im3d->vinfo->anat_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_THR_VAL [c.] */
+/* get the value of the threshold sub-brick at the current crosshairs */
+static int AFNI_drive_get_thr_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "Thr value: %s \n", im3d->vinfo->thr_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_ULAY_NAME [c.] */
+/* get the underlay dataset name */
+static int AFNI_drive_get_ulay_name( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "ULay dset: %s \n", DSET_PREFIX(im3d->anat_now));
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_OLAY_NAME [c.] */
+/* get the overlay dataset name */
+static int AFNI_drive_get_olay_name( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "OLay dset: %s \n", DSET_PREFIX(im3d->fim_now));
    fflush(afniout);
 
    return 0 ;

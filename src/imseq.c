@@ -625,7 +625,7 @@ static const ISQ_bdef ISQ_but_bot_def[NBUTTON_BOT] = {  /* label, callback */
      { "Done"     , ISQ_but_done_CB }
 } ;
 
-static const Boolean ISQ_but_bot_dial[NBUTTON_BOT] = {  /* use seq->dialog? */
+static const RwcBoolean ISQ_but_bot_dial[NBUTTON_BOT] = {  /* use seq->dialog? */
    True , False , True , False
 } ;
 
@@ -1758,6 +1758,14 @@ if( PRINT_TRACING ){
      MCW_reghint_children(newseq->wbar_amask_bbox->wrowcol,"Automatically zero out image exterior") ;
    }
 
+   { char *blab[1] = { "Invert?" } ;
+     newseq->wbar_invrt_bbox = new_MCW_bbox( newseq->wbar_menu ,  /* 14 Jun 2010 */
+                                             1 , blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             ISQ_wbar_invrt_CB , (XtPointer)newseq ) ;
+     MCW_reghint_children(newseq->wbar_invrt_bbox->wrowcol,"Invert contrast?") ;
+   }
+
 
    newseq->wbar_flat_but =
       XtVaCreateManagedWidget(
@@ -2687,7 +2695,7 @@ void ISQ_butcrop_choice_CB( Widget w , XtPointer client_data ,
 ----------------------------------------------------------------------*/
 
 void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
-                     XEvent *ev , Boolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_imseq *seq = (MCW_imseq *)client_data ;
 
@@ -2719,7 +2727,7 @@ void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
 ----------------------------------------------------------------------*/
 
 void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
-                     XEvent *ev , Boolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_imseq *seq = (MCW_imseq *)client_data ;
 
@@ -3135,6 +3143,15 @@ ENTRY("ISQ_binarize_overlay") ;
      }
      break ;
 
+     case MRI_rgba:{                 /* Oops, forgot about this [18 Aug 2020] */
+       rgba *tar = MRI_RGBA_PTR(tim) ; int ii ;
+       for( ii=0 ; ii < npix ; ii++ ){
+         bar[ii] = ( tar[ii].a > 254 ) &&
+                   ( tar[ii].r > 0 || tar[ii].g > 0 || tar[ii].b > 0 ) ;
+       }
+     }
+     break ;
+
    }
 
    RETURN(bim) ;
@@ -3229,7 +3246,7 @@ void ISQ_apply_mask( MRI_IMAGE *maskim , MRI_IMAGE *iim )
 void ISQ_make_image( MCW_imseq *seq )
 {
    MRI_IMAGE *im , *ovim , *tim ;
-   Boolean reset_done = False ;
+   RwcBoolean reset_done = False ;
    float vfac = VGFAC(seq) ;
 
 ENTRY("ISQ_make_image") ;
@@ -3995,6 +4012,12 @@ STATUS("call ISQ_perpoints") ;
      }
    } else {
        KILL_1MRI(seq->last_automask) ;
+   }
+
+   /* 14 Sep 2020: invert contrast */
+
+   if( MCW_val_bbox(seq->wbar_invrt_bbox) > 0 ){
+     mri_invertcontrast_inplace( newim , 91.1f , NULL ) ;
    }
 
    /** Aug 31, 1995: put zer_color in at bottom, if nonzero **/
@@ -5165,7 +5188,7 @@ ENTRY("ISQ_scale_CB") ;
 
 void ISQ_redisplay( MCW_imseq *seq , int n , int type )
 {
-   Boolean kill_im , kill_ov ;
+   RwcBoolean kill_im , kill_ov ;
    int nrold ;
    static int        recur_flg = FALSE ;
    static int        recur_n   = -1 ;
@@ -5843,7 +5866,7 @@ STATUS("putting sized_xbar to screen");
 -------------------------------------------------------------------------*/
 
 void ISQ_drawing_EV( Widget w , XtPointer client_data ,
-                     XEvent *ev , Boolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
    static ISQ_cbs cbs ;
@@ -6465,7 +6488,7 @@ INFO_message("reject wbar ConfigureNotify") ;
 #define NPTS_MAX 4095  /* max # points in a single button2 operation */
 
 void ISQ_button2_EV( Widget w , XtPointer client_data ,
-                     XEvent *ev , Boolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
    ISQ_cbs cbs ;
@@ -7106,10 +7129,10 @@ void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    int ib , close_window ;
    char *wname ;
-   Boolean new_opt = False ;
+   RwcBoolean new_opt = False ;
 
 #ifdef FLASH_TOGGLE
-   Boolean flasher ;
+   RwcBoolean flasher ;
 #endif
 
 ENTRY("ISQ_disp_act_CB") ;
@@ -7185,7 +7208,7 @@ ENTRY("ISQ_disp_act_CB") ;
   in the latter case, return False always (options ARE unchanged)
 ------------------------------------------------------------------------*/
 
-Boolean ISQ_disp_options( MCW_imseq *seq , Boolean set )
+RwcBoolean ISQ_disp_options( MCW_imseq *seq , RwcBoolean set )
 {
    int bval[NBOX_DISP] ;
    int ib ;
@@ -7197,7 +7220,7 @@ ENTRY("ISQ_disp_options") ;
 
    if( set ){                         /* set structure from widgets */
       ISQ_options inopt = seq->opt ;
-      Boolean changed ;
+      RwcBoolean changed ;
 
       for( ib=0 ; ib < NBOX_DISP ; ib++ )
         bval[ib] = MCW_val_bbox( seq->bbox[ib] ) ;
@@ -7339,9 +7362,9 @@ DPRI("set scale_range =",seq->opt.scale_range) ;
      ISQ_perpoints     -> get the percentage points for 2%-to-98% scaling
 ------------------------------------------------------------------------*/
 
-void ISQ_statify_all( MCW_imseq *seq , Boolean stop_on_minmax )
+void ISQ_statify_all( MCW_imseq *seq , RwcBoolean stop_on_minmax )
 {
-   Boolean done ;
+   RwcBoolean done ;
    Widget wmsg ;
 
 ENTRY("ISQ_statify_all") ;
@@ -7394,7 +7417,7 @@ ENTRY("ISQ_statify_all") ;
 
 /*-----------------------------------------------------------------------*/
 
-Boolean ISQ_statistics_WP( XtPointer client_data )
+RwcBoolean ISQ_statistics_WP( XtPointer client_data )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
    ISQ_glob_statistics *gl ;
@@ -7844,10 +7867,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_pressbut_Swap   (ignored) presses the 'Swap' button
 *    isqDR_pressbut_Norm   (ignored) presses the 'Norm' button
 
-The Boolean return value is True for success, False for failure.
+The RwcBoolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
-Boolean drive_MCW_imseq( MCW_imseq *seq ,
+RwcBoolean drive_MCW_imseq( MCW_imseq *seq ,
                          int drive_code , XtPointer drive_data )
 {
 ENTRY("drive_MCW_imseq") ;
@@ -8976,7 +8999,7 @@ static unsigned char record_bits[] = {
       /*------- new image sequence!!! -------*/
 
       case isqDR_newseq:{
-         Boolean good ;
+         RwcBoolean good ;
          ISQ_timer_stop(seq) ;
          good = ISQ_setup_new( seq , drive_data ) ;
          RETURN( good );
@@ -9099,7 +9122,7 @@ ENTRY("ISQ_arrowpad_CB") ;
    to the correct number (or things won't look good at all).
 ---------------------------------------------------------------------*/
 
-Boolean ISQ_setup_new( MCW_imseq *seq , XtPointer newaux )
+RwcBoolean ISQ_setup_new( MCW_imseq *seq , XtPointer newaux )
 {
    MCW_imseq_status *imstatus=NULL ;
    int ii ;
@@ -9229,6 +9252,16 @@ void ISQ_wbar_amask_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
 ENTRY("ISQ_wbar_amask_CB") ;
    KILL_1MRI(seq->last_automask) ;
+   if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void ISQ_wbar_invrt_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
+ENTRY("ISQ_wbar_invrt_CB") ;
    if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
    EXRETURN ;
 }
@@ -9891,7 +9924,7 @@ ENTRY("ISQ_manufacture_one") ;
 void ISQ_make_montage( MCW_imseq *seq )
 {
    MRI_IMAGE *im , *ovim , *tim ;
-   Boolean reset_done = False ;
+   RwcBoolean reset_done = False ;
    float fac , wmm , hmm ;
    short gap_ov ;
    float vfac = VGFAC(seq) ;
@@ -11779,7 +11812,7 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
 ----------------------------------------------------------------------*/
 
 void ISQ_butsave_EV( Widget w , XtPointer client_data ,
-                     XEvent *ev , Boolean *continue_to_dispatch )
+                     XEvent *ev , RwcBoolean *continue_to_dispatch )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
 

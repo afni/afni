@@ -181,7 +181,7 @@ static char g_help[] =
     "   1.7  09 Aug 2006 [rickr] - store surface labels for history note\n"
         ;
 
-#define P_MAP_NAMES_NVALS      15       /* should match enum for global maps */
+#define P_MAP_NAMES_NVALS      16       /* should match enum for global maps */
 #define P_NY_NVALS              2
 #define P_NYA_NVALS             3
 #define P_KEEP_NVALS            3
