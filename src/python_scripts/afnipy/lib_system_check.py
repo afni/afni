@@ -1376,8 +1376,9 @@ def distribution_string():
          except:
             checkdist = 1
    else:
-      dtest = platform.dist()
-      try:    dstr = tup_str(dtest)
+      try:
+         dtest = platform.dist()
+         dstr = tup_str(dtest)
       except: checkdist = 1
 
    # backup plan
