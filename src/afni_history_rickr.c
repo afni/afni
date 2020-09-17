@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
+   "fix use of platform.mac_ver (was there a change?)",
+   NULL
+ } ,
+
  { 15, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "whine if .zshrc references all_progs.COMP.bash; backup for distro",
    NULL

@@ -1362,12 +1362,23 @@ def distribution_string():
          if dstr != '':
             checkdist = 0
    elif sysname == 'Darwin':
-      dtest = platform.mac_ver()
-      try:    dstr = tup_str(dtest)
-      except: checkdist = 1
+      try:
+         dtest = platform.mac_ver()
+         dstr = tup_str(dtest)
+      except:
+         try:
+            dtest = list(platform.mac_ver())
+            dstr = dtest[0]
+            if type(dstr) != str:
+               checkdist = 1
+            elif dstr == '':
+               checkdist = 1
+         except:
+            checkdist = 1
    else:
-      dtest = platform.dist()
-      try:    dstr = tup_str(dtest)
+      try:
+         dtest = platform.dist()
+         dstr = tup_str(dtest)
       except: checkdist = 1
 
    # backup plan
