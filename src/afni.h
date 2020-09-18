@@ -1039,6 +1039,8 @@ typedef struct {
  do{ if( (iq)->vwid->top_form_height > 99 )                          \
        XtVaSetValues( (iq)->vwid->top_form ,                         \
                       XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
+       XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                      XmNheight,(iq)->vwid->top_form_height+1,NULL); \
  } while(0)
 
 #define TIPS_PLUS_SHIFT   2
