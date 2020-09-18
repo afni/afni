@@ -1404,7 +1404,7 @@ EOF
 #    set up tab completion for AFNI programs
 if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
 then
-   . \$HOME/.afni/help/all_progs.COMP.bash
+   source \$HOME/.afni/help/all_progs.COMP.bash
 fi
 
 EOF
@@ -1425,7 +1425,7 @@ EOF
 #    set up tab completion for AFNI programs
 if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
 then
-   . \$HOME/.afni/help/all_progs.COMP.bash
+   source \$HOME/.afni/help/all_progs.COMP.bash
 fi
 
 EOF
@@ -1443,11 +1443,11 @@ EOF
 
 # auto-inserted by @update.afni.binaries :
 #    set up tab completion for AFNI programs
-autoload -U +X bashcompinit && bashcompinit
-autoload -U +X compinit && compinit
 if [ -f \$HOME/.afni/help/all_progs.COMP.zsh ]
 then
-   . \$HOME/.afni/help/all_progs.COMP.zsh
+   autoload -U +X bashcompinit && bashcompinit
+   autoload -U +X compinit && compinit \\
+      && source \$HOME/.afni/help/all_progs.COMP.zsh
 fi
 
 EOF
