@@ -2873,7 +2873,7 @@ STATUS("making marks->rowcol") ;
 /** old hard-wired definition */
 #define SELECTOR_HEIGHT 240
 
-   sel_height = view_height - 19 ;
+   sel_height = view_height - 39 ;
 
    func->do_setup = 1 ;   /* 24 May 2019 */
 
