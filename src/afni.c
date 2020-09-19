@@ -6504,6 +6504,21 @@ if(PRINT_TRACING)
   sprintf(str,"try to read directory %s",qlist->ar[id]) ; STATUS(str) ; }
 
          dname  = qlist->ar[id] ;
+#ifdef DARWIN
+         /* skip system name directories if on MacOS X [18 Sep 2020] */
+         if(
+             strcasestr(dname,"Applications") != NULL ||
+             strcasestr(dname,"Desktop")      != NULL ||
+             strcasestr(dname,"Documents")    != NULL ||
+             strcasestr(dname,"Downloads")    != NULL ||
+             strcasestr(dname,"Library")      != NULL ||
+             strcasestr(dname,"Movies")       != NULL ||
+             strcasestr(dname,"Music")        != NULL 
+          ){
+           INFO_message("Skipping MacOS system name: %s",dname) ;
+           continue ;
+          }
+#endif
          new_ss = NULL ;
 
          if( new_ssar != NULL ) free(new_ssar) ; /* 01 Feb 2018 */
