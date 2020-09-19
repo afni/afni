@@ -140,10 +140,11 @@ RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
 RUN pip install \
       --no-cache-dir \
         autopep8 \
-        black \
+        black==19.10b0 \
         codecov \
         cython \
         datalad \
+        distro \
         ipython \
         matplotlib \
         nibabel \

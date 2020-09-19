@@ -887,6 +887,58 @@ class SysInfo:
             print("%s = " % evar)
       print('')
 
+      self.check_for_bash_complete_under_zsh()
+
+   def check_for_bash_complete_under_zsh(self):
+      """check for source of all_progs.COMP.bash in .zshrc and similar files
+
+         whine if:
+            all_progs.COMP.bash is referenced on a line before a comment char
+      """
+      badfile = 'all_progs.COMP.bash'
+      goodfile = 'all_progs.COMP.zsh'
+      for zfile in ['.zshrc', '.zshenv', '.zprofile']:
+         zpath = '%s/%s' % (self.home_dir, zfile)
+
+         # if the file is missing, skip
+         if not os.path.isfile(zpath):
+            continue
+
+         # otherwise, search the lines of the found file
+         lines = UTIL.read_text_file(zpath, lines=1, verb=0)
+
+         for zline in lines:
+            # note any bad file name or comment character
+            badposn = zline.find(badfile)
+            composn = zline.find('#')
+
+            # if there is no bad text, skip line
+            if badposn < 0:
+               continue
+
+            # if there is a comment character to the left of the bad word, skip
+            if composn >= 0 and composn < badposn:
+               continue
+
+            # -----------------------------------------------------------
+            # so we have found the bad file name without any comment char
+
+            whine = 'reference to %s in %s, might comment or remove' \
+                    % (badfile, zfile)
+            self.comments.append(whine)
+
+            if self.verb > 1:
+               print("** %s" % whine)
+               print("   (please reference %s, instead)" % goodfile)
+
+               zcomp = '%s/.afni/help/%s' % (self.home_dir, goodfile)
+               if not os.path.isfile(zcomp):
+                  print("** also, missing %s" % zcomp)
+                  print("   consider running: apsearch -update_all_afni_help")
+
+            # finished whining, we are done with this file
+            break
+
    def split_env_var(self, evar, sep=':'):
       """get env var and split on sep, returning list"""
 
@@ -1292,31 +1344,99 @@ def distribution_string():
       # through python 3.7 (if they still use mac_ver, why not linux?)
       try: dstr = tup_str(platform.linux_distribution())
       except: 
-         print("-- failed platform.linux_dist()")
          try:
             # python 3.4+
             import distro
             dtest = distro.linux_distribution(full_distribution_name=False)
             dstr = tup_str(dtest)
          except:
-            print("-- failed distro.linux_dist()")
             # deprecated since 2.6, but why not give it a try?
-            dtest = platform.dist()
-            try:    dstr = tup_str(dtest)
-            except: checkdist = 1
+            try:
+               dtest = platform.dist()
+               dstr = tup_str(dtest)
+            except:
+               checkdist = 1
+      # backup plan for linux checkdist
+      if checkdist:
+         dstr = linux_dist_from_os_release()
+         if dstr != '':
+            checkdist = 0
    elif sysname == 'Darwin':
-      dtest = platform.mac_ver()
-      try:    dstr = tup_str(dtest)
-      except: checkdist = 1
+      try:
+         dtest = platform.mac_ver()
+         dstr = tup_str(dtest)
+      except:
+         try:
+            dtest = list(platform.mac_ver())
+            dstr = dtest[0]
+            if type(dstr) != str:
+               checkdist = 1
+            elif dstr == '':
+               checkdist = 1
+         except:
+            checkdist = 1
    else:
-      dtest = platform.dist()
-      try:    dstr = tup_str(dtest)
+      try:
+         dtest = platform.dist()
+         dstr = tup_str(dtest)
       except: checkdist = 1
 
    # backup plan
    if checkdist:
       dstr = 'unknown %s (%s)' % (sysname, dtest)
 
+   return dstr
+
+def linux_dist_from_os_release():
+   """try to form a useful OS version string from /etc/os-release
+   """
+   release_files = ['/etc/os-release']
+   for rfile in release_files:
+      dstr = linux_dist_from_rfile(rfile)
+      if dstr != '':
+         return dstr
+
+   return 'LDFOR: bad pizza'
+   
+def linux_dist_from_rfile(rfile):
+   """try to form a useful OS version string from given file,
+      e.g., /etc/os-release
+   """
+   rv, td = UTIL.read_text_dictionary(rfile, mjdiv='=', mndiv='=', compact=1,
+                                      qstrip=1)  
+   if rv:
+      return ''
+
+   # okay, we have a dictionary, what is in it?
+
+   # try single options first
+   singles = ['PRETTY_NAME']
+   for sname in singles:
+      if sname in td:
+         return td[sname]
+   
+   # try to build something
+   dstr = ''
+   if 'NAME' in td:
+      dstr += td['NAME']
+   if 'VERSION' in td:
+      dstr += td['VERSION']
+
+   if dstr != '': return dstr
+
+   if 'ID' in td:
+      dstr += td['ID']
+   if 'VERSION_ID' in td:
+      dstr += td['VERSION_ID']
+
+   if dstr != '': return dstr
+
+   if 'PLATFORM' in td:
+      dstr += td['PLATFORM']
+   if 'PLATFORM_ID' in td:
+      dstr += td['PLATFORM_ID']
+
+   # return whatever we have
    return dstr
 
 if __name__ == '__main__':

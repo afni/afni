@@ -537,10 +537,12 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
     }
 #endif
 
-    if( gd->sort_dir == 1 )
-        printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
-    else
-        printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    if( gd->verb > 0 ) {
+       if( gd->sort_dir == 1 )
+           printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
+       else
+           printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    }
 
     for( c = first; c < len; c++ ) {
         if( c > 0 && compare_hist_dates(hlist[c],hlist[c-1]) ){

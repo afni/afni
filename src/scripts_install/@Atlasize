@@ -8,6 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
 set centertype = "-centertype Icent"
+set centermask = ""
 set skipnovoxopt = ""
 set lncol = ""
 
@@ -77,7 +78,8 @@ if ("$flab" != "IS_ATLAS") then
                    -lab_file $flab $iL $iV $lnarg \
                    -atlas_pointlist keys_${RNS}_ \
                    -dset $target_dset  $replace \
-                   $centeropt $centertype $skipnovoxopt \
+                   $centeropt $centertype $centermask \
+                   $skipnovoxopt \
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
    if ($status) then
@@ -85,7 +87,7 @@ if ("$flab" != "IS_ATLAS") then
       goto BEND
    endif
 # otherwise just adding this atlasy dataset to the CustomAtlases.niml or SessionAtlases.niml
-else 
+else
    @MakeLabelTable -add_atlas_dset $target_dset  $replace \
                    -atlas_file $atlas_file $aname \
                    -atlas_description "$adesc"
@@ -101,7 +103,7 @@ if ($atlas_type == 'G') then
    echo "Putting copy of atlas in $atlas_dir"
    echo ""
    3dcopy -overwrite $target_dset  $dout >& /dev/null
-endif 
+endif
 
 goto END
 
@@ -127,12 +129,12 @@ PARSE:
          set echo
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-verb") then
          set verb = 1
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-quiet_death") then
          set quiet_death = 1
          goto CONTINUE
@@ -143,12 +145,12 @@ PARSE:
          set replace = '-replace'
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-replace") then
          set replace = '-replace'
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-atlas_name") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -159,7 +161,7 @@ PARSE:
          set aname = "-atlas_name $argv[$cnt]"
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-atlas_description") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -170,7 +172,7 @@ PARSE:
          set adesc = "$argv[$cnt]"
          goto CONTINUE
       endif
-      
+
       if ("$argv[$cnt]" == "-lab_file_delim") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -180,8 +182,8 @@ PARSE:
          @ cnt ++
          set delim = "$argv[$cnt]"
          goto CONTINUE
-      endif 
-      
+      endif
+
       if (  "$argv[$cnt]" == "-lab_file") then
          set nneed = `ccalc -i $cnt + 3`
          if ($nneed > $Narg) then
@@ -223,7 +225,7 @@ PARSE:
          @ cnt ++
          set lncol = $argv[$cnt]
          goto CONTINUE
-      endif 
+      endif
 
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
@@ -237,9 +239,9 @@ PARSE:
             if (! $quiet_death) \
                echo "-dset $target_dset not found"
             goto BEND
-         endif 
+         endif
          goto CONTINUE
-      endif 
+      endif
 
       if ("$argv[$cnt]" == "-space") then
          if ($cnt > $Narg) then
@@ -250,9 +252,9 @@ PARSE:
          @ cnt ++
          set space = $argv[$cnt]
          goto CONTINUE
-      endif 
-      
-       
+      endif
+
+
       if ("$argv[$cnt]" == "-atlas_type") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -264,12 +266,28 @@ PARSE:
          if ($atlas_type != 'S' && $atlas_type != 'G') then
             echo "Bad -atlas_type, only 'S' or 'G' allowed"
             goto BEND
-         endif         
+         endif
          goto CONTINUE
-      endif 
+      endif
 
       if ("$argv[$cnt]" == "-centers") then
          set centeropt = "-centers"
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-centermask") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a mask after -centermask"
+            goto BEND
+         endif
+         @ cnt ++
+         if (`@CheckForAfniDset $argv[$cnt]` < 2) then
+            if (! $quiet_death) \
+               echo "-centermask $argv[$cnt] not found"
+            goto BEND
+         endif
+         set centermask = "-centermask $argv[$cnt]"
          goto CONTINUE
       endif
 
@@ -283,7 +301,7 @@ PARSE:
          switch ( "$argv[$cnt]" )
             case "Icent":
             case "Dcent":
-               set centertype = "-centertype $argv[$cnt]" 
+               set centertype = "-centertype $argv[$cnt]"
             breaksw
             case "cm":
             case "CM":
@@ -294,20 +312,20 @@ PARSE:
                echo "Invalid choice for centertype ([Icent],Dcent,cm)"
                goto BEND
             breaksw
-         endsw   
+         endsw
          goto CONTINUE
-      endif      
+      endif
 
       if ("$argv[$cnt]" == "-skip_novoxels") then
          set skipnovoxopt = "-skip_novoxels"
          goto CONTINUE
       endif
-      
+
       echo "Error: Option or parameter '$argv[$cnt]' not understood"
       apsearch -popt `basename $0` -word $argv[$cnt]
       goto BEND
-      
-      CONTINUE:		
+
+      CONTINUE:
 		@ cnt ++
 	end
 
@@ -315,10 +333,10 @@ PARSE:
       echo "Error: No target dset"
       goto BEND
    endif
-   
- 
+
+
    if ($flab == '') then
-      #Try to see if there is a labelfile in the atlas 
+      #Try to see if there is a labelfile in the atlas
       set kk = `3dinfo -is_atlas "$target_dset"`
       if ($kk == 1) then
          set flab = "IS_ATLAS"
@@ -327,8 +345,8 @@ PARSE:
          goto BEND
       endif
    endif
-   
-   
+
+
    if ("$atlas_file" == '') then
       if ($atlas_type == 'S') then
          set atlas_file = 'SessionAtlases.niml'
@@ -342,23 +360,23 @@ PARSE:
             echo "This way all your custom group-level atlases will endup"
             echo "in directory $HOME/CustomAtlases"
             echo ""
-            goto BEND 
+            goto BEND
          endif
          if ( ! -d $atlas_dir ) then
             mkdir -p $atlas_dir
             if ( ! -d $atlas_dir ) then
                echo "Failed to create $atlas_dir"
                goto BEND
-            endif 
+            endif
          endif
          set atlas_file = "$atlas_dir/CustomAtlases.niml"
       endif
    endif
-   
+
    if (0) then
       echo "Have:"
    endif
-      
+
    goto RETURN_PARSE
 
 HELP:
@@ -385,14 +403,14 @@ echo "                          (1st column is indexed at 0)"
 echo "   -lab_file_delim COL_DELIM: Set column delimiter for -lab_file option"
 echo "                              Default is ' ' (space), but you can set"
 echo "                              your own. ';' for example. Note that the "
-echo "                              delimiter is passed directly to awk's -F" 
+echo "                              delimiter is passed directly to awk's -F"
 echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
 echo "                names for regions, e.g. amygdala for AMY"
 echo "                cLONGNAME is the starting column for the longname continuing"
 echo "                to the last name of the output"
 echo "   -atlas_type TP: Set the atlas type where TP is 'S' for subject-based"
 echo "                and 'G' for group-based atlases, respectively."
-echo "                   A subject-based atlas will remain in the current"    
+echo "                   A subject-based atlas will remain in the current"
 echo "                directory. Its entry is added to the atlas file "
 echo "                SessionAtlases.niml."
 echo "                   A group atlas will get copied to your custom atlas"
@@ -415,7 +433,11 @@ echo "                 backed volumes and niml files, so you might want to"
 echo "                 to cleanup now and then."
 echo "   -centers:    Add center of mass coordinates to atlas"
 echo "   -centertype TYPE: Choose Icent, Dcent or cm for different ways"
-echo "              to compute centers. See 3dCM for details" 
+echo "              to compute centers. See 3dCM for details"
+echo "   -centermask DSET: Calculate center of mass locations for each ROI"
+echo "              using a subset of voxels. Useful for atlases with"
+echo "              identical labels in both hemispheres."
+echo "              See 3dCM -mask for details"
 echo "   -skip_novoxels:  Skip regions without any voxels in the dataset"
 echo ""
    @global_parse -gopts_help
@@ -452,7 +474,7 @@ echo "                and therefore is not visible from whereami."
 echo "             @Atlasize -dset atlas_for_joe.nii"
 echo ""
 echo "    Note: For NIFTI volumes, all changes are made in the header  "
-echo "    extension, so non-AFNI programs should not be bothered by this." 
+echo "    extension, so non-AFNI programs should not be bothered by this."
 echo ""
 echo "      Case 2, Group-level atlases:"
 echo "    These atlases are stored in your custom atlas directory (the"
@@ -464,7 +486,7 @@ echo "         @AfniEnv -set AFNI_SUPP_ATLAS_DIR ~/MyCustomAtlases/"
 echo ""
 echo "    Then:"
 echo "         @Atlasize -space MNI -dset atlas_for_all.nii \"
-echo "                   -lab_file keys.txt 1 0 -atlas_type G" 
+echo "                   -lab_file keys.txt 1 0 -atlas_type G"
 echo ""
 echo "    In ~/MyCustomAtlases/ you will now find  atlas_for_all.nii along "
 echo "    along with a modified CustomAtlases.niml file."
@@ -478,9 +500,7 @@ echo ""
 BEND:
    set stat = 1
    goto END
-      
+
 END:
 if ($stat == 0) \rm  *_${RNS}_* >& /dev/null
-exit $stat   
-
- 
+exit $stat

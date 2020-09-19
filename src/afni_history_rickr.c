@@ -53,6 +53,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
+   "fix use of platform.mac_ver (was there a change?)",
+   NULL
+ } ,
+
+ { 15, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "whine if .zshrc references all_progs.COMP.bash; backup for distro",
+   NULL
+ } ,
+
+ { 14, Sep, 2020, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "update .zshrc: set PATH and DYLD_L_P..., and source all_progs.COMP.zsh",
+   NULL
+ } ,
+
+ { 14, Sep, 2020, RCR, "apsearch", MINOR, TYPE_ENHANCE,
+   "create complete.zsh files - like bash ones, but cleaned a little",
+   NULL
+ } ,
+
  {  2, Sep, 2020, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "add options -show_field and -show_field_names",
    "Using the new -show_field option, for each entry one can show:\n"

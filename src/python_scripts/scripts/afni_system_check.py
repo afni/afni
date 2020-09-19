@@ -219,10 +219,15 @@ g_history = """
    1.07 Sep 13, 2019 - report XQuartz/X11 version
    1.08 Sep 16, 2019 - check /usr/local/bin/python files, along with /sw/bin
    1.09 Nov 13, 2019 - unless asked for, omit any final mention of PyQt4
-   1.10 Sep  4, 2020 - for zsh, look for .zshrc rather than .zshenv
+   1.10 Sep  4, 2020
+        - for zsh, look for .zshrc rather than .zshenv
+        - remove 'some progs need 2.7.x' warning for python 3+
+   1.11 Sep 15, 2020
+        - whine if .zshrc references all_progs.COMP.bash
+        - some python 3.8 distribution do not come with distro
 """
 
-g_version = "afni_system_check.py version 1.10, September 4, 2020"
+g_version = "afni_system_check.py version 1.11, September 15, 2020"
 
 
 class CmdInterface:

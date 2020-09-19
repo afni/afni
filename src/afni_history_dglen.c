@@ -53,6 +53,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 16, SEP, 2020, DRG, "atlas label range selector",
+     MICRO, TYPE_BUG_FIX,
+    "atlas labels not interpreted in range selector properly",
+    "atlas labels caused crash if selected in angle brackets on\n"
+    "cmdline. Also allowed for spaces in atlas labels by replacing\n"
+    "with underscores in command line."
+},
+
 { 10, SEP, 2020, DRG, "Driving AFNI to get values",
      MINOR, TYPE_ENHANCE,
     "Drive AFNI to get current value in OLay, Threshold or ULay+",
