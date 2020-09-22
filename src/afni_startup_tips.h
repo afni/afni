@@ -654,6 +654,12 @@ static char *tip[] = {
   "an ideal world (alas, hard to find), there would be little spatial or\n"
   "temporal structure in the errts datasets, which are the 'noise' from\n"
   "which the variance parts of single subject t/F statistics are computed."
+ ,
+  "Interested in the AFNI source code? You can get it here:\n"
+  "  git clone https://github.com/afni/afni.git\n"
+  "This will create a directory called 'afni' in your current working directory.\n"
+  "You will find the source code for AFNI (1 million+ lines) in afni/src.\n"
+  "Have fun!"
 
 } ;
 

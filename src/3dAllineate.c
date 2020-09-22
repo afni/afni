@@ -2714,7 +2714,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
             if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("%s: limited %s to 0.0001",argv[iarg-1],argv[iarg]); }
-       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("%s: limited %s to 0.666" ,argv[iarg-1],argv[iarg]); }
+       else if( vv > 6.666f  ){ vv = 6.666f ; WARNING_message("%s: limited %s to 6.666" ,argv[iarg-1],argv[iarg]); }
        conv_mm = vv ; iarg++ ; continue ;
      }
 

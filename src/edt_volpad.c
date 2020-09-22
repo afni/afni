@@ -1,5 +1,20 @@
 #include "mrilib.h"
 
+/*----------------------------------------------------------------------------*/
+static int  use_padval =  0 ;
+static int  typ_padval = -1 ;
+static char     padval[32] ;
+
+void EDIT_set_padval( int ftype , char *pval )
+{
+   int dsiz = mri_datum_size(ftype) ;
+   if( pval == NULL || dsiz == 0 ){ use_padval = 0; typ_padval = -1; return; }
+   memcpy( padval , pval , dsiz ) ;
+   use_padval = 1 ; typ_padval = ftype ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /***** pad a volume by adding/subtracting planes of zeros:
         nxbot = # to add on -x side (can be negative, to remove planes)
         nxtop = # to add on +x side, etc.
@@ -58,6 +73,19 @@ ENTRY("EDIT_volpad") ;
    if( vnew == NULL ){
       ERROR_message("EDIT_volpad: Can't malloc space for new array") ;
       RETURN(NULL) ;
+   }
+
+   /* non-zero pad value was set? copy it over all the data [22 Sep 2020]  */
+
+   if( use_padval && typ_padval == ftype ){
+     int dsiz = mri_datum_size(ftype) , nvox = nxnew*nynew*nznew ;
+     char *cnew = (char *)vnew ;
+     if( dsiz == 1 ){
+       memset( cnew , nvox , padval[0] ) ;
+     } else {
+       for( ii=0 ; ii < nvox ; ii++ )
+         memcpy( cnew + ii*dsiz , padval , dsiz ) ;
+     }
    }
 
    /* macros for computing 1D subscripts from 3D indices */

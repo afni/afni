@@ -243,7 +243,7 @@ ENTRY("THD_extract_regular_files") ;
 
 THD_string_array * THD_extract_directories( THD_string_array * star_in )
 {
-   THD_string_array * star_out ;
+   THD_string_array *star_out ; char *dname ;
    int ii ;
 
 ENTRY("THD_extract_directories") ;
@@ -253,8 +253,10 @@ ENTRY("THD_extract_directories") ;
    INIT_SARR(star_out) ;
 
    for( ii=0 ; ii < star_in->num ; ii++ ){
-      if( THD_is_directory(star_in->ar[ii]) )
-         ADDTO_SARR( star_out , star_in->ar[ii] ) ;
+     dname = star_in->ar[ii] ;
+     if( THD_forbidden_directory(dname) ) continue ;
+     if( THD_is_directory(dname) )
+       ADDTO_SARR( star_out , dname ) ;
    }
 
    if( star_out->num == 0 ) DESTROY_SARR(star_out) ;

@@ -432,6 +432,9 @@ extern void * EDIT_volpad( int,int,int,int,int,int ,
 
 #define EDIT_zeropad EDIT_volpad                        /* 14 Feb 2001 */
 
+extern void EDIT_set_padval( int ftype , char *pval ) ; /* 22 Sep 2020 */
+#define EDIT_clear_padval EDIT_set_padval(-1,NULL)      /* 22 Sep 2020 */
+
 #define EDIT_volpad_even(px,py,pz,nx,ny,nz,ft,vv) \
    EDIT_volpad( (px),(px), (py),(py), (pz),(pz), (nx),(ny),(nz), (ft),(vv) )
 

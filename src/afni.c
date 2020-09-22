@@ -1368,7 +1368,7 @@ ENTRY("AFNI_parse_args") ;
              aa < nta && alist[aa][0] != '-' ;    /* following option */
              aa++ , narg += inc_narg           ){
 
-          if( THD_is_directory(alist[aa])        &&
+          if( THD_is_good_directory(alist[aa])   &&
               strncmp(alist[aa],"sub-",4) != 0   &&    /* method 2 */
               alist[aa][0]                != '-'   ){  /* find all sub- names [15 Apr 2019] */
 
@@ -2404,7 +2404,7 @@ int main( int argc , char *argv[] )
 #endif
 
 #ifdef DARWIN
-   if( 0 && !THD_is_directory("/sw/bin") && !AFNI_noenv("AFNI_IMSAVE_WARNINGS") )
+   if( 0 && !THD_is_good_directory("/sw/bin") && !AFNI_noenv("AFNI_IMSAVE_WARNINGS") )
      WARNING_message("On Mac OS X, it helps if you install the fink software:\n"
                      "            cf. http://fink.sourceforge.net/\n"
                      "            and then do\n"
@@ -6504,27 +6504,12 @@ if(PRINT_TRACING)
   sprintf(str,"try to read directory %s",qlist->ar[id]) ; STATUS(str) ; }
 
          dname  = qlist->ar[id] ;
-#ifdef DARWIN
-         /* skip system name directories if on MacOS X [18 Sep 2020] */
-         if(
-             strcasestr(dname,"Applications") != NULL ||
-             strcasestr(dname,"Desktop")      != NULL ||
-             strcasestr(dname,"Documents")    != NULL ||
-             strcasestr(dname,"Downloads")    != NULL ||
-             strcasestr(dname,"Library")      != NULL ||
-             strcasestr(dname,"Movies")       != NULL ||
-             strcasestr(dname,"Music")        != NULL 
-          ){
-           INFO_message("Skipping MacOS system name: %s",dname) ;
-           continue ;
-          }
-#endif
          new_ss = NULL ;
 
          if( new_ssar != NULL ) free(new_ssar) ; /* 01 Feb 2018 */
          new_ssar = NULL ; num_ssar = 0 ;
 
-         if( THD_is_directory(dname) ){   /* directory? read session(s) */
+         if( THD_is_good_directory(dname) ){   /* directory? read session(s) */
            static int first=1 ;
 
            for( qss=0 ; qss < num_bysub ; qss++ ){   /* bysub [01 Feb 2018] */

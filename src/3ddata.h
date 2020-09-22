@@ -4365,6 +4365,11 @@ extern int THD_is_file     ( char * ) ;
 extern int THD_is_fifo     ( char * ) ;  /* 27 Aug 2019 */
 extern int THD_is_symlink  ( char * ) ;  /* 03 Mar 1999 */
 extern int THD_is_directory( char * ) ;
+extern int THD_forbidden_directory( char *) ; /* 18 Sep 2020 */
+
+#define THD_is_good_directory(ddd) \
+  ( THD_is_directory(ddd) && !THD_forbidden_directory(ddd) )
+
 extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_is_prefix_ondisk( char *pathname, int stripsels ) ; /* Dec 2011 */
 extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
@@ -6006,6 +6011,8 @@ extern float THD_hellinger( int , float *, float * ) ;
 extern float_quad THD_helmicra_scl( int, float,float,float *,
                                     float,float,float *, float * ) ;
 extern float_quad THD_helmicra( int , float *, float * ) ;
+
+extern float_pair THD_binary_mutinfo( int n0, float *y0, int n1, float *y1 ) ;
 
 extern int retrieve_2Dhist   ( float **xyhist ) ;     /* 28 Sep 2006 */
 extern int retrieve_2Dhist1  ( float **, float ** ) ; /* 07 May 2007 */
