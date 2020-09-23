@@ -5,9 +5,6 @@
 #define FFT_PHASE   2
 #define FFT_COMPLEX 3
 
-static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
-                               int Lxx,int Lyy,int Lzz, int alt ) ;
-
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_in=NULL , *dset_out ;
@@ -280,6 +277,7 @@ int main( int argc , char *argv[] )
    exit(0) ;
 }
 
+#if 0  /* moved to mri_fft_complex.c [14 Sep 2020] */
 /*----------------------------------------------------------------------------*/
 /* macro to alternate signs in workspace array */
 
@@ -294,8 +292,8 @@ int main( int argc , char *argv[] )
      Lxx = 0 ==> no FFT in that direction (etc.).
 *//*--------------------------------------------------------------------------*/
 
-static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
-                               int Lxx,int Lyy,int Lzz, int alt )
+MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
+                        int Lxx,int Lyy,int Lzz, int alt )
 {
    MRI_IMAGE *outim ;
    int ii,jj,kk , nx,ny,nxy,nz , nbig , fx,fy,fz,fxy , joff,koff ;
@@ -379,3 +377,4 @@ static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
 
    free(cbig) ; MRI_COPY_AUX(outim,inim) ; return outim ;
 }
+#endif

@@ -245,3 +245,47 @@ ENTRY("mri_complex_to_pair") ;
 
    RETURN( imarr );
 }
+
+/*****************************************************************************/
+
+MRI_IMAGE * mri_complex_to_real( MRI_IMAGE *cim )
+{
+   MRI_IMAGE *rim ;
+   register int ii , nvox ;
+   register float *rar ;
+   register complex * car ;
+
+ENTRY("mri_complex_to_real") ;
+
+   if( cim == NULL || cim->kind != MRI_complex ) RETURN( NULL );
+
+   rim  = mri_new_conforming( cim , MRI_float ) ; rar = MRI_FLOAT_PTR(rim) ;
+   car  = MRI_COMPLEX_PTR(cim) ;
+   nvox = cim->nvox ;
+
+   for( ii=0 ; ii < nvox ; ii++ ) rar[ii] = car[ii].r ;
+
+   RETURN( rim );
+}
+
+/*****************************************************************************/
+
+MRI_IMAGE * mri_complex_to_imag( MRI_IMAGE *cim )
+{
+   MRI_IMAGE *iim ;
+   register int ii , nvox ;
+   register float *iar ;
+   register complex * car ;
+
+ENTRY("mri_complex_to_imag") ;
+
+   if( cim == NULL || cim->kind != MRI_complex ) RETURN( NULL );
+
+   iim  = mri_new_conforming( cim , MRI_float ) ; iar = MRI_FLOAT_PTR(iim) ;
+   car  = MRI_COMPLEX_PTR(cim) ;
+   nvox = cim->nvox ;
+
+   for( ii=0 ; ii < nvox ; ii++ ) iar[ii] = car[ii].i ;
+
+   RETURN( iim );
+}

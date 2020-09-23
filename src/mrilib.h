@@ -1081,7 +1081,9 @@ extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
 extern MRI_IMAGE *mri_pair_to_complex( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR *mri_complex_to_pair( MRI_IMAGE * ) ;
-extern float complex_abs( complex z ) ;          /* 24 Aug 2009 */
+extern float complex_abs( complex z ) ;             /* 24 Aug 2009 */
+MRI_IMAGE * mri_complex_to_real( MRI_IMAGE *cim ) ; /* 17 Sep 2020 */
+MRI_IMAGE * mri_complex_to_imag( MRI_IMAGE *cim ) ;
 
 extern MRI_IMAGE *mri_to_complex_ext( MRI_IMAGE * , int , int , int ) ;
 
@@ -1108,6 +1110,9 @@ extern MRI_IMAGE *mri_complex_abs( MRI_IMAGE * ) ;
 
 extern void mri_fft_complex( int , float , MRI_IMAGE * ) ;
 extern float *mri_setup_taper( int , float ) ;
+extern MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
+                               int Lxx,int Lyy,int Lzz, int alt ) ;
+extern MRI_IMAGE * mri_fft_3Dconvolve( MRI_IMAGE *aim , MRI_IMAGE *bim ) ;
 
 extern MRI_IMAGE *mri_warp( MRI_IMAGE * , int , int , int ,
                             void func(float,float,float *,float *) ) ;

@@ -769,3 +769,30 @@ ENTRY("THD_check_for_duplicates") ;
 
    RETURN(nw) ;
 }
+
+/*----------------------------------------------------------------------*/
+/* Check if this directory name is forbidden fruit. */
+/*----------------------------------------------------------------------*/
+
+int THD_forbidden_directory( char *dname )
+{
+   if( dname == NULL || *dname == '\0' ) return 1 ;
+
+#ifdef DARWIN
+   /* skip system name directories if on MacOS X [18 Sep 2020] */
+   if(
+       strcasestr(dname,"Applications") != NULL ||
+       strcasestr(dname,"Desktop")      != NULL ||
+       strcasestr(dname,"Documents")    != NULL ||
+       strcasestr(dname,"Downloads")    != NULL ||
+       strcasestr(dname,"Library")      != NULL ||
+       strcasestr(dname,"Movies")       != NULL ||
+       strcasestr(dname,"Music")        != NULL ||
+       strcasestr(dname,"Pictures")     != NULL
+    )  return 1 ;
+#endif
+
+   /** Other possibilities could go here **/
+
+   return 0 ;
+}

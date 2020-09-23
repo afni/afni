@@ -411,13 +411,13 @@ float THD_pearson_partial_corr( int n, float *a, float *b, float *c )
     float AB, AC, BC;
     //calculate correlation AB
     AB = THD_pearson_corr(n, a, b);
-    
+
     //calculate correlation AC
     AC = THD_pearson_corr(n, a, c);
-    
+
     //calculate correlation BC
     BC = THD_pearson_corr(n, b, c);
-    
+
     return (AB - (AC*BC)) / sqrt( (1-(AC*AC)) * (1-(BC*BC)) );
 }
 
@@ -429,13 +429,13 @@ double THD_pearson_partial_corrd( int n, double *a, double *b, double *c )
     double AB, AC, BC;
     //calculate correlation AB
     AB = THD_pearson_corrd(n, a, b);
-    
+
     //calculate correlation AC
     AC = THD_pearson_corrd(n, a, c);
-    
+
     //calculate correlation BC
     BC = THD_pearson_corrd(n, b, c);
-    
+
     return (AB - (AC*BC)) / sqrt( (1-(AC*AC)) * (1-(BC*BC)) );
 }
 
@@ -686,7 +686,7 @@ float THD_distance( int n, float *x , float *y, int abs)
   }
 
   if (!abs) dp = sqrt(dp) ;
- 
+
   return (dp);
 }
 
@@ -1607,6 +1607,10 @@ ENTRY("build_byteized_vectors") ;
 static int ignore_zz = 0 ;
 void THD_correlate_ignore_zerozero( int z ){ ignore_zz = z ; }
 
+/*-------------------- Shannon entropy function --------------------*/
+
+#define SHANENT(z) ( ( (z) <= 0.0f ) ? 0.0f : (z)*logf(z) )
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
 ----------------------------------------------------------------------------*/
@@ -1631,8 +1635,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
 #if 0
      if( ii==0 && jj==0 && ignore_zz ) continue ;
 #endif
-     if( XYC(ii,jj) > 0.0f )
-      val += XYC(ii,jj) * logf( XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
+     val += SHANENT( XYC(ii,jj) ) ;
    }}
    return (1.4427f*val) ;  /* units are bits, just for fun */
 }
@@ -1667,13 +1670,12 @@ float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
 
    denom = numer = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
-     if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] ) ;
-     if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] ) ;
+     denom += SHANENT( xc[ii] ) + SHANENT( yc[ii] ) ;
      for( jj=0 ; jj < nbp ; jj++ ){
 #if 0
        if( ii==0 && jj==0 && ignore_zz ) continue ;
 #endif
-       if( XYC(ii,jj) > 0.0f ) numer += XYC(ii,jj) * logf( XYC(ii,jj) );
+       numer += SHANENT( XYC(ii,jj) ) ;
      }
    }
    if( denom != 0.0f ) denom = numer / denom ;
@@ -1709,8 +1711,7 @@ float THD_jointentrop_scl( int n , float xbot,float xtop,float *x ,
    val = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
     for( jj=0 ; jj < nbp ; jj++ ){
-     if( XYC(ii,jj) > 0.0f )
-      val -= XYC(ii,jj) * logf( XYC(ii,jj) ) ;
+     val -= SHANENT( XYC(ii,jj) ) ;
    }}
    return (1.4427f*val) ;  /* units are bits, just for fun */
 }
@@ -1874,14 +1875,11 @@ float_quad THD_helmicra_scl( int n , float xbot,float xtop,float *x ,
 
    hel = vv = uu = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
-     if( xc[ii] > 0.0f ) vv += xc[ii] * logf( xc[ii] ) ;
-     if( yc[ii] > 0.0f ) vv += yc[ii] * logf( yc[ii] ) ;
+     vv += SHANENT( xc[ii] ) + SHANENT( yc[ii] ) ;
      for( jj=0 ; jj < nbp ; jj++ ){
-       pq = XYC(ii,jj) ;
-       if( pq > 0.0f ){
-         hel += sqrtf( pq * xc[ii] * yc[jj] ) ;
-         uu  += pq * logf( pq );
-       }
+       pq   = XYC(ii,jj) ;
+       hel += sqrtf( pq * xc[ii] * yc[jj] ) ;
+       uu  += SHANENT( pq ) ;
      }
    }
    hmc.a = 1.0f - hel ;                   /* Hellinger */
@@ -1938,6 +1936,69 @@ float_quad THD_helmicra_scl( int n , float xbot,float xtop,float *x ,
 float_quad THD_helmicra( int n , float *x , float *y )
 {
    return THD_helmicra_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return the MI and NMI of the 2 arrays y0[] and y1[] as 'correlated'
+   with the binary 0-1 variable. That is, does knowing a value is in
+   group 0 or 1 help predict it?
+*//*-------------------------------------------------------------------------*/
+
+float_pair THD_binary_mutinfo( int n0 , float *y0 , int n1 , float *y1 )
+{
+   float_pair mmii = {-666.6f,666.6f} ;
+   float *y0h , *y1h ; int nbin=64 , ii,kk ;
+   float ymin,ymax , dy,dc, hsum,hjoint ;
+
+   if( n0 < nbin || y0 == NULL || n1 < nbin || y1 == NULL ) return mmii ;
+
+   /* data range */
+
+   ymin = ymax = y0[0] ;
+   for( ii=1 ; ii < n0 ; ii++ ){
+          if( ymin > y0[ii] ) ymin = y0[ii] ;
+     else if( ymax < y0[ii] ) ymax = y0[ii] ;
+   }
+   for( ii=0 ; ii < n1 ; ii++ ){
+          if( ymin > y1[ii] ) ymin = y1[ii] ;
+     else if( ymax < y1[ii] ) ymax = y1[ii] ;
+   }
+   if( ymin >= ymax ) return mmii ;
+
+   /* histograms */
+
+   y0h = (float *)calloc(sizeof(float),nbin) ;
+   y1h = (float *)calloc(sizeof(float),nbin) ;
+
+   dy = nbin / (ymax-ymin) ;
+   dc = 1.0f / (float)(n0+n1) ;
+   for( ii=0 ; ii < n0 ; ii++ ){
+     kk = ( y0[ii] - ymin ) * dy ;
+     if( kk < 0 ) kk = 0 ; else if( kk >= nbin ) kk = nbin-1 ;
+     y0h[kk] += dc ;
+   }
+   for( ii=0 ; ii < n1 ; ii++ ){
+     kk = (int)( ( y1[ii] - ymin ) * dy ) ;
+     if( kk < 0 ) kk = 0 ; else if( kk >= nbin ) kk = nbin-1 ;
+     y1h[kk] += dc ;
+   }
+
+   /* calculate mutual info vs. 0/1 */
+
+            /* entropy of the 0/1 'variable' */
+   hsum   = - ( SHANENT(n0*dc) + SHANENT(n1*dc) ) ;
+
+   hjoint = 0.0f ;
+   for( kk=0 ; kk < nbin ; kk++ ){
+     hjoint -= ( SHANENT( y0h[kk] ) + SHANENT( y1h[kk] ) ) ;
+     hsum   -= SHANENT( y0h[kk] + y0h[kk] ) ;
+   }
+
+   free(y0h) ; free(y1h) ;
+
+   mmii.a = hsum - hjoint ;
+   if( hjoint > 0.0f ) mmii.b = hsum / hjoint ;
+   return mmii ;
 }
 
 /*---------------------------------------------------------------------------*/

@@ -43,15 +43,20 @@ ENTRY("THD_zeropad") ;
 
    if( !ISVALID_DSET(inset) ) RETURN( NULL ) ;
 
+   if( !THD_filename_ok(prefix) ) prefix = "zeropad" ;
+
    if( add_I==0 && add_S==0 && add_P==0 &&
        add_A==0 && add_L==0 && add_R==0    ){
 
       INFO_message("THD_zeropad: all pad values are zero - just copying dataset") ;
-      outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
+      if( !empty_flag ){
+        outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
+      } else {
+        outset = EDIT_empty_copy( inset ) ;          /* 15 Sep 2020 - oops */
+        EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+      }
       RETURN( outset );
    }
-
-   if( !THD_filename_ok(prefix) ) prefix = "zeropad" ;
 
    /*-- map add_? values into dataset xyz coordinate directions --*/
 

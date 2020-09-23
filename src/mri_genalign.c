@@ -1474,14 +1474,15 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    nfr = stup->wfunc_numfree ;    /* number of free parameters */
    switch( nfr ){                 /* set ngrid = number of points along */
      case 1: ngrid = 9 ; break ;  /*             parameter axis to scan */
-     case 2: ngrid = 5 ; break ;  /*             in the regular grid    */
-     case 3: ngrid = 3 ; break ;
-     case 4:
-     case 5:
+     case 2: ngrid = 8 ; break ;  /*             in the regular grid    */
+     case 3: ngrid = 6 ; break ;
+     case 4: ngrid = 4 ; break ;
+     case 5: ngrid = 3 ; break ;
      case 6: ngrid = 2 ; break ;
     default: ngrid = 1 ; break ;
    }
    for( ngtot=1,qq=0 ; qq < nfr ; qq++ ) ngtot *= ngrid ; /* ngrid^nfr */
+   if( nfr < 4 ) nrand *=2 ;
 
    icod = stup->interp_code ;                     /* save and set interp mode */
    if( icod == MRI_NN || AFNI_noenv("AFNI_TWOPASS_LIN") )

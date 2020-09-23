@@ -1299,6 +1299,16 @@ void display_help_menu(void)
       "               inference in the output dataset, to be used with the AFNI GUI\n"
       "               Clusterize controls.\n"
       "              ++ If you want to keep ALL the temporary files, use '-CLUSTSIM'.\n"
+      "                 They will include the z-scores from all the simulations.\n"
+      "               ** Normally, the permutation/randomization z-scores are saved\n"
+      "                  in specially compressed files with suffix '.sdat'. If you\n"
+      "                  want these files in the '.nii' format, use the options\n"
+      "                  '-DAFNI_TTEST_NIICSIM=YES -CLUSTSIM'.\n"
+      "               ** However, if '-ETAC' is also used, the '.sdat' format will\n"
+      "                  be used instead of the '.nii' format, as the program that\n"
+      "                  implements ETAC (3dXClustSim) requires that format.\n"
+      "               ** You can change the number of simulations using an option\n"
+      "                  such as '-DAFNI_TTEST_NUMCSIM=20000' if you like.\n"
       "              ++ Since the simulations are done with '-toz' active, the program\n"
       "                 also turns on the '-toz' option for your output dataset. This\n"
       "                 means that the output statistics will be z-scores, not t-values.\n"
@@ -4990,6 +5000,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    /*------------------------------------------------------------------------*/
    /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
+   /*----------- This is where ETAC and ClustSim are implemented ------------*/
+   /*------------- do_Xclustsim == ETAC  do_clustsim == ClustSim ------------*/
    /*------------------------------------------------------------------------*/
 
    if( do_clustsim || do_Xclustsim ){  /* this will take a while */
