@@ -1309,6 +1309,8 @@ int main( int argc , char *argv[] )
       "\n"
       "  -Supper      }= Set the S matrix to be upper or lower\n"
       "  -Slower      }= triangular [Default=lower triangular]\n"
+      "                  NOTE: There is no '-Lunch' option.\n"
+      "                        There is no '-Faster' option.\n"
       "\n"
       "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
       "  -bshift      }= before the matrix transformation. [Default=after]\n"
@@ -3102,6 +3104,17 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-Supper") == 0 ){
        smat  = SMAT_UPPER      ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-Lunch") == 0 ){  /* 23 Sep 2020 */
+       WARNING_message("There is no free '%s' with AFNI :(",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-Faster") == 0 ){
+       WARNING_message("You want '%s'? We already use OpenMP! Give me a break.",argv[iarg]) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/

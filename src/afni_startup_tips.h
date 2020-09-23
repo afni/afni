@@ -1835,7 +1835,25 @@ static char *gby[] = {
      "   To make an end is to make a beginning;\n"
      "   The end is where we start from"                                               ,
 
-     "Half the harm done in the world is due to people who want to feel important"
+     "Half the harm done in the world is due to people who want to feel important"     ,
+
+     /* PG Wodehouse */
+
+     "Never put anything on paper, and never trust a man with a small black moustache" ,
+     "An apple a day, if well aimed, keeps the doctor away"                            ,
+     "Some minds are like soup in a poor restaurant -better left unstirred"            ,
+
+     "As we grow older and realize more clearly the limitations of\n"
+     "    human happiness, we come to see that the only real and\n"
+     "    abiding pleasure in life is to give pleasure to other people"                ,
+
+     "It is difficult to bring people to goodness with lessons,\n"
+     "   but it is easy to do so by example"                                           ,
+
+     "One of the drawbacks to life is that it contains moments when\n"
+     "   one is compelled to tell the truth"                                           ,
+
+     "I always advise people never to give advice"
 
 } ;
 
