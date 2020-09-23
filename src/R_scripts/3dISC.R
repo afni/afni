@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.5, Aug 15, 2020
+Version 0.0.6, Sept 23, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -601,7 +601,8 @@ process.ISC.opts <- function (lop, verb = 0) {
 #      if(identical(sort(sq), as.numeric(seq(1, lop$num_glt)))) {
       lop$gltLabel <- unlist(lapply(lop$gltCode, `[`, 1))
       lop$gltM <- do.call(rbind, lapply(lop$gltCode, function(x) as.numeric(x[2:length(x)])))
-   } #else errex.AFNI(c('The number of -gltCode is not consistent with that \n',
+   } else lop$gltLabel <- 'ISC' # for the intercept
+#else errex.AFNI(c('The number of -gltCode is not consistent with that \n',
 #         'specified by -num_glt ',  lop$num_glt))
    
    #Make sure new io must be used with anything but BRIK format
@@ -1072,7 +1073,7 @@ Stat[Stat < (-Top)] <- -Top
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-1)))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
