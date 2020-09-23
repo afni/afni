@@ -1327,9 +1327,7 @@ int main( int argc , char *argv[] )
 
      /*......................................................................*/
 
-     if( argc > 1 &&
-        ( strcasecmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0     || AFNI_yesenv("AFNI_POMOC") ) ){
+     if( 1 ){   /* this used to be only for "-HELP" */
        printf(
         "\n"
         "===========================================================================\n"
@@ -4157,10 +4155,11 @@ STATUS("zeropad weight dataset") ;
            stup.wfunc_param[jj].min   = vb;
            stup.wfunc_param[jj].max   = vt;
            if( verb > 1 )
-             ININFO_message("Range param#%d [%s] = %f .. %f",
+             ININFO_message("Range param#%d [%s] = %f .. %f  center = %f",
                             jj+1 , stup.wfunc_param[jj].name ,
                                    stup.wfunc_param[jj].min  ,
-                                   stup.wfunc_param[jj].max   ) ;
+                                   stup.wfunc_param[jj].max  ,
+                    0.5f*(stup.wfunc_param[jj].min+stup.wfunc_param[jj].max) );
          }
          break;
        }
