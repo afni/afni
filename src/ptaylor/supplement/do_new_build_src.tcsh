@@ -15,11 +15,13 @@ mkdir BUILDNEW
 echo "++ Sync git repo to build src (rsync)"
 rsync -av --exclude=".*" ~/AFNI/afni/ ~/BUILDNEW
 
+touch BUILDNEW
+
 cd BUILDNEW/src
 #cp other_builds/Makefile.linux_ubuntu_12_64_OMP Makefile
 cp Makefile.linux_ubuntu_16_64 Makefile
 
-make vastness
+make vastness |& tee ~/o.build_src_${thedate}.txt
 
 if ($status) then
     echo "** ERROR IN BUILD"
@@ -36,5 +38,6 @@ if ( -e afni_build ) then
 endif
 
 mv ~/BUILDNEW ~/afni_build
+touch ~/afni_build
 
 apsearch -update_all_afni_help
