@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.3, Sept 24, 2020 
+Version 1.0.3, Sept 25, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -132,6 +132,16 @@ Usage: ~1~
  Alternatively you may install them in R:
 
  install.packages("brms")
+
+ In addition, if you want to show the ridge plots of the posterior distributions
+ through option -ridgePlot, make sure that the following R packages are installed:
+
+ data.table
+ ggplot2
+ ggridges
+ dplyr
+ tidyr
+ scales
  
  Running: ~1~
  Once the RBA command script is constructed, it can be run by copying and
@@ -201,8 +211,8 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    this case. The option -ridgePlot generates a stacked list of posterior
    distributions in a sequential order among the regions for each effect of
    interest specified through -EOI. The two numbers of 10 and 8 associated
-   with the option -ridgePlot specifies the figure window size with 10" wide
-   and 8" high.
+   with the option -ridgePlot specifies the figure window size with 10\" wide
+   and 8\" high.
 \n"
      
    ex3 <-
