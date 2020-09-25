@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Put in status checks through script to exit with error if any step fails.",
+   "Should provide nicer behavior if something gang agley.\n"
+},
+
 { 2, Sep , 2020 , PT , "@SkullStrip_TouchUp" , MINOR , TYPE_GENERAL,
    "Replace '-e' at top with several later status checks; 'exit 0' after help.",
    "No effect on output, except being more general.\n"
