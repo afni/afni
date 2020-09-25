@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, March 18, 2020 
+Version 1.0.3, Sept 24, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -183,7 +183,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   RBA -prefix output -Subj subject -ROI region -Y zscore -PDP 4 4 \\
+   RBA -prefix output -Subj subject -ROI region -Y zscore -ridgePlot 10 8 \\
    -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
@@ -198,8 +198,11 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    ...
 
    Notice that the interaction between 'sex' and 'group' is not modeled in
-   this case. The option -PDP 4 4 allows the program to generate a 4 x 4
-   posterior distribution plots for the 16 regions.
+   this case. The option -ridgePlot generates a stacked list of posterior
+   distributions in a sequential order among the regions for each effect of
+   interest specified through -EOI. The two numbers of 10 and 8 associated
+   with the option -ridgePlot specifies the figure window size with 10" wide
+   and 8" high.
 \n"
      
    ex3 <-
@@ -208,7 +211,7 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    conditions), one between-subjects covariate (age), and one quantitative
    variable: ~2~
     
-   RBA -prefix result -PDP 4 4 -Subj Subj -ROI region -Y value \\
+   RBA -prefix result -ridgePlot 8 6 -Subj Subj -ROI region -Y value \\
    -chains 4 -iterations 1000 -model '1+sex+age+SA' -qVars 'sex,age,SA' \\
    -EOI 'Intercept,sex,age,SA' -dataTable myData.txt
 
@@ -425,6 +428,14 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "         So label the regions concisely.\n", sep = '\n'
                      ) ),
 
+      '-ridgePlot' = apl(n=2, d = NA,  h = paste(
+   "-ridgePlot width height: This option will plot the posterior distributions stacked",
+   "         together in a sequential order, likely preferable to the one generated",
+   "         with option -PDP. The size of the figure windown is specified through the",
+   "         two parameters of width and height in inches. You can fine-tune the plot",
+   "         yourself by loading up the *.RData file if you know the tricks.\n", sep='\n')),
+
+
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
@@ -479,6 +490,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$Subj   <- 'Subj'
       lop$ROI    <- 'ROI'
       lop$PDP    <- NA
+      lop$ridgePlot <- NA
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -508,6 +520,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              Subj   = lop$Subj   <- ops[[i]],
              ROI    = lop$ROI    <- ops[[i]],
              PDP    = lop$PDP    <- ops[[i]],
+             ridgePlot = lop$ridgePlot <- ops[[i]],
              help    = help.RBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
@@ -872,6 +885,157 @@ plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    dev.off()
 }
 
+ridge <- function(dat, xlim, labx, wi, hi) {
+   # required libraries
+   library(data.table)
+   library(ggplot2)
+   library(ggridges)
+   library(dplyr)
+   library(tidyr)
+   library(scales)
+
+   data <- data.frame(dat)
+   data$X <- NULL
+   nobj=dim(data)[1]
+
+   # rename columns with ROI list
+   rois <- dimnames(dat)[[2]]
+   colnames(data) <- rois
+   data_stats <- data.frame(1:length(rois))
+
+   # create ROI column instead of numerics to match threat table above
+   data_stats$ROI <- rois
+   data_stats$mean <- colMeans(data)  # median: quantile(x, probs=.5)
+   data_stats$P <- colSums(data > 0)/nobj
+   data_stats$Pn <- ifelse(data_stats$P < .5, 1-data_stats$P, data_stats$P)
+   # this will order the distributions correctly
+   data_stats <- data_stats[order(data_stats$mean),]
+
+   data_trans <- as.data.frame(t(as.matrix(data)))
+   # add two more columns
+   data_trans <- tibble::rownames_to_column(data_trans, "ROI")
+   data_trans$X <- 1:nrow(data_trans)
+
+   # merge values & stats into one table by ROI
+   data_merge <- merge(data_stats, data_trans, by = "ROI")
+   data_merge <- data_merge[order(data_merge$X),]
+
+   # Transform data into long form: Melt dataframe by ROI
+   data_long <- reshape2::melt(data_trans, id=c("ROI","X"))
+   data_long <- data_long[order(data_long$X),]
+
+   #clunky, but for now stats by ensuring orders are all the same and repeating each value nobj times. no success for alternatives.
+   data_long$mean <- rep(data_merge$mean, each = nobj)
+   data_long$P <- rep(data_merge$P, each =nobj)
+   data_long$Pn <- rep(data_merge$Pn, each =nobj)
+   data_long$gray.vals <- rep(data_merge$gray.vals, each =nobj)
+
+   ########################  G R A P H I N G  #########################################################
+   #######################     V A R I A B L E S    ######################################################
+   # set your labels here so you don't have to change within the plot below:
+   y.axis.labs <- data_stats$ROI                              # y axis labels
+   sec.y.axis.labs <- round(data_stats$P,2)                   # second y axis labels (probabilities) - Rounded to 2 decimals
+
+   ################# X AXIS LABELS ###########################################################
+   # X AXIS LABELS NEED TO CHANGE TO CORRESPOND TO DATA SET! UNCOMMENT WHICHEVER MATCHES
+   x.axis.labs <- NULL                                # x axis labels  INTERACTION, not sure what to put.
+   x.labs.pos <- NULL                                 # a axis position INTERACTION, change when labels decided
+
+   ######## T I T L E S #############################################################
+   #data.name <- tl
+   graph.title <- "Interaction (% signal change)"                                   # graph title
+   legend.title <- "P+"                              # legend title
+   y.axis.title <- NULL                                       # for now ...
+   x.axis.title <- NULL                                       # for now...
+
+   ########################## D A T A  ##############################################################
+   # GRAPH DATA
+   dataset <- data_long
+   x.values <- data_long$value                               # x values
+   y.values <- data_long$ROI                                 # y values
+   y.values.RO <- data_long$value                            # values to reorder Y by
+   distrib.fill <- data_long$P                       # fill graph with probabilities
+   group <- data_long$ROI
+
+   ######################### S A V E  ################################################
+   # SAVE SETTINGS -- Currently low res and jpeg to make it easier to share
+   # adjusting height + width will throw font sizes out of wack: need change (see other aspects below)
+
+   dpi <- 300
+   units <- "in"                                           # "in", "cm", or "mm"
+   height <- 5
+   width <- 9
+   file.type <- ".jpeg"                   # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
+
+   ############################### O T H E R  #################################################
+   #gradient.colors<-c("#41245C","yellow","gray","gray","blue","#C9182B") # change gradient colors
+   gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")  # change gradient colors here
+   ROI.label.size <- 15                 # adjust ROI and probability y-axis font size
+   P.label.size <- 15
+   title.size <- 20                         # adjust graph title size
+   x.axis.size <- 15                                        # adjust x-axis label sizes
+
+   ##################  G R A P H  ########################################
+   # change information about the graph and add other characteristics using ggplot and ggridges
+   ggplot(dataset, aes(x = x.values,
+                       y = as.numeric(reorder(y.values, y.values.RO)),
+                       fill = distrib.fill,
+                       group = group))   +
+     guides(fill = guide_colorbar(barwidth = 1,             #legend characteristics
+                                  barheight = 20,
+                                  nbin = 100, # can change # bins to play around with color gradient
+                                  frame.colour = "black",
+                                  frame.linewidth = 1.5,
+                                  ticks.colour = "black",
+                                  title.position = "top",
+                                  title.hjust = 0.5)) +
+     #geom_density_ridges() +                            # scale = spacing, alpha = transparency
+     stat_density_ridges(quantile_lines = TRUE,         # divide into two quantiles (show mean)
+                         quantiles = 2,
+                         size = .6,
+                         alpha = .8,
+                         scale = 2,
+                         color = "black") +
+     geom_vline(xintercept = 0,                        #create line at X = 0
+                linetype="solid",
+                alpha = 1,
+                size = 1,
+                color = "green") +
+     scale_fill_gradientn(
+                          colors = gradient.colors,                       # set gradient
+                          limits = c(0,1),                                # scale size
+                          name = legend.title,
+                         breaks = c(0,0.05,0.1,0.9,0.95,1),
+                         expand = expand_scale(0),
+                         labels = c("0","0.05","0.1","0.9", "0.95","1")
+                         ) +
+     scale_y_continuous(breaks = 1:length(rois), # A VERY HACK-Y WAY TO HAVE TWO Y AXES W DISCRETE DATA
+                        labels = y.axis.labs,   # Trick ggplot into thinking data is continuous...
+                        sec.axis = sec_axis(~.,  # Second axis to show probabilities
+                                            breaks = 1:length(rois),
+                                            labels = sec.y.axis.labs)) +
+     theme_ridges(font_size = ROI.label.size, grid = TRUE, center_axis_labels = TRUE) +  # theme info
+     #ggtitle(graph.title)+                                                   # graph title
+     annotate("text", x=0.06, y=1.5, label=labx, size=5.5)+
+     theme(
+       plot.title = element_text(vjust = -0.5, size = title.size),   # plot title size and position
+       #axis.title.x=element_text(vjust=0, hjust=0.5),
+       axis.text.y.left = element_text(size=ROI.label.size),        # y-axis text size
+       axis.text.y.right = element_text(size = P.label.size),       # y-axis info for right axis
+       axis.text.x = element_text(size = x.axis.size),   # x-axis text size/face
+       #axis.text.x = element_text(size = x.axis.size, face = "bold"),   # x-axis text size/face
+       legend.title.align = 5,
+       #legend.text = element_text(face = "bold"),
+       legend.title = element_text(size = 15))+
+       #legend.title = element_text(face = "bold", size = 15))+
+       labs(
+       #x = 'interaction (% signal change)',                 # Add or not add X and Y labels
+       x = NULL,
+       y = NULL) +
+     scale_x_continuous(limits = xlim)+xlab(labx)
+     ggsave(file = paste0(labx, ".pdf"), width=wi, height=hi, dpi = 120)
+}
+
 # for Intercept and quantitative variables
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIq[ii]), 
@@ -881,6 +1045,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
 # for contrasts among quantitative variables
@@ -892,6 +1057,7 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(any(!is.na(lop$PDP) == TRUE)) plotPDP(paste0(lop$qContrL[2*ii-1], '-', lop$qContrL[2*ii]), ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
 # for factor
@@ -920,6 +1086,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
 
    if(any(!is.na(lop$PDP) == TRUE)) for(jj in 1:nl)
       plotPDP(paste0(lop$EOIc[ii], '_', lvl[jj]), psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
+   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
    
    cat(sprintf('===== Summary of region effects for %s comparisons (RBA results) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
@@ -929,6 +1096,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(any(!is.na(lop$PDP) == TRUE))  plotPDP(paste0(lvl[jj], '-', lvl[kk]), psa[jj,,] - psa[kk,,], nR, lop$PDP[1], lop$PDP[2], 8)
+      if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
    }
 }
 

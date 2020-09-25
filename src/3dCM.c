@@ -12,6 +12,7 @@ int main( int argc , char * argv[] )
 
    int cmode = 0; // default: return xyz in DICOM
    int cm_cmode;
+   int LocalHead = wami_lh();
    int Icent = 0;  // compute Icent internal center
    int Dcent = 0;  // compute Dcent distance center
         
@@ -210,19 +211,19 @@ int main( int argc , char * argv[] )
            printf("%d  %d  %d\n", (int) cmv.xyz[0], 
            (int) cmv.xyz[1], (int) cmv.xyz[2]) ;
            else*/
-         if(!Icent || !Dcent)
+         if(!Icent && !Dcent)
             printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
          else {
-            printf("%g  %g  %g  Center of Mass\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+            if(LocalHead)
+               printf("%g  %g  %g  Center of Mass\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
             if(Icent){
               cmv = THD_Icent( xset , 0 , mmm, cmode, cmv);
-              printf("%g  %g  %g  Icent\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+              printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
             }
             if(Dcent){
               cmv = THD_Dcent( xset , 0 , mmm, cmode, cmv);
-              printf("%g  %g  %g  Dcent\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+              printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
             }
-
          }
          DSET_unload(xset) ;
 

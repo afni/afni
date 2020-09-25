@@ -445,13 +445,20 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 
    /* these errors should never ever happen */
 
+ENTRY("permute_arrays") ;
+
    if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy != nx+ny ){
      static int first=1 ;
      if( first ){
-       ERROR_message("-permute failure for unexplainable reasons /:(") ;
+       ERROR_message("-permute failure for unfathomable reasons /:(\n"
+                     "     nx=%d  ny=%d  p_nxy=%d  x==%s  y==%s\n"
+                     "Function traceback follows:"                     ,
+                     nx,ny,p_nxy , (x==NULL)?"NULL":"non-NULL" ,
+                                   (y==NULL)?"NULL":"non-NULL"   ) ;
+       DBG_traceback() ;
        first = 0 ;
      }
-     return ;
+     EXRETURN ;
    }
 
    /* copy 2 inputs into 1 big array */
@@ -464,7 +471,7 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
    for( ii=0 ; ii < nx ; ii++ ) x[ii] = p_xyar[p_ijar[ii]   ] ;
    for( ii=0 ; ii < ny ; ii++ ) y[ii] = p_xyar[p_ijar[ii+nx]] ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1323,6 +1330,9 @@ void display_help_menu(void)
       "                 is to be used when the CPU count is not auto-detected correctly.\n"
       "               ** You can also set the number of CPUs to be used via the Unix\n"
       "                  environment variable OMP_NUM_THREADS.\n"
+      "               ** This program does not use OpenMP (OMP), but since many other\n"
+      "                  AFNI programs do, setting OMP_NUM_THREADS is a common way\n"
+      "                  to set the amount of parallel computation to use.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash. The program\n"
