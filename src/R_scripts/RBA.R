@@ -183,7 +183,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   RBA -prefix output -Subj subject -ROI region -Y zscore -ridgePlot \\
+   RBA -prefix output -Subj subject -ROI region -Y zscore -ridgePlot 10 8 \\
    -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
@@ -200,7 +200,9 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    Notice that the interaction between 'sex' and 'group' is not modeled in
    this case. The option -ridgePlot generates a stacked list of posterior
    distributions in a sequential order among the regions for each effect of
-   interest specified through -EOI.
+   interest specified through -EOI. The two numbers of 10 and 8 associated
+   with the option -ridgePlot specifies the figure window size with 10" wide
+   and 8" high.
 \n"
      
    ex3 <-
@@ -209,7 +211,7 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    conditions), one between-subjects covariate (age), and one quantitative
    variable: ~2~
     
-   RBA -prefix result -ridgePlot -Subj Subj -ROI region -Y value \\
+   RBA -prefix result -ridgePlot 8 6 -Subj Subj -ROI region -Y value \\
    -chains 4 -iterations 1000 -model '1+sex+age+SA' -qVars 'sex,age,SA' \\
    -EOI 'Intercept,sex,age,SA' -dataTable myData.txt
 
