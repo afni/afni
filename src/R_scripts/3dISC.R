@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, Sept 23, 2020
+Version 0.0.7, Sept 27, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -302,6 +302,50 @@ Introduction
          ...
      \n"
 
+   ex5 <-
+"Example 5 --- ISC analysis with two conditions (C1 and C2). Three ISCs can be
+  inferred at the population level, C11 (ISC within the first condition C1), 
+  C22 (ISC within the second condition C2), and C12 (ISC between the first
+  condition C1 and the second condition C2). The research interest can be 
+  various comparisons among C11, C22 and C12. Use three columns to code the
+  condition pairing. The first column ('cond' below) to indicate the condition
+  pair, and the second and third columns show the condition for the first and
+  second subject, respectively. Be careful that a factor (categorical variable) 
+  is internally quantified in the model using deviation coding with alphabetically
+  the last level (C22 in this case) as the reference. If different labels (e.g.,
+  house, face, facehouse) are used, make sure that the weights in the option
+  -gltCode are associated with the order of the three pairs (e.g., face, 
+  facehouse, house).
+
+-------------------------------------------------------------------------
+    3dISC -prefix ISC5 -jobs 12                \\
+          -mask myMask+tlrc                     \\
+          -model  'cond+(0+cond1|Subj1)+(0+cond2|Subj2)'     \\
+          -gltCode ave     '1 0 -0.5'           \\
+          -gltCode C11     '1 1 0'              \\
+          -gltCode C12     '1 0 1'              \\
+          -gltCode C22     '1 -1 -1'            \\
+          -gltCode C11vC22 '0 2 1'              \\
+          -gltCode C11vC12 '0 1 -2'             \\
+          -gltCode C12vC22 '0 1 2'              \\
+          -gltCode ave-C12 '0 0 -1.5'           \\
+          -dataTable                            \\
+          Subj1 Subj2    cond cond1 cond2   InputFile     \\
+          s1     s2      C11   C1     C1    s1_2+tlrc     \\
+          s1     s3      C11   C1     C2    s1_3+tlrc     \\
+          s1     s4      C11   C1     C2    s1_4+tlrc     \\
+          ...            
+          s1     s25     C12   C1     C2    s1_25+tlr     \\
+          s1     s26     C12   C1     C2    s1_26+tlr     \\
+          s1     s27     C12   C1     C2    s1_26+tlr     \\
+          ...            
+          s25    s26     C22   C2     C2   s25_26+tlr     \\
+          s25    s27     C22   C2     C2   s25_27+tlr     \\
+          s25    s48     C22   C2     C2   s51_28+tlr     \\
+         ...
+     \n"
+
+
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
@@ -315,7 +359,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep='')) 
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ex5, ss, sep='\n')
    
    if (adieu) exit.AFNI();
 }
