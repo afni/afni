@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Sep, 2020, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
+   "be specific about limits for 'param must be in' error messages",
+   NULL
+ } ,
+
  { 17, Sep, 2020, RCR, "afni_system_check.py", MINOR, TYPE_BUG_FIX,
    "fix use of platform.mac_ver (was there a change?)",
    NULL

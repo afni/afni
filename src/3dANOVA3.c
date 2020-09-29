@@ -475,8 +475,10 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt >= argc)  ANOVA_error ("need argument after -alevels ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > MAX_LEVELS))
+	  if ((ival <= 0) || (ival > MAX_LEVELS)) {
+            fprintf(stderr,"** parameter exceeding max of %d\n", MAX_LEVELS);
 	    ANOVA_error ("-alevels param must be in {1..MAX}");
+          }
 	  option_data->a = ival;
 	  nopt++;
 	  continue;
@@ -489,8 +491,10 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt >= argc)  ANOVA_error ("need argument after -blevels ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > MAX_LEVELS))
+	  if ((ival <= 0) || (ival > MAX_LEVELS)) {
+            fprintf(stderr,"** parameter exceeding max of %d\n", MAX_LEVELS);
 	    ANOVA_error ("-blevels param must be in {1..MAX}");
+          }
 	  option_data->b = ival;
 	  nopt++;
 	  continue;
@@ -503,8 +507,10 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt >= argc)  ANOVA_error ("need argument after -clevels ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > MAX_LEVELS))
+	  if ((ival <= 0) || (ival > MAX_LEVELS)) {
+            fprintf(stderr,"** parameter exceeding max of %d\n", MAX_LEVELS);
 	    ANOVA_error ("-clevels param must be in {1..MAX}");
+          }
 	  option_data->c = ival;
 	  nopt++;
 	  continue;
