@@ -6511,6 +6511,26 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
    if(dset) RETURN(dset);
 
    /* try environment variable location for TTATLAS */
+   epath = getenv("AFNI_ATLAS_PATH") ;
+   /* try dsetname first */
+   if (!dset) {
+      if(LocalHead)
+         INFO_message("load_atlas: epath %s, name %s", epath, dsetname);
+      dset = get_atlas( epath, dsetname ) ;  /* try to open it */
+      if(dset) RETURN(dset);
+   }
+
+   /* try environment variable location for TTATLAS */
+   epath = getenv("AFNI_SUPP_ATLAS_DIR") ;
+   /* try dsetname first */
+   if (!dset) {
+      if(LocalHead)
+         INFO_message("load_atlas: epath %s, name %s", epath, dsetname);
+      dset = get_atlas( epath, dsetname ) ;  /* try to open it */
+      if(dset) RETURN(dset);
+   }
+
+   /* try environment variable location for TTATLAS */
    epath = getenv("AFNI_TTATLAS_DATASET") ;
    /* try dsetname first */
    if (!dset) {
