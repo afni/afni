@@ -1,11 +1,8 @@
-import subprocess
 import os
 from pathlib import Path
 from typing import Union
 import pytest
-import shutil
 import inspect
-import functools
 import datetime
 import datetime as dt
 import time
@@ -15,7 +12,6 @@ pytest.register_assert_rewrite("scripts.utils.tools")
 import scripts.utils.tools as tools
 from scripts.utils.tools import get_current_test_name
 import attr
-import re
 
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
