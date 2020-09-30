@@ -29,13 +29,10 @@ NOTES
 #include <string.h>
 #include <unistd.h>
 #include "mrilib.h"
+#include "Generic.h"
+// #include "VolumeRegistration.h"
 
-typedef struct{
-    float real;
-    float imag;
-} COMPLEX;
-
-int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din, COMPLEX **TwoDFt);
+int Cleanup(char *inputFileName, char *outputFileNames[], COMPLEX ***TwoDFts, THD_3dim_dataset *din);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
 int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
@@ -46,21 +43,69 @@ int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outp
 int FFT2D(COMPLEX **c,int nx,int ny,int dir);
 int FFT(int dir,int m,double *x,double *y);
 int Powerof2(int n,int *m,int *twopm);
-int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT);
-int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din);
+int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFts);
+int outputFourierSpectrum(COMPLEX **TwoDFts, THD_3dim_dataset *din);
+int outputRealAndImaginaryPlanes(COMPLEX **TwoDFts, THD_3dim_dataset *din);
+COMPLEX **CheckeredInversion(COMPLEX **input, unsigned int dimension);
+ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImages, int dimension,
+		IntRange irFrequencyRange, char *csAnalysisFileName, float *fpCoplanarAngularShift);
+ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float fIncrementInDegrees,
+			IntRange lrFrequencyRange, float ***fpppRadialSamples, long *lpNumRadialSamples);
+ERROR_NUMBER RotScaleComplexPlaneM(ComplexPlane *cppComplexPlane, Matrix mTransMatrix, BOOL bClip, BYTE bInterpOrder);
+ERROR_NUMBER RotScaleComplexPlane(ComplexPlane *cppComplexPlane, FloatVector fvTranslation,
+		float fClockwiseRotationInDegrees, float fScaleX, float fScaleY, BOOL bClip, BYTE bInterpOrder);
+ERROR_NUMBER MakeCardinalRadialPhaseSamples(FloatPlane fpReal, FloatPlane fpImaginary,
+			short *spCardinalIndices, IntRange lrFrequencyRange, float ***fpppRadialSamples);
+ERROR_NUMBER ComparePhaseSamples(float *fpTargetSample, float *fpRefSample,
+										IntRange lrFrequencyRange, float *fpComparisonMetric);
+float ExpectedAngularShift(int iCurrentAxis);
+float GetAngularShift(FloatVector fvCoords);
+void DetermineUnclippedOutputDimensions(long lInputColumns, long lInputRows,
+	 float fClockwiseRotationInDegrees, FloatVector fvTranslation, float fScaleX, float fScaleY);
+void MatVectMult(Matrix mMatrix, float *fpInVector, float *fpOutVector);
+ERROR_NUMBER MakeRadialPhaseVectorSample(COMPLEX *cpComplexRadialSample, int iLength, float **fppRadialSample);
+ERROR_NUMBER MakePhaseShiftVector(float *fpTargetSample, float *fpRefSample, IntRange lrFrequencyRange,
+								  long *lpVectorLength, float **fppPhaseShiftVector);
+void GetSlope(float *fVector, IntRange lrFrequencyRange, float *fpSlope, float *fpIntercept);
+float GetMSE(float *fVector, float fSlope, float fPhaseShiftIntercept, IntRange lrFrequencyRange);
+ERROR_NUMBER MedianFilterFloatVector(float *fpVector, long lLength);
+float Float3x1Median(float *fpInput);
+void FreeFloatPlane(FloatPlane Float_Plane);
+int Round(float arg);
+ERROR_NUMBER ErrorOpeningFile(char *csFileName);
+float FloatPythag(float fArg1, float fArg2);
+double Pythag(double dArg1, double dArg2);
+double Interp_BL(float **image, float x_coord, float y_coord);
+double Interp_BQ(float **image, float x_coord, float y_coord);
+double	Interp_BC(float **image, float x_coord, float y_coord);
+long DRound(double arg);
+ERROR_NUMBER Complex2Float(ComplexPlane cpInputPlane, FloatPlane *fppRealOut, FloatPlane *fppImagOut);
+FloatPlane MakeFloatPlane(long iRows, long iColumns, float **Data);
+
+
+
+double  dCommonLinesAngleErr;
+float   fCommonLinesPeak, fCommonLinesPeakDiff;
+LongVector  lvOutputDimensions;
+
 
 int main( int argc, char *argv[] )  {
-    THD_3dim_dataset * din = NULL, *dodd, *deven, *doddSagProj, *doddSagProjPad;
-    int     i, largestDimension, paddingFactor=2;
+	ERROR_NUMBER	enErrorNumber;
+	IntRange irFrequencyRange;
+	char csAnalysisFileName[512];
+	float fCoplanarAngularShift;
+    THD_3dim_dataset * din = NULL, *dodd, *deven;
+    THD_3dim_dataset* projections[3], *paddedProjections[3];
+    int     i, j, largestDimension, paddingFactor=2;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
-    COMPLEX **TwoDFt=NULL;
+    COMPLEX** TwoDFts[3]={NULL, NULL, NULL};
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
+                return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
             sprintf(inputFileName,"%s",argv[i]);
             break;
 
@@ -71,19 +116,21 @@ int main( int argc, char *argv[] )  {
     }
 
     if( open_input_dset(&din, inputFileName) )
-    return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
+    return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
 
     // Split volume into odd and even slices
     if (!unweave_sections(din, &dodd, &deven))
-        return Cleanup(inputFileName, outputFileNames, din, TwoDFt);
+        return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
 
     // Make projections
-    makeProjection(dodd, &doddSagProj, 's');
+    makeProjection(dodd, &(projections[0]), 's');
+    makeProjection(dodd, &(projections[1]), 'a');
+    makeProjection(dodd, &(projections[2]), 'c');
 
     // Get largest dimension from data set
     largestDimension=getLargestDimension(dodd);
 
-    // Free up 3D datasets
+    // Free up intput dataset
     DSET_delete(din);
 
     // Float projections
@@ -92,28 +139,373 @@ int main( int argc, char *argv[] )  {
     // float2DImage(doddSagProj);
 
     // Zero pad projections
-    if (!(zeroPadProjection(doddSagProj, &doddSagProjPad, largestDimension, paddingFactor)))
-        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
-    DSET_delete(doddSagProj);
+    for (i=0; i<3; ++i){
+        if (!(zeroPadProjection(projections[i], &(paddedProjections[i]), largestDimension, paddingFactor))){
+            Cleanup(inputFileName, outputFileNames, TwoDFts, projections[2]);
+            for (j=0; j<i; ++j) DSET_delete(paddedProjections[j]);
+            for (; j<3; ++j) DSET_delete(projections[j]);
+        }
+        DSET_delete(projections[i]);
+    }
 
     // Make Fourier transforms of projections
-    if (!(get2DFourierTransform(doddSagProjPad, &TwoDFt)))
-        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
+    for (i=0; i<3; ++i){
+        if (!(get2DFourierTransform(paddedProjections[i], &(TwoDFts[i])))){
+            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
+            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+        }
+    }
 
     // Output Fourier spectra, of projections.
-    if (!(outputFourierSpectrum(TwoDFt, doddSagProjPad)))
-        Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
-    // TODO: Add code
+    for (i=0; i<3; ++i){
+        if (!(outputFourierSpectrum(TwoDFts[i], paddedProjections[i]))){
+            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
+            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+        }
+    }
+
+    // DEBUG: Output real and imaginary plane of first FT.
+    outputRealAndImaginaryPlanes(TwoDFts[0], paddedProjections[0]);
 
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
-    // TODO: Add code
+    int paddedDimension = pow(2, ceil(log(largestDimension)/log(2)));
+    int lNumberOfImages = 3;
+    irFrequencyRange.iMin = 1;
+    irFrequencyRange.iMax = largestDimension/2-5;
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
+    if ((enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
+		irFrequencyRange, csAnalysisFileName, &fCoplanarAngularShift))!=ERROR_NONE){
+            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
+            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+		}
 
-    // TODO: Add code
-    Cleanup(inputFileName, outputFileNames, doddSagProj, TwoDFt);
+    Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
+    for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
     return 1;
 }
 
-int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din){
+
+ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float fIncrementInDegrees,
+			IntRange lrFrequencyRange, float ***fpppRadialSamples, long *lpNumRadialSamples)
+{
+	ERROR_NUMBER	enErrorNumber;
+	long	iSampleIndex, iQuadIndex;
+	float	fAngleInDegrees=0;
+	ComplexPlane	cpRotatedFT;
+	FloatPlane  fpReal, fpImag;
+	FloatVector	fvTranslationVector={0,0};
+	short	saCardinalIndices[4];
+
+/* TODO: Add later
+	if (bSincFunctionInterp) return MakeRadialPhaseSampleArrayWithSincInterp(fpRealInput, fIncrementInDegrees,
+			lrFrequencyRange, fpppRadialSamples, lpNumRadialSamples, sFFTPaddingFactor);
+			*/
+
+	// Make rotation buffer
+	cpRotatedFT=MakeComplexPlane(cpFourierTransform.iRows, cpFourierTransform.iColumns, NULL);
+	if (!(cpRotatedFT.Data)) return ERROR_MEMORY_ALLOCATION;
+
+	// Allocate pointer to array
+	if (!(*fpppRadialSamples=(float **)malloc(4*((*lpNumRadialSamples)+4)*sizeof(float *))))
+	{
+		FreeComplexPlane(cpRotatedFT);
+		return ERROR_MEMORY_ALLOCATION;
+	}
+
+	// Initlialize cardinal indices
+	saCardinalIndices[0]=0;
+	saCardinalIndices[1]=(short)(*lpNumRadialSamples);
+	saCardinalIndices[2]=(short)((*lpNumRadialSamples)*2);
+	saCardinalIndices[3]=saCardinalIndices[1]+saCardinalIndices[2];
+
+	// Make samples
+	for (iSampleIndex=0; iSampleIndex<(*lpNumRadialSamples); ++iSampleIndex)
+	{
+		// Copy input image into rotation buffer
+		CopyComplexPlane(cpFourierTransform, cpRotatedFT);
+
+		// Apply rotation to spatial plane image
+		if (fAngleInDegrees!=0 && (enErrorNumber=RotScaleComplexPlane(&cpRotatedFT,
+			fvTranslationVector, -fAngleInDegrees, 1.0f, 1.0f, TRUE, BIQUADRATIC_INTERPOLATION))!=ERROR_NONE)
+		{
+			FreeComplexPlane(cpRotatedFT);
+			for (--iSampleIndex; iSampleIndex>=0; --iSampleIndex) free((*fpppRadialSamples)[iSampleIndex]);
+			free(*fpppRadialSamples);
+			(*fpppRadialSamples)=NULL;
+			return enErrorNumber;
+		}
+
+		// Make real and imaginary planes from Fourier transform
+		if ((enErrorNumber=Complex2Float(cpRotatedFT, &fpReal, &fpImag))!=ERROR_NONE)
+		{
+			FreeComplexPlane(cpRotatedFT);
+			for (--iSampleIndex; iSampleIndex>=0; --iSampleIndex) free((*fpppRadialSamples)[iSampleIndex]);
+			free(*fpppRadialSamples);
+			(*fpppRadialSamples)=NULL;
+			return enErrorNumber;
+		}
+
+		// Make radial samples from cardinal angles
+		if ((enErrorNumber=MakeCardinalRadialPhaseSamples(fpReal, fpImag, &(saCardinalIndices[0]),
+			lrFrequencyRange, fpppRadialSamples))!=ERROR_NONE)
+		{
+			FreeComplexPlane(cpRotatedFT);
+			FreeFloatPlane(fpReal);
+			FreeFloatPlane(fpImag);
+			for (--iSampleIndex; iSampleIndex>=0; --iSampleIndex) free((*fpppRadialSamples)[iSampleIndex]);
+			free ((*fpppRadialSamples));
+			(*fpppRadialSamples)=NULL;
+			return enErrorNumber;
+		}
+
+
+		// Increment angle and cardinal indices
+		fAngleInDegrees+=fIncrementInDegrees;
+		for (iQuadIndex=0; iQuadIndex<4; ++iQuadIndex) ++saCardinalIndices[iQuadIndex];
+
+		// Cleanup
+		FreeFloatPlane(fpReal);
+		FreeFloatPlane(fpImag);
+	}
+
+	// Cleanup
+	FreeComplexPlane(cpRotatedFT);
+
+	return ERROR_NONE;
+}
+
+ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImages, int dimension,
+		IntRange irFrequencyRange, char *csAnalysisFileName, float *fpCoplanarAngularShift)
+{
+	ERROR_NUMBER	enErrorNumber;
+	ComplexPlane    cpComplexPlane;
+	float			fIncrementInDegrees=2.0f*(float)(asin(0.5/irFrequencyRange.iMax)/DEGREES2RADIANS);
+	float			**fppRefSamples, **fpTargetSamples, fComparisonMetric, faPeakValues[10];
+	long			lPlaneIndex, lNumTargetSamples, lNumRefSamples, lTargetIndex, lRefIndex;
+	short			sPeakIndex, i, j;
+	FloatVector		fvaPeakCoords[10];
+	FILE			*fpAnalysisFile;
+	BOOL			bAnalysisFile=TRUE;
+	char            *graphFileName;
+
+	// Allocate memory to graph file name
+
+	// Make reference samples
+	lNumRefSamples=Round(180.0f/fIncrementInDegrees)-1;
+	cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
+	cpComplexPlane.Data=TwoDFts[0];
+	if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
+		irFrequencyRange, &fppRefSamples, &lNumRefSamples))!=ERROR_NONE) return enErrorNumber;
+
+	// Initialize peak values (Maybe should go in plane loop)
+	for (i=0; i<10; ++i) faPeakValues[i]=0.0f;
+
+	// Process target planes
+	for (lPlaneIndex=1; lPlaneIndex<lNumberOfImages; ++lPlaneIndex)
+	{
+		// Make target array
+		lNumTargetSamples=Round(360.0f/fIncrementInDegrees)-2;
+        cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
+        cpComplexPlane.Data=TwoDFts[1];
+		if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
+			irFrequencyRange, &fpTargetSamples, &lNumTargetSamples))!=ERROR_NONE)
+		{
+			for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
+				free(fppRefSamples[lRefIndex]);
+			free(fppRefSamples);
+			return enErrorNumber;
+		}
+
+		// Process samples from target plane
+		for (lTargetIndex=0; lTargetIndex<lNumTargetSamples; ++lTargetIndex)
+		{
+			// Compare target samples against each reference sample using multiplicative inverse of
+			//	mean square distance (MSD)
+			for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
+			{
+				// Get comparison metric between the two samples
+				if ((enErrorNumber=ComparePhaseSamples(fpTargetSamples[lTargetIndex], fppRefSamples[lRefIndex],
+					irFrequencyRange, &fComparisonMetric))!=ERROR_NONE)
+				{
+					for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex) free(fppRefSamples[lRefIndex]);
+					free(fppRefSamples);
+					for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+					free(fpTargetSamples);
+					return enErrorNumber;
+				}
+
+				// Add to top 10 peaks if appropriate
+				sPeakIndex=10;
+				for (i=9; i>=0; --i)
+				{
+					if (fComparisonMetric<=faPeakValues[i]) break;
+					sPeakIndex=i;
+				}
+				if (sPeakIndex<10)
+				{
+					for (j=9; j>sPeakIndex; --j)
+					{
+						faPeakValues[j]=faPeakValues[j-1];
+						fvaPeakCoords[j].x=fvaPeakCoords[j-1].x;
+						fvaPeakCoords[j].y=fvaPeakCoords[j-1].y;
+					}
+					faPeakValues[sPeakIndex]=fComparisonMetric;
+					fvaPeakCoords[sPeakIndex].x=fIncrementInDegrees*lRefIndex;
+					fvaPeakCoords[sPeakIndex].y=fIncrementInDegrees*lTargetIndex;
+				}
+			}
+		}
+
+		// Free target samples
+		for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+		free(fpTargetSamples);
+	}
+
+	// Cleanup
+	for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
+		free(fppRefSamples[lRefIndex]);
+	free(fppRefSamples);
+
+	// Open analysis file
+	if (bAnalysisFile && !(fpAnalysisFile=fopen(csAnalysisFileName, "w")))
+		return ErrorOpeningFile(csAnalysisFileName);
+
+	// Output analysis to analysis file
+	if (bAnalysisFile)
+	{
+		fprintf(fpAnalysisFile, "Rank\t1/MSE\tRef. Coord.\tTarget Coord.\n");
+		for (i=0, j=1; i<10; ++i)
+		{
+			fprintf(fpAnalysisFile, "%d\t%3.2f\t%3.2f\t%3.2f\n", j++,
+				faPeakValues[i], fvaPeakCoords[i].x, fvaPeakCoords[i].y);
+		}
+	}
+	*fpCoplanarAngularShift=fvaPeakCoords[0].y-fvaPeakCoords[0].x;
+	if (*fpCoplanarAngularShift>180) *fpCoplanarAngularShift-=360;
+	else if (*fpCoplanarAngularShift<-180) *fpCoplanarAngularShift+=360;
+
+	// Close analysis file
+	if (bAnalysisFile) fclose(fpAnalysisFile);
+/* TEMPORARAILY COMMENTED OUT 2020-09-28
+	// Error analysis
+	dCommonLinesAngleErr=fabs((double)(*fpCoplanarAngularShift-ExpectedAngularShift(Z_AXIS)));
+	while (dCommonLinesAngleErr>180) dCommonLinesAngleErr=360-dCommonLinesAngleErr;
+	while (dCommonLinesAngleErr<-180) dCommonLinesAngleErr=360+dCommonLinesAngleErr;
+	*/
+
+	fCommonLinesPeak=faPeakValues[0];
+	for (i=0; i<10; ++i)
+	{
+		if (fabs((double)(*fpCoplanarAngularShift-GetAngularShift(fvaPeakCoords[i])))>2.0f)
+		{
+			fCommonLinesPeakDiff=faPeakValues[0]-faPeakValues[i];
+			break;
+		}
+	}
+
+	return ERROR_NONE;
+}
+
+/*********************************************************************/
+ COMPLEX **CheckeredInversion(COMPLEX **input, unsigned int dimension)
+/*********************************************************************/
+{
+unsigned int         i, j;
+
+for (i=0; i<dimension; i+=2)
+    {
+    for (j=1; j<dimension; j+=2){
+        (*(input+i)+j)->imag = 0 - (*(input+i)+j)->imag;
+        (*(input+i)+j)->real = 0 - (*(input+i)+j)->real;
+        }
+    }
+
+for (i=1; i<dimension; i+=2)
+    {
+    for (j=0; j<dimension; j+=2){
+        (*(input+i)+j)->imag = 0 - (*(input+i)+j)->imag;
+        (*(input+i)+j)->real = 0 - (*(input+i)+j)->real;
+        }
+    }
+
+return(input);
+}
+
+int outputRealAndImaginaryPlanes(COMPLEX **TwoDFts, THD_3dim_dataset *din){
+    int  x, y, inc;
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputFileName;
+    float   *outData;
+    char  appendageR[] = "Real", appendageI[] = "Imaginary";
+    COMPLEX *row;
+
+    // Determine input dimensions
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+
+    // Make output array
+    if (!(outData=(float*)malloc(nx*ny*sizeof(float)))) return 0;
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+64))){
+       free(outData);
+       return 0;
+    }
+
+    // Fill output data with real data
+    for (y=inc=0; y<ny; ++y){
+        row = TwoDFts[y];
+        for (x=0; x<nx; ++x)
+            outData[inc++]=row[x].real;
+    }
+
+    // Determine whether real file already exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendageR,outputFileName);
+
+    // Output Fourier spectrum image (if it does not already exist)
+    if (!outputFileExists){
+        THD_3dim_dataset *dout = EDIT_empty_copy(din);
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendageR);
+        EDIT_dset_items( dout ,
+                        ADN_prefix, outputFileName,
+                        ADN_none ) ;
+        EDIT_substitute_brick(dout, 0, MRI_float, outData);
+        DSET_write(dout);
+    }
+
+    // Fill output data with real data
+    for (y=inc=0; y<ny; ++y){
+        row = TwoDFts[y];
+        for (x=0; x<nx; ++x)
+            outData[inc++]=row[x].imag;
+    }
+
+    // Determine whether real file already exists
+    outputFileExists = doesFileExist(searchPath,prefix,appendageI,outputFileName);
+
+    // Output Fourier spectrum image (if it does not already exist)
+    if (!outputFileExists){
+        THD_3dim_dataset *dout = EDIT_empty_copy(din);
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendageI);
+        EDIT_dset_items( dout ,
+                        ADN_prefix, outputFileName,
+                        ADN_none ) ;
+        EDIT_substitute_brick(dout, 0, MRI_float, outData);
+        DSET_write(dout);
+    }
+
+    // Cleanup
+    free(outputFileName);
+    free(outData);
+
+    return 1;
+
+}
+
+int outputFourierSpectrum(COMPLEX **TwoDFts, THD_3dim_dataset *din){
     int  x, y, inc;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=DSET_DIRNAME(din);
@@ -131,7 +523,7 @@ int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din){
 
     // Fill output data with Fourier spectral data
     for (y=inc=0; y<ny; ++y){
-        row = TwoDFT[y];
+        row = TwoDFts[y];
         for (x=0; x<nx; ++x)
             outData[inc++]=hypot(row[x].real,row[x].imag);
     }
@@ -158,11 +550,12 @@ int outputFourierSpectrum(COMPLEX **TwoDFT, THD_3dim_dataset *din){
 
     // Cleanup
     free(outputFileName);
+    free(outData);
 
     return 1;
 }
 
-int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
+int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFts){
     int x, y, X, Y, inc;
     float   *inputImage;
     COMPLEX *row, *newRow, **centeredFT;
@@ -172,61 +565,64 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFT){
     int nx = DSET_NX(din);
 
     // Allocate memory to complex Fourier plane
-    if (!(*TwoDFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) return 0;
-    for (y=0; y<ny; ++y) if (!((*TwoDFT)[y]=(COMPLEX *)calloc(nx,sizeof(COMPLEX)))){
-        for (--y; y>=0; --y) free((*TwoDFT)[y]);
-        free((*TwoDFT));
+    if (!(*TwoDFts=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) return 0;
+    for (y=0; y<ny; ++y) if (!((*TwoDFts)[y]=(COMPLEX *)calloc(nx,sizeof(COMPLEX)))){
+        for (--y; y>=0; --y) free((*TwoDFts)[y]);
+        free((*TwoDFts));
         return 0;
     }
 
     // Fill real components with spatial image data
     inputImage = DSET_ARRAY(din, 0);
     for (y=inc=0; y<ny; ++y){
-        row = (*TwoDFT)[y];
+        row = (*TwoDFts)[y];
         for (x=0; x<nx; ++x)
             row[x].real = inputImage[inc++];
     }
 
     // Fouier transform plane
-    if (!FFT2D(*TwoDFT, nx, ny, 1)){
-        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
-        free(*TwoDFT);
-        *TwoDFT = NULL;
+    if (!FFT2D(*TwoDFts, nx, ny, 1)){
+        for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
+        free(*TwoDFts);
+        *TwoDFts = NULL;
         return 0;
     }
 
     // Center Fourier transform
     if (!(centeredFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) {
-        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
-        free(*TwoDFT);
-        *TwoDFT = NULL;
+        for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
+        free(*TwoDFts);
+        *TwoDFts = NULL;
         return 0;
     }
     for (y=0; y<ny; ++y) if (!(centeredFT[y]=(COMPLEX *)calloc(nx,sizeof(COMPLEX)))){
         for (--y; y>=0; --y) free(centeredFT[y]);
         free(centeredFT);
-        for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
-        free(*TwoDFT);
-        *TwoDFT = NULL;
+        for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
+        free(*TwoDFts);
+        *TwoDFts = NULL;
         return 0;
     }
     for (y=0, Y=ny/2; Y<ny; ++y, ++Y){
         newRow=centeredFT[Y];
-        row = (*TwoDFT)[y];
+        row = (*TwoDFts)[y];
         for (x=0, X=nx/2; X<nx; ++x, ++X){
             newRow[x]=row[X];
             newRow[X]=row[x];
         }
         newRow=centeredFT[y];
-        row = (*TwoDFT)[Y];
+        row = (*TwoDFts)[Y];
         for (x=0, X=nx/2; X<nx; ++x, ++X){
             newRow[x]=row[X];
             newRow[X]=row[x];
         }
     }
-    for (y=0; y<ny; ++y) free((*TwoDFT)[y]);
-    free(*TwoDFT);
-    *TwoDFT = centeredFT;
+    for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
+    free(*TwoDFts);
+    *TwoDFts = centeredFT;
+
+    // Checkerboard invert real and imaginary planes
+    *TwoDFts=CheckeredInversion(*TwoDFts, ny);
 
     return 1;
 }
@@ -629,7 +1025,6 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
 
 int open_input_dset(THD_3dim_dataset ** din, char * fname)
 {
-    int brickType;
    *din = THD_open_dataset(fname);
    if( ! *din ) {
       fprintf(stderr,"** failed to read input dataset '%s'\n", fname);
@@ -637,7 +1032,7 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
    }
 
    /* refuse to work with anything but float here */
-   brickType=DSET_BRICK_TYPE(*din, 0);
+   // int brickType=DSET_BRICK_TYPE(*din, 0);
    if( DSET_BRICK_TYPE(*din, 0) != MRI_float ) {
       fprintf(stderr,"** input must be of type float, failing...\n");
       return 1;
@@ -649,16 +1044,18 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
    return 0;
 }
 
-int Cleanup(char *inputFileName, char *outputFileNames[], THD_3dim_dataset *din, COMPLEX **TwoDFt){
-    int i, ny;
+int Cleanup(char *inputFileName, char *outputFileNames[], COMPLEX ***TwoDFts, THD_3dim_dataset *din){
+    int i, j, ny;
 
     if (inputFileName) free(inputFileName);
     for (i=0; i<3; ++i) if (outputFileNames[i]) free(outputFileNames[i]);
 
-    if (TwoDFt){
-        ny = DSET_NY(din);
-        for (i=0; i<ny; ++i) free(TwoDFt[i]);
-        free(TwoDFt);
+    for (i=0; i<3; ++i){
+        if (TwoDFts[i]){
+            ny = DSET_NY(din);
+            for (j=0; j<ny; ++j) free(TwoDFts[i][j]);
+            free(TwoDFts[i]);
+        }
     }
 
     return 0;
@@ -847,4 +1244,1077 @@ int Powerof2(int n,int *m,int *twopm)
       return(TRUE);
 }
 
+/**********************************************************************/
+ ComplexPlane MakeComplexPlane(long iRows, long iColumns, COMPLEX **Data)
+/**********************************************************************/
+ {
+	ComplexPlane	buffer;
+	size_t	stBytesPerRow=iColumns * sizeof(COMPLEX);
+
+	buffer.iRows=iRows;
+	buffer.iColumns=iColumns;
+	buffer.Data=Data;
+
+	if (Data == NULL)
+	{
+		if ((buffer.Data = (COMPLEX **)malloc(buffer.iRows * sizeof(COMPLEX *))))
+		{
+			for (long i=0; i<buffer.iRows; ++i)
+				if ((buffer.Data[i]=(COMPLEX *)calloc(1, stBytesPerRow)) == NULL)
+				{
+					for (--i; i>=0; --i) free(buffer.Data[i]);
+					buffer.Data = NULL;
+					return(buffer);
+				}
+		}
+	}
+
+	return(buffer);
+ }
+
+/*************************************************/
+ void FreeComplexPlane(ComplexPlane Complex_Plane)
+/*************************************************/
+{
+	int	i;
+
+	for (i=0; i<Complex_Plane.iRows; ++i) free(Complex_Plane.Data[i]);
+	free(Complex_Plane.Data);
+	Complex_Plane.Data = NULL;
+}
+
+/**************************************************************************/
+ ERROR_NUMBER CopyComplexPlane(ComplexPlane cvInput, ComplexPlane cvOutput)
+/**************************************************************************/
+ {
+	 int	iBytes2Copy, i;
+
+	 if ((cvOutput.iRows != cvInput.iRows) || (cvOutput.iColumns != cvInput.iColumns)) return ERROR_IMAGE_DIMENSIONS;
+
+	 iBytes2Copy = cvInput.iColumns * sizeof(COMPLEX);
+	 for (i=0; i<cvInput.iRows; ++i)
+		 memcpy( (void *)(cvOutput.Data[i]), (void *)(cvInput.Data[i]), iBytes2Copy );
+
+    return ERROR_NONE;
+ }
+
+ ERROR_NUMBER RotScaleComplexPlane(ComplexPlane *cppComplexPlane, FloatVector fvTranslation,
+		float fClockwiseRotationInDegrees, float fScaleX, float fScaleY, BOOL bClip, BYTE bInterpOrder)
+ {
+	Matrix	mTransMatrix;
+	float	faaMatrixX[9];
+	long	lMatrixIndex=0;
+	double	dRotationInRadians=DEGREES2RADIANS*fClockwiseRotationInDegrees;
+	// Reverse rotation since matrix is supposed to give source of data, not destination.
+	double	dCosTheta=cos(-dRotationInRadians), dSinTheta=sin(-dRotationInRadians);
+
+	// If image not being clipped, determine output dimensions
+	if (!bClip) DetermineUnclippedOutputDimensions(cppComplexPlane->iColumns, cppComplexPlane->iRows,
+		fClockwiseRotationInDegrees, fvTranslation, 1.0f/fScaleX, 1.0f/fScaleY);
+
+	// Reverse translation since matrix is supposed to give source of data, not destination.
+	fvTranslation.x = -fvTranslation.x;
+	fvTranslation.y = -fvTranslation.y;
+
+	faaMatrixX[lMatrixIndex++] = fScaleX*(float)dCosTheta;
+	faaMatrixX[lMatrixIndex++] = -fScaleX*(float)dSinTheta;
+	faaMatrixX[lMatrixIndex++] = fScaleX*fvTranslation.x;
+	faaMatrixX[lMatrixIndex++] = fScaleY*(float)dSinTheta;
+	faaMatrixX[lMatrixIndex++] = fScaleY*(float)dCosTheta;
+	faaMatrixX[lMatrixIndex++] = fScaleY*fvTranslation.y;
+	faaMatrixX[lMatrixIndex++] = 0;
+	faaMatrixX[lMatrixIndex++] = 0;
+	faaMatrixX[lMatrixIndex++] = 1;
+	mTransMatrix.fpData=&(faaMatrixX[0]);
+	mTransMatrix.lRows=mTransMatrix.lColumns=3;
+
+	return RotScaleComplexPlaneM(cppComplexPlane, mTransMatrix, bClip, bInterpOrder);
+ }
+
+ERROR_NUMBER RotScaleComplexPlaneM(ComplexPlane *cppComplexPlane, Matrix mTransMatrix, BOOL bClip, BYTE bInterpOrder)
+{
+	long	i, j;
+	long    iMinX=bInterpOrder+1, iMaxX=cppComplexPlane->iColumns-bInterpOrder-1;
+	long	iMinY=bInterpOrder+1, iMaxY=cppComplexPlane->iRows-bInterpOrder-1;
+	float	**fppAmplitudeBuffer, **fppPhaseBuffer, *fpAmplitudeRow, *fpPhaseRow;
+	float	**fppOutputAmplitudeBuffer, **fppOutputPhaseBuffer, *fpOutputAmplitudeRow, *fpOutputPhaseRow;
+	float	fpInputVector[3], fpOutputVector[3];
+	long	lHalfRows=cppComplexPlane->iRows/2, lHalfCols=cppComplexPlane->iColumns/2;
+	double	dReal, dImaginary;
+	COMPLEX	*cpOutputRow;
+	LongVector	lvOriginalDimensions={cppComplexPlane->iColumns, cppComplexPlane->iRows};
+
+	// Memory must have been allocated to input plane
+	if (!(cppComplexPlane->Data)) return ERROR_NULL_PTR;
+
+	// If clipping, output dimensions same as those of input
+	if (bClip)
+	{
+		lvOutputDimensions.x=cppComplexPlane->iRows;
+		lvOutputDimensions.y=cppComplexPlane->iColumns;
+	}
+
+	// Allocate memory to phase and amplitude buffers
+	if (!(fppAmplitudeBuffer=(float **)malloc(cppComplexPlane->iRows*sizeof(float *))) ||
+		!(fppPhaseBuffer=(float **)malloc(cppComplexPlane->iRows*sizeof(float *))) ||
+		!(fppOutputAmplitudeBuffer=(float **)malloc(lvOutputDimensions.y*sizeof(float *))) ||
+		!(fppOutputPhaseBuffer=(float **)malloc(lvOutputDimensions.y*sizeof(float *))))
+	{
+		if (fppAmplitudeBuffer) free(fppAmplitudeBuffer);
+		if (fppPhaseBuffer) free(fppPhaseBuffer);
+		if (fppOutputAmplitudeBuffer) free(fppOutputAmplitudeBuffer);
+		return ERROR_MEMORY_ALLOCATION;
+	}
+	for (i=0; i<cppComplexPlane->iRows; ++i)
+		if (!(fppAmplitudeBuffer[i]=(float *)malloc(cppComplexPlane->iColumns*sizeof(float))) ||
+			!(fppPhaseBuffer[i]=(float *)malloc(cppComplexPlane->iColumns*sizeof(float))))
+		{
+			if (fppAmplitudeBuffer[i]) free(fppAmplitudeBuffer[i]);
+			for (--i; i>=0; --i)
+			{
+				free(fppAmplitudeBuffer[i]);
+				free(fppPhaseBuffer[i]);
+			}
+			free(fppAmplitudeBuffer);
+			free(fppPhaseBuffer);
+			free(fppOutputAmplitudeBuffer);
+			free(fppOutputPhaseBuffer);
+			return ERROR_MEMORY_ALLOCATION;
+		}
+	for (i=0; i<lvOutputDimensions.y; ++i)
+		if (!(fppOutputAmplitudeBuffer[i]=(float *)malloc(lvOutputDimensions.x*sizeof(float))) ||
+			!(fppOutputPhaseBuffer[i]=(float *)malloc(lvOutputDimensions.x*sizeof(float))))
+		{
+			if (fppOutputAmplitudeBuffer[i]) free(fppOutputAmplitudeBuffer[i]);
+			for (--i; i>=0; --i)
+			{
+				free(fppOutputAmplitudeBuffer[i]);
+				free(fppOutputPhaseBuffer[i]);
+			}
+			for (i=0; i<cppComplexPlane->iRows; ++i)
+			{
+				free(fppAmplitudeBuffer[i]);
+				free(fppPhaseBuffer[i]);
+			}
+			free(fppAmplitudeBuffer);
+			free(fppPhaseBuffer);
+			free(fppOutputAmplitudeBuffer);
+			free(fppOutputPhaseBuffer);
+			return ERROR_MEMORY_ALLOCATION;
+		}
+
+	// Load phase and amplitude buffers
+	for (i=0; i<cppComplexPlane->iRows; ++i)
+	{
+		fpAmplitudeRow=fppAmplitudeBuffer[i];
+		fpPhaseRow=fppPhaseBuffer[i];
+		for (j=0; j<cppComplexPlane->iColumns; ++j)
+		{
+			dReal=cppComplexPlane->Data[i][j].real;
+			dImaginary=cppComplexPlane->Data[i][j].imag;
+			fpAmplitudeRow[j] = (float)Pythag(dReal, dImaginary);
+			fpPhaseRow[j] = (float)((dImaginary==0)? 0 : ((dReal==0.0)? ((dImaginary>0)? MATH_PI_2 : -MATH_PI_2 ) : atan((dImaginary/dReal))));
+			if (dReal<0)
+			{
+				fpPhaseRow[j]+=(float)MATH_PI;
+				if (fpPhaseRow[j]>(float)CIRCLE) fpPhaseRow[j]-=(float)CIRCLE;
+				else if (fpPhaseRow[j]<0) fpPhaseRow[j]+=(float)CIRCLE;
+			}
+		}
+	}
+
+	if (bClip)
+	{
+		fpInputVector[2] = 1;
+		for (i=0; i<cppComplexPlane->iRows; ++i)
+		{
+			fpOutputAmplitudeRow=fppOutputAmplitudeBuffer[i];
+			fpOutputPhaseRow=fppOutputPhaseBuffer[i];
+
+			fpInputVector[1] = (float)(i-lHalfRows);	// Rotation around centre of image
+			for (j=0; j<cppComplexPlane->iColumns; ++j)
+			{
+				fpInputVector[0] = (float)(j-lHalfCols);	// Rotation around centre of image
+
+				// Determine transformation from point on output image to corresponding point on input image
+				MatVectMult(mTransMatrix, &(fpInputVector[0]), &(fpOutputVector[0]));
+
+				// Correct for offset from UL corner to centre
+				fpOutputVector[0] += lHalfCols;
+				fpOutputVector[1] += lHalfRows;
+
+				// Find corresponding value if input image point within input image
+				if (bInterpOrder>NEAREST_NEIGHBOR_INTERPOLATION && fpOutputVector[0]>iMinX && fpOutputVector[0]<iMaxX &&
+					fpOutputVector[1]>iMinY && fpOutputVector[1]<iMaxY)
+				{
+					fpOutputAmplitudeRow[j] = (
+						(bInterpOrder==BILINEAR_INTERPOLATION)? (float)Interp_BL(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1]) :
+					((bInterpOrder==BIQUADRATIC_INTERPOLATION)? (float)Interp_BQ(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1]) :
+						(float)Interp_BC(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1])));
+					fpOutputPhaseRow[j] = (
+						(bInterpOrder==BILINEAR_INTERPOLATION)? (float)Interp_BL(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1]) :
+					((bInterpOrder==BIQUADRATIC_INTERPOLATION)? (float)Interp_BQ(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1]) :
+						(float)Interp_BC(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1])));
+				}
+				else
+				{
+					FixedPtVector	iNearestNeighbor={Round(fpOutputVector[0]), Round(fpOutputVector[1])};
+
+					if (iNearestNeighbor.x>=0 && iNearestNeighbor.x<cppComplexPlane->iColumns &&
+						iNearestNeighbor.y>=0 && iNearestNeighbor.y<cppComplexPlane->iRows)
+					{
+						fpOutputAmplitudeRow[j] = (fppAmplitudeBuffer[iNearestNeighbor.y][iNearestNeighbor.x]);
+						fpOutputPhaseRow[j] = (fppPhaseBuffer[iNearestNeighbor.y][iNearestNeighbor.x]);
+					}
+					else
+						fpOutputAmplitudeRow[j] = fpOutputPhaseRow[j] = 0;
+				}
+			}
+		}
+	}
+	else
+	{
+		LongRange	lrXRange, lrYRange;
+		long		lLargeX, lLargeY, lXOffset, lYOffset, x, y;
+
+		// Ensure output dimensions have been determined
+		if (lvOutputDimensions.x==-1) return ERROR_IMAGE_DIMENSIONS;
+
+		// Determine dimensions of large rectangle that can just hold both the input and output images
+		lLargeX=fmax(lvOutputDimensions.x, cppComplexPlane->iColumns);
+		lLargeY=fmax(lvOutputDimensions.y, cppComplexPlane->iRows);
+		lHalfCols=lLargeX/2;
+		lHalfRows=lLargeY/2;
+
+		// Determine output range relative to large rectangle
+		if (lvOutputDimensions.x<cppComplexPlane->iColumns)
+		{
+			lrXRange.lMin=0;
+			lrXRange.lMax=lvOutputDimensions.x;
+			lXOffset=-lLargeX/2;
+		}
+		else
+		{
+			lrXRange.lMin=fmax(0, (lLargeX-lvOutputDimensions.x)/2);
+			lrXRange.lMax=fmin(lvOutputDimensions.x, lrXRange.lMin+lvOutputDimensions.x);
+			lXOffset=(lLargeX-cppComplexPlane->iColumns)/2;
+		}
+		if (lvOutputDimensions.y<cppComplexPlane->iRows)
+		{
+			lrYRange.lMin=0;
+			lrYRange.lMax=lvOutputDimensions.y;
+			lYOffset=-lLargeY/2;
+		}
+		else
+		{
+			lrYRange.lMin=fmax(0, (lLargeY-lvOutputDimensions.y)/2);
+			lrYRange.lMax=fmin(lvOutputDimensions.y, lrYRange.lMin+lvOutputDimensions.y);
+			lYOffset=(lLargeY-cppComplexPlane->iRows)/2;
+		}
+
+		// Fill output plane
+		for (i=lrYRange.lMin, y=0; i<lrYRange.lMax; ++i)
+		{
+			fpOutputAmplitudeRow=fppOutputAmplitudeBuffer[y];
+			fpOutputPhaseRow=fppOutputPhaseBuffer[y];
+
+			fpInputVector[1] = (float)(i-lHalfRows);	// Rotation around centre of image
+			for (j=lrXRange.lMin, x=0; j<lrXRange.lMax; ++j)
+			{
+				fpInputVector[0] = (float)(j-lHalfCols);	// Rotation around centre of image
+
+				// Determine transformation from point on output image to corresponding point on input image
+				MatVectMult(mTransMatrix, &(fpInputVector[0]), &(fpOutputVector[0]));
+
+				// Correct for offset from UL corner to centre
+				fpOutputVector[0] += lHalfCols-lXOffset;
+				fpOutputVector[1] += lHalfRows-lYOffset;
+
+				// Find corresponding value if input image point within input image
+				if (bInterpOrder==NEAREST_NEIGHBOR_INTERPOLATION || fpOutputVector[0]<=iMinX || fpOutputVector[0]>=iMaxX ||
+					fpOutputVector[1]<=iMinY || fpOutputVector[1]>=iMaxY)
+				{
+					FixedPtVector	iNearestNeighbor={Round(fpOutputVector[0]), Round(fpOutputVector[1])};
+
+					if (iNearestNeighbor.x>=0 && iNearestNeighbor.x<cppComplexPlane->iColumns &&
+						iNearestNeighbor.y>=0 && iNearestNeighbor.y<cppComplexPlane->iRows)
+					{
+						fpOutputAmplitudeRow[j] = (fppAmplitudeBuffer[iNearestNeighbor.y][iNearestNeighbor.x]);
+						fpOutputPhaseRow[j] = (fppPhaseBuffer[iNearestNeighbor.y][iNearestNeighbor.x]);
+					}
+					else
+					{
+						if (iNearestNeighbor.x<0) ++(iNearestNeighbor.x);
+						else if (iNearestNeighbor.x>=cppComplexPlane->iColumns) --(iNearestNeighbor.x);
+						if (iNearestNeighbor.y<0) ++(iNearestNeighbor.y);
+						else if (iNearestNeighbor.y>=cppComplexPlane->iRows) --(iNearestNeighbor.y);
+
+						if (iNearestNeighbor.x>=0 && iNearestNeighbor.x<cppComplexPlane->iColumns &&
+							iNearestNeighbor.y>=0 && iNearestNeighbor.y<cppComplexPlane->iRows)
+						{
+							fpOutputAmplitudeRow[j] = fppAmplitudeBuffer[iNearestNeighbor.y][iNearestNeighbor.x];
+							fpOutputPhaseRow[j] = fppPhaseBuffer[iNearestNeighbor.y][iNearestNeighbor.x];
+						}
+						else fpOutputAmplitudeRow[j] = fpOutputPhaseRow[j] = 0;
+					}
+				}
+				else
+				{
+					fpOutputAmplitudeRow[j] = (
+						(bInterpOrder==BILINEAR_INTERPOLATION)? (float)Interp_BL(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1]) :
+					((bInterpOrder==BIQUADRATIC_INTERPOLATION)? (float)Interp_BQ(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1]) :
+						(float)Interp_BC(fppAmplitudeBuffer, fpOutputVector[0], fpOutputVector[1])));
+					fpOutputPhaseRow[j] = (
+						(bInterpOrder==BILINEAR_INTERPOLATION)? (float)Interp_BL(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1]) :
+					((bInterpOrder==BIQUADRATIC_INTERPOLATION)? (float)Interp_BQ(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1]) :
+						(float)Interp_BC(fppPhaseBuffer, fpOutputVector[0], fpOutputVector[1])));
+				}
+				++x;
+			}
+			++y;
+		}
+
+		// Free input plane
+		FreeComplexPlane(*cppComplexPlane);
+
+		// Make new plane with new dimensions
+		*cppComplexPlane=MakeComplexPlane(lvOutputDimensions.y, lvOutputDimensions.x, NULL);
+		if (!(cppComplexPlane->Data))
+		{
+			for (i=0; i<lvOriginalDimensions.y; ++i)
+			{
+				free(fppAmplitudeBuffer[i]);
+				free(fppPhaseBuffer[i]);
+			}
+			for (i=0; i<lvOutputDimensions.y; ++i)
+			{
+				free(fppOutputAmplitudeBuffer[i]);
+				free(fppOutputPhaseBuffer[i]);
+			}
+			free(fppAmplitudeBuffer);
+			free(fppPhaseBuffer);
+			free(fppOutputAmplitudeBuffer);
+			free(fppOutputPhaseBuffer);
+			return ERROR_MEMORY_ALLOCATION;
+		}
+	}
+
+	// Get complex values from phase and amplitude planes
+	for (i=0; i<lvOutputDimensions.y; ++i)
+	{
+		fpOutputAmplitudeRow=fppOutputAmplitudeBuffer[i];
+		fpOutputPhaseRow=fppOutputPhaseBuffer[i];
+		cpOutputRow=cppComplexPlane->Data[i];
+
+		for (j=0; j<lvOutputDimensions.x; ++j)
+		{
+		/*  DEBUG
+			cpOutputRow[j].real=1;
+			cpOutputRow[j].imag=1;
+			*/
+			cpOutputRow[j].real=(float)(fpOutputAmplitudeRow[j]*cos((double)(fpOutputPhaseRow[j])));
+			cpOutputRow[j].imag=(float)(fpOutputAmplitudeRow[j]*sin((double)(fpOutputPhaseRow[j])));
+		}
+	}
+
+	for (i=0; i<lvOriginalDimensions.y; ++i)
+	{
+		free(fppAmplitudeBuffer[i]);
+		free(fppPhaseBuffer[i]);
+	}
+	for (i=0; i<lvOutputDimensions.y; ++i)
+	{
+		free(fppOutputAmplitudeBuffer[i]);
+		free(fppOutputPhaseBuffer[i]);
+	}
+	free(fppAmplitudeBuffer);
+	free(fppPhaseBuffer);
+	free(fppOutputAmplitudeBuffer);
+	free(fppOutputPhaseBuffer);
+
+	return ERROR_NONE;
+}
+
+
+ERROR_NUMBER MakeCardinalRadialPhaseSamples(FloatPlane fpReal, FloatPlane fpImaginary,
+			short *spCardinalIndices, IntRange lrFrequencyRange, float ***fpppRadialSamples)
+{
+	ERROR_NUMBER	enErrorNumber;
+	COMPLEX	**cpppComplexRadialSample;
+	int		iCenter=fpImaginary.iColumns/2, iRadiusIndex;
+	int	iQuadIndex, iaQuadIndices[4]={iCenter, iCenter, iCenter, iCenter};
+	size_t	stBufferSize=lrFrequencyRange.iMax+1;
+
+	if (!(cpppComplexRadialSample=(COMPLEX **)malloc(4*sizeof(COMPLEX *)))) return ERROR_MEMORY_ALLOCATION;
+	for (iQuadIndex=0; iQuadIndex<4; ++iQuadIndex)
+		if (!(cpppComplexRadialSample[iQuadIndex]=(COMPLEX *)malloc(stBufferSize*sizeof(COMPLEX))))
+		{
+			for (--iQuadIndex; iQuadIndex>=0; --iQuadIndex) free(cpppComplexRadialSample[iQuadIndex]);
+			free(cpppComplexRadialSample);
+			return ERROR_MEMORY_ALLOCATION;
+		}
+
+	// Make complex radial samples
+	for (iRadiusIndex=0; iRadiusIndex<lrFrequencyRange.iMax; ++iRadiusIndex)
+	{
+		// 0 degrees (positive along x-axis)
+		cpppComplexRadialSample[0][iRadiusIndex].real=fpReal.Data[iCenter][iaQuadIndices[0]];
+		cpppComplexRadialSample[0][iRadiusIndex].imag=fpImaginary.Data[iCenter][iaQuadIndices[0]++];
+
+		// 90 degrees (positive along y-axis)
+		cpppComplexRadialSample[1][iRadiusIndex].real=fpReal.Data[iaQuadIndices[1]][iCenter];
+		cpppComplexRadialSample[1][iRadiusIndex].imag=fpImaginary.Data[iaQuadIndices[1]++][iCenter];
+
+		// 180 degrees (negative along x-axis)
+		cpppComplexRadialSample[2][iRadiusIndex].real=fpReal.Data[iCenter][iaQuadIndices[2]];
+		cpppComplexRadialSample[2][iRadiusIndex].imag=fpImaginary.Data[iCenter][iaQuadIndices[2]--];
+
+		// 270 degrees (negative along y-axis)
+		cpppComplexRadialSample[3][iRadiusIndex].real=fpReal.Data[iaQuadIndices[3]][iCenter];
+		cpppComplexRadialSample[3][iRadiusIndex].imag=fpImaginary.Data[iaQuadIndices[3]--][iCenter];
+	}
+
+	// Make radial phase vector samples from complex radial samples
+	for (iQuadIndex=0; iQuadIndex<4; ++iQuadIndex)
+	{
+		if ((enErrorNumber=MakeRadialPhaseVectorSample(cpppComplexRadialSample[iQuadIndex], lrFrequencyRange.iMax+1,
+			&((*fpppRadialSamples)[spCardinalIndices[iQuadIndex]])))!=ERROR_NONE)
+		{
+			for (iQuadIndex=0; iQuadIndex<4; ++iQuadIndex) free(cpppComplexRadialSample[iQuadIndex]);
+			free(cpppComplexRadialSample);
+			return enErrorNumber;
+		}
+	}
+
+	// Cleanup
+	for (iQuadIndex=0; iQuadIndex<4; ++iQuadIndex) free(cpppComplexRadialSample[iQuadIndex]);
+	free(cpppComplexRadialSample);
+	return ERROR_NONE;
+}
+
+
+ERROR_NUMBER ComparePhaseSamples(float *fpTargetSample, float *fpRefSample,
+										IntRange lrFrequencyRange, float *fpComparisonMetric)
+{
+	ERROR_NUMBER	enErrorNumber;
+	float			*fpPhaseShiftVector, fPhaseShiftSlope, fPhaseShiftIntercept, fMSE;
+	long			lVectorLength;
+
+	// Make phase shift vector
+	if ((enErrorNumber=MakePhaseShiftVector(fpTargetSample, fpRefSample, lrFrequencyRange, &lVectorLength,
+		&fpPhaseShiftVector))!=ERROR_NONE)	return enErrorNumber;
+
+	// Get slope of phase shift vector
+	GetSlope(fpPhaseShiftVector, lrFrequencyRange, &fPhaseShiftSlope, &fPhaseShiftIntercept);
+
+	// Determine MSE for phase shift vector
+	fMSE=GetMSE(fpPhaseShiftVector, fPhaseShiftSlope, fPhaseShiftIntercept, lrFrequencyRange);
+
+	// Multiplicative inverse of MSE becomes comparison metric
+	*fpComparisonMetric=(fMSE==0.0f)? 1.0e7f : 1.0f/fMSE;
+
+	// Cleanup
+	free(fpPhaseShiftVector);
+
+	return ERROR_NONE;
+}
+/* Temporarily commented out 2020-09-28
+float ExpectedAngularShift(int iCurrentAxis)
+{
+	switch (iCurrentAxis)
+	{
+	case X_AXIS:
+		if (v3DTestRotation.y==0 && v3DTestRotation.z==0) return v3DTestRotation.x;
+		if (v3DTestRotation.z==0) return v3DTestRotation.x;
+		return (float)(25.75 * sin(2.0 * DEGREES2RADIANS * v3DTestRotation.x));
+	case Y_AXIS:
+		if (v3DTestRotation.x==0 && v3DTestRotation.z==0) return v3DTestRotation.y;
+		if (v3DTestRotation.z==0) return -v3DTestRotation.y;
+		return (float)(-90.13 * sin(DEGREES2RADIANS * v3DTestRotation.y));
+	case Z_AXIS:
+		if (v3DTestRotation.x==0 && v3DTestRotation.y==0) return v3DTestRotation.z;
+		if (v3DTestRotation.z==0) return (float)(-v3DTestRotation.z+(24.4*sin(2.0 * DEGREES2RADIANS * v3DTestRotation.z)));
+		return (float)(25.11 * sin(2.0 * DEGREES2RADIANS * v3DTestRotation.z));
+	default: return ERROR_PARAMETERS;
+	}
+}
+*/
+
+float GetAngularShift(FloatVector fvCoords)
+{
+	float	fBuffer;
+
+	fBuffer=fvCoords.y-fvCoords.x;
+	if (fBuffer>180) fBuffer-=360;
+	else if (fBuffer<-180) fBuffer+=360;
+
+	return fBuffer;
+}
+
+ void DetermineUnclippedOutputDimensions(long lInputColumns, long lInputRows,
+	 float fClockwiseRotationInDegrees, FloatVector fvTranslation, float fScaleX, float fScaleY)
+ {
+	double	dRotationInRadians;
+	double	dCosTheta, dSinTheta;
+
+	// Confine rotation angle into (-180,180] degree range.
+	 if (fClockwiseRotationInDegrees>180) fClockwiseRotationInDegrees-=360;
+	 else if (fClockwiseRotationInDegrees<=-180) fClockwiseRotationInDegrees+=360;
+	 dRotationInRadians=DEGREES2RADIANS*fClockwiseRotationInDegrees;
+
+	 // Determine new dimensions on the basis of rotation
+	 if (fClockwiseRotationInDegrees<-90)	// Rotation in (-180,-90) degrees
+	 {
+		 dRotationInRadians=-MATH_PI_2-dRotationInRadians;
+		 dCosTheta=cos(dRotationInRadians);
+		 dSinTheta=sin(dRotationInRadians);
+		 lvOutputDimensions.x=DRound((dSinTheta*lInputColumns)+(dCosTheta*lInputRows)+0.4999999999999);
+		 lvOutputDimensions.y=DRound((dCosTheta*lInputColumns)+(dSinTheta*lInputRows)+0.4999999999999);
+	 }
+	 else if (fClockwiseRotationInDegrees<0)	// Rotation in [-90,0) degrees
+	 {
+		 dCosTheta=cos(-dRotationInRadians);
+		 dSinTheta=sin(-dRotationInRadians);
+		 lvOutputDimensions.x=DRound((dCosTheta*lInputColumns)+(dSinTheta*lInputRows)+0.4999999999999);
+		 lvOutputDimensions.y=DRound((dSinTheta*lInputColumns)+(dCosTheta*lInputRows)+0.4999999999999);
+	 }
+	 else if (fClockwiseRotationInDegrees<=90)	// Rotation in [0,90] degrees
+	 {
+		 dCosTheta=cos(dRotationInRadians);
+		 dSinTheta=sin(dRotationInRadians);
+		 lvOutputDimensions.x=DRound((dCosTheta*lInputColumns)+(dSinTheta*lInputRows)+0.4999999999999);
+		 lvOutputDimensions.y=DRound((dSinTheta*lInputColumns)+(dCosTheta*lInputRows)+0.4999999999999);
+	 }
+	 else	// Rotation in (90,180] degrees
+	 {
+		 dRotationInRadians-=MATH_PI_2;
+		 dCosTheta=cos(dRotationInRadians);
+		 dSinTheta=sin(dRotationInRadians);
+		 lvOutputDimensions.x=DRound((dSinTheta*lInputColumns)+(dCosTheta*lInputRows)+0.4999999999999);
+		 lvOutputDimensions.y=DRound((dCosTheta*lInputColumns)+(dSinTheta*lInputRows)+0.4999999999999);
+	 }
+
+	 // Determine new dimensions on the basis of scaling
+	 lvOutputDimensions.x=Round(fScaleX*lvOutputDimensions.x);
+	 lvOutputDimensions.y=Round(fScaleY*lvOutputDimensions.y);;
+
+	 // Determine new dimensions on the basis of translation
+	 lvOutputDimensions.x+=DRound(fabs(fvTranslation.x));
+	 lvOutputDimensions.y+=DRound(fabs(fvTranslation.y));
+ }
+
+void MatVectMult(Matrix mMatrix, float *fpInVector, float *fpOutVector)
+{
+   long i, j;
+   long	lMatrixIndex;
+
+   for (i=0; i<mMatrix.lRows; ++i)
+   {
+	   fpOutVector[i] = 0;
+	   lMatrixIndex = i*mMatrix.lColumns;
+	  for (j=0; j<mMatrix.lColumns; ++j)
+		  fpOutVector[i]+=mMatrix.fpData[lMatrixIndex++]*fpInVector[j];
+   }
+}
+
+ERROR_NUMBER MakeRadialPhaseVectorSample(COMPLEX *cpComplexRadialSample, int iLength, float **fppRadialSample)
+{
+	float   fFrom, fTo, fPhase, fOffset=0, fPrevious=0, fChange;
+	int		iQuad[2], i;
+	double	dThreshold=20, dChangeThresh=MATH_PI_4*3;
+
+	// Memory allocation
+	if (!((*fppRadialSample)=(float *)malloc(iLength*sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
+/* DEBUG */
+
+	(*fppRadialSample)[0]=0;
+	for (i=1; i<iLength; ++i)
+    {
+        /* DEBUG */
+
+		iQuad[1]=(cpComplexRadialSample[i].real>0.0)?
+			((cpComplexRadialSample[i].imag>0.0)? 1 : 4) : ((cpComplexRadialSample[i].imag>0.0)? 2 : 3);
+
+		fTo=(cpComplexRadialSample[i].real==0)? ((cpComplexRadialSample[i].real>0)? (float)MATH_PI_2 : -(float)MATH_PI_2) :
+			(float)atan((double)(cpComplexRadialSample[i].imag/cpComplexRadialSample[i].real));
+		fFrom=fPrevious-fOffset;
+
+		if (i>1) switch (iQuad[1])
+		{
+		case 1: if (fFrom< -MATH_PI) fTo -= (float)CIRCLE;
+			if (iQuad[0]==4&&fFrom>MATH_PI)
+				{
+				fOffset+=(float)CIRCLE;
+				}
+		break;
+
+		case 4: if (fFrom> MATH_PI) fTo += (float)CIRCLE;
+			if (iQuad[0]==1&&fFrom< -(float)MATH_PI)
+				{
+				fOffset-=(float)CIRCLE;
+				}
+		break;
+
+		case 2: if (fFrom> 0) fTo += (float)MATH_PI;
+				else fTo -= (float)MATH_PI;
+		break;
+
+		case 3: if (fFrom> 0) fTo += (float)MATH_PI;
+				else fTo -= (float)MATH_PI;
+		break;
+		}
+
+		fPhase = fOffset+fTo;
+
+		// Correct for phase reversal
+		fChange=fPhase-fPrevious;
+		if (fChange>dChangeThresh &&
+			((FloatPythag((cpComplexRadialSample[i].imag), (cpComplexRadialSample[i].real))<dThreshold) ||
+			(FloatPythag((cpComplexRadialSample[i-1].imag), (cpComplexRadialSample[i-1].real))<dThreshold)))
+		{
+			fOffset-=(float)MATH_PI;
+			fPhase-=(float)MATH_PI;
+		}
+		else if (fChange<-dChangeThresh &&
+			((FloatPythag((cpComplexRadialSample[i].imag), (cpComplexRadialSample[i].real))<dThreshold) ||
+			(FloatPythag((cpComplexRadialSample[i-1].imag), (cpComplexRadialSample[i-1].real))<dThreshold)))
+		{
+			fOffset+=(float)MATH_PI;
+			fPhase+=(float)MATH_PI;
+		}
+
+		iQuad[0]=iQuad[1];
+		fPrevious=fPhase;
+// #if UNIX
+#if 1
+		{
+			char	cDummy;
+
+			// Debug
+			if (fabs((double)fPhase)>1400)
+			{
+				fprintf(stderr, "fPhase=%f, i=%d, cpComplexRadialSample[i].fReal=%f\n",
+					fPhase, i, cpComplexRadialSample[i].real);
+				fprintf(stderr, "cpComplexRadialSample[i].fImaginary=%f, cpComplexRadialSample[i-1].fReal=%f\n",
+					cpComplexRadialSample[i].imag, cpComplexRadialSample[i-1].real);
+				fprintf(stderr, "cpComplexRadialSample[i-1].fImaginary=%f\n", cpComplexRadialSample[i-1].imag);
+				fscanf(stdin, "%c", &cDummy);
+				fprintf(stderr, "\n");
+			}
+		}
+#endif
+		(*fppRadialSample)[i]=fPhase;
+		/**/
+    }
+/**/
+	return ERROR_NONE;
+}
+
+ERROR_NUMBER MakePhaseShiftVector(float *fpTargetSample, float *fpRefSample, IntRange lrFrequencyRange,
+								  long *lpVectorLength, float **fppPhaseShiftVector)
+{
+	ERROR_NUMBER enErrorNumber;
+	int	iInIndex, iOutIndex;
+	float	*fpShiftPtr;
+	float   fPrevious, fDiffUp, fDiffDown, fDiffHere, fOffset=0, fDiffThresh=0.1f;
+
+	// Allocate memory to phase shift vector
+	*lpVectorLength=lrFrequencyRange.iMax+1;
+	if (!(*fppPhaseShiftVector=(float *)malloc(*lpVectorLength*sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
+
+	// Fill vector.
+	fpShiftPtr=&((*fppPhaseShiftVector)[0]);
+	for (iOutIndex=0, iInIndex=0; iOutIndex<*lpVectorLength; ++iOutIndex)
+	{
+		*fpShiftPtr=fpTargetSample[iInIndex]-fpRefSample[iInIndex]+fOffset;
+
+		if (iOutIndex)
+		{
+			fDiffUp=(*fpShiftPtr+(float)CIRCLE)-fPrevious;
+			fDiffDown=fPrevious-*fpShiftPtr+(float)CIRCLE;
+			fDiffHere=(float)fabs(fPrevious-*fpShiftPtr);
+
+			do
+			{
+				if (fDiffHere>fDiffDown || fDiffHere>fDiffUp)
+				{
+					if (fDiffUp<fDiffDown)
+					{
+						*fpShiftPtr += (float)CIRCLE;
+						fOffset += (float)CIRCLE;
+					}
+					else
+					{
+						*fpShiftPtr -= (float)CIRCLE;
+						fOffset -= (float)CIRCLE;
+					}
+				}
+
+				fDiffUp=(*fpShiftPtr+(float)CIRCLE)-fPrevious;
+				fDiffDown=fPrevious-*fpShiftPtr+(float)CIRCLE;
+				fDiffHere=(float)fabs(fPrevious-*fpShiftPtr)-fDiffThresh;
+			} while (fDiffHere>fDiffDown || fDiffHere>fDiffUp);
+		}
+		fPrevious=(iOutIndex<3)? *fpShiftPtr : (2.0f*fPrevious + *fpShiftPtr)/3.0f;
+		++fpShiftPtr;
+		++iInIndex;
+	}
+
+	// Median filter phase shift vector
+	if ((enErrorNumber=MedianFilterFloatVector(*fppPhaseShiftVector, *lpVectorLength))!=ERROR_NONE)
+	{
+		free(*fppPhaseShiftVector);
+		return enErrorNumber;
+	}
+
+	return ERROR_NONE;
+}
+
+
+void GetSlope(float *fVector, IntRange lrFrequencyRange, float *fpSlope, float *fpIntercept)
+{
+	float   fXY, fXSquared, *fpShiftPtr;
+	float	fXMean=0, fYMean=0, fXMinusXMean, fYMinusYMean;
+	int		i, iCount=lrFrequencyRange.iMax-lrFrequencyRange.iMin;
+
+	// Determine mean X and MeanY
+	fpShiftPtr=fVector+lrFrequencyRange.iMin;
+	for (i=lrFrequencyRange.iMin; i<lrFrequencyRange.iMax; ++i, ++fpShiftPtr)
+	{
+		fXMean += i;
+		fYMean += *fpShiftPtr;
+	}
+	fXMean /= iCount;
+	fYMean /= iCount;
+
+	fpShiftPtr=fVector+lrFrequencyRange.iMin;
+	fXY=fXSquared=0.0f;
+	for (i=lrFrequencyRange.iMin; i<lrFrequencyRange.iMax; ++i, ++fpShiftPtr)
+	{
+		fXMinusXMean = (float)i - fXMean;
+		fYMinusYMean = *fpShiftPtr - fYMean;
+	    fXY += fXMinusXMean * fYMinusYMean;
+	    fXSquared += fXMinusXMean * fXMinusXMean;
+	}
+
+	*fpSlope=fXY/fXSquared;
+	*fpIntercept=fYMean-(*fpSlope * fXMean);
+}
+
+float GetMSE(float *fVector, float fSlope, float fPhaseShiftIntercept, IntRange lrFrequencyRange)
+{
+	float   *fpShiftPtr, fXExpected, fXObserved, fMse, fDiff;
+	float	fOffset=fPhaseShiftIntercept;
+	int	    i;
+
+	fpShiftPtr=fVector+lrFrequencyRange.iMin;
+	fMse=0.0;
+
+	for (i=lrFrequencyRange.iMin; i<lrFrequencyRange.iMax; ++i, ++fpShiftPtr)
+    {
+		fXExpected = (fSlope*i)+fOffset;
+		fXObserved = *fpShiftPtr;
+		fDiff=fXObserved-fXExpected;
+		fMse+=fDiff*fDiff;
+    }
+
+	return(fMse/(float)(lrFrequencyRange.iMax-lrFrequencyRange.iMin));
+}
+
+ERROR_NUMBER MedianFilterFloatVector(float *fpVector, long lLength)
+{
+	float	*fpBuffer, *fpBufferPtr;
+	size_t	stBytes2Copy=lLength*sizeof(float);
+	int		i, iLast=lLength-1;
+
+	// Copy vector into buffer
+	if (!(fpBuffer=(float *)malloc(stBytes2Copy))) return ERROR_MEMORY_ALLOCATION;
+	memcpy((void *)fpBuffer, (void *)fpVector, stBytes2Copy);
+
+	// Write median filtered version of buffer back into vector.
+	for (i=1, fpBufferPtr=&(fpBuffer[0]); i<iLast; ++i) fpVector[i]=Float3x1Median(fpBufferPtr++);
+
+	// Cleanup
+	free(fpBuffer);
+	return ERROR_NONE;
+}
+
+float Float3x1Median(float *fpInput)
+{
+    return((fpInput[0]>fpInput[1])? ((fpInput[1]>fpInput[2])? fpInput[1] : (fpInput[0]>fpInput[2])? fpInput[2] : fpInput[0]) :
+		((fpInput[1]<fpInput[2])? fpInput[1] : (fpInput[0]<fpInput[2])? fpInput[2] : fpInput[0]));
+}
+
+
+/*******************************************/
+ void FreeFloatPlane(FloatPlane Float_Plane)
+/*******************************************/
+{
+	int	i;
+
+	for (i=0; i<Float_Plane.iRows; ++i) free(Float_Plane.Data[i]);
+	free(Float_Plane.Data);
+	Float_Plane.Data = NULL;
+}
+
+/*********************/
+ int Round(float arg) 		// Rounds floating point value off to the nearest integer
+/*********************/
+ {
+	arg+=(arg<0)? -0.5f : 0.5f;
+	return((int)arg);
+ }
+
+/***********************************************/
+ ERROR_NUMBER ErrorOpeningFile(char *csFileName)
+/***********************************************/
+ {
+	 fprintf(stderr, "Error opening %s\n", csFileName);
+	 perror("Reason");
+
+	 return ERROR_OPENING_FILE;
+ }
+
+/*******************************************/
+ float FloatPythag(float fArg1, float fArg2)
+/*******************************************/
+ {
+	 return (float)(sqrt((double)((fArg1*fArg1)+(fArg2*fArg2))));
+ }
+
+/******************************************/
+  double Pythag(double dArg1, double dArg2)
+/******************************************/
+ {
+	 return(sqrt((dArg1*dArg1)+(dArg2*dArg2)));
+ }
+
+/****************************************************************************/
+ double	Interp_BC(float **image, float x_coord, float y_coord)
+/****************************************************************************/
+/*
+ Bicubic Interpolation
+*/
+{
+int	i, j, x[4], y[4], X, Y;
+
+double 	Phi[4], Psi[4];
+double	x_x0, x_x1, x_x2, x_x3;
+double	y_y0, y_y1, y_y2, y_y3;
+
+double	Pxy=(double)0;
+
+x[0]=(int)(x_coord+0.5)-1;
+y[0]=(int)(y_coord+0.5)-1;
+for (i=1; i<4; ++i)
+    {
+    x[i]=*x + i;
+    y[i]=*y + i;
+    }
+
+x_x0=x_coord-x[0];		/* Numerator factors */
+x_x1=x_coord-x[1];
+x_x2=x_coord-x[2];
+x_x3=x_coord-x[3];
+
+y_y0=y_coord-y[0];
+y_y1=y_coord-y[1];
+y_y2=y_coord-y[2];
+y_y3=y_coord-y[3];
+
+Phi[0]=(x_x1*x_x2*x_x3)/(-6);
+Phi[1]=(x_x0*x_x2*x_x3)/(2);
+Phi[2]=(x_x0*x_x1*x_x3)/(-2);
+Phi[3]=(x_x0*x_x1*x_x2)/(6);
+
+Psi[0]=(y_y1*y_y2*y_y3)/(-6);
+Psi[1]=(y_y0*y_y2*y_y3)/(2);
+Psi[2]=(y_y0*y_y1*y_y3)/(-2);
+Psi[3]=(y_y0*y_y1*y_y2)/(6);
+
+X=x[0]; Y=y[0];
+
+for (i=0; i<4; ++i)
+    {
+    for (j=0; j<4; ++j) Pxy += *(*(image+Y)+X++)*Psi[i]*Phi[j];
+
+    Y++; X= *x;
+    }
+
+return(Pxy);
+}
+
+/***************************************************************************/
+  double Interp_BQ(float **image, float x_coord, float y_coord)
+/***************************************************************************/
+/*
+ Biquadratic Interpolation
+*/
+{
+int	i, j, x[3], y[3], X, Y;
+
+double	Phi[3], Psi[3];
+double	x_x0, x_x1, x_x2;
+double	y_y0, y_y1, y_y2;
+
+double	Pxy=(double)0;
+
+x[0]=(int)(x_coord+0.5)-1;
+y[0]=(int)(y_coord+0.5)-1;
+
+for (i=1; i<3; ++i)
+    {
+    x[i]=*x + i;
+    y[i]=*y + i;
+    }
+
+x_x0=x_coord-x[0];		/* Numerator factors */
+x_x1=x_coord-x[1];
+x_x2=x_coord-x[2];
+
+y_y0=y_coord-y[0];
+y_y1=y_coord-y[1];
+y_y2=y_coord-y[2];
+
+Phi[0]=(x_x1*x_x2)/(2);
+Phi[1]=(x_x0*x_x2)/(-1);
+Phi[2]=(x_x0*x_x1)/(2);
+
+Psi[0]=(y_y1*y_y2)/(2);
+Psi[1]=(y_y0*y_y2)/(-1);
+Psi[2]=(y_y0*y_y1)/(2);
+
+X=x[0]; Y=y[0];
+
+for (i=0; i<3; ++i)
+    {
+    for (j=0; j<3; ++j)
+		Pxy += *(*(image+Y)+X++)*Psi[i]*Phi[j];
+
+    Y++; X= *x;
+    }
+
+return(Pxy);
+}
+
+/**************************************************************/
+  double Interp_BL(float **image, float x_coord, float y_coord)
+/**************************************************************/
+/*
+ Bilinear Interpolation
+*/
+{
+int	i, j, x[2], y[2], X, Y;
+
+double	Phi[2], Psi[2];
+double	x_x0, x_x1;
+double	y_y0, y_y1;
+
+double	Pxy=(double)0;
+
+x[0]=(int)x_coord;
+y[0]=(int)y_coord;
+
+for (i=1; i<2; ++i)
+    {
+    x[i]=*x + i;
+    y[i]=*y + i;
+    }
+
+x_x0=x_coord-x[0];		/* Numerator factors */
+x_x1=x_coord-x[1];
+
+y_y0=y_coord-y[0];
+y_y1=y_coord-y[1];
+
+Phi[0]= -x_x1;
+Phi[1]=x_x0;
+
+Psi[0]= -y_y1;
+Psi[1]=y_y0;
+
+X=x[0]; Y=y[0];
+
+for (i=0; i<2; ++i)
+    {
+    for (j=0; j<2; ++j) Pxy += *(*(image+Y)+X++)*Psi[i]*Phi[j];
+
+    Y++; X= *x;
+    }
+
+return(Pxy);
+}
+
+/***********************/
+ long DRound(double arg) 		// Rounds double value off to the nearest integer
+/***********************/
+{
+	arg+=(arg<0)? -0.5 : 0.5;
+	return((long)arg);
+}
+
+/*****************************************************************************************************/
+ ERROR_NUMBER Complex2Float(ComplexPlane cpInputPlane, FloatPlane *fppRealOut, FloatPlane *fppImagOut)
+/*****************************************************************************************************/
+ {
+	 int	iRow, iCol;
+	 float	*fpRealRowPtr, *fpImaginaryRowPtr;
+	 COMPLEX	*cpInputRowPtr;
+
+	 // Make output planes
+	 *fppRealOut=MakeFloatPlane(cpInputPlane.iRows, cpInputPlane.iColumns, NULL);
+	 if (!(fppRealOut->Data)) return ERROR_MEMORY_ALLOCATION;
+	 *fppImagOut=MakeFloatPlane(cpInputPlane.iRows, cpInputPlane.iColumns, NULL);
+	 if (!(fppImagOut->Data))
+	 {
+		 FreeFloatPlane(*fppRealOut);
+		 fppRealOut->Data=NULL;
+		 fppImagOut->Data=NULL;
+		 return ERROR_MEMORY_ALLOCATION;
+	 }
+
+	 // Fill output planes with data from input plane
+	 for (iRow=0; iRow<cpInputPlane.iRows; ++iRow)
+	 {
+		 fpRealRowPtr=fppRealOut->Data[iRow];
+		 fpImaginaryRowPtr=fppImagOut->Data[iRow];
+		 cpInputRowPtr=cpInputPlane.Data[iRow];
+		 for (iCol=0; iCol<cpInputPlane.iColumns; ++iCol)
+		 {
+			 fpRealRowPtr[iCol]=cpInputRowPtr[iCol].real;
+			 fpImaginaryRowPtr[iCol]=cpInputRowPtr[iCol].imag;
+		 }
+	 }
+
+	 return ERROR_NONE;
+}
+
+/******************************************************************/
+ FloatPlane MakeFloatPlane(long iRows, long iColumns, float **Data)
+/******************************************************************/
+{
+	FloatPlane	buffer;
+	size_t	stBytesPerRow=iColumns * sizeof(float);
+
+	buffer.iRows=iRows;
+	buffer.iColumns=iColumns;
+	buffer.Data=Data;
+
+	if (Data == NULL)
+	{
+		if (buffer.Data = (float **)malloc(buffer.iRows * sizeof(float *)))
+		{
+			for (long i=0; i<buffer.iRows; ++i)
+				if ((buffer.Data[i]=(float *)calloc(1, stBytesPerRow)) == NULL)
+				{
+					for (--i; i>=0; --i) free(buffer.Data[i]);
+					free(buffer.Data);
+					buffer.Data = NULL;
+					return(buffer);
+				}
+		}
+	}
+
+	return(buffer);
+}
 
