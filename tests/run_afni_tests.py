@@ -64,7 +64,7 @@ from afni_test_utils.run_tests_examples import EXAMPLES, examples
 dep_reqs = minfuncs.get_dependency_requirements()
 if dep_reqs != "minimal":
     # If using the cmake build afnipy needs to be installed
-    if "--build-dir" in ''.join(sys.argv):
+    if "--build-dir" in "".join(sys.argv):
         try:
             afnipy = importlib.import_module("afnipy")
         except ImportError as err:

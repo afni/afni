@@ -69,7 +69,6 @@ def pytest_sessionstart(session):
     get_tests_data_dir(session)
 
 
-
 def pytest_generate_tests(metafunc):
 
     # Do some environment tweaks to homogenize behavior across systems
