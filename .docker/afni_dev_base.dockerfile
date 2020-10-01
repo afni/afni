@@ -140,7 +140,7 @@ RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
 RUN python3 -m pip install \
       --no-cache-dir \
         autopep8 \
-        black==19.10b0 \
+        black==20.8b1 \
         codecov \
         cython \
         datalad \
@@ -156,7 +156,7 @@ RUN python3 -m pip install \
         pytest-cov \
         pytest-parallel \
         scipy \
-        xvfbwrapper \
+        git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
   && fix-permissions /opt
 
 # add pdb alias ipy for easier pdb debugging
