@@ -12,7 +12,9 @@ afni_binary: str = shutil.which("afni")  # type: ignore
 AFNI_ROOT = str(Path(afni_binary).parent)
 
 
-@pytest.mark.skip(reason="this is implemented in a shell script. afnipy should be imported from")
+@pytest.mark.skip(
+    reason="this is implemented in a shell script. afnipy should be imported from"
+)
 def test_script_imports(data, python_interpreter):
     if python_interpreter == "python3":
         pytest.xfail("Not all modules are python3 compatible")

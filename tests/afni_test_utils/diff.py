@@ -2,8 +2,7 @@ from pathlib import Path
 
 
 def diff_parser(dif_path):
-    """Simple parser for files output by linux diff util
-    """
+    """Simple parser for files output by linux diff util"""
     dif_path = Path(dif_path)
     dif_text = dif_path.read_text()
     if len(dif_text) == 0:

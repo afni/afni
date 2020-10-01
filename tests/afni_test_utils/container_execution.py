@@ -7,7 +7,7 @@ import docker
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     VALID_MOUNT_MODES,
-    check_build_directory,
+    check_if_cmake_configure_required,
     check_git_config,
 )
 
@@ -301,7 +301,7 @@ def check_user_container_args(tests_dir, **kwargs):
             )
 
     # build dir should have been from a previous build in the container
-    check_build_directory(build_dir, within_container=True)
+    check_if_cmake_configure_required(build_dir, within_container=True)
 
     user_id = os.getuid()
     if user_id == "0":

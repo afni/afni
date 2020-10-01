@@ -14,34 +14,8 @@ import random
 import shlex
 
 from multiprocessing import Lock, Process
-from xvfbwrapper import Xvfb
 
 lock = Lock()
-
-
-def run_x_prog(cmd, run_kwargs=None):
-    import subprocess as sp
-
-    run_kwargs = run_kwargs or {}
-    with Xvfb() as xvfb:
-        # command needs to not fork the process (e.g. -no_detach needs to be
-        # passed to afni). Something goes wrong with quotes for shell equals
-        # true, so can't really use it, shlex.split parses a command into a
-        # list appropriately (string splitting messes up on quotes like
-        # 'QUIT')
-        res = sp.run(shlex.split(cmd), stdout=sp.PIPE, stderr=sp.STDOUT, **run_kwargs)
-
-    res.check_returncode()
-    if "ERROR" in res.stdout.decode():
-
-        raise ValueError(
-            f"""
-        {cmd}
-        Command executed, but output contains an error {res.stdout}
-        """
-        )
-
-    return res.stdout.decode("utf")
 
 
 def is_omp(toolname):
@@ -57,7 +31,12 @@ def is_omp(toolname):
 
 
 def try_to_import_afni_module(mod):
-    """Function returns an imported object from AFNI's python modules.
+    """
+    This function is no longer needed because afnipy is added to sys.path in
+    the conftest.py
+
+    Old description:
+    Function returns an imported object from AFNI's python modules.
     Currently this is required because AFNI's python code is not installed. It
     is on the system path. When on the path, the .py files can be run as an
     executable from anywhere but not imported. It's use should be limited with
@@ -72,30 +51,7 @@ def try_to_import_afni_module(mod):
     Raises:
         EnvironmentError: If AFNI is not installed this error is raised.
     """
-    if mod not in ["1d_tool", "afni_base"]:
-        raise ImportError(
-            """This functionality is removed. If the afnipy package is
-                      not installed into the current python interpretter and
-                      you do not wish to do this you can instead set PYTHONPATH
-                      to AFNI's installation directory."""
-        )
-
-    # For now the only place checked is the parent directory of a python executable from afni:
-    executable = shutil.which("align_epi_anat.py")
-    if not executable:
-        raise EnvironmentError(
-            "Cannot find align_epi_anat.py, an executable file that should be on your path if you have afni installed"
-        )
-
-    possible_installation_dir = Path(executable).parent
-    sys.path.append(str(possible_installation_dir))
-    initfile = possible_installation_dir / "__init__.py"
-    if not initfile.exists():
-        logging.info(f"Creating init file to make afni code importable {initfile}")
-        initfile.touch()
-    imported_mod = importlib.__import__(mod)
-
-    return imported_mod
+    return importlib.import_module(mod)
 
 
 @contextlib.contextmanager

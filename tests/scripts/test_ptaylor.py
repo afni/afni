@@ -1,7 +1,6 @@
 from afni_test_utils import tools
 from pathlib import Path
 import pytest
-import os
 import sys
 
 fatdir = Path("AFNI_demos/FATCAT_DEMO")

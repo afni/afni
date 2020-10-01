@@ -1,13 +1,16 @@
+import attr
 import os
 from pathlib import Path
 from typing import Union
 import pytest
 import inspect
+import importlib
 import datetime
 import datetime as dt
 import time
 import contextlib
 import sys
+import shutil
 import logging
 import xvfbwrapper
 
@@ -17,6 +20,16 @@ from afni_test_utils import misc
 
 pytest.register_assert_rewrite("afni_test_utils.tools")
 
+
+try:
+    importlib.import_module("afnipy")
+except ImportError as err:
+    bin_path = shutil.which("3dinfo")
+    if bin_path:
+        abin = Path(bin_path).parent
+        sys.path.insert(0, str(abin))
+    else:
+        raise err
 
 import afni_test_utils.tools as tools
 from afni_test_utils.tools import get_current_test_name
@@ -37,9 +50,8 @@ from datalad.support.exceptions import IncompleteResultsError
 
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
-os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-if 'environ' not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
+if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
     raise EnvironmentError(
         "Version of xvfbwrapper does not have the environ keyword. "
         "Consider installing one that does. e.g. 'pip install git+git://"
@@ -49,7 +61,7 @@ if 'environ' not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
 
 
 def pytest_sessionstart(session):
-    """ called after the ``Session`` object has been created and before performing collection
+    """called after the ``Session`` object has been created and before performing collection
     and entering the run test loop.
 
     :param _pytest.main.Session session: the pytest session object
@@ -57,9 +69,15 @@ def pytest_sessionstart(session):
     get_tests_data_dir(session)
 
 
+
 def pytest_generate_tests(metafunc):
 
     # Do some environment tweaks to homogenize behavior across systems
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.environ["MPLBACKEND"] = "Agg"
+    if sys.platform == "darwin":
+        os.environ["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
+
     os.environ["AFNI_SPLASH_ANIMATE"] = "NO"
     unset_vars = [
         "AFNI_PLUGINPATH",
@@ -129,8 +147,7 @@ def test_comparison_dir_path(pytestconfig):
 
 
 def get_test_comparison_dir_path(base_comparison_dir_path, mod: Union[str or Path]):
-    """Get full path full comparison directory for a specific test
-    """
+    """Get full path full comparison directory for a specific test"""
     return base_comparison_dir_path / mod.name / get_current_test_name()
 
 
@@ -226,7 +243,6 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     test_logdir = module_outdir / get_current_test_name() / "captured_output"
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
-
 
     # Add steam and file logging as requested
     logger = logging.getLogger(test_name)
@@ -382,7 +398,7 @@ def pytest_sessionfinish(session, exitstatus):
     if output_dir.exists():
         print("\nTest output is written to: ", output_dir)
 
-    full_log = output_dir / 'all_tests.log'
+    full_log = output_dir / "all_tests.log"
     if full_log.exists():
         print("\nLog is written to: ", full_log)
 
@@ -406,7 +422,14 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture()
 def ptaylor_env(monkeypatch):
-    monkeypatch.setenv("AFNI_COMPRESSOR", "GZIP")
+    with monkeypatch.context() as m:
+        isolated_env = os.environ.copy()
+        isolated_env["AFNI_COMPRESSOR"] = "GZIP"
+        m.setattr(os, "environ", isolated_env)
+        try:
+            yield
+        finally:
+            pass
 
 
 @pytest.fixture(autouse=True)

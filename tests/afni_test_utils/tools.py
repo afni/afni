@@ -7,6 +7,7 @@ import datalad.api as datalad
 import datetime as dt
 import difflib
 import filecmp
+import functools
 import getpass
 import itertools as IT
 import json
@@ -14,14 +15,22 @@ import logging
 import nibabel as nib  # type: ignore
 import numpy as np
 import os
+import platform
 import pytest
 import re
 import shutil
+import shlex
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
+from xvfbwrapper import Xvfb
+from multiprocessing import Lock, Process
+
+from afnipy import lib_afni1D as LAD
+
+DISPLAY = Lock()
 
 
 def logger_config(logger, file=None, stream_log_level="WARNING", log_file_level=None):
@@ -195,62 +204,7 @@ def update_sample_output(
     proc = subprocess.check_call(cmd, shell=True, cwd=data.rootdir)
 
 
-def run_cmd(
-    data,
-    cmd,
-    logger=None,
-    add_env_vars={},
-    merge_error_with_output=False,
-    workdir=None,
-    python_interpreter="python3",
-):
-    """Run the provided command and check it's output. In conjunction with the data
-    fixture this function handles the test output logging in a consistent way.
-
-    Args:
-        data : An object created by the data fixture that is used in test
-        functions.
-        cmd (str): A string that requires execution and error checking.
-        add_env_vars (dict):  Variable/value pairs with which to modify the
-        environment for the executed command
-        workdir (pathlib.Path or str): Working directory to execute the
-        command. Should be the root directory for tests (default) unless
-        otherwise required
-        python_interpreter (str): If set to 'python2', the command will be
-        executed using the python 2 interpretter. This only has relevance to
-        commands that use a python executable and it currently only works on
-        Linux. This argument will be removed once all code is ported to python3.
-
-    Returns:
-        subprocess.CompletedProcess: An object that among other useful
-        attributes contains stdout, stderror of the executed command
-    """
-
-    # Set working directory for command execution if not set explicitly
-    if not workdir:
-        workdir = Path.cwd()
-
-    # If requested merge stderr and stdout
-    if merge_error_with_output:
-        error = subprocess.STDOUT
-    else:
-        error = subprocess.PIPE
-
-    if not logger:
-        logger = data.logger
-
-        # Define log file paths, make the appropriate directories and check that
-        # the log files do not exist, otherwise (using uniquize) append a number:
-        stdout_log = data.logdir / (data.test_name + "_stdout.log")
-        os.makedirs(stdout_log.parent, exist_ok=True)
-        stdout_log = uniquify(stdout_log)
-    else:
-        logger = logging
-        stdout_log = Path(tempfile.mktemp("_stdout"))
-
-    stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
-    cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
-
+def get_cmd_env(add_env_vars, python_interpreter):
     # If linux and interpreter is python2 alter env. This is a bit of a hack
     # but will allow python3 to run the test suite while allowing CI to check
     # the output of afni tools when they are run in python2. Test code will
@@ -266,29 +220,29 @@ def run_cmd(
     if "OMP_NUM_THREADS" not in add_env_vars:
         add_env_vars["OMP_NUM_THREADS"] = "1"
 
+    if sys.platform == "darwin":
+        add_env_vars["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
     # Set environment variables for the command execution
+    cmd_environ = os.environ.copy()
     for k, v in add_env_vars.items():
-        os.environ[k] = v
+        cmd_environ[k] = v
+    return cmd_environ
 
-    # Make substitutions in the command string  to remove unnecessary absolute
-    # paths:
-    rel_data_path = os.path.relpath(data.base_outdir, workdir)
-    cmd = cmd.replace(str(data.base_outdir), rel_data_path)
-    cmd = cmd.replace(str(workdir), ".")
 
-    # Print and execute the command and log output
-    logger.info(f"cd {workdir};{cmd}")
-    proc = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=error, cwd=workdir
-    )
-    stdout_log.write_text(proc.stdout.decode("utf-8"))
+def check_and_log_command_execution(
+    proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
+):
+    cmd = " ".join(proc.args)
+    # Log the cmd execution info
+    stdout = proc.stdout.decode("utf-8")
+    stderr = proc.stderr.decode("utf-8")
+    stdout_log.write_text(stdout)
     if logger:
-        logger.debug(proc.stdout.decode("utf-8"))
-    if proc.stderr:
-        err_text = proc.stderr.decode("utf-8")
-        stderr_log.write_text(err_text)
+        logger.debug(stdout)
+    if stderr:
+        stderr_log.write_text(stderr)
         if logger:
-            logger.debug(err_text)
+            logger.debug(stderr)
     # cmd execution report
     hostname = socket.gethostname()
     user = getpass.getuser()
@@ -304,8 +258,176 @@ def run_cmd(
 
     write_command_info(cmd_log, command_info)
     # Raise error if there was a non-zero exit code.
-    proc.check_returncode()
+    if proc.returncode:
+        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
+    return stdout, stderr
+
+
+def setup_logging(data, logger):
+    if not logger:
+        logger = data.logger
+
+        # Define log file paths, make the appropriate directories and check that
+        # the log files do not exist, otherwise (using uniquize) append a number:
+        stdout_log = data.logdir / (data.test_name + "_stdout.log")
+        os.makedirs(stdout_log.parent, exist_ok=True)
+        stdout_log = uniquify(stdout_log)
+    else:
+        logger = logging
+        stdout_log = Path(tempfile.mktemp("_stdout"))
+
+    stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
+    cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
+    return logger, cmd_log, stdout_log, stderr_log
+
+
+def __execute_cmd_args(
+    cmd_args, cmd_environ, error, workdir, shell=False, timeout=None
+):
+    # Execute command
+    if not timeout:
+        proc = subprocess.run(
+            cmd_args,
+            stdout=subprocess.PIPE,
+            stderr=error,
+            cwd=workdir,
+            env=cmd_environ,
+            shell=shell,
+        )
+    else:
+        proc = subprocess.Popen(
+            cmd_args,
+            stdout=subprocess.PIPE,
+            stderr=error,
+            cwd=workdir,
+            env=cmd_environ,
+            shell=shell,
+        )
+        proc.wait(timeout=timeout)
+        # Mimic stdout and stderr from object returned by the run method
+        proc.stdout = b"".join(proc.stdout.readlines())
+        proc.stderr = b"".join(proc.stderr.readlines()) if proc.stderr else None
+
     return proc
+
+
+def run_cmd(
+    data,
+    cmd,
+    logger=None,
+    add_env_vars=None,
+    merge_error_with_output=False,
+    workdir=None,
+    python_interpreter="python3",
+    x_execution_mode=None,
+    timeout=None,
+    shell=False,
+):
+    """Run the provided command and check it's output. In conjunction with the data
+    fixture this function handles the test output logging in a consistent way.
+
+    Args:
+        data: An object created by the data fixture that is used in test
+        cmd (str): A string that requires execution and error checking.
+        logger (logging.Logger, optional): Logger object to write to.
+        add_env_vars (dict): Variable/value pairs with which to modify the
+        environment for the executed command
+        merge_error_with_output (bool, optional): Merge stdout and stderr.
+        workdir (pathlib.Path or str): Working directory to execute the
+        command. Should be the root directory for tests (default) unless
+        otherwise required
+        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on the physical display ('display') or without any management for graphics events (None)
+        x_timeout (int, optional): Number of seconds before graphics tests will timeout, useful for preventing hanging tests. Extend if it really does need lots of time!
+        timeout (int, optional): Timeout parameter in seconds for non graphics execution. Also consider setting force_run_instead_of_wait to True.
+        force_run_instead_of_wait (bool): By default all command are executed with Popen/wait. If this argument is set to True the command will instead be directly executed with subprocess.run. This might be needed when a command does not close its stdout/err pipes or has graphics windows it does not close etc.
+        functions.
+    """
+
+    # Set working directory for command execution if not set explicitly
+    if not workdir:
+        workdir = Path.cwd()
+    if not add_env_vars:
+        add_env_vars = {}
+
+    # If requested merge stderr and stdout
+    if merge_error_with_output:
+        error = subprocess.STDOUT
+    else:
+        error = subprocess.PIPE
+
+    logger, cmd_log, stdout_log, stderr_log = setup_logging(data, logger)
+
+    # Make substitutions in the command string  to remove unnecessary absolute
+    # paths:
+    rel_data_path = os.path.relpath(data.base_outdir, workdir)
+    cmd = cmd.replace(str(data.base_outdir), rel_data_path)
+    cmd = cmd.replace(str(workdir), ".")
+
+    # log command that will be used (not quite true for the following cases
+    # though for which a script is used to wrap the command)
+    logger.info(f"cd {workdir};{cmd}")
+
+    # For more tricky commands just write them to a temporary script and
+    # execute that
+    if any(x in cmd for x in ("&", ";", "'", "`", ">")):
+        script = tempfile.mktemp()
+        Path(script).write_text("#/bin/bash -exu\nset -o pipefail\n" + cmd)
+        cmd_args = ["bash", script]
+    else:
+        cmd_args = shlex.split(cmd)
+
+    cmd_environ = get_cmd_env(add_env_vars, python_interpreter)
+
+    # create a callable that can be used in the appropriate context below:
+    cmd_callable = proc = functools.partial(
+        __execute_cmd_args,
+        cmd_args,
+        cmd_environ,
+        error,
+        workdir,
+        shell=shell,
+        timeout=timeout,
+    )
+
+    global DISPLAY
+    if x_execution_mode is None:
+        # Not testing a gui so no need for any display shenanigans
+        logger.debug(f"cmd_args:{cmd_args}")
+        proc = cmd_callable()
+    elif x_execution_mode == "xvfb":
+        try:
+            # set a default display but another will be determined as required
+            xvfb = Xvfb(width=800, height=680, display="101", environ=cmd_environ)
+            xvfb.new_display = xvfb._get_next_unused_display()
+            logger.debug(f"Virtual display being used: {xvfb.new_display}")
+            # some suma stuff requires the glx extension on linux
+            xvfb.extra_xvfb_args += ["+iglx", "+extension", "DOUBLE-BUFFER"]
+            xvfb.start()
+            # Set the display variable for the execution environment and then
+            # restore the original value
+            logger.debug(f"cmd_args:{cmd_args}")
+            proc = cmd_callable()
+        finally:
+            # Remove the lock file
+            if "xvfb" in locals():
+                xvfb.stop()
+
+    elif x_execution_mode == "display":
+        # For when one does not wish to use xvfb for gui testing
+        try:
+            DISPLAY.acquire()
+            logger.debug(f"Physical Display: {cmd_environ['DISPLAY']}")
+            logger.debug(f"cmd_args:{cmd_args}")
+            proc = cmd_callable()
+        finally:
+            DISPLAY.release()
+    else:
+        raise ValueError(f"Unknow display mode {x_execution_mode}")
+
+    stdout, stderr = check_and_log_command_execution(
+        proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
+    )
+    return stdout, stderr
 
 
 def write_command_info(path, cmd_info):
@@ -450,8 +572,10 @@ class OutputDiffer:
         kwargs_text_files: Dict = None,
         kwargs_scans: Dict = None,
         kwargs_byte: Dict = None,
+        kwargs_for_run: Dict = None,
         create_sample_output: bool = False,
         save_sample_output: bool = False,
+        skip_output_diff: bool = False,
         file_list: List = None,
         logger=None,
     ):
@@ -485,21 +609,41 @@ class OutputDiffer:
         self._kwargs_text_files = kwargs_text_files or {}
         self._kwargs_scans = kwargs_scans or {"header_kwargs": {}, "data_kwargs": {}}
         self._kwargs_byte = kwargs_byte or {}
+        self._kwargs_for_run = kwargs_for_run or {}
+        self.skip_output_diff = skip_output_diff
         # If empty this is overwritten when the command is executed
         self.file_list = file_list or []
         # If saving output data as future comparison this is modified:
         self.files_with_diff = {}
 
-    def run(self):
-        proc = self.run_cmd()
+    def run(self, **kwargs):
+        """
+        method to wrap run_cmd. Keyword arguments can be passed to run_cmd by
+        defining them in the kwargs_for_run dict when creating the instance of
+        OutputDiffer, (or alternatively for some kwargs, by passing the
+        keyword arguments to the run method of the OutputDiffer instance
+        """
+        # Migrated kwargs to instance attributes
+        dups = [key for key in kwargs if hasattr(self, key)]
+        for key in dups:
+            setattr(self, key, kwargs.pop(key))
+        # Update the run dict with remaining keys
+        self.kwargs_for_run.update(kwargs)
+        stdout, stderr = self.run_cmd(**self.kwargs_for_run)
+
+        # Shortcut to skip all file comparisons
+        if self.skip_output_diff:
+            return stdout, stderr
+
         if not self.create_sample_output:
             self.check_comparison_dir()
             self.assert_all_files_equal()
 
         if self.require_sample_output:
             self.__update_sample_output()
+        return stdout, stderr
 
-    def run_cmd(self):
+    def run_cmd(self, **run_kwargs):
         if self.executed:
             raise ValueError(
                 "The differ object has already been run as defined by "
@@ -507,7 +651,7 @@ class OutputDiffer:
             )
 
         # Call run_cmd defined in module scope.
-        proc = run_cmd(
+        stdout, stderr = run_cmd(
             self.data,
             self.cmd,
             self.logger,
@@ -515,11 +659,12 @@ class OutputDiffer:
             merge_error_with_output=self.merge_error_with_output,
             workdir=self.workdir,
             python_interpreter=self.python_interpreter,
+            **run_kwargs,
         )
 
         self.get_file_list()
         self.executed = True
-        return proc
+        return stdout, stderr
 
     def get_file_list(self):
         always_ignore = ["gmon.out"]
@@ -687,18 +832,13 @@ class OutputDiffer:
             raise NotImplementedError
 
         for fname in files_1d:
-            tool_1d = misc.try_to_import_afni_module("1d_tool")
             equivalent_file = get_equivalent_name(self.data, fname)
 
             # Load 1D file data
-            obj_1d = tool_1d.A1DInterface()
-            obj_1d.init_from_file(fname)
-            data = obj_1d.adata.__dict__["mat"]
+            data = LAD.Afni1D(fname).__dict__["mat"]
 
             # Load template 1D file data
-            obj_1d_equiv = tool_1d.A1DInterface()
-            obj_1d_equiv.init_from_file(equivalent_file)
-            data_equiv = obj_1d_equiv.adata.__dict__["mat"]
+            data_equiv = LAD.Afni1D(fname).__dict__["mat"]
 
             # Test the data is equal
             assert_allclose(data, data_equiv, **all_close_kwargs)
@@ -800,6 +940,10 @@ class OutputDiffer:
     @property
     def kwargs_byte(self):
         return self._kwargs_byte
+
+    @property
+    def kwargs_for_run(self):
+        return self._kwargs_for_run
 
     def __repr__(self):
         try:

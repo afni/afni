@@ -1,10 +1,12 @@
 import subprocess
 import argparse
+import importlib
 import os
 import sys
 from pathlib import Path
 from itertools import compress
 import subprocess as sp
+import shutil
 
 PYTEST_GROUP_HELP = "pytest execution modifiers"
 PYTEST_MANUAL_HELP = (
@@ -35,6 +37,11 @@ def parse_user_args():
         action="store_true",
         help="show this help message and exit",
     )
+    parser.add_argument(
+        "--installation-help",
+        action="store_true",
+        help="Show details regarding the setup for tests execution.",
+    )
 
     dir_for_build_type = parser.add_mutually_exclusive_group()
     dir_for_build_type.add_argument(
@@ -42,12 +49,16 @@ def parse_user_args():
         metavar="DIR",
         type=dir_path,
         help=(
-            "This can be an empty directory. Use the 'pytest' target "
-            "from the cmake build system at this location. Requires "
-            "ninja. This is convenient because it enables within-build-"
-            "tree-testing so you don't have to install and you don't "
-            "accidentally test the wrong programs due to incorrect PATH "
-            "etc "
+            "This is convenient because it enables testing within the "
+            "build tree so you don't have to install the afni suite to "
+            "test it and you don't accidentally test the wrong programs "
+            "due to incorrect PATH etc. \n\nNote, consider creating a "
+            "conda environment from environment.yml before using this "
+            "option. Using this option will install afnipy into your "
+            "current python interpreter's libraries, this can be undone "
+            "afterwards with 'pip uninstall afnipy'. Otherwise no "
+            "permanent modification to your system will occur.\n\nThe "
+            "supplied build directory can be an empty directory. "
         ),
     )
     dir_for_build_type.add_argument(
@@ -56,7 +67,7 @@ def parse_user_args():
         type=dir_path,
         help=(
             "Provide the path to the installation directory of AFNI "
-            "produced by the make build system "
+            "produced by the make build system."
         ),
     )
 
@@ -66,7 +77,12 @@ def parse_user_args():
         "--debug",
         action="store_true",
         dest="debug",
-        help="Do not catch exceptions and show exception traceback (Drop into pdb debugger).",
+        help=(
+            "Do not catch exceptions and show exception traceback Drop "
+            "into pdb debugger. As well as passing the --pdb flag to "
+            "pytest this enables an exception hook for code executed "
+            "prior to the execution of the pytest command "
+        ),
     )
     thread_management.add_argument(
         "--use-all-cores",
@@ -103,12 +119,12 @@ def parse_user_args():
         "-v",
         action="count",
         default=0,
-        help="Increase the verbosity of reporting (conflicts with --debug).",
+        help="Increase the verbosity of reporting (conflicts with --debug). More v's is more verbose.",
     )
     pytest_mod.add_argument(
         "--log-file-level",
         choices="DEBUG INFO WARNING ERROR CRITICAL".split(),
-        help="Set the verbosity of the output recorded in the log file.",
+        help="Set the verbosity of the output recorded in the log file. There is no log file by default.",
     )
     pytest_mod.add_argument(
         "--filter-expr",
@@ -142,7 +158,9 @@ def parse_user_args():
     )
 
     subparsers = parser.add_subparsers(
-        dest="subparser", title="Sub Commands", description="One is required",
+        dest="subparser",
+        title="Sub Commands",
+        description="One is required",
     )
     # CLI group for running tests in a container
     container = subparsers.add_parser(
@@ -185,7 +203,7 @@ def parse_user_args():
         action="store_true",
         help=(
             "Search intermediate image layers for the image-name. This  can sometimes "
-            "fail if layers have been pruned etc."
+            "fail if layers have been pruned etc. but can be used with untagged images."
         ),
     )
     container.add_argument(
@@ -217,9 +235,13 @@ def parse_user_args():
             "activate afni_dev' "
         ),
     )
-    examples = subparsers.add_parser("examples", help=("Show usage examples"),)
+    examples = subparsers.add_parser(
+        "examples",
+        help=("Show usage examples"),
+    )
     examples.add_argument(
         "--verbose",
+        "-v",
         action="store_true",
         help="Include a verbose explanation along with the examples",
     )
@@ -232,10 +254,14 @@ def parse_user_args():
         print("SUB COMMAND: examples")
         examples.print_help()
         sys.exit(0)
+    if args.installation_help:
+        print(Path("README.md").read_text())
+        sys.exit(0)
     if not args.subparser:
         sys.exit(
             ValueError(
-                f"You must specify a subcommand (one of {list(subparsers.choices.keys())})"
+                "Unless requesting help you must specify a subcommand "
+                f"one of {list(subparsers.choices.keys())} "
             )
         )
 
@@ -260,7 +286,31 @@ def parse_user_args():
     return args
 
 
-def check_build_directory(build_dir, within_container=False):
+def get_cache_path(build_dir):
+    # check info about possible previous build
+    cache_filepath = Path(build_dir, "CMakeCache.txt")
+    # The choice is accidentally filling directories with a cmake build or
+    # raising an error. The problem with the latter is that a failed build
+    # will trigger this error, which seems unnecessary and irritating. Going
+    # with the former for now and commenting this out...
+    # if not cache_filepath.exists():
+    #     raise ValueError(
+    #         "The build appears to have contents but not that of a "
+    #         "previously successful build "
+    #     )
+    if not os.listdir(build_dir) or not cache_filepath.exists():
+        # empty directory or at least one without a cmake build
+        return None, None
+
+    cache_info = cache_filepath.read_text()[:500].splitlines()
+    cache_path_entry = [
+        line for line in cache_info if "For build in directory:" in line
+    ][0]
+    cache_implied_dir = Path(cache_path_entry.split(":")[1].strip())
+    return cache_filepath, cache_implied_dir
+
+
+def check_if_cmake_configure_required(build_dir, within_container=False):
     if build_dir:
         if not within_container:
             if not Path(build_dir).exists():
@@ -277,55 +327,71 @@ def check_build_directory(build_dir, within_container=False):
                 f"{diruser}:{dirgroup}"
             )
 
-        # check info about possible previous build
-        cache_file = Path(build_dir, "CMakeCache.txt")
-        if not os.listdir(build_dir):
-            # empty directory
-            return
-        if not cache_file.exists():
-            raise ValueError(
-                "The build appears to have contents but not that of a "
-                "previously successful build "
-            )
+        cache_filepath, cache_implied_dir = get_cache_path(build_dir)
+        if not cache_implied_dir:
+            # It seems there is not a pre-existing build. Will try configure
+            # cmake and build in build_dir...
+            return True
 
-        cache_info = cache_file.read_text()[:500].splitlines()
+        # Deal with a pre-existing is inappropriate for use:
         mismatch_err = (
             "It appears that you are trying to use a build directory "
             "that was created in a different context ({build_dir} vs "
-            "{cache_path}). Consider using an empty directory instead. "
+            "{cache_implied_dir}). Consider using an empty directory instead. "
         )
-        cache_path_entry = [
-            line for line in cache_info if "For build in directory:" in line
-        ][0]
-        cache_path = Path(cache_path_entry.split(":")[1].strip())
-
         # within container is used because this check needs to happen outside
         # the container for a directory that needs to work within the
         # container
         if within_container:
-            if "For build in directory: /opt/afni/build" not in str(cache_info):
+            if "/opt/afni/build" != str(cache_implied_dir):
                 raise ValueError(
                     mismatch_err.format(
-                        build_dir="/opt/afni/build", cache_path=cache_path
+                        build_dir="/opt/afni/build", cache_path=cache_implied_dir
                     )
                 )
 
         else:
-            if not cache_path.exists():
+            if cache_implied_dir and not cache_implied_dir.exists():
                 raise FileNotFoundError(
-                    f"Could not find {cache_path},the directory reported "
-                    "to be the location of the previous cmake build "
+                    f"Could not find {cache_implied_dir}, the directory "
+                    "reported to be the location of the previous cmake "
+                    f"build defined by {cache_filepath} "
                 )
 
-            if not Path(build_dir).samefile(cache_path):
+            if not Path(build_dir).samefile(cache_implied_dir):
                 raise ValueError(
-                    mismatch_err.format(build_dir=build_dir, cache_path=cache_path,)
+                    mismatch_err.format(
+                        build_dir=build_dir,
+                        cache_path=cache_implied_dir,
+                    )
                 )
+
+            if not (Path(build_dir) / "build.ninja").exists():
+                return True
+
+        return False
 
 
 def get_dependency_requirements():
+    """
+    Different dependencies are required depending on how the run_afni_tests.py
+    script is being used.
 
-    if len(sys.argv) == 1 or any(x in sys.argv for x in ["-h", "-help", "--help"]):
+    All most no requirements are used for displaying help/examples.
+
+    Very few requirements are required for execution of tests in a docker container.
+
+    'Full' has various dependencies described in the accompanying conda yml
+    files. afnipy may or may not need to be installed dependending on the
+    usage situation. This can be that afni has been installed into the current
+    PATH (using the make or cmake build system), the cmake build is being used
+    (by way of the pytest target), the --abin flag is being used, or if the
+    --build-dir flag is being used.
+    """
+
+    if len(sys.argv) == 1 or any(
+        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help"]
+    ):
         return "minimal"
 
     subparser_patterns = ["container", "examples"]
@@ -368,14 +434,17 @@ def check_git_config():
 def set_default_git_config_if_containerized(gituser, gitemail):
     if is_containerized():
         if not gituser:
-            gituser = sp.check_output(
-                "git config --global user.name 'AFNI CircleCI User'", shell=True,
-            ).decode("utf-8")
-        if not gitemail:
-            gitemail = sp.check_output(
-                "git config --global user.email 'johnleenimh+circlecigitconfig@gmail.com'",
+            gituser = "AFNI CircleCI User"
+            sp.check_output(
+                f"git config --global user.name '{gituser}'",
                 shell=True,
-            ).decode("utf-8")
+            )
+        if not gitemail:
+            gitemail = "johnleenimh+circlecigitconfig@gmail.com"
+            sp.check_output(
+                f"git config --global user.email '{gitemail}'",
+                shell=True,
+            )
     return gituser, gitemail
 
 
@@ -407,10 +476,24 @@ def configure_parallelism(cmd_args, use_all_cores):
     # Configure testing parallelism
     NCPUS = sp.check_output("getconf _NPROCESSORS_ONLN".split()).decode().strip()
     if use_all_cores:
-        # this requires pytest-parallel to work
-        cmd_args += f" --workers {NCPUS}".split()
         os.environ["OMP_NUM_THREADS"] = "1"
+
+        # Get pytest output that includes all available plugins
+        res = sp.check_output(
+            f"{sys.executable} -m pytest scripts/test_guis.py --trace-config --co",
+            shell=True,
+        ).decode("utf-8")
+        pytest_has_parallel = "pytest-parallel" in res
+        if pytest_has_parallel:
+            cmd_args += f" --workers {NCPUS}".split()
+        else:
+            raise EnvironmentError(
+                "Parallel execution is requested. pytest-parallel "
+                "plugin must be installed for this to work. "
+            )
+
     else:
+        # tests will be executed serially
         os.environ["OMP_NUM_THREADS"] = NCPUS
 
     return cmd_args
@@ -495,8 +578,150 @@ def generate_cmake_command_as_required(tests_dir, args_dict):
     When a build dir has been defined, check whether is empty or sensibly
     populated. Return a command for both situations
     """
-    check_build_directory(args_dict["build_dir"])
+    cmake_configure_needed = check_if_cmake_configure_required(
+        args_dict["build_dir"],
+    )
     cmd = f"cd {args_dict['build_dir']}"
-    if not os.listdir(args_dict["build_dir"]):
+    if cmake_configure_needed:
         cmd += f";cmake -GNinja {tests_dir.parent}"
     return cmd
+
+
+def make_sure_afnipy_not_importable():
+    try:
+        # This should fail in situation 3 and 4
+        afnipy_mod = importlib.import_module("afnipy")
+    except ImportError:
+        # this is what should happen
+        return
+
+    raise EnvironmentError(
+        "afnipy is importable when it should not be. When "
+        "testing the default distribution abin on the PATH or "
+        "when using the abin flag, the afnipy package should "
+        "not be importable... instead afni python binaries "
+        "should import it from the local afnipy directory in "
+        f"abin. An installed afnipy was found at: {afnipy_mod.__file__}"
+    )
+
+
+def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
+    """
+    This function does some path/environment modifications to deal with the
+    different installation configurations that the tests might be run under.
+    The following cases are supported:
+
+    1) --build-dir: The cmake build is used in combination with the pytest
+       target. The pytest target modifies PATH variable prior to executing
+       tests so that all built binaries and scripts in the source directory
+       are on the path and discoverable and afnipy is installed as required.
+
+    2) cmake installation: The standard gnu directory installation structure
+       (binaries in bin which is on the PATH, c libraries are stored in ../lib
+       etc.).
+
+    3) Typical installation: abin, built by the make build system with a flat
+       directory structure, is on the PATH.
+
+    4) --abin flag used: Similar to 3. except that the "installation" directory
+       has been passed explicitly.
+
+
+
+    In situation 1. afnipy and all binaries will appropriately mask and system
+    versions of afnipy/binaries.
+
+    In situation 2. afnipy should be importable using the current python
+    interpreter, python binaries will be in the python interpreter's
+    directories, other binaries should be on the PATH.
+
+    In situation 3., and 4. afnipy (directory containing python modules/python
+    package containing AFNI's python code) should be not be importable from
+    outside the abin directory before execution of this function and should be
+    after its execution.
+    """
+    test_bin_path = shutil.which("3dinfo")
+
+    # Do a check for the 4 four supported test path/setup situations
+    if "build_dir" in args_dict:
+        # situation 1 (cmake build)...
+        try:
+            importlib.import_module("afnipy")
+        except ImportError as err:
+            print(err)
+            raise EnvironmentError(
+                "Usage of cmake build for testing was "
+                f"inferred from the usage of --build-dir. "
+                "Cannot import afnipy. This should be installed "
+                "into the current python interpreter. "
+            )
+        return
+    elif test_bin_path:
+        libmri_so_paths = list(Path(test_bin_path).parent.parent.glob("lib/libmri.*"))
+        if libmri_so_paths:
+            # situation 2 (cmake installed)...
+            if not importlib.import_module("afnipy"):
+                raise EnvironmentError(
+                    "Usage of cmake installation for testing was "
+                    f"inferred from the presence of {libmri_so_paths}. "
+                    "Cannot import afnipy. This should be installed "
+                    "into the current python interpreter. "
+                )
+
+            return
+
+        else:
+            # situation 3 (abin on PATH) and libmri so should be in same directory
+            make_sure_afnipy_not_importable()
+            libmri_so_paths = list(Path(test_bin_path).parent.glob("libmri.*"))
+            if not libmri_so_paths:
+                raise (
+                    ValueError(
+                        "This should not be reached. Not sure what has happened."
+                    )
+                )
+
+    else:
+        # situation 4 (abin flag passed)
+        make_sure_afnipy_not_importable()
+        if not (Path(args_dict["abin"]) / "3dinfo").exists():
+            raise (
+                ValueError("This should not be reached. Not sure what has happened.")
+            )
+
+    # Modify sys.path and os.environ for situation 3. and 4.
+
+    # Makes afnipy importable
+    abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
+    sys.path.insert(0, abin)
+
+    # Also needs to work for shell subprocesses when using the abin flag so
+    # added it to PATH
+    os.environ["PATH"] = f"{abin}:{os.environ['PATH']}"
+
+
+def _filter_afni_from_path(path_var):
+    # Get a PATH variable that should not have afni on it
+    afni_path = shutil.which("afni", path=path_var)
+    abin_dir = str(Path(afni_path).parent) if afni_path else "undefined_path_for_abin"
+    abin_patterns = ["abin", "targets_built", abin_dir]
+    filtered_path = ":".join(
+        [x for x in path_var.split(":") if not any(pat in x for pat in abin_patterns)]
+    )
+    return filtered_path
+
+
+def filter_afni_from_path():
+    filtered_path = os.environ["PATH"]
+    attempt_count = 0
+    while shutil.which("afni", path=filtered_path):
+        filtered_path = _filter_afni_from_path(filtered_path)
+        attempt_count += 1
+        if attempt_count > 9:
+            raise ValueError(
+                "An error has occurred trying to filter afni out of the "
+                f"PATH. {shutil.which('afni',path=filtered_path)} "
+                f"found in {filtered_path} "
+            )
+
+    return filtered_path

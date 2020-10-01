@@ -1,8 +1,14 @@
-import sys
-import os
-import subprocess
 import datalad.api as datalad
+from pathlib import Path
+import importlib
 import logging
+import os
+import shutil
+import subprocess
+import sys
+
+# Other imports to fail early with missing dependencies
+importlib.import_module("xvfbwrapper")
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     check_git_config,
@@ -29,10 +35,6 @@ def check_test_data_repo(test_data, ignore_dirty_data):
 
 
 def run_tests(tests_dir, **args_dict):
-    if args_dict.get("abin"):
-        sys.path.insert(0, args_dict["abin"])
-        # Also needs to work for shell subprocesses
-        os.environ["PATH"] = f"{args_dict['abin']}:{os.environ['PATH']}"
 
     check_git_config()
     test_data = datalad.Dataset(str(tests_dir / "afni_ci_test_data"))
@@ -48,7 +50,7 @@ def run_tests(tests_dir, **args_dict):
         cmd = generate_cmake_command_as_required(tests_dir, args_dict)
         cmd += f""";ARGS='{' '.join(x for x in cmd_args)}' ninja pytest"""
     else:
-        cmd = f"""pytest {' '.join(x for x in cmd_args)}"""
+        cmd = f"""{sys.executable} -m pytest {' '.join(x for x in cmd_args)}"""
 
     print(f"Executing: {cmd}")
     res = subprocess.run(cmd, shell=True)
