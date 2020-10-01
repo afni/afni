@@ -69,4 +69,4 @@ def test_3dTstat_basic(data, statistic):
 
     # Run command and test all outputs match
     differ = tools.OutputDiffer(data, cmd, kwargs_scans=kwargs_scans)
-    differ.run()
+    differ.run(timeout=60)
