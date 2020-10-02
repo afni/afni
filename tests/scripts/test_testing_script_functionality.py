@@ -274,7 +274,11 @@ def test_check_git_config_containerized(sp_with_successful_execution, monkeypatc
 
 
 def test_run_containerized(monkeypatch):
-    container = Mock(**{"logs.return_value": [b"success"]})
+    container = Mock(
+        **{
+            "logs.return_value": [b"success"],
+            "wait.return_value": {'StatusCode':False},
+        })
     client = Mock(**{"containers": Mock(**{"run.return_value": container})})
     mocked_docker = Mock(**{"from_env.return_value": client})
     monkeypatch.setattr(ce, "docker", mocked_docker)
@@ -730,11 +734,11 @@ def test_examples_parse_correctly(monkeypatch):
     [
         # basic usage
         {},
-        # test-data-only is a valid value for source_mode
+        # test-data-volume is a valid value for source_mode
         {
             "image_name": "an_image",
             "only_use_local": False,
-            "source_mode": "test-data-only",
+            "source_mode": "test-data-volume",
         },
         # Build dir outside of source should work
         {
@@ -1012,16 +1016,19 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
     assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
     assert docker_kwargs["environment"].get("CONTAINER_UID")
 
-    # Confirm test-data directory is mounted
+    # Confirm test-data volume is mounted
     _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
     docker_kwargs = ce.setup_docker_env_and_vol_settings(
         TESTS_DIR,
-        **{"source_mode": "test-data-only"},
+        **{"source_mode": "test-data-volume"},
     )
-    assert docker_kwargs.get("volumes").get(data_dir)
-    expected = "/opt/afni/src/tests/afni_ci_test_data"
+    expected = ['test_data']
+    result = docker_kwargs.get("volumes_from")
+    assert expected == result
+
+    expected = "/opt"
     assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
-    assert not docker_kwargs["environment"].get("CONTAINER_UID")
+    assert docker_kwargs["environment"].get("CONTAINER_UID")
 
     # Confirm tests directory is mounted and file permissions is set correctly
     _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)

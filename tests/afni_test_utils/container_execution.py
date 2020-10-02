@@ -4,6 +4,7 @@ import sys
 import subprocess as sp
 import inspect
 import docker
+import logging
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     VALID_MOUNT_MODES,
@@ -61,6 +62,13 @@ def get_docker_image(
         image = images_found[0]
     return image
 
+def check_test_data_vol_usage(client,kwargs):
+    if kwargs.get('source_mode') == "test-data-volume":
+        if not any('test_data' == x.name for x in client.containers.list(all=True)):
+            raise ValueError(
+                "Cannot find container called test-data, which is "
+                "required for --source-mode=test-data-volume "
+            )
 
 def run_containerized(tests_dir, **kwargs):
     """
@@ -91,31 +99,34 @@ def run_containerized(tests_dir, **kwargs):
     image = get_docker_image(
         client, image_name, kwargs.get("only_use_local"), kwargs.get("intermediate")
     )
+
+    # Raise error if test-data-volume incorrectly used
+    check_test_data_vol_usage(client,kwargs)
+
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_vol_settings(tests_dir, **kwargs)
-
     if kwargs.get("debug"):
-        raise NotImplementedError(
-            "Consider running the container from the command line and "
-            "then executing the script in debug mode from within the "
-            "container. "
+        logging.warn(
+            "Debug mode is not currently supported in combination with "
+            "container execution. Consider running the container from "
+            "the command line and then executing the script in debug "
+            "mode from within the container... or executing the tests "
+            "in the container using -vvvv to see everything that is "
+            "happening "
         )
-
+        docker_kwargs["detach"] = True
         #  The following does not work. debugpy may be a way of attaching to
         #  the container's python process in a way that facilitates pdb usage.
         #  May work through this at some point.
-        print(
-            "Streamed stdout is not supported with debugging. No "
-            "output will be observed until an error triggers pdb "
-            "entry or the tests finish. "
-        )
-
-        docker_kwargs["detach"] = False
-        # docker_kwargs["auto_remove"] = True
-        docker_kwargs["stdin_open"] = True
-        docker_kwargs["tty"] = True
+        # docker_kwargs["detach"] = False
+        # # docker_kwargs["auto_remove"] = True
+        # docker_kwargs["stdin_open"] = True
+        # docker_kwargs["tty"] = True
     else:
         docker_kwargs["detach"] = True
+
+    if kwargs.get('container_name'):
+        docker_kwargs['name'] = kwargs.pop('container_name')
 
     # Convert parsed user args for execution in the container
     converted_args = unparse_args_for_container(tests_dir, **kwargs)
@@ -128,12 +139,22 @@ def run_containerized(tests_dir, **kwargs):
     # cmd = f"""/bin/sh -c 'echo hello;sleep 5;echo bye bye'"""
     cmd = f"""/bin/sh -c '{script_path} {converted_args}'"""
     output = client.containers.run(image, cmd, **docker_kwargs)
-    if not kwargs.get("debug"):
+    if True:
         for line in output.logs(stream=True):
             print(line.decode("utf-8"))
     else:
+        # might be required if detach is not set to True
         print(output.decode("utf-8"))
-    output.remove(force=True)
+
+    result = output.wait()
+
+    # Remove exited container
+    if not kwargs.get('no_rm'):
+        output.remove(force=True)
+
+    # Propagate container exit error code
+    if result['StatusCode']:
+        raise SystemExit(result['StatusCode'])
 
 
 def add_coverage_env_vars(docker_kwargs, **kwargs):
@@ -194,10 +215,27 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
     if os.getuid != "0":
         docker_kwargs["user"] = "root"
 
-    if kwargs.get("source_mode") == "test-data-only":
-        docker_kwargs["volumes"][hdata] = {"bind": cdata, "mode": "rw"}
+    if kwargs.get("source_mode") == 'test-data-volume':
+        # Mount volume from running container "test_data", used for circleci.
+        # This option is somewhat silly and is contorted usage to satisfy some
+        # of the implementation details of docker execution on circleci. Stay
+        # away! test_data should be setup with something along the lines of
+        # the following and copy data to and from as desired:
+        # docker create \
+        #     --user $(id -u):$(id -g) \
+        #     -v /opt/afni/src/tests/afni_ci_test_data \
+        #     --name test_data alpine:3.4 /bin/true
+        docker_kwargs["volumes_from"] = ['test_data']
+
         docker_kwargs["environment"].update(
-            {"CHOWN_EXTRA": f"{cdata}", "CHOWN_EXTRA_OPTS": "-R"}
+            {
+                "CHOWN_HOME": "yes",
+                "CHOWN_HOME_OPTS": "-R",
+                "CHOWN_EXTRA": "/opt",
+                "CHOWN_EXTRA_OPTS": "-R",
+                "CONTAINER_UID": os.getuid(),
+                "CONTAINER_GID": os.getgid(),
+            }
         )
     elif kwargs.get("source_mode") == "test-code" and kwargs.get("reuse_build"):
         # test code being used in conjunction with the cmake build
@@ -306,14 +344,14 @@ def check_user_container_args(tests_dir, **kwargs):
     user_id = os.getuid()
     if user_id == "0":
 
-        # root user, only mount-mode of 'none' or 'test-data' are valid.
-        # Overall, the testing should be run as a non-root user. The only time
-        # where this might reasonably be expected is in docker-git-ce git
-        # container used for coverage testing on circleci
-        if kwargs.get("source_mode") != "test-data-only":
+        # root user, only mount-mode test-data mounting is supported. Overall,
+        # the testing should be run as a non-root user. The only time where
+        # this might reasonably be expected is in docker-git-ce container used
+        # for coverage testing on circleci
+        if kwargs.get("source_mode") and 'test-data' not in kwargs.get("source_mode"):
             raise ValueError(
                 "You are executing tests as a root user. You cannot "
-                "mount the source directory from the host. "
+                "mount the source directory from the host."
             )
 
         if "build_dir" in kwargs:
@@ -339,6 +377,7 @@ def unparse_args_for_container(tests_dir, **kwargs):
             "only_use_local",
             "subparser",
             "do_not_forward_git_credentials",
+            "no_rm"
         ]:
             pass
         elif v in [None, False]:

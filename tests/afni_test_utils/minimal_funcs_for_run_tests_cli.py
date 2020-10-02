@@ -12,7 +12,7 @@ PYTEST_GROUP_HELP = "pytest execution modifiers"
 PYTEST_MANUAL_HELP = (
     "Manual pytest management (conflicts with pytest execution modifiers)"
 )
-VALID_MOUNT_MODES = "host test-code test-data-only".split()
+VALID_MOUNT_MODES = "host test-code test-data-only test-data-volume".split()
 
 
 def parse_user_args():
@@ -52,14 +52,10 @@ def parse_user_args():
             "This is convenient because it enables testing within the "
             "build tree so you don't have to install the afni suite to "
             "test it and you don't accidentally test the wrong programs "
-            "due to incorrect PATH etc. \n\nNote, consider creating a "
-            "conda environment from environment.yml before using this "
-            "option. Using this option will install afnipy into your "
-            "current python interpreter's libraries, this can be undone "
-            "afterwards with 'pip uninstall afnipy'. Otherwise no "
-            "permanent modification to your system will occur.\n\nThe "
-            "supplied build directory can be an empty directory. "
-        ),
+            "due to incorrect PATH etc. \n\nNote, in order to use this "
+            "option you must have afnipy installed. "
+            )
+,
     )
     dir_for_build_type.add_argument(
         "--abin",
@@ -166,7 +162,7 @@ def parse_user_args():
     container = subparsers.add_parser(
         "container",
         prog="run_afni_tests.py [general options] container",
-        help="Running tests in an AFNI development container requires a "
+        help="Running tests in an AFNI development container. This requires a "
         "docker installation and the python docker package",
     )
 
@@ -180,23 +176,33 @@ def parse_user_args():
             "'test-code' only includes the tests sub-directory but is "
             "useful as it allows a different version of the test tree "
             "to be used from code that is installed in the container. "
-            "'test-data-only', should rarely be needed, but only mounts the "
-            "tests/afni_ci_test_data sub-directory into the container. "
-            "Mounting directories into the container has implications "
-            "for file permissions. If this option is not used, no "
-            "issues occurs as all files are owned by the user in the "
-            "container. If 'host' is chosen, AFNI's source code is "
-            "mounted into the container. The source directory is owned "
-            "by the host user, so the container user is changed to this "
-            "id and the build and home directory are appropriately "
-            "chowned. If 'test-data-only' is used, privileged permissions "
-            "will be required to transfer ownership of the test data "
-            "back to the host user. "
+            "'test-data-only' and 'test-data-volume, should rarely be "
+            "needed, but only mount the tests/afni_ci_test_data sub- "
+            "directory into the container or volume provided by running "
+            "docker container. Mounting directories into the container "
+            "has implications for file permissions. If this option is "
+            "not used, no issues occurs as all files are owned by the "
+            "user in the container. If 'host' is chosen, AFNI's source "
+            "code is mounted into the container. The source directory "
+            "is owned by the host user, so the container user is "
+            "changed to this id and the build and home directory are "
+            "appropriately chowned. If 'test-data-only' is used, "
+            "privileged permissions will be required to transfer "
+            "ownership of the test data back to the host user."
         ),
     )
     container.add_argument(
         "--image-name",
         help="Image used for testing container. Default is likely something like afni/afni_cmake_build",
+    )
+    container.add_argument(
+        "--container-name",
+        help="Name used for testing container. Default is randomly generated.",
+    )
+    container.add_argument(
+        "--no-rm",
+        help="Do not delete containers after execution of the tests.",
+        action="store_true",
     )
     container.add_argument(
         "--intermediate",
@@ -230,9 +236,7 @@ def parse_user_args():
         "local",
         help=(
             "Running tests on the host requires additional "
-            "dependencies. Consider something like the following "
-            "command 'conda env create -f environment.yml;conda "
-            "activate afni_dev' "
+            "dependencies. See run_afni_tests.py --installation-help"
         ),
     )
     examples = subparsers.add_parser(
