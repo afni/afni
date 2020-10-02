@@ -131,8 +131,8 @@ commands:
           name: Deploy to Docker Hub
           no_output_timeout: 40m
           command: |
-            if [ $DOCKER_USER == 'afni' ]; then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
+            if [ "$DOCKER_USER" == 'afni' ]; then
+              docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
               docker push afni/afni_<< parameters.build_type >>:latest
               docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
@@ -143,7 +143,7 @@ commands:
           image_cache_version: << parameters.image_cache_version >>
       - run:
           command: |
-            if [ $DOCKER_USER == 'afni' ]; then
+            if [ "$DOCKER_USER" == 'afni' ]; then
               if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
               then
                 echo Could not find the dev_base image used for release deployment.
