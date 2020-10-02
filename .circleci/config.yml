@@ -302,7 +302,8 @@ jobs:
       - image: docker:18.01.0-ce-git
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.13
       - run:
           name: install some basic helper tools
           command: |
@@ -376,9 +377,11 @@ jobs:
         type: string
       image_cache_version:
         type: string
-    machine:
-      image: circleci/classic:201711-01
+    docker:
+      - image: docker:18.01.0-ce-git
     steps:
+      - setup_remote_docker:
+          version: 19.03.13
       - deploy_to_dockerhub:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
