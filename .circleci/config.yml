@@ -379,7 +379,13 @@ jobs:
         type: string
     docker:
       - image: docker:18.01.0-ce-git
+    shell: /bin/bash -eo pipefail
     steps:
+      - run:
+          shell: /bin/sh
+          name: install some basic helper tools
+          command: |
+            apk add --no-cache pigz python3 bash
       - setup_remote_docker:
           version: 19.03.13
       - deploy_to_dockerhub:
