@@ -9069,6 +9069,7 @@ char *Current_Atlas_Default_Name()
    char *ept;
 
    ept = getenv( "AFNI_ATLAS_COLORS" ) ;
+   if(ept != NULL) return(search_quotes(ept)); /* remove any extra quotes*/
    if( ept != NULL ) return( ept ) ;
 
    return("TT_Daemon");
@@ -9579,7 +9580,8 @@ char * whereami_XML_get(char *data, char *name, char **next) {
 }
 
 /* find first sub-string that starts and ends in quotes and
-   return copy of the string between the quotes */
+   return copy of the string between the quotes 
+*  return string or string after first quotes */
 char * search_quotes(char *in_str)
 {
    char qt ='\"';
@@ -9587,12 +9589,12 @@ char * search_quotes(char *in_str)
 
    if (!(s0 = strchr(in_str, qt))) {
       /* no starting quote */
-         return(NULL);
+         return(in_str);
    }
    s0++;
 
    if (!(s1 = strchr(s0, qt))){
-      return(NULL);
+      return(s0);
    }
    sout = (char *)calloc(s1-s0+1, sizeof(char));
    memcpy(sout,s0,sizeof(char)*(s1-s0));
