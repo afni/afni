@@ -68,7 +68,7 @@ commands:
             TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
             # Add coverage args as appropriate
             if [ "$AFNI_WITH_COVERAGE" != "0" ];then
-              TEST_ARGS="$TEST_ARGS --coverage container --reuse-build"
+              TEST_ARGS="$TEST_ARGS --coverage -vvv container "
             else
               TEST_ARGS="$TEST_ARGS -vvv container"
             fi
