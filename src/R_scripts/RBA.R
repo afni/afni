@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.3, Sept 25, 2020 
+Version 1.0.4, Oct 5, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -500,7 +500,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$Subj   <- 'Subj'
       lop$ROI    <- 'ROI'
       lop$PDP    <- NA
-      lop$ridgePlot <- NA
+      lop$ridgePlot <- NULL
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -1016,7 +1016,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
                           limits = c(0,1),                                # scale size
                           name = legend.title,
                          breaks = c(0,0.05,0.1,0.9,0.95,1),
-                         expand = expand_scale(0),
+                         expand = expansion(0),
                          labels = c("0","0.05","0.1","0.9", "0.95","1")
                          ) +
      scale_y_continuous(breaks = 1:length(rois), # A VERY HACK-Y WAY TO HAVE TWO Y AXES W DISCRETE DATA
@@ -1055,7 +1055,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
-   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+   if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
 # for contrasts among quantitative variables
@@ -1067,7 +1067,7 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(any(!is.na(lop$PDP) == TRUE)) plotPDP(paste0(lop$qContrL[2*ii-1], '-', lop$qContrL[2*ii]), ps0, nR, lop$PDP[1], lop$PDP[2], 8)
-   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+   if(!is.null(lop$ridgePlot)) ridge(ps0, range(ps0), lop$qContrL[2*ii-1], lop$ridgePlot[1], lop$ridgePlot[2])
 }
 
 # for factor
@@ -1092,11 +1092,11 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      if(!is.null(lop$ridgePlot)) ridge(psa[jj,,], range(psa[jj,,]), paste0(lop$EOIc[ii],'-',lvl[jj]), lop$ridgePlot[1], lop$ridgePlot[2])
    }
 
    if(any(!is.na(lop$PDP) == TRUE)) for(jj in 1:nl)
       plotPDP(paste0(lop$EOIc[ii], '_', lvl[jj]), psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
-   if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
    
    cat(sprintf('===== Summary of region effects for %s comparisons (RBA results) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
@@ -1106,7 +1106,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(any(!is.na(lop$PDP) == TRUE))  plotPDP(paste0(lvl[jj], '-', lvl[kk]), psa[jj,,] - psa[kk,,], nR, lop$PDP[1], lop$PDP[2], 8)
-      if(lop$ridgePlot) ridge(ps0, range(ps0), lop$EOIq[ii], lop$ridgePlot[1], lop$ridgePlot[2])
+      if(!is.null(lop$ridgePlot)) ridge(psa[jj,,] - psa[kk,,], range(psa[jj,,] - psa[kk,,]), paste0(lop$EOIc[ii], '-', lvl[jj], 'vs', lvl[kk]), lop$ridgePlot[1], lop$ridgePlot[2])
    }
 }
 
