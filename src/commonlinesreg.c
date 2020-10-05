@@ -32,6 +32,8 @@ NOTES
 #include "Generic.h"
 // #include "VolumeRegistration.h"
 
+#define UNIX 1
+
 int Cleanup(char *inputFileName, char *outputFileNames[], COMPLEX ***TwoDFts, THD_3dim_dataset *din);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
@@ -81,7 +83,8 @@ double	Interp_BC(float **image, float x_coord, float y_coord);
 long DRound(double arg);
 ERROR_NUMBER Complex2Float(ComplexPlane cpInputPlane, FloatPlane *fppRealOut, FloatPlane *fppImagOut);
 FloatPlane MakeFloatPlane(long iRows, long iColumns, float **Data);
-
+char * RootName(char * csFullPathName);
+ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory);
 
 
 double  dCommonLinesAngleErr;
@@ -96,7 +99,7 @@ int main( int argc, char *argv[] )  {
 	float fCoplanarAngularShift;
     THD_3dim_dataset * din = NULL, *dodd, *deven;
     THD_3dim_dataset* projections[3], *paddedProjections[3];
-    int     i, j, largestDimension, paddingFactor=2;
+    int     i, j, largestDimension, paddingFactor=4;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char*    outputFileNames[3]={NULL,NULL,NULL};
     COMPLEX** TwoDFts[3]={NULL, NULL, NULL};
@@ -168,10 +171,10 @@ int main( int argc, char *argv[] )  {
     outputRealAndImaginaryPlanes(TwoDFts[0], paddedProjections[0]);
 
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
-    int paddedDimension = pow(2, ceil(log(largestDimension)/log(2)));
+    int paddedDimension = DSET_NY(paddedProjections[0]);
     int lNumberOfImages = 3;
-    irFrequencyRange.iMin = 1;
-    irFrequencyRange.iMax = largestDimension/2-5;
+    irFrequencyRange.iMin = 4;
+    irFrequencyRange.iMax = paddedDimension/2;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=DSET_DIRNAME(din);
     sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
@@ -286,27 +289,59 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 	long			lPlaneIndex, lNumTargetSamples, lNumRefSamples, lTargetIndex, lRefIndex;
 	short			sPeakIndex, i, j;
 	FloatVector		fvaPeakCoords[10];
-	FILE			*fpAnalysisFile;
+	FILE			*fpAnalysisFile, *fpGraphFile;
 	BOOL			bAnalysisFile=TRUE;
-	char            *graphFileName;
+	char            *graphFileName, *directory, *rootName;
+
+	// Try halving increment
+	fIncrementInDegrees /= 2;
 
 	// Allocate memory to graph file name
+	if (!(graphFileName=(char *)malloc(strlen(csAnalysisFileName)+32)) ||
+        !(directory=(char *)malloc(strlen(csAnalysisFileName))) ||
+        !(rootName=RootName(csAnalysisFileName))){
+            if (graphFileName) free(graphFileName);
+            if (directory) free(directory);
+            return ERROR_MEMORY_ALLOCATION;
+        }
 
 	// Make reference samples
 	lNumRefSamples=Round(180.0f/fIncrementInDegrees)-1;
 	cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
 	cpComplexPlane.Data=TwoDFts[0];
 	if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
-		irFrequencyRange, &fppRefSamples, &lNumRefSamples))!=ERROR_NONE) return enErrorNumber;
+		irFrequencyRange, &fppRefSamples, &lNumRefSamples))!=ERROR_NONE){
+		free(graphFileName);
+        free(directory);
+        free(rootName);
+		return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Get directory name
+    if ((enErrorNumber=GetDirectory(csAnalysisFileName, directory))!=ERROR_NONE){
+        free(graphFileName);
+        free(directory);
+        free(rootName);
+        return enErrorNumber;
+    }
 
 	// Initialize peak values (Maybe should go in plane loop)
 	for (i=0; i<10; ++i) faPeakValues[i]=0.0f;
 
 	// Process target planes
-	for (lPlaneIndex=1; lPlaneIndex<lNumberOfImages; ++lPlaneIndex)
+	for (lPlaneIndex=1; lPlaneIndex<=lNumberOfImages; ++lPlaneIndex)
 	{
+        // Open analysis file
+        sprintf(graphFileName, "%s/%s_graph%ld.csv", directory, rootName,lPlaneIndex);
+        if (!(fpGraphFile=fopen(graphFileName, "w"))){
+            free(graphFileName);
+            free(directory);
+            free(rootName);
+            return ErrorOpeningFile(graphFileName);
+        }
+
 		// Make target array
-		lNumTargetSamples=Round(360.0f/fIncrementInDegrees)-2;
+		lNumTargetSamples=Round(360.0f/fIncrementInDegrees);
         cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
         cpComplexPlane.Data=TwoDFts[1];
 		if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
@@ -314,13 +349,26 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 		{
 			for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
 				free(fppRefSamples[lRefIndex]);
+            fclose(fpGraphFile);
 			free(fppRefSamples);
+			free(graphFileName);
+            free(directory);
+            free(rootName);
 			return enErrorNumber;
 		}
 
+		// Write graphic file header
+		fprintf(fpGraphFile, "Ref.\\Target");
+		for (lRefIndex=0; lRefIndex<=lNumRefSamples; ++lRefIndex)
+            fprintf(fpGraphFile, ",%3.2f", fIncrementInDegrees*lRefIndex);
+        fprintf(fpGraphFile, "\n");
+
 		// Process samples from target plane
-		for (lTargetIndex=0; lTargetIndex<lNumTargetSamples; ++lTargetIndex)
+		for (lTargetIndex=0; lTargetIndex<=lNumTargetSamples; ++lTargetIndex)
 		{
+            // Write graph file entry
+            fprintf(fpGraphFile, "%3.2f", fIncrementInDegrees*lTargetIndex);
+
 			// Compare target samples against each reference sample using multiplicative inverse of
 			//	mean square distance (MSD)
 			for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
@@ -332,7 +380,11 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 					for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex) free(fppRefSamples[lRefIndex]);
 					free(fppRefSamples);
 					for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+                    fclose(fpGraphFile);
 					free(fpTargetSamples);
+					free(graphFileName);
+                    free(directory);
+                    free(rootName);
 					return enErrorNumber;
 				}
 
@@ -355,8 +407,17 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 					fvaPeakCoords[sPeakIndex].x=fIncrementInDegrees*lRefIndex;
 					fvaPeakCoords[sPeakIndex].y=fIncrementInDegrees*lTargetIndex;
 				}
+
+                // Write graph file entry
+                fprintf(fpGraphFile, ",%3.2f", fComparisonMetric);
 			}
+
+            // New line in graph file
+            fprintf(fpGraphFile, "\n");
 		}
+
+		// Close graph file
+        fclose(fpGraphFile);
 
 		// Free target samples
 		for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
@@ -367,6 +428,9 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 	for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
 		free(fppRefSamples[lRefIndex]);
 	free(fppRefSamples);
+	free(graphFileName);
+    free(directory);
+    free(rootName);
 
 	// Open analysis file
 	if (bAnalysisFile && !(fpAnalysisFile=fopen(csAnalysisFileName, "w")))
@@ -588,7 +652,7 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFts){
         return 0;
     }
 
-    // Center Fourier transform
+    // Allocate memory to centering buffer
     if (!(centeredFT=(COMPLEX **)malloc(ny*sizeof(COMPLEX *)))) {
         for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
         free(*TwoDFts);
@@ -603,22 +667,31 @@ int get2DFourierTransform(THD_3dim_dataset *din, COMPLEX ***TwoDFts){
         *TwoDFts = NULL;
         return 0;
     }
+
+    // Center Fourier transform
     for (y=0, Y=ny/2; Y<ny; ++y, ++Y){
+        // New UL and UR quadrant
         newRow=centeredFT[Y];
         row = (*TwoDFts)[y];
         for (x=0, X=nx/2; X<nx; ++x, ++X){
-            newRow[x]=row[X];
-            newRow[X]=row[x];
+            newRow[x]=row[X];   // UL quadrant
+            newRow[X]=row[x];   // UR quadrant
         }
+
+        // New LL and LR quadrant
         newRow=centeredFT[y];
         row = (*TwoDFts)[Y];
         for (x=0, X=nx/2; X<nx; ++x, ++X){
-            newRow[x]=row[X];
-            newRow[X]=row[x];
+            newRow[x]=row[X];   // LL quadrant
+            newRow[X]=row[x];   // LR quadrant
         }
     }
+
+    // Free old, uncentered FT
     for (y=0; y<ny; ++y) free((*TwoDFts)[y]);
     free(*TwoDFts);
+
+    // Centered FT becomes new FT
     *TwoDFts = centeredFT;
 
     // Checkerboard invert real and imaginary planes
@@ -2318,3 +2391,75 @@ return(Pxy);
 	return(buffer);
 }
 
+/**************************************/
+ char * RootName(char * csFullPathName)
+/**************************************/
+{
+   int iPeriodIndex, iBackslashIndex;
+   char * FileNameNoExt, * buffer;
+   int iFullLength=(int)strlen(csFullPathName);
+
+   if ((FileNameNoExt=(char *)malloc(iFullLength+1))==NULL) return NULL;
+   if ((buffer=(char *)malloc(iFullLength+1))==NULL)
+   {
+	   free(FileNameNoExt);
+	   return NULL;
+   }
+   sprintf(FileNameNoExt, "%s", csFullPathName);
+
+   if ((iPeriodIndex = (int)(strrchr( csFullPathName, '.' ) - csFullPathName))  > 0)
+	   FileNameNoExt[iPeriodIndex] = '\0';
+
+#if UNIX
+   if ((iBackslashIndex = strrchr( FileNameNoExt, '/' ) - FileNameNoExt)  > 0)
+#else
+   if ((iBackslashIndex = (int)(strrchr( FileNameNoExt, '\\' ) - FileNameNoExt))  > 0)
+#endif
+	   sprintf(buffer, "%s", &(FileNameNoExt[iBackslashIndex+1]));
+   else
+      sprintf(buffer, "%s", FileNameNoExt);
+
+   free(FileNameNoExt);
+
+   return (buffer);
+}
+
+
+/*******************************************************************/
+ ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory)
+/*******************************************************************/
+ {
+#if UNIX
+	char *csCurrentDirectory;
+	long iBackslashIndex = (long)(strrchr( csInputFileName, '/' ));
+#else
+	char csCurrentDirectory[150];
+	longlong iBackslashIndex = (longlong)(strrchr( csInputFileName, '\\' ));
+#endif
+
+	if (iBackslashIndex == 0)
+	{
+#if UNIX
+		if ((csCurrentDirectory = getcwd(NULL, 150)) == NULL)
+		{
+			perror("pwd");
+			return ERROR_GETTING_DIRECTORY;
+		}
+#else
+		GetCurrentDirectory( 150, (LPSTR)csCurrentDirectory );
+#endif
+		sprintf(csDirectory, "%s", csCurrentDirectory);
+	}
+	else
+	{
+#if UNIX
+		iBackslashIndex -= (long)csInputFileName;
+#else
+		iBackslashIndex -= (longlong)csInputFileName;
+#endif
+		sprintf(csDirectory, "%s", csInputFileName);
+		csDirectory[iBackslashIndex] = '\0';
+	}
+
+	return ERROR_NONE;
+ }
