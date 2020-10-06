@@ -22,9 +22,9 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
    intro <- 
 '
           ================== Welcome to 3dICC ==================          
-          AFNI Program for IntraClass Correlation (ICC) Analysis
+          AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.4, Aug 4, 2020
+Version 0.1.4, Oct 6, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -33,9 +33,9 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 Usage:
 ------ 
  Intraclass correlation (ICC) measures the extent of consistency, agreement or
- reliability of an effect (e.g., BOLD response) across two or more measures. 
+ reliability of an effect (e.g., BOLD respoonse) across two or more measures. 
  3dICC is a program that computes whole-brain voxel-wise ICC when each subject
- has two or more effect estimates (e.g., sessions, scanners, etc.). All three
+ has two or more effect estimates (e.g., sessions, scanners, etc. ). All three
  typical types of ICC are available through proper model specification:
  ICC(1, 1), ICC(2,1) and ICC(3,1). The latter two types are popular in
  neuroimaging because ICC(1,1) is usually applicable for scenarios such as twins.
@@ -47,25 +47,23 @@ Usage:
  applications for neuroimaging. Human Brain Mapping 39(3): 1187-1206.
  https://doi.org/10.1002/hbm.23909
 
- All the modeling approaches in the above paper have been implemented into 
- 3dICC except for the regularization method through a prior distribution of
- gamma density (whose impact is largely on those 0 ICC values estimated with
- the conventional approaches). Currently 3dICC provides in the output the ICC
- value and the corresponding F-statistic at each voxel. 
+ Currently it provides in the output the ICC value and the corresponding
+ F-statistic at each voxel. In future, inferences for intercept and covariates
+ may be added.
  
  Input files for 3dICC can be in AFNI, NIfTI, or surface (niml.dset) format.
  Two input scenarios are considered: 1) effect estimates only, and 2) effect
  estimates plus their t-statistic values which are used for weighting based
  on the precision contained in the t-statistic.
  
- In addition to R installation, the following R packages need to be installed
+ In addition to R installtion, the following R packages need to be installed
  in R first before running 3dICC: "lme4", "blme" and "metafor". In addition,
  the "snow" package is also needed if one wants to take advantage of parallel
  computing. To install these packages, run the following command at the terminal:
 
  rPkgsInstall -pkgs "blme,lme4,metafor,snow"
 
- Alternatively, you may install them in R:
+ Alternatively you may install them in R:
  
  install.packages("blme")
  install.packages("lme4")
@@ -115,7 +113,7 @@ Usage:
    \n"
 
    ex2 <-
-"Example 2 --- Compute ICC(4,1) values between two sessions. With the option 
+"Example 2 --- Compute ICC(3,1) values between two sessions. With the option 
   -bounds, values beyond [-2, 2] will be treated as outliers and considered 
   as missing. If you want to set a range, choose the bounds that make sense 
   with your input data.
@@ -146,9 +144,9 @@ Usage:
    declared because it is named differently from the default ('Subj').
 
 -------------------------------------------------------------------------
-    3dICC -prefix ICC2a -jobs 12                                     \\
+    3dICC -prefix ICC3 -jobs 12                                     \\
           -mask myMask+tlrc                                       \\
-          -model  '1+age+(1|session)+(1|Subj)'                       \\
+          -model  '1+age+session+(1|Subj)'                       \\
           -bounds  -2 2                                              \\
           -Subj   'subject'                                           \\
           -tStat 'tFile'                                             \\
@@ -168,7 +166,7 @@ Usage:
      \n"
 
       ex4 <-  
-"Example 4 --- Compute ICC(2,1) values between two sessions while adjusting
+"Example 4 --- Compute ICC(2,1) values between two sessions while controlling
    for age effect. With the option -bounds, values beyond [-2, 2] will be
    be treated as outliers and considered as missing. If you want to set a range, 
    choose the bounds that make sense with your input data.
