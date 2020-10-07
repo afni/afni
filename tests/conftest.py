@@ -95,7 +95,8 @@ def pytest_generate_tests(metafunc):
         "AFNI_SUPP_ATLAS_DIR",
     ]
     for var in unset_vars:
-        os.unsetenv(var)
+        if var in os.environ:
+            del os.environ[var]
 
     if "python_interpreter" in metafunc.fixturenames:
         if metafunc.config.option.testpython2:
