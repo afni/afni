@@ -78,16 +78,9 @@ endif()
 install(PROGRAMS
    ../pkundu/meica.py
    ../jzosky/RetroTS.py
-   ../roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py
          DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
          PERMISSIONS ${SCRIPT_PERMISSIONS}
          COMPONENT python
- )
-install(
-  DIRECTORY ../roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniRTI
-  DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-  PATTERN "__pycache__" EXCLUDE
-  PERMISSIONS ${SCRIPT_PERMISSIONS}
  )
 
 install(

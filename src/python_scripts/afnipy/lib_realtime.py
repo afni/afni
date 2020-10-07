@@ -110,7 +110,9 @@ class RTInterface:
       if errs: return 1
 
       if self.verb > 2: print('-- listen()...')
-      try: self.server_sock.listen(2)
+      try:
+         self.server_sock.settimeout(None)
+         self.server_sock.listen(2)
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          print('** failed to listen at incoming socket')
          errs = 1

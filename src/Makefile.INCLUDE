@@ -2180,8 +2180,7 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install_devs: ptaylor_install pkundu_install jzosky_install \
-              roopchansinghv_install
+install_devs: ptaylor_install pkundu_install jzosky_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
@@ -3687,14 +3686,6 @@ pkundu_install:
 
 jzosky_install:
 	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
-
-#############
-# roopchansinghv directory
-
-roopchansinghv_install:
-	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py \
-                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniRTI     \
-                 $(INSTALLDIR)
 
 #############
 # leej3 directory
