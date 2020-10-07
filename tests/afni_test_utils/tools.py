@@ -25,6 +25,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from xvfbwrapper import Xvfb
 from multiprocessing import Lock, Process
 
@@ -234,8 +235,8 @@ def check_and_log_command_execution(
 ):
     cmd = " ".join(proc.args)
     # Log the cmd execution info
-    stdout = proc.stdout.decode("utf-8")
-    stderr = proc.stderr.decode("utf-8")
+    stdout = proc.stdout.decode("utf-8") if proc.stdout else ""
+    stderr = proc.stderr.decode("utf-8") if proc.stderr else ""
     stdout_log.write_text(stdout)
     if logger:
         logger.debug(stdout)
@@ -282,8 +283,21 @@ def setup_logging(data, logger):
 
 
 def __execute_cmd_args(
-    cmd_args, cmd_environ, error, workdir, shell=False, timeout=None
+    cmd_args,
+    logger,
+    error,
+    workdir,
+    cmd_environ=None,
+    shell=False,
+    timeout=None,
+    name=None,
 ):
+    if not cmd_environ:
+        cmd_environ = os.environ
+
+    output_blend = []
+    timedout = False
+
     # Execute command
     if not timeout:
         proc = subprocess.run(
@@ -303,12 +317,44 @@ def __execute_cmd_args(
             env=cmd_environ,
             shell=shell,
         )
-        proc.wait(timeout=timeout)
-        # Mimic stdout and stderr from object returned by the run method
-        proc.stdout = b"".join(proc.stdout.readlines())
-        proc.stderr = b"".join(proc.stderr.readlines()) if proc.stderr else None
+        timeStarted = time.time()
+        # Print stdout and stderr as it arrives but also mimic stdout and
+        # stderr from object returned by the run method
+        stdout = []
+        stderr = []
 
-    return proc
+        while proc.poll() is None:
+            line = proc.stdout.readline() if proc.stdout else b""
+            if line != b"":
+                stdout.append(line)
+                output_blend.append(line)
+                logger.debug(line.decode("utf-8"))
+
+            line = proc.stderr.readline() if proc.stderr else b""
+            if line != b"":
+                stderr.append(line)
+                output_blend.append(line)
+                logger.debug(line.decode("utf-8"))
+
+            # Time out if requested
+            dt = time.time() - timeStarted
+            if dt >= timeout:
+                timedout = True
+                logger.debug(
+                    "ERROR: Processed timedout based on the 'timeout' "
+                    f"value that was set for this test ({name})"
+                )
+
+                break
+        stdout += proc.stdout.readlines() if proc.stdout else []
+        stderr += proc.stderr.readlines() if proc.stderr else []
+        proc.stderr = b"".join(stderr) if stderr else None
+        proc.stdout = b"".join(stdout) if stdout else None
+
+        if timedout:
+            raise TimeoutError()
+
+    return proc, output_blend
 
 
 def run_cmd(
@@ -320,7 +366,7 @@ def run_cmd(
     workdir=None,
     python_interpreter="python3",
     x_execution_mode=None,
-    timeout=None,
+    timeout=30,
     shell=False,
 ):
     """Run the provided command and check it's output. In conjunction with the data
@@ -382,18 +428,19 @@ def run_cmd(
     cmd_callable = proc = functools.partial(
         __execute_cmd_args,
         cmd_args,
-        cmd_environ,
+        logger,
         error,
         workdir,
         shell=shell,
         timeout=timeout,
+        name=data.test_name,
     )
 
     global DISPLAY
     if x_execution_mode is None:
         # Not testing a gui so no need for any display shenanigans
         logger.debug(f"cmd_args:{cmd_args}")
-        proc = cmd_callable()
+        proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
     elif x_execution_mode == "xvfb":
         try:
             # set a default display but another will be determined as required
@@ -406,7 +453,7 @@ def run_cmd(
             # Set the display variable for the execution environment and then
             # restore the original value
             logger.debug(f"cmd_args:{cmd_args}")
-            proc = cmd_callable()
+            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
         finally:
             # Remove the lock file
             if "xvfb" in locals():
@@ -418,7 +465,7 @@ def run_cmd(
             DISPLAY.acquire()
             logger.debug(f"Physical Display: {cmd_environ['DISPLAY']}")
             logger.debug(f"cmd_args:{cmd_args}")
-            proc = cmd_callable()
+            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
         finally:
             DISPLAY.release()
     else:
