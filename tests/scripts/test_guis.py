@@ -94,12 +94,12 @@ def test_suma_driving_basic(data):
     cmd = """
     export SUMA_DriveSumaMaxWait=5;
     suma  &
+    echo suma started;
     sleep 6 &&
-    # record image
-    DriveSuma \
-        -com viewer_cont -key 'Ctrl+r';
-    DriveSuma \
-        -com kill_suma
+    echo recording image;
+    DriveSuma -com viewer_cont -key 'Ctrl+r';
+    DriveSuma -com kill_suma;
+    echo image recorded;
     sleep 3;
     echo "++ Done";
     """
@@ -117,6 +117,7 @@ def test_suma_driving_basic(data):
 
 @pytest.mark.veryslow
 def test_suma_driving(data):
+
     ico_prefix = data.outdir / "CreateIco"
     ico_asc = ico_prefix.with_suffix(".asc")
     cmd = """
@@ -130,16 +131,14 @@ def test_suma_driving(data):
       CreateIcosahedron \
           -rd 4 \
           -prefix {ico_prefix};
-    echo driven 1
+    echo driven 1;
     DriveSuma \
-
         -echo_edu   \
         -com show_surf -label ICO \
       -i_fs {ico_asc} &&
-    echo driven 2
+    echo driven 2;
     sleep 3 ;
-    DriveSuma \
-        -com kill_suma
+    DriveSuma -com kill_suma; \
     sleep 3 ;
     echo Driving suma finished,even if it does say Broken pipe...
     echo Whether it encountered errors all the way is another story!
@@ -152,5 +151,5 @@ def test_suma_driving(data):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout, stderr = differ.run(x_execution_mode=WRAP_SUMA)
+    stdout, stderr = differ.run(x_execution_mode=WRAP_SUMA, timeout=60)
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
