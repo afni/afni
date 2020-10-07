@@ -53,57 +53,7 @@ def mocked_script(monkeypatch):
     return script
 
 
-@pytest.fixture()
-def mocked_abin():
-    """
-    Fixture to supply 'mocked_abin', a directory containing trivial
-    executables called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an
-    importable python module)
-    """
-    temp_dir = tempfile.mkdtemp()
-    abin_dir = Path(temp_dir) / "abin"
-    abin_dir.mkdir()
 
-    (abin_dir / "3dinfo").touch(mode=0o777)
-    (abin_dir / "libmri.so").touch(mode=0o444)
-    (abin_dir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
-    (abin_dir / "align_epi_anat.py").touch(mode=0o777)
-    (abin_dir / "align_epi_anat.py").write_text("#!/usr/bin/env bash\necho success")
-    (abin_dir / "afnipy").mkdir()
-    (abin_dir / "afnipy/afni_base.py").touch()
-    (abin_dir / "afnipy/__init__.py").touch()
-    return abin_dir
-
-
-def create_fake_installation_hierarchical():
-    """
-    Creates a fake installation directory containing trivial executables
-    called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an importable
-    python module) along with libmri in the appropriate organization defined
-    by the GNU installation guidelines. To use this you should add the
-    fake_site_packages directory to sys.path to simulate the afnipy package
-    being installed into the current interpreter.
-    """
-    temp_dir = tempfile.mkdtemp()
-    # Create an installation directory
-    instd = Path(temp_dir) / "abin_hierarchical"
-    instd.mkdir()
-    bindir = instd / "bin"
-    bindir.mkdir()
-
-    (bindir / "3dinfo").touch(mode=0o777)
-    (bindir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
-    (instd / "lib/").mkdir()
-    (instd / "lib/libmri.so").touch(mode=0o444)
-    (instd / "fake_site_packages").mkdir()
-    (instd / "fake_site_packages/align_epi_anat.py").touch(mode=0o777)
-    (instd / "fake_site_packages/align_epi_anat.py").write_text(
-        "#!/usr/bin/env bash\necho success"
-    )
-    (instd / "fake_site_packages/afnipy").mkdir()
-    (instd / "fake_site_packages/afnipy/afni_base.py").touch()
-    (instd / "fake_site_packages/afnipy/__init__.py").touch()
-    return instd
 
 
 @pytest.fixture()
@@ -525,16 +475,16 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
 
 
 def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation(
-    monkeypatch,
+    monkeypatch,mocked_hierarchical_installation
 ):
     """
     Testing situation 2. of modify_path_and_env_if_not_using_cmake: cmake
     installation. AFNI binaries are on the PATH but shared object libraries
     are in ../lib and afnipy has been installed into the python interpreter.
     """
-    # Create a directory that has the GNU installation pattern
-    fake_install = create_fake_installation_hierarchical()
-    fake_bin = str(fake_install / "bin")
+    # Get a directory and its bin dir that has the GNU installation pattern
+    idir = mocked_hierarchical_installation
+    fake_bin = str(idir / "bin")
 
     # create a mock import to control whether afnipy is "imported correctly"
     # or not
@@ -555,14 +505,14 @@ def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation
         # make 3dinfo available
         sys.path.insert(0, fake_bin)
         # make fake afnipy importable (via reload)
-        sys.path.insert(0, str(fake_install / "fake_site_packages"))
+        sys.path.insert(0, str(idir / "fake_site_packages"))
 
         # With the current mocking "3dinfo" should be on the path and afnipy
         # should be importable
         assert sp.run("3dinfo")
         assert Path(shutil.which("3dinfo")).parent == Path(fake_bin)
         assert importlib.reload(afnipy)
-        assert Path(afnipy.__file__).parent.parent.parent == fake_install
+        assert Path(afnipy.__file__).parent.parent.parent == idir
 
         # Run function to check that no error is raised spuriously
         minfuncs.modify_path_and_env_if_not_using_cmake(os.getcwd())

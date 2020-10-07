@@ -12,6 +12,7 @@ import contextlib
 import sys
 import shutil
 import logging
+import tempfile
 import xvfbwrapper
 
 sys.path.append(str(Path(__file__).parent))
@@ -448,3 +449,57 @@ def working_directory(path):
         yield
     finally:
         os.chdir(prev_cwd)
+
+
+@pytest.fixture()
+def mocked_abin():
+    """
+    Fixture to supply 'mocked_abin', a directory containing trivial
+    executables called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an
+    importable python module)
+    """
+    temp_dir = tempfile.mkdtemp()
+    abin_dir = Path(temp_dir) / "abin"
+    abin_dir.mkdir()
+
+    (abin_dir / "3dinfo").touch(mode=0o777)
+    (abin_dir / "libmri.so").touch(mode=0o444)
+    (abin_dir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
+    (abin_dir / "align_epi_anat.py").touch(mode=0o777)
+    (abin_dir / "align_epi_anat.py").write_text("#!/usr/bin/env bash\necho success")
+    (abin_dir / "afnipy").mkdir()
+    (abin_dir / "afnipy/afni_base.py").touch()
+    (abin_dir / "afnipy/__init__.py").touch()
+    return abin_dir
+
+
+@pytest.fixture()
+def mocked_hierarchical_installation():
+    """
+    Creates a fake installation directory containing trivial executables
+    called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an importable
+    python module) along with libmri in the appropriate organization defined
+    by the GNU installation guidelines. To use this you should add the
+    fake_site_packages directory to sys.path to simulate the afnipy package
+    being installed into the current interpreter.
+    """
+    temp_dir = tempfile.mkdtemp()
+    # Create an installation directory
+    instd = Path(temp_dir) / "abin_hierarchical"
+    instd.mkdir()
+    bindir = instd / "bin"
+    bindir.mkdir()
+
+    (bindir / "3dinfo").touch(mode=0o777)
+    (bindir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
+    (instd / "lib/").mkdir()
+    (instd / "lib/libmri.so").touch(mode=0o444)
+    (instd / "fake_site_packages").mkdir()
+    (instd / "fake_site_packages/align_epi_anat.py").touch(mode=0o777)
+    (instd / "fake_site_packages/align_epi_anat.py").write_text(
+        "#!/usr/bin/env bash\necho success"
+    )
+    (instd / "fake_site_packages/afnipy").mkdir()
+    (instd / "fake_site_packages/afnipy/afni_base.py").touch()
+    (instd / "fake_site_packages/afnipy/__init__.py").touch()
+    return instd
