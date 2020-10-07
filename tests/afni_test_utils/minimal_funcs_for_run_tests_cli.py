@@ -350,7 +350,7 @@ def check_if_cmake_configure_required(build_dir, within_container=False):
             if "/opt/afni/build" != str(cache_implied_dir):
                 raise ValueError(
                     mismatch_err.format(
-                        build_dir="/opt/afni/build", cache_path=cache_implied_dir
+                        build_dir="/opt/afni/build", cache_implied_dir=cache_implied_dir
                     )
                 )
 
