@@ -484,7 +484,7 @@ def configure_parallelism(cmd_args, use_all_cores):
 
         # Get pytest output that includes all available plugins
         res = sp.check_output(
-            f"{sys.executable} -m pytest scripts/test_guis.py --trace-config --co",
+            f"{sys.executable} -m pytest scripts/test_afni_proc.py --trace-config --co",
             shell=True,
         ).decode("utf-8")
         pytest_has_parallel = "pytest-parallel" in res
