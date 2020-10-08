@@ -176,6 +176,8 @@ def get_path_strs_for_mounting(tests_dir):
     container_data = str(Path(container_src) / data_relpath)
     return host_src, host_data, container_src, container_data
 
+def user_is_root():
+    return os.getuid() == 0
 
 def add_git_credential_env_vars(docker_kwargs, **kwargs):
     if not kwargs.get("do_not_forward_git_credentials"):
@@ -206,8 +208,7 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
 
     # Set the container user to root so that chowning files and changing
     # container id is allowed. Note the tests are run as CONTAINER_UID
-    if os.getuid != "0":
-        docker_kwargs["user"] = "root"
+    docker_kwargs["user"] = "root"
 
     if kwargs.get("source_mode") == 'test-data-volume':
         # Mount volume from running container "test_data", used for circleci.
@@ -225,12 +226,23 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
             {
                 "CHOWN_HOME": "yes",
                 "CHOWN_HOME_OPTS": "-R",
-                "CHOWN_EXTRA": "/opt",
                 "CHOWN_EXTRA_OPTS": "-R",
-                "CONTAINER_UID": os.getuid(),
-                "CONTAINER_GID": os.getgid(),
             }
         )
+        # Add some uid specific configuration
+        if user_is_root():
+            docker_kwargs["environment"].update(
+                {"CHOWN_EXTRA": "/opt/afni/src/tests/afni_ci_test_data"}
+            )
+        else:
+            docker_kwargs["environment"].update(
+                {
+                    "CHOWN_EXTRA": "/opt",
+                    "CONTAINER_UID": os.getuid(),
+                    "CONTAINER_GID": os.getgid(),
+                }
+            )
+
     elif kwargs.get("source_mode") == "test-code" and kwargs.get("reuse_build"):
         # test code being used in conjunction with the cmake build
         # need to chown build, all source except test, and pip/home dirs
@@ -335,8 +347,7 @@ def check_user_container_args(tests_dir, **kwargs):
     # build dir should have been from a previous build in the container
     check_if_cmake_configure_required(build_dir, within_container=True)
 
-    user_id = os.getuid()
-    if user_id == "0":
+    if user_is_root():
 
         # root user, only mount-mode test-data mounting is supported. Overall,
         # the testing should be run as a non-root user. The only time where

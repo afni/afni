@@ -53,9 +53,6 @@ def mocked_script(monkeypatch):
     return script
 
 
-
-
-
 @pytest.fixture()
 def sp_with_successful_execution():
 
@@ -227,8 +224,9 @@ def test_run_containerized(monkeypatch):
     container = Mock(
         **{
             "logs.return_value": [b"success"],
-            "wait.return_value": {'StatusCode':False},
-        })
+            "wait.return_value": {"StatusCode": False},
+        }
+    )
     client = Mock(**{"containers": Mock(**{"run.return_value": container})})
     mocked_docker = Mock(**{"from_env.return_value": client})
     monkeypatch.setattr(ce, "docker", mocked_docker)
@@ -475,7 +473,7 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
 
 
 def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation(
-    monkeypatch,mocked_hierarchical_installation
+    monkeypatch, mocked_hierarchical_installation
 ):
     """
     Testing situation 2. of modify_path_and_env_if_not_using_cmake: cmake
@@ -749,10 +747,7 @@ def test_check_user_container_args_with_root(monkeypatch):
 
     with monkeypatch.context() as m:
 
-        def mock_uid():
-            return "0"
-
-        m.setattr(os, "getuid", mock_uid)
+        m.setattr(os, "getuid", Mock(return_value=0))
 
         with pytest.raises(ValueError):
             ce.check_user_container_args(
@@ -966,19 +961,38 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
     assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
     assert docker_kwargs["environment"].get("CONTAINER_UID")
 
-    # Confirm test-data volume is mounted
-    _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-    docker_kwargs = ce.setup_docker_env_and_vol_settings(
-        TESTS_DIR,
-        **{"source_mode": "test-data-volume"},
-    )
-    expected = ['test_data']
-    result = docker_kwargs.get("volumes_from")
-    assert expected == result
+    with monkeypatch.context() as m:
+        m.setattr(os, "getuid", Mock(return_value=2000))
 
-    expected = "/opt"
-    assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
-    assert docker_kwargs["environment"].get("CONTAINER_UID")
+        # Confirm test-data volume is mounted when not root
+        _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
+        docker_kwargs = ce.setup_docker_env_and_vol_settings(
+            TESTS_DIR,
+            **{"source_mode": "test-data-volume"},
+        )
+        expected = ["test_data"]
+        result = docker_kwargs.get("volumes_from")
+        assert expected == result
+
+        expected = "/opt"
+        assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
+        assert docker_kwargs["environment"].get("CONTAINER_UID")
+
+    # Confirm test-data volume is mounted correctly when root
+    with monkeypatch.context() as m:
+        m.setattr(os, "getuid", Mock(return_value=0))
+        _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
+        docker_kwargs = ce.setup_docker_env_and_vol_settings(
+            TESTS_DIR,
+            **{"source_mode": "test-data-volume"},
+        )
+        expected = ["test_data"]
+        result = docker_kwargs.get("volumes_from")
+        assert expected == result
+
+        expected = "/opt/afni/src/tests/afni_ci_test_data"
+        assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
+        assert not docker_kwargs["environment"].get("CONTAINER_UID")
 
     # Confirm tests directory is mounted and file permissions is set correctly
     _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
