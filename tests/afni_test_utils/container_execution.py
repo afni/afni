@@ -162,15 +162,9 @@ def add_coverage_env_vars(docker_kwargs, **kwargs):
         res = sp.check_output(
             "/bin/bash -c 'bash <(curl -s https://codecov.io/env)'", shell=True
         )
-        ci_vars = [x for x in res.decode().split("-e") if x]
-        try:
-            ci_dict = {x: os.environ[x] for x in ci_vars}
-            docker_kwargs["environment"].update(ci_dict)
-        except KeyError:
-            print(
-                "It appears you are not in a CI environment. Will not "
-                "attempt to upload coverage "
-            )
+        ci_vars = [x.strip() for x in res.decode().split("-e") if x]
+        ci_dict = {x: os.environ.get(x) for x in ci_vars}
+        docker_kwargs["environment"].update(ci_dict)
     return docker_kwargs
 
 
