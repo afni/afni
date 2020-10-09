@@ -62,13 +62,15 @@ def get_docker_image(
         image = images_found[0]
     return image
 
-def check_test_data_vol_usage(client,kwargs):
-    if kwargs.get('source_mode') == "test-data-volume":
-        if not any('test_data' == x.name for x in client.containers.list(all=True)):
+
+def check_test_data_vol_usage(client, kwargs):
+    if kwargs.get("source_mode") == "test-data-volume":
+        if not any("test_data" == x.name for x in client.containers.list(all=True)):
             raise ValueError(
                 "Cannot find container called test-data, which is "
                 "required for --source-mode=test-data-volume "
             )
+
 
 def run_containerized(tests_dir, **kwargs):
     """
@@ -101,7 +103,7 @@ def run_containerized(tests_dir, **kwargs):
     )
 
     # Raise error if test-data-volume incorrectly used
-    check_test_data_vol_usage(client,kwargs)
+    check_test_data_vol_usage(client, kwargs)
 
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_vol_settings(tests_dir, **kwargs)
@@ -125,8 +127,8 @@ def run_containerized(tests_dir, **kwargs):
     else:
         docker_kwargs["detach"] = True
 
-    if kwargs.get('container_name'):
-        docker_kwargs['name'] = kwargs.pop('container_name')
+    if kwargs.get("container_name"):
+        docker_kwargs["name"] = kwargs.pop("container_name")
 
     # Convert parsed user args for execution in the container
     converted_args = unparse_args_for_container(tests_dir, **kwargs)
@@ -149,12 +151,12 @@ def run_containerized(tests_dir, **kwargs):
     result = output.wait()
 
     # Remove exited container
-    if not kwargs.get('no_rm'):
+    if not kwargs.get("no_rm"):
         output.remove(force=True)
 
     # Propagate container exit error code
-    if result['StatusCode']:
-        raise SystemExit(result['StatusCode'])
+    if result["StatusCode"]:
+        raise SystemExit(result["StatusCode"])
 
 
 def add_coverage_env_vars(docker_kwargs, **kwargs):
@@ -176,8 +178,10 @@ def get_path_strs_for_mounting(tests_dir):
     container_data = str(Path(container_src) / data_relpath)
     return host_src, host_data, container_src, container_data
 
+
 def user_is_root():
     return os.getuid() == 0
+
 
 def add_git_credential_env_vars(docker_kwargs, **kwargs):
     if not kwargs.get("do_not_forward_git_credentials"):
@@ -210,7 +214,7 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
     # container id is allowed. Note the tests are run as CONTAINER_UID
     docker_kwargs["user"] = "root"
 
-    if kwargs.get("source_mode") == 'test-data-volume':
+    if kwargs.get("source_mode") == "test-data-volume":
         # Mount volume from running container "test_data", used for circleci.
         # This option is somewhat silly and is contorted usage to satisfy some
         # of the implementation details of docker execution on circleci. Stay
@@ -220,7 +224,7 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
         #     --user $(id -u):$(id -g) \
         #     -v /opt/afni/src/tests/afni_ci_test_data \
         #     --name test_data alpine:3.4 /bin/true
-        docker_kwargs["volumes_from"] = ['test_data']
+        docker_kwargs["volumes_from"] = ["test_data"]
 
         docker_kwargs["environment"].update(
             {
@@ -353,7 +357,7 @@ def check_user_container_args(tests_dir, **kwargs):
         # the testing should be run as a non-root user. The only time where
         # this might reasonably be expected is in docker-git-ce container used
         # for coverage testing on circleci
-        if kwargs.get("source_mode") and 'test-data' not in kwargs.get("source_mode"):
+        if kwargs.get("source_mode") and "test-data" not in kwargs.get("source_mode"):
             raise ValueError(
                 "You are executing tests as a root user. You cannot "
                 "mount the source directory from the host."
@@ -382,7 +386,7 @@ def unparse_args_for_container(tests_dir, **kwargs):
             "only_use_local",
             "subparser",
             "do_not_forward_git_credentials",
-            "no_rm"
+            "no_rm",
         ]:
             pass
         elif v in [None, False]:
