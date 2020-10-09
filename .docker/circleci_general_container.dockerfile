@@ -20,7 +20,7 @@
 #
 FROM alpine:3.12
 
-RUN apk add bash curl docker-cli docker-py git pigz py3-pytest python3 shadow sudo
+RUN apk add bash curl docker-cli docker-py git pigz py3-pytest python3 openssh
 
 # The following doesn't work. Root permission is required for local execution
 # (both to access the repository stored in a /tmp directory that is mounted in
