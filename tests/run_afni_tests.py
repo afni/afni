@@ -39,6 +39,8 @@ using a tool for managing isolated environements (see 'run_afni_test.py
 --installation-help'). This will be something like... \nconda activate afni_dev
 """
 
+TESTS_DIR = Path(__file__).resolve().parent
+
 # Check the installation mode
 parent_dir = Path(__file__).parent.resolve()
 if not parent_dir.name == "tests":
@@ -61,7 +63,7 @@ from afni_test_utils.exceptionhook import setup_exceptionhook
 from afni_test_utils.run_tests_examples import EXAMPLES, examples
 
 # Make imports when the user is doing something other than requesting help
-dep_reqs = minfuncs.get_dependency_requirements()
+dep_reqs = minfuncs.get_dependency_requirements(TESTS_DIR)
 if dep_reqs != "minimal":
     # If using the cmake build afnipy needs to be installed
     if "--build-dir" in "".join(sys.argv):
@@ -90,7 +92,7 @@ def main(user_args=None):
     )
     # parse user args:
     if not user_args:
-        user_args = minfuncs.parse_user_args()
+        user_args = minfuncs.parse_user_args(tests_dir=TESTS_DIR)
 
     args_dict = {k: v for k, v in vars(user_args).items() if v is not None}
 
@@ -98,15 +100,14 @@ def main(user_args=None):
 
     # Everything should be run from within the tests directory of the afni
     # source repository
-    tests_dir = Path(__file__).resolve().parent
-    os.chdir(tests_dir)
+    os.chdir(TESTS_DIR)
 
     if args_dict.get("debug"):
         setup_exceptionhook()
 
     if args_dict["subparser"] == "container":
         # Execute the tests in a container
-        run_containerized(tests_dir, **args_dict)
+        run_containerized(TESTS_DIR, **args_dict)
     elif args_dict["subparser"] == "examples":
         if args_dict.get("verbose"):
             print(EXAMPLES)
@@ -115,9 +116,9 @@ def main(user_args=None):
         sys.exit(0)
     else:
         # Modify path and sys.path as required
-        minfuncs.modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict)
+        minfuncs.modify_path_and_env_if_not_using_cmake(TESTS_DIR, **args_dict)
         # Execute the tests in the local environment
-        run_tests(tests_dir, **args_dict)
+        run_tests(TESTS_DIR, **args_dict)
 
 
 if __name__ == "__main__":

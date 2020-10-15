@@ -1,5 +1,6 @@
 import subprocess
 import argparse
+import functools
 import importlib
 import os
 import sys
@@ -17,7 +18,7 @@ PYTEST_MANUAL_HELP = (
 VALID_MOUNT_MODES = "host test-code test-data-only test-data-volume".split()
 
 
-def parse_user_args():
+def parse_user_args(user_args=None, tests_dir=None):
     parser = argparse.ArgumentParser(
         description=""" run_afni_tests.py is a wrapper script to help run
         tests for the AFNI suite of tools. This wrapping is an attempt to
@@ -136,7 +137,7 @@ def parse_user_args():
         "--file",
         "-f",
         help=("Relative path to test module to run. e.g. scripts/test_3dcopy.py"),
-        type=dir_path,
+        type=functools.partial(path_of_test_module, tests_dir=tests_dir),
     )
     pytest_mod.add_argument(
         "--lf",
@@ -251,7 +252,7 @@ def parse_user_args():
         help="Include a verbose explanation along with the examples",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
         print("SUB COMMAND: container")
@@ -374,7 +375,7 @@ def check_if_cmake_configure_required(build_dir, within_container=False):
         return False
 
 
-def get_dependency_requirements():
+def get_dependency_requirements(tests_dir):
     """
     Different dependencies are required depending on how the run_afni_tests.py
     script is being used.
@@ -400,7 +401,7 @@ def get_dependency_requirements():
     if any(x in sys.argv for x in subparser_patterns):
         # Not sure if this is the sub parser so need to parse the
         # arguments to check
-        parsed = parse_user_args()
+        parsed = parse_user_args(tests_dir=tests_dir)
         if parsed.subparser == "examples":
             return "minimal"
         if parsed.subparser == "container":
@@ -458,6 +459,18 @@ def is_containerized():
     # if env_file_exists or any(pat in cgroup_info for pat in ['lxb','docker']):
     else:
         return False
+
+
+def path_of_test_module(string, tests_dir=None):
+    file_in = Path(string).expanduser()
+    if file_in.exists():
+        return str(file_in)
+    elif tests_dir:
+        relative_to_tests_dir = tests_dir / file_in
+        if relative_to_tests_dir.exists():
+            return str(relative_to_tests_dir)
+
+    raise FileNotFoundError(f"{file_in}")
 
 
 def dir_path(string):

@@ -367,6 +367,22 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
     )
 
 
+def test_parser_with_relative_test_module(monkeypatch):
+    """
+    --file can exist relative to tests dir
+    """
+    # Write run_afni_tests.py to an executable/importable path
+    tdir = Path(tempfile.mkdtemp())
+    rel_file_path = "scripts/fictitious_module.py"
+    (tdir / "scripts").mkdir()
+    (tdir / rel_file_path).touch()
+    # set "argv" so that --file only exists relative to the tests_dir
+    monkeypatch.setattr(
+        minfuncs.sys, "argv", f"scriptname --file={rel_file_path} local".split()
+    )
+    minfuncs.parse_user_args(tests_dir=tdir)
+
+
 @pytest.mark.parametrize(
     "argslist",
     [
