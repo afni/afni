@@ -28,9 +28,25 @@ WRAP_SUMA = "display" if sys.platform == "darwin" else "xvfb"
 
 
 def test_xeyes(data):
-    # Some basic checks for x, no point in testing guis if this fails...
-    cmd = "xeyes & sleep 1; kill %1 "
-    tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+    """
+    Some basic checks/demos for x execution, no point in testing guis if these fail...
+    """
+
+    # easy situation, processes behave and clean up after themselves
+    tools.run_cmd(data, "xeyes & sleep 1; kill %1 ", x_execution_mode="xvfb")
+
+    # A hanging background process will raise a timeout error (default 30s)
+    with pytest.raises(TimeoutError):
+        tools.run_cmd(data, "xeyes & sleep 0.1", x_execution_mode="xvfb", timeout=1)
+
+    # A hanging background process can be explicitly killed
+    tools.run_cmd(
+        data,
+        "xeyes & sleep 0.1",
+        x_execution_mode="xvfb",
+        timeout=1,
+        kill_backgrounded_processes=True,
+    )
 
 
 def test_afni_gui_basic(data):

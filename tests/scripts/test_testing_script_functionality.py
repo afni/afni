@@ -4,6 +4,7 @@ import pathlib
 from pathlib import Path
 from unittest.mock import Mock, MagicMock
 import importlib
+import logging
 import os
 import pytest
 import runpy
@@ -13,6 +14,7 @@ import subprocess
 import subprocess as sp
 import sys
 import tempfile
+import time
 import io
 from contextlib import redirect_stdout
 import contextlib
@@ -23,6 +25,7 @@ docker = pytest.importorskip("docker", reason="python docker is not installed")
 from afni_test_utils import run_tests_func
 from afni_test_utils import run_tests_examples
 from afni_test_utils import container_execution as ce
+from afni_test_utils import tools
 from afni_test_utils import minimal_funcs_for_run_tests_cli as minfuncs
 import afnipy
 
@@ -113,6 +116,93 @@ def run_script_and_check_imports(
                 run_main_func(script, sys_exit)
         else:
             run_main_func(script, sys_exit)
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {
+            "test_case": "quick and simple",
+            "cmd_args": ["sleep", "0.1"],
+            "timeout": 1,
+            "expected_to_timeout": False,
+        },
+        {
+            "test_case": "timeout",
+            "cmd_args": ["sleep", "0.1"],
+            "timeout": 0.05,
+            "expected_to_timeout": True,
+        },
+    ],
+)
+def test_execute_cmd_args(params):
+    try:
+        proc = tools.__execute_cmd_args(
+            params["cmd_args"],
+            logging,
+            None,
+            tempfile.gettempdir(),
+            timeout=params["timeout"],
+        )
+        timed_out = False
+    except TimeoutError:
+        timed_out = True
+
+    assert timed_out == params["expected_to_timeout"]
+
+
+def test_run_cmd(data):
+    # Can slow this down for debugging purposes
+    t_unit = 0.1
+    # easy sit_unitation, processes behave and clean up after themselves or they
+    # timeout
+    tools.run_cmd(
+        data,
+        f"sleep {t_unit *10} & sleep {t_unit}; kill %1",
+        timeout=t_unit * 2,
+    )
+
+    # timeout error should be raised
+    start = time.time()
+    with pytest.raises(TimeoutError):
+        tools.run_cmd(
+            data,
+            f"sleep {t_unit} & sleep {t_unit}",
+            timeout=t_unit * 0.5,
+        )
+
+    # Backgrounded commands will be killed quickly upon timeout
+    start = time.time()
+    with pytest.raises(TimeoutError):
+        tools.run_cmd(
+            data,
+            f"sleep {t_unit * 500} & sleep {t_unit / 2}",
+            timeout=t_unit,
+        )
+    delta_t = time.time() - start
+    # Command should return quickly (with some wiggle for sleeping)
+    assert delta_t < t_unit + 1.1
+
+    # should not timeout a background process until the timeout so this should
+    # work fine
+    stdout, stderr = tools.run_cmd(
+        data,
+        f"sleep {t_unit / 2}; echo hello & sleep {t_unit / 5}",
+        timeout=t_unit,
+    )
+    assert stdout == "hello\n"
+
+    #  bg persists but should ignored/killed immediately
+    start = time.time()
+    tools.run_cmd(
+        data,
+        f" sleep {t_unit * 100} & sleep {t_unit}",
+        timeout=t_unit * 2,
+        kill_backgrounded_processes=True,
+    )
+    delta_t = time.time() - start
+    # should return before timeout
+    assert delta_t < t_unit * 2
 
 
 def test_check_git_config(

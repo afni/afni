@@ -21,6 +21,7 @@ import pytest
 import re
 import shutil
 import shlex
+import signal
 import socket
 import stat
 import subprocess
@@ -283,6 +284,23 @@ def setup_logging(data, logger):
     return logger, cmd_log, stdout_log, stderr_log
 
 
+def pid_exists(pid, check_pgid=False):
+
+    if pid < 0:
+        return False  # NOTE: pid == 0 returns True
+    try:
+        if check_pgid:
+            os.killpg(pid, 0)
+        else:
+            os.kill(pid, 0)
+    except ProcessLookupError:  # errno.ESRCH
+        return False  # No such process
+    except PermissionError:  # errno.EPERM
+        return True  # Operation not permitted (i.e., process exists)
+    else:
+        return True  # no error, we can send a signal to the process
+
+
 def __execute_cmd_args(
     cmd_args,
     logger,
@@ -309,50 +327,64 @@ def __execute_cmd_args(
             env=cmd_environ,
             shell=shell,
         )
+        return proc, output_blend
     else:
+        if shell == True:
+            raise ValueError(
+                "Using shell=True with timeout functionality (the default) "
+                "is not supported "
+            )
+
+        timed_out = False
+        bg_timed_out = False
+        start_time = time.time()
         proc = subprocess.Popen(
             cmd_args,
             stdout=subprocess.PIPE,
             stderr=error,
             cwd=workdir,
             env=cmd_environ,
-            shell=shell,
+            shell=False,
+            preexec_fn=os.setsid,
         )
-        timeStarted = time.time()
-        # Print stdout and stderr as it arrives but also mimic stdout and
-        # stderr from object returned by the run method
-        stdout = []
-        stderr = []
+        pgid = os.getpgid(proc.pid)
 
-        while proc.poll() is None:
-            line = proc.stdout.readline() if proc.stdout else b""
-            if line != b"":
-                stdout.append(line)
-                output_blend.append(line)
-                logger.debug(line.decode("utf-8"))
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
 
-            line = proc.stderr.readline() if proc.stderr else b""
-            if line != b"":
-                stderr.append(line)
-                output_blend.append(line)
-                logger.debug(line.decode("utf-8"))
+        # A small break for process cleanup
+        time.sleep(0.01)
+        # kill any straggling background process...
+        if pid_exists(pgid, check_pgid=True):
+            if kill_backgrounded_processes:
+                os.killpg(pgid, signal.SIGKILL)
+            else:
+                # loop lasts until end of timeout
+                while timeout - (time.time() - start_time) > 0:
+                    if not pid_exists(pgid, check_pgid=True):
+                        break
+                    time.sleep(1)
 
-            # Time out if requested
-            dt = time.time() - timeStarted
-            if dt >= timeout:
-                timedout = True
-                logger.debug(
-                    "ERROR: Processed timedout based on the 'timeout' "
-                    f"value that was set for this test ({name})"
-                )
+                if pid_exists(pgid, check_pgid=True):
+                    os.killpg(pgid, signal.SIGKILL)
+                    bg_timed_out = True
+                    logger.warn(
+                        f"Straggler background process was found and killed... {cmd_args}"
+                    )
 
-                break
-        stdout += proc.stdout.readlines() if proc.stdout else []
-        stderr += proc.stderr.readlines() if proc.stderr else []
+        # get stdout and stderr
+        stdout = proc.stdout.readlines() if proc.stdout else []
+        stderr = proc.stderr.readlines() if proc.stderr else []
         proc.stderr = b"".join(stderr) if stderr else None
         proc.stdout = b"".join(stdout) if stdout else None
 
-        if timedout:
+        if timed_out or bg_timed_out:
+            logger.debug(
+                "ERROR: Processed timed out based on the 'timeout' "
+                f"value that was set for this test ({name})"
+            )
             raise TimeoutError()
 
     return proc, output_blend
@@ -426,7 +458,7 @@ def run_cmd(
     cmd_environ = get_cmd_env(add_env_vars, python_interpreter)
 
     # create a callable that can be used in the appropriate context below:
-    cmd_callable = proc = functools.partial(
+    cmd_callable = functools.partial(
         __execute_cmd_args,
         cmd_args,
         logger,
