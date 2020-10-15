@@ -322,16 +322,11 @@ def check_if_cmake_configure_required(build_dir, within_container=False):
         if not within_container:
             if not Path(build_dir).exists():
                 raise NotADirectoryError
-        # check the ownership
-        diruser = Path(build_dir).stat().st_uid
-        is_local_gid = diruser == os.getuid()
-        dirgroup = Path(build_dir).stat().st_gid
-        is_local_uid = dirgroup == os.getgid()
-        if not (is_local_uid or is_local_gid):
-            raise ValueError(
-                "The build directory is assumed to be "
-                "user writeable. The directory itself has ownership."
-                f"{diruser}:{dirgroup}"
+        # check dir is writeable
+        if not os.access(build_dir, os.W_OK | os.X_OK):
+            raise PermissionError(
+                f"The build directory {build_dir} is not writeable by "
+                f"the current user, {os.getuid} "
             )
 
         cache_filepath, cache_implied_dir = get_cache_path(build_dir)
@@ -484,21 +479,9 @@ def configure_parallelism(cmd_args, use_all_cores):
     NCPUS = sp.check_output("getconf _NPROCESSORS_ONLN".split()).decode().strip()
     if use_all_cores:
         os.environ["OMP_NUM_THREADS"] = "1"
-
-        # Get pytest output that includes all available plugins
-        res = sp.check_output(
-            f"{sys.executable} -m pytest scripts/test_afni_proc.py --trace-config --co",
-            shell=True,
-        ).decode("utf-8")
-        pytest_has_parallel = "pytest-parallel" in res
-        if pytest_has_parallel:
-            cmd_args += f" --workers {NCPUS}".split()
-        else:
-            raise EnvironmentError(
-                "Parallel execution is requested. pytest-parallel "
-                "plugin must be installed for this to work. "
-            )
-
+        # pytest sometimes hangs for an unknown reason at higher worker
+        # counts when using pytest-parallel
+        cmd_args += f" -n {NCPUS}".split()
     else:
         # tests will be executed serially
         os.environ["OMP_NUM_THREADS"] = NCPUS

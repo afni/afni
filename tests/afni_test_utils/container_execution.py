@@ -63,13 +63,81 @@ def get_docker_image(
     return image
 
 
-def check_test_data_vol_usage(client, kwargs):
-    if kwargs.get("source_mode") == "test-data-volume":
-        if not any("test_data" == x.name for x in client.containers.list(all=True)):
-            raise ValueError(
-                "Cannot find container called test-data, which is "
-                "required for --source-mode=test-data-volume "
-            )
+def setup_test_data_vol(client, kwargs, docker_kwargs, host_data, container_data):
+    """Create a container called test-data with a volume
+    containing the test data. User/data ownership should match
+    the testing container so that the volume will be usable.
+
+    This is used for making the test data available to the remote docker
+    container on circleci. Outside of this usecase it probably not needed and
+    should not be used as it is needlessly complicated (just mount the source
+    repository into the container using --source-mode=host)
+
+    Args:
+        client (DockerClient): created using docker.from_env()
+        kwargs (dict): Arguments provided by user
+
+        docker_kwargs (dict): Provided to the testing container to configure
+        it for the tests execution. Includes volume mounting, user id,
+        permissions etc.
+    """
+    # remove pre-existing test-data container if it exists
+    for container in client.containers.list(all=True):
+        if container.name == "test_data":
+            container.stop()
+            container.remove()
+
+    # initial setup in the container
+    # The default is ownership is 1000:100 (as defined in afni_dev_base.dockerfile)
+    uid = docker_kwargs.get("CONTAINER_UID") or 1000
+    gid = docker_kwargs.get("CONTAINER_GID") or 100
+    setup_cmd = [
+        "/bin/bash",
+        "-c",
+        (
+            f"useradd -u {uid} -g {gid} -lMN data_user;"
+            f"chown -R {uid}:{gid} /opt;"
+            "echo starting test_data container;"
+            "sleep 1h"
+        ),
+    ]
+    host_config = client.api.create_host_config(
+        binds=[
+            f"{host_data}/.:{container_data}",
+        ]
+    )
+    logging.info(
+        "Setting up container for the test data volume. This will take some time."
+    )
+    ci_image = "afni/afni_circleci_executor"
+    get_docker_image(client, ci_image, only_use_local=False)
+    container = client.api.create_container(
+        ci_image,
+        setup_cmd,
+        name="test_data",
+        volumes=[container_data],
+        host_config=host_config,
+    )
+    client.api.start("test_data")
+    # exec_id = client.api.exec_create('test_data','echo hello'.split())['Id']
+    # client.api.exec_start(exec_id)
+    return container
+
+    # data_setup_args = 'echo hello'.split()
+    # create the container
+    container = client.api.create_container(
+        "afni/afni_circleci_executor",
+        "sleep 1h",
+        user="root",
+        name="test_data",
+        detach=True,
+        volumes=[container_data],
+        host_config=host_config,
+    )
+    client.api.start(container["Id"])
+    exec_id = client.api.exec_create(container["Id"], "echo hello")["Id"]
+    client.api.exec_start(exec_id)
+    return container
 
 
 def run_containerized(tests_dir, **kwargs):
@@ -102,11 +170,8 @@ def run_containerized(tests_dir, **kwargs):
         client, image_name, kwargs.get("only_use_local"), kwargs.get("intermediate")
     )
 
-    # Raise error if test-data-volume incorrectly used
-    check_test_data_vol_usage(client, kwargs)
-
     # Manage container id and mounted volumes:
-    docker_kwargs = setup_docker_env_and_vol_settings(tests_dir, **kwargs)
+    docker_kwargs = setup_docker_env_and_volumes(client, tests_dir, **kwargs)
     if kwargs.get("debug"):
         logging.warn(
             "Debug mode is not currently supported in combination with "
@@ -148,7 +213,7 @@ def run_containerized(tests_dir, **kwargs):
         # might be required if detach is not set to True
         print(output.decode("utf-8"))
 
-    result = output.wait()
+    result = output.wait(timeout=30)
 
     # Remove exited container
     if not kwargs.get("no_rm"):
@@ -193,7 +258,7 @@ def add_git_credential_env_vars(docker_kwargs, **kwargs):
     return docker_kwargs
 
 
-def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
+def setup_docker_env_and_volumes(client, tests_dir, **kwargs):
     docker_kwargs = {"environment": {}, "volumes": {}}
 
     # Setup ci variables outside container if required
@@ -218,34 +283,31 @@ def setup_docker_env_and_vol_settings(tests_dir, **kwargs):
         # Mount volume from running container "test_data", used for circleci.
         # This option is somewhat silly and is contorted usage to satisfy some
         # of the implementation details of docker execution on circleci. Stay
-        # away! test_data should be setup with something along the lines of
-        # the following and copy data to and from as desired:
-        # docker create \
-        #     --user $(id -u):$(id -g) \
-        #     -v /opt/afni/src/tests/afni_ci_test_data \
-        #     --name test_data alpine:3.4 /bin/true
+        # away!
         docker_kwargs["volumes_from"] = ["test_data"]
 
-        docker_kwargs["environment"].update(
-            {
-                "CHOWN_HOME": "yes",
-                "CHOWN_HOME_OPTS": "-R",
-                "CHOWN_EXTRA_OPTS": "-R",
-            }
-        )
-        # Add some uid specific configuration
-        if user_is_root():
-            docker_kwargs["environment"].update(
-                {"CHOWN_EXTRA": "/opt/afni/src/tests/afni_ci_test_data"}
-            )
-        else:
+        if not user_is_root():
+            # This is poorly supported. Main reason to use test-data-volume
+            # mount mode is for circleci (user in container is root), otherwise just use the 'host' source
+            # mode.
             docker_kwargs["environment"].update(
                 {
-                    "CHOWN_EXTRA": "/opt",
+                    "CHOWN_HOME": "yes",
+                    "CHOWN_HOME_OPTS": "-R",
+                    "CHOWN_EXTRA_OPTS": "-R",
+                }
+            )
+            docker_kwargs["environment"].update(
+                {
+                    "CHOWN_EXTRA": "/opt/afni/install,/opt/user_pip_packages,/opt/afni/build",
                     "CONTAINER_UID": os.getuid(),
                     "CONTAINER_GID": os.getgid(),
                 }
             )
+
+        data_container = setup_test_data_vol(
+            client, kwargs, docker_kwargs, hdata, cdata
+        )
 
     elif kwargs.get("source_mode") == "test-code" and kwargs.get("reuse_build"):
         # test code being used in conjunction with the cmake build

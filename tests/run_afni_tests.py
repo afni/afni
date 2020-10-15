@@ -84,6 +84,10 @@ if dep_reqs != "minimal":
 
 def main(user_args=None):
 
+    print(
+        "Running tests... if you have not run them before the first time will"
+        " take a while because the test data has to be downloaded"
+    )
     # parse user args:
     if not user_args:
         user_args = minfuncs.parse_user_args()

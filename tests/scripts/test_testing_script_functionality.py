@@ -34,10 +34,7 @@ SCRIPT = TESTS_DIR.joinpath("run_afni_tests.py")
 # The default args to pytest will likely change with updates
 DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
 PYTEST_COV_FLAGS = "--cov=targets_built --cov-report xml:$PWD/coverage.xml"
-RETCODE_0 = Mock()
-RETCODE_0.returncode = 0
-RETCODE_0.stdout = b""
-RETCODE_0.stderr = b""
+RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
 
 
 @pytest.fixture()
@@ -56,9 +53,13 @@ def mocked_script(monkeypatch):
 @pytest.fixture()
 def sp_with_successful_execution():
 
-    RUN_WITH_0 = Mock()
-    RUN_WITH_0.run.return_value = RETCODE_0
-    RUN_WITH_0.check_output.return_value = b""
+    RUN_WITH_0 = Mock(
+        **{
+            "run.return_value": RETCODE_0,
+            "check_output.return_value": b"",
+        }
+    )
+
     return RUN_WITH_0
 
 
@@ -220,15 +221,35 @@ def test_check_git_config_containerized(sp_with_successful_execution, monkeypatc
         assert gitemail == "user@mail.com"
 
 
-def test_run_containerized(monkeypatch):
+def get_mocked_docker():
     container = Mock(
         **{
             "logs.return_value": [b"success"],
             "wait.return_value": {"StatusCode": False},
         }
     )
-    client = Mock(**{"containers": Mock(**{"run.return_value": container})})
+    image = Mock(
+        **{
+            "tags": ["an_image:latest"],
+        }
+    )
+    client = Mock(
+        **{
+            "containers": Mock(
+                **{
+                    "run.return_value": container,
+                    "list.return_value": [container],
+                }
+            ),
+            "images": Mock(**{"list.return_value": [image]}),
+        }
+    )
     mocked_docker = Mock(**{"from_env.return_value": client})
+    return mocked_docker, client, container
+
+
+def test_run_containerized(monkeypatch):
+    mocked_docker, client, _ = get_mocked_docker()
     monkeypatch.setattr(ce, "docker", mocked_docker)
     monkeypatch.setattr(ce, "get_docker_image", Mock())
     monkeypatch.setenv("GIT_AUTHOR_NAME", "user")
@@ -802,32 +823,9 @@ def test_configure_parallelism_parallel(monkeypatch):
         assert not os.environ.get("OMP_NUM_THREADS")
         # check use_all_cores works with current plugin
         cmd_args = minfuncs.configure_parallelism([], use_all_cores=True)
-        flag_in_args = "--workers" in cmd_args
+        flag_in_args = "-n" in cmd_args
         assert flag_in_args
         assert os.environ["OMP_NUM_THREADS"] == "1"
-
-
-def test_configure_parallelism_parallel_with_missing_plugin(monkeypatch):
-    # error should be raised if pytest-parallel is not installed
-    def mocked_output(*args, **kwargs):
-        """
-        local function to help pretend pytest is run with different plugin
-        configurations
-        """
-        if any("pytest" in a for a in args):
-            return bytes("no plugin name is contained in this string", "utf-8")
-        else:
-            proc = sp.run(*args, **kwargs, stdout=sp.PIPE)
-            if proc.returncode:
-                raise ValueError(
-                    "This command should not have failed. This is testing something else."
-                )
-            return proc.stdout
-
-    monkeypatch.setattr(minfuncs.sp, "check_output", mocked_output)
-    # check use_all_cores works with current plugin
-    with pytest.raises(EnvironmentError):
-        cmd_args = minfuncs.configure_parallelism([], use_all_cores=True)
 
 
 def test_configure_parallelism_serial(monkeypatch):
@@ -842,12 +840,13 @@ def test_configure_parallelism_serial(monkeypatch):
 
 def test_configure_for_coverage(monkeypatch):
     cmd_args = ["scripts"]
-    # Coverage should fail without a build directory
-    with pytest.raises(ValueError):
-        out_args = minfuncs.configure_for_coverage(cmd_args, coverage=True)
 
     with monkeypatch.context() as m:
         m.setattr(os, "environ", os.environ.copy())
+        # Coverage should fail without a build directory
+        with pytest.raises(ValueError):
+            out_args = minfuncs.configure_for_coverage(cmd_args, coverage=True)
+
         if "CFLAGS" in os.environ:
             del os.environ["CFLAGS"]
         if "LDFLAGS" in os.environ:
@@ -929,19 +928,85 @@ def test_unparse_args_for_container():
     assert "--build-dir=/opt/afni/build" in converted
 
 
-def test_setup_docker_env_and_vol_settings(monkeypatch):
+def test_setup_test_data_container(monkeypatch):
+    """
+    Check that when source mode is test-data-volume that setup_test_data_vol is called
+    """
+    mocked_docker, client, _ = get_mocked_docker()
+
+    with monkeypatch.context() as m:
+        mocked_test_data_setup = Mock()
+        m.setattr(
+            afni_test_utils.container_execution,
+            "setup_test_data_vol",
+            mocked_test_data_setup,
+        )
+        m.setattr(os, "getuid", Mock(return_value=2000))
+        m.setattr(os, "getgid", Mock(return_value=2000))
+        ce.setup_docker_env_and_volumes(
+            client,
+            TESTS_DIR,
+            **{"source_mode": "test-data-volume"},
+        )
+        mocked_test_data_setup.assert_called_once()
+
+    with monkeypatch.context() as m:
+        m.setattr(os, "getuid", Mock(return_value=0))
+        m.setattr(os, "getgid", Mock(return_value=0))
+        mocked_test_data_setup = Mock()
+        m.setattr(
+            afni_test_utils.container_execution,
+            "setup_test_data_vol",
+            mocked_test_data_setup,
+        )
+
+        ce.setup_docker_env_and_volumes(
+            client,
+            TESTS_DIR,
+            **{"source_mode": "test-data-volume"},
+        )
+        mocked_test_data_setup.assert_called_once()
+
+
+def test_setup_test_data_vol():
+    # check default user is the dev image id
+    mocked_docker, client, _ = get_mocked_docker()
+    ce.setup_test_data_vol(client, {}, {}, tempfile.mkdtemp(), "/mnt")
+    init_cmd = client.api.create_container.call_args_list[0][0][1][2]
+    assert "-u 1000 -g 100" in init_cmd
+
+    # Check that the id is changed by changing docker_kwargs
+    mocked_docker, client, _ = get_mocked_docker()
+    ce.setup_test_data_vol(
+        client,
+        {},
+        {
+            "CONTAINER_UID": 1007,
+            "CONTAINER_GID": 3000,
+        },
+        tempfile.mkdtemp(),
+        "/mnt",
+    )
+    init_cmd = client.api.create_container.call_args_list[0][0][1][2]
+    assert "-u 1007 -g 3000" in init_cmd
+
+
+def test_setup_docker_env_and_volumes(monkeypatch):
     # Should not fail with missing credentials
     monkeypatch.setenv("GIT_AUTHOR_NAME", "user")
     monkeypatch.setenv("GIT_AUTHOR_EMAIL", "user@mail.com")
+    mocked_docker, client, _ = get_mocked_docker()
 
     # basic usage
-    ce.setup_docker_env_and_vol_settings(
+    ce.setup_docker_env_and_volumes(
+        client,
         TESTS_DIR,
     )
 
     # Confirm source directory is mounted
     source_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-    docker_kwargs = ce.setup_docker_env_and_vol_settings(
+    docker_kwargs = ce.setup_docker_env_and_volumes(
+        client,
         TESTS_DIR,
         **{"source_mode": "host"},
     )
@@ -952,7 +1017,8 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
 
     # build should not be chowned if it is mounted
     source_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-    docker_kwargs = ce.setup_docker_env_and_vol_settings(
+    docker_kwargs = ce.setup_docker_env_and_volumes(
+        client,
         TESTS_DIR,
         **{"source_mode": "host", "build_dir": "a_directory"},
     )
@@ -966,15 +1032,18 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
 
         # Confirm test-data volume is mounted when not root
         _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-        docker_kwargs = ce.setup_docker_env_and_vol_settings(
+        docker_kwargs = ce.setup_docker_env_and_volumes(
+            client,
             TESTS_DIR,
             **{"source_mode": "test-data-volume"},
         )
         expected = ["test_data"]
         result = docker_kwargs.get("volumes_from")
         assert expected == result
-
-        expected = "/opt"
+        # test data is mounted using a volume and so can't be chowned within
+        # the test container. Build is chowned in case coverage testing is
+        # being performed in which case --reuse-build will have to be used
+        expected = "/opt/afni/install,/opt/user_pip_packages,/opt/afni/build"
         assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
         assert docker_kwargs["environment"].get("CONTAINER_UID")
 
@@ -982,7 +1051,8 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(os, "getuid", Mock(return_value=0))
         _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-        docker_kwargs = ce.setup_docker_env_and_vol_settings(
+        docker_kwargs = ce.setup_docker_env_and_volumes(
+            client,
             TESTS_DIR,
             **{"source_mode": "test-data-volume"},
         )
@@ -990,13 +1060,15 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
         result = docker_kwargs.get("volumes_from")
         assert expected == result
 
-        expected = "/opt/afni/src/tests/afni_ci_test_data"
-        assert docker_kwargs.get("environment")["CHOWN_EXTRA"] == expected
+        # when root, the only permissions altered are the test-data to that
+        # of the container
+        assert not docker_kwargs.get("environment").get("CHOWN_EXTRA")
         assert not docker_kwargs["environment"].get("CONTAINER_UID")
 
     # Confirm tests directory is mounted and file permissions is set correctly
     _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-    docker_kwargs = ce.setup_docker_env_and_vol_settings(
+    docker_kwargs = ce.setup_docker_env_and_volumes(
+        client,
         TESTS_DIR,
         **{"source_mode": "test-code"},
     )
@@ -1007,7 +1079,8 @@ def test_setup_docker_env_and_vol_settings(monkeypatch):
 
     # Confirm build directory is mounted
     _, data_dir, *_ = ce.get_path_strs_for_mounting(TESTS_DIR)
-    docker_kwargs = ce.setup_docker_env_and_vol_settings(
+    docker_kwargs = ce.setup_docker_env_and_volumes(
+        client,
         TESTS_DIR,
         **{"build_dir": data_dir},
     )
@@ -1046,6 +1119,24 @@ def test_check_if_cmake_configure_required():
     # this should pass, missing dir but will be in container
     cache_file.write_text("For build in directory: /opt/afni/build")
     minfuncs.check_if_cmake_configure_required(build_dir, within_container=True)
+
+
+def test_build_dir_not_writeable_error():
+    build_dir = Path(tempfile.mkdtemp(), "build_dir")
+    build_dir.mkdir()
+
+    # make sure that a directory that is not writeable raises the appropriate
+    # error
+    for i in range(1, 7):
+        try:
+            build_dir.chmod(i * 100)
+            (build_dir / f"test_{i}").touch()
+            print(f"writeable for {i * 100}")
+            minfuncs.check_if_cmake_configure_required(build_dir)
+        except PermissionError:
+            print(f"not writeable for {i * 100}")
+            with pytest.raises(PermissionError):
+                minfuncs.check_if_cmake_configure_required(build_dir)
 
 
 def test_wrong_build_dir_raise_file_not_found(monkeypatch):

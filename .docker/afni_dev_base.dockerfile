@@ -146,6 +146,7 @@ RUN python3 -m pip install \
         datalad \
         distro \
         docker \
+        filelock \
         ipython \
         matplotlib \
         nibabel \
@@ -154,7 +155,7 @@ RUN python3 -m pip install \
         pdbpp \
         pytest \
         pytest-cov \
-        pytest-parallel \
+        pytest-xdist \
         scipy \
         git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
   && fix-permissions /opt

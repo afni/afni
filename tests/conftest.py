@@ -1,26 +1,31 @@
-import attr
 import os
 from pathlib import Path
-from typing import Union
+
 import pytest
 import inspect
 import importlib
-import datetime
-import datetime as dt
-import time
+
+
 import contextlib
 import sys
 import shutil
-import logging
+
 import tempfile
 import xvfbwrapper
 
 sys.path.append(str(Path(__file__).parent))
 
-from afni_test_utils import misc
+try:
+    import datalad.api as datalad
+
+except ImportError:
+    raise NotImplementedError("Currently datalad is a dependency for testing.")
+
 
 pytest.register_assert_rewrite("afni_test_utils.tools")
-
+from afni_test_utils import data_management as dm
+from afni_test_utils import tools
+from afni_test_utils.tools import get_current_test_name
 
 try:
     importlib.import_module("afnipy")
@@ -31,26 +36,6 @@ except ImportError as err:
         sys.path.insert(0, str(abin))
     else:
         raise err
-
-import afni_test_utils.tools as tools
-from afni_test_utils.tools import get_current_test_name
-
-missing_dependencies = (
-    "In order to download data an installation of datalad, wget, or "
-    "curl is required. Datalad is recommended to restrict the amount of "
-    "data downloaded. "
-)
-
-try:
-    import datalad.api as datalad
-
-except ImportError:
-    raise NotImplementedError("Currently datalad is a dependency for testing.")
-
-from datalad.support.exceptions import IncompleteResultsError
-
-CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
-
 
 if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
     raise EnvironmentError(
@@ -67,7 +52,7 @@ def pytest_sessionstart(session):
 
     :param _pytest.main.Session session: the pytest session object
     """
-    get_tests_data_dir(session)
+    dm.get_tests_data_dir(session)
 
 
 def pytest_generate_tests(metafunc):
@@ -106,111 +91,8 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize("python_interpreter", ["python3"])
 
 
-@pytest.fixture(scope="session")
-def output_dir(pytestconfig):
-    return get_output_dir(pytestconfig)
-
-
-def get_output_dir(config_obj):
-    user_choice = config_obj.getoption("--overwrite_outdir")
-    rootdir = Path(config_obj.rootdir)
-    if user_choice:
-        outdir = Path(user_choice)
-    else:
-        outdir = rootdir / "output_of_tests" / ("output_" + CURRENT_TIME)
-    return outdir
-
-
-@pytest.fixture(scope="session")
-def test_data_path(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_test_data_path(config_obj):
-    if hasattr(config_obj, "rootdir"):
-        return Path(config_obj.rootdir) / "afni_ci_test_data"
-    elif hasattr(config_obj, "config"):
-        return Path(config_obj.config.rootdir) / "afni_ci_test_data"
-    else:
-        raise ValueError("A pytest config object was expected")
-
-
-# def get_test_rootdir():
-#     rootdir = Path(pytestconfig.rootdir)
-#     if Path.cwd() != "tests":
-#         os.chdir(rootdir)
-#     return rootdir
-
-
-@pytest.fixture(scope="session")
-def test_comparison_dir_path(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_test_comparison_dir_path(base_comparison_dir_path, mod: Union[str or Path]):
-    """Get full path full comparison directory for a specific test"""
-    return base_comparison_dir_path / mod.name / get_current_test_name()
-
-
-@pytest.fixture(scope="session")
-def base_comparison_dir_path(pytestconfig):
-    return get_base_comparison_dir_path(pytestconfig)
-
-
-def get_base_comparison_dir_path(config_obj):
-    """If the user does not provide a comparison directory a default in the
-    test data directory is used. The user can specify a directory containing
-    the output of a previous test run or the "sample" output that is created
-    by a previous test run when the "--create_sample_output" flag was provided.
-    """
-    comparison_dir = config_obj.getoption("--diff_with_outdir")
-    if comparison_dir is not None:
-        return Path(comparison_dir).absolute()
-    else:
-        return get_test_data_path(config_obj) / "sample_test_output"
-
-
-@pytest.fixture(scope="session")
-def test_data_dir(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_tests_data_dir(config_obj):
-    """Get the path to the test data directory. If the test data directory
-    does not exist or is not populated, install with datalad.
-    """
-    # Define hard-coded paths for now
-    tests_data_dir = get_test_data_path(config_obj)
-
-    # remote should be configured or something is badly amiss...
-    dl_dset = datalad.Dataset(str(tests_data_dir))
-    if (
-        dl_dset.is_installed()
-        and not "remote.afni_ci_test_data.url" in dl_dset.config.keys()
-    ):
-        for f in dl_dset.pathobj.glob("**/*"):
-            try:
-                f.chmod(0o700)
-            except FileNotFoundError:
-                # missing symlink, nothing to worry about
-                pass
-
-        shutil.rmtree(dl_dset.pathobj)
-
-    # datalad is required and the datalad repository is used for data.
-    if not (tests_data_dir / ".datalad").exists():
-        datalad.install(
-            str(tests_data_dir),
-            "https://github.com/afni/afni_ci_test_data.git",
-            recursive=True,
-        )
-        time.sleep(10)
-
-    return tests_data_dir
-
-
 @pytest.fixture(scope="function")
-def data(pytestconfig, request, output_dir, base_comparison_dir_path):
+def data(pytestconfig, request):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -226,64 +108,8 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     Returns:
         collections.NameTuple: A data object for conveniently handling the specification
     """
-    test_name = get_current_test_name()
-    tests_data_dir = get_test_data_path(pytestconfig)
-
-    # Set module specific values:
-    try:
-        data_paths = request.module.data_paths
-    except AttributeError:
-        data_paths = {}
-    # start creating output dict, downloading test data as required
-    out_dict = {
-        k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
-    }
-
-    current_test_module = Path(request.module.__file__)
-    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
-    test_logdir = module_outdir / get_current_test_name() / "captured_output"
-    if not test_logdir.exists():
-        os.makedirs(test_logdir, exist_ok=True)
-
-    # Add steam and file logging as requested
-    logger = logging.getLogger(test_name)
-    logger = tools.logger_config(
-        logger,
-        file=output_dir / "all_tests.log",
-        log_file_level=pytestconfig.getoption("--log-file-level"),
-    )
-
-    # This will be created as required later
-    sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
-
-    # Get the comparison directory and check if it needs to be downloaded
-    comparison_dir = get_test_comparison_dir_path(
-        base_comparison_dir_path, module_outdir
-    )
-    # Define output for calling module and get data as required:
-    out_dict.update(
-        {
-            "module_outdir": module_outdir,
-            "logger": logger,
-            "current_test_module": current_test_module,
-            "outdir": module_outdir / get_current_test_name(),
-            "sampdir": sampdir,
-            "logdir": test_logdir,
-            "comparison_dir": comparison_dir,
-            "base_comparison_dir": base_comparison_dir_path,
-            "base_outdir": output_dir,
-            "tests_data_dir": tests_data_dir,
-            "test_name": test_name,
-            "rootdir": pytestconfig.rootdir,
-            "create_sample_output": pytestconfig.getoption("--create_sample_output"),
-            "save_sample_output": pytestconfig.getoption("--save_sample_output"),
-        }
-    )
-
-    DataClass = attr.make_class(
-        test_name + "_data", [k for k in out_dict.keys()], slots=True
-    )
-    return DataClass(*[v for v in out_dict.values()])
+    data = dm.get_data_fixture(pytestconfig, request)
+    return data
 
 
 # configure keywords that alter test collection
@@ -376,26 +202,8 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-def save_output_to_repo(config_obj):
-    base_comparison_dir_path = get_base_comparison_dir_path(config_obj)
-
-    update_msg = "Update data with test run on {d}".format(
-        d=datetime.datetime.today().strftime("%Y-%m-%d")
-    )
-
-    result = datalad.save(update_msg, str(base_comparison_dir_path), on_failure="stop")
-
-    sample_test_output = get_test_data_path() / "sample_test_output"
-    data_message = (
-        "New sample output was saved to {sample_test_output} for "
-        "future comparisons. Consider publishing this new data to "
-        "the publicly accessible servers.. "
-    )
-    print(data_message.format(**locals()))
-
-
 def pytest_sessionfinish(session, exitstatus):
-    output_dir = get_output_dir(session.config)
+    output_dir = dm.get_output_dir(session.config)
     if output_dir.exists():
         print("\nTest output is written to: ", output_dir)
 
@@ -412,7 +220,7 @@ def pytest_sessionfinish(session, exitstatus):
     # When configured to save output and test session was successful...
     saving_desired = session.config.getoption("--save_sample_output")
     if saving_desired and not bool(exitstatus):
-        save_output_to_repo()
+        dm.save_output_to_repo()
     elif saving_desired:
         print(
             "Sample output not saved because the test failed. You may "

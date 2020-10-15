@@ -7,6 +7,7 @@ import datalad.api as datalad
 import datetime as dt
 import difflib
 import filecmp
+import filelock
 import functools
 import getpass
 import itertools as IT
@@ -27,11 +28,11 @@ import sys
 import tempfile
 import time
 from xvfbwrapper import Xvfb
-from multiprocessing import Lock, Process
 
 from afnipy import lib_afni1D as LAD
 
-DISPLAY = Lock()
+DISPLAY_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_display.lock"
+DISPLAY = filelock.FileLock(DISPLAY_LOCK_PATH)
 
 
 def logger_config(logger, file=None, stream_log_level="WARNING", log_file_level=None):
