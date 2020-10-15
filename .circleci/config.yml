@@ -72,9 +72,9 @@ commands:
             TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
             # Add coverage args as appropriate
             if [ "$AFNI_WITH_COVERAGE" != "0" ];then
-              TEST_ARGS="$TEST_ARGS --coverage -vvv --u container "
+              TEST_ARGS="$TEST_ARGS --coverage -vvvv --u container "
             else
-              TEST_ARGS="$TEST_ARGS -vvv --u container"
+              TEST_ARGS="$TEST_ARGS -vvvv --u container"
             fi
             # some extra arguments for container management. Note that using
             # remote docker on circleci does not allow mounting volumes
