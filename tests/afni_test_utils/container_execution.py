@@ -98,7 +98,7 @@ def setup_test_data_vol(client, kwargs, docker_kwargs, host_data, container_data
             f"useradd -u {uid} -g {gid} -lMN data_user;"
             f"chown -R {uid}:{gid} /opt;"
             "echo starting test_data container;"
-            "sleep 1h"
+            "sleep 1m"
         ),
     ]
     host_config = client.api.create_host_config(
@@ -127,7 +127,7 @@ def setup_test_data_vol(client, kwargs, docker_kwargs, host_data, container_data
     # create the container
     container = client.api.create_container(
         "afni/afni_circleci_executor",
-        "sleep 1h",
+        "sleep 1m",
         user="root",
         name="test_data",
         detach=True,
@@ -213,7 +213,7 @@ def run_containerized(tests_dir, **kwargs):
         # might be required if detach is not set to True
         print(output.decode("utf-8"))
 
-    result = output.wait(timeout=30)
+    result = output.wait()
 
     # Remove exited container
     if not kwargs.get("no_rm"):
