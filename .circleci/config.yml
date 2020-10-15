@@ -63,34 +63,19 @@ commands:
     steps:
       - run:
           name: Run tests
-          no_output_timeout: 30m
+          no_output_timeout: 60m
           command: |
-            TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
-            # Add coverage args as appropriate
-            if [ "$AFNI_WITH_COVERAGE" != "0" ];then
-              TEST_ARGS="$TEST_ARGS --coverage -vvv container "
-            else
-              TEST_ARGS="$TEST_ARGS -vvv container"
-            fi
 
             tests_dir=tests/afni_ci_test_data
             vol_dir=/opt/afni/src/$tests_dir
 
-            # stop pre-existing if running locally
-            pre_existing=$(docker ps -aq --filter name=test_data)
-            if [ ! "" == "$pre_existing" ];then docker rm $pre_existing;fi
-
-            # create a container to copy the test data to:
-            user_str='--user 1000:100'
-
-            docker create \
-              $user_str \
-              -v $vol_dir \
-              --name test_data \
-              alpine:3.12 \
-              /bin/true
-            docker cp $tests_dir/. test_data:$vol_dir
-
+            TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
+            # Add coverage args as appropriate
+            if [ "$AFNI_WITH_COVERAGE" != "0" ];then
+              TEST_ARGS="$TEST_ARGS --coverage -vvv --u container "
+            else
+              TEST_ARGS="$TEST_ARGS -vvv --u container"
+            fi
             # some extra arguments for container management. Note that using
             # remote docker on circleci does not allow mounting volumes
             # directly into the container in the normal manner
@@ -99,7 +84,6 @@ commands:
                         --container-name=testing_afni
                         --reuse-build \
                         --source-mode=test-data-volume \
-                        --no-rm \
                         --only-use-local"
 
             echo $TEST_ARGS
@@ -111,7 +95,7 @@ commands:
             /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
 
             # after application container finishes, copy artifacts directly from it
-            docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
+            docker cp -a test-data:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
 
 
   check_integrity_of_containers:
@@ -120,7 +104,7 @@ commands:
       image_cache_version:
         type: string
     steps:
-      - checkout
+      - checkout_afni
       - setup_remote_docker:
           version: 19.03.13
       - setup_dev_base_image:
@@ -157,7 +141,7 @@ commands:
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
             fi
       # Push dev_base image too though it is unlikely to change
-      - checkout
+      - checkout_afni
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - run:
@@ -305,6 +289,17 @@ commands:
               docker images
             fi
 
+  checkout_afni:
+    description: "Get afni code"
+    steps:
+      - checkout
+      # useful for local debugging but fails on circleci
+      # - run: |
+      #     cd /tmp/src &&
+      #     git clone --shared   --verbose --depth 1 \
+      #       --local file:///tmp/_circleci_local_build_repo \
+      #       afni
+
 
 ############################################################################
 #Define jobs for building, testing, and deploying
@@ -320,7 +315,7 @@ jobs:
     docker:
       - image: afni/afni_circleci_executor
     steps:
-      - checkout
+      - checkout_afni
       - setup_remote_docker:
           version: 19.03.13
       - build_afni_image:
@@ -361,7 +356,7 @@ jobs:
     docker:
       - image: afni/afni_circleci_executor
     steps:
-      - checkout
+      - checkout_afni
       - setup_remote_docker:
           version: 19.03.13
       - write_test_data_cache_version_file:
@@ -401,7 +396,7 @@ jobs:
     macos:
         xcode: "11.2.1"
     steps: # a series of commands to run
-      - checkout
+      - checkout_afni
       - setup_macos_for_afni
       - run:
           name: Build on macos
@@ -433,7 +428,7 @@ jobs:
       - image: afni/afni_circleci_executor
     steps:
       - run: id # quick check to see who is running this!
-      - checkout
+      - checkout_afni
       - setup_remote_docker:
           version: 19.03.13
       - build_afni_image:
@@ -530,13 +525,16 @@ workflows:
               ignore: /.*/
 
       - coverage_check:
-          name: coverage_check
-              # cache version should match for all jobs
-              image_cache_version: ["0"]
           requires:
             - test_cmake_build
+            - test_make_build
+          matrix:
+            parameters:
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+              test_data_cache_version: ["5"]
           filters:
             tags:
               only: /AFNI_\d\d.\d.\d\d/
             branches:
-              ignore: /.*/
+              only: /.*/
