@@ -27,6 +27,10 @@ SUMA_FAILURE_PATTERNS = ["ERROR", "Bottom of Debug Stack", "Failed in"]
 WRAP_SUMA = "display" if sys.platform == "darwin" else "xvfb"
 
 
+@pytest.mark.skipif(
+    not shutil.which("xeyes"),
+    reason=("Missing xeyes for basic gui testing."),
+)
 def test_xeyes(data):
     """
     Some basic checks/demos for x execution, no point in testing guis if these fail...
@@ -55,7 +59,7 @@ def test_afni_gui_basic(data):
     afni -no_detach  -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"
     """
 
-    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
     assert "Fatal Signal 11" not in stdout
     assert "FATAL ERROR" not in stdout
 
@@ -73,7 +77,7 @@ def test_afni_gui_plugin_search(data, monkeypatch):
         cmd = """
         afni -no_detach  -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
 
     assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in stdout
 
@@ -88,7 +92,7 @@ def test_afni_gui_plugin_search_with_env_var(data, monkeypatch):
         cmd = """
         afni -no_detach  -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
         assert f"Path(s) to be searched for plugins: \n/tmp" in stdout
 
 
@@ -109,14 +113,15 @@ def test_suma_driving_basic(data):
 
     cmd = """
     export SUMA_DriveSumaMaxWait=5;
-    suma  &
+    portnum=`afni -available_npb_quiet`;
+    suma -niml -npb $portnum & \
     echo suma started;
-    sleep 6 &&
+    sleep 6;
     echo recording image;
-    DriveSuma -com viewer_cont -key 'Ctrl+r';
-    DriveSuma -com kill_suma;
+    DriveSuma -npb $portnum -com viewer_cont -key 'Ctrl+r';
+    DriveSuma -npb $portnum -com kill_suma;
     echo image recorded;
-    sleep 3;
+    sleep 10;
     echo "++ Done";
     """
     cmd = cmd.format(**locals())
@@ -127,7 +132,10 @@ def test_suma_driving_basic(data):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout, stderr = differ.run(x_execution_mode=WRAP_SUMA)
+    stdout, stderr = differ.run(
+        x_execution_mode=WRAP_SUMA,
+        timeout=90,
+    )
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
@@ -138,25 +146,26 @@ def test_suma_driving(data):
     ico_asc = ico_prefix.with_suffix(".asc")
     cmd = """
     export SUMA_DriveSumaMaxWait=5;
-    suma -niml  &
+    portnum=`afni -available_npb_quiet`;
+    suma -npb $portnum -niml  & \
     sleep 3;
-    DriveSuma -echo_edu   \
+    DriveSuma -npb $portnum -echo_edu \
       -com show_surf -surf_label {data.cubo_curv_niml_dset} \
       -i_ply {data.cubo_ply} -surf_winding cw \
-      -surf_state elcubo &&
+      -surf_state elcubo;
       CreateIcosahedron \
           -rd 4 \
           -prefix {ico_prefix};
     echo driven 1;
-    DriveSuma \
-        -echo_edu   \
+    DriveSuma -npb $portnum \
+        -echo_edu \
         -com show_surf -label ICO \
-      -i_fs {ico_asc} &&
+      -i_fs {ico_asc};
     echo driven 2;
     sleep 3 ;
-    DriveSuma -com kill_suma; \
-    sleep 3 ;
-    echo Driving suma finished,even if it does say Broken pipe...
+    DriveSuma -npb $portnum -com kill_suma;
+    sleep 10 ;
+    echo Driving suma finished,even if it does say Broken pipe...;
     echo Whether it encountered errors all the way is another story!
     """
     cmd = cmd.format(**locals())
@@ -167,5 +176,8 @@ def test_suma_driving(data):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout, stderr = differ.run(x_execution_mode=WRAP_SUMA, timeout=60)
+    stdout, stderr = differ.run(
+        x_execution_mode=WRAP_SUMA,
+        timeout=90,
+    )
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)

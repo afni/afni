@@ -236,7 +236,7 @@ def test_3dDWUncert(data, ptaylor_env):
         kwargs_log={"append_to_ignored": [" min", "Nvox progress proxy count"]},
     )
 
-    differ.run()
+    differ.run(timeout=60)
 
 
 # -------------------------------------------------------------------------

@@ -47,4 +47,4 @@ def test_3dClustSim_basic(data, add_env_vars):
         kwargs_log=kwargs_log,
         add_env_vars=add_env_vars,
     )
-    differ.run()
+    differ.run(timeout=60)

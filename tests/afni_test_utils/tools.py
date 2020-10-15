@@ -479,20 +479,18 @@ def run_cmd(
     elif x_execution_mode == "xvfb":
         try:
             # set a default display but another will be determined as required
-            xvfb = Xvfb(width=800, height=680, display="101", environ=cmd_environ)
-            xvfb.new_display = xvfb._get_next_unused_display()
-            logger.debug(f"Virtual display being used: {xvfb.new_display}")
+            xvfb = Xvfb(width=800, height=680, environ=cmd_environ)
             # some suma stuff requires the glx extension on linux
             xvfb.extra_xvfb_args += ["+iglx", "+extension", "DOUBLE-BUFFER"]
             xvfb.start()
+            logger.debug(f"Virtual display being used: {xvfb.new_display}")
             # Set the display variable for the execution environment and then
             # restore the original value
             logger.debug(f"cmd_args:{cmd_args}")
             proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
         finally:
             # Remove the lock file
-            if "xvfb" in locals():
-                xvfb.stop()
+            xvfb.stop()
 
     elif x_execution_mode == "display":
         # For when one does not wish to use xvfb for gui testing
