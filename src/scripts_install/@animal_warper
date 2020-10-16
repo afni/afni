@@ -207,10 +207,10 @@ set progname = @animal_warper
 # [PT] add opts to turn @Align_Centers OFF or to use
 #      "-cm", etc. 
 #
-set version = "2.51" ; set date = "Aug 27, 2020"
+#set version = "2.51" ; set date = "Aug 27, 2020"
 # [PT] put specific space name for *base2osh* and *osh2base* dsets
 #    
-set version = "2.6" ; set date = "Aug 27, 2020"
+#set version = "2.6" ; set date = "Aug 27, 2020"
 # [PT] put in 2nd shift-- well, it is a rearrangement: we combine the
 #      @Align_Centers shift with the translation part of 3dAllineate
 #    + and debugged a bit-- seems to run fine now
@@ -219,6 +219,13 @@ set version = "2.6" ; set date = "Aug 27, 2020"
 #      work with the translation from align_epi_anat.py are the
 #      "*_shft*" datasets, so there should be full continuity with the
 #      help files and with the reported afni_proc.py usage.
+#    
+set version = "2.7" ; set date = "Oct 16, 2020"
+# [PT] instead of early 3dcalc of src_dset0 to start things off, use
+# 3dresample there; with the concatenation of translations
+# (pshft+shft), we want to have (x,y,z) ordering of coords for the src
+# dset, and this ensures it.  Otherwise, get badness of something with
+# orient RSP, AIL, etc. is entered.
 #    
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -840,10 +847,14 @@ if (($ok_to_exist == 1) && \
    echo "++ Reusing input copy: ${outdir}/${src_dset}"
 else
    # in case use uses subbrick selection on $dset, copy this way
-   3dcalc -overwrite                           \
-     -a      "${src_dset0}"                    \
-     -expr   'a'                               \
-     -prefix "${outdir}/${src_dset}"
+   ### [PT: Oct 16, 2020] this 3dresample replaces a previous 3dcalc
+   ### to copy src_dset: with the pshft and concatenation of
+   ### translations, we want to have the the src dataset have good
+   ### (x,y,z) ordering of coords.
+   3dresample -overwrite                             \
+     -input    "${src_dset0}"                        \
+     -orient   RAI                                   \
+     -prefix   "${outdir}/${src_dset}"
 endif
 
 # -------------------- setup BASE dset
