@@ -310,6 +310,7 @@ def __execute_cmd_args(
     shell=False,
     timeout=None,
     name=None,
+    kill_backgrounded_processes=False,
 ):
     if not cmd_environ:
         cmd_environ = os.environ
@@ -401,6 +402,7 @@ def run_cmd(
     x_execution_mode=None,
     timeout=30,
     shell=False,
+    kill_backgrounded_processes=False,
 ):
     """Run the provided command and check it's output. In conjunction with the data
     fixture this function handles the test output logging in a consistent way.
@@ -467,6 +469,7 @@ def run_cmd(
         shell=shell,
         timeout=timeout,
         name=data.test_name,
+        kill_backgrounded_processes=kill_backgrounded_processes,
     )
 
     global DISPLAY
