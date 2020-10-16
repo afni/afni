@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Add in status checks after many afni progs, to exit at/near first failure.",
+   "Should be no change in output for users (in successful runs).\n"
+},
+
 { 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
    "Now, first cp+resample src to RAI; else, shft is bad for non-xyz orients.",
    "Output warps can still apply to original orient dset fine.\n"
