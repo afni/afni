@@ -70,6 +70,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 { 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase I.  Thanks, Ben Jung, for good suggestions!",
+   "Put report*1D in QC/, and do*.tcsh and surfaces_* in new surfaces/ dir.\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Add in status checks after many afni progs, to exit at/near first failure.",
    "Should be no change in output for users (in successful runs).\n"
 },
