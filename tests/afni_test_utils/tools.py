@@ -316,7 +316,6 @@ def __execute_cmd_args(
         cmd_environ = os.environ
 
     output_blend = []
-    timedout = False
 
     # Execute command
     if not timeout:
