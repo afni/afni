@@ -84,6 +84,7 @@ commands:
                         --container-name=testing_afni
                         --reuse-build \
                         --source-mode=test-data-volume \
+                        --no-rm \
                         --only-use-local"
 
             echo $TEST_ARGS
@@ -95,7 +96,7 @@ commands:
             /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
 
             # after application container finishes, copy artifacts directly from it
-            docker cp -a test-data:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
+            docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
 
 
   check_integrity_of_containers:
