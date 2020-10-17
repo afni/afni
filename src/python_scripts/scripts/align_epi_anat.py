@@ -2400,7 +2400,8 @@ class RegWrap:
       t = []
       self.info_msg(" Applying alignment for %s to %s" % (ps.dset2_generic_name, ps.dset1_generic_name))
  
-      o = e.new("%s%s%s" % (ps.output_dir,self.epi_afniformat.out_prefix(), suf))
+      o = e.new("%s%s" % (self.epi_afniformat.out_prefix(), suf))
+      o.path = ps.output_dir
 #      o = afni_name("%s%s" % (self.epi.out_prefix(), suf)) # was e.out_prefix() here
       if(self.master_epi_dset == 'SOURCE'):
           o.view = "%s" % e.view
@@ -2477,7 +2478,7 @@ class RegWrap:
          # mark as not oblique if deobliqued
          if(oblique_mat!="") :
             o.view = eview
-            com = shell_com ("3drefit -deoblique %s" % o.input(), ps.oexec)
+            com = shell_com ("3drefit -deoblique %s" % (o.input()), ps.oexec)
             com.run()
 
 
@@ -2524,7 +2525,8 @@ class RegWrap:
             com.run();
 
             if(ps.tlrc_apar!=""):
-               tlrc_dset = afni_name("%s%s_tlrc%s+tlrc" % (o.p(), self.epi_afniformat.prefix, suf))
+               tlrc_dset = afni_name("%s_tlrc%s+tlrc" % (self.epi_afniformat.prefix, suf))
+               tlrc_dset.path = o.p()
                # tlrc_dset.view = ps.tlrc_apar.view  '+tlrc'
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_dset.view = e.view
@@ -2544,12 +2546,13 @@ class RegWrap:
 
                com = shell_com( \
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
-                 "-prefix %s -input %s -verb %s %s %s" % \
-                 ( ps.tlrc_apar.input(), epi_mat, atlrcpost.prefix,e.input(),\
+                 "-prefix %s%s -input %s -verb %s %s %s" % \
+                 ( ps.tlrc_apar.input(), epi_mat, atlrcpost.p(), atlrcpost.prefix,e.input(),\
                    ps.master_tlrc_option, alopt, owrite), ps.oexec)
 
             else:
-               tlrc_orig_dset = afni_name("%s%s_post%s" % (o.p(), self.epi_afniformat.out_prefix(), suf))
+               tlrc_orig_dset = afni_name("%s%s_post%s" % (self.epi_afniformat.out_prefix(), suf))
+               tlrc_orig_dset = o.p()
                tlrc_orig_dset.view = '+orig'
                base_dset = a
                if(self.master_tlrc_dset=='SOURCE'):
@@ -2570,8 +2573,8 @@ class RegWrap:
 
                com = shell_com( \
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
-                 "-prefix %s -input %s -verb %s %s %s" % \
-                 ( base_dset.input(), epi_mat, atlrcpost.input(), e.input(),\
+                 "-prefix %s%s -input %s -verb %s %s %s" % \
+                 ( base_dset.input(), epi_mat, atlrcpost.p(), atlrcpost.input(), e.input(),\
                    ps.master_tlrc_option, alopt, owrite), ps.oexec)
 
             com.run()
@@ -2581,12 +2584,12 @@ class RegWrap:
               # force +tlrc output for master SOURCE option - 3dAllineate saves this as +orig
               if((ps.master_tlrc_dset=="SOURCE") and (ps.tlrc_apar!="")):
                  com = shell_com ("3drefit -deoblique -view tlrc %s%s+orig" %     \
-                        (o.p(), atlrcpost.prefix), ps.oexec)
+                        ( atlrcpost.p(), atlrcpost.prefix), ps.oexec)
                  com.run()
               else:
                  if(oblique_mat!=""):
-                    com = shell_com ("3drefit -deoblique %s+tlrc" %  \
-                      (atlrcpost.prefix), ps.oexec)
+                    com = shell_com ("3drefit -deoblique %s%s+tlrc" %  \
+                      (atlrcpost.p(), atlrcpost.prefix), ps.oexec)
                     com.run()
             t = atlrcpost
       else:
