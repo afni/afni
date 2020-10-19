@@ -380,7 +380,7 @@ def get_dependency_requirements(tests_dir):
     Different dependencies are required depending on how the run_afni_tests.py
     script is being used.
 
-    All most no requirements are used for displaying help/examples.
+    Almost no requirements are used for displaying help/examples.
 
     Very few requirements are required for execution of tests in a docker container.
 
@@ -616,7 +616,7 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
     1) --build-dir: The cmake build is used in combination with the pytest
        target. The pytest target modifies PATH variable prior to executing
-       tests so that all built binaries and scripts in the source directory
+       tests so that all built binaries, and scripts in the source directory
        are on the path and discoverable and afnipy is installed as required.
 
     2) cmake installation: The standard gnu directory installation structure
@@ -631,7 +631,7 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
 
 
-    In situation 1. afnipy and all binaries will appropriately mask and system
+    In situation 1. afnipy and all binaries will appropriately mask system
     versions of afnipy/binaries.
 
     In situation 2. afnipy should be importable using the current python
