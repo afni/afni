@@ -2,7 +2,7 @@ import attr
 import logging
 import shutil
 import datalad.api as datalad
-import filelock
+from filelock import Timeout, FileLock
 from pathlib import Path
 import datetime as dt
 from afni_test_utils.tools import get_current_test_name
@@ -18,7 +18,7 @@ import tempfile
 from multiprocessing import Process
 
 DATA_FETCH_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_data.lock"
-dl_lock = filelock.FileLock(DATA_FETCH_LOCK_PATH, timeout=70)
+dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=120)
 
 
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
@@ -382,8 +382,8 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
 
 def try_data_download(file_fetch_list, test_data_dir, logger):
     global dl_lock
-    dl_lock.acquire()
     try:
+        dl_lock.acquire(poll_intervall=1)
         dl_dset = datalad.Dataset(str(test_data_dir))
         # Fetching the data
         process_for_fetching_data = Process(
@@ -404,7 +404,13 @@ def try_data_download(file_fetch_list, test_data_dir, logger):
             return False
         else:
             return True
-    except (IncompleteResultsError, ValueError, CommandError) as err:
+    except (
+        IncompleteResultsError,
+        ValueError,
+        CommandError,
+        TimeoutError,
+        Timeout,
+    ) as err:
         logger.warn(
             f"Datalad download failure ({type(err)}) for {test_data_dir}. Will try again"
         )
