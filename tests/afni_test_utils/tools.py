@@ -38,8 +38,8 @@ except ImportError:
     print(
         "Import from afnipy failed. OutputDiffer class will not provide "
         "support for comparing afni's 1d files "
-        )
-    AFNI_1D_SUPPORT  = False
+    )
+    AFNI_1D_SUPPORT = False
 
 
 DISPLAY_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_display.lock"

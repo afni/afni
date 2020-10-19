@@ -11,16 +11,13 @@ import os
 import sys
 from pathlib import Path
 import importlib
+from afni_test_utils.exceptionhook import setup_exceptionhook
+from afni_test_utils.run_tests_examples import EXAMPLES, examples
 
-AFNIPY_ERR = """
-Tried and failed to import from afnipy. To solve this you can:
-A: install afnipy... something like:
-    pip install -e afni/src/python_scripts
-B: Make sure an installation of the AFNI suite of tools is present on your
-PATH (if not using --build-dir)
-C: Use the --abin flag to define the location of a build that was created by
-the make build system.
-"""
+# Perform a minimal import
+minfuncs = importlib.import_module(
+    "afni_test_utils.minimal_funcs_for_run_tests_cli",
+)
 
 NEED_DEV_INSTALLATION = """
 
@@ -46,33 +43,21 @@ parent_dir = Path(__file__).parent.resolve()
 if not parent_dir.name == "tests":
     raise EnvironmentError(NEED_DEV_INSTALLATION.format(parent_dir=parent_dir))
 
-# Perform a minimal import
-minfuncs = importlib.import_module(
-    "afni_test_utils.minimal_funcs_for_run_tests_cli",
-)
 
 # Check that PYTHONPATH is not set
 if os.environ.get("PYTHONPATH"):
     raise ValueError(
         "Using PYTHONPATH is not supported. Unset this and rely on the "
         "other mechanisms for importing afnipy let the errors guide "
-        "you! . "
+        "you! Under the hood run_afni_tests.py uses PYTHONPATH to "
+        "handle some situations and so bad interactions would occur if "
+        "this were allowed. "
     )
 
-from afni_test_utils.exceptionhook import setup_exceptionhook
-from afni_test_utils.run_tests_examples import EXAMPLES, examples
 
 # Make imports when the user is doing something other than requesting help
 dep_reqs = minfuncs.get_dependency_requirements(TESTS_DIR)
 if dep_reqs != "minimal":
-    # If using the cmake build afnipy needs to be installed
-    if "--build-dir" in "".join(sys.argv):
-        try:
-            afnipy = importlib.import_module("afnipy")
-        except ImportError as err:
-            print(err)
-            print(AFNIPY_ERR)
-            raise sys.exit(1)
     try:
         if dep_reqs == "container_execution":
             from afni_test_utils.container_execution import run_containerized

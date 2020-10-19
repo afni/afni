@@ -13,29 +13,32 @@ import shutil
 import tempfile
 import xvfbwrapper
 
+# make sure afni_test_utils importable (it will always either be not installed
+# or installed in development mode)
 sys.path.append(str(Path(__file__).parent))
 
 try:
-    import datalad.api as datalad
+    import datalad.api as datalad  # noqa: F401
 
 except ImportError:
     raise NotImplementedError("Currently datalad is a dependency for testing.")
 
-
-pytest.register_assert_rewrite("afni_test_utils.tools")
-from afni_test_utils import data_management as dm
-from afni_test_utils import tools
-from afni_test_utils.tools import get_current_test_name
-
 try:
     importlib.import_module("afnipy")
 except ImportError as err:
+    # installation may be a typical "abin" install. In this case make afnipy
+    # importable fo pytest
     bin_path = shutil.which("3dinfo")
     if bin_path:
         abin = Path(bin_path).parent
         sys.path.insert(0, str(abin))
     else:
         raise err
+
+pytest.register_assert_rewrite("afni_test_utils.tools")
+from afni_test_utils import data_management as dm  # noqa: E402
+from afni_test_utils import tools  # noqa: E402
+
 
 if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
     raise EnvironmentError(

@@ -402,10 +402,13 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
     "params",
     [
         {
+            # until afni's typical installation includes an afnipy installed
+            # into the python interpreter this should raise and error when no
+            # additional args are passed and afnipy is installed
             "test_case": "no additional args",
             "argslist": ["local"],
             "expected": [""],
-            "not_expected": ["local"],
+            "not_expected": ["local", "afnipy"],
         },
         {
             "test_case": "--abin should mean afnipy is not imported",
@@ -422,7 +425,7 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
         {
             "test_case": "--build-dir",
             "argslist": f"--build-dir={tempfile.mkdtemp()} local".split(),
-            "expected": ["afnipy"],
+            "expected": [],
             "not_expected": ["docker"],
         },
     ],
@@ -545,15 +548,17 @@ def test_run_tests_with_args(monkeypatch, params, sp_with_successful_execution):
     )
     # mock os.environ so that race conditions do not occur during parallel testing
     monkeypatch.setattr(
-        os,
-        "environ",
-        os.environ.copy(),
+        os.environ,
+        "copy",
+        lambda *args, **kwargs: {},
     )
     with pytest.raises(SystemExit) as err:
         afni_test_utils.run_tests_func.run_tests(TESTS_DIR, **params["args_in"])
         assert err.typename == "SystemExit"
         assert err.value.code == 0
-    sp_with_successful_execution.run.assert_called_with(expected_call, shell=True)
+    sp_with_successful_execution.run.assert_called_with(
+        expected_call, shell=True, env={}
+    )
 
 
 def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(

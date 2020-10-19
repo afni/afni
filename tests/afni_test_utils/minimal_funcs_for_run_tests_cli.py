@@ -644,7 +644,6 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
     after its execution.
     """
     test_bin_path = shutil.which("3dinfo")
-
     # Do a check for the 4 four supported test path/setup situations
     if "build_dir" in args_dict:
         # situation 1 (cmake build)...
@@ -654,8 +653,8 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
             print(err)
             raise EnvironmentError(
                 "Usage of cmake build for testing was "
-                f"inferred from the usage of --build-dir. "
-                "Cannot import afnipy. This should be installed "
+                "inferred from the usage of --build-dir. "
+                "Currently afnipy is not importable... you should be install it "
                 "into the current python interpreter. "
             )
         return
@@ -673,34 +672,31 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
             return
 
-        else:
-            # situation 3 (abin on PATH) and libmri so should be in same directory
-            make_sure_afnipy_not_importable()
-            libmri_so_paths = list(Path(test_bin_path).parent.glob("libmri.*"))
-            if not libmri_so_paths:
-                raise (
-                    ValueError(
-                        "This should not be reached. Not sure what has happened."
-                    )
-                )
-
-    else:
-        # situation 4 (abin flag passed)
-        make_sure_afnipy_not_importable()
-        if not (Path(args_dict["abin"]) / "3dinfo").exists():
-            raise (
-                ValueError("This should not be reached. Not sure what has happened.")
-            )
-
-    # Modify sys.path and os.environ for situation 3. and 4.
-
-    # Makes afnipy importable
+    #  Now just situation 3. and 4 remaining.
+    make_sure_afnipy_not_importable()
     abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
+
+    # Modify sys.path and os.environ. Makes afnipy importable
     sys.path.insert(0, abin)
 
     # Also needs to work for shell subprocesses when using the abin flag so
     # added it to PATH
     os.environ["PATH"] = f"{abin}:{os.environ['PATH']}"
+
+    # In situation 4, binaries should be located in the user defined directory
+    if args_dict.get("abin"):
+        test_bin_path = Path(shutil.which("3dinfo"))
+        if not test_bin_path.parent == Path(args_dict.get("abin")):
+            raise EnvironmentError(
+                f"With --abin set to {abin} the expection is that "
+                f"binaries are found there. Instead {test_bin_path} is "
+                "found after an attempt to set up the environment "
+                "correctly for the tests. Perhaps this is not a binary directory?"
+            )
+
+    libmri_so_paths = list(Path(test_bin_path).parent.glob("libmri.*"))
+    if not libmri_so_paths:
+        raise (ValueError("This should not be reached. Not sure what has happened."))
 
 
 def _filter_afni_from_path(path_var):

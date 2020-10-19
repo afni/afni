@@ -53,5 +53,5 @@ def run_tests(tests_dir, **args_dict):
         cmd = f"""{sys.executable} -m pytest {' '.join(x for x in cmd_args)}"""
 
     print(f"Executing: {cmd}")
-    res = subprocess.run(cmd, shell=True)
+    res = subprocess.run(cmd, shell=True, env=os.environ.copy())
     sys.exit(res.returncode)
