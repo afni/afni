@@ -390,6 +390,24 @@ def check_user_container_args(tests_dir, **kwargs):
             "you cannot mount into that directory with --build-dir "
         )
 
+    if build_dir and not source_mode == "host":
+        raise ValueError(
+            "You have specified an unsupported combination of options. "
+            "You specified a build directory without specifying a "
+            "source-mode of 'host'. This could technically be performed "
+            "but the downside is that the uid inside the container "
+            "would be used and all permissions/ownership for the build "
+            "directory would be for said user. This would then cause "
+            "issues for when you do wish to use this build directory in "
+            "the container when using source-mode of host, which uses "
+            "your local uid/gid. The solution... not to support what "
+            "you are trying to do. It is unlikely to be especially "
+            "useful. Most likely, when using containers, you either "
+            "want to use a source- mode=host in combination with "
+            "--build-dir or an alternative source-mode without "
+            "specifying --build-dir. "
+        )
+
     # raise error if build is within source and both are mounted
     if source_mode == "host" and build_dir:
         assert Path(build_dir).is_absolute()
