@@ -420,7 +420,7 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
             "test_case": "--abin could be passed with equals",
             "argslist": f"--abin={tempfile.mkdtemp()} local".split(),
             "expected": [""],
-            "not_expected": ["afnipy", "docker"],
+            "not_expected": ["docker"],
         },
         {
             "test_case": "--build-dir",

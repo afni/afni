@@ -619,7 +619,7 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
        tests so that all built binaries, and scripts in the source directory
        are on the path and discoverable and afnipy is installed as required.
 
-    2) cmake installation: The standard gnu directory installation structure
+    2) hierarchical installation: The standard gnu directory installation structure
        (binaries in bin which is on the PATH, c libraries are stored in ../lib
        etc.).
 
@@ -661,13 +661,14 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
     elif test_bin_path:
         libmri_so_paths = list(Path(test_bin_path).parent.parent.glob("lib/libmri.*"))
         if libmri_so_paths:
-            # situation 2 (cmake installed)...
+            # situation 2 (hierarchical installation)...
             if not importlib.import_module("afnipy"):
                 raise EnvironmentError(
-                    "Usage of cmake installation for testing was "
-                    f"inferred from the presence of {libmri_so_paths}. "
-                    "Cannot import afnipy. This should be installed "
-                    "into the current python interpreter. "
+                    "Hierarchical installation for testing was inferred "
+                    f"from the presence of {libmri_so_paths} when the "
+                    f"binary {test_bin_path} was found. Cannot import "
+                    "afnipy. This should be installed into the current "
+                    "python interpreter. "
                 )
 
             return
