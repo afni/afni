@@ -1,3 +1,4 @@
+import filelock
 import os
 from pathlib import Path
 
@@ -47,6 +48,8 @@ if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
         "github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_m"
         "ulti_threading' "
     )
+
+PORT_LOCKS_DIR = Path(tempfile.mkdtemp("port_locks"))
 
 
 def pytest_sessionstart(session):
@@ -242,6 +245,21 @@ def ptaylor_env(monkeypatch):
             yield
         finally:
             pass
+
+
+@pytest.fixture()
+def unique_gui_port():
+
+    PORT_NUM = 0
+    while True:
+        try:
+            PORT_NUM += 1
+            gui_port_lock_path = PORT_LOCKS_DIR / f"gui_port_{PORT_NUM}.lock"
+            GUI_PORT_LOCK = filelock.FileLock(gui_port_lock_path)
+            GUI_PORT_LOCK.acquire(timeout=1, poll_intervall=0.5)
+            return PORT_NUM
+        except filelock.Timeout:
+            continue
 
 
 @pytest.fixture(autouse=True)

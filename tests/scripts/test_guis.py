@@ -6,6 +6,7 @@ import subprocess as sp
 from unittest.mock import patch
 import shutil
 import sys
+import tempfile
 
 
 suma_data = Path("mini_data/suma_test_files")
@@ -53,18 +54,19 @@ def test_xeyes(data):
     )
 
 
-def test_afni_gui_basic(data):
-
+def test_afni_gui_basic(data, unique_gui_port):
+    outfile = Path(tempfile.mkdtemp()) / "test"
     cmd = """
-    afni -no_detach  -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"
+    afni -no_detach -npb {unique_gui_port} -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage {outfile}; QUIT"
     """
+    cmd = cmd.format(**locals())
 
-    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
+    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
     assert "Fatal Signal 11" not in stdout
     assert "FATAL ERROR" not in stdout
 
 
-def test_afni_gui_plugin_search(data, monkeypatch):
+def test_afni_gui_plugin_search(data, monkeypatch, unique_gui_port):
     with monkeypatch.context() as m:
         m.setattr(os, "environ", os.environ.copy())
         # clear pluging path vars
@@ -75,14 +77,14 @@ def test_afni_gui_plugin_search(data, monkeypatch):
         exe_dir = afni_path.parent.resolve()
         rel_libdir = exe_dir / "../lib"
         cmd = """
-        afni -no_detach  -com "QUIT"
+        afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
+        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
 
     assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in stdout
 
 
-def test_afni_gui_plugin_search_with_env_var(data, monkeypatch):
+def test_afni_gui_plugin_search_with_env_var(data, monkeypatch, unique_gui_port):
     with monkeypatch.context() as m:
         m.setattr(tools.os, "environ", os.environ.copy())
 
@@ -90,41 +92,44 @@ def test_afni_gui_plugin_search_with_env_var(data, monkeypatch):
         # Run AFNI with AFNI_PLUGINPATH defined
         afni_path = Path(shutil.which("afni"))
         cmd = """
-        afni -no_detach  -com "QUIT"
+        afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb", timeout=None)
+        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
         assert f"Path(s) to be searched for plugins: \n/tmp" in stdout
 
 
-def test_suma_gii_read(data):
-    cmd = f"suma -i_gii {data.gii_dset} -drive_com '-com kill_suma'"
+def test_suma_gii_read(data, unique_gui_port):
+    cmd = """
+    suma -npb {unique_gui_port} -i_gii {data.gii_dset} -drive_com '-com kill_suma'
+    """
+    cmd = cmd.format(**locals())
+
     stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
-def test_suma_gui_basic(data):
-    cmd = "suma -drive_com '-com kill_suma'"
+def test_suma_gui_basic(data, unique_gui_port):
+    cmd = """
+    suma -npb {unique_gui_port} -drive_com '-com kill_suma'
+    """
     stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
-@pytest.mark.veryslow
-def test_suma_driving_basic(data):
+@pytest.mark.slow
+def test_suma_driving_basic(data, unique_gui_port):
 
     cmd = """
     export SUMA_DriveSumaMaxWait=5;
-    portnum=`afni -available_npb_quiet`;
-    suma -niml -npb $portnum & \
+    suma -niml -npb {unique_gui_port} & \
     echo suma started;
     sleep 6;
     echo recording image;
-    DriveSuma -npb $portnum -com viewer_cont -key 'Ctrl+r';
-    DriveSuma -npb $portnum -com kill_suma;
+    DriveSuma -npb {unique_gui_port} -com viewer_cont -key 'Ctrl+r';
+    DriveSuma -npb {unique_gui_port} -com 'kill_suma';
     echo image recorded;
-    sleep 10;
     echo "++ Done";
     """
-    cmd = cmd.format(**locals())
 
     differ = tools.OutputDiffer(
         data,
@@ -134,37 +139,34 @@ def test_suma_driving_basic(data):
     )
     stdout, stderr = differ.run(
         x_execution_mode=WRAP_SUMA,
-        timeout=90,
     )
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
-@pytest.mark.veryslow
-def test_suma_driving(data):
+@pytest.mark.slow
+def test_suma_driving(data, unique_gui_port):
 
     ico_prefix = data.outdir / "CreateIco"
     ico_asc = ico_prefix.with_suffix(".asc")
     cmd = """
     export SUMA_DriveSumaMaxWait=5;
-    portnum=`afni -available_npb_quiet`;
-    suma -npb $portnum -niml  & \
+    suma -npb {unique_gui_port} -niml  & \
     sleep 3;
-    DriveSuma -npb $portnum -echo_edu \
-      -com show_surf -surf_label {data.cubo_curv_niml_dset} \
+    DriveSuma -npb {unique_gui_port} \
+      -echo_edu \
+      -com 'show_surf -surf_label {data.cubo_curv_niml_dset} \
       -i_ply {data.cubo_ply} -surf_winding cw \
-      -surf_state elcubo;
+      -surf_state elcubo';
       CreateIcosahedron \
           -rd 4 \
           -prefix {ico_prefix};
     echo driven 1;
-    DriveSuma -npb $portnum \
+    DriveSuma -npb {unique_gui_port} \
         -echo_edu \
-        -com show_surf -label ICO \
-      -i_fs {ico_asc};
+        -com 'show_surf -label ICO  -i_fs {ico_asc}';
     echo driven 2;
     sleep 3 ;
-    DriveSuma -npb $portnum -com kill_suma;
-    sleep 10 ;
+    DriveSuma -npb {unique_gui_port} -com 'kill_suma';
     echo Driving suma finished,even if it does say Broken pipe...;
     echo Whether it encountered errors all the way is another story!
     """
@@ -178,6 +180,5 @@ def test_suma_driving(data):
     )
     stdout, stderr = differ.run(
         x_execution_mode=WRAP_SUMA,
-        timeout=90,
     )
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
