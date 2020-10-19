@@ -857,7 +857,7 @@ endif
 @djunct_overlap_check                             \
     -ulay   "${src_dset0}"                        \
     -olay   "${base_dset}"                        \
-    -prefix ${outdir}/QC/init_qc_00_overlap_usrc_obase
+    -prefix ${outdir}/QC/init_qc_00_overlap_uinp_obase
 
 # ------------------------- setup input SRC dset
 
@@ -3041,7 +3041,7 @@ Outputs (we got plenty of 'em!) ~1~
     *.txt file of ranges of values related to the ulay and olay, which
     might be useful for QC or figure-generation.
 
-    + init_qc_00_overlap_usrc_obase.jpg, [init_qc_00_overlap_usrc_obase_DEOB*]
+    + init_qc_00_overlap_uinp_obase.jpg, [init_qc_00_overlap_uinp_obase_DEOB*]
       [ulay] original source dset
       [olay] original base dset
       o single image montage to check initial overlap of source and base,

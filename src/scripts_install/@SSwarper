@@ -94,8 +94,11 @@
 #set version   = "2.21"; set rev_dat   = "Sep 1, 2020"
 #   + [PT] if '-skipwarp' is used, now set DO_EXTRA_WC = 0.
 #
-set version   = "2.3"; set rev_dat   = "Sep 23, 2020"
+#set version   = "2.3"; set rev_dat   = "Sep 23, 2020"
 #   + [PT] put ${status} checks to terminate on ~first failures
+#
+set version   = "2.31"; set rev_dat   = "Oct 19, 2020"
+#   + [PT] new qc image of initial overlap (with/without applying obl)
 #
 # ----------------------------------------------------------------
 
@@ -413,6 +416,12 @@ if ( $nvolbase < 5 ) then
     echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
     goto BAD_EXIT
 endif
+
+# [PT: Oct 19, 2020] Add in new QC: initial source-base overlap
+@djunct_overlap_check                             \
+    -ulay   "${Adataset}"                         \
+    -olay   "$Basedset"                           \
+    -prefix ${odir}/init_qc_00_overlap_usrc_obase
 
 if ( ${JUMP_TO_EXTRA_QC} ) then
     echo "\n++ Just jumpin' to extra QC\n"
@@ -1184,6 +1193,7 @@ Then the outputs from this script will be"
                             to base template space;
   anatQQ.sub007_WARP.nii  = incremental warp from affine transformation
                             to nonlinearly aligned dataset;
+
   AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii
                             dataset with the edges from the base template
                             overlaid -- to check the alignment;
@@ -1193,6 +1203,17 @@ Then the outputs from this script will be"
   QC_anatSS.sub007.jpg    = check skullstripping in orig space: ulay is
                             input dset, and olay is mask of
                             skullstripped output (anatSS* dset)
+  init_qc_00_overlap_uinp_obase.jpg
+    o [ulay] original source dset
+      [olay] original base dset
+    o single image montage to check initial overlap of source and base,
+      ignoring any obliquity that might be present (i.e., the way AFNI 
+      GUI does by default, and also how alignment starts)
+    o if initial overlap is not strong, alignment can fail or
+      produce weirdness
+    o *if* either dset has obliquity, then an image of both after 
+      deobliquing with 3dWarp is created (*DEOB.jpg), and a text file
+      about obliquity is also created (*DEOB.txt).
 
 * The .aff12.1D and _WARP.nii transformations need to be catenated to get
   the full warp from orginal space to the base space; example:
