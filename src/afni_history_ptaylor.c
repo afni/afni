@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Oct , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase II and III.  Thanks again, B Jung!",
+   "New intermediate dir, animal_outs update, helpfile rewritten.\n"
+},
+
 { 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Simplifying output dir: Phase I.  Thanks, Ben Jung, for good suggestions!",
    "Put report*1D in QC/, and do*.tcsh and surfaces_* in new surfaces/ dir.\n"

@@ -8,6 +8,9 @@
 # + aff  : affine-aligned version of original dset (by align_epi_anat.py)
 # + base : 'template' space, and/or NL warped version of original dset
 
+# On a historical note, this script is derived from macaque_align.csh
+# and NMT_subject_align.csh, scripts distributed with the D99 macaque
+# and the NMT macaque template datasets and tools.
 
 # affine alignment of individual dataset to a template
 #  handcrafted for macaque alignment originally - D99 and NMT templates
@@ -231,13 +234,30 @@ set progname = @animal_warper
 # [PT] add status checks around, to stop in case of intermediate
 #      failure
 #    
-set version = "2.9" ; set date = "Oct 16, 2020"
+#set version = "2.9" ; set date = "Oct 16, 2020"
 # [PT] Phase I of restructuring output and simplifying output dir
 #    + reports*.1D   -> QC/ 
 #    + surface_*     -> surfaces/
 #    + do_view*.tcsh -> surfaces/
 #    + animal_outs*txt is updated accordingly
+#    ---> many thanks to B Jung for guidance+suggestions on this!
 #    
+#set version = "2.91" ; set date = "Oct 16, 2020"
+# [PT] Phase II of restructuring output and simplifying output dir
+#    + runs through "affine" part at the moment-- need to keep
+#      adjusting files afterward to continue consistency
+#    ---> many thanks to B Jung for guidance+suggestions on this!
+#
+#set version = "2.92" ; set date = "Oct 19, 2020"
+# [PT] Phase III of restructuring output and simplifying output dir
+#    ---> STILL many thanks to B Jung for guidance+suggestions on this!
+#
+#set version = "2.93" ; set date = "Oct 19, 2020"
+# [PT] verifying/testing in Mac demos
+#
+set version = "3.0" ; set date = "Oct 19, 2020"
+# [PT] updating help file -- more useful?
+#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -254,7 +274,7 @@ set base_abbrev        = ""
 set USE_KNOWN_BASE_ABBREV = 0  # will use ${all_known_template_abbrev}
 
 set outdir             = "aw_results"
-#set imed               = "intermediate"   # intermed files; can be purged
+set imed               = "intermediate"   # intermed files; ~purgeable
 set center_out         = "native"
 
 set brainmask          = ""
@@ -809,7 +829,7 @@ endif
 cd -
 
 \mkdir -p ${outdir}/QC
-#\mkdir -p ${outdir}/${imed}
+\mkdir -p ${outdir}/${imed}
 
 # -------------------------- set alignment COSTS
 
@@ -1155,24 +1175,36 @@ if ( ($ok_to_exist == "1") && \
 else
 
     if ( ${DO_ALIGN_CENTERS} ) then
-        @Align_Centers -overwrite          \
-            ${align_centers_meth}          \
-            -prefix "${srcsh_dset}"        \
-            -base   "${base_dset}"         \
+        @Align_Centers -overwrite            \
+            ${align_centers_meth}            \
+            -prefix "${imed}/${srcsh_dset}"  \
+            -base   "${base_dset}"           \
             -dset   "${src_dset}"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed (align centers)"
+            exit 1
+        endif
+
+        # Do this because @Align Centers doesn't put *_shft.1D in same
+        # place as its "-prefix .." path tells it to.
+        \mv ${srcsh_shft} \
+            ${imed}/${srcsh_shft}
+
     else
         echo "++ Well, actually just COPYING dset as the center-alignment..."
         3dcopy -overwrite                  \
             "${src_dset}"                  \
-            "${srcsh_dset}"
-        echo "   ... and making an identity 'shift'"
-        echo "1 0 0 0 0 1 0 0 0 0 1 0" > ${srcsh_shft}
-    endif
-endif
+            "${imed}/${srcsh_dset}"
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (align centers)"
-    exit 1
+        if ( ${status} ) then
+            echo "** ERROR: program failed (align centers, cp)"
+            exit 1
+        endif
+
+        echo "   ... and making an identity 'shift'"
+        echo "1 0 0 0 0 1 0 0 0 0 1 0" > ${imed}/${srcsh_shft}
+    endif
 endif
 
 # *** After this point, the following files exist: 
@@ -1181,12 +1213,12 @@ endif
 
 # Inverse translation (should just be negation of translation column).
 if ( ($ok_to_exist == "1") && \
-     (-f  ${srcsh_shft_inv}) ) then
+     (-f  ${imed}/${srcsh_shft_inv}) ) then
    echo "++ Reusing center aligned  ${srcsh_shft_inv}"
 else
-    cat_matvec                             \
-          ${srcsh_shft} -I                 \
-        > ${srcsh_shft_inv}
+    cat_matvec                                     \
+          ${imed}/${srcsh_shft} -I                 \
+        > ${imed}/${srcsh_shft_inv}
 endif
 
 if ( ${status} ) then
@@ -1194,9 +1226,9 @@ if ( ${status} ) then
     exit 1
 endif
 
-printf "%-37s : %s\n"                   \
-        "Dset, pre-shifted to base"     \
-        "${srcsh_dset}"                 \
+printf "%-37s : %s\n"                             \
+        "Dset, pre-shifted to base"               \
+        "${imed}/${srcsh_dset}"                   \
        >> ${animal_outs}
 
 # ------------------------- estimate aff mat -------------------------
@@ -1212,64 +1244,71 @@ else
 endif
 
 if ( ( $ok_to_exist == "1" ) && \
-     (-f  ${srcsh_prefix}_al2std_mat.aff12.1D) ) then
+     (-f  ${imed}/${srcsh_prefix}_al2std_mat.aff12.1D) ) then
    echo "++ Reusing affine transformation matrix"
 else
    # outputs a BRIK/HEAD file
    align_epi_anat.py -overwrite                                     \
-    -dset2 "${srcsh_dset}"                                          \
-    -dset1 "${base_dset}"                                           \
+    -output_dir   "${imed}"                                         \
+    -dset2        "${imed}/${srcsh_dset}"                           \
+    -dset1        "${base_dset}"                                    \
     -dset2to1                                                       \
     -giant_move                                                     \
-    -suffix _al2std                                                 \
-    -dset1_strip None                                               \
-    -dset2_strip None                                               \
+    -suffix       _al2std                                           \
+    -dset1_strip  None                                              \
+    -dset2_strip  None                                              \
     -cost $cost $rigidopt $feature_option $supersize
-
-   # convert the affine aligned output to NIFTI
-   3dAFNItoNIFTI                               \
-        -prefix ${srcsh_prefix}_al2std.nii.gz  \
-        ${srcsh_prefix}_al2std${base_view}
 
    if ( ${status} ) then
        echo "** ERROR: program failed (AEA)"
        exit 1
    endif
 
-   \rm ${srcsh_prefix}_al2std${base_view}.*
+   # convert the affine aligned output to NIFTI
+   3dAFNItoNIFTI                                                    \
+        -prefix ${imed}/${srcsh_prefix}_al2std.nii.gz               \
+        ${imed}/${srcsh_prefix}_al2std${base_view}
+
+   if ( ${status} ) then
+       echo "** ERROR: program failed (afni2nii)"
+       exit 1
+   endif
+
+   \rm ${imed}/${srcsh_prefix}_al2std${base_view}.*
 endif
 
 # re-partition the translation part of aff alignment with the shift
 # from @Align_Centers
 
 if ( ( $ok_to_exist == "1" ) && \
-     (-f  ${srcsh2_dset} ) ) then
+     (-f  ${imed}/${srcsh2_dset} ) ) then
    echo "++ Reusing re-partitioned shift"
 else
 
     # extract the translation part and output it
-    set mat0 = `cat_matvec -ONELINE "${srcsh_prefix}_al2std_mat.aff12.1D"`
+    set mat0 = `cat_matvec -ONELINE         \
+                    "${imed}/${srcsh_prefix}_al2std_mat.aff12.1D"`
     echo "1 0 0 ${mat0[4]} 0 1 0 ${mat0[8]} 0 0 1 ${mat0[12]}" > \
-        "${srcsh_prefix}_al2std_mat_TR.aff12.1D"
+        "${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D"
 
     # ... and calc its inverse
-    cat_matvec -ONELINE                             \
-        "${srcsh_prefix}_al2std_mat_TR.aff12.1D" -I \
-        > "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"
+    cat_matvec -ONELINE                                          \
+        "${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D" -I      \
+        > "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"
 
     # this is needed for shifting the origin, below
-    set inv_transl = `cat "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"`
+    set inv_transl = `cat "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D"`
 
     # create the new full shift
     cat_matvec -ONELINE                          \
-        ${srcsh_shft}                            \
-        "${srcsh_prefix}_al2std_mat_TR.aff12.1D" \
-        > ${srcsh2_shft}
+        ${imed}/${srcsh_shft}                            \
+        "${imed}/${srcsh_prefix}_al2std_mat_TR.aff12.1D" \
+        > ${imed}/${srcsh2_shft}
 
     # ... and inverse shift
     cat_matvec -ONELINE                          \
-        ${srcsh2_shft} -I                        \
-        > ${srcsh2_shft_inv}
+        ${imed}/${srcsh2_shft} -I                        \
+        > ${imed}/${srcsh2_shft_inv}
 
     if ( ${status} ) then
         echo "** ERROR: program failed (cat_matvec inv)"
@@ -1280,67 +1319,77 @@ else
     # and what we should use later; it should have NO translation
     # component
     cat_matvec -ONELINE                              \
-        "${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
-        "${srcsh_prefix}_al2std_mat.aff12.1D"        \
-        >  "${srcsh2_prefix}_al2std_mat.aff12.1D"
+        "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
+        "${imed}/${srcsh_prefix}_al2std_mat.aff12.1D"        \
+        >  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"
 
     # Finally, make the new shifted dset
     3dcopy                                       \
         -overwrite                               \
-        ${srcsh_dset}                            \
-        ${srcsh2_dset}
+        ${imed}/${srcsh_dset}                    \
+        ${imed}/${srcsh2_dset}
     3drefit \
         -dxorigin ${inv_transl[4]}               \
         -dyorigin ${inv_transl[8]}               \
         -dzorigin ${inv_transl[12]}              \
-        ${srcsh2_dset}
+        ${imed}/${srcsh2_dset}
 
     # *** From this point onward, the shft2 space is the more important
     # jumping point between the original native space and the
     # base/template space***
 endif
 
-printf "%-37s : %s\n"                   \
-        "Dset, 2nd-shifted to base"     \
-        "${srcsh2_dset}"                \
+if ( ${status} ) then
+    echo "** ERROR: program failed (combine shifts)"
+    exit 1
+endif
+
+printf "%-37s : %s\n"                                               \
+        "Dset, 2nd-shifted to base"                                 \
+        "${imed}/${srcsh2_dset}"                                    \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                                               \
         "Input, aff-xformed to base (orig res)"                     \
-        "${srcsh_prefix}_al2std.nii.gz"                             \
+        "${imed}/${srcsh_prefix}_al2std.nii.gz"                     \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                                               \
         "Matrix, aff xform (shft2 to base)"                         \
-        "${srcsh2_prefix}_al2std_mat.aff12.1D"                      \
+        "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"              \
        >> ${animal_outs}
 
 if ($align_type == rigid_equiv) then
     set affmat = ${srcsh2_prefix}_al2std_mat_rigid.aff12.1D
-    cat_matvec                                                \
-        ${srcsh2_prefix}_al2std_mat.aff12.1D -P               \
-        > ${affmat}
+    cat_matvec                                                      \
+        ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -P             \
+        > ${imed}/${affmat}
 
-    printf "%-37s : %s\n"                                   \
-            "Matrix, rigid equiv xform"                     \
-            "${affmat}"                                     \
+    printf "%-37s : %s\n"                                           \
+            "Matrix, rigid equiv xform"                             \
+            "${imed}/${affmat}"                                     \
         >> ${animal_outs}
 else
     set affmat = ${srcsh2_prefix}_al2std_mat.aff12.1D
 endif
 
+if ( ${status} ) then
+    echo "** ERROR: program failed (cat_matvec, affmat)"
+    exit 1
+endif
+
 ## put affine aligned data on template grid
 # similar to al2std dataset but with exactly same grid as the template
 if (($ok_to_exist == "1") && \
-    (-f ${srcsh2_prefix}_aff.nii.gz)) then
-   echo "reusing affine transformed dataset"
+    (-f ${imed}/${srcsh2_prefix}_aff.nii.gz)) then
+   echo "++ Reusing affine transformed dataset"
 else
    3dAllineate -overwrite                                       \
-        -1Dmatrix_apply ${affmat}                               \
-        -prefix ${srcsh2_prefix}_aff.nii.gz                     \
+        -1Dmatrix_apply ${imed}/${affmat}                       \
+        -prefix ${imed}/${srcsh2_prefix}_aff.nii.gz             \
         -base   "${base_dset}"                                  \
         -master BASE                                            \
-        -source "${srcsh2_dset}"
+        -source "${imed}/${srcsh2_dset}"
 endif
 
 if ( ${status} ) then
@@ -1350,7 +1399,7 @@ endif
 
 printf "%-37s : %s\n"                                      \
         "Input, aff-xformed to base"                       \
-        "${srcsh2_prefix}_aff.nii.gz"                      \
+        "${imed}/${srcsh2_prefix}_aff.nii.gz"              \
        >> ${animal_outs}
 
 
@@ -1365,24 +1414,25 @@ printf "%-37s : %s\n"                                      \
 
 # Compute the inverse of the affine alignment transformation - all 12
 # numbers; creates 'template -> shifted input space' aff xform
-cat_matvec -ONELINE                              \
-    ${srcsh2_prefix}_al2std_mat.aff12.1D -I      \
-    >! ${srcsh2_prefix}_inv_al2std_mat.aff12.1D
+cat_matvec                                               \
+    -ONELINE                                             \
+    ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -I      \
+    >! ${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D
 
 # full affine part, template to unshifted org space: don't want this
 # to be large (see note above); creates 'original input -> template
 # space' aff xform
-cat_matvec                                        \
-    -ONELINE                                      \
-    ${srcsh2_prefix}_al2std_mat.aff12.1D          \
-    ${srcsh2_shft}                                \
+cat_matvec                                                \
+    -ONELINE                                              \
+    ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D          \
+    ${imed}/${srcsh2_shft}                                \
     > ${src_abbrev}_composite_linear_to_template.1D
 
 #Now create the inverse composite warp from template to subject space;
 # creates 'template spac -> original input' aff xform
-cat_matvec -ONELINE                               \
-    ${srcsh2_shft_inv}                            \
-    ${srcsh2_prefix}_inv_al2std_mat.aff12.1D      \
+cat_matvec -ONELINE                                       \
+    ${imed}/${srcsh2_shft_inv}                            \
+    ${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D      \
     > ${src_abbrev}_composite_linear_to_template_inv.1D
 
 if ( ${status} ) then
@@ -1391,12 +1441,12 @@ if ( ${status} ) then
 endif
 
 printf "%-37s : %s\n"                                       \
-        "Matrix, aff xform with shift"                      \
-        "${src_abbrev}_composite_linear_to_template.1D" \
+        "Matrix, full aff xform (for AP)"                   \
+        "${src_abbrev}_composite_linear_to_template.1D"     \
        >> ${animal_outs}
 
-printf "%-37s : %s\n"                                           \
-        "Matrix, aff xform with shift, inv"                     \
+printf "%-37s : %s\n"                                       \
+        "Matrix, full aff xform, inv"                       \
         "${src_abbrev}_composite_linear_to_template_inv.1D" \
        >> ${animal_outs}
 
@@ -1405,7 +1455,7 @@ printf "%-37s : %s\n"                                           \
 # if nonlinear alignment is not requested, then exit
 if ( $align_type != "all" ) then
    echo ""
-   echo "++ Finished aligning with only $align_type alignment"
+   echo "++ Finished aligning with only ${align_type} alignment"
    echo ""
    if ( $align_type == "rigid" ) then
       echo "++ This 'rigid' alignment method requires restarting"
@@ -1442,7 +1492,8 @@ endif
 # change qw_opts to remove max_lev 2 for final   
 # --------------------------------------------------------------------------
 
-# ??? No ok_to_exist on this dir?
+# No $ok_to_exist on this dir: the outputs that are extracted from it
+# are checked, instead.  Gets purged, below, at end of running.
 \rm -rf ${awpy_dir}
 
 if ( ($ok_to_exist == "1") && \
@@ -1454,14 +1505,20 @@ else
       -base "${base_dset}"                                       \
       -affine_input_xmat ID                                      \
       -qworkhard 0 2                                             \
-      -input ${srcsh2_prefix}_aff.nii.gz                          \
+      -input ${imed}/${srcsh2_prefix}_aff.nii.gz                 \
       -output_dir ${awpy_dir}                                    \
       -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}
+
+   if ( ${status} ) then
+       echo "** ERROR: program failed (autowarp)"
+       exit 1
+   endif
 
    # the awpy has the result dataset, copy the warped data, the warp,
    # inverse warp don't copy the warped dataset - combine the
    # transformations instead below
 
+   # THIS is a major output
    # from orig+shft2+aff -> base
    3dcopy -overwrite                                \
         ${awpy_dir}/anat.*.qw_WARP.nii*             \
@@ -1480,7 +1537,7 @@ endif
 
 # THIS is what should be given to afni_proc.py
 printf "%-37s : %s\n"                                           \
-        "NL warp, aff2base"                                     \
+        "NL warp, aff2base (for AP)"                            \
         "${srcsh2_prefix}_WARP.nii.gz"                          \
        >> ${animal_outs}
 
@@ -1497,24 +1554,24 @@ printf "%-37s : %s\n"                                           \
 # afni_proc.py.
 
 if ( ($ok_to_exist == "1") &&                  \
-     (-f "${srcsh2_prefix}_osh2base_WARP.nii.gz" ) ) then
+     (-f "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz" ) ) then
     echo "++ Reusing osh2base_WARP dataset"
 else
     # warp from orig+shft2 -> base
     3dNwarpCat  -echo_edu                                          \
         -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
-        -warp2  "${srcsh2_prefix}_al2std_mat.aff12.1D"             \
-        -prefix "${srcsh2_prefix}_osh2base_WARP.nii.gz"
+        -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
+        -prefix "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"
 endif
 
 if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat)"
+    echo "** ERROR: program failed (3dNwarpCat, osh2base)"
     exit 1
 endif
 
 printf "%-37s : %s\n"                                             \
         "NL warp, osh2base (internal use)"                        \
-        "${srcsh2_prefix}_osh2base_WARP.nii.gz"                   \
+        "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"           \
        >> ${animal_outs}
 
 # ------------------------- MAKE_WARP base2osh ------------------------
@@ -1524,30 +1581,30 @@ printf "%-37s : %s\n"                                             \
 # for all template -> original/native space transforms
 
 if ( ($ok_to_exist == "1") &&                  \
-     (-f "${srcsh2_prefix}_base2osh_WARP.nii.gz" ) ) then
+     (-f "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" ) ) then
     echo "++ Reusing base2osh_WARP dataset"
 else
     # warp from base -> orig+shft2
 
     # [PT: Aug 27, 2020] get name of specific space (otherwise will
-    # just be generic "TLRC"
+    # just be generic "TLRC)"
     set space = `3dinfo -space "${srcsh2_prefix}_WARPINV.nii.gz"`
 
-    3dNwarpCat  -echo_edu                                         \
-        -warp1  "${srcsh2_prefix}_inv_al2std_mat.aff12.1D"        \
-        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                 \
-        -space  "${space}"                                        \
-        -prefix "${srcsh2_prefix}_base2osh_WARP.nii.gz"
+    3dNwarpCat  -echo_edu                                          \
+        -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+        -space  "${space}"                                         \
+        -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
 endif
 
 if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat 2)"
+    echo "** ERROR: program failed (3dNwarpCat, base2osh)"
     exit 1
 endif
 
 printf "%-37s : %s\n"                                             \
         "NL warp, base2osh (internal use)"                        \
-        "${srcsh2_prefix}_base2osh_WARP.nii.gz"                   \
+        "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"           \
        >> ${animal_outs}
 
 # -----------------------------------------------------------------------
@@ -1564,14 +1621,14 @@ if ( ($ok_to_exist == "1") &&                  \
 else
    # [DRG: 07 Nov 2016] combine nonlinear and affine warps for dataset
    # warped to standard template space 
-   3dNwarpApply -overwrite                             \
-      -prefix "${src_abbrev}_warp2std.nii.gz"          \
-      -nwarp  "${srcsh2_prefix}_osh2base_WARP.nii.gz"  \
-      -source "${srcsh2_dset}"                         \
+   3dNwarpApply -overwrite                                     \
+      -prefix "${src_abbrev}_warp2std.nii.gz"                  \
+      -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"  \
+      -source "${imed}/${srcsh2_dset}"                         \
       -master "${base_dset}"
 
    if ( ${status} ) then
-       echo "** ERROR: program failed (3dNwarpApply)"
+       echo "** ERROR: program failed (3dNwarpApply, osh2base)"
        exit 1
    endif
 
@@ -1583,7 +1640,12 @@ else
       -expr   'a*step(b)'                               \
       -prefix "${src_abbrev}_warp2std_ns.nii.gz"
 
-   # nicer version for viewing in template space: this will be passed
+   if ( ${status} ) then
+       echo "** ERROR: program failed (3dcalc, osh2base)"
+       exit 1
+   endif
+
+    # nicer version for viewing in template space: this will be passed
    # along to AP to be ulay at times
    echo "++ Unifizing input dset in template space"
    3dUnifize -overwrite                             \
@@ -1594,7 +1656,7 @@ else
       -prefix ${src_abbrev}_warp2std_nsu.nii.gz
 
    if ( ${status} ) then
-       echo "** ERROR: program failed (3dUnifize)"
+       echo "** ERROR: program failed (3dUnifize, osh2base)"
        exit 1
    endif
 
@@ -1712,13 +1774,13 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
           -no_cp                                      \
           -base "${base_dset}"                        \
           -dset tempfollow.nii.gz                     \
-          -shift_xform_inv ${srcsh2_shft}
+          -shift_xform_inv ${imed}/${srcsh2_shft}
 
       # apply NL warp
       3dNwarpApply  -overwrite                                       \
           -ainterp ${follow_interp}                                  \
           -prefix  ${follow_in_std}                                  \
-          -nwarp  "${srcsh2_prefix}_osh2base_WARP.nii.gz"            \
+          -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"    \
           -source  tempfollow.nii.gz                                 \
           -master  "${base_dset}"
 
@@ -1738,15 +1800,15 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
             # save the unsmoothed version as a backup
             3dcopy -overwrite         \
                 ${follow_in_std}      \
-                ${follow_in_std_pre}
+                ${imed}/${follow_in_std_pre}
 
             if ( ${DO_MODE_SMOO_W_REP} ) then
                # Modal smoothing *with* replacement; output has
                # INT_CMAP and tables copied
                @djunct_modal_smoothing_with_rep                            \
                     -overwrite                                             \
-                    -input ${follow_in_std_pre}                            \
-                    -prefix ${follow_in_std}                               \
+                    -input      ${imed}/${follow_in_std_pre}               \
+                    -prefix     ${follow_in_std}                           \
                     -modesmooth $modesmooth 
             else
                # Standard modal smoothing (*no* replacement)
@@ -1754,14 +1816,14 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
                     -stat   mode                                           \
                     -nbhd   "SPHERE(-${modesmooth})"                       \
                     -prefix ${follow_in_std}                               \
-                    ${follow_in_std_pre}
+                    ${imed}/${follow_in_std_pre}
 
                # make these show up in AFNI as labeled ROI or atlas datasets 
                3drefit -copytables ${followset} ${follow_in_std}
                3drefit -cmap INT_CMAP ${follow_in_std}
 
                if ( ${status} ) then
-                  echo "** ERROR: program failed (follower data, 2)"
+                  echo "** ERROR: program failed (foll data, 2: ${followset})"
                   exit 1
                endif
 
@@ -1818,15 +1880,15 @@ if ( ($ok_to_exist == "1") && \
    echo "++ Reusing template transformed to native space dataset"
 else 
    # warp to orig+shft space
-   3dNwarpApply -overwrite                                 \
-     -ainterp wsinc5                                       \
-     -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"        \
-     -source "${base_dset}"                                \
-     -master ${srcsh2_dset}                                \
+   3dNwarpApply -overwrite                                   \
+     -ainterp wsinc5                                         \
+     -nwarp  "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+     -source "${base_dset}"                                  \
+     -master ${imed}/${srcsh2_dset}                          \
      -prefix ${templ_in_orig}
    
    if ( ${status} ) then
-      echo "** ERROR: program failed (base2osh 1)"
+      echo "** ERROR: program failed (3dNwarpApply, base2osh, 1)"
       exit 1
    endif
 
@@ -1838,7 +1900,7 @@ else
           -no_cp                                      \
           -base ${src_dset}                           \
           -dset ${templ_in_orig}                      \
-          -shift_xform_inv ${srcsh2_shft_inv}
+          -shift_xform_inv ${imed}/${srcsh2_shft_inv}
 
       if ( ${status} ) then
          echo "** ERROR: program failed (base2osh 2)"
@@ -1870,16 +1932,16 @@ else
            (-f  ${src_abbrev}_mask.nii.gz) ) then
          echo "++ Reusing template transformed to native space dataset"
       else
-         3dNwarpApply -overwrite                                 \
-           -ainterp NN                                           \
-           -short                                                \
-           -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"         \
-           -source ${brainmask}                                  \
-           -master ${srcsh2_prefix}.nii.gz                        \
+         3dNwarpApply -overwrite                                  \
+           -ainterp NN                                            \
+           -short                                                 \
+           -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+           -source ${brainmask}                                   \
+           -master ${imed}/${srcsh2_dset}                         \
            -prefix ${src_abbrev}_mask.nii.gz
 
          if ( ${status} ) then
-            echo "** ERROR: program failed (base2osh brainmask)"
+            echo "** ERROR: program failed (base2osh, brainmask)"
             exit 1
          endif
 
@@ -1887,14 +1949,14 @@ else
          # default
          if (${center_out} == "native") then
             # put back in non-shifted version (really native space)
-            @Align_Centers                               \
-                -no_cp                                   \
-                -base ${src_dset}                     \
-                -dset ${src_abbrev}_mask.nii.gz      \
-                -shift_xform_inv ${srcsh2_shft_inv}
+            @Align_Centers                                  \
+                -no_cp                                      \
+                -base ${src_dset}                           \
+                -dset ${src_abbrev}_mask.nii.gz             \
+                -shift_xform_inv ${imed}/${srcsh2_shft_inv}
 
             if ( ${status} ) then
-               echo "** ERROR: program failed (base2osh brainmask 2)"
+               echo "** ERROR: program failed (base2osh, brainmask 2)"
                exit 1
             endif
 
@@ -1905,32 +1967,37 @@ else
       endif
    else
       3dcalc \
-         -a ${templ_in_orig}                              \
-         -b ${src_abbrev}.nii.gz                      \
-         -expr 'step(a)*b'                                \
-         -prefix __tmp_orig_mskd.nii.gz                   \
+         -a      ${templ_in_orig}                         \
+         -b      ${src_abbrev}.nii.gz                     \
+         -expr   'step(a)*b'                              \
+         -prefix ${imed}/__tmp_orig_mskd.nii.gz           \
          -overwrite
+
+      if ( ${status} ) then
+         echo "** ERROR: program failed (base2osh, brainmask, B1)"
+         exit 1
+      endif
 
       # smoothify mask with in/out dilations; slightly pad: this is our
       # new anat mask.
       3dmask_tool                                \
          -dilate_inputs -2 3                     \
-         -inputs __tmp_orig_mskd.nii.gz          \
-         -prefix ${src_abbrev}_mask.nii.gz   \
+         -inputs ${imed}/__tmp_orig_mskd.nii.gz  \
+         -prefix ${src_abbrev}_mask.nii.gz       \
          -overwrite
 
       if ( ${status} ) then
-         echo "** ERROR: program failed (base2osh brainmask 3)"
+         echo "** ERROR: program failed (base2osh, brainmask, B2)"
          exit 1
       endif
 
    endif
 
    3dcalc \
-      -a ${src_abbrev}.nii.gz             \
-      -b ${src_abbrev}_mask.nii.gz        \
-      -expr 'a*step(b)'                       \
-      -prefix ${src_abbrev}_ns.nii.gz     \
+      -a       ${src_abbrev}.nii.gz             \
+      -b       ${src_abbrev}_mask.nii.gz        \
+      -expr    'a*step(b)'                      \
+      -prefix  ${src_abbrev}_ns.nii.gz          \
       -overwrite
 
    if ( ${status} ) then
@@ -1987,19 +2054,19 @@ else
        -label_mode 1 -label_size 3
 
    # clean up a bit
-   \rm -f __tmp_orig_mskd.nii.gz
+   \rm -f ${imed}/__tmp_orig_mskd.nii.gz
 
 endif
 
 # [PT: Jan 14, 2020] add these to the output text
-printf "%-37s : %s\n"                         \
-        "Mask of input"                        \
-        "${src_abbrev}_mask.nii.gz"       \
+printf "%-37s : %s\n"                        \
+        "Mask of input"                      \
+        "${src_abbrev}_mask.nii.gz"          \
        >> ${animal_outs}
 
-printf "%-37s : %s\n"                         \
-        "Input (orig), skullstripped"          \
-        "${src_abbrev}_ns.nii.gz"         \
+printf "%-37s : %s\n"                        \
+        "Input (orig), skullstripped"        \
+        "${src_abbrev}_ns.nii.gz"            \
        >> ${animal_outs}
 
 # Make unifized form of original (skullstripped) dset
@@ -2047,13 +2114,13 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
       3dNwarpApply -overwrite                                  \
         -short                                                 \
         -ainterp wsinc5                                        \
-        -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"          \
+        -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
         -source ${template_dset}                               \
-        -master ${srcsh2_dset}                                 \
+        -master ${imed}/${srcsh2_dset}                         \
         -prefix ${template_in_orig}
       
       if ( ${status} ) then
-         echo "** ERROR: program failed (base2osh template foll)"
+         echo "** ERROR: program failed (base2osh templ foll, ${template_dset})"
          exit 1
       endif
 
@@ -2063,7 +2130,7 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
             -no_cp                                             \
             -base ${src_dset}                                  \
             -dset ${template_in_orig}                          \
-            -shift_xform_inv ${srcsh2_shft_inv}
+            -shift_xform_inv ${imed}/${srcsh2_shft_inv}
       endif
 
       # Return original dataset view (to view in AFNI)
@@ -2139,16 +2206,17 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 
        # use concatenated affine and nonlinear warp to go back to
        # shifted original space
-       3dNwarpApply -overwrite                             \
-          -ainterp NN                                      \
-          -short                                           \
-          -nwarp "${srcsh2_prefix}_base2osh_WARP.nii.gz"    \
-          -source ${segm_dset}                             \
-          -master ${srcsh2_dset}                           \
+       3dNwarpApply -overwrite                                   \
+          -ainterp NN                                            \
+          -short                                                 \
+          -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+          -source ${segm_dset}                                   \
+          -master ${imed}/${srcsh2_dset}                         \
           -prefix ${segm_in_orig}
    
        if ( ${status} ) then
           echo "** ERROR: program failed (base2osh atl/seg foll)"
+          echo "   ... for dset: ${segm_dset}"
           exit 1
        endif
 
@@ -2158,7 +2226,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
             -no_cp                                                \
             -base ${src_dset}                                     \
             -dset ${segm_in_orig}                                 \
-            -shift_xform_inv ${srcsh2_shft_inv}
+            -shift_xform_inv ${imed}/${srcsh2_shft_inv}
        endif
 
        # change the datum type to byte to save space if values
@@ -2180,6 +2248,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 
           if ( ${status} ) then
              echo "** ERROR: program failed (base2osh atl/seg foll, calc)"
+             echo "   ... for dset: ${segm_dset}"
              exit 1
           endif
 
@@ -2194,26 +2263,33 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
           # save the unsmoothed version as a backup
           3dcopy -overwrite         \
               ${segm_in_orig}       \
-              ${segm_in_orig_pre}
+              ${imed}/${segm_in_orig_pre}
           \rm ${segm_in_orig}
+
+          if ( ${status} ) then
+             echo "** ERROR: program failed (base2osh atl/seg foll, cp)"
+             echo "   ... for dset: ${segm_dset}"
+             exit 1
+          endif
 
           # this extra step done here to make sure the space is
           # correct (should be, from 3dNwarp*?)
           3drefit                      \
               -space ${origspace}      \
-              ${segm_in_orig_pre}
+              ${imed}/${segm_in_orig_pre}
 
           if ( ${DO_MODE_SMOO_W_REP} ) then
              # Modal smoothing *with* replacement; output has
              # INT_CMAP and tables copied
              @djunct_modal_smoothing_with_rep                            \
                   -overwrite                                             \
-                  -input      ${segm_in_orig_pre}                        \
+                  -input      ${imed}/${segm_in_orig_pre}                \
                   -prefix     ${segm_in_orig}                            \
                   -modesmooth ${modesmooth} 
 
              if ( ${status} ) then
                 echo "** ERROR: program failed (base2osh atl/seg foll, @dj)"
+                echo "   ... for dset: ${segm_dset}"
                 exit 1
              endif
 
@@ -2223,10 +2299,11 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -stat   mode                                           \
                   -nbhd   "SPHERE(-${modesmooth})"                       \
                   -prefix ${segm_in_orig}                                \
-                  ${segm_in_orig_pre}
+                  ${imed}/${segm_in_orig_pre}
 
              if ( ${status} ) then
                 echo "** ERROR: program failed (base2osh atl/seg foll, loc)"
+                echo "   ... for dset: ${segm_dset}"
                 exit 1
              endif
 
@@ -2237,6 +2314,12 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
              3drefit                      \
                  -copytables ${segm_dset} \
                  ${segm_in_orig}
+
+             if ( ${status} ) then
+                echo "** ERROR: program failed (base2osh atl/seg foll, refit)"
+                echo "   ... for dset: ${segm_dset}"
+                exit 1
+             endif
           endif
        endif
 
@@ -2363,6 +2446,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 
            if ( ${status} ) then
               echo "** ERROR: program failed (base2osh atl/seg foll, table)"
+              echo "   ... for dset: ${segm_in_orig}"
               exit 1
            endif
 
@@ -2431,12 +2515,12 @@ if ( $make_orig_surfaces == "1" ) then
    #  as representative surface using anisotropic smoothing could
    #  use skullstripped original instead
    if ( ($ok_to_exist == "1") && \
-        (-f  ${templ_in_origA} ) ) then
+        (-f  ${imed}/${templ_in_origA} ) ) then
       echo "++ Reusing anisotropically smoothed template"
       echo "   in native space dataset"
    else
       3danisosmooth -overwrite                                    \
-        -prefix ${templ_in_origA}                                 \
+        -prefix ${imed}/${templ_in_origA}                         \
         -automask                                                 \
         -3D                                                       \
         -iters 6                                                  \
@@ -2454,27 +2538,31 @@ if ( $make_orig_surfaces == "1" ) then
    set basestats  = `3dBrickStat                                 \
                         -percentile $baseperc 1 $baseperc        \
                         -non-zero                                \
-                        ${templ_in_origA}`
+                        ${imed}/${templ_in_origA}`
+   if ( ${status} ) then
+      echo "** WARNING: program failed (templ surf, brickstat)"
+   endif
+
    set basethresh = $basestats[2]
 
    # non-zero count not right with percentile, so doing it
    # separately here
    set basestats2      = `3dBrickStat                  \
                                  -max -count -non-zero \
-                                 ${templ_in_origA}`
+                                 ${imed}/${templ_in_origA}`
    set basemax         = $basestats2[1]
    set minbrainvolume  = `ccalc -int "${basestats2[2]}*0.5"`
 
    if ( ($ok_to_exist == "1") && \
-        (-f  ${templ_in_origAC} )) then
+        (-f  ${imed}/${templ_in_origAC} )) then
       echo "++ Reusing anisotropically smoothed and clustered template"
       echo "   in native space dataset"
    else
       3dClusterize                                              \
         -idat 0 -ithr 0                                         \
         -1sided RIGHT_TAIL ${basethresh}                        \
-        -pref_dat ${templ_in_origAC}                            \
-        -inset    ${templ_in_origA}                             \
+        -pref_dat ${imed}/${templ_in_origAC}                    \
+        -inset    ${imed}/${templ_in_origA}                     \
         -NN 2                                                   \
         -clust_nvox  ${minbrainvolume}
    endif
@@ -2484,13 +2572,13 @@ if ( $make_orig_surfaces == "1" ) then
    endif
 
    if ( ($ok_to_exist == "1") && \
-        (-f  ${templ_in_origG} ) ) then
+        (-f  surfaces/${templ_in_origG} ) ) then
       echo "++ Reusing template in native space surface dataset"
    else
       IsoSurface -overwrite                                  \
         -isorange ${basethresh} ${basemax}                   \
-        -input    ${templ_in_origAC}                         \
-        -o        ${templ_in_origG}                          \
+        -input    ${imed}/${templ_in_origAC}                 \
+        -o        surfaces/${templ_in_origG}                 \
         -noxform                                             \
         -Tsmooth 0.01 6
    endif
@@ -2501,8 +2589,12 @@ if ( $make_orig_surfaces == "1" ) then
 
    printf "%-37s : %s\n"                                     \
             "Templ surf in ${orig_fin}"                      \
-            "${templ_in_origG}"                              \
+            "surfaces/${templ_in_origG}"                     \
         >> ${animal_outs}
+
+
+   # move in to surfaces/ subdir for this step!
+   cd surfaces
 
 # a script to view all surfs together
 set oscript = do_view_isosurf_${t_in_o_prefix}.tcsh
@@ -2510,7 +2602,7 @@ printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
 #!/bin/tcsh
     
-    set bkgd_vol = "${src_dset}"
+    set bkgd_vol = "../${src_dset}"
     set dset_gii = "${templ_in_origG}"
 
     suma                        \
@@ -2521,6 +2613,8 @@ cat <<EOF >> ${oscript}
 EOF
 chmod 755 ${oscript}
 
+   cd -
+
 endif
 
 # ------------------------------ Clean up ----------------------------
@@ -2529,7 +2623,6 @@ endif
 if( "${keep_temp}" != "1") then
    \rm -rf "${awpy_dir}/"
    \rm -f `\ls __tmp*`
-   \rm -f `\ls ${base_abbrev}_in_${src_abbrev}_aniso*.nii.gz`
    echo "++ Done cleaning up."
 endif
 
@@ -2558,9 +2651,15 @@ cat << SCRIPT_HELP_STRING
 
 Overview ~1~
 
-Script to align a subject structural data to a template and invert the
-warps to compute the template and segmentation in the subject's
-original, native space.
+This is a script to:
++ align a subject structural dataset to a template
++ save the warp + inverse warps, for any future mapping
++ apply the warps to "follower" datasets in either space (e.g.,
+  atlases, segmentations, masks, or other anatomicals) to map those
+  dsets to the other space
+  - one common use: send a template atlas to native space
++ estimate surfaces of ROIs (with scripts also made to simplify viewing)
++ make automatic QC images to show the outputs, for quick evaluation
 
 This @animal_warper (AW) program uses basic AFNI commands to compute
 affine and nonlinear alignments. The program works by first aligning
@@ -2574,13 +2673,13 @@ regions and for a transformed copy of the template dataset.
 
 Usage Example ~1~
 
-    animal_warper                                        \
+  animal_warper                                          \
       -input  macaque1+orig                              \
       -base   ../NMT.nii.gz                              \
       -atlas  atlas_dir/D99_atlas_1.2a_al2NMT.nii.gz     \
       -outdir aligned_data
 
-   Note only the input dset and template_dset are required. If no
+   Note only the input dset and template_dset are *required*. If no
    "-atlas .." dset is given, then only the alignment steps are
    performed.
 
@@ -2591,358 +2690,433 @@ Usage Example ~1~
 
 Options ~1~
 
-    -input input_dset   :required input dataset to align to base template
-                         (what is called the 'source' in other AFNI
-                         alignment programs).
+  -input input_dset   :required input dataset to align to base template
+                       (what is called the 'source' in other AFNI
+                       alignment programs).
 
-    -base base_dset     :required dataset. Can be given with a normal
-                         path-specification, or by just being somewhere
-                         that @FindAfniDsetPath can find it.  Note,
-                         this volume will also be used to try to
-                         skullstrip in the input dset (unless an
-                         explicit '-brainmask ..' dset is input; see
-                         that option below).
+  -base base_dset     :required dataset. Can be given with a normal
+                       path-specification, or by just being somewhere
+                       that @FindAfniDsetPath can find it.  Note,
+                       this volume will also be used to try to
+                       skullstrip in the input dset (unless an
+                       explicit '-brainmask ..' dset is input; see
+                       that option below).
 
-    -template_prefix TP :*no longer an option*.  See/use '-base_abbrev',
-                         below.
+  -template_prefix TP :*no longer an option*.  See/use '-base_abbrev',
+                       below.
 
-    -outdir outputdir   :create new directory and do all processing there.
-                         Minor note: '.' is not allowed;  that is, you must 
-                         choose a new directory.  NB: the input, base and 
-                         any atlas followers get copied into that directory
-                         (def = '${outdir}')
+  -outdir outputdir   :create new directory and do all processing there.
+                       Minor note: '.' is not allowed;  that is, you must 
+                       choose a new directory.  NB: the input, base and 
+                       any atlas followers get copied into that directory
+                       (def = '${outdir}')
 
-    -skullstrip brainmask
-                        :one can provide a brainmask that is in the
-                         base template space. This brainmask will be
-                         warped back to native space and used to
-                         skullstrip the original volume. This dataset
-                         should share exactly the same grid as the
-                         base template dataset.  (If this opt isn't
-                         used to provide a brainmask, then the '-base
-                         ..' volume itself will be used to do so.)
+  -skullstrip brainmask
+                      :one can provide a brainmask that is in the
+                       base template space. This brainmask will be
+                       warped back to native space and used to
+                       skullstrip the original volume. This dataset
+                       should share exactly the same grid as the
+                       base template dataset.  (If this opt isn't
+                       used to provide a brainmask, then the '-base
+                       ..' volume itself will be used to do so.)
 
-    -atlas ATL1 ATL2 ATL3 ...
-    -atlas_followers ATL1 ATL2 ATL3 ...
-                        :either of these option flags does the exact
-                         same thing-- one or more atlas (int-valued)
-                         dsets in the *base* volume space can be
-                         provided, and each will be mapped to the
-                         input dset's native space.  Atlas labeling
-                         will be preserved. Additionally, isosurfaces
-                         of each that can be viewed in SUMA will be
-                         created.  Atlas locations can be given with a
-                         normal path-specification, or by just being
-                         somewhere that @FindAfniDsetPath can find it.
+  -atlas ATL1 ATL2 ATL3 ...
+  -atlas_followers ATL1 ATL2 ATL3 ...
+                      :either of these option flags does the exact
+                       same thing-- one or more atlas (int-valued)
+                       dsets in the *base* volume space can be
+                       provided, and each will be mapped to the
+                       input dset's native space.  Atlas labeling
+                       will be preserved. Additionally, isosurfaces
+                       of each that can be viewed in SUMA will be
+                       created.  Atlas locations can be given with a
+                       normal path-specification, or by just being
+                       somewhere that @FindAfniDsetPath can find it.
 
-    -seg_followers S1 S2 S3 ...
-                        :one or more (int-valued) dsets in the *base*
-                         volume space can be provided, and each will
-                         be mapped to the input dset's native space.
-                         Must share the same grid of the base
-                         dataset. Atlas labeling will be preserved.
-                         different than the atlas_followers above (no
-                         surfaces generated for these).
+  -seg_followers S1 S2 S3 ...
+                      :one or more (int-valued) dsets in the *base*
+                       volume space can be provided, and each will
+                       be mapped to the input dset's native space.
+                       Must share the same grid of the base
+                       dataset. Atlas labeling will be preserved.
+                       different than the atlas_followers above (no
+                       surfaces generated for these).
 
-    -template_followers T1 T2 T3 ...
-                        :one or more dsets in the *base* volume space
-                         can be provided, and each will be mapped to
-                         the input dset's native space.  Not required
-                         to be int-valued here.
+  -template_followers T1 T2 T3 ...
+                      :one or more dsets in the *base* volume space
+                       can be provided, and each will be mapped to
+                       the input dset's native space.  Not required
+                       to be int-valued here.
 
-    -dset_followers D1 D2 D3 ...
-                        :one or more dsets in the *input* volume space
-                         can be provided, and each will be mapped to
-                         the base dset's template space.  Not required
-                         to be int-valued here.
+  -dset_followers D1 D2 D3 ...
+                      :one or more dsets in the *input* volume space
+                       can be provided, and each will be mapped to
+                       the base dset's template space.  Not required
+                       to be int-valued here.
 
-    -roidset_followers dset1 dset2 ...
-                        :one or more (int-valued) dsets in the *input*
-                         volume space can be provided, and each will
-                         be mapped to the base dset's template space.
+  -roidset_followers dset1 dset2 ...
+                      :one or more (int-valued) dsets in the *input*
+                       volume space can be provided, and each will
+                       be mapped to the base dset's template space.
 
-    -input_abbrev INP_ABBR
-                        :when a dset DSET is warped to a space, it
-                         will like DSET_in_SOMETHING.nii.gz.  If that
-                         SOMETHING is the input dset space, then you
-                         can specify that label/abbreviation here.
-                         The INP_ABBR is also used for some files as 
-                         SOMETHING_*.
-                         Default naming will be to use the prefix of
-                         the input dset, such as would come from:
-                           3dinfo -prefix_noext INPUT_DSET
-                         Created file names can be quite long due to this,
-                         so an INP_ABBR might be useful.
+  -input_abbrev INP_ABBR
+                      :when a dset DSET is warped to a space, it
+                       will like DSET_in_SOMETHING.nii.gz.  If that
+                       SOMETHING is the input dset space, then you
+                       can specify that label/abbreviation here.
+                       The INP_ABBR is also used for some files as 
+                       SOMETHING_*.
+                       Default naming will be to use the prefix of
+                       the input dset, such as would come from:
+                         3dinfo -prefix_noext INPUT_DSET
+                       Created file names can be quite long due to this,
+                       so an INP_ABBR might be useful.
 
-    -base_abbrev BASE_ABBR
-                        :used just like the '-input_abbrev ..' value 
-                         above, but for the base dset.
-                         Default here is to use the space information
-                         from a dset, namely:
-                            3dinfo -space BASE_DSET
-                         See also the '-use_known_abbrev_*' options
-                         for being able to let this program try to
-                         recognize a commonly known dset from its name.
+  -base_abbrev BASE_ABBR
+                      :used just like the '-input_abbrev ..' value 
+                       above, but for the base dset.
+                       Default here is to use the space information
+                       from a dset, namely:
+                          3dinfo -space BASE_DSET
+                       See also the '-use_known_abbrev_*' options
+                       for being able to let this program try to
+                       recognize a commonly known dset from its name.
 
-    -atlas_abbrevs AA1 AA2 AA3 ...
-                        :used just like the '-input_abbrev ..' value
-                         above, but for the atlas follower dsets.  NB:
-                         you either need to have the same number of
-                         atlas abbreviations as input atlas followers,
-                         or none.
-                         Default abbreviation is:  
-                           3dinfo -prefix_noext ATLAS_DSET
-                         See also the '-use_known_abbrev_*' options
-                         for being able to let this program try to
-                         recognize a commonly known dset from its name.
+  -atlas_abbrevs AA1 AA2 AA3 ...
+                      :used just like the '-input_abbrev ..' value
+                       above, but for the atlas follower dsets.  NB:
+                       you either need to have the same number of
+                       atlas abbreviations as input atlas followers,
+                       or none.
+                       Default abbreviation is:  
+                         3dinfo -prefix_noext ATLAS_DSET
+                       See also the '-use_known_abbrev_*' options
+                       for being able to let this program try to
+                       recognize a commonly known dset from its name.
 
-    -template_abbrevs TA1 TA2 TA3 ...
-                        :used just like the '-atlas_abbrevs ..' opt
-                         above, but for the template follower dsets.  
-                         Default abbreviation is:  
-                           3dinfo -prefix_noext TEMPLATE_DSET
-                         Has the same 'known' list as the base abbrevs, 
-                         so make sure you don't run into having two files
-                         share the same abbrev!
+  -template_abbrevs TA1 TA2 TA3 ...
+                      :used just like the '-atlas_abbrevs ..' opt
+                       above, but for the template follower dsets.  
+                       Default abbreviation is:  
+                         3dinfo -prefix_noext TEMPLATE_DSET
+                       Has the same 'known' list as the base abbrevs, 
+                       so make sure you don't run into having two files
+                       share the same abbrev!
 
-    -seg_abbrevs SA1 SA2 SA3 ...
-                        :used just like the '-atlas_abbrevs ..' opt
-                         above, but for the seg follower dsets.  
-                         Default abbreviation is:  
-                           3dinfo -prefix_noext SEG_DSET
-                         Has no 'known' abbrevs.
+  -seg_abbrevs SA1 SA2 SA3 ...
+                      :used just like the '-atlas_abbrevs ..' opt
+                       above, but for the seg follower dsets.  
+                       Default abbreviation is:  
+                         3dinfo -prefix_noext SEG_DSET
+                       Has no 'known' abbrevs.
 
-    -dset_abbrevs DA1 DA2 DA3 ...
-                        :used just like the '-atlas_abbrevs ..' opt
-                         above, but for the dset follower dsets.  
-                         Default abbreviation is:  
-                           3dinfo -prefix_noext DSET_DSET
-                         Has no 'known' abbrevs.
+  -dset_abbrevs DA1 DA2 DA3 ...
+                      :used just like the '-atlas_abbrevs ..' opt
+                       above, but for the dset follower dsets.  
+                       Default abbreviation is:  
+                         3dinfo -prefix_noext DSET_DSET
+                       Has no 'known' abbrevs.
 
-    -roidset_abbrevs RA1 RA2 RA3 ...
-                        :used just like the '-atlas_abbrevs ..' opt
-                         above, but for the dset follower dsets.  
-                         Default abbreviation is:  
-                           3dinfo -prefix_noext ROIDSET_DSET
-                         Has no 'known' abbrevs.
+  -roidset_abbrevs RA1 RA2 RA3 ...
+                      :used just like the '-atlas_abbrevs ..' opt
+                       above, but for the dset follower dsets.  
+                       Default abbreviation is:  
+                         3dinfo -prefix_noext ROIDSET_DSET
+                       Has no 'known' abbrevs.
 
-    -use_known_abbrev_base
-                        :try to 'guess' an appropriate abbreviation
-                         for a base dset as processing proceeds, for
-                         naming created dsets.  Shares same list of
-                         knowns as the 'template' followers.
+  -use_known_abbrev_base
+                      :try to 'guess' an appropriate abbreviation
+                       for a base dset as processing proceeds, for
+                       naming created dsets.  Shares same list of
+                       knowns as the 'template' followers.
 
-    -use_known_abbrev_atlas
-                        :try to 'guess' an appropriate abbreviation
-                         for an atlas dset as processing proceeds, for
-                         naming created dsets.  
+  -use_known_abbrev_atlas
+                      :try to 'guess' an appropriate abbreviation
+                       for an atlas dset as processing proceeds, for
+                       naming created dsets.  
 
-    -use_known_abbrev_template
-                        :try to 'guess' an appropriate abbreviation
-                         for a template follower dset as processing
-                         proceeds, for naming created dsets.  Shares
-                         same list of knowns as the 'base'.
+  -use_known_abbrev_template
+                      :try to 'guess' an appropriate abbreviation
+                       for a template follower dset as processing
+                       proceeds, for naming created dsets.  Shares
+                       same list of knowns as the 'base'.
 
-    -use_known_abbrev_ALL
-                        :like using all the other '-use_known_abbrev*' 
-                         opts.
+  -use_known_abbrev_ALL
+                      :like using all the other '-use_known_abbrev*' 
+                       opts.
 
-    -align_centers_meth ACM
-                        :By default, an early step here is to use
-                         "Align_Centers -grid .." to start the
-                         alignment (align centers of grids).  If you
-                         want to, you can enter any of the "Center
-                         options" that @Align_Centers permits by using
-                         the given option in place of "ACM" *without*
-                         the preceding minus (e.g. a useful one might
-                         be: cm).  
-                         You can also provide the keyword "OFF" as an
-                         argument, and then @Align_Centers won't be
-                         run at all (the dset is just copied at that
-                         step), which is useful if you have already
-                         centered your dataset nicely.
+  -align_centers_meth ACM
+                      :By default, an early step here is to use
+                       "Align_Centers -grid .." to start the
+                       alignment (align centers of grids).  If you
+                       want to, you can enter any of the "Center
+                       options" that @Align_Centers permits by using
+                       the given option in place of "ACM" *without*
+                       the preceding minus (e.g. a useful one might
+                       be: cm).  
+                       You can also provide the keyword "OFF" as an
+                       argument, and then @Align_Centers won't be
+                       run at all (the dset is just copied at that
+                       step), which is useful if you have already
+                       centered your dataset nicely.
 
-    -cost xxx           :choose a cost function for affine and nonlinear
-                         alignment. The same or similar cost function
-                         will be used for both alignments. The cost
-                         functions are listed in the help for
-                         3dAllineate and 3dQwarp.  Cost functions,
-                         like lpa+ZZ for 3dAllineate, are not
-                         available in 3dQwarp, so the "+ZZ" part would
-                         removed from the NL part of warping (i.e.,
-                         lpa would then be used for 3dQwarp's NL
-                         warping cost function). The default cost
-                         function is lpa+ZZ for affine warping (via
-                         align_epi_anat.py and 3dAllineate) and a
-                         clipped Pearson correlation for nonlinear
-                         warping (via auto_warp.py and 3dQwarp)
+  -cost xxx           :choose a cost function for affine and nonlinear
+                       alignment. The same or similar cost function
+                       will be used for both alignments. The cost
+                       functions are listed in the help for
+                       3dAllineate and 3dQwarp.  Cost functions,
+                       like lpa+ZZ for 3dAllineate, are not
+                       available in 3dQwarp, so the "+ZZ" part would
+                       removed from the NL part of warping (i.e.,
+                       lpa would then be used for 3dQwarp's NL
+                       warping cost function). The default cost
+                       function is lpa+ZZ for affine warping (via
+                       align_epi_anat.py and 3dAllineate) and a
+                       clipped Pearson correlation for nonlinear
+                       warping (via auto_warp.py and 3dQwarp)
 
-    -maxlev nn          :maximum level for nonlinear warping. Determines 
-                         final neighborhood 'patch' size that is
-                         matched+refined. Allowed values are:
-                             0 <= nn <= 11
-                         See 3dQwarp help for information on maxlev. 
-                         Use smaller values for faster performance and
-                         testing. Increase up to 11 for finer warping.
-                         (def = ${maxlev})
+  -maxlev nn          :maximum level for nonlinear warping. Determines 
+                       final neighborhood 'patch' size that is
+                       matched+refined. Allowed values are:
+                           0 <= nn <= 11
+                       See 3dQwarp help for information on maxlev. 
+                       Use smaller values for faster performance and
+                       testing. Increase up to 11 for finer warping.
+                       (def = ${maxlev})
 
-    -no_surfaces        :do not make surfaces for atlas regions in native
-                         space. Default is to create a surface directory
-                         with surfaces of each region in native space.
+  -no_surfaces        :do not make surfaces for atlas regions in native
+                       space. Default is to create a surface directory
+                       with surfaces of each region in native space.
 
-    -feature_size mm    :set size in mm for affine alignment. Use about 0.1
-                         for mouse, 0.5 for rat
+  -feature_size mm    :set size in mm for affine alignment. Use about 0.1
+                       for mouse, 0.5 for rat
 
-    -supersize          :allow for up to 50% size difference between subject
-                         and template
+  -supersize          :allow for up to 50% size difference between subject
+                       and template
 
-    -mode_smooth_size n :modal smoothing kernel size in voxels (not mm)
-                         This determines the size of a spatial regularization
-                         neighborhood for both ROI followers and segmentation
-                         datasets. Voxel values are replaced with the mode
-                         (most common value) in the spherical neighborhood.
-                         The default uses a 1 voxel radius. Use higher values
-                         depending on the irregularities of the edges of the
-                         regions and ROI 
-                         Turn off by setting this to 0
+  -mode_smooth_size n :modal smoothing kernel size in voxels (not mm)
+                       This determines the size of a spatial regularization
+                       neighborhood for both ROI followers and segmentation
+                       datasets. Voxel values are replaced with the mode
+                       (most common value) in the spherical neighborhood.
+                       The default uses a 1 voxel radius. Use higher values
+                       depending on the irregularities of the edges of the
+                       regions and ROI 
+                       Turn off by setting this to 0
 
-    -mode_smooth_replacement_off
-                        :the current default behavior for modal
-                         smoothing is to do both 1) modal smoothing
-                         (with 3dLocalstat) and then 2) check if any
-                         ROIs got lost in that process, and 3) if ROIs
-                         got lost, put them back in (those specific
-                         ones won't be smoothed, just re-placed).
-                         Using this opt will mean that steps #2 and #3
-                         do NOT happen -- you just get plain modal
-                         smoothing without replacement.
+  -mode_smooth_replacement_off
+                      :the current default behavior for modal
+                       smoothing is to do both 1) modal smoothing
+                       (with 3dLocalstat) and then 2) check if any
+                       ROIs got lost in that process, and 3) if ROIs
+                       got lost, put them back in (those specific
+                       ones won't be smoothed, just re-placed).
+                       Using this opt will mean that steps #2 and #3
+                       do NOT happen -- you just get plain modal
+                       smoothing without replacement.
 
-    -center_out         :center native-space output to native original 
-                         space or to center-shifted space over the center
-                         of template.
-                         ****Note using the center_out native data
-                         transformations will require extra care.
-                         3dNmatrix_apply may require vast amounts of memory
-                         if the center of the original dataset is far from
-                         the center of the template dataset, usually around
-                         an xyz coordinate of 0,0,0. 
-                         If datasets are far from a center around 0,0,0,
-                         then consider using 
-                           3drefit -oblique_recenter
-                           3drefit -oblique_recenter_raw
-                         or a preprocessing center alignment for all the
-                         native space datasets
-                           @Align_Centers -base template -dset mydset \
-                            -child dset2 dset3 ...
+  -center_out         :center native-space output to native original 
+                       space or to center-shifted space over the center
+                       of template.
+                       ****Note using the center_out native data
+                       transformations will require extra care.
+                       3dNmatrix_apply may require vast amounts of memory
+                       if the center of the original dataset is far from
+                       the center of the template dataset, usually around
+                       an xyz coordinate of 0,0,0. 
+                       If datasets are far from a center around 0,0,0,
+                       then consider using 
+                         3drefit -oblique_recenter
+                         3drefit -oblique_recenter_raw
+                       or a preprocessing center alignment for all the
+                       native space datasets
+                         @Align_Centers -base template -dset mydset \
+                          -child dset2 dset3 ...
 
-    -align_type         :provide alignment only to specified level
-                         (rigid,rigid_equiv,affine,all)
-                         rigid - align using rotation and translation
-                         rigid_equiv - compute alignment with full affine
-                            but apply only the rigid parameters.
-                            This is usually preferred over the rigid body
-                            alignment because it handles different sizes
-                            better. The purpose here is to put data into
-                            approximately the same position as the template
-                            (AC-PC, axialized, ...)
-                         affine - full affine, 12 parameters
-                            rotation, translation, shearing and scaling
-                         all - go through affine and nonlinear warps (Default)
-                         Note, any option other than all will forego the
-                         reverse warps for now. You may restart and reuse
-                         existing warp transformations with the -ok_to_exist
-                         option
+  -align_type         :provide alignment only to specified level
+                       (rigid,rigid_equiv,affine,all)
+                       rigid - align using rotation and translation
+                       rigid_equiv - compute alignment with full affine
+                          but apply only the rigid parameters.
+                          This is usually preferred over the rigid body
+                          alignment because it handles different sizes
+                          better. The purpose here is to put data into
+                          approximately the same position as the template
+                          (AC-PC, axialized, ...)
+                       affine - full affine, 12 parameters
+                          rotation, translation, shearing and scaling
+                       all - go through affine and nonlinear warps (Default)
+                       Note, any option other than all will forego the
+                       reverse warps for now. You may restart and reuse
+                       existing warp transformations with the -ok_to_exist
+                       option
 
-    -keep_temp          :keep temporary files including awpy directory and
-                         other intermediate datasets
+  -keep_temp          :keep temporary files including awpy directory and
+                       other intermediate datasets
 
-    -ok_to_exist        :reuse and do not overwrite existing datasets.
-                         This option is used for faster restarts or with
-                         limited alignment options
+  -ok_to_exist        :reuse and do not overwrite existing datasets.
+                       This option is used for faster restarts or with
+                       limited alignment options
 
-    -echo               :copy all commands being run into the terminal 
+  -echo               :copy all commands being run into the terminal 
                          (like running 'tcsh -x ...')
 
-Comments ~1~
 
-    @animal_warper provides multiple outputs to assist in registering your
-    anatomicals and associated MRI data to the template:
+Outputs (we got plenty of 'em!) ~1~
 
-    Subject scans registered to the template
-   	+ mydset_shft.nii.gz - dataset center aligned to the template center
-   	+ mydset_shft_al2std.nii.gz - dataset affine aligned to the template
-   	+ mydset_shft_aff.nii.gz - dataset affine aligned to the template
-                                   and on the template grid
-   	+ mydset_warp2std.nii.gz - dataset nonlinearly warped to the template
+  @animal_warper provides multiple outputs to assist in registering
+  your anatomicals and associated MRI data to the template.  Below,
+  INP refers to the abbreviation used to refer to the "-input .."
+  subject dset, and TEM to that of the "-base .." template
+  (typically in some standard space).
 
-    Registration datasets for alignment to base template
-   	+ mydset_composite_linear_to_template.1D** - combined affine
-                               transformations to the template
-   	+ mydset_shft_WARP.nii.gz - warp deformations to the template from
-                                nonlinear alignment only
+  Main datasets ~2~
 
-    Registration datasets for Template alignment to Subject
-   	+ mydset_composite_linear_to_template_inv.1D** - inverse of
-                              mydset_composite_linear_to_template.1D
-   	+ mydset_shft_WARPINV.nii.gz - inverse of mydset_shft_WARP.nii.gz
+    The following are all contained in the main output directory
+    ("-outdir ..")
 
-    Atlas aligned to Subject (Optional - only if atlas provided)
-   	+ seg_in_mydset.nii.gz - atlas segmentation aligned to native scan
+    + Text file "dictionary" reference of outputs
+      o animal_outs.txt         - guide to data in main dir and subdirs;
+                                  contains version number and history of 
+                                  command run
 
-    Template aligned_to Subject
-    + template_in_mydset.nii.gz** - template (e.g. NMT,D99) aligned
-      to native scan
+    + Subject scans in native space of input
+      o INP.nii.gz              - copy of original input
+      o INP_ns.nii.gz           - same as above, but "no skull" (ns) version
+      o INP_nsu.nii.gz          - same as above, but also unifized (brightness)
+      o INP_mask.nii.gz         - mask of input (should match "ns" version)
+      o DSET_FOLL               - copy(s) of "-dset_followers .." (not abbrev)
+      o ROIDSET_FOLL            - copy(s) of "-roidset_followers .." (not 
+                                  abbrev)
 
-    Text description of output
-    + animal_outs.txt - list of important datasets and transforms in
-                        output directory
+    + Template scans in native space of input 
+      o TEM_in_INP.nii.gz       - template aligned to input
 
-    ***-NOTE: @animal_warper is part of the AFNI software package  ***
-    Here all occurrences of mydset in the output file names would be replaced
-       with the name of your dataset. For NMT and D99 templates, the output
-       will contain NMT or D99 instead of template
-
-Outputs ~1~
-
-QC/*png
-
-  Quality control (QC) images of various alignments and mappings of
-  atlas/seg followers.  Alignment of dataset is typically shown with
-  one as "edges" and the other overlaid, to see how structures align. 
-
-surfaces/ directory
-
-  For all '-atlas ..' and '-atlas_follower ..' dsets, a complete set
-  of surfaces is created of the ROIs after they have been warped into
-  the '-input ..' subject space.  Subdirectories named 'surface_*' are
-  created for each subbrick of each atlas; there are also
-  do_view*.tcsh scripts automatically generated for viewing each one.
-
-QC/reports*.1D
-
-  For '-atlas ..' and '-atlas_follower ..' and '-seg_follower ..'
-  dsets, tables of information about the ROI sizes before and after
-  warping are created; these are stored in report*.1D files (text
-  files which can be viewed in a regular text editor and also used for
-  calculations with AFNI programs) for each subbrick of each these
-  dsets.  Absolute volumes, volume fractions, and ratios of ROI sizes
-  are reported in the table; any ROIs that exist before but not after
-  warping are also catalogued.
-
-Base dset "*.gii" surface
-
-  For the '-base ..' dset, a surface file (*.gii) is generated for it
-  after it has been warped to the '-input ..' subject space.
-
-All atlas_points and labeltables on all input dsets should be passed
-along to their warped versions, preserving those useful
-functionalities and information.
+    + Template followers (e.g., atlas ATL, segmentation SEG) in native
+      space of input; could be several of each, each with own abbreviation
+      o ATL_in_INP.nii.gz       - "-atlas_followers .." aligned to input
+      o SEG_in_INP.nii.gz       - "-seg_followers .." aligned to input
 
 
-Integrating AW with afni_proc.py ~1~
+    + Template dsets and followers in template space
+      o TEMPLATE                - copy of "-template .." (not abbrev)
+      o TEMPLATE_MASK           - copy of "-skullstrip .." mask (not abbrev)
+      o ATL_FOLL                - copy(s) of "-atlas_followers .." (not abbrev)
+      o SEG_FOLL                - copy(s) of "-seg_followers .." (not abbrev)
+      o TEMPLATE_FOLL           - copy of "-template_followers .." (not abbrev)
 
-Let's say that you ran this command as the following (written with
-variables in ye olde 'tcsh' style):
+    + Subject scans mapped to the template
+      o INP_warp2std.nii.gz     - input dset nonlinearly warped to TEM
+      o INP_warp2std_ns.nii.gz  - same as above, but "no skull" version
+      o INP_warp2std_nsu.nii.gz - same as above, but also unifized (brightness)
+
+    + Alignment data (INP->TEM)
+      o INP_composite_linear_to_template.1D - matrix, full affine part
+      o INP_shft_WARP.nii.gz    - NL warp part (TEM grid)
+
+    + Alignment data (TEM->INP)
+      o INP_composite_linear_to_template_inv.1D - matrix, full affine part
+      o INP_shft_WARPINV.nii.gz - NL part of warp (TEM grid)
+
+  QC info ~2~
+
+    The following are all contained in the "QC/" subdirectory.
+
+    The following quality control (QC) images are automatically
+    generated during processing, to help with speedy checking of
+    processing.  In each case, there are three sets of montages (one
+    for sag, cor and axi views) and a copy of the colorbar used (same
+    prefix as file name, *.jpg).  Additionally, there is also a *.txt
+    file of ranges of values related to the ulay and olay, which might
+    be useful for QC or figure-generation.
+
+    + qc_00_e_base+wrpd_input.* (in base space)
+      [ulay] edges of the base dset
+      [olay] warped input dset
+
+    + qc_01_e_wrpd_base+input.* (in input space)
+      [ulay] edges of the (warped) base dset
+      [olay] original input dset
+
+    + qc_02_input+mask.* (in input space)
+      [ulay] input dset 
+      [olay] estimated (or input) mask, showing skullstripping
+
+    + qc_03_ee_input+wrpd_{ATL,SEG}_* (in input space)
+      [ulay] 'edge enhanced' original input dset
+      [olay] warped atlas or seg dset 
+      o NB: if the olay dset has >1 subbrick, each will be snapshotted
+            separately, because I heard the baying of the crowds for
+            such.
+
+    Additionally, if follower datasets are used (e.g., mapping atlases
+    from template to subject space), then report*1D text files are
+    also output, detailing information about ROIs before and after
+    mapping.
+
+    + report_{ATL,SEG}*.1D 
+      o this text file includes both absolute and relative volumes, as
+        well as ratios of volumes.  Additionally, one can see if any
+        ROIs got lost in the mapping process (e.g., were too small or
+        narrow, got squeezed too much or fell outside the mask).
+      o this text file can be viewed in a regular text editor and also
+        used for calculations with AFNI programs
+      o each report calculated separately for each subbrick of an
+        input ATL or SEG
+
+  Surfaces generated ~2~
+
+    (Unless you turn off surface estimate) there will be a "surfaces/"
+    directory with full sets of ROI surfaces calculated from the
+    '-atlas_follower ..' and '-seg_follower ..' dsets.
+
+    + surfaces_{ATL,SEG}*/
+      o full set of surfaces of each region in the respective dset
+      o if the atlas has >1 subbrick (e.g., the CHARM), then each 
+        subbrick will have its own subdir
+
+    + do_view_surfaces_{ATL,SEG}*.tcsh
+      o automatically generated script to view the contents of each 
+        surfaces_{ATL,SEG}*/ directory in SUMA
+
+    + TEM_in_INP.gii
+      o slightly polished surface of the warped template in input
+        space
+
+    + do_view_isosurf_TEM_in_INP.tcsh
+      o automatically generated script to view TEM_in_INP.gii in SUMA
+
+
+  Intermediate results directory ~2~
+
+    There is an "intermediate/" directory with lots of intermediate
+    warps, affine transforms and datasets.  
+
+    *If* you are supremely confident about your outputs, you can
+    remove this directory to save space.  **But** you should probably
+    only do so if you really need to, because invariably once you
+    delete it you will need to check something from it.  That's just
+    life.
+
+    This directory is useful to keep around for asking questions,
+    checking alignment (esp. checking if something went wrong),
+    potentially debugging (not my fault!), etc.
+
+    Comments ~2~
+
+    All atlas_points and labeltables on all input dsets should be
+    passed along to their warped versions, preserving those useful
+    functionalities and information.
+
+
+Integrating AW with afni_proc.py (AP) ~1~
+
+  Let's say that you plan to run AW as a prelude to processing FMRI
+  data with AP (a good idea, by the way!).  
+
+  This might be an example AW command (written with variables in ye
+  olde 'tcsh' style):
 
     set anat_subj = sub-001_anat.nii.gz                          # input anat
     set refvol    = NMT_stereo_sym_2.0_SS.nii.gz                 # ref: template
@@ -2956,81 +3130,86 @@ variables in ye olde 'tcsh' style):
         -outdir \${odir_aw}                  \
         -ok_to_exist
 
-Then, these are some lines that you might want to include in your
-afni_proc.py command (where the '...' means some other entries/options
-for afni_proc.py would be included; order doesn't matter for the
-command, but we are following the style in which most afni_proc.py
-help examples are written):
+  If you are mapping your FMRI data to standard space and using the
+  "tlrc" block in your AP command, then there are probably 4 main
+  outputs from there that you would then put into every successive AP
+  command, as well as using the same "refvol" and noting that your
+  anatomical dset has already been skullstripped.  We highlight these
+  in the following AP skeleton command (where the '...' means some
+  other entries/options would likely be included; order doesn't matter
+  for the AP command, but we are following the style in which most
+  afni_proc.py help examples are written):
 
-|    # root of AW output dsets
-|    set anat_base = \`3dinfo -prefix_noext \${anat_subj}\`  
-|
-|    afni_proc.py                                                          \
-|        ...                                                               \
-|        -blocks  ... align tlrc volreg ...                                \
-|        ...                                                               \
-|        -copy_anat               \${odir_aw}/\${anat_base}_ns.nii.gz        \
-|        -anat_has_skull          no                                       \
-|        ...                                                               \
-|        -tlrc_base               \${refvol}                                \
-|        -tlrc_NL_warp                                                     \
-|        -tlrc_NL_warped_dsets                                             \
-|            \${odir_aw}/\${anat_base}_warp2std_nsu.nii.gz                   \
-|            \${odir_aw}/\${anat_base}_composite_linear_to_template.1D     \
-|            \${odir_aw}/\${anat_base}_shft_WARP.nii.gz                    \
-|        ...
+  |  # root of AW output dsets
+  |  set anat_base = \`3dinfo -prefix_noext \${anat_subj}\`  
+  |
+  |  afni_proc.py                                                       \
+  |      ...                                                            \
+  |      -blocks  ... align tlrc volreg ...                             \
+  |      ...                                                            \
+  |      -copy_anat               \${odir_aw}/\${anat_base}_ns.nii.gz     \
+  |      -anat_has_skull          no                                    \
+  |      ...                                                            \
+  |      -tlrc_base               \${refvol}                             \
+  |      -tlrc_NL_warp                                                  \
+  |      -tlrc_NL_warped_dsets                                          \
+  |          \${odir_aw}/\${anat_base}_warp2std_nsu.nii.gz                \
+  |          \${odir_aw}/\${anat_base}_composite_linear_to_template.1D  \
+  |          \${odir_aw}/\${anat_base}_shft_WARP.nii.gz                 \
+  |      ...
 
-In the preceding, please note the naming conventions in the *.1D
-affine matrix and *WARP.nii.gz nonlinear warp dset which are provided
-to the '-tlrc_NL_warped_dsets ..' option.
+  In the preceding, please note the naming conventions in the *.1D
+  affine matrix and *WARP.nii.gz nonlinear warp dset which are
+  provided to the '-tlrc_NL_warped_dsets ..' option.
 
 
-QC images ~1~
+Demos, Tutorials and Online Docs ~1~
 
-The following quality control (QC) images are automatically generated
-during processing, to help with speedy checking of processing.  In
-each case, there are three sets of montages (one for sag, cor and axi
-views) and a copy of the colorbar used (same prefix as file name,
-*.jpg).  Additionally, there is also a *.txt file of ranges of values
-related to the ulay and olay, which might be useful for QC or
-figure-generation.
-
-Inside the output directory is a subdirectory called QC/ that contains
-the following semi-cryptically named files:
-
-  qc_00_e_base+wrpd_input.*
-    [ulay] edges of the base dset (in base space)
-    [olay] warped input dset
-
-  qc_01_e_wrpd_base+input.*
-    [ulay] edges of the base dset (warped to orig space)
-    [olay] original input dset
-
-  qc_02_input+mask.*
-    [ulay] input dset (in orig space)
-    [olay] estimated (or input) mask, showing skullstripping
-
-  qc_03_ee_input+wrpd_ATL_*
-  qc_03_ee_input+wrpd_SEG_*
-    [ulay] 'edge enhanced' original input dset (in orig space)
-    [olay] warped atlas or seg dset 
-    + NB: if the olay dset has >1 subbrick, each will be snapshotted 
-          separately, because I heard the baying of the crowds for such.
-
-References ~1~
-
-This script is derived from macaque_align.csh and NMT_subject_align.csh,
- scripts distributed with the D99 macaque and the NMT macaque template
- datasets and tools.
-
-See the MACAQUE_DEMO_* demos for examples in using the program, as
-well as integrating its outputs with afni_proc.py.  To download the
-demos:
+  + See the MACAQUE_DEMO_* demos for examples in using the program, as
+    well as integrating its outputs with afni_proc.py.  To download
+    the demos for task-based FMRI and resting state FMRI analysis,
+    respectively:
 
     @Install_MACAQUE_DEMO
 
     @Install_MACAQUE_DEMO_REST
 
+    ... with accompanying webpages here:
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_demos/main_toc.html
+
+  + For (growing) documentation on non-human dataset processing in
+    AFNI, see:
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html
+
+  + For information on accompanying templates and atlases in the
+    animal kingdon (such as NMT, CHARM and SARM), as well as how to
+    download them, please see here:
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_tempatl/main_toc.html
+
+
+References ~1~
+
+  If you use this program, please cite the following:
+
+  + Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, Glen DR,
+    Messinger A (2020). A Comprehensive Macaque FMRI Pipeline and
+    Hierarchical Atlas. NeuroImage (in press) doi:
+    10.1101/2020.08.05.237818
+    https://www.biorxiv.org/content/10.1101/2020.08.05.237818v1
+
+  + Saad ZS, Glen DR, Chen G, Beauchamp MS, Desai R, Cox RW (2009). A
+    new method for improving functional-to-structural MRI alignment
+    using local Pearson correlation. Neuroimage 44 839–848. doi:
+    10.1016/j.neuroimage.2008.09.037
+    https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2649831/
+
+
+This program has been written (and rewritten!) by D Glen and PA Taylor
+(SSCC, NIMH, NIH, USA), with many helpful contributions and
+suggestions from B Jung.
 
 SCRIPT_HELP_STRING
 
@@ -3053,7 +3232,7 @@ printf "%-37s : %s\n"                 \
 
 printf "%-37s : %s\n"                 \
         "Scripts to view surface(s)"  \
-        "do*.tcsh"                    \
+        "surfaces/do*.tcsh"           \
        >> ${animal_outs}
 
 printf "%-37s : %s\n"                 \
