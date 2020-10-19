@@ -3,7 +3,7 @@
 
 SYNOPSIS
 
-    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs>
+    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs> -o <orientation>
 
 DESCRIPTION
 
@@ -11,6 +11,9 @@ DESCRIPTION
     in Fourier space.  If they are rotationally aligned, they should intersect on the appropriate orthogonal cardinal axes.
     The slope of the phase shift, along the lines of intersection, reflect the translational misalignment.  The translations,
     and rotations, are each determined by solving a linear system.  These solutions are completely independent of each other.
+
+    -o  Output of "3dinfo -orient mydset" in the linux command line.  This gives the a, y,z z-axes in terms of the axial, coronal
+        and sagmital direction.
 
 NOTES
 
@@ -34,10 +37,10 @@ NOTES
 
 #define UNIX 1
 
-int Cleanup(char *inputFileName, char *outputFileNames[], COMPLEX ***TwoDFts, THD_3dim_dataset *din);
+int Cleanup(char *inputFileName, COMPLEX ***TwoDFts, THD_3dim_dataset *din);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven);
-int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode);
+int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode, char *orientation);
 int float2DImage(THD_3dim_dataset *dset);
 int getLargestDimension(THD_3dim_dataset *din);
 int zeroPadProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, int largestDimension, int factor);
@@ -50,7 +53,7 @@ int outputFourierSpectrum(COMPLEX **TwoDFts, THD_3dim_dataset *din);
 int outputRealAndImaginaryPlanes(COMPLEX **TwoDFts, THD_3dim_dataset *din);
 COMPLEX **CheckeredInversion(COMPLEX **input, unsigned int dimension);
 ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImages, int dimension,
-		IntRange irFrequencyRange, char *csAnalysisFileName, float *fpCoplanarAngularShift);
+		IntRange irFrequencyRange, char *csSearchPath, char *csRootName, float *fpCoplanarAngularShift);
 ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float fIncrementInDegrees,
 			IntRange lrFrequencyRange, float ***fpppRadialSamples, long *lpNumRadialSamples);
 ERROR_NUMBER RotScaleComplexPlaneM(ComplexPlane *cppComplexPlane, Matrix mTransMatrix, BOOL bClip, BYTE bInterpOrder);
@@ -85,6 +88,7 @@ ERROR_NUMBER Complex2Float(ComplexPlane cpInputPlane, FloatPlane *fppRealOut, Fl
 FloatPlane MakeFloatPlane(long iRows, long iColumns, float **Data);
 char * RootName(char * csFullPathName);
 ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory);
+ERROR_NUMBER shortToFloat(THD_3dim_dataset **din);
 
 
 double  dCommonLinesAngleErr;
@@ -95,21 +99,24 @@ LongVector  lvOutputDimensions;
 int main( int argc, char *argv[] )  {
 	ERROR_NUMBER	enErrorNumber;
 	IntRange irFrequencyRange;
-	char csAnalysisFileName[512];
 	float fCoplanarAngularShift;
     THD_3dim_dataset * din = NULL, *dodd, *deven;
-    THD_3dim_dataset* projections[3], *paddedProjections[3];
+    THD_3dim_dataset* projections[6], *paddedProjections[6];
     int     i, j, largestDimension, paddingFactor=4;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
-    char*    outputFileNames[3]={NULL,NULL,NULL};
-    COMPLEX** TwoDFts[3]={NULL, NULL, NULL};
+    char    orientation[3];
+    COMPLEX** TwoDFts[6]={NULL, NULL, NULL};
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
+                return Cleanup(inputFileName, TwoDFts, din);
             sprintf(inputFileName,"%s",argv[i]);
+            break;
+
+        case 'o':
+            sprintf(orientation, "%s", argv[++i]);
             break;
 
         case 'p':
@@ -119,16 +126,21 @@ int main( int argc, char *argv[] )  {
     }
 
     if( open_input_dset(&din, inputFileName) )
-    return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
+    return Cleanup(inputFileName, TwoDFts, din);
 
     // Split volume into odd and even slices
     if (!unweave_sections(din, &dodd, &deven))
-        return Cleanup(inputFileName, outputFileNames, TwoDFts, din);
+        return Cleanup(inputFileName, TwoDFts, din);
 
-    // Make projections
-    makeProjection(dodd, &(projections[0]), 's');
-    makeProjection(dodd, &(projections[1]), 'a');
-    makeProjection(dodd, &(projections[2]), 'c');
+    // Make odd projections
+    makeProjection(dodd, &(projections[0]), 's', orientation);
+    makeProjection(dodd, &(projections[1]), 'c', orientation);
+    makeProjection(dodd, &(projections[2]), 'a', orientation);
+
+    // Make even projections
+    makeProjection(deven, &(projections[3]), 's', orientation);
+    makeProjection(deven, &(projections[4]), 'c', orientation);
+    makeProjection(deven, &(projections[5]), 'a', orientation);
 
     // Get largest dimension from data set
     largestDimension=getLargestDimension(dodd);
@@ -142,50 +154,59 @@ int main( int argc, char *argv[] )  {
     // float2DImage(doddSagProj);
 
     // Zero pad projections
-    for (i=0; i<3; ++i){
+    for (i=0; i<6; ++i){
         if (!(zeroPadProjection(projections[i], &(paddedProjections[i]), largestDimension, paddingFactor))){
-            Cleanup(inputFileName, outputFileNames, TwoDFts, projections[2]);
+            Cleanup(inputFileName, TwoDFts, projections[2]);
             for (j=0; j<i; ++j) DSET_delete(paddedProjections[j]);
-            for (; j<3; ++j) DSET_delete(projections[j]);
+            for (; j<6; ++j) DSET_delete(projections[j]);
         }
         DSET_delete(projections[i]);
     }
 
     // Make Fourier transforms of projections
-    for (i=0; i<3; ++i){
+    for (i=0; i<6; ++i){
         if (!(get2DFourierTransform(paddedProjections[i], &(TwoDFts[i])))){
-            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
-            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+            Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+            for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
         }
     }
 
     // Output Fourier spectra, of projections.
-    for (i=0; i<3; ++i){
+#if 1
+    for (i=0; i<6; ++i){
         if (!(outputFourierSpectrum(TwoDFts[i], paddedProjections[i]))){
-            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
-            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+            Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+            for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
         }
     }
+#endif
 
     // DEBUG: Output real and imaginary plane of first FT.
-    outputRealAndImaginaryPlanes(TwoDFts[0], paddedProjections[0]);
+    // outputRealAndImaginaryPlanes(TwoDFts[0], paddedProjections[0]);
 
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
     int paddedDimension = DSET_NY(paddedProjections[0]);
-    int lNumberOfImages = 3;
-    irFrequencyRange.iMin = 4;
+    int lNumberOfImages = 6;
+    // irFrequencyRange.iMin = 0;
+    // irFrequencyRange.iMin = 1;
+    // irFrequencyRange.iMin = 10;
+    // irFrequencyRange.iMin = 5;
+    irFrequencyRange.iMin = 15;
+    // irFrequencyRange.iMin = 20;
+    // irFrequencyRange.iMax = paddedDimension/2-32;
     irFrequencyRange.iMax = paddedDimension/2;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=DSET_DIRNAME(din);
-    sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
+    // sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
     if ((enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
-		irFrequencyRange, csAnalysisFileName, &fCoplanarAngularShift))!=ERROR_NONE){
-            Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
-            for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+		irFrequencyRange, searchPath, prefix, &fCoplanarAngularShift))!=ERROR_NONE){
+            Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+            for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
 		}
 
-    Cleanup(inputFileName, outputFileNames, TwoDFts, paddedProjections[0]);
-    for (i=0; i<3; ++i) DSET_delete(paddedProjections[i]);
+    Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+    for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
+
     return 1;
 }
 
@@ -280,30 +301,30 @@ ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float f
 }
 
 ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImages, int dimension,
-		IntRange irFrequencyRange, char *csAnalysisFileName, float *fpCoplanarAngularShift)
+		IntRange irFrequencyRange, char *csSearchPath, char *csRootName, float *fpCoplanarAngularShift)
 {
 	ERROR_NUMBER	enErrorNumber;
 	ComplexPlane    cpComplexPlane;
+	char            csAnalysisFileName[512];
+
+	// Increment to avoid false maxima
 	float			fIncrementInDegrees=2.0f*(float)(asin(0.5/irFrequencyRange.iMax)/DEGREES2RADIANS);
+
 	float			**fppRefSamples, **fpTargetSamples, fComparisonMetric, faPeakValues[10];
 	long			lPlaneIndex, lNumTargetSamples, lNumRefSamples, lTargetIndex, lRefIndex;
 	short			sPeakIndex, i, j;
 	FloatVector		fvaPeakCoords[10];
 	FILE			*fpAnalysisFile, *fpGraphFile;
 	BOOL			bAnalysisFile=TRUE;
-	char            *graphFileName, *directory, *rootName;
+	char            *graphFileName;
+	// , *directory, *rootName;
 
-	// Try halving increment
+	// Try reducing increment to improve accuracy
 	fIncrementInDegrees /= 2;
 
 	// Allocate memory to graph file name
-	if (!(graphFileName=(char *)malloc(strlen(csAnalysisFileName)+32)) ||
-        !(directory=(char *)malloc(strlen(csAnalysisFileName))) ||
-        !(rootName=RootName(csAnalysisFileName))){
-            if (graphFileName) free(graphFileName);
-            if (directory) free(directory);
+	if (!(graphFileName=(char *)malloc(strlen(csAnalysisFileName)+32)))
             return ERROR_MEMORY_ALLOCATION;
-        }
 
 	// Make reference samples
 	lNumRefSamples=Round(180.0f/fIncrementInDegrees)-1;
@@ -312,11 +333,10 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 	if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
 		irFrequencyRange, &fppRefSamples, &lNumRefSamples))!=ERROR_NONE){
 		free(graphFileName);
-        free(directory);
-        free(rootName);
 		return ERROR_MEMORY_ALLOCATION;
     }
 
+    /*
     // Get directory name
     if ((enErrorNumber=GetDirectory(csAnalysisFileName, directory))!=ERROR_NONE){
         free(graphFileName);
@@ -324,26 +344,23 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
         free(rootName);
         return enErrorNumber;
     }
-
-	// Initialize peak values (Maybe should go in plane loop)
-	for (i=0; i<10; ++i) faPeakValues[i]=0.0f;
+    */
 
 	// Process target planes
-	for (lPlaneIndex=1; lPlaneIndex<=lNumberOfImages; ++lPlaneIndex)
+	for (lPlaneIndex=1; lPlaneIndex<lNumberOfImages; ++lPlaneIndex)
+        if (lPlaneIndex!=3) // Avoid coplanar
 	{
-        // Open analysis file
-        sprintf(graphFileName, "%s/%s_graph%ld.csv", directory, rootName,lPlaneIndex);
+        // Open graph file
+        sprintf(graphFileName, "%s/%s_LOI_graph%ld.csv", csSearchPath, csRootName, lPlaneIndex);
         if (!(fpGraphFile=fopen(graphFileName, "w"))){
             free(graphFileName);
-            free(directory);
-            free(rootName);
             return ErrorOpeningFile(graphFileName);
         }
 
 		// Make target array
 		lNumTargetSamples=Round(360.0f/fIncrementInDegrees);
         cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
-        cpComplexPlane.Data=TwoDFts[1];
+        cpComplexPlane.Data=TwoDFts[lPlaneIndex];
 		if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
 			irFrequencyRange, &fpTargetSamples, &lNumTargetSamples))!=ERROR_NONE)
 		{
@@ -352,8 +369,6 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
             fclose(fpGraphFile);
 			free(fppRefSamples);
 			free(graphFileName);
-            free(directory);
-            free(rootName);
 			return enErrorNumber;
 		}
 
@@ -362,6 +377,9 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 		for (lRefIndex=0; lRefIndex<=lNumRefSamples; ++lRefIndex)
             fprintf(fpGraphFile, ",%3.2f", fIncrementInDegrees*lRefIndex);
         fprintf(fpGraphFile, "\n");
+
+        // Initialize peak values (Maybe should go in plane loop)
+        for (i=0; i<10; ++i) faPeakValues[i]=0.0f;
 
 		// Process samples from target plane
 		for (lTargetIndex=0; lTargetIndex<=lNumTargetSamples; ++lTargetIndex)
@@ -383,8 +401,6 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
                     fclose(fpGraphFile);
 					free(fpTargetSamples);
 					free(graphFileName);
-                    free(directory);
-                    free(rootName);
 					return enErrorNumber;
 				}
 
@@ -422,6 +438,28 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 		// Free target samples
 		for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
 		free(fpTargetSamples);
+
+        // Open analysis file
+        sprintf(csAnalysisFileName,"%s/%s_LOI_summ%ld.csv", csSearchPath, csRootName, lPlaneIndex);
+        if (bAnalysisFile && !(fpAnalysisFile=fopen(csAnalysisFileName, "w")))
+            return ErrorOpeningFile(csAnalysisFileName);
+
+        // Output analysis to analysis file
+        if (bAnalysisFile)
+        {
+            fprintf(fpAnalysisFile, "Rank\t1/MSE\tRef. Coord.\tTarget Coord.\n");
+            for (i=0, j=1; i<10; ++i)
+            {
+                fprintf(fpAnalysisFile, "%d\t%3.2f\t%3.2f\t%3.2f\n", j++,
+                    faPeakValues[i], fvaPeakCoords[i].x, fvaPeakCoords[i].y);
+            }
+        }
+        *fpCoplanarAngularShift=fvaPeakCoords[0].y-fvaPeakCoords[0].x;
+        if (*fpCoplanarAngularShift>180) *fpCoplanarAngularShift-=360;
+        else if (*fpCoplanarAngularShift<-180) *fpCoplanarAngularShift+=360;
+
+        // Close analysis file
+        if (bAnalysisFile) fclose(fpAnalysisFile);
 	}
 
 	// Cleanup
@@ -429,29 +467,7 @@ ERROR_NUMBER OutputFourierIntersectionMap(COMPLEX ***TwoDFts, int lNumberOfImage
 		free(fppRefSamples[lRefIndex]);
 	free(fppRefSamples);
 	free(graphFileName);
-    free(directory);
-    free(rootName);
 
-	// Open analysis file
-	if (bAnalysisFile && !(fpAnalysisFile=fopen(csAnalysisFileName, "w")))
-		return ErrorOpeningFile(csAnalysisFileName);
-
-	// Output analysis to analysis file
-	if (bAnalysisFile)
-	{
-		fprintf(fpAnalysisFile, "Rank\t1/MSE\tRef. Coord.\tTarget Coord.\n");
-		for (i=0, j=1; i<10; ++i)
-		{
-			fprintf(fpAnalysisFile, "%d\t%3.2f\t%3.2f\t%3.2f\n", j++,
-				faPeakValues[i], fvaPeakCoords[i].x, fvaPeakCoords[i].y);
-		}
-	}
-	*fpCoplanarAngularShift=fvaPeakCoords[0].y-fvaPeakCoords[0].x;
-	if (*fpCoplanarAngularShift>180) *fpCoplanarAngularShift-=360;
-	else if (*fpCoplanarAngularShift<-180) *fpCoplanarAngularShift+=360;
-
-	// Close analysis file
-	if (bAnalysisFile) fclose(fpAnalysisFile);
 /* TEMPORARAILY COMMENTED OUT 2020-09-28
 	// Error analysis
 	dCommonLinesAngleErr=fabs((double)(*fpCoplanarAngularShift-ExpectedAngularShift(Z_AXIS)));
@@ -864,7 +880,7 @@ int getLargestDimension(THD_3dim_dataset *din){
     return (nx>ny)? ((nx>nz)? nx : nz) : ((ny>nz)? ny : nz);
 }
 
-int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode){
+int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode, char *orientation){
     int  nz, ny, nx, inInc, outInc, rows, cols, x;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=DSET_DIRNAME(din);
@@ -882,9 +898,31 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     // Get input voxel data
     float   *indata = DSET_ARRAY(din, 0);
 
+    // Determine axis
+    switch (tolower(projCode)){
+        case 'a':
+            if (orientation[0]=='S' || orientation[0]=='I') projCode='x';
+            else if (orientation[1]=='S' || orientation[1]=='I') projCode='y';
+            else if (orientation[2]=='S' || orientation[2]=='I') projCode='z';
+            else return ERROR_SEARCH;
+            break;
+        case 'c':
+            if (orientation[0]=='A' || orientation[0]=='P') projCode='x';
+            else if (orientation[1]=='A' || orientation[1]=='P') projCode='y';
+            else if (orientation[2]=='A' || orientation[2]=='P') projCode='z';
+            else return ERROR_SEARCH;
+            break;
+        case 's':
+            if (orientation[0]=='L' || orientation[0]=='R') projCode='x';
+            else if (orientation[1]=='L' || orientation[1]=='R') projCode='y';
+            else if (orientation[2]=='L' || orientation[2]=='R') projCode='z';
+            else return ERROR_SEARCH;
+            break;
+    }
+
     // Apply required projection
     switch (projCode){
-    case 'a':        // Axial projection
+    case 'z':        // Axial projection
 
         // Determine output dimansions
         rows=ny;
@@ -905,7 +943,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
             start+=1;
         }
         break;
-    case 'c':       // Coronal projection
+    case 'y':       // Coronal projection
 
         // Determine output dimansions
         rows=nz;
@@ -931,7 +969,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
             }
         }
         break;
-    case 's':       // Sagital projection
+    case 'x':       // Sagital projection
 
         // Determine output dimansions
         rows=nz;
@@ -985,6 +1023,39 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     free(outputFileName);
 
     return 1;
+}
+
+ERROR_NUMBER shortToFloat(THD_3dim_dataset **din){
+    float   *outputBuffer;
+    short   *indata;
+    int     i;
+
+    // Determine input dimensions
+    int nz = DSET_NZ(*din);
+    int ny = DSET_NY(*din);
+    int nx = DSET_NX(*din);
+    int numVoxels=nx*ny*nz;
+
+    // Memory allocation
+    if (!(outputBuffer=(float *)malloc(numVoxels*sizeof(float)))){
+        return ERROR_MEMORY_ALLOCATION;
+        }
+
+    // Fill input data
+    indata = DSET_ARRAY(*din, 0);
+
+    // Convert short int data to floating point
+    for (i=0; i<numVoxels; ++i){
+        outputBuffer[i]=indata[i];
+    }
+
+    // Update dataset
+    EDIT_dset_items( *din ,
+                    ADN_type, MRI_float,
+                    ADN_none ) ;
+    EDIT_substitute_brick(*din, 0, MRI_float, outputBuffer);
+
+    return ERROR_NONE;
 }
 
 int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_dataset **deven){
@@ -1098,32 +1169,41 @@ int unweave_sections(THD_3dim_dataset *din, THD_3dim_dataset **dodd, THD_3dim_da
 
 int open_input_dset(THD_3dim_dataset ** din, char * fname)
 {
+    int errorNumber;
    *din = THD_open_dataset(fname);
    if( ! *din ) {
       fprintf(stderr,"** failed to read input dataset '%s'\n", fname);
-      return 1;
+      return ERROR_READING_FILE;
    }
 
    /* refuse to work with anything but float here */
    // int brickType=DSET_BRICK_TYPE(*din, 0);
-   if( DSET_BRICK_TYPE(*din, 0) != MRI_float ) {
+   int brickType=DSET_BRICK_TYPE(*din, 0);
+   if( brickType == MRI_float ) {
+       /* data is not automatically read in, do it now */
+       DSET_load(*din);
+   /*
       fprintf(stderr,"** input must be of type float, failing...\n");
       return 1;
+      */
+   } else if (brickType==MRI_short){
+
+       DSET_load(*din);
+
+       if ((errorNumber=shortToFloat(din))!=ERROR_NONE)
+            return errorNumber;
+    //  TODO: Add code
    }
 
-   /* data is not automatically read in, do it now */
-   DSET_load(*din);
-
-   return 0;
+   return ERROR_NONE;
 }
 
-int Cleanup(char *inputFileName, char *outputFileNames[], COMPLEX ***TwoDFts, THD_3dim_dataset *din){
+int Cleanup(char *inputFileName, COMPLEX ***TwoDFts, THD_3dim_dataset *din){
     int i, j, ny;
 
     if (inputFileName) free(inputFileName);
-    for (i=0; i<3; ++i) if (outputFileNames[i]) free(outputFileNames[i]);
 
-    for (i=0; i<3; ++i){
+    for (i=0; i<6; ++i){
         if (TwoDFts[i]){
             ny = DSET_NY(din);
             for (j=0; j<ny; ++j) free(TwoDFts[i][j]);
@@ -2373,7 +2453,7 @@ return(Pxy);
 	buffer.iColumns=iColumns;
 	buffer.Data=Data;
 
-	if (Data == NULL)
+	if ((Data == NULL))
 	{
 		if (buffer.Data = (float **)malloc(buffer.iRows * sizeof(float *)))
 		{
