@@ -10,6 +10,7 @@ import filecmp
 import filelock
 import functools
 import getpass
+import importlib
 import itertools as IT
 import json
 import logging
@@ -30,7 +31,16 @@ import tempfile
 import time
 from xvfbwrapper import Xvfb
 
-from afnipy import lib_afni1D as LAD
+try:
+    LAD = importlib.import_module("afnipy.lib_afni1D")
+    AFNI_1D_SUPPORT = True
+except ImportError:
+    print(
+        "Import from afnipy failed. OutputDiffer class will not provide "
+        "support for comparing afni's 1d files "
+        )
+    AFNI_1D_SUPPORT  = False
+
 
 DISPLAY_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_display.lock"
 DISPLAY = filelock.FileLock(DISPLAY_LOCK_PATH)
@@ -781,7 +791,7 @@ class OutputDiffer:
             try:
                 fname = Path(fname)
                 # compare 1D files
-                if fname.suffix == ".1D":
+                if fname.suffix == ".1D" and AFNI_1D_SUPPORT:
                     self.assert_1dfiles_equal([fname])
                 elif fname.suffix == ".log":
                     # compare stdout and stderr logs
