@@ -509,8 +509,11 @@ def test_3dSliceNDice(data, ptaylor_env):
             -prefix {opref}
         """
     cmd = " ".join(cmd.split())
-    differ = tools.OutputDiffer(data, cmd)
-    differ.run()
+    differ = tools.OutputDiffer(
+        data,
+        cmd,
+    )
+    differ.run(timeout=60)
 
 
 # -------------------------------------------------------------------------
