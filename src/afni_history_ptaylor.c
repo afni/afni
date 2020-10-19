@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, July , 2020 , PT , "@djunct_overlap_check" , MAJOR , TYPE_NEW_PROG,
+   "Make of overlap of 2 datasets (esp for pre-align check, AW or SSW).",
+   "Will make both non-obl and 3dWarp-deob'ed images of olap (and report).\n"
+},
+
+{ 19, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added new QC image to QC/ dir: initial source-base alignment.",
+   "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"
+},
+
 { 19, Oct , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
    "Simplifying output dir: Phase II and III.  Thanks again, B Jung!",
    "New intermediate dir, animal_outs update, helpfile rewritten.\n"

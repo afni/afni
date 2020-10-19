@@ -255,9 +255,12 @@ set progname = @animal_warper
 #set version = "2.93" ; set date = "Oct 19, 2020"
 # [PT] verifying/testing in Mac demos
 #
-set version = "3.0" ; set date = "Oct 19, 2020"
+#set version = "3.0" ; set date = "Oct 19, 2020"
 # [PT] updating help file -- more useful?
 #
+set version = "3.01" ; set date = "Oct 19, 2020"
+# [PT] new "pre"-QC: check src-base overlap: @djunct_overlap_check
+# 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -848,6 +851,13 @@ else
     # using default cost in 3dQwarp
     set nlcostoption = ""
 endif
+
+# ------------------------- earliest QC: check overlap
+
+@djunct_overlap_check                             \
+    -ulay   "${src_dset0}"                        \
+    -olay   "${base_dset}"                        \
+    -prefix ${outdir}/QC/init_qc_00_overlap_usrc_obase
 
 # ------------------------- setup input SRC dset
 
@@ -3025,11 +3035,23 @@ Outputs (we got plenty of 'em!) ~1~
 
     The following quality control (QC) images are automatically
     generated during processing, to help with speedy checking of
-    processing.  In each case, there are three sets of montages (one
-    for sag, cor and axi views) and a copy of the colorbar used (same
-    prefix as file name, *.jpg).  Additionally, there is also a *.txt
-    file of ranges of values related to the ulay and olay, which might
-    be useful for QC or figure-generation.
+    processing.  In each case, there are three sets of PNG montages
+    (one for sag, cor and axi views) and a copy of the colorbar used
+    (same prefix as file name, *.jpg).  Additionally, there is also a
+    *.txt file of ranges of values related to the ulay and olay, which
+    might be useful for QC or figure-generation.
+
+    + init_qc_00_overlap_usrc_obase.jpg, [init_qc_00_overlap_usrc_obase_DEOB*]
+      [ulay] original source dset
+      [olay] original base dset
+      o single image montage to check initial overlap of source and base,
+        ignoring any obliquity that might be present (i.e., the way AFNI 
+        GUI does by default, and also how alignment starts)
+      o if initial overlap is not strong, alignment can fail or
+        produce weirdness
+      o *if* either dset has obliquity, then an image of both after 
+        deobliquing with 3dWarp is created (*DEOB.jpg), and a text file
+        about obliquity is also created (*DEOB.txt).
 
     + qc_00_e_base+wrpd_input.* (in base space)
       [ulay] edges of the base dset
