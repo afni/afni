@@ -25,7 +25,7 @@ examples = {
     "container with source and build dirs mounted": "run_afni_tests.py --build-dir /path/to/existing/directory container --source-mode=host",
     "container reusing build dir": "run_afni_tests.py container --reuse-build",
     "container reusing test dir": "run_afni_tests.py container --source-mode=test-code",
-    "help with installation": "run_afni_tests.py --installation-help",
+    "help with installation": "./run_afni_tests.py --installation-help",
     "examples with explanation ": "run_afni_tests.py examples --verbose",
 }
 
