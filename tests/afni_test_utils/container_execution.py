@@ -173,15 +173,7 @@ def run_containerized(tests_dir, **kwargs):
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_volumes(client, tests_dir, **kwargs)
     if kwargs.get("debug"):
-        logging.warn(
-            "Debug mode is not currently supported in combination with "
-            "container execution. Consider running the container from "
-            "the command line and then executing the script in debug "
-            "mode from within the container... or executing the tests "
-            "in the container using -vvvv to see everything that is "
-            "happening "
-        )
-        docker_kwargs["detach"] = True
+        raise_error_for_debug_mode(tests_dir, kwargs)
         #  The following does not work. debugpy may be a way of attaching to
         #  the container's python process in a way that facilitates pdb usage.
         #  May work through this at some point.
@@ -450,12 +442,70 @@ def check_user_container_args(tests_dir, **kwargs):
             )
 
 
+def raise_error_for_debug_mode(tests_dir, kwargs):
+    debug_not_supported = r"""\
+    ERROR:
+
+    It appears you are trying to use the debug flag with a container. This is
+    not directly supported (stdout/stderr/stdin capture gets confusing fast).
+    You could use -vvvvvv to see what is happening in the container. Also
+    note, to debug tests that are only failing in  container you can mount
+    your local source code into the container and then continue on as you
+    usually would (with the debug flag, the build will be in /opt/afni/build,
+    and the source will be in /opt/afni/src) but to use the "local" subparser
+    (since your terminal is now providing you a shell in the container). An
+    example command is displayed below.
+
+
+
+    Consider copying and pasting the following and executing in bash to access
+    a container with the appropriate user setup, file permissions, and
+    source-code from your local host:
+
+    \
+    mkdir -p /tmp/container_build;                                                  \
+    docker run                                                                      \
+        `# root needed for changing file permissions`                               \
+        --user=root                                                                 \
+        `# Issues can happen when write access to the home directory is missing`    \
+        -e CHOWN_HOME="yes"                                                         \
+        -e CHOWN_HOME_OPTS='-R'                                                     \
+        `# This allows package installation via pip`                                \
+        -e CHOWN_EXTRA="/opt/user_pip_packages,"                                    \
+        -e CHOWN_EXTRA_OPTS='-R'                                                    \
+        `# Allow sudo execution once in the container`                              \
+        -e GRANT_SUDO=yes                                                           \
+        `# The id of the local host is used inside the container. This minimizes`   \
+        `# issues with file permissions`                                            \
+        -e CONTAINER_UID=$(id -u)                                                   \
+        -e CONTAINER_GID=$(id -g)                                                   \
+        `# Delete the container upon exit`                                          \
+        --rm                                                                        \
+        `# provide an interactive terminal`                                         \
+        -ti                                                                         \
+        `# this works optimally  (local codebase mounted inside the container)`     \
+        -v {tests_dir.parent.absolute()}:/opt/afni/src                              \
+        `# Mounting this directory  helps for permissions and build reuse`          \
+        -v /tmp/container_build:/opt/afni/build                                     \
+        `# using the container with the cmake build is advised...`                  \
+        afni/afni_cmake_build
+    """
+    if "debug" in kwargs:
+        # The following is hokey but prevent some weird editor error (it doesn't
+        # like the combination of format strings and raw strings)
+        debug_not_supported = eval(f'fr"""{debug_not_supported}"""')
+        # Advise on debugging in a container...
+        print(debug_not_supported)
+        raise SystemExit(1)
+
+
 def unparse_args_for_container(tests_dir, **kwargs):
     """
     Reconstructs the arguments passed to run_afni_tests.py. This is along the
     lines of unparsing the arguments but it also removes any arguments that
     were relevant and used for modifying the behavior of the container
     execution (volume mounting etc).
+
 
     """
     cmd = ""
