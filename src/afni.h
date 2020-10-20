@@ -2440,6 +2440,7 @@ extern void AFNI_driver_register( char * , int (*)(char *) ) ;
 
 extern void log10_func( int, float * ) ;
 extern void ssqrt_func( int, float * ) ;
+extern void absval_func( int, float * ) ;  /* 20 Oct 2020 */
 
 /* sample 1D transform functions */
 

@@ -2985,6 +2985,7 @@ STATUS("call 13") ;
 
         AFNI_register_0D_function( "Log10" , log10_func ) ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
+        AFNI_register_0D_function( "Abs"   , absval_func ) ; /* 20 Oct 2020 */
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
 #if 0

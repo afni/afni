@@ -54,6 +54,21 @@ void ssqrt_func( int num , float *vec )
    return ;
 }
 
+/*------------ Sample 0D function: Absolute value of each input point --------*/
+
+void absval_func( int num , float *vec )  /* 20 Oct 2020 */
+{
+   int ii ;
+   double val ;
+
+   if( num <= 0 || vec == NULL ) return ;
+
+   for( ii=0 ; ii < num ; ii++ )
+      vec[ii] = fabsf(vec[ii]) ;
+
+   return ;
+}
+
 /*--------------------------------------------------------------------------*/
 /* adaptive = downweight things a long ways from median */
 
