@@ -197,23 +197,23 @@ def run_containerized(tests_dir, **kwargs):
     # cmd = f"""/usr/bin/python -c 'import pdb;pdb.set_trace()'"""
     # cmd = f"""/bin/sh -c 'echo hello;sleep 5;echo bye bye'"""
     cmd = f"""/bin/sh -c '{script_path} {converted_args}'"""
-    output = client.containers.run(image, cmd, **docker_kwargs)
-    if True:
-        for line in output.logs(stream=True):
-            print(line.decode("utf-8"))
-    else:
-        # might be required if detach is not set to True
-        print(output.decode("utf-8"))
+    try:
+        output = client.containers.run(image, cmd, **docker_kwargs)
+        if True:
+            for line in output.logs(stream=True):
+                print(line.decode("utf-8"))
+        else:
+            # might be required if detach is not set to True
+            print(output.decode("utf-8"))
 
-    result = output.wait()
-
-    # Remove exited container
-    if not kwargs.get("no_rm"):
-        output.remove(force=True)
-
-    # Propagate container exit error code
-    if result["StatusCode"]:
-        raise SystemExit(result["StatusCode"])
+        result = output.wait()
+        # Propagate container exit error code
+        if result["StatusCode"]:
+            raise SystemExit(result["StatusCode"])
+    finally:
+        # Remove exited container
+        if not kwargs.get("no_rm"):
+            output.remove(force=True)
 
 
 def add_coverage_env_vars(docker_kwargs, **kwargs):
