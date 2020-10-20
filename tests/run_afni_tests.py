@@ -71,10 +71,6 @@ if dep_reqs != "minimal":
 
 def main(user_args=None):
 
-    print(
-        "Running tests... if you have not run them before the first time will"
-        " take a while because the test data has to be downloaded"
-    )
     # parse user args:
     if not user_args:
         user_args = minfuncs.parse_user_args(tests_dir=TESTS_DIR)
@@ -100,6 +96,10 @@ def main(user_args=None):
             print("\n".join(f"{k}:\n    {v}" for k, v in examples.items()))
         sys.exit(0)
     else:
+        print(
+            "Running tests... if you have not run them before the first time will"
+            " take a while because the test data has to be downloaded"
+        )
         # Modify path and sys.path as required
         minfuncs.modify_path_and_env_if_not_using_cmake(TESTS_DIR, **args_dict)
         # Execute the tests in the local environment
