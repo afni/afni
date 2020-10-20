@@ -7,12 +7,7 @@ ENV PATH=$DESTDIR/usr/local/bin:$PATH
 ARG AFNI_WITH_COVERAGE="0"
 
 # Copy AFNI source code. This will likely invalidate the build cache.
-USER root
-COPY . $AFNI_ROOT/
-RUN fix-permissions $AFNI_ROOT
-USER $CONTAINER_UID
-# Will work for docker version > 19.0.3 and drop the image size substantially
-# COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
+COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
 
 WORKDIR $AFNI_ROOT/../build
 

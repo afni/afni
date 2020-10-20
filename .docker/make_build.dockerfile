@@ -8,10 +8,7 @@ ENV DESTDIR=$AFNI_ROOT/../install
 ENV PATH=$DESTDIR:$PATH
 
 # Copy AFNI source code. This will likely invalidate the build cache.
-COPY . $AFNI_ROOT/
-# Will work for docker version > 19.0.3 (and result in a smaller image). For
-# now just keep all image layers owned as root to keep the image size
-# manageable COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
+COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
 
 ARG AFNI_WITH_COVERAGE="0"
 ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64_glw_local_shared
