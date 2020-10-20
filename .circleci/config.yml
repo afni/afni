@@ -69,25 +69,26 @@ commands:
             tests_dir=tests/afni_ci_test_data
             vol_dir=/opt/afni/src/$tests_dir
 
-            TEST_ARGS="$TEST_ARGS --extra-args='--runveryslow'"
-            # Add coverage args as appropriate
+
+
+            TEST_ARGS="--extra-args='--runveryslow' $TEST_ARGS -vvvv --u container"
+
+            # Add coverage arg as appropriate
             if [ "$AFNI_WITH_COVERAGE" != "0" ];then
-              TEST_ARGS="$TEST_ARGS --coverage -vvvv --u container "
-            else
-              TEST_ARGS="$TEST_ARGS -vvvv --u container"
+              TEST_ARGS=" --coverage $TEST_ARGS --reuse-build"
             fi
+
             # some extra arguments for container management. Note that using
             # remote docker on circleci does not allow mounting volumes
             # directly into the container in the normal manner
             TEST_ARGS="$TEST_ARGS \
                         --image-name=afni/afni_<< parameters.build_type >> \
                         --container-name=testing_afni
-                        --reuse-build \
                         --source-mode=test-data-volume \
                         --no-rm \
                         --only-use-local"
 
-            echo $TEST_ARGS
+            echo ...$TEST_ARGS...
             # stop if running locally and it happens to exist...
             pre_existing=$(docker ps -aq --filter name=testing_afni)
             if [ ! "" == "$pre_existing" ];then docker stop testing_afni;docker rm testing_afni;fi
