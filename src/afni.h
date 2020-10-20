@@ -1645,6 +1645,8 @@ extern "C" {
 
    extern PLUGIN_interface * F2D_init(void) ;            /* 03 Jul 2000 */
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
+   extern void               F2D_null(void) ;
+   extern void               F1D_null(void) ;
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
    extern PLUGIN_interface * TSTAT_init(char *);         /* 22 Mar 2018 */

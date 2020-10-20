@@ -3014,6 +3014,8 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
 #endif
 
+        F1D_null() ; /* should be last 1D func - 20 Oct 2020 */
+
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
         AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;
@@ -3025,6 +3027,8 @@ STATUS("call 13") ;
         AFNI_register_2D_function( "abs[FFT2D]" , fft2D_absfunc   );
         AFNI_register_2D_function( "arg[FFT2D]" , fft2D_phasefunc );
         AFNI_register_2D_function( "Sharpness"  , sharpness2D_func);   /* 28 Oct 2014 */
+
+        F2D_null() ; /* should be last 2D func - 20 Oct 2020 */
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 

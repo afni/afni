@@ -9,6 +9,7 @@
 
 #ifndef ALLOW_PLUGINS
 void F2D_init(void){}
+void F2D_null(void){}
 #else
 
 /***********************************************************************
@@ -91,6 +92,17 @@ static PARSER_code *  chain_pc[NUM_CHAIN] ;
 static int            chain_dd[NUM_CHAIN] ;
 static generic_func * chain_ff[NUM_CHAIN] ;
 
+static int is_setup = 0 ;
+
+void F2D_null(void)
+{
+  if( is_setup == 0 ){
+   AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;
+   is_setup = 1 ;
+  }
+  return ;
+}
+
 PLUGIN_interface * F2D_init(void)
 {
    PLUGIN_interface * plint ;     /* will be the output of this routine */
@@ -156,7 +168,10 @@ PLUGIN_interface * F2D_init(void)
      num2D = n2 ;
    }
 
-   AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;  /* add this only now */
+   if( is_setup == 0 ){
+     AFNI_register_2D_function( "2DChain" , F2D_chainfunc ) ;
+     is_setup = 1 ;
+   }
 
    /*--------- make interface lines -----------*/
 
@@ -202,6 +217,7 @@ static char * F2D_main( PLUGIN_interface * plint )
       chain_do[ii] = 0 ;
       chain_ff[ii] = NULL ;
       if( chain_pc[ii] != NULL ){ free(chain_pc[ii]); chain_pc[ii]=NULL; }
+      is_setup = 1 ;
    }
 
    /*--------- loop over input lines ---------*/
@@ -294,6 +310,7 @@ static char * F2D_main( PLUGIN_interface * plint )
 
    if( ndone == 0 ) return " \n** Don't you want to do anything? **\n " ;
 
+   is_setup = 2 ;
    return NULL ;
 }
 
@@ -304,6 +321,8 @@ static void F2D_chainfunc( int nx , int ny , double dx, double dy, float * ar )
    int kk,ii,pp , ndo,nexp , nxy=nx*ny ;
    float * abc[NUM_CHAIN] , *aprev=ar , *rst,*uvw,*xyz ;
    double * atoz[26] , *tmp=NULL ;
+
+   if( is_setup < 2 ) return ; /* nothing to do */
 
    /* allocate image workspace */
 
