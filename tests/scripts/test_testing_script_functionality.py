@@ -151,7 +151,10 @@ def test_execute_cmd_args(params):
     assert timed_out == params["expected_to_timeout"]
 
 
-def test_run_cmd(data):
+def test_run_cmd(data, monkeypatch):
+    data.logger = logging
+    monkeypatch.setattr(logging, "warn", lambda x: None)
+
     # Can slow this down for debugging purposes
     t_unit = 0.1
     # easy sit_unitation, processes behave and clean up after themselves or they
@@ -197,12 +200,13 @@ def test_run_cmd(data):
     tools.run_cmd(
         data,
         f" sleep {t_unit * 100} & sleep {t_unit}",
-        timeout=t_unit * 2,
+        timeout=t_unit * 3,
         kill_backgrounded_processes=True,
     )
+
     delta_t = time.time() - start
     # should return before timeout
-    assert delta_t < t_unit * 2
+    assert delta_t < t_unit * 3
 
 
 def test_check_git_config(
