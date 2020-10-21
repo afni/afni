@@ -49,6 +49,7 @@ def parse_user_args(user_args=None, tests_dir=None):
     dir_for_build_type = parser.add_mutually_exclusive_group()
     dir_for_build_type.add_argument(
         "--build-dir",
+        "-b",
         metavar="DIR",
         type=dir_path,
         help=(
@@ -73,6 +74,7 @@ def parse_user_args(user_args=None, tests_dir=None):
     thread_management = parser.add_mutually_exclusive_group()
     thread_management.add_argument(
         "--debug",
+        "-d",
         action="store_true",
         dest="debug",
         help=(
@@ -84,6 +86,7 @@ def parse_user_args(user_args=None, tests_dir=None):
     )
     thread_management.add_argument(
         "--use-all-cores",
+        "-u",
         action="store_true",
         dest="use_all_cores",
         help="Make use of all cpus for tests (requires pytest-parallel).",
@@ -104,6 +107,7 @@ def parse_user_args(user_args=None, tests_dir=None):
     pytest_mod = parser.add_argument_group("pytest execution modifiers")
     pytest_mod.add_argument(
         "--extra-args",
+        "-e",
         metavar="PYTEST_ARGS",
         help=(
             "This should be a quoted string that is passed directly "
@@ -141,6 +145,7 @@ def parse_user_args(user_args=None, tests_dir=None):
     )
     pytest_mod.add_argument(
         "--lf",
+        "-l",
         help=("Only run tests that failed on the last test run."),
         action="store_true",
     )
