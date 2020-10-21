@@ -193,15 +193,16 @@ int main( int argc, char *argv[] )  {
     // irFrequencyRange.iMin = 5;
     irFrequencyRange.iMin = 15;
     // irFrequencyRange.iMin = 20;
-    // irFrequencyRange.iMax = paddedDimension/2-32;
-    irFrequencyRange.iMax = paddedDimension/2;
+    irFrequencyRange.iMax = paddedDimension/2-32;
+    // irFrequencyRange.iMax = paddedDimension/2;
     char *prefix=DSET_PREFIX(din);
-    char *searchPath=DSET_DIRNAME(din);
+    char *searchPath=(char *)malloc(strlen(inputFileName)*sizeof(char));
     // sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
-    if ((enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
+    if ((enErrorNumber=GetDirectory(inputFileName, searchPath)) || (enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
 		irFrequencyRange, searchPath, prefix, &fCoplanarAngularShift))!=ERROR_NONE){
             Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
             for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
+            return enErrorNumber;
 		}
 
     Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
@@ -2509,9 +2510,11 @@ return(Pxy);
  ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory)
 /*******************************************************************/
  {
-#if UNIX
 	char *csCurrentDirectory;
-	long iBackslashIndex = (long)(strrchr( csInputFileName, '/' ));
+	long iBackslashIndex;
+#if UNIX
+	csCurrentDirectory;
+	iBackslashIndex = (long)(strrchr( csInputFileName, '/' ));
 #else
 	char csCurrentDirectory[150];
 	longlong iBackslashIndex = (longlong)(strrchr( csInputFileName, '\\' ));
