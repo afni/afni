@@ -1,4 +1,5 @@
 from afni_test_utils import misc, tools
+import logging
 from pathlib import Path
 import pytest
 import os
@@ -32,17 +33,13 @@ WRAP_SUMA = "display" if sys.platform == "darwin" else "xvfb"
     not shutil.which("xeyes"),
     reason=("Missing xeyes for basic gui testing."),
 )
-def test_xeyes(data):
+def test_xeyes(data, monkeypatch):
     """
     Some basic checks/demos for x execution, no point in testing guis if these fail...
     """
 
     # easy situation, processes behave and clean up after themselves
     tools.run_cmd(data, "xeyes & sleep 1; kill %1 ", x_execution_mode="xvfb")
-
-    # A hanging background process will raise a timeout error (default 30s)
-    with pytest.raises(TimeoutError):
-        tools.run_cmd(data, "xeyes & sleep 0.1", x_execution_mode="xvfb", timeout=1)
 
     # A hanging background process can be explicitly killed
     tools.run_cmd(
@@ -52,6 +49,13 @@ def test_xeyes(data):
         timeout=1,
         kill_backgrounded_processes=True,
     )
+
+    # A hanging background process will raise a timeout error (default 30s)
+    with pytest.raises(TimeoutError):
+        # silence warning logs for this test
+        data.logger = logging
+        monkeypatch.setattr(logging, "warn", lambda x: None)
+        tools.run_cmd(data, "xeyes & sleep 0.1", x_execution_mode="xvfb", timeout=1)
 
 
 def test_afni_gui_basic(data, unique_gui_port):
