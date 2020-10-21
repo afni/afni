@@ -11,22 +11,22 @@ examples = {
             "run_afni_tests.py --build-dir=/tmp/build local",
         ]
     ),
-    "tuning resources": "run_afni_tests.py --extra-args='--workers=4' local",
+    "tuning resources": "run_afni_tests.py --extra-args='-n=4' local",
     "using all cores": "run_afni_tests.py --use-all-cores local",
     "execute tests by filename": "run_afni_tests.py --file scripts/test_ptaylor.py local",
     "execute tests by pattern": "run_afni_tests.py --extra-args='-k mask' local",
     "execute tests by pattern shortcut": "run_afni_tests.py -k mask local",
-    "execute tests by previous failure": "run_afni_tests.py --lf local",
+    "execute tests by previous failures": "run_afni_tests.py --lf local",
     "specifying pytest args without run_afni_tests.py defaults": "run_afni_tests.py --overwrite-args='--verbose' local",
     "be verbose": "run_afni_tests.py -v local",
-    "be especially verbose": "run_afni_tests.py -vvvv local",
+    "be especially verbose": "run_afni_tests.py -vvvvv local",
     "use debugger": "run_afni_tests.py --debug local",
     "most basic example for container": "run_afni_tests.py container",
     "container with source and build dirs mounted": "run_afni_tests.py --build-dir /path/to/existing/directory container --source-mode=host",
     "container reusing build dir": "run_afni_tests.py container --reuse-build",
     "container reusing test dir": "run_afni_tests.py container --source-mode=test-code",
     "help with installation": "./run_afni_tests.py --installation-help",
-    "examples with explanation ": "run_afni_tests.py examples --verbose",
+    "examples with explanation ": "./run_afni_tests.py examples --verbose",
 }
 
 EXAMPLES = f"""
@@ -52,7 +52,7 @@ pytest scripts --tb=no --no-summary --show-capture=no"
 (where scripts is a directory containing python test scripts, and pytest is a
 python tool used for running a test suite)
 
-The above test run (execution of tests) implicitly uses the version found
+The above test run (by this I mean 'execution of tests') implicitly uses the version found
 first on the PATH.
 
 ### Explicitly defining the installation directory
@@ -60,7 +60,8 @@ first on the PATH.
     {examples['specifying the installation directory']}
 
 The above will make sure that the intended version of AFNI programs are found
-(including the python libraries contained in afnipy).
+(including the python libraries contained in afnipy). It will fail if the
+afnipy package is installed.
 
 ### Making use of the cmake build system
 
@@ -138,7 +139,7 @@ Another nice trick worth knowing  is that you can re-execute all failed tests
 from the last test run (like -k, it is an option of pytest and
 run_afni_tests.py):
 
-    {examples['execute tests by previous failure']}
+    {examples['execute tests by previous failures']}
 
 ### Manually specifying pytest arguments
 
@@ -187,38 +188,38 @@ known expected output). In these situations it can be useful to take a step
 out off pytest/run_afni_tests.py and reproduce the problem using a simple
 shell command. There are various bits of trickiness that run_afni_tests.py and
 the pytest configuration attempts to avoid for the user so this will not
-always work but the basic approach to dooing this is:
+always work but the basic approach to doing this is:
 
 1. Run the command in verbose mode. It is a good idea to try to be specific
-   here. Use the approaches in a previous section on subsetting the tests
+   here. Use the approaches in a previous section on subsetting the tests that are
    executed to reduce the amount of relevant output. For our purposes let's
-   pretend we have a single test that is failed and we can rerun only that
+   pretend we have a single test that is failing and we can rerun only that
    using the --lf selector for last failed tests.
 
    run_afni_tests.py --lf -vvvvv local
 
 2. You may have to modify the PATH to reproduce the test. For example, when
    using the --build-dir option, you will have to modify the PATH variable
-   according to what is printed to stdout.
+   according to what is printed to stdout during typical execution with
+   run_afni_tests.py.
 
 3. Search for the command executed. This is logged prior to execution. It will
    start with a command to cd into the tests directory.
 
 4. Consider whether output already exists. You may want to create a new output
    directory to avoid issues here. Or just remove files that have been
-   generated already by the test execution.
+   generated already by the test execution that failed.
 
 
 ## Using docker to encapsulate the majority of testing dependencies
 
-Testing using the afni development docker image. This provides immmense
-advantages including encapsulation of almost all dependencies, and being
-able to run all tests on a linux system from MacOS; however it's usage can
-be a little confusing. There is a lot going on so reading this section to
-familiarize yourself with the higher level details will be extremely
-helpful. It is worth noting tha management of file permissions varies across the
-different ways of using a container for testing and will result in vastly
-different performance and levels of convenience.
+This provides immmense advantages including encapsulation of almost all
+dependencies, and being able to run all tests on a linux system from MacOS;
+however it's usage can be a little confusing. There is a lot going on so
+reading this section to familiarize yourself with the higher level details
+will be extremely helpful. It is worth noting tha management of file
+permissions varies across the different ways of using a container for testing
+and will result in vastly different performance and levels of convenience.
 
 ###  Mounting a source directory and a build directory.
 
@@ -263,7 +264,7 @@ binaries that were installed into the container.
 
   {examples['container reusing test dir']}
 
-### Getting help with the setup for testing
+## Getting help with the setup for testing
 
 The readme in the tests directory for setting up your environment for testing
 can be viewed with the following command:
