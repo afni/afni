@@ -8,12 +8,11 @@ ENV DESTDIR=$AFNI_ROOT/../install
 ENV PATH=$DESTDIR:$PATH
 
 # Copy AFNI source code. This will likely invalidate the build cache.
-COPY . $AFNI_ROOT/
-# Will work for docker version > 19.0.3 (and result in a smaller image). For
-# now just keep all image layers owned as root to keep the image size
-# manageable COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
+COPY --chown=$CONTAINER_UID:$CONTAINER_GID . $AFNI_ROOT/
 
-ARG AFNI_WITH_COVERAGE="0"
+# Not supported, try the cmake build for coverage testing
+ENV AFNI_WITH_COVERAGE=false
+
 ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64_glw_local_shared
 ARG KEEP_BUILD_DIR="0"
 RUN cd $AFNI_ROOT/src \
@@ -25,11 +24,6 @@ RUN cd $AFNI_ROOT/src \
     && cp other_builds/Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     # clean and move source code to build directory
     && make cleanest \
-    # Add coverage to build
-    && if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
-      echo "Adding testing and coverage components" \
-      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile ;\
-      fi \
     # Build AFNI.
     && /bin/bash -c \
     'make itall 2>&1 | tee build_log.txt && test ${PIPESTATUS[0]} -eq 0' \

@@ -1,4 +1,4 @@
-from .utils import tools
+from afni_test_utils import tools
 
 # Define Data
 data_paths = {

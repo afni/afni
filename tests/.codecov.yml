@@ -1,3 +1,2 @@
 fixes:
-  - "opt/src/afni/::src/"
-  - "opt/abin::src/python_scripts/afnipy/"
+  - "opt/afni/src/src::src/"
