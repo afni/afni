@@ -519,7 +519,10 @@ def configure_for_coverage(cmd_args, **kwargs):
         # appropriate build flags to enable coverage.
         if not (kwargs.get("build_dir") or kwargs.get("reuse_build")):
             raise ValueError(
-                "If you want to test coverage, use the --build-dir option or the container subcommand with  --reuse-build."
+                "If you want to test coverage, use the --build-dir "
+                "option and/or the container subcommand with --reuse-build. "
+                "Running coverage testing with the make build is not "
+                "supported "
             )
 
         # check that the pytest-cov plugin is installed

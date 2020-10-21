@@ -816,7 +816,7 @@ def test_examples_parse_correctly(monkeypatch):
     "params",
     [
         # basic usage
-        {},
+        {"image_name": "an_image"},
         # test-data-volume is a valid value for source_mode
         {
             "image_name": "an_image",

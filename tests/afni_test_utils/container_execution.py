@@ -145,14 +145,13 @@ def run_containerized(tests_dir, **kwargs):
     Runs the afni tests in a container. Kwargs are populated by the result
     of parsing user arguments from the commandline in run_afni_tests.py
     """
-
-    # Do a basic check of user args
-    check_user_container_args(tests_dir, **kwargs)
-
     # Set a default image if not provided
     if not kwargs.get("image_name"):
         kwargs["image_name"] = "afni/afni_cmake_build"
     image_name = kwargs["image_name"]
+
+    # Do a basic check of user args
+    check_user_container_args(tests_dir, **kwargs)
 
     client = docker.from_env()
 
@@ -419,6 +418,11 @@ def check_user_container_args(tests_dir, **kwargs):
                 "mounted as you are trying to mount the build directory "
                 "in two locations in the container... "
             )
+
+    if kwargs["image_name"] == "afni/afni_make_build" and kwargs.get("coverage"):
+        raise ValueError(
+            "Performing coverage testing with the make build is not supported."
+        )
 
     # build dir should have been from a previous build in the container
     check_if_cmake_configure_required(build_dir, within_container=True)
