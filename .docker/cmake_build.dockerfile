@@ -3,7 +3,7 @@ FROM afni/afni_dev_base
 ENV PATH=$DESTDIR/usr/local/bin:$PATH
 
 # Env variable, available only at build time of docker image to enable a
-# coverage build. Anything but a value of 0 will cause coverage to be used.
+# coverage build. Should be set to true or false
 ARG AFNI_WITH_COVERAGE="0"
 
 # Copy AFNI source code. This will likely invalidate the build cache.
@@ -13,7 +13,7 @@ WORKDIR $AFNI_ROOT/../build
 
 RUN \
     export CC=`which gcc`;\
-    if [ "$AFNI_WITH_COVERAGE" != "0" ];then\
+    if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then\
         export CXXFLAGS="-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"; \
         export CFLAGS="-g -O0 -Wall -W -fprofile-arcs -ftest-coverage"; \
         export LDFLAGS="-fprofile-arcs -ftest-coverage";\

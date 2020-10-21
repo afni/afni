@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y wget sudo \
 #     (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
 # Configure environment
+RUN ln -sf  /bin/bash /bin/sh # use bash by default
 ENV SHELL=/bin/bash \
     CONTAINER_USER="afni_user" \
     CONTAINER_UID="1000" \
