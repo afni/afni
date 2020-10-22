@@ -555,7 +555,7 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
-                "ninja pytest"
+                "ninja pytest; bash <(curl -s https://codecov.io/bash)"
             ),
         },
     ],
