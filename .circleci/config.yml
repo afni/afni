@@ -80,6 +80,9 @@ commands:
             # Add coverage args as appropriate
             if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then
               bash -c "echo Adding coverage because value is: $AFNI_WITH_COVERAGE"
+              # Command to get coverage vars (used later by run_afni_tests.py:
+              coverage_vars=$(bash -c 'bash <(curl -s https://codecov.io/env)')
+              echo CircleCI coverage variables: $coverage_vars
               TEST_ARGS=" --coverage $TEST_ARGS --reuse-build"
             fi
 
