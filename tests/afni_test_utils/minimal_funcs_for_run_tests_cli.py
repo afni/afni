@@ -268,7 +268,7 @@ def parse_user_args(user_args=None, tests_dir=None):
             print(EXAMPLES)
         sys.exit(0)
     if args.installation_help:
-        print(Path("README.md").read_text())
+        print((tests_dir / "README.md").read_text())
         sys.exit(0)
     if not args.subparser:
         sys.exit(

@@ -390,16 +390,41 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
     correctly execute: basically help can be displayed without dependencies
     installed
     """
+    # help should work even if pythonpath is set
+    monkeypatch.setenv("PYTHONPATH", "a_path")
     not_expected = "datalad docker pytest afnipy run_tests".split()
     expected = ""
     argslist = [help_option]
 
     # Write run_afni_tests.py to an executable/importable path
     mocked_script.write_text(SCRIPT.read_text())
-
+    # ./README.md needs to exist
+    (mocked_script.parent / "README.md").write_text("some content")
     run_script_and_check_imports(
         mocked_script, argslist, expected, not_expected, monkeypatch
     )
+
+
+def test_installation_help_from_anywhere(mocked_script, monkeypatch):
+    """
+    Various calls of run_afni_tests.py should have no dependencies to
+    correctly execute: basically help can be displayed without dependencies
+    installed
+    """
+    # Write run_afni_tests.py to an executable/importable path
+    mocked_script.write_text(SCRIPT.read_text())
+    # Run from any directory other than tests
+    os.chdir(tempfile.mkdtemp())
+
+    with monkeypatch.context() as m:
+        m.setattr(sys, "argv", ["script_path", "--installation-help"])
+
+        script_imported = importlib.import_module(mocked_script.stem)
+        with pytest.raises(FileNotFoundError):
+            run_main_func(script_imported, sys_exit=True)
+
+        (mocked_script.parent / "README.md").write_text("some content")
+        run_main_func(script_imported, sys_exit=True)
 
 
 @pytest.mark.parametrize(
