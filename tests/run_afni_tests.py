@@ -44,20 +44,19 @@ if not parent_dir.name == "tests":
     raise EnvironmentError(NEED_DEV_INSTALLATION.format(parent_dir=parent_dir))
 
 
-# Check that PYTHONPATH is not set
-if os.environ.get("PYTHONPATH"):
-    raise ValueError(
-        "Using PYTHONPATH is not supported. Unset this and rely on the "
-        "other mechanisms for importing afnipy let the errors guide "
-        "you! Under the hood run_afni_tests.py uses PYTHONPATH to "
-        "handle some situations and so bad interactions would occur if "
-        "this were allowed. "
-    )
-
-
 # Make imports when the user is doing something other than requesting help
 dep_reqs = minfuncs.get_dependency_requirements(TESTS_DIR)
 if dep_reqs != "minimal":
+    # Check that PYTHONPATH is not set
+    if os.environ.get("PYTHONPATH"):
+        raise ValueError(
+            "Using PYTHONPATH is not supported. Unset this and rely on the "
+            "other mechanisms for importing afnipy let the errors guide "
+            "you! Under the hood run_afni_tests.py uses PYTHONPATH to "
+            "handle some situations and so bad interactions would occur if "
+            "this were allowed. "
+        )
+
     try:
         if dep_reqs == "container_execution":
             from afni_test_utils.container_execution import run_containerized
