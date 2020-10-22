@@ -149,6 +149,7 @@ RUN python3 -m pip install \
         distro \
         docker \
         filelock \
+        gcovr \
         ipython \
         matplotlib \
         nibabel \
