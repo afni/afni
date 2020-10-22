@@ -34,14 +34,10 @@ AFNI's python code must NOT be installed if you intend to use the typical afni b
 
 ## Setup for containerized execution
 
-Install the docker software in order to use avail of testing in an isolated
-container, i.e. using the container subcommand. This will supplement the
-previous setup instructions but you can also skip the above environment
-creation and only run tests in a container. With docker installed the only
-things you need to run the tests are python > 3.6 and the docker python api
-(called docker when installing with pip or docker-py when using conda). Note
-that the python docker api software is installed as part of the basic setup
-environment.
+Install the [docker](https://docs.docker.com/get-docker/) software in order to
+avail of testing in an isolated container, i.e. using the container subcommand.
+Once you have installed docker, in combination with the previous minimal setup
+instructions you will be able to use this functionality.
 
 ## Using the cmake build with testing
 
