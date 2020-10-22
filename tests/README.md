@@ -4,7 +4,12 @@ The tests directory in the afni source repository contains the code for
 continuous integration testing. The tests themselves are contained in the
 scripts subdirectory. These tests can be executed directly using pytest but the
 run_afni_tests.py script wraps this along with other details to help make
-running tests a little easier.
+running tests a little easier. Once you follow the setup instructions below you
+will be able to test a typical AFNI-suite installation on the PATH, a build
+directory not yet on the PATH, a hierarchical installation directory, a cmake
+build (with minimal rebuild), and containerized versions of AFNI (with or
+without the local source code used). Read on get started on the testing
+bonanza.
 
 ## Quickest and minimal setup
 
