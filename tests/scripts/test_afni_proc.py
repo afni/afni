@@ -1,5 +1,5 @@
 from pathlib import Path
-from .utils import tools
+from afni_test_utils import tools
 import pytest
 
 ft_dir = Path("AFNI_data6/FT_analysis/FT")

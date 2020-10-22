@@ -82,7 +82,7 @@ if [ $(id -u) == 0 ] ; then
     if [ "$CONTAINER_UID" != $(id -u $CONTAINER_USER) ] || [ "$CONTAINER_GID" != $(id -g $CONTAINER_USER) ]; then
         echo "Set user $CONTAINER_USER UID:GID to: $CONTAINER_UID:$CONTAINER_GID"
         if [ "$CONTAINER_GID" != $(id -g $CONTAINER_USER) ]; then
-            groupadd -g $CONTAINER_GID -o ${CONTAINER_GROUP:-${CONTAINER_USER}}
+            groupadd -g $CONTAINER_GID -o ${CONTAINER_USER}
         fi
         userdel $CONTAINER_USER
         useradd --home /home/$CONTAINER_USER -u $CONTAINER_UID -g $CONTAINER_GID -G 100 -l $CONTAINER_USER

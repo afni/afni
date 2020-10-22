@@ -62,10 +62,10 @@ target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
           AFNI::track_tools
-  PRIVATE AFNI::mrix
           $<IF:$<NOT:$<BOOL:${APPLE}>>,$<TARGET_NAME_IF_EXISTS:AFNI::GLUT>,>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
+  PRIVATE AFNI::mrix
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
           segtools
