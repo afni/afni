@@ -8,10 +8,11 @@ running tests a little easier.
 
 ## Quickest and minimal setup
 
-For a basic working setup for running these tests execute the following command
-from this directory (note you need
+For a basic working setup for running these tests execute the following commands (note you need
 [conda installed](https://docs.conda.io/projects/conda/en/latest/user-guide/install/)):
 
+	git clone https://github.com/afni/afni.git
+	cd afni/tests
 	conda env create -f environment.yml
 
 This will install the dependencies required for basic testing into a conda
@@ -52,6 +53,8 @@ or
 [here](https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html).
 Alternatively you can try:
 
+	git clone https://github.com/afni/afni.git
+	cd afni/tests
 	conda env create -f environment_full.yml
 
 The above will attempt to encapsulate all dependencies (including compilers) in
