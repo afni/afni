@@ -36,7 +36,7 @@ TESTS_DIR = Path(__file__).parent.parent
 SCRIPT = TESTS_DIR.joinpath("run_afni_tests.py")
 # The default args to pytest will likely change with updates
 DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
-PYTEST_COV_FLAGS = "--cov=targets_built --cov-report xml:$PWD/coverage.xml"
+PYTEST_COV_FLAGS = "--cov=afnipy --cov-report xml:$PWD/coverage.xml"
 RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
 
 
@@ -555,7 +555,9 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
-                "ninja pytest; bash <(curl -s https://codecov.io/bash)"
+                "ninja pytest;"
+                " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
+                " bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
     ],
@@ -984,7 +986,9 @@ def test_configure_for_coverage(monkeypatch):
         m.setattr(os, "environ", os.environ.copy())
         # Coverage should fail without a build directory
         with pytest.raises(ValueError):
-            out_args = minfuncs.configure_for_coverage(cmd_args, coverage=True)
+            out_args = minfuncs.configure_for_coverage(
+                TESTS_DIR, cmd_args, coverage=True
+            )
 
         if "CFLAGS" in os.environ:
             del os.environ["CFLAGS"]
@@ -995,13 +999,13 @@ def test_configure_for_coverage(monkeypatch):
 
         # Check vars are not inappropriately set when not requested
         out_args = minfuncs.configure_for_coverage(
-            cmd_args, coverage=False, build_dir="something"
+            TESTS_DIR, cmd_args, coverage=False, build_dir="something"
         )
         assert not any([os.environ.get(x) for x in "CFLAGS CXXFLAGS LDFLAGS".split()])
 
         # Check coverage flags are added when requested
         out_args = minfuncs.configure_for_coverage(
-            cmd_args, coverage=True, build_dir="something"
+            TESTS_DIR, cmd_args, coverage=True, build_dir="something"
         )
         assert all(x in out_args for x in PYTEST_COV_FLAGS.split())
         assert (

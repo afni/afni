@@ -507,8 +507,8 @@ def configure_parallelism(cmd_args, use_all_cores):
     return cmd_args
 
 
-def add_coverage_args(cmd_args):
-    cov_options = "--cov=targets_built --cov-report xml:$PWD/coverage.xml".split()
+def add_coverage_args(tests_dir, cmd_args):
+    cov_options = f"--cov=afnipy --cov-report xml:$PWD/coverage.xml".split()
     cmd_args += cov_options
     return cmd_args
 
@@ -517,7 +517,7 @@ def get_container_dir():
     return Path("/opt/afni/src/tests")
 
 
-def configure_for_coverage(cmd_args, **kwargs):
+def configure_for_coverage(tests_dir, cmd_args, **kwargs):
     out_args = cmd_args.copy()
     if kwargs.get("coverage"):
         # This will run correctly if the build has performed using the
@@ -533,9 +533,12 @@ def configure_for_coverage(cmd_args, **kwargs):
         # check that the pytest-cov plugin is installed
         res = sp.run("pytest --help".split(), stdout=sp.PIPE, stderr=sp.STDOUT)
         if "coverage reporting" not in res.stdout.decode("utf-8"):
-            raise EnvironmentError("It seems pytest is missing the pytest-cov plugin.")
+            raise EnvironmentError(
+                "It seems pytest is missing the pytest-cov plugin used "
+                "for python coverage. "
+            )
 
-        out_args = add_coverage_args(out_args)
+        out_args = add_coverage_args(tests_dir, out_args)
         os.environ[
             "CXXFLAGS"
         ] = "-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"
