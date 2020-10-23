@@ -4,14 +4,20 @@ The tests directory in the afni source repository contains the code for
 continuous integration testing. The tests themselves are contained in the
 scripts subdirectory. These tests can be executed directly using pytest but the
 run_afni_tests.py script wraps this along with other details to help make
-running tests a little easier.
+running tests a little easier. Once you follow the setup instructions below you
+will be able to test a typical AFNI-suite installation on the PATH, a build
+directory not yet on the PATH, a hierarchical installation directory, a cmake
+build (with minimal rebuild), and containerized versions of AFNI (with or
+without the local source code used). Read on get started on the testing
+bonanza.
 
 ## Quickest and minimal setup
 
-For a basic working setup for running these tests execute the following command
-from this directory (note you need
+For a basic working setup for running these tests execute the following commands (note you need
 [conda installed](https://docs.conda.io/projects/conda/en/latest/user-guide/install/)):
 
+	git clone https://github.com/afni/afni.git
+	cd afni/tests
 	conda env create -f environment.yml
 
 This will install the dependencies required for basic testing into a conda
@@ -33,14 +39,10 @@ AFNI's python code must NOT be installed if you intend to use the typical afni b
 
 ## Setup for containerized execution
 
-Install the docker software in order to use avail of testing in an isolated
-container, i.e. using the container subcommand. This will supplement the
-previous setup instructions but you can also skip the above environment
-creation and only run tests in a container. With docker installed the only
-things you need to run the tests are python > 3.6 and the docker python api
-(called docker when installing with pip or docker-py when using conda). Note
-that the python docker api software is installed as part of the basic setup
-environment.
+Install the [docker](https://docs.docker.com/get-docker/) software in order to
+avail of testing in an isolated container, i.e. using the container subcommand.
+Once you have installed docker, in combination with the previous minimal setup
+instructions you will be able to use this functionality.
 
 ## Using the cmake build with testing
 
@@ -52,6 +54,8 @@ or
 [here](https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html).
 Alternatively you can try:
 
+	git clone https://github.com/afni/afni.git
+	cd afni/tests
 	conda env create -f environment_full.yml
 
 The above will attempt to encapsulate all dependencies (including compilers) in

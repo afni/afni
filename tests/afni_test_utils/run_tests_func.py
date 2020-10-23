@@ -45,12 +45,18 @@ def run_tests(tests_dir, **args_dict):
 
     cmd_args = get_test_cmd_args(**args_dict)
     cmd_args = configure_parallelism(cmd_args, args_dict.get("use_all_cores"))
-    cmd_args = configure_for_coverage(cmd_args, **args_dict)
+    cmd_args = configure_for_coverage(tests_dir, cmd_args, **args_dict)
     if args_dict.get("build_dir"):
         cmd = generate_cmake_command_as_required(tests_dir, args_dict)
         cmd += f""";ARGS='{' '.join(x for x in cmd_args)}' ninja pytest"""
     else:
         cmd = f"""{sys.executable} -m pytest {' '.join(x for x in cmd_args)}"""
+
+    if args_dict.get("coverage"):
+        # append gcovr to assemble coverage report for C code
+        cmd += f"; gcovr -s --xml -o {tests_dir}/gcovr_output.xml -r {args_dict['build_dir']}/src"
+        # append command for compiling and uploading codecov report
+        cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
 
     print(f"Executing: {cmd}")
     res = subprocess.run(cmd, shell=True, env=os.environ.copy())

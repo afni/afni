@@ -36,7 +36,7 @@ TESTS_DIR = Path(__file__).parent.parent
 SCRIPT = TESTS_DIR.joinpath("run_afni_tests.py")
 # The default args to pytest will likely change with updates
 DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
-PYTEST_COV_FLAGS = "--cov=targets_built --cov-report xml:$PWD/coverage.xml"
+PYTEST_COV_FLAGS = "--cov=afnipy --cov-report xml:$PWD/coverage.xml"
 RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
 
 
@@ -390,16 +390,41 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
     correctly execute: basically help can be displayed without dependencies
     installed
     """
+    # help should work even if pythonpath is set
+    monkeypatch.setenv("PYTHONPATH", "a_path")
     not_expected = "datalad docker pytest afnipy run_tests".split()
     expected = ""
     argslist = [help_option]
 
     # Write run_afni_tests.py to an executable/importable path
     mocked_script.write_text(SCRIPT.read_text())
-
+    # ./README.md needs to exist
+    (mocked_script.parent / "README.md").write_text("some content")
     run_script_and_check_imports(
         mocked_script, argslist, expected, not_expected, monkeypatch
     )
+
+
+def test_installation_help_from_anywhere(mocked_script, monkeypatch):
+    """
+    Various calls of run_afni_tests.py should have no dependencies to
+    correctly execute: basically help can be displayed without dependencies
+    installed
+    """
+    # Write run_afni_tests.py to an executable/importable path
+    mocked_script.write_text(SCRIPT.read_text())
+    # Run from any directory other than tests
+    os.chdir(tempfile.mkdtemp())
+
+    with monkeypatch.context() as m:
+        m.setattr(sys, "argv", ["script_path", "--installation-help"])
+
+        script_imported = importlib.import_module(mocked_script.stem)
+        with pytest.raises(FileNotFoundError):
+            run_main_func(script_imported, sys_exit=True)
+
+        (mocked_script.parent / "README.md").write_text("some content")
+        run_main_func(script_imported, sys_exit=True)
 
 
 @pytest.mark.parametrize(
@@ -530,7 +555,9 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
-                "ninja pytest"
+                "ninja pytest;"
+                " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
+                " bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
     ],
@@ -959,7 +986,9 @@ def test_configure_for_coverage(monkeypatch):
         m.setattr(os, "environ", os.environ.copy())
         # Coverage should fail without a build directory
         with pytest.raises(ValueError):
-            out_args = minfuncs.configure_for_coverage(cmd_args, coverage=True)
+            out_args = minfuncs.configure_for_coverage(
+                TESTS_DIR, cmd_args, coverage=True
+            )
 
         if "CFLAGS" in os.environ:
             del os.environ["CFLAGS"]
@@ -970,13 +999,13 @@ def test_configure_for_coverage(monkeypatch):
 
         # Check vars are not inappropriately set when not requested
         out_args = minfuncs.configure_for_coverage(
-            cmd_args, coverage=False, build_dir="something"
+            TESTS_DIR, cmd_args, coverage=False, build_dir="something"
         )
         assert not any([os.environ.get(x) for x in "CFLAGS CXXFLAGS LDFLAGS".split()])
 
         # Check coverage flags are added when requested
         out_args = minfuncs.configure_for_coverage(
-            cmd_args, coverage=True, build_dir="something"
+            TESTS_DIR, cmd_args, coverage=True, build_dir="something"
         )
         assert all(x in out_args for x in PYTEST_COV_FLAGS.split())
         assert (

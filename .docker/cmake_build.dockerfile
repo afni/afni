@@ -31,7 +31,8 @@ RUN \
 RUN /bin/bash -oc pipefail \
 'ninja -v 2>&1 | tee verbose_build.log && test ${PIPESTATUS[0]} -eq 0'
 
-RUN ninja install && fix-permissions $DESTDIR
+# install provided it is not a coverage build (which is much larger and so not installed)
+RUN if [[ "$AFNI_WITH_COVERAGE" == "0" ]];then ninja install && fix-permissions $DESTDIR;fi
 
 # For any variables that should be present for all users of the container they
 # should be set in /etc/environment (variables set by ENV do not cleanly

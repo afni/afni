@@ -107,9 +107,11 @@ def setup_test_data_vol(client, kwargs, docker_kwargs, host_data, container_data
         ]
     )
     logging.info(
-        "Setting up container for the test data volume. This will take some time."
+        "Setting up container for the test data volume using the "
+        "afni/afni_circleci_executor image. This will take some time. "
     )
     ci_image = "afni/afni_circleci_executor"
+
     get_docker_image(client, ci_image, only_use_local=False)
     container = client.api.create_container(
         ci_image,
