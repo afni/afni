@@ -6,7 +6,7 @@
 /******************************************************************************/
 
 /*----------------------------------------------------------------------------*/
-   AFNI_VERSION_LABEL, defined in file AFNI_version.h, is a string of the form
+/* AFNI_VERSION_LABEL, defined in file AFNI_version.h, is a string of the form
      AFNI_ab.c.de
    where ab = year minus 2000 (e.g., 18 for 2018)
          c  = quarter within the year = 0, 1, 2, or 3
@@ -110,7 +110,7 @@ static char *RomanImperator[] = {  /* 175 of them, 4/year, good thru 2062 or so.
 
 #define AFNI_VERSION_RomanImperator                                   \
   RomanImperator[                                                     \
-   ( 4*((AFNI_VERSION_LABEL[5]-'0')*10                                \ 
+   ( 4*((AFNI_VERSION_LABEL[5]-'0')*10                                \
     +   (AFNI_VERSION_LABEL[6]-'0')-18)                               \
     +   (AFNI_VERSION_LABEL[8]-'0'-3)  ) % NUM_RomanImperator ]
 
