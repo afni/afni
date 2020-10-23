@@ -106,6 +106,10 @@ static char *RomanImperator[] = {  /* 175 of them, 4/year, good thru 2062 or so.
      extra minus 3 since this all started in the last quarter of 2018,
      with version AFNI_18.3.00, which should decode to the 0th Imperator
      -- Augustus!
+   * Note that when the year 2100 rolls around, this macro will no
+     longer work properly. At that point, AFNI will be 106 years old
+     and Bob will be 146 years old. I'll let someone else worry about
+     this problem, if you don't mind.
 *//*--------------------------------------------------------------------------*/
 
 #define AFNI_VERSION_RomanImperator                                   \
