@@ -277,17 +277,21 @@ def check_and_log_command_execution(
 
 
 def setup_logging(data, logger):
-    if not logger:
-        logger = data.logger
 
-        # Define log file paths, make the appropriate directories and check that
-        # the log files do not exist, otherwise (using uniquize) append a number:
-        stdout_log = data.logdir / (data.test_name + "_stdout.log")
-        os.makedirs(stdout_log.parent, exist_ok=True)
-        stdout_log = uniquify(stdout_log)
+    if logger:
+        pass
+    elif data.logger:
+        logger = data.logger
     else:
         logger = logging
-        stdout_log = Path(tempfile.mktemp("_stdout"))
+
+    # Set log path
+    stdout_log = data.logdir / (data.test_name + "_stdout.log")
+
+    # Make the appropriate directories and check that
+    # the log files do not exist, otherwise (using uniquize) append a number:
+    os.makedirs(stdout_log.parent, exist_ok=True)
+    stdout_log = uniquify(stdout_log)
 
     stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
     cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
@@ -358,7 +362,6 @@ def __execute_cmd_args(
             preexec_fn=os.setsid,
         )
         pgid = os.getpgid(proc.pid)
-
         try:
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -444,7 +447,6 @@ def run_cmd(
         error = subprocess.STDOUT
     else:
         error = subprocess.PIPE
-
     logger, cmd_log, stdout_log, stderr_log = setup_logging(data, logger)
 
     # Make substitutions in the command string  to remove unnecessary absolute
@@ -689,7 +691,7 @@ class OutputDiffer:
         self.require_sample_output = (
             self.create_sample_output or self.save_sample_output
         )
-        self._ignore_file_patterns = ignore_file_patterns or ["_stdout"]
+        self._ignore_file_patterns = ignore_file_patterns or []
         if isinstance(ignore_file_patterns, str):
             raise TypeError("ignore_file_patterns should not be type 'str'")
         self._comparison_dir = data.comparison_dir
@@ -757,7 +759,7 @@ class OutputDiffer:
         return stdout, stderr
 
     def get_file_list(self):
-        always_ignore = ["gmon.out"]
+        always_ignore = ["gmon.out", ".DS_Store"]
         if not self.file_list:
             for f in list(self.data.outdir.glob("**/*")):
                 if not f.is_file():
