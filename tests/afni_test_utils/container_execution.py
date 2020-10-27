@@ -533,8 +533,8 @@ def unparse_args_for_container(tests_dir, **kwargs):
             cmd += f' --extra-args="{v}"'
         elif k == "filter_expr":
             cmd += f' -k="{v}"'
-        elif k == "verbose":
-            cmd += f" -{v * 'v'}"
+        elif k == "verbosity":
+            cmd += f" -v {v}"
         elif k == "file":
             cmd += f" --file=/opt/afni/src/tests/{Path(v).relative_to(tests_dir)}"
         elif v is True:
