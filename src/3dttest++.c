@@ -270,6 +270,8 @@ static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
 static float min_fgoal = 1.f ;
 static float max_fgoal = 9.f ;
 
+#undef MENTION_LOCAL_ETAC
+
 static int    do_Xclustsim = 0 ;    /* 30 Aug 2016 */
 static int    do_ETACmem   = 0 ;    /* 22 Aug 2017 */
 static int     nnopt_Xclu  = 0 ;
@@ -1508,16 +1510,20 @@ void display_help_menu(void)
       "  * use of multiple per-voxel p-value thresholds simultaneously\n"
       "  * use of cluster-size and/or cluster-square-sum as threshold parameters\n"
       "  * use of multiple amounts of blurring simultaneously\n"
+#ifdef MENTION_LOCAL_ETAC
       "  * use of spatially variable cluster sizes ['local ETAC'].\n"
+#endif
       "\n"
       "'Equitable' means that each combination of the above choices is treated\n"
       "to contribute approximately the same to the False Positive Rate (FPR).\n"
+#ifdef MENTION_LOCAL_ETAC
       "The FPR is also balanced across voxels, so that the cluster-FOM thresholds\n"
       "are depend on location -- that is, brain regions that have less intrinsic\n"
       "smoothness will tend to get smaller thresholds (unlike the global -Clustsim).\n"
       "In FMRI, this seems to mean that the base (ventral part) of the brain gets\n"
       "the smallest thresholds and the top (superior occipital and retrosplenial)\n"
-      "parts of the brain get the largest thresholds. (YMMV :)\n"
+      "parts of the brain get the largest thresholds. ('local ETAC' YMMV :)\n"
+#endif
       "\n"
       "Major differences between '-Clustsim' and '-ETAC':\n"
       " * -Clustsim produces a number: the cluster-size threshold to be used everywhere.\n"
@@ -1605,6 +1611,7 @@ void display_help_menu(void)
       "                          numbers in the single XML element in this file.\n"
       "                          If multiple blur levels are used, there will be one\n"
       "                          such file for each blur level.\n"
+#ifdef MENTION_LOCAL_ETAC
       "\n"
       " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
       "                        3D datasets with voxelwise cluster multi-threshold.\n"
@@ -1620,6 +1627,7 @@ void display_help_menu(void)
       "                       ++ You can also control these local/global settings by\n"
       "                          setting these Unix environment variables to YES or NO:\n"
       "                            AFNI_XCLUSTSIM_GLOBAL  and  AFNI_XCLUSTSIM_LOCAL\n"
+#endif
       "\n"
       " -ETAC_mem            = This option tells the program to print out the\n"
       "                        estimate of how much memory is required by the ETAC\n"
