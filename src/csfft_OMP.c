@@ -9,6 +9,8 @@
   first, in order to setup some thread specific static storage.  These
   variable names all start with 'CFO_'.
                                                           -- RWCox -- Dec 2015
+
+  I'm not actually sure these functions work -- BEWARE !! :(
 ******************************************************************************/
 
 #include "mrilib.h"   /* AFNI package library header */
@@ -152,8 +154,8 @@ void csfft_cox_OMP_SETUP(void)
 #undef  CFO_assign
 #define CFO_assign(ab,ll)                                                \
    do{ if( nCFO_##ab[rec][ithr] < (ll) ){                                \
-         if( CFO_##ab[rec][ithr] != NULL ) free(CFO_##ab[rec][ithr]) ;   \
-         CFO_##ab[rec][ithr] = (complex *)malloc(sizeof(complex)*(ll)) ; \
+         CFO_##ab[rec][ithr] = (complex *)realloc(CFO_##ab[rec][ithr],   \
+                                                  sizeof(complex)*(ll)); \
          nCFO_##ab[rec][ithr] = (ll) ;                                   \
        }                                                                 \
        ab = CFO_##ab[rec][ithr] ;                                        \
@@ -226,13 +228,6 @@ static void fft64( int mode , complex *xc ) ;
                         x[3].r = acmr-bdmi ; x[3].i = acmi+bdmr ;     \
                       } } while(0)
 
-/*----------------------------------------------------------------------
-   Speedups with unrolled FFTs [program fftest.c]:
-   Pentium II 400 MHz:  58% (32) to 36% (256)  [gcc -O3 -ffast-math]
-   SGI R10000 175 MHz:  47% (32) to 18% (256)  [cc -Ofast]
-   HP PA-8000 200 MHz:  58% (32) to 40% (256)  [cc +O3 +Oaggressive]
-------------------------------------------------------------------------*/
-
 /*--------------------------------------------------------------------
    Initialize csfft trig constants table.  Adapted from AJ's code.
    Does both mode=1 and mode=-1 tables.  (mode=+1 == inversion)
@@ -247,14 +242,13 @@ static void csfft_trigconsts( int idim )  /* internal function */
    double                 al;
    complex *my_csp , *my_csm ;
 
-   if( idim == CFO_nold[ithr] ) return ;
+   if( idim == CFO_nold[ithr] ) return ;  /* previously done */
 
  { if( idim > CFO_nold[ithr] ){
-     if( CFO_csplus[ithr] != NULL ){ free(CFO_csplus[ithr]) ; free(CFO_csminus[ithr]) ; }
-      CFO_csplus[ithr]  = (complex *) malloc( sizeof(complex) * idim ) ;
-      CFO_csminus[ithr] = (complex *) malloc( sizeof(complex) * idim ) ;
+      CFO_csplus[ithr]  = (complex *)realloc( CFO_csplus[ithr] , sizeof(complex)*idim ) ;
+      CFO_csminus[ithr] = (complex *)realloc( CFO_csminus[ithr], sizeof(complex)*idim ) ;
       if( CFO_csplus[ithr] == NULL || CFO_csminus[ithr] == NULL ){
-        fprintf(stderr,"\n*** csfft_cox_OMP cannot malloc space idim=%d! ***\n",idim); EXIT(1) ;
+        fprintf(stderr,"\n*** csfft_cox_OMP cannot realloc space idim=%d! ***\n",idim); EXIT(1) ;
       }
   }}
 

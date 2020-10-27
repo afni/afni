@@ -1365,11 +1365,13 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
 
-3dBallMatch.o:3dBallMatch.c thd_ballcorr.c
+3dBallMatch.o:3dBallMatch.c thd_ballcorr.c csfft_OMP.c
+	$(RM) $@
+	$(CCOMP) -c 3dBallMatch.c $(INFLAGS)
 
 3dBallMatch:3dBallMatch.o
 	$(RM) $@
-	$(CC) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
 
 # --------------------------------------------------------------------------
 # this is the list of nonlinear warping program, and is here just for Zhark
