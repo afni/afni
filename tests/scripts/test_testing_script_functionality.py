@@ -215,6 +215,25 @@ def test_run_cmd(data, monkeypatch):
     assert delta_t < t_unit * 3
 
 
+def test_command_logger_setup(data, monkeypatch):
+    # logs should be in data.logdir and logger should be logger_in
+    logger_in = data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, logger_in)
+    assert logger_out == logger_in
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == data.logger
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be root logger
+    data.logger = None
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == logging
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+
 def test_check_git_config(
     monkeypatch,
 ):
