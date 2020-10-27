@@ -1,0 +1,7 @@
+#!/bin/bash +e
+
+# execute script for making commits black compliant in an automated manner
+.githooks/pre_commit_darkening.py
+
+# Error should not be raised, commit should continue regardless of success
+exit 0
