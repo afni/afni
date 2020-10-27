@@ -39,6 +39,12 @@ DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
 PYTEST_COV_FLAGS = "--cov=afnipy --cov-report xml:$PWD/coverage.xml"
 RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
 
+try:
+    docker.from_env()
+    DOCKER_AVAILABLE = True
+except:
+    DOCKER_AVAILABLE = False
+
 
 @pytest.fixture()
 def mocked_script(monkeypatch):
@@ -365,6 +371,10 @@ def test_run_containerized(monkeypatch):
 @pytest.mark.skipif(
     minfuncs.is_containerized(),
     reason=("This test is not run inside the container."),
+)
+@pytest.mark.skipif(
+    not DOCKER_AVAILABLE,
+    reason=("Failed to find a running docker service."),
 )
 def test_run_containerized_fails_with_unknown_image():
     # The image needs to exist locally with only_use_local
