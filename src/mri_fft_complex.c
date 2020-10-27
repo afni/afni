@@ -145,9 +145,9 @@ MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
 
    /* output dimensions and data */
 
-   fx = (Lxx == 0) ? nx : (Lxx > nx) ? csfft_nextup_even(Lxx) : csfft_nextup_even(nx);
-   fy = (Lyy == 0) ? ny : (Lyy > ny) ? csfft_nextup_even(Lyy) : csfft_nextup_even(ny);
-   fz = (Lzz == 0) ? nz : (Lzz > nz) ? csfft_nextup_even(Lzz) : csfft_nextup_even(nz);
+   fx = (Lxx == 0) ? nx : (Lxx > nx) ? csfft_nextup_one35(Lxx) : csfft_nextup_one35(nx);
+   fy = (Lyy == 0) ? ny : (Lyy > ny) ? csfft_nextup_one35(Lyy) : csfft_nextup_one35(ny);
+   fz = (Lzz == 0) ? nz : (Lzz > nz) ? csfft_nextup_one35(Lzz) : csfft_nextup_one35(nz);
    fxy = fx*fy ;
 
    outim = mri_new_vol( fx,fy,fz , MRI_complex ) ;  /* zero filled */
@@ -238,9 +238,9 @@ MRI_IMAGE * mri_fft_3Dconvolve( MRI_IMAGE *aim , MRI_IMAGE *bim )
 
    /* FFT and output dimensions (sum, bumped up for FFT effiency) */
 
-   Lxx = (nxa > 1 && nxb > 1) ? csfft_nextup_even(nxa+nxb) : 0 ;
-   Lyy = (nya > 1 && nyb > 1) ? csfft_nextup_even(nya+nyb) : 0 ;
-   Lzz = (nza > 1 && nzb > 1) ? csfft_nextup_even(nza+nzb) : 0 ;
+   Lxx = (nxa > 1 && nxb > 1) ? csfft_nextup_one35(nxa+nxb) : 0 ;
+   Lyy = (nya > 1 && nyb > 1) ? csfft_nextup_one35(nya+nyb) : 0 ;
+   Lzz = (nza > 1 && nzb > 1) ? csfft_nextup_one35(nza+nzb) : 0 ;
 
    /* at this time, we don't allow for convolving a 3D image with a 1D
       or 2D image, for example, which is possible but more complicated */
