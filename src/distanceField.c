@@ -8,38 +8,6 @@
 #include "Generic.h"
 #include <float.h>
 
-#include "core32.h" //all 32-bit functions
-#include "core64.h" //all 64-bit functions
-
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
-#if defined(_OPENMP)
-   #define kOMPsuf " OpenMP"
-#else
-   #define kOMPsuf ""
-#endif
-#if defined(__ICC) || defined(__INTEL_COMPILER)
-	#define kCCsuf  " IntelCC" STR(__INTEL_COMPILER)
-#elif defined(_MSC_VER)
-	#define kCCsuf  " MSC" STR(_MSC_VER)
-#elif defined(__clang__)
-	#define kCCsuf  " Clang" STR(__clang_major__) "." STR(__clang_minor__) "." STR(__clang_patchlevel__)
-#elif defined(__GNUC__) || defined(__GNUG__)
-    #define kCCsuf  " GCC" STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
-#else
-	#define kCCsuf " CompilerNA" //unknown compiler!
-#endif
-#if defined(__APPLE__)
-	#define kOS "MacOS"
-#elif (defined(__linux) || defined(__linux__))
-	#define kOS "Linux"
-#else
-	#define kOS "Windows"
-#endif
-
-#define kMTHdate "v1.0.20191219"
-#define kMTHvers kMTHdate kOMPsuf kCCsuf
 
 typedef float flt;
 
@@ -47,22 +15,26 @@ typedef enum METRIC_TYPE {
          MARCHING_PARABOLAS
  } METRIC_TYPE ;
 
-// #define INFINITY    FLT_MAX
-
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din);
 static int afni_edt(THD_3dim_dataset * din, float **outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
+void edt1_local(THD_3dim_dataset * din, flt * df, int n);
+void edt_local(THD_3dim_dataset * din, flt * f, int n);
+float sqr(float x);
+static flt vx(flt * f, int p, int q);
 
+float sqr(float x){
+    return x*x;
+}
 
 int main( int argc, char *argv[] )
 {
     char    *inputFileName=NULL;
-    int     i, metric=MARCHING_PARABOLAS, numPixels;
+    int     i, metric=MARCHING_PARABOLAS;
     THD_3dim_dataset * din = NULL;
-    float   *sourceData=NULL;
     ERROR_NUMBER    errorNumber;
     float *outImg;
 
@@ -147,10 +119,17 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
 
 
 static int afni_edt(THD_3dim_dataset * din, float **outImg){
+
+    // Get dimensions in voxels
     int nz = DSET_NZ(din);
     int ny = DSET_NY(din);
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
+
+    // Get real world voxel sizes
+    int xDim = DSET_DX(din);
+    int yDim = DSET_DY(din);
+    int zDim = DSET_DZ(din);
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -175,7 +154,8 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
 		flt * imgRow = *outImg + (r * nx);
-		edt1(imgRow, nx);
+		// edt1(imgRow, nx);
+		edt1_local(din, imgRow, nx);
 	}
 
 	//EDT in anterior-posterior direction
@@ -199,7 +179,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		//perform EDT for all rows
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * ny);
-			edt(imgRow, ny);
+			edt_local(din, imgRow, ny);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -238,7 +218,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		//perform EDT for all "rows"
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * nz);
-			edt(imgRow, nz);
+			edt_local(din, imgRow, nz);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -257,6 +237,103 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 	} //for each volume
 
 	return 0;
+}
+
+void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is simple
+
+    // Get real world voxel sizes
+    /* DEBUG
+    float xDim = fabs(DSET_DX(din));
+    float yDim = fabs(DSET_DY(din));
+    float zDim = fabs(DSET_DZ(din));
+    */
+    float xDim = 1.0;
+    float yDim = 1.0;
+    float zDim = 1.0;
+
+	int q, prevX;
+	flt prevY, v;
+	prevX = 0;
+	prevY = INFINITY;
+	//forward
+	for (q = 0; q < n; q++ ) {
+		if (df[q] == 0) {
+			prevX = q;
+			prevY = 0;
+		} else
+			df[q] = sqr((q-prevX)*xDim)+(prevY*yDim);
+	}
+	//reverse
+	prevX = n;
+	prevY = INFINITY;
+	for (q = (n-1); q >= 0; q-- ) {
+		v = sqr((q-prevX)*xDim)+(prevY*yDim);
+		if (df[q] < v) {
+        	prevX = q;
+        	prevY = df[q];
+    	} else
+        	df[q] = v;
+    }
+}
+
+static flt vx(flt * f, int p, int q) {
+	if ((f[p] == INFINITY) || (f[q] == INFINITY))
+		return INFINITY;
+	else
+		return ((f[q] + q*q) - (f[p] + p*p)) / (2.0*q - 2.0*p);
+}
+
+void edt_local(THD_3dim_dataset * din, flt * f, int n) {
+	int q, p, k;
+	flt s, dx;
+	flt * d = (flt *)calloc((n)*sizeof(flt), 64);
+	flt * z = (flt *)calloc((n)*sizeof(flt), 64);
+	int * v = (int *)calloc((n)*sizeof(int), 64);
+    /*# Find the lower envelope of a sequence of parabolas.
+    #   f...source data (returns the Y of the parabola vertex at X)
+    #   d...destination data (final distance values are written here)
+    #   z...temporary used to store X coords of parabola intersections
+    #   v...temporary used to store X coords of parabola vertices
+    #   i...resulting X coords of parabola vertices
+    #   n...number of pixels in "f" to process
+    # Always add the first pixel to the enveloping set since it is
+    # obviously lower than all parabolas processed so far.*/
+    k = 0;
+    v[0] = 0;
+    z[0] = -INFINITY;
+    z[1] = INFINITY;
+    for (q = 1; q < n; q++ ) {
+	    /* If the new parabola is lower than the right-most parabola in
+        # the envelope, remove it from the envelope. To make this
+        # determination, find the X coordinate of the intersection (s)
+        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).*/
+        p = v[k];
+        s = vx(f, p,q);
+        while (s <= z[k]) {
+            k = k - 1;
+            p = v[k];
+            s = vx(f, p,q);
+        }
+        //# Add the new parabola to the envelope.
+        k = k + 1;
+        v[k] = q;
+        z[k] = s;
+        z[k + 1] = INFINITY;
+    }
+    /*# Go back through the parabolas in the envelope and evaluate them
+    # in order to populate the distance values at each X coordinate.*/
+    k = 0;
+    for (q = 0; q < n; q++ ) {
+	    while (z[k + 1] < q)
+            k = k + 1;
+        dx = (q - v[k]);
+        d[q] = dx * dx + f[v[k]];
+    }
+    for (q = 0; q < n; q++ )
+		f[q] = d[q];
+	free (d);
+	free (z);
+	free (v);
 }
 
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName){
