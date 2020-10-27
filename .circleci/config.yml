@@ -44,6 +44,9 @@ commands:
           name: Build image
           no_output_timeout: 30m
           command: |
+            # Coverage is off by default
+            if [[  "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
+
             THISVERSION=$(cat src/AFNI_version_base.txt)
             echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
             docker build \
@@ -52,6 +55,7 @@ commands:
               --tag afni/afni_<< parameters.build_type >>:latest \
               --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
               --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              --build-arg AFNI_WITH_COVERAGE=$AFNI_WITH_COVERAGE \
               --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
 
   run_afni_tests:
@@ -62,30 +66,47 @@ commands:
     steps:
       - run:
           name: Run tests
-          no_output_timeout: 2h
+          no_output_timeout: 60m
           command: |
-            # Fail out if docker image does not exist. Should not be pulled from dockerhub...
-            set -e
-            docker image inspect afni/afni_<< parameters.build_type >> 1>/dev/null
 
-            # Run tests in contain built during build step:
-            docker run \
-                --user=root  \
-                -e CHOWN_HOME="yes" \
-                -e CHOWN_HOME_OPTS='-R' \
-                -e CHOWN_EXTRA="/opt/" \
-                -e CHOWN_EXTRA_OPTS='-R' \
-                -e CONTAINER_UID=$(id -u) \
-                -e CONTAINER_GID=$(id -g) \
-                --rm \
-                -ti \
-                -v $PWD/tests/afni_ci_test_data:/opt/afni/src/tests/afni_ci_test_data \
-                afni/afni_<< parameters.build_type >> \
-                bash -c 'bash /opt/afni/src/tests/run_tests_<< parameters.build_type >>.sh'
-      - run:
-          name: Return permissions to test data
-          command: |
-            sudo chown -R $USER:$USER $PWD/tests/afni_ci_test_data
+            tests_dir=tests/afni_ci_test_data
+            vol_dir=/opt/afni/src/$tests_dir
+
+            TEST_ARGS="--extra-args='--runveryslow' $TEST_ARGS -vvvv --u container"
+
+            # Coverage is off by default
+            if [[  "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
+
+            # Add coverage args as appropriate
+            if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then
+              bash -c "echo Adding coverage because value is: $AFNI_WITH_COVERAGE"
+              # Command to get coverage vars (used later by run_afni_tests.py:
+              coverage_vars=$(bash -c 'bash <(curl -s https://codecov.io/env)')
+              echo CircleCI coverage variables: $coverage_vars
+              TEST_ARGS=" --coverage $TEST_ARGS --reuse-build"
+            fi
+
+            # some extra arguments for container management. Note that using
+            # remote docker on circleci does not allow mounting volumes
+            # directly into the container in the normal manner
+            TEST_ARGS="$TEST_ARGS \
+                        --image-name=afni/afni_<< parameters.build_type >> \
+                        --container-name=testing_afni
+                        --source-mode=test-data-volume \
+                        --no-rm \
+                        --only-use-local"
+
+            echo ...$TEST_ARGS...
+            # stop if running locally and it happens to exist...
+            pre_existing=$(docker ps -aq --filter name=testing_afni)
+            if [[ ! "" == "$pre_existing" ]];then docker stop testing_afni;docker rm testing_afni;fi
+
+            # Run the tests
+            /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
+
+            # after application container finishes, copy artifacts directly from it
+            docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
+
 
   check_integrity_of_containers:
     description: "Check some of the permissions/user/PATH basics of the containers"
@@ -93,14 +114,9 @@ commands:
       image_cache_version:
         type: string
     steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: install some basic helper tools
-          command: |
-            apk add --no-cache pigz python3 py3-pip
-            pip3 install docker # python docker-api
-            pip3 install pytest
+      - checkout_afni
+      - setup_remote_docker:
+          version: 19.03.13
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
@@ -109,12 +125,7 @@ commands:
       - restore_afni_image_cache:
           build_type: make_build
           image_cache_version: << parameters.image_cache_version >>
-      - run:
-          name: Run pytest in .docker
-          command: |
-            cd .docker;
-            pytest
-
+      - run: cd .docker; pytest
 
   deploy_to_dockerhub:
     description: "Push images to dockerhub"
@@ -124,6 +135,8 @@ commands:
       image_cache_version:
         type: string
     steps:
+      - setup_remote_docker:
+          version: 19.03.13
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -131,19 +144,19 @@ commands:
           name: Deploy to Docker Hub
           no_output_timeout: 40m
           command: |
-            if [ $DOCKER_USER == 'afni' ]; then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
+            if [[ "$DOCKER_USER" == 'afni' ]]; then
+              docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
               docker push afni/afni_<< parameters.build_type >>:latest
               docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
             fi
       # Push dev_base image too though it is unlikely to change
-      - checkout
+      - checkout_afni
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - run:
           command: |
-            if [ $DOCKER_USER == 'afni' ]; then
+            if [[ "$DOCKER_USER" == 'afni' ]]; then
               if [[  "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
               then
                 echo Could not find the dev_base image used for release deployment.
@@ -196,6 +209,12 @@ commands:
           command: |
             brew cask install xquartz
             brew unlink python@2
+
+            # add hack for git upgrade to not raise an error
+            set +o pipefail
+            brew upgrade --force git || true
+            set -o pipefail
+
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
             # note other useful dependencies:
@@ -274,11 +293,22 @@ commands:
           no_output_timeout: 30m
           command: |
             set +o pipefail
-            if [ -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]; then
+            if [[ -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]]; then
               docker info
               zcat /tmp/cache/<< parameters.image_name >>_docker.tar.gz | docker load
               docker images
             fi
+
+  checkout_afni:
+    description: "Get afni code"
+    steps:
+      - checkout
+      # useful for local debugging but fails on circleci
+      # - run: |
+      #     cd /tmp/src &&
+      #     git clone --shared   --verbose --depth 1 \
+      #       --local file:///tmp/_circleci_local_build_repo \
+      #       afni
 
 
 ############################################################################
@@ -293,14 +323,11 @@ jobs:
       image_cache_version:
         type: string
     docker:
-      - image: docker:18.01.0-ce-git
+      - image: afni/afni_circleci_executor
     steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: install some basic helper tools
-          command: |
-            apk add --no-cache pigz python3
+      - checkout_afni
+      - setup_remote_docker:
+          version: 19.03.13
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -322,7 +349,7 @@ jobs:
       image_cache_version:
         type: string
     docker:
-      - image: docker:18.01.0-ce-git
+      - image: afni/afni_circleci_executor
     steps:
       - check_integrity_of_containers:
           image_cache_version: << parameters.image_cache_version >>
@@ -336,10 +363,12 @@ jobs:
         type: string
       test_data_cache_version:
         type: string
-    machine:
-      image: circleci/classic:201711-01
+    docker:
+      - image: afni/afni_circleci_executor
     steps:
-      - checkout
+      - checkout_afni
+      - setup_remote_docker:
+          version: 19.03.13
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -351,11 +380,6 @@ jobs:
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
-      # - run:
-      #     name: Install coverage and codecov
-      #     command: |
-      #         pyenv install 3.6.3
-      #         pyenv local 3.6.3
       - run_afni_tests:
           build_type: << parameters.build_type >>
           # Save test data as cache for subsequent runs if ideal is not already saved
@@ -370,8 +394,8 @@ jobs:
         type: string
       image_cache_version:
         type: string
-    machine:
-      image: circleci/classic:201711-01
+    docker:
+      - image: afni/afni_circleci_executor
     steps:
       - deploy_to_dockerhub:
           build_type: << parameters.build_type >>
@@ -382,7 +406,7 @@ jobs:
     macos:
         xcode: "11.2.1"
     steps: # a series of commands to run
-      - checkout
+      - checkout_afni
       - setup_macos_for_afni
       - run:
           name: Build on macos
@@ -399,6 +423,29 @@ jobs:
                 -DUSE_SYSTEM_GIFTI=OFF
             ninja
 
+  coverage_check:
+    working_directory: /tmp/src/afni
+    parameters:
+      image_cache_version:
+        type: string
+      test_data_cache_version:
+        type: string
+    # Environment variable AFNI_WITH_COVERAGE triggers an alternative build in the dockerfile and
+    # a slightly different test command in run_afni_tests circleci command
+    environment:
+      AFNI_WITH_COVERAGE: true
+    docker:
+      - image: afni/afni_circleci_executor
+    steps:
+      - run: id # quick check to see who is running this!
+      - checkout_afni
+      - setup_remote_docker:
+          version: 19.03.13
+      - build_afni_image:
+          build_type: cmake_build
+          image_cache_version: << parameters.image_cache_version >>
+      - run_afni_tests:
+          build_type: cmake_build
 
 ############################################################################
 #Define the  workflow to organize the execution of the jobs on circleci
@@ -448,7 +495,7 @@ workflows:
               build_type: ["make_build", "cmake_build"]
               # cache version should match for all jobs
               image_cache_version: ["0"]
-              test_data_cache_version: ["5"]
+              test_data_cache_version: ["0"]
           requires:
             - << matrix.build_type >>
           filters:
@@ -487,3 +534,17 @@ workflows:
             branches:
               ignore: /.*/
 
+      - coverage_check:
+          requires:
+            - test_cmake_build
+            - test_make_build
+          matrix:
+            parameters:
+              # cache version should match for all jobs
+              image_cache_version: ["0"]
+              test_data_cache_version: ["5"]
+          filters:
+            tags:
+              only: /AFNI_\d\d.\d.\d\d/
+            branches:
+              only: /.*/

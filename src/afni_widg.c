@@ -2873,7 +2873,7 @@ STATUS("making marks->rowcol") ;
 /** old hard-wired definition */
 #define SELECTOR_HEIGHT 240
 
-   sel_height = view_height - 19 ;
+   sel_height = view_height - 39 ;
 
    func->do_setup = 1 ;   /* 24 May 2019 */
 
@@ -3432,7 +3432,7 @@ STATUS("making func->rowcol") ;
    MCW_reghint_children( func->thr_top_av->wrowcol ,
                          "Power-of-10 range of slider" ) ;
 
-   sel_height -= (8+view_height/view_count) * 0.5 ;
+   sel_height -= (10+view_height/view_count) * 0.5 ;
 
    /*-- intensity threshold stuff --*/
 

@@ -207,6 +207,21 @@ int strcmp_aboot( char *a , char *b )  /* 12 Mar 2007 */
    free(bb); free(aa); return ii;
 }
 
+
+/* modified from stackoverflow superlokkus */
+/* replace characters in string with another character -
+ * string is modified in place and returns number of replacements */
+int str_replace_char(char* str, char find, char replace){
+    int nr = 0;
+    char *current_pos = strchr(str,find);
+    while (current_pos){
+        *current_pos = replace;
+        nr++;
+        current_pos = strchr(current_pos+1,find);
+    }
+    return nr;
+}
+
 /*-----------------------------------------------------------------------------*/
 /* function to write a value in nice formatted ways Daniel Glen (moved by ZSS) */
 

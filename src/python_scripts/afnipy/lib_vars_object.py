@@ -255,7 +255,7 @@ class VarsObject(object):
          try: vv = dtype(val)
          except:
             print('** SVWD %s.%s, cannot convert value %s to %s' \
-                  (oname, vname, val, dtype))
+                  % (oname, vname, val, dtype))
             return -1
          # possibly apply the defs type
          if as_type: val = vv

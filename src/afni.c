@@ -2985,6 +2985,7 @@ STATUS("call 13") ;
 
         AFNI_register_0D_function( "Log10" , log10_func ) ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
+        AFNI_register_0D_function( "Abs"   , absval_func ) ; /* 20 Oct 2020 */
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
 #if 0
@@ -2995,7 +2996,7 @@ STATUS("call 13") ;
 
         { int nad = (int)AFNI_numenv("AFNI_AdptMeanWidth1D") ;         /* 30 Sep 2016 */
           char lab[32] ;                                      /* user specified width */
-          if( nad > 9 && nad != 19 && nad < 100 ){
+          if( nad > 3 && nad != 9 && nad != 19 && nad < 100 ){
             if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
             sprintf(lab,"AdptMean%d",nad) ;
             AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
@@ -3013,6 +3014,8 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
 #endif
 
+        F1D_null() ; /* should be last 1D func - 20 Oct 2020 */
+
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
         AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;
@@ -3024,6 +3027,8 @@ STATUS("call 13") ;
         AFNI_register_2D_function( "abs[FFT2D]" , fft2D_absfunc   );
         AFNI_register_2D_function( "arg[FFT2D]" , fft2D_phasefunc );
         AFNI_register_2D_function( "Sharpness"  , sharpness2D_func);   /* 28 Oct 2014 */
+
+        F2D_null() ; /* should be last 2D func - 20 Oct 2020 */
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
@@ -4052,7 +4057,7 @@ ININFO_message("  get new tmask") ;
           int ij = n % (br->n1 * br->n2) ;
           im->flags = (int)tar[ij] ;
 #if 0
-ININFO_message("  set flags = %d",im->flags) ;
+ININFO_message("  set tsim flags=%d at ij=%d",im->flags) ;
 #endif
         }
       }

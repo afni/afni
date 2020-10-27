@@ -445,13 +445,20 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 
    /* these errors should never ever happen */
 
+ENTRY("permute_arrays") ;
+
    if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy != nx+ny ){
      static int first=1 ;
      if( first ){
-       ERROR_message("-permute failure for unexplainable reasons /:(") ;
+       ERROR_message("-permute failure for unfathomable reasons /:(\n"
+                     "     nx=%d  ny=%d  p_nxy=%d  x==%s  y==%s\n"
+                     "Function traceback follows:"                     ,
+                     nx,ny,p_nxy , (x==NULL)?"NULL":"non-NULL" ,
+                                   (y==NULL)?"NULL":"non-NULL"   ) ;
+       DBG_traceback() ;
        first = 0 ;
      }
-     return ;
+     EXRETURN ;
    }
 
    /* copy 2 inputs into 1 big array */
@@ -464,7 +471,7 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
    for( ii=0 ; ii < nx ; ii++ ) x[ii] = p_xyar[p_ijar[ii]   ] ;
    for( ii=0 ; ii < ny ; ii++ ) y[ii] = p_xyar[p_ijar[ii+nx]] ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1299,6 +1306,16 @@ void display_help_menu(void)
       "               inference in the output dataset, to be used with the AFNI GUI\n"
       "               Clusterize controls.\n"
       "              ++ If you want to keep ALL the temporary files, use '-CLUSTSIM'.\n"
+      "                 They will include the z-scores from all the simulations.\n"
+      "               ** Normally, the permutation/randomization z-scores are saved\n"
+      "                  in specially compressed files with suffix '.sdat'. If you\n"
+      "                  want these files in the '.nii' format, use the options\n"
+      "                  '-DAFNI_TTEST_NIICSIM=YES -CLUSTSIM'.\n"
+      "               ** However, if '-ETAC' is also used, the '.sdat' format will\n"
+      "                  be used instead of the '.nii' format, as the program that\n"
+      "                  implements ETAC (3dXClustSim) requires that format.\n"
+      "               ** You can change the number of simulations using an option\n"
+      "                  such as '-DAFNI_TTEST_NUMCSIM=20000' if you like.\n"
       "              ++ Since the simulations are done with '-toz' active, the program\n"
       "                 also turns on the '-toz' option for your output dataset. This\n"
       "                 means that the output statistics will be z-scores, not t-values.\n"
@@ -1313,6 +1330,9 @@ void display_help_menu(void)
       "                 is to be used when the CPU count is not auto-detected correctly.\n"
       "               ** You can also set the number of CPUs to be used via the Unix\n"
       "                  environment variable OMP_NUM_THREADS.\n"
+      "               ** This program does not use OpenMP (OMP), but since many other\n"
+      "                  AFNI programs do, setting OMP_NUM_THREADS is a common way\n"
+      "                  to set the amount of parallel computation to use.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash. The program\n"
@@ -4990,6 +5010,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    /*------------------------------------------------------------------------*/
    /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
+   /*----------- This is where ETAC and ClustSim are implemented ------------*/
+   /*------------- do_Xclustsim == ETAC  do_clustsim == ClustSim ------------*/
    /*------------------------------------------------------------------------*/
 
    if( do_clustsim || do_Xclustsim ){  /* this will take a while */

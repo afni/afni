@@ -388,7 +388,7 @@ int dset_atlas_label_index(THD_3dim_dataset *dset, char *label)
    NI_group *ngr=NULL;
    ATR_string *atr=NULL;
 
-   int i, tdlev, tdval;
+   int i, tdlev, tdval, nr;
    char *temp_str1, *temp_str2;
    ATLAS_POINT *at_pt;
    
@@ -412,6 +412,9 @@ int dset_atlas_label_index(THD_3dim_dataset *dset, char *label)
    }
 
    if (!ngr) RETURN(0);
+
+   if(LocalHead)
+     printf("Could read atlas labels in attributes\n");
    
    /* get each segmented region - the "atlas point" from 
       a NIML formatted string */ 
@@ -423,6 +426,11 @@ int dset_atlas_label_index(THD_3dim_dataset *dset, char *label)
          free(apl);
          RETURN(0);
       }
+   if(LocalHead)
+     printf("Number of points in atlas is %d\n", apl->n_points);
+
+   /* replace spaces in label with underscores */
+   nr = str_replace_char(label, ' ', '_');
 
    for(i=0;i<apl->n_points;i++){
        /* read the NIML string from the NIML file */
@@ -436,11 +444,31 @@ int dset_atlas_label_index(THD_3dim_dataset *dset, char *label)
 
       temp_str1 = NI_get_attribute(nel, "STRUCT");
       temp_str2 = NI_get_attribute(nel, "LONGNAME");
+      if(LocalHead)
+          printf("index %d STRUCT: %s LONGNAME %s\n", tdval, temp_str1, temp_str2);
+// (if(temp_str2)(strcmp(label, temp_str2)==0))
       /* match either short or longname */
-      if((strcmp(label, temp_str1)==0) || (strcmp(label, temp_str2)==0)) {
+      /* replace spaces in label with underscores-easier to pass in scripts */
+      if(temp_str1) nr = str_replace_char(temp_str1, ' ', '_');
+      if(temp_str1 && strcmp(label, temp_str1)==0) {
+        if(LocalHead)
+          printf("Found label %s at index %d\n", label, tdval);
+
         free(apl);
         NI_free_element(ngr) ;
         RETURN(tdval);
+      }
+      else {
+         if(temp_str2) nr = str_replace_char(temp_str1, ' ', '_');
+         if(temp_str2 && strcmp(label, temp_str2)==0) {
+           if(LocalHead)
+             printf("Found label %s at index %d.\n" 
+                    "Replaced %d spaces with underscores\n", label, tdval,nr);
+   
+           free(apl);
+           NI_free_element(ngr) ;
+           RETURN(tdval);
+         }
       }
    }    
    free(apl);

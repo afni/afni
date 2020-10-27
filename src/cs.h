@@ -152,6 +152,7 @@ extern int is_a_number(char *) ; /* 03 Apr 2012 */
 extern int is_an_int  (char *) ;
 
 extern int strcmp_aboot( char * , char * ) ;        /* 12 Mar 2007 */
+int str_replace_char(char* str, char find, char replace); /* 16 Sep 2020 */
 
 extern char * afni_fgets( char *buf , int nbuf , FILE *fp ) ; /* 20 Dec 2011 */
 extern void   afni_fgets_setskip(int) ;

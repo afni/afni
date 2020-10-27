@@ -1,3 +1,155 @@
+AFNI Digest, week of 2020/09/23.
+
+0)  All AFNI Python programs are Python 3.* compatible
+1)  New GUI feature: set threshold directly by typing
+2)  More macaque-related datasets and features
+3)  Return of graph fading in the GUI
+4)  More complete AFNI features for zsh users (mainly Mac-related)
+
+
+0) Python 2 has been deprecated for a little while now, and we thought
+that we should make all AFNI Python programs Python 3 compatible
+before *that* gets deprecated, too.  That momentous day has arrived--
+while most AFNI Python should still work in Python 2.7, they are all
+Python 3 compatible.
++ Well, there is one (very specialized) exception: the meica.py and
+tedana.py programs written by P Kundu have not been transliterated to
+Python 3, because there is a big Python 2 library packaged with them.
+So you still need Python 2 access if using them.  C'est la vie.  But
+for most people, that need not be a concern, so just having Python 3
+is fine.  (Though, on a multiecho EPI note: there are still many ways
+to include your multiecho processing in afni_proc.py-- just ask if you
+aren't sure!)
+++ Final Python setup note: if you want to use Conda to manage your
+Python needs, there is a basic tutorial/intro here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/miniconda.html
+
+1) There are several ways to set a threshold value in the AFNI GUI, including:
++ Use the threshold slider
++ Use AFNI's "autothreshold" feature to try to select a reasonable one
++ Drive AFNI to set a threshold value explicitly
++ If the threshold dset is a statistic, then specify a q- or p-value 
+  and have AFNI apply the equivalent for that statistic
+... And now there is a new way to set it directly: You can right click
+on the "Thr" button above the slider/colorbar, select "Set Threshold",
+and type the value in.  Thanks, Justin!
+
+2) These papers (currently available on bioRxiv) describe the
+following publicly available Macaque dataset resources and related
+AFNI programs:
+NIMH Macaque Template (NMT)
+Cortical Hierarchical Atlas of the Rhesus Macaque (CHARM)
+Subcortical Atlas of the Rhesus Macaque (SARM)
+AFNI's @animal_warper (both skullstripping and template alignment)
+afni_proc.py demos for macaque processing
+https://www.biorxiv.org/content/10.1101/2020.08.05.237818v1
+https://www.biorxiv.org/content/10.1101/2020.09.16.300053v1
+AFNI documentation pages about these is included here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html
+
+3)  The "graph fading" feature in the GUI has returned after a bit of holiday.  
+When this feature is ON (which is default) and a Graph viewer is open
+(showing underlay values) and an overlay dataset is applied, then
+graph window panel of voxels where the Threshold dset is
+suprathreshold have a white background and the rest have a gray
+background.  Poorly described by me?  Perhaps!  But see the attached
+image showing this fun+useful functionality more clearly.  To control
+this feature in your ~/.afnirc file, set AFNI_GRAPH_FADE to either YES
+or NO.
+
+4)  This one probably applies mostly to Mac users:  
+Are you using zsh as your terminal shell, rather than bash, csh or
+tcsh (you can check by typing this in a terminal: echo $0)?  Well,
+your life just became a bit easier, as TAB completion for AFNI program
+options has been added for zsh via updates to apsearch,
+@update.afni.binaries and afni_system_check.py.  Now, if ooonly you
+could easily change that OS to Linux, for some *real* convenience...
+
+
+========================================================================
+
+AFNI Digest, week of 2020/08/19:  Special "Chopped" edition.
+
+AFNI has over 600 programs for your neuroimaging analysis amusement.
+To simplify things a bit, we are in the process of “cleaning house” on
+some functionality.  On Monday, Aug. 24, the programs listed below
+will be chopped (= no longer supplied in the AFNI distribution).
+
+If you are still using one of these old programs, you should follow
+the update recommendations provided.  Those without a specific update
+are probably “underlying” functionality that you do not use directly.
+If you have any questions or would like advice on how best to update
+your pipelines, please just ask your friendly AFNI guru on the Message
+Board.  (And if it turns out one of these programs really should not
+be removed, then its execution--in the Revolutionary France sense--can
+be stayed.  But you must raise such an issue before dawn on Monday,
+Aug. 24.)
+
+Once the following programs are removed, we will just assume you have
+the list of all remaining programs memorized, as well as their full
+help files and examples.  If that is not somehow the case, please be
+aware of the Classified list of AFNI programs:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html
+... the Tutorial pages:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+... and the online AFNI Bootcamp and Academy recordings:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+... and more help and examples on the main documentation pages.
+
+PROGRAMS SNEAKILY ALREADY CHOPPED
+---------------------------------
+3dMINCtoAFNI
+3dAFNItoMINC
+
+PROGRAMS ON THE CHOPPING BLOCK
+------------------------------
+AlphaSim                (obsolete -> used 3dClustSim)
+3dFWHM                  (obsolete -> use 3dFWHMx)
+3dMax                   (obsolete -> use 3dBrickStat)
+@auto_align             (obsolete -> use align_epi_anat.py or 3dAllineate)
+@UpdateAfni             (obsolete -> use @update.afni.binaries)
+3dANALYZEtoAFNI         (obsolete -> use 3dcopy or to3d)
+Dimon1                  (obsolete -> use Dimon)
+3dCountSpikes           (obsolete -> use 3dToutcount)
+3dfim                   (obsolete -> use 3dDeconvolve)
+3dUniformize            (obsolete -> use 3dUnifize)
+@DTI_studio_reposition  (probably obsolete)
+@make_stim_file         (obsolete -> use timing_tool.py)
+3dICC_REML.R            (obsolete -> use 3dICC)
+3dAOV.R                 (obsolete -> use 3dMVM)
+lpc_align.py            (obsolete -> use align_epi_anat.py or 3dAllineate)
+afni_restproc.py        (obsolete -> use afni_proc.py)
+@snapshot_volreg3       (obsolete -> use @snapshot_volreg)
+1dDW_Grad_o_Mat         (obsolete -> use 1dDW_Grad_o_Mat++)
+3dProbTrackID           (obsolete -> use 3dTrackID)
+3dAnatNudge             (obsolete -> use align_epi_anat.py or Nudge plugin)
+3dFourier               (obsolete -> use 3dBandpass)
+3dttest                 (obsolete -> use 3dttest++; for "3dttest -base .."
+                         functionality, use "3dttest++ -singletonA ..")
+3dAnatNudge             (obsolete -> use align_epi_anat.py, 3dAllineate or
+                         Nudge plugin)
+DoPerRoi.py
+3dbuc2fim
+3dDeconvolve_f 
+3ddup
+3dnoise
+3dproject
+3dWavelets
+abut
+ent16
+ftosh
+ge_header
+Ifile
+check_dset_for_fs.py 
+mayo_analyze          
+mritopgm
+siemens_vision
+sqwave
+Xphace
+FD2
+
+========================================================================
+
 AFNI Digest, week of 2020/08/05.
 
 Contents:

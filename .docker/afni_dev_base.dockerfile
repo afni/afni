@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y wget sudo \
 #     (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
 # Configure environment
+RUN ln -sf  /bin/bash /bin/sh # use bash by default
 ENV SHELL=/bin/bash \
     CONTAINER_USER="afni_user" \
     CONTAINER_UID="1000" \
@@ -108,6 +109,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     tree \
     valgrind \
     vim \
+    x11-apps \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -137,13 +139,17 @@ RUN mkdir $PYTHONUSERBASE
 # Add some more test dependencies
 RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
      | python3 - --no-cache-dir --prefix $PYTHONUSERBASE
-RUN pip install \
+RUN python3 -m pip install \
       --no-cache-dir \
         autopep8 \
-        black \
+        black==20.8b1 \
         codecov \
         cython \
         datalad \
+        distro \
+        docker \
+        filelock \
+        gcovr \
         ipython \
         matplotlib \
         nibabel \
@@ -152,9 +158,9 @@ RUN pip install \
         pdbpp \
         pytest \
         pytest-cov \
-        pytest-parallel \
+        pytest-xdist \
         scipy \
-        xvfbwrapper \
+        git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
   && fix-permissions /opt
 
 # add pdb alias ipy for easier pdb debugging

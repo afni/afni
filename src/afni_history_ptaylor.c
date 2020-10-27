@@ -7,16 +7,16 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
-  
+                  (optional) long description with intermediate newlines
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- example --
@@ -65,6 +68,111 @@
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+{ 19, Oct , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Added new QC image: initial source-base alignment (@djunct_overlap_check)",
+   "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"
+},
+
+{ 19, Oct , 2020 , PT , "@djunct_overlap_check" , MAJOR , TYPE_NEW_PROG,
+   "Make of overlap of 2 datasets (esp for pre-align check, AW or SSW).",
+   "Will make both non-obl and 3dWarp-deob'ed images of olap (and report).\n"
+},
+
+{ 19, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added new QC image to QC/ dir: initial source-base alignment.",
+   "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"
+},
+
+{ 19, Oct , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase II and III.  Thanks again, B Jung!",
+   "New intermediate dir, animal_outs update, helpfile rewritten.\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase I.  Thanks, Ben Jung, for good suggestions!",
+   "Put report*1D in QC/, and do*.tcsh and surfaces_* in new surfaces/ dir.\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Add in status checks after many afni progs, to exit at/near first failure.",
+   "Should be no change in output for users (in successful runs).\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Now, first cp+resample src to RAI; else, shft is bad for non-xyz orients.",
+   "Output warps can still apply to original orient dset fine.\n"
+},
+
+{ 24, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Put in status checks through script to exit with error if any step fails.",
+   "Should provide nicer behavior if something gang agley.\n"
+},
+
+{ 2, Sep , 2020 , PT , "@SkullStrip_TouchUp" , MINOR , TYPE_GENERAL,
+   "Replace '-e' at top with several later status checks; 'exit 0' after help.",
+   "No effect on output, except being more general.\n"
+},
+
+{ 1, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_BUG_FIX,
+   "If '-skipwarp' was used, crashed at very end (sigh).",
+   "Fixed that crash behavior; no changes in outputs.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_roi_row.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_prep.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_gridconv.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mat_sel.py" , MINOR , TYPE_ENHANCE,
+   "Update to run in Python 3 (using 2to3, plus extra tweaks).",
+   "Should now run in both Python 2 and 3.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_lat_csv.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution, with lib: lib_fat_Rfactor.py.",
+   "R deps are a mess between Py2 and Py3; might rewrite better in future.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_mvm_review.py" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "This program never even made it to full beta status.\n"
+},
+
+{ 1, Sep , 2020 , PT , "fat_proc_grad_plot" , MINOR , TYPE_REMOVE,
+   "Remove program from distribution.",
+   "Already have a better one (with fewer dependencies!) ready to go.\n"
+},
+
+{ 27, Aug , 2020 , PT , "@animal_warper" , MAJOR , TYPE_MODIFY,
+   "Well, usage+output shouldn't really change, but it should be more stable.",
+   "There is also a new opt: -align_centers_meth (read the help).\n"
+},
+
+{ 26, Aug , 2020 , PT , "@animal_warper" , MICRO , TYPE_BUG_FIX,
+   "Fix case of running prog with no args.",
+   "Should show help; now it DOES show help, with no error.\n"
+},
+
+{ 21, Aug , 2020 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Fix header deps of underlying progs (namely, readglob.c).",
+   "Was crashing on some NIML reading cases.\n"
+},
 
 { 31, July , 2020 , PT , "@Install_MACAQUE_DEMO" , MAJOR , TYPE_NEW_PROG,
    "Install MACAQUE_DEMO_REST_1.0, for macaque resting state FMRI examples.",

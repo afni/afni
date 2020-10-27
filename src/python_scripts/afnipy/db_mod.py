@@ -10754,7 +10754,7 @@ g_help_notes = """
         rcr - todo
 
     In the case of multi-echo data, there are many things to consider.
-    -combine method
+    -combine_method
     -mask_epi_anat yes
     -blocks ... mask combine ...
 

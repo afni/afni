@@ -1,5 +1,118 @@
-This file serves as a log of removal of old functionality. For each entry a commit id is provided to indicate the relevant commit in which such a removal of code occurred. The command "git show <commit-id>" can be used to inspect this commit. To inspect this commit and preceding commits (preceding commits may include modifications to the build system etc) one can execute the command "git log --patch <commit-id>
+This file serves as a log of removal of old functionality.
 
+For each entry a commit id is provided to indicate the relevant commit in which
+such a removal of code occurred. The command "git show <commit-id>" can be used
+to inspect this commit. To inspect this commit and preceding commits (preceding
+commits may include modifications to the build system etc) one can execute the
+command "git log --patch <commit-id>.
+
+
+# ===========================================================================
+# overview of steps for deletion
+# ---------------------------------------------------------------------------
+
+0. update git, just to be sure we are current (no necessary, but preferable)
+
+      cd git/AFNI/afni
+      git checkout master
+      git pull
+
+1. create and checkout new branch (that can be used for a pull request)
+
+      git checkout -b deletions_July_17
+
+2. remove scripts, for example, or copy in updates from elsewhere
+
+      rm src/scripts_install/@make_stim_file
+
+3. make afni_history updates (TYPE_REMOVE - per program/lib/functionality)
+   and, assuming those edits were made in the non-git tree ~/afni/src,
+   copy them into the local git tree (still on branch deletions_July_17):
+
+      cp ~/afni/src/afni_history_rickr.c src
+
+4. commit changes
+
+      git commit -am 'script deletion'
+
+5. add log of most current file changes to .deprecation.txt, 
+   (see "making a 'git deprecate' alias", below)
+   (this makes new git commit, making this branch ready for a pull request)
+
+      git deprecate
+
+6. push new branch
+
+      git push origin deletions_July_17
+
+7. go to https://github.com/afni/afni and open a pull request
+   for that branch (deletions_July_17), and let the CI tests run
+
+
+
+# 99. separate option: update git/afni_doc/educational/classified_progs.rst
+
+
+# ----------------------------------------------------------------------
+# making a 'git deprecate' alias
+
+The purpose of the "deprecate" step is to add a list of files removed or
+modified by the most recent commit.  This alias *only* works for a single
+commit (comparing HEAD~1 to HEAD, the previous to the current commits).
+So it is preferable to run "git deprecate" after a single such change.
+
+
+a. First create an alias that lists that log difference (of the "last commit"),
+   along with a header.  Run "git lc" at any time to see the text.
+
+      git config --global alias.lc 'log --name-only --pretty=format:"%n%n%nDeprecation: %s%nTimestamp: %ai%nCommit: %h%nAuthor: %an%nFiles affected:" HEAD~1..HEAD'
+
+      git lc
+
+
+b. Then create an alias that appends that log difference to .deprecation.txt,
+   and commits that extra change.  Note that this alias should have an '!' in
+   it, which makes the way to create the alias shell-specific.
+
+   From bash:
+
+      git config --global alias.deprecate    \
+          '!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+   From tcsh (escape the initial '!' in the alias text):
+
+      git config --global alias.deprecate    \
+          '\!git lc >> .deprecation.txt;git add .deprecation.txt; git commit -m "Code removal"'
+
+
+These should both be visible from your ~/.gitconfig file.
+
+
+# ----------------------------------------------------------------------
+# using the new aliases
+
+At this point, one can make deletions to the git tree:
+
+      rm -fr src/ptaylor
+ 
+Commit those important deletions:
+
+      git commit -am 'getting rid of malware'
+
+List the changes from that most recent commit
+(this is only for text output, it does not affect the repository):
+
+      git lc
+
+And make one more commit to append the list of removed files
+to .deprecate.txt:
+
+      git deprecate
+
+
+# ---------------------------------------------------------------------------
+# end deletion overview
+# ===========================================================================
 
 
 Deprecation: Remove netcdf, volpack and associated c code
@@ -184,3 +297,59 @@ src/volpack/vp_warpA330N.c
 src/volpack/vp_warpA330R.c
 src/volpack/vp_warpA331N.c
 src/volpack/vp_warpA331R.c
+
+
+
+Deprecation: deletion of many scripts
+Timestamp: 2020-08-25 14:15:50 -0400
+Commit: a9b60b1f4
+Author: rick reynolds
+Files affected:
+src/R_scripts/3dAOV.R
+src/R_scripts/3dICC_REML.R
+src/afni_history_rickr.c
+src/python_scripts/afnipy/lib_fs.py
+src/python_scripts/scripts/DoPerRoi.py
+src/python_scripts/scripts/afni_restproc.py
+src/python_scripts/scripts/check_dset_for_fs.py
+src/python_scripts/scripts/lpc_align.py
+src/scripts_install/@DTI_studio_reposition
+src/scripts_install/@UpdateAfni
+src/scripts_install/@auto_align
+src/scripts_install/@make_stim_file
+src/scripts_install/@snapshot_volreg3
+
+
+
+Deprecation: distribution deletion of compiled programs
+Timestamp: 2020-08-25 17:40:01 -0400
+Commit: 1ac227bcc
+Author: rick reynolds
+Files affected:
+src/Makefile.INCLUDE
+src/afni_history_rickr.c
+src/ptaylor/Makefile.ptaylor.INCLUDE
+src/rickr/Makefile
+src/scripts_install/3dMax
+
+
+
+Deprecation: deletion/deprecation: fat_mvm_review.py, fat_proc_grad_plot
+Timestamp: 2020-09-01 15:15:34 -0400
+Commit: 509b759f3
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/scripts/fat_mvm_review.py
+src/scripts_install/fat_proc_grad_plot
+
+
+
+Deprecation: delete/deprecate: fat_lat_csv.py
+Timestamp: 2020-09-01 17:12:47 -0400
+Commit: 6ae08226b
+Author: mrneont
+Files affected:
+src/afni_history_ptaylor.c
+src/python_scripts/afnipy/lib_fat_Rfactor.py
+src/python_scripts/scripts/fat_lat_csv.py

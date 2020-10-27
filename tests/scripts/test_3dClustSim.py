@@ -1,5 +1,5 @@
-from .utils.misc import is_omp
-from .utils import tools
+from afni_test_utils.misc import is_omp
+from afni_test_utils import tools
 import pytest
 
 # check for omp compilation
@@ -47,4 +47,4 @@ def test_3dClustSim_basic(data, add_env_vars):
         kwargs_log=kwargs_log,
         add_env_vars=add_env_vars,
     )
-    differ.run()
+    differ.run(timeout=60)

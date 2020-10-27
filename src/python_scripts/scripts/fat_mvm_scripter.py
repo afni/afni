@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-#
+
+
+# python3 status: compatible
+
 # Version 1.1, Sept, 2014.
 # written:  PA Taylor (UCT, AIMS).
 #
@@ -24,6 +27,8 @@
 #    + change gltCode names: '-' -> '--' and '^' -> '^^' to separate
 # Sep,2015
 #    + use subset of ROIs to make a new MVM table file, for subnet test
+#
+# [PT: Aug 31, 2020] updated to Python 3 with "2to3 -w .."
 
 from afnipy import lib_fat_funcs as GR
 from numpy import set_printoptions
@@ -273,7 +278,7 @@ def main(argv):
 
     # allow status 0 on -help   24 Sep 2018 [rickr]
     if "-help" in argv:
-        print help_line
+        print(help_line)
         sys.exit()
 
     try:
@@ -294,13 +299,13 @@ def main(argv):
                                     "subnet_pref="
                                 ])
     except getopt.GetoptError:
-        print "** Error reading options. Try looking at the helpfile:"
-        print "\t $  fat_mvm_scripter.py -h\n"
+        print("** Error reading options. Try looking at the helpfile:")
+        print("\t $  fat_mvm_scripter.py -h\n")
         sys.exit(2)
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print help_line
+            print(help_line)
             sys.exit()
         elif opt in ("-r", "--rois"):
             userlist_roi = arg
@@ -345,33 +350,33 @@ def main(argv):
             comm_str = GR.RecapAttach(comm_str, opt, '')
 
     if not(file_prefix):
-        print "** ERROR: missing an output prefix."
-        print "\t Need to use either '-p' or '--prefix'."
+        print("** ERROR: missing an output prefix.")
+        print("\t Need to use either '-p' or '--prefix'.")
         sys.exit()
     if not(file_table):
-        print "** ERROR: missing an input table."
-        print "\t Need to use either '-t' or '--table'."
+        print("** ERROR: missing an input table.")
+        print("\t Need to use either '-t' or '--table'.")
         sys.exit()
     if not(file_log):
-        print "** ERROR: missing an input log file."
-        print "\t Need to use either '-l' or '--log'."
+        print("** ERROR: missing an input log file.")
+        print("\t Need to use either '-l' or '--log'.")
         sys.exit()
     if ( list_model == '' ) and ( file_listmodel == '' ):
-        print "** ERROR: missing a necessary model description input."
-        print "\t Need to use either '-m' or '-f'."
+        print("** ERROR: missing a necessary model description input.")
+        print("\t Need to use either '-m' or '-f'.")
         sys.exit()
     if not( list_model == '' ) and not( file_listmodel == '' ):
-        print "*+ Warning: both a model list *and* a model file have",
-        print " been input."
-        print "\tThe latter will be used."
+        print("*+ Warning: both a model list *and* a model file have "
+              "been input.")
+        print("\tThe latter will be used.")
     if not( list_pars == '' ) and not( file_listpars == '' ):
-        print "*+ Warning: both a parameter list *and* a parameter file have",
-        print " been input."
-        print "\tThe latter will be used."
+        print("*+ Warning: both a parameter list *and* a parameter file "
+              "have been input.")
+        print("\tThe latter will be used.")
     if not( userlist_roi == '' ) and not( file_listrois == '' ):
-        print "*+ Warning: both a ROI list *and* a ROI file have",
-        print " been input."
-        print "\tThe latter will be used."
+        print("*+ Warning: both a ROI list *and* a ROI file have "
+              "been input.")
+        print("\tThe latter will be used.")
     if SWITCH_subnet:   # in case no prefix is given
         if not(pref_subnet) :
             pref_subnet = file_table.strip(GR.MVM_file_postfix)
@@ -388,7 +393,7 @@ def main(argv):
 
 if __name__=="__main__":
     set_printoptions(linewidth=200)
-    print "\n"
+    print("\n")
 
     list_model, file_listmodel, file_prefix, file_table, \
     file_log, userlist_roi, file_listrois, pref_subnet, list_pars, \
@@ -396,7 +401,7 @@ if __name__=="__main__":
     = main(sys.argv[1:])
 
     if not(NA_WARN):
-        print "++ Won't warn about NAs in the data."
+        print("++ Won't warn about NAs in the data.")
 
     #arg_list = sys.argv
     #str_sep = ' '
@@ -411,7 +416,7 @@ if __name__=="__main__":
     elif list_model:
         var_list = list_model.split()
     else:
-        print "** Error! Cannot read in model values."
+        print("** Error! Cannot read in model values.")
         sys.exit(4)
 
     ##### don't do this here, because of interactions! Nvar = len( var_list )
@@ -443,11 +448,10 @@ if __name__=="__main__":
     if USER_LIST:
         for x in par_list:
             if not(full_par_list.__contains__(x)):
-                print "*+ Warning! Chosen parameter '%s' does not appear" % \
-                 (x),
-                print "to be listed in the log file! "
-                print "\t -> For now, will leave in the parameter list,",
-                print "but perhaps check spelling?"
+                print("*+ Warning! Chosen parameter '{}' does not appear " 
+                      "to be listed in the log file! ".format(x))
+                print("\t -> For now, will leave in the parameter list, "
+                      "but perhaps check spelling?")
 
 
     # Sep,2015: allow subnetwork, by making subtable and using that
@@ -467,7 +471,7 @@ if __name__=="__main__":
     # allow parsing of subset of categories
     if file_listmodel:
         if GR.IsFirstUncommentedSection_Multicol(file_listmodel):
-            print "Parsing var list file..."
+            print("Parsing var list file...")
             var_iscateg, var_isinterac = GR.Pars_CatVars_in_Listfile( 
                 file_listmodel, 
                 par_list, 
@@ -519,16 +523,16 @@ if __name__=="__main__":
 
     Nvar = len(var_list)
     
-    print "   List of ROIs is:\n   \t  %s." % roi_str
+    print("   List of ROIs is:\n   \t  %s." % roi_str)
     if USER_LIST:
-        print "   List of (selected) matrix parameters is:\n   \t  %s." % \
-         par_str
+        print("   List of (selected) matrix parameters is:\n   \t  %s." % \
+         par_str)
     else:       
-        print "   List of matrix parameters is:\n   \t  %s." % par_str
-    print "   List of quantitative variables is:\n   \t%s." % varQ_str
-    print "   List of categorical variables is:\n   \t%s." % varC_str
+        print("   List of matrix parameters is:\n   \t  %s." % par_str)
+    print("   List of quantitative variables is:\n   \t%s." % varQ_str)
+    print("   List of categorical variables is:\n   \t%s." % varC_str)
     # add: Apr,2015
-    print "   List of interacting variables is:\n   \t%s." % varI_str
+    print("   List of interacting variables is:\n   \t%s." % varI_str)
 
 
 
@@ -546,7 +550,7 @@ if __name__=="__main__":
     Nglt = Nroi*Nvartout
 
 
-    print '++ Starting to make and write MVM command...'
+    print('++ Starting to make and write MVM command...')
     tc = []
     # ~header
     Lhead = 8
@@ -637,5 +641,5 @@ if __name__=="__main__":
 #    f.write("%s  \n" % (tc[Nlines-1]))
     f.close()
     
-    print "++ ... done writing the new MVM script file, which can be run with:"
-    print "\n   tcsh %s  \n\n" % fout
+    print("++ ... done writing the new MVM script file, which can be run with:")
+    print("\n   tcsh %s  \n\n" % fout)

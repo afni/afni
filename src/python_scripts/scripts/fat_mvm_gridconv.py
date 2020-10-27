@@ -1,8 +1,14 @@
 #!/usr/bin/env python
+
+# python3 status: compatible
+
 #
 # Version 1.1, Jan, 2015.
 # written:  PA Taylor (UCT, AIMS).
 #
+# [PT: Sep 1, 2020] updated to Python 3 with "2to3 -w ..", and got rid
+# of 'end=...', for backwards compatibility
+
 # Modernize the format of *.grid files for fat_mvm_prep.py.  For a
 # long time, the matrices weren't explicitly labelled using the
 # commented '#' lines.  Now they are, and life is better for all.
@@ -89,17 +95,17 @@ def main(argv):
     # allow -help with exit status 0   21 Sep 2018 [rickr]
     for opt in ("-h", "--help", "-help"):
         if opt in argv:
-            print help_line
+            print(help_line)
             sys.exit()
 
     try:
         opts, args = getopt.getopt(argv,"hm:l:",["matr_in=","list_match="])
     except getopt.GetoptError:
-        print help_line
+        print(help_line)
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print help_line
+            print(help_line)
             sys.exit()
         elif opt in ("-m", "--matr_in"):
             file_matr_glob = arg
@@ -107,13 +113,13 @@ def main(argv):
             file_listmatch = arg
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
-        print "** ERROR: missing a necessary matrix file input."
-        print "\t Need to use either '-m' or '-l'."
+        print("** ERROR: missing a necessary matrix file input.")
+        print("\t Need to use either '-m' or '-l'.")
         sys.exit()
     if not( file_matr_glob == '' ) and not( file_listmatch == '' ):
-        print "*+ Warning: both a path for globbing *and* a listfile have",
-        print " been input for the matrix file."
-        print "\tThe glob one after '-m' will be ignored."
+        print("*+ Warning: both a path for globbing *and* a listfile have "
+              " been input for the matrix file.")
+        print("\tThe glob one after '-m' will be ignored.")
 
     return file_matr_glob, file_listmatch
 
@@ -122,7 +128,7 @@ def main(argv):
 
 if __name__=="__main__":
     set_printoptions(linewidth=200)
-    print "\n"
+    print("\n")
     file_matr_glob, file_listmatch = main(sys.argv[1:])
 
     # get file list from either of two ways.
@@ -132,7 +138,7 @@ if __name__=="__main__":
         list_all = glob(file_matr_glob)
         list_all.sort()
     else:
-        print "** Error! Cannot read in matrix files."
+        print("** Error! Cannot read in matrix files.")
         sys.exit(4)
 
     # this one gets the matched pair name.
@@ -143,15 +149,15 @@ if __name__=="__main__":
 
     N = len(list_all)
     if not( N ==len(list_all_out)) :
-        print '** Error: unmatched input and output names'
+        print('** Error: unmatched input and output names')
         sys.exit(6)
 
     for i in range(N):
         p = GR.OldFash_Grid_modernize(list_all[i], list_all_out[i])
-        print "Converted %15s -> %15s" % (list_all[i], list_all_out[i])
+        print("Converted %15s -> %15s" % (list_all[i], list_all_out[i]))
 
     if 1:
-        print "++ DONE.\n\n"
+        print("++ DONE.\n\n")
     else:
-        print "\n** Some error in file writing of table file."
-        print "\tSo close, yet so far."
+        print("\n** Some error in file writing of table file.")
+        print("\tSo close, yet so far.")

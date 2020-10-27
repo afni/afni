@@ -431,6 +431,7 @@ add_library(
   mri_histog.c
   mri_histoshort.c
   mri_intedge.c
+  mri_invert.c
   mri_isgray.c
   mri_lsqfit.c
   mri_matrix.c

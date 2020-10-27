@@ -218,7 +218,7 @@ static char * MRI_TYPE_name[9] =
 #define MRI_type_string(iq) \
   ( ((iq) < 0 || (iq) > LAST_MRI_TYPE ) ? "unknown" : MRI_TYPE_name[iq] )
 
-#define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
+#define MRI_TYPE_NAME(imm)  MRI_type_string((imm)->kind)
 
 /*! Max value of a byte. */
 
@@ -1064,6 +1064,7 @@ extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
 extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
+extern void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask ) ;
 
 extern MRI_IMAGE * mri_4to_rgba( MRI_IMAGE *rim , MRI_IMAGE *gim , MRI_IMAGE *bim , MRI_IMAGE *aim ) ;
 extern MRI_IMARR * mri_rgba_to_4float( MRI_IMAGE *oldim ) ;
@@ -1080,7 +1081,9 @@ extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
 extern MRI_IMAGE *mri_pair_to_complex( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR *mri_complex_to_pair( MRI_IMAGE * ) ;
-extern float complex_abs( complex z ) ;          /* 24 Aug 2009 */
+extern float complex_abs( complex z ) ;             /* 24 Aug 2009 */
+MRI_IMAGE * mri_complex_to_real( MRI_IMAGE *cim ) ; /* 17 Sep 2020 */
+MRI_IMAGE * mri_complex_to_imag( MRI_IMAGE *cim ) ;
 
 extern MRI_IMAGE *mri_to_complex_ext( MRI_IMAGE * , int , int , int ) ;
 
@@ -1107,6 +1110,9 @@ extern MRI_IMAGE *mri_complex_abs( MRI_IMAGE * ) ;
 
 extern void mri_fft_complex( int , float , MRI_IMAGE * ) ;
 extern float *mri_setup_taper( int , float ) ;
+extern MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
+                               int Lxx,int Lyy,int Lzz, int alt ) ;
+extern MRI_IMAGE * mri_fft_3Dconvolve( MRI_IMAGE *aim , MRI_IMAGE *bim ) ;
 
 extern MRI_IMAGE *mri_warp( MRI_IMAGE * , int , int , int ,
                             void func(float,float,float *,float *) ) ;

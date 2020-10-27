@@ -93,7 +93,7 @@ float *mri_setup_taper( int nx , float taper )
    register int ii ;
    int ntap ;
    float *tap ;
-   float phi ; 
+   float phi ;
 
    tap = (float *)malloc( sizeof(float) * nx ) ;   /* make array */
 
@@ -113,4 +113,180 @@ float *mri_setup_taper( int nx , float taper )
    }
 
    return tap ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* macro to alternate signs in workspace array */
+
+#undef  ALTERN
+#define ALTERN(nn)                                                                  \
+ do{ register int qq;                                                               \
+     for( qq=1; qq<(nn); qq+=2 ){ cbig[qq].r=-cbig[qq].r; cbig[qq].i=-cbig[qq].i; } \
+ } while(0)
+
+/*----------------------------------------------------------------------------*/
+/* FFT lengths are in Lxx, Lyy, Lzz; however,
+     Lxx = 0 ==> no FFT in that direction (etc.).
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
+                        int Lxx,int Lyy,int Lzz, int alt )
+{
+   MRI_IMAGE *outim ;
+   int ii,jj,kk , nx,ny,nxy,nz , nbig , fx,fy,fz,fxy , joff,koff ;
+   complex *cbig , *car , *far ;
+
+   if( inim->kind != MRI_complex ) return NULL ;
+
+   /* input data and its dimensions */
+
+   car = MRI_COMPLEX_PTR(inim) ;
+   nx = inim->nx ; ny = inim->ny ; nz = inim->nz ; nxy = nx*ny ;
+
+   /* output dimensions and data */
+
+   fx = (Lxx == 0) ? nx : (Lxx > nx) ? csfft_nextup_even(Lxx) : csfft_nextup_even(nx);
+   fy = (Lyy == 0) ? ny : (Lyy > ny) ? csfft_nextup_even(Lyy) : csfft_nextup_even(ny);
+   fz = (Lzz == 0) ? nz : (Lzz > nz) ? csfft_nextup_even(Lzz) : csfft_nextup_even(nz);
+   fxy = fx*fy ;
+
+   outim = mri_new_vol( fx,fy,fz , MRI_complex ) ;  /* zero filled */
+   far   = MRI_COMPLEX_PTR(outim) ;
+
+   /* buffer space */
+
+   nbig = MAX(fx,fy) ; nbig = MAX(nbig,fz) ; nbig = 4*nbig + 512 ;
+   cbig = (complex *)malloc(sizeof(complex)*nbig) ;
+
+   /* copy input data into output image */
+
+   for( kk=0 ; kk < nz ; kk++ )
+     for( jj=0 ; jj < ny ; jj++ )
+       memcpy( far + jj*fx + kk*fxy, car + jj*nx + kk*nxy, sizeof(complex)*nx );
+
+   /* x-direction FFTs */
+
+   if( Lxx > 1 ){
+     for( kk=0 ; kk < fz ; kk++ ){
+       koff = kk*fxy ;
+       for( jj=0 ; jj < fy ; jj++ ){
+         joff = koff + jj*fx ;
+         for( ii=0 ; ii < fx ; ii++ ) cbig[ii] = far[ii+joff] ;
+         if( alt > 0 ) ALTERN(fx) ;
+         csfft_cox( Sign , fx , cbig ) ;
+         if( alt < 0 ) ALTERN(fx) ;
+         for( ii=0 ; ii < fx ; ii++ ) far[ii+joff] = cbig[ii] ;
+       }
+     }
+   }
+
+   /* y-direction FFTs */
+
+   if( Lyy > 1 ){
+     for( kk=0 ; kk < fz ; kk++ ){
+       koff = kk*fxy ;
+       for( ii=0 ; ii < fx ; ii++ ){
+         joff = koff + ii ;
+         for( jj=0 ; jj < fy ; jj++ ) cbig[jj] = far[jj*fx+joff] ; /* copy data */
+         if( alt > 0 ) ALTERN(fy) ;
+         csfft_cox( Sign , fy , cbig ) ;                       /* FFT in buffer */
+         if( alt < 0 ) ALTERN(fy) ;
+         for( jj=0 ; jj < fy ; jj++ ) far[jj*fx+joff] = cbig[jj] ; /* copy back */
+       }
+     }
+   }
+
+   /* z-direction FFTs */
+
+   if( Lzz > 1 ){
+     for( jj=0 ; jj < fy ; jj++ ){
+       joff = jj*fx ;
+       for( ii=0 ; ii < fx ; ii++ ){
+         koff = joff + ii ;
+         for( kk=0 ; kk < fz ; kk++ ) cbig[kk] = far[kk*fxy+koff] ;
+         if( alt > 0 ) ALTERN(fz) ;
+         csfft_cox( Sign , fz , cbig ) ;
+         if( alt < 0 ) ALTERN(fz) ;
+         for( kk=0 ; kk < fz ; kk++ ) far[kk*fxy+koff] = cbig[kk] ;
+       }
+     }
+   }
+
+   free(cbig) ; MRI_COPY_AUX(outim,inim) ; return outim ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Convolve (via FFT) image aim with bim.    [Sep 2020]
+   Note output image will be at least as big as than the sum of the two sizes.
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_fft_3Dconvolve( MRI_IMAGE *aim , MRI_IMAGE *bim )
+{
+   MRI_IMAGE *outim=NULL ;
+   MRI_IMAGE *paim , *pbim , *faim , *fbim ;
+   int nxa,nya,nza , nxb,nyb,nzb , Lxx,Lyy,Lzz , Lxyz,ii ;
+   complex  ac   ,  bc   , qc ;
+   complex *acar , *bcar ;
+   float linv ;
+
+   if( aim == NULL || bim == NULL ) return NULL ;
+
+   /* input dimensions */
+
+   nxa = aim->nx ; nya = aim->ny ; nza = aim->nz ;
+   nxb = bim->nx ; nyb = bim->ny ; nzb = bim->nz ;
+
+   /* FFT and output dimensions (sum, bumped up for FFT effiency) */
+
+   Lxx = (nxa > 1 && nxb > 1) ? csfft_nextup_even(nxa+nxb) : 0 ;
+   Lyy = (nya > 1 && nyb > 1) ? csfft_nextup_even(nya+nyb) : 0 ;
+   Lzz = (nza > 1 && nzb > 1) ? csfft_nextup_even(nza+nzb) : 0 ;
+
+   /* at this time, we don't allow for convolving a 3D image with a 1D
+      or 2D image, for example, which is possible but more complicated */
+
+   if( Lxx == 0 || Lyy == 0 || Lzz == 0 ) return NULL ;
+
+   /* 1) convert A image to complex
+      2) zero pad it to fit the FFT size
+      3) FFT that
+      Then repeat these steps for the B image */
+
+   faim = mri_to_complex( aim ) ;                                      /* 1) */
+   paim = mri_zeropad_3D( 0,Lxx-nxa , 0,Lyy-nya , 0,Lzz-nza , faim ) ; /* 2) */
+   mri_free(faim) ;
+   faim = mri_fft_3D( -1 , paim , Lxx,Lyy,Lzz , 0 ) ;                  /* 3) */
+   mri_free(paim) ;
+   acar = MRI_COMPLEX_PTR(faim) ;
+
+   fbim = mri_to_complex( bim ) ;                                      /* 1) */
+   pbim = mri_zeropad_3D( 0,Lxx-nxb , 0,Lyy-nyb , 0,Lzz-nzb , fbim ) ; /* 2) */
+   mri_free(fbim) ;
+   fbim = mri_fft_3D( -1 , pbim , Lxx,Lyy,Lzz , 0 ) ;                  /* 3) */
+   mri_free(pbim) ;
+   bcar = MRI_COMPLEX_PTR(fbim) ;
+
+   /* multiply+scale FFTs, store back in faim/acar */
+
+   Lxyz = Lxx * Lyy * Lzz ;
+   linv = 10.f / (float)Lxyz ;       /* scaling for inverse FFT */
+   for( ii=0 ; ii < Lxyz ; ii++ ){
+     ac = acar[ii] ;
+     bc = bcar[ii] ;
+     qc.r = (ac.r * bc.r - ac.i * bc.i) * linv ; /* complex */
+     qc.i = (ac.r * bc.i + ac.i * bc.r) * linv ; /* multiply */
+     acar[ii] = qc ;
+   }
+   mri_free(fbim) ;
+
+   /* inverse FFT back to 'real' space */
+
+   fbim = mri_fft_3D( +1 , faim , Lxx,Lyy,Lzz , 0 ) ;
+   mri_free(faim) ;
+
+   /* convert to float-valued image (from complex FFT) and return */
+
+   outim = mri_complex_to_real( fbim ) ;
+   mri_free(fbim) ;
+   return outim ;
 }

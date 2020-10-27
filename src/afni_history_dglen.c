@@ -7,10 +7,10 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
-  
+                  (optional) long description with intermediate newlines
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
@@ -27,9 +27,12 @@
                     TYPE_NEW_ENV    - new environment variable or change
                     TYPE_BUG_FIX    - bug fix
                     TYPE_MODIFY     - a change (not new, not a fix)
+                    TYPE_ENHANCE    - general improvement
+                    TYPE_REMOVE     - deleted
+                    TYPE_REINSTATE  - un-deleted
 
            - PLEASE, stick to what fits on an 80 column terminal
-           - it may be nice to put the newest entires at the top
+           - it may be nice to put the newest entries at the top
            - leave the last "99, NULL" entry as it is
 
  -- examples (newest at top) --
@@ -50,6 +53,20 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 16, SEP, 2020, DRG, "atlas label range selector",
+     MICRO, TYPE_BUG_FIX,
+    "atlas labels not interpreted in range selector properly",
+    "atlas labels caused crash if selected in angle brackets on\n"
+    "cmdline. Also allowed for spaces in atlas labels by replacing\n"
+    "with underscores in command line."
+},
+
+{ 10, SEP, 2020, DRG, "Driving AFNI to get values",
+     MINOR, TYPE_ENHANCE,
+    "Drive AFNI to get current value in OLay, Threshold or ULay+",
+    "Can also get ULay and OLay prefixes"
+},
+
 { 9, AUG, 2020, DRG, "@ROI_decluster",
      MINOR, TYPE_NEW_PROG,
     "Remove small clusters or single voxels in datasets with many ROIs",

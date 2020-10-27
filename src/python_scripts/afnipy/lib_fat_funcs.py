@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-#
+
+# python3 status: compatible
+
 # ver 1.0:  July, 2014
 # Update, ver 1.1: Sept 2014
 # Updated, ver 1.2: Sept 2014
+# [PT: Aug 31, 2020] updated to Python 3 with "2to3 -w .."
+# [PT: Sep  1, 2020] continuing to tweak, based on 2to3 updates
 #
 # File of helper functions for fat_mvm_*.py.
 #
@@ -112,12 +116,12 @@ def Find_ANOVAE(x):
 
     npar = len(RESULTS)
     if npar <1:
-        print "ERROR! No ANOVA results?!?"
+        print("ERROR! No ANOVA results?!?")
         sys.exit(33)
 
     nvar = len( RESULTS[0] )
     if nvar < 1 :
-        print "ERROR! No ANOVA variables?!?"
+        print("ERROR! No ANOVA variables?!?")
         sys.exit(34)
 
     z = np.array(RESULTS, dtype = float)
@@ -165,12 +169,12 @@ def Find_POSTHOC(x):
 
     npar = len(RESULTS)
     if npar <1:
-        print "No post hoc results-- guess you didn't want any?"
+        print("No post hoc results-- guess you didn't want any?")
         return [],[],[]
     else:
         nvar = len( RESULTS[0] )
         if nvar < 1 :
-            print "ERROR! No post hoc variables?!?"
+            print("ERROR! No post hoc variables?!?")
             sys.exit(35)
 
         z = np.array(RESULTS, dtype = float)
@@ -196,66 +200,71 @@ def Find_PosthocVars_and_NROI( x ):
             phvars.append(twopiece[1])
 
     if len(phvars)*len(phrois) != nvals:
-        print "Problem! number of posthoc vars, ROIs and tests not matching!"
+        print("Problem! number of posthoc vars, ROIs and tests not matching!")
         sys.exit(189)
     
     return phrois, phvars
 
 ###------------------------------------------------------------------
 
-# ref mat allows us to use group pvalue mat to censor
-def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS,
-                        REF_mat):
+###### [PT: Sep 1, 2020] comment this func out, because the
+###### fat_mvm_review.py program that calls this func (a program that
+###### never even fully made it to beta testing) is being deprecated.
+#
+## ref mat allows us to use group pvalue mat to censor
+#def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS,
+#                        REF_mat):
+#
+#    STARTER = 0
+#    if not(TS):
+#        STARTER = 1
+#
+#    nvar = len(FI_var)
+#    npar = len(FI_par)
+#
+#    calc_indent = 14*nvar+1
+#
+#    if  (npar, nvar) != np.shape(FI_mat) :
+#        print("Weird error in numbers not matching internally!")
+#        sys.exit(35)
+#
+#    # first lining ...
+#    if STARTER: TS.append('# %12s' % (FI_var[0]))
+#    for j in range(nvar):
+#        print("%14s" % (FI_var[j]), end=' ')
+#        if (j>0):
+#            if STARTER: TS.append("%14s" % FI_var[j])
+#    print("")
+#    if STARTER: TS.append("\n")
+#
+#    TS.append('#%s#   %s\n' % ('-'*calc_indent, FI_indi))
+#    
+#
+#
+#
+#    # ... the rest.
+#    # use of 'REF_mat' to allow censoring by ANOVA values
+#    for i in range(npar):
+#        for j in range(nvar):
+#            #if FI_mat[i,j] < TO :
+#            if REF_mat[i,j] < TO :
+#                out = "%.4e" % (FI_mat[i,j])
+#                fout = out
+#            else:
+#                out = '-'
+#                fout = '0'
+#            print("%14s" % (out), end=' ')
+#            TS.append("%14s" % (fout))
+#        print("  %s" % FI_par[i])
+#        TS.append("  # %s\n" % FI_par[i])
+#
+#
+#    if not(TS):
+#        print("**ERROR! Empty file?")
+#        sys.exit(12)
+#
+#    return TS
 
-    STARTER = 0
-    if not(TS):
-        STARTER = 1
-
-    nvar = len(FI_var)
-    npar = len(FI_par)
-
-    calc_indent = 14*nvar+1
-
-    if  (npar, nvar) != np.shape(FI_mat) :
-        print "Weird error in numbers not matching internally!"
-        sys.exit(35)
-
-    # first lining ...
-    if STARTER: TS.append('# %12s' % (FI_var[0]))
-    for j in range(nvar):
-        print "%14s" % (FI_var[j]),
-        if (j>0):
-            if STARTER: TS.append("%14s" % FI_var[j])
-    print ""
-    if STARTER: TS.append("\n")
-
-    TS.append('#%s#   %s\n' % ('-'*calc_indent, FI_indi))
-    
-
-
-
-    # ... the rest.
-    # use of 'REF_mat' to allow censoring by ANOVA values
-    for i in range(npar):
-        for j in range(nvar):
-            #if FI_mat[i,j] < TO :
-            if REF_mat[i,j] < TO :
-                out = "%.4e" % (FI_mat[i,j])
-                fout = out
-            else:
-                out = '-'
-                fout = '0'
-            print "%14s" % (out),
-            TS.append("%14s" % (fout))
-        print "  %s" % FI_par[i]
-        TS.append("  # %s\n" % FI_par[i])
-
-
-    if not(TS):
-        print "**ERROR! Empty file?"
-        sys.exit(12)
-
-    return TS
 
 ''' OLD version
 
@@ -333,9 +342,9 @@ def SplitVar_Sublist(L, idx):
         else:
             return set(L[mm+1:])
     else:
-        print "Error reading variable list: too many commas!"
-        print "\t There should only be a single comma, separating at most",
-        print "two lists."
+        print("Error reading variable list: too many commas!")
+        print("\t There should only be a single comma, separating at most "
+              "two lists.")
         sys.exit(18)
 
 
@@ -356,13 +365,13 @@ def Pars_CatVars_in_Listfile( file_listvars,
     coldat = ReturnFirstUncommentedSection_ofReadlines(file_listvars)
     for i in range(len(coldat)):
         if len(coldat[i]) > 1:
-            print "Found a variable for subsetting"
+            print("Found a variable for subsetting")
             
             if var_iscateg[i]:
                 newsub_set = set(coldat[i][1:]) # all other vars in that row
                 oldvar_set = set(var_iscateg[i])
                 nomatch = list(oldvar_set.__ixor__(newsub_set))
-                print "Going to remove:", nomatch
+                print("Going to remove:", nomatch)
                 for x in nomatch:
                     var_iscateg[i].remove(x)
 
@@ -376,7 +385,7 @@ def Pars_CatVars_in_Listfile( file_listvars,
                         newsub_set = SplitVar_Sublist(coldat[i][1:], j)
                         oldvar_set = set(var_isinterac[i][2][j])
                         nomatch = list(oldvar_set.__ixor__(newsub_set))
-                        print "Going to remove:", nomatch
+                        print("Going to remove:", nomatch)
                         for x in nomatch:
                             var_isinterac[i][2][j].remove(x)
 
@@ -547,11 +556,11 @@ def IsEntry_interaction(str_var):
     num_aster = str_var.count(type_ast)
 
     if (num_colon + num_aster) > 1:
-        print "Error! At most 1 interaction per var is permitted currently!"
+        print("Error! At most 1 interaction per var is permitted currently!")
         sys.exit(14)
 
     if num_colon :
-        print "**ERROR! The ':' does not exist as a usable interaction call!"
+        print("**ERROR! The ':' does not exist as a usable interaction call!")
         sys.exit(156)
         #return str_var.split(type_col), type_col
     elif num_aster :
@@ -637,7 +646,12 @@ def MakeRowFile_From_FATmat(fname, outname, ele, ExternLabsOK):
         for x in X4[3]:
             # take half of element id
             name = ElementNameMaker(x, x, 0)
-            lele = (len(name)-len(ConnNames))/2
+
+            #### [PT: Aug 31, 2020] in going from py 2to3, had to
+            #### update this to integer div, in order to be able to
+            #### use as index
+            # lele = (len(name)-len(ConnNames))/2
+            lele = (len(name)-len(ConnNames))//2
             X4[4].extend( name[:lele] )
 
     if X4[UseL].__contains__(ele):
@@ -651,10 +665,10 @@ def MakeRowFile_From_FATmat(fname, outname, ele, ExternLabsOK):
     # extra check: even if LABELS are used, might still refer to ID
     # number ok
     elif (UseL == 4) and X4[3].__contains__(ele):
-        print "*+ Even though you have labels in the file, it looks like",
-        print "your 'roi' selection is just a digit."
-        print "\t-> Not a problem-- row selection will be done based on ROI",
-        print "number (and not on labeltable-info)."
+        print("*+ Even though you have labels in the file, it looks like "
+              "your 'roi' selection is just a digit.")
+        print("\t-> Not a problem-- row selection will be done based on ROI "
+              "number (and not on labeltable-info).")
         ele_ind = X4[3].index(ele)
         y = Select_Row_From_FATmat(X4, 
                                    outname, 
@@ -663,11 +677,11 @@ def MakeRowFile_From_FATmat(fname, outname, ele, ExternLabsOK):
                                    3, 
                                    ExternLabsOK)
     else:
-        print "** Error: chosen element ",
-        print "'%s' doesn't appear in file's ROI list!" % ele
-        print "For reference, the list of ROIs is:"
+        print("** Error: chosen element "
+              "'%s' doesn't appear in file's ROI list!" % ele)
+        print("For reference, the list of ROIs is:")
         for x in X4[UseL]:
-            print "\t",x
+            print("\t",x)
         sys.exit(55)
 
     return y
@@ -680,12 +694,15 @@ def DefaultNamingOutRowfile(list_all, ele, ExternLabsOK):
 
     # take half of element id
     name = ElementNameMaker(ele, ele, ExternLabsOK)
-    lele = (len(name)-len(ConnNames))/2
+    #### [PT: Aug 31, 2020] in going from py 2to3, had to update this
+    #### to integer div, in order to be able to use as index
+    # lele = (len(name)-len(ConnNames))/2
+    lele = (len(name)-len(ConnNames))//2
     roi = name[:lele] 
 
     for x in list_all:
         if not(x[-5:] == '.grid') and not(x[-6:] == '.netcc'):
-            print "ERROR-- doesn't look like this is a *.grid or *netcc file!"
+            print("ERROR-- doesn't look like this is a *.grid or *netcc file!")
         elif x[-5:] == '.grid' :
             out.append(x[:-5]+'_grid_'+roi+'.row')
         else:
@@ -734,7 +751,7 @@ def LoadInTable(fname):
 
     N = len(x)
 
-    print '++ Opening and reading table file...'
+    print('++ Opening and reading table file...')
 
     data = []
     header = []
@@ -758,7 +775,7 @@ def LoadInTable(fname):
 
     header = Check_Header_Spaces(header)
 
-    print '++ ... done opening and reading table file.'
+    print('++ ... done opening and reading table file.')
     
     return data, header
 
@@ -774,8 +791,8 @@ def MakeSubTable(file_table, pref_subnet, roi_list):
     # check for 'ROI' in col heading
     indroi = Check_EleIn_ROIlist(tab_colvars, ColEnding[0])
     if indroi < 0:
-        print "** ERROR: can't find 'ROI' in column headings of"
-        print "    the table file:  %s." % file_table
+        print("** ERROR: can't find 'ROI' in column headings of")
+        print("    the table file:  %s." % file_table)
         sys.exit(543)
 
     list_count = np.zeros(Nrois, dtype=int)
@@ -791,13 +808,13 @@ def MakeSubTable(file_table, pref_subnet, roi_list):
         for i in range(Nrois):
             if not( list_count[i]):
                 # fixed indexing mistake in roi_list[].  [PT, March 27, 2017]
-                print "** ERROR: can't find selected ROI %s in the original table list" % roi_list[i]
-        print "** Please select again!"
+                print("** ERROR: can't find selected ROI %s in the original table list" % roi_list[i])
+        print("** Please select again!")
         sys.exit(544)
     else:
-        print "++ Found all %d ROIs in the desired subnet list:" % Nrois
+        print("++ Found all %d ROIs in the desired subnet list:" % Nrois)
         for x in roi_list:
-            print "\t  %s" % x
+            print("\t  %s" % x)
         
     Lx, Ly = np.shape(tab_subnet)
 
@@ -816,7 +833,7 @@ def MakeSubTable(file_table, pref_subnet, roi_list):
 
     fff.close()
 
-    print "++ New subnetwork table has been made: %s" % pref_subnet
+    print("++ New subnetwork table has been made: %s" % pref_subnet)
     
     return 1
             
@@ -842,8 +859,8 @@ def CheckVar_and_FindCategVar(tab_data, tab_colvars, tab_coltypes, par_list):
             else:
                 iscateg.append([])
         else:
-            print "** Error! Variable %s is not in the data table" \
-             % par_list[i]
+            print("** Error! Variable %s is not in the data table" \
+             % par_list[i])
             sys.exit(11)
 
     return iscateg
@@ -854,7 +871,7 @@ def CheckVar_and_FindCategVar(tab_data, tab_colvars, tab_coltypes, par_list):
 def GetFromLogFile(fname, ltype):
 
     if not(fname):
-        print "** Error: can't open log file: '%s'." % fname
+        print("** Error: can't open log file: '%s'." % fname)
         sys.exit(9)
 
     fff = open(fname,'r')
@@ -876,7 +893,7 @@ def GetFromLogFile(fname, ltype):
             outlist.append(x[i].split()[0])
 
     if not(outlist):
-        print "** Error: empty list from log file: '%s'." % fname
+        print("** Error: empty list from log file: '%s'." % fname)
         sys.exit(10)
 
     return outlist
@@ -962,8 +979,8 @@ def MakeGridTableau(DICT_CSV_grid, \
 
     # here, gridVARlist is actually a list of PARAMETERS.
 
-    print '++ Starting to select and convert matrix data to usable',
-    print 'form for output...'
+    print('++ Starting to select and convert matrix data to usable '
+          'form for output...')
 
     Nsub = len(csv_data)
     Nroi = len(grid_ROIlist)
@@ -998,7 +1015,7 @@ def MakeGridTableau(DICT_CSV_grid, \
                                 # which matrix in grid[i][0]
                                 MM[i,j,k] = grid_data[ii][0][idx][x][y]
 
-    print '++ ... done converting matrix stuff for outputting in table.'
+    print('++ ... done converting matrix stuff for outputting in table.')
     return MM
 
 ###------------------------------------------------------------------
@@ -1063,20 +1080,20 @@ def ReturnFirstUncommentedSection_ofReadlines(fname):
 
 def MakeDict_CSV_to_grid_FILE(grid_subj, csv_subj,file_match):
     
-    print "++ Start matching of CSV and matrix subject data (with file)..."
+    print("++ Start matching of CSV and matrix subject data (with file)...")
 
     temp = ReturnFirstUncommentedSection_ofReadlines(file_match)
-    print "LIST IS:"
+    print("LIST IS:")
     Nsub = len(temp)
-    print "++ Looks like there are %d subjects in matching file: '%s'."  \
-     % (Nsub, file_match )
+    print("++ Looks like there are %d subjects in matching file: '%s'."  \
+     % (Nsub, file_match ))
 
     CtG = {}
     for i in range(Nsub):
         CtG[ temp[i][1] ] = temp[i][0]
-        print temp[i][1], temp[i][0]
+        print(temp[i][1], temp[i][0])
 
-    print "++ ... done matching CSV and matrix subject data."
+    print("++ ... done matching CSV and matrix subject data.")
 
     return CtG
 
@@ -1084,19 +1101,19 @@ def MakeDict_CSV_to_grid_FILE(grid_subj, csv_subj,file_match):
 
 def MakeDict_CSV_to_grid_NOFILE(grid_subj, csv_subj):
 
-    print "++ Start matching of CSV and matrix subject data (without file)..."
+    print("++ Start matching of CSV and matrix subject data (without file)...")
 
     CtG = {}
     for a in csv_subj:
         for b in grid_subj:
             if b.find(a) != -1:
-                if CtG.has_key(a):
-                    print 'Error: OVERWRITING MATCHES! Need uniquity.'
+                if a in CtG:
+                    print('Error: OVERWRITING MATCHES! Need uniquity.')
                     #return {}
                 else:
                     CtG[a]=b
     
-    print "++ ... done matching CSV and matrix subject data."
+    print("++ ... done matching CSV and matrix subject data.")
 
     return CtG
 
@@ -1104,7 +1121,7 @@ def MakeDict_CSV_to_grid_NOFILE(grid_subj, csv_subj):
 
 def CheckDict_CSV_to_grid(CtG, grid_subj, csv_subj, csv_data):
 
-    print "++ Start checking dictionary of CSV and matrix subject data..."
+    print("++ Start checking dictionary of CSV and matrix subject data...")
     Nsub0 = len(csv_subj)
 
     csv_subj_new = []
@@ -1114,19 +1131,19 @@ def CheckDict_CSV_to_grid(CtG, grid_subj, csv_subj, csv_data):
     # check if all csv sub are used
     for i in range( Nsub0 ):
         a = csv_subj[i]
-        if CtG.has_key(a):
+        if a in CtG:
             csv_subj_new.append(a)
             csv_data_new.append(csv_data[i])
         else:
-            print '*+ Warning: CSV subj %s does not have a matrix match!' \
-             % a
+            print('*+ Warning: CSV subj %s does not have a matrix match!' \
+             % a)
             BADNESS+=1
     # check if all grid matr subs are used:
-    y = CtG.values()
+    y = list(CtG.values())
     for b in grid_subj:
         if not( y.__contains__(b) ):
-            print '*+ Warning: matrix subj %s does not have a CSV subj match!' \
-             % b
+            print('*+ Warning: matrix subj %s does not have a CSV subj match!' \
+             % b)
             #BADNESS+=1
 
 #    if BADNESS :
@@ -1136,7 +1153,7 @@ def CheckDict_CSV_to_grid(CtG, grid_subj, csv_subj, csv_data):
 #    else:
 #        print "++ Successful matching: each CSV entry had single matrix match."
 
-    print "++ ... done checking dictionary."
+    print("++ ... done checking dictionary.")
 
     return csv_data_new, csv_subj_new
 
@@ -1153,7 +1170,7 @@ def Write_CSVandMatrix_log(PREFIX,             \
 
     fname = PREFIX+MVM_matchlog_postfix
     fff = open(fname,'w')
-    x = CtG.keys()
+    x = list(CtG.keys())
     x.sort()
     
     fff.write("# %s :\n# %s\n" % (LOG_LABEL_command, ARGstr) )
@@ -1201,8 +1218,8 @@ def ReadSection_and_Column(file_list, colnum):
             list_of_subj.append(temp[i][colnum])
 
     if not( list_of_subj):
-        print "*+ No output column number %d in file %s." % \
-         (colnum, file_list)
+        print("*+ No output column number %d in file %s." % \
+         (colnum, file_list))
 
     return list_of_subj
 
@@ -1212,7 +1229,7 @@ def GroupListOfFullMatrs(file_IDer, file_listmatch, colnum):
     1) a list of 4-tuples of the data matrices;
     2) list of the subjects (mainly for checking)'''
 
-    print '++ Starting to find and open matrix files...'
+    print('++ Starting to find and open matrix files...')
     if file_listmatch:
         list_of_subj = ReadSection_and_Column(file_listmatch, colnum)
 
@@ -1227,7 +1244,7 @@ def GroupListOfFullMatrs(file_IDer, file_listmatch, colnum):
     elif file_IDer:
         list_of_subj = glob(file_IDer)
     else:
-        print "** Error! Cannot read in matrix files."
+        print("** Error! Cannot read in matrix files.")
         sys.exit(4)
 
     All_sub_grid = []
@@ -1236,13 +1253,13 @@ def GroupListOfFullMatrs(file_IDer, file_listmatch, colnum):
         All_sub_grid.append(x)
 
     if len(All_sub_grid) == 0:
-        print '** ERROR! No subjects found when looking for group!'
+        print('** ERROR! No subjects found when looking for group!')
         sys.exit(5) #return [], []
     else:
-        print '\tFound %d subjects in the group.' % len(All_sub_grid)
+        print('\tFound %d subjects in the group.' % len(All_sub_grid))
     
 
-    print '++ ... done finding and opening matrix files.'
+    print('++ ... done finding and opening matrix files.')
 
     return All_sub_grid, list_of_subj
 
@@ -1263,13 +1280,13 @@ def Check_Matr_type(LM):
             counts[2]+=1
 
     if counts[0] == N:
-        print '++ Looks like all matrices are GRID. Fine.'
+        print('++ Looks like all matrices are GRID. Fine.')
         return 'GRID'
     elif counts[1] == N:
-        print '++ Looks like all matrices are NETCC. Fine.'
+        print('++ Looks like all matrices are NETCC. Fine.')
         return 'NETCC'
     else:
-        print '*+ Warning: nonuniform or foreign type of matrix files!'
+        print('*+ Warning: nonuniform or foreign type of matrix files!')
         return 'OTHER'
 
     return
@@ -1280,51 +1297,117 @@ def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
     intersecting matrix elements based on labels.  When done, return
     that list of matrix elements, AND a list of the variables.'''
 
-    print '++ Going through sets of matrix element ROIs...'
+    print('++ Going through sets of matrix element ROIs...')
     Nsub = len(All_sub_grid)
 
     if Nsub == 0:
-        print '** ERROR! No subjects found when looking for matrix set!'
+        print('** ERROR! No subjects found when looking for matrix set!')
         return []
     else:
-        print '\tFound %d subjects for finding ROI elements.' % Nsub
+        print('\tFound %d subjects for finding ROI elements.' % Nsub)
     
     ## For finding the set of ROI elements
 
     # START EDITING HERE WITH USING LABELS
     a = GetSet(All_sub_grid[0], ftype, ExternLabsOK)
-    print '\tThe number of elements in the ROI matrix set is:\n\t  ',
+
+    otxt = '\tThe number of elements in the ROI matrix set is:\n\t   '
+    #print('\tThe number of elements in the ROI matrix set is:\n\t  ', end=' ')
     for i in range(1,Nsub):
-        print '%d,' % len(a),
+        otxt+= '{}, '.format(len(a))
+        #print('%d,' % len(a), end=' ')
         if UNION: 
             # updating with the *union* of regions
             a.update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
         else:
             a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
-    print '%d.' % len(a)
+    otxt+= '{}.'.format(len(a))
+    print(otxt)
+    #print('%d.' % len(a))
 
     temp = list(a)
     temp.sort()
-    print '\tThe set of ROIs is:'
+    print('\tThe set of ROIs is:')
     for t in temp:
-        print '\t   %s' % t
+        print('\t   %s' % t)
 
     ## For finding the set of parameters
     b = set(All_sub_grid[0][1])
-    print '\tThe (final) number of parameters in the ROI matrix set is:',
     for i in range(1,Nsub):
         b.intersection_update(set(All_sub_grid[i][1]))
-    print '%d.' % len(b)
+    print('\tThe (final) number of parameters in the ROI matrix set is:'
+          '{}.'.format(len(b)))
 
     temp2 = list(b)
     temp2.sort()
-    print '\tThe set of parameters is (alphabetically):'
-    print '\t ',
+    print('\tThe set of parameters is (alphabetically):')
+    #print('\t ', end=' ')
+    otxt2 = '\t  '
     for t in temp2:
-        print ' %s ' % t,
-    print ''
-    print '++ ... done getting set of ROIs.'
+        otxt2+= ' {}  '.format(t)
+        #print(' %s ' % t, end=' ')
+    #print('')
+    print(otxt2)
+    print('++ ... done getting set of ROIs.')
     return temp, temp2  #a, b
+
+
+
+####### [PT: Sep 1, 2020] the original version of this func after
+####### 2to3; going back to replace the parts with end=' ' (see
+####### above), for backward compatability.
+#def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
+#    '''Take a list of 4-tuples representing subject data (and a string
+#    of what filetype it is), go through all, and find set of
+#    intersecting matrix elements based on labels.  When done, return
+#    that list of matrix elements, AND a list of the variables.'''
+#
+#    print('++ Going through sets of matrix element ROIs...')
+#    Nsub = len(All_sub_grid)
+#
+#    if Nsub == 0:
+#        print('** ERROR! No subjects found when looking for matrix set!')
+#        return []
+#    else:
+#        print('\tFound %d subjects for finding ROI elements.' % Nsub)
+#    
+#    ## For finding the set of ROI elements
+#
+#    # START EDITING HERE WITH USING LABELS
+#    a = GetSet(All_sub_grid[0], ftype, ExternLabsOK)
+#    print('\tThe number of elements in the ROI matrix set is:\n\t  ', end=' ')
+#    for i in range(1,Nsub):
+#        print('%d,' % len(a), end=' ')
+#        if UNION: 
+#            # updating with the *union* of regions
+#            a.update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+#        else:
+#            a.intersection_update(GetSet(All_sub_grid[i], ftype, ExternLabsOK))
+#    print('%d.' % len(a))
+#
+#    temp = list(a)
+#    temp.sort()
+#    print('\tThe set of ROIs is:')
+#    for t in temp:
+#        print('\t   %s' % t)
+#
+#    ## For finding the set of parameters
+#    b = set(All_sub_grid[0][1])
+#    for i in range(1,Nsub):
+#        b.intersection_update(set(All_sub_grid[i][1]))
+#    print('\tThe (final) number of parameters in the ROI matrix set is:'
+#          '{}.'.format(len(b)))
+#
+#    temp2 = list(b)
+#    temp2.sort()
+#    print('\tThe set of parameters is (alphabetically):')
+#    print('\t ', end=' ')
+#    for t in temp2:
+#        print(' %s ' % t, end=' ')
+#    print('')
+#    print('++ ... done getting set of ROIs.')
+#    return temp, temp2  #a, b
+
 
 ###------------------------------------------------------------------
 
@@ -1335,7 +1418,7 @@ def GetSet(x, ftype, ExternLabsOK):
     a nice 'NT' set of ints.'''
     
     if not(ftype=='GRID' or ftype=='NETCC'):
-        print "** ERROR: unrecognized matrix type. Don't know what to do."
+        print("** ERROR: unrecognized matrix type. Don't know what to do.")
         sys.exit(34)
 
     # default: use the boring old numbers themselves as ROI labels,
@@ -1372,7 +1455,7 @@ def ElementNameMaker(A, B, AS_IS):
 
     # paranoia
     if (type(A) != str) or (type(B) != str):
-        print "** ERROR: problem in element name-maker. Help!"
+        print("** ERROR: problem in element name-maker. Help!")
         sys.exit(43)
         
     # first case is original style
@@ -1382,11 +1465,11 @@ def ElementNameMaker(A, B, AS_IS):
         bint = int(B)
 
         if aint > 999:
-            print "*+ POSSIBLE error in element maker: big label %d > 999!" % A
-            print "\tUgliness may ensue!"
+            print("*+ POSSIBLE error in element maker: big label %d > 999!" % A)
+            print("\tUgliness may ensue!")
         if bint > 999:
-            print "*+ POSSIBLE error in element maker: big label %d > 999!" % B
-            print "\tUgliness may ensue!"
+            print("*+ POSSIBLE error in element maker: big label %d > 999!" % B)
+            print("\tUgliness may ensue!")
 
         x = str("%03d" % (aint))
         y = str("%03d" % (bint))
@@ -1429,32 +1512,65 @@ def ElementNameMaker(A, B, AS_IS):
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------
 
-
+# [PT: Aug. 31, 2020] this had to be updated a bit in the 2to3 shift
 def LoadInCSV(fname):
     ''' open up a file, and return a 2-tuple: (raw) data set and header.'''
 
-    filein = open(fname, 'rb')
-    csvread = csv.reader(filein)
-
-    print '++ Opening and reading CSV file...'
+    print('++ Opening and reading CSV file...')
 
     data = []
     CSVheader = []
 
     idx = 0
-    for row in csvread:
-        if not(idx) and HeaderRowTrue:
-            CSVheader = row
-            idx+= 1
-        else:
-            data.append(row) #print row
-    filein.close()
+
+    # [PT: Sep 1, 2020] In order to have backwards compatability with
+    # Python2, the """newline=''""" was removed from this open
+    # command.  This doesn't appear to negatively affect Python3
+    # results, so keeping like this now.
+    with open(fname) as csvfile :
+    #with open(fname, newline='') as csvfile :
+        csvread = csv.reader(csvfile) #, delimiter=' ', quotechar='|')
+
+        for row in csvread:
+            if not(idx) and HeaderRowTrue:
+                CSVheader = row
+                idx+= 1
+            else:
+                data.append(row) #print row
 
     CSVheader = Check_Header_Spaces(CSVheader)
 
-    print '++ ... done opening and reading CSV file.'
+    print('++ ... done opening and reading CSV file.')
     
     return data, CSVheader
+
+###### [PT: Aug 31, 2020] ... and this is the old Python v2 form of
+###### the above func
+#def LoadInCSV(fname):
+#    ''' open up a file, and return a 2-tuple: (raw) data set and header.'''
+#
+#    filein = open(fname, 'rb')
+#    csvread = csv.reader(filein)
+#
+#    print '++ Opening and reading CSV file...'
+#
+#    data = []
+#    CSVheader = []
+#
+#    idx = 0
+#    for row in csvread:
+#        if not(idx) and HeaderRowTrue:
+#            CSVheader = row
+#            idx+= 1
+#        else:
+#            data.append(row) #print row
+#    filein.close()
+#
+#    CSVheader = Check_Header_Spaces(CSVheader)
+#
+#    print '++ ... done opening and reading CSV file.'
+#    
+#    return data, CSVheader
 
 ###------------------------------------------------------------------
 
@@ -1468,8 +1584,8 @@ def Check_Header_Spaces(X):
         if nn >= 0:
             bleep = str(X[s])  # cheap copy
             X[s] = X[s].replace(' ','_')
-            print "\tWarning: space in header name; replacing: '%s' -> '%s'." \
-             % (bleep, X[s])
+            print("\tWarning: space in header name; replacing: '%s' -> '%s'." \
+             % (bleep, X[s]))
 
     return X
 
@@ -1483,8 +1599,8 @@ def Choose_IntFloatStr(s):
     '''
 
     if not(type(s) == str):
-        print "BAD USAGE OF THIS FUNCTION:",
-        print "\tinput argument should be a string, not %s." % type(s) 
+        print("BAD USAGE OF THIS FUNCTION: "
+              "\tinput argument should be a string, not %s." % type(s)) 
         return s
 
     try:
@@ -1502,7 +1618,7 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
     '''Take the all-string input and header lists in,
        and return a copy with ints, floats and strings.'''
 
-    print '++ Converting (hopefully appropriate) strings to numbers...'
+    print('++ Converting (hopefully appropriate) strings to numbers...')
 
     # careful copying...  need to recursively copy each list
     # unattachedly
@@ -1523,9 +1639,9 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
             FOUND_EL = 1
 
     if FOUND_WS:
-        print "\t FYI: removed at least one whitespace line from CSV file."
+        print("\t FYI: removed at least one whitespace line from CSV file.")
     if FOUND_EL:
-        print "\t FYI: removed at least one empty line from CSV file."
+        print("\t FYI: removed at least one empty line from CSV file.")
 
     head2 = list(head1)
     
@@ -1545,13 +1661,13 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
             ty = type(dat2[i][j])
             if not(ty0 == ty):
                 if ty0 == str :
-                    print "Odd mixing in types of data in Col %d (=%s) " % \
-                     ( j, head1[j] ),
-                    print "\t-> seeing both %s and %s." % (ty0, ty)
+                    print("Odd mixing in types of data in Col {} (={}) "
+                          "\t-> seeing both {} and {}."
+                          "".format(j, head1[j], ty0, ty))
                 elif ty0 == int:
                     if ty == float:
-                        print "\tCSV col %s" % head1[j],
-                        print "-> making all floats." , dat2[i][j]
+                        print("\tCSV col {} -> making all floats. {}"
+                              "".format(head1[j], dat2[i][j]))
                         head2[j] = float    # Oct, 2014 fix
                         for k in range(Lx):
                             if type(dat2[k][j]) == int:
@@ -1561,12 +1677,12 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
                     elif (dat2[i][j] == 'NA'):
                         if NA_WARN:
                         #print "Loc (%d, %d) has value 'NA'." % (i,j)
-                            print "*+ Warning: 'NA' value in Col %d (='%s') !" \
-                             % ( j, head1[j] )
+                            print("*+ Warning: 'NA' value in Col %d (='%s') !" \
+                             % ( j, head1[j] ))
                     else:
-                        print "Odd mixing in types of data in Col %d (=%s) " \
-                         % ( j, head1[j] ),
-                        print "\t-> seeing both %s and %s." % (ty0, ty)
+                        print("Odd mixing in types of data in Col {} (={}) "
+                              "\t-> seeing both {} and {}."
+                              "".format( j, head1[j], ty0, ty))
                 elif ty0 == float:
                     if ty == int:
                         #print "\tin CSV col %d ->" % j,
@@ -1575,16 +1691,16 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
                     elif dat2[i][j] == 'NA':
                         if NA_WARN:
                         #print "Loc (%d, %d) has value 'NA'." % (i,j)
-                            print "*+ Warning: 'NA' value in Col %d (='%s') !" \
-                             % ( j, head1[j] )
+                            print("*+ Warning: 'NA' value in Col %d (='%s') !" \
+                             % ( j, head1[j] ))
                     else:
-                        print "Odd mixing in types of data in Col %d (=%s) " \
-                         % ( j, head1[j] ),
-                        print "\t-> seeing both %s and %s." % (ty0, ty)
+                        print("Odd mixing in types of data in Col {} (={}) "
+                              "\t-> seeing both {} and {}."
+                              "".format( j, head1[j], ty0, ty))
                 else:
-                    print "Extra odd: non str, int or float type? %s" % ty0
+                    print("Extra odd: non str, int or float type? %s" % ty0)
 
-    print '++ ... done with CSV str->numeric conversions.'
+    print('++ ... done with CSV str->numeric conversions.')
 
     return dat2, head2
 
@@ -1641,8 +1757,8 @@ def SepHeaderFile(RawX, fname):
     Ly = len(y)
 
     if not( Ly == ((Nroi+1) * Nmat) ):
-        print "ERROR reading grid file!"
-        print "Number of non-header lines don't match Nmatrices (%d)" % (Nmat)
+        print("ERROR reading grid file!")
+        print("Number of non-header lines don't match Nmatrices (%d)" % (Nmat))
         return [0,0]
 
     OUT_data = []
@@ -1680,8 +1796,8 @@ def RemoveEmptyWhitespaceFromReadlines(x, fname):
             break
 
     if whitespace:
-        print "\tNB: ignored %d lines of whitespace from the end of '%s'." \
-     % ( whitespace, fname )
+        print("\tNB: ignored %d lines of whitespace from the end of '%s'." \
+     % ( whitespace, fname ))
         return x[:-whitespace]
     else:
         return x
@@ -1691,18 +1807,18 @@ def RemoveEmptyWhitespaceFromReadlines(x, fname):
 def HeaderInfo(RawX):
     ''' Read in necessary numbers from first few lines. '''
     if not(RawX[0].split()[0] == '#'):
-        print "** ERROR: the file format doesn't look modern!"
-        print "**\t-> run Grid_Modernizer?"
+        print("** ERROR: the file format doesn't look modern!")
+        print("**\t-> run Grid_Modernizer?")
         sys.exit(52)
 
     Nroi = int(RawX[0].split()[1])
     if Nroi <=0:
-        print "ERROR reading header! Number of ROIs is: %d" % Nroi
+        print("ERROR reading header! Number of ROIs is: %d" % Nroi)
         sys.exit(53)
 
     Nmat = int(RawX[1].split()[1])
     if Nmat <=0:
-        print "ERROR reading header! Number of Matrices is: %d" % Nmat
+        print("ERROR reading header! Number of Matrices is: %d" % Nmat)
         sys.exit(54)
 
     # Sept 2014: might have labels here.
@@ -1721,9 +1837,9 @@ def HeaderInfo(RawX):
             ROI_str_labs = RawX[3].split()
             ll = len(ROI_str_labs)
             if not( ll == Nroi ):
-                print "ERROR reading header!"
-                print "  Number of ROIs (%d) doesn't match stringnames (%d)" % \
-                 (Nroi,ll)
+                print("ERROR reading header!")
+                print("  Number of ROIs (%d) doesn't match stringnames (%d)" % \
+                 (Nroi,ll))
                 sys.exit(55)
 
     #if HAVE_LABS :
@@ -1732,8 +1848,8 @@ def HeaderInfo(RawX):
     ListLabels=RawX[listreadline].split()
     ll = len(ListLabels)
     if not( ll == Nroi ):
-        print "ERROR reading header!"
-        print "  Number of ROIs (%d) doesn't match Labels (%d)" % (Nroi,ll)
+        print("ERROR reading header!")
+        print("  Number of ROIs (%d) doesn't match Labels (%d)" % (Nroi,ll))
         sys.exit(55)
 
     ### Don't do this--> may have non-numeric labels
@@ -1803,7 +1919,7 @@ def DefaultNamingOutGrid(list_all):
 
     for x in list_all:
         if not(x[-5:] == '.grid'):
-            print "ERROR-- doesn't look like you're modernizing a *.grid file!"
+            print("ERROR-- doesn't look like you're modernizing a *.grid file!")
 
         out.append(x[:-5]+'_MOD'+x[-5:])
 
@@ -1814,8 +1930,8 @@ def mod_func_write(Nroi, ROI_LABS, Y, fname, outname):
     
     Ngrid=np.shape(Y)[0]
     if not(Ngrid == len(OldFash_parnames)):
-        print "ERROR-- doesn't look like you have the right number of"
-        print "\tmatrices in the *.grid file!"
+        print("ERROR-- doesn't look like you have the right number of")
+        print("\tmatrices in the *.grid file!")
 
     f = open(outname, 'w')
     f.write('# %d # %s\n' % (Nroi, HEADER_Nroi))

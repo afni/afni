@@ -4,7 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-/**** Complex in-place FFT functions.
+/**** Complex-to-Complex in-place FFT functions.
       Prototypes below, after some inclusions.
       If USE_FFTN is enabled, any length is allowed;
       otherwise, limited to powers of 2 combined with
@@ -111,15 +111,16 @@ void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
    static void fft16 ( int mode , complex *xc ) ; /* unrolled   */
    static void fft32 ( int mode , complex *xc ) ; /* routines   */
 
-   static void fft64 ( int mode , complex *xc ) ; /* internal 2dec ->  32 */
-   static void fft128( int mode , complex *xc ) ; /* internal 4dec ->  32 */
-   static void fft256( int mode , complex *xc ) ; /* internal 4dec ->  64 */
-   static void fft512( int mode , complex *xc ) ; /* internal 4dec -> 128 */
+   /* 2dec == decimation by 2 ; 4dec == decimation by 4 */
+   static void fft64 ( int mode, complex *xc ); /* internal 2dec ->  32 */
+   static void fft128( int mode, complex *xc ); /* internal 4dec ->  32 */
+   static void fft256( int mode, complex *xc ); /* internal 4dec ->  64 -> 32 */
+   static void fft512( int mode, complex *xc ); /* internal 4dec -> 128 -> 32 */
 
-   static void fft_4dec( int , int , complex * ) ; /* general 4dec */
+   static void fft_4dec( int,int , complex * ); /* general 4dec */
 
-#  define fft1024(m,x) fft_4dec(m,1024,x)          /* 4dec -> 256 */
-#  define fft2048(m,x) fft_4dec(m,2048,x)          /* 4dec -> 512 */
+#  define fft1024(m,x) fft_4dec(m,1024,x)       /* 4dec -> 256 ->  64 -> 32 */
+#  define fft2048(m,x) fft_4dec(m,2048,x)       /* 4dec -> 512 -> 128 -> 32 */
 
 /*-- do FFTs of size 2 and 4 with macros --*/
 
@@ -2171,6 +2172,7 @@ static void fft_5dec( int mode , int idim , complex *xc )
 
 /*--------------------------------------------------------------------
    Return the smallest integer >= idim for which we can do an FFT.
+   That is, 2^a * 3^b * 5^c for 0 <= b,c <= RMAX and a >= 0.
 ----------------------------------------------------------------------*/
 
 #define N35 ((RMAX+1)*(RMAX+1))
@@ -2247,6 +2249,8 @@ int csfft_nextup_one35( int idim )
    int jj = idim ;
    do{
       jj = csfft_nextup(jj) ;
+      /* skip if divisible by 9 or 25 (too many powers of 3/5),
+         or if not divisible by 2 (result should be even)      */
       if( jj%9 == 0 || jj%25 == 0 || jj%2 == 1 ) jj++ ;
       else                                       return jj ;
    } while(1) ;

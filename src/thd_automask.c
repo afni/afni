@@ -1800,6 +1800,90 @@ ENTRY("THD_mask_clust2D") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* 2D version of peeling/restoring code [14 Sep 2020 - birthday of SL Cox!] */
+/*--------------------------------------------------------------------------*/
+
+void THD_mask_erodemany2D( int nx, int ny, byte *mmm, int npeel )
+{
+   int ii,jj , jy, im,jm , ip,jp , num , pp ;
+   int nxy=nx*ny ;
+   byte *nnn,*qqq , bpp , bth ;
+   const int realpeelthr = 6 ;
+
+ENTRY("THD_mask_erodemany2D") ;
+
+   if( mmm == NULL || npeel < 1 || nxy < 16 ) EXRETURN ;
+
+   nnn = (byte *)calloc(sizeof(byte),nxy) ;   /* mask of eroded voxels */
+   if( nnn == NULL ) EXRETURN ;               /* WTF? */
+   qqq = (byte *)malloc(sizeof(byte)*nxy) ;   /* another copy */
+   if( qqq == NULL ){ free(nnn); EXRETURN; }  /* WTF-squared? */
+
+   /* mark interior voxels that don't have 'peelthr' out of 8 nonzero nbhrs */
+
+   STATUS("peelings, nothing more than peelings") ;
+   for( pp=1 ; pp <= npeel ; pp++ ){   /* pp = peel layer index */
+
+     bpp = (byte)pp ;
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+       if( jj == 0    ) jm = jy ;
+       if( jj == ny-1 ) jp = jy ;
+
+       for( ii=0 ; ii < nx ; ii++ ){
+         if( mmm[ii+jy] ){           /* count nonzero nbhrs */
+           im = ii-1 ; ip = ii+1 ;
+           if( ii == 0    ) im = 0 ;
+           if( ii == nx-1 ) ip = ii ;
+           num =   mmm[im+jm] + mmm[ii+jm] + mmm[ip+jm]
+                 + mmm[im+jy]              + mmm[ip+jy]
+                 + mmm[im+jp] + mmm[ii+jp] + mmm[ip+jp] ;
+           if( num < realpeelthr ) nnn[ii+jy] = bpp ;  /* mark to erode */
+         }
+     }} /* end of ii,jj loops */
+
+     for( ii=0 ; ii < nxy ; ii++ )                    /* actually erode */
+       if( nnn[ii] ) mmm[ii] = 0 ;
+
+   } /* end of loop over peeling layers */
+
+   /* re-dilate eroded voxels that are next to survivors */
+
+   STATUS("unpeelings") ;
+   for( pp=npeel ; pp >= 1 ; pp-- ){  /* loop from innermost peel to outer */
+
+     bpp = (byte)pp ; memset(qqq,0,sizeof(byte)*nxy) ;
+     bth = (pp==npeel) ? 0 : 1 ; /* threshold */
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+       if( jj == 0    ) jm = jy ;
+       if( jj == ny-1 ) jp = jy ;
+
+       for( ii=0 ; ii < nx ; ii++ ){
+         if( nnn[ii+jy] >= bpp && !mmm[ii+jy] ){  /* was eroded before */
+           im = ii-1 ; ip = ii+1 ;
+           if( ii == 0    ) im = 0 ;
+           if( ii == nx-1 ) ip = ii ;
+           qqq[ii+jy] =                   /* count any surviving nbhrs */
+                  mmm[im+jm] + mmm[ii+jm] + mmm[ip+jm]
+                + mmm[im+jy]              + mmm[ip+jy]
+                + mmm[im+jp] + mmm[ii+jp] + mmm[ip+jp] ;
+         }
+     }} /* end of ii,jj loops */
+
+     /* actually do the dilation */
+
+     for( ii=0 ; ii < nxy ; ii++ )
+       if( qqq[ii] > bth ) mmm[ii] = 1 ;
+
+   } /* end of redilate loop */
+
+   free(qqq); free(nnn); EXRETURN;
+}
+
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask from an image (2D).
 -----------------------------------------------------------------------*/
@@ -1829,6 +1913,8 @@ ENTRY("mri_automask_image2D") ;
    mri_free(medim) ;
    if( nmm == 0 ){ free(mmm) ; RETURN(NULL) ; }  /* should not happen */
    if( nmm <= 2 || nmm == nvox ) RETURN(mmm) ;   /* very unlikely */
+
+   THD_mask_erodemany2D( im->nx,im->ny, mmm, 3 ) ;         /* 14 Sep 2020 */
 
    THD_mask_clust2D( im->nx,im->ny,0.5f, mmm ) ;
 
