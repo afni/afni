@@ -60,7 +60,7 @@ def get_tests_data_dir(config_obj):
     dl_dset = datalad.Dataset(str(tests_data_dir))
     if (
         dl_dset.is_installed()
-        and not "remote.afni_ci_test_data.url" in dl_dset.config.keys()
+        and "remote.afni_ci_test_data.url" not in dl_dset.config.keys()
     ):
         for f in dl_dset.pathobj.glob("**/*"):
             try:
@@ -68,8 +68,8 @@ def get_tests_data_dir(config_obj):
             except FileNotFoundError:
                 # missing symlink, nothing to worry about
                 pass
-        logger.warn("Not sure about test data, removing...")
-        shutil.rmtree(dl_dset.pathobj)
+        logger.warn("Not sure about test data, perhaps you should try removing...")
+        # shutil.rmtree(dl_dset.pathobj)
 
     # datalad is required and the datalad repository is used for data.
     if not (tests_data_dir / ".datalad").exists():
