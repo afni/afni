@@ -192,6 +192,7 @@ commands:
           name: Write osx dependencies to a file
           command: |
             echo \
+              python@3.8 \
               cmake ninja llvm pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
