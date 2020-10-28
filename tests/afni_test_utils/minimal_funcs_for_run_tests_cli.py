@@ -544,14 +544,13 @@ def configure_for_coverage(tests_dir, cmd_args, **kwargs):
                 "supported "
             )
 
-        # check that the pytest-cov plugin is installed
-        res = sp.run("pytest --help".split(), stdout=sp.PIPE, stderr=sp.STDOUT)
-        if "coverage reporting" not in res.stdout.decode("utf-8"):
-            raise EnvironmentError(
-                "It seems pytest is missing the pytest-cov plugin used "
-                "for python coverage. "
-            )
-
+        # check that the pytest-cov plugin is installed... This causes
+        # problems with the session cache (lock file is removed upon pytest
+        # removal and the pytest cache didn't seem to provide process safe
+        # setting of a variable.) res = sp.run("pytest --help".split(),
+        # stdout=sp.PIPE, stderr=sp.STDOUT) if "coverage reporting" not in
+        # res.stdout.decode("utf-8"): raise EnvironmentError( "It seems pytest
+        # is missing the pytest-cov plugin used " "for python coverage. " )
         out_args = add_coverage_args(tests_dir, out_args)
         os.environ[
             "CXXFLAGS"
