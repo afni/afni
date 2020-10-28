@@ -22,7 +22,7 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
 void edt1_local(THD_3dim_dataset * din, flt * df, int n);
-void edt_local(THD_3dim_dataset * din, flt * f, int n);
+void edt_local(float scale, flt * f, int n);
 float sqr(float x);
 static flt vx(flt * f, int p, int q);
 
@@ -127,9 +127,8 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
     int nvox = nx*ny*nz;
 
     // Get real world voxel sizes
-    int xDim = DSET_DX(din);
-    int yDim = DSET_DY(din);
-    int zDim = DSET_DZ(din);
+    int yDim = fabs(DSET_DY(din));
+    int zDim = fabs(DSET_DZ(din));
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -179,7 +178,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		//perform EDT for all rows
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * ny);
-			edt_local(din, imgRow, ny);
+			edt_local(yDim, imgRow, ny);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -218,7 +217,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		//perform EDT for all "rows"
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * nz);
-			edt_local(din, imgRow, nz);
+			edt_local(zDim, imgRow, nz);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -242,14 +241,8 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is simple
 
     // Get real world voxel sizes
-    /* DEBUG
     float xDim = fabs(DSET_DX(din));
     float yDim = fabs(DSET_DY(din));
-    float zDim = fabs(DSET_DZ(din));
-    */
-    float xDim = 1.0;
-    float yDim = 1.0;
-    float zDim = 1.0;
 
 	int q, prevX;
 	flt prevY, v;
@@ -283,12 +276,13 @@ static flt vx(flt * f, int p, int q) {
 		return ((f[q] + q*q) - (f[p] + p*p)) / (2.0*q - 2.0*p);
 }
 
-void edt_local(THD_3dim_dataset * din, flt * f, int n) {
+void edt_local(float scale, flt * f, int n) {
 	int q, p, k;
 	flt s, dx;
 	flt * d = (flt *)calloc((n)*sizeof(flt), 64);
 	flt * z = (flt *)calloc((n)*sizeof(flt), 64);
 	int * v = (int *)calloc((n)*sizeof(int), 64);
+
     /*# Find the lower envelope of a sequence of parabolas.
     #   f...source data (returns the Y of the parabola vertex at X)
     #   d...destination data (final distance values are written here)
@@ -326,7 +320,7 @@ void edt_local(THD_3dim_dataset * din, flt * f, int n) {
     for (q = 0; q < n; q++ ) {
 	    while (z[k + 1] < q)
             k = k + 1;
-        dx = (q - v[k]);
+        dx = scale*(q - v[k]);
         d[q] = dx * dx + f[v[k]];
     }
     for (q = 0; q < n; q++ )
