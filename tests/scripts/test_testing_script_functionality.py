@@ -616,6 +616,11 @@ def test_run_tests_with_args(monkeypatch, params, sp_with_successful_execution):
         "environ",
         os.environ.copy(),
     )
+    monkeypatch.setattr(
+        afni_test_utils.run_tests_func,
+        "check_test_data_repo",
+        Mock(),
+    )
     with pytest.raises(SystemExit) as err:
         afni_test_utils.run_tests_func.run_tests(TESTS_DIR, **params["args_in"])
         assert err.typename == "SystemExit"
