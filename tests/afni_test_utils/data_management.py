@@ -1,27 +1,25 @@
-import attr
-import logging
-import shutil
-import datalad.api as datalad
-from filelock import Timeout, FileLock
-from pathlib import Path
-import datetime as dt
-from afni_test_utils.tools import get_current_test_name
-from typing import Union
-from afni_test_utils import misc, tools
-import os
-
 from datalad.support.exceptions import IncompleteResultsError, CommandError
-import pytest
-from time import sleep
-import random
-import tempfile
+from filelock import Timeout, FileLock
 from multiprocessing import Process
+from pathlib import Path
+from time import sleep
+from typing import Union
+from unittest.mock import Mock
+import attr
+import datalad.api as datalad
+import datetime as dt
+import logging
+import os
+import pytest
+import random
+import shutil
+import tempfile
+
+from afni_test_utils import misc, tools
+from afni_test_utils.tools import get_current_test_name
 
 DATA_FETCH_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_data.lock"
 dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=120)
-
-
-CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 
 def get_test_data_path(config_obj):
@@ -31,9 +29,6 @@ def get_test_data_path(config_obj):
         return Path(config_obj.config.rootdir) / "afni_ci_test_data"
     else:
         raise ValueError("A pytest config object was expected")
-
-
-from unittest.mock import Mock
 
 
 def test_get_tests_data_dir(monkeypatch):
@@ -139,17 +134,7 @@ def get_base_comparison_dir_path(config_obj):
         return get_test_data_path(config_obj) / "sample_test_output"
 
 
-def get_output_dir(config_obj):
-    user_choice = config_obj.getoption("--overwrite_outdir")
-    rootdir = Path(config_obj.rootdir)
-    if user_choice:
-        outdir = Path(user_choice)
-    else:
-        outdir = rootdir / "output_of_tests" / ("output_" + CURRENT_TIME)
-    return outdir
-
-
-def get_data_fixture(pytestconfig, request):
+def get_data_fixture(pytestconfig, request, output_dir):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -167,7 +152,6 @@ def get_data_fixture(pytestconfig, request):
     """
     test_name = get_current_test_name()
     tests_data_dir = get_test_data_path(pytestconfig)
-    output_dir = get_output_dir(pytestconfig)
 
     # Add stream and file logging as requested
     logger = logging.getLogger(test_name)
@@ -194,7 +178,7 @@ def get_data_fixture(pytestconfig, request):
         os.makedirs(test_logdir, exist_ok=True)
 
     # This will be created as required later
-    sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
+    sampdir = convert_to_sample_dir_path(test_logdir.parent)
 
     # Get the comparison directory and check if it needs to be downloaded
     base_comparison_dir_path = get_base_comparison_dir_path(pytestconfig)
@@ -425,3 +409,8 @@ def try_data_download(file_fetch_list, test_data_dir, logger):
         )
         dl_lock.release()
         sleep(random.randint(1, 10))
+
+
+def convert_to_sample_dir_path(output_dir):
+    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
+    return sampdir

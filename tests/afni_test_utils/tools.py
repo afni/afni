@@ -1,7 +1,7 @@
 from numpy.testing import assert_allclose  # type: ignore
 from pathlib import Path
 from typing import Dict, List, Any, Union
-from afni_test_utils import misc
+from xvfbwrapper import Xvfb
 import attr
 import datalad.api as datalad
 import datetime as dt
@@ -17,11 +17,10 @@ import logging
 import nibabel as nib  # type: ignore
 import numpy as np
 import os
-import platform
 import pytest
 import re
-import shutil
 import shlex
+import shutil
 import signal
 import socket
 import stat
@@ -29,7 +28,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from xvfbwrapper import Xvfb
+
 
 try:
     LAD = importlib.import_module("afnipy.lib_afni1D")
@@ -78,11 +77,6 @@ def get_output_name():
 def get_command_info(outdir):
     cmd_log = next((outdir / "captured_output").glob("*_cmd.log"))
     return json.loads(cmd_log.read_text())
-
-
-def convert_to_sample_dir_path(output_dir):
-    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
-    return sampdir
 
 
 def get_lines(filename, ignore_patterns):
