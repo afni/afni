@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of source and base dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
 { 28, Oct , 2020 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
    "Extra QC image:  initial overlap of T1w and T2w dsets.",
    "Should help to know, in case anything goes awry later.\n"
