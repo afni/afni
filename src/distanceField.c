@@ -1,3 +1,20 @@
+/********************************************************************************************************
+
+NAME:
+    distanceField - determines depth of voxels in 3D binary objects
+
+SYNOPSIS:
+    distanceField -i <input filename> [-m <metric>]
+
+The input file is expected to be an AFNI dataset.
+
+The "metric" is a text string (upper case) describing the algorithm used to estimate the depth. It may be
+one of the following.
+MARCHING_PARABOLAS - Marching parabolas (default)
+EROSION - Erosion algorithm.
+
+*********************************************************************************************************/
+
 #include <stdio.h>
 #include <dirent.h>
 #include <malloc.h>
@@ -12,12 +29,14 @@
 typedef float flt;
 
 typedef enum METRIC_TYPE {
-         MARCHING_PARABOLAS
+         MARCHING_PARABOLAS,
+         EROSION
  } METRIC_TYPE ;
 
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din);
-static int afni_edt(THD_3dim_dataset * din, float **outImg);
+static int afni_edt(THD_3dim_dataset * din, float *outImg);
+static int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
@@ -25,6 +44,8 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n);
 void edt_local(float scale, flt * f, int n);
 float sqr(float x);
 static flt vx(flt * f, int p, int q);
+Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz);
+int getIndex(int x, int y, int z, int nx, int ny, int nz);
 
 float sqr(float x){
     return x*x;
@@ -47,10 +68,16 @@ int main( int argc, char *argv[] )
             break;
 
         case 'm':
-            metric = atoi(argv[++i]);
-            if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName,  din);
-            sprintf(inputFileName,"%s",argv[i]);
+            if (!strcmp(argv[++i],"MARCHING_PARABOLAS")){
+                metric = MARCHING_PARABOLAS;
+            }
+            if (!strcmp(argv[i],"EROSION")){
+                metric = EROSION;
+            } else {
+                fprintf(stderr, "Unrecognized metric");
+                if (inputFileName) free(inputFileName);
+                return ERROR_UNRECOGNIZABLE_SPECIES;
+            }
             break;
         }
     }
@@ -61,10 +88,22 @@ int main( int argc, char *argv[] )
         return errorNumber;
     }
 
+    if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
+        Cleanup(inputFileName, din);
+        return ERROR_MEMORY_ALLOCATION;
+    }
+
+
     // Apply metric
     switch (metric){
     case MARCHING_PARABOLAS:
-        if ((errorNumber=afni_edt(din, &outImg))!=ERROR_NONE){
+        if ((errorNumber=afni_edt(din, outImg))!=ERROR_NONE){
+            Cleanup(inputFileName, din);
+            return errorNumber;
+        }
+        break;
+    case EROSION:
+        if ((errorNumber=erosion(din, outImg))!=ERROR_NONE){
             Cleanup(inputFileName, din);
             return errorNumber;
         }
@@ -88,6 +127,9 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
     switch (metric){
     case MARCHING_PARABOLAS:
         sprintf(appendage, "MarParab");
+        break;
+    case EROSION:
+        sprintf(appendage, "Erosion");
         break;
     }
 
@@ -117,8 +159,77 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
     return ERROR_NONE;
 }
 
+static int erosion(THD_3dim_dataset * din, float *outImg){
 
-static int afni_edt(THD_3dim_dataset * din, float **outImg){
+    // Get dimensions in voxels
+    int nz = DSET_NZ(din);
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+    int nvox = nx*ny*nz;
+    int i;
+    Boolean objectVoxelsLeft=TRUE;
+    BYTE * buffer;
+
+/*
+    // Get real world voxel sizes
+    int yDim = fabs(DSET_DY(din));
+    int zDim = fabs(DSET_DZ(din));
+    */
+
+	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
+
+    int brickType=DSET_BRICK_TYPE(din, 0);
+    if( brickType != MRI_byte ) return ERROR_DATATYPENOTHANDLED;
+    BYTE * img = DSET_ARRAY(din, 0);
+
+    // Add uneroded volume to output
+    for (i=0; i<nvox; ++i) outImg[i]+=(img[i]!=0);
+
+    // Allocate memory to buffer
+    if (!(buffer = (BYTE *)malloc(nvox*sizeof(BYTE)))) return ERROR_MEMORY_ALLOCATION;
+
+    // Erode volume, adding eroede volume to output until no object voxels left
+    do {
+        objectVoxelsLeft = FALSE;
+
+        // Copy inpout image to buffer
+        for (i=0; i<nvox; ++i) buffer[i] = img[i];
+
+        // Erode input
+        for (i=0; i<nvox; ++i){
+            img[i]=(buffer[i]!=0) && sixConnectedAllHi(buffer, i, nx, ny, nz);
+            if (img[i]) objectVoxelsLeft = TRUE;
+        }
+
+        // Add eroded volume to output
+        for (i=0; i<nvox; ++i) outImg[i]+=(img[i]!=0);
+    } while (objectVoxelsLeft);
+
+    // Cleanup
+    free(buffer);
+
+
+    return ERROR_NONE;
+}
+
+Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz){
+    int planeSize = nx*ny;
+    int z = (int)(index/planeSize);
+    int y = (int)((index-z*planeSize)/nx);
+    int x = index - z*planeSize - y*nx;
+
+    return buffer[getIndex((x>0)? x-1:x,y,z, nx, ny,nz)]  && buffer[getIndex((x<nx-1)? x-1:x,y,z, nx, ny,nz)] &&
+        buffer[getIndex(x, (y>0)? y-1:y,z, nx, ny,nz)] && buffer[getIndex(x, (y<ny-1)? y+1:y,z, nx, ny,nz)] &&
+        buffer[getIndex(x,y,(z>0)? z-1:z, nx, ny,nz)] && buffer[getIndex(x,y,(z<nz-1)? z+1:z, nx, ny,nz)] ;
+}
+
+int getIndex(int x, int y, int z, int nx, int ny, int nz){
+    int debug = z*nx*ny + y*nx + x;
+    return z*nx*ny + y*nx + x;
+}
+
+
+static int afni_edt(THD_3dim_dataset * din, float *outImg){
 
     // Get dimensions in voxels
     int nz = DSET_NZ(din);
@@ -135,7 +246,6 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
     int brickType=DSET_BRICK_TYPE(din, 0);
     if( brickType != MRI_byte ) return ERROR_DATATYPENOTHANDLED;
     BYTE * img = DSET_ARRAY(din, 0);
-    *outImg = (float *)calloc(nvox, sizeof(float));
 	int nVol = 1;
 	int nvox3D = nx * ny * MAX(nz, 1);
 	nVol = nvox / nvox3D;
@@ -143,7 +253,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 	flt threshold = 0;
 	for (size_t i = 0; i < nvox; i++ ) {
 		if (img[i] > threshold)
-			(*outImg)[i] = INFINITY;
+			outImg[i] = INFINITY;
 	}
 	size_t nRow = ny;
 
@@ -152,7 +262,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		*/
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
-		flt * imgRow = *outImg + (r * nx);
+		flt * imgRow = outImg + (r * nx);
 		// edt1(imgRow, nx);
 		edt1_local(din, imgRow, nx);
 	}
@@ -169,7 +279,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 			for (int y = 0; y < ny; y++ ) {
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[zo+xo+y] = (*outImg)[vo];
+					img3D[zo+xo+y] = outImg[vo];
 					vo += 1;
 					xo += ny;
 				}
@@ -187,7 +297,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 			for (int y = 0; y < ny; y++ ) {
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[zo+xo+y];
+					outImg[vo] = img3D[zo+xo+y];
 					vo += 1;
 					xo += ny;
 				}
@@ -208,7 +318,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[z+xo+yo] = (*outImg)[vo];
+					img3D[z+xo+yo] = outImg[vo];
 					vo += 1;
 					xo += nz;
 				}
@@ -226,7 +336,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[z+xo+yo];
+					outImg[vo] = img3D[z+xo+yo];
 					vo += 1;
 					xo += nz;
 				} //x
@@ -235,7 +345,7 @@ static int afni_edt(THD_3dim_dataset * din, float **outImg){
 		free (img3D);
 	} //for each volume
 
-	return 0;
+	return ERROR_NONE;
 }
 
 void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is simple
