@@ -197,7 +197,7 @@ def test_run_cmd(data, monkeypatch):
     stdout, stderr = tools.run_cmd(
         data,
         f"sleep {t_unit / 2}; echo hello & sleep {t_unit / 5}",
-        timeout=t_unit,
+        timeout=t_unit * 1,
     )
     assert stdout == "hello\n"
 
