@@ -3032,6 +3032,13 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(CC) -c rickr/r_misc.c $(INFLAGS)
 
 #######
+# Peter Lauren
+distanceField: distanceField.c
+	$(RM) $@
+	$(CC) -o distanceField distanceField.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
+
+#######
 # Peter Molfese programs
 
 3dTsplit4D: 3dTsplit4D.o $(LIBMRI_OBJ)
