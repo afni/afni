@@ -174,7 +174,7 @@ def run_containerized(tests_dir, **kwargs):
     # Manage container id and mounted volumes:
     docker_kwargs = setup_docker_env_and_volumes(client, tests_dir, **kwargs)
     if kwargs.get("debug"):
-        raise_error_for_debug_mode(tests_dir, kwargs)
+        raise_error_for_debug_mode(tests_dir, kwargs, docker_kwargs)
         #  The following does not work. debugpy may be a way of attaching to
         #  the container's python process in a way that facilitates pdb usage.
         #  May work through this at some point.
@@ -448,7 +448,7 @@ def check_user_container_args(tests_dir, **kwargs):
             )
 
 
-def raise_error_for_debug_mode(tests_dir, kwargs):
+def raise_error_for_debug_mode(tests_dir, kwargs, docker_kwargs):
     debug_not_supported = r"""\
     ERROR:
 
@@ -485,6 +485,10 @@ def raise_error_for_debug_mode(tests_dir, kwargs):
         `# issues with file permissions`                                            \
         -e CONTAINER_UID=$(id -u)                                                   \
         -e CONTAINER_GID=$(id -g)                                                   \
+        `#Pass git credentials into container for more pleasant interaction `       \
+        `#with the source git repository`                                           \
+        -e GIT_AUTHOR_NAME={docker_kwargs['environment']['GIT_AUTHOR_NAME']}        \
+        -e GIT_AUTHOR_EMAIL={docker_kwargs['environment']['GIT_AUTHOR_EMAIL']}      \
         `# Delete the container upon exit`                                          \
         --rm                                                                        \
         `# provide an interactive terminal`                                         \
