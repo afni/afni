@@ -19,7 +19,7 @@ from afni_test_utils import misc, tools
 from afni_test_utils.tools import get_current_test_name
 
 DATA_FETCH_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_data.lock"
-dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=120)
+dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=300)
 
 
 def get_test_data_path(config_obj):
@@ -29,23 +29,6 @@ def get_test_data_path(config_obj):
         return Path(config_obj.config.rootdir) / "afni_ci_test_data"
     else:
         raise ValueError("A pytest config object was expected")
-
-
-def test_get_tests_data_dir(monkeypatch):
-
-    tmpdir = Path(tempfile.mkdtemp())
-    config_obj = Mock(**{"rootdir": tmpdir})
-    mocked_install = Mock()
-
-    # should not fail if submodule in initialized
-    (tmpdir / "afni_ci_test_data").mkdir()
-    get_tests_data_dir(config_obj)
-
-    monkeypatch.setattr(datalad, "install", mocked_install)
-    # Empty directory should install the data
-    tmpdir = tempfile.mkdtemp()
-    get_tests_data_dir(config_obj)
-    mocked_install.assert_called_once()
 
 
 def get_tests_data_dir(config_obj):
@@ -69,6 +52,7 @@ def get_tests_data_dir(config_obj):
                 # missing symlink, nothing to worry about
                 pass
         logger.warn("Not sure about test data, perhaps you should try removing...")
+        raise ValueError("Not sure about test data, perhaps you should try removing...")
         # shutil.rmtree(dl_dset.pathobj)
 
     # datalad is required and the datalad repository is used for data.
@@ -76,13 +60,14 @@ def get_tests_data_dir(config_obj):
         try:
             global dl_lock
             dl_lock.acquire()
-            logger.warn("Installing test data")
-            datalad.install(
-                str(tests_data_dir),
-                "https://github.com/afni/afni_ci_test_data.git",
-                recursive=True,
-                on_failure="stop",
-            )
+            if not (tests_data_dir / ".datalad").exists():
+                logger.warn("Installing test data")
+                datalad.install(
+                    str(tests_data_dir),
+                    "https://github.com/afni/afni_ci_test_data.git",
+                    recursive=True,
+                    on_failure="stop",
+                )
         finally:
             dl_lock.release()
     # Needs to be user writeable:
@@ -365,8 +350,8 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
 
 
 def try_data_download(file_fetch_list, test_data_dir, logger):
-    global dl_lock
     try:
+        global dl_lock
         dl_lock.acquire(poll_intervall=1)
         dl_dset = datalad.Dataset(str(test_data_dir))
         # Fetching the data
