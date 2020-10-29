@@ -16,6 +16,14 @@ PYTEST_MANUAL_HELP = (
     "Manual pytest management (conflicts with pytest execution modifiers)"
 )
 VALID_MOUNT_MODES = "host test-code test-data-only test-data-volume".split()
+VALID_VERBOSITY_MODES = [
+    "quiet",
+    "normal",
+    "summary",
+    "verbose",
+    "traceback",
+    "diarrhetic",
+]
 
 
 def parse_user_args(user_args=None, tests_dir=None):
@@ -117,11 +125,14 @@ def parse_user_args(user_args=None, tests_dir=None):
         ),
     )
     pytest_mod.add_argument(
-        "--verbose",
+        "--verbosity",
         "-v",
-        action="count",
-        default=0,
-        help="Increase the verbosity of reporting (conflicts with --debug). More v's is more verbose.",
+        choices=VALID_VERBOSITY_MODES,
+        default="normal",
+        help=(
+            "Increase the verbosity of reporting. Levels other than "
+            "quiet and normal conflict with --debug. "
+        ),
     )
     pytest_mod.add_argument(
         "--log-file-level",
@@ -279,8 +290,11 @@ def parse_user_args(user_args=None, tests_dir=None):
         )
 
     # verbosity breaks exception hook so check not used together
-    if args.debug and args.verbose:
-        raise ValueError("If you wish to use debugging, turn off verbosity.")
+    if args.debug and args.verbosity not in ["normal", "quiet"]:
+        raise ValueError(
+            "If you wish to use debugging, turn off verbosity set to "
+            "normal or quiet. "
+        )
 
     # Make sure manual option and pytest help options were not both used
     for group in parser._action_groups:
@@ -530,14 +544,13 @@ def configure_for_coverage(tests_dir, cmd_args, **kwargs):
                 "supported "
             )
 
-        # check that the pytest-cov plugin is installed
-        res = sp.run("pytest --help".split(), stdout=sp.PIPE, stderr=sp.STDOUT)
-        if "coverage reporting" not in res.stdout.decode("utf-8"):
-            raise EnvironmentError(
-                "It seems pytest is missing the pytest-cov plugin used "
-                "for python coverage. "
-            )
-
+        # check that the pytest-cov plugin is installed... This causes
+        # problems with the session cache (lock file is removed upon pytest
+        # removal and the pytest cache didn't seem to provide process safe
+        # setting of a variable.) res = sp.run("pytest --help".split(),
+        # stdout=sp.PIPE, stderr=sp.STDOUT) if "coverage reporting" not in
+        # res.stdout.decode("utf-8"): raise EnvironmentError( "It seems pytest
+        # is missing the pytest-cov plugin used " "for python coverage. " )
         out_args = add_coverage_args(tests_dir, out_args)
         os.environ[
             "CXXFLAGS"
@@ -558,16 +571,21 @@ def get_test_cmd_args(**kwargs):
     else:
         cmd_args = ["scripts"]
 
-    if not kwargs.get("verbose"):
-        verb_args = "--tb=no --no-summary --show-capture=no"
-    elif kwargs.get("verbose") == 1:
-        verb_args = "--tb=no --no-summary -v --log-cli-level=INFO"
-    elif kwargs.get("verbose") == 2:
-        verb_args = "--tb=short -r Exs -v --log-cli-level=INFO"
-    elif kwargs.get("verbose") == 3:
-        verb_args = "--tb=auto -r Exs -v --log-cli-level=INFO --showlocals  -s"
-    elif kwargs.get("verbose") > 3:
-        verb_args = "--tb=long -r Exs -v --log-cli-level=DEBUG --showlocals -s"
+    if not kwargs.get("verbosity"):
+        kwargs["verbosity"] = "normal"
+
+    if kwargs["verbosity"] == "quiet":
+        verb_args = "--tb=no -r fE --show-capture=no"
+    elif kwargs.get("verbosity") == "normal":
+        verb_args = "--tb=no  -r fEs --show-capture=no"
+    elif kwargs.get("verbosity") == "summary":
+        verb_args = "--tb=no -r a"
+    elif kwargs.get("verbosity") == "verbose":
+        verb_args = "--tb=no -r fEsxX -v --log-cli-level=INFO  -s"
+    elif kwargs.get("verbosity") == "traceback":
+        verb_args = "--tb=auto -r fEsxX --log-cli-level=INFO --showlocals -s"
+    elif kwargs.get("verbosity") == "diarrhetic":
+        verb_args = "--tb=long -r fEsxX -v --log-cli-level=DEBUG --showlocals -s"
 
     cmd_args += verb_args.split()
 

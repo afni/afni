@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of source and base dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
+{ 28, Oct , 2020 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of T1w and T2w dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
 { 19, Oct , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Added new QC image: initial source-base alignment (@djunct_overlap_check)",
    "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"

@@ -32,7 +32,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 Introduction
 ------
 
- Multilevel Smoothing-spline (MSS) Modeling 
+ Multilevel Smoothing-Spline (MSS) Modeling 
 
  The linearity assumption surrounding a quantitative variable in common 
  practice may be a reasonable approximation especially when the variable 
@@ -40,7 +40,8 @@ Introduction
  circumstances when the variable\'s effect is non-monotonic or tortuous. 
  As a more flexible and adaptive approach, multilevel smoothing splines 
  (MSS) offers a more powerful analytical tool for population-level 
- neuroimaging data analysis. More theoretical discussion can be found in
+ neuroimaging data analysis that involves one or more quantitative
+ predictors. More theoretical discussion can be found in
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
  in neuroimaging.
@@ -137,12 +138,12 @@ Introduction
   two lines:
 
           -mrr 's(age)+s(Subj,bs=\"re\")'         \\
-          -VT Subj 's(Subj)'                      \\
+          -vt Subj 's(Subj)'                      \\
 
   The second term 's(Subj,bs=\"re\")' in the model specification means that
   each subject is allowed to have a varying intercept or random effect ('re'). 
   To estimate the smooth trajectory through the option -prediction, the option
-  -VT has to be included in this case to indicate the varying term (usually 
+  -vt has to be included in this case to indicate the varying term (usually 
   subjects). That is, if prediction is desirable, one has to explicitly
   declare the variable (e.g., Subj) that is associated with the varying term
   (e.g., s(Subj)). No empty space is allowed in the model formulation and the
@@ -152,7 +153,7 @@ Introduction
 
    3dMSS -prefix MSS -jobs 16                     \\
           -mrr 's(age)+s(Subj,bs=\"re\")'         \\
-          -VT Subj 's(Subj)'                      \\
+          -vt Subj 's(Subj)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -167,7 +168,7 @@ Introduction
           -lme 's(age)'                        \\
           -ranEff '(1|Subj)'                      \\
 
-  which is solved through the linear mixed-effect (lme) platform. The -VT is
+  which is solved through the linear mixed-effect (lme) platform. The -vt is
   not needed when making prediction through the option -prediction. The two
   specifications, -mrr and -lme, would render similar results, but the 
   runtime may differ depending on the amount of data and model complexity.
@@ -194,7 +195,7 @@ Introduction
 
   3dMSS -prefix MSS -jobs 16                     \\
           -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
-          -VT  Subj 's(Subj)'                \\
+          -vt  Subj 's(Subj)'                \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -322,8 +323,8 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
 
-       '-VT' = apl(n=2, h = paste(
-   "-VT var formulation: This option is for specifying varying smoothing terms. Two components",
+       '-vt' = apl(n=2, h = paste(
+   "-vt var formulation: This option is for specifying varying smoothing terms. Two components",
    "         are required: the first one 'var' indicates the varaible (e.g., subject) around",
    "         which the smoothing will vary while the second component specifies the smoothing",
    "         formulation (e.g., s(age,subject)). With this option, the -ranEff option usually",
@@ -435,7 +436,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
       lop$ranEff <- NULL 
       lop$qVars  <- NA
       lop$bounds <- NULL
-      lop$VT     <- NULL
+      lop$vt     <- NULL
       #lop$qVarCenters <- NA
       lop$dataTable   <- NULL
       lop$prediction  <- NULL
@@ -458,7 +459,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
 	     IF     = lop$IF     <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
              bounds = lop$bounds <- ops[[i]],
-             VT     = lop$VT     <- ops[[i]],
+             vt     = lop$vt     <- ops[[i]],
              #qVarCenters = lop$qVarCenters <- ops[[i]],
              dataTable   = lop$dataTable   <- dataTable.AFNI.parse(ops[[i]]),
              prediction  = lop$prediction  <- dataTable.AFNI.parse(ops[[i]]),
@@ -530,13 +531,13 @@ process.MSS.opts <- function (lop, verb = 0) {
       }
    }
 
-   if(!is.null(lop$VT)) {
+   if(!is.null(lop$vt)) {
       #browser()
-      if(lop$VT[1] %in% names(lop$Pred)) errex.AFNI(c("The varying smoothing unit ", lop$VT[1], " is already a variable column in the prediction file ", lop$prediction, "!\n")) else
-      if(!lop$VT[1] %in% names(lop$dataStr)) errex.AFNI(c("The varying smoothing unit ", lop$VT[1], " is not a column in the data table. Check your spelling!\n")) else {
+      if(lop$vt[1] %in% names(lop$Pred)) errex.AFNI(c("The varying smoothing unit ", lop$vt[1], " is already a variable column in the prediction file ", lop$prediction, "!\n")) else
+      if(!lop$vt[1] %in% names(lop$dataStr)) errex.AFNI(c("The varying smoothing unit ", lop$vt[1], " is not a column in the data table. Check your spelling!\n")) else {
          #nr <- nrow(lop$Pred)
-         lop$Pred <- lop$Pred[rep(seq_len(lop$nr), times=nlevels(lop$dataStr[, lop$VT[1]])), ]
-         lop$Pred[,lop$VT[1]] <- as.factor(rep(levels(lop$dataStr[,lop$VT[1]]), each = lop$nr))
+         lop$Pred <- lop$Pred[rep(seq_len(lop$nr), times=nlevels(lop$dataStr[, lop$vt[1]])), ]
+         lop$Pred[,lop$vt[1]] <- as.factor(rep(levels(lop$dataStr[,lop$vt[1]]), each = lop$nr))
       }
    }
 
@@ -601,10 +602,10 @@ runMSS <- function(myData, DM, tag) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
 	 pp <- summary(fm)$s.table[,'p-value'] # smooths
-         if(is.null(lop$VT)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
-            try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$VT[2]), silent=TRUE)
+         if(is.null(lop$vt)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
+            try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$VT)) { 
+            if(is.null(lop$vt)) { 
                Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
             } else
             Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
@@ -631,10 +632,10 @@ runLME <- function(myData, DM, tag) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm$gam)$p.table[,c('Estimate', 't value')]))
 	 pp <- summary(fm$gam)$s.table[,'p-value']
-         if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-            try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$VT[2]), silent=TRUE)
+         if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+            try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$VT)) {
+            if(is.null(lop$vt)) {
                Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
             } else
             Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
@@ -811,10 +812,10 @@ while(is.null(fm)) {
          lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
          if(!is.null(lop$prediction)) {
             tmp <- NULL
-            if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-               try(tmp <- predict(fm$gam, lop$Pred, exclude=lop$VT[2], se.fit = T), silent=TRUE)
+            if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+               try(tmp <- predict(fm$gam, lop$Pred, exclude=lop$vt[2], se.fit = T), silent=TRUE)
                if(is.null(tmp)) fm <- NULL else lop$nBrk <- lop$nBrk + 2*lop$nr
-         #   if(is.null(lop$VT) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
+         #   if(is.null(lop$vt) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
          #   lop$nBrk <- lop$nBrk + 2*lop$nr
          }
       }
@@ -829,10 +830,10 @@ while(is.null(fm)) {
             lop$nBrk <- 2*nrow(summary(fm)$p.table)+nrow(summary(fm)$s.table)+1  # +1 for R.sq
             if(!is.null(lop$prediction)) {
                tmp <- NULL
-               #if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-               try(tmp <- predict(fm, lop$Pred, exclude=lop$VT[2], se.fit = T), silent=TRUE)
+               #if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+               try(tmp <- predict(fm, lop$Pred, exclude=lop$vt[2], se.fit = T), silent=TRUE)
                if(is.null(tmp)) fm <- NULL else lop$nBrk <- lop$nBrk + 2*lop$nr
-            #   if(is.null(lop$VT) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
+            #   if(is.null(lop$vt) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
             #   lop$nBrk <- lop$nBrk + 2*lop$nr
             }
          }

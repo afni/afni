@@ -52,9 +52,12 @@
 #set version   = "1.1";  set rev_dat   = "July 25, 2018"
 #   + match func_range_nz to updated @chauffeur
 #
-set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
+#set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "1.21";   set rev_dat   = "Oct 28, 2020"
+#     + [PT] extra QC imaging: initial alignment
 #
 # ---------------------------------------------------------------
 
@@ -244,13 +247,13 @@ endif
 # check output directory, use input one if nothing given
 if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
-    mkdir "$odir"
+    \mkdir "$odir"
 endif
 
 set odirqc = "$odir/QC"
 if ( "$DO_VIEWER" == "1" ) then
     if ( ! -e "$odirqc" ) then
-        mkdir "$odirqc"
+        \mkdir "$odirqc"
     endif
 endif
 
@@ -264,7 +267,7 @@ endif
 # make the working directory
 if ( ! -e $wdir ) then
     echo "++ Making working directory: $wdir"
-    mkdir $wdir
+    \mkdir $wdir
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
@@ -333,6 +336,14 @@ if ( $output_cmd == 1 ) then
     echo "# $this_prog $argv"   >> $cmd_file
     echo "\n"                   >> $cmd_file
 endif
+
+# ------------------------- earliest QC: check overlap
+# [PT: Oct 28, 2020] added in
+
+@djunct_overlap_check                             \
+    -ulay   "$it1w"                               \
+    -olay   "$it2w"                               \
+    -prefix "${odirqc}/init_qc_00_overlap_ut1w_ot2w"
 
 # --------------------- start proc ---------------------------
 

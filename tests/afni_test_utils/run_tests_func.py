@@ -1,14 +1,9 @@
 import datalad.api as datalad
-from pathlib import Path
 import importlib
 import logging
 import os
-import shutil
 import subprocess
 import sys
-
-# Other imports to fail early with missing dependencies
-importlib.import_module("xvfbwrapper")
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     check_git_config,
@@ -17,6 +12,10 @@ from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     generate_cmake_command_as_required,
     get_test_cmd_args,
 )
+
+# Other imports to fail early with missing dependencies
+importlib.import_module("xvfbwrapper")
+
 
 logger = logging.getLogger("afni_test_utils")
 

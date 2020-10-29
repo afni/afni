@@ -35,9 +35,15 @@ import afni_test_utils
 TESTS_DIR = Path(__file__).parent.parent
 SCRIPT = TESTS_DIR.joinpath("run_afni_tests.py")
 # The default args to pytest will likely change with updates
-DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
+DEFAULT_ARGS = "scripts --tb=no -r fEs --show-capture=no"
 PYTEST_COV_FLAGS = "--cov=afnipy --cov-report xml:$PWD/coverage.xml"
 RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
+
+try:
+    docker.from_env()
+    DOCKER_AVAILABLE = True
+except:
+    DOCKER_AVAILABLE = False
 
 
 @pytest.fixture()
@@ -209,6 +215,25 @@ def test_run_cmd(data, monkeypatch):
     assert delta_t < t_unit * 3
 
 
+def test_command_logger_setup(data, monkeypatch):
+    # logs should be in data.logdir and logger should be logger_in
+    logger_in = data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, logger_in)
+    assert logger_out == logger_in
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == data.logger
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be root logger
+    data.logger = None
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == logging
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+
 def test_check_git_config(
     monkeypatch,
 ):
@@ -365,6 +390,10 @@ def test_run_containerized(monkeypatch):
 @pytest.mark.skipif(
     minfuncs.is_containerized(),
     reason=("This test is not run inside the container."),
+)
+@pytest.mark.skipif(
+    not DOCKER_AVAILABLE,
+    reason=("Failed to find a running docker service."),
 )
 def test_run_containerized_fails_with_unknown_image():
     # The image needs to exist locally with only_use_local
@@ -545,12 +574,16 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
     [
         {
             "test_case": "default",
-            "args_in": {},
+            "args_in": {"verbosity": "normal"},
             "expected_call_template": "{sys.executable} -m pytest {DEFAULT_ARGS}",
         },
         {
             "test_case": "with_coverage",
-            "args_in": {"coverage": True, "build_dir": tempfile.mkdtemp()},
+            "args_in": {
+                "verbosity": "normal",
+                "coverage": True,
+                "build_dir": tempfile.mkdtemp(),
+            },
             "expected_call_template": (
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
@@ -582,6 +615,11 @@ def test_run_tests_with_args(monkeypatch, params, sp_with_successful_execution):
         os,
         "environ",
         os.environ.copy(),
+    )
+    monkeypatch.setattr(
+        afni_test_utils.run_tests_func,
+        "check_test_data_repo",
+        Mock(),
     )
     with pytest.raises(SystemExit) as err:
         afni_test_utils.run_tests_func.run_tests(TESTS_DIR, **params["args_in"])
@@ -933,9 +971,9 @@ def test_get_test_cmd_args():
 
     # Check default commands
     cmd_args = minfuncs.get_test_cmd_args()
-    assert cmd_args == ["scripts", "--tb=no", "--no-summary", "--show-capture=no"]
+    assert cmd_args == DEFAULT_ARGS.split()
 
-    cmd_args = minfuncs.get_test_cmd_args(verbose=3)
+    cmd_args = minfuncs.get_test_cmd_args(verbosity="traceback")
     assert "--showlocals" in cmd_args
 
 
