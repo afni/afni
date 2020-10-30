@@ -361,6 +361,10 @@ def get_output_dir(config_obj):
     user_choice = conf.getoption("--overwrite_outdir")
     rootdir = conf.rootdir
     if user_choice:
-        return Path(user_choice)
+        output_dir = Path(user_choice)
     else:
-        return Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
+        output_dir = Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
+    if not output_dir.exists():
+        output_dir.mkdir()
+
+    return output_dir
