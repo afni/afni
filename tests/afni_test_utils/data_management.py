@@ -335,13 +335,13 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
                 break
             else:
                 attempt_count += 1
-        logger.info(f"Downloaded data for {test_data_dir}")
         else:
             # datalad download attempts failed
             pytest.exit(
                 f"Datalad download failed {attempt_count} times, you may "
                 "not be connected to the internet "
             )
+        logger.info(f"Downloaded data for {test_data_dir}")
     path_obj = [test_data_dir / p for p in path_obj]
     if len(path_obj) == 1:
         return path_obj[0]
