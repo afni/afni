@@ -1255,7 +1255,7 @@ class RegWrap:
       self.info_msg("Saving history")  # sounds dramatic, doesn't it?
       cmdline = args_as_command(sys.argv, \
                  '3dNotes -h "', '" %s' % dset.input())
-      com = shell_com(  "%s\n" % cmdline, exec_mode)
+      com = shell_com(  "%s\n" % cmdline, eo=exec_mode)
       com.run()
 
    # show help
@@ -1323,7 +1323,7 @@ class RegWrap:
       print("copying from dataset %s to %s" % (dset1.input(), dset2.input()))
       dset2.delete(exec_mode)
       com = shell_com(  \
-            "3dcopy %s %s" % (dset1.input(), dset2.out_prefix()), exec_mode)
+            "3dcopy %s %s" % (dset1.input(), dset2.out_prefix()), eo=exec_mode)
       com.run()
       if ((not dset2.exist())and (exec_mode!='dry_run')):
          print("** ERROR: Could not rename %s\n" % dset1.input())
@@ -1893,7 +1893,7 @@ class RegWrap:
          # end with a slash
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
          print("# User has selected a new output directory %s" % self.output_dir)
-         com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
+         com = shell_com(("mkdir %s" % self.output_dir), eo=self.oexec)
          com.run()
          print("cd %s" % self.output_dir)
          if(not self.dry_run()):
@@ -1927,7 +1927,7 @@ class RegWrap:
    # find smallest dimension of dataset in x,y,z
    def min_dim_dset(self, dset=None) :
        com = shell_com(  \
-                "3dAttribute DELTA %s" % dset.input(), ps.oexec,capture=1)
+                "3dAttribute DELTA %s" % dset.input(), eo=ps.oexec,capture=1)
        com.run()
        if  ps.dry_run():
           return (1.234567)
@@ -1954,7 +1954,7 @@ class RegWrap:
    # determine if dataset has time shifts in slices
    def tshiftable_dset( self, dset=None) :
        com = shell_com(  \
-                "3dAttribute TAXIS_OFFSETS %s" % dset.input(), ps.oexec,capture=1)
+                "3dAttribute TAXIS_OFFSETS %s" % dset.input(), eo=ps.oexec,capture=1)
        com.run()
        if  ps.dry_run():
            return (1)
@@ -1966,7 +1966,7 @@ class RegWrap:
    def oblique_dset( self, dset=None) :
       com = shell_com(  \
         "3dinfo %s | \grep 'Data Axes Tilt:'|\grep 'Oblique'" % dset.input(),\
-          ps.oexec,capture=1)
+          eo=ps.oexec,capture=1)
       com.run()
       if  ps.dry_run():
           return (1)   # default for dry run is to assume oblique
@@ -2097,8 +2097,8 @@ class RegWrap:
       anatview = o.view
 
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
-         ow.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
+         ow.delete(oexec=ps.oexec)
          if m:
             wtopt = "-wtprefix %s%s -weight %s" % (ow.p(), ow.out_prefix(), m.input())
          else:
@@ -2123,7 +2123,7 @@ class RegWrap:
              % (costfunction, wtopt, a.input(), o.p(), o.out_prefix(), \
                e.input(), cmass, self.anat_mat, self.master_anat_3dAl_option, \
                alopt, checkstr ), \
-               ps.oexec)
+               eo=ps.oexec)
          # if this fails, notify the user
          if com.run():
             print("** 3dAllineate failure")
@@ -2133,7 +2133,7 @@ class RegWrap:
          if (ps.flip):
             com = shell_com( \
                "3dLRflip -prefix %s%s -overwrite %s" % \
-               (olr.p(), olr.out_prefix(),a.input()), ps.oexec)
+               (olr.p(), olr.out_prefix(),a.input()), eo=ps.oexec)
             com.run()
             if((ps.flip_giant) and not(ps.giant_move)):
                alopt =  \
@@ -2162,7 +2162,7 @@ class RegWrap:
                % (costfunction, wtopt, olr.input(), of.p(), of.out_prefix(), \
                  e.input(), cmass, self.flip_mat, self.master_anat_3dAl_option, \
                  alopt, checkstr ), \
-                 ps.oexec)
+                 eo=ps.oexec)
             com.run()
 
             com = shell_com( \
@@ -2174,7 +2174,7 @@ class RegWrap:
                "%s %s %s "  # master grid, other 3dAllineate options \
                % (wtopt, o.input(), e.input(), cmass, \
                   self.master_anat_3dAl_option, alopt, checkstr ), \
-                 ps.oexec)
+                 eo=ps.oexec)
             com.run()
             com = shell_com( \
                "3dAllineate -allcostX1D IDENTITY __tt_lr_flipcosts.1D "       \
@@ -2185,7 +2185,7 @@ class RegWrap:
                "%s %s %s "  # master grid, other 3dAllineate options \
                % (wtopt, of.input(), e.input(), cmass, \
                   self.master_anat_3dAl_option, alopt, checkstr ), \
-                 ps.oexec)
+                 eo=ps.oexec)
             com.run()
 
             noflipcost = self.get_cost("__tt_lr_noflipcosts.1D",costfunction)
@@ -2220,7 +2220,7 @@ class RegWrap:
             com = shell_com(  \
                   "cat_matvec -ONELINE %s -P > __tt_temp.1D ; sleep 1; \
                   mv __tt_temp.1D %s" % \
-                  (self.anat_mat,self.anat_mat), ps.oexec)
+                  (self.anat_mat,self.anat_mat), eo=ps.oexec)
             com.run();
  
          # if not doing alignment for anat2epi, just return now,
@@ -2233,7 +2233,7 @@ class RegWrap:
             o = afni_name("%s%s%s%s" % \
                (ps.anat_dir, ps.anat0.out_prefix(), suf,ps.anat0.view)) 
             if (not o.exist() or ps.rewrite or ps.dry_run()):
-               o.delete(ps.oexec)
+               o.delete(oexec=ps.oexec)
             else:
                self.exists_msg(o.input())
 
@@ -2249,7 +2249,7 @@ class RegWrap:
                # earliest transformation is last as input to cat_matvec
                com = shell_com(  \
                      "cat_matvec -ONELINE %s %s > %s" % \
-                     (self.anat_mat, obl_mat, e2a_mat), ps.oexec)
+                     (self.anat_mat, obl_mat, e2a_mat), eo=ps.oexec)
                com.run();
                self.info_msg( \
                    "Combining %s to %s and oblique transformations" %  \
@@ -2265,7 +2265,7 @@ class RegWrap:
                   "-prefix %s%s -input %s  %s %s"   %  \
                   ( e.input(), e2a_mat, o.p(),o.out_prefix(),\
                     ps.anat_ns0.input(),\
-                    self.master_anat_3dAl_option, alopt ), ps.oexec)
+                    self.master_anat_3dAl_option, alopt ), eo=ps.oexec)
 
             com.run()
       else:
@@ -2289,7 +2289,7 @@ class RegWrap:
                   (ps.dset1_generic_name, child_anat.ppv()))
                if (ps.rewrite) :
                   overwritestr = "-overwrite"
-                  child_anat_out.delete(ps.oexec)
+                  child_anat_out.delete(oexec=ps.oexec)
                else :
                   overwritestr = ""
                com = shell_com(  \
@@ -2299,7 +2299,7 @@ class RegWrap:
                        child_anat_out.p(), child_anat_out.out_prefix(),    \
                        child_anat.input(),                 \
                        self.master_anat_3dAl_option, alopt, overwritestr), \
-                       ps.oexec)
+                       eo=ps.oexec)
 
                com.run()
 
@@ -2435,7 +2435,7 @@ class RegWrap:
          owrite = ""
      
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          o.view = eview
          # anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
          epi_mat = "%s%s%s_mat.aff12.1D" %  (o.p(), self.epi_afniformat.out_prefix(),suf)
@@ -2449,7 +2449,7 @@ class RegWrap:
          
          com = shell_com(  \
                   "cat_matvec -ONELINE %s %s -I > %s" % \
-                  ( oblique_mat, ps.anat_mat,  epi_mat), ps.oexec)
+                  ( oblique_mat, ps.anat_mat,  epi_mat), eo=ps.oexec)
          com.run();
          
          # concatenate volume registration from epi data
@@ -2461,7 +2461,7 @@ class RegWrap:
             epi_mat = "%s%s%s_reg_mat.aff12.1D" % (o.p(), self.epi_afniformat.out_prefix(), suf)
             com = shell_com(  \
                      "cat_matvec -ONELINE %s %s -I %s > %s" % \
-                     (oblique_mat, ps.anat_mat, self.reg_mat, epi_mat), ps.oexec)
+                     (oblique_mat, ps.anat_mat, self.reg_mat, epi_mat), eo=ps.oexec)
             com.run();
 
  
@@ -2471,14 +2471,14 @@ class RegWrap:
                "3dAllineate -base %s -1Dmatrix_apply %s " \
                "-prefix %s%s -input %s  %s %s %s"   %  \
                ( a.input(), epi_mat, o.p(), o.out_prefix(), e.input(),\
-                 self.master_epi_option, alopt, owrite), ps.oexec)
+                 self.master_epi_option, alopt, owrite), eo=ps.oexec)
          
          com.run()
 
          # mark as not oblique if deobliqued
          if(oblique_mat!="") :
             o.view = eview
-            com = shell_com ("3drefit -deoblique %s" % (o.input()), ps.oexec)
+            com = shell_com ("3drefit -deoblique %s" % (o.input()), eo=ps.oexec)
             com.run()
 
 
@@ -2501,7 +2501,7 @@ class RegWrap:
             if(ps.tlrc_apar != ""): # tlrc parent trumps post_matrix
                com = shell_com(  \
                         "3dAttribute WARP_TYPE %s" % \
-                         ps.tlrc_apar.input(), ps.oexec, capture=1)
+                         ps.tlrc_apar.input(), eo=ps.oexec, capture=1)
                com.run();
                if(com.status != 0) :
                   self.error_msg("Warp type not defined for this dataset: %s" % \
@@ -2521,7 +2521,7 @@ class RegWrap:
             com = shell_com(  \
                    "cat_matvec -ONELINE %s -I %s %s -I %s  > %s" % \
                    (anat_tlrc_mat, oblique_mat, ps.anat_mat, self.reg_mat, \
-                     epi_mat), ps.oexec)
+                     epi_mat), eo=ps.oexec)
             com.run();
 
             if(ps.tlrc_apar!=""):
@@ -2538,7 +2538,7 @@ class RegWrap:
                       tlrc_dset.view = mtlrc.view
 
                if tlrc_dset.exist():
-                  tlrc_dset.delete(ps.oexec)
+                  tlrc_dset.delete(oexec=ps.oexec)
                atlrcpost = tlrc_dset
                self.info_msg(  \
                   "Applying transformation of %s to %s tlrc parent" % \
@@ -2548,7 +2548,7 @@ class RegWrap:
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
                  "-prefix %s%s -input %s -verb %s %s %s" % \
                  ( ps.tlrc_apar.input(), epi_mat, atlrcpost.p(), atlrcpost.prefix,e.input(),\
-                   ps.master_tlrc_option, alopt, owrite), ps.oexec)
+                   ps.master_tlrc_option, alopt, owrite), eo=ps.oexec)
 
             else:
                tlrc_orig_dset = afni_name("%s%s_post%s" % (self.epi_afniformat.out_prefix(), suf))
@@ -2566,7 +2566,7 @@ class RegWrap:
                       base_dset = mtlrc
 
                if tlrc_orig_dset.exist():
-                  tlrc_orig_dset.delete(ps.oexec)
+                  tlrc_orig_dset.delete(oexec=ps.oexec)
                atlrcpost = tlrc_orig_dset
                self.info_msg("Applying post transformation matrix to %s" % \
                               ps.dset2_generic_name)
@@ -2575,7 +2575,7 @@ class RegWrap:
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
                  "-prefix %s%s -input %s -verb %s %s %s" % \
                  ( base_dset.input(), epi_mat, atlrcpost.p(), atlrcpost.input(), e.input(),\
-                   ps.master_tlrc_option, alopt, owrite), ps.oexec)
+                   ps.master_tlrc_option, alopt, owrite), eo=ps.oexec)
 
             com.run()
 
@@ -2584,12 +2584,12 @@ class RegWrap:
               # force +tlrc output for master SOURCE option - 3dAllineate saves this as +orig
               if((ps.master_tlrc_dset=="SOURCE") and (ps.tlrc_apar!="")):
                  com = shell_com ("3drefit -deoblique -view tlrc %s%s+orig" %     \
-                        ( atlrcpost.p(), atlrcpost.prefix), ps.oexec)
+                        ( atlrcpost.p(), atlrcpost.prefix), eo=ps.oexec)
                  com.run()
               else:
                  if(oblique_mat!=""):
                     com = shell_com ("3drefit -deoblique %s%s+tlrc" %  \
-                      (atlrcpost.p(), atlrcpost.prefix), ps.oexec)
+                      (atlrcpost.p(), atlrcpost.prefix), eo=ps.oexec)
                     com.run()
             t = atlrcpost
       else:
@@ -2607,7 +2607,7 @@ class RegWrap:
       o = afni_name(prefix)
       o.to_afni(new_view=dset_view(o.ppve()))
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          # if more than 1 sub-brick
          if (ps.dry_run() or \
             ((not ps.dry_run() and dset_dims(e.input())[3] > 1))):
@@ -2621,22 +2621,22 @@ class RegWrap:
             # if an integer, choose a single sub-brick
                com = shell_com(  \
                "3dbucket -prefix %s %s'[%s]'" % \
-               (o.pp(), e.input(), ps.epi_base) , ps.oexec)
+               (o.pp(), e.input(), ps.epi_base) , eo=ps.oexec)
             else:          
                if((ps.epi_base=='median') or (ps.epi_base=='max') or \
                (ps.epi_base=='mean')):   
                   com = shell_com(  \
                   "3dTstat -%s -prefix %s %s" % \
-                  (ps.epi_base, o.pp(), e.input()), ps.oexec)
+                  (ps.epi_base, o.pp(), e.input()), eo=ps.oexec)
                else:
                   self.info_msg(
                     "using 0th sub-brick - assuming epi_base is dataset name" )
                   com = shell_com( "3dbucket -prefix %s %s'[0]'" %  \
-                    (o.pp(), e.input()), ps.oexec)
+                    (o.pp(), e.input()), eo=ps.oexec)
          else:   # choose a single sub-brick (sub-brick 0)
             self.info_msg("using 0th sub-brick because only one found")
             com = shell_com( "3dbucket -prefix %s %s'[0]'" %  \
-              (o.pp(), e.input()), ps.oexec)
+              (o.pp(), e.input()), eo=ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
             o.show
@@ -2655,10 +2655,10 @@ class RegWrap:
       m.view = e.view
       
       if (not m.exist() or ps.rewrite or ps.dry_run()):
-         m.delete(ps.oexec)
+         m.delete(oexec=ps.oexec)
          self.info_msg("Creating edge dataset")
          com = shell_com("3dAutomask -overwrite -erode %s -prefix %s %s" \
-                         % (erodelevel, m.prefix, e.input()), ps.oexec)
+                         % (erodelevel, m.prefix, e.input()), eo=ps.oexec)
          com.run()
 
          if(binarize):
@@ -2670,29 +2670,29 @@ class RegWrap:
                          "3dLocalstat -overwrite -mask %s"                 \
                          " -nbhd 'RECT(-2,-2,-1)'"                          \
                          " -stat cvar -prefix %s %s" %                     \
-                         (m.ppv(), lprefix, e.input()), ps.oexec)
+                         (m.ppv(), lprefix, e.input()), eo=ps.oexec)
          com.run();
 
          if(binarize):
             com = shell_com( \
               "3dhistog -omit 0 -max 1 -nbins 1000 %s_edge_cvar%s "     \
-                            " > %s_edge_histo.1D" % (prefix, o.view, prefix), ps.oexec)
+                            " > %s_edge_histo.1D" % (prefix, o.view, prefix), eo=ps.oexec)
             com.run()
 
             com = shell_com("3dTstat -argmax -prefix %s_edge_histomax "    \
                             "%s_edge_histo.1D'[1]'\\' " %                  \
-                            (prefix, prefix), ps.oexec)
+                            (prefix, prefix), eo=ps.oexec)
             com.run()
 
             com = shell_com("1dcat %s_edge_histomax.1D" %                  \
-                             prefix, ps.oexec, capture=1)
+                             prefix, eo=ps.oexec, capture=1)
             com.run()
 
             if(ps.dry_run()): edgeindex = 123
             else:  edgeindex = int(com.val(0,0))
 
             com = shell_com("1dcat %s_edge_histo.1D'[0]{%d}'" %            \
-                  (prefix, edgeindex), ps.oexec, capture=1)
+                  (prefix, edgeindex), eo=ps.oexec, capture=1)
             com.run()
 
             if(ps.dry_run()): edgevalue = 0.0123
@@ -2702,7 +2702,7 @@ class RegWrap:
             self.info_msg("Thresholding edges at %f" % edgevalue)
             com = shell_com( \
                 '3dcalc -a %s_edge_cvar%s -overwrite -expr "step(a-%f)"' \
-                ' -prefix %s' % (prefix, o.view, edgevalue, o.out_prefix()), ps.oexec)
+                ' -prefix %s' % (prefix, o.view, edgevalue, o.out_prefix()), eo=ps.oexec)
             com.run()
 
          if (not o.exist() and not ps.dry_run()):
@@ -2719,11 +2719,11 @@ class RegWrap:
    def deoblique_epi(self, e=None, deoblique_opt="", prefix="temp_deob"):
       o = e.new(prefix)  
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          self.info_msg( "Deobliquing")
          com = shell_com(  \
                "3dWarp -deoblique -prefix %s%s %s %s "   %  \
-               ( o.p(),o.out_prefix(), deoblique_opt, e.input()), ps.oexec)
+               ( o.p(),o.out_prefix(), deoblique_opt, e.input()), eo=ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
             print("** ERROR: Could not deoblique epi data\n")
@@ -2768,8 +2768,8 @@ class RegWrap:
                      a.input(), self.obl_a2e_mat)
  
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
-         com = shell_com( warp_str, ps.oexec)
+         o.delete(oexec=ps.oexec)
+         com = shell_com( warp_str, eo=ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
             print("** ERROR: Could not oblique/shift anat to epi data\n")
@@ -2785,7 +2785,7 @@ class RegWrap:
          self.obl_a2e_mat = "%s%s_shft_I.1D" % (a.p(), a.out_prefix())
          catcom = "cat_matvec %s%s_shft.1D -I > %s" %  \
              (o.p(),o.out_prefix(), self.obl_a2e_mat)
-         com = shell_com( catcom, ps.oexec)
+         com = shell_com( catcom, eo=ps.oexec)
          com.run();
          if(self.master_anat_3dAl_center == 1):
              self.info_msg("Using align_centered %s as anatomical master" % \
@@ -2801,8 +2801,8 @@ class RegWrap:
                  (copy_cmd, e.input(), tempshft.input())         
 
             if (not tempshft.exist() or ps.rewrite or ps.dry_run()):
-               tempshft.delete(ps.oexec)
-               com = shell_com( warp_str, ps.oexec)
+               tempshft.delete(oexec=ps.oexec)
+               com = shell_com( warp_str, eo=ps.oexec)
                com.run();
                if (not tempshft.exist() and not ps.dry_run()):
                   print("** ERROR: Could not oblique/shift anat to epi data\n")
@@ -2822,11 +2822,11 @@ class RegWrap:
       o = afni_name(prefix)  
 
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          self.info_msg( "Correcting for slice timing")
          com = shell_com(  \
                "3dTshift -prefix %s %s %s "   %  \
-               ( o.pp(), tshift_opt, e.input()), ps.oexec)
+               ( o.pp(), tshift_opt, e.input()), eo=ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
             print("** ERROR: Could not do time shifting of epi data\n")
@@ -2843,7 +2843,7 @@ class RegWrap:
       o = afni_name(prefix)
 
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
          self.mot_1D = "%s_motion.1D" % (motion_prefix)    # motion parameters output
@@ -2886,12 +2886,12 @@ class RegWrap:
               ots = e.new("%s_ts_tempalpha" % o.out_prefix())
               base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
-                 ots.delete(ps.oexec)
+                 ots.delete(oexec=ps.oexec)
 
               # compute stats, volreg, then recompute stats
               com = shell_com(  \
                 "3dTstat -%s -prefix %s%s %s" % \
-                (ps.volreg_base, ots.p(), ots.out_prefix(), e.input()), ps.oexec)
+                (ps.volreg_base, ots.p(), ots.out_prefix(), e.input()), eo=ps.oexec)
               com.run()
 
               if(not ots.exist() and not ps.dry_run()):
@@ -2906,18 +2906,18 @@ class RegWrap:
               com = shell_com(                                       \
                     "%s -prefix %s%s -base %s %s %s "  %               \
                 ( vrcom, ovr_alpha.p(), ovr_alpha.out_prefix(), base,               \
-                  reg_opt, e.input()), ps.oexec)
+                  reg_opt, e.input()), eo=ps.oexec)
               com.run()
 
               ots = e.new("%s_vrt" % o.out_prefix())
               base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
-                 ots.delete(ps.oexec)
+                 ots.delete(oexec=ps.oexec)
 
                  com = shell_com(  \
                    "3dTstat -%s -prefix %s%s %s" % \
                    (ps.volreg_base, ots.p(), ots.out_prefix(), ovr_alpha.input()), \
-                   ps.oexec)
+                   eo=ps.oexec)
                  com.run()
 
               if(not ots.exist() and not ps.dry_run()):
@@ -2929,7 +2929,7 @@ class RegWrap:
                "%s -1Dfile %s -1Dmatrix_save %s "              \
                "-prefix %s%s -base %s %s %s "  %                 \
            ( vrcom, self.mot_1D, self.reg_mat, o.p(), o.out_prefix(), base, \
-             reg_opt, e.input()), ps.oexec)
+             reg_opt, e.input()), eo=ps.oexec)
          com.run()
 
          if (not o.exist() and not ps.dry_run()):
@@ -2945,7 +2945,7 @@ class RegWrap:
         subbrick=""):
       o = afni_name(prefix)
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          self.info_msg( "resampling %s to match %s data" % \
            (ps.dset2_generic_name, ps.dset1_generic_name ))
 
@@ -2959,7 +2959,7 @@ class RegWrap:
                              
          com = shell_com(  \
                "3dresample -master %s -prefix %s -inset %s'%s' -rmode Cu" \
-                % (ps.anat_ns.ppv(), o.pp(), e.input(),sb), ps.oexec)
+                % (ps.anat_ns.ppv(), o.pp(), e.input(),sb), eo=ps.oexec)
          com.run()
          if (not o.exist() and not ps.dry_run()):
             print("** ERROR: Could not resample\n")
@@ -2976,10 +2976,10 @@ class RegWrap:
       if (use_ss == '3dSkullStrip'):     #skullstrip epi
          n = afni_name(prefix)
          if (not n.exist() or ps.rewrite or ps.dry_run()):
-            n.delete(ps.oexec)
+            n.delete(oexec=ps.oexec)
             com = shell_com(  \
                   "3dSkullStrip -orig_vol %s -input %s -prefix %s" \
-                  % (skullstrip_opt, e.input(), n.pp()) , ps.oexec)
+                  % (skullstrip_opt, e.input(), n.pp()) , eo=ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print("** ERROR: Could not strip skull\n")
@@ -2990,15 +2990,15 @@ class RegWrap:
          n = afni_name(prefix)
          j = afni_name("%s__tt_am_%s" % (n.p(),n.pve()))
          if (not n.exist() or ps.rewrite or ps.dry_run()):
-            n.delete(ps.oexec)
+            n.delete(oexec=ps.oexec)
             com = shell_com(  \
                   "3dAutomask %s -apply_prefix %s %s" \
-                  % ( skullstrip_opt,  n.pp(), e.input()), ps.oexec)
+                  % ( skullstrip_opt,  n.pp(), e.input()), eo=ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print("** ERROR: Could not strip skull with automask\n")
                return None
-            j.delete(ps.oexec)
+            j.delete(oexec=ps.oexec)
          else:
             self.exists_msg(n.input())
       else:
@@ -3020,7 +3020,7 @@ class RegWrap:
       com_str = "3dBrickStat -automask -percentile %f 1 %f %s" \
                         % (perci, perci, e.input())
       if(not ps.dry_run()):
-         com = shell_com( com_str, ps.oexec, capture=1)
+         com = shell_com( com_str, eo=ps.oexec, capture=1)
          com.run()
          th = float(com.val(0,1))
          self.info_msg( "Applying threshold of %f on %s" % (th, e.input()))
@@ -3034,15 +3034,15 @@ class RegWrap:
          com = shell_com( 
                "3dcalc -datum float -prefix %s%s "\
                "-a %s -expr 'min(1,(a/%f))'" \
-               % (o.p(), o.out_prefix(), e.input(), th), ps.oexec)
+               % (o.p(), o.out_prefix(), e.input(), th), eo=ps.oexec)
       else:
          com = shell_com( 
                "3dcalc -datum float -prefix %s%s -a "\
                "%s -expr 'min(1,(a/%f))**%f'" \
-               % (o.p(), o.out_prefix(), e.input(), th, sq), ps.oexec)
+               % (o.p(), o.out_prefix(), e.input(), th, sq), eo=ps.oexec)
 
       if (not o.exist() or ps.rewrite or ps.dry_run()):
-         o.delete(ps.oexec)
+         o.delete(oexec=ps.oexec)
          com.run()
       else:
          self.exists_msg(o.input())
@@ -3077,27 +3077,27 @@ class RegWrap:
       else:
          d3AE = afni_name("%s%s" % (d3name,d3.view))
       
-      com = shell_com(("mkdir %sAddEdge"% ps.output_dir), ps.oexec)
+      com = shell_com(("mkdir %sAddEdge"% ps.output_dir), eo=ps.oexec)
       com.run()
 
       com = shell_com( \
         "3dcopy -overwrite %s %sAddEdge/%s" % \
-        (d1.input(), ps.output_dir, d1AE.prefix), ps.oexec)
+        (d1.input(), ps.output_dir, d1AE.prefix), eo=ps.oexec)
       com.run()
       com = shell_com( \
         "3dcopy -overwrite %s %sAddEdge/%s" % \
-        (d2.input(), ps.output_dir, d2AE.prefix), ps.oexec)
+        (d2.input(), ps.output_dir, d2AE.prefix), eo=ps.oexec)
       com.run()
       com = shell_com( \
         "3dcopy -overwrite %s %sAddEdge/%s" % \
-        (d3.input(), ps.output_dir, d3AE.prefix), ps.oexec)
+        (d3.input(), ps.output_dir, d3AE.prefix), eo=ps.oexec)
       com.run()
 
       # changed .input to .shortinput           3 Feb 2012 [rickr,dglen]
       com = shell_com( 
             "cd %sAddEdge; @AddEdge -no_deoblique %s %s %s %s; cd - " \
             % (ps.output_dir,aelistlog, d1AE.shortinput(), d2AE.shortinput(),\
-            d3AE.shortinput()), ps.oexec)
+            d3AE.shortinput()), eo=ps.oexec)
       com.run()
 
    # do the preprocessing of the EPI data    
@@ -3117,7 +3117,7 @@ class RegWrap:
          self.info_msg("Copying NIFTI EPI input to AFNI format")
          if (not o.exist() or ps.rewrite or ps.dry_run()):
             com = shell_com( "3dcopy %s %s%s" % \
-              (self.epi.input(), o.p(), o.pv()), ps.oexec)
+              (self.epi.input(), o.p(), o.pv()), eo=ps.oexec)
             com.run();
          basename = o.out_prefix()
          baseviewext = "%s%s" % (o.view, o.extension)
@@ -3256,7 +3256,7 @@ class RegWrap:
 
       if (not self.anat.exist() or ps.rewrite or ps.dry_run()):
          com = shell_com( "3dcopy %s %s%s" % \
-           (self.anat0.input(), self.anat.p(), self.anat.pv()), ps.oexec)
+           (self.anat0.input(), self.anat.p(), self.anat.pv()), eo=ps.oexec)
          com.run();
          if (not self.anat.exist() and not ps.dry_run()):
             print("** ERROR: Could not copy anat (%d)" % self.anat.exist())
@@ -3277,7 +3277,7 @@ class RegWrap:
          #don't use same type of input.
          n = afni_name("%s%s_ns%s" % (a.p(), a.out_prefix(),self.anat.view))
          if (not n.exist() or ps.rewrite or ps.dry_run()):
-            n.delete(ps.oexec)
+            n.delete(oexec=ps.oexec)
             self.info_msg( "Removing skull from %s data" % \
                        ps.dset1_generic_name)
 
@@ -3285,12 +3285,12 @@ class RegWrap:
                com = shell_com(  \
                   "%s -orig_vol %s -input %s -prefix %s%s" \
                   % (ps.skullstrip_method, ps.skullstrip_opt, a.input(), \
-                  n.p(),n.out_prefix()), ps.oexec)
+                  n.p(),n.out_prefix()), eo=ps.oexec)
             else:
                com = shell_com(  \
                   "%s %s -apply_prefix %s%s %s" \
                   % (ps.skullstrip_method, ps.skullstrip_opt, n.p(), \
-                  n.out_prefix(), a.input()),ps.oexec)
+                  n.out_prefix(), a.input()),eo=ps.oexec)
 
             com.run()
             if (not n.exist() and not ps.dry_run()):
@@ -3332,7 +3332,7 @@ class RegWrap:
 
 #         com = shell_com(  \
 #               "@Align_Centers -cm -base %s -dset %s" \
-#               % (ps.epi.ppve(), n.ppve() ) , ps.oexec)
+#               % (ps.epi.ppve(), n.ppve() ) , eo=ps.oexec)
 #         com.run() 
 #         a_shft = n.new("%s_shft" % n.out_prefix(),"+orig")
 #         if (not a_shft.exist() and not ps.dry_run()):
@@ -3452,23 +3452,23 @@ class RegWrap:
       epref = epref.strip()
       apref = apref.strip()
       if epref == "" and apref == "":
-         com = shell_com(  "\\rm -f %s__tt_*" % ps.output_dir, ps.oexec)
+         com = shell_com(  "\\rm -f %s__tt_*" % ps.output_dir, eo=ps.oexec)
          com.run()  
       else:
          if epref != "":
-            com = shell_com(  "\\rm -f %s__tt_%s*" % (epipath, epref), ps.oexec)
+            com = shell_com(  "\\rm -f %s__tt_%s*" % (epipath, epref), eo=ps.oexec)
             com.run() 
             if(rmold):
                com = shell_com( "\\rm -f %s%s*%s*" % (epipath, epref, ps.suffix), \
-                ps.oexec)
+                eo=ps.oexec)
                com.run() 
 
          if apref != "":
-            com = shell_com(  "\\rm -f %s__tt_%s*" % (anatpath, apref), ps.oexec)
+            com = shell_com(  "\\rm -f %s__tt_%s*" % (anatpath, apref), eo=ps.oexec)
             com.run()  
             if(rmold):
                com = shell_com( "\\rm -f %s%s*%s*" % (anatpath, apref, ps.suffix), \
-                  ps.oexec)
+                  eo=ps.oexec)
                com.run() 
 
       return
@@ -3581,9 +3581,9 @@ if __name__ == '__main__':
 
       if(ps.AddEdge):
          if(ps.output_dir=="./"):
-            com = shell_com("\\rm -f AddEdge/*", ps.oexec)
+            com = shell_com("\\rm -f AddEdge/*", eo=ps.oexec)
          else:
-            com = shell_com("cd %s; \\rm -f AddEdge/*" % ps.output_dir, ps.oexec)
+            com = shell_com("cd %s; \\rm -f AddEdge/*" % ps.output_dir, eo=ps.oexec)
 
          com.run()
          # @AddEdge requires single sub-brick, resampled data (grids must match)
@@ -3639,7 +3639,7 @@ if __name__ == '__main__':
                "-prefix %s%s -input %s  -master BASE"   %   \
                ( ps.anat0.input(), epi_mat, outdir,  \
                  ps.epi_addedge.out_prefix(),               \
-                 ein_rs.input()), ps.oexec)
+                 ein_rs.input()), eo=ps.oexec)
             com.run()
             ps.add_edges(ps.anat_ns, ein_rs, ps.epi_addedge,\
                      "%s_ns" % (ps.anat0.out_prefix()),     \
