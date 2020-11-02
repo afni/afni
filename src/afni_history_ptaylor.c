@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Nov , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Can now output SVG files, and can use newline chars in labels.",
+   "Had to deal with newline escape seq internally.\n"
+},
+
 { 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
    "Extra QC image:  initial overlap of source and base dsets.",
    "Should help to know, in case anything goes awry later.\n"
