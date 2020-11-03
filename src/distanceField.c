@@ -46,6 +46,9 @@ float sqr(float x);
 static flt vx(flt * f, int p, int q);
 Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz);
 int getIndex(int x, int y, int z, int nx, int ny, int nz);
+int transposeYZ(float *volume, int nx, int ny, int nz);
+int testTransposeFunction(THD_3dim_dataset * din);
+int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz, int ny);
 
 float sqr(float x){
     return x*x;
@@ -87,6 +90,9 @@ int main( int argc, char *argv[] )
         Cleanup(inputFileName, din);
         return errorNumber;
     }
+
+    // DEBUG: Test yz transpose function
+    testTransposeFunction(din);
 
     if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
         Cleanup(inputFileName, din);
@@ -218,13 +224,12 @@ Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz){
     int y = (int)((index-z*planeSize)/nx);
     int x = index - z*planeSize - y*nx;
 
-    return buffer[getIndex((x>0)? x-1:x,y,z, nx, ny,nz)]  && buffer[getIndex((x<nx-1)? x-1:x,y,z, nx, ny,nz)] &&
+    return buffer[getIndex((x>0)? x-1:x,y,z, nx, ny,nz)]  && buffer[getIndex((x<nx-1)? x+1:x,y,z, nx, ny,nz)] &&
         buffer[getIndex(x, (y>0)? y-1:y,z, nx, ny,nz)] && buffer[getIndex(x, (y<ny-1)? y+1:y,z, nx, ny,nz)] &&
         buffer[getIndex(x,y,(z>0)? z-1:z, nx, ny,nz)] && buffer[getIndex(x,y,(z<nz-1)? z+1:z, nx, ny,nz)] ;
 }
 
 int getIndex(int x, int y, int z, int nx, int ny, int nz){
-    int debug = z*nx*ny + y*nx + x;
     return z*nx*ny + y*nx + x;
 }
 
@@ -238,8 +243,10 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
     int nvox = nx*ny*nz;
 
     // Get real world voxel sizes
-    int yDim = fabs(DSET_DY(din));
-    int zDim = fabs(DSET_DZ(din));
+    // int yDim = fabs(DSET_DY(din));
+    int yDim = 1.0;
+    int zDim = 1.0;
+    // int zDim = fabs(DSET_DZ(din));
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -255,18 +262,15 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		if (img[i] > threshold)
 			outImg[i] = INFINITY;
 	}
-	size_t nRow = ny;
+	size_t nRow = ny*nz;
 
-/*	for (int i = 2; i < 8; i++ )
-		nRow *= MAX(nim->dim[i],1);
-		*/
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
 		flt * imgRow = outImg + (r * nx);
 		// edt1(imgRow, nx);
 		edt1_local(din, imgRow, nx);
 	}
-
+/**/
 	//EDT in anterior-posterior direction
 	nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
 	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
@@ -305,10 +309,58 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		}
 		free (img3D);
 	} //for each volume
+/*
+	// Transpose z and y
+	transposeYZ(outImg, nx, ny, nz);
+
+	//EDT in anterior-posterior direction
+	int Ny = nz;
+	int Nz = ny;
+	nRow = nx * Nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
+	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
+		flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
+
+		//transpose data
+		size_t vo = v * nvox3D; //volume offset
+		for (int z = 0; z < Nz; z++ ) {
+			int zo = z * nx * Ny;
+			for (int y = 0; y < Ny; y++ ) {
+				int xo = 0;
+				for (int x = 0; x < nx; x++ ) {
+					img3D[zo+xo+y] = outImg[vo];
+					vo += 1;
+					xo += Ny;
+				}
+			}
+		}
+		//perform EDT for all rows
+		for (int r = 0; r < nRow; r++ ) {
+			flt * imgRow = img3D + (r * Ny);
+			edt_local(yDim, imgRow, Ny);
+		}
+		//transpose data back
+		vo = v * nvox3D; //volume offset
+		for (int z = 0; z < Nz; z++ ) {
+			int zo = z * nx * Ny;
+			for (int y = 0; y < Ny; y++ ) {
+				int xo = 0;
+				for (int x = 0; x < nx; x++ ) {
+					outImg[vo] = img3D[zo+xo+y];
+					vo += 1;
+					xo += Ny;
+				}
+			}
+		}
+		free (img3D);
+	} //for each volume
+
+	// Transpose z and y
+	transposeYZ(outImg, nx, ny, nz);
+*/
+	/**/
 
 	//EDT in head-foot direction
 	nRow = nx * ny; //transpose XYZ to ZXY and blur Z columns with XY Rows
-	#pragma omp parallel for
 	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
 		flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
 		//transpose data
@@ -345,7 +397,99 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		free (img3D);
 	} //for each volume
 
+	/**/
+
 	return ERROR_NONE;
+}
+
+int transposeYZ(float *volume, int nx, int ny, int nz){
+	float * buffer;
+	int nvox=nx*ny*nz;
+
+	if (!(buffer = (float *)malloc(nvox*sizeof(float)))!=ERROR_NONE) return ERROR_MEMORY_ALLOCATION;
+
+	int z0 = 0;
+	for (int z=0; z<nz; ++z){
+        int Y = z0;
+        for (int y=0; y<ny; ++y){
+            for (int x=0; x<nx; ++x){
+                buffer[z0+x]=volume[Y];
+                buffer[Y++]=volume[z0+x];
+            }
+        }
+        z0+=nx*ny;
+    }
+	memcpy((void *)volume, (void *)buffer, nvox*sizeof(float));
+	free(buffer);
+
+    return ERROR_NONE;
+}
+
+int testTransposeFunction(THD_3dim_dataset * din){
+    // Get dimensions in voxels
+    int nz = DSET_NZ(din);
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+    int nvox = nx*ny*nz;
+    int i, errorNumber;
+    float *buffer;
+
+    // Allocate memory to buffer
+    if (!(buffer = (float *)malloc(nvox*sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
+
+    // Read image data
+    BYTE * img = DSET_ARRAY(din, 0);
+
+    for (i=0; i<nvox; ++i) buffer[i]=img[i];
+
+    // Apply transpose
+    if ((errorNumber=transposeYZ(buffer, nx, ny, nz))!=ERROR_NONE){
+        free(buffer);
+        return errorNumber;
+    }
+
+    // Output transpoed volume to afni dataset
+    outputTransposedDataSet(buffer, din, nx, nz, ny);
+
+    free(buffer);
+    return ERROR_NONE;
+}
+
+
+int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz, int ny){
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputFileName;
+    char  appendage[]="Transpose";
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+strlen(appendage)+8))){
+       return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Determine whether output file already exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+
+    // Set output dimensions
+    THD_ivec3 nxyz={nx, ny, nz};
+
+    // Output Fourier spectrum image (if it does not already exist)
+    if (!outputFileExists){
+        THD_3dim_dataset *dout = EDIT_empty_copy(din);
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+        EDIT_dset_items( dout ,
+                        ADN_prefix, outputFileName,
+                        ADN_type, MRI_float,
+                        ADN_nxyz, nxyz,
+                        ADN_none ) ;
+        EDIT_substitute_brick(dout, 0, MRI_float, buffer);
+        DSET_write(dout);
+    }
+
+    // Cleanup
+    free(outputFileName);
+
+    return ERROR_NONE;
 }
 
 void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is simple
