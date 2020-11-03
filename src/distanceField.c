@@ -91,9 +91,6 @@ int main( int argc, char *argv[] )
         return errorNumber;
     }
 
-    // DEBUG: Test yz transpose function
-    testTransposeFunction(din);
-
     if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
         Cleanup(inputFileName, din);
         return ERROR_MEMORY_ALLOCATION;
@@ -270,7 +267,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		// edt1(imgRow, nx);
 		edt1_local(din, imgRow, nx);
 	}
-/**/
+
 	//EDT in anterior-posterior direction
 	nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
 	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
@@ -309,55 +306,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		}
 		free (img3D);
 	} //for each volume
-/*
-	// Transpose z and y
-	transposeYZ(outImg, nx, ny, nz);
-
-	//EDT in anterior-posterior direction
-	int Ny = nz;
-	int Nz = ny;
-	nRow = nx * Nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
-	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
-		flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
-
-		//transpose data
-		size_t vo = v * nvox3D; //volume offset
-		for (int z = 0; z < Nz; z++ ) {
-			int zo = z * nx * Ny;
-			for (int y = 0; y < Ny; y++ ) {
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					img3D[zo+xo+y] = outImg[vo];
-					vo += 1;
-					xo += Ny;
-				}
-			}
-		}
-		//perform EDT for all rows
-		for (int r = 0; r < nRow; r++ ) {
-			flt * imgRow = img3D + (r * Ny);
-			edt_local(yDim, imgRow, Ny);
-		}
-		//transpose data back
-		vo = v * nvox3D; //volume offset
-		for (int z = 0; z < Nz; z++ ) {
-			int zo = z * nx * Ny;
-			for (int y = 0; y < Ny; y++ ) {
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					outImg[vo] = img3D[zo+xo+y];
-					vo += 1;
-					xo += Ny;
-				}
-			}
-		}
-		free (img3D);
-	} //for each volume
-
-	// Transpose z and y
-	transposeYZ(outImg, nx, ny, nz);
-*/
-	/**/
 
 	//EDT in head-foot direction
 	nRow = nx * ny; //transpose XYZ to ZXY and blur Z columns with XY Rows
@@ -396,8 +344,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		} //z
 		free (img3D);
 	} //for each volume
-
-	/**/
 
 	return ERROR_NONE;
 }
