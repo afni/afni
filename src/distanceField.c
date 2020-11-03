@@ -240,10 +240,11 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
     int nvox = nx*ny*nz;
 
     // Get real world voxel sizes
-    // int yDim = fabs(DSET_DY(din));
-    int yDim = 1.0;
-    int zDim = 1.0;
-    // int zDim = fabs(DSET_DZ(din));
+    int xDim = fabs(DSET_DX(din));
+    int yDim = fabs(DSET_DY(din));
+    int zDim = fabs(DSET_DZ(din));
+    // int yDim = 1.0;
+    // int zDim = 1.0;
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
