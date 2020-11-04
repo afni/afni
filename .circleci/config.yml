@@ -432,7 +432,7 @@ jobs:
                 -DUSE_SYSTEM_GLW=OFF    \
                 -DUSE_SYSTEM_XMHTML=OFF \
                 -DUSE_SYSTEM_F2C=OFF \
-                -DCOMP_ADD_RSTATS=OFF \
+                -DCOMP_RSTATS=OFF \
                 -DUSE_SYSTEM_GIFTI=OFF
             ninja
 

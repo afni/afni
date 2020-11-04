@@ -31,7 +31,7 @@ target_include_directories(track_tools
 
 
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   foreach(
     target
     1dDW_Grad_o_Mat

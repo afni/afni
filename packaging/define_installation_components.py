@@ -38,11 +38,11 @@ sp.check_output(
 cmake -GNinja {src_dir} \
     -DUSE_SYSTEM_ALL=ON \
     -DGENERATE_PACKAGING_COMPONENTS=ON \
-    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON \
-    -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
-    -DCOMP_ADD_RSTATS=ON \
-    -DCOMP_ADD_TCSH=ON \
-    -DCOMP_ADD_BINARIES=ON
+    -DCOMP_SUMA=ON \
+    -DCOMP_GUI=ON \
+    -DCOMP_RSTATS=ON \
+    -DCOMP_TCSH=ON \
+    -DCOMP_COREBINARIES=ON
 """,
     # using system nifti should be removed              !!!!!! \
     shell=True,
@@ -59,12 +59,12 @@ sp.check_output(
 cmake {src_dir}\
     -DUSE_SYSTEM_ALL=ON \
     -DUSE_SYSTEM_DCM2NIIX=ON \
-    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=OFF \
-    -DCOMP_X_DEPENDENT_GUI_PROGS=OFF \
-    -DCOMP_ADD_RSTATS=OFF \
-    -DCOMP_ADD_PYTHON=OFF \
-    -DCOMP_ADD_TCSH=OFF \
-    -DCOMP_ADD_BINARIES=OFF
+    -DCOMP_SUMA=OFF \
+    -DCOMP_GUI=OFF \
+    -DCOMP_RSTATS=OFF \
+    -DCOMP_PYTHON=OFF \
+    -DCOMP_TCSH=OFF \
+    -DCOMP_COREBINARIES=OFF
 ninja
 ninja install  > components/0_corelibs.txt
 """,
@@ -77,8 +77,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DCOMP_ADD_TCSH=OFF \
-    -DCOMP_ADD_BINARIES=ON
+    -DCOMP_TCSH=OFF \
+    -DCOMP_COREBINARIES=ON
 ninja
 ninja install  > components/1_corebinaries.txt
 """,
@@ -91,8 +91,8 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DCOMP_ADD_TCSH=ON \
-    -DCOMP_ADD_PYTHON=OFF
+    -DCOMP_TCSH=ON \
+    -DCOMP_PYTHON=OFF
 ninja
 ninja install  > components/2_tcsh.txt
 """,
@@ -105,7 +105,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DCOMP_ADD_PYTHON=ON
+    -DCOMP_PYTHON=ON
 ninja
 ninja install  > components/3_python.txt
 """,
@@ -119,7 +119,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DCOMP_X_DEPENDENT_GUI_PROGS=ON
+    -DCOMP_GUI=ON
 ninja
 ninja install  > components/4_gui.txt
 """,
@@ -133,7 +133,7 @@ sp.check_output(
 ninja uninstall
 cmake -GNinja {src_dir}\
     -DUSE_SYSTEM_GTS=ON \
-    -DCOMP_OPENGL_DEPENDENT_GUI_PROGS=ON
+    -DCOMP_SUMA=ON
 ninja install  > components/5_suma.txt
 """,
     shell=True,
@@ -146,7 +146,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake {src_dir}\
-    -DCOMP_ADD_RSTATS=ON
+    -DCOMP_RSTATS=ON
 ninja
 ninja install  > components/6_rstats.txt
 """,
@@ -162,7 +162,7 @@ sp.check_output(
     f"""
 ninja uninstall
 cmake /opt/afni/src \
-    -DCOMP_ADD_RSTATS=ON \
+    -DCOMP_RSTATS=ON \
     -DUSE_SYSTEM_NIFTI=OFF \
     -DUSE_SYSTEM_GIFTI=OFF \
     -DFETCHCONTENT_SOURCE_DIR_FETCH_NIFTI_CLIB_GIT_REPO={nifti_dir} -DUSE_SYSTEM_NIFTI=OFF -DFETCHCONTENT_SOURCE_DIR_GIFTI_CLIB={gifti_dir} \

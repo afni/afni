@@ -26,7 +26,7 @@ if(STANDARD_PYTHON_INSTALL)
 
   # Check that setuptools is available for the current python executable:
   execute_process(
-      COMMAND bash -c "${Python_EXECUTABLE} -c 'import setuptools'"
+      COMMAND "${Python_EXECUTABLE}" "-c" "import setuptools"
       RESULT_VARIABLE resultVar
       OUTPUT_VARIABLE outputVar
       ERROR_VARIABLE errorVar
