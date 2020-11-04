@@ -534,6 +534,26 @@ def get_equivalent_name(data, fname):
     return equivalent_file
 
 
+def _rewrite_paths_for_lines(txt, tests_data_dir, outdir, wdir, hostname, user):
+    # make paths in the test data directory relative in reference to the outdir.
+    rel_testdata = os.path.relpath(tests_data_dir, outdir)
+    txt = [x.replace(str(tests_data_dir), rel_testdata) for x in txt]
+    # replace output directories so that they look the same
+    fake_outdir = str(Path(rel_testdata) / "sample_test_output")
+    txt = [x.replace(str(outdir), fake_outdir) for x in txt]
+    # do same for relative outdir paths
+    rel_outdir = str(Path(outdir).relative_to(wdir))
+    if rel_outdir != ".":
+        txt = [x.replace(rel_outdir, fake_outdir) for x in txt]
+    # replace user and hostnames:
+    txt = [x.replace(hostname, "hostname") for x in txt]
+    txt = [x.replace(user, "user") for x in txt]
+
+    # make absolute references to workdir relative.
+    txt = [x.replace(wdir, ".") for x in txt]
+    return txt
+
+
 def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False):
     """Given  a list of texts,  which are in turn lists, this function
     attempts to normalize paths, user, hostname in order to  reduce the rate
@@ -569,29 +589,24 @@ def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False)
 
     outlist = []
     for txt in text_list:
-        # make paths in the test data directory relative in reference to the outdir.
-        rel_testdata = os.path.relpath(data.tests_data_dir, data.outdir)
-        txt = [x.replace(str(data.tests_data_dir), rel_testdata) for x in txt]
-
-        # replace output directories so that they look the same
-        fake_outdir = str(Path(rel_testdata) / "sample_test_output")
-        txt = [x.replace(str(data.outdir), fake_outdir) for x in txt]
-        txt = [x.replace(str(data.outdir.relative_to(wdir)), fake_outdir) for x in txt]
-        # replace user and hostnames:
-        txt = [x.replace(cmd_info["host"], "hostname") for x in txt]
-        txt = [x.replace(cmd_info["user"], "user") for x in txt]
-        # make absolute references to workdir relative.
-        txt = [x.replace(wdir, ".") for x in txt]
-
-        # Do the same for previous files being compared against:
+        txt = _rewrite_paths_for_lines(
+            txt,
+            data.tests_data_dir,
+            data.outdir,
+            wdir,
+            cmd_info["host"],
+            cmd_info["user"],
+        )
         if not create_sample_output:
-            rel_orig = str(Path(cmd_info_orig["outdir"]).relative_to(wdir_orig))
-            txt = [x.replace(cmd_info_orig["outdir"], fake_outdir) for x in txt]
-            txt = [x.replace(wdir_orig, ".") for x in txt]
-            txt = [x.replace(rel_orig, fake_outdir) for x in txt]
-            # replace user and hostnames:
-            txt = [x.replace(cmd_info_orig["host"], "hostname") for x in txt]
-            txt = [x.replace(cmd_info_orig["user"], "user") for x in txt]
+            # Do the same for previous files being compared against:
+            txt = _rewrite_paths_for_lines(
+                txt,
+                data.tests_data_dir,
+                cmd_info_orig["outdir"],
+                wdir_orig,
+                cmd_info_orig["host"],
+                cmd_info_orig["user"],
+            )
 
         outlist.append(txt)
 
