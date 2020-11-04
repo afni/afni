@@ -2127,6 +2127,14 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
    M[3][0] = M[3][1] = M[3][2] = 0.0 ; M[3][3] = 1.0 ;  \
 }
 
+#undef MAT44_COPY
+#define MAT44_COPY( C, A ) {\
+   int i,j ;   \
+   for( i=0 ; i < 4 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     C.m[i][j] =    A.m[i][j] ; \
+}
+
 #undef AFF44_COPY
 #define AFF44_COPY( C, A ) {\
    int i,j ;   \
@@ -4498,6 +4506,8 @@ extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
+extern float THD_dset_extent_rlpais(THD_3dim_dataset *dset, char ret,
+                                    float *RL_PA_IS);
 
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
@@ -5525,14 +5535,30 @@ extern THD_dvecmat DLSQ_rotscl   ( int, THD_dfvec3 *, THD_dfvec3 *, int      );
 
 extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 
-  /* cf. thd_coords.c for cardinal transformation matrix */
+   /* cf. thd_coords.c for cardinal transformation matrix */
 extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics );
+                                  THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern void THD_dicom_real_xform (THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics );
+                                  THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern int  THD_dicom_real_to_card(THD_3dim_dataset *dset, /* 23 Mar 2020 */
-                      THD_fvec3 * coords, int rnd);
+                                   THD_fvec3 * coords, int rnd);
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
+
+/* [PT: Nov 4, 2020] functions for reorienting dset via
+   ijk_to_dicom_real */
+
+extern void THD_orient_to_int_rlpais( char *ochar, 
+                                      int *oint );
+extern mat33 THD_orient_perm_mat33( THD_3dim_dataset *dset, 
+                                    char *new_ori);
+extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset, 
+                                                 char *new_ori);
+
+
+//extern void  THD_reorient_perm_with_obliquity( THD_3dim_dataset *dset, 
+//                                               char *new_ori );
+
+
 
 
 extern void THD_report_obliquity(THD_3dim_dataset *dset);

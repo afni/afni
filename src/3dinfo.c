@@ -245,7 +245,7 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
-   IS_ATLAS, IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT,
+   IS_ATLAS, IS_OBLIQUE, OBLIQUITY, OBLIQUITY_TEST, PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
    N4,
@@ -337,6 +337,9 @@ int main( int argc , char *argv[] )
    int extinit = 0;
    float RL_AP_IS[6];
 
+   char *NEW_ORIENT_TEST=NULL; // [PT: TESTING]
+   mat44 dset_mat44_P;
+
    mainENTRY("3dinfo main") ; machdep() ;
 
    if( argc < 2) { Syntax(TXT,1) ; RETURN(0); }
@@ -415,6 +418,12 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-obliquity") == 0) {
          sing[N_sing++] = OBLIQUITY; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-obliquity_TEST") == 0) {
+         iarg++;
+         if (iarg >= argc)
+           ERROR_exit( "3dinfo needs a string after -obliquity_TEST\n");
+         NEW_ORIENT_TEST = argv[iarg];
+         sing[N_sing++] = OBLIQUITY_TEST; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-handedness") == 0) {
          sing[N_sing++] = HANDEDNESS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
@@ -816,6 +825,11 @@ int main( int argc , char *argv[] )
          case OBLIQUITY:
             fprintf(stdout,"%.3f",
                   THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
+            break;
+         case OBLIQUITY_TEST:
+            // [PT: TESTING]
+            dset_mat44_P = THD_refit_orient_ijk_to_dicom_real( dset, NEW_ORIENT_TEST); 
+            //if( NEW_ORIENT_TEST) free(NEW_ORIENT_TEST);  NEW_ORIENT_TEST=NULL;
             break;
          case PREFIX:
             form = PrintForm(sing[iis], namelen, 1);
