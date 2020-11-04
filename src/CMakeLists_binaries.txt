@@ -415,7 +415,7 @@ target_link_libraries(3dECM
     NIFTI::nifticdf
   )
 
-if(COMP_X_DEPENDENT_GUI_PROGS)
+if(COMP_GUI)
   add_afni_executable(Vecwarp Vecwarp.c)
   target_link_libraries(Vecwarp PRIVATE AFNI::mri)
 

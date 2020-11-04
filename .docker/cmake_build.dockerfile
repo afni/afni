@@ -20,11 +20,11 @@ RUN \
     fi; \
     cmake \
         -GNinja \
-        -DCOMP_ADD_BINARIES=ON \
+        -DCOMP_BINARIES=ON \
         -DUSE_SYSTEM_NIFTI=OFF \
         -DUSE_SYSTEM_GIFTI=OFF \
-        -DCOMP_X_DEPENDENT_GUI_PROGS=ON \
-        -DCOMP_ADD_PLUGINS=ON \
+        -DCOMP_GUI=ON \
+        -DCOMP_PLUGINS=ON \
         -DUSE_OMP=ON \
         $AFNI_ROOT
 

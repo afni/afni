@@ -3,7 +3,6 @@ include(FetchContent)
 include(FindStandardMathLibrary)
 include(BuildType)
 find_package(ZLIB REQUIRED)
-find_package(GSL REQUIRED)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 
@@ -11,49 +10,41 @@ if(USE_OMP)
   find_package(OpenMP COMPONENTS C REQUIRED)
 endif()
 
-if(COMP_ADD_RSTATS)
+if(COMP_RSTATS)
     find_package(LibR)
     if(NOT LIBR_FOUND)
-        message(FATAL_ERROR "Could not find R. Consider installing R, or setting COMP_ADD_RSTATS to OFF")
+        message(FATAL_ERROR "Could not find R. Consider installing R, or setting COMP_RSTATS to OFF")
     endif()
 endif()
 
 
-if(COMP_ADD_PYTHON)
-  # The python interpreter used for the build (and subsequent testing if
-  # FORCE_CURRENT_PY_INTERP_FOR_TESTS is not set) is the first one found that
-  # satisfies the version requirements. The PATH variable is used for this,
-  # and OSX framework python is found last. If an environment is used for
-  # software isolation then python is only searched for in this environment.
-  # For more details see:
-  # https://cmake.org/cmake/help/git-stage/module/FindPython.html
-  set(CMAKE_FIND_FRAMEWORK LAST)
-  set(Python_FIND_VIRTUALENV ONLY)
-  set(Python_FIND_STRATEGY LOCATION)
 
-  # Unless overwritten, python > 3.6 is required since this is required to run
-  # the test suite. A minimum requirement is also defined in setup.py for
-  # installation of the python code if that is desired.
-  set_if_not_defined(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS ON)
-  if(USE_PYTHON_INTERPRETER_SUPPORTED_FOR_TESTS)
-    set(PY_VER 3.6)
-  else()
-    set(PY_VER 3)
-  endif()
-  find_package(Python ${PY_VER} REQUIRED COMPONENTS Interpreter)
-  if(NOT ${Python_FOUND})
-    message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
-  endif()
+# The python interpreter used for the build (and subsequent testing if
+# FORCE_CURRENT_PY_INTERP_FOR_TESTS is not set) is the first one found that
+# satisfies the version requirements. The PATH variable is used for this,
+# and OSX framework python is found last. If an environment is used for
+# software isolation then python is only searched for in this environment.
+# For more details see:
+# https://cmake.org/cmake/help/git-stage/module/FindPython.html
+set(CMAKE_FIND_FRAMEWORK LAST)
+set(Python_FIND_VIRTUALENV ONLY)
+set(Python_FIND_STRATEGY LOCATION)
+
+# python >=3.6 supported
+find_package(Python 3.6 REQUIRED COMPONENTS Interpreter)
+if(NOT ${Python_FOUND})
+  message(FATAL_ERROR "Cannot find python interpreter (FOUND: ${Python_EXECUTABLE})")
 endif()
+
 
 if(NOT COMP_CORELIBS_ONLY)
   if(NOT USE_SYSTEM_QHULL)
     # Perhaps an error should be raised if the appropriate binaries are missing
     add_subdirectory(src/qhulldir)
   endif()
-endif()
 
-if(COMP_X_DEPENDENT_GUI_PROGS)
+
+if(COMP_GUI)
   find_package(X11 REQUIRED)
   find_package(Motif REQUIRED)
   find_package(JPEG 62 REQUIRED)
@@ -62,7 +53,7 @@ endif()
 
 
 # SUMA dependency management
-if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
+if(COMP_SUMA)
   # Check for and configure for external dependencies
   if(APPLE)
     find_package(XQuartzGL REQUIRED)
@@ -71,7 +62,7 @@ if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
     optional_bundle(src/SUMA/GLUT)
   endif()
   find_package(GLib2)
-
+  find_package(GSL REQUIRED)
   if(USE_SYSTEM_GLW)
       # Not that SUMA makes use of the glwDrawingAreaWidgetClass symbol that is
       # not externed in the version of glw distributed with most operating 
@@ -97,7 +88,7 @@ endif()
 
 # Add AFNI atlases (they're not really just atlases but for legacy reasons
 # we'll call them that)
-if(COMP_ADD_ATLASES)
+if(COMP_ATLASES)
   find_program(DATALAD datalad)
   if(DATALAD_NOT_FOUND)
     message(FATAL_ERROR "The datalad executable could not be found. This is required for installation of atlases")
@@ -150,7 +141,7 @@ file(
   )
 
 endif()
-
+endif() # end of non core libs
 
 set_if_not_defined(DOWNLOAD_TEST_DATA OFF)
 # Declare the direct dependencies. Can be used to avoid collisions with pre-existing
