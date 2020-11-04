@@ -28,7 +28,7 @@ import subprocess
 import sys
 import tempfile
 import time
-
+from afni_test_utils import data_management as dm
 
 try:
     LAD = importlib.import_module("afnipy.lib_afni1D")
@@ -1004,7 +1004,7 @@ class OutputDiffer:
 
         need_data = any(p.is_symlink() and not p.exists() for p in cmpr_files)
         if need_data:
-            dl_dset.get(str(cmpr_path))
+            dm.try_data_download([cmpr_path], dl_dset.path, self.data.logger)
 
     @property
     def data(self):
