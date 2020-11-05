@@ -5564,12 +5564,6 @@ extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
                                                  char *new_ori);
 
 
-//extern void  THD_reorient_perm_with_obliquity( THD_3dim_dataset *dset, 
-//                                               char *new_ori );
-
-
-
-
 extern void THD_report_obliquity(THD_3dim_dataset *dset);
 extern void set_obliquity_report(int v);
 
