@@ -850,6 +850,9 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
    //DUMP_MAT44("", dset->daxes->ijk_to_dicom_real);
    INFO_message("NEW ORIENT: %s", new_ori);
 
+   // [PT] NTS: I need to think more about the origin part...  not
+   // convinced by it at present.
+
    // set new origin location: based on the extents of the current
    // dset and to-be orient
    THD_orient_to_int_rlpais(new_ori, new_ori_int);
