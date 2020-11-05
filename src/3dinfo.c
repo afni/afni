@@ -77,6 +77,13 @@ int Syntax(TFORM targ, int detail)
 "   -handedness: L if orientation is Left handed, R if it is right handed\n"
 "   -obliquity: Angle from plumb direction.\n"
 "               Angles of 0 (or close) are for cardinal orientations\n"
+"   -sform: Display full 4x3 'sform' matrix (might contain obliquity info),\n"
+"           with comment line first.\n"
+"   -sform_oneline: Display full 'sform' matrix (see '-sform')\n"
+"                   as 1 row of 12 numbers. No additional comment.\n"
+"   -sform_reorient XXX: Display full 4x3 'sform' matrix (see '-sform')\n"
+"                        *if* the dset were reoriented (via 3drefit) to\n"
+"                        new orient XXX.  Includes comment line first.\n"
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
 "   -ni: Return the number of voxels in i dimension\n"
@@ -245,7 +252,9 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
-   IS_ATLAS, IS_OBLIQUE, OBLIQUITY, OBLIQUITY_TEST, PREFIX , PREFIX_NOEXT,
+   IS_ATLAS, IS_OBLIQUE, OBLIQUITY, 
+   SFORM, SFORM_ONELINE, SFORM_REORIENT, // [PT: Nov 4, 2020]
+   PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
    N4,
@@ -337,10 +346,14 @@ int main( int argc , char *argv[] )
    int extinit = 0;
    float RL_AP_IS[6];
 
-   char *NEW_ORIENT_TEST=NULL; // [PT: TESTING]
+   char *sform_print_base= "(sform)";
+   char sform_print_str[100];
+   char *new_ori_sform=NULL; // for displaying new sform under new orient
    mat44 dset_mat44_P;
 
    mainENTRY("3dinfo main") ; machdep() ;
+
+   strcpy(sform_print_str, sform_print_base);
 
    if( argc < 2) { Syntax(TXT,1) ; RETURN(0); }
 
@@ -418,12 +431,16 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-obliquity") == 0) {
          sing[N_sing++] = OBLIQUITY; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-obliquity_TEST") == 0) {
+      } else if( strcasecmp(argv[iarg],"-sform") == 0) {
+         sing[N_sing++] = SFORM; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-sform_oneline") == 0) {
+         sing[N_sing++] = SFORM_ONELINE; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-sform_reorient") == 0) {
          iarg++;
          if (iarg >= argc)
-           ERROR_exit( "3dinfo needs a string after -obliquity_TEST\n");
-         NEW_ORIENT_TEST = argv[iarg];
-         sing[N_sing++] = OBLIQUITY_TEST; iarg++; continue;
+           ERROR_exit( "3dinfo needs a string after -sform_reorient\n");
+         new_ori_sform = argv[iarg];
+         sing[N_sing++] = SFORM_REORIENT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-handedness") == 0) {
          sing[N_sing++] = HANDEDNESS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
@@ -826,10 +843,24 @@ int main( int argc , char *argv[] )
             fprintf(stdout,"%.3f",
                   THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
             break;
-         case OBLIQUITY_TEST:
-            // [PT: TESTING]
-            dset_mat44_P = THD_refit_orient_ijk_to_dicom_real( dset, NEW_ORIENT_TEST); 
-            //if( NEW_ORIENT_TEST) free(NEW_ORIENT_TEST);  NEW_ORIENT_TEST=NULL;
+         case SFORM:
+            DUMP_MAT44(sform_print_str, dset->daxes->ijk_to_dicom_real);
+            break;
+         case SFORM_ONELINE:
+            DUMP_MAT44_ONELINE(dset->daxes->ijk_to_dicom_real);
+            break;
+         case SFORM_REORIENT:
+            {
+               char ostr[4];
+               THD_fill_orient_str_3(dset->daxes, ostr);
+               dset_mat44_P = THD_refit_orient_ijk_to_dicom_real( dset, 
+                                                             new_ori_sform ); 
+               strcat(sform_print_str, " after reorienting from (current) ");
+               strcat(sform_print_str, ostr);
+               strcat(sform_print_str, " to ");
+               strcat(sform_print_str, new_ori_sform);
+               DUMP_MAT44(sform_print_str, dset_mat44_P);
+            }
             break;
          case PREFIX:
             form = PrintForm(sing[iis], namelen, 1);

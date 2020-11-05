@@ -1600,6 +1600,7 @@ extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
 extern void THD_set_daxes_to_dicomm( THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
+int THD_fill_orient_int_3_rlpais( THD_dataxes *, int [3] ); // [PT: Nov 2, 2020]
 int THD_fill_orient_str_3( THD_dataxes *, char [4] );/* 23 Jan 2013 [rickr] */
 int THD_fill_orient_str_6( THD_dataxes *, char [7] );/* 23 Jan 2013 [rickr] */
 
@@ -1951,6 +1952,14 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
       AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
+#undef  DUMP_MAT44_ONELINE
+#define DUMP_MAT44_ONELINE(AA)                         \
+     printf(" %13.6f %13.6f %13.6f  %13.6f"            \
+            " %13.6f %13.6f %13.6f  %13.6f"            \
+            " %13.6f %13.6f %13.6f  %13.6f " ,         \
+            AA.m[0][0], AA.m[0][1], AA.m[0][2], AA.m[0][3], \
+            AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3], \
+            AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
 /* modify the last column of a mat44 struct so that the
    same spatial coords apply to an image with pp,qq,rr

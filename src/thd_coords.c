@@ -802,11 +802,11 @@ mat33 THD_orient_perm_mat33( THD_3dim_dataset *dset,
 
    // translate new orient to int form
    THD_orient_to_int_rlpais(new_ori, new_ori_int);
+   INFO_message("NEW ORI: %s", new_ori);
+   INFO_message("NEW ORI int: %d %d %d", new_ori_int[0], new_ori_int[1], new_ori_int[2]);
 
    // dset orient in int form
-   dset_ori_int[0] = dset->daxes->xxorient;
-   dset_ori_int[1] = dset->daxes->yyorient;
-   dset_ori_int[2] = dset->daxes->zzorient;
+   i = THD_fill_orient_int_3_rlpais( dset->daxes, dset_ori_int );
    
    // make permutation matrix; will be applied as first arg in
    // multiplications, such as: MAT33_MUL(P33, dset_mat33)
@@ -828,7 +828,7 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
 {
    int   i, j;
    int   new_ori_int[3]  = {-1, -1, -1};  // inp orient (int form)   
-   float dset_ext_rlpais[6];   // inp extents; RLPAIS order is indep of orient
+   float dset_extent_rlpais[6]; // inp extents; RLPAIS order is indep of orient
    float tmp_origin[3], new_origin[3];
    mat33 P33;
    mat33 dset_mat33, dset_mat33_P; 
@@ -846,18 +846,23 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
    P33 = THD_orient_perm_mat33( dset, new_ori);  // the perm from old to new
 
    // INITIAL 
-   INFO_message("OLD mat");
-   DUMP_MAT44("", dset->daxes->ijk_to_dicom_real);
+   //INFO_message("OLD mat");
+   //DUMP_MAT44("", dset->daxes->ijk_to_dicom_real);
+   INFO_message("NEW ORIENT: %s", new_ori);
 
    // set new origin location: based on the extents of the current
    // dset and to-be orient
    THD_orient_to_int_rlpais(new_ori, new_ori_int);
-   THD_dset_extent_rlpais(dset, '-', dset_ext_rlpais); 
+   THD_dset_extent_rlpais(dset, '-', dset_extent_rlpais); 
    for( i=0 ; i<3 ; i++ ) 
-      tmp_origin[i] = dset_ext_rlpais[new_ori_int[i]];
+      tmp_origin[i] = dset_extent_rlpais[new_ori_int[i]];
    MAT33_VEC(P33, 
              tmp_origin[0], tmp_origin[1], tmp_origin[2],
              new_origin[0], new_origin[1], new_origin[2]);
+
+   INFO_message("BEFORE AND AFTER");
+   INFO_message("%f %f %f", tmp_origin[0], tmp_origin[1], tmp_origin[2]);
+   INFO_message("%f %f %f", new_origin[0], new_origin[1], new_origin[2]);
 
    // apply permutation to mat33, and then make M44
    dset_mat33_P = MAT33_MUL(P33, dset_mat33);
@@ -865,90 +870,12 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
    LOAD_MAT44_VEC(dset_mat44_P, 
                   new_origin[0], new_origin[1], new_origin[2]);
 
-   INFO_message("NEW mat");
-   DUMP_MAT44("", dset_mat44_P);
+   // FINAL
+   //INFO_message("NEW mat");
+   //DUMP_MAT44("", dset_mat44_P);
 
    return dset_mat44_P;
-
 }
-/*
-// calc permutation mat33 needed for ijk_to_dicom_real when changing
-// orientation
-void THD_reorient_perm_with_obliquity( THD_3dim_dataset *dset, 
-                                       char *new_ori) //,
-   //THD_mat33 P33 )
-{ 
-   int i, j;
-   mat33 P33; 
-   float new_vec[3] = {0., 0., 0.}, vec_new_rlpais[3] = {0., 0., 0.};  
-   mat33 dset_mat33, dset_mat33_P; 
-   mat44 dset_mat44_P;
-   int   new_ori_int[3]  = {-1, -1, -1};  // to-be orient (int form)
-   int   dset_ori_int[3] = {-1, -1, -1};  // inp orient (int form), 
-   int   dset_ori_opp[3];  // inp orient (int form), opp
-   float dset_ext_rlpais[6];   // inp extents; RL_PA_IS order is indep of orient
-
-   ENTRY("THD_reorient_perm_with_obliquity");
-
-   // same checks as below
-   //if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING") || !OBL_report) EXRETURN;
-   if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) EXRETURN;
-   THD_check_oblique_field(dset); // make sure oblique field is available
-
-
-   // prep mat33s
-   LOAD_ZERO_MAT33(P33);
-   MAT44_TO_MAT33(dset->daxes->ijk_to_dicom_real, dset_mat33);
-
-   // INITIAL 
-   INFO_message("OLD mat");
-   DUMP_MAT44("", dset->daxes->ijk_to_dicom_real);
-
-   // translate new orient to int form
-   for( i=0 ; i<3 ; i++)
-      for( j=0 ; j<6 ; j++ ) {
-         if( strncmp(&new_ori[i], &ORIENT_first[j], 1) == 0 ){
-            new_ori_int[i] = j;
-            break;
-         }
-      }
-   
-   // dset orient in int form
-   dset_ori_int[0] = dset->daxes->xxorient;
-   dset_ori_int[1] = dset->daxes->yyorient;
-   dset_ori_int[2] = dset->daxes->zzorient;
-   
-   for( i=0 ; i<3 ; i++ )
-      for( j=0 ; j<3 ; j++ ){
-         if( dset_ori_int[i] == new_ori_int[j] )
-            P33.m[i][j] = 1;
-         else if ( ORIENT_OPPOSITE(dset_ori_int[i]) == new_ori_int[j] ) 
-            P33.m[i][j] = -1;
-      }
-   
-   
-   THD_dset_extent_rlpais(dset, '-', dset_ext_rlpais); 
-
-   // set new origin location: based on the extents of the current
-   // dset
-   for( i=0 ; i<3 ; i++ ) {
-      vec_new_rlpais[i] = dset_ext_rlpais[new_ori_int[i]];
-   }
-   MAT33_VEC(P33, 
-             vec_new_rlpais[0], vec_new_rlpais[1], vec_new_rlpais[2],
-             new_vec[0], new_vec[1], new_vec[2]);
-
-   // apply permutation to nat33, and then make M44
-   dset_mat33_P = MAT33_MUL(P33, dset_mat33);
-   MAT33_TO_MAT44(dset_mat33_P, dset_mat44_P);
-   LOAD_MAT44_VEC(dset_mat44_P, new_vec[0], new_vec[1], new_vec[2]);
-
-   INFO_message("NEW mat");
-   DUMP_MAT44("", dset_mat44_P);
-
-   EXRETURN;
-}
-*/
 
 
 void THD_report_obliquity(THD_3dim_dataset *dset)
