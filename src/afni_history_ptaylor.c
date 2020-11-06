@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Nov , 2020 , PT , "adjunct_tort_read_dp_align.py" , MINOR , TYPE_NEW_PROG,
+   "Script to read TORTOISE-DIFFPREP *_transformations.txt files.",
+   "Puts them into usable order for calc'ing enorm and plotting mot/pars.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_plot_dp_align" , MINOR , TYPE_NEW_PROG,
+   "Script (tcsh) to translate TORTOISE-DIFFPREP *_transformations.txt files",
+   "Wraps new adjunct_tort_read_dp_align.py and 1dplot* to make plots.\n"
+},
+
 { 2, Nov , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
    "Can now output SVG files, and can use newline chars in labels.",
    "Had to deal with newline escape seq internally.\n"
