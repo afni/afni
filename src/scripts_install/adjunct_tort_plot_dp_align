@@ -100,11 +100,11 @@ if ( "${opref}" == "" ) then
     echo "** ERROR: need to provide an output file prefix with '-prefix ..'"
     goto BAD_EXIT
 endif
-
-set o_alpar = ${opref}_align.1D
-set o_enorm  = ${opref}_enorm.1D
-set ojpg     = ${opref}.jpg
-set osvg     = ${opref}.svg
+ 
+set o_alpar  = ${odir}/${opref}_align.1D
+set o_enorm  = ${odir}/${opref}_enorm.1D
+set ojpg     = ${odir}/${opref}.jpg
+set osvg     = ${odir}/${opref}.svg
 
 set ifile_base  = `basename "${ifile}"`
 set title_jpg   = "DIFFPREP alignment params and enorm"
