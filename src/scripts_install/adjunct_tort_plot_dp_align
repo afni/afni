@@ -311,10 +311,10 @@ EXAMPLE ~1~
         .." values picked for convenience, as a good fraction of voxel
         size (say, max is 50-75% of voxel edge length):
 
-  adjunct_tort_plot_dp_align                                       \\
-        -input SUBJ_001/dwi_03_ap/ap_proc_eddy_transformations.txt \\
-        -prefix SUBJ_001/dwi_03/ap/QC/ap_proc                      \\
-        -enorm_max   1                                             \\
+  adjunct_tort_plot_dp_align                                              \\
+        -input       SUBJ_001/dwi_03_ap/ap_proc_eddy_transformations.txt  \\
+        -prefix      SUBJ_001/dwi_03_ap/QC/ap_proc                        \\
+        -enorm_max   1                                                    \\
         -enorm_hline 0.5
 
 EOF
