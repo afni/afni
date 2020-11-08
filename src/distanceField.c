@@ -49,6 +49,7 @@ int getIndex(int x, int y, int z, int nx, int ny, int nz);
 int transposeYZ(float *volume, int nx, int ny, int nz);
 int testTransposeFunction(THD_3dim_dataset * din);
 int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz, int ny);
+int shortToByte(THD_3dim_dataset ** din);
 
 float sqr(float x){
     return x*x;
@@ -550,6 +551,8 @@ int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outp
 
 int open_input_dset(THD_3dim_dataset ** din, char * fname)
 {
+   int errorNumber;
+
    *din = THD_open_dataset(fname);
    if( ! *din ) {
       fprintf(stderr,"** failed to read input dataset '%s'\n", fname);
@@ -558,8 +561,13 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
 
    /* refuse to work with anything but byte here */
    int brickType=DSET_BRICK_TYPE(*din, 0);
-   if( brickType == MRI_byte ) {
+   if( brickType == MRI_byte) {
        /* data is not automatically read in, do it now */
+       DSET_load(*din);
+   } else if (brickType == MRI_short){
+        if ((errorNumber=shortToByte(din))!=ERROR_NONE){
+            return errorNumber;
+        }
        DSET_load(*din);
    } else {
       fprintf(stderr,"** input must be of type byte, failing...\n");
@@ -567,6 +575,42 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
    }
 
    return ERROR_NONE;
+}
+
+int shortToByte(THD_3dim_dataset ** din){
+    BYTE * outImg;
+    int     i;
+
+    // Get dimensions in voxels
+    int nvox = DSET_NVOX(*din);
+
+    if (!(outImg = (BYTE *)calloc(nvox, sizeof(BYTE)))){
+        return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Get input data
+    int brickType=DSET_BRICK_TYPE(*din, 0);
+    if( brickType != MRI_short ) return ERROR_DATATYPENOTHANDLED;
+    DSET_load(*din);
+    short * img = (short *)DSET_ARRAY(*din, 0);
+
+    // Map short input into BYTE output
+    for (i=0; i<nvox; ++i) outImg[i]+=(img[i]!=0);
+
+    THD_3dim_dataset *dout = EDIT_empty_copy(*din);
+    char *prefix=DSET_PREFIX(*din);
+    char *searchPath=DSET_DIRNAME(*din);
+    EDIT_dset_items( dout ,
+                    ADN_prefix, strcat(searchPath, prefix),
+                    ADN_type, MRI_byte,
+                    ADN_none ) ;
+    EDIT_substitute_brick(dout, 0, MRI_byte, outImg);
+
+    // Cleanup (data set)
+    DSET_delete(*din);
+    *din = dout;
+
+    return ERROR_NONE;
 }
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din){
