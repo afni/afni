@@ -239,6 +239,10 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
     int ny = DSET_NY(din);
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
+    int *inputImg;
+    BYTE * byteImg;
+    short * shortImg;
+    float   *floatImg;
 
     // Get real world voxel sizes
     float yDim = fabs(DSET_DY(din));
@@ -246,16 +250,38 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
-    int brickType=DSET_BRICK_TYPE(din, 0);
-    if( brickType != MRI_byte ) return ERROR_DATATYPENOTHANDLED;
-    BYTE * img = DSET_ARRAY(din, 0);
 	int nVol = 1;
 	int nvox3D = nx * ny * MAX(nz, 1);
 	nVol = nvox / nvox3D;
 	if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
+
+	// Alliocate memory to integer input buffer
+	if (!(inputImg=(int *)calloc(nvox,sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+
+	DSET_load(din);
+    int brickType=DSET_BRICK_TYPE(din, 0);
+    switch(brickType){
+        case MRI_byte:
+            byteImg = DSET_ARRAY(din, 0);
+            for (int i=0; i<nvox; ++i) inputImg[i] = byteImg[i];
+            break;
+        case MRI_short:
+            shortImg = DSET_ARRAY(din, 0);
+            for (int i=0; i<nvox; ++i) inputImg[i] = shortImg[i];
+            break;
+        case MRI_int:
+            free(inputImg);
+            inputImg = DSET_ARRAY(din, 0);
+            break;
+        case MRI_float:
+            floatImg = DSET_ARRAY(din, 0);
+            for (int i=0; i<nvox; ++i) inputImg[i] = (int)(floatImg[i]+0.5);
+            break;
+    }
+
 	flt threshold = 0;
 	for (size_t i = 0; i < nvox; i++ ) {
-		if (img[i] > threshold)
+		if (inputImg[i] > threshold)
 			outImg[i] = INFINITY;
 	}
 	size_t nRow = ny*nz;
@@ -343,6 +369,9 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		} //z
 		free (img3D);
 	} //for each volume
+
+	// Cleanup
+	free(inputImg);
 
 	return ERROR_NONE;
 }
@@ -559,10 +588,11 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
       return ERROR_READING_FILE;
    }
 
-   /* refuse to work with anything but byte here */
+   /*
+   // refuse to work with anything but byte here
    int brickType=DSET_BRICK_TYPE(*din, 0);
    if( brickType == MRI_byte) {
-       /* data is not automatically read in, do it now */
+       // data is not automatically read in, do it now
        DSET_load(*din);
    } else if (brickType == MRI_short){
         if ((errorNumber=shortToByte(din))!=ERROR_NONE){
@@ -573,6 +603,7 @@ int open_input_dset(THD_3dim_dataset ** din, char * fname)
       fprintf(stderr,"** input must be of type byte, failing...\n");
       return 1;
    }
+   */
 
    return ERROR_NONE;
 }
