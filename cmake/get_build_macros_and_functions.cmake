@@ -67,20 +67,20 @@ function(get_expected_target_list mapping targets_label)
     )
   # message(" filtered_list: ${filtered_list}")
 
-  if(NOT (COMP_ADD_BINARIES))
+  if(NOT (COMP_COREBINARIES))
     filter_out_components( "${mapping}" "corebinaries" "${filtered_list}" filtered_list)
   endif()
 
 
-  if(NOT (COMP_X_DEPENDENT_GUI_PROGS))
+  if(NOT (COMP_GUI))
     filter_out_components( "${mapping}" "gui" "${filtered_list}" filtered_list)
   endif()
 
-  if(NOT (COMP_OPENGL_DEPENDENT_GUI_PROGS))
+  if(NOT (COMP_SUMA))
     filter_out_components( "${mapping}" "suma" "${filtered_list}" filtered_list)
   endif()
 
-  if(NOT (COMP_ADD_PLUGINS))
+  if(NOT (COMP_PLUGINS))
     filter_out_components( "${mapping}" "plugins" "${filtered_list}" filtered_list)
   endif()
 
@@ -128,7 +128,7 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   # message("Installed:${afni_installed_targets}")
   list(REMOVE_ITEM expected_targets ${afni_installed_targets})
   if(NOT "${expected_targets}" STREQUAL "")
-  if(NOT REMOVE_BUILD_PARITY_CHECKS)
+  if(NOT (REMOVE_BUILD_PARITY_CHECKS))
     message(FATAL_ERROR "The build has not built all the targets expected. It is\
      missing the following targets:${expected_targets}!!!!")
   endif()
@@ -209,6 +209,7 @@ function(get_component_name component cmpnt_mapping targ_in)
   # Raise an error if the target is not in the list of project targets
   if(output)
     set(${component} "${output}" PARENT_SCOPE)
+
   else()
     if(REMOVE_BUILD_PARITY_CHECKS)
       return()
@@ -307,12 +308,14 @@ endfunction()
 function(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
   get_target_property(TARGET_TYPE ${target} TYPE)
-  if(NOT (GENERATE_PACKAGING_COMPONENTS))
+  # if(NOT (GENERATE_PACKAGING_COMPONENTS))
     get_component_name(component "${CMPNT_MAPPING}" ${target})
-  endif()
+    string(TOUPPER "${component}" component)
+  # endif()
   log_target_as_installed(${target})
-  # message("${target} -------${component}")
-
+  # message("${target} -------${component}-----${COMP_INSTALL_RESTRICTED_LIST}")
+if ( "${component}" IN_LIST COMP_INSTALL_RESTRICTED_LIST OR "${COMP_INSTALL_RESTRICTED_LIST}" STREQUAL "" )
+  # message(STATUS "installing ${target}")
   install(
     TARGETS ${target}
     COMPONENT ${component}
@@ -322,6 +325,7 @@ function(add_afni_target_properties target)
     PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
     # PRIVATE_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
   )
+  endif()
 endfunction()
 
 function(check_header_has_been_created HEADER_PATH)
@@ -375,4 +379,24 @@ add_custom_command(TARGET suma
                      COMMENT check that the suma binary linking has not run into the motif/xt issue
                      USES_TERMINAL
                      )
+endfunction()
+
+
+function(check_afni_install_components allowed_install_comps comp_install_restricted_list)
+  foreach(COMP ${comp_install_restricted_list})
+    list(FIND allowed_install_comps ${COMP} COMP_INDEX)
+
+    # Check all components requested are valid
+    if("${COMP_INDEX}" STREQUAL "-1")
+      message(
+        FATAL_ERROR
+        "${COMP} was provided as a component to install. This is not known to be a valid component \(one of ${allowed_install_comps}\)"
+        )
+    endif()
+
+    # Check components requested are actually built
+    if(NOT COMP_${COMP})
+      message(FATAL_ERROR "The installation of ${COMP} component has been requested but COMP_${COMP} has not been set to ON")
+    endif()
+  endforeach()
 endfunction()
