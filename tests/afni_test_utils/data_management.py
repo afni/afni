@@ -138,6 +138,12 @@ def get_data_fixture(pytestconfig, request, output_dir):
     test_name = get_current_test_name()
     tests_data_dir = get_test_data_path(pytestconfig)
 
+    current_test_module = Path(request.module.__file__)
+    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
+    test_logdir = module_outdir / get_current_test_name() / "captured_output"
+    if not test_logdir.exists():
+        os.makedirs(test_logdir, exist_ok=True)
+
     # Add stream and file logging as requested
     logger = logging.getLogger(test_name)
     logger = tools.logger_config(
@@ -155,12 +161,6 @@ def get_data_fixture(pytestconfig, request, output_dir):
     out_dict = {
         k: process_path_obj(v, tests_data_dir, logger) for k, v in data_paths.items()
     }
-
-    current_test_module = Path(request.module.__file__)
-    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
-    test_logdir = module_outdir / get_current_test_name() / "captured_output"
-    if not test_logdir.exists():
-        os.makedirs(test_logdir, exist_ok=True)
 
     # This will be created as required later
     sampdir = convert_to_sample_dir_path(test_logdir.parent)
