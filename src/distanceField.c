@@ -50,6 +50,8 @@ int transposeYZ(float *volume, int nx, int ny, int nz);
 int testTransposeFunction(THD_3dim_dataset * din);
 int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz, int ny);
 int shortToByte(THD_3dim_dataset ** din);
+ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices);
+ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din);
 
 float sqr(float x){
     return x*x;
@@ -240,20 +242,14 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
     int *inputImg;
+    int numIndices;
+    int *indices;
     BYTE * byteImg;
     short * shortImg;
-    float   *floatImg;
-
-    // Get real world voxel sizes
-    float yDim = fabs(DSET_DY(din));
-    float zDim = fabs(DSET_DZ(din));
+    float   *floatImg, *addend;
+    ERROR_NUMBER    errorNumber;
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
-
-	int nVol = 1;
-	int nvox3D = nx * ny * MAX(nz, 1);
-	nVol = nvox / nvox3D;
-	if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
 
 	// Alliocate memory to integer input buffer
 	if (!(inputImg=(int *)calloc(nvox,sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
@@ -279,16 +275,56 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
             break;
     }
 
-	flt threshold = 0;
+    // Get unique nonzero index values
+    if ((errorNumber=getNonzeroIndices(nvox, inputImg, &numIndices, &indices))!=ERROR_NONE){
+        free(inputImg);
+        return errorNumber;
+    }
+
+    // Process each index
+    for (int i=0; i<numIndices; ++i){
+        if ((errorNumber=processIndex(indices[i], inputImg, &addend, din))!=ERROR_NONE){
+            free(inputImg);
+            free(indices);
+            return errorNumber;
+        }
+        for (int j=0; j<nvox; ++j) outImg[j]+=addend[j];
+    }
+
+	// Cleanup
+	free(inputImg);
+	free(indices);
+
+	return ERROR_NONE;
+}
+
+ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din){
+    // Get dimensions in voxels
+    int nz = DSET_NZ(din);
+    int ny = DSET_NY(din);
+    int nx = DSET_NX(din);
+    int nvox = nx*ny*nz;
+
+	int nVol = 1;
+	int nvox3D = nx * ny * MAX(nz, 1);
+	nVol = nvox / nvox3D;
+	if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
+
+    // Get real world voxel sizes
+    float yDim = fabs(DSET_DY(din));
+    float zDim = fabs(DSET_DZ(din));
+
+    if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
+
 	for (size_t i = 0; i < nvox; i++ ) {
-		if (inputImg[i] > threshold)
-			outImg[i] = INFINITY;
+		if (inputImg[i] == index)
+			(*outImg)[i] = INFINITY;
 	}
 	size_t nRow = ny*nz;
 
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
-		flt * imgRow = outImg + (r * nx);
+		flt * imgRow = (*outImg) + (r * nx);
 		// edt1(imgRow, nx);
 		edt1_local(din, imgRow, nx);
 	}
@@ -305,7 +341,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 			for (int y = 0; y < ny; y++ ) {
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[zo+xo+y] = outImg[vo];
+					img3D[zo+xo+y] = (*outImg)[vo];
 					vo += 1;
 					xo += ny;
 				}
@@ -323,7 +359,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 			for (int y = 0; y < ny; y++ ) {
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					outImg[vo] = img3D[zo+xo+y];
+					(*outImg)[vo] = img3D[zo+xo+y];
 					vo += 1;
 					xo += ny;
 				}
@@ -343,7 +379,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[z+xo+yo] = outImg[vo];
+					img3D[z+xo+yo] = (*outImg)[vo];
 					vo += 1;
 					xo += nz;
 				}
@@ -361,7 +397,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					outImg[vo] = img3D[z+xo+yo];
+					(*outImg)[vo] = img3D[z+xo+yo];
 					vo += 1;
 					xo += nz;
 				} //x
@@ -370,10 +406,36 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 		free (img3D);
 	} //for each volume
 
-	// Cleanup
-	free(inputImg);
-
 	return ERROR_NONE;
+}
+
+ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices){
+    int *buffer;
+    int i, j, voxelValue;
+    Boolean    old;
+
+    // Initialize
+    *numIndices = 0;
+    if (!(buffer=(int *)malloc(nvox*sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+
+    // Count unique indices and fill buffer with set of indices
+    for (i=0; i<nvox; ++i) if ((voxelValue=inputImg[i])>0){
+        old = false;
+        for (j=0; j<*numIndices; ++j) if ((*indices)[j]==voxelValue) old = true;
+        if (!old){
+            buffer[(*numIndices)++]=voxelValue;
+        }
+    }
+
+    // Trim output buffer to number of indices
+    if (!(*indices=(int *)malloc(*numIndices*sizeof(int)))){
+        free(buffer);
+        return ERROR_MEMORY_ALLOCATION;
+    }
+    for (i=0; i<*numIndices; ++i) (*indices)[i] = buffer[i];
+    free(buffer);
+
+    return ERROR_NONE;
 }
 
 int transposeYZ(float *volume, int nx, int ny, int nz){
@@ -580,30 +642,11 @@ int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outp
 
 int open_input_dset(THD_3dim_dataset ** din, char * fname)
 {
-   int errorNumber;
-
    *din = THD_open_dataset(fname);
    if( ! *din ) {
       fprintf(stderr,"** failed to read input dataset '%s'\n", fname);
       return ERROR_READING_FILE;
    }
-
-   /*
-   // refuse to work with anything but byte here
-   int brickType=DSET_BRICK_TYPE(*din, 0);
-   if( brickType == MRI_byte) {
-       // data is not automatically read in, do it now
-       DSET_load(*din);
-   } else if (brickType == MRI_short){
-        if ((errorNumber=shortToByte(din))!=ERROR_NONE){
-            return errorNumber;
-        }
-       DSET_load(*din);
-   } else {
-      fprintf(stderr,"** input must be of type byte, failing...\n");
-      return 1;
-   }
-   */
 
    return ERROR_NONE;
 }
@@ -645,7 +688,6 @@ int shortToByte(THD_3dim_dataset ** din){
 }
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din){
-    int i, j, ny;
 
     if (inputFileName) free(inputFileName);
 
