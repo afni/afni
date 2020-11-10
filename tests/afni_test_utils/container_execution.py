@@ -5,6 +5,7 @@ import subprocess as sp
 import inspect
 import docker
 import logging
+import requests
 
 from afni_test_utils.minimal_funcs_for_run_tests_cli import (
     VALID_MOUNT_MODES,
@@ -199,7 +200,14 @@ def run_containerized(tests_dir, **kwargs):
     # cmd = f"""/bin/sh -c 'echo hello;sleep 5;echo bye bye'"""
     cmd = f"""/bin/sh -c '{script_path} {converted_args}'"""
     try:
-        output = client.containers.run(image, cmd, **docker_kwargs)
+        try:
+            output = client.containers.run(image, cmd, **docker_kwargs)
+        except requests.exceptions.ReadTimeout as err:
+            print(err)
+            sys.exit(
+                "ERROR: Not sure why this times out on occasion. Removing some docker processes can sometimes help, or just rerun the command."
+            )
+
         if True:
             for line in output.logs(stream=True):
                 print(line.decode("utf-8"))
@@ -214,7 +222,8 @@ def run_containerized(tests_dir, **kwargs):
     finally:
         # Remove exited container
         if not kwargs.get("no_rm"):
-            output.remove(force=True)
+            if "output" in locals():
+                output.remove(force=True)
 
 
 def add_coverage_env_vars(docker_kwargs, **kwargs):
