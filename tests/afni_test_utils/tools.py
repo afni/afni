@@ -535,7 +535,7 @@ def write_command_info(path, cmd_info):
     for k, v in cmd_info.items():
         v = str(v)
         out_dict[k] = v
-    Path(path).write_text(json.dumps(out_dict))
+    Path(path).write_text(json.dumps(out_dict, indent=0))
 
 
 def get_equivalent_name(data, fname):
