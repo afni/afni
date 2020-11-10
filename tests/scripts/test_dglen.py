@@ -33,6 +33,18 @@ data_paths = {
                 "extra_args": "-giant_move",
             },
         ),
+        (
+            "check_flip",
+            {
+                "extra_args": "-check_flip",
+            },
+        ),
+        (
+            "rigid_equiv",
+            {
+                "extra_args": "-rigid_equiv",
+            },
+        ),
 
     ],
 )
