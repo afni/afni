@@ -41,15 +41,17 @@ def test_xeyes(data, monkeypatch):
     # easy situation, processes behave and clean up after themselves
     tools.run_cmd(data, "xeyes & sleep 1; kill %1 ", x_execution_mode="xvfb")
 
-    # A hanging background process can be explicitly killed
+    # A hanging background will hang unless run synchronously
     tools.run_cmd(
         data,
         "xeyes & sleep 0.1",
         x_execution_mode="xvfb",
-        timeout=1,
-        kill_backgrounded_processes=True,
+        timeout=3,
+        use_asynchronous_execution=False,
     )
 
+
+def test_xeyes_hang_times_out(data, monkeypatch):
     # A hanging background process will raise a timeout error (default 30s)
     with pytest.raises(TimeoutError):
         # silence warning logs for this test
@@ -65,7 +67,8 @@ def test_afni_gui_basic(data, unique_gui_port):
     """
     cmd = cmd.format(**locals())
 
-    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+    stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+    stdout = stdout_log.read_text()
     assert "Fatal Signal 11" not in stdout
     assert "FATAL ERROR" not in stdout
 
@@ -83,7 +86,8 @@ def test_afni_gui_plugin_search(data, monkeypatch, unique_gui_port):
         cmd = """
         afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout = stdout_log.read_text()
 
     assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in stdout
 
@@ -98,7 +102,8 @@ def test_afni_gui_plugin_search_with_env_var(data, monkeypatch, unique_gui_port)
         cmd = """
         afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout = stdout_log.read_text()
         assert f"Path(s) to be searched for plugins: \n/tmp" in stdout
 
 
@@ -108,7 +113,8 @@ def test_suma_gii_read(data, unique_gui_port):
     """
     cmd = cmd.format(**locals())
 
-    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
+    stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
+    stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
@@ -116,7 +122,8 @@ def test_suma_gui_basic(data, unique_gui_port):
     cmd = """
     suma -npb {unique_gui_port} -drive_com '-com kill_suma'
     """
-    stdout, stderr = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
+    stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode=WRAP_SUMA)
+    stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
@@ -141,9 +148,10 @@ def test_suma_driving_basic(data, unique_gui_port):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout, stderr = differ.run(
+    stdout_log, stderr_log = differ.run(
         x_execution_mode=WRAP_SUMA,
     )
+    stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
 
@@ -182,7 +190,8 @@ def test_suma_driving(data, unique_gui_port):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout, stderr = differ.run(
+    stdout_log, stderr_log = differ.run(
         x_execution_mode=WRAP_SUMA,
     )
+    stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
