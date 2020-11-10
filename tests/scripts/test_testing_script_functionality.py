@@ -12,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 import subprocess as sp
+import signal
 import sys
 import tempfile
 import time
@@ -135,8 +136,8 @@ def run_script_and_check_imports(
         },
         {
             "test_case": "timeout",
-            "cmd_args": ["sleep", "0.1"],
-            "timeout": 0.05,
+            "cmd_args": ["sleep", "5"],
+            "timeout": 1,
             "expected_to_timeout": True,
         },
     ],
@@ -146,12 +147,13 @@ def test_execute_cmd_args(params):
         proc = tools.__execute_cmd_args(
             params["cmd_args"],
             logging,
-            None,
+            "text.txt",
+            "other_text.txt",
             tempfile.gettempdir(),
             timeout=params["timeout"],
         )
         timed_out = False
-    except TimeoutError:
+    except (TimeoutError, subprocess.TimeoutExpired):
         timed_out = True
 
     assert timed_out == params["expected_to_timeout"]
@@ -162,9 +164,9 @@ def test_run_cmd(data, monkeypatch):
     monkeypatch.setattr(logging, "warn", lambda x: None)
 
     # Can slow this down for debugging purposes
-    t_unit = 0.1
-    # easy sit_unitation, processes behave and clean up after themselves or they
-    # timeout
+    t_unit = 0.2
+    # # easy situation, processes behave and clean up after themselves or they
+    # # timeout
     tools.run_cmd(
         data,
         f"sleep {t_unit *10} & sleep {t_unit}; kill %1",
@@ -194,25 +196,12 @@ def test_run_cmd(data, monkeypatch):
 
     # should not timeout a background process until the timeout so this should
     # work fine
-    stdout, stderr = tools.run_cmd(
+    stdout_log, stderr_log = tools.run_cmd(
         data,
         f"sleep {t_unit / 2}; echo hello & sleep {t_unit / 5}",
         timeout=t_unit * 1,
     )
-    assert stdout == "hello\n"
-
-    #  bg persists but should ignored/killed immediately
-    start = time.time()
-    tools.run_cmd(
-        data,
-        f" sleep {t_unit * 100} & sleep {t_unit}",
-        timeout=t_unit * 3,
-        kill_backgrounded_processes=True,
-    )
-
-    delta_t = time.time() - start
-    # should return before timeout
-    assert delta_t < t_unit * 3
+    assert stdout_log.read_text() == "hello\n"
 
 
 def test_command_logger_setup(data, monkeypatch):

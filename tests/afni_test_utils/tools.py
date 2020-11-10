@@ -1,7 +1,10 @@
+from afni_test_utils import data_management as dm
+from asyncio.subprocess import PIPE
 from numpy.testing import assert_allclose  # type: ignore
 from pathlib import Path
 from typing import Dict, List, Any, Union
 from xvfbwrapper import Xvfb
+import asyncio
 import attr
 import datalad.api as datalad
 import datetime as dt
@@ -21,14 +24,11 @@ import pytest
 import re
 import shlex
 import shutil
-import signal
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
-import time
-from afni_test_utils import data_management as dm
 
 try:
     LAD = importlib.import_module("afnipy.lib_afni1D")
@@ -236,21 +236,9 @@ def get_cmd_env(add_env_vars, python_interpreter):
     return cmd_environ
 
 
-def check_and_log_command_execution(
-    proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
-):
-    cmd = " ".join(proc.args)
-    # Log the cmd execution info
-    stdout = proc.stdout.decode("utf-8") if proc.stdout else ""
-    stderr = proc.stderr.decode("utf-8") if proc.stderr else ""
-    stdout_log.write_text(stdout)
-    if logger:
-        logger.debug(stdout)
-    if stderr:
-        stderr_log.write_text(stderr)
-        if logger:
-            logger.debug(stderr)
+def log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log):
     # cmd execution report
+    cmd = " ".join(cmd_args)
     hostname = socket.gethostname()
     user = getpass.getuser()
     command_info = {
@@ -261,13 +249,7 @@ def check_and_log_command_execution(
         "add_env_vars": add_env_vars,
         "rootdir": data.rootdir,
     }
-    command_info.update(attr.asdict(data))
-
-    write_command_info(cmd_log, command_info)
-    # Raise error if there was a non-zero exit code.
-    if proc.returncode:
-        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
-    return stdout, stderr
+    write_command_info(cmd_log, {**command_info, **attr.asdict(data)})
 
 
 def setup_logging(data, logger):
@@ -309,92 +291,95 @@ def pid_exists(pid, check_pgid=False):
         return True  # no error, we can send a signal to the process
 
 
-def __execute_cmd_args(
+def get_output_file_handles(stdout_log, stderr_log, merge_error_with_output):
+    # If requested merge stderr and stdout
+    stdout = open(stdout_log, "wb")
+    if merge_error_with_output:
+        stderr = stdout
+    else:
+        stderr = open(stderr_log, "wb")
+    return stdout, stderr
+
+
+async def watch(stream, logger, output_handle, prefix=""):
+    async for line in stream:
+        logger.debug(f"{prefix}{line.decode('utf-8').strip()}")
+        output_handle.write(line)
+
+
+async def __execute_cmd_args_asynchronous(
     cmd_args,
     logger,
-    error,
+    stdout_log,
+    stderr_log,
     workdir,
+    merge_error_with_output=True,
     cmd_environ=None,
     shell=False,
     timeout=None,
     name=None,
-    kill_backgrounded_processes=False,
 ):
-    if not cmd_environ:
-        cmd_environ = os.environ
+    stdout, stderr = get_output_file_handles(
+        stdout_log,
+        stderr_log,
+        merge_error_with_output,
+    )
+    cmd = " ".join(cmd_args)
+    p = await asyncio.create_subprocess_shell(
+        cmd,
+        env=cmd_environ,
+        stdout=PIPE,
+        stderr=PIPE,
+        cwd=workdir,
+    )
+    done, pending = await asyncio.wait(
+        (
+            watch(p.stdout, logger, stdout),
+            watch(p.stderr, logger, stderr, "E:"),
+        ),
+        timeout=timeout,
+    )
+    if not len(pending) == 0:
+        stdoutdir = "/".join([stdout_log.parent.name, stderr_log.name])
+        raise TimeoutError(f"stdout: {stdoutdir} in {stdout_log.parent.parent}")
 
-    output_blend = []
 
-    # Execute command
-    if not timeout:
-        proc = subprocess.run(
-            cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=error,
-            cwd=workdir,
-            env=cmd_environ,
-            shell=shell,
-        )
-        return proc, output_blend
-    else:
-        if shell == True:
-            raise ValueError(
-                "Using shell=True with timeout functionality (the default) "
-                "is not supported "
-            )
-
-        timed_out = False
-        bg_timed_out = False
-        start_time = time.time()
+def __execute_cmd_args(
+    cmd_args,
+    logger,
+    stdout_log,
+    stderr_log,
+    workdir,
+    merge_error_with_output=False,
+    cmd_environ=None,
+    shell=False,
+    timeout=None,
+    name=None,
+):
+    """
+    Synchronous command execution to help with debugging when odd behavior is
+    observed
+    """
+    stdout, stderr = get_output_file_handles(
+        stdout_log, stderr_log, merge_error_with_output
+    )
+    try:
         proc = subprocess.Popen(
             cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=error,
+            stdout=stdout,
+            stderr=stderr,
             cwd=workdir,
             env=cmd_environ,
             shell=False,
             preexec_fn=os.setsid,
         )
-        pgid = os.getpgid(proc.pid)
-        try:
-            proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
+        proc.communicate(timeout=timeout)
+    finally:
+        stdout.close()
+        if stderr is not stdout:
+            stderr.close()
 
-        # A small break for process cleanup
-        time.sleep(0.01)
-        # kill any straggling background process...
-        if pid_exists(pgid, check_pgid=True):
-            if kill_backgrounded_processes:
-                os.killpg(pgid, signal.SIGKILL)
-            else:
-                # loop lasts until end of timeout
-                while timeout - (time.time() - start_time) > 0:
-                    if not pid_exists(pgid, check_pgid=True):
-                        break
-                    time.sleep(1)
-
-                if pid_exists(pgid, check_pgid=True):
-                    os.killpg(pgid, signal.SIGKILL)
-                    bg_timed_out = True
-                    logger.warn(
-                        f"Straggler background process was found and killed... {cmd_args}"
-                    )
-
-        # get stdout and stderr
-        stdout = proc.stdout.readlines() if proc.stdout else []
-        stderr = proc.stderr.readlines() if proc.stderr else []
-        proc.stderr = b"".join(stderr) if stderr else None
-        proc.stdout = b"".join(stdout) if stdout else None
-
-        if timed_out or bg_timed_out:
-            logger.debug(
-                "ERROR: Processed timed out based on the 'timeout' "
-                f"value that was set for this test ({name})"
-            )
-            raise TimeoutError()
-
-    return proc, output_blend
+    return proc.returncode
 
 
 def run_cmd(
@@ -408,26 +393,28 @@ def run_cmd(
     x_execution_mode=None,
     timeout=30,
     shell=False,
-    kill_backgrounded_processes=False,
+    use_asynchronous_execution=True,
 ):
     """Run the provided command and check it's output. In conjunction with the data
     fixture this function handles the test output logging in a consistent way.
-
     Args:
         data: An object created by the data fixture that is used in test
         cmd (str): A string that requires execution and error checking.
         logger (logging.Logger, optional): Logger object to write to.
         add_env_vars (dict): Variable/value pairs with which to modify the
-        environment for the executed command
+        environment for the executed command.
         merge_error_with_output (bool, optional): Merge stdout and stderr.
         workdir (pathlib.Path or str): Working directory to execute the
         command. Should be the root directory for tests (default) unless
-        otherwise required
-        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on the physical display ('display') or without any management for graphics events (None)
-        x_timeout (int, optional): Number of seconds before graphics tests will timeout, useful for preventing hanging tests. Extend if it really does need lots of time!
-        timeout (int, optional): Timeout parameter in seconds for non graphics execution. Also consider setting force_run_instead_of_wait to True.
-        force_run_instead_of_wait (bool): By default all command are executed with Popen/wait. If this argument is set to True the command will instead be directly executed with subprocess.run. This might be needed when a command does not close its stdout/err pipes or has graphics windows it does not close etc.
-        functions.
+        otherwise required.
+        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on
+        the physical display ('display') or without any management for
+        graphics events (None)
+        timeout (int, optional): Timeout parameter in seconds.
+        shell (bool, optional): Kwarg subprocess execution.
+        use_asynchronous_execution (bool, optional): Setting this to fault may
+        aid debugging in certain circumstances, otherwise the default of True
+        enables superior execution behavior.
     """
 
     # Set working directory for command execution if not set explicitly
@@ -436,11 +423,6 @@ def run_cmd(
     if not add_env_vars:
         add_env_vars = {}
 
-    # If requested merge stderr and stdout
-    if merge_error_with_output:
-        error = subprocess.STDOUT
-    else:
-        error = subprocess.PIPE
     logger, cmd_log, stdout_log, stderr_log = setup_logging(data, logger)
 
     # Make substitutions in the command string  to remove unnecessary absolute
@@ -463,25 +445,46 @@ def run_cmd(
         cmd_args = shlex.split(cmd)
 
     cmd_environ = get_cmd_env(add_env_vars, python_interpreter)
+    log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log)
 
-    # create a callable that can be used in the appropriate context below:
+    # User can switch between synchronous and asynchronous execution.
+    # asynchronous is much more difficult to debug but has lots of desirable
+    # properties... output is in real-time, timeouts can be managed
+    # intelligently, sleeping processes don't cause issues (a proc.wait call
+    # waits forever so a proc.communicate call must be used... which kills
+    # the subprocess upon timeout)
+    if use_asynchronous_execution:
+        exec_func = __execute_cmd_args_asynchronous
+        loop = asyncio.get_event_loop()
+        # asyncio.set_event_loop(loop)
+    else:
+        exec_func = __execute_cmd_args
+        loop = None
+
+    # Using the execution pattern defined above make a partial function call.
+    # Setting this up here removes duplication; depending on the context
+    # (what virtual/physic display is used) the execution is then triggered below.
     cmd_callable = functools.partial(
-        __execute_cmd_args,
+        exec_func,
         cmd_args,
         logger,
-        error,
-        workdir,
+        stdout_log,
+        stderr_log,
+        merge_error_with_output=merge_error_with_output,
+        workdir=workdir,
         shell=shell,
         timeout=timeout,
         name=data.test_name,
-        kill_backgrounded_processes=kill_backgrounded_processes,
     )
-
     global DISPLAY
     if x_execution_mode is None:
         # Not testing a gui so no need for any display shenanigans
         logger.debug(f"cmd_args:{cmd_args}")
-        proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+        if use_asynchronous_execution:
+            returncode = loop.run_until_complete(cmd_callable(cmd_environ=cmd_environ))
+        else:
+            returncode = cmd_callable(cmd_environ=cmd_environ)
+        # proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
     elif x_execution_mode == "xvfb":
         try:
             # set a default display but another will be determined as required
@@ -493,7 +496,12 @@ def run_cmd(
             # Set the display variable for the execution environment and then
             # restore the original value
             logger.debug(f"cmd_args:{cmd_args}")
-            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
         finally:
             # Remove the lock file
             xvfb.stop()
@@ -504,16 +512,22 @@ def run_cmd(
             DISPLAY.acquire()
             logger.debug(f"Physical Display: {cmd_environ['DISPLAY']}")
             logger.debug(f"cmd_args:{cmd_args}")
-            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
         finally:
             DISPLAY.release()
     else:
-        raise ValueError(f"Unknow display mode {x_execution_mode}")
+        raise ValueError(f"Unknown display mode {x_execution_mode}")
 
-    stdout, stderr = check_and_log_command_execution(
-        proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
-    )
-    return stdout, stderr
+    # Raise error if there was a non-zero exit code.
+    if returncode:
+        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
+
+    return stdout_log, stderr_log
 
 
 def write_command_info(path, cmd_info):
