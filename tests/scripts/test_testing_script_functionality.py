@@ -47,6 +47,9 @@ except:
     DOCKER_AVAILABLE = False
 
 
+data_paths = {"uni_text": "mini_data/unicode_text.txt"}
+
+
 @pytest.fixture()
 def mocked_script(monkeypatch):
     temp_dir = tempfile.mkdtemp()
@@ -63,10 +66,11 @@ def mocked_script(monkeypatch):
 @pytest.fixture()
 def sp_with_successful_execution():
 
-    RUN_WITH_0 = Mock(
+    RUN_WITH_0 = MagicMock(
         **{
             "run.return_value": RETCODE_0,
             "check_output.return_value": b"",
+            "returncode": 0,
         }
     )
 
@@ -159,7 +163,7 @@ def test_execute_cmd_args(params):
     assert timed_out == params["expected_to_timeout"]
 
 
-def test_run_cmd(data, monkeypatch):
+def test_run_cmd_timeout(data, monkeypatch):
     data.logger = logging
     monkeypatch.setattr(logging, "warn", lambda x: None)
 
@@ -221,6 +225,19 @@ def test_command_logger_setup(data, monkeypatch):
     logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
     assert logger_out == logging
     assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+
+def test_run_cmd_handles_unicode(data):
+    # not sure why but at one point Path().write_text() uses the encoding
+    # scheme ascii when None was specified and so one would expect utf-8 to be
+    # used. A lesson for those not adding explicitly defining encoding (me).
+
+    # unicode in stdout should not cause any problems
+    differ = tools.OutputDiffer(
+        data,
+        f"""cat {data.uni_text}""",
+    )
+    differ.run()
 
 
 def test_check_git_config(

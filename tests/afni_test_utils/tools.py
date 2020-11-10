@@ -80,7 +80,7 @@ def get_command_info(outdir):
 
 
 def get_lines(filename, ignore_patterns):
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         lines = [line.rstrip("\n \\") for line in f.readlines()]
         lines = [
             line.strip()
@@ -439,7 +439,9 @@ def run_cmd(
     # execute that
     if any(x in cmd for x in ("&", ";", "'", "`", ">")):
         script = tempfile.mktemp()
-        Path(script).write_text("#/bin/bash -exu\nset -o pipefail\n" + cmd)
+        Path(script).write_text(
+            "#/bin/bash -exu\nset -o pipefail\n" + cmd, encoding="utf-8"
+        )
         cmd_args = ["bash", script]
     else:
         cmd_args = shlex.split(cmd)
@@ -535,7 +537,7 @@ def write_command_info(path, cmd_info):
     for k, v in cmd_info.items():
         v = str(v)
         out_dict[k] = v
-    Path(path).write_text(json.dumps(out_dict, indent=0))
+    Path(path).write_text(json.dumps(out_dict, indent=0), encoding="utf-8")
 
 
 def get_equivalent_name(data, fname):
