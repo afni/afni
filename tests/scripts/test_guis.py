@@ -67,7 +67,9 @@ def test_afni_gui_basic(data, unique_gui_port):
     """
     cmd = cmd.format(**locals())
 
-    stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+    stdout_log, stderr_log = tools.run_cmd(
+        data, cmd, x_execution_mode="xvfb", timeout=60
+    )
     stdout = stdout_log.read_text()
     assert "Fatal Signal 11" not in stdout
     assert "FATAL ERROR" not in stdout
@@ -86,7 +88,9 @@ def test_afni_gui_plugin_search(data, monkeypatch, unique_gui_port):
         cmd = """
         afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout_log, stderr_log = tools.run_cmd(
+            data, cmd, x_execution_mode="xvfb", timeout=60
+        )
         stdout = stdout_log.read_text()
 
     assert f"Path(s) to be searched for plugins: \n{exe_dir} {rel_libdir}" in stdout
@@ -102,7 +106,9 @@ def test_afni_gui_plugin_search_with_env_var(data, monkeypatch, unique_gui_port)
         cmd = """
         afni -no_detach -npb {unique_gui_port} -com "QUIT"
         """
-        stdout_log, stderr_log = tools.run_cmd(data, cmd, x_execution_mode="xvfb")
+        stdout_log, stderr_log = tools.run_cmd(
+            data, cmd, x_execution_mode="xvfb", timeout=60
+        )
         stdout = stdout_log.read_text()
         assert f"Path(s) to be searched for plugins: \n/tmp" in stdout
 
