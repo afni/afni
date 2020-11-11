@@ -63,6 +63,15 @@ try:
 except filelock.Timeout:
     OUTPUT_DIR_NAME_CACHE.read_text()
 
+for pipe in "stdout stderr stdin".split():
+    encodings_patterns = [x.upper() for x in ["utf-8", "utf8"]]
+    if not any(p in getattr(sys, pipe).encoding.upper() for p in encodings_patterns):
+        raise EnvironmentError(
+            "Only utf-8 should be used for character encoding. Please "
+            "change your locale settings as required... LANG_C,LANG_ALL "
+            "etc. "
+        )
+
 
 def pytest_sessionstart(session):
     """called after the ``Session`` object has been created and before performing collection
