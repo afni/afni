@@ -2003,7 +2003,6 @@ class RegWrap:
          costlist = costfile.readline()
          # convert into list structure
          costs = costlist.split()
-         costfile.close()
          # make dictionary of names and costs
          costdict = dict(list(zip(costnamelist, costs)))
 
@@ -2018,7 +2017,9 @@ class RegWrap:
          return (costvalue)
       except:
          print("ERROR: error reading cost list file")
-      
+      finally:
+         costfile.close()
+
       # find the cost name and then the corresponding value
       # for i, name in enumerate(costnamelist):
       #   if name == costfunction:
@@ -2208,9 +2209,11 @@ class RegWrap:
                 else:
                    f.write("flip_guess : NO_FLIP\n")
                    print("Data does not need flipping")
-                f.close()
             except:
                 print("WARNING: Could not write to flip text file")
+            finally:
+                f.close()
+
 
          # if rigid_equiv, then save only rigid equivalent alignment
          # extract with cat_matvec
