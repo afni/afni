@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
+   "Set some env vars at top of script to turn off compression.",
+   "Was causing odd error in one case.\n"
+},
+
 { 6, Nov , 2020 , PT , "adjunct_tort_read_dp_align.py" , MINOR , TYPE_NEW_PROG,
    "Script to read TORTOISE-DIFFPREP *_transformations.txt files.",
    "Puts them into usable order for calc'ing enorm and plotting mot/pars.\n"
