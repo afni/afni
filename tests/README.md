@@ -8,7 +8,7 @@ running tests a little easier. Once you follow the setup instructions below you
 will be able to test a typical AFNI-suite installation on the PATH, a build
 directory not yet on the PATH, a hierarchical installation directory, a cmake
 build (with minimal rebuild), and containerized versions of AFNI (with or
-without the local source code used). Read on get started on the testing
+without the local source code used). Read on to begin the testing
 bonanza.
 
 ## Quickest and minimal setup
