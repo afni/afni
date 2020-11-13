@@ -844,11 +844,9 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
    P33 = THD_orient_perm_mat33( dset, new_ori);  // the perm from old to new
 
    // INITIAL 
-   //INFO_message("OLD mat");
-   //DUMP_MAT44("", dset->daxes->ijk_to_dicom_real);
-
-   // [PT] NTS: I need to think more about the origin part...  not
-   // convinced by it at present.
+   //INFO_message("OLD mats");
+   //DUMP_MAT44("IJK_TO_DICOM_REAL", dset->daxes->ijk_to_dicom_real);
+   //DUMP_MAT44("IJK_TO_DICOM", dset->daxes->ijk_to_dicom);
 
    // set new origin location: based on the extents of the current
    // dset and to-be orient
@@ -897,7 +895,7 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
    if(oblique_report_index<oblique_report_repeat) {
       if(first_oblique) {
          WARNING_message(
-         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  If you are performing spatial transformations on an oblique dset,\n"
          "  such as %s,\n"
          "  or viewing/combining it with volumes of differing obliquity,\n"
          "  you should consider running: \n"
@@ -976,13 +974,15 @@ void THD_check_oblique_field(THD_3dim_dataset *dset)
       THD_make_cardinal(dset);
 }
 
-/* allow for updating of obliquity - IJK_TO_DICOM_REAL attribute and structure */
+/* allow for updating of obliquity - IJK_TO_DICOM_REAL attribute and
+   structure */
 void THD_updating_obliquity(int update)
 {
    oblique_update = update;
 }
 
-/* accessor function to get current status - can we update ijk_to_dicom_real*/
+/* accessor function to get current status - can we update
+   ijk_to_dicom_real*/
 int THD_update_obliquity_status()
 {
    return(oblique_update);

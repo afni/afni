@@ -10720,12 +10720,12 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
          /* try them all */
          exists = -1;
          {  
-            SUMA_DSET_FORMAT aform=SUMA_NO_DSET_FORMAT+1;
-            while (exists != 1 && aform < SUMA_N_DSET_FORMATS) {
+            SUMA_DSET_FORMAT zform=SUMA_NO_DSET_FORMAT+1;
+            while (exists != 1 && zform < SUMA_N_DSET_FORMATS) {
                exists = SUMA_WriteDset_NameCheck_eng(
-                           Name, dset, aform, verb, &NameOut); 
-               if (exists == 1) form=aform;
-               ++aform;
+                           Name, dset, zform, verb, &NameOut); 
+               if (exists == 1) form=zform;
+               ++zform;
             }
          }
          break;
