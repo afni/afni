@@ -6,6 +6,7 @@ from typing import Dict, List, Any, Union
 from xvfbwrapper import Xvfb
 import asyncio
 import attr
+from collections import defaultdict
 import datalad.api as datalad
 import datetime as dt
 import difflib
@@ -76,7 +77,16 @@ def get_output_name():
 
 def get_command_info(outdir):
     cmd_log = next((outdir / "captured_output").glob("*_cmd.log"))
-    return json.loads(cmd_log.read_text())
+    cmd_info = json.loads(cmd_log.read_text())
+    try:
+        os.path.relpath(cmd_info["outdir"], cmd_info["tests_data_dir"])
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... this is not true for a previously saved log: {cmd_log}"
+        )
+
+    return cmd_info
 
 
 def get_lines(filename, ignore_patterns):
@@ -169,13 +179,23 @@ def update_sample_output(
     file_list=None,
     files_with_diff=None,
 ):
-
     # Get the directory to be used for the sample output
     if create_sample_output:
         savedir = data.sampdir
         sync_files = file_list
 
     elif save_sample_output:
+        """
+        This functionality is not fully implemented. For now it is likely best to
+        follow the instructions at https://github.com/afni/afni_ci_test_data. If
+        attempting to use this, one caveat to consider is that the command info log in
+        the captured output directory contains paths that are used to rewrite paths in
+        stdout and stderr logs. This would be difficult to implement cleanly. If a
+        container is always used for storing data there may not be so many issues
+        though. Overall it may not be worth the effort... it depends how often partial
+        data updates are required.
+        """
+        raise NotImplementedError
         savedir = data.comparison_dir
         # Create rsync pattern for all files that need to be synced
         sync_files = files_with_diff
@@ -534,6 +554,16 @@ def run_cmd(
 
 def write_command_info(path, cmd_info):
     out_dict = {}
+    try:
+        outdir = cmd_info["outdir"]
+        tests_data_dir = cmd_info["tests_data_dir"]
+        os.path.relpath(outdir, tests_data_dir)
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... {outdir} is not in {tests_data_dir} "
+        )
+
     for k, v in cmd_info.items():
         v = str(v)
         out_dict[k] = v
@@ -570,6 +600,98 @@ def _rewrite_paths_for_lines(txt, tests_data_dir, outdir, wdir, hostname, user):
     return txt
 
 
+def get_rel_outdir(outdir, rootdirs):
+    for rootdir in rootdirs:
+        try:
+            reldir = Path(outdir).relative_to(rootdir)
+            return reldir
+        except ValueError:
+            continue
+    else:
+        raise ValueError(
+            "Cannot find a relative path for outdir because "
+            "it is not a child of the root directories "
+            f"provided: {rootdirs} "
+        )
+
+
+def rewrite_paths_for_line(txt, rootdirs, outdirs, replacements_dict):
+    """
+    This function attempts to rewrite paths in stdout and stderr logs so that
+    they appear to be the same regardless of context. For any given test if
+    executed with an instance of the OutputDiffer class it will have a
+    directory containing output files and log files in a captured_output
+    subdirectory. The path to this directory is rewritten to be relative to
+    the tests subdirectory of the afni git repository and "normalized" by
+    exchanging timestamped output directory names with a generic path
+    afni_ci_test_data/sample_test_output.
+
+    The tests directory in the AFNI source repository is considered the root
+    directory for the purposes of a stable comparison. Making all paths
+    relative to this is a starting point for removing differences across test
+    suite runs and hosts. The remaining path rewriting is an attempt to
+    "normalize" the paths that are relative to this root directory.
+
+    All input data for tests is contained in the afni_ci_tests_data
+    subdirectory but all other paths can change depending on the situation.
+    The working directory of the command execution is typically the tests
+    directory but can be modified to the output directory to test the tools
+    behavior in different working directories. The output directory for a test
+    run is output_of_tests/output_<timestamp>. The directory
+    containing output/sample data used for comparison might be in a previous
+    output directory, a previous sample output, or in the datalad repo at
+    afni_ci_test_data/sample_test_output.
+    """
+    for outdir, rootdir in zip(outdirs, rootdirs):
+        outdir = Path(outdir)
+        if outdir.is_absolute():
+            outdir = get_rel_outdir(outdir, rootdirs)
+
+        # Make all paths relative to the root directory (tests)
+        txt = txt.replace(f"{rootdir}/", "")
+
+        # change the varying portion of the path with the portion that makes
+        # it look like it is sample output in the tests data directory.
+        outdir_varying = os.path.sep.join(outdir.parts[:2])
+        outdir_normalized_base = f"afni_ci_test_data{os.path.sep}sample_test_output"
+        normalized_outdir = str(outdir).replace(outdir_varying, outdir_normalized_base)
+        txt = txt.replace(str(outdir), normalized_outdir)
+
+    for k, v in replacements_dict.items():
+        if k != "":
+            txt.replace(k, v)
+
+    return txt
+
+
+def get_command_info_dicts(data, create_sample_output):
+    cmd_info = get_command_info(data.outdir)
+    if not create_sample_output:
+        cmd_info_orig = get_command_info(data.comparison_dir)
+        wdir = cmd_info["workdir"]
+        wdir_orig = cmd_info_orig["workdir"]
+        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
+            raise ValueError(
+                "Comparison with previous test output cannot be performed "
+                "if a different working directory was used. "
+            )
+    else:
+        # return an empty string for all values in the dictionary
+        cmd_info_orig = defaultdict(lambda: "")
+    return cmd_info, cmd_info_orig
+
+
+def check_txt_has_no_problem_outdirs(txt, current_outdirs):
+    # filter out empty elements
+    output_dir_strings = set(re.findall("output_of_tests/([^/]*)/", " ".join(txt)))
+    for d in output_dir_strings:
+        if not any(d in outdir for outdir in current_outdirs):
+            raise ValueError(
+                f"{d} was found in stdout or stderr. This should "
+                f"not occur (it is not one of {current_outdirs}) "
+            )
+
+
 def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False):
     """Given  a list of texts,  which are in turn lists, this function
     attempts to normalize paths, user, hostname in order to  reduce the rate
@@ -592,39 +714,29 @@ def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False)
     Raises:
         ValueError: Description
     """
-    cmd_info = get_command_info(data.outdir)
-    wdir = cmd_info["workdir"]
-    if not create_sample_output:
-        cmd_info_orig = get_command_info(data.comparison_dir)
-        wdir_orig = cmd_info_orig["workdir"]
-        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
-            raise ValueError(
-                "Comparison with previous test output cannot be performed "
-                "if a different working directory was used. "
-            )
+
+    cmd_info, cmd_info_orig = get_command_info_dicts(data, create_sample_output)
 
     outlist = []
     for txt in text_list:
-        txt = _rewrite_paths_for_lines(
-            txt,
-            data.tests_data_dir,
-            data.outdir,
-            wdir,
-            cmd_info["host"],
-            cmd_info["user"],
+        check_txt_has_no_problem_outdirs(
+            txt, [cmd_info["outdir"], cmd_info_orig["outdir"]]
         )
-        if not create_sample_output:
-            # Do the same for previous files being compared against:
-            txt = _rewrite_paths_for_lines(
-                txt,
-                data.tests_data_dir,
-                cmd_info_orig["outdir"],
-                wdir_orig,
-                cmd_info_orig["host"],
-                cmd_info_orig["user"],
+        out_txt = []
+        for line in txt:
+            modified_line = rewrite_paths_for_line(
+                line,
+                [cmd_info["rootdir"], cmd_info_orig["rootdir"]],
+                [data.outdir, cmd_info_orig["outdir"]],
+                replacements_dict={
+                    cmd_info["host"]: "hostname",
+                    cmd_info_orig["host"]: "hostname",
+                    cmd_info["user"]: "username",
+                    cmd_info_orig["user"]: "username",
+                },
             )
-
-        outlist.append(txt)
+            out_txt.append(modified_line)
+        outlist.append(out_txt)
 
     return outlist
 
@@ -706,6 +818,16 @@ class OutputDiffer:
         self.add_env_vars = add_env_vars or {}
         self.merge_error_with_output = merge_error_with_output
         self.workdir = workdir
+        try:
+            # If this raises an error then the workdir is outside the tests
+            # subdirectory which is not supported
+            if workdir is not None:
+                Path(workdir).relative_to(data.tests_data_dir)
+        except ValueError:
+            raise ValueError(
+                f"The workdir ({workdir}) for a test must be within {data.tests_data_dir}."
+            )
+
         self.python_interpreter = python_interpreter
         self.executed = False
 
@@ -822,7 +944,7 @@ class OutputDiffer:
                     self.assert_1dfiles_equal([fname])
                 elif fname.suffix == ".log":
                     # compare stdout and stderr logs
-                    if fname.name.endswith("_cmd.log"):
+                    if re.findall("(cmd(_[0-9]*)?.log)", str(fname)):
                         # command log diff is expected but ignored. The file
                         # should be included in sample output when created as
                         # it is used to determine the working directory for

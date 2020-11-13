@@ -198,16 +198,6 @@ def pytest_addoption(parser):
             "tested in both python 3 and python 2 "
         ),
     )
-    parser.addoption(
-        "--overwrite_outdir",
-        default="",
-        help=(
-            "Specify a path to an output directory to write to. This is "
-            "not required for a typical run of the test-suite. It can "
-            "be useful to restart tests that are executing resumable "
-            "pipelines though. tested in both python 3 and python 2 "
-        ),
-    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -367,14 +357,9 @@ def get_output_dir(config_obj):
         print(config_obj)
         raise TypeError("A pytest config object was expected")
 
-    user_choice = conf.getoption("--overwrite_outdir")
     rootdir = conf.rootdir
-    if user_choice:
-        output_dir = Path(user_choice)
-    else:
-        output_dir = (
-            Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
-        )
+
+    output_dir = Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
 
