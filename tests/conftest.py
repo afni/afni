@@ -156,13 +156,13 @@ def pytest_addoption(parser):
         "of many minutes to hours ",
     )
     parser.addoption(
-        "--diff_with_outdir",
+        "--diff-with-sample",
         default=None,
         help="Specify a previous tests output directory with which the output "
         "of this test session is compared.",
     )
     parser.addoption(
-        "--create_sample_output",
+        "--create-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -173,7 +173,7 @@ def pytest_addoption(parser):
         ),
     )
     parser.addoption(
-        "--save_sample_output",
+        "--save-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -201,30 +201,29 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
-    # more and more tests are skipped as each premature return is not executed:
-    if config.getoption("--runveryslow"):
-        # --runveryslow given in cli: do not skip slow tests
-        return
-    else:
-        skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
-        for item in items:
+    skipping_veryslow_tests = not config.getoption("--runveryslow")
+    skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
+    skipping_slow_tests = not (
+        config.getoption("--runveryslow") or config.getoption("--runslow")
+    )
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+
+    # filter out slower tests by default
+    for item in items:
+        if skipping_veryslow_tests or skipping_slow_tests:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
+
+        if skipping_veryslow_tests:
             if "veryslow" in item.keywords:
                 item.add_marker(skip_veryslow)
-
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
 
 
 def pytest_sessionfinish(session, exitstatus):
     output_dir = get_output_dir(session)
     # When configured to save output and test session was successful...
-    saving_desired = session.config.getoption("--save_sample_output")
-    user_wants = session.config.getoption("--create_sample_output")
+    saving_desired = session.config.getoption("--save-sample-output")
+    user_wants = session.config.getoption("--create-sample-output")
     create_samp_out = user_wants and not bool(exitstatus)
     if saving_desired and not bool(exitstatus):
         dm.save_output_to_repo()
