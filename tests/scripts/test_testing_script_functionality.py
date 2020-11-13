@@ -1,5 +1,5 @@
 from argparse import Namespace
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import pathlib
 from pathlib import Path
 from unittest.mock import Mock, MagicMock
@@ -206,6 +206,17 @@ def test_run_cmd_timeout(data, monkeypatch):
         timeout=t_unit * 1,
     )
     assert stdout_log.read_text() == "hello\n"
+
+
+def test_rewrite_paths_in_logs(data):
+    # run a command that will contain a path that should be rewritten
+    cmd = f"echo some output with a path... {data.outdir / 'sample.txt'}"
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
+
+    cmd = f"echo some output with a path... {data.outdir / 'sample.txt'}"
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
 
 
 def test_command_logger_setup(data, monkeypatch):
@@ -522,6 +533,90 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
         monkeypatch,
         sys_exit=False,
     )
+
+
+def test_write_command_info():
+    tests_data_dir = Path(tempfile.mkdtemp())
+    outdir = tests_data_dir / "output_of_tests" / "output_2029_11_07"
+    logfile = outdir / "testname" / "file.log"
+    logfile.parent.mkdir(parents=True)
+
+    tools.write_command_info(
+        logfile,
+        {
+            "outdir": outdir,
+            "tests_data_dir": tests_data_dir,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {
+            "test_case": "no change",
+            "expected": "some output text without paths",
+        },
+        {
+            "test_case": "abs paths removed",
+            "rootdirs": ["/a/base/path"],
+            "outdirs": ["/a/base/path/afni_ci_test_data/sample_test_output/dir"],
+            "txt": "/a/base/path/afni_ci_test_data/sample_test_output/dir other text",
+            "expected": "afni_ci_test_data/sample_test_output/dir other text",
+        },
+        {
+            "test_case": "outdir is normalized",
+            "rootdirs": ["/a/base/path"],
+            "outdirs": [
+                "output_of_tests/output_2020_11_12_174542/testing_script_functionality/test_rewrite_paths_in_logs"
+            ],
+            "txt": "output: output_of_tests/output_2020_11_12_174542/testing_script_functionality/test_rewrite_paths_in_logs/sample.txt",
+            "expected": "output: afni_ci_test_data/sample_test_output/testing_script_functionality/test_rewrite_paths_in_logs/sample.txt",
+        },
+    ],
+)
+def test_rewrite_paths_for_line(data, params):
+    txt = params.get("txt") or "some output text without paths"
+
+    modified_line = tools.rewrite_paths_for_line(
+        txt,
+        params.get("rootdir") or ["/a/base/path"],
+        params.get("outdirs") or ["/a/base/path/afni_ci_test_data/sample_test_output"],
+        params.get("replacements_dict") or {},
+    )
+    assert modified_line == params["expected"]
+
+
+def test_rewrite_paths_for_line_error(data, monkeypatch):
+    """
+    If the the stdout or stderr stream  output directories returned from get_command_info_dicts
+    """
+    cmd_info = defaultdict(lambda: "")
+    cmd_info["outdir"] = "/a/base/path/output_of_tests/output_2020_11_12_154136"
+    cmd_info["workdir"] = "/a/base/path"
+    cmd_info["tests_data_dir"] = "/a/base/path"
+    monkeypatch.setattr(
+        tools,
+        "get_command_info_dicts",
+        Mock(return_value=[cmd_info, defaultdict(lambda: "")]),
+    )
+    txt = ["/a/base/path/output_of_tests/output_2020_11_12_154142/subdir other text"]
+    # should fail when output directory in log has wrong timestamp
+    with pytest.raises(ValueError):
+        modified_line = tools.rewrite_paths_for_cleaner_diffs(
+            data,
+            [txt],
+        )
+
+    # should fail when outdirs are not in tests_dir
+    cmd_info[
+        "outdir"
+    ] = "/a/different/base/path/output_of_tests/output_2020_11_12_154136"
+    with pytest.raises(ValueError):
+        modified_line = tools.rewrite_paths_for_cleaner_diffs(
+            data,
+            [txt],
+        )
 
 
 def test_parser_with_relative_test_module(monkeypatch):
