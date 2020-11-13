@@ -100,6 +100,12 @@ def parse_user_args(user_args=None, tests_dir=None):
         help="Make use of all cpus for tests (requires pytest-parallel).",
     )
 
+    thread_management.add_argument(
+        "--trace",
+        help=("Immediately drop into the call stack (the pdb debugger) for each test."),
+        action="store_true",
+    )
+
     parser.add_argument(
         "--ignore-dirty-data",
         action="store_true",
@@ -159,6 +165,53 @@ def parse_user_args(user_args=None, tests_dir=None):
         "-l",
         help=("Only run tests that failed on the last test run."),
         action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--runslow",
+        help=("Run default tests and tests marked with 'slow'."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--runveryslow",
+        help=("Run default tests and tests marked with 'slow' or 'veryslow'."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--create-sample-output",
+        "-c",
+        help=(
+            "Create sample output instead of running a diff with pre- "
+            "existing output. This is a required step when initially "
+            "writing a test. "
+        ),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--diff-with-sample",
+        help=(
+            "Provide a path of pre-existing output that you wish to "
+            "compare against that is not the default data saved in the "
+            "datalad repository afni_ci_test_data. "
+        ),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--marker-expression",
+        "-m",
+        metavar="EXPR",
+        help=(
+            "Provide an expression for filtering tests using markers. "
+            "This should be quoted if more than one word. It is a "
+            "boolean expression; 'A and B' would run all tests that are "
+            "marked with the A AND B. If you wished to run both types "
+            "of tests you would use 'A or B'. See the pytest help "
+            "documentation for more information."
+        ),
     )
 
     pytest_mod_manual = parser.add_argument_group(PYTEST_MANUAL_HELP)
@@ -593,10 +646,28 @@ def get_test_cmd_args(**kwargs):
         cmd_args.append("--pdb")
 
     if kwargs.get("filter_expr"):
-        cmd_args.append(f"-k={kwargs['filter_expr']}")
+        cmd_args.append(f"""-k='{kwargs["filter_expr"]}'""")
 
     if kwargs.get("log_file_level"):
         cmd_args.append(f"--log-file-level={kwargs['log_file_level']}")
+
+    if kwargs.get("trace"):
+        cmd_args.append("--trace")
+
+    if kwargs.get("runslow"):
+        cmd_args.append("--runslow")
+
+    if kwargs.get("runveryslow"):
+        cmd_args.append("--runveryslow")
+
+    if kwargs.get("create_sample_output"):
+        cmd_args.append("--create-sample-output")
+
+    if kwargs.get("diff_with_sample"):
+        cmd_args.append(f"--diff-with-sample={kwargs.get('diff_with_sample')}")
+
+    if kwargs.get("marker_expression"):
+        cmd_args.append(f"""-m='{kwargs.get("marker_expression")}'""")
 
     if kwargs.get("lf"):
         cmd_args.append("--lf")
