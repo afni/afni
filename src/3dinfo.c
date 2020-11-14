@@ -854,9 +854,11 @@ int main( int argc , char *argv[] )
          case AFORM_REAL_REORIENT:
             {
                char ostr[4];
-               THD_fill_orient_str_3(dset->daxes, ostr);
+               // the work: 
                dset_mat44_P = THD_refit_orient_ijk_to_dicom_real( dset, 
                                                          new_ori_aform_real ); 
+               // display formatting/messaging:
+               THD_fill_orient_str_3(dset->daxes, ostr);
                strcat(aform_real_print_str, " after reorienting from (current) ");
                strcat(aform_real_print_str, ostr);
                strcat(aform_real_print_str, " to ");
