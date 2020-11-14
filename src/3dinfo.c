@@ -348,14 +348,14 @@ int main( int argc , char *argv[] )
    int extinit = 0;
    float RL_AP_IS[6];
 
-   char *aform_real_print_base= "(aform_real)";
-   char aform_real_print_str[100];
-   char *new_ori_aform_real=NULL;        // disp aform_real under new orient
+   char *aform_real_pbase= "(aform_real)";
+   char aform_real_pstr[100];
+   char *ocharB_aform_real=NULL;        // new orient for aform_real disp
    mat44 dset_mat44_P;
 
    mainENTRY("3dinfo main") ; machdep() ;
 
-   strcpy(aform_real_print_str, aform_real_print_base);
+   strcpy(aform_real_pstr, aform_real_pbase);
 
    if( argc < 2) { Syntax(TXT,1) ; RETURN(0); }
 
@@ -441,7 +441,7 @@ int main( int argc , char *argv[] )
          iarg++;
          if (iarg >= argc)
            ERROR_exit( "3dinfo needs a string after -aform_real_reorient\n");
-         new_ori_aform_real = argv[iarg];
+         ocharB_aform_real = argv[iarg];
          sing[N_sing++] = AFORM_REAL_REORIENT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-handedness") == 0) {
          sing[N_sing++] = HANDEDNESS; iarg++; continue;
@@ -846,7 +846,7 @@ int main( int argc , char *argv[] )
                   THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0));
             break;
          case AFORM_REAL:
-            DUMP_MAT44(aform_real_print_str, dset->daxes->ijk_to_dicom_real);
+            DUMP_MAT44(aform_real_pstr, dset->daxes->ijk_to_dicom_real);
             break;
          case AFORM_REAL_ONELINE:
             DUMP_MAT44_ONELINE(dset->daxes->ijk_to_dicom_real);
@@ -856,14 +856,14 @@ int main( int argc , char *argv[] )
                char ostr[4];
                // the work: 
                dset_mat44_P = THD_refit_orient_ijk_to_dicom_real( dset, 
-                                                         new_ori_aform_real ); 
+                                                         ocharB_aform_real ); 
                // display formatting/messaging:
                THD_fill_orient_str_3(dset->daxes, ostr);
-               strcat(aform_real_print_str, " after reorienting from (current) ");
-               strcat(aform_real_print_str, ostr);
-               strcat(aform_real_print_str, " to ");
-               strcat(aform_real_print_str, new_ori_aform_real);
-               DUMP_MAT44(aform_real_print_str, dset_mat44_P);
+               strcat(aform_real_pstr, " after reorienting from (current) ");
+               strcat(aform_real_pstr, ostr);
+               strcat(aform_real_pstr, " to ");
+               strcat(aform_real_pstr, ocharB_aform_real);
+               DUMP_MAT44(aform_real_pstr, dset_mat44_P);
                //mat44 TEST;
                //dset_mat44_P.m[0][2] = 1;
                //nifti_orthogonalize_mat44(dset_mat44_P, TEST);
