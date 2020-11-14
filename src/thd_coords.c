@@ -757,6 +757,43 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
 /*
   [PT: Nov 3, 2020] more funcs for dealing with obliquity matrix
   (dset->daxes->ijk_to_dicom_real)
+
+  [PT: Nov 12, 2020] adopting the following language/terminology for
+  systematically approaching these mats, summarizing conversation with
+  RCR:
+
+  aform_real : mat44 that is the AFNI equivalent of NIFTI sform matrix
+               ('a'form for AFNI), what we typically call
+               ijk_to_dicom_real in the AFNI extension/header; likely
+               only difference is that aform_* are RAI, while sform
+               matrix is LPI (sigh).  aform_real, like sform, is not
+               restricted to being orthogonal -- can represent any
+               linear affine transform.
+
+  aform_orth : mat44 that is the orthogonalized version of aform_real,
+               which should correspond to the NIFTI quaternion, since
+               the NIFTI quaternion is inherently orthogonalized when
+               created from the NIFTI sform matrix; we even use the
+               NIFTI2 mat44->quaternion->mat44 functions to calc
+               aform_orth, so it really should agree, EXCEPT that,
+               like all good things, it is RAI.  While orthogonal,
+               this matrix might still contain obliquity information
+               (i.e., rotation information: it need not be diagonal).
+
+               In most cases in AFNI-generated programs, aform_orth
+               should be the same as aform_real (as of the writing of
+               this note).  But we allow for reading in more general
+               matrix info.  
+
+  aform_card : mat44 that is the unrotated (diagonalized) form of
+               aform_orth, what we typically call ijk_to_dicom in the
+               AFNI extension/header.  This is the matrix mostly used
+               to display data in the GUI, and when we ignore
+               obliquity information in transformations, etc.  Is also
+               RAI.  We aim now to create this in a way that the (i*,
+               j*, k*) location where (x, y, z) = (0, 0, 0) in
+               aform_orth is preserved.  That is, we preserve the
+               coordinate origin (hoping it is good!).
 */
 
 // get the integer form of orientation in RLPAIS ordering.  So, a dset
@@ -941,8 +978,9 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
 
    ZERO_MAT44(dsetA_mat44_P);  // init mat
 
+   // checks
    if( !ISVALID_DSET(dsetA) || oblique_report_repeat==0 ) return(dsetA_mat44_P);
-   THD_check_oblique_field(dsetA); // make sure oblique field is available
+   THD_check_oblique_field(dsetA);
 
    MAT44_TO_MAT33(dsetA->daxes->ijk_to_dicom_real, dsetA_mat33); // get current
 
@@ -986,7 +1024,8 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
   representation of the input matrix that is orthogonalized, even if
   the input mat isn't. Thus, when converting quatern -> mat44, the
   output mat should be orthogonalized.
-  
+
+  Use this to calculate aform_orth (Mout) from aform_real (Min).
 */
 void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout)
 {
@@ -1003,8 +1042,8 @@ void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout)
                                    qx,  qy,  qz,
                                    dx,  dy,  dz,  qfac );
 
-   DUMP_MAT44("maybe orth", Min);
-   DUMP_MAT44("def orth!", Mout);
+   //DUMP_MAT44("maybe orth", Min);
+   //DUMP_MAT44("def orth!", Mout);
 
 }
 
