@@ -864,6 +864,9 @@ int main( int argc , char *argv[] )
                strcat(aform_real_print_str, " to ");
                strcat(aform_real_print_str, new_ori_aform_real);
                DUMP_MAT44(aform_real_print_str, dset_mat44_P);
+               //mat44 TEST;
+               //dset_mat44_P.m[0][2] = 1;
+               //nifti_orthogonalize_mat44(dset_mat44_P, TEST);
             }
             break;
          case PREFIX:

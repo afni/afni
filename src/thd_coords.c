@@ -988,6 +988,33 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset,
    return dset_mat44_P;
 }
 
+/*
+  Use the fact that nifti_mat44_to_quatern produces a quaternion
+  representation of the input matrix that is orthogonalized, even if
+  the input mat isn't. Thus, when converting quatern -> mat44, the
+  output mat should be orthogonalized.
+  
+*/
+void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout)
+{
+   float qb, qc, qd;
+   float qx, qy, qz;
+   float dx, dy, dz, qfac;
+
+   nifti_mat44_to_quatern( Min,
+                           &qb,  &qc,  &qd,
+                           &qx,  &qy,  &qz,
+                           &dx,  &dy,  &dz,  &qfac );
+      
+   Mout = nifti_quatern_to_mat44(  qb,  qc,  qd,
+                                   qx,  qy,  qz,
+                                   dx,  dy,  dz,  qfac );
+
+   DUMP_MAT44("maybe orth", Min);
+   DUMP_MAT44("def orth!", Mout);
+
+}
+
 
 void THD_report_obliquity(THD_3dim_dataset *dset)
 {
