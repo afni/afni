@@ -1027,8 +1027,9 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
 
   Use this to calculate aform_orth (Mout) from aform_real (Min).
 */
-void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout)
+mat44 nifti_orthogonalize_mat44( mat44 Min )
 {
+   mat44 Mout;
    float qb, qc, qd;
    float qx, qy, qz;
    float dx, dy, dz, qfac;
@@ -1042,11 +1043,22 @@ void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout)
                                    qx,  qy,  qz,
                                    dx,  dy,  dz,  qfac );
 
-   //DUMP_MAT44("maybe orth", Min);
-   //DUMP_MAT44("def orth!", Mout);
-
+   return Mout;
 }
 
+/*
+  Test orthogonality by orthogonalizing the mat44, and then comparing
+  sum of elementwise diffs.  Could be done differently, but typically
+  this should be fine.
+*/
+int is_mat44_orthogonal(mat44 A)
+{
+   mat44 B;
+
+   B = nifti_orthogonalize_mat44( A );
+
+   return MAT44_FLEQ(A, B);
+}
 
 void THD_report_obliquity(THD_3dim_dataset *dset)
 {

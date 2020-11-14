@@ -86,6 +86,14 @@ int Syntax(TFORM targ, int detail)
 "                        '-aform_real')\n"
 "                        *if* the dset were reoriented (via 3drefit) to\n"
 "                        new orient XXX.  Includes comment line first.\n"
+"   -is_aform_real_orth: if true, aform_real == aform_orth, which will be\n"
+"                        a very common occurrence.\n"
+"   -aform_orth: Display full 4x3 'aform_orth' matrix (AFNI's RAI matrix\n"
+"                equivalent of the NIFTI quaternion, which may contain\n"
+"                obliquity info), with comment line first.\n"
+"                This matrix is the orthogonalized form of aform_real,\n"
+"                and veeery often AFNI-produced dsets, we will have:\n"
+"                aform_orth == aform_real.\n"
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
 "   -ni: Return the number of voxels in i dimension\n"
@@ -256,6 +264,8 @@ typedef enum {
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, 
    AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REORIENT, // [PT: Nov 13, 2020]
+   IS_AFORM_REAL_ORTH,
+   AFORM_ORTH,                                          // [PT: Nov 14, 2020]
    PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
@@ -352,10 +362,13 @@ int main( int argc , char *argv[] )
    char aform_real_pstr[100];
    char *ocharB_aform_real=NULL;        // new orient for aform_real disp
    mat44 dset_mat44_P;
+   char *aform_orth_pbase= "(aform_orth)";
+   char aform_orth_pstr[100];
 
    mainENTRY("3dinfo main") ; machdep() ;
 
    strcpy(aform_real_pstr, aform_real_pbase);
+   strcpy(aform_orth_pstr, aform_orth_pbase);
 
    if( argc < 2) { Syntax(TXT,1) ; RETURN(0); }
 
@@ -443,6 +456,10 @@ int main( int argc , char *argv[] )
            ERROR_exit( "3dinfo needs a string after -aform_real_reorient\n");
          ocharB_aform_real = argv[iarg];
          sing[N_sing++] = AFORM_REAL_REORIENT; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-is_aform_real_orth") == 0) {
+         sing[N_sing++] = IS_AFORM_REAL_ORTH; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-aform_orth") == 0) {
+         sing[N_sing++] = AFORM_ORTH; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-handedness") == 0) {
          sing[N_sing++] = HANDEDNESS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
@@ -869,6 +886,18 @@ int main( int argc , char *argv[] )
                //nifti_orthogonalize_mat44(dset_mat44_P, TEST);
             }
             break;
+         case IS_AFORM_REAL_ORTH:
+            fprintf(stdout,"%d",
+                    is_mat44_orthogonal(dset->daxes->ijk_to_dicom_real));
+            break;
+         case AFORM_ORTH:
+            {
+               mat44 aform_orth;
+               aform_orth = nifti_orthogonalize_mat44( 
+                                             dset->daxes->ijk_to_dicom_real );
+               DUMP_MAT44(aform_orth_pstr, aform_orth);
+            break;
+            }
          case PREFIX:
             form = PrintForm(sing[iis], namelen, 1);
             fprintf(stdout,form, DSET_PREFIX(dset));

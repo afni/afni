@@ -5565,7 +5565,8 @@ extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA,
                                            char *ocharB );
 extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA, 
                                                  char *ocharB );
-extern void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout);
+extern mat44 nifti_orthogonalize_mat44( mat44 Min);
+extern int is_mat44_orthogonal(mat44 A);
 
 
 extern void THD_report_obliquity(THD_3dim_dataset *dset);
