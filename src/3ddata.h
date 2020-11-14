@@ -5555,16 +5555,16 @@ extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
 
 /* [PT: Nov 4, 2020] functions for reorienting dset via
    ijk_to_dicom_real */
-extern int   is_valid_orient_char(char ori[3]);
-extern int   is_valid_orient_int(int ori_int[3]);
+extern int   is_valid_orient_char( char ochar[3] );
+extern int   is_valid_orient_int( int oint[3] );
 extern void  THD_orient_to_int_rlpais( char ochar[4], int oint[3] );
 extern void  THD_int_to_orient_rlpais( int oint[3], char ochar[4] );
-extern mat33 THD_char_reorient_perm_mat33(char *old_ori, char *new_ori);
-extern mat33 THD_int_reorient_perm_mat33(int *old_ori_int, int *new_ori_int);
-extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dset, 
-                                           char *new_ori);
-extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dset, 
-                                                 char *new_ori);
+extern mat33 THD_char_reorient_perm_mat33( char *ocharA, char *ocharB );
+extern mat33 THD_int_reorient_perm_mat33( int *ointA, int *ointB );
+extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA, 
+                                           char *ocharB );
+extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA, 
+                                                 char *ocharB );
 extern void nifti_orthogonalize_mat44( mat44 Min, mat44 Mout);
 
 
