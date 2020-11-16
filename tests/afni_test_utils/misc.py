@@ -90,10 +90,9 @@ def get_combinations_labels(params, options_combined, option_key):
     return labels_out
 
 
-def get_param_combinations(params, r_list=None):
+def get_param_combinations(*params, r_list=None):
     """
-    Given a list of parameters, returns a list of parameters combined.
-    is being tested.
+    Given  parameters as args, returns a list of parameters combined.
     Args:
         params (list of tuples containing label and option dict): Each
         parameter takes the form:
@@ -103,11 +102,12 @@ def get_param_combinations(params, r_list=None):
         Where label is a tag to describe the option, var_name is a string that
         will be expanded in the command executed in the tests function, and the
         option is a command line option that can be passed to the AFNI tool that
+        is being tested.
 
-    r_list (list of ints): The 'r' parameter defines the group size of the
-    combination function in itertools. By default group sizes of 1, n. and n-1
-    are used. This behavior can be overwritten with an explicit list of group
-    sizes to use.
+        r_list (list of ints): The 'r' parameter defines the group size of the
+        combination function in itertools. By default group sizes of 1, n. and n-1
+        are used. This behavior can be overwritten with an explicit list of group
+        sizes to use.
     """
     option_key = "extra_args"
     # Set default r_list if none is provided.
