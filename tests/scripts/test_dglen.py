@@ -1,5 +1,5 @@
 import pytest
-from afni_test_utils.misc import is_omp
+from afni_test_utils.misc import is_omp, get_param_combinations
 from afni_test_utils import tools
 
 # check for omp compilation
@@ -22,31 +22,32 @@ data_paths = {
                 "extra_args": "",
             },
         ),
-        (
-            "e2a",
-            {
-                "extra_args": "-epi2anat",
-            },
+        *get_param_combinations(
+            (
+                "e2a",
+                {
+                    "extra_args": "-epi2anat",
+                },
+            ),
+            (
+                "giant_move",
+                {
+                    "extra_args": "-giant_move",
+                },
+            ),
+            (
+                "check_flip",
+                {
+                    "extra_args": "-check_flip",
+                },
+            ),
+            (
+                "rigid_equiv",
+                {
+                    "extra_args": "-rigid_equiv",
+                },
+            ),
         ),
-        (
-            "giant_move",
-            {
-                "extra_args": "-giant_move",
-            },
-        ),
-        (
-            "check_flip",
-            {
-                "extra_args": "-check_flip",
-            },
-        ),
-        (
-            "rigid_equiv",
-            {
-                "extra_args": "-rigid_equiv",
-            },
-        ),
-
     ],
 )
 @pytest.mark.veryslow
