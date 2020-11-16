@@ -822,10 +822,10 @@ class OutputDiffer:
             # If this raises an error then the workdir is outside the tests
             # subdirectory which is not supported
             if workdir is not None:
-                Path(workdir).relative_to(data.tests_data_dir)
+                Path(workdir).relative_to(data.rootdir)
         except ValueError:
             raise ValueError(
-                f"The workdir ({workdir}) for a test must be within {data.tests_data_dir}."
+                f"The workdir ({workdir}) for a test must be within {data.rootdir}."
             )
 
         self.python_interpreter = python_interpreter
