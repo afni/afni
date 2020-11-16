@@ -528,9 +528,20 @@ class shell_com(object):
          self.capture = capture; #Want stdout and stderr captured?
       self.save_hist = save_hist
 
+      # check if user has requested an overwrite of trimming behavior. If the
+      # variable is set and is not set to a false value then default trimming
+      # behavior is not performed.
+      false_vals = ['no','n','f','false',"0"]
+      mod_request = os.environ.get("NO_CMD_MOD")
+      no_cmd_modiifcation_requested = bool(
+         mod_request and mod_request.lower() not in false_vals
+      )
       #If command line is long, trim it, if possible
       l1 = len(self.com)
-      if (l1 > 80):
+      if no_cmd_modiifcation_requested:
+         # does not modify command to help provide more predictable output
+         self.trimcom = self.com
+      elif (l1 > 80):
          self.trimcom = self.trim()
          #if (len(self.com) < l1):
          #print "Command trimmed to: %s" % (self.com)
