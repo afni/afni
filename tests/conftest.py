@@ -63,14 +63,13 @@ try:
 except filelock.Timeout:
     OUTPUT_DIR_NAME_CACHE.read_text()
 
-for pipe in "stdout stderr stdin".split():
-    encodings_patterns = [x.upper() for x in ["utf-8", "utf8"]]
-    if not any(p in getattr(sys, pipe).encoding.upper() for p in encodings_patterns):
-        raise EnvironmentError(
-            "Only utf-8 should be used for character encoding. Please "
-            "change your locale settings as required... LANG_C,LANG_ALL "
-            "etc. "
-        )
+encodings_patterns = [x.upper() for x in ["utf-8", "utf8"]]
+if not any(p in sys.getdefaultencoding().upper() for p in encodings_patterns):
+    raise EnvironmentError(
+        "Only utf-8 should be used for character encoding. Please "
+        "change your locale settings as required... LANG_C,LANG_ALL "
+        "etc. "
+    )
 
 
 def pytest_sessionstart(session):
@@ -92,6 +91,7 @@ def pytest_generate_tests(metafunc):
         os.environ["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
 
     os.environ["AFNI_SPLASH_ANIMATE"] = "NO"
+    os.environ["NO_CMD_MOD"] = "true"
     unset_vars = [
         "AFNI_PLUGINPATH",
         "AFNI_PLUGIN_PATH",

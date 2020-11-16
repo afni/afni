@@ -1446,3 +1446,21 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
         afni_test_utils.minimal_funcs_for_run_tests_cli.check_if_cmake_configure_required(
             build_dir
         )
+
+
+def test_no_mod_cmd_var_works(monkeypatch, data):
+    # make a long command with paths that should trigger a trimming response
+    cmd = f"{' '.join([str(data.outdir) for x in range(5)])} "
+    # set to anything but a value that is obviously false will prevent trimming
+    monkeypatch.setenv("NO_CMD_MOD", "True")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com == com.trimcom
+
+    # trimming should occur otherwise
+    monkeypatch.setenv("NO_CMD_MOD", "no")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com != com.trimcom
+
+    monkeypatch.delenv("NO_CMD_MOD")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com != com.trimcom
