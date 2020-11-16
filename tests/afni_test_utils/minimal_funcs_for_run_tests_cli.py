@@ -585,7 +585,7 @@ def get_test_cmd_args(**kwargs):
     elif kwargs.get("verbosity") == "traceback":
         verb_args = "--tb=auto -r fEsxX --log-cli-level=INFO --showlocals -s"
     elif kwargs.get("verbosity") == "diarrhetic":
-        verb_args = "--tb=long -r fEsxX -v --log-cli-level=DEBUG --showlocals -s"
+        verb_args = "--tb=long -r fEsxX -vv --log-cli-level=DEBUG --showlocals -s"
 
     cmd_args += verb_args.split()
 

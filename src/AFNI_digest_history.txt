@@ -1,3 +1,39 @@
+AFNI Digest, week of 2020/11/12.
+ 
+00) AFNI YouTube channel:  new easy-to-remember address
+01) AFNI realtime-to-PsychoPy package moving homes
+02) New group analysis program: 3dMSS
+ 
+ 
+00) The AFNI YouTube channel for Bootcamp talks has a new homepage
+address:
+           www.youtube.com/c/afnibootcamp 
+(The old link still works as well, but this one is easier to
+remember/share.)
+ 
+01) PsychoPy-NeuroFeedback-Demo with AFNI:  on the move.
+Vinai's PsychoPy-NeuroFeedback-Demo package, which demonstrates
+communication between AFNI's real-time data interface and the PsychoPy
+module, will no longer be distributed within AFNI.  It is being
+removed to avoid any differences with the version from its main
+repository:
+https://github.com/roopchansinghv/afni-real-time-interface-in-python
+... but the same great content remains (thanks, Vinai!).
+ 
+02) Going beyond the linearity assumption of quantitative variables.
+Linearity assumptions for quantitative variables may be reasonable in
+some situations, but not so much in others.  What to do in the latter
+case?  Gang's new group-level program 3dMSS adopts a principle of
+learning from the data in the presence of uncertainty to dissolve the
+problematic aspects of conventional polynomial fitting, using
+multilevel smoothing splines (MSSs).  Please see the help of this
+program for examples, and read more about it in the bioRxiv draft:
+  https://www.biorxiv.org/content/10.1101/2020.11.01.363838v1
+... which contains both background theory and an interesting
+application to longitudinal MRI analysis.
+
+========================================================================
+
 AFNI Digest, week of 2020/09/23.
 
 0)  All AFNI Python programs are Python 3.* compatible
