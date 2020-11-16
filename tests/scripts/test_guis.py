@@ -154,9 +154,7 @@ def test_suma_driving_basic(data, unique_gui_port):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout_log, stderr_log = differ.run(
-        x_execution_mode=WRAP_SUMA,
-    )
+    stdout_log, stderr_log = differ.run(x_execution_mode=WRAP_SUMA, workdir=data.outdir)
     stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
 
@@ -196,8 +194,6 @@ def test_suma_driving(data, unique_gui_port):
         merge_error_with_output=True,
         skip_output_diff=True,
     )
-    stdout_log, stderr_log = differ.run(
-        x_execution_mode=WRAP_SUMA,
-    )
+    stdout_log, stderr_log = differ.run(x_execution_mode=WRAP_SUMA, workdir=data.outdir)
     stdout = stdout_log.read_text()
     assert not any(pat in stdout for pat in SUMA_FAILURE_PATTERNS)
