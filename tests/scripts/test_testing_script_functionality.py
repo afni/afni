@@ -28,6 +28,7 @@ from afni_test_utils import run_tests_examples
 from afni_test_utils import container_execution as ce
 from afni_test_utils import tools
 from afni_test_utils import minimal_funcs_for_run_tests_cli as minfuncs
+from afni_test_utils.misc import get_param_combinations
 import afnipy
 
 # import the whole package for mocking purposes
@@ -1490,6 +1491,7 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
         )
 
 
+
 def test_no_mod_cmd_var_works(monkeypatch, data):
     # make a long command with paths that should trigger a trimming response
     cmd = f"{' '.join([str(data.outdir) for x in range(5)])} "
@@ -1507,7 +1509,6 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
     com = afnipy.afni_base.shell_com(cmd)
     assert com.com != com.trimcom
 
-
 def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     monkeypatch.setenv("PATH", minfuncs.filter_afni_from_path())
     # mock no afnipy
@@ -1521,3 +1522,53 @@ def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     with pytest.raises(EnvironmentError) as e:
         minfuncs.modify_path_and_env_if_not_using_cmake()
     assert "Cannot find local AFNI binaries. " == str(e.value)
+
+
+def test_get_param_combinations():
+
+    input_params = [
+        (
+            "e2a",
+            {
+                "extra_args": "-epi2anat",
+            },
+        ),
+        (
+            "giant_move",
+            {
+                "extra_args": "-giant_move",
+            },
+        ),
+        (
+            "another test",
+            {
+                "extra_args": "-for_shizzur",
+            },
+        ),
+    ]
+    output = get_param_combinations(input_params)
+    expected = [
+        *sorted(input_params, key=lambda x: x[1]["extra_args"]),
+        pytest.param(
+            "Combo: e2a + another test",
+            {"extra_args": "-epi2anat -for_shizzur"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "Combo: e2a + giant_move",
+            {"extra_args": "-epi2anat -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "Combo: another test + giant_move",
+            {"extra_args": "-for_shizzur -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        (
+            "e2a + another test + giant_move",
+            {"extra_args": "-epi2anat -for_shizzur -giant_move"},
+        ),
+    ]
+
+    assert expected == output
+
