@@ -3,7 +3,7 @@
 
 SYNOPSIS
 
-    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs> -o <orientation>
+    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs> -o <orientation> [-f]
 
 DESCRIPTION
 
@@ -14,6 +14,8 @@ DESCRIPTION
 
     -o  Output of "3dinfo -orient mydset" in the linux command line.  This gives the a, y,z z-axes in terms of the axial, coronal
         and sagmital direction.
+
+    -f  Examine effects of frequency range
 
 NOTES
 
@@ -89,6 +91,10 @@ FloatPlane MakeFloatPlane(long iRows, long iColumns, float **Data);
 char * RootName(char * csFullPathName);
 ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory);
 ERROR_NUMBER shortToFloat(THD_3dim_dataset **din);
+ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
+    int paddedDimension, char *searchPath, char *prefix);
+ERROR_NUMBER getImsePeakAndMean(COMPLEX ***TwoDFts, int dimension, int refIndex, int targetIndex,
+            IntRange irFrequencyRange, float *maxIMSE, float *meanIMSE);
 
 
 double  dCommonLinesAngleErr;
@@ -106,9 +112,16 @@ int main( int argc, char *argv[] )  {
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
     char    orientation[3];
     COMPLEX** TwoDFts[6]={NULL, NULL, NULL};
+    Boolean frequencyRangeEffects = false;
+
+    paddingFactor=2;    // DEBUG
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
+        case 'f':
+            frequencyRangeEffects = true;
+            break;
+
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
                 return Cleanup(inputFileName, TwoDFts, din);
@@ -187,30 +200,40 @@ int main( int argc, char *argv[] )  {
     // Make CSV file of radial phase shift linearity (RPSL) between pairs of FTs
     int paddedDimension = DSET_NY(paddedProjections[0]);
     int lNumberOfImages = 6;
-    // irFrequencyRange.iMin = 0;
-    // irFrequencyRange.iMin = 1;
-    // irFrequencyRange.iMin = 10;
-    // irFrequencyRange.iMin = 5;
-    irFrequencyRange.iMin = 15;
-    // irFrequencyRange.iMin = 20;
-    irFrequencyRange.iMax = paddedDimension/2-32;
-    // irFrequencyRange.iMax = paddedDimension/2;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=(char *)malloc(strlen(inputFileName)*sizeof(char));
-    // sprintf(csAnalysisFileName, "%s%sLOI.csv",searchPath,prefix);
-    if ((enErrorNumber=GetDirectory(inputFileName, searchPath)) || (enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
-		irFrequencyRange, searchPath, prefix, &fCoplanarAngularShift))!=ERROR_NONE){
+    if (enErrorNumber=GetDirectory(inputFileName, searchPath)){
+        Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+        for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
+        free(searchPath);
+        return enErrorNumber;
+    }
+    if (frequencyRangeEffects){
+        if ((enErrorNumber=analyzeFrequencyRange(TwoDFts, lNumberOfImages, paddedDimension,
+            searchPath, prefix))!=ERROR_NONE){
             Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
             for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
+            free(searchPath);
             return enErrorNumber;
-		}
+        }
+    } else {
+        irFrequencyRange.iMin = 15;
+        irFrequencyRange.iMax = paddedDimension/2-32;
+        if ((enErrorNumber=OutputFourierIntersectionMap(TwoDFts, lNumberOfImages, paddedDimension,
+            irFrequencyRange, searchPath, prefix, &fCoplanarAngularShift))!=ERROR_NONE){
+                Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
+                for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
+                free(searchPath);
+                return enErrorNumber;
+            }
+    }
+    free(searchPath);
 
     Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
     for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
 
     return 1;
 }
-
 
 ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float fIncrementInDegrees,
 			IntRange lrFrequencyRange, float ***fpppRadialSamples, long *lpNumRadialSamples)
@@ -297,6 +320,132 @@ ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float f
 
 	// Cleanup
 	FreeComplexPlane(cpRotatedFT);
+
+	return ERROR_NONE;
+}
+
+ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
+    int paddedDimension, char *searchPath, char *prefix){
+
+    ERROR_NUMBER    enErrorNumber;
+	char    csAnalysisFileName[512];
+	int     planeIndex;
+	IntRange irFrequencyRange;
+	FILE    *outputFile;
+	int     maxMin=paddedDimension/4, maxMax=paddedDimension/2-1;
+	int     minRangeLength=8;
+	// int     minRangeLength=250; // DEBUG
+	float   maxIMSE, meanIMSE;  // Max and mean inverse mean squared error
+
+    for (int lPlaneIndex=4; lPlaneIndex<numberOfImages; ++lPlaneIndex){    // Avoid coplanar and self reference
+        fprintf(stdout, "Processing image %d\n", lPlaneIndex);
+
+        // Open output file
+        sprintf(csAnalysisFileName,"%s/%s_LOI_freqRange%d.csv", searchPath, prefix, planeIndex);
+        if (!(outputFile=fopen(csAnalysisFileName, "w")))
+            return ErrorOpeningFile(csAnalysisFileName);
+
+        // Make header
+        fprintf(outputFile, "Range Length\tFMin\n");
+        for (int i=0; i<=maxMin; ++i) fprintf(outputFile, "\t%d", i);
+        fprintf(outputFile, "\n");
+
+        // Process for each frequency range length
+        for (int rangeLength=minRangeLength; rangeLength<maxMax; ++rangeLength){
+            fprintf(stderr, "Processing length %d of %d\n", rangeLength, maxMax);
+            fprintf(outputFile, "%d", rangeLength);
+
+            for (int fMin=0; fMin<=maxMin; ++fMin){
+                fprintf(stderr, "fMin=%d of %d\r", fMin, maxMin);
+                if (fMin+rangeLength>maxMax) fprintf(outputFile, "\t0");
+                else {
+                    irFrequencyRange.iMin = fMin;
+                    irFrequencyRange.iMax = fMin+rangeLength;
+
+                    if ((enErrorNumber=getImsePeakAndMean(TwoDFts, paddedDimension, 0, lPlaneIndex,
+                        irFrequencyRange, &maxIMSE, &meanIMSE))!=ERROR_NONE){
+                        fclose(outputFile);
+                        return enErrorNumber;
+                    }
+
+                    fprintf(outputFile, "\t%f", maxIMSE/meanIMSE);
+                }
+            }
+            fprintf(outputFile, "\n");
+            fprintf(stderr, "\n");
+        }
+
+        fclose(outputFile);
+    }
+
+	return ERROR_NONE;
+}
+
+ERROR_NUMBER getImsePeakAndMean(COMPLEX ***TwoDFts, int dimension, int refIndex, int targetIndex, IntRange irFrequencyRange,
+                                float *maxIMSE, float *meanIMSE){
+
+	ERROR_NUMBER	enErrorNumber;
+	ComplexPlane    cpComplexPlane;
+	float			fIncrementInDegrees=2.0f*(float)(asin(0.5/irFrequencyRange.iMax)/DEGREES2RADIANS);
+	float			**fppRefSamples, **fpTargetSamples, fComparisonMetric;
+	long			lPlaneIndex, lNumTargetSamples, lNumRefSamples, lTargetIndex, lRefIndex;
+
+	// Make reference samples
+	lNumRefSamples=Round(180.0f/fIncrementInDegrees)-1;
+	cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
+	cpComplexPlane.Data=TwoDFts[refIndex];
+	if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
+		irFrequencyRange, &fppRefSamples, &lNumRefSamples))!=ERROR_NONE){
+		return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Make target array
+    lNumTargetSamples=Round(360.0f/fIncrementInDegrees);
+    cpComplexPlane.iColumns=cpComplexPlane.iRows=dimension;
+    cpComplexPlane.Data=TwoDFts[targetIndex];
+    if ((enErrorNumber=MakeRadialPhaseSampleArray(cpComplexPlane, fIncrementInDegrees,
+        irFrequencyRange, &fpTargetSamples, &lNumTargetSamples))!=ERROR_NONE)
+    {
+        for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
+            free(fppRefSamples[lRefIndex]);
+        free(fppRefSamples);
+        return enErrorNumber;
+    }
+
+    // Process samples from reference and target plane
+    *maxIMSE = *meanIMSE = 0;
+    for (lTargetIndex=0; lTargetIndex<=lNumTargetSamples; ++lTargetIndex)
+    {
+        // Compare target samples against each reference sample using multiplicative inverse of
+        //	mean square distance (MSD)
+        for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex)
+        {
+            // Get comparison metric between the two samples
+            if ((enErrorNumber=ComparePhaseSamples(fpTargetSamples[lTargetIndex], fppRefSamples[lRefIndex],
+                irFrequencyRange, &fComparisonMetric))!=ERROR_NONE)
+            {
+                for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex) free(fppRefSamples[lRefIndex]);
+                free(fppRefSamples);
+                for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+                free(fpTargetSamples);
+                return enErrorNumber;
+            }
+
+            // Update mean
+            *meanIMSE += fComparisonMetric;
+
+            // Update max
+            if (fComparisonMetric>*maxIMSE) *maxIMSE = fComparisonMetric;
+        }
+    }
+
+    *meanIMSE /= lNumTargetSamples*lNumRefSamples;
+
+    // Cleanup
+    for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex) free(fppRefSamples[lRefIndex]);
+    free(fppRefSamples);
+    for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+    free(fpTargetSamples);
 
 	return ERROR_NONE;
 }

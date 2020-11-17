@@ -311,8 +311,13 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 	if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
 
     // Get real world voxel sizes
+    float xDim = fabs(DSET_DX(din));
     float yDim = fabs(DSET_DY(din));
     float zDim = fabs(DSET_DZ(din));
+
+    zDim=yDim/zDim;
+    xDim=yDim/xDim;
+    yDim=1.0f;
 
     if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
 
@@ -533,6 +538,9 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
     // Get real world voxel sizes
     float xDim = fabs(DSET_DX(din));
     float yDim = fabs(DSET_DY(din));
+
+    xDim=yDim/xDim;
+    yDim=1.0f;
 
 	int q, prevX;
 	flt prevY, v;
