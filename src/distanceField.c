@@ -20,9 +20,13 @@ EROSION - Erosion algorithm.
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "mrilib.h"
+#include "distanceField.h"
+/*
 #include "errors.h"
 #include "Generic.h"
+*/
 #include <float.h>
 
 
@@ -44,7 +48,7 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n);
 void edt_local(float scale, flt * f, int n);
 float sqr(float x);
 static flt vx(flt * f, int p, int q);
-Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz);
+bool sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz);
 int getIndex(int x, int y, int z, int nx, int ny, int nz);
 int transposeYZ(float *volume, int nx, int ny, int nz);
 int testTransposeFunction(THD_3dim_dataset * din);
@@ -52,6 +56,7 @@ int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz
 int shortToByte(THD_3dim_dataset ** din);
 ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices);
 ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din);
+int usage();
 
 float sqr(float x){
     return x*x;
@@ -85,8 +90,12 @@ int main( int argc, char *argv[] )
                 return ERROR_UNRECOGNIZABLE_SPECIES;
             }
             break;
+            default:
+                return usage();
         }
     }
+
+    if (!inputFileName) return usage();
 
     // Open dataset
     if ( (errorNumber=open_input_dset(&din, inputFileName))!=ERROR_NONE ){
@@ -98,7 +107,6 @@ int main( int argc, char *argv[] )
         Cleanup(inputFileName, din);
         return ERROR_MEMORY_ALLOCATION;
     }
-
 
     // Apply metric
     switch (metric){
@@ -120,6 +128,21 @@ int main( int argc, char *argv[] )
     outputDistanceField(outImg, din, metric);
 
     Cleanup(inputFileName,  din);
+
+    return 0;
+}
+
+int usage(){
+    fprintf(stderr, "SYNOPSIS:\n");
+        fprintf(stderr, "\tdistanceField -i <input filename> [-m <metric>]\n\n");
+
+    fprintf(stderr, "The input file is expected to be an AFNI dataset.\n\n");
+
+    fprintf(stderr, "The \"metric\" is a text string (upper case) describing the algorithm used to\n");
+    fprintf(stderr, "estimate the depth. It may be one of the following.\n");
+    fprintf(stderr, "MARCHING_PARABOLAS - Marching parabolas (default)\n");
+    fprintf(stderr, "EROSION - Erosion algorithm.\n");
+
     return 0;
 }
 
@@ -173,7 +196,7 @@ static int erosion(THD_3dim_dataset * din, float *outImg){
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
     int i;
-    Boolean objectVoxelsLeft=TRUE;
+    bool objectVoxelsLeft=TRUE;
     BYTE * buffer;
 
 /*
@@ -218,7 +241,7 @@ static int erosion(THD_3dim_dataset * din, float *outImg){
     return ERROR_NONE;
 }
 
-Boolean sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz){
+bool sixConnectedAllHi(BYTE *buffer, int index, int nx, int ny, int nz){
     int planeSize = nx*ny;
     int z = (int)(index/planeSize);
     int y = (int)((index-z*planeSize)/nx);
@@ -256,6 +279,7 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
 
 	DSET_load(din);
     int brickType=DSET_BRICK_TYPE(din, 0);
+    fprintf(stderr, "brickType=%d\n", brickType);
     switch(brickType){
         case MRI_byte:
             byteImg = DSET_ARRAY(din, 0);
@@ -417,16 +441,17 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices){
     int *buffer;
     int i, j, voxelValue;
-    Boolean    old;
+    bool    old;
 
     // Initialize
     *numIndices = 0;
-    if (!(buffer=(int *)malloc(nvox*sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+    if (!(buffer=(int *)calloc(nvox,sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
 
     // Count unique indices and fill buffer with set of indices
     for (i=0; i<nvox; ++i) if ((voxelValue=inputImg[i])>0){
         old = false;
-        for (j=0; j<*numIndices; ++j) if ((*indices)[j]==voxelValue) old = true;
+        // for (j=0; j<*numIndices; ++j) if ((*indices)[j]==voxelValue) old = true;    // Core dump
+        for (j=0; j<*numIndices; ++j) if (buffer[j]==voxelValue) old = true;
         if (!old){
             buffer[(*numIndices)++]=voxelValue;
         }
