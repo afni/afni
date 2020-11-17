@@ -201,6 +201,12 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    keywordexpr = config.option.keyword
+    markexpr = config.option.markexpr
+    if keywordexpr or markexpr:
+        # let pytest handle this, runveryslow or runslow flags would not have been used
+        return
+
     skipping_veryslow_tests = not config.getoption("--runveryslow")
     skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
     skipping_slow_tests = not (

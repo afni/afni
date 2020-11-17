@@ -371,6 +371,21 @@ def parse_user_args(user_args=None, tests_dir=None):
             "Use pytest execution modifiers or manual pytest management, not both"
         )
 
+    # runslow and runveryslow options are shortcuts... more extensive
+    # selection should use -m and -k options (marker and keyword expressions).
+    # The latter pair cannont be combined with the shortcuts.
+    if (args.runslow or args.runveryslow) and (
+        args.marker_expression or args.filter_expr
+    ):
+        print(
+            "ERROR: Cannot use marker or keyword filtering with the "
+            "--runslow or --runveryslow options. You can instead "
+            "include the slow and veryslow markers in the expression "
+            "passed to --marker-expression. e.g. run_afni_tests.py -m 'slow and "
+            "combinations' "
+        )
+        sys.exit(1)
+
     return args
 
 
