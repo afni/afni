@@ -197,7 +197,6 @@ def get_parser(tests_dir=None, return_subparsers=False):
             "compare against that is not the default data saved in the "
             "datalad repository afni_ci_test_data. "
         ),
-        action="store_true",
     )
 
     pytest_mod.add_argument(
