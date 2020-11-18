@@ -80,10 +80,10 @@ def get_combinations_labels(params, options_combined, option_key):
     for combination in options_combined:
         # get each label associated with each cmd flag
         labels = [rev_lookup[x] for x in combination]
-        comb_labels = " + ".join(labels)
+        comb_labels = "_and_".join(labels)
         # create a label prefix for combination groups
         if len(combination) not in [1, len(params)]:
-            comb_labels = "Combo: " + comb_labels
+            comb_labels = comb_labels + " combined"
 
         # Append the label constructed for this cmd flag combination
         labels_out.append(comb_labels)

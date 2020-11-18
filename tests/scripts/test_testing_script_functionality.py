@@ -1550,22 +1550,22 @@ def test_get_param_combinations():
     expected = [
         *sorted(input_params, key=lambda x: x[1]["extra_args"]),
         pytest.param(
-            "Combo: e2a + another test",
+            "e2a_and_another test combined",
             {"extra_args": "-epi2anat -for_shizzur"},
             marks=pytest.mark.combinations,
         ),
         pytest.param(
-            "Combo: e2a + giant_move",
+            "e2a_and_giant_move combined",
             {"extra_args": "-epi2anat -giant_move"},
             marks=pytest.mark.combinations,
         ),
         pytest.param(
-            "Combo: another test + giant_move",
+            "another test_and_giant_move combined",
             {"extra_args": "-for_shizzur -giant_move"},
             marks=pytest.mark.combinations,
         ),
         (
-            "e2a + another test + giant_move",
+            "e2a_and_another test_and_giant_move",
             {"extra_args": "-epi2anat -for_shizzur -giant_move"},
         ),
     ]
