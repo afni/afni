@@ -23,11 +23,7 @@ EROSION - Erosion algorithm.
 #include <stdbool.h>
 #include "mrilib.h"
 #include "distanceField.h"
-/*
-#include "errors.h"
-#include "Generic.h"
-*/
-#include <float.h>
+#include <float.h>k
 
 
 typedef float flt;
