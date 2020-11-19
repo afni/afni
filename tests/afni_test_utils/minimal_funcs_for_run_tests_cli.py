@@ -28,16 +28,16 @@ VALID_VERBOSITY_MODES = [
 
 def parse_user_args(user_args=None, tests_dir=None):
     parser = argparse.ArgumentParser(
-        description=""" run_afni_tests.py is a wrapper script to help run
-        tests for the AFNI suite of tools. This wrapping is an attempt to
-        reduce the burden of executing tests and to facilitate the various
-        usage patterns. Such usage patterns include: running the tests using
-        dependencies installed on the local host; using a container to
-        encapsulate most build/testing dependencies; making use of the cmake
-        build system to make the iterative process of changing code and
-        running tests easier; running the tests while making use of all the
-        cores on the computer; subsetting the tests that are executed during a
-        test run.""",
+        description="""
+        run_afni_tests.py is a wrapper script to help run tests for the AFNI
+        suite of tools. This wrapping is an attempt to reduce the burden of
+        executing tests and to facilitate the various usage patterns. Such
+        usage patterns include: running the tests using dependencies installed
+        on the local host; using a container to encapsulate most build/testing
+        dependencies; making use of the cmake build system to make the
+        iterative process of changing code and running tests easier; running
+        the tests while making use of all the cores on the computer;
+        subsetting the tests that are executed during a test run.""",
         add_help=False,
     )
     parser.add_argument(

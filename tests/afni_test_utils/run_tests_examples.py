@@ -52,7 +52,7 @@ pytest scripts --tb=no --no-summary --show-capture=no"
 (where scripts is a directory containing python test scripts, and pytest is a
 python tool used for running a test suite)
 
-The above test run (by this I mean 'execution of tests') implicitly uses the version found
+The above test run (by this I mean 'execution of tests') implicitly uses the AFNI software found
 first on the PATH.
 
 ### Explicitly defining the installation directory
@@ -60,8 +60,8 @@ first on the PATH.
     {examples['specifying the installation directory']}
 
 The above will make sure that the intended version of AFNI programs are found
-(including the python libraries contained in afnipy). It will fail if the
-afnipy package is installed.
+(including the python libraries contained in the afnipy subdirectory). It will raise an error if the
+afnipy package is installed into your current interpreter.
 
 ### Making use of the cmake build system
 
@@ -196,7 +196,7 @@ always work but the basic approach to doing this is:
    pretend we have a single test that is failing and we can rerun only that
    using the --lf selector for last failed tests.
 
-   run_afni_tests.py --lf -vvvvv local
+    run_afni_tests.py --lf -vvvvv local
 
 2. You may have to modify the PATH to reproduce the test. For example, when
    using the --build-dir option, you will have to modify the PATH variable
@@ -233,7 +233,7 @@ using this configuration will take a substantial performance hit due to IO on
 mounted volumes. You should only suffer the first time though. After that,
 minimal rebuilds will make this issue less significant.
 
-  {examples['container with source and build dirs mounted']}
+    {examples['container with source and build dirs mounted']}
 
 ### Reuse the pre-existing build in the container.
 
@@ -244,7 +244,7 @@ test your most recent source tree inside a container though, and you may still
 get some speed up from using the pre-existing build (compared to the previous
 configuration described).
 
-  {examples['container reusing build dir']}
+    {examples['container reusing build dir']}
 
 ### Build/test the image locally
 
@@ -262,14 +262,14 @@ This avoids permissions/performance issues but still allows for some
 flexibility. It is useful for iterating on test code while testing the
 binaries that were installed into the container.
 
-  {examples['container reusing test dir']}
+    {examples['container reusing test dir']}
 
 ## Getting help with the setup for testing
 
 The readme in the tests directory for setting up your environment for testing
 can be viewed with the following command:
 
-  {examples['help with installation']}
+    {examples['help with installation']}
 
 """
 
