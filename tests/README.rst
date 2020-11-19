@@ -29,11 +29,9 @@ run_afni_tests.py helper.
 Quickest and minimal setup
 --------------------------
 
-Once you execute the following commands you will be able to test a
-typical AFNI-suite installation on your system. For a basic working
-setup for running these tests execute the following commands (note you
-need `conda
-installed <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`__):
+1. Install `conda <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`__
+
+2. Execute the following commands:
 
 ::
 
@@ -47,7 +45,7 @@ This will install the dependencies required for basic testing into a
 conda environment and then activates the environment. Each time you wish
 to run the tests on a fresh terminal you must activate this environment.
 
-N.B. You cannot set the environment variable PYTHONPATH when using this
+**N.B.** You cannot set the environment variable PYTHONPATH when using this
 tool
 
 Setup for containerized execution
@@ -56,45 +54,41 @@ Setup for containerized execution
 These instructions must be followed if you wish to use the container
 subcommand of the run_afni_tests.py tool.
 
-1. Complete the setup steps listed in the section for a minimal setup.
+1. Complete the setup steps listed in the previous  section for a minimal setup.
 2. Install the `docker <https://docs.docker.com/get-docker/>`__ software
 
 Running tests against your own AFNI build
 -----------------------------------------
 
-1. You must have already completed the steps in the previous setup
+1. You must have already completed the steps in the previous minimal setup
    instructions.
 
-2. Note that if you wish to build your own version of AFNI you will need
-   to have the system dependencies installed. Consider following the
+2. You will need to have the system dependencies installed. Consider following the
    `installation
    instructions <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/index.html>`__
-   for AFNI now. AFNI also has a build that uses CMake for improved
-   cross-platform compatibility. It has various other advantages. You
-   may wish to check it out
-   `here <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/index.html>`__
+   for AFNI now.
 
-3. At this point you have one final dependency to think about and that
-   is the python code in the AFNI source repository. If you are using
-   the –build option you will need to install this into your current
-   python interpreter:
+3. You will either need to follow the instructions option 'a' or 'b'.
 
-From the base directory of AFNI source code:
+a) If you are using the –build option you will need to install afnipy into your current
+   python interpreter. From the base directory of AFNI source code:
 
 ::
 
    pip install src/python_scripts
 
-When you are testing an system installation of AFNI or if you provide a
-build directory to the test tool using the –abin option, you cannot have
-afnipy installed. You will encounter an error if this is the case. It is
-easily resolved:
+b) If you are testing a system installed AFNI or testing a build directory
+   when using the --abin flag you cannot have afnipy installed. You will
+   encounter an error if this is the case. It is easily resolved:
 
 ::
 
    pip uninstall afnipy
 
-See subsequent sections for alternative setups.
+**N.B.** AFNI also has a build that uses CMake for improved cross-platform
+compatibility. It has various other advantages. You may wish to check it out
+`here <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/index.html>`__
+
 
 Other help
 ----------
