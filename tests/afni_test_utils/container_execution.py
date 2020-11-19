@@ -546,6 +546,8 @@ def unparse_args_for_container(tests_dir, **kwargs):
             cmd += f' --extra-args="{v}"'
         elif k == "filter_expr":
             cmd += f' -k="{v}"'
+        elif k == "marker_expression":
+            cmd += f" -m='{v}'"
         elif k == "verbosity":
             cmd += f" -v {v}"
         elif k == "file":

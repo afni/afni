@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 
 
-RUN apt-get update && apt-get install -y wget sudo \
+RUN apt-get update && apt-get install -y wget sudo locales \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # The gpg key import is a little flaky...
@@ -22,6 +22,8 @@ ENV SHELL=/bin/bash \
     CONTAINER_GID="100" \
     PYTHONUSERBASE=/opt/user_pip_packages \
     TINI_SUBREAPER="" \
+    LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
     AFNI_ROOT=/opt/afni/src
 
 ENV DESTDIR="$AFNI_ROOT/../install" \
@@ -31,7 +33,7 @@ ENV DESTDIR="$AFNI_ROOT/../install" \
 # should be set in /etc/environment (variables set by ENV do not cleanly
 # propagate to all users). Should do this for PATH again later in the dockerfile (or
 # child files)
-ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER"
+ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER LC_ALL"
 RUN bash -c 'for val in $PRESERVED_VARS;do \
              echo $val=${!val} >> /etc/environment ; \
              done'
@@ -51,7 +53,10 @@ RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     useradd -m -s /bin/bash -N -u $CONTAINER_UID $CONTAINER_USER && \
     chmod g+w /etc/passwd && \
-    fix-permissions $HOME
+    fix-permissions $HOME \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+        && dpkg-reconfigure --frontend=noninteractive locales \
+        && update-locale LANG="en_US.UTF-8"
 
 # Install runtime and basic dependencies
 RUN apt-get update && apt-get install -y eatmydata && \

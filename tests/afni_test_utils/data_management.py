@@ -110,9 +110,9 @@ def get_base_comparison_dir_path(config_obj):
     """If the user does not provide a comparison directory a default in the
     test data directory is used. The user can specify a directory containing
     the output of a previous test run or the "sample" output that is created
-    by a previous test run when the "--create_sample_output" flag was provided.
+    by a previous test run when the "--create-sample-output" flag was provided.
     """
-    comparison_dir = config_obj.getoption("--diff_with_outdir")
+    comparison_dir = config_obj.getoption("--diff-with-sample")
     if comparison_dir is not None:
         return Path(comparison_dir).absolute()
     else:
@@ -185,8 +185,8 @@ def get_data_fixture(pytestconfig, request, output_dir):
             "tests_data_dir": tests_data_dir,
             "test_name": test_name,
             "rootdir": pytestconfig.rootdir,
-            "create_sample_output": pytestconfig.getoption("--create_sample_output"),
-            "save_sample_output": pytestconfig.getoption("--save_sample_output"),
+            "create_sample_output": pytestconfig.getoption("--create-sample-output"),
+            "save_sample_output": pytestconfig.getoption("--save-sample-output"),
         }
     )
 
