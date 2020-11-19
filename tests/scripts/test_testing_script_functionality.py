@@ -444,8 +444,8 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
 
     # Write run_afni_tests.py to an executable/importable path
     mocked_script.write_text(SCRIPT.read_text())
-    # ./README.md needs to exist
-    (mocked_script.parent / "README.md").write_text("some content")
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
     run_script_and_check_imports(
         mocked_script, argslist, expected, not_expected, monkeypatch
     )
@@ -469,7 +469,7 @@ def test_installation_help_from_anywhere(mocked_script, monkeypatch):
         with pytest.raises(FileNotFoundError):
             run_main_func(script_imported, sys_exit=True)
 
-        (mocked_script.parent / "README.md").write_text("some content")
+        (mocked_script.parent / "README.rst").write_text("some content")
         run_main_func(script_imported, sys_exit=True)
 
 
