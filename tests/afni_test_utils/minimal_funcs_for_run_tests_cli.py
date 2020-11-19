@@ -26,7 +26,7 @@ VALID_VERBOSITY_MODES = [
 ]
 
 
-def parse_user_args(user_args=None, tests_dir=None):
+def get_parser(tests_dir=None,return_subparsers=False):
     parser = argparse.ArgumentParser(
         description="""
         run_afni_tests.py is a wrapper script to help run tests for the AFNI
@@ -320,7 +320,14 @@ def parse_user_args(user_args=None, tests_dir=None):
         action="store_true",
         help="Include a verbose explanation along with the examples",
     )
+    if return_subparsers:
+        return parser,local, container, examples
+    else:
+        return parser
 
+
+def parse_user_args(user_args=None, tests_dir=None):
+    parser, local, container, examples = get_parser(tests_dir=tests_dir,return_subparsers=True)
     args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
