@@ -14,6 +14,9 @@ WORKDIR $AFNI_ROOT/../build
 RUN \
     export CC=`which gcc`;\
     if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then\
+        cd $AFNI_ROOT;\
+        mkdir build;\
+        cd build;\
         export CXXFLAGS="-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"; \
         export CFLAGS="-g -O0 -Wall -W -fprofile-arcs -ftest-coverage"; \
         export LDFLAGS="-fprofile-arcs -ftest-coverage";\
@@ -29,7 +32,8 @@ RUN \
         $AFNI_ROOT
 
 RUN /bin/bash -oc pipefail \
-'ninja -v 2>&1 | tee verbose_build.log && test ${PIPESTATUS[0]} -eq 0'
+    'if [[ ! "$AFNI_WITH_COVERAGE" == "0" ]];then cd $AFNI_ROOT/build;fi &&\
+    ninja -v 2>&1 | tee verbose_build.log && test ${PIPESTATUS[0]} -eq 0'
 
 # install provided it is not a coverage build (which is much larger and so not installed)
 RUN if [[ "$AFNI_WITH_COVERAGE" == "0" ]];then ninja install && fix-permissions $DESTDIR;fi
