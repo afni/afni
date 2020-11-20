@@ -9,7 +9,7 @@
 
 
 def run(ps, delayed):
-    from afni_python import construct_template_graph
+    from afnipy import construct_template_graph
     import importlib
     importlib.reload(construct_template_graph)
 

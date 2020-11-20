@@ -19,11 +19,11 @@ daskmode = "None"  # by default, don't use dask. Just use single computer linear
 
 import os
 from time import sleep
-from afni_python.pipeline_utils import TemplateConfig
+from afnipy.pipeline_utils import TemplateConfig
 from dask import delayed
 # AFNI modules
 
-from afni_python import construct_template_graph
+from afnipy import construct_template_graph
 
 
 g_help_string = """
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     # if doing anything "Dasky" (multi-tasking on cluster or multi-threaded processes)
     if (daskmode != "None"):
         # Commented out code allows one to update worker environment on the fly.
-        # from afni_python import dask_job_wrapper
+        # from afnipy import dask_job_wrapper
         # task_graph = dask_job_wrapper.run(ps,delayed,client) # useful for reloading modules
         # Display dashboard address for both local and cluster clients
         print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)

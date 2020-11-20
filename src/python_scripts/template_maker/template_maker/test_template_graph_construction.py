@@ -1,23 +1,23 @@
 # Debugging dask workflows
 
 from pathlib import Path
-import pandas as pd
 import os
 import time
 from distutils.spawn import find_executable
 import subprocess
+import pytest
+pd = pytest.importorskip("pandas", reason="pandas is not installed")
 
 # Imports for dask
 from dask.distributed import Client, LocalCluster
 from dask import delayed
 
 # Imports for using AFNI
-import afni_python
-import afni_python.afni_base as ab
-from afni_python import construct_template_graph
-from afni_python.pipeline_utils import TemplateConfig
+import afnipy
+import afnipy.afni_base as ab
+from afnipy import construct_template_graph
+from afnipy.pipeline_utils import TemplateConfig
 import sys
-import pytest
 
 base_path = Path("ds000117_subset")
 subjects = [f"sub-{x:02d}" for x in range(1, 5)]

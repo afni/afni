@@ -9,9 +9,9 @@ import inspect
 # sys.path.append('/data/NIMH_SSCC/template_making/scripts')
 
 # AFNI modules
-import afni_python.afni_base as ab
-import afni_python.afni_util as au
-from afni_python.option_list import OptionList, read_options
+import afnipy.afni_base as ab
+import afnipy.afni_util as au
+from afnipy.option_list import OptionList, read_options
 
 # from align_epi_anat import RegWrap
 
@@ -39,11 +39,11 @@ def change_to_afni(dset, ps):
     """Converts a dataset object from a nifti to a BRIK and copies the file on disk.
 
     Args:
-        dset (afni_python.afni_name(strict=True)): Dataset object to be converted
+        dset (afnipy.afni_name(strict=True)): Dataset object to be converted
         ps (TemplateConfig): Contains user specified options.
 
     Returns:
-        dset_afni (afni_python.afni_name(strict=True)): Converted dataset object.
+        dset_afni (afnipy.afni_name(strict=True)): Converted dataset object.
     """
 
     # strict afni_name objects always have a relative initname
@@ -69,12 +69,12 @@ def change_to_nifti(dset_afni, ps, out_ext):
     """Converts a dataset object from aBRIK to a nifti and copies the file on disk.
 
     Args:
-        dset_afni (afni_python.afni_name(strict=True)): Dataset object to be converted
+        dset_afni (afnipy.afni_name(strict=True)): Dataset object to be converted
         ps (TemplateConfig): Contains user specified options.
         out_ext (str): Extension defined by get_out_ext.
 
     Returns:
-        dset (afni_python.afni_name(strict=True)): Converted dataset object.
+        dset (afnipy.afni_name(strict=True)): Converted dataset object.
     """
     with working_directory(dset_afni.initpath):
         if dset_afni.is_strict:
@@ -98,7 +98,7 @@ def get_out_ext(dsets):
     default to .nii.gz
 
     Args:
-        dsets (list of afni_python.afni_name objects): Datasets serving as
+        dsets (list of afnipy.afni_name objects): Datasets serving as
         input to make_nii_compatible function.
 
     Returns:
@@ -281,7 +281,7 @@ def prepare_afni_output(dset, suffix, view=None, basepath=None):
     the original object. A suffix is appended to create a different filename though.
 
     Args:
-        dset (afni_base.afni_name): An instance of afni_python.afni_base
+        dset (afni_base.afni_name): An instance of afnipy.afni_base
         created with strict=True
         suffix (str): A string to add to the filename (after the basename and
         before view or extension). If '_' is not at the start it is prepended.
@@ -297,7 +297,7 @@ def prepare_afni_output(dset, suffix, view=None, basepath=None):
         raise ValueError(
             "Inputs to prepare_afni_output must be strict"
             " datasets. This is created using "
-            "afni_python.afni_base.afni_name(<name>,strict=True).% s is not."
+            "afnipy.afni_base.afni_name(<name>,strict=True).% s is not."
             % dset.rel_input()
         )
 

@@ -10,9 +10,9 @@
 #
 # ===========================================================================
 
-import afni_python.afni_base as ab
+import afnipy.afni_base as ab
 
-from afni_python.pipeline_utils import (
+from afnipy.pipeline_utils import (
     ShellComFuture,
     run_check_afni_cmd,
     prepare_afni_output,
