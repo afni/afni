@@ -178,6 +178,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 
 #else  /* not USE_OMP */
 
+#define AOth       0
 #define AO_NTH_MAX 1
 
 #define AO_DEFINE_SCALAR(typ,nam)   static typ AO##nam
@@ -185,9 +186,13 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #define AO_DEFINE_ARRAY(typ,nam)    static typ *AO##nam; static int AOL##nam
 
 #define AO_DEFINE_2DARRAY(typ,nam)  static typ **AO##nam ;             \
-                                    static int AOL1##nam , AOL2##nam ;
+                                    static int AOL1##nam , AOL2##nam
 
 #define AO_VALUE(nam)               AO##nam
+
+#define AO_ARRAY_LEN(nam)           AOL##nam
+#define AO_2DARRAY_LEN1(nam)        AOL1##nam
+#define AO_2DARRAY_LNE2(nam)        AOL2##nam
 
 #define AO_RESIZE_ARRAY(typ,nam,len)                        \
   do{ if( AOL##nam < len ){                                 \

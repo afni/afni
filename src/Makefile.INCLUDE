@@ -1365,7 +1365,7 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
 
-3dBallMatch.o:3dBallMatch.c thd_ballcorr.c csfft_OMP.c
+3dBallMatch.o:3dBallMatch.c thd_ballcorr.c fftn_OMP.c
 	$(RM) $@
 	$(CCOMP) -c 3dBallMatch.c $(INFLAGS)
 

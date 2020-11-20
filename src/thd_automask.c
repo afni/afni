@@ -57,6 +57,11 @@ void THD_automask_set_cheapo( int n ){ cheapo = n; } /* 13 Aug 2007 */
 
 /*---------------------------------------------------------------------*/
 
+static int onlypos = 0 ;
+void THD_automask_set_onlypos( int n ){ onlypos = n; } /* 09 Nov 2020 */
+
+/*---------------------------------------------------------------------*/
+
 INLINE int mask_count( int nvox , byte *mmm )
 {
    register int ii , nn ;
@@ -131,13 +136,11 @@ byte * THD_automask( THD_3dim_dataset *dset )
 
 ENTRY("THD_automask") ;
 
-   /* median at each voxel */
+   /* average at each voxel */
 
-#if 0
-   medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
-#else
-   medim = THD_aveabs_brick(dset) ; if( medim == NULL ) RETURN(NULL);
-#endif
+   if( onlypos ) medim = THD_avepos_brick(dset) ;
+   else          medim = THD_aveabs_brick(dset) ;
+   if( medim == NULL ) RETURN(NULL);
 
    mmm = mri_automask_image( medim ) ;
 

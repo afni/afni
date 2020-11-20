@@ -175,3 +175,42 @@ float MAT44_angle( mat44 amat , mat44 bmat )
    if( v1 < v2 ) v2 = v1 ;
    return v2 ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* Rotation matrix of angle theta (radians)
+   about the axis along vector (ax,ay,az) - right hand rule. [05 Nov 2020 RWC]
+   See https://mathworld.wolfram.com/RodriguesRotationFormula.html
+*//*-------------------------------------------------------------------------*/
+
+mat33 THD_mat33_generic_rotation( float theta, float ax, float ay, float az )
+{
+   mat33 mrot ;
+   float aqq , cth,sth,omc ;
+
+   LOAD_IDENT_MAT33(mrot) ;                 /* identity matrix */
+
+   if( theta == 0.0f ) return mrot ;        /* that was easy */
+
+   aqq = sqrtf( ax*ax + ay*ay + az*az ) ;
+   if( aqq == 0.0f )   return mrot ;        /* hopeless loser user */
+
+   ax /= aqq ; ay /= aqq ; az /= aqq ;      /* L2 normalize axis vector */
+
+   cth = cosf(theta) ;
+   sth = sinf(theta) ;
+   omc = sin(0.5f*theta) ; omc = 2.0f * omc*omc ;  /* omc = 1 - cos(theta) */
+
+   mrot.m[0][0] = cth + ax*ax*omc          ;       /* first row */
+   mrot.m[0][1] =       ax*ay*omc - az*sth ;
+   mrot.m[0][2] =       ax*az*omc + ay*sth ;
+
+   mrot.m[1][0] =       ay*ax*omc + az*sth ;       /* second row */
+   mrot.m[1][1] = cth + ay*ay*omc          ;
+   mrot.m[1][2] =       ay*az*omc - ax*sth ;
+
+   mrot.m[2][0] =       az*ax*omc - ay*sth ;       /* third row */
+   mrot.m[2][1] =       az*ay*omc + ax*sth ;
+   mrot.m[2][2] = cth + az*az*omc          ;
+
+   return mrot ;
+}

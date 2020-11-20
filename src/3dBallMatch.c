@@ -1,4 +1,3 @@
-#undef USE_OMP
 #include "mrilib.h"
 
 /*---------------------------------------------------------------------*/
@@ -16,10 +15,13 @@ void Bmatch_help(void) ;  /* prototype for the .... help */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset ;
-   float brad=72.0f ;
+   THD_3dim_dataset *dset=NULL ;
+   float arad=72.0f , brad=0.0f ;
    int_triple ijkout ;
    THD_ivec3 ijk_vec ; THD_fvec3 xyzshift_vec , xyzdicom_vec ;
+
+   float_triple avec , bvec ;
+   float dtheta=(PI/180.0)*15.0 ; int ntheta=2 , iarg ;
 
    /* help help help */
 
@@ -27,22 +29,87 @@ int main( int argc , char *argv[] )
      Bmatch_help() ; exit(0) ;
    }
 
+   /* check inputs */
+
+   iarg = 1 ;
+   while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-input") == 0 ){
+       if( dset   != NULL ) ERROR_exit("Can't use %s more than once!" ,argv[iarg]) ;
+       if( ++iarg >= argc ) ERROR_exit("Option '%s' needs an argument",argv[iarg-1]) ;
+       dset = THD_open_dataset( argv[iarg] ) ;
+       if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-ball") == 0 || strcasecmp(argv[iarg],"-sphere") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Option '%s' needs an argument",argv[iarg-1]) ;
+       arad = (float)strtod(argv[iarg],NULL) ;
+       if( arad <= 7.0f )   ERROR_exit("Option '%s %s' should be a positive radius",
+                                       argv[iarg-1] , argv[iarg] ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-spheroid") == 0 ){
+       if( ++iarg >= argc-1 ) ERROR_exit("Option '%s' needs 2 arguments",argv[iarg-1]) ;
+       arad = (float)strtod(argv[iarg],NULL) ; iarg++ ;
+       brad = (float)strtod(argv[iarg],NULL) ; iarg++ ;
+
+       if( arad <= 7.0f )   ERROR_exit("Option '%s %s' should be a positive radius",
+                                       argv[iarg-2] , argv[iarg-1] ) ;
+       continue ;
+     }
+
+     /* why do I have to put up with this crapola any more? */
+
+     ERROR_message("Unknown option %s",argv[iarg]) ; iarg++ ; continue ;
+   }
+
    /* see if the user actually did something right for a change */
 
-   dset = THD_open_dataset( argv[1] ) ;
-   if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset %s",argv[1]) ;
-   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+   if( dset == NULL ){
+     if( iarg >= argc ) ERROR_exit("No input dataset?") ;
+     dset = THD_open_dataset( argv[iarg] ) ;
+     if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+     DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ; iarg++ ;
+   }
 
    /* do we have a really sophisticated user? */
 
-   if( argc > 2 ){
-     brad = (float)strtod(argv[2],NULL) ;
-     if( brad < 7.0f ) ERROR_exit("ball radius %g is too small",brad) ;
+   if( iarg < argc && isdigit(argv[iarg][0]) ){
+     arad = brad = (float)strtod(argv[iarg],NULL) ;
+     if( arad < 7.0f ) ERROR_exit("ball radius %g is too small",arad) ;
    }
 
    /* do all the REAL MANLY work */
 
-   ijkout = THD_mask_overlapation( dset , brad ) ;
+   if( brad <= 0.0f || brad == arad ){
+
+     ijkout = THD_ball_mask_overlapation( dset , arad ) ;
+
+   } else {
+     THD_fvec3 av0,av1,tvv ;
+
+     LOAD_FVEC3(tvv,0.0f,0.0f,0.0f) ;
+     av0 = THD_dicomm_to_3dmm( dset , tvv) ;
+     LOAD_FVEC3(tvv,0.0f,1.0f,0.0f) ;
+     av1 = THD_dicomm_to_3dmm( dset , tvv) ;
+     avec.a = av1.xyz[0] - av0.xyz[0] ;
+     avec.b = av1.xyz[1] - av0.xyz[1] ;
+     avec.c = av1.xyz[2] - av0.xyz[2] ;
+
+     LOAD_FVEC3(tvv,1.0f,0.0f,0.0f) ;
+     av1 = THD_dicomm_to_3dmm( dset , tvv) ;
+     bvec.a = av1.xyz[0] - av0.xyz[0] ;
+     bvec.b = av1.xyz[1] - av0.xyz[1] ;
+     bvec.c = av1.xyz[2] - av0.xyz[2] ;
+
+     ijkout = THD_spheroid_overlapation( dset ,
+                                         arad , avec ,
+                                         brad , bvec ,
+                                         dtheta , -ntheta , ntheta ) ;
+   }
 
    DSET_unload(dset) ; /* don't need the data no more */
 
@@ -69,9 +136,23 @@ int main( int argc , char *argv[] )
 void Bmatch_help(void)
 {
    printf("\n"
-    "------------------------------------\n"
-    "Usage:  3dBallMatch dataset [radius]\n"
-    "------------------------------------\n"
+    "--------------------------------------\n"
+    "Usage #1:  3dBallMatch dataset [radius]\n"
+    "--------------------------------------\n"
+    "\n"
+    "-----------------------------------------------------------------------\n"
+    "Usage #2:  3dBallMatch [options]\n"
+    "\n"
+    "where the pitifully few options are:\n"
+    "\n"
+    " -input dataset  =  read this dataset\n"
+    "\n"
+    " -ball  radius   =  set the radius of the 3D ball to match (mm)\n"
+    "\n"
+    " -spheroid a b   =  match with a spheroid of revolution, with principal\n"
+    "                    axis radius of 'a' and secondary axes radii 'b'\n"
+    "                    ++ this option is considerably slower\n"
+    "-----------------------------------------------------------------------\n"
     "\n"
     "-------------------\n"
     "WHAT IT IS GOOD FOR\n"
@@ -84,7 +165,7 @@ void Bmatch_help(void)
     "  origin is inside the brain and/or as a starting point for more refined\n"
     "  3D alignment. Sample scripts are given below.\n"
     "\n"
-    "* The reason for this script is that not all brain images are even\n"
+    "* The reason for this program is that not all brain images are even\n"
     "  crudely centered by using the center-of-mass ('3dAllineate -cmass')\n"
     "  as a starting point -- if the volume covered by the image includes\n"
     "  a lot of neck or even shoulders, then the center-of-mass may be\n"
@@ -93,6 +174,19 @@ void Bmatch_help(void)
     "* If you don't give a radius, the default is 72 mm, which is about the\n"
     "  radius of an adult human brain/cranium. A larger value would be needed\n"
     "  for elephant brain images. A smaller value for marmosets.\n"
+    "\n"
+    "* For advanced use, you could try a prolate spheroid, using something like\n"
+    "     3dBallMatch -input Fred.nii -spheroid 90 70\n"
+    "  for a human head image (that was not skull stripped). This option is\n"
+    "  several times slower than the 'ball' option, as multiple spheroids have\n"
+    "  to be correlated with the input dataset.\n"
+    "\n"
+    "* This program does NOT work well with datasets containing large amounts\n"
+    "  of negative values or background junk -- such as I've seen with animal\n"
+    "  MRI scans and CT scans. Such datasets will likely require some repair\n"
+    "  first, such as cropping (cf. 3dZeropad), to make this program useful.\n"
+    "\n"
+    "* Frankly, this program may not be that useful for any purpose :(\n"
     "\n"
     "* The output is text to stdout containing 3 triples of numbers, all on\n"
     "  one line:\n"
@@ -302,7 +396,7 @@ void Bmatch_help(void)
     " * Because a 'sphere' is a 2D object, the surface of the 3D object 'ball'.\n"
     " * Because my training was in mathematics, where precise terminology has\n"
     "   been developed and honed for centuries.\n"
-    " * Because I'm yanking your chain. Any other questions?\n"
+    " * Because I'm yanking your chain. Any other questions? No? Good.\n"
     "\n"
     "-------\n"
     "CREDITS\n"
