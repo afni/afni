@@ -605,13 +605,14 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.62" # software version (update for changes)
+      self.align_version = "1.63" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
       self.verb = 1    # a little talkative by default
       self.save_script = '' # save completed script into given file
       self.rewrite = 0 #Do not recreate existing volumes
+      self.ok_to_exist = 0 #Fail if weight data exists
       self.oexec = "" #dry_run is an option
       self.epi2anat = 0 # align epi to anat optionally
       self.anat2epi = 1 # align anat to epi by default
@@ -727,6 +728,10 @@ class RegWrap:
 
       self.valid_opts.add_opt('-overwrite', 0, [],\
                                helpstr="Overwrite existing files")
+      self.valid_opts.add_opt('-ok_to_exist', 0, [],
+               helpstr="For running align_epi2anat in parallel. This\n" 
+                       "flag allows a previous output of the weight dataset \n"
+                       "to be used.")
       self.valid_opts.add_opt('-big_move', 0, [], \
                helpstr="Large movement between epi and anat.\n"           \
                        "Uses twopass option for 3dAllineate.\n"           \
@@ -1850,6 +1855,11 @@ class RegWrap:
       if opt != None:
          ps.rewrite = 1
 
+      # user says it's okay if weight dataset exists
+      opt = self.user_opts.find_opt('-ok_to_exist')
+      if opt != None:
+         ps.ok_to_exist = 1
+
       opt = self.user_opts.find_opt('-edge')  # use internal edges to drive alignment
       if (opt != None):
          self.edge = 1
@@ -2095,8 +2105,9 @@ class RegWrap:
              olr.view = manat.view
 
       anatview = o.view
-
-      if (not o.exist() or ps.rewrite or ps.dry_run()):
+      if (o.exist and os.path.exists(self.anat_mat)) and ps.ok_to_exist:
+         print("Already exists. That's ok though. Continuing.")
+      elif (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          ow.delete(ps.oexec)
          if m:
@@ -3041,7 +3052,9 @@ class RegWrap:
                "%s -expr 'min(1,(a/%f))**%f'" \
                % (o.p(), o.out_prefix(), e.input(), th, sq), ps.oexec)
 
-      if (not o.exist() or ps.rewrite or ps.dry_run()):
+      if o.exist() and ps.ok_to_exist:
+         print("Already exists. That's ok though. Continuing.")
+      elif (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          com.run()
       else:
@@ -3254,6 +3267,8 @@ class RegWrap:
 		  
       self.anat.to_afni(new_view=dset_view(self.anat.ppve()))
 
+      if self.anat.exist() and ps.ok_to_exist:
+         print("Already exists. That's ok though. Continuing.")
       if (not self.anat.exist() or ps.rewrite or ps.dry_run()):
          com = shell_com( "3dcopy %s %s%s" % \
            (self.anat0.input(), self.anat.p(), self.anat.pv()), ps.oexec)
@@ -3336,7 +3351,7 @@ class RegWrap:
 #         com.run() 
 #         a_shft = n.new("%s_shft" % n.out_prefix(),"+orig")
 #         if (not a_shft.exist() and not ps.dry_run()):
-#            print "** ERROR: Could not shift anat (%d)" % a_shft.exist()
+#            print("** ERROR: Could not shift anat (%d)" % a_shft.exist())
 #            return None
 #         ps.anat_ns = a_shft
 #      else:
