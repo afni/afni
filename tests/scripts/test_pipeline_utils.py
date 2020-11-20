@@ -3,12 +3,20 @@ import os
 from pathlib import Path
 import pytest
 import collections
-import afni_python.afni_base as ab
+import afnipy.afni_base as ab
 
-from afni_python.pipeline_utils import (TemplateConfig, prepare_afni_output,
-                                        get_test_data, run_check_afni_cmd,
-                                        get_dict_diffs, ShellComFuture, working_directory,
-                                        change_to_afni, change_to_nifti, make_nii_compatible)
+from afnipy.pipeline_utils import (
+    TemplateConfig,
+    prepare_afni_output,
+    get_test_data,
+    run_check_afni_cmd,
+    get_dict_diffs,
+    ShellComFuture,
+    working_directory,
+    change_to_afni,
+    change_to_nifti,
+    make_nii_compatible,
+)
 
 import pprint
 import pickle
@@ -118,23 +126,30 @@ def test_afni_name():
     assert(dset_wd_brik.prefix == 'test')
 
     # Test effects of moving around directory
-    with working_directory('/'):
-        dset_old = ab.afni_name(TEST_ANAT_FILE.relative_to('/'))
-        assert(dset_old.initname == str(TEST_ANAT_FILE.relative_to('/')))
-        assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent / dset_old.pve()))
-        assert(dset_old.initpath + dset_old.initname == str(TEST_ANAT_FILE))
-        assert(dset_old.ppve() == dset_old.p() +
-               dset_old.prefix + dset_old.view + dset_old.extension)
-    assert(dset_old.initname == str(TEST_ANAT_FILE.relative_to('/')))
-    assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent.resolve() / dset_old.pve()))
-    assert(dset_old.ppve() == dset_old.p() +
-           dset_old.prefix + dset_old.view + dset_old.extension)
-    assert(dset_old.initpath == '/')
+    with working_directory("/"):
+        dset_old = ab.afni_name(TEST_ANAT_FILE.relative_to("/"))
+        assert dset_old.initname == str(TEST_ANAT_FILE.relative_to("/"))
+        assert dset_old.ppve() == str(TEST_ANAT_FILE.parent / dset_old.pve())
+        assert dset_old.initpath + dset_old.initname == str(TEST_ANAT_FILE)
+        assert (
+            dset_old.ppve()
+            == dset_old.p() + dset_old.prefix + dset_old.view + dset_old.extension
+        )
+    assert dset_old.initname == str(TEST_ANAT_FILE.relative_to("/"))
+    # need to deal with symlinks here:
+    assert str(Path(dset_old.ppve()).resolve()) == str(
+        TEST_ANAT_FILE.parent.resolve() / dset_old.pve()
+    )
+    assert (
+        dset_old.ppve()
+        == dset_old.p() + dset_old.prefix + dset_old.view + dset_old.extension
+    )
+    assert dset_old.initpath == "/"
 
     # ppve robust
     with working_directory('/'):
-        assert(dset_old.ppve() == str(TEST_ANAT_FILE))
-    assert(dset_old.ppve() == str(TEST_ANAT_FILE.resolve()))
+        assert dset_old.ppve() == str(TEST_ANAT_FILE)
+    assert str(Path(dset_old.ppve()).resolve()) == str(TEST_ANAT_FILE.resolve())
 
     # A new object instance will inherit path but not initpath
     with working_directory('/tmp'):
@@ -246,24 +261,24 @@ def test_prepare_afni_output():
         # Basic expectation of output object attributes
         dset = ab.afni_name("test.nii.gz", strict=True)
         o = prepare_afni_output(dset, suffix="_morphed")
-        assert(o.path == dset.path)
-        assert(o.prefix == dset.prefix + "_morphed")
-        assert(o.view == dset.view)
-        assert(o.out_prefix() != dset.out_prefix())
-        assert(o.input() != dset.input())
+        assert o.path == dset.path
+        assert o.prefix == dset.prefix + "_morphed"
+        assert o.view == dset.view
+        assert o.out_prefix() != dset.out_prefix()
+        assert o.input() != dset.input()
 
         # Changing the view should work.
         dset_afni = ab.afni_name("test+orig.BRIK", strict=True)
         o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
-        assert(o.path == dset_afni.path)
-        assert(o.prefix == dset_afni.prefix + "_morphed")
-        assert(o.view == '+tlrc')
-        assert(o.out_prefix() != dset_afni.out_prefix())
+        assert o.path == dset_afni.path
+        assert o.prefix == dset_afni.prefix + "_morphed"
+        assert o.view == "+tlrc"
+        assert o.out_prefix() != dset_afni.out_prefix()
 
         # Changing the path should work
         dset_afni = ab.afni_name("first_dir/test+orig.BRIK", strict=True)
-        o = prepare_afni_output(dset_afni, suffix="_morphed", basepath='second_dir')
-        assert(o.path == str(TEST_DIR.resolve() / "second_dir") + '/')
+        o = prepare_afni_output(dset_afni, suffix="_morphed", basepath="second_dir")
+        assert o.path == str(TEST_DIR.resolve() / "second_dir") + "/"
 
         # nifti filename is forbidden the luxury of a view in strict datasets.
         dset_afni = ab.afni_name("test+orig.nii.gz")
@@ -277,7 +292,7 @@ def test_prepare_afni_output():
             output_mimic).items() if k != 'odir'}
         o_dict = {k: v for k, v in vars(o).items() if k != 'odir'}
 
-        assert(mimic_dict == o_dict)
+        assert mimic_dict == o_dict
 
 
 def setup_for_run_check_afni_cmd():
@@ -370,7 +385,8 @@ def test_run_check_afni_cmd_with_stdout():
 def test_TemplateConfig():
     instantiation = ["dask_template"]
     usr_conf_standard = make_old_comparison(
-        "afni_python.pipeline_utils.TemplateConfig", *instantiation)
+        "afnipy.pipeline_utils.TemplateConfig", *instantiation
+    )
     usr_conf = TemplateConfig(*instantiation)
 
     # add in fields that were taken out:
@@ -381,8 +397,10 @@ def test_TemplateConfig():
 
 
 # Test shell_com and ShellComFuture classes for some basic commands
-@pytest.mark.parametrize("fully_qualified_classname",
-                         ["afni_python.afni_base.shell_com", "afni_python.pipeline_utils.ShellComFuture"])
+@pytest.mark.parametrize(
+    "fully_qualified_classname",
+    ["afnipy.afni_base.shell_com", "afnipy.pipeline_utils.ShellComFuture"],
+)
 def test_ShellCom(fully_qualified_classname):
     # The ShellComFuture class should largely behave the same way except that it
     # can return output even if it has not been run
