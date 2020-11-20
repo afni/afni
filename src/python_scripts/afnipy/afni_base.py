@@ -31,7 +31,7 @@ def check_for_strict_name(initname):
 
     Parameters
     ----------
-    dset : output of afni_python.afni_base.afni_name
+    dset : output of afnipy.afni_base.afni_name
     """
 
     # path must be relative
