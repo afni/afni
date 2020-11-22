@@ -1,3 +1,33 @@
+AFNI Digest, week of 2020/11/20.
+
+And now for something completely different...
+
+In normal times, we often discuss MRI processing issues with people in
+person either at NIH, at a Bootcamp, or during a collaboration visit.
+If you haven't noticed, these aren't normal times.
+
+So, we brainstormed a mechanism to still try to have this
+functionality, since looking at data makes a big difference in
+understanding it.  The result: we will try to schedule some
+Zoom-consultations in the week of Nov. 30 - Dec 4, 2020, seeing how a
+30 min window works.
+
+If you or your lab has some question(s) or processing that you would
+like to discuss screen-to-screen, then please fill in the form here:
+  https://forms.gle/jLxgtq8xYHxoexXh9
+... and we will see if we can find overlapping times.
+
+**Disclaimer: we haven't done this previously, we don't know how well
+it will work, and we really hope not to hurt anyone's feelings if a
+particular Guru's schedule fills up quickly (=Gang!).  We will check
+incoming requests and try to see if there is a mutually available time
+slot, until a Guru's consulting timecard is maxed out.  It might then
+be possible to chat with a different Guru who might have available
+time and also be able to help, or that consultation might just have to
+wait for a later date.  Again, please bear with us in this.
+
+========================================================================
+
 AFNI Digest, week of 2020/11/12.
  
 00) AFNI YouTube channel:  new easy-to-remember address
