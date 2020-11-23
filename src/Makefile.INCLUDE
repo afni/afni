@@ -49,7 +49,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_version.o afni_lock.o afni_vol2surf.o             \
             afni_pplug_instacorr.o afni_pplug_instacalc.o          \
             afni_pplug_tstat.o                                     \
-            afni_whelp.o whats_my_exepath.o
+            afni_whelp.o whats_my_exepath.o 
 
 AFHEADS  = quotize readmes
 
@@ -199,7 +199,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dToyProg nifti1_tool gifti_tool cifti_tool images_equal uniq_images  \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
-        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD                         \
+        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD distanceField           \
+	commonlinesreg                                                        \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -232,7 +233,7 @@ PROGRAMS_EXE =                                                                \
         3dClustSim 3dTRfix 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI    \
         niccc 3dXYZcat column_cat GLTsymtest nifti1_tool gifti_tool           \
         cifti_tool images_equal uniq_images stimband 1dNLfit 3dExchange       \
-        3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat
+        3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat 
 
 
 # put all scripts to install here (no SCRIPTS variable)
@@ -3037,6 +3038,9 @@ distanceField: distanceField.c
 	$(RM) $@
 	$(CC) -o distanceField distanceField.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
+commonlinesreg: commonlinesreg.c
+	$(RM) $@
+	$(CC) -o commonlinesreg commonlinesreg.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 #######
 # Peter Molfese programs
