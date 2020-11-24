@@ -1922,6 +1922,17 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /**==========   -ARMA31  ==========**/
+
+     if( strcasecmp(argv[iarg],"-ARMA31") == 0 ){
+#ifdef ALLOW_ARMA31
+       do_arma31 = 1 ;
+#else
+       WARNING_message("Option '%s' is disabled in this version",argv[iarg]) ;
+#endif
+       iarg++ ; continue ;
+     }
+
      /**==========   -matrix  ==========**/
 
      if( strcasecmp(argv[iarg],"-matrix") == 0 ){
@@ -2431,6 +2442,9 @@ STATUS("process matrix") ;
      if( min_run > 555555 || min_run < 6 || max_run < 6 )
        ERROR_exit("Matrix attribute 'RunStart' has bad values") ;
    }
+#ifdef ALLOW_ARMA31
+   if( do_arma31 ) ncor_arma31 = min_run / 3 ;
+#endif
 
    /*----- set up pseudo-time tau[] vector for R matrix formation -----*/
 
@@ -3183,60 +3197,8 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ){ fprintf(stderr,"++ REML voxel loop: ") ; vn = 0 ; }
 
-#if 0 /**** TO BE KILLED ***/
-  if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
-    int ss,rv,vv,ssold,ii,kbest ;
-    int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
-    int   nws = nab + 8*(2*niv+32) + 256 ;
-    double *ws = (double *)malloc(sizeof(double)*nws) ;
-#ifdef REML_DEBUG
-    char *fff ; FILE *fpp=NULL ;
-    fff = getenv("REML_DEBUG") ;
-    if( fff != NULL ) fpp = fopen( fff , "w" ) ;
-#endif
-
-     for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
-       if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
-       if( !INMASK(vv) ) continue ;
-       if( inset_mrv != NULL ){ /* 05 Nov 2008 */
-         VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
-       } else
-         (void)THD_extract_array( vv , inset , 0 , iv ) ;      /* data vector */
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (double)iv[goodlist[ii]] ;
-       ssold = ss ; ss = vv / nsliper ;      /* slice index in Xsli and RCsli */
-       if( usetemp_rcol && ss > ssold && ssold >= 0 )     /* purge last slice */
-         reml_collection_save( RCsli[ssold] ) ;              /* setup to disk */
-       if( RCsli[ss] == NULL ){                     /* create this slice now? */
-         if( verb > 1 && vstep ) fprintf(stderr,"+") ;
-         RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-         if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
-       }
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws , ncor_arma31,parts_arma31 ) ;
-       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
-       bar[vv] = RCsli[ss]->rs[kbest]->barm ;
-       rar[vv] = ws[0] ;
-
-#ifdef REML_DEBUG
-       if( fpp != NULL ){
-         int qq ;
-         fprintf(fpp,"%d ",vv) ;
-         fprintf(fpp," y=") ;
-         for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
-         fprintf(fpp,"  R=") ;
-         for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
-         fprintf(fpp,"\n") ;
-       }
-#endif
-
-     } /* end of REML loop over voxels */
-
-     free(ws) ;
-#ifdef REML_DEBUG
-     if( fpp != NULL ) fclose(fpp) ;
-#endif
-
-  } else {  /**---------------- Parallelized (not paralyzed) ----------------**/
-#else
+  /**............. Above here was the old serial code .............**/
+  /**---------------- Parallelized (not paralyzed) ----------------**/
   { int *vvar ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 8*(2*niv+32) + 256 ;
@@ -3250,7 +3212,7 @@ STATUS("make GLTs from matrix file") ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
     if( vstep && maxthr > 1 ){ fprintf(stderr,"[%d threads]",maxthr); vn = 0; }
 
-#ifdef USE_OMP
+    /* parallel threads code (OpenMP - eat THIS, Apple!) */
   AFNI_OMP_START ;
 #pragma omp parallel
   {
@@ -3317,18 +3279,14 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp critical (MALLOC)
    { free(ws); free(iv); vector_destroy(&y); if(mfp!=NULL) fclose(mfp); } /* destroy private copies */
 
-  } /* end OpenMP */
+  } /* end OpenMP parallel threads */
   AFNI_OMP_END ;
-
-#else
-  ERROR_exit("This code should never be executed!!!") ; /* really bad */
-#endif
 
     free(vvar) ;
 #ifdef REML_DEBUG
     if( fpp != NULL ) fclose(fpp) ;
 #endif
-  }
+  }  /* end of parallelized code */
 
      if( vstep ) fprintf(stderr,"\n") ;
      if( usetemp_rcol )               /* purge final slice's setup to disk? */

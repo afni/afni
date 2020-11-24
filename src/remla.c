@@ -1,4 +1,5 @@
 /******* This file is meant to be #include-d into another application! *******/
+/******* Which is to say, it is part of 3dREMLfit.c, not standalone :( *******/
 
 #undef  MTYPE
 #undef  MPAIR
@@ -12,10 +13,11 @@
 #define BIGVAL 1.e+38
 
 /*------------------------------------------------------------------------*/
-#define ALLOW_ARMA31
+#define ALLOW_ARMA31    /* a restricted form of ARMA(3,1) noise */
 
-#ifdef ALLOW_ARMA31  /* prototype */
-double_quad ar3pX_func( int npts , double *dts , int ncor ) ;
+#ifdef ALLOW_ARMA31
+double_quad ar3pX_func( int npts , int *tau , double *dts , int ncor ) ;
+static int *global_tau = NULL ;
 #endif
 
 /*===========================================================================*/
@@ -1313,6 +1315,15 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    rrcol->rs[kk]->barm = 0.0 ; nset = 1 ;
    avglen = rcmat_avglen( rrcol->rs[kk]->cc ) ;
 
+#ifdef ALLOW_ARMA31
+   if( tau == NULL ){
+     if( global_tau != NULL ){ free(global_tau) ; global_tau = NULL ; }
+   } else {
+     global_tau = (int *)realloc( global_tau , sizeof(int)*nt ) ;
+     memcpy( global_tau , tau , sizeof(int)*nt ) ;
+   }
+#endif
+
    if( nlev == 0 ){  /* special setup with just 2 (a,b) cases */
 
      bb = bbot ; aa = abot ; lam = LAMBDA(aa,bb) ; kk = 1 ;
@@ -1396,7 +1407,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 
 /*--------------------------------------------------------------------------*/
 #ifdef ALLOW_ARMA31
-
+                                  /* see Aomp.h for the AO_ macros */
 AO_DEFINE_2DARRAY(double,resid) ; /* per-thread storage for ARMA(3,1) resid */
                                   /* used in REML_find_best_case() below    */
 void REML_free_arma31_resid(void)
@@ -1411,7 +1422,7 @@ void REML_free_arma31_resid(void)
 /* Inputs: y=data vector, rrcol=collection of REML setup stuff.
    Output: index of best case in the REML seteup stuff.
    New [Sep 2020]:
-     If ncor > 4 and arts != NULL,
+     If ncor > 5 and arts != NULL,
      then compute the ARMA(3,1) parameters for the best case into *arts.
 *//*------------------------------------------------------------------------*/
 
@@ -1456,7 +1467,7 @@ ENTRY("REML_find_best_case") ;
    /* (re)allocate space for storing residuals
       for ARMA(3,1) analysis of the final best case [02 Sep 2020] */
 
-   do_arma31 = (ncor > 4) && (arts != NULL) ;
+   do_arma31 = (ncor > 5) && (arts != NULL) ;
 
    if( do_arma31 ){
      AO_RESIZE_2DARRAY(double,resid,((na+1)*(nb+1)),nt) ;
@@ -1543,10 +1554,10 @@ ENTRY("REML_find_best_case") ;
    if( ws != NULL ) ws[0] = rbest ;
 
 #ifdef ALLOW_ARMA31
-   /* deal with ARMA(3,1) fitting */
+   /* deal with ARMA(3,1) fitting, and return those parameters to the caller */
 
    if( do_arma31 && resid[kbest][0] < BIGVAL ){
-     *arts = ar3pX_func( nt , resid[kbest] , ncor ) ;
+     *arts = ar3pX_func( nt , global_tau , resid[kbest] , ncor ) ;
    }
 #endif
 
@@ -1836,7 +1847,7 @@ int get_sample_autocorr( int nt, int *tau, double *xx, int ncor, double *cor )
 
    /* check for stooooopid inputs */
 
-   if( nt < 9 || xx == NULL || ncor < 4 || cor == NULL ) return( 0 ) ;
+   if( nt < 9 || xx == NULL || ncor <= 5 || cor == NULL ) return( 0 ) ;
 
    /* compute mean of input */
 
@@ -1904,6 +1915,8 @@ int get_sample_autocorr( int nt, int *tau, double *xx, int ncor, double *cor )
 
    return( 1 ) ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
 /*  Check for legality as a correlation function, via FFT.
@@ -2186,7 +2199,7 @@ double_quad fit_ar3pX( int ncor , double *cor )
 /* ARMA(3,1) model fitting to a time series (e.g., regression residuals) */
 /*----------------------------------------------------------------------------*/
 
-double_quad ar3pX_func( int npts , double *dts , int ncor )
+double_quad ar3pX_func( int npts , int *tau , double *dts , int ncor )
 {
    double cf ;
    double_quad arts = { 0.0 , 0.0 , 0.0 , 0.0 } ;  /* output parameters */
@@ -2202,7 +2215,7 @@ double_quad ar3pX_func( int npts , double *dts , int ncor )
 
    /* compute correlations from time series data */
 
-   ii = get_sample_autocorr( npts , NULL , dts , ncor , cor ) ;
+   ii = get_sample_autocorr( npts , tau , dts , ncor , cor ) ;
    if( ii == 0 ) return arts ;
 
    /* get max scale-down factor to ensure positive definiteness */
