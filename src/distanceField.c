@@ -23,7 +23,7 @@ EROSION - Erosion algorithm.
 #include <stdbool.h>
 #include "mrilib.h"
 #include "distanceField.h"
-#include <float.h>k
+#include <float.h>
 
 
 typedef float flt;
@@ -375,7 +375,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 		//perform EDT for all rows
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * ny);
-			edt_local(yDim, imgRow, ny);
+			edt_local(1.0/yDim, imgRow, ny);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -404,7 +404,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[z+xo+yo] = (*outImg)[vo];
+					img3D[z+xo+yo] = (*outImg)[vo]*zDim*zDim;
 					vo += 1;
 					xo += nz;
 				}
@@ -413,7 +413,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 		//perform EDT for all "rows"
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * nz);
-			edt_local(zDim, imgRow, nz);
+			edt_local(1.0/zDim, imgRow, nz);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -422,7 +422,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[z+xo+yo];
+					(*outImg)[vo] = img3D[z+xo+yo]*zDim*zDim;
 					vo += 1;
 					xo += nz;
 				} //x
@@ -570,19 +570,19 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 	//forward
 	for (q = 0; q < n; q++ ) {
 		if (df[q] == 0) {
-			prevX = q;
+			prevX = q*xDim;
 			prevY = 0;
 		} else
-			df[q] = sqr((q-prevX)*xDim)+(prevY*yDim);
+			df[q] = sqr((q-prevX)/xDim)+(prevY/yDim);
 	}
 	//reverse
 	prevX = n;
 	prevY = INFINITY;
 	for (q = (n-1); q >= 0; q-- ) {
-		v = sqr((q-prevX)*xDim)+(prevY*yDim);
+		v = sqr((q-prevX)/xDim)+(prevY/yDim);
 		if (df[q] < v) {
-        	prevX = q;
-        	prevY = df[q];
+        	prevX = q;      // DO NOT CHANGE
+        	prevY = df[q];  // DO NOT CHANGE
     	} else
         	df[q] = v;
     }
@@ -620,16 +620,16 @@ void edt_local(float scale, flt * f, int n) {
         # the envelope, remove it from the envelope. To make this
         # determination, find the X coordinate of the intersection (s)
         # between the parabolas with vertices at (q,f[q]) and (p,f[p]).*/
-        p = v[k];
+        p = v[k]; // DO NOT CHANGE
         s = vx(f, p,q);
         while (s <= z[k]) {
             k = k - 1;
-            p = v[k];
-            s = vx(f, p,q);
+            p = v[k];       // DO NOT CHANGE
+            s = vx(f, p,q); // DO NOT CHANGE
         }
         //# Add the new parabola to the envelope.
         k = k + 1;
-        v[k] = q;
+        v[k] = q;           // DO NOT CHANGE
         z[k] = s;
         z[k + 1] = INFINITY;
     }
@@ -639,8 +639,8 @@ void edt_local(float scale, flt * f, int n) {
     for (q = 0; q < n; q++ ) {
 	    while (z[k + 1] < q)
             k = k + 1;
-        dx = (q - v[k]);
-        d[q] = scale*(dx * dx + f[v[k]]);
+        dx = (q - v[k]);    // DO NOT CHANGE
+        d[q] = (dx * dx + f[v[k]])/(scale*scale);
     }
     for (q = 0; q < n; q++ )
 		f[q] = d[q];
