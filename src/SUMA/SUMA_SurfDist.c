@@ -1,5 +1,13 @@
 #include "SUMA_suma.h"
 
+/*
+  [PT: July 24, 2020] Fix some option names
+
+  + new opt '-Euclidean', synonym (or synonim) for 'Euclidian'
+  + fix help that '-graph' is the real opt name
+
+*/
+
 void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_SurfDist"};
@@ -33,8 +41,9 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "  -node_path_do PATH_DO: Output the shortest path between\n"
 "                         each node pair as a SUMA Displayable\n"
 "                         object.\n"
-"  -Euclidian: Calculate Euclidian distance, rather than graph distance.\n" 
-"  -Graph: Calculate distance along the mesh (default).\n" 
+"  -Euclidean: Calculate Euclidean distance, rather than graph distance.\n" 
+"  -Euclidian: synonym for '-Euclidean'.\n" 
+"  -graph: Calculate distance along the mesh (default).\n" 
 "\n"
 "  example 1:\n"
 "     echo make a toy surface\n"
@@ -92,7 +101,7 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "     echo 416 489 >> nodelist.1D\n"
 "     echo 415 412 >> nodelist.1D\n"
 "     echo 123 32414 >> nodelist.1D\n"
-"     echo Get Euclidian distances and write out results to file\n"
+"     echo Get Euclidean distances and write out results to file\n"
 "     SurfDist -i CreateIco_surf.asc \\\n"
 "              -input nodelist.1D \\\n"
 "              -Euclidian   > example3.1D\n"   
@@ -143,12 +152,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
          brk = YUP;
       }
 
+      if (!brk && (strcmp(argv[kar], "-Euclidean") == 0))
+      {
+         Opt->b2 = 1;
+         brk = YUP;
+      }
+
       if (!brk && (strcmp(argv[kar], "-Euclidian") == 0))
       {
          Opt->b2 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-graph") == 0))
       {
          Opt->b2 = 0;

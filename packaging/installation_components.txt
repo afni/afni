@@ -65,7 +65,6 @@ track_tools, suma
 3dABoverlap, corebinaries
 3dAFNIto3D, corebinaries
 3dAFNItoANALYZE, corebinaries
-3dAFNItoMINC, corebinaries
 3dAFNItoNIFTI, corebinaries
 3dAFNItoNIML, corebinaries
 3dAFNItoRaw, corebinaries
@@ -135,7 +134,6 @@ track_tools, suma
 3dLocalSVD, corebinaries
 3dLocalstat, corebinaries
 3dLombScargle, suma
-3dMINCtoAFNI, corebinaries
 3dMSE, corebinaries
 3dMannWhitney, corebinaries
 3dMaskToASCII, corebinaries
@@ -665,7 +663,6 @@ plug_permtest, gui
 plug_power, gui
 plug_realtime, gui
 plug_rename, gui
-plug_render, gui
 plug_reorder, gui
 plug_retroicor, gui
 plug_roiedit, gui
@@ -730,7 +727,6 @@ SurfDsetInfo, suma
 SurfExtrema, suma
 SurfFWHM, suma
 SurfInfo, suma
-SurfLocalStat, suma
 SurfMeasures, suma
 SurfMesh, suma
 SurfPatch, suma
@@ -838,6 +834,5 @@ qdelaunay, external_dependencies
 qhull, external_dependencies
 rbox, external_dependencies
 unix, external_dependencies
-volpack, external_dependencies
 znz, external_dependencies
 znzlib.h, external_dependencies

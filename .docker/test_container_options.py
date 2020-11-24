@@ -22,7 +22,13 @@ def test_uid_change(container):
     )
     # usermod is slow so give it some time
     c.wait(timeout=120)
-    assert 'uid=1010(afni_user)' in c.logs(stdout=True).decode('utf-8')
+    stdout = c.logs(stdout=True).decode('utf-8')
+    if 'uid=1010(afni_user)' not in stdout:
+        print(stdout)
+        raise EnvironmentError(
+            "User id is not being changed correctly"
+        )
+
 
 
 def test_gid_change(container):
@@ -53,7 +59,11 @@ def test_chown_extra(container):
     )
     # chown is slow so give it some time
     c.wait(timeout=5)
-    assert '/usr/bin/python:1010:101' in c.logs(stdout=True).decode('utf-8')
+    if not '/usr/bin/python:1010:101' in c.logs(stdout=True).decode('utf-8'):
+        print(c.logs(stdout=True).decode('utf-8'))
+        raise EnvironmentError(
+            "Expected to find an executable python in the container"
+        )
 
 
 def test_chown_home(container):
@@ -155,7 +165,9 @@ def test_various_programs_are_found(named_container,env_tweaks):
     # Check that each program is available (on the PATH and executable)
     for prog in PROG_LIST_TO_CHECK:
         res = c.exec_run(["which", prog])
-        assert res.output.decode('utf-8').rstrip().endswith(prog)
+        if not res.output.decode('utf-8').rstrip().endswith(prog):
+            print(res.output.decode('utf-8').rstrip())
+            raise EnvironmentError(f"Could not find the '{prog}' executable in {named_container.image_name}")
 
 
 

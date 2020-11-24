@@ -44,6 +44,11 @@ static int AFNI_drive_save_alljpeg( char *cmd ) ;   /* 07 Dec 2006 */
 static int AFNI_drive_set_view( char *cmd ) ;       /* 28 Jul 2005 */
 static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
 static int AFNI_drive_get_dicom_xyz( char *cmd ) ;  /* 07 Oct 2010 */
+static int AFNI_drive_get_olay_val( char *cmd ) ;   /* 11 Sep 2020 */
+static int AFNI_drive_get_ulay_val( char *cmd ) ;   /* 11 Sep 2020 */
+static int AFNI_drive_get_thr_val( char *cmd ) ;    /* 11 Sep 2020 */
+static int AFNI_drive_get_olay_name( char *cmd ) ;  /* 11 Sep 2020 */
+static int AFNI_drive_get_ulay_name( char *cmd ) ;  /* 11 Sep 2020 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_get_ijk( char *cmd ) ;        /* 07 Oct 2010 */
@@ -166,6 +171,11 @@ static AFNI_driver_pair dpair[] = {
  { "SET_VIEW"         , AFNI_drive_set_view          } ,
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
  { "GET_DICOM_XYZ"    , AFNI_drive_get_dicom_xyz     } ,
+ { "GET_OLAY_VAL"     , AFNI_drive_get_olay_val      } ,
+ { "GET_ULAY_VAL"     , AFNI_drive_get_ulay_val      } ,
+ { "GET_THR_VAL"      , AFNI_drive_get_thr_val       } ,
+ { "GET_ULAY_NAME"    , AFNI_drive_get_ulay_name     } ,
+ { "GET_OLAY_NAME"    , AFNI_drive_get_olay_name     } ,
  { "SET_SPM_XYZ"      , AFNI_drive_set_spm_xyz       } ,
  { "SET_IJK"          , AFNI_drive_set_ijk           } ,
  { "GET_IJK"          , AFNI_drive_get_ijk           } ,
@@ -783,25 +793,28 @@ static int_pair find_string( int nst, int nch, char *ch )
 /* Macros for deciding on which window is in play -- allows for
    various mis-spellings that might naturally transpire -- 22 Feb 2007 */
 
+#define HAS_allimage(s)                                                 \
+ ( strcasestr((s),"allim")!=NULL || strcasestr((s),"all_im")!=NULL )
+
 #define HAS_axialimage(s)                                               \
- ( strstr((s),"axialim")!=NULL || strstr((s),"axial_im")!=NULL )
+ ( strcasestr((s),"axialim")!=NULL || strcasestr((s),"axial_im")!=NULL )
 
 #define HAS_sagittalimage(s)                                            \
- ( strstr((s),"sagittalim")!=NULL || strstr((s),"sagittal_im")!=NULL || \
-   strstr((s),"sagitalim") !=NULL || strstr((s),"sagital_im") !=NULL   )
+ ( strcasestr((s),"sagittalim")!=NULL || strcasestr((s),"sagittal_im")!=NULL || \
+   strcasestr((s),"sagitalim") !=NULL || strcasestr((s),"sagital_im") !=NULL   )
 
 #define HAS_coronalimage(s)                                             \
- ( strstr((s),"coronalim")!=NULL || strstr((s),"coronal_im")!=NULL )
+ ( strcasestr((s),"coronalim")!=NULL || strcasestr((s),"coronal_im")!=NULL )
 
 #define HAS_axialgraph(s)                                               \
- ( strstr((s),"axialgr")!=NULL || strstr((s),"axial_gr")!=NULL )
+ ( strcasestr((s),"axialgr")!=NULL || strcasestr((s),"axial_gr")!=NULL )
 
 #define HAS_sagittalgraph(s)                                            \
- ( strstr((s),"sagittalgr")!=NULL || strstr((s),"sagittal_gr")!=NULL || \
-   strstr((s),"sagitalgr") !=NULL || strstr((s),"sagital_gr") !=NULL   )
+ ( strcasestr((s),"sagittalgr")!=NULL || strcasestr((s),"sagittal_gr")!=NULL || \
+   strcasestr((s),"sagitalgr") !=NULL || strcasestr((s),"sagital_gr") !=NULL   )
 
 #define HAS_coronalgraph(s)                                             \
- ( strstr((s),"coronalgr")!=NULL || strstr((s),"coronal_gr")!=NULL )
+ ( strcasestr((s),"coronalgr")!=NULL || strcasestr((s),"coronal_gr")!=NULL )
 
 /*--------------------------------------------------------------------
   Open a window in the controller.
@@ -844,13 +857,25 @@ ENTRY("AFNI_drive_open_window") ;
    /* 13 Nov 2001: plugins are done in a separate function */
 
 #ifdef ALLOW_PLUGINS
-   if( strstr(cmd,"plugin.") != NULL ){
+   if( strcasestr(cmd,"plugin.") != NULL ){
      ic = AFNI_drive_open_plugin( cmd ) ;
      RETURN(ic) ;
    }
 #endif
 
-   /* open a graph or image window */
+   /* special case: open all image windows and return immediately */
+
+   if( HAS_allimage(cmd) ){
+     AFNI_view_xyz_CB( im3d->vwid->imag->image_xyz_pb, im3d, NULL ) ;
+     NI_sleep(3) ;
+     AFNI_view_xyz_CB( im3d->vwid->imag->image_yzx_pb, im3d, NULL ) ;
+     NI_sleep(3) ;
+     AFNI_view_xyz_CB( im3d->vwid->imag->image_zxy_pb, im3d, NULL ) ;
+     NI_sleep(3) ;
+     XmUpdateDisplay( im3d->vwid->top_shell ) ;
+   }
+
+   /* open a single graph or image window */
 
         if( HAS_axialimage(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_xyz_pb, im3d, NULL ) ;
@@ -880,8 +905,8 @@ ENTRY("AFNI_drive_open_window") ;
 
    /* find geom=..., if present */
 
-   cpt = strstr(cmd,"geom=") ;
-   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
+   cpt = strcasestr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strcasestr(cmd,"geom:") ;
    if( cpt != NULL )
      AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
 
@@ -902,8 +927,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* image fraction */
 
-      cpt = strstr(cmd,"ifrac=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"ifrac:") ;
+      cpt = strcasestr(cmd,"ifrac=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"ifrac:") ;
       if( cpt != NULL ){
         float ifrac = strtod( cpt+6 , NULL ) ;
         if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
@@ -913,8 +938,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* montage */
 
-      cpt = strstr(cmd,"mont=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"mont:") ;
+      cpt = strcasestr(cmd,"mont=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"mont:") ;
       if( cpt != NULL ){
         int mww=-1 , mhh=-1 , msp=-1 , mgap=-1 , nn ;
         char mcol[128] = "\0" ;
@@ -932,7 +957,7 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* iconify [06 Aug 2002] */
 
-      cpt = strstr(cmd,"iconi") ;
+      cpt = strcasestr(cmd,"iconi") ;
       if( cpt != NULL ){
         XIconifyWindow( XtDisplay(isq->wtop) ,
                          XtWindow(isq->wtop)  ,
@@ -941,8 +966,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* opacity [21 Jan 2003] */
 
-      cpt = strstr(cmd,"opacity=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"opacity:") ;
+      cpt = strcasestr(cmd,"opacity=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"opacity:") ;
       if( cpt != NULL ){
         int opaval = -1 ;
         sscanf( cpt+8 , "%d" , &opaval ) ;
@@ -952,8 +977,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* crop [03 May 2007] */
 
-      cpt = strstr(cmd,"crop=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"crop:") ;
+      cpt = strcasestr(cmd,"crop=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"crop:") ;
       if( cpt != NULL ){
         int iar[4] ; char s1,s2,s3 ;
         iar[0] = iar[1] = iar[2] = iar[3] = -1 ;
@@ -966,8 +991,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* zoom [10 Dec 2019] */
 
-      cpt = strstr(cmd,"zoom=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"zoom:") ;
+      cpt = strcasestr(cmd,"zoom=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"zoom:") ;
       if( cpt != NULL ){
         int val=-666 ;  /* a beastly thing to do */
         sscanf(cpt+5,"%d",&val) ;
@@ -977,8 +1002,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* range [15 Oct 2012] */
 
-      cpt = strstr(cmd,"range=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"range:") ;
+      cpt = strcasestr(cmd,"range=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"range:") ;
       if( cpt != NULL ){
         float rrr[3] = {0.0f,0.0f,0.f} ; char s1 ;
         sscanf( cpt+6 , "%f%c%f" , rrr+0 , &s1 , rrr+1 ) ;
@@ -1010,8 +1035,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       ccc = cmd ;   /* 28 Dec 2006: allow multiple keypress= options */
       while(1){
-        cpt = strstr(ccc,"keypress=") ;
-        if( cpt == NULL ) cpt = strstr(ccc,"keypress:") ;
+        cpt = strcasestr(ccc,"keypress=") ;
+        if( cpt == NULL ) cpt = strcasestr(ccc,"keypress:") ;
         if( cpt != NULL ){
           unsigned long key ;
           cpt += 9 ;
@@ -1054,8 +1079,8 @@ ENTRY("AFNI_drive_open_window") ;
                                               isqDR_pressbut_Swap ,
                                               isqDR_pressbut_Norm  } ;
 
-        cpt = strstr(ccc,"butpress=") ;
-        if( cpt == NULL ) cpt = strstr(ccc,"butpress:") ;
+        cpt = strcasestr(ccc,"butpress=") ;
+        if( cpt == NULL ) cpt = strcasestr(ccc,"butpress:") ;
         if( cpt != NULL ){
           int qq ;
           
@@ -1096,8 +1121,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* matrix */
 
-      cpt = strstr(cmd,"matrix=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"matrix:") ;
+      cpt = strcasestr(cmd,"matrix=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"matrix:") ;
       if( cpt != NULL ){
         int mat = (int) strtod( cpt+7 , NULL ) ;
         if( mat > 0 )
@@ -1107,10 +1132,10 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* pinnum OR pintop */
 
-      cpt = strstr(cmd,"pinnum=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"pinnum:") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"pintop=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"pintop:") ;
+      cpt = strcasestr(cmd,"pinnum=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"pinnum:") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"pintop=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"pintop:") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn >= MIN_PIN )
@@ -1120,8 +1145,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* pinbot [19 Mar 2004] */
 
-      cpt = strstr(cmd,"pinbot=") ;
-      if( cpt == NULL ) cpt = strstr(cmd,"pinbot:") ;
+      cpt = strcasestr(cmd,"pinbot=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"pinbot:") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn > 0 )
@@ -1131,7 +1156,7 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* iconify [06 Aug 2002] */
 
-      cpt = strstr(cmd,"iconi") ;
+      cpt = strcasestr(cmd,"iconi") ;
       if( cpt != NULL ){
         XIconifyWindow( XtDisplay(gra->fdw_graph) ,
                          XtWindow(gra->fdw_graph)  ,
@@ -1142,8 +1167,8 @@ ENTRY("AFNI_drive_open_window") ;
 
       ccc = cmd ;   /* 28 Dec 2006: allow multiple keypress= options */
       while(1){
-        cpt = strstr(ccc,"keypress=") ;
-        if( cpt == NULL ) cpt = strstr(ccc,"keypress:") ;
+        cpt = strcasestr(ccc,"keypress=") ;
+        if( cpt == NULL ) cpt = strcasestr(ccc,"keypress:") ;
         if( cpt != NULL ){
           char buf[2] ;
           cpt += 9 ;
@@ -1180,7 +1205,7 @@ ENTRY("AFNI_drive_open_window") ;
 
       /* iconify [06 Aug 2002] */
 
-      cpt = strstr(cmd,"iconi") ;
+      cpt = strcasestr(cmd,"iconi") ;
       if( cpt != NULL ){
         XIconifyWindow( XtDisplay(im3d->vwid->top_shell) ,
                          XtWindow(im3d->vwid->top_shell)  ,
@@ -1279,7 +1304,7 @@ ENTRY("AFNI_drive_open_plugin") ;
    if( ic < 0 ) ic = 0 ;
    im3d = GLOBAL_library.controllers[ic] ;
 
-   cpt = strstr(cmd,"plugin.") ;
+   cpt = strcasestr(cmd,"plugin.") ;
    if( cpt == NULL || strlen(cpt) < 9 ) RETURN(-1) ;
    cpt += 7 ;  /* start of plugin name */
    pl   = strlen(cpt) ;
@@ -1310,8 +1335,8 @@ ENTRY("AFNI_drive_open_plugin") ;
 
    /* find geom=..., if present */
 
-   cpt = strstr(cmd,"geom=") ;
-   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
+   cpt = strcasestr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strcasestr(cmd,"geom:") ;
    if( cpt != NULL )
       AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
 
@@ -1480,8 +1505,8 @@ ENTRY("AFNI_drive_geom_graph") ;
    if( ig < 0 || Graph_xy_list[ig]->mp == NULL ) RETURN(-1) ;
    gxy = Graph_xy_list[ig] ;
 
-   cpt = strstr(cmd,"geom=") ;
-   if( cpt == NULL ) cpt = strstr(cmd,"geom:") ;
+   cpt = strcasestr(cmd,"geom=") ;
+   if( cpt == NULL ) cpt = strcasestr(cmd,"geom:") ;
    if( cpt == NULL || strlen(cpt) < 7 ) RETURN(-1) ;
 
    AFNI_decode_geom( cpt+5 , &gww,&ghh,&gxx,&gyy ) ;
@@ -2325,7 +2350,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
    } else {     /* 03 Feb 2003: get topval and colorscale_name */
 
      str[0] = '\0' ; val = wal = 0.0f ;
-     cpt = strstr(cmd+dadd,"::") ;
+     cpt = strcasestr(cmd+dadd,"::") ;
      if( cpt == NULL ){
        sscanf( cmd+dadd , "%f %s" , &val, str ) ;
        if( val <= 0.0 ) RETURN(-1) ;
@@ -2336,10 +2361,10 @@ ENTRY("AFNI_drive_set_pbar_all") ;
        if( wal >= val ) RETURN(-1) ;
      }
 
-     flip = ( strstr(cmd+dadd,"FLIP") != NULL ) ;
+     flip = ( strcasestr(cmd+dadd,"FLIP") != NULL ) ;
 
-     cpt = strstr(cmd+dadd,"ROTA=") ;
-     if( cpt == NULL ) cpt = strstr(cmd+dadd,"ROTA:") ;
+     cpt = strcasestr(cmd+dadd,"ROTA=") ;
+     if( cpt == NULL ) cpt = strcasestr(cmd+dadd,"ROTA:") ;
      if( cpt != NULL ) sscanf(cpt+5,"%d",&rota) ;
    }
 
@@ -2988,7 +3013,7 @@ ENTRY("AFNI_drive_save_1image") ;
 
    /* 30 Oct 2013: find blowup factor */
 
-   cpt = strstr(cmd,"blowup=") ;
+   cpt = strcasestr(cmd,"blowup=") ;
    if( cpt != NULL ){
      blowup = (int)strtod(cpt+7,NULL) ;
      if( blowup < 1 ) blowup = 1 ; else if( blowup > 8 ) blowup = 8 ;
@@ -3122,7 +3147,7 @@ ENTRY("AFNI_drive_save_allimages") ;
 
    /* 30 Oct 2013: find blowup factor */
 
-   cpt = strstr(cmd,"blowup=") ;
+   cpt = strcasestr(cmd,"blowup=") ;
    if( cpt != NULL ){
      blowup = (int)strtod(cpt+8,NULL) ;
      if( blowup < 1 ) blowup = 1 ; else if( blowup > 8 ) blowup = 8 ;
@@ -3198,9 +3223,9 @@ static int AFNI_drive_set_view( char *cmd )
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) return -1 ;
 
-        if( strstr(cmd,"orig") != NULL ) vv = VIEW_ORIGINAL_TYPE ;
-   else if( strstr(cmd,"acpc") != NULL ) vv = VIEW_ACPCALIGNED_TYPE ;
-   else if( strstr(cmd,"tlrc") != NULL ) vv = VIEW_TALAIRACH_TYPE ;
+        if( strcasestr(cmd,"orig") != NULL ) vv = VIEW_ORIGINAL_TYPE ;
+   else if( strcasestr(cmd,"acpc") != NULL ) vv = VIEW_ACPCALIGNED_TYPE ;
+   else if( strcasestr(cmd,"tlrc") != NULL ) vv = VIEW_TALAIRACH_TYPE ;
    else                                  return -1 ;
 
    if( vv == im3d->vinfo->view_type ) return 0 ;  /* nothing to do */
@@ -3257,6 +3282,106 @@ static int AFNI_drive_get_dicom_xyz( char *cmd )
 
    fprintf(afniout, "RAI xyz: %f %f %f\n", x, y, z);
 /*   fprintf(stdout, "RAI xyz: %f %f %f\n", x, y, z);*/
+   fflush(afniout);
+
+   return 0 ;
+}
+
+
+/*--------------------------------------------------------------------*/
+/*! GET_OLAY_VAL [c.] */
+/* get the value of the overlay sub-brick at the current crosshairs */
+static int AFNI_drive_get_olay_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "OLay value: %s \n", im3d->vinfo->func_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_ULAY_VAL [c.] */
+/* get the value of the underlay sub-brick at the current crosshairs */
+static int AFNI_drive_get_ulay_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "ULay value: %s \n", im3d->vinfo->anat_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_THR_VAL [c.] */
+/* get the value of the threshold sub-brick at the current crosshairs */
+static int AFNI_drive_get_thr_val( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "Thr value: %s \n", im3d->vinfo->thr_val);
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_ULAY_NAME [c.] */
+/* get the underlay dataset name */
+static int AFNI_drive_get_ulay_name( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "ULay dset: %s \n", DSET_PREFIX(im3d->anat_now));
+   fflush(afniout);
+
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! GET_OLAY_NAME [c.] */
+/* get the overlay dataset name */
+static int AFNI_drive_get_olay_name( char *cmd )
+{
+   int ic ;
+   Three_D_View *im3d ;
+
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   fprintf(afniout, "OLay dset: %s \n", DSET_PREFIX(im3d->fim_now));
    fflush(afniout);
 
    return 0 ;
@@ -3422,15 +3547,15 @@ static int AFNI_drive_set_xhairs( char *cmd )
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) return -1 ;
 
-        if( strstr(cmd+dadd,"OFF")    != NULL ) hh = 0 ;
-   else if( strstr(cmd+dadd,"SINGLE") != NULL ) hh = 1 ;
-   else if( strstr(cmd+dadd,"MULTI")  != NULL ) hh = 2 ;
-   else if( strstr(cmd+dadd,"LR_AP")  != NULL ) hh = 3 ;
-   else if( strstr(cmd+dadd,"LR_IS")  != NULL ) hh = 4 ;
-   else if( strstr(cmd+dadd,"AP_IS")  != NULL ) hh = 5 ;
-   else if( strstr(cmd+dadd,"LR")     != NULL ) hh = 6 ;
-   else if( strstr(cmd+dadd,"AP")     != NULL ) hh = 7 ;
-   else if( strstr(cmd+dadd,"IS")     != NULL ) hh = 8 ;
+        if( strcasestr(cmd+dadd,"OFF")    != NULL ) hh = 0 ;
+   else if( strcasestr(cmd+dadd,"SINGLE") != NULL ) hh = 1 ;
+   else if( strcasestr(cmd+dadd,"MULTI")  != NULL ) hh = 2 ;
+   else if( strcasestr(cmd+dadd,"LR_AP")  != NULL ) hh = 3 ;
+   else if( strcasestr(cmd+dadd,"LR_IS")  != NULL ) hh = 4 ;
+   else if( strcasestr(cmd+dadd,"AP_IS")  != NULL ) hh = 5 ;
+   else if( strcasestr(cmd+dadd,"LR")     != NULL ) hh = 6 ;
+   else if( strcasestr(cmd+dadd,"AP")     != NULL ) hh = 7 ;
+   else if( strcasestr(cmd+dadd,"IS")     != NULL ) hh = 8 ;
    else                                         return -1 ;
 
    AV_assign_ival( im3d->vwid->imag->crosshair_av, hh ) ;

@@ -139,13 +139,15 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
-def read_text_dictionary(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
+def read_text_dictionary(fname, verb=1, mjdiv=None, mndiv=None, compact=0,
+                         qstrip=0):
    """this is the same as read_text_dict_list(), but it returns a dictionary
 
       if compact, collapse single entry lists
+      if qstrip, strip any containing quotes
    """
    rv, ttable = read_text_dict_list(fname, verb=verb, mjdiv=mjdiv, mndiv=mndiv,
-                                    compact=compact)
+                                    compact=compact, qstrip=qstrip)
    if rv: return rv, {}
    
    rdict = {}
@@ -158,7 +160,8 @@ def read_text_dictionary(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
 
    return 0, rdict
 
-def read_text_dict_list(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
+def read_text_dict_list(fname, verb=1, mjdiv=None, mndiv=None, compact=0,
+                        qstrip=0):
    """read file as if in a plain dictionary format (e.g. LABEL : VAL VAL ...)
 
          mjdiv : major divider can be a single string (':') or a list of them
@@ -170,6 +173,8 @@ def read_text_dict_list(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
 
          compact: collapse any single entry lists to return
                   DLIST enties of form [LABEL, VAL] or [LABEL, [V0, V1...]]
+
+         qstrip:  strip any surrounding quotes
 
       return status, DLIST
              where status == 0 on success
@@ -232,6 +237,9 @@ def read_text_dict_list(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
    # now actually make a dictionary
    outtable = []
    for tline in ttable:
+      if qstrip:
+         tline[1] = tline[1].strip("'")
+         tline[1] = tline[1].strip('"')
       if mndiv == 'SPACE': entries = tline[1].split()
       else:                entries = tline[1].split(mndiv)
       if compact and len(entries) == 1:
@@ -2656,6 +2664,46 @@ def lists_are_same(list1, list2, epsilon=0, doabs=0):
          if abs(v1-v2) > epsilon: return 0
 
    return 1
+
+def list_intersect(listA, listB, sort=1):
+   """return a list of the elements that are in both lists
+
+      if sort, sort the result
+   """
+
+   # if either is empty, the match list is as well
+   if not listA or not listB: return []
+
+   rlist = [v for v in listA if v in listB]
+
+   if sort: rlist.sort()
+
+   return rlist
+
+def list_diff(listA, listB, dtype='A-B', sort=1):
+   """return a list of the elements differ between the lists
+
+      dtype:    A-B     : return elements in listA that are not list B
+                B-A     : return elements in listB that are not list A
+                all     : return all diffs (same as A-B and B-A)
+
+      return a list of newly created elements
+   """
+
+   # keep logic simple
+
+   if dtype == 'A-B':
+      rlist = [v for v in listA if v not in listB]
+   elif dtype == 'B-A':
+      rlist = [v for v in listB if v not in listA]
+   else:
+      rlist = [v for v in listA if v not in listB]
+      rlist.extend([v for v in listB if v not in listA])
+
+   if sort:
+      rlist.sort()
+
+   return rlist
 
 def string_to_float_list(fstring):
    """return a list of floats, converted from the string

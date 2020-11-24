@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset", ".niml.do",
-    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".png" , ".heic"
+    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".jpeg" , ".png" , ".heic"
 };
 
 /*
@@ -186,18 +186,11 @@ ENTRY("THD_open_one_dataset") ;
    /*-- perhaps the MINC way --*/
 
    if( STRING_HAS_SUFFIX(pathname,".mnc") ){
-#ifndef DONT_ALLOW_MINC
-     CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     dset = THD_open_minc(pathname) ;
-     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
-     RETURN(dset) ;
-#else
      static int first=1 ;
      if( first ){
        ERROR_message("MINC-1 dataset open disabled: %s",pathname) ;
        first = 0 ; RETURN(NULL) ;
      }
-#endif
    }
 
    /*-- perhaps the ANALYZE way --*/
@@ -263,9 +256,10 @@ ENTRY("THD_open_one_dataset") ;
      RETURN(dset) ;
    }
 
-   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg") ||
-       STRING_HAS_SUFFIX_CASE(pathname,".png") ||
-       STRING_HAS_SUFFIX_CASE(pathname,".heic")  ){  /* 06 Jul 2016 */
+   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg")  ||
+       STRING_HAS_SUFFIX_CASE(pathname,".png")  ||
+       STRING_HAS_SUFFIX_CASE(pathname,".jpeg") ||
+       STRING_HAS_SUFFIX_CASE(pathname,".heic")   ){  /* 06 Jul 2016 */
 
      CHECK_FOR_DATA(pathname) ;
      dset = THD_open_image(pathname) ;  /* will be loaded, too */
@@ -552,9 +546,6 @@ ENTRY("storage_mode_from_filename");
         STRING_HAS_SUFFIX(fname, ".BRIK") ||
         STRING_HAS_SUFFIX(fname, ".BRIK.gz") )  RETURN(STORAGE_BY_BRICK);
 
-#ifndef DONT_ALLOW_MINC
-    if( STRING_HAS_SUFFIX(fname, ".mnc") )      RETURN(STORAGE_BY_MINC);
-#endif
 
     if( 0 )                                     RETURN(STORAGE_BY_VOLUMES);
 

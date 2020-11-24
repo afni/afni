@@ -1,0 +1,2 @@
+global-exclude afni_ci_test_data
+global-exclude scripts

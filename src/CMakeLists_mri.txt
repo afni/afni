@@ -34,6 +34,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_StatsPDL.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_CA_EZ.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
@@ -320,8 +321,6 @@ add_library(
   thd_mattor.c
   thd_mean_dset.c
   thd_median.c
-  thd_mincread.c
-  thd_mincwrite.c
   thd_mismatch.c
   thd_mnicoords.c
   thd_mpegread.c
@@ -350,6 +349,7 @@ add_library(
   thd_shear3d.c
   thd_shift2.c
   thd_statpval.c
+  thd_StatsPDL.c
   thd_store_index.c
   thd_strfunc.c
   thd_svdblur.c
@@ -431,6 +431,7 @@ add_library(
   mri_histog.c
   mri_histoshort.c
   mri_intedge.c
+  mri_invert.c
   mri_isgray.c
   mri_lsqfit.c
   mri_matrix.c
@@ -454,7 +455,6 @@ add_library(
   mri_read_dicom.c
   mri_read_mpeg.c
   mri_read_stuff.c
-  mri_render.c
   mri_rgba_compose.c
   mri_rota.c
   mri_scale.c
@@ -528,8 +528,6 @@ target_link_libraries(
           $<$<BOOL:${USE_GIFTI}>:GIFTI::giftiio>
           AFNI::3DEdge
           AFNI::eispack
-          volpack
           NIFTI::nifti2
           NIFTI::nifticdf
-          ${NETCDF_LIBRARIES_C}
 )

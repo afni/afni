@@ -23,6 +23,7 @@ cd $hdir
    sort | uniq > $fout
 
 
+# compare each current help output with previous versions
 set nprogs = `wc -l $fout`
 set nprogs = $nprogs[1]
 set ffo = (__new __old)
@@ -56,76 +57,112 @@ while ($n <= $nprogs)
    @ n ++ 
 end
    
-   set nleft = `ls -1 $hdir/ | wc -l`
-   echo "$N_change redundant help files deleted, $nleft help files left."
+
+# combine command completion files into all_progs.COMP*
+
+set nleft = `ls -1 $hdir/ | wc -l`
+echo "$N_change redundant help files deleted, $nleft help files left."
+
+echo "Combining all command completions into all_progs.COMP(.bash)"
+cat *.complete > all_progs.COMP
+cat *.complete.bash > all_progs.COMP.bash
+
+# do this for zsh, if the files exist
+if ( -f afni.complete.zsh ) then
+   cat *.complete.zsh > all_progs.COMP.zsh
+endif
    
-   echo "Combining all command completions into all_progs.COMP(.bash)"
-   cat *.complete > all_progs.COMP
-   cat *.complete.bash > all_progs.COMP.bash
-   
-   #Get the user's shell type
-   if ($shh == '') then
-      set shh = $SHELL:t   
-   endif
-   if ("$shh" == 'csh' || "$shh" == 'tcsh') then
-      \grep all_progs.COMP ~/.cshrc > & /dev/null
-      set is_set = $status
-      if ($is_set != 0) then
-         echo ""
-         echo "Add the following lines to your ~/.csrhc"
-         echo ''
-         echo ''
-         echo 'set ahdir = `apsearch -afni_help_dir`'
-         echo 'if ( -f $ahdir/all_progs.COMP ) then'
-         echo '   source $ahdir/all_progs.COMP'
-         echo 'endif'
-         echo ''
-         echo ''
-         echo 'Then run from this shell: source ~/.cshrc'
-         echo 'or just open a new shell'
-         echo ''
-      else
-         echo ""
-         echo "For the updates to take effect in this shell, run:"
-         echo "source ~/.cshrc"
-         echo "Otherwise just open a new shell."
-         echo ""
-      endif
-   else if ("$shh" == 'bash') then
-      echo "Combining all command completions into all_progs.COMP.bash"
-      cat *.complete.bash > all_progs.COMP.bash
-      \grep all_progs.COMP.bash ~/.bashrc > & /dev/null
-      set is_set = $status
-      if ($is_set != 0) then
-         #http://www.joshstaiger.org/archives/2005/07/bash_profile_vs.html
-         #Have to decide whether to go bashrc/bashprofile...
-         echo ""
-         echo "Add the following lines to your ~/.bashrc"
-         echo ''
-         echo ''
-         echo 'ahdir=`apsearch -afni_help_dir`'
-         echo 'if [ -f "$ahdir/all_progs.COMP.bash" ]'
-         echo 'then'
-         echo '   . $ahdir/all_progs.COMP.bash'
-         echo 'fi'
-         echo ''
-         echo 'Then run from this shell: . ~/.bashrc'
-         echo 'or just open a new shell'
-         echo ''
-      else
-         echo ""
-         echo "For the updates to take effect in this shell, run:"
-         echo ". ~/.bashrc"
-         echo "Otherwise just open a new shell."
-         echo ""
-      endif
+# suggest to the user how to apply this, based on $SHELL
+#Get the user's shell type
+if ($shh == '') then
+   set shh = $SHELL:t   
+endif
+if ("$shh" == 'csh' || "$shh" == 'tcsh') then
+   \grep all_progs.COMP ~/.cshrc > & /dev/null
+   set is_set = $status
+   if ($is_set != 0) then
+      echo ""
+      echo "Add the following lines to your ~/.csrhc"
+      echo ''
+      echo ''
+      echo 'set ahdir = `apsearch -afni_help_dir`'
+      echo 'if ( -f $ahdir/all_progs.COMP ) then'
+      echo '   source $ahdir/all_progs.COMP'
+      echo 'endif'
+      echo ''
+      echo ''
+      echo 'Then run from this shell: source ~/.cshrc'
+      echo 'or just open a new shell'
+      echo ''
    else
-      echo "Not ready to setup completion for shell $shh."
-      echo "Complain to AFNI folks."
+      echo ""
+      echo "For the updates to take effect in this shell, run:"
+      echo "source ~/.cshrc"
+      echo "Otherwise just open a new shell."
+      echo ""
    endif
-   
+else if ("$shh" == 'bash') then
+   echo "Combining all command completions into all_progs.COMP.bash"
+   \grep all_progs.COMP.bash ~/.bashrc > & /dev/null
+   set is_set = $status
+   if ($is_set != 0) then
+      #http://www.joshstaiger.org/archives/2005/07/bash_profile_vs.html
+      #Have to decide whether to go bashrc/bashprofile...
+      echo ""
+      echo "Add the following lines to your ~/.bashrc"
+      echo ''
+      echo ''
+      echo 'ahdir=`apsearch -afni_help_dir`'
+      echo 'if [ -f "$ahdir/all_progs.COMP.bash" ]'
+      echo 'then'
+      echo '   . $ahdir/all_progs.COMP.bash'
+      echo 'fi'
+      echo ''
+      echo 'Then run from this shell: . ~/.bashrc'
+      echo 'or just open a new shell'
+      echo ''
+   else
+      echo ""
+      echo "For the updates to take effect in this shell, run:"
+      echo ". ~/.bashrc"
+      echo "Otherwise just open a new shell."
+      echo ""
+   endif
+else if ("$shh" == 'zsh') then
+   echo "Combining all command completions into all_progs.COMP.zsh"
+   \grep all_progs.COMP.zsh ~/.zshrc > & /dev/null
+   set is_set = $status
+   if ($is_set != 0) then
+      echo ""
+      echo "Add the following lines to your ~/.zshrc"
+      echo ''
+      echo ''
+      echo 'ahdir=`apsearch -afni_help_dir`'
+      echo 'if [ -f "$ahdir/all_progs.COMP.zsh" ]'
+      echo 'then'
+      echo '   . $ahdir/all_progs.COMP.zsh'
+      echo 'fi'
+      echo ''
+      echo 'Then run from this shell: . ~/.zshrc'
+      echo 'or just open a new shell'
+      echo ''
+   else
+      echo ""
+      echo "For the updates to take effect in this shell, run:"
+      echo ". ~/.zshrc"
+      echo "Otherwise just open a new shell."
+      echo ""
+   endif
+else
+   echo "Not ready to setup completion for shell $shh."
+   echo "Complain to AFNI folks."
+endif
+
+# finished, return and return
 cd $sdir
 goto END
+
+# "subroutines", such as option parsing and help output
 
 PARSE:
    
@@ -135,25 +172,25 @@ PARSE:
    set shh = ''
    set cnt = 1
    while ($cnt <= $Narg)
-		set donext = 1;
+      set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
          set echo
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
 
       if ($donext && "$argv[$cnt]" == "-quiet") then
          set quiet = 1
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
 
       if ($donext && "$argv[$cnt]" == "-verb") then
          set quiet = 0
-         set donext = 0; goto NEXT		
+         set donext = 0; goto NEXT     
       endif
       
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
          goto HELP
-         set donext = 0;	 goto NEXT	
+         set donext = 0;    goto NEXT  
       endif
       
       if ($donext == 1) then
@@ -162,8 +199,8 @@ PARSE:
       endif
       
       NEXT:
-		@ cnt ++
-	end
+      @ cnt ++
+   end
    
    if ("$uhdir" != '') set hdir = $uhdir
       

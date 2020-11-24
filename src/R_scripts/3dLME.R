@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.2, June 19, 2020
+Version 2.0.3, July 22, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -53,7 +53,7 @@ Usage:
  
  Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
  
- In addition to R installtion, the following two R packages need to be acquired
+ In addition to R installation, the following two R packages need to be acquired
  in R first before running 3dLME: "nlme", "lme4" and "phia". In addition, the "snow"
  package is also needed if one wants to take advantage of parallel computing.
  To install these packages, run the following command at the terminal:
@@ -364,7 +364,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         commas (,) without any other characters such as spaces and should",
    "         be surrounded within (single or double) quotes. The order of the",
    "         values should match that of the quantitative variables in -qVars.",
-   "         Default (absence of option -qVarsCetners) means centering on the",
+   "         Default (absence of option -qVarsCenters) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
@@ -376,7 +376,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         identified under -vVars. Multiple centers are separated by ",
    "         commas (,) within (single or double) quotes. The order of the",
    "         values should match that of the quantitative variables in -qVars.",
-   "         Default (absence of option -vVarsCetners) means centering on the",
+   "         Default (absence of option -vVarsCenters) means centering on the",
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the files are fed into -dataTable.\n",
@@ -525,11 +525,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not forget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable @table.txt'.",
-   "         This option is useful: (a) when there are many input files so that",
-   "         the program complains with an 'Arg list too long' error; (b) when",
-   "         you want to try different models with the same dataset.\n",
+   "         called table.txt. In the script specify the information with '-dataTable",
+   "         @table.txt'. This option is useful: (a) when there are many input",
+   "         files so that the program complains with an 'Arg list too long' error;",
+   "         (b) when you want to try different models with the same dataset.",
+   "         When the table is a stand-alone file, quotes should NOT be added around",
+   "         the sub-brick selector -- square brackets [...]. Also, there is no need",
+   "         to add a backslash at the end of each line.\n",
              sep = '\n'
                      ) ),
 

@@ -511,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.3, March 14, 2019
+Version 1.1.0, Sept 12, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -752,10 +752,10 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "                            pb05.Jane.Regression+tlrc'[face#0_Tstat]' \\\n" 
                         ) ),
                         
-#      '-conditions' = apl(n = c(1,2), h = paste (
-#   "-conditions COND1 [COND2]: Name of 1 or 2 conditions, tasks, or GLTs.\n",
-#   "                           Default is one condition named 'c1'\n"   
-#                  ) ),
+      '-conditions' = apl(n = c(1,2), h = paste (
+   "-conditions COND1 [COND2]: Name of 1 or 2 conditions, tasks, or GLTs.\n",
+   "                           Default is one condition named 'c1'\n"   
+                  ) ),
                   
       '-max_zeros' = apl(n = 1, d = 0, h = paste(
    "-max_zeros MM: Do not compute statistics at any voxel that has \n",
@@ -973,7 +973,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              jobs   = lop$nNodes <- ops[[i]],
              groups = lop$grpName <- ops[[i]],
-#             conditions = lop$conLab <- ops[[i]],
+             conditions = lop$conLab <- ops[[i]],
              set  = lop <- MEMA.parse.set(lop, ops[[i]]),
              n_nonzero = lop$nNonzero <- ops[[i]],
              max_zeros = lop$nMaxzero <- ops[[i]],
@@ -2225,46 +2225,46 @@ tTop <- 100   # upper bound for t-statistic
       }
    }
    
-#   if(lop$anaType==3) {  # case with two conditions
-#      for(ii in 1:lop$nLevel) {
-#         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
-#         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
-#         lop$varList[[ii]] <- 
-#            mapply(function(x, y) 
-#                   ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
-#                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
-#         for (jj in 1:lop$nSubj[1]) 
-#            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
+   if(lop$anaType==3) {  # case with two conditions
+      for(ii in 1:lop$nLevel) {
+         lop$bList[[ii]] <- lapply(lop$bList[[ii]], function(x) x$brk); 
+         lop$tList[[ii]] <- lapply(lop$tList[[ii]], function(x) x$brk)
+         lop$varList[[ii]] <- 
+            mapply(function(x, y) 
+                   ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), 
+                   lop$bList[[ii]], lop$tList[[ii]], SIMPLIFY = FALSE)  # variance
+         for (jj in 1:lop$nSubj[1]) 
+            lop$varList[[ii]][[jj]][lop$varList[[ii]][[jj]] < tolL] <- tolU  
                 # replace those 0 variances with a big number
-#      }
-#      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
-#         grpDFList <- vector('list', lop$nLevel)      
+      }
+      if(!is.null(lop$missing_dataFN)) { # if missing data is considered
+         grpDFList <- vector('list', lop$nLevel)      
          # missing data is defined as 0 values at each voxel
-#         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
-#            for(ii in 1:lop$nLevel) {
+         if(is.numeric(lop$missing_dataFN)) { if(lop$missing_dataFN == 0) {
+            for(ii in 1:lop$nLevel) {
                # here grpDFList[[ii]] is the number of 0 variances at each voxel for ii-th group
-#               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
+               grpDFList[[ii]] <- (abs(lop$bList[[ii]][[1]]) == 0)  #0s in 1st subject in the ii-th group
                # add #0s in other subjects in the group
-#               for(jj in 2:lop$nSubj[1]) 
-#               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
-#            } } 
-#         } else 
-#         if(is.character(lop$missing_dataFN))  # missing data info provided by user
-#            for(ii in 1:lop$nLevel) {
-#               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
-#                                    verb=lop$verb, meth=lop$iometh)$brk
-#            }
-###      }
+               for(jj in 2:lop$nSubj[1]) 
+               grpDFList[[ii]] <- grpDFList[[ii]] + (abs(lop$bList[[ii]][[jj]]) == 0)
+            } } 
+         } else 
+         if(is.character(lop$missing_dataFN))  # missing data info provided by user
+            for(ii in 1:lop$nLevel) {
+               grpDFList[[ii]] <- read.AFNI(lop$missing_dataFN[ii], 
+                                    verb=lop$verb, meth=lop$iometh)$brk
+            }
+      }
    
       # 2nd minus 1st: keep consistent with 3dttset and the two-sample types 2 and 4
-#      contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
-#      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
-#                              SIMPLIFY = FALSE)
+      contrBList <- mapply("-", lop$bList[[2]], lop$bList[[1]], SIMPLIFY = FALSE)
+      contrVarList <- mapply("+", lop$varList[[1]], lop$varList[[2]], 
+                              SIMPLIFY = FALSE)
       
       # if one of the 2 conditions has 0 t-value, force the contrast beta ZERO here
       # even if the other beta is nonzerio since it's not worth considering a contrast for this voxel      
-#      for (jj in 1:lop$nSubj[1]) contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
-#   }
+      for (jj in 1:lop$nSubj[1]) contrBList[[jj]] <- ifelse(contrVarList[[jj]]>=tolU, 0, contrBList[[jj]])                     
+   }
    
    #rm(lop$tList)
    lop$tList <- list();

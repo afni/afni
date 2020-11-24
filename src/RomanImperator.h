@@ -1,12 +1,27 @@
 #ifndef _RomanImperator_Header_
 #define _RomanImperator_Header_
 
-/**********************************************************************************/
-/* Adapted from https://en.wikipedia.org/wiki/List_of_Roman_emperors in late 2018 */
-/**********************************************************************************/
+/******************************************************************************/
+/*   From https://en.wikipedia.org/wiki/List_of_Roman_emperors (late 2018)    */
+/******************************************************************************/
+
+/*----------------------------------------------------------------------------*/
+/* AFNI_VERSION_LABEL, defined in file AFNI_version.h, is a string of the form
+     AFNI_ab.c.de
+   where ab = year minus 2000 (e.g., 18 for 2018)
+         c  = quarter within the year = 0, 1, 2, or 3
+         de = minor number of version
+   Macro AFNI_VERSION_RomanImperator (far below) uses ab and c to choose the
+   cognomen (catch name) from the version; this macro is used in afni.c
+   (cf. function show_AFNI_version() ) when option '-ver' is given to print
+   out the AFNI version; e.g.,
+     Oct 20 2020 (Version AFNI_20.3.01 'Vespasian')
+*//*--------------------------------------------------------------------------*/
 
 #ifdef AFNI_VERSION_LABEL
-static char *RomanImperator[] = {      /* 175 of them, 4 per year, good thru 2062 or so */
+
+static char *RomanImperator[] = {  /* 175 of them, 4/year, good thru 2062 or so. */
+                                   /* After that? China maybe? Turkish Sultans? */
 /*2018*/    "Augustus" ,
 /*2019*/    "Tiberius" , "Caligula" , "Claudius" , "Nero" ,
 /*2020*/    "Galba" , "Otho" , "Aulus Vitellius" , "Vespasian" ,
@@ -50,18 +65,30 @@ static char *RomanImperator[] = {      /* 175 of them, 4 per year, good thru 206
             /* Bob turns 100 in 2054 - why is there no Emperor "Bob I AFNIman"? */
 /*2054*/    "Constantine X Doukas" , "Michael VII Doukas Quarter-short" , "Romanos IV Diogenes" , "Nikephoros III Botaneiates" ,
 
-    "Alexios I Komnenos" , "John II Komnenos the Handsome" ,
-    "Manuel I Komnenos the Great" , "Alexios II Komnenos" , "Andronikos I Komnenos" ,
-    "Isaac II Angelos" , "Alexios III Angelos" , "Isaac II Angelos" ,
-    "Alexios IV Angelos" , "Nikolaos Kanabos" ,
-    "Alexios V Doukas the Bushy-eyebrowed" , "Constantine Laskaris" ,
-    "Theodore I Laskaris" , "John III Doukas Vatatzes" , "Theodore II Doukas Laskaris" ,
-    "John IV Doukas Laskaris" , "Michael VIII Palaiologos" ,
-    "Andronikos II Palaiologos the Elder" , "Andronikos III Palaiologos the Younger" ,
-    "John V Palaiologos" , "John VI Kantakouzenos" , "John V Palaiologos" ,
-    "Andronikos IV Palaiologos" , "John V Palaiologos" , "John VII Palaiologos" ,
-    "John V Palaiologos" , "Manuel II Palaiologos" , "John VII Palaiologos" ,
-    "John VIII Palaiologos" , "Constantine XI"
+/*2055*/    "Alexios I Komnenos" , "John II Komnenos the Handsome" ,
+    "Manuel I Komnenos the Great" , "Alexios II Komnenos" ,
+
+/*2056*/   "Andronikos I Komnenos" ,
+            "Isaac II Angelos" , "Alexios III Angelos" , "Isaac II Angelos" ,
+
+/*2057*/    "Alexios IV Angelos" , "Nikolaos Kanabos" ,
+            "Alexios V Doukas the Bushy-eyebrowed" , "Constantine Laskaris" ,
+
+/*2058*/    "Theodore I Laskaris" , "John III Doukas Vatatzes" ,
+            "Theodore II Doukas Laskaris" , "John IV Doukas Laskaris" ,
+
+/*2059*/ "Michael VIII Palaiologos" ,
+         "Andronikos II Palaiologos the Elder" ,
+         "Andronikos III Palaiologos the Younger" ,
+         "John V Palaiologos" ,
+
+/*2060*/ "John VI Kantakouzenos" , "John V Palaiologos" ,
+         "Andronikos IV Palaiologos" , "John V Palaiologos" ,
+
+/*2061*/ "John VII Palaiologos" ,
+         "John V Palaiologos" , "Manuel II Palaiologos" , "John VII Palaiologos" ,
+
+/*2062*/  "John VIII Palaiologos" , "Constantine XI"
 } ;
 
 #define NUM_RomanImperator (sizeof(RomanImperator)/sizeof(char *))
@@ -72,16 +99,29 @@ static char *RomanImperator[] = {      /* 175 of them, 4 per year, good thru 206
    * In this example, the subscript in the array above is computed
       from the '19.3' part of the label, using the '1', the '9', and
       the '3' ([5], [6], and [8] characters in the label string).
+   * If the label is AFNI_ab.c.de, then the year 'ab'
+     is munged to a*10+b-18 (since 2018 is the zero year for this)
+   * This munged year is multiplied by 4 since we do one Imperator
+     per quarter, and then the 'c' quarter is added in, with an
+     extra minus 3 since this all started in the last quarter of 2018,
+     with version AFNI_18.3.00, which should decode to the 0th Imperator
+     -- Augustus!
+   * Note that when the year 2100 rolls around, this macro will no
+     longer work properly. At that point, AFNI will be 106 years old
+     and Bob will be 146 years old. I'll let someone else worry about
+     this problem, if you don't mind.
 *//*--------------------------------------------------------------------------*/
 
 #define AFNI_VERSION_RomanImperator                                   \
   RomanImperator[                                                     \
-   (4*((AFNI_VERSION_LABEL[5]-'0')*10+(AFNI_VERSION_LABEL[6]-'0')-18) \
-    +(AFNI_VERSION_LABEL[8]-'0'-3))%NUM_RomanImperator]
+   ( 4*((AFNI_VERSION_LABEL[5]-'0')*10                                \
+    +   (AFNI_VERSION_LABEL[6]-'0')-18)                               \
+    +   (AFNI_VERSION_LABEL[8]-'0'-3)  ) % NUM_RomanImperator ]
 
-#else  /*---------- the backup case ----------*/
+#else  /*---------- the backup case == no Imperial name :( ----------*/
 
 #define AFNI_VERSION_RomanImperator "\0"
 
-#endif /* AFNI_VERSION_LABEL */
+#endif /* if AFNI_VERSION_LABEL is defined */
+
 #endif /*_RomanImperator_Header_ */

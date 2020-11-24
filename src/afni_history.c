@@ -28,11 +28,14 @@ static char g_history[] =
   "1.9  19 Jul 2010 [rickr] : added -check_date option\n"
   "1.10 30 Nov 2010 [rickr] : added -final_sort_by_prog option\n"
   "1.11 29 Mar 2017 [rickr] : added justin: JKR\n"
+  "1.12 28 Jul 2020 [rickr] : added laurenpd: PDL\n"
+  "1.13 25 Aug 2020 [rickr] : added TYPE_REMOVE, TYPE_REINSTATE\n"
+  "1.14  2 Sep 2020 [rickr] : added -show_type, -show_type_names\n"
 };
 
-static char g_version[] = "afni_history version 1.11, 29 Mar 2017";
+static char g_version[] = "afni_history version 1.14, 2 Sep 2020";
 
-static  char * g_author_list[] = {
+static char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
     "ziad",     "ZSS",  ZSS,
     "dglen",    "DRG",  DRG,
@@ -40,9 +43,50 @@ static  char * g_author_list[] = {
     "gangc",    "GC",   GC,
     "christip", "PPC",  PPC,
     "bpittman", "BGP",  BGP,
-    "ptaylor",  "PT" ,  PT
+    "ptaylor",  "PT" ,  PT,
     "discoraj", "JKR",  JKR,
+    "laurenpd", "PDL",  PDL
 };
+
+/* ======================================================================= */
+/* field names and defines, for use with the -show_field option
+ *
+ * This is basically a list of fields in the afni_history_struct, in case
+ * one wants to print out just the individual fields, rather than each
+ * entire struct.
+ *
+ * The "date"/DATE entry is a convenience to combine YEAR/MONTH/DAY
+ * (to make chronological == alphabetical).
+ *
+ * This string order must match the non-negative FIELD_* #define's, which
+ * follow.  The #define's are here (instead of afni_history.h) to keep
+ * these lists together.                                                   */
+
+static char * g_show_fields[] = {
+    "all", "firstline",         /* the rest are (mostly) struct fields */
+    "day", "month", "year", "date",
+    "author", "program", "level", "type",
+    "desc", "verbtext"
+};
+
+/* field type values             (for show_field)               */
+#define FIELD_INVALID     -1  /* bad, naughty type             */
+#define FIELD_ALL          0  /* show all fields               */
+#define FIELD_FIRST_LINE   1  /* show the standard first line */
+#define FIELD_DAY          2  /* day of month               */
+#define FIELD_MONTH        3  /* month of year             */
+#define FIELD_YEAR         4  /* year of calendar system  */
+#define FIELD_DATE         5  /* year, month, day        */
+#define FIELD_AUTHOR       6  /* author                 */
+#define FIELD_PROGRAM      7  /* program               */
+#define FIELD_LEVEL        8  /* level                */
+#define FIELD_TYPE         9  /* type                */
+#define FIELD_DESC        10  /* description        */
+#define FIELD_VERB        11  /* verbtext          */
+#define MAX_FIELD_VAL     12  /* max field index  */
+
+/* end field names and defines                                             */
+/* ======================================================================= */
 
 
 histpair g_histpairs[NUM_HIST_USERS];  /* will initialize internally */
@@ -55,6 +99,9 @@ int main(int argc, char *argv[])
     global_data * gd = &GD;
     hist_type  ** hlist = NULL;
     int           rv, hlen = 0;
+
+    /* check -show_field entries */
+    if ( quick_field_test() ) return 1;
 
     rv = process_options(argc, argv, gd);
     if( rv < 0 )        return 1;
@@ -104,6 +151,9 @@ int process_options(int argc, char * argv[], global_data * gd)
             return 1;
         } else if( !strcmp(argv[ac], "-list_authors") ) {
             show_author_list();
+            return 1;
+        } else if( !strcmp(argv[ac], "-show_field_names" ) ) {
+            show_valid_fields();
             return 1;
         } else if( !strcmp(argv[ac], "-list_types") ) {
             show_valid_types();
@@ -177,6 +227,15 @@ int process_options(int argc, char * argv[], global_data * gd)
             gd->sort_dir = -1;
         } else if( !strcmp(argv[ac], "-final_sort_by_prog" ) ) {
             gd->final_sort_by_prog = 1;
+        } else if( !strcmp(argv[ac], "-show_field" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-show_field", "FIELD");
+            gd->show_field = field_name2index(argv[ac]);
+            if( gd->show_field < 0 ) {
+                fprintf(stderr,"** invalid show field '%s'\n", argv[ac]);
+                fprintf(stderr,"   see 'afni_history -show_field_names'\n");
+                return -1;
+            }
         } else if( !strcmp(argv[ac], "-type" ) ) {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-type", "TYPE");
@@ -264,6 +323,11 @@ char * convert_author(char * name)
     if( !strcmp(name, "justin") )   return JKR;
     if( !strcmp(name, "Justin") )   return JKR;
     if( !strcmp(name, "rajendrajk"))return JKR;
+
+    if( !strcmp(name, "PDL") )      return PDL;
+    if( !strcmp(name, "laurenpd") ) return PDL;
+    if( !strcmp(name, "Peter") )    return PDL;
+    if( !strcmp(name, "peter") )    return PDL;
 
     return name;   /* give up and stick with what we have */
 }
@@ -387,7 +451,7 @@ int check_date(global_data * gd, hist_type ** hlist, int len)
 
     if( gd->verb > 1 ) {
         fprintf(stderr,"-- comparing date against hist entry:\n");
-        show_hist_type(hh, stderr);
+        show_hist_entry(hh, stderr, FIELD_ALL);
     }
 
     if(  hh->yyyy  < yy || 
@@ -473,10 +537,12 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
     }
 #endif
 
-    if( gd->sort_dir == 1 )
-        printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
-    else
-        printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    if( gd->verb > 0 ) {
+       if( gd->sort_dir == 1 )
+           printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
+       else
+           printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    }
 
     for( c = first; c < len; c++ ) {
         if( c > 0 && compare_hist_dates(hlist[c],hlist[c-1]) ){
@@ -486,7 +552,7 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
             show_dline_separator(stdout) ;  /* RWC */
         }
 
-        show_hist_type(hlist[c], stdout);
+        show_hist_entry(hlist[c], stdout, gd->show_field);
     }
 
     if( gd->html ) show_html_footer(stdout);
@@ -494,12 +560,50 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
     return 0;
 }
 
-int show_hist_type(hist_type * hp, FILE * fp)
+/* special fields are FIELD_FIRST_LINE and other (field > FIELD_ALL),
+ * else show as FIELD_ALL */
+int show_hist_entry(hist_type * hp, FILE * fp, int field)
 {
+    /* if the user wants only 1 field, show it and return            */
+    /* (individual fields come after FIELD_ALL and FIELD_FIRST_LINE) */
+    if( field > FIELD_FIRST_LINE && field <= MAX_FIELD_VAL ) {
+       if( field == FIELD_DAY )     fprintf(fp, "%02d\n", hp->dd);
+       if( field == FIELD_MONTH )   fprintf(fp, "%s\n", mm2month(hp->mm));
+       if( field == FIELD_YEAR )    fprintf(fp, "%04d\n", hp->yyyy);
+
+       /* DATE is a special field - show a full date */
+       if( field == FIELD_DATE )
+          fprintf(fp, "%04d %02d %02d\n",
+                  hp->yyyy, hp->mm, hp->dd);
+
+       if( field == FIELD_AUTHOR )  fprintf(fp, "%s\n", hp->author);
+       if( field == FIELD_PROGRAM ) fprintf(fp, "%s\n", hp->program);
+       if( field == FIELD_LEVEL  )  fprintf(fp, "%d (%s)\n",
+                                            hp->level, level_string(hp->level));
+       if( field == FIELD_TYPE )    fprintf(fp, "%d (%s)\n",
+                                            hp->type, type_string(hp->type));
+       if( field == FIELD_DESC )    fprintf(fp, "%s\n", hp->desc);
+       if( field == FIELD_VERB )    fprintf(fp, "%s\n", hp->verbtext);
+
+       /* we are done with the single entries */
+       return 0;
+    }
+
+    /* at this point, we want just the first line, or the entire struct */
+
+    /* print the first line, either way */
     fprintf(fp, "%02d %s %04d, %s, %s, level %d (%s), type %d (%s)\n",
             hp->dd, mm2month(hp->mm), hp->yyyy,
             hp->author, hp->program, hp->level, level_string(hp->level),
             hp->type, type_string(hp->type));
+
+    /* if the user wants only the first line, we are done */
+    if( field == FIELD_FIRST_LINE )
+        return 0;
+
+
+    /* otherwise, print the rest of the struct */
+
     fprintf(fp, "    %s\n", hp->desc);
     if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
 
@@ -1057,6 +1161,7 @@ int disp_global_data(char * mesg, global_data * gd)
             "    program                   = %s\n"
             "    check_date                = %d\n"
             "    cd_day, cd_month, cd_year = %s, %s, %s\n"
+            "    show_field                = %d\n"
             "    html, dline, type         = %d, %d, %d\n"
             "    level, min_level          = %d, %d\n"
             "    past_days, months, years  = %d, %d, %d\n"
@@ -1066,7 +1171,7 @@ int disp_global_data(char * mesg, global_data * gd)
             CHECK_NULL_STR(gd->author), CHECK_NULL_STR(gd->program),
             gd->check_date, CHECK_NULL_STR(gd->cd_day),
             CHECK_NULL_STR(gd->cd_month), CHECK_NULL_STR(gd->cd_year), 
-            gd->html, gd->dline, gd->type,
+            gd->show_field, gd->html, gd->dline, gd->type,
             gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
             gd->past_entries, gd->sort_dir, gd->final_sort_by_prog,
@@ -1141,6 +1246,22 @@ int show_help(void)
   "     a. afni_history -check_date 1 1 2010\n"
   "     b. afni_history -check_date 15 Mar 2050\n"
   "\n"
+  "  6. show particular fields\n"
+  "\n"
+  "     a. show the program name for the most recent 10 entries\n"
+  "           afni_history -show_field program 10\n"
+  "     b. show the program name for the most recent 10 NEW_PROG entries\n"
+  "           afni_history -type NEW_PROG -show_field program 10\n"
+  "     c. show the authors of the past 10 BUG_FIX entries\n"
+  "           afni_history -type BUG_FIX -show_field author 10\n"
+  "     d. show all unique program fields, sorted\n"
+  "           afni_history -show_field program | sort | uniq\n"
+  "     e. show all unique program fields of NEW_PROG entries, sorted\n"
+  "           afni_history -show_field program -type NEW_PROG | sort | uniq\n"
+  "\n"
+  "     f. list FIELD parameters available for use with -show_field\n"
+  "           afni_history -show_field_names\n"
+  "\n"
   "-----------------------------------------------------------------\n"
   "\n"
   "------------------ informational options: -----------------------\n"
@@ -1185,6 +1306,38 @@ int show_help(void)
   "  -dline                   : put a divider line between dates\n"
   "  -reverse                 : reverse the sorting order\n"
   "                             (sort is by date, author, level, program)\n"
+  "\n"
+  "  -show_field FIELD        : restrict entry output to field FIELD\n"
+  "\n"
+  "     For each history entry printed in the output restrict the output\n"
+  "     to only that implied by FIELD.\n"
+  "\n"
+  "     Valid FIELDs include:\n"
+  "\n"
+  "        FIELD        : what to show\n"
+  "        ----------     ----------------------------------------\n"
+  "        all          : all fields (same as without -show_field)\n"
+  "        firstline    : only the standard first line\n"
+  "        day          : day of month\n"
+  "        month        : month of year\n"
+  "        year         : year of calendar system\n"
+  "        date         : year, month, day\n"
+  "        author       : author\n"
+  "        program      : program\n"
+  "        level        : level\n"
+  "        type         : type\n"
+  "        desc         : description\n"
+  "        verbtext     : verbtext\n"
+  "\n"
+  "     Only one -field option is allowed at the moment.\n"
+  "\n"
+  "     Valid FIELD values can be shown by\n"
+  "        afni_history -show_field_names\n"
+  "\n"
+  "  -show_field_names        : list valid FIELD names for -show_field\n"
+  "\n"
+  "     Each entry in the output list can be passed to -show_field\n"
+  "\n"
   "  -verb LEVEL              : request verbose output\n"
   "                             (LEVEL is from 0-6)\n"
   "\n"
@@ -1393,6 +1546,8 @@ char * type_string(int type)
         case TYPE_BUG_FIX:      return "BUG_FIX";
         case TYPE_MODIFY:       return "MODIFY";
         case TYPE_ENHANCE:      return "ENHANCE";
+        case TYPE_REMOVE:       return "REMOVE";
+        case TYPE_REINSTATE:    return "REINSTATE";
     }
 }
 
@@ -1410,6 +1565,8 @@ int type_string2type(char * tstring)
     if( ! strcmp("BUG_FIX",  tstring) ) return TYPE_BUG_FIX;
     if( ! strcmp("MODIFY",   tstring) ) return TYPE_MODIFY;
     if( ! strcmp("ENHANCE",  tstring) ) return TYPE_ENHANCE;
+    if( ! strcmp("REMOVE",   tstring) ) return TYPE_REMOVE;
+    if( ! strcmp("REINSTATE",tstring) ) return TYPE_REINSTATE;
 
     return TYPE_INVALID;
 }
@@ -1440,6 +1597,55 @@ int show_valid_types(void)
     return 0;
 }
 
+/* return an index into g_show_fields, or -1 on error */
+int field_name2index(char * fname)
+{
+    int nfields = sizeof(g_show_fields) / sizeof(char *);
+    int c;
+
+    if( ! fname ) return -1;
+
+    for( c = 0; c < nfields; c++ )
+        if( !strcasecmp(fname, g_show_fields[c]) )
+            return c;
+
+    return -1; /* failure */
+}
+
+int show_valid_fields(void)
+{
+    int nfields = sizeof(g_show_fields) / sizeof(char *);
+    int c;
+
+    printf("\nvalid field names (%d):\n\n", nfields);
+    for( c = 0; c < nfields; c++ )
+        printf("   %s\n", g_show_fields[c]);
+    putchar('\n');
+
+    (void)quick_field_test();
+
+    return 0;
+}
+
+/* just test some of the g_show_fields list against the #define's
+ *
+ * return 0 on success, 1 on error                                */
+int quick_field_test(void)
+{
+   /* "firstline" is first, "verbtext" is (currently) last */
+   if(    strcmp(g_show_fields[FIELD_FIRST_LINE], "firstline" )
+       || strcmp(g_show_fields[FIELD_ALL],        "all"       )
+       || strcmp(g_show_fields[FIELD_DATE],       "date"      )
+       || strcmp(g_show_fields[FIELD_PROGRAM],    "program"   )
+       || strcmp(g_show_fields[FIELD_VERB],       "verbtext"  ) )
+   {
+      fprintf(stderr,"** quick_field_test failure of g_show_fields\n");
+      return 1;
+   }
+
+   return 0;   /* no problem */
+}
+
 /* return 1 on some problem, else fill histpairs and set len */
 int init_histlist( global_data * gd )
 {
@@ -1457,15 +1663,16 @@ int init_histlist( global_data * gd )
 
     plist = gd->histpairs;              /* for convenience */
     c = 0;
-    plist[c].hlist = discoraj_history;  plist[c++].author = JKR;
     plist[c].hlist = bpittman_history;  plist[c++].author = BGP;
     plist[c].hlist = christip_history;  plist[c++].author = PPC;
     plist[c].hlist = dglen_history;     plist[c++].author = DRG;
+    plist[c].hlist = discoraj_history;  plist[c++].author = JKR;
     plist[c].hlist = gangc_history;     plist[c++].author = GC;
+    plist[c].hlist = laurenpd_history;  plist[c++].author = PDL;
+    plist[c].hlist = ptaylor_history;   plist[c++].author = PT;
     plist[c].hlist = rickr_history;     plist[c++].author = RCR;
     plist[c].hlist = rwcox_history;     plist[c++].author = RWC;
     plist[c].hlist = ziad_history;      plist[c++].author = ZSS;
-    plist[c].hlist = ptaylor_history;   plist[c++].author = PT;
     gd->plen = c;
 
     if( gd->plen > NUM_HIST_USERS ) {

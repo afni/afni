@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.3, June 19, 2020
+Version 0.1.4, Oct 6, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -113,7 +113,7 @@ Usage:
    \n"
 
    ex2 <-
-"Example 2 --- Compute ICC(4,1) values between two sessions. With the option 
+"Example 2 --- Compute ICC(3,1) values between two sessions. With the option 
   -bounds, values beyond [-2, 2] will be treated as outliers and considered 
   as missing. If you want to set a range, choose the bounds that make sense 
   with your input data.
@@ -144,9 +144,9 @@ Usage:
    declared because it is named differently from the default ('Subj').
 
 -------------------------------------------------------------------------
-    3dICC -prefix ICC2a -jobs 12                                     \\
+    3dICC -prefix ICC3 -jobs 12                                     \\
           -mask myMask+tlrc                                       \\
-          -model  '1+age+(1|session)+(1|Subj)'                       \\
+          -model  '1+age+session+(1|Subj)'                       \\
           -bounds  -2 2                                              \\
           -Subj   'subject'                                           \\
           -tStat 'tFile'                                             \\

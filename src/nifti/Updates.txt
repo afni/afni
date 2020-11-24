@@ -105,7 +105,7 @@ Updated in version 2.0.0 July 20, 2010
 
 
 -----------------------------------------------------------------
-Updated in version 3.0.0 Sep, 2019
+Updated in version 3.0.0 July 16, 2020
 
     - HJ Merged ITK and official nifti branch for code compatibility
          across many compilers by removing compiler warnings

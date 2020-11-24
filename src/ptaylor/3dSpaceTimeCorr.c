@@ -14,8 +14,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
-#include <debugtrace.h>
-#include <afni.h>
+#include "debugtrace.h"
+#include "mrilib.h"
 #include "mrilib.h"    
 #include "3ddata.h"    
 #include "DoTrackit.h"

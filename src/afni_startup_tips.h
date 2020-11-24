@@ -654,6 +654,12 @@ static char *tip[] = {
   "an ideal world (alas, hard to find), there would be little spatial or\n"
   "temporal structure in the errts datasets, which are the 'noise' from\n"
   "which the variance parts of single subject t/F statistics are computed."
+ ,
+  "Interested in the AFNI source code? You can get it here:\n"
+  "  git clone https://github.com/afni/afni.git\n"
+  "This will create a directory called 'afni' in your current working directory.\n"
+  "You will find the source code for AFNI (1 million+ lines) in afni/src.\n"
+  "Have fun!"
 
 } ;
 
@@ -1639,6 +1645,9 @@ static char *gby[] = {
      // *Not* No. 6
      "I am not a number-- I am a free program!"                                               ,
 
+     // Awoonor
+     "Who can tell where any bird will fall?"     ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
@@ -1826,7 +1835,25 @@ static char *gby[] = {
      "   To make an end is to make a beginning;\n"
      "   The end is where we start from"                                               ,
 
-     "Half the harm done in the world is due to people who want to feel important"
+     "Half the harm done in the world is due to people who want to feel important"     ,
+
+     /* PG Wodehouse */
+
+     "Never put anything on paper, and never trust a man with a small black moustache" ,
+     "An apple a day, if well aimed, keeps the doctor away"                            ,
+     "Some minds are like soup in a poor restaurant -better left unstirred"            ,
+
+     "As we grow older and realize more clearly the limitations of\n"
+     "    human happiness, we come to see that the only real and\n"
+     "    abiding pleasure in life is to give pleasure to other people"                ,
+
+     "It is difficult to bring people to goodness with lessons,\n"
+     "   but it is easy to do so by example"                                           ,
+
+     "One of the drawbacks to life is that it contains moments when\n"
+     "   one is compelled to tell the truth"                                           ,
+
+     "I always advise people never to give advice"
 
 } ;
 

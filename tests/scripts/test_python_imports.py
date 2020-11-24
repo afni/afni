@@ -2,17 +2,19 @@ import shutil
 from pathlib import Path
 import sys
 import subprocess
-from .utils.tools import run_cmd
+
+from afni_test_utils.tools import run_cmd
 import pytest
 
 # Until python dependencies are importable in the typical way use the
 # following to make them importable instead:
 afni_binary: str = shutil.which("afni")  # type: ignore
 AFNI_ROOT = str(Path(afni_binary).parent)
-sys.path.append(AFNI_ROOT)
 
 
-# @pytest.mark.skip(reason="need to implement data save for run_cmd")
+@pytest.mark.skip(
+    reason="this is implemented in a shell script. afnipy should be imported from"
+)
 def test_script_imports(data, python_interpreter):
     if python_interpreter == "python3":
         pytest.xfail("Not all modules are python3 compatible")

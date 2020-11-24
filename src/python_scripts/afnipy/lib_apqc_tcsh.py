@@ -142,10 +142,19 @@ auth = 'PA Taylor'
 #ver = '3.63' ; date = 'May 31, 2020' 
 # [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
 #
-ver = '3.64' ; date = 'June 14, 2020' 
+#ver = '3.64' ; date = 'June 14, 2020' 
 # [PT] return vstat seedbased corr seed thr to 0.3 (from 0.2)
 #    + if ~normal smoothing is done, this is needed
 #    + if no smoothing is done
+#
+ver = '3.65' ; date = 'July 30, 2020' 
+# [PT] 
+#    + search for template first with full given path, then just by
+#      basename.  this makes it easier to have QC work if directory
+#      structure changes (e.g., for demos, that are downloaded+run on
+#      different computers)
+#    + also include a wildcard to help clean intermed file, in case
+#      auto GZIP is on
 #
 #########################################################################
 
@@ -967,9 +976,17 @@ def apqc_find_main_dset( ap_ssdict, all_uvars ):
         ~~~~set main_dset = "${templ_path}/${btemp}"
         ~~~~echo "*+ Found main dset (template):  ${main_dset}"
         else
-        ~~~~echo "** ERROR: Cannot find template, though one was specified."
-        ~~~~echo "   Please put the template in a findable spot, and try again."
-        ~~~~exit 1
+        ~~~~# try to find dset by basename only
+        ~~~~set templ_path = `@FindAfniDsetPath ${btemp}`
+        ~~
+        ~~~~if ( ${#templ_path} ) then
+        ~~~~~~~~set main_dset = "${templ_path}/${btemp}"
+        ~~~~~~~~echo "*+ Found main dset (template) on 2nd try:  ${main_dset}"
+        ~~~~else
+        ~~~~~~~~echo "** ERROR: Cannot find template, though one was specified."
+        ~~~~~~~~echo "   Please put the template in a findable spot, and try again."
+        ~~~~~~~~exit 1
+        ~~~~endif
         endif
         '''
     elif check_dep(ap_ssdict, ldep_alt1) :
@@ -2453,7 +2470,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
         '''.format( pbar_min )
 
         post = '''
-        \\rm ${tcoef}
+        \\rm ${tcoef}*
         '''
 
         pbar_comm_range = str(pvalue_olay_perctop)+"%ile" 

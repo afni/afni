@@ -39,6 +39,8 @@ ENTRY("THD_get_many_tcsv") ;
 
    for( id=0 ; id < ndir ; id++ ){
 
+      if( THD_forbidden_directory(dlist->ar[id]) ) continue ;
+
       ADDTO_SARR(qlist,dlist->ar[id]) ; /* save this name for later use */
 
       tmpar = THD_get_all_tcsv( dlist->ar[id] ) ; /* read files from */
@@ -86,6 +88,7 @@ ENTRY("THD_get_many_tcsv") ;
          }
 
          if( !THD_is_directory(ename) ) continue ;  /* 21 May 2002 - rcr */
+         if( THD_forbidden_directory(ename) ) continue ; /* 18 Sep 2020 */
 
          /* 02 Feb 2002: check if scanned this directory before */
 

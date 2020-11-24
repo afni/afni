@@ -1,3 +1,252 @@
+AFNI Digest, week of 2020/11/12.
+ 
+00) AFNI YouTube channel:  new easy-to-remember address
+01) AFNI realtime-to-PsychoPy package moving homes
+02) New group analysis program: 3dMSS
+ 
+ 
+00) The AFNI YouTube channel for Bootcamp talks has a new homepage
+address:
+           www.youtube.com/c/afnibootcamp 
+(The old link still works as well, but this one is easier to
+remember/share.)
+ 
+01) PsychoPy-NeuroFeedback-Demo with AFNI:  on the move.
+Vinai's PsychoPy-NeuroFeedback-Demo package, which demonstrates
+communication between AFNI's real-time data interface and the PsychoPy
+module, will no longer be distributed within AFNI.  It is being
+removed to avoid any differences with the version from its main
+repository:
+https://github.com/roopchansinghv/afni-real-time-interface-in-python
+... but the same great content remains (thanks, Vinai!).
+ 
+02) Going beyond the linearity assumption of quantitative variables.
+Linearity assumptions for quantitative variables may be reasonable in
+some situations, but not so much in others.  What to do in the latter
+case?  Gang's new group-level program 3dMSS adopts a principle of
+learning from the data in the presence of uncertainty to dissolve the
+problematic aspects of conventional polynomial fitting, using
+multilevel smoothing splines (MSSs).  Please see the help of this
+program for examples, and read more about it in the bioRxiv draft:
+  https://www.biorxiv.org/content/10.1101/2020.11.01.363838v1
+... which contains both background theory and an interesting
+application to longitudinal MRI analysis.
+
+========================================================================
+
+AFNI Digest, week of 2020/09/23.
+
+0)  All AFNI Python programs are Python 3.* compatible
+1)  New GUI feature: set threshold directly by typing
+2)  More macaque-related datasets and features
+3)  Return of graph fading in the GUI
+4)  More complete AFNI features for zsh users (mainly Mac-related)
+
+
+0) Python 2 has been deprecated for a little while now, and we thought
+that we should make all AFNI Python programs Python 3 compatible
+before *that* gets deprecated, too.  That momentous day has arrived--
+while most AFNI Python should still work in Python 2.7, they are all
+Python 3 compatible.
++ Well, there is one (very specialized) exception: the meica.py and
+tedana.py programs written by P Kundu have not been transliterated to
+Python 3, because there is a big Python 2 library packaged with them.
+So you still need Python 2 access if using them.  C'est la vie.  But
+for most people, that need not be a concern, so just having Python 3
+is fine.  (Though, on a multiecho EPI note: there are still many ways
+to include your multiecho processing in afni_proc.py-- just ask if you
+aren't sure!)
+++ Final Python setup note: if you want to use Conda to manage your
+Python needs, there is a basic tutorial/intro here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/miniconda.html
+
+1) There are several ways to set a threshold value in the AFNI GUI, including:
++ Use the threshold slider
++ Use AFNI's "autothreshold" feature to try to select a reasonable one
++ Drive AFNI to set a threshold value explicitly
++ If the threshold dset is a statistic, then specify a q- or p-value 
+  and have AFNI apply the equivalent for that statistic
+... And now there is a new way to set it directly: You can right click
+on the "Thr" button above the slider/colorbar, select "Set Threshold",
+and type the value in.  Thanks, Justin!
+
+2) These papers (currently available on bioRxiv) describe the
+following publicly available Macaque dataset resources and related
+AFNI programs:
+NIMH Macaque Template (NMT)
+Cortical Hierarchical Atlas of the Rhesus Macaque (CHARM)
+Subcortical Atlas of the Rhesus Macaque (SARM)
+AFNI's @animal_warper (both skullstripping and template alignment)
+afni_proc.py demos for macaque processing
+https://www.biorxiv.org/content/10.1101/2020.08.05.237818v1
+https://www.biorxiv.org/content/10.1101/2020.09.16.300053v1
+AFNI documentation pages about these is included here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html
+
+3)  The "graph fading" feature in the GUI has returned after a bit of holiday.  
+When this feature is ON (which is default) and a Graph viewer is open
+(showing underlay values) and an overlay dataset is applied, then
+graph window panel of voxels where the Threshold dset is
+suprathreshold have a white background and the rest have a gray
+background.  Poorly described by me?  Perhaps!  But see the attached
+image showing this fun+useful functionality more clearly.  To control
+this feature in your ~/.afnirc file, set AFNI_GRAPH_FADE to either YES
+or NO.
+
+4)  This one probably applies mostly to Mac users:  
+Are you using zsh as your terminal shell, rather than bash, csh or
+tcsh (you can check by typing this in a terminal: echo $0)?  Well,
+your life just became a bit easier, as TAB completion for AFNI program
+options has been added for zsh via updates to apsearch,
+@update.afni.binaries and afni_system_check.py.  Now, if ooonly you
+could easily change that OS to Linux, for some *real* convenience...
+
+
+========================================================================
+
+AFNI Digest, week of 2020/08/19:  Special "Chopped" edition.
+
+AFNI has over 600 programs for your neuroimaging analysis amusement.
+To simplify things a bit, we are in the process of “cleaning house” on
+some functionality.  On Monday, Aug. 24, the programs listed below
+will be chopped (= no longer supplied in the AFNI distribution).
+
+If you are still using one of these old programs, you should follow
+the update recommendations provided.  Those without a specific update
+are probably “underlying” functionality that you do not use directly.
+If you have any questions or would like advice on how best to update
+your pipelines, please just ask your friendly AFNI guru on the Message
+Board.  (And if it turns out one of these programs really should not
+be removed, then its execution--in the Revolutionary France sense--can
+be stayed.  But you must raise such an issue before dawn on Monday,
+Aug. 24.)
+
+Once the following programs are removed, we will just assume you have
+the list of all remaining programs memorized, as well as their full
+help files and examples.  If that is not somehow the case, please be
+aware of the Classified list of AFNI programs:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html
+... the Tutorial pages:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+... and the online AFNI Bootcamp and Academy recordings:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+... and more help and examples on the main documentation pages.
+
+PROGRAMS SNEAKILY ALREADY CHOPPED
+---------------------------------
+3dMINCtoAFNI
+3dAFNItoMINC
+
+PROGRAMS ON THE CHOPPING BLOCK
+------------------------------
+AlphaSim                (obsolete -> used 3dClustSim)
+3dFWHM                  (obsolete -> use 3dFWHMx)
+3dMax                   (obsolete -> use 3dBrickStat)
+@auto_align             (obsolete -> use align_epi_anat.py or 3dAllineate)
+@UpdateAfni             (obsolete -> use @update.afni.binaries)
+3dANALYZEtoAFNI         (obsolete -> use 3dcopy or to3d)
+Dimon1                  (obsolete -> use Dimon)
+3dCountSpikes           (obsolete -> use 3dToutcount)
+3dfim                   (obsolete -> use 3dDeconvolve)
+3dUniformize            (obsolete -> use 3dUnifize)
+@DTI_studio_reposition  (probably obsolete)
+@make_stim_file         (obsolete -> use timing_tool.py)
+3dICC_REML.R            (obsolete -> use 3dICC)
+3dAOV.R                 (obsolete -> use 3dMVM)
+lpc_align.py            (obsolete -> use align_epi_anat.py or 3dAllineate)
+afni_restproc.py        (obsolete -> use afni_proc.py)
+@snapshot_volreg3       (obsolete -> use @snapshot_volreg)
+1dDW_Grad_o_Mat         (obsolete -> use 1dDW_Grad_o_Mat++)
+3dProbTrackID           (obsolete -> use 3dTrackID)
+3dAnatNudge             (obsolete -> use align_epi_anat.py or Nudge plugin)
+3dFourier               (obsolete -> use 3dBandpass)
+3dttest                 (obsolete -> use 3dttest++; for "3dttest -base .."
+                         functionality, use "3dttest++ -singletonA ..")
+3dAnatNudge             (obsolete -> use align_epi_anat.py, 3dAllineate or
+                         Nudge plugin)
+DoPerRoi.py
+3dbuc2fim
+3dDeconvolve_f 
+3ddup
+3dnoise
+3dproject
+3dWavelets
+abut
+ent16
+ftosh
+ge_header
+Ifile
+check_dset_for_fs.py 
+mayo_analyze          
+mritopgm
+siemens_vision
+sqwave
+Xphace
+FD2
+
+========================================================================
+
+AFNI Digest, week of 2020/08/05.
+
+Contents:
+0) New AFNI Academy video playlist: Intro to SUMA
+1) Faster AFNI installation/downloads for some OSs.
+2) New citation page for documentation/program usage.
+3) PRIME-RE paper out---describes macaque processing tools.
+4) New webpages describing macaque processing demos, templates and atlases.
+5) New program for patching/smoothing ROIs: @ROI_modal_grow.
+
+
+0) Adding to the list of fun AFNI Academy videos online, we have a new
+   playlist about getting started with SUMA:
+     https://www.youtube.com/watch?v=QCh6HApyM0U&list=PL_CD549H9kgqSs51SCNZQ4q57IguXvFI8
+   It includes background, using the GUI, setting environment
+   variables, calculating distances along surfaces, drawing surface
+   ROIs (and translating them to the volume) and displaying multiple
+   surface ROIs that overlap.
+
+1) These OSs now have AFNI binary files that are about 85% smaller
+   than they used to be:
+     linux_ubuntu_16_64.tgz
+     linux_centos_7_64.tgz
+     linux_fedora_28_shared.tgz
+   The same great functionality is there, but someone (= Rick)
+   rearranged the shared libraries for greater efficiency.  This might
+   spread to further OSs, too...
+
+2) To make it easier to cite AFNI in your publications (and please
+   don't forget to do so when you use it...), we have this new page in
+   the documentation:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/main_toc.html
+   This also provides a convenient guide to AFNI functionality and
+   applications.
+
+3) A new open/sharing resource for primate/macaque MRI processing has
+   been created, called PRIME-RE (= PRIMate Resource Exchange), and it
+   is described here:
+     https://www.biorxiv.org/content/10.1101/2020.07.31.230185v1 It
+   contains tools, demos and programs from AFNI-land, among others.
+   Moreover, it is likely to grow over time, so watch that space.
+
+4) Speaking of macaques, there is new documentation about macaque
+   resources in AFNI, includes templates, atlases and demos, here:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_demos/main_toc.html
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/macaque_tempatl/main_toc.html
+   See relatedly the @Install_MACAQUE_DEMO* scripts and the
+   @animal_warper program (make sure you have the latest AFNI for
+   these, "@update.afni.binaries -d").  These projects were in
+   enjoyable collaboration with: Adam Messinger, Ben Jung, Jakob
+   Seidlitz, Caleb Sponheim, and Leslie Ungerleider-- so many thanks
+   to them.
+
+5) Grow your regions with @ROI_modal_grow. This new program uses
+   iterative, non-zero modal smoothing to grow regions to fill a
+   mask. It works by looking by filling unassigned voxels with its
+   most common (the mode) non-zero neighbors, and then keeps filling
+   until all the voxels in a mask are filled. Seems useful for
+   creating atlases and refilling dilated masks.
+
+========================================================================
 
 
  AFNI Digest, week of 2020/06/23: general edition

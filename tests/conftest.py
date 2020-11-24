@@ -1,51 +1,117 @@
-import subprocess
-import os
 from pathlib import Path
-from typing import Union
+import contextlib
+import datetime as dt
+import filelock
+import importlib
+import inspect
+import os
 import pytest
 import shutil
-import inspect
-import functools
-import datetime
-import datetime as dt
+import sys
+import tempfile
 import time
-from scripts.utils import misc
+import xvfbwrapper
 
-pytest.register_assert_rewrite("scripts.utils.tools")
-import scripts.utils.tools as tools
-from scripts.utils.tools import get_current_test_name
-import attr
-import re
-
-missing_dependencies = (
-    "In order to download data an installation of datalad, wget, or "
-    "curl is required. Datalad is recommended to restrict the amount of "
-    "data downloaded. "
-)
+# make sure afni_test_utils importable (it will always either be not installed
+# or installed in development mode)
+sys.path.append(str(Path(__file__).parent))
 
 try:
-    import datalad.api as datalad
+    import datalad.api as datalad  # noqa: F401
 
 except ImportError:
     raise NotImplementedError("Currently datalad is a dependency for testing.")
 
-from datalad.support.exceptions import IncompleteResultsError
+try:
+    importlib.import_module("afnipy")
+except ImportError as err:
+    # installation may be a typical "abin" install. In this case make afnipy
+    # importable fo pytest
+    bin_path = shutil.which("3dinfo")
+    if bin_path:
+        abin = Path(bin_path).parent
+        sys.path.insert(0, str(abin))
+    else:
+        raise err
 
-CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
+pytest.register_assert_rewrite("afni_test_utils.tools")
+from afni_test_utils import data_management as dm  # noqa: E40
 
-os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
+    raise EnvironmentError(
+        "Version of xvfbwrapper does not have the environ keyword. "
+        "Consider installing one that does. e.g. 'pip install git+git://"
+        "github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_m"
+        "ulti_threading' "
+    )
+
+PORT_LOCKS_DIR = Path(tempfile.mkdtemp("port_locks"))
+
+cached_outdir_lock = filelock.FileLock(
+    Path("/tmp") / "session_output_directory.lock", timeout=1
+)
+
+OUTPUT_DIR_NAME_CACHE = Path("/tmp") / "test_session_outdir_name.txt"
+try:
+    cached_outdir_lock.acquire()
+    if OUTPUT_DIR_NAME_CACHE.exists():
+        OUTPUT_DIR_NAME_CACHE.unlink()
+    CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
+    OUTPUT_DIR_NAME_CACHE.write_text(f"output_{CURRENT_TIME}")
+    time.sleep(5)
+    cached_outdir_lock.release()
+except filelock.Timeout:
+    OUTPUT_DIR_NAME_CACHE.read_text()
+
+encodings_patterns = [x.upper() for x in ["utf-8", "utf8"]]
+if not any(p in sys.getdefaultencoding().upper() for p in encodings_patterns):
+    raise EnvironmentError(
+        "Only utf-8 should be used for character encoding. Please "
+        "change your locale settings as required... LANG_C,LANG_ALL "
+        "etc. "
+    )
 
 
 def pytest_sessionstart(session):
-    """ called after the ``Session`` object has been created and before performing collection
+    """called after the ``Session`` object has been created and before performing collection
     and entering the run test loop.
 
     :param _pytest.main.Session session: the pytest session object
     """
-    get_tests_data_dir(session)
+    dm.get_tests_data_dir(session)
+    print("\n\n The output is being written to:", get_output_dir(session))
 
 
 def pytest_generate_tests(metafunc):
+
+    # Do some environment tweaks to homogenize behavior across systems
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.environ["MPLBACKEND"] = "Agg"
+    if sys.platform == "darwin":
+        os.environ["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
+
+    os.environ["AFNI_SPLASH_ANIMATE"] = "NO"
+    os.environ["NO_CMD_MOD"] = "true"
+    unset_vars = [
+        "AFNI_PLUGINPATH",
+        "AFNI_PLUGIN_PATH",
+        "BRIKCOMPRESSOR",
+        "AFNI_MODELPATH",
+        "AFNI_COMPRESSOR",
+        "AFNI_NOREALPATH",
+        "AFNI_AUTOGZIP",
+        "AFNI_GLOBAL_SESSION",
+        "AFNI_ATLAS_LIST",
+        "AFNI_TEMPLATE_SPACE_LIST",
+        "AFNI_ATLAS_PATH",
+        "AFNI_SUPP_ATLAS",
+        "AFNI_LOCAL_ATLAS",
+        "AFNI_SUPP_ATLAS_DIR",
+    ]
+    for var in unset_vars:
+        if var in os.environ:
+            del os.environ[var]
+
     if "python_interpreter" in metafunc.fixturenames:
         if metafunc.config.option.testpython2:
             metafunc.parametrize("python_interpreter", ["python3", "python2"])
@@ -53,112 +119,8 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize("python_interpreter", ["python3"])
 
 
-@pytest.fixture(scope="session")
-def output_dir(pytestconfig):
-    return get_output_dir(pytestconfig)
-
-
-def get_output_dir(config_obj):
-    user_choice = config_obj.getoption("--overwrite_outdir")
-    rootdir = Path(config_obj.rootdir)
-    if user_choice:
-        outdir = Path(user_choice)
-    else:
-        outdir = rootdir / "output_of_tests" / ("output_" + CURRENT_TIME)
-    return outdir
-
-
-@pytest.fixture(scope="session")
-def test_data_path(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_test_data_path(config_obj):
-    if hasattr(config_obj, "rootdir"):
-        return Path(config_obj.rootdir) / "afni_ci_test_data"
-    elif hasattr(config_obj, "config"):
-        return Path(config_obj.config.rootdir) / "afni_ci_test_data"
-    else:
-        raise ValueError("A pytest config object was expected")
-
-
-# def get_test_rootdir():
-#     rootdir = Path(pytestconfig.rootdir)
-#     if Path.cwd() != "tests":
-#         os.chdir(rootdir)
-#     return rootdir
-
-
-@pytest.fixture(scope="session")
-def test_comparison_dir_path(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_test_comparison_dir_path(base_comparison_dir_path, mod: Union[str or Path]):
-    """Get full path full comparison directory for a specific test
-    """
-    return base_comparison_dir_path / mod.name / get_current_test_name()
-
-
-@pytest.fixture(scope="session")
-def base_comparison_dir_path(pytestconfig):
-    return get_base_comparison_dir_path(pytestconfig)
-
-
-def get_base_comparison_dir_path(config_obj):
-    """If the user does not provide a comparison directory a default in the
-    test data directory is used. The user can specify a directory containing
-    the output of a previous test run or the "sample" output that is created
-    by a previous test run when the "--create_sample_output" flag was provided.
-    """
-    comparison_dir = config_obj.getoption("--diff_with_outdir")
-    if comparison_dir is not None:
-        return Path(comparison_dir).absolute()
-    else:
-        return get_test_data_path(config_obj) / "sample_test_output"
-
-
-@pytest.fixture(scope="session")
-def test_data_dir(pytestconfig):
-    return get_test_data_path(pytestconfig)
-
-
-def get_tests_data_dir(config_obj):
-    """Get the path to the test data directory. If the test data directory
-    does not exist or is not populated, install with datalad.
-    """
-    # Define hard-coded paths for now
-    tests_data_dir = get_test_data_path(config_obj)
-
-    # remote should be configured or something is badly amiss...
-    dl_dset = datalad.Dataset(str(tests_data_dir))
-    if (
-        dl_dset.is_installed()
-        and not "remote.afni_ci_test_data.url" in dl_dset.config.keys()
-    ):
-        for f in dl_dset.pathobj.glob("**/*"):
-            try:
-                f.chmod(0o700)
-            except FileNotFoundError:
-                # missing symlink, nothing to worry about
-                pass
-
-        shutil.rmtree(dl_dset.pathobj)
-
-    # datalad is required and the datalad repository is used for data.
-    if not (tests_data_dir / ".datalad").exists():
-        datalad.install(
-            str(tests_data_dir),
-            "https://github.com/afni/afni_ci_test_data.git",
-            recursive=True,
-        )
-        time.sleep(10)
-
-    return tests_data_dir
-
-
 @pytest.fixture(scope="function")
-def data(pytestconfig, request, output_dir, base_comparison_dir_path):
+def data(pytestconfig, request):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -174,53 +136,8 @@ def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     Returns:
         collections.NameTuple: A data object for conveniently handling the specification
     """
-    test_name = get_current_test_name()
-    tests_data_dir = get_test_data_path(pytestconfig)
-
-    # Set module specific values:
-    try:
-        data_paths = request.module.data_paths
-    except AttributeError:
-        data_paths = {}
-
-    module_outdir = output_dir / Path(request.module.__file__).stem.replace("test_", "")
-    test_logdir = module_outdir / get_current_test_name() / "captured_output"
-    if not test_logdir.exists():
-        os.makedirs(test_logdir, exist_ok=True)
-
-    # This will be created as required later
-    sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
-    # start creating output dict, downloading test data as required
-    out_dict = {
-        k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
-    }
-
-    # Get the comparison directory and check if it needs to be downloaded
-    comparison_dir = get_test_comparison_dir_path(
-        base_comparison_dir_path, module_outdir
-    )
-    # Define output for calling module and get data as required:
-    out_dict.update(
-        {
-            "module_outdir": module_outdir,
-            "outdir": module_outdir / get_current_test_name(),
-            "sampdir": sampdir,
-            "logdir": test_logdir,
-            "comparison_dir": comparison_dir,
-            "base_comparison_dir": base_comparison_dir_path,
-            "base_outdir": output_dir,
-            "tests_data_dir": tests_data_dir,
-            "test_name": test_name,
-            "rootdir": pytestconfig.rootdir,
-            "create_sample_output": pytestconfig.getoption("--create_sample_output"),
-            "save_sample_output": pytestconfig.getoption("--save_sample_output"),
-        }
-    )
-
-    DataClass = attr.make_class(
-        test_name + "_data", [k for k in out_dict.keys()], slots=True
-    )
-    return DataClass(*[v for v in out_dict.values()])
+    data = dm.get_data_fixture(pytestconfig, request, get_output_dir(pytestconfig))
+    return data
 
 
 # configure keywords that alter test collection
@@ -239,13 +156,13 @@ def pytest_addoption(parser):
         "of many minutes to hours ",
     )
     parser.addoption(
-        "--diff_with_outdir",
+        "--diff-with-sample",
         default=None,
         help="Specify a previous tests output directory with which the output "
         "of this test session is compared.",
     )
     parser.addoption(
-        "--create_sample_output",
+        "--create-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -256,7 +173,7 @@ def pytest_addoption(parser):
         ),
     )
     parser.addoption(
-        "--save_sample_output",
+        "--save-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -281,73 +198,168 @@ def pytest_addoption(parser):
             "tested in both python 3 and python 2 "
         ),
     )
-    parser.addoption(
-        "--overwrite_outdir",
-        default="",
-        help=(
-            "Specify a path to an output directory to write to. This is "
-            "not required for a typical run of the test-suite. It can "
-            "be useful to restart tests that are executing resumable "
-            "pipelines though. tested in both python 3 and python 2 "
-        ),
-    )
 
 
 def pytest_collection_modifyitems(config, items):
-    # more and more tests are skipped as each premature return is not executed:
-    if config.getoption("--runveryslow"):
-        # --runveryslow given in cli: do not skip slow tests
-        return
-    else:
-        skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
-        for item in items:
+    skipping_veryslow_tests = not config.getoption("--runveryslow")
+    skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
+    skipping_slow_tests = not (
+        config.getoption("--runveryslow") or config.getoption("--runslow")
+    )
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+
+    # filter out slower tests by default
+    for item in items:
+        if skipping_veryslow_tests or skipping_slow_tests:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
+
+        if skipping_veryslow_tests:
             if "veryslow" in item.keywords:
                 item.add_marker(skip_veryslow)
 
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
-
-
-def save_output_to_repo(config_obj):
-    base_comparison_dir_path = get_base_comparison_dir_path(config_obj)
-
-    update_msg = "Update data with test run on {d}".format(
-        d=datetime.datetime.today().strftime("%Y-%m-%d")
-    )
-
-    result = datalad.save(update_msg, str(base_comparison_dir_path), on_failure="stop")
-
-    sample_test_output = get_test_data_path() / "sample_test_output"
-    data_message = (
-        "New sample output was saved to {sample_test_output} for "
-        "future comparisons. Consider publishing this new data to "
-        "the publicly accessible servers.. "
-    )
-    print(data_message.format(**locals()))
-
 
 def pytest_sessionfinish(session, exitstatus):
-    output_dir = get_output_dir(session.config)
-    print("\nTest output is written to: ", output_dir)
+    output_dir = get_output_dir(session)
+    # When configured to save output and test session was successful...
+    saving_desired = session.config.getoption("--save-sample-output")
+    user_wants = session.config.getoption("--create-sample-output")
+    create_samp_out = user_wants and not bool(exitstatus)
+    if saving_desired and not bool(exitstatus):
+        dm.save_output_to_repo()
 
-    if session.config.getoption("--create_sample_output") and not bool(exitstatus):
+    if output_dir.exists():
+        print("\n\nTest output is written to: ", output_dir)
+
+    full_log = output_dir / "all_tests.log"
+    if full_log.exists():
+        print("\nLog is written to: ", full_log)
+
+    if create_samp_out:
         print(
             "\n Sample output is written to:",
-            tools.convert_to_sample_dir_path(output_dir),
+            dm.convert_to_sample_dir_path(output_dir),
         )
-
-    # When configured to save output and test session was successful...
-    saving_desired = session.config.getoption("--save_sample_output")
-    if saving_desired and not bool(exitstatus):
-        save_output_to_repo()
-    elif saving_desired:
+    if saving_desired and bool(exitstatus):
         print(
             "Sample output not saved because the test failed. You may "
             "want to clean this up with 'cd afni_ci_test_data;git reset "
             "--hard HEAD; git clean -df' \n Use this with caution though!"
         )
+
+
+@pytest.fixture()
+def ptaylor_env(monkeypatch):
+    with monkeypatch.context() as m:
+        isolated_env = os.environ.copy()
+        isolated_env["AFNI_COMPRESSOR"] = "GZIP"
+        m.setattr(os, "environ", isolated_env)
+        try:
+            yield
+        finally:
+            pass
+
+
+@pytest.fixture()
+def unique_gui_port():
+
+    PORT_NUM = 0
+    while True:
+        try:
+            PORT_NUM += 1
+            gui_port_lock_path = PORT_LOCKS_DIR / f"gui_port_{PORT_NUM}.lock"
+            GUI_PORT_LOCK = filelock.FileLock(gui_port_lock_path)
+            GUI_PORT_LOCK.acquire(timeout=1, poll_intervall=0.5)
+            return PORT_NUM
+        except filelock.Timeout:
+            continue
+
+
+@pytest.fixture(autouse=True)
+def _use_test_dir(request):
+    tests_dir = Path(__file__).parent
+    with working_directory(tests_dir):
+        yield
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
+
+@pytest.fixture()
+def mocked_abin():
+    """
+    Fixture to supply 'mocked_abin', a directory containing trivial
+    executables called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an
+    importable python module)
+    """
+    temp_dir = tempfile.mkdtemp()
+    abin_dir = Path(temp_dir) / "abin"
+    abin_dir.mkdir()
+
+    (abin_dir / "3dinfo").touch(mode=0o777)
+    (abin_dir / "libmri.so").touch(mode=0o444)
+    (abin_dir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
+    (abin_dir / "align_epi_anat.py").touch(mode=0o777)
+    (abin_dir / "align_epi_anat.py").write_text("#!/usr/bin/env bash\necho success")
+    (abin_dir / "afnipy").mkdir()
+    (abin_dir / "afnipy/afni_base.py").touch()
+    (abin_dir / "afnipy/__init__.py").touch()
+    return abin_dir
+
+
+@pytest.fixture()
+def mocked_hierarchical_installation():
+    """
+    Creates a fake installation directory containing trivial executables
+    called 3dinfo and align_epi_anat.py and afnipy/afni_base.py (an importable
+    python module) along with libmri in the appropriate organization defined
+    by the GNU installation guidelines. To use this you should add the
+    fake_site_packages directory to sys.path to simulate the afnipy package
+    being installed into the current interpreter.
+    """
+    temp_dir = tempfile.mkdtemp()
+    # Create an installation directory
+    instd = Path(temp_dir) / "abin_hierarchical"
+    instd.mkdir()
+    bindir = instd / "bin"
+    bindir.mkdir()
+
+    (bindir / "3dinfo").touch(mode=0o777)
+    (bindir / "3dinfo").write_text("#!/usr/bin/env bash\necho success")
+    (instd / "lib/").mkdir()
+    (instd / "lib/libmri.so").touch(mode=0o444)
+    (instd / "fake_site_packages").mkdir()
+    (instd / "fake_site_packages/align_epi_anat.py").touch(mode=0o777)
+    (instd / "fake_site_packages/align_epi_anat.py").write_text(
+        "#!/usr/bin/env bash\necho success"
+    )
+    (instd / "fake_site_packages/afnipy").mkdir()
+    (instd / "fake_site_packages/afnipy/afni_base.py").touch()
+    (instd / "fake_site_packages/afnipy/__init__.py").touch()
+    return instd
+
+
+def get_output_dir(config_obj):
+    if hasattr(config_obj, "config"):
+        conf = config_obj.config
+    elif hasattr(config_obj, "rootdir"):
+        conf = config_obj
+    else:
+        print(config_obj)
+        raise TypeError("A pytest config object was expected")
+
+    rootdir = conf.rootdir
+
+    output_dir = Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    return output_dir

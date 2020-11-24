@@ -1,4 +1,4 @@
-from .utils import tools
+from afni_test_utils import tools
 import pytest
 
 # Define Data
@@ -38,7 +38,7 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
         # kwargs_log=kwargs_log,
         # add_env_vars=add_env_vars,
     )
-    differ.run()
+    differ.run(timeout=None)
 
 
 @pytest.mark.parametrize("vol_tr", [(2), (2.5)])
@@ -68,7 +68,7 @@ def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
         # kwargs_log=kwargs_log,
         # add_env_vars=add_env_vars,
     )
-    differ.run()
+    differ.run(timeout=None)
 
 
 @pytest.mark.parametrize("vol_tr", [(2), (2.5)])
@@ -100,4 +100,4 @@ def test_RetroTS_bids_custom_slice_order(data, vol_tr, python_interpreter):
         # kwargs_log=kwargs_log,
         # add_env_vars=add_env_vars,
     )
-    differ.run()
+    differ.run(timeout=None)

@@ -32,19 +32,6 @@ else()
     set(USE_SYSTEM_GLW OFF)
 endif()
 
-if(DEFINED USE_SYSTEM_NETCDF AND NOT USE_SYSTEM_NETCDF)
-    message(WARNING "Building netcdf is not advised due to the large number of required
-    dependencies. Consider using a system installation of netcdf provided by your
-    favorite package manager (e.g. on Ubuntu: 'apt install libnetcdf-dev'")
-else()
-    set(USE_SYSTEM_NETCDF ON)
-endif()
-
-if(USE_SYSTEM_VOLPACK AND APPLE)
-    message(WARNING [=[On OSX volpack is a little more difficult to install yourself,
-    consider setting USE_SYSTEM_VOLPACK to 'OFF']=])
-endif()
-
 if(NOT USE_SYSTEM_GLUT AND APPLE)
    message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
    set(USE_SYSTEM_GLUT ON)

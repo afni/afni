@@ -5,3 +5,4 @@ tests/output_of_tests
 tests/sample_output_of_tests
 .git
 cscope*
+*build*

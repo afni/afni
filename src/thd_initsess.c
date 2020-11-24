@@ -146,41 +146,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
    }
    FREE_XTARR( dblk_arrarr ) ;
 
-#ifndef DONT_ALLOW_MINC
-   /*-- 29 Oct 2001: try to read .mnc "datasets" --*/
-
-   if( !AFNI_noenv("AFNI_MINC_DATASETS") ){
-     char ename[THD_MAX_NAME] , **fn_minc , *eee ;
-     int num_minc , ii ;
-
-     STATUS("looking for MINC files") ;
-
-     strcpy(ename,sess->sessname) ; strcat(ename,"*.mnc") ;
-     eee = ename ;
-     MCW_file_expand( 1,&eee , &num_minc,&fn_minc ) ;  /* find files */
-
-     if( num_minc > 0 ){                               /* got some! */
-       STATUS("opening MINC files") ;
-       for( ii=0 ; ii < num_minc ; ii++ ){             /* loop over files */
-         dset = THD_open_minc( fn_minc[ii] ) ;         /* try it on */
-         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
-         nds = sess->num_dsset ;
-         if( nds >= THD_MAX_SESSION_SIZE ){
-           fprintf(stderr,
-             "\n*** Session %s table overflow with MINC dataset %s ***\n",
-             sessname , fn_minc[ii] ) ;
-           THD_delete_3dim_dataset( dset , False ) ;
-           break ; /* out of for loop */
-         }
-         iview = dset->view_type ;
-         SET_SESSION_DSET(dset, sess, nds, iview);
-         sess->num_dsset ++ ;
-       } /* end of loop over files */
-       MCW_free_expand( num_minc , fn_minc ) ;
-     } /* end of if we found MINC files */
-   }
-#endif
-
    /*-- 06 Apr 2005: try to read NIfTI-1 files [KRH and RWC] --*/
 
    if( !AFNI_noenv("AFNI_NIFTI_DATASETS") ){

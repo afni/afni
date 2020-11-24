@@ -1633,6 +1633,11 @@ static mat33 tempZ_mat33 ;
 
 extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
+/* function to return rotation matrix of angle
+   theta (radians) about unit vector (ax,ay,az) [05 Nov 2020] */
+
+extern mat33 THD_mat33_generic_rotation( float theta, float ax, float ay, float az ) ;
+
 typedef struct {  /* holds a matrix plus 3D grid dimensions */
   mat44 mat ;
   int nx,ny,nz ;
@@ -1881,6 +1886,12 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
 
 #undef  LOAD_ZERO_MAT33
 #define LOAD_ZERO_MAT33(AA) LOAD_MAT33(AA,0,0,0,0,0,0,0,0,0)
+
+/* fill a mat33 with the identity matrix */
+
+#undef  LOAD_IDENT_MAT33
+#define LOAD_IDENT_MAT33(AA)               \
+  LOAD_MAT33( AA , 1,0,0, 0,1,0 , 0,0,1 )
 
 /* copy the upper left corner of a mat44 struct into a mat33 struct */
 
@@ -4365,6 +4376,11 @@ extern int THD_is_file     ( char * ) ;
 extern int THD_is_fifo     ( char * ) ;  /* 27 Aug 2019 */
 extern int THD_is_symlink  ( char * ) ;  /* 03 Mar 1999 */
 extern int THD_is_directory( char * ) ;
+extern int THD_forbidden_directory( char *) ; /* 18 Sep 2020 */
+
+#define THD_is_good_directory(ddd) \
+  ( THD_is_directory(ddd) && !THD_forbidden_directory(ddd) )
+
 extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_is_prefix_ondisk( char *pathname, int stripsels ) ; /* Dec 2011 */
 extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
@@ -4532,7 +4548,6 @@ extern THD_session * THD_init_session_recursive( char *dirname ) ;
 extern char * Add_plausible_path(char *fname);              /* ZSS:Aug. 08 */
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
-extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
 extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
 extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
@@ -4877,7 +4892,6 @@ extern RwcBoolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * ) ;
 extern int     THD_subset_loaded( THD_3dim_dataset *, int, int * ) ;
-extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
@@ -4905,7 +4919,6 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
 #define MINC_SWAPIZE_MASK 1<<1
-extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
@@ -5389,6 +5402,7 @@ extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 extern void   THD_automask_verbose( int ) ;                /* 28 Oct 2003 */
 extern void   THD_automask_extclip( int ) ;
+extern void   THD_automask_set_onlypos( int ) ;            /* 09 Nov 2020 */
 extern byte * mri_automask_image( MRI_IMAGE * ) ;          /* 05 Mar 2003 */
 extern byte * mri_automask_imarr( MRI_IMARR * ) ;          /* 18 Nov 2004 */
 extern int    mask_intersect_count( int, byte *, byte * ); /* 30 Mar 2009 */
@@ -5451,6 +5465,7 @@ extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_aveabs_brick( THD_3dim_dataset * ) ;  /* 11 May 2009 */
 extern MRI_IMAGE * THD_maxabs_brick( THD_3dim_dataset * ) ;  /* 08 Jan 2019 */
+extern MRI_IMAGE * THD_avepos_brick( THD_3dim_dataset * ) ;  /* 09 Nov 2020 */
 
 extern MRI_IMARR * THD_medmad_bricks   (THD_3dim_dataset *); /* 07 Dec 2006 */
 extern MRI_IMARR * THD_meansigma_bricks(THD_3dim_dataset *); /* 07 Dec 2006 */
@@ -6009,6 +6024,8 @@ extern float THD_hellinger( int , float *, float * ) ;
 extern float_quad THD_helmicra_scl( int, float,float,float *,
                                     float,float,float *, float * ) ;
 extern float_quad THD_helmicra( int , float *, float * ) ;
+
+extern float_pair THD_binary_mutinfo( int n0, float *y0, int n1, float *y1 ) ;
 
 extern int retrieve_2Dhist   ( float **xyhist ) ;     /* 28 Sep 2006 */
 extern int retrieve_2Dhist1  ( float **, float ** ) ; /* 07 May 2007 */

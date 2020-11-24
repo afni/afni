@@ -1,7 +1,13 @@
 #!/usr/bin/env python
-#
+
+# python3 status: compatible
+
 # ver 1.0:  Oct, 2014
 #
+# [PT: Sep 1, 2020] updated to Python 3 with "2to3 -w ..", and got rid
+# of 'end=...', for backwards compatibility, as well as
+# input/raw_input duality
+
 # File of plotting and matrix selection functions for fat_*.py.
 #
 # Likely:
@@ -36,8 +42,8 @@ def Write_Out_Matrix(X, fpref, ftype, OUT_format, ExternLabsOK):
     Ngrid = len(X[1])
     Nroi = np.shape(X[0][0])[0]
 
-    print "NROI:", Nroi
-    print "NGRID:", Ngrid
+    print("NROI:", Nroi)
+    print("NGRID:", Ngrid)
 
     outname = fpref
     if (Ngrid == 1):
@@ -134,7 +140,7 @@ def Get_Subset_of_inMatrix(X, pars):
                 if X[4] :
                     Y[4] = list(X[4])
         else:
-            print "*+ Warning! Can't find asked for parameter %s." % (P)
+            print("*+ Warning! Can't find asked for parameter %s." % (P))
     
     return tuple(Y)
 
@@ -151,7 +157,7 @@ def DefaultNamingPrefType(list_all):
 
     for x in list_all:
         if not(x[-5:] == '.grid') and not(x[-6:] == '.netcc'):
-            print "ERROR-- doesn't look like this is a *.grid or *netcc file!"
+            print("ERROR-- doesn't look like this is a *.grid or *netcc file!")
         elif x[-5:] == '.grid' :
             out.append(x[:-5])
             out_types.append('grid')
@@ -226,7 +232,7 @@ def MakeMyBar(name):
                                           cdict_01,
                                           512)
     else:
-        print "Unrecognized colormap specialification."
+        print("Unrecognized colormap specialification.")
         sys.exit(151)
         
     return out
@@ -268,7 +274,7 @@ def Fat_Mat_Plot( X,
     # internal colorbar
     if ( MAP_of_COL == 'hot_cold_gap' ) or   \
        ( MAP_of_COL == 'gap_jet' ):
-        print "MAKING COLORMAP:", MAP_of_COL 
+        print("MAKING COLORMAP:", MAP_of_COL) 
         MAP_of_COL = MakeMyBar(MAP_of_COL)
         #print MAP_of_COL, type(MAP_of_COL)
 
@@ -287,8 +293,8 @@ def Fat_Mat_Plot( X,
         MATMAX = np.max(MAT)
 
     Nroi = np.shape(MAT)[0]
-    print "++ Matrix min and max values: ", MATMIN, 'and', MATMAX
-    print "++ Matrix dimensionality: ", Nroi, 'by', Nroi
+    print("++ Matrix min and max values: ", MATMIN, 'and', MATMAX)
+    print("++ Matrix dimensionality: ", Nroi, 'by', Nroi)
 
     # whether there are labels or not
     if( X[4] and USE_EXTERN_LABS ):
@@ -355,6 +361,12 @@ def Fat_Mat_Plot( X,
 
     if HOLD_IMG :
 #        plt.show()
-        raw_input()
+#        input()
+        ##### [PT: Sep 1, 2020] use the try/except to have both Py2
+        ##### and Py3 workability here
+        try:
+            input()
+        except:
+            raw_input()
 
     return name_out_full

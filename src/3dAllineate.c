@@ -1309,6 +1309,8 @@ int main( int argc , char *argv[] )
       "\n"
       "  -Supper      }= Set the S matrix to be upper or lower\n"
       "  -Slower      }= triangular [Default=lower triangular]\n"
+      "                  NOTE: There is no '-Lunch' option.\n"
+      "                        There is no '-Faster' option.\n"
       "\n"
       "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
       "  -bshift      }= before the matrix transformation. [Default=after]\n"
@@ -1327,9 +1329,7 @@ int main( int argc , char *argv[] )
 
      /*......................................................................*/
 
-     if( argc > 1 &&
-        ( strcasecmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0     || AFNI_yesenv("AFNI_POMOC") ) ){
+     if( 1 ){   /* this used to be only for "-HELP" */
        printf(
         "\n"
         "===========================================================================\n"
@@ -2714,7 +2714,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
             if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("%s: limited %s to 0.0001",argv[iarg-1],argv[iarg]); }
-       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("%s: limited %s to 0.666" ,argv[iarg-1],argv[iarg]); }
+       else if( vv > 6.666f  ){ vv = 6.666f ; WARNING_message("%s: limited %s to 6.666" ,argv[iarg-1],argv[iarg]); }
        conv_mm = vv ; iarg++ ; continue ;
      }
 
@@ -3104,6 +3104,17 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-Supper") == 0 ){
        smat  = SMAT_UPPER      ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-Lunch") == 0 ){  /* 23 Sep 2020 */
+       WARNING_message("There is no free '%s' with AFNI :(",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-Faster") == 0 ){
+       WARNING_message("You want '%s'? We already use OpenMP! Give me a break.",argv[iarg]) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -4157,10 +4168,11 @@ STATUS("zeropad weight dataset") ;
            stup.wfunc_param[jj].min   = vb;
            stup.wfunc_param[jj].max   = vt;
            if( verb > 1 )
-             ININFO_message("Range param#%d [%s] = %f .. %f",
+             ININFO_message("Range param#%d [%s] = %f .. %f  center = %f",
                             jj+1 , stup.wfunc_param[jj].name ,
                                    stup.wfunc_param[jj].min  ,
-                                   stup.wfunc_param[jj].max   ) ;
+                                   stup.wfunc_param[jj].max  ,
+                    0.5f*(stup.wfunc_param[jj].min+stup.wfunc_param[jj].max) );
          }
          break;
        }

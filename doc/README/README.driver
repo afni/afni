@@ -304,14 +304,24 @@ SET_SUBBRICKS [c] i j k
  ++ You can also use "SET_SUB_BRICKS" for the command name.
 
 OPEN_WINDOW [c.]windowname [options]
-  Opens a window from controller 'c'.  The window name can be one of
+  Opens a window from controller 'c'. The window name can be one of
     axialimage sagittalimage coronalimage
     axialgraph sagittalgraph coronalgraph
-  If the specified controller is not yet opened, it will be opened
-  first (like pressing the 'New' button).  If the command is of the
-  form "OPEN_WINDOW c", then only the controller itself will be opened.
-  For all windows, one allowed option is:
-    geom=PxQ+R+S or geom=PxQ or geom=+R+S
+  A very special case is to give the command 'OPEN_WINDOW allimage'.
+  This will open all 3 image viewer windows (axial, sagittal, coronal),
+  and then return immediately. None of the other options described
+  below will be carried out on those 3 viewers. If you wish to place
+  those windows in particular screen location with option 'geom=',
+  you'll have to use separate OPEN_WINDOW commands for each viewer.
+
+  If the specified AFNI controller ('A', 'B', ...) is not yet
+  opened, it will be opened first (like pressing the 'New' button).
+  If the command is of the form "OPEN_WINDOW c", then only the controller
+  itself will be opened.
+
+  When opening an individual window of either type (graph and image),
+  one allowed option is:
+    geom=PxQ+R+S  or  geom=PxQ  or  geom=+R+S
     to make the window be PxQ pixels in size and located at screen
     coordinates (R,S).
   Another option for both graph and image windows is
@@ -375,6 +385,7 @@ OPEN_WINDOW [c.]windowname [options]
   settings in the plugin interface (e.g., pre-set some fields).
   If the specified image or graph window is already open, you can still
   use this command to alter some of its properties.
+
   ++ You can also use "ALTER_WINDOW" for the command name, which makes
      more sense if you are using this to apply some change to an already
      open viewer window.
@@ -532,9 +543,21 @@ SET_INDEX     [c] ijk
   same as 'index' displayed in the top left corner of AFNI's controller when
   Datamode-->Misc-->Voxel Coords is turned on.
 
+Get different kinds of information from the AFNI GUI
 GET_DICOM_XYZ [c]
 GET_IJK       [c]
-  Have AFNI print the controller current coordinates (to stdout).
+  Have AFNI print the controller current coordinates (to stdout by default -
+   see SET_OUTPLUG).
+GET_OLAY_VAL  [c]
+GET_THR_VAL   [c]
+GET_ULAY_VAL  [c]
+  Have AFNI print the controller value for underlay, overlay or threshold sub-bricks
+  at current coordinates (to stdout by default - see SET_OUTPLUG).
+GET_ULAY_NAME [c]
+GET_OLAY_NAME [c]
+  Have AFNI print the prefix of the dataset name for underlay or overlay
+  (to stdout by default - see SET_OUTPLUG).
+
 SET_OUTPLUG fname
   Set plugout drive commands like GET_DICOM_XYZ,GET_IJK,GETENV to append output
   to a selected text file. The default output is to stdout of the afni GUI rather

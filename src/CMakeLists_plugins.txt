@@ -1,6 +1,6 @@
 set(CORE_PLUGINS plug_afnihistory plug_crender
 plug_drawdset plug_histog plug_histog_multi plug_notes plug_nth_dataset
-plug_nudge plug_null plug_realtime plug_render plug_second_dataset plug_tag
+plug_nudge plug_null plug_realtime plug_second_dataset plug_tag
 plug_ttget plug_vol2sur)
 
 set_os_flags(plug_threshold.c)
@@ -41,7 +41,6 @@ foreach(
   plug_power
   plug_realtime
   plug_rename
-  plug_render
   plug_reorder
   plug_roiedit
   plug_roiplot
@@ -57,7 +56,7 @@ foreach(
   plug_zeropad
 )
   # Filter plugins if requested
-  if(NOT (COMP_ADD_ALL_PLUGINS))
+  if(NOT (COMP_ALL_PLUGINS))
     if(NOT ${target} IN_LIST CORE_PLUGINS)
       continue()
     endif()
@@ -96,7 +95,7 @@ foreach(target plug_scatplot plug_nlfit)
     )
 endforeach(target)
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   foreach(target afni_open aiv Xphace)
     add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} 

@@ -349,3 +349,48 @@ ENTRY("THD_maxabs_brick") ;
 
    free(tsar) ; RETURN(medim) ;
 }
+
+/*-------------------------------------------------------------------*/
+/*! Compute average positive brick of a dataset. [09 Nov 2020 - RWCox]
+---------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_avepos_brick( THD_3dim_dataset *dset )
+{
+   int nvox , nvals , ii , jj ;
+   MRI_IMAGE *tsim , *medim ;
+   float *medar , sum,fac ;
+   float *tsar ;
+
+ENTRY("THD_avepos_brick") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ;
+   if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   nvals = DSET_NVALS(dset)   ; fac = 1.0 / nvals ;
+   tsim  = DSET_BRICK(dset,0) ;
+   nvox  = DSET_NVOX(dset) ;
+
+   if( nvals == 1 ){
+     medim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,0), tsim ) ;
+     medar = MRI_FLOAT_PTR(medim) ;
+     for( ii=0 ; ii < nvox ; ii++ ){
+       if( medar[ii] < 0.0f ) medar[ii] = 0.0f ;
+     }
+     RETURN(medim) ;
+   }
+
+   medim = mri_new_conforming( tsim , MRI_float ) ;
+   medar = MRI_FLOAT_PTR(medim) ;
+   tsar  = (float *) calloc( sizeof(float),nvals+1 ) ;
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     THD_extract_array( ii , dset , 0 , tsar ) ;
+     for( sum=0.0,jj=0 ; jj < nvals ; jj++ ){
+       if( tsar[jj] > 0.0f ) sum += tsar[jj] ;
+     }
+     medar[ii] = fac * sum ;
+   }
+
+   free(tsar) ; RETURN(medim) ;
+}

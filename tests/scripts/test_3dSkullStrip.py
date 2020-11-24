@@ -1,5 +1,5 @@
 import pytest
-from .utils import tools
+from afni_test_utils import tools
 
 data_paths = {
     "anat": "mini_data/anat_3mm.nii.gz",
@@ -7,9 +7,12 @@ data_paths = {
 }
 
 
+# @pytest.mark.xfail
 @pytest.mark.veryslow
 @pytest.mark.parametrize("dset_name", ["anat", "anatrpi"])
-@pytest.mark.xfail
+@pytest.mark.skip(
+    reason="May cause a graphics race condition. Not bothing to test further."
+)
 def test_3dSkullStrip_basic(data, dset_name):
     ifile = getattr(data, dset_name)
     ofile = data.outdir / "out_ss.nii.gz"

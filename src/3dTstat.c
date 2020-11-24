@@ -79,10 +79,13 @@ static int perc_val = -666;
 
 #define METH_ARMA31_FIT    46 /* 25 Aug 2020 */
 
+#define METH_SKEWNESS      47 /* PDL 17 July 2020 */
+#define METH_KURTOSIS      48 /* PDL 17 July 2020 */
+
 /*** If you add a method, you must update the constant below,
      AND you must update file Tstat.h to match the new method ***/
 
-#define MAX_NUM_OF_METHS   47
+#define MAX_NUM_OF_METHS   49
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -101,24 +104,7 @@ static float basepercent           = 0.5;  /* 50% assumed for duration unless us
 
 static int do_tdiff = 0 ;  /* 25 May 2011 */
 
-#if 1
-# include "Tstat.h"
-#else
- static char *meth_names[] = {
-    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
-    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
-    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
-    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
-    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-    "MSSDsqrt"      , "MASDx"        , "arma31fit"
- };
-#endif
+#include "Tstat.h"  /* method names */
 
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float *ts , double ts_mean ,
@@ -143,22 +129,25 @@ void usage_3dTstat(int detail)
  "Multiple statistics options may be given, and will result in\n"
  "a multi-volume dataset.\n"
  "\n"
- "Statistics Options:\n"
- " -mean   = compute mean of input voxels\n"
- " -sum    = compute sum of input voxels\n"
- " -abssum = compute absolute sum of input voxels\n"
- " -slope  = compute the slope of input voxels vs. time\n"
- " -sos    = compute sum of squares\n"
- " -stdev  = compute standard deviation of input voxels\n"
- "             [N.B.: this is computed after    ]\n"
- "             [      the slope has been removed]\n"
- " -l2norm = compute L2 norm (sqrt(sum squares))\n"
- " -cvar   = compute coefficient of variation of input\n"
- "             voxels = stdev/fabs(mean)\n"
- " -cvarinv= 1.0/cvar = 'signal to noise ratio' [for Vinai]\n"
- "           **N.B.: You can add NOD to the end of the above 3\n"
- "                   options only, to turn off detrending, as in\n"
- "                     -stdevNOD  and/or  -cvarNOD  and/or  -cvarinvNOD\n"
+ "Statistics Options (note where detrending does/does not occur):\n"
+"\n"
+ " -sum       = compute sum of input voxels\n"
+ " -abssum    = compute absolute sum of input voxels\n"
+ " -sos       = compute sum of squares\n"
+ " -l2norm    = compute L2 norm (sqrt(sum squares))\n"
+ " -mean      = compute mean of input voxels\n"
+ " -slope     = compute the slope of input voxels vs. time\n"
+ "\n"
+ " -stdev     = compute standard deviation of input voxels\n"
+ "              NB: input is detrended by first removing mean+slope\n"
+ " -stdevNOD  = like '-stdev', but no initial detrending\n"
+ " -cvar      = compute coefficient of variation of input:\n"
+ "                 voxels = stdev/fabs(mean)\n"
+ "              NB: in stdev calc, input is detrended by removing mean+slope\n"
+ " -cvarNOD   = like '-cvar', but no initial detrending in stdev calc\n"
+ " -cvarinv   = 1.0/cvar = 'signal to noise ratio' [for Vinai]\n"
+ "              NB: in stdev calc, input is detrended by removing mean+slope\n"
+ " -cvarinvNOD = like '-cvarinv', but no detrending in stdev calc\n"
  "\n"
  " -tsnr      = compute temporal signal to noise ratio\n"
  "                fabs(mean)/stdev NOT DETRENDED (same as -cvarinvNOD)\n"
@@ -218,6 +207,10 @@ void usage_3dTstat(int detail)
  "\n"
  " -centromean = compute mean of middle 50%% of voxel values [undetrended]\n"
  "\n"
+ " -skewness = measure of asymmetry in distribution - based on Pearson's\n"
+ "             moment, coefficient of skewness.\n"
+ " -kurtosis = measure of the 'tailedness' of the probability distribution\n"
+ "             - the fourth standardized moment.  Never negative.\n"
  " -firstvalue = first value in dataset - typically just placeholder\n\n"
  "\n"
  " -arma31fit n = Test for ARMA(3,1) fit functions, that is all.\n"
@@ -445,6 +438,16 @@ int main( int argc , char *argv[] )
       }
       if( strcasecmp(argv[nopt],"-MASDx") == 0 ){  /* 19 Mar 2018 */
          meth[nmeths++] = METH_MEDIAN_ASD ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-skewness") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_SKEWNESS ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-kurtosis") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_KURTOSIS ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -1473,6 +1476,20 @@ ENTRY("STATS_tsfunc") ;
       }
       break ;
 
+      /* New methods, added by PDL, 17 July 2020 */
+
+      case METH_SKEWNESS:{
+
+        val[out_index] = getSkewness(ts, npts);
+      }
+      break;
+
+      case METH_KURTOSIS:{
+
+        val[out_index] = getKurtosis(ts, npts);
+     }
+      break;
+
     }
    }
 
@@ -1488,17 +1505,27 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
   int ii,nfft;
   double scaler;
   complex *cxar = NULL;
+  float tsmean ;
+  static int nfft_old = 0 ;
 
   /* Calculate size for FFT, including padding for eliminating overlap  */
   /* from circular convolution */
   nfft = csfft_nextup_even(npts * 2 - 1);
-/*  fprintf(stderr,"++ FFT length = %d\n",nfft) ; */
+
+  if( nfft != nfft_old ){
+    nfft_old = nfft ;
+    INFO_message("FFT length = %d",nfft) ;
+  }
 
   cxar = (complex *) calloc( sizeof(complex) , nfft ) ;
 
+  /* compute mean of input */
+  for( tsmean=0.0f,ii=0 ; ii < npts ; ii++ ) tsmean += in_ts[ii] ;
+  tsmean /= npts ;
+
   /* Populate complex array with input (real-only) time series */
   for( ii=0 ; ii < npts ; ii++ ){
-    cxar[ii].r = in_ts[ii]; cxar[ii].i = 0.0;
+    cxar[ii].r = in_ts[ii] - tsmean; cxar[ii].i = 0.0;
   }
   /* Zero-pad input outside range of original time series */
   for( ii=npts ; ii < nfft ; ii++ ){ cxar[ii].r = cxar[ii].i = 0.0; }
@@ -1529,9 +1556,10 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
   /* The output coefficients are scaled by 1/(M-p) to   */
   /* provide an unbiased estimate, and also scaled by   */
   /* the final value of the zeroth coefficient.         */
-  scaler = cxar[0].r/npts;
+  scaler = cxar[0].r/npts; 
+  if( scaler != 0.0 ) scaler = 1.0 / scaler ;
   for (ii = 0 ; ii < numVals ; ii++ ) {
-    outcoeff[ii] = cxar[ii+1].r/((npts - (ii+1)) * scaler);
+    outcoeff[ii] = cxar[ii+1].r * ( scaler /(npts - (ii+1)) ) ;
   }
   free(cxar);
   cxar = NULL;

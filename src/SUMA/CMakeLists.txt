@@ -61,13 +61,13 @@ endif()
 target_link_libraries(
   SUMA
   PUBLIC $<TARGET_NAME_IF_EXISTS:GLw::GLw>
-  PRIVATE AFNI::mrix
+          AFNI::track_tools
           $<IF:$<NOT:$<BOOL:${APPLE}>>,$<TARGET_NAME_IF_EXISTS:AFNI::GLUT>,>
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
+  PRIVATE AFNI::mrix
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
-          track_tools
           segtools
           $<IF:$<BOOL:${APPLE}>,X11::Xmu,>
           AFNI::3DEdge
@@ -81,7 +81,6 @@ target_link_libraries(
   suma
   PRIVATE SUMA
           AFNI::mrix
-         AFNI::track_tools
           AFNI::segtools
           $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
@@ -129,7 +128,6 @@ set(PROGRAMS
     SpharmReco
     SpharmDeco
     SurfDsetInfo
-    SurfLocalStat
     SurfFWHM
     NikoMap
     SurfInfo

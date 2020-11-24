@@ -88,8 +88,17 @@
 #set version   = "2.11"; set rev_dat   = "Feb 20, 2020"
 #   + [PT] fix paths in the ulay/olay of extra QC*jpg images
 #
-set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
+#set version   = "2.2"; set rev_dat   = "Feb 27, 2020"
 #   + [PT] new warpscale opt for 3dQwarp, courtesy of RWC
+#
+#set version   = "2.21"; set rev_dat   = "Sep 1, 2020"
+#   + [PT] if '-skipwarp' is used, now set DO_EXTRA_WC = 0.
+#
+#set version   = "2.3"; set rev_dat   = "Sep 23, 2020"
+#   + [PT] put ${status} checks to terminate on ~first failures
+#
+set version   = "2.31"; set rev_dat   = "Oct 19, 2020"
+#   + [PT] new qc image of initial overlap (with/without applying obl)
 #
 # ----------------------------------------------------------------
 
@@ -368,6 +377,13 @@ if ( "$odir" == "" ) then
     echo ""
 endif
 
+# [PT: Sep 1, 2020] skipwarp basically means a lot of other stuff gets
+# skipped...  Have it turn off "extra" QC:
+if ( ${skipwarp} ) then
+    echo "+* Since we are skipping the warp, there is no 'extra' QC"
+    set DO_EXTRA_QC = 0
+endif
+
 \mkdir -p ${odir}
 
 # set random prefix for temp files
@@ -385,7 +401,8 @@ if ( -e "$Basedset" ) then
 else
     set tpath = `@FindAfniDsetPath "$Basedset"`
     if( "$tpath" == '' ) then
-        echo "** ${this_prog} -- Failed to find template $Basedset -- exiting :("
+        echo "** ERROR: ${this_prog} -- Failed to find template $Basedset"
+        echo "   -- exiting :("
         goto BAD_EXIT
     endif
     set Basedset = $tpath/$Basedset
@@ -399,6 +416,12 @@ if ( $nvolbase < 5 ) then
     echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
     goto BAD_EXIT
 endif
+
+# [PT: Oct 19, 2020] Add in new QC: initial source-base overlap
+@djunct_overlap_check                             \
+    -ulay   "${Adataset}"                         \
+    -olay   "$Basedset"                           \
+    -prefix ${odir}/init_qc_00_overlap_usrc_obase
 
 if ( ${JUMP_TO_EXTRA_QC} ) then
     echo "\n++ Just jumpin' to extra QC\n"
@@ -435,6 +458,11 @@ else if ( ${DO_DEOB_REF} ) then
     set Adataset = "${dset_do}"
 endif
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step deob"
+    goto BAD_EXIT
+endif
+
 ## Step #1: Unifize the input T1
 echo "++ SSW Step 1"
 
@@ -456,6 +484,12 @@ if( ! -f $odir/anatU."${SubID}".nii ) then
     endif
 endif
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step U"
+    goto BAD_EXIT
+endif
+
+
 # [PT: Feb 11, 2019] now allows for option *not* to anismoothize
 if( ! -f $odir/anatUA."${SubID}".nii ) then
     if ( ${DO_ANISO} ) then
@@ -472,6 +506,11 @@ if( ! -f $odir/anatUA."${SubID}".nii ) then
             $odir/anatU."$SubID".nii            \
             $odir/anatUA."$SubID".nii
     endif
+endif
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step UA"
+    goto BAD_EXIT
 endif
 
 # [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
@@ -496,6 +535,11 @@ if( ! -f $odir/anatUAC."${SubID}".nii ) then
     endif
 endif
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step UAC"
+    goto BAD_EXIT
+endif
+
 
 # Step #2: Strip Skull (Ziad's way)
 echo "++ SSW Step 2"
@@ -517,6 +561,11 @@ if( ! -f $odir/anatS."${SubID}".nii ) then
             $odir/anatUAC."$SubID".nii         \
             $odir/anatS."$SubID".nii
     endif
+endif
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 2"
+    goto BAD_EXIT
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
@@ -551,6 +600,11 @@ else
         -prefix "${pref}TAL5.nii"
 endif
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 3"
+    goto BAD_EXIT
+endif
+
 ## Step #4: mask off the skull using the template (second skull-strip)
 echo "++ SSW Step 4"
 
@@ -574,6 +628,11 @@ echo "++ SSW Step 5"
     -source "${pref}TAL5mm.nii"        \
     -prefix "${pref}TAL5ww.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 4a"
+    goto BAD_EXIT
+endif
+
 ## warp the mask itself (dilated) back to orig space
 
 \rm -f "${pref}MASK.nii"
@@ -587,6 +646,12 @@ echo "++ SSW Step 5"
     -source "${pref}MASK.nii"          \
     -prefix "${pref}MASKO.nii"         \
     -ainterp NN
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 4b"
+    goto BAD_EXIT
+endif
+
 
 ## merge these backward warped datasets with the 3dSkullStrip
 ## output to get a better original skull-stripped result
@@ -616,6 +681,12 @@ echo "++ SSW Step 5"
 \mv -f "$odir/anatSSd.${SubID}.nii" "$odir/anatSS.${SubID}.nii"
 \rm -f "$odir/anatSSc.${SubID}.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 4c"
+    goto BAD_EXIT
+endif
+
+
 # don't do any more if skipping the final (precision) warp
 
 if( $skipwarp ) goto CLEANUP
@@ -634,6 +705,11 @@ echo "++ SSW Step 6 ... piece 0"
     -autoweight -source_automask                   \
     -final wsinc5                                  \
     -prefix "${pref}AffSS.nii"
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 6.0"
+    goto BAD_EXIT
+endif
 
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
@@ -658,6 +734,11 @@ echo "++ SSW Step 6 ... piece 1"
     -pblur -workhard:5:5                 \
     -nodset -prefix "${pref}QQ5.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 6.1"
+    goto BAD_EXIT
+endif
+
 # Piece number 2
 echo "++ SSW Step 6 ... piece 2"
 3dQwarp -echo_edu      ${saveall}        \
@@ -672,6 +753,11 @@ echo "++ SSW Step 6 ... piece 2"
     -inedge                              \
     -pblur                               \
     -nodset -prefix "${pref}QQ7.nii"
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 6.2"
+    goto BAD_EXIT
+endif
 
 if( $minp > 13 )then
   # Final piece for coarse final patch size
@@ -689,6 +775,12 @@ if( $minp > 13 )then
       -pblur -minpatch $minp               \
       -Qfinal                              \
       -prefix $odir/anatQQ."${SubID}".nii
+
+  if ( ${status} ) then
+      echo "** ERROR: program failed in Step 6.30"
+      goto BAD_EXIT
+  endif
+
 else
   # Penultimate piece for refined final patch size
   echo "++ SSW Step 6 ... piece 3a"
@@ -705,6 +797,12 @@ else
       -inedge                              \
       -pblur                               \
       -nodset -prefix "${pref}QQ9.nii"
+
+  if ( ${status} ) then
+      echo "** ERROR: program failed in Step 6.3a"
+      goto BAD_EXIT
+  endif
+
   # Ultimate piece for refined final patch size
   echo "++ SSW Step 6 ... piece 3b"
   3dQwarp  -echo_edu       ${saveall}      \
@@ -719,6 +817,12 @@ else
       -inedge                              \
       -pblur -minpatch $minp               \
       -prefix $odir/anatQQ."${SubID}".nii
+
+  if ( ${status} ) then
+      echo "** ERROR: program failed in Step 6.3b"
+      goto BAD_EXIT
+  endif
+
 endif
 
 echo "++ SSW: done warping.  Finalize."
@@ -733,6 +837,11 @@ echo "++ SSW: done warping.  Finalize."
     -b ${pref}de3.nii                   \
     -expr 'a*step(b)'                   \
     -prefix $odir/anatQQc."${SubID}".nii
+
+if ( ${status} ) then
+    echo "** ERROR: program failed in Finalize"
+    goto BAD_EXIT
+endif
 
 \rm -f ${pref}de3.nii anatQQ."${SubID}".nii
 \mv -f $odir/anatQQc."${SubID}".nii $odir/anatQQ."${SubID}".nii
@@ -1084,6 +1193,7 @@ Then the outputs from this script will be"
                             to base template space;
   anatQQ.sub007_WARP.nii  = incremental warp from affine transformation
                             to nonlinearly aligned dataset;
+
   AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii
                             dataset with the edges from the base template
                             overlaid -- to check the alignment;
@@ -1093,6 +1203,17 @@ Then the outputs from this script will be"
   QC_anatSS.sub007.jpg    = check skullstripping in orig space: ulay is
                             input dset, and olay is mask of
                             skullstripped output (anatSS* dset)
+  init_qc_00_overlap_uinp_obase.jpg
+    o [ulay] original source dset
+      [olay] original base dset
+    o single image montage to check initial overlap of source and base,
+      ignoring any obliquity that might be present (i.e., the way AFNI 
+      GUI does by default, and also how alignment starts)
+    o if initial overlap is not strong, alignment can fail or
+      produce weirdness
+    o *if* either dset has obliquity, then an image of both after 
+      deobliquing with 3dWarp is created (*DEOB.jpg), and a text file
+      about obliquity is also created (*DEOB.txt).
 
 * The .aff12.1D and _WARP.nii transformations need to be catenated to get
   the full warp from orginal space to the base space; example:
@@ -1173,7 +1294,7 @@ You Know My Methods, Watson ~2~
   #6  Restart the nonlinear warping, registering the output
       of #5 to the skull-off template brain volume (3dQwarp).
        ==> anatQQ.sub007.nii (et cetera)
-  #7  Use @snapshot_volreg3 to make the pretty pictures.
+  #7  Use @snapshot_volreg to make the pretty pictures.
        ==> AMsub007.jpg and MAsub007.jpg
 
 Temporary files ~2~

@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # compute optimally combining weights for echoes
 #
 # inputs:  echo times and one run of multi-echo EPI data

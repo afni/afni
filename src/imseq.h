@@ -418,6 +418,7 @@ typedef struct MCW_imseq {
      Widget wbar_menu , wbar_rng_but , wbar_zer_but  , wbar_flat_but ,
             wbar_sharp_but , wbar_vgize_but ;
      MCW_bbox *wbar_amask_bbox ;  /* 14 Jun 2010 */
+     MCW_bbox *wbar_invrt_bbox ;  /* 14 Sep 2020 */
      float  rng_bot,rng_top,rng_ztop , flat_bot,flat_top , sharp_fac , vgize_fac ;
      int    zer_color , rng_extern ;
 
@@ -768,6 +769,7 @@ extern void ISQ_wbar_plots_CB( Widget , XtPointer , XtPointer ) ; /* 20 Sep 2001
 extern void ISQ_wbar_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_globrange_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_amask_CB( Widget , XtPointer , XtPointer ) ; /* 14 Jun 2010 */
+extern void ISQ_wbar_invrt_CB( Widget , XtPointer , XtPointer ) ; /* 14 Sep 2020 */
 extern void ISQ_wbar_crop_CB ( Widget , XtPointer , XtPointer ) ; /* 15 Jan 2014 */
 
 extern void ISQ_wbar_menu_CB( Widget , XtPointer , XtPointer ) ;

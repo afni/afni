@@ -30,6 +30,7 @@ static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
 static char     *sspref = NULL ;
 static char     *ampref = NULL ;     /* 20 Nov 2018 */
 
+#if 0
 /*---------------------------------------------------------------------------*/
 
 void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
@@ -61,6 +62,7 @@ void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
    if( mmm != mask ) free(mmm) ;
    return ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 

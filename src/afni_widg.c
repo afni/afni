@@ -2873,7 +2873,7 @@ STATUS("making marks->rowcol") ;
 /** old hard-wired definition */
 #define SELECTOR_HEIGHT 240
 
-   sel_height = view_height - 19 ;
+   sel_height = view_height - 39 ;
 
    func->do_setup = 1 ;   /* 24 May 2019 */
 
@@ -3103,6 +3103,20 @@ STATUS("making func->rowcol") ;
                   AFNI_func_autothresh_CB , im3d ) ;
    MCW_register_hint( func->thr_autothresh_pb ,
                       "Compute ad hoc threshold automatically NOW" ) ;
+
+   /*-- Set threshold button [16 Jul 2020] discoraj --*/
+
+   func->thr_setthresh_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set threshold") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setthresh_pb , XmNactivateCallback ,
+                  AFNI_func_setthresh_CB , im3d ) ;
+   MCW_register_hint( func->thr_setthresh_pb ,
+                      "Enter value to set threshold" ) ;
 
    /*-- Set pval button [03 Dec 2013] --*/
 
@@ -3418,7 +3432,7 @@ STATUS("making func->rowcol") ;
    MCW_reghint_children( func->thr_top_av->wrowcol ,
                          "Power-of-10 range of slider" ) ;
 
-   sel_height -= (8+view_height/view_count) * 0.5 ;
+   sel_height -= (10+view_height/view_count) * 0.5 ;
 
    /*-- intensity threshold stuff --*/
 

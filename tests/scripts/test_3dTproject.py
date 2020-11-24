@@ -1,5 +1,5 @@
 import pytest
-from .utils import tools
+from afni_test_utils import tools
 
 # Define Data
 data_paths = {"epi": "AFNI_data6/afni/epi_r1+orig.HEAD"}

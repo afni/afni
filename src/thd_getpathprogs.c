@@ -14,6 +14,9 @@ THD_string_array *get_elist(void) {
    return(elist); 
 }
 
+/* local prototypes */
+static int local_clean_zsh_punct(char * str);
+
 /*----------------------------------------------------------------------------*/
 /*! Find an executable in the PATH by its name, if it exists.
     If not, NULL is returned.  If it exists, a pointer to static storage
@@ -1183,6 +1186,7 @@ char *find_popt(char *sh, char *opt, int *nb)
 char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
    char *sout=NULL, sbuf[128];
    int maxch=0, i, jj;
+   int nargs = 0;
    NI_str_array *nisa=NULL;
    
    if (!prog || !ws || shtp < 0) {
@@ -1190,8 +1194,10 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
    }
    
    maxch = 256;
+   nargs = 0;
    for (i=0; i<N_ws; ++i) {
       if (ws[i]) {
+         nargs++; /* count valid args, in case there are none */
          maxch+=strlen(ws[i])+10;
          if (strlen(ws[i]) > 127) {
             WARNING_message("Truncating atrocious option %s\n", ws[i]);
@@ -1199,22 +1205,40 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
          }
       }
    }
+
    if (!(sout = (char *)calloc((maxch+1), sizeof(char)))) {
       ERROR_message("Failed to allocate for %d chars!", maxch+1);
       return(NULL);
    }
    sout[0]='\0';
+
+   /* if the list is empty, just say so                  */
+   /*   - zsh might whine if ARGS is an empty list list) */
+   /*   - do not leave an empty or non-existent file     */
+   if( nargs == 0 ) {
+      sprintf(sbuf, "# %s : empty ARGS list\n", prog);
+      strcpy(sout, sbuf);
+      return(sout);
+   }
+
    switch (shtp) {
       default:
       case 0: /* csh/tcsh */
          strncat(sout,"set ARGS=(",maxch-strlen(sout)-1);
          break;
       case 1: /* bash */
+      case 2: /* zsh - same main syntax as bash */
          strncat(sout,"ARGS=(",maxch-strlen(sout)-1);
          break;
    }
    
    for (i=0; i<N_ws; ++i) {
+      /* for zsh, remove any bad punctuation characters (=,>,|) */
+      /* (note that '=' is in -dxyz=1, for example)             */
+      /* ('|' is a separator in 3dToyProg and 3dproject)        */
+      if( shtp == 2 )
+         local_clean_zsh_punct(ws[i]);
+
       if (ws[i] && (nisa = NI_strict_decode_string_list(ws[i] ,"/"))) {
          for (jj=0; jj<nisa->num; ++jj) {
             if (ws[i][0]=='-' && nisa->str[jj][0] != '-') {
@@ -1237,6 +1261,11 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
                "complete %s \"C/-/($ARGS)/\" \"p/*/f:/\" ; ##%s##\n",prog, prog);
          break;
       case 1: /* bash */
+         snprintf(sbuf,127,") ; "
+               "complete -W \"${ARGS[*]}\" -o bashdefault -o default %s ; "
+               "##%s##\n",prog, prog);
+         break;
+      case 2: /* zsh - syntax matches that of bash, mostly */
          snprintf(sbuf,127,") ; "
                "complete -W \"${ARGS[*]}\" -o bashdefault -o default %s ; "
                "##%s##\n",prog, prog);
@@ -1269,7 +1298,12 @@ int prog_complete_command (char *prog, char *ofileu, int shtp) {
       return 0;
    }
 
-   if (shtp < 0) { shtp=0; shtpmax = 2;}
+   /* shell types are:
+    *    0: tcsh
+    *    1: bash
+    *    2: zsh
+    * set shtpmax to largest+1 (so 3, now) */
+   if (shtp < 0) { shtp=0; shtpmax = 3;}
    else { shtpmax = shtp+1; }
    
    for (ishtp=shtp; ishtp<shtpmax; ++ishtp) {
@@ -1284,6 +1318,11 @@ int prog_complete_command (char *prog, char *ofileu, int shtp) {
                   ofile = (char*)calloc((strlen(ofileu)+20), sizeof(char));
                   strcat(ofile, ofileu);
                   strcat(ofile, ".bash");
+                  break;
+               case 2:
+                  ofile = (char*)calloc((strlen(ofileu)+20), sizeof(char));
+                  strcat(ofile, ofileu);
+                  strcat(ofile, ".zsh");
                   break;
             }
           } else {
@@ -1466,4 +1505,20 @@ int view_text_file(char *progname)
    snprintf(cmd,250*sizeof(char),"%s %s &", viewer, progname);
    system(cmd);
    return(1);
+}
+
+/* particularly for the case of zsh, set any of {'=', '>', '|'} to space,
+ * which should result in them not being part of any option */
+static int local_clean_zsh_punct(char * str)
+{
+   char * cp;
+
+   if( !str ) return 0;
+
+   /* convert bad chars to space; rely on null termination */
+   for( cp=str; *cp; cp++ )
+      if( *cp == '=' || *cp == '>' || *cp == '|' )
+          *cp = ' ';
+
+   return 0;
 }

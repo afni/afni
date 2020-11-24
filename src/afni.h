@@ -742,6 +742,7 @@ typedef struct {
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
+      Widget thr_setthresh_pb ;    /* 16 Jul 2020 discoraj */
       Widget thr_setpval_pb ;      /* 03 Dec 2013 */
       Widget thr_setqval_pb ;      /* 26 Feb 2014 */
       Widget thr_setpval_001_pb ;  /* 05 Nov 2018 */
@@ -828,6 +829,7 @@ typedef struct {
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
+extern void AFNI_func_setthresh_CB   (Widget,XtPointer,XtPointer) ; /* 16 Jul 2020 discoraj */
 extern void AFNI_func_setpval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_setqval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
@@ -1037,7 +1039,14 @@ typedef struct {
  do{ if( (iq)->vwid->top_form_height > 99 )                          \
        XtVaSetValues( (iq)->vwid->top_form ,                         \
                       XmNheight,(iq)->vwid->top_form_height,NULL ) ; \
+       XtVaSetValues( (iq)->vwid->top_shell ,                        \
+                      XmNheight,(iq)->vwid->top_form_height+1,NULL); \
  } while(0)
+
+#define SET_TOPFORM_HEIGHT(iq)                               \
+     MCW_widget_geom( (iq)->vwid->top_form,                  \
+                      NULL, &((iq)->vwid->top_form_height),  \
+                      NULL, NULL )
 
 #define TIPS_PLUS_SHIFT   2
 #define TIPS_MINUS_SHIFT -60
@@ -1573,9 +1582,7 @@ extern char * julian_date_string(void) ;   /* 29 Oct 2019 */
  do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \
      while(XtWindow((iq)->vwid->top_shell)==(Window)NULL) ;  \
      AFNI_startup_3dview(iq); (iq)->opened = 1;              \
-     MCW_widget_geom( (iq)->vwid->top_form,                  \
-                      NULL, &((iq)->vwid->top_form_height),  \
-                      NULL, NULL ) ;                         \
+     SET_TOPFORM_HEIGHT(iq) ;                                \
  } while(0)
 
 #define CLOSE_CONTROLLER(iq) ( AFNI_closedown_3dview(iq),                \
@@ -1638,6 +1645,8 @@ extern "C" {
 
    extern PLUGIN_interface * F2D_init(void) ;            /* 03 Jul 2000 */
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
+   extern void               F2D_null(void) ;
+   extern void               F1D_null(void) ;
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
    extern PLUGIN_interface * TSTAT_init(char *);         /* 22 Mar 2018 */
@@ -2433,6 +2442,7 @@ extern void AFNI_driver_register( char * , int (*)(char *) ) ;
 
 extern void log10_func( int, float * ) ;
 extern void ssqrt_func( int, float * ) ;
+extern void absval_func( int, float * ) ;  /* 20 Oct 2020 */
 
 /* sample 1D transform functions */
 

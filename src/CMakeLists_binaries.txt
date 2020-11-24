@@ -29,7 +29,6 @@ foreach(
   3dABoverlap
   3dAFNIto3D
   3dAFNItoANALYZE
-  3dAFNItoMINC
   3dAFNItoNIFTI
   3dAFNItoNIML
   3dAFNItoRaw
@@ -82,7 +81,6 @@ foreach(
   3dLocalPV
   3dLocalSVD
   3dLocalstat
-  3dMINCtoAFNI
   3dMannWhitney
   3dMean
   3dMedianFilter
@@ -292,7 +290,6 @@ foreach(
   target_compile_definitions(${target} PRIVATE "REPLACE_XT")
   target_link_libraries(${target} PRIVATE AFNI::mri m)
 endforeach(target)
-target_link_libraries(3dproject PRIVATE volpack)
 
 add_afni_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
 add_afni_executable(
@@ -368,6 +365,7 @@ add_afni_executable(
   afni_history_dglen.c
   afni_history_discoraj.c
   afni_history_gangc.c
+  afni_history_laurenpd.c
   afni_history_ptaylor.c
   afni_history_rickr.c
   afni_history_rwcox.c
@@ -417,7 +415,7 @@ target_link_libraries(3dECM
     NIFTI::nifticdf
   )
 
-if(COMP_X_DEPENDENT_GUI_PROGS)
+if(COMP_GUI)
   add_afni_executable(Vecwarp Vecwarp.c)
   target_link_libraries(Vecwarp PRIVATE AFNI::mri)
 
