@@ -77,6 +77,7 @@ int Syntax(TFORM targ, int detail)
 "   -handedness: L if orientation is Left handed, R if it is right handed\n"
 "   -obliquity: Angle from plumb direction.\n"
 "               Angles of 0 (or close) are for cardinal orientations\n"
+"\n"
 "   -aform_real: Display full 4x3 'aform_real' matrix (AFNI's RAI equivalent\n"
 "                of the sform matrix in NIFTI, may contain obliquity info),\n"
 "                with comment line first.\n"
@@ -94,6 +95,9 @@ int Syntax(TFORM targ, int detail)
 "                This matrix is the orthogonalized form of aform_real,\n"
 "                and veeery often AFNI-produced dsets, we will have:\n"
 "                aform_orth == aform_real.\n"
+"  -perm_to_orient YYY: Display 3x3 permutation matrix to go from the\n"
+"                       dset's current orientation to the YYY orient.\n"
+"\n"
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
 "   -ni: Return the number of voxels in i dimension\n"
@@ -266,6 +270,7 @@ typedef enum {
    AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REORIENT, // [PT: Nov 13, 2020]
    IS_AFORM_REAL_ORTH,
    AFORM_ORTH,                                          // [PT: Nov 14, 2020]
+   PERM_TO_ORIENT,                                      // [PT: Nov 23, 2020]
    PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
@@ -365,8 +370,12 @@ int main( int argc , char *argv[] )
    char *aform_orth_pbase= "(aform_orth)";
    char aform_orth_pstr[100];
 
+   char *ochar_perm=NULL;        // new orient for perm calc
+   char perm_pstr[100];
+
    mainENTRY("3dinfo main") ; machdep() ;
 
+   strcpy(perm_pstr, ""); 
    strcpy(aform_real_pstr, aform_real_pbase);
    strcpy(aform_orth_pstr, aform_orth_pbase);
 
@@ -460,6 +469,12 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = IS_AFORM_REAL_ORTH; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-aform_orth") == 0) {
          sing[N_sing++] = AFORM_ORTH; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-perm_to_orient") == 0) {
+         iarg++;
+         if (iarg >= argc)
+           ERROR_exit( "3dinfo needs a string after -perm_to_orient\n");
+         ochar_perm = argv[iarg];
+         sing[N_sing++] = PERM_TO_ORIENT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-handedness") == 0) {
          sing[N_sing++] = HANDEDNESS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
@@ -898,6 +913,22 @@ int main( int argc , char *argv[] )
                DUMP_MAT44(aform_orth_pstr, aform_orth);
             break;
             }
+         case PERM_TO_ORIENT:
+            {
+               mat33 P33;
+               char ostr[4];
+               // the work:
+               P33 = THD_dset_reorient_perm_mat33(dset, ochar_perm);
+
+               // display formatting/messaging:
+               THD_fill_orient_str_3(dset->daxes, ostr);
+               strcat(perm_pstr, "Perm from current ");
+               strcat(perm_pstr, ostr);
+               strcat(perm_pstr, " to ");
+               strcat(perm_pstr, ochar_perm);
+               DUMP_MAT33(perm_pstr, P33);
+            }
+            break;
          case PREFIX:
             form = PrintForm(sing[iis], namelen, 1);
             fprintf(stdout,form, DSET_PREFIX(dset));

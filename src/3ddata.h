@@ -1952,6 +1952,17 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
       AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
+#undef  DUMP_MAT33
+#define DUMP_MAT33(SS,AA)                              \
+     printf("# mat33 %s:\n"                            \
+            " %13.6f %13.6f %13.6f\n"                  \
+            " %13.6f %13.6f %13.6f\n"                  \
+            " %13.6f %13.6f %13.6f\n" ,                \
+  SS, AA.m[0][0], AA.m[0][1], AA.m[0][2],              \
+      AA.m[1][0], AA.m[1][1], AA.m[1][2],              \
+      AA.m[2][0], AA.m[2][1], AA.m[2][2] )
+
+
 #undef  DUMP_MAT44_ONELINE
 #define DUMP_MAT44_ONELINE(AA)                         \
      printf(" %13.6f %13.6f %13.6f  %13.6f"            \

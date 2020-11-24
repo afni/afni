@@ -1020,10 +1020,10 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
 }
 
 /*
-  Use the fact that nifti_mat44_to_quatern produces a quaternion
-  representation of the input matrix that is orthogonalized, even if
-  the input mat isn't. Thus, when converting quatern -> mat44, the
-  output mat should be orthogonalized.
+  [PT: Nov 16, 2020] Use the fact that nifti_mat44_to_quatern produces
+  a quaternion representation of the input matrix that is
+  orthogonalized, even if the input mat isn't. Thus, when converting
+  quatern -> mat44, the output mat should be orthogonalized.
 
   Use this to calculate aform_orth (Mout) from aform_real (Min).
 */
@@ -1047,9 +1047,9 @@ mat44 nifti_orthogonalize_mat44( mat44 Min )
 }
 
 /*
-  Test orthogonality by orthogonalizing the mat44, and then comparing
-  sum of elementwise diffs.  Could be done differently, but typically
-  this should be fine.
+  [PT: Nov 16, 2020] Test orthogonality by orthogonalizing the mat44,
+  and then comparing sum of elementwise diffs.  Could be done
+  differently, but typically this should be fine.
 */
 int is_mat44_orthogonal(mat44 A)
 {
@@ -1059,6 +1059,31 @@ int is_mat44_orthogonal(mat44 A)
 
    return MAT44_FLEQ(A, B);
 }
+
+
+/*
+  Calc the cardinal 3x3 matrix of a dset in RAI ordering based on
+  voxelsize 
+
+mat33 THD_dset_card_mat33( THD_3dim_dataset *dset )
+{
+   int i,j;
+   mat33 M;
+   THD_dmat33 tmat;
+   THD_dfvec3 dics;
+
+   THD_dicom_card_xform( dset,
+                         &tmat, &dics );
+
+   
+
+   return M;
+}
+
+*/
+
+
+
 
 void THD_report_obliquity(THD_3dim_dataset *dset)
 {
