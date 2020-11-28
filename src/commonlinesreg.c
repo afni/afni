@@ -3,7 +3,7 @@
 
 SYNOPSIS
 
-    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs> -o <orientation> [-f]
+    commonLinesReg -i <Input Filename> -p <ac|as|cs|acs> -o <orientation> [-f [-l <min. length>]]
 
 DESCRIPTION
 
@@ -15,7 +15,8 @@ DESCRIPTION
     -o  Output of "3dinfo -orient mydset" in the linux command line.  This gives the a, y,z z-axes in terms of the axial, coronal
         and sagmital direction.
 
-    -f  Examine effects of frequency range
+    -f  Examine effects of frequency range.  The search is over a range of spectral lengths and min. frequencies.  "min. length"
+        is the starting length.
 
 NOTES
 
@@ -33,6 +34,7 @@ NOTES
 #include <malloc.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/resource.h>
 #include "mrilib.h"
 #include "Generic.h"
 // #include "VolumeRegistration.h"
@@ -92,7 +94,7 @@ char * RootName(char * csFullPathName);
 ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory);
 ERROR_NUMBER shortToFloat(THD_3dim_dataset **din);
 ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
-    int paddedDimension, char *searchPath, char *prefix);
+    int paddedDimension, char *searchPath, char *prefix, int minLength);
 ERROR_NUMBER getImsePeakAndMean(COMPLEX ***TwoDFts, int dimension, int refIndex, int targetIndex,
             IntRange irFrequencyRange, float *maxIMSE, float *meanIMSE);
 
@@ -108,11 +110,13 @@ int main( int argc, char *argv[] )  {
 	float fCoplanarAngularShift;
     THD_3dim_dataset * din = NULL, *dodd, *deven;
     THD_3dim_dataset* projections[6], *paddedProjections[6];
-    int     i, j, largestDimension, paddingFactor=4;
+    int     i, j, largestDimension, paddingFactor=4, minLength=8;
     char    *inputFileName=NULL, projectionString[3]={'a','s','\0'};
-    char    orientation[3];
+    char    orientation[8];
     COMPLEX** TwoDFts[6]={NULL, NULL, NULL};
     Boolean frequencyRangeEffects = false;
+
+    sprintf(orientation, "ASL");
 
     paddingFactor=2;    // DEBUG
 
@@ -126,6 +130,10 @@ int main( int argc, char *argv[] )  {
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
                 return Cleanup(inputFileName, TwoDFts, din);
             sprintf(inputFileName,"%s",argv[i]);
+            break;
+
+        case 'l':
+            minLength=atoi(argv[++i]);
             break;
 
         case 'o':
@@ -210,7 +218,7 @@ int main( int argc, char *argv[] )  {
     }
     if (frequencyRangeEffects){
         if ((enErrorNumber=analyzeFrequencyRange(TwoDFts, lNumberOfImages, paddedDimension,
-            searchPath, prefix))!=ERROR_NONE){
+            searchPath, prefix, minLength))!=ERROR_NONE){
             Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
             for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
             free(searchPath);
@@ -325,7 +333,7 @@ ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float f
 }
 
 ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
-    int paddedDimension, char *searchPath, char *prefix){
+    int paddedDimension, char *searchPath, char *prefix, int minLength){
 
     ERROR_NUMBER    enErrorNumber;
 	char    csAnalysisFileName[512];
@@ -333,9 +341,10 @@ ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
 	IntRange irFrequencyRange;
 	FILE    *outputFile;
 	int     maxMin=paddedDimension/4, maxMax=paddedDimension/2-1;
-	int     minRangeLength=8;
+	int     minRangeLength=minLength;
 	// int     minRangeLength=250; // DEBUG
 	float   maxIMSE, meanIMSE;  // Max and mean inverse mean squared error
+	struct rusage r_usage;  // Track memory usage
 
     for (int lPlaneIndex=4; lPlaneIndex<numberOfImages; ++lPlaneIndex){    // Avoid coplanar and self reference
         fprintf(stdout, "Processing image %d\n", lPlaneIndex);
@@ -352,7 +361,9 @@ ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
 
         // Process for each frequency range length
         for (int rangeLength=minRangeLength; rangeLength<maxMax; ++rangeLength){
-            fprintf(stderr, "Processing length %d of %d\n", rangeLength, maxMax);
+            getrusage(RUSAGE_SELF,&r_usage);
+            fprintf(stderr, "Processing length %d of %d. Memory usage: %ld kilobytes\n",
+                rangeLength, maxMax, r_usage.ru_maxrss);
             fprintf(outputFile, "%d", rangeLength);
 
             for (int fMin=0; fMin<=maxMin; ++fMin){
@@ -442,9 +453,11 @@ ERROR_NUMBER getImsePeakAndMean(COMPLEX ***TwoDFts, int dimension, int refIndex,
     *meanIMSE /= lNumTargetSamples*lNumRefSamples;
 
     // Cleanup
-    for (lRefIndex=0; lRefIndex<lNumRefSamples; ++lRefIndex) free(fppRefSamples[lRefIndex]);
+    int numberToFree = lNumRefSamples*4;
+    for (lRefIndex=0; lRefIndex<numberToFree; ++lRefIndex) free(fppRefSamples[lRefIndex]);
     free(fppRefSamples);
-    for (lTargetIndex=0; lTargetIndex<lNumRefSamples; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
+    numberToFree = lNumTargetSamples*4;
+    for (lTargetIndex=0; lTargetIndex<numberToFree; ++lTargetIndex) free(fpTargetSamples[lTargetIndex]);
     free(fpTargetSamples);
 
 	return ERROR_NONE;
