@@ -347,13 +347,24 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 	}
 	size_t nRow = ny*nz;
 
+	// DEBUG
+    FILE *fp;
+    fp = fopen( "/home/laurenpd/distanceField/testData/MMM7Resample/leftRighy.csv" , "w" );
+
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
 		flt * imgRow = (*outImg) + (r * nx);
 		// edt1(imgRow, nx);
 		edt1_local(din, imgRow, nx);
+
+		// DEBUG
+		for (int i=0; i<nx; ++i)
+            fprintf(fp, "%f\t", i, imgRow[i]);
+        fprintf(fp, "\n");
 	}
 
+	fclose(fp);
+/**/
 	//EDT in anterior-posterior direction
 	nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
 	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
@@ -430,7 +441,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 		} //z
 		free (img3D);
 	} //for each volume
-
+/**/
 	return ERROR_NONE;
 }
 
@@ -570,7 +581,8 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 	//forward
 	for (q = 0; q < n; q++ ) {
 		if (df[q] == 0) {
-			prevX = q*xDim;
+			// prevX = q*xDim;
+			prevX = q;
 			prevY = 0;
 		} else
 			df[q] = sqr((q-prevX)/xDim)+(prevY/yDim);
