@@ -887,8 +887,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
 
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
-        minfuncs.modify_path_and_env_if_not_using_cmake(
-        )
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
         # The current python interpreter should now be able to import afnipy
         # without issue (and it should be imported from the mocked abin)
@@ -898,8 +897,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
         # If import afnipy does not fail, an error should be raised
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
-            minfuncs.modify_path_and_env_if_not_using_cmake(
-            )
+            minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
@@ -1487,19 +1485,19 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
 
 def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     # Create a backup of the path to restore it later
-    path_copy = os.environ['PATH']
+    path_copy = os.environ["PATH"]
     # Clear path for simple check
-    os.environ['PATH'] = ''
+    os.environ["PATH"] = ""
     # mock no afnipy
     monkeypatch.setattr(
         afni_test_utils.minimal_funcs_for_run_tests_cli,
         "make_sure_afnipy_not_importable",
-        lambda : True,
+        lambda: True,
     )
     # Make sure we throw an error since no abin is given, no binaries could
     # be on path
     with pytest.raises(EnvironmentError) as e:
-        minfuncs.modify_path_and_env_if_not_using_cmake('')
+        minfuncs.modify_path_and_env_if_not_using_cmake("")
     assert "Cannot find local AFNI binaries. " == str(e.value)
     # Restore path
-    os.environ['PATH'] = path_copy
+    os.environ["PATH"] = path_copy
