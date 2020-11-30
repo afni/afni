@@ -716,7 +716,7 @@ def make_sure_afnipy_not_importable():
     )
 
 
-def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
+def modify_path_and_env_if_not_using_cmake(**args_dict):
     """
     This function does some path/environment modifications to deal with the
     different installation configurations that the tests might be run under.

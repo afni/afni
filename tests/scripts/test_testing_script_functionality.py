@@ -786,14 +786,12 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
         with pytest.raises(EnvironmentError):
             # Run function to check no error is raised without afnipy
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 build_dir="a_directory",
             )
 
         mocked_import_module.side_effect = None
         # should work when afnipy is importable
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             build_dir="a_directory",
         )
 
@@ -839,7 +837,7 @@ def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation
         assert Path(afnipy.__file__).parent.parent.parent == idir
 
         # Run function to check that no error is raised spuriously
-        minfuncs.modify_path_and_env_if_not_using_cmake(os.getcwd())
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_for_default_run(
@@ -890,7 +888,6 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
         )
 
         # The current python interpreter should now be able to import afnipy
@@ -902,7 +899,6 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
             )
 
 
@@ -943,7 +939,6 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             abin=str(mocked_abin),
         )
         # The fake binary should now be able to executed with no error
@@ -960,7 +955,6 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 abin=str(mocked_abin),
             )
 
