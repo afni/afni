@@ -1494,5 +1494,5 @@ def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     # Make sure we throw an error since no abin is given, no binaries could
     # be on path
     with pytest.raises(EnvironmentError) as e:
-        minfuncs.modify_path_and_env_if_not_using_cmake("")
+        minfuncs.modify_path_and_env_if_not_using_cmake()
     assert "Cannot find local AFNI binaries. " == str(e.value)
