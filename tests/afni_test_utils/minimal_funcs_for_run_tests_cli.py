@@ -781,8 +781,11 @@ def modify_path_and_env_if_not_using_cmake(**args_dict):
 
             return
 
-    #  Now just situation 3. and 4 remaining.
+    # Now just situation 3 and 4 remaining.
     make_sure_afnipy_not_importable()
+
+    if not args_dict.get("abin") and not test_bin_path:
+        raise EnvironmentError("Cannot find local AFNI binaries. ")
     abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
 
     # Modify sys.path and os.environ. Makes afnipy importable

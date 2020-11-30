@@ -1483,3 +1483,23 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
     monkeypatch.delenv("NO_CMD_MOD")
     com = afnipy.afni_base.shell_com(cmd)
     assert com.com != com.trimcom
+
+
+def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
+    # Create a backup of the path to restore it later
+    path_copy = os.environ['PATH']
+    # Clear path for simple check
+    os.environ['PATH'] = ''
+    # mock no afnipy
+    monkeypatch.setattr(
+        afni_test_utils.minimal_funcs_for_run_tests_cli,
+        "make_sure_afnipy_not_importable",
+        lambda : True,
+    )
+    # Make sure we throw an error since no abin is given, no binaries could
+    # be on path
+    with pytest.raises(EnvironmentError) as e:
+        minfuncs.modify_path_and_env_if_not_using_cmake('')
+    assert "Cannot find local AFNI binaries. " == str(e.value)
+    # Restore path
+    os.environ['PATH'] = path_copy
