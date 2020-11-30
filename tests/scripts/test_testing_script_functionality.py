@@ -148,13 +148,16 @@ def run_script_and_check_imports(
     ],
 )
 def test_execute_cmd_args(params):
+    tmpdir = Path(tempfile.gettempdir())
+    stdout = tmpdir / "text.txt"
+    stderr = tmpdir / "other_text.txt"
     try:
         proc = tools.__execute_cmd_args(
             params["cmd_args"],
             logging,
-            "text.txt",
-            "other_text.txt",
-            tempfile.gettempdir(),
+            stdout,
+            stderr,
+            tmpdir,
             timeout=params["timeout"],
         )
         timed_out = False
