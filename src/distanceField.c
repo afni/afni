@@ -376,7 +376,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 		//perform EDT for all rows
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * ny);
-			edt_local(1.0/yDim, imgRow, ny);
+			edt_local(yDim, imgRow, ny);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
@@ -414,7 +414,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 		//perform EDT for all "rows"
 		for (int r = 0; r < nRow; r++ ) {
 			flt * imgRow = img3D + (r * nz);
-			edt_local(1.0/zDim, imgRow, nz);
+			edt_local(zDim, imgRow, nz);
 		}
 		//transpose data back
 		vo = v * nvox3D; //volume offset
