@@ -180,10 +180,12 @@ def retro_ts(
         with open(main_info["slice_order"], "r") as f:
             for i in f.readlines():
                 slice_file_list.append(int(i))
-                if len(slice_file_list) != main_info["number_of_slices"]:
-                    print("Could not read enough slice offsets from file")
-                    print("File should have as many offsets as number_of_slices")
-                    quit()
+
+            # Check that slice acquisition times match the number of slices
+            if len(slice_file_list) != main_info["number_of_slices"]:
+                print("Could not read enough slice offsets from file")
+                print("File should have as many offsets as number_of_slices")
+                quit()
             main_info["slice_offset"] = slice_file_list
     if (
         main_info["slice_order"][3] == "-" and slice_file_list == []
