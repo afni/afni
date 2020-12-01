@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Dec , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Tweaked default temp 'junk' filename to avoid low-probability badness ",
+   "New opt '-tmp_name_nice' for, well, read opt name. Improved help, too.\n"
+},
+
 { 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
    "Set some env vars at top of script to turn off compression.",
    "Was causing odd error in one case.\n"
