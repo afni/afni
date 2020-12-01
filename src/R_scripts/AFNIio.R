@@ -2940,7 +2940,6 @@ read.c.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
    rs2$head <- NULL
    ddb <- dset.attr(hatr, "dim")
    dim(rs2$brk) <- ddb
-   
    rs2[['format']] <- 1
    rs2[['delta']] <- dset.attr(hatr, "delta")
    rs2[['origin']] <- dset.attr(hatr, "origin")

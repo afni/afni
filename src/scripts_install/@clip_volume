@@ -51,6 +51,8 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "                      slices with a few non zero voxels might also get"
    echo "                      chopped off by 3dAutobox"
    echo "      -crop : Same as -crop_greedy, kept for backward compatibility"
+   echo "      -crop_npad NPAD: set 3dAutobox's -npad option to NPAD"
+   echo "                       Option is meaningless without -crop options"
    echo "      -prefix PRFX  : Use PRFX for output prefix. Default is the "
    echo "                      input prefix with _clp suffixed to it."
    echo "      -followers DSET1 DSET2 ...: Apply the same treatment to the"
@@ -78,8 +80,12 @@ PARSE:
    set cropopt = ""
    set anat_in = ''
    set prefix = ''
+   set tstamp4sort = `date '+%Y%m%d_%H%M'`
+   set unqid = `3dnewid -fun`
+   set uoutsuf = $tstamp4sort.$unqid
    set sgn = '*'
    set verb = 0
+   set npadopt = ()
    set neq = 0
    set binarize = 0
    while ($cnt <= $Narg)
@@ -228,12 +234,22 @@ PARSE:
             set donext = 0	
          endif	
       endif
-      
+      if ($donext && "$argv[$cnt]" == "-crop_npad") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need value after -crop_npad"
+            goto END
+         else
+            @ cnt ++
+            set npadopt = ( -npad $argv[$cnt] )
+            set donext = 0 
+         endif 
+      endif
       if ($donext && "$argv[$cnt]" == "-crop_allzero") then
          set crop = 1;    set cropopt = "-noclust"		
          set donext = 0		
       endif
-
+      
       if ($donext && ( "$argv[$cnt]" == "-crop_greedy"  || \
                        "$argv[$cnt]" == "-crop" ) ) then
          set crop = 1;    set cropopt = ""		
@@ -321,17 +337,17 @@ DOIT:
    if ($crop == 1) then
       if ($verb) then
          set noglob
-   echo "3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix ___tmp_clp"
+   echo "3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix /tmp/___tmp_clp_$uoutsuf"
          unset noglob
       endif
-      3dcalc -a "$anat_in" -overwrite -expr "$val * step($eq)" -rai -prefix ___tmp_clp
+      3dcalc -a "$anat_in" -overwrite -expr "$val * step($eq)" -rai -prefix /tmp/___tmp_clp_$uoutsuf
       if ($verb) then
          set noglob
-   echo "3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]"
+   echo "3dAutobox $cropopt $npadopt -prefix $prefix -input /tmp/___tmp_clp_$uoutsuf$in_name[3]"
          unset noglob
       endif
-      3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]
-      rm -f ___tmp_clp$in_name[3].???? >& /dev/null
+      3dAutobox $cropopt $npadopt -prefix $prefix -input /tmp/___tmp_clp_$uoutsuf$in_name[3]
+      rm -f /tmp/___tmp_clp_$uoutsuf$in_name[3].???? >& /dev/null
       if ($#foll > 0) then
          set master = $prefix$in_name[3]
          foreach dd ($foll)
