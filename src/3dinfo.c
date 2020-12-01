@@ -926,7 +926,7 @@ int main( int argc , char *argv[] )
                strcat(perm_pstr, ostr);
                strcat(perm_pstr, " to ");
                strcat(perm_pstr, ochar_perm);
-               DUMP_MAT33(perm_pstr, P33);
+               DUMP_MAT33b(perm_pstr, P33);
             }
             break;
          case PREFIX:
