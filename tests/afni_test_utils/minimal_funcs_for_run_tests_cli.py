@@ -26,7 +26,7 @@ VALID_VERBOSITY_MODES = [
 ]
 
 
-def get_parser(tests_dir=None,return_subparsers=False):
+def get_parser(tests_dir=None, return_subparsers=False):
     parser = argparse.ArgumentParser(
         description="""
         run_afni_tests.py is a wrapper script to help run tests for the AFNI

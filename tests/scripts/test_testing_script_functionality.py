@@ -958,7 +958,7 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
             )
 
 
-def test_examples_parse_correctly(monkeypatch):
+def test_examples_parse_correctly(monkeypatch, mocked_script):
     # dir_path needs to be mocked to prevent errors being raise for
     # non-existent paths
     monkeypatch.setattr(
@@ -967,18 +967,42 @@ def test_examples_parse_correctly(monkeypatch):
         lambda x: str(Path(x).expanduser()),
     )
     stdout_ = sys.stdout  # Keep track of the previous value.
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    # the following needs to exist for one example
+    scripts_dir = mocked_script.parent / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "test_ptaylor.py").touch()
+
     for name, example in run_tests_examples.examples.items():
         # Generate the 'sys.argv' for the example
         arg_list = shlex.split(example.splitlines()[-1])[1:]
-        # Execute the script so that it can be run.
-        res = runpy.run_path(str(SCRIPT))
+        # Write run_afni_tests.py for this example
+        script_name = name.replace(" ", "_") + ".py"
+        example_script = mocked_script.with_name(f"{script_name}")
+        example_script.write_text(SCRIPT.read_text())
 
-        res["sys"].argv = [SCRIPT.name, *arg_list]
-        res["main"].__globals__["run_tests"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__["run_containerized"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__[
-            "minfuncs"
-        ].modify_path_and_env_if_not_using_cmake = lambda *args, **kwargs: None
+        # one should mock things where they are used. Here
+        # there is some hokey stuff going on with imports
+        # though, so mock the system versions.
+        monkeypatch.setattr(sys, "argv", [example_script.name, *arg_list])
+        monkeypatch.setattr(
+            afni_test_utils.run_tests_func, "run_tests", Mock(side_effect=SystemExit(0))
+        )
+        monkeypatch.setattr(
+            afni_test_utils.container_execution,
+            "run_containerized",
+            Mock(side_effect=SystemExit(0)),
+        )
+
+        monkeypatch.setattr(
+            afni_test_utils.minimal_funcs_for_run_tests_cli,
+            "modify_path_and_env_if_not_using_cmake",
+            lambda *args, **kwargs: None,
+        )
+
+        # Execute the script so that it can be run.
+        res = runpy.run_path(str(example_script))
         with pytest.raises(SystemExit) as err:
             # Run main function while redirecting to /dev/null
             sys.stdout = open(os.devnull, "w")
