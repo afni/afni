@@ -540,6 +540,7 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
     run_afni_test.py to a test specific path that can be imported
     from/executed for each test parameter in an isolated manner.
     """
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     monkeypatch.setattr(afni_test_utils.run_tests_func, "run_tests", RETCODE_0)
     # env check not needed
     monkeypatch.setattr(
@@ -769,7 +770,7 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
     interpreter is raised? This would solve issues with the wrong environment
     being activated.
     """
-
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     # create a mock import to control whether afnipy is "imported correctly" or not
     mocked_import = Mock()
     mocked_import.__file__ = "mocked_path_for_imported_module"
