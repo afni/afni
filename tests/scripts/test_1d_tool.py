@@ -1,5 +1,5 @@
 import pytest
-from .utils import tools
+from afni_test_utils import tools
 
 # data_paths = {"bvec": "AFNI_demos/FATCAT_DEMO/bvec"}
 

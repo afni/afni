@@ -1,10 +1,8 @@
 #!/bin/tcsh
 
+set echo
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
-
-# .... IN PROGRESS WRITING HELP ....
-
-#### ---> get names from files to attach?
 
 #set version   = "1.0";  set rev_dat   = "Oct 08, 2017"
 #  + inception
@@ -36,6 +34,12 @@ set version   = "1.4";   set rev_dat   = "Feb 12, 2019"
 set this_prog = "fat_proc_connec_vis"
 set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
+
+# [PT: Nov 12, 2020] add in, because compressor can cause weirdness
+# with overwriting at times
+setenv AFNI_ENVIRON_WARNINGS NO
+setenv AFNI_AUTOGZIP         NO
+setenv AFNI_COMPRESSOR       NONE
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -90,7 +94,7 @@ while ( $ac <= $#argv )
     endif
 
     # --------------- input dset(s) ----------------
-
+ 
     # input volume 'source', likely to have opposite contrast to the
     # b0/T2w to which we are matching.
     if ( "$argv[$ac]" == "-in_rois" ) then
@@ -121,7 +125,7 @@ while ( $ac <= $#argv )
                 echo "++ User has listed $#fNN followers_NN dsets"
             endif
         endif
-    echo "TEMP: $fNN"
+    #echo "TEMP: $fNN"
 
     # --------------------------------------------------------------
 
@@ -198,7 +202,7 @@ endif
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make '$odir' now."
-    mkdir "$odir"
+    \mkdir -p "$odir"
 endif
 
 echo ""
@@ -207,10 +211,16 @@ echo "     $odir/$opref"
 echo ""
 
 # make the working directory
-set wdir  = "$odir/__WDIR_${tpname}_${opref}"
+
+if ( "${wdir}" == "" ) then
+    set wdir  = "$odir/__WDIR_${tpname}_${opref}"
+else
+    set wdir  = ${odir}/${wdir}
+endif
 if ( ! -e $wdir ) then
-    echo "++ Making working directory: $wdir"
-    mkdir $wdir
+    echo "++ Making working directory:"
+    echo "   $wdir"
+    \mkdir -p $wdir
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "     $wdir"
@@ -352,6 +362,7 @@ set fout = $wdir/vv_${iidx}_zero.nii
     -a $ilist[1]     \
     -expr '0*a'      \
     -prefix $fout
+
 
 set fin  = $fout
 set fout = $wdir/vv_${iidx}_tcat.nii

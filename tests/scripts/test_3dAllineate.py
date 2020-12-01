@@ -1,6 +1,6 @@
-from .utils.misc import is_omp
 import pytest
-from .utils import tools
+from afni_test_utils.misc import is_omp
+from afni_test_utils import tools
 
 # check for omp compilation
 OMP = is_omp("3dAllineate")

@@ -1,9 +1,15 @@
-from .utils import tools
+import pytest
+import sys
+from afni_test_utils import tools
 
 # Define Data
 data_paths = {"mask": "mini_data/mask_3mm.nii.gz", "epi": "mini_data/aligned.nii.gz"}
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason=("3dmaskave removes all voxels on MacOS for some reason."),
+)
 def test_3dmaskave_basic(data):
 
     outfile_prefix = data.outdir / ("anat_roi_resam.nii.gz")

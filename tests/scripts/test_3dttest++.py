@@ -1,6 +1,6 @@
 from pathlib import Path
 import shutil
-from .utils import tools
+from afni_test_utils import tools
 import pytest
 
 # pre-defs for data_paths

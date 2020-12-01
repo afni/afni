@@ -8,7 +8,7 @@ target_include_directories(
 set_target_properties(segtools PROPERTIES PUBLIC_HEADER "thd_segtools_fNM.h;cluster_floatNOMASK.h")
 target_link_libraries(segtools PRIVATE AFNI::mri GSL::gsl)
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   # cluster_floatNOMASK.o
   # add_afni_executable(3dAclustering 3dAclustering.c)
   # add_afni_executable(3dfit_onesign 3dfit_onesign.c)

@@ -69,6 +69,71 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
+   "Set some env vars at top of script to turn off compression.",
+   "Was causing odd error in one case.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_read_dp_align.py" , MINOR , TYPE_NEW_PROG,
+   "Script to read TORTOISE-DIFFPREP *_transformations.txt files.",
+   "Puts them into usable order for calc'ing enorm and plotting mot/pars.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_plot_dp_align" , MINOR , TYPE_NEW_PROG,
+   "Script (tcsh) to translate TORTOISE-DIFFPREP *_transformations.txt files",
+   "Wraps new adjunct_tort_read_dp_align.py and 1dplot* to make plots.\n"
+},
+
+{ 2, Nov , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Can now output SVG files, and can use newline chars in labels.",
+   "Had to deal with newline escape seq internally.\n"
+},
+
+{ 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of source and base dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
+{ 28, Oct , 2020 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of T1w and T2w dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
+{ 19, Oct , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Added new QC image: initial source-base alignment (@djunct_overlap_check)",
+   "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"
+},
+
+{ 19, Oct , 2020 , PT , "@djunct_overlap_check" , MAJOR , TYPE_NEW_PROG,
+   "Make of overlap of 2 datasets (esp for pre-align check, AW or SSW).",
+   "Will make both non-obl and 3dWarp-deob'ed images of olap (and report).\n"
+},
+
+{ 19, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Added new QC image to QC/ dir: initial source-base alignment.",
+   "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"
+},
+
+{ 19, Oct , 2020 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase II and III.  Thanks again, B Jung!",
+   "New intermediate dir, animal_outs update, helpfile rewritten.\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Simplifying output dir: Phase I.  Thanks, Ben Jung, for good suggestions!",
+   "Put report*1D in QC/, and do*.tcsh and surfaces_* in new surfaces/ dir.\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Add in status checks after many afni progs, to exit at/near first failure.",
+   "Should be no change in output for users (in successful runs).\n"
+},
+
+{ 16, Oct , 2020 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Now, first cp+resample src to RAI; else, shft is bad for non-xyz orients.",
+   "Output warps can still apply to original orient dset fine.\n"
+},
+
 { 24, Sep , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Put in status checks through script to exit with error if any step fails.",
    "Should provide nicer behavior if something gang agley.\n"

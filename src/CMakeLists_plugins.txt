@@ -56,7 +56,7 @@ foreach(
   plug_zeropad
 )
   # Filter plugins if requested
-  if(NOT (COMP_ADD_ALL_PLUGINS))
+  if(NOT (COMP_ALL_PLUGINS))
     if(NOT ${target} IN_LIST CORE_PLUGINS)
       continue()
     endif()
@@ -95,7 +95,7 @@ foreach(target plug_scatplot plug_nlfit)
     )
 endforeach(target)
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   foreach(target afni_open aiv Xphace)
     add_afni_executable(${target} ${target}.c)
     target_link_libraries(${target} 

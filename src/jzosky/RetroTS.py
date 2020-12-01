@@ -172,18 +172,36 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             main_info["slice_offset"][i] = tt
             tt += dtt
-    elif main_info["slice_order"] in ["Custom", "custom"]:  # Does nothing, unsure of it's purpose
-        pass
+    elif main_info["slice_order"] in ["Custom", "custom"]:
+        # if slice_order is custom, parse from slice_offset string
+        #                                      30 Nov 2020 [rickr]
+        if type(slice_offset) == str:
+           try:
+              slice_offset = [float(v) for v in slice_offset.split()]
+           except:
+              print("** failed to apply custom slice timing from: %s" \
+                    % slice_offset)
+              return
+           if len(main_info["slice_offset"]) == main_info["number_of_slices"]:
+              print("applying custom slice timing, min = %g, max = %g" \
+                    % (min(slice_offset), max(slice_offset)))
+              main_info["slice_offset"] = slice_offset
+           else:
+              print("** error: slice_offset len = %d, but %d slices" \
+                 % (len(main_info["slice_offset"]), main_info["number_of_slices"]))
+              return
 
     else:  # Open external file specified in argument line,
         # fill SliceFileList with values, then load into main_info['slice_offset']
         with open(main_info["slice_order"], "r") as f:
             for i in f.readlines():
                 slice_file_list.append(int(i))
-                if len(slice_file_list) != main_info["number_of_slices"]:
-                    print("Could not read enough slice offsets from file")
-                    print("File should have as many offsets as number_of_slices")
-                    quit()
+
+            # Check that slice acquisition times match the number of slices
+            if len(slice_file_list) != main_info["number_of_slices"]:
+                print("Could not read enough slice offsets from file")
+                print("File should have as many offsets as number_of_slices")
+                quit()
             main_info["slice_offset"] = slice_file_list
     if (
         main_info["slice_order"][3] == "-" and slice_file_list == []

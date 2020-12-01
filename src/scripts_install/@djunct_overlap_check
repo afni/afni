@@ -1,0 +1,486 @@
+#!/bin/csh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.1";  set rev_dat   = "Oct 19"
+# [PT] start of this program in program form.  Programmatically speaking.
+#
+set version   = "0.2";  set rev_dat   = "Oct 19"
+# [PT] include deobliqued version
+#
+# ----------------------------------------------------------------
+
+set this_prog = "@djunct_overlap_check"
+set tpname    = "${this_prog:gas/@djunct_//}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set ulay    = ""
+set olay    = ""
+
+set odir           = "."
+set opref          = "IMG_${tpname}"
+
+set pppp           = "`3dnewid -fun11`"
+set wdir_name      = "__workdir_olap_${pppp}"
+set tpref          = "olapch"
+set olayE          = ${tpref}_olayE.nii.gz
+
+set opacity        = 4
+set Nx             = 1                   # num of mont wins, b/c Ny=1
+set Ny             = 1                   
+set mgap           = 1                   # gapsize (in px) bt montage slices
+set mcolor         = 'black'             # color of montage gap
+set cbar           = "Reds_and_Blues"    # default colorbar; can adjust
+set pbar_pos       = "-pbar_posonly"
+set zerocolor      = 'black'
+
+set urange_meth    = "-ulay_range"
+set umin           = "0%"
+set umax           = "98%"
+
+set refbox_add     = ( "-pass" "-pass" )
+
+set DO_CLEAN       = 1                    # default: do remove
+set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
+
+set user_coors     = "-set_dicom_xyz 0 0 0"
+set label_mode     = 1
+
+set DO_USE_REFBOX    = 0
+set ulay_interp      = "" 
+
+set DO_MASK_EDGES    = 0                 # this now OFF by def
+
+set Nx_cat         = 3                   # for 2dcat
+set Ny_cat         = 1                   
+
+set HAVE_OBL       = 0
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay = "$argv[$ac]"
+
+    #  ---------- opts ---------------
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    # [PT: Oct 18, 2018] can get focus box, still centered on FOV
+    # center
+    else if ( "$argv[$ac]" == "-box_focus_slices" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set refbox_add[1] = "-box_focus_slices"
+        set refbox_add[2] = "$argv[$ac]"
+        set DO_USE_REFBOX = 1
+
+    # [PT: Jan 30, 2019] extra montage feature: gap
+    else if ( "$argv[$ac]" == "-montgap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mgap = "$argv[$ac]"
+
+    # [PT: Jan 30, 2019] extra montage feature: gap color
+    else if ( "$argv[$ac]" == "-montcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+
+    # [PT: May 26, 2020] can use this alternate ulay range method for
+    # @chauffeur_afni
+    else if ( "$argv[$ac]" == "-ulay_range_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set urange_meth = "-ulay_range_nz"
+
+    # [PT: Dec 30, 2019] extra montage feature: cbar to use
+    else if ( "$argv[$ac]" == "-cbar" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cbar = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-zerocolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set zerocolor = "$argv[$ac]"
+
+    # [PT: Dec 30, 2019] extra montage feature: cbar to use
+    else if ( "$argv[$ac]" == "-pbar_posonly_off" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pbar_pos = ""
+
+    # [PT: Feb 19, 2020] extra montage feature: nslices in x 
+    else if ( "$argv[$ac]" == "-montx" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Nx = "$argv[$ac]"
+
+    # [PT: Feb 19, 2020] extra montage feature: nslices in x 
+    else if ( "$argv[$ac]" == "-monty" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Ny = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-opacity" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opacity = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-label_mode" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set label_mode = "$argv[$ac]"
+
+    # [PT: May 26, 2020] 
+    else if ( "$argv[$ac]" == "-mask_olay_edges" ) then
+        set DO_MASK_EDGES = 1
+
+    # [PT: Dec 30, 2019] can place coord loc
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_dicom_xyz "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_dicom_xyz_off" ) then
+        set user_coors = "-pass"
+
+    # for the 2dcat output
+    else if ( "$argv[$ac]" == "-montx_cat" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Nx_cat = "$argv[$ac]"
+
+    # for the 2dcat output
+    else if ( "$argv[$ac]" == "-monty_cat" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Ny_cat = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        set allclean = "-pass"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Prepare for running ${this_prog} (ver = ${version})"
+
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: missing ulay file! Use '-ulay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${olay}" == "" ) then
+    echo "** ERROR: missing olay file! Use '-olay ..'"
+    goto BAD_EXIT
+endif
+
+# ===================== output dir + wdir =======================
+ 
+# check output directory, use input one if nothing given
+
+\mkdir -p ${odir}
+
+# place wdir in the odir
+set wdir = "${odir}/${wdir_name}"
+
+\mkdir -p ${wdir}
+
+# =========================== Actual Plots ==============================
+
+# cp relevant dsets to ${wdir}, and do most of work there
+
+# preliminary: now that we have a workdir, need to copy any refbox
+# dset there
+
+if ( ${DO_USE_REFBOX} ) then
+    echo "++ Copy refbox (${refbox_add[2]}) to workdir"
+    3dcalc                                  \
+        -a       "${refbox_add[2]}"         \
+        -expr    'a'                        \
+        -prefix  ${wdir}/REFBOX.nii
+    # ... and this will become our new refbox dset name
+    set refbox_add[2] = REFBOX.nii
+endif
+
+set idx  = 0
+
+# copy ulay; from startdir
+set uin  = "${ulay}"
+set uout = "${tpref}_${idx}_cp_ulay.nii"
+3dcalc                                      \
+    -a      "${uin}"                        \
+    -expr   'a'                             \
+    -prefix "${wdir}/${uout}"
+@ idx += 1
+
+# process the olay: just copy
+echo "++ Just copy olay, bc ulay will get regridded"
+set fin  = "${olay}"
+set fout = "${tpref}_${idx}_cp_olay.nii"
+3dcalc                                      \
+    -a      "${fin}"                        \
+    -expr   'a'                             \
+    -prefix "${wdir}/${fout}"
+@ idx += 1
+
+# At this point:
+#   olay = ${wdir}/${fout}
+#   ulay = ${wdir}/${uout}
+
+cd ${wdir}  # jump to workdir
+
+# need to make sure the space is the same, to be able to overlay
+3drefit -space `3dinfo -space "${fout}"` "${uout}"
+
+# take image, from the workdir
+@chauffeur_afni                             \
+    -ulay  "${uout}"                        \
+    "${refbox_add[1]}"  "$refbox_add[2]"    \
+    -olay  "${fout}"                        \
+    "${urange_meth}" "${umin}" "${umax}"    \
+    -func_range_perc_nz 98                  \
+    -cbar "${cbar}"   ${pbar_pos}           \
+    -set_subbricks 0 0 0                    \
+    -olay_alpha No                          \
+    -olay_boxed No                          \
+    -opacity ${opacity}                     \
+    -zerocolor "${zerocolor}"               \
+    -prefix   "img00"                       \
+    -montx $Nx -monty ${Ny}                 \
+    -montgap $mgap -montcolor $mcolor       \
+    -save_ftype JPEG                        \
+    -set_xhairs OFF                         \
+    -label_mode ${label_mode} -label_size 3 \
+    $allclean                               \
+    ${user_coors}
+
+# ... and the concatenated version to output
+2dcat                                  \
+    -gap 5                             \
+    -gap_col 128 128 128               \
+    -nx ${Nx_cat} -ny ${Ny_cat}        \
+    -prefix "../${opref}.jpg"          \
+    img00.*.jpg
+
+set obl_ulay = `3dinfo -is_oblique -obliquity "${uout}" `
+set obl_olay = `3dinfo -is_oblique -obliquity "${fout}" `
+
+if ( ${obl_ulay[1]} || ${obl_olay[1]} ) then
+
+    echo "++ And as a bonus, we have datasets with obliquity!"
+    echo "   We will make an image of them with '3dWarp -deobliqu ..'"
+    echo "   applied to each"
+
+    @chauffeur_afni                             \
+        -obliquify  ALL                         \
+        -ulay  "${uout}"                        \
+        "${refbox_add[1]}"  "$refbox_add[2]"    \
+        -olay  "${fout}"                        \
+        "${urange_meth}" "${umin}" "${umax}"    \
+        -func_range_perc_nz 98                  \
+        -cbar "${cbar}"   ${pbar_pos}           \
+        -set_subbricks 0 0 0                    \
+        -olay_alpha No                          \
+        -olay_boxed No                          \
+        -opacity ${opacity}                     \
+        -zerocolor "${zerocolor}"               \
+        -prefix   "img01_DEOB"                  \
+        -montx $Nx -monty ${Ny}                 \
+        -montgap $mgap -montcolor $mcolor       \
+        -save_ftype JPEG                        \
+        -set_xhairs OFF                         \
+        -label_mode ${label_mode} -label_size 3 \
+        $allclean                               \
+        ${user_coors}
+
+    # ... and the concatenated version to output
+    2dcat                                  \
+        -gap 5                             \
+        -gap_col 128 128 128               \
+        -nx ${Nx_cat} -ny ${Ny_cat}        \
+        -prefix "../${opref}_DEOB.jpg"     \
+        img01_DEOB.*.jpg
+
+    # make a text file for reporting, and clear away any that might be
+    # there already (shouldn't be one, though)
+    set oscript = "../${opref}_DEOB.txt"
+    printf "" >  ${oscript}
+
+    # report on the ulay obliquity 
+    echo "# ulay         = ${ulay}"        >>  ${oscript}
+    echo "# ulay_is_obl  = ${obl_ulay[1]}" >>  ${oscript}
+    echo "# ulay_obl_ang = ${obl_ulay[2]}" >>  ${oscript}
+    3dWarp                                 \
+        -deoblique                         \
+        -disp_obl_xform_only               \
+        "${uout}"                          \
+        >>  ${oscript}
+
+    echo "# " >>  ${oscript}
+
+    # report on the olay obliquity
+    echo "# olay         = ${olay}"        >>  ${oscript}
+    echo "# olay_is_obl  = ${obl_ulay[1]}" >>  ${oscript}
+    echo "# olay_obl_ang = ${obl_ulay[2]}" >>  ${oscript}
+    3dWarp                                 \
+        -deoblique                         \
+        -disp_obl_xform_only               \
+        "${fout}"                          \
+        >>  ${oscript}
+
+endif
+
+# ---------------------------------------------------------------------
+
+if ( $DO_CLEAN == 1 ) then
+    echo "\n+* Removing temporary workdir '${wdir}*'\n"
+    # in working directory at present, so just go up and remove it
+    cd ..
+    \rm -rf ${wdir_name}
+else
+    echo "\n+* NOT removing temporary files '${wdir}*'\n"
+endif
+
+cd ${here}
+
+echo ""
+echo "++ DONE! Image output:"
+echo "       ${odir}/${opref}"
+echo ""
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+More helpful helpfile description coming (some day...)
+
+This is just a helper script for other things.
+
+written by PA Taylor, modelled heavily on RW Cox's '@snapshot_volreg'
+script
+
+# --------------------------------------------------------------------
+
+COMMAND OPTIONS ~1~
+
+-hview
+-help
+-ver
+-ulay              ULAY
+-olay              OLAY
+-prefix            PREFIX
+-box_focus_slices  DSET_BFS
+-montgap           MG
+-montcolor         MC
+-cbar              CBAR
+-opacity           OPA
+-zerocolor         ZC
+-set_dicom_xyz     XX YY ZZ
+-ulay_range        umin umax
+-ulay_range_nz     umin umax
+-montx             MX
+-monty             MY
+-montx_cat         MX2
+-monty_cat         MY2
+-label_mode        LM
+-pbar_posonly_off
+-mask_olay_edges
+-set_dicom_xyz_off
+-no_clean
+
+NOTES TO SELF ~1~
+
+This is mostly useful if the olay has no skull and the ulay has a
+skull, in terms of being able to see overlap well.
+
+If using -box_focus_slices, don't use the AMASK_FOCUS_OLAY keyword,
+but instead repeat the name of the olay explicitly.  This is because
+this program creates an edgified version of the olay, which gets
+passed into @chauffeur_afni, and then using the AMASK* functionality
+would try to 'automask' that dset, typically leaves no voxels and
+leads to an error.  Repeating the name of the input olay leads to
+correct behavior.  (Ask me how I discovered *this* tidbit of
+knowledge?)
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

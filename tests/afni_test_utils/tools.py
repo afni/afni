@@ -1,34 +1,73 @@
-import filecmp
+from afni_test_utils import data_management as dm
+from asyncio.subprocess import PIPE
+from numpy.testing import assert_allclose  # type: ignore
 from pathlib import Path
-import nibabel as nib  # type: ignore
-import difflib
-import subprocess
-import shutil
-import sys
-import numpy as np
-import socket
-import getpass
-import json
+from typing import Dict, List, Any, Union
+from xvfbwrapper import Xvfb
+import asyncio
 import attr
-
-try:
-    import misc
-except ImportError:
-    from . import misc
-
-
-import tempfile
+from collections import defaultdict
+import datalad.api as datalad
+import datetime as dt
+import difflib
+import filecmp
+import filelock
+import functools
+import getpass
+import importlib
 import itertools as IT
+import json
+import logging
+import nibabel as nib  # type: ignore
+import numpy as np
 import os
 import pytest
-import datalad.api as datalad
-
-from numpy.testing import assert_allclose  # type: ignore
-
-from typing import Dict, List, Any, Union
 import re
+import shlex
+import shutil
+import socket
 import stat
-import datetime as dt
+import subprocess
+import sys
+import tempfile
+
+try:
+    LAD = importlib.import_module("afnipy.lib_afni1D")
+    AFNI_1D_SUPPORT = True
+except ImportError:
+    print(
+        "Import from afnipy failed. OutputDiffer class will not provide "
+        "support for comparing afni's 1d files "
+    )
+    AFNI_1D_SUPPORT = False
+
+
+DISPLAY_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_display.lock"
+DISPLAY = filelock.FileLock(DISPLAY_LOCK_PATH)
+
+
+def logger_config(logger, file=None, stream_log_level="WARNING", log_file_level=None):
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(getattr(logging, stream_log_level))
+
+    # Create formatters and add it to handlers
+    c_format = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+    c_handler.setFormatter(c_format)
+    logger.addHandler(c_handler)
+
+    if log_file_level:
+        if not file:
+            file = "log.txt"
+        f_handler = logging.FileHandler(file)
+        f_handler.setLevel(getattr(logging, log_file_level))
+        f_format = logging.Formatter(
+            "%(levelname)s - %(name)s - %(asctime)s :\n %(message)s"
+        )
+        f_handler.setFormatter(f_format)
+        logger.addHandler(f_handler)
+
+    return logger
 
 
 def get_output_name():
@@ -38,22 +77,26 @@ def get_output_name():
 
 def get_command_info(outdir):
     cmd_log = next((outdir / "captured_output").glob("*_cmd.log"))
-    return json.loads(cmd_log.read_text())
+    cmd_info = json.loads(cmd_log.read_text())
+    try:
+        os.path.relpath(cmd_info["outdir"], cmd_info["tests_data_dir"])
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... this is not true for a previously saved log: {cmd_log}"
+        )
 
-
-def convert_to_sample_dir_path(output_dir):
-    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
-    return sampdir
+    return cmd_info
 
 
 def get_lines(filename, ignore_patterns):
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         lines = [line.rstrip("\n \\") for line in f.readlines()]
         lines = [
             line.strip()
             for line in lines
             if not any(pat in line for pat in ignore_patterns)
-            and not line.replace(" ", "") is ""
+            and not line.replace(" ", "") == ""
         ]
         return lines
 
@@ -136,13 +179,23 @@ def update_sample_output(
     file_list=None,
     files_with_diff=None,
 ):
-
     # Get the directory to be used for the sample output
     if create_sample_output:
         savedir = data.sampdir
         sync_files = file_list
 
     elif save_sample_output:
+        """
+        This functionality is not fully implemented. For now it is likely best to
+        follow the instructions at https://github.com/afni/afni_ci_test_data. If
+        attempting to use this, one caveat to consider is that the command info log in
+        the captured output directory contains paths that are used to rewrite paths in
+        stdout and stderr logs. This would be difficult to implement cleanly. If a
+        container is always used for storing data there may not be so many issues
+        though. Overall it may not be worth the effort... it depends how often partial
+        data updates are required.
+        """
+        raise NotImplementedError
         savedir = data.comparison_dir
         # Create rsync pattern for all files that need to be synced
         sync_files = files_with_diff
@@ -178,54 +231,7 @@ def update_sample_output(
     proc = subprocess.check_call(cmd, shell=True, cwd=data.rootdir)
 
 
-def run_cmd(
-    data,
-    cmd,
-    add_env_vars={},
-    merge_error_with_output=False,
-    workdir=None,
-    python_interpreter="python3",
-):
-    """Run the provided command and check it's output. In conjunction with the data
-    fixture this function handles the test output logging in a consistent way.
-
-    Args:
-        data : An object created by the data fixture that is used in test
-        functions.
-        cmd (str): A string that requires execution and error checking.
-        add_env_vars (dict):  Variable/value pairs with which to modify the
-        environment for the executed command
-        workdir (pathlib.Path or str): Working directory to execute the
-        command. Should be the root directory for tests (default) unless
-        otherwise required
-        python_interpreter (str): If set to 'python2', the command will be
-        executed using the python 2 interpretter. This only has relevance to
-        commands that use a python executable and it currently only works on
-        Linux. This argument will be removed once all code is ported to python3.
-
-    Returns:
-        subprocess.CompletedProcess: An object that among other useful
-        attributes contains stdout, stderror of the executed command
-    """
-
-    # Set working directory for command execution if not set explicitly
-    if not workdir:
-        workdir = Path.cwd()
-
-    # If requested merge stderr and stdout
-    if merge_error_with_output:
-        error = subprocess.STDOUT
-    else:
-        error = subprocess.PIPE
-
-    # Define log file paths, make the appropriate directories and check that
-    # the log files do not exist, otherwise (using uniquize) append a number:
-    stdout_log = data.logdir / (data.test_name + "_stdout.log")
-    os.makedirs(stdout_log.parent, exist_ok=True)
-    stdout_log = uniquify(stdout_log)
-    stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
-    cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
-
+def get_cmd_env(add_env_vars, python_interpreter):
     # If linux and interpreter is python2 alter env. This is a bit of a hack
     # but will allow python3 to run the test suite while allowing CI to check
     # the output of afni tools when they are run in python2. Test code will
@@ -241,26 +247,18 @@ def run_cmd(
     if "OMP_NUM_THREADS" not in add_env_vars:
         add_env_vars["OMP_NUM_THREADS"] = "1"
 
+    if sys.platform == "darwin":
+        add_env_vars["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
     # Set environment variables for the command execution
+    cmd_environ = os.environ.copy()
     for k, v in add_env_vars.items():
-        os.environ[k] = v
+        cmd_environ[k] = v
+    return cmd_environ
 
-    # Make substitutions in the command string  to remove unnecessary absolute
-    # paths:
-    rel_data_path = os.path.relpath(data.base_outdir, workdir)
-    cmd = cmd.replace(str(data.base_outdir), rel_data_path)
-    cmd = cmd.replace(str(workdir), ".")
 
-    # Print and execute the command and log output
-    print(f"cd {workdir};{cmd}")
-    proc = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=error, cwd=workdir
-    )
-    stdout_log.write_text(proc.stdout.decode("utf-8"))
-    if proc.stderr:
-        err_text = proc.stderr.decode("utf-8")
-        stderr_log.write_text(err_text)
+def log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log):
     # cmd execution report
+    cmd = " ".join(cmd_args)
     hostname = socket.gethostname()
     user = getpass.getuser()
     command_info = {
@@ -271,24 +269,305 @@ def run_cmd(
         "add_env_vars": add_env_vars,
         "rootdir": data.rootdir,
     }
-    command_info.update(attr.asdict(data))
+    write_command_info(cmd_log, {**command_info, **attr.asdict(data)})
 
-    write_command_info(cmd_log, command_info)
+
+def setup_logging(data, logger):
+
+    if logger:
+        pass
+    elif data.logger:
+        logger = data.logger
+    else:
+        logger = logging
+
+    # Set log path
+    stdout_log = data.logdir / (data.test_name + "_stdout.log")
+
+    # Make the appropriate directories and check that
+    # the log files do not exist, otherwise (using uniquize) append a number:
+    os.makedirs(stdout_log.parent, exist_ok=True)
+    stdout_log = uniquify(stdout_log)
+
+    stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
+    cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
+    return logger, cmd_log, stdout_log, stderr_log
+
+
+def pid_exists(pid, check_pgid=False):
+
+    if pid < 0:
+        return False  # NOTE: pid == 0 returns True
+    try:
+        if check_pgid:
+            os.killpg(pid, 0)
+        else:
+            os.kill(pid, 0)
+    except ProcessLookupError:  # errno.ESRCH
+        return False  # No such process
+    except PermissionError:  # errno.EPERM
+        return True  # Operation not permitted (i.e., process exists)
+    else:
+        return True  # no error, we can send a signal to the process
+
+
+def get_output_file_handles(stdout_log, stderr_log, merge_error_with_output):
+    # If requested merge stderr and stdout
+    stdout = open(stdout_log, "wb")
+    if merge_error_with_output:
+        stderr = stdout
+    else:
+        stderr = open(stderr_log, "wb")
+    return stdout, stderr
+
+
+async def watch(stream, logger, output_handle, prefix=""):
+    async for line in stream:
+        logger.debug(f"{prefix}{line.decode('utf-8').strip()}")
+        output_handle.write(line)
+
+
+async def __execute_cmd_args_asynchronous(
+    cmd_args,
+    logger,
+    stdout_log,
+    stderr_log,
+    workdir,
+    merge_error_with_output=True,
+    cmd_environ=None,
+    shell=False,
+    timeout=None,
+    name=None,
+):
+    stdout, stderr = get_output_file_handles(
+        stdout_log,
+        stderr_log,
+        merge_error_with_output,
+    )
+    cmd = " ".join(cmd_args)
+    p = await asyncio.create_subprocess_shell(
+        cmd,
+        env=cmd_environ,
+        stdout=PIPE,
+        stderr=PIPE,
+        cwd=workdir,
+    )
+    done, pending = await asyncio.wait(
+        (
+            watch(p.stdout, logger, stdout),
+            watch(p.stderr, logger, stderr, "E:"),
+        ),
+        timeout=timeout,
+    )
+    if not len(pending) == 0:
+        stdoutdir = "/".join([stdout_log.parent.name, stderr_log.name])
+        raise TimeoutError(f"stdout: {stdoutdir} in {stdout_log.parent.parent}")
+
+
+def __execute_cmd_args(
+    cmd_args,
+    logger,
+    stdout_log,
+    stderr_log,
+    workdir,
+    merge_error_with_output=False,
+    cmd_environ=None,
+    shell=False,
+    timeout=None,
+    name=None,
+):
+    """
+    Synchronous command execution to help with debugging when odd behavior is
+    observed
+    """
+    stdout, stderr = get_output_file_handles(
+        stdout_log, stderr_log, merge_error_with_output
+    )
+    try:
+        proc = subprocess.Popen(
+            cmd_args,
+            stdout=stdout,
+            stderr=stderr,
+            cwd=workdir,
+            env=cmd_environ,
+            shell=False,
+            preexec_fn=os.setsid,
+        )
+        proc.communicate(timeout=timeout)
+    finally:
+        stdout.close()
+        if stderr is not stdout:
+            stderr.close()
+
+    return proc.returncode
+
+
+def run_cmd(
+    data,
+    cmd,
+    logger=None,
+    add_env_vars=None,
+    merge_error_with_output=False,
+    workdir=None,
+    python_interpreter="python3",
+    x_execution_mode=None,
+    timeout=30,
+    shell=False,
+    use_asynchronous_execution=True,
+):
+    """Run the provided command and check it's output. In conjunction with the data
+    fixture this function handles the test output logging in a consistent way.
+    Args:
+        data: An object created by the data fixture that is used in test
+        cmd (str): A string that requires execution and error checking.
+        logger (logging.Logger, optional): Logger object to write to.
+        add_env_vars (dict): Variable/value pairs with which to modify the
+        environment for the executed command.
+        merge_error_with_output (bool, optional): Merge stdout and stderr.
+        workdir (pathlib.Path or str): Working directory to execute the
+        command. Should be the root directory for tests (default) unless
+        otherwise required.
+        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on
+        the physical display ('display') or without any management for
+        graphics events (None)
+        timeout (int, optional): Timeout parameter in seconds.
+        shell (bool, optional): Kwarg subprocess execution.
+        use_asynchronous_execution (bool, optional): Setting this to fault may
+        aid debugging in certain circumstances, otherwise the default of True
+        enables superior execution behavior.
+    """
+
+    # Set working directory for command execution if not set explicitly
+    if not workdir:
+        workdir = Path.cwd()
+    if not add_env_vars:
+        add_env_vars = {}
+
+    logger, cmd_log, stdout_log, stderr_log = setup_logging(data, logger)
+
+    # Make substitutions in the command string  to remove unnecessary absolute
+    # paths:
+    rel_data_path = os.path.relpath(data.base_outdir, workdir)
+    cmd = cmd.replace(str(data.base_outdir), rel_data_path)
+    cmd = cmd.replace(str(workdir), ".")
+
+    # log command that will be used (not quite true for the following cases
+    # though for which a script is used to wrap the command)
+    logger.info(f"cd {workdir};{cmd}")
+
+    # For more tricky commands just write them to a temporary script and
+    # execute that
+    if any(x in cmd for x in ("&", ";", "'", "`", ">")):
+        script = tempfile.mktemp()
+        Path(script).write_text(
+            "#/bin/bash -exu\nset -o pipefail\n" + cmd, encoding="utf-8"
+        )
+        cmd_args = ["bash", script]
+    else:
+        cmd_args = shlex.split(cmd)
+
+    cmd_environ = get_cmd_env(add_env_vars, python_interpreter)
+    log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log)
+
+    # User can switch between synchronous and asynchronous execution.
+    # asynchronous is much more difficult to debug but has lots of desirable
+    # properties... output is in real-time, timeouts can be managed
+    # intelligently, sleeping processes don't cause issues (a proc.wait call
+    # waits forever so a proc.communicate call must be used... which kills
+    # the subprocess upon timeout)
+    if use_asynchronous_execution:
+        exec_func = __execute_cmd_args_asynchronous
+        loop = asyncio.get_event_loop()
+        # asyncio.set_event_loop(loop)
+    else:
+        exec_func = __execute_cmd_args
+        loop = None
+
+    # Using the execution pattern defined above make a partial function call.
+    # Setting this up here removes duplication; depending on the context
+    # (what virtual/physic display is used) the execution is then triggered below.
+    cmd_callable = functools.partial(
+        exec_func,
+        cmd_args,
+        logger,
+        stdout_log,
+        stderr_log,
+        merge_error_with_output=merge_error_with_output,
+        workdir=workdir,
+        shell=shell,
+        timeout=timeout,
+        name=data.test_name,
+    )
+    global DISPLAY
+    if x_execution_mode is None:
+        # Not testing a gui so no need for any display shenanigans
+        logger.debug(f"cmd_args:{cmd_args}")
+        if use_asynchronous_execution:
+            returncode = loop.run_until_complete(cmd_callable(cmd_environ=cmd_environ))
+        else:
+            returncode = cmd_callable(cmd_environ=cmd_environ)
+        # proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+    elif x_execution_mode == "xvfb":
+        try:
+            # set a default display but another will be determined as required
+            xvfb = Xvfb(width=800, height=680, environ=cmd_environ)
+            # some suma stuff requires the glx extension on linux
+            xvfb.extra_xvfb_args += ["+iglx", "+extension", "DOUBLE-BUFFER"]
+            xvfb.start()
+            logger.debug(f"Virtual display being used: {xvfb.new_display}")
+            # Set the display variable for the execution environment and then
+            # restore the original value
+            logger.debug(f"cmd_args:{cmd_args}")
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
+        finally:
+            # Remove the lock file
+            xvfb.stop()
+
+    elif x_execution_mode == "display":
+        # For when one does not wish to use xvfb for gui testing
+        try:
+            DISPLAY.acquire()
+            logger.debug(f"Physical Display: {cmd_environ['DISPLAY']}")
+            logger.debug(f"cmd_args:{cmd_args}")
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
+        finally:
+            DISPLAY.release()
+    else:
+        raise ValueError(f"Unknown display mode {x_execution_mode}")
+
     # Raise error if there was a non-zero exit code.
-    proc.check_returncode()
-    return proc
+    if returncode:
+        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
+
+    return stdout_log, stderr_log
 
 
 def write_command_info(path, cmd_info):
     out_dict = {}
+    try:
+        outdir = cmd_info["outdir"]
+        tests_data_dir = cmd_info["tests_data_dir"]
+        os.path.relpath(outdir, tests_data_dir)
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... {outdir} is not in {tests_data_dir} "
+        )
+
     for k, v in cmd_info.items():
         v = str(v)
         out_dict[k] = v
-    Path(path).write_text(json.dumps(out_dict))
-
-
-def get_workdir(data):
-    cmd_path = next(data.logdir.glob("*cmd.log"))
+    Path(path).write_text(json.dumps(out_dict, indent=0), encoding="utf-8")
 
 
 def get_equivalent_name(data, fname):
@@ -299,6 +578,118 @@ def get_equivalent_name(data, fname):
     if not equivalent_file.exists():
         raise FileNotFoundError
     return equivalent_file
+
+
+def _rewrite_paths_for_lines(txt, tests_data_dir, outdir, wdir, hostname, user):
+    # make paths in the test data directory relative in reference to the outdir.
+    rel_testdata = os.path.relpath(tests_data_dir, outdir)
+    txt = [x.replace(str(tests_data_dir), rel_testdata) for x in txt]
+    # replace output directories so that they look the same
+    fake_outdir = str(Path(rel_testdata) / "sample_test_output")
+    txt = [x.replace(str(outdir), fake_outdir) for x in txt]
+    # do same for relative outdir paths
+    rel_outdir = str(Path(outdir).relative_to(wdir))
+    if rel_outdir != ".":
+        txt = [x.replace(rel_outdir, fake_outdir) for x in txt]
+    # replace user and hostnames:
+    txt = [x.replace(hostname, "hostname") for x in txt]
+    txt = [x.replace(user, "user") for x in txt]
+
+    # make absolute references to workdir relative.
+    txt = [x.replace(wdir, ".") for x in txt]
+    return txt
+
+
+def get_rel_outdir(outdir, rootdirs):
+    for rootdir in rootdirs:
+        try:
+            reldir = Path(outdir).relative_to(rootdir)
+            return reldir
+        except ValueError:
+            continue
+    else:
+        raise ValueError(
+            "Cannot find a relative path for outdir because "
+            "it is not a child of the root directories "
+            f"provided: {rootdirs} "
+        )
+
+
+def rewrite_paths_for_line(txt, rootdirs, outdirs, replacements_dict):
+    """
+    This function attempts to rewrite paths in stdout and stderr logs so that
+    they appear to be the same regardless of context. For any given test if
+    executed with an instance of the OutputDiffer class it will have a
+    directory containing output files and log files in a captured_output
+    subdirectory. The path to this directory is rewritten to be relative to
+    the tests subdirectory of the afni git repository and "normalized" by
+    exchanging timestamped output directory names with a generic path
+    afni_ci_test_data/sample_test_output.
+
+    The tests directory in the AFNI source repository is considered the root
+    directory for the purposes of a stable comparison. Making all paths
+    relative to this is a starting point for removing differences across test
+    suite runs and hosts. The remaining path rewriting is an attempt to
+    "normalize" the paths that are relative to this root directory.
+
+    All input data for tests is contained in the afni_ci_tests_data
+    subdirectory but all other paths can change depending on the situation.
+    The working directory of the command execution is typically the tests
+    directory but can be modified to the output directory to test the tools
+    behavior in different working directories. The output directory for a test
+    run is output_of_tests/output_<timestamp>. The directory
+    containing output/sample data used for comparison might be in a previous
+    output directory, a previous sample output, or in the datalad repo at
+    afni_ci_test_data/sample_test_output.
+    """
+    for outdir, rootdir in zip(outdirs, rootdirs):
+        outdir = Path(outdir)
+        if outdir.is_absolute():
+            outdir = get_rel_outdir(outdir, rootdirs)
+
+        # Make all paths relative to the root directory (tests)
+        txt = txt.replace(f"{rootdir}/", "")
+
+        # change the varying portion of the path with the portion that makes
+        # it look like it is sample output in the tests data directory.
+        outdir_varying = os.path.sep.join(outdir.parts[:2])
+        outdir_normalized_base = f"afni_ci_test_data{os.path.sep}sample_test_output"
+        normalized_outdir = str(outdir).replace(outdir_varying, outdir_normalized_base)
+        txt = txt.replace(str(outdir), normalized_outdir)
+
+    for k, v in replacements_dict.items():
+        if k != "":
+            txt.replace(k, v)
+
+    return txt
+
+
+def get_command_info_dicts(data, create_sample_output):
+    cmd_info = get_command_info(data.outdir)
+    if not create_sample_output:
+        cmd_info_orig = get_command_info(data.comparison_dir)
+        wdir = cmd_info["workdir"]
+        wdir_orig = cmd_info_orig["workdir"]
+        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
+            raise ValueError(
+                "Comparison with previous test output cannot be performed "
+                "if a different working directory was used. "
+            )
+    else:
+        # return an empty string for all values in the dictionary
+        cmd_info_orig = defaultdict(lambda: "")
+    return cmd_info, cmd_info_orig
+
+
+def check_txt_has_no_problem_outdirs(txt, current_outdirs):
+    # filter out empty elements
+    output_dir_strings = set(re.findall("output_of_tests/([^/]*)/", " ".join(txt)))
+    for d in output_dir_strings:
+        if not any(d in outdir for outdir in current_outdirs):
+            raise ValueError(
+                f"{d} was found in stdout or stderr. This should "
+                f"not occur (it is not one of {current_outdirs}) "
+            )
 
 
 def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False):
@@ -323,44 +714,29 @@ def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False)
     Raises:
         ValueError: Description
     """
-    cmd_info = get_command_info(data.outdir)
-    wdir = cmd_info["workdir"]
-    if not create_sample_output:
-        cmd_info_orig = get_command_info(data.comparison_dir)
-        wdir_orig = cmd_info_orig["workdir"]
-        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
-            raise ValueError(
-                "Comparison with previous test output cannot be performed "
-                "if a different working directory was used. "
-            )
+
+    cmd_info, cmd_info_orig = get_command_info_dicts(data, create_sample_output)
 
     outlist = []
     for txt in text_list:
-        # make paths in the test data directory relative in reference to the outdir.
-        rel_testdata = os.path.relpath(data.tests_data_dir, data.outdir)
-        txt = [x.replace(str(data.tests_data_dir), rel_testdata) for x in txt]
-
-        # replace output directories so that they look the same
-        fake_outdir = str(Path(rel_testdata) / "sample_test_output")
-        txt = [x.replace(str(data.outdir), fake_outdir) for x in txt]
-        txt = [x.replace(str(data.outdir.relative_to(wdir)), fake_outdir) for x in txt]
-        # replace user and hostnames:
-        txt = [x.replace(cmd_info["host"], "hostname") for x in txt]
-        txt = [x.replace(cmd_info["user"], "user") for x in txt]
-        # make absolute references to workdir relative.
-        txt = [x.replace(wdir, ".") for x in txt]
-
-        # Do the same for previous files being compared against:
-        if not create_sample_output:
-            rel_orig = str(Path(cmd_info_orig["outdir"]).relative_to(wdir_orig))
-            txt = [x.replace(cmd_info_orig["outdir"], fake_outdir) for x in txt]
-            txt = [x.replace(wdir_orig, ".") for x in txt]
-            txt = [x.replace(rel_orig, fake_outdir) for x in txt]
-            # replace user and hostnames:
-            txt = [x.replace(cmd_info_orig["host"], "hostname") for x in txt]
-            txt = [x.replace(cmd_info_orig["user"], "user") for x in txt]
-
-        outlist.append(txt)
+        check_txt_has_no_problem_outdirs(
+            txt, [cmd_info["outdir"], cmd_info_orig["outdir"]]
+        )
+        out_txt = []
+        for line in txt:
+            modified_line = rewrite_paths_for_line(
+                line,
+                [cmd_info["rootdir"], cmd_info_orig["rootdir"]],
+                [data.outdir, cmd_info_orig["outdir"]],
+                replacements_dict={
+                    cmd_info["host"]: "hostname",
+                    cmd_info_orig["host"]: "hostname",
+                    cmd_info["user"]: "username",
+                    cmd_info_orig["user"]: "username",
+                },
+            )
+            out_txt.append(modified_line)
+        outlist.append(out_txt)
 
     return outlist
 
@@ -425,17 +801,33 @@ class OutputDiffer:
         kwargs_text_files: Dict = None,
         kwargs_scans: Dict = None,
         kwargs_byte: Dict = None,
+        kwargs_for_run: Dict = None,
         create_sample_output: bool = False,
         save_sample_output: bool = False,
+        skip_output_diff: bool = False,
         file_list: List = None,
+        logger=None,
     ):
         self._data = data
+
+        # use a logger: defined by user, conftest.py, or default root logger
+        self.logger = logger or getattr(data, "logger", None) or logging
 
         # Tune command execution
         self.cmd = cmd
         self.add_env_vars = add_env_vars or {}
         self.merge_error_with_output = merge_error_with_output
         self.workdir = workdir
+        try:
+            # If this raises an error then the workdir is outside the tests
+            # subdirectory which is not supported
+            if workdir is not None:
+                Path(workdir).relative_to(data.tests_data_dir)
+        except ValueError:
+            raise ValueError(
+                f"The workdir ({workdir}) for a test must be within {data.tests_data_dir}."
+            )
+
         self.python_interpreter = python_interpreter
         self.executed = False
 
@@ -446,7 +838,7 @@ class OutputDiffer:
         self.require_sample_output = (
             self.create_sample_output or self.save_sample_output
         )
-        self._ignore_file_patterns = ignore_file_patterns or ["_stdout"]
+        self._ignore_file_patterns = ignore_file_patterns or []
         if isinstance(ignore_file_patterns, str):
             raise TypeError("ignore_file_patterns should not be type 'str'")
         self._comparison_dir = data.comparison_dir
@@ -456,21 +848,41 @@ class OutputDiffer:
         self._kwargs_text_files = kwargs_text_files or {}
         self._kwargs_scans = kwargs_scans or {"header_kwargs": {}, "data_kwargs": {}}
         self._kwargs_byte = kwargs_byte or {}
+        self._kwargs_for_run = kwargs_for_run or {}
+        self.skip_output_diff = skip_output_diff
         # If empty this is overwritten when the command is executed
         self.file_list = file_list or []
         # If saving output data as future comparison this is modified:
         self.files_with_diff = {}
 
-    def run(self):
-        proc = self.run_cmd()
+    def run(self, **kwargs):
+        """
+        method to wrap run_cmd. Keyword arguments can be passed to run_cmd by
+        defining them in the kwargs_for_run dict when creating the instance of
+        OutputDiffer, (or alternatively for some kwargs, by passing the
+        keyword arguments to the run method of the OutputDiffer instance
+        """
+        # Migrated kwargs to instance attributes
+        dups = [key for key in kwargs if hasattr(self, key)]
+        for key in dups:
+            setattr(self, key, kwargs.pop(key))
+        # Update the run dict with remaining keys
+        self.kwargs_for_run.update(kwargs)
+        stdout, stderr = self.run_cmd(**self.kwargs_for_run)
+
+        # Shortcut to skip all file comparisons
+        if self.skip_output_diff:
+            return stdout, stderr
+
         if not self.create_sample_output:
             self.check_comparison_dir()
             self.assert_all_files_equal()
 
         if self.require_sample_output:
             self.__update_sample_output()
+        return stdout, stderr
 
-    def run_cmd(self):
+    def run_cmd(self, **run_kwargs):
         if self.executed:
             raise ValueError(
                 "The differ object has already been run as defined by "
@@ -478,21 +890,23 @@ class OutputDiffer:
             )
 
         # Call run_cmd defined in module scope.
-        proc = run_cmd(
+        stdout, stderr = run_cmd(
             self.data,
             self.cmd,
+            self.logger,
             add_env_vars=self.add_env_vars,
             merge_error_with_output=self.merge_error_with_output,
             workdir=self.workdir,
             python_interpreter=self.python_interpreter,
+            **run_kwargs,
         )
 
         self.get_file_list()
         self.executed = True
-        return proc
+        return stdout, stderr
 
     def get_file_list(self):
-        always_ignore = ["gmon.out"]
+        always_ignore = ["gmon.out", ".DS_Store"]
         if not self.file_list:
             for f in list(self.data.outdir.glob("**/*")):
                 if not f.is_file():
@@ -526,11 +940,11 @@ class OutputDiffer:
             try:
                 fname = Path(fname)
                 # compare 1D files
-                if fname.suffix == ".1D":
+                if fname.suffix == ".1D" and AFNI_1D_SUPPORT:
                     self.assert_1dfiles_equal([fname])
                 elif fname.suffix == ".log":
                     # compare stdout and stderr logs
-                    if fname.name.endswith("_cmd.log"):
+                    if re.findall("(cmd(_[0-9]*)?.log)", str(fname)):
                         # command log diff is expected but ignored. The file
                         # should be included in sample output when created as
                         # it is used to determine the working directory for
@@ -657,18 +1071,13 @@ class OutputDiffer:
             raise NotImplementedError
 
         for fname in files_1d:
-            tool_1d = misc.try_to_import_afni_module("1d_tool")
             equivalent_file = get_equivalent_name(self.data, fname)
 
             # Load 1D file data
-            obj_1d = tool_1d.A1DInterface()
-            obj_1d.init_from_file(fname)
-            data = obj_1d.adata.__dict__["mat"]
+            data = LAD.Afni1D(fname).__dict__["mat"]
 
             # Load template 1D file data
-            obj_1d_equiv = tool_1d.A1DInterface()
-            obj_1d_equiv.init_from_file(equivalent_file)
-            data_equiv = obj_1d_equiv.adata.__dict__["mat"]
+            data_equiv = LAD.Afni1D(fname).__dict__["mat"]
 
             # Test the data is equal
             assert_allclose(data, data_equiv, **all_close_kwargs)
@@ -722,7 +1131,7 @@ class OutputDiffer:
         files_required = [f.relative_to(self.data.outdir) for f in self.file_list]
         missing_files = []
         for f in files_required:
-            if not f in cmpr_files_rel:
+            if f not in cmpr_files_rel:
                 missing_files.append(str(cmpr_path / f))
         if missing_files:
             m_str = " ".join(missing_files)
@@ -733,7 +1142,7 @@ class OutputDiffer:
 
         need_data = any(p.is_symlink() and not p.exists() for p in cmpr_files)
         if need_data:
-            dl_dset.get(str(cmpr_path))
+            dm.try_data_download([cmpr_path], dl_dset.path, self.data.logger)
 
     @property
     def data(self):
@@ -770,6 +1179,10 @@ class OutputDiffer:
     @property
     def kwargs_byte(self):
         return self._kwargs_byte
+
+    @property
+    def kwargs_for_run(self):
+        return self._kwargs_for_run
 
     def __repr__(self):
         try:

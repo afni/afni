@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 
 
-RUN apt-get update && apt-get install -y wget sudo \
+RUN apt-get update && apt-get install -y wget sudo locales \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # The gpg key import is a little flaky...
@@ -15,12 +15,15 @@ RUN apt-get update && apt-get install -y wget sudo \
 #     (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
 # Configure environment
+RUN ln -sf  /bin/bash /bin/sh # use bash by default
 ENV SHELL=/bin/bash \
     CONTAINER_USER="afni_user" \
     CONTAINER_UID="1000" \
     CONTAINER_GID="100" \
     PYTHONUSERBASE=/opt/user_pip_packages \
     TINI_SUBREAPER="" \
+    LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
     AFNI_ROOT=/opt/afni/src
 
 ENV DESTDIR="$AFNI_ROOT/../install" \
@@ -30,7 +33,7 @@ ENV DESTDIR="$AFNI_ROOT/../install" \
 # should be set in /etc/environment (variables set by ENV do not cleanly
 # propagate to all users). Should do this for PATH again later in the dockerfile (or
 # child files)
-ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER"
+ENV PRESERVED_VARS "PYTHONUSERBASE AFNI_ROOT DESTDIR PATH TINI_SUBREAPER LC_ALL"
 RUN bash -c 'for val in $PRESERVED_VARS;do \
              echo $val=${!val} >> /etc/environment ; \
              done'
@@ -50,7 +53,10 @@ RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     useradd -m -s /bin/bash -N -u $CONTAINER_UID $CONTAINER_USER && \
     chmod g+w /etc/passwd && \
-    fix-permissions $HOME
+    fix-permissions $HOME \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+        && dpkg-reconfigure --frontend=noninteractive locales \
+        && update-locale LANG="en_US.UTF-8"
 
 # Install runtime and basic dependencies
 RUN apt-get update && apt-get install -y eatmydata && \
@@ -108,6 +114,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     tree \
     valgrind \
     vim \
+    x11-apps \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -137,14 +144,17 @@ RUN mkdir $PYTHONUSERBASE
 # Add some more test dependencies
 RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
      | python3 - --no-cache-dir --prefix $PYTHONUSERBASE
-RUN pip install \
+RUN python3 -m pip install \
       --no-cache-dir \
         autopep8 \
-        black==19.10b0 \
+        black==20.8b1 \
         codecov \
         cython \
         datalad \
         distro \
+        docker \
+        filelock \
+        gcovr \
         ipython \
         matplotlib \
         nibabel \
@@ -153,9 +163,9 @@ RUN pip install \
         pdbpp \
         pytest \
         pytest-cov \
-        pytest-parallel \
+        pytest-xdist \
         scipy \
-        xvfbwrapper \
+        git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
   && fix-permissions /opt
 
 # add pdb alias ipy for easier pdb debugging
