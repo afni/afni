@@ -350,8 +350,8 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 	//EDT in left-right direction
 	for (int r = 0; r < nRow; r++ ) {
 		flt * imgRow = (*outImg) + (r * nx);
-		// edt1(imgRow, nx);
-		edt1_local(din, imgRow, nx);
+		// edt1_local(din, imgRow, nx);
+		edt_local(xDim, imgRow, nx);
 	}
 
 /**/
@@ -571,7 +571,6 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 	//forward
 	for (q = 0; q < n; q++ ) {
 		if (df[q] == 0) {
-			// prevX = q*xDim;
 			prevX = q;
 			prevY = 0;
 		} else
