@@ -1491,7 +1491,6 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
         )
 
 
-
 def test_no_mod_cmd_var_works(monkeypatch, data):
     # make a long command with paths that should trigger a trimming response
     cmd = f"{' '.join([str(data.outdir) for x in range(5)])} "
@@ -1508,6 +1507,7 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
     monkeypatch.delenv("NO_CMD_MOD")
     com = afnipy.afni_base.shell_com(cmd)
     assert com.com != com.trimcom
+
 
 def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     monkeypatch.setenv("PATH", minfuncs.filter_afni_from_path())
@@ -1571,4 +1571,3 @@ def test_get_param_combinations():
     ]
 
     assert expected == output
-

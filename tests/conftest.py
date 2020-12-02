@@ -159,7 +159,7 @@ def pytest_addoption(parser):
         "--runall",
         action="store_true",
         default=False,
-        help="Ignore all test markers and run everything."
+        help="Ignore all test markers and run everything.",
     )
     parser.addoption(
         "--diff-with-sample",
