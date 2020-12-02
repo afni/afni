@@ -321,13 +321,15 @@ def get_parser(tests_dir=None,return_subparsers=False):
         help="Include a verbose explanation along with the examples",
     )
     if return_subparsers:
-        return parser,local, container, examples
+        return parser, subparsers, local, container, examples
     else:
         return parser
 
 
 def parse_user_args(user_args=None, tests_dir=None):
-    parser, local, container, examples = get_parser(tests_dir=tests_dir,return_subparsers=True)
+    parser, subparsers, local, container, examples = get_parser(
+        tests_dir=tests_dir, return_subparsers=True
+    )
     args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
@@ -342,12 +344,11 @@ def parse_user_args(user_args=None, tests_dir=None):
         print((tests_dir / "README.rst").read_text())
         sys.exit(0)
     if not args.subparser:
-        sys.exit(
-            ValueError(
-                "Unless requesting help you must specify a subcommand "
-                f"one of {list(subparsers.choices.keys())} "
-            )
+        print(
+            "Unless requesting help you must specify a subcommand "
+            f"one of {list(subparsers.choices.keys())} "
         )
+        sys.exit(2)
 
     # verbosity breaks exception hook so check not used together
     if args.debug and args.verbosity not in ["normal", "quiet"]:
@@ -472,7 +473,7 @@ def get_dependency_requirements(tests_dir):
     """
 
     if len(sys.argv) == 1 or any(
-        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help"]
+        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help", "", " "]
     ):
         return "minimal"
 

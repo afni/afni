@@ -77,12 +77,12 @@ def sp_with_successful_execution():
     return RUN_WITH_0
 
 
-def run_main_func(script_obj, sys_exit):
+def run_main_func(script_obj, sys_exit, err_code=0):
     if sys_exit:
         with pytest.raises(SystemExit) as err:
             script_obj.main()
         assert err.typename == "SystemExit"
-        assert err.value.code == 0
+        assert err.value.code == err_code
     else:
         script_obj.main()
 
@@ -95,6 +95,7 @@ def run_script_and_check_imports(
     monkeypatch,
     sys_exit=True,
     no_output=True,
+    err_code=0,
 ):
     """
     This needs to be used with the mocked_script fixture.
@@ -124,9 +125,9 @@ def run_script_and_check_imports(
 
         if no_output:
             with contextlib.redirect_stdout(io.StringIO()):
-                run_main_func(script, sys_exit)
+                run_main_func(script, sys_exit, err_code=err_code)
         else:
-            run_main_func(script, sys_exit)
+            run_main_func(script, sys_exit, err_code=err_code)
 
 
 @pytest.mark.parametrize(
@@ -448,6 +449,27 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
     (mocked_script.parent / "README.rst").write_text("some content")
     run_script_and_check_imports(
         mocked_script, argslist, expected, not_expected, monkeypatch
+    )
+
+
+def test_run_tests_with_no_args_is_instructive(mocked_script, monkeypatch):
+    """
+    If run without arguments the test script should
+    give sensible help regardless of pythonpath,
+    installation status.
+    """
+
+    # help should work even if pythonpath is set
+    monkeypatch.setenv("PYTHONPATH", "a_path")
+    not_expected = "datalad docker pytest afnipy run_tests".split()
+    expected = ""
+
+    # Write run_afni_tests.py to an executable/importable path
+    mocked_script.write_text(SCRIPT.read_text())
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    run_script_and_check_imports(
+        mocked_script, [" "], expected, not_expected, monkeypatch, err_code=2
     )
 
 
