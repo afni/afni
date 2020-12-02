@@ -45,7 +45,12 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
 def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
     seedval = 31416
 
-    kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
+    kwargs_log = {
+        "append_to_ignored": [
+            "Clock time",
+            "but max simulated alpha=",
+        ]
+    }
 
     out_prefix = data.outdir / f"reg.02.a.{vol_tr}"
     cmd = """
@@ -75,7 +80,11 @@ def test_RetroTS_bids_basic(data, vol_tr, python_interpreter):
 def test_RetroTS_bids_custom_slice_order(data, vol_tr, python_interpreter):
     seedval = 31416
 
-    kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
+    kwargs_log = {
+        "append_to_ignored": [
+            "applying custom slice timing",
+        ]
+    }
 
     out_prefix = data.outdir / f"reg.02.a.{vol_tr}"
     cmd = """
@@ -97,7 +106,7 @@ def test_RetroTS_bids_custom_slice_order(data, vol_tr, python_interpreter):
         cmd,
         python_interpreter=python_interpreter,
         kwargs_1d={"all_close_kwargs": {"rtol": 0.15}},
-        # kwargs_log=kwargs_log,
+        kwargs_log=kwargs_log,
         # add_env_vars=add_env_vars,
     )
     differ.run(timeout=None)
