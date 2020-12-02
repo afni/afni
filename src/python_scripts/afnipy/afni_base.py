@@ -279,7 +279,7 @@ class afni_name(object):
       else:
          #could it be in abin, etc.
          cmd = '@FindAfniDsetPath %s' % self.pv()
-         com=shell_com(cmd,oexec, capture=1)
+         com=shell_com(cmd, eo=oexec, capture=1)
          com.run()
 
          if com.status or not com.so or len(com.so[0]) < 2:
@@ -301,18 +301,18 @@ class afni_name(object):
       """delete the files via a shell command"""
       if (self.type == 'BRIK'):
          if os.path.isfile("%s.HEAD" % self.ppv()):
-            shell_com("rm %s.HEAD" % self.ppv(), oexec).run()
+            shell_com("rm %s.HEAD" % self.ppv(), eo=oexec).run()
          if os.path.isfile("%s.BRIK" % self.ppv()):
-            shell_com("rm %s.BRIK" % self.ppv(), oexec).run()
+            shell_com("rm %s.BRIK" % self.ppv(), eo=oexec).run()
          if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-            shell_com("rm %s.BRIK.gz" % self.ppv(), oexec).run()
+            shell_com("rm %s.BRIK.gz" % self.ppv(), eo=oexec).run()
          if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-            shell_com("rm %s.BRIK.bz2" % self.ppv(), oexec).run()
+            shell_com("rm %s.BRIK.bz2" % self.ppv(), eo=oexec).run()
          if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-            shell_com("rm %s.BRIK.Z" % self.ppv(), oexec).run()
+            shell_com("rm %s.BRIK.Z" % self.ppv(), eo=oexec).run()
       else:
          if os.path.isfile(self.ppve()):
-            shell_com("rm %s" % self.ppve(), oexec).run()
+            shell_com("rm %s" % self.ppve(), eo=oexec).run()
       return
    def move_to_dir(self, path="", oexec=""):
       #self.show()
@@ -321,19 +321,19 @@ class afni_name(object):
       if os.path.isdir(path):
          if (self.type == 'BRIK'):
             if os.path.isfile("%s.HEAD" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.head(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.head(), path), eo=oexec).run()
                found = found + 1
             if os.path.isfile("%s.BRIK" % self.ppv()):           
-               sv = shell_com("mv %s %s/" % (self.brick(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.brick(), path), eo=oexec).run()
                found = found + 1
             if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickgz(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.brickgz(), path), eo=oexec).run()
                found = found + 1         
             if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickbz2(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.brickbz2(), path), eo=oexec).run()
                found = found + 1 
             if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickZ(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.brickZ(), path), eo=oexec).run()
                found = found + 1 
             if (found > 0):
                self.new_path(path)
@@ -345,7 +345,7 @@ class afni_name(object):
                return 0
          else:
             if os.path.isfile("%s" % self.ppve()):
-               sv = shell_com("mv %s %s/" % (self.ppve(), path), oexec).run()
+               sv = shell_com("mv %s %s/" % (self.ppve(), path), eo=oexec).run()
                found = found + 1
             if (found > 0):
                self.new_path(path)

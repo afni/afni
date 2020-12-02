@@ -156,6 +156,12 @@ def pytest_addoption(parser):
         "of many minutes to hours ",
     )
     parser.addoption(
+        "--runall",
+        action="store_true",
+        default=False,
+        help="Ignore all test markers and run everything."
+    )
+    parser.addoption(
         "--diff-with-sample",
         default=None,
         help="Specify a previous tests output directory with which the output "
@@ -201,14 +207,37 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    """
+    This function is a pytest hook that is executed after a collection of
+    tests (but before tests are filtered using markers or keyword expression).
+
+    The current desire behavior is to filter out tests marked with slow,
+    veryslow, or combinations by default. These tests can be executed by
+    either explicitly filtering for them using a pytest marker expression or
+    by using one of the flags --runslow, --runveryslow, --runall
+    """
+    keywordexpr = config.option.keyword
+    markexpr = config.option.markexpr
+    if keywordexpr or markexpr:
+        # let pytest handle this, runveryslow or runslow flags would not have been used
+        return
+
+    if config.getoption("--runall"):
+        # marks filtered by default are included as requested by user
+        return
+
+    # define skip markers
     skipping_veryslow_tests = not config.getoption("--runveryslow")
     skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
     skipping_slow_tests = not (
         config.getoption("--runveryslow") or config.getoption("--runslow")
     )
     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    skip_combinations = pytest.mark.skip(
+        reason="need --runall or -m 'combinations' to run"
+    )
 
-    # filter out slower tests by default
+    # filter out some tests by default
     for item in items:
         if skipping_veryslow_tests or skipping_slow_tests:
             if "slow" in item.keywords:
@@ -217,6 +246,9 @@ def pytest_collection_modifyitems(config, items):
         if skipping_veryslow_tests:
             if "veryslow" in item.keywords:
                 item.add_marker(skip_veryslow)
+
+        if "combinations" in item.keywords:
+            item.add_marker(skip_combinations)
 
 
 def pytest_sessionfinish(session, exitstatus):

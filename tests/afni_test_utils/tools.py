@@ -114,7 +114,14 @@ def remove_w_perms(dirname):
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
     name_str = name_str.replace(".", "")
-    return re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
+    name_str = re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
+    if not name_str:
+        raise ValueError(
+            "After tidying the test name "
+            f"{os.environ.getPYTEST_CURRENT_TEST} for later use an empty "
+            "string was returned "
+        )
+    return name_str
 
 
 def compute_expected_euclidean_distance_for_affine(affine):
@@ -822,10 +829,10 @@ class OutputDiffer:
             # If this raises an error then the workdir is outside the tests
             # subdirectory which is not supported
             if workdir is not None:
-                Path(workdir).relative_to(data.tests_data_dir)
+                Path(workdir).relative_to(data.rootdir)
         except ValueError:
             raise ValueError(
-                f"The workdir ({workdir}) for a test must be within {data.tests_data_dir}."
+                f"The workdir ({workdir}) for a test must be within {data.rootdir}."
             )
 
         self.python_interpreter = python_interpreter
