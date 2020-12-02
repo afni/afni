@@ -337,7 +337,6 @@ ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
 
     ERROR_NUMBER    enErrorNumber;
 	char    csAnalysisFileName[512];
-	int     planeIndex;
 	IntRange irFrequencyRange;
 	FILE    *outputFile;
 	int     maxMin=paddedDimension/4, maxMax=paddedDimension/2-1;
@@ -350,7 +349,7 @@ ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
         fprintf(stdout, "Processing image %d\n", lPlaneIndex);
 
         // Open output file
-        sprintf(csAnalysisFileName,"%s/%s_LOI_freqRange%d.csv", searchPath, prefix, planeIndex);
+        sprintf(csAnalysisFileName,"%s/%s_LOI_freqRange%d.csv", searchPath, prefix, lPlaneIndex);
         if (!(outputFile=fopen(csAnalysisFileName, "w")))
             return ErrorOpeningFile(csAnalysisFileName);
 
