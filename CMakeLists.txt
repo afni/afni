@@ -8,9 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
 include(get_git_repo_version)
 include(get_build_macros_and_functions)
 include(CMakeDependentOption)
-if(NOT DEFINED CMAKE_C_COMPILER)
-  set_if_not_defined(CMAKE_C_COMPILER "gcc")
-endif()
+
 # ##### Project info
 project(
   AFNI
@@ -42,7 +40,7 @@ add_definitions("-DDYNAMIC_suffix=\"${CMAKE_SHARED_LIBRARY_SUFFIX}\"")
 
 # Get mapping between each target name and it's installation component
 set(COMPONENTS_MAPFILE ${CMAKE_CURRENT_SOURCE_DIR}/packaging/installation_components.txt )
-file(READ 
+file(READ
   ${COMPONENTS_MAPFILE}
   CMPNT_MAPPING)
 list(TRANSFORM CMPNT_MAPPING REPLACE "\n" ";")
