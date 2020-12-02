@@ -26,7 +26,7 @@ VALID_VERBOSITY_MODES = [
 ]
 
 
-def get_parser(tests_dir=None,return_subparsers=False):
+def get_parser(tests_dir=None, return_subparsers=False):
     parser = argparse.ArgumentParser(
         description="""
         run_afni_tests.py is a wrapper script to help run tests for the AFNI
@@ -321,13 +321,15 @@ def get_parser(tests_dir=None,return_subparsers=False):
         help="Include a verbose explanation along with the examples",
     )
     if return_subparsers:
-        return parser,local, container, examples
+        return parser, subparsers, local, container, examples
     else:
         return parser
 
 
 def parse_user_args(user_args=None, tests_dir=None):
-    parser, local, container, examples = get_parser(tests_dir=tests_dir,return_subparsers=True)
+    parser, subparsers, local, container, examples = get_parser(
+        tests_dir=tests_dir, return_subparsers=True
+    )
     args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
@@ -342,12 +344,11 @@ def parse_user_args(user_args=None, tests_dir=None):
         print((tests_dir / "README.rst").read_text())
         sys.exit(0)
     if not args.subparser:
-        sys.exit(
-            ValueError(
-                "Unless requesting help you must specify a subcommand "
-                f"one of {list(subparsers.choices.keys())} "
-            )
+        print(
+            "Unless requesting help you must specify a subcommand "
+            f"one of {list(subparsers.choices.keys())} "
         )
+        sys.exit(2)
 
     # verbosity breaks exception hook so check not used together
     if args.debug and args.verbosity not in ["normal", "quiet"]:
@@ -472,7 +473,7 @@ def get_dependency_requirements(tests_dir):
     """
 
     if len(sys.argv) == 1 or any(
-        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help"]
+        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help", "", " "]
     ):
         return "minimal"
 
@@ -715,7 +716,7 @@ def make_sure_afnipy_not_importable():
     )
 
 
-def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
+def modify_path_and_env_if_not_using_cmake(**args_dict):
     """
     This function does some path/environment modifications to deal with the
     different installation configurations that the tests might be run under.
@@ -780,8 +781,10 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
             return
 
-    #  Now just situation 3. and 4 remaining.
+    # Now just situation 3 and 4 remaining.
     make_sure_afnipy_not_importable()
+    if not args_dict.get("abin") and not test_bin_path:
+        raise EnvironmentError("Cannot find local AFNI binaries. ")
     abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
 
     # Modify sys.path and os.environ. Makes afnipy importable
