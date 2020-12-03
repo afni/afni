@@ -23,7 +23,7 @@ from afnipy.pipeline_utils import TemplateConfig
 from dask import delayed
 # AFNI modules
 
-from afnipy import construct_template_graph
+from afni_template_maker import construct_template_graph
 
 
 g_help_string = """
