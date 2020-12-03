@@ -15,9 +15,12 @@ from dask import delayed
 # Imports for using AFNI
 import afnipy
 import afnipy.afni_base as ab
-from afnipy import construct_template_graph
 from afnipy.pipeline_utils import TemplateConfig
 import sys
+
+# Imports for template making
+
+construct_template_graph = pytest.importorskip("afni_template_maker.construct_template_graph", reason="afni_template_maker is not installed")
 
 base_path = Path("ds000117_subset")
 subjects = [f"sub-{x:02d}" for x in range(1, 5)]
@@ -30,10 +33,11 @@ data_paths = {
 @pytest.fixture(scope="function")
 def afni_dir():
     ## Setup for troubleshooting AFNI pipeline
+    bin_path = shutil.which("3dinfo")
 
     afni_dir = Path("~").expanduser() / "abin"
     if not afni_dir.exists():
-        afni_path = Path(find_executable("afni"))
+        binary_dir = Path(find_executable("3dinfo"))
         if not afni_path.exists():
             raise EnvironmentError
         else:
