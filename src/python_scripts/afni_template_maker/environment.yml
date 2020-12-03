@@ -1,0 +1,20 @@
+name: template_making
+channels:
+  - defaults
+  - conda-forge
+  - leej3
+dependencies:
+  - afni-minimal
+  - bokeh
+  - cloudpickle
+  - cython
+  - dask
+  - distributed
+  - dask-jobqueue
+  - graphviz
+  - pip
+  - python-graphviz
+  - pip:
+    - -e ..
+    - -e .
+
