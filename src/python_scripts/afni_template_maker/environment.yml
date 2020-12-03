@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - leej3
 dependencies:
-  - afni-minimal
+  - afni
   - bokeh
   - cloudpickle
   - cython
@@ -14,6 +14,7 @@ dependencies:
   - graphviz
   - pip
   - python-graphviz
+  - tcsh
   - pip:
     - -e ..
     - -e .
