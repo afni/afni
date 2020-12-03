@@ -94,7 +94,7 @@ char * RootName(char * csFullPathName);
 ERROR_NUMBER GetDirectory(char *csInputFileName, char *csDirectory);
 ERROR_NUMBER shortToFloat(THD_3dim_dataset **din);
 ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
-    int paddedDimension, char *searchPath, char *prefix, int minLength);
+    int paddedDimension, char *searchPath, char *prefix, int minLength, int startingTargetIndex);
 ERROR_NUMBER getImsePeakAndMean(COMPLEX ***TwoDFts, int dimension, int refIndex, int targetIndex,
             IntRange irFrequencyRange, float *maxIMSE, float *meanIMSE);
 
@@ -115,6 +115,7 @@ int main( int argc, char *argv[] )  {
     char    orientation[8];
     COMPLEX** TwoDFts[6]={NULL, NULL, NULL};
     Boolean frequencyRangeEffects = false;
+    int startingTargetIndex=4;
 
     sprintf(orientation, "ASL");
 
@@ -142,6 +143,10 @@ int main( int argc, char *argv[] )  {
 
         case 'p':
             sprintf(projectionString,"%s",argv[++i]);
+            break;
+
+        case 's':
+            startingTargetIndex=atoi(argv[++i]);
             break;
         }
     }
@@ -218,7 +223,7 @@ int main( int argc, char *argv[] )  {
     }
     if (frequencyRangeEffects){
         if ((enErrorNumber=analyzeFrequencyRange(TwoDFts, lNumberOfImages, paddedDimension,
-            searchPath, prefix, minLength))!=ERROR_NONE){
+            searchPath, prefix, minLength, startingTargetIndex))!=ERROR_NONE){
             Cleanup(inputFileName, TwoDFts, paddedProjections[0]);
             for (i=0; i<6; ++i) DSET_delete(paddedProjections[i]);
             free(searchPath);
@@ -333,7 +338,7 @@ ERROR_NUMBER MakeRadialPhaseSampleArray(ComplexPlane cpFourierTransform, float f
 }
 
 ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
-    int paddedDimension, char *searchPath, char *prefix, int minLength){
+    int paddedDimension, char *searchPath, char *prefix, int minLength, int startingTargetIndex){
 
     ERROR_NUMBER    enErrorNumber;
 	char    csAnalysisFileName[512];
@@ -345,7 +350,7 @@ ERROR_NUMBER analyzeFrequencyRange(COMPLEX ***TwoDFts, int numberOfImages,
 	float   maxIMSE, meanIMSE;  // Max and mean inverse mean squared error
 	struct rusage r_usage;  // Track memory usage
 
-    for (int lPlaneIndex=4; lPlaneIndex<numberOfImages; ++lPlaneIndex){    // Avoid coplanar and self reference
+    for (int lPlaneIndex=startingTargetIndex; lPlaneIndex<numberOfImages; ++lPlaneIndex){    // Avoid coplanar and self reference
         fprintf(stdout, "Processing image %d\n", lPlaneIndex);
 
         // Open output file
