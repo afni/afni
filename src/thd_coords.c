@@ -906,6 +906,63 @@ mat33 THD_char_reorient_perm_mat33(char *ocharA, char *ocharB)
 mat33 THD_int_reorient_perm_mat33(int *ointA, int *ointB)
 {
    int   i, j;
+   mat33 PA, PB, PAINV, PBINV;   // intermediate
+   mat33 P33;
+   char ocharA[4], ocharB[4];
+
+   char ochar_rai[4] = "RAI\0";
+   int   oint_rai[3] = {-1, -1, -1};  // int form of orient
+
+   ENTRY("THD_int_reorient_perm_mat33");
+
+   THD_orient_to_int_rlpais(ochar_rai, oint_rai);
+
+   LOAD_ZERO_MAT33(PA);  // init mat
+   LOAD_ZERO_MAT33(PB);  // init mat
+   LOAD_ZERO_MAT33(P33);  // init mat
+
+   if( !is_valid_orient_int(ointA) ) {
+      THD_int_to_orient_rlpais( ointA, ocharA );
+      ERROR_exit("Dset has invalid orientation for permuting: %s", ocharA);
+   }
+
+   if( !is_valid_orient_int(ointB) ) {
+      THD_int_to_orient_rlpais( ointB, ocharB );
+      ERROR_exit("Specified orientation is invalid for permuting: %s", ocharB);
+   }
+
+   // make permutation matrix; will be applied as first arg in
+   // multiplications, such as: MAT33_MUL(P33, dset_mat33)
+   for( i=0 ; i<3 ; i++ )
+      for( j=0 ; j<3 ; j++ ){
+         if( oint_rai[i] == ointA[j] )
+            PA.m[i][j] = 1;
+         else if ( ORIENT_OPPOSITE(oint_rai[i]) == ointA[j] ) 
+            PA.m[i][j] = -1;
+      }
+   for( i=0 ; i<3 ; i++ )
+      for( j=0 ; j<3 ; j++ ){
+         if( oint_rai[i] == ointB[j] )
+            PB.m[i][j] = 1;
+         else if ( ORIENT_OPPOSITE(oint_rai[i]) == ointB[j] ) 
+            PB.m[i][j] = -1;
+      }
+
+   PAINV = MAT33_INV(PA);
+   P33   = MAT33_MUL(PB, PAINV);
+
+   return P33;
+}
+
+
+/* OLD, apparently broken way of thinking about this
+
+
+// Calc permutation mat33 needed when changing dset orientation from
+// orient A (e.g., "531") to orient B (e.g., "024").  
+mat33 THD_int_reorient_perm_mat33(int *ointA, int *ointB)
+{
+   int   i, j;
    mat33 P33;
    char ocharA[4], ocharB[4];
 
@@ -935,6 +992,8 @@ mat33 THD_int_reorient_perm_mat33(int *ointA, int *ointB)
 
    return P33;
 }
+*/
+
 
 // Calc permutation mat33 needed for ijk_to_dicom_real when changing
 // orientation from what a current dset has to some new_ori.  'P33' is
@@ -966,9 +1025,6 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
                                           char *ocharB )
 {
    int   i, j;
-   int   ointA[3]  = {-1, -1, -1};  // inp orient (int form)   
-   int   ointB[3]  = {-1, -1, -1};  // inp orient (int form)   
-   float dsetA_extent_rlpais[6]; // inp extents; RLPAIS order is indep of orient
    float origA[3], origB[3];
    mat33 P33;
    mat33 dsetA_mat33, dsetA_mat33_P; 
@@ -991,14 +1047,8 @@ mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
    //DUMP_MAT44("IJK_TO_DICOM_REAL", dsetA->daxes->ijk_to_dicom_real);
    //DUMP_MAT44("IJK_TO_DICOM", dsetA->daxes->ijk_to_dicom);
 
-   // set new origin using extents of current dset and to-be orient
-   THD_orient_to_int_rlpais(ocharB, ointB);
-   THD_dset_extent_rlpais(dsetA, '-', dsetA_extent_rlpais); 
-
-   // calculate the vector part, based on the perm and extents
-   THD_fill_orient_int_3_rlpais( dsetA->daxes, ointA );
    for( i=0 ; i<3 ; i++ ) 
-      origA[i] = dsetA_extent_rlpais[ ointA[i] ];
+      origA[i] = dsetA->daxes->ijk_to_dicom_real.m[i][3];
    MAT33_VEC(P33, origA[0], origA[1], origA[2], 
              origB[0], origB[1], origB[2]);
 

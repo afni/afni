@@ -83,7 +83,7 @@ int Syntax(TFORM targ, int detail)
 "                with comment line first.\n"
 "   -aform_real_oneline: Display full 'aform_real' matrix (see '-aform_real')\n"
 "                        as 1 row of 12 numbers. No additional comment.\n"
-"   -aform_real_reorient XXX: Display full 4x3 'aform_real' matrix (see \n"
+"   -aform_real_ori_refit XXX: Display full 4x3 'aform_real' matrix (see \n"
 "                        '-aform_real')\n"
 "                        *if* the dset were reoriented (via 3drefit) to\n"
 "                        new orient XXX.  Includes comment line first.\n"
@@ -267,7 +267,7 @@ typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, 
-   AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REORIENT, // [PT: Nov 13, 2020]
+   AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_ORI_REFIT, // [PT: Nov 13, 2020]
    IS_AFORM_REAL_ORTH,
    AFORM_ORTH,                                          // [PT: Nov 14, 2020]
    PERM_TO_ORIENT,                                      // [PT: Nov 23, 2020]
@@ -459,12 +459,12 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = AFORM_REAL; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-aform_real_oneline") == 0) {
          sing[N_sing++] = AFORM_REAL_ONELINE; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-aform_real_reorient") == 0) {
+      } else if( strcasecmp(argv[iarg],"-aform_real_ori_refit") == 0) {
          iarg++;
          if (iarg >= argc)
-           ERROR_exit( "3dinfo needs a string after -aform_real_reorient\n");
+           ERROR_exit( "3dinfo needs a string after -aform_real_ori_refit\n");
          ocharB_aform_real = argv[iarg];
-         sing[N_sing++] = AFORM_REAL_REORIENT; iarg++; continue;
+         sing[N_sing++] = AFORM_REAL_ORI_REFIT; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_aform_real_orth") == 0) {
          sing[N_sing++] = IS_AFORM_REAL_ORTH; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-aform_orth") == 0) {
@@ -883,7 +883,7 @@ int main( int argc , char *argv[] )
          case AFORM_REAL_ONELINE:
             DUMP_MAT44_ONELINE(dset->daxes->ijk_to_dicom_real);
             break;
-         case AFORM_REAL_REORIENT:
+         case AFORM_REAL_ORI_REFIT:
             {
                char ostr[4];
                // the work: 
