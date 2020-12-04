@@ -172,18 +172,44 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             main_info["slice_offset"][i] = tt
             tt += dtt
-    elif main_info["slice_order"] in ["Custom", "custom"]:  # Does nothing, unsure of it's purpose
-        pass
+    elif main_info["slice_order"] in ["Custom", "custom"] \
+        and type(slice_offset) == str:
+
+        # If slice_order is custom, parse from slice_offset string.
+        # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
+        try:
+           offlist = eval(slice_offset)
+           noff = len(offlist)
+        except:
+           try:
+              offlist = [float(v) for v in slice_offset.split()]
+           except:
+              print("** failed to apply custom slice timing from: %s" \
+                    % slice_offset)
+              return
+        if len(offlist) != main_info["number_of_slices"]:
+           print("** error: slice_offset len = %d, but %d slices" \
+              % (len(offlist), main_info["number_of_slices"]))
+           return
+
+        # success, report and apply
+        print("applying custom slice timing, min = %g, max = %g" \
+              % (min(offlist), max(offlist)))
+        slice_offset = offlist
+        main_info["slice_offset"] = offlist
 
     else:  # Open external file specified in argument line,
         # fill SliceFileList with values, then load into main_info['slice_offset']
         with open(main_info["slice_order"], "r") as f:
             for i in f.readlines():
-                slice_file_list.append(int(i))
-                if len(slice_file_list) != main_info["number_of_slices"]:
-                    print("Could not read enough slice offsets from file")
-                    print("File should have as many offsets as number_of_slices")
-                    quit()
+                # read times, in seconds
+                slice_file_list.append(float(i))
+
+            # Check that slice acquisition times match the number of slices
+            if len(slice_file_list) != main_info["number_of_slices"]:
+                print("Could not read enough slice offsets from file")
+                print("File should have as many offsets as number_of_slices")
+                quit()
             main_info["slice_offset"] = slice_file_list
     if (
         main_info["slice_order"][3] == "-" and slice_file_list == []
@@ -538,6 +564,33 @@ Input
                             extension; e.g. slice_file.dat
                             (expecting a 1D / text file containing the times for
                             each slice in seconds)
+
+            For example, the following 4 commands would produce identical
+            output, based on 10 slices using a (non-default) alt-z slice order:
+
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order alt-z
+
+               set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order custom              \\
+                          -slice_offset "$offlist"
+
+               set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order custom              \\
+                          -slice_offset "$offlist"
+
+               # put those same offsets into a text file (vertically)
+               echo $offlist | tr ' ' '\\n' > slice_offsets.txt
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order slice_offsets.txt
+
+
     ============================================================================
     :param -zero_phase_offset:
     ============================================================================

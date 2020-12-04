@@ -10,7 +10,9 @@
   variable names all start with 'CFO_'.
                                                           -- RWCox -- Dec 2015
 
-  I'm not actually sure these functions work -- BEWARE !! :(
+  ***** I'm not actually sure these functions work -- BEWARE !! :( *****
+
+  ***** Instead ... try using the contents of file fftn_OMP.c *****
 ******************************************************************************/
 
 #include "mrilib.h"   /* AFNI package library header */

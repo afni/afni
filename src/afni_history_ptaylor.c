@@ -69,6 +69,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Dec , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Tweaked default temp 'junk' filename to avoid low-probability badness ",
+   "New opt '-tmp_name_nice' for, well, read opt name. Improved help, too.\n"
+},
+
+{ 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
+   "Set some env vars at top of script to turn off compression.",
+   "Was causing odd error in one case.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_read_dp_align.py" , MINOR , TYPE_NEW_PROG,
+   "Script to read TORTOISE-DIFFPREP *_transformations.txt files.",
+   "Puts them into usable order for calc'ing enorm and plotting mot/pars.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_plot_dp_align" , MINOR , TYPE_NEW_PROG,
+   "Script (tcsh) to translate TORTOISE-DIFFPREP *_transformations.txt files",
+   "Wraps new adjunct_tort_read_dp_align.py and 1dplot* to make plots.\n"
+},
+
+{ 2, Nov , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Can now output SVG files, and can use newline chars in labels.",
+   "Had to deal with newline escape seq internally.\n"
+},
+
 { 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
    "Extra QC image:  initial overlap of source and base dsets.",
    "Should help to know, in case anything goes awry later.\n"

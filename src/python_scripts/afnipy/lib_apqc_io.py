@@ -54,9 +54,15 @@
 #ver = '1.83' ; date = 'June 17, 2020' 
 # [PT] add in hview
 #
-ver = '1.9' ; date = 'June 17, 2020' 
+#ver = '1.9' ; date = 'June 17, 2020' 
 # [PT] add in legend, legend_label and legend_loc functionality
 #
+ver = '1.91' ; date = 'Nov 2, 2020' 
+# [PT] 
+#    + deal with passing escape sequences from commandline
+#      - shell protects '\n' by changing it to '\\n'
+#    + 'svg' an OK output file type
+# 
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
@@ -72,7 +78,7 @@ MAXLEN = 10**7     # can adjust if that is ever necessary!
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
-ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf' ]
+ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf', '.svg' ]
 ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
@@ -454,6 +460,19 @@ EXAMPLES ~1~
 
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
+
+def replace_esc_seq_from_cmdline(S):
+    """Escape sequences from argv on command line get replaced by shell,
+    so that '\n' -> '\\n'.  This function tries to undo that, for \n only.  
+
+    At the moment, '\t' and '\v' don't work, unfortunately.
+
+    """
+    S2 = S.replace('\\n', '\n')
+    #S3 = S2.replace('\\t', '\t')
+    #S4 = S3.replace('\\v', '\v')
+
+    return S2
 
 def ARG_missing_arg(arg):
     print("** ERROR: missing argument after option flag: {}".format(arg))
@@ -1064,11 +1083,15 @@ class apqc_1dplot_opts:
                     self.censor_arr.append(self.all_x[i])
                 
     def add_ylabel(self, ylabel):
-        self.ylabels.append(ylabel)
+        # [PT: Nov 2, 2020] for command line args
+        yyy = replace_esc_seq_from_cmdline(ylabel)
+        self.ylabels.append(yyy)
         self.nylabels+= 1
 
     def add_leglabel(self, sss):
-        self.leglabels.append(sss)
+        # [PT: Nov 2, 2020] for command line args
+        sss2 = replace_esc_seq_from_cmdline(sss)
+        self.leglabels.append(sss2)
         self.nleglabels+= 1
 
     def add_legloc(self, sss):
@@ -1076,7 +1099,9 @@ class apqc_1dplot_opts:
         self.nleglocs+= 1
 
     def set_xlabel(self, xlabel):
-        self.xlabel = xlabel
+        # [PT: Nov 2, 2020] for command line args
+        xxx = replace_esc_seq_from_cmdline(xlabel)
+        self.xlabel = xxx
 
     def set_xfile(self, ss):
         self.xfile = ss
@@ -1086,7 +1111,9 @@ class apqc_1dplot_opts:
         self.xvals = [float(a), float(b), float(c)]
 
     def set_title(self, title):
-        self.title = title
+        # [PT: Nov 2, 2020] for command line args
+        ttt = replace_esc_seq_from_cmdline(title)
+        self.title = ttt
 
     def set_dpi(self, dpi):
         self.dpi = int(dpi)

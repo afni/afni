@@ -311,7 +311,7 @@ static int reset_stim_aperture_dset(int needed_length)
    if( genv_debug > 1 ) fprintf(stderr,"=== reset_stim_aperature_dset ...\n");
 
    /* check for square dataset and sufficient nt */
-   if( fabs(DSET_DX(g_saset) - DSET_DY(g_saset)) > 0.0001 ) {
+   if( fabs(fabs(DSET_DX(g_saset)) - fabs(DSET_DY(g_saset))) > 0.0001 ) {
       fprintf(stderr,"** PRF: stimset voxels not square (%f, %f)\n",
               DSET_DX(g_saset), DSET_DY(g_saset));
       errs++;

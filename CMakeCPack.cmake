@@ -79,7 +79,7 @@ message(STATUS "CPack generators: ${CPACK_GENERATOR}")
 # Add some manual add_dependencies
 
 # neurodebian
-set(CPACK_DEBIAN_CORELIBRARIES_PACKAGE_DEPENDS "")
+set(CPACK_DEBIAN_CORELIBS_PACKAGE_DEPENDS "")
 set(CPACK_DEBIAN_COREBINARIES_PACKAGE_DEPENDS "dcm2niix, xvfb, tcsh, qhull-bin, afni-corelibs")
 set(CPACK_DEBIAN_TCSH_PACKAGE_DEPENDS "afni-corelibs, afni-corebinaries")
 set(CPACK_DEBIAN_RSTATS_PACKAGE_DEPENDS "r-base, afni-corelibs")
@@ -88,7 +88,7 @@ set(CPACK_DEBIAN_GUI_PACKAGE_DEPENDS "afni-corelibs, afni-corebinaries, afni-tcs
 set(CPACK_COMPONENT_SUMA_DEPENDS "afni-gui")
 
 # Component dependencies
-set(CPACK_COMPONENT_CORELIBRARIES_DEPENDS "")
+set(CPACK_COMPONENT_CORELIBS_DEPENDS "")
 set(CPACK_COMPONENT_COREBINARIES_DEPENDS "corelibs")
 set(CPACK_COMPONENT_TCSH_DEPENDS "corelibs;corebinaries")
 set(CPACK_COMPONENT_RSTATS_DEPENDS "corelibs")

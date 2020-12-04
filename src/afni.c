@@ -12014,7 +12014,10 @@ ENTRY("AFNI_jumpto_ijk") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      BEEPIT ; WARNING_message("Jumpto IJK failed -- bad indexes?!") ;
+      BEEPIT ; WARNING_message("Jumpto IJK failed -- bad input values?!") ;
+               WARNING_message("  i range = 0 .. %d (inclusive)",daxes->nxx-1) ;
+               WARNING_message("  j range = 0 .. %d (inclusive)",daxes->nyy-1) ;
+               WARNING_message("  k range = 0 .. %d (inclusive)",daxes->nzz-1) ;
       RETURN(-1) ;
    }
 }
@@ -12099,7 +12102,9 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
      ii = DSET_index_to_ix(im3d->anat_now,nn) ;
      jj = DSET_index_to_jy(im3d->anat_now,nn) ;
      kk = DSET_index_to_kz(im3d->anat_now,nn) ;
-   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+   } else if( nn != 5 ){
+     BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN;
+   }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;
@@ -12131,7 +12136,9 @@ ENTRY("AFNI_jumpto_ijk_olay_CB") ;
      ii = DSET_index_to_ix(im3d->fim_now,nn) ;
      jj = DSET_index_to_jy(im3d->fim_now,nn) ;
      kk = DSET_index_to_kz(im3d->fim_now,nn) ;
-   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+   } else if( nn != 5 ){
+     BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN;
+   }
 
    nn = AFNI_jumpto_ijk_olay( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;

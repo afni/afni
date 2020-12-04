@@ -1,8 +1,12 @@
+from afni_test_utils import data_management as dm
+from asyncio.subprocess import PIPE
 from numpy.testing import assert_allclose  # type: ignore
 from pathlib import Path
 from typing import Dict, List, Any, Union
 from xvfbwrapper import Xvfb
+import asyncio
 import attr
+from collections import defaultdict
 import datalad.api as datalad
 import datetime as dt
 import difflib
@@ -21,14 +25,11 @@ import pytest
 import re
 import shlex
 import shutil
-import signal
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
-import time
-
 
 try:
     LAD = importlib.import_module("afnipy.lib_afni1D")
@@ -76,11 +77,20 @@ def get_output_name():
 
 def get_command_info(outdir):
     cmd_log = next((outdir / "captured_output").glob("*_cmd.log"))
-    return json.loads(cmd_log.read_text())
+    cmd_info = json.loads(cmd_log.read_text())
+    try:
+        os.path.relpath(cmd_info["outdir"], cmd_info["tests_data_dir"])
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... this is not true for a previously saved log: {cmd_log}"
+        )
+
+    return cmd_info
 
 
 def get_lines(filename, ignore_patterns):
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         lines = [line.rstrip("\n \\") for line in f.readlines()]
         lines = [
             line.strip()
@@ -104,7 +114,14 @@ def remove_w_perms(dirname):
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
     name_str = name_str.replace(".", "")
-    return re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
+    name_str = re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
+    if not name_str:
+        raise ValueError(
+            "After tidying the test name "
+            f"{os.environ.getPYTEST_CURRENT_TEST} for later use an empty "
+            "string was returned "
+        )
+    return name_str
 
 
 def compute_expected_euclidean_distance_for_affine(affine):
@@ -169,13 +186,23 @@ def update_sample_output(
     file_list=None,
     files_with_diff=None,
 ):
-
     # Get the directory to be used for the sample output
     if create_sample_output:
         savedir = data.sampdir
         sync_files = file_list
 
     elif save_sample_output:
+        """
+        This functionality is not fully implemented. For now it is likely best to
+        follow the instructions at https://github.com/afni/afni_ci_test_data. If
+        attempting to use this, one caveat to consider is that the command info log in
+        the captured output directory contains paths that are used to rewrite paths in
+        stdout and stderr logs. This would be difficult to implement cleanly. If a
+        container is always used for storing data there may not be so many issues
+        though. Overall it may not be worth the effort... it depends how often partial
+        data updates are required.
+        """
+        raise NotImplementedError
         savedir = data.comparison_dir
         # Create rsync pattern for all files that need to be synced
         sync_files = files_with_diff
@@ -236,21 +263,9 @@ def get_cmd_env(add_env_vars, python_interpreter):
     return cmd_environ
 
 
-def check_and_log_command_execution(
-    proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
-):
-    cmd = " ".join(proc.args)
-    # Log the cmd execution info
-    stdout = proc.stdout.decode("utf-8") if proc.stdout else ""
-    stderr = proc.stderr.decode("utf-8") if proc.stderr else ""
-    stdout_log.write_text(stdout)
-    if logger:
-        logger.debug(stdout)
-    if stderr:
-        stderr_log.write_text(stderr)
-        if logger:
-            logger.debug(stderr)
+def log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log):
     # cmd execution report
+    cmd = " ".join(cmd_args)
     hostname = socket.gethostname()
     user = getpass.getuser()
     command_info = {
@@ -261,13 +276,7 @@ def check_and_log_command_execution(
         "add_env_vars": add_env_vars,
         "rootdir": data.rootdir,
     }
-    command_info.update(attr.asdict(data))
-
-    write_command_info(cmd_log, command_info)
-    # Raise error if there was a non-zero exit code.
-    if proc.returncode:
-        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
-    return stdout, stderr
+    write_command_info(cmd_log, {**command_info, **attr.asdict(data)})
 
 
 def setup_logging(data, logger):
@@ -309,92 +318,95 @@ def pid_exists(pid, check_pgid=False):
         return True  # no error, we can send a signal to the process
 
 
-def __execute_cmd_args(
+def get_output_file_handles(stdout_log, stderr_log, merge_error_with_output):
+    # If requested merge stderr and stdout
+    stdout = open(stdout_log, "wb")
+    if merge_error_with_output:
+        stderr = stdout
+    else:
+        stderr = open(stderr_log, "wb")
+    return stdout, stderr
+
+
+async def watch(stream, logger, output_handle, prefix=""):
+    async for line in stream:
+        logger.debug(f"{prefix}{line.decode('utf-8').strip()}")
+        output_handle.write(line)
+
+
+async def __execute_cmd_args_asynchronous(
     cmd_args,
     logger,
-    error,
+    stdout_log,
+    stderr_log,
     workdir,
+    merge_error_with_output=True,
     cmd_environ=None,
     shell=False,
     timeout=None,
     name=None,
-    kill_backgrounded_processes=False,
 ):
-    if not cmd_environ:
-        cmd_environ = os.environ
+    stdout, stderr = get_output_file_handles(
+        stdout_log,
+        stderr_log,
+        merge_error_with_output,
+    )
+    cmd = " ".join(cmd_args)
+    p = await asyncio.create_subprocess_shell(
+        cmd,
+        env=cmd_environ,
+        stdout=PIPE,
+        stderr=PIPE,
+        cwd=workdir,
+    )
+    done, pending = await asyncio.wait(
+        (
+            watch(p.stdout, logger, stdout),
+            watch(p.stderr, logger, stderr, "E:"),
+        ),
+        timeout=timeout,
+    )
+    if not len(pending) == 0:
+        stdoutdir = "/".join([stdout_log.parent.name, stderr_log.name])
+        raise TimeoutError(f"stdout: {stdoutdir} in {stdout_log.parent.parent}")
 
-    output_blend = []
 
-    # Execute command
-    if not timeout:
-        proc = subprocess.run(
-            cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=error,
-            cwd=workdir,
-            env=cmd_environ,
-            shell=shell,
-        )
-        return proc, output_blend
-    else:
-        if shell == True:
-            raise ValueError(
-                "Using shell=True with timeout functionality (the default) "
-                "is not supported "
-            )
-
-        timed_out = False
-        bg_timed_out = False
-        start_time = time.time()
+def __execute_cmd_args(
+    cmd_args,
+    logger,
+    stdout_log,
+    stderr_log,
+    workdir,
+    merge_error_with_output=False,
+    cmd_environ=None,
+    shell=False,
+    timeout=None,
+    name=None,
+):
+    """
+    Synchronous command execution to help with debugging when odd behavior is
+    observed
+    """
+    stdout, stderr = get_output_file_handles(
+        stdout_log, stderr_log, merge_error_with_output
+    )
+    try:
         proc = subprocess.Popen(
             cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=error,
+            stdout=stdout,
+            stderr=stderr,
             cwd=workdir,
             env=cmd_environ,
             shell=False,
             preexec_fn=os.setsid,
         )
-        pgid = os.getpgid(proc.pid)
-        try:
-            proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
+        proc.communicate(timeout=timeout)
+    finally:
+        stdout.close()
+        if stderr is not stdout:
+            stderr.close()
 
-        # A small break for process cleanup
-        time.sleep(0.01)
-        # kill any straggling background process...
-        if pid_exists(pgid, check_pgid=True):
-            if kill_backgrounded_processes:
-                os.killpg(pgid, signal.SIGKILL)
-            else:
-                # loop lasts until end of timeout
-                while timeout - (time.time() - start_time) > 0:
-                    if not pid_exists(pgid, check_pgid=True):
-                        break
-                    time.sleep(1)
-
-                if pid_exists(pgid, check_pgid=True):
-                    os.killpg(pgid, signal.SIGKILL)
-                    bg_timed_out = True
-                    logger.warn(
-                        f"Straggler background process was found and killed... {cmd_args}"
-                    )
-
-        # get stdout and stderr
-        stdout = proc.stdout.readlines() if proc.stdout else []
-        stderr = proc.stderr.readlines() if proc.stderr else []
-        proc.stderr = b"".join(stderr) if stderr else None
-        proc.stdout = b"".join(stdout) if stdout else None
-
-        if timed_out or bg_timed_out:
-            logger.debug(
-                "ERROR: Processed timed out based on the 'timeout' "
-                f"value that was set for this test ({name})"
-            )
-            raise TimeoutError()
-
-    return proc, output_blend
+    return proc.returncode
 
 
 def run_cmd(
@@ -408,26 +420,28 @@ def run_cmd(
     x_execution_mode=None,
     timeout=30,
     shell=False,
-    kill_backgrounded_processes=False,
+    use_asynchronous_execution=True,
 ):
     """Run the provided command and check it's output. In conjunction with the data
     fixture this function handles the test output logging in a consistent way.
-
     Args:
         data: An object created by the data fixture that is used in test
         cmd (str): A string that requires execution and error checking.
         logger (logging.Logger, optional): Logger object to write to.
         add_env_vars (dict): Variable/value pairs with which to modify the
-        environment for the executed command
+        environment for the executed command.
         merge_error_with_output (bool, optional): Merge stdout and stderr.
         workdir (pathlib.Path or str): Working directory to execute the
         command. Should be the root directory for tests (default) unless
-        otherwise required
-        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on the physical display ('display') or without any management for graphics events (None)
-        x_timeout (int, optional): Number of seconds before graphics tests will timeout, useful for preventing hanging tests. Extend if it really does need lots of time!
-        timeout (int, optional): Timeout parameter in seconds for non graphics execution. Also consider setting force_run_instead_of_wait to True.
-        force_run_instead_of_wait (bool): By default all command are executed with Popen/wait. If this argument is set to True the command will instead be directly executed with subprocess.run. This might be needed when a command does not close its stdout/err pipes or has graphics windows it does not close etc.
-        functions.
+        otherwise required.
+        x_execution_mode (None or str, optional): Run with Xvfb ('xvfb'), on
+        the physical display ('display') or without any management for
+        graphics events (None)
+        timeout (int, optional): Timeout parameter in seconds.
+        shell (bool, optional): Kwarg subprocess execution.
+        use_asynchronous_execution (bool, optional): Setting this to fault may
+        aid debugging in certain circumstances, otherwise the default of True
+        enables superior execution behavior.
     """
 
     # Set working directory for command execution if not set explicitly
@@ -436,11 +450,6 @@ def run_cmd(
     if not add_env_vars:
         add_env_vars = {}
 
-    # If requested merge stderr and stdout
-    if merge_error_with_output:
-        error = subprocess.STDOUT
-    else:
-        error = subprocess.PIPE
     logger, cmd_log, stdout_log, stderr_log = setup_logging(data, logger)
 
     # Make substitutions in the command string  to remove unnecessary absolute
@@ -457,31 +466,54 @@ def run_cmd(
     # execute that
     if any(x in cmd for x in ("&", ";", "'", "`", ">")):
         script = tempfile.mktemp()
-        Path(script).write_text("#/bin/bash -exu\nset -o pipefail\n" + cmd)
+        Path(script).write_text(
+            "#/bin/bash -exu\nset -o pipefail\n" + cmd, encoding="utf-8"
+        )
         cmd_args = ["bash", script]
     else:
         cmd_args = shlex.split(cmd)
 
     cmd_environ = get_cmd_env(add_env_vars, python_interpreter)
+    log_command_info(data, cmd_args, logger, add_env_vars, workdir, cmd_log)
 
-    # create a callable that can be used in the appropriate context below:
+    # User can switch between synchronous and asynchronous execution.
+    # asynchronous is much more difficult to debug but has lots of desirable
+    # properties... output is in real-time, timeouts can be managed
+    # intelligently, sleeping processes don't cause issues (a proc.wait call
+    # waits forever so a proc.communicate call must be used... which kills
+    # the subprocess upon timeout)
+    if use_asynchronous_execution:
+        exec_func = __execute_cmd_args_asynchronous
+        loop = asyncio.get_event_loop()
+        # asyncio.set_event_loop(loop)
+    else:
+        exec_func = __execute_cmd_args
+        loop = None
+
+    # Using the execution pattern defined above make a partial function call.
+    # Setting this up here removes duplication; depending on the context
+    # (what virtual/physic display is used) the execution is then triggered below.
     cmd_callable = functools.partial(
-        __execute_cmd_args,
+        exec_func,
         cmd_args,
         logger,
-        error,
-        workdir,
+        stdout_log,
+        stderr_log,
+        merge_error_with_output=merge_error_with_output,
+        workdir=workdir,
         shell=shell,
         timeout=timeout,
         name=data.test_name,
-        kill_backgrounded_processes=kill_backgrounded_processes,
     )
-
     global DISPLAY
     if x_execution_mode is None:
         # Not testing a gui so no need for any display shenanigans
         logger.debug(f"cmd_args:{cmd_args}")
-        proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+        if use_asynchronous_execution:
+            returncode = loop.run_until_complete(cmd_callable(cmd_environ=cmd_environ))
+        else:
+            returncode = cmd_callable(cmd_environ=cmd_environ)
+        # proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
     elif x_execution_mode == "xvfb":
         try:
             # set a default display but another will be determined as required
@@ -493,7 +525,12 @@ def run_cmd(
             # Set the display variable for the execution environment and then
             # restore the original value
             logger.debug(f"cmd_args:{cmd_args}")
-            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
         finally:
             # Remove the lock file
             xvfb.stop()
@@ -504,24 +541,40 @@ def run_cmd(
             DISPLAY.acquire()
             logger.debug(f"Physical Display: {cmd_environ['DISPLAY']}")
             logger.debug(f"cmd_args:{cmd_args}")
-            proc, output_blend = cmd_callable(cmd_environ=cmd_environ)
+            if use_asynchronous_execution:
+                returncode = loop.run_until_complete(
+                    cmd_callable(cmd_environ=cmd_environ)
+                )
+            else:
+                returncode = cmd_callable(cmd_environ=cmd_environ)
         finally:
             DISPLAY.release()
     else:
-        raise ValueError(f"Unknow display mode {x_execution_mode}")
+        raise ValueError(f"Unknown display mode {x_execution_mode}")
 
-    stdout, stderr = check_and_log_command_execution(
-        proc, data, logger, add_env_vars, workdir, cmd_log, stdout_log, stderr_log
-    )
-    return stdout, stderr
+    # Raise error if there was a non-zero exit code.
+    if returncode:
+        raise ValueError(f"{cmd}\n Command returned a non-zero exit code.")
+
+    return stdout_log, stderr_log
 
 
 def write_command_info(path, cmd_info):
     out_dict = {}
+    try:
+        outdir = cmd_info["outdir"]
+        tests_data_dir = cmd_info["tests_data_dir"]
+        os.path.relpath(outdir, tests_data_dir)
+    except ValueError:
+        raise ValueError(
+            "output directory must have tests_data_dir as a "
+            f"parent... {outdir} is not in {tests_data_dir} "
+        )
+
     for k, v in cmd_info.items():
         v = str(v)
         out_dict[k] = v
-    Path(path).write_text(json.dumps(out_dict))
+    Path(path).write_text(json.dumps(out_dict, indent=0), encoding="utf-8")
 
 
 def get_equivalent_name(data, fname):
@@ -532,6 +585,118 @@ def get_equivalent_name(data, fname):
     if not equivalent_file.exists():
         raise FileNotFoundError
     return equivalent_file
+
+
+def _rewrite_paths_for_lines(txt, tests_data_dir, outdir, wdir, hostname, user):
+    # make paths in the test data directory relative in reference to the outdir.
+    rel_testdata = os.path.relpath(tests_data_dir, outdir)
+    txt = [x.replace(str(tests_data_dir), rel_testdata) for x in txt]
+    # replace output directories so that they look the same
+    fake_outdir = str(Path(rel_testdata) / "sample_test_output")
+    txt = [x.replace(str(outdir), fake_outdir) for x in txt]
+    # do same for relative outdir paths
+    rel_outdir = str(Path(outdir).relative_to(wdir))
+    if rel_outdir != ".":
+        txt = [x.replace(rel_outdir, fake_outdir) for x in txt]
+    # replace user and hostnames:
+    txt = [x.replace(hostname, "hostname") for x in txt]
+    txt = [x.replace(user, "user") for x in txt]
+
+    # make absolute references to workdir relative.
+    txt = [x.replace(wdir, ".") for x in txt]
+    return txt
+
+
+def get_rel_outdir(outdir, rootdirs):
+    for rootdir in rootdirs:
+        try:
+            reldir = Path(outdir).relative_to(rootdir)
+            return reldir
+        except ValueError:
+            continue
+    else:
+        raise ValueError(
+            "Cannot find a relative path for outdir because "
+            "it is not a child of the root directories "
+            f"provided: {rootdirs} "
+        )
+
+
+def rewrite_paths_for_line(txt, rootdirs, outdirs, replacements_dict):
+    """
+    This function attempts to rewrite paths in stdout and stderr logs so that
+    they appear to be the same regardless of context. For any given test if
+    executed with an instance of the OutputDiffer class it will have a
+    directory containing output files and log files in a captured_output
+    subdirectory. The path to this directory is rewritten to be relative to
+    the tests subdirectory of the afni git repository and "normalized" by
+    exchanging timestamped output directory names with a generic path
+    afni_ci_test_data/sample_test_output.
+
+    The tests directory in the AFNI source repository is considered the root
+    directory for the purposes of a stable comparison. Making all paths
+    relative to this is a starting point for removing differences across test
+    suite runs and hosts. The remaining path rewriting is an attempt to
+    "normalize" the paths that are relative to this root directory.
+
+    All input data for tests is contained in the afni_ci_tests_data
+    subdirectory but all other paths can change depending on the situation.
+    The working directory of the command execution is typically the tests
+    directory but can be modified to the output directory to test the tools
+    behavior in different working directories. The output directory for a test
+    run is output_of_tests/output_<timestamp>. The directory
+    containing output/sample data used for comparison might be in a previous
+    output directory, a previous sample output, or in the datalad repo at
+    afni_ci_test_data/sample_test_output.
+    """
+    for outdir, rootdir in zip(outdirs, rootdirs):
+        outdir = Path(outdir)
+        if outdir.is_absolute():
+            outdir = get_rel_outdir(outdir, rootdirs)
+
+        # Make all paths relative to the root directory (tests)
+        txt = txt.replace(f"{rootdir}/", "")
+
+        # change the varying portion of the path with the portion that makes
+        # it look like it is sample output in the tests data directory.
+        outdir_varying = os.path.sep.join(outdir.parts[:2])
+        outdir_normalized_base = f"afni_ci_test_data{os.path.sep}sample_test_output"
+        normalized_outdir = str(outdir).replace(outdir_varying, outdir_normalized_base)
+        txt = txt.replace(str(outdir), normalized_outdir)
+
+    for k, v in replacements_dict.items():
+        if k != "":
+            txt.replace(k, v)
+
+    return txt
+
+
+def get_command_info_dicts(data, create_sample_output):
+    cmd_info = get_command_info(data.outdir)
+    if not create_sample_output:
+        cmd_info_orig = get_command_info(data.comparison_dir)
+        wdir = cmd_info["workdir"]
+        wdir_orig = cmd_info_orig["workdir"]
+        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
+            raise ValueError(
+                "Comparison with previous test output cannot be performed "
+                "if a different working directory was used. "
+            )
+    else:
+        # return an empty string for all values in the dictionary
+        cmd_info_orig = defaultdict(lambda: "")
+    return cmd_info, cmd_info_orig
+
+
+def check_txt_has_no_problem_outdirs(txt, current_outdirs):
+    # filter out empty elements
+    output_dir_strings = set(re.findall("output_of_tests/([^/]*)/", " ".join(txt)))
+    for d in output_dir_strings:
+        if not any(d in outdir for outdir in current_outdirs):
+            raise ValueError(
+                f"{d} was found in stdout or stderr. This should "
+                f"not occur (it is not one of {current_outdirs}) "
+            )
 
 
 def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False):
@@ -556,44 +721,29 @@ def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False)
     Raises:
         ValueError: Description
     """
-    cmd_info = get_command_info(data.outdir)
-    wdir = cmd_info["workdir"]
-    if not create_sample_output:
-        cmd_info_orig = get_command_info(data.comparison_dir)
-        wdir_orig = cmd_info_orig["workdir"]
-        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
-            raise ValueError(
-                "Comparison with previous test output cannot be performed "
-                "if a different working directory was used. "
-            )
+
+    cmd_info, cmd_info_orig = get_command_info_dicts(data, create_sample_output)
 
     outlist = []
     for txt in text_list:
-        # make paths in the test data directory relative in reference to the outdir.
-        rel_testdata = os.path.relpath(data.tests_data_dir, data.outdir)
-        txt = [x.replace(str(data.tests_data_dir), rel_testdata) for x in txt]
-
-        # replace output directories so that they look the same
-        fake_outdir = str(Path(rel_testdata) / "sample_test_output")
-        txt = [x.replace(str(data.outdir), fake_outdir) for x in txt]
-        txt = [x.replace(str(data.outdir.relative_to(wdir)), fake_outdir) for x in txt]
-        # replace user and hostnames:
-        txt = [x.replace(cmd_info["host"], "hostname") for x in txt]
-        txt = [x.replace(cmd_info["user"], "user") for x in txt]
-        # make absolute references to workdir relative.
-        txt = [x.replace(wdir, ".") for x in txt]
-
-        # Do the same for previous files being compared against:
-        if not create_sample_output:
-            rel_orig = str(Path(cmd_info_orig["outdir"]).relative_to(wdir_orig))
-            txt = [x.replace(cmd_info_orig["outdir"], fake_outdir) for x in txt]
-            txt = [x.replace(wdir_orig, ".") for x in txt]
-            txt = [x.replace(rel_orig, fake_outdir) for x in txt]
-            # replace user and hostnames:
-            txt = [x.replace(cmd_info_orig["host"], "hostname") for x in txt]
-            txt = [x.replace(cmd_info_orig["user"], "user") for x in txt]
-
-        outlist.append(txt)
+        check_txt_has_no_problem_outdirs(
+            txt, [cmd_info["outdir"], cmd_info_orig["outdir"]]
+        )
+        out_txt = []
+        for line in txt:
+            modified_line = rewrite_paths_for_line(
+                line,
+                [cmd_info["rootdir"], cmd_info_orig["rootdir"]],
+                [data.outdir, cmd_info_orig["outdir"]],
+                replacements_dict={
+                    cmd_info["host"]: "hostname",
+                    cmd_info_orig["host"]: "hostname",
+                    cmd_info["user"]: "username",
+                    cmd_info_orig["user"]: "username",
+                },
+            )
+            out_txt.append(modified_line)
+        outlist.append(out_txt)
 
     return outlist
 
@@ -675,6 +825,16 @@ class OutputDiffer:
         self.add_env_vars = add_env_vars or {}
         self.merge_error_with_output = merge_error_with_output
         self.workdir = workdir
+        try:
+            # If this raises an error then the workdir is outside the tests
+            # subdirectory which is not supported
+            if workdir is not None:
+                Path(workdir).relative_to(data.rootdir)
+        except ValueError:
+            raise ValueError(
+                f"The workdir ({workdir}) for a test must be within {data.rootdir}."
+            )
+
         self.python_interpreter = python_interpreter
         self.executed = False
 
@@ -791,7 +951,7 @@ class OutputDiffer:
                     self.assert_1dfiles_equal([fname])
                 elif fname.suffix == ".log":
                     # compare stdout and stderr logs
-                    if fname.name.endswith("_cmd.log"):
+                    if re.findall("(cmd(_[0-9]*)?.log)", str(fname)):
                         # command log diff is expected but ignored. The file
                         # should be included in sample output when created as
                         # it is used to determine the working directory for
@@ -989,7 +1149,7 @@ class OutputDiffer:
 
         need_data = any(p.is_symlink() and not p.exists() for p in cmpr_files)
         if need_data:
-            dl_dset.get(str(cmpr_path))
+            dm.try_data_download([cmpr_path], dl_dset.path, self.data.logger)
 
     @property
     def data(self):

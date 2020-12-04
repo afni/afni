@@ -19,7 +19,7 @@ from afni_test_utils import misc, tools
 from afni_test_utils.tools import get_current_test_name
 
 DATA_FETCH_LOCK_PATH = Path(tempfile.gettempdir()) / "afni_tests_data.lock"
-dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=120)
+dl_lock = FileLock(DATA_FETCH_LOCK_PATH, timeout=300)
 
 
 def get_test_data_path(config_obj):
@@ -29,23 +29,6 @@ def get_test_data_path(config_obj):
         return Path(config_obj.config.rootdir) / "afni_ci_test_data"
     else:
         raise ValueError("A pytest config object was expected")
-
-
-def test_get_tests_data_dir(monkeypatch):
-
-    tmpdir = Path(tempfile.mkdtemp())
-    config_obj = Mock(**{"rootdir": tmpdir})
-    mocked_install = Mock()
-
-    # should not fail if submodule in initialized
-    (tmpdir / "afni_ci_test_data").mkdir()
-    get_tests_data_dir(config_obj)
-
-    monkeypatch.setattr(datalad, "install", mocked_install)
-    # Empty directory should install the data
-    tmpdir = tempfile.mkdtemp()
-    get_tests_data_dir(config_obj)
-    mocked_install.assert_called_once()
 
 
 def get_tests_data_dir(config_obj):
@@ -69,6 +52,7 @@ def get_tests_data_dir(config_obj):
                 # missing symlink, nothing to worry about
                 pass
         logger.warn("Not sure about test data, perhaps you should try removing...")
+        raise ValueError("Not sure about test data, perhaps you should try removing...")
         # shutil.rmtree(dl_dset.pathobj)
 
     # datalad is required and the datalad repository is used for data.
@@ -76,13 +60,14 @@ def get_tests_data_dir(config_obj):
         try:
             global dl_lock
             dl_lock.acquire()
-            logger.warn("Installing test data")
-            datalad.install(
-                str(tests_data_dir),
-                "https://github.com/afni/afni_ci_test_data.git",
-                recursive=True,
-                on_failure="stop",
-            )
+            if not (tests_data_dir / ".datalad").exists():
+                logger.warn("Installing test data")
+                datalad.install(
+                    str(tests_data_dir),
+                    "https://github.com/afni/afni_ci_test_data.git",
+                    recursive=True,
+                    on_failure="stop",
+                )
         finally:
             dl_lock.release()
     # Needs to be user writeable:
@@ -125,9 +110,9 @@ def get_base_comparison_dir_path(config_obj):
     """If the user does not provide a comparison directory a default in the
     test data directory is used. The user can specify a directory containing
     the output of a previous test run or the "sample" output that is created
-    by a previous test run when the "--create_sample_output" flag was provided.
+    by a previous test run when the "--create-sample-output" flag was provided.
     """
-    comparison_dir = config_obj.getoption("--diff_with_outdir")
+    comparison_dir = config_obj.getoption("--diff-with-sample")
     if comparison_dir is not None:
         return Path(comparison_dir).absolute()
     else:
@@ -153,6 +138,12 @@ def get_data_fixture(pytestconfig, request, output_dir):
     test_name = get_current_test_name()
     tests_data_dir = get_test_data_path(pytestconfig)
 
+    current_test_module = Path(request.module.__file__)
+    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
+    test_logdir = module_outdir / get_current_test_name() / "captured_output"
+    if not test_logdir.exists():
+        os.makedirs(test_logdir, exist_ok=True)
+
     # Add stream and file logging as requested
     logger = logging.getLogger(test_name)
     logger = tools.logger_config(
@@ -170,12 +161,6 @@ def get_data_fixture(pytestconfig, request, output_dir):
     out_dict = {
         k: process_path_obj(v, tests_data_dir, logger) for k, v in data_paths.items()
     }
-
-    current_test_module = Path(request.module.__file__)
-    module_outdir = output_dir / current_test_module.stem.replace("test_", "")
-    test_logdir = module_outdir / get_current_test_name() / "captured_output"
-    if not test_logdir.exists():
-        os.makedirs(test_logdir, exist_ok=True)
 
     # This will be created as required later
     sampdir = convert_to_sample_dir_path(test_logdir.parent)
@@ -200,8 +185,8 @@ def get_data_fixture(pytestconfig, request, output_dir):
             "tests_data_dir": tests_data_dir,
             "test_name": test_name,
             "rootdir": pytestconfig.rootdir,
-            "create_sample_output": pytestconfig.getoption("--create_sample_output"),
-            "save_sample_output": pytestconfig.getoption("--save_sample_output"),
+            "create_sample_output": pytestconfig.getoption("--create-sample-output"),
+            "save_sample_output": pytestconfig.getoption("--save-sample-output"),
         }
     )
 
@@ -356,7 +341,7 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
                 f"Datalad download failed {attempt_count} times, you may "
                 "not be connected to the internet "
             )
-    logger.info(f"Downloaded data for {test_data_dir}")
+        logger.info(f"Downloaded data for {test_data_dir}")
     path_obj = [test_data_dir / p for p in path_obj]
     if len(path_obj) == 1:
         return path_obj[0]
@@ -365,8 +350,8 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
 
 
 def try_data_download(file_fetch_list, test_data_dir, logger):
-    global dl_lock
     try:
+        global dl_lock
         dl_lock.acquire(poll_intervall=1)
         dl_dset = datalad.Dataset(str(test_data_dir))
         # Fetching the data

@@ -124,6 +124,10 @@ float *mri_setup_taper( int nx , float taper )
      for( qq=1; qq<(nn); qq+=2 ){ cbig[qq].r=-cbig[qq].r; cbig[qq].i=-cbig[qq].i; } \
  } while(0)
 
+/*******
+   Note that thd_ballcorr.c has OpenMP compatible versions of these
+   3D FFT functions, which could make your life better (or at least faster).
+********/
 /*----------------------------------------------------------------------------*/
 /* FFT lengths are in Lxx, Lyy, Lzz; however,
      Lxx = 0 ==> no FFT in that direction (etc.).

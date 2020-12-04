@@ -103,7 +103,7 @@ def test_3dDWItoDT(data, ptaylor_env):
     cmd = " ".join(cmd.split())
 
     differ = tools.OutputDiffer(data, cmd, kwargs_scans={"data_kwargs": {"rtol": 0.01}})
-    differ.run()
+    differ.run(timeout=90)
 
 
 # -------------------------------------------------------------------------
@@ -263,7 +263,7 @@ def test_3dTrackID_DET(data, ptaylor_env):
     cmd = " ".join(cmd.split())
 
     differ = tools.OutputDiffer(data, cmd)
-    differ.run()
+    differ.run(timeout=60)
 
 
 @pytest.mark.veryslow
@@ -298,7 +298,7 @@ def test_3dTrackID_PROB(data, ptaylor_env):
     cmd = " ".join(cmd.split())
 
     differ = tools.OutputDiffer(data, cmd)
-    differ.run()
+    differ.run(timeout=90)
 
 
 # -------------------------------------------------------------------------
@@ -321,7 +321,7 @@ def test_3dNetCorr(data, ptaylor_env):
     """
     cmd = " ".join(cmd.split())
     differ = tools.OutputDiffer(data, cmd)
-    differ.run()
+    differ.run(timeout=60)
 
 
 # -------------------------------------------------------------------------

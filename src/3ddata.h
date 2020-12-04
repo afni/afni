@@ -1634,6 +1634,11 @@ static mat33 tempZ_mat33 ;
 
 extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
+/* function to return rotation matrix of angle
+   theta (radians) about unit vector (ax,ay,az) [05 Nov 2020] */
+
+extern mat33 THD_mat33_generic_rotation( float theta, float ax, float ay, float az ) ;
+
 typedef struct {  /* holds a matrix plus 3D grid dimensions */
   mat44 mat ;
   int nx,ny,nz ;
@@ -1883,6 +1888,12 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
 #undef  LOAD_ZERO_MAT33
 #define LOAD_ZERO_MAT33(AA) LOAD_MAT33(AA,0,0,0,0,0,0,0,0,0)
 
+/* fill a mat33 with the identity matrix */
+
+#undef  LOAD_IDENT_MAT33
+#define LOAD_IDENT_MAT33(AA)               \
+  LOAD_MAT33( AA , 1,0,0, 0,1,0 , 0,0,1 )
+
 /* copy the upper left corner of a mat44 struct into a mat33 struct */
 
 #undef  MAT44_TO_MAT33
@@ -1963,7 +1974,6 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
   SS, AA.m[0][0], AA.m[0][1], AA.m[0][2],              \
       AA.m[1][0], AA.m[1][1], AA.m[1][2],              \
       AA.m[2][0], AA.m[2][1], AA.m[2][2] )
-
 
 #undef  DUMP_MAT44_ONELINE
 #define DUMP_MAT44_ONELINE(AA)                         \
@@ -5423,6 +5433,7 @@ extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 extern void   THD_automask_verbose( int ) ;                /* 28 Oct 2003 */
 extern void   THD_automask_extclip( int ) ;
+extern void   THD_automask_set_onlypos( int ) ;            /* 09 Nov 2020 */
 extern byte * mri_automask_image( MRI_IMAGE * ) ;          /* 05 Mar 2003 */
 extern byte * mri_automask_imarr( MRI_IMARR * ) ;          /* 18 Nov 2004 */
 extern int    mask_intersect_count( int, byte *, byte * ); /* 30 Mar 2009 */
@@ -5485,6 +5496,7 @@ extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_aveabs_brick( THD_3dim_dataset * ) ;  /* 11 May 2009 */
 extern MRI_IMAGE * THD_maxabs_brick( THD_3dim_dataset * ) ;  /* 08 Jan 2019 */
+extern MRI_IMAGE * THD_avepos_brick( THD_3dim_dataset * ) ;  /* 09 Nov 2020 */
 
 extern MRI_IMARR * THD_medmad_bricks   (THD_3dim_dataset *); /* 07 Dec 2006 */
 extern MRI_IMARR * THD_meansigma_bricks(THD_3dim_dataset *); /* 07 Dec 2006 */

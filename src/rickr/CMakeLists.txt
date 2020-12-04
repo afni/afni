@@ -1,5 +1,5 @@
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   add_afni_executable(file_tool ../ge4_header.c fields.c file_tool.c)
   target_link_libraries(file_tool 
     PRIVATE libheaders
