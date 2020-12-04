@@ -339,6 +339,27 @@ float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
 
 }
 
+// [PT: Nov 3, 2020] This program exists because most orientation info
+// in 3ddata is RLPAIS-ordered, while the extents are RLAPIS-ordered
+float THD_dset_extent_rlpais(THD_3dim_dataset *dset, char ret, 
+                                float *RL_PA_IS)
+{
+   float out;
+   float s2, s3;
+
+   ENTRY("THD_dset_extent_rlpais") ;
+
+   out = THD_dset_extent(dset, ret, RL_PA_IS);
+
+   // switch this pairing, so we are *actually* RLPAIS
+   s2 = RL_PA_IS[2];
+   s3 = RL_PA_IS[3];
+   RL_PA_IS[2] = s3;
+   RL_PA_IS[3] = s2;
+
+   return out;
+}
+
 char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;

@@ -37,6 +37,20 @@ int THD_fill_orient_str_3( THD_dataxes * daxes, char ostr[4] )
 
    return 0;
 }
+/*
+  Fill oint with 3 int orient code in RLPAIS encoding (e.g., 'LPI'
+  leads to [1, 2, 4]
+*/
+int THD_fill_orient_int_3_rlpais( THD_dataxes * daxes, int oint[3] )
+{
+   if ( ! daxes || ! oint ) return 1;
+
+   oint[0] = daxes->xxorient;
+   oint[1] = daxes->yyorient;
+   oint[2] = daxes->zzorient;
+
+   return 0;
+}
 /* fill ostr with the 6 letter orient code (e.g. LRPAIS) given integer codes
  *    - null terminate ostr (so there must be space for 7 bytes)
  *    - the ^1 is to toggle between 0/1, 2/3, 4/5
