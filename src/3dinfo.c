@@ -78,26 +78,6 @@ int Syntax(TFORM targ, int detail)
 "   -obliquity: Angle from plumb direction.\n"
 "               Angles of 0 (or close) are for cardinal orientations\n"
 "\n"
-"   -aform_real: Display full 4x3 'aform_real' matrix (AFNI's RAI equivalent\n"
-"                of the sform matrix in NIFTI, may contain obliquity info),\n"
-"                with comment line first.\n"
-"   -aform_real_oneline: Display full 'aform_real' matrix (see '-aform_real')\n"
-"                        as 1 row of 12 numbers. No additional comment.\n"
-"   -aform_real_ori_refit XXX: Display full 4x3 'aform_real' matrix (see \n"
-"                        '-aform_real')\n"
-"                        *if* the dset were reoriented (via 3drefit) to\n"
-"                        new orient XXX.  Includes comment line first.\n"
-"   -is_aform_real_orth: if true, aform_real == aform_orth, which will be\n"
-"                        a very common occurrence.\n"
-"   -aform_orth: Display full 4x3 'aform_orth' matrix (AFNI's RAI matrix\n"
-"                equivalent of the NIFTI quaternion, which may contain\n"
-"                obliquity info), with comment line first.\n"
-"                This matrix is the orthogonalized form of aform_real,\n"
-"                and veeery often AFNI-produced dsets, we will have:\n"
-"                aform_orth == aform_real.\n"
-"  -perm_to_orient YYY: Display 3x3 permutation matrix to go from the\n"
-"                       dset's current orientation to the YYY orient.\n"
-"\n"
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
 "   -ni: Return the number of voxels in i dimension\n"
@@ -181,6 +161,69 @@ int Syntax(TFORM targ, int detail)
 "                    applicable. Default is \"NA\"\n"
 "   -atr_delim ATR_DELIM: Delimiter string between attributes\n"
 "                         Default ATR_DELIM is the tab character.\n"
+"\n"
+"  ==============================================================\n"
+"  Options for displaying ijk_to_xyz matrices ~2~\n"
+"  ==============================================================\n"
+"   A set of functions for displaying the matrices that tell us where\n"
+"   the data actually is in space!  These 4x4---well 3x4, in practice,\n"
+"   because the bottom row of the matrix *must* be (0, 0, 0, 1)---\n"
+"   can be related to the NIFTI sform and qform matrices (which are LPI\n"
+"   native), but these aform_* matrices are RAI (DICOM) native.\n"
+""
+"   There are several types of matrices. Linear affine are the most general\n"
+"   (containing translation, rotation, shear and scaling info), followed by\n"
+"   orthogonal (no shear info; only translation, rotation and scale),\n"
+"   followed by cardinal (no rotation info; only translation and scale).\n"
+"   The 'scale' info is the voxel sizes. The 'translation' determines the\n"
+"   origin location in space.  The 'rotation' describes a, well, rotation\n"
+"   relative to the scanner coords---this is the dreaded 'obliquity'. The\n"
+"   'shear'... well, that could also be present, but it is not common, at\n"
+"   least to describe just-acquired data: it would tilt the axes away from\n"
+"   being mutually 90 deg to each other (i.e., they wouldn't be\n"
+"   orthogonal); this would likely just result from an alignment process.\n"
+""
+"   Note: the NIFTI sform can be linear affine, in general; in practice, it\n"
+"   is often just orthogonal.  The NIFTI qform is a quaternion representation\n"
+"   of the orthogonalized sform; if sform is orthogonal, then they contain\n"
+"   the same information (common, but not required).\n"
+""
+"   The aform_real matrix is AFNI's equivalent of the NIFTI sform; it *can*\n"
+"   encode general linear affine mappings. (In practice, it rarely does so.)\n"
+"   The aform_orth is the orthogonalized aform_real, and thus equivalent\n"
+"   to the NIFTI qform.  If aform_real is orthogonal (no shear info), then\n"
+"   these two matrices are equal.  The aform_card is the cardinalized form of\n"
+"   the aform_orth;  NIFTI does not have an equivalent.  AFNI typically uses\n"
+"   this matrix to display your data on a rectangle that is parallel to your\n"
+"   computer screen, without any need to regrid/resample the data (hence, no\n"
+"   blurring introduced).  This can be though of displaying your dataset in\n"
+"   a way that you *wish* your subject had been oriented.  Note that if\n"
+"   there is no obliquity in the acquired data (that is, aform_orth does not\n"
+"   contain any rotation relative to the scanner coords), then\n"
+"    aform_card == aform_orth.\n"
+""
+"   The aform_card is an AFNI convenience (ha!) matrix, it does not have an\n"
+"   equivalent in the NIFTI stable of matrices.\n"
+""
+"   -aform_real: Display full 3x4 'aform_real' matrix (AFNI's RAI equivalent\n"
+"                of the sform matrix in NIFTI, may contain obliquity info),\n"
+"                with comment line first.\n"
+"   -aform_real_oneline: Display full 'aform_real' matrix (see '-aform_real')\n"
+"                        as 1 row of 12 numbers. No additional comment.\n"
+"   -aform_real_refit_ori XXX: Display full 3x4 'aform_real' matrix (see \n"
+"                        '-aform_real')\n"
+"                        *if* the dset were reoriented (via 3drefit) to\n"
+"                        new orient XXX.  Includes comment line first.\n"
+"   -is_aform_real_orth: if true, aform_real == aform_orth, which should be\n"
+"                        a very common occurrence.\n"
+"   -aform_orth: Display full 3x4 'aform_orth' matrix (AFNI's RAI matrix\n"
+"                equivalent of the NIFTI quaternion, which may contain\n"
+"                obliquity info), with comment line first.\n"
+"                This matrix is the orthogonalized form of aform_real,\n"
+"                and veeery often AFNI-produced dsets, we will have:\n"
+"                aform_orth == aform_real.\n"
+"  -perm_to_orient YYY: Display 3x3 permutation matrix to go from the\n"
+"                       dset's current orientation to the YYY orient.\n"
 "\n"
 "  ==============================================================\n"
 "  Options requiring dataset pairing at input ~2~\n"
@@ -267,7 +310,7 @@ typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, 
-   AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_ORI_REFIT, // [PT: Nov 13, 2020]
+   AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REFIT_ORI, // [PT: Nov 13, 2020]
    IS_AFORM_REAL_ORTH,
    AFORM_ORTH,                                          // [PT: Nov 14, 2020]
    PERM_TO_ORIENT,                                      // [PT: Nov 23, 2020]
@@ -459,12 +502,12 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = AFORM_REAL; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-aform_real_oneline") == 0) {
          sing[N_sing++] = AFORM_REAL_ONELINE; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-aform_real_ori_refit") == 0) {
+      } else if( strcasecmp(argv[iarg],"-aform_real_refit_ori") == 0) {
          iarg++;
          if (iarg >= argc)
-           ERROR_exit( "3dinfo needs a string after -aform_real_ori_refit\n");
+           ERROR_exit( "3dinfo needs a string after -aform_real_refit_ori\n");
          ocharB_aform_real = argv[iarg];
-         sing[N_sing++] = AFORM_REAL_ORI_REFIT; iarg++; continue;
+         sing[N_sing++] = AFORM_REAL_REFIT_ORI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_aform_real_orth") == 0) {
          sing[N_sing++] = IS_AFORM_REAL_ORTH; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-aform_orth") == 0) {
@@ -883,7 +926,7 @@ int main( int argc , char *argv[] )
          case AFORM_REAL_ONELINE:
             DUMP_MAT44_ONELINE(dset->daxes->ijk_to_dicom_real);
             break;
-         case AFORM_REAL_ORI_REFIT:
+         case AFORM_REAL_REFIT_ORI:
             {
                char ostr[4];
                // the work: 
