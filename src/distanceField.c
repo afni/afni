@@ -335,9 +335,16 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
     float yDim = fabs(DSET_DY(din));
     float zDim = fabs(DSET_DZ(din));
 
+    /*
     zDim=yDim/zDim;
     xDim=yDim/xDim;
     yDim=1.0f;
+    */
+    zDim=1.0/zDim;
+    xDim=1.0/xDim;
+    yDim=1.0f/yDim;
+    float yDimSqrd = yDim*yDim;
+    float zDimSqrd = zDim*zDim;
 
     if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
 
@@ -367,7 +374,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 			for (int y = 0; y < ny; y++ ) {
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[zo+xo+y] = (*outImg)[vo];
+					img3D[zo+xo+y] = (*outImg)[vo]*yDimSqrd;
 					vo += 1;
 					xo += ny;
 				}
@@ -405,7 +412,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					img3D[z+xo+yo] = (*outImg)[vo]*zDim*zDim;
+					img3D[z+xo+yo] = (*outImg)[vo]*zDimSqrd;
 					vo += 1;
 					xo += nz;
 				}
@@ -423,7 +430,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 				int yo = y * nz * nx;
 				int xo = 0;
 				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[z+xo+yo]*zDim*zDim;
+					(*outImg)[vo] = img3D[z+xo+yo];
 					vo += 1;
 					xo += nz;
 				} //x
@@ -597,6 +604,8 @@ static flt vx(flt * f, int p, int q) {
 }
 
 void edt_local(float scale, flt * f, int n) {
+    float scaleSqrd = scale*scale;
+
 	int q, p, k;
 	flt s, dx;
 	flt * d = (flt *)calloc((n)*sizeof(flt), 64);
@@ -640,8 +649,9 @@ void edt_local(float scale, flt * f, int n) {
     for (q = 0; q < n; q++ ) {
 	    while (z[k + 1] < q)
             k = k + 1;
-        dx = (q - v[k]);    // DO NOT CHANGE
-        d[q] = (dx * dx + f[v[k]])/(scale*scale);
+        dx = (q - v[k])/scale;
+        // d[q] = dx * dx + f[v[k]];
+        d[q] = dx * dx + f[v[k]]/scaleSqrd;
     }
     for (q = 0; q < n; q++ )
 		f[q] = d[q];
