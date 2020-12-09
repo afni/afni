@@ -1424,6 +1424,25 @@ static int  ORIENT_xyzint[] = { 1,1 , 2,2 , 3,3 , 666 } ;
 #define ORIENT_OPPOSITE(orc) \
   ( ((orc) % 2 == 0) ? ((orc)+1) : ((orc)-1) )
 
+/*---------------------------------------------------*/
+/*  Note the NIFTI codes for orientation are different:
+    #define NIFTI_L2R  1
+    #define NIFTI_R2L  2
+    #define NIFTI_P2A  3
+    #define NIFTI_A2P  4
+    #define NIFTI_I2S  5
+    #define NIFTI_S2I  6
+*//*-------------------------------------------------*/
+
+static int Orient_From_Nifti[] = { ORI_L2R_TYPE, ORI_R2L_TYPE,
+                                   ORI_P2A_TYPE, ORI_A2P_TYPE,
+                                   ORI_I2S_TYPE, ORI_S2I_TYPE } ;
+
+/* macro to convert NIFTI orient code to AFNI */
+
+#define ORIENT_FROM_NIFTI(nc) \
+  ( ( (nc) > 0 && (nc) < 7 ) ? Orient_From_Nifti[(nc)-1] : -1 )
+
 /*! Struct to hold information about 3D brick grid in space.
     Voxel center x[i] is at xxorg + i * xxdel, et cetera.
 */
@@ -1459,11 +1478,18 @@ typedef struct {
       /*** 06 Dec 2005: extensions to allow arbitrarily oriented volumes [cf thd_matdaxes.c] ***/
 
       mat44 ijk_to_dicom ;  /* matrix taking ijk indexes to DICOM xyz coords */
+                            /* This matrix will be 'parallel' to DICOM, unlike _real */
       mat44 dicom_to_ijk ;  /* inverse of above */
       float dicom_xxmin , dicom_yymin , dicom_zzmin ;
       float dicom_xxmax , dicom_yymax , dicom_zzmax ;
+
       /*** 18 May 2007: obliquity */
-      mat44 ijk_to_dicom_real ;  /* matrix to convert ijk to DICOM for obliquity*/
+      /***  _real has orthogonal columns
+            _orig is what was read from the dataset
+            These matrices may be equal
+            AFNI uses _real and _orig is just for completeness ***/
+      mat44 ijk_to_dicom_real ;  /* matrix to convert ijk to DICOM for obliquity */
+      mat44 ijk_to_dicom_orig ;  /* original of the above matrix [03 Dec 2020]   */
    /* pointers to other stuff */
 
       RwcPointer parent ;    /*!< Dataset that "owns" this struct */
@@ -1908,6 +1934,13 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
    LOAD_MAT44(BB,AA.m[0][0],AA.m[0][1],AA.m[0][2],0.0f,  \
                  AA.m[1][0],AA.m[1][1],AA.m[1][2],0.0f,  \
                  AA.m[2][0],AA.m[2][1],AA.m[2][2],0.0f )
+
+#undef  THDMAT33_TO_MAT44
+#define THDMAT33_TO_MAT44(AA,BB)                               \
+   LOAD_MAT44(BB,AA.mat[0][0],AA.mat[0][1],AA.mat[0][2],0.0f,  \
+                 AA.mat[1][0],AA.mat[1][1],AA.mat[1][2],0.0f,  \
+                 AA.mat[2][0],AA.mat[2][1],AA.mat[2][2],0.0f )
+
 
 /* cf. vecmat.h */
 

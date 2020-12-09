@@ -8181,15 +8181,19 @@ ENTRY("AFNI_hidden_CB") ;
    /*------ Faces!  [17 Dec 2004] -----*/
 
    else if( w == im3d->vwid->prog->hidden_faces_pb && w != NULL ){
-
      AFNI_faceup() ;
    }
 
    /*------ Splashes!  [12 Sep 2007] -----*/
 
    else if( w == im3d->vwid->prog->hidden_splashes_pb && w != NULL ){
-
      AFNI_allsplash() ;
+   }
+
+   /*------ Random FunPic  [07 Dc 2020] ------*/
+
+   else if( w == im3d->vwid->prog->hidden_ranfunpic_pb && w != NULL ){
+     AFNI_ranfunpic() ;
    }
 
    /*------ Browser [22 Apr 2005] -----*/

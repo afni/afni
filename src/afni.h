@@ -960,6 +960,7 @@ typedef struct {
    Widget hidden_gamberi_pb ;  /* 14 Oct 2003 */
    Widget hidden_hbmjust_pb ;  /* 05 Jun 2013 */
    Widget hidden_ranpoem_pb ;  /* 15 Oct 2003 */
+   Widget hidden_ranfunpic_pb ;  /* 07 Dec 2020 */
    Widget hidden_speech_pb  ;  /* 25 Nov 2003 */
    Widget hidden_faces_pb   ;  /* 17 Dec 2004 */
    Widget hidden_browser_pb ;  /* 22 Apr 2005 */
@@ -1833,6 +1834,7 @@ extern void AFNI_splashdown (void) ;
 extern void AFNI_splashraise(void) ;  /* 25 Sep 2000 */
 extern void AFNI_faceup     (void) ;  /* 17 Dec 2004 */
 extern void AFNI_allsplash  (void) ;  /* 12 Sep 2007 */
+extern void AFNI_ranfunpic  (void) ;  /* 07 Dec 2020 */
 extern int  AFNI_splash_isopen(void); /* 10 Nov 2005 */
 extern void AFNI_broutim_CB (Widget,XtPointer,XtPointer) ; /* 06 Jun 2005 */
 extern void AFNI_broutext_CB(Widget,XtPointer,XtPointer) ; /* 21 Dec 2005 */

@@ -134,6 +134,10 @@ static char **fname_face   = NULL ;
 static int    index_splash = -1 ;   /* 13 Sep 2007 */
 static int    delta_splash =  1 ;
 
+static int    num_funpic   =  0 ;   /* 07 Dec 2020 */
+static char **fname_funpic = NULL ;
+static void  *funpic_phan  = NULL ;
+
 /*----------------------------------------------------------------------------*/
 /* Change the images in the splash window [13 Sep 2007] */
 
@@ -844,6 +848,29 @@ ENTRY("AFNI_faceup") ;
    }
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void AFNI_ranfunpic(void)  /* 07 Dec 2020 */
+{
+   MRI_IMAGE *imfun ; static int jold=0 , dj=0 ;
+
+ENTRY("AFNI_ranfunpic") ;
+
+   if( num_funpic <  0 ){ BEEPIT; WARNING_message("no funpics!?"); EXRETURN; }
+   if( num_funpic == 0 ){
+     num_funpic = AFNI_find_jpegs( "FunPics/funpic-" , &fname_funpic ) ;
+     if( num_funpic <= 0 ){ BEEPIT; WARNING_message("no funpics?!"); EXRETURN; }
+   }
+
+   if( jold == 0 ) dj = AFNI_find_relprime_random(num_funpic) ;
+   jold = ( jold+dj ) % num_funpic ;
+   imfun = mri_read_stuff( fname_funpic[jold] ) ;
+   if( imfun == NULL ) EXRETURN ;
+
+   funpic_phan = PLUTO_popup_image( funpic_phan , imfun ) ;
+   mri_free(imfun) ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1803,14 +1830,14 @@ ENTRY("AFNI_finalsave_layout_CB") ;
         else
           fprintf(gp,"SET_FUNC_RANGE %c.%f\n" , abet[cc] ,
                   zm3d->vwid->func->range_av->fval        ) ;
-        
+
         #if 0 /* Do we need this here ? */
         if( zm3d->cont_perc_thr )  /* ZSS April 27 2012 */
           fprintf(gp,"SET_FUNC_PERCENTILE %c.+\n" , abet[cc] ) ;
         else
           fprintf(gp,"SET_FUNC_PERCENTILE %c.-\n" , abet[cc] ) ;
         #endif
-         
+
         if( ISVALID_DSET(zm3d->anat_now) ){          /* 27 Dec 2006 */
           char *pp = DSET_PREFIX(zm3d->anat_now) ;
           if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(zm3d->anat_now);

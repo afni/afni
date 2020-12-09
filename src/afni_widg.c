@@ -6122,6 +6122,19 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
+      prog->hidden_ranfunpic_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Random FunPic") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_ranfunpic_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+
+      /*----------*/
+
 #if !defined(NO_FRIVOLITIES)
       prog->hidden_faces_pb =
             XtVaCreateManagedWidget(
