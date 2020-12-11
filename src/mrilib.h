@@ -4,6 +4,16 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
+#include "debugtrace.h"  /* 26 Jan 2001 addition */
+#include "Amalloc.h"     /* 09 Dec 2003 addition */
+#include "Aomp.h"
+#include "mcw_malloc.h"
+
 #ifndef _MCW_MRILIB_HEADER_
 #define _MCW_MRILIB_HEADER_
 
@@ -35,9 +45,50 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 # define RESTRICT /*nada*/
 #endif
 
-/*------------------------------------------------------------------*/
+#ifdef MRILIB_MINI
+# define MRILIB_verb 0
+/******************* Some sample data structures (from nifti2io.h) ***********************/
 
-extern int MRILIB_verb ;                /* 01 May 2009 */
+typedef struct {                   /** 4x4 matrix struct **/
+  float m[4][4] ;
+} mat44 ;
+
+typedef struct {                   /** 3x3 matrix struct **/
+  float m[3][3] ;
+} mat33 ;
+
+typedef struct {                   /** 4x4 matrix struct (double) **/
+  double m[4][4] ;
+} nifti_dmat44 ;
+
+typedef struct {                   /** 3x3 matrix struct (double) **/
+  double m[3][3] ;
+} nifti_dmat33 ;
+/*------------------------------------------------------------------*/
+/*******************3ddata.h stuff  ***********************/
+typedef struct {
+  int    nvec , nvals , ignore ;
+  int   *ivec ;
+  float *fvec ;
+  int    nx,ny,nz ;
+  float  dx,dy,dz , dt ;
+} MRI_vectim ;
+
+/*------------------------------------------------------------------*/
+#else
+ extern int MRILIB_verb ;                /* 01 May 2009 */
+ #include "nifti2_io.h"
+ #include "mri_dicom_stuff.h"
+ extern AFD_dicom_header **MRILIB_dicom_header ; 
+ /* preferentially include f2c header from local directory, otherwise use system
+  header */
+ #include "f2c.h"
+ /* The following was added to harmonize with system f2c header. Subsequent
+ typedef for complex is now ignored */
+ #define TYPEDEF_complex
+#endif
+
+
 
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
@@ -78,14 +129,11 @@ extern int     valid_g_siemens_times(int, float, int, int);
 }
 #endif
 
-#include "nifti2_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
-#include "mri_dicom_stuff.h"
 extern int                MRILIB_dicom_count ;  /* 15 Mar 2006 */
 extern int                MRILIB_dicom_s16_overflow ;  /* 9 Jul 2013 [rickr] */
-extern AFD_dicom_header **MRILIB_dicom_header ;
 
 /*! Clear the MRILIB globals
     (which transmit info from image files to to3d.c). */
@@ -99,22 +147,6 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
      use_MRILIB_dicom_matrix=0;                           \
      MRILIB_dicom_count=0; MRILIB_dicom_header=NULL;      \
  } while(0)
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
-#include "mcw_malloc.h"  /* 06 Mar 1999 addition */
-#include "debugtrace.h"  /* 26 Jan 2001 addition */
-#include "Amalloc.h"     /* 09 Dec 2003 addition */
-#include "Aomp.h"
-
-/* preferentially include f2c header from local directory, otherwise use system
- header */
-#include "f2c.h"
-/* The following was added to harmonize with system f2c header. Subsequent
-typedef for complex is now ignored */
-#define TYPEDEF_complex
 
 
 /*----------------------------------------------------------------------------*/
@@ -1316,11 +1348,22 @@ extern MRI_IMAGE * mri_flip3D( int,int,int , MRI_IMAGE *inim ) ; /* 19 Mar 2003 
 #define BYTE_ORDER_STRING(qq) (  ((qq)==LSB_FIRST) ? LSB_FIRST_STRING \
                                : ((qq)==MSB_FIRST) ? MSB_FIRST_STRING \
                                                    : "Illegal Value" )
+#ifndef MRILIB_MINI
 extern int mri_short_order(void) ;
 extern int mri_int_order(void) ;
 extern void mri_swap2( int , short * ) ;
 extern void mri_swap4( int , int * ) ;
+#endif
 
+#ifdef  __cplusplus
+}
+#endif
+
+#undef min
+#undef max
+
+#ifndef MRILIB_MINI
+#ifdef  __cplusplus
 /*---------------------------------------------------------------------*/
 /*------------------ 18 Sep 2001: drawing stuff -----------------------*/
 
@@ -1347,20 +1390,11 @@ extern void mri_drawcircle( MRI_IMAGE *im ,
 
 /**********************************************************************/
 
-#ifdef  __cplusplus
-}
-#endif
-
-#undef min
-#undef max
-
-#ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 extern MRI_IMAGE * mri_downsize_by2( MRI_IMAGE * ) ;    /* 27 Apr 2012 */
 
 /************************ Statistics routines *************************/
-
 /**
   if the math library doesn't have the log(gamma(x))
   function (as on Linux, for example)
@@ -2514,4 +2548,5 @@ extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
 
+#endif /* MRILIB_MINI */
 #endif /* _MCW_MRILIB_HEADER_ */

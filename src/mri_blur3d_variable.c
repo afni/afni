@@ -468,6 +468,8 @@ ENTRY("mri_blur3D_addfwhm_speedy") ;
    EXRETURN ;
 }
 
+
+#ifndef MRILIB_MINI
 /*----------------------------------------------------------------------------*/
 /*! Blur a vectim, by converting each time point to a 3D image,
     blurring that image, and then putting it back into the vectim.
@@ -534,3 +536,4 @@ ENTRY("mri_blur3d_vectim") ;
 
    free(mmm) ; EXRETURN ;
 }
+#endif /* MRILIB_MINI */
