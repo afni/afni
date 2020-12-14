@@ -573,12 +573,16 @@ Usage:
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
- https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
 
  Notice:  When comparing two groups, option "-groups groupA groupB" has to be
  present, and the output includes the difference of groupB - groupA, which is
  consistent with most AFNI convention except for 3dttest++ where groupA - groupB is
- rendered.'
+ rendered.
+
+ Convenience note: Please consider using the AFNI program gen_group_command.py
+ to build your 3dMEMA command.  It should greatly help simplify the syntax of
+ constructing the command.'
    
    ex1 <- 
 "
