@@ -296,6 +296,7 @@ extern int THD_is_directory( char * ) ;
 
 void clock_time_atexit(void)
 {
+#ifndef MRILIB_MINI
    char *eee=getenv("HOME") ;
    int ct=NI_clock_time() ;
    time_t tnow=time(NULL) ;
@@ -310,5 +311,6 @@ void clock_time_atexit(void)
    fp = fopen(fname,"a") ; free(fname) ; if( fp == NULL ) return ;
    fprintf(fp,"[%.24s] %s =%s\n",ctime(&tnow) , pname , nice_time_string(ct) ) ;
    fclose(fp) ;
+#endif
    return ;
 }

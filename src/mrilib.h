@@ -745,6 +745,8 @@ static int MRI_mm ;
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+
+#ifndef MRILIB_MINI
 extern void        mri_input_delay( MRI_IMAGE * ) ;
 extern void        mri_purge_delay( MRI_IMAGE * ) ;
 extern void        mri_add_fname_delay( char * , MRI_IMAGE * ) ;
@@ -757,6 +759,21 @@ extern void   mri_killpurge( MRI_IMAGE * ) ;
 extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
 extern char * mri_purge_get_tsuf(void) ;      /* 02 Aug 2007 */
 extern char * mri_get_tempfilename( char * ); /* 27 Jul 2009 */
+
+#else
+
+# define mri_killpurge(x)         /*nada*/
+# define mri_purge(x)             /*nada*/
+# define mri_unpurge(x)           /*nada*/
+# define mri_get_tempfilename(x)  NULL
+# define mri_input_delay(x)       /*nada*/
+# define mri_purge_delay(x)       /*nada*/
+# define mri_add_fname_delay(x,y) /*nada*/
+# define mri_read_file_delay(x)   NULL
+# define mri_read_3D_delay(x)     NULL
+
+#endif /* MRILIB_MINI */
+
 
 extern int mri_counter( MRI_IMAGE * , float , float ) ; /* 16 Jul 2007 */
 
