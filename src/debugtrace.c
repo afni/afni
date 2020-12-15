@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mcw_malloc.h"
+#ifndef MRILIB_MINI
 #include "AFNI_version.h"
+#endif
 #include "debugtrace.h"  /* contains 1 function */
 #include <ctype.h>
 #include <stdarg.h>
+#include <string.h>
 
 /*--------------------------------------------------------------------------*/
 

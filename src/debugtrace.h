@@ -71,13 +71,14 @@ extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
    Define things to be used in debugtrace.c
 ------------------------------------------------------------------*/
 
-#include <signal.h>
-#include <unistd.h>
-#include <stdio.h>
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
+
+#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef _DEBUGTRACE_MAIN_
    char *DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
