@@ -1654,7 +1654,6 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "r_new_resam_dset.h" /* 31 Jul 2007 */
 #include "r_idisp.h"
 #include "r_misc.h"
-#include "rcmat.h"            /* 30 Dec 2008 */
 
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
 #include "thd_StatsPDL.h"     /* 22 Jul 2020 [PDL] */
@@ -1662,6 +1661,8 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
 #endif /* MRILIB_MINI */
+
+#include "rcmat.h"            /* 30 Dec 2008 */
 /*------------------------------------------------------------------------*/
 
 /*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
