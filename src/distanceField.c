@@ -4,7 +4,7 @@ NAME:
     distanceField - determines depth of voxels in 3D binary objects
 
 SYNOPSIS:
-    distanceField -i <input filename> [-m <metric>]
+    distanceField -i <input filename> [-m <metric>][-s <0|1>][-e <0|1>]
 
 The input file is expected to be an AFNI dataset.
 
@@ -12,6 +12,10 @@ The "metric" is a text string (upper case) describing the algorithm used to esti
 one of the following.
 MARCHING_PARABOLAS - Marching parabolas (default)
 EROSION - Erosion algorithm.
+
+Optional arguments specifically for MARCHING_PARABOLAS:
+    s: Square root the output
+    e: Treat edge of field of view as zero
 
 *********************************************************************************************************/
 
@@ -25,6 +29,8 @@ EROSION - Erosion algorithm.
 #include "distanceField.h"
 #include <float.h>
 
+#define PROCESS_ROIS_SEPARATELY 0   // Applies to marching parabolas
+#define BIG 10000000000.0
 
 typedef float flt;
 
@@ -35,10 +41,11 @@ typedef enum METRIC_TYPE {
 
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din);
-static int afni_edt(THD_3dim_dataset * din, float *outImg);
+static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz);
 static int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
+int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
 void edt1_local(THD_3dim_dataset * din, flt * df, int n);
 void edt_local(float scale, flt * f, int n);
@@ -53,6 +60,15 @@ int shortToByte(THD_3dim_dataset ** din);
 ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices);
 ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din);
 int usage();
+ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
+                       bool do_sqrt, bool edges_are_zero_for_nz, float *ad3, float *odt);
+ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
+                       float delta, bool edges_are_zero_for_nz);
+float * Euclidean_DT_delta(float *f, int n, float delta);
+
+// Debugging variables
+int debugNx, debugNy, debugNz;
+float   debugScaleFactors[3], *debugOutImage;
 
 float sqr(float x){
     return x*x;
@@ -65,9 +81,13 @@ int main( int argc, char *argv[] )
     THD_3dim_dataset * din = NULL;
     ERROR_NUMBER    errorNumber;
     float *outImg;
+    bool    do_sqrt=TRUE, edges_are_zero_for_nz=TRUE;
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
+        case 'e':
+            edges_are_zero_for_nz = atoi(argv[++i]);
+            break;
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
                 return Cleanup(inputFileName,  din);
@@ -86,7 +106,10 @@ int main( int argc, char *argv[] )
                 return ERROR_UNRECOGNIZABLE_SPECIES;
             }
             break;
-            default:
+        case 's':
+            do_sqrt = atoi(argv[++i]);
+            break;
+        default:
                 return usage();
         }
     }
@@ -107,7 +130,7 @@ int main( int argc, char *argv[] )
     // Apply metric
     switch (metric){
     case MARCHING_PARABOLAS:
-        if ((errorNumber=afni_edt(din, outImg))!=ERROR_NONE){
+        if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz))!=ERROR_NONE){
             Cleanup(inputFileName, din);
             return errorNumber;
         }
@@ -120,8 +143,17 @@ int main( int argc, char *argv[] )
         break;
     }
 
+
+#define DEBUG     1
+#if DEBUG
+    // Output result to afni dataset
+    free(outImg);
+    outImg = debugOutImage;
+    outputDistanceFieldDebug(outImg, din, metric);
+#else
     // Output result to afni dataset
     outputDistanceField(outImg, din, metric);
+#endif
 
     Cleanup(inputFileName,  din);
 
@@ -137,9 +169,62 @@ int usage(){
     fprintf(stderr, "The \"metric\" is a text string (upper case) describing the algorithm used to\n");
     fprintf(stderr, "estimate the depth. It may be one of the following.\n");
     fprintf(stderr, "MARCHING_PARABOLAS - Marching parabolas (default)\n");
-    fprintf(stderr, "EROSION - Erosion algorithm.\n");
+    fprintf(stderr, "EROSION - Erosion algorithm.\n\n");
+
+    fprintf(stderr, "Optional arguments specifically for MARCHING_PARABOLAS:\n");
+    fprintf(stderr, "\ts: Square root the output\n");
+    fprintf(stderr, "\te: Treat edge of field of view as zero\n");
 
     return 0;
+}
+
+int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
+
+    char *prefix=DSET_PREFIX(din);
+    char *searchPath=DSET_DIRNAME(din);
+    char *outputFileName;
+    char  appendage[256];
+/**/
+    // Set appendage
+    switch (metric){
+    case MARCHING_PARABOLAS:
+        sprintf(appendage, "MarParabDebug");
+        break;
+    case EROSION:
+        sprintf(appendage, "ErosionDebug");
+        break;
+    }
+
+    // Allocate memory to output name buffer
+    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+strlen(appendage)+8))){
+       return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Determine whether output file already exists
+    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+
+    // Set output dimensions
+    THD_ivec3 nxyz={debugNx, debugNy, debugNz};
+    THD_fvec3 xyzdel = {debugScaleFactors[2], debugScaleFactors[1], debugScaleFactors[0]};
+
+    // Output Fourier spectrum image (if it does not already exist)
+    if (!outputFileExists){
+        THD_3dim_dataset *dout = EDIT_empty_copy(din);
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+        EDIT_dset_items( dout ,
+                        ADN_prefix, outputFileName,
+                        ADN_type, MRI_float,
+                        ADN_nxyz, nxyz,
+                        ADN_xyzdel, xyzdel,
+                        ADN_none ) ;
+        EDIT_substitute_brick(dout, 0, MRI_float, outImg);
+        DSET_write(dout);
+    }
+
+    // Cleanup
+    free(outputFileName);
+/**/
+    return ERROR_NONE;
 }
 
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
@@ -253,7 +338,7 @@ int getIndex(int x, int y, int z, int nx, int ny, int nz){
 }
 
 
-static int afni_edt(THD_3dim_dataset * din, float *outImg){
+static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz){
 
     // Get dimensions in voxels
     int nz = DSET_NZ(din);
@@ -261,12 +346,10 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
     int *inputImg;
-    int numIndices;
     int *indices;
     BYTE * byteImg;
     short * shortImg;
-    float   *floatImg, *addend;
-    ERROR_NUMBER    errorNumber;
+    float   *floatImg;
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -295,6 +378,58 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
             break;
     }
 
+    // DEBUG: Make test volume
+    // make a test image: a map of various ROIs
+    debugNz = nz = 80;
+    debugNy = ny = 40;
+    debugNx = nx = 20;
+    nvox = nx*ny*nz;
+    int *vol;
+    vol = (int *)calloc(nx*ny*nz, sizeof(int));
+    //free(outImg);
+    outImg = (float *)calloc(nvox,sizeof(float));
+    debugOutImage = outImg;
+    float ad3[3] = {0.5, 1.0, 2.0};
+    memcpy(debugScaleFactors, ad3, 3*sizeof(float));
+
+    // LX, LY, LZ = np.shape(vol)
+
+    int planesize=nx*ny;
+
+    for (int z=4; z<18; ++z){
+        int zOffset=z*planesize;
+        for (int y=2; y<8; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=4; x<8; ++x){
+                vol[yOffset+x] = 1;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    // vol[4:18, 2:8, 4:8]     = 1
+    /*
+    vol[2:8, 4:18, 4:8]     = 4
+    vol[21:30, 0:10, 11:14] = 7
+    for i in range(LX):
+        for j in range(LY):
+            for k in range(LZ):
+                if (15-i)**2 + (25-j)**2 + (10-k)**2 < 31:
+                    vol[i,j,k] = 2
+    vol[17:19, :, 3:6]           = 1
+    vol[:, 19:21, 3:6]           = 10
+    vol[60:70,28:36,14:19]       = 17
+    for i in range(LX):
+        for j in range(LY):
+            for k in range(LZ):
+                if (65-i)**2 + (10-j)**2 + (10-k)**2 < 75:
+                    if not((60-i)**2 + (7-j)**2 + (10-k)**2 < 31):
+                        vol[i,j,k] = 2
+
+    vol[40:56, 25:33, 4:8]     = 5    # a square depending on vox size
+*/
+
+#if PROCESS_ROIS_SEPARATELY
     // Get unique nonzero index values
     if ((errorNumber=getNonzeroIndices(nvox, inputImg, &numIndices, &indices))!=ERROR_NONE){
         free(inputImg);
@@ -310,12 +445,236 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg){
         }
         for (int j=0; j<nvox; ++j) outImg[j]+=addend[j];
     }
+#else
+    // Get real world voxel sizes
+    // DEBUG float ad3[3]={fabs(DSET_DX(din)), fabs(DSET_DY(din)), fabs(DSET_DZ(din))};
+
+    inputImg = vol; // DEBUG
+    img3d_Euclidean_DT(inputImg, nx, ny, nz,
+                       do_sqrt, edges_are_zero_for_nz, ad3, outImg);
+#endif
 
 	// Cleanup
 	free(inputImg);
 	free(indices);
 
 	return ERROR_NONE;
+}
+
+ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
+    bool do_sqrt, bool edges_are_zero_for_nz, float *ad3, float *odt){
+
+    int nvox = nx*ny*nz;           // number of voxels
+    int planeSize = nx*ny;
+
+    // initialize the "output" or answer array
+    for (int i=0; i<nvox; ++i) odt[i] = (im[i]>0)? BIG : 0;
+
+    // first pass: start with all BIGs (along x-axes)
+    int *inRow = im;
+    float *outRow = odt;
+    for (int z = 0; z <nz; ++z){
+        for (int y = 0; y < ny; ++y){
+            // Calc with it, and save results
+            run_EDTD_per_line( inRow, outRow, nx, ad3[2], edges_are_zero_for_nz) ;
+
+            // Increment row
+            inRow += nx;
+            outRow += nx;
+        }
+    }
+
+    if (!(inRow=(int *)malloc(ny*sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+    if (!(outRow=(float *)calloc(ny,sizeof(float)))) {
+        free(inRow);
+        return ERROR_MEMORY_ALLOCATION;
+    }
+    for (int z = 0; z < nz; ++z){
+        int *inPlane = im + (z*planeSize);
+        float *outPlane = odt + (z*planeSize);
+        for (int x = 0; x < nx; ++x){
+            // get a line...
+            for (int y=0; y<ny; ++y){
+                int offset = (y*nx) + x;
+                inRow[y] = inPlane[offset ];
+                outRow[y] = outPlane[offset ];
+            }
+
+            // ... and then calc with it, and save results
+            run_EDTD_per_line( inRow, outRow, ny, ad3[1], edges_are_zero_for_nz) ;
+
+            // Record new output row
+            for (int y=0; y<ny; ++y){
+                int offset = (y*nx) + x;
+                outPlane[offset] = outRow[y];
+            }
+        }
+    }
+    free(outRow);
+    free(inRow);
+
+
+    // 2nd pass: start from previous; any other dimensions would carry
+    // on from here
+    if (!(inRow=(int *)malloc(nz*sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+    if (!(outRow=(float *)calloc(nz, sizeof(float)))) {
+        free(inRow);
+        return ERROR_MEMORY_ALLOCATION;
+    }
+    for (int y = 0; y < ny; ++y){
+        for (int x = 0; x < nx; ++x){
+            int planeOffset = (y*nx) + x;
+            // get a line...
+            for (int z=0; z<nz; ++z){
+                int offset = planeOffset + (z*planeSize);
+                inRow[z] = im[offset] ;
+                outRow[z] = odt[offset] ;
+            }
+
+            // ... and then calc with it, and save results
+            run_EDTD_per_line( inRow, outRow, nz, ad3[0], edges_are_zero_for_nz) ;
+
+            // Record new output row
+            for (int z=0; z<nz; ++z) {
+                int offset = planeOffset + (z*planeSize);
+                odt[offset] = outRow[z];
+            }
+        }
+    }
+    free(outRow);
+    free(inRow);
+/*
+    for jj in range(SH[1]) :
+        for kk in range(SH[2]) :
+                # get a line...
+                aa = im[:,jj,kk]
+                # ... and then calc with it, and save results
+                odt[:,jj,kk] = run_EDTD_per_line( inRow, outRow, nz,
+                                                  delta = ad3[0],
+                                                  edges_are_zero_for_nz = edges_are_zero_for_nz )
+                                                  */
+
+    if (do_sqrt)
+        for (int i=0; i<nvox; ++i) odt[i] = sqrt(odt[i]);
+
+    return ERROR_NONE;
+}
+
+ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
+                       float delta, bool edges_are_zero_for_nz) {
+    int  idx = 0;
+    int  n;
+    float   *line_out;
+
+    size_t  rowLengthInBytes = Na*sizeof(float);
+    if (!(line_out=(float *)malloc(rowLengthInBytes))) return ERROR_MEMORY_ALLOCATION;
+
+    int limit = Na-1;
+    while (idx < limit){
+        // get interval of line with current ROI value
+        int roi = roi_line[idx];
+        for (n = idx+1; n < Na; ++n){
+            if (roi_line[n] != roi){
+                n -= 1;
+                break;
+            }
+        }
+        // n now has the index of last matching element
+
+        float *paddedLine=(float *)calloc(Na+2,sizeof(float));
+        int start = 0, stop = limit;
+        int inc=0;
+        if (idx != 0 || (edges_are_zero_for_nz && roi != 0)){
+            start = 1;
+            inc = 1;
+        }
+        // put actual values from dist**2 field...
+        for (int m=idx; m<=n; ++m){
+            paddedLine[inc++] = dist2_line[m];
+        }
+        stop = inc-1;
+        // pad at end?
+        if (n < limit || (edges_are_zero_for_nz && roi != 0)){
+            stop += 1;
+        }
+
+        // float *Df = Euclidean_DT_delta(paddedLine, stop-start+1, delta);
+        float *Df = Euclidean_DT_delta(paddedLine, inc+1, delta);
+
+        // memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
+        memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
+
+        free(paddedLine);
+        free(Df);
+
+        idx = n+1;
+    }
+
+    memcpy(dist2_line, line_out, rowLengthInBytes);
+    free(line_out);
+
+    return ERROR_NONE;
+}
+
+float * Euclidean_DT_delta(float *f, int n, float delta){
+    /*Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
+        Huttenlocher (2012), but for given voxel lengths.
+
+    Assumes that: len(f) < sqrt(10**10).
+
+    In this version, all voxels should have equal length, and units
+    are "edge length" or "number of voxels."
+
+    Parameters
+    ----------
+
+    f     : 1D array or list, distance**2 values (or, to start, binarized
+    between 0 and BIG).
+
+    delta : voxel edge length size along a particular direction
+
+    */
+
+    int *v, k = 0;
+    float *z, *Df;
+
+    if (!(v=(int *)calloc(n, sizeof(int))) ||
+        !(z=(float *)calloc(n+1, sizeof(float)))){
+            if (v) free(v);
+            return NULL;
+    }
+    z[0] = -BIG;
+    z[1] =  BIG;
+
+    for (int q = 1; q<n; ++q) {
+        float s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
+        s/= 2. * delta * (q - v[k]);
+        while (s <= z[k]){
+            k-= 1;
+            s = f[q] + pow(q*delta,2.0) - (f[v[k]] + pow(v[k]*delta, 2.0));
+            s/= 2. * delta * (q - v[k]);
+        }
+        k+= 1;
+        v[k]   = q;
+        z[k]   = s;
+        z[k+1] = BIG;
+    }
+
+    k   = 0;
+    if (!(Df=(float *)calloc(n, sizeof(float)))){
+        free(v);
+        free(z);
+        return NULL;
+    }
+    for (int q=0; q<n; ++q){
+        while (z[k+1] < q * delta) k+= 1;
+        Df[q] = pow(delta*(q - v[k]), 2.0) + f[v[k]];
+    }
+
+    free(v);
+    free(z);
+
+    return Df;
 }
 
 ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din){
@@ -342,7 +701,7 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 
 	for (size_t i = 0; i < nvox; i++ ) {
 		if (inputImg[i] == index)
-			(*outImg)[i] = INFINITY;
+			(*outImg)[i] = BIG;
 	}
 	size_t nRow = ny*nz;
 
@@ -532,7 +891,7 @@ int outputTransposedDataSet(float *buffer, THD_3dim_dataset *din, int nx, int nz
     int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
 
     // Set output dimensions
-    THD_ivec3 nxyz={nx, ny, nz};
+    THD_ivec3 nxyz[3]={nx, ny, nz};
 
     // Output Fourier spectrum image (if it does not already exist)
     if (!outputFileExists){
@@ -565,7 +924,7 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 	int q, prevX;
 	flt prevY, v;
 	prevX = 0;
-	prevY = INFINITY;
+	prevY = BIG;
 	//forward
 	for (q = 0; q < n; q++ ) {
 		if (df[q] == 0) {
@@ -576,7 +935,7 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 	}
 	//reverse
 	prevX = n;
-	prevY = INFINITY;
+	prevY = BIG;
 	for (q = (n-1); q >= 0; q-- ) {
 		v = sqr((q-prevX)/xDim)+(prevY/yDim);
 		if (df[q] < v) {
@@ -588,8 +947,8 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
 }
 
 static flt vx(flt * f, int p, int q) {
-	if ((f[p] == INFINITY) || (f[q] == INFINITY))
-		return INFINITY;
+	if ((f[p] == BIG) || (f[q] == BIG))
+		return BIG;
 	else
 		return ((f[q] + q*q) - (f[p] + p*p)) / (2.0*q - 2.0*p);
 }
@@ -614,8 +973,40 @@ void edt_local(float scale, flt * f, int n) {
     # obviously lower than all parabolas processed so far.*/
     k = 0;
     v[0] = 0;
-    z[0] = -INFINITY;
-    z[1] = INFINITY;
+    z[0] = -BIG;
+    z[1] = BIG;
+        /*
+   for q in range(1, n):
+        s = ((f[q] + (q*delta)**2) - (f[v[k]] + (v[k]*delta)**2))
+        s/= 2. * delta * (q - v[k])
+        while s <= z[k] :
+            k-= 1
+            s = ((f[q] + (q*delta)**2) - (f[v[k]] + (v[k]*delta)**2))
+            s/= 2. * delta * (q - v[k])
+        k+= 1
+        v[k]   = q
+        z[k]   = s
+        z[k+1] = BIG * delta
+*/
+/*
+    for (q = 1; q < n; q++ ) {
+	    /* If the new parabola is lower than the right-most parabola in
+        # the envelope, remove it from the envelope. To make this
+        # determination, find the X coordinate of the intersection (s)
+        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).*//*
+        s = (f[q] + pow(q*scale,2.0)) - (f[v[k]] + pow(v[k]*scale, 2.0));
+        s/= 2. * scale * (q - v[k]);
+        while (s <= z[k]) {
+            k-= 1;
+            s = (f[q] + pow(q*scale,2.0)) - (f[v[k]] + pow(v[k]*scale,2.0));
+            s/= 2.0 * scale * (q - v[k]);
+        k+= 1;
+        v[k]   = q;
+        z[k]   = s;
+        z[k+1] = BIG;
+        }
+    }
+*/
     for (q = 1; q < n; q++ ) {
 	    /* If the new parabola is lower than the right-most parabola in
         # the envelope, remove it from the envelope. To make this
@@ -632,7 +1023,7 @@ void edt_local(float scale, flt * f, int n) {
         k = k + 1;
         v[k] = q;           // DO NOT CHANGE
         z[k] = s;
-        z[k + 1] = INFINITY;
+        z[k + 1] = BIG;
     }
     /*# Go back through the parabolas in the envelope and evaluate them
     # in order to populate the distance values at each X coordinate.*/
