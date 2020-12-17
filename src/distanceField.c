@@ -184,7 +184,7 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
     char *searchPath=DSET_DIRNAME(din);
     char *outputFileName;
     char  appendage[256];
-/**/
+
     // Set appendage
     switch (metric){
     case MARCHING_PARABOLAS:
@@ -223,7 +223,7 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
 
     // Cleanup
     free(outputFileName);
-/**/
+
     return ERROR_NONE;
 }
 
@@ -407,18 +407,107 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
         }
     }
 
+    for (int z=2; z<8; ++z){
+        int zOffset=z*planesize;
+        for (int y=4; y<18; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=4; x<8; ++x){
+                vol[yOffset+x] = 4;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    for (int z=21; z<30; ++z){
+        int zOffset=z*planesize;
+        for (int y=0; y<10; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=11; x<14; ++x){
+                vol[yOffset+x] = 7;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    for (int z=0; z<nz; ++z){
+        int zOffset=z*planesize;
+        for (int y=0; y<ny; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=0; x<nx; ++x){
+                if (pow((15-x),2.0) + pow((25-y),2.0) + pow((10-z),2.0)< 31)
+                    vol[yOffset+x] = 1;
+            }
+        }
+    }
+
+    for (int z=17; z<19; ++z){
+        int zOffset=z*planesize;
+        for (int y=0; y<ny; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=3; x<6; ++x){
+                vol[yOffset+x] = 1;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    for (int z=0; z<nz; ++z){
+        int zOffset=z*planesize;
+        for (int y=19; y<21; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=3; x<6; ++x){
+                vol[yOffset+x] = 10;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    for (int z=60; z<70; ++z){
+        int zOffset=z*planesize;
+        for (int y=28; y<36; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=14; x<19; ++x){
+                vol[yOffset+x] = 17;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
+    for (int z=0; z<nz; ++z){
+        int zOffset=z*planesize;
+        for (int y=0; y<ny; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=0; x<nx; ++x){
+                if ((pow((65-x),2.0) + pow((10-y),2.0) + pow((10-z),2.0)< 75) &&
+                    !(pow((60-x),2.0) + pow((7-y),2.0) + pow((10-z),2.0)< 31))
+                    vol[yOffset+x] = 2;
+            }
+        }
+    }
+
+    for (int z=40; z<56; ++z){
+        int zOffset=z*planesize;
+        for (int y=25; y<33; ++y){
+            int yOffset = zOffset + y*nx;
+            for (int x=4; x<8; ++x){
+                vol[yOffset+x] = 5;
+                fprintf(stderr, "%d,", yOffset+x);
+            }
+        }
+    }
+
     // vol[4:18, 2:8, 4:8]     = 1
+    // vol[2:8, 4:18, 4:8]     = 4
+    // vol[21:30, 0:10, 11:14] = 7
+    // for i in range(LX):
+        // for j in range(LY):
+            // for k in range(LZ):
+                // if (15-i)**2 + (25-j)**2 + (10-k)**2 < 31:
+                    //vol[i,j,k] = 2
+    // vol[17:19, :, 3:6]           = 1
+    // vol[:, 19:21, 3:6]           = 10
+    // vol[60:70,28:36,14:19]       = 17
     /*
-    vol[2:8, 4:18, 4:8]     = 4
-    vol[21:30, 0:10, 11:14] = 7
-    for i in range(LX):
-        for j in range(LY):
-            for k in range(LZ):
-                if (15-i)**2 + (25-j)**2 + (10-k)**2 < 31:
-                    vol[i,j,k] = 2
-    vol[17:19, :, 3:6]           = 1
-    vol[:, 19:21, 3:6]           = 10
-    vol[60:70,28:36,14:19]       = 17
     for i in range(LX):
         for j in range(LY):
             for k in range(LZ):
