@@ -1,3 +1,64 @@
+AFNI Digest, week of 2020/12/17. 
+ 
+0)  Sign up for Zoom consultations in January, 2021 (!).
+1)  New tutorial on making plus/minus plots in the GUI Graphs.
+2)  New AFNI Academy videos on stats from Gang "Santa" Chen.
+ 
+0) The first go-round of Zoom consultations seemed useful (looking at
+data simultaneously and asking questions in realtime can be useful--
+who knew?).  So we are opening sign-up for another, in the week of Jan
+11-15, 2021.  The form for doing so is here:
+    https://forms.gle/noNfdoPH8pKRBzy37
+Basically, tell us some of your woes or questions, and we will try to
+find a way to resolve them.  (Esp. if you are trying to finish your
+abstracts for OHBM, due a couple weeks later...)
+ 
+1) One or two Digests ago, we advertised some new fun plotting
+capability to show plus/minus lines or background color in the GUI's
+Graph windows.  Now that you have had ample time to guess at the
+mechanics of it, we are ready to reveal the secrets of carrying this
+out in greater detail -- see this tutorial from The Bob:
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/gui/pm_plot.html
+ 
+2) If all you ever wanted for the holidays was some introduction to
+group analysis methods, then Gang Chen is the new Santa.  Here are
+some of his thoughts on "population-level" modeling (the hip term, for
+those in the know) in the AFNI Academy video series:
+    https://www.youtube.com/watch?v=2hP4hamIqLM&list=PL_CD549H9kgrA_GGQkVAulFJLiv05z2tv
+
+========================================================================
+
+AFNI Digest, week of 2020/11/20.
+ 
+And now for something completely different...
+ 
+In normal times, we often discuss MRI processing issues with people in
+person either at NIH, at a Bootcamp, or during a collaboration visit.
+If you haven't noticed, these aren't normal times.
+ 
+So, we brainstormed a mechanism to still try to have this
+functionality, since looking at data makes a big difference in
+understanding it.  The result: we will try to schedule some
+Zoom-consultations in the week of Nov. 30 - Dec 4, 2020, seeing how a
+30 min window works.
+ 
+If you or your lab has some question(s) or processing that you would
+like to discuss screen-to-screen, then please fill in the form here:
+    https://forms.gle/jLxgtq8xYHxoexXh9
+... and we will see if we can find overlapping times.
+ 
+**Disclaimer: we haven't done this previously, we don't know how well
+  it will work, and we really hope not to hurt anyone's feelings if a
+  particular Guru's schedule fills up quickly (=Gang!).  We will check
+  incoming requests and try to see if there is a mutually available
+  time slot, until a Guru's consulting timecard is maxed out.  It
+  might then be possible to chat with a different Guru who might have
+  available time and also be able to help, or that consultation might
+  just have to wait for a later date.  Again, please bear with us in
+  this.
+
+========================================================================
+
 AFNI Digest, week of 2020/11/20.
 
 And now for something completely different...
