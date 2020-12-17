@@ -1640,6 +1640,9 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #define __COMPILE_UNUSED_FUNCTIONS__
 #endif
 
+/*-----------------  06 Dec 2004: incorporation of list_struct  ----------*/
+#include "list_struct.h"
+
 #ifndef MRILIB_MINI
 
 #include "nifticdf.h"    /* was cdflib.h */
@@ -1668,9 +1671,6 @@ THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 /*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
 #include "mcw_glob.h"
 /*------------------------------------------------------------------------*/
-
-/*-----------------  06 Dec 2004: incorporation of list_struct  ----------*/
-#include "list_struct.h"
 
 /*-----------------  02 Feb 1998:
                      incoroporation of 3ddata, 3dmaker, iochan -----------*/
