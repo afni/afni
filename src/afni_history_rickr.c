@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Dec, 2020, RCR, "1dBport", MICRO, TYPE_BUG_FIX,
+   "guard against silent failure of int overflow for ftop",
+   NULL
+ } ,
+
  { 29, Sep, 2020, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
    "be specific about limits for 'param must be in' error messages",
    NULL
