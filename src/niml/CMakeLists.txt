@@ -25,6 +25,10 @@ add_library(
   niml_vector.c
 )
 
+target_compile_definitions(niml
+    PUBLIC
+    "MRILIB_MINI"
+    )
 set_target_properties(niml PROPERTIES PUBLIC_HEADER niml.h)
 target_include_directories(
   niml INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
