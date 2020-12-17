@@ -1,0 +1,54 @@
+cd ~/src/afni/src
+make vastness
+
+Install
+ 1. gcc not yet available (use Clang)
+ 2. OpenMP for Clang must be installed
+  a. EITHER Install precompiled version: https://mac.r-project.org/openmp/
+  b. OR compile your own
+		git clone https://github.com/llvm/llvm-project.git
+		cd llvm-project/openmp; mkdir build; cd build 
+		cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES='arm64;x86_64' .. 
+		 make install  
+ 3. Some libraries will need to be generated
+  a. Motif must be installed as native library
+      export ARCHFLAGS='-arch arm64'
+      brew install -s motif
+	  Creates files in "/opt/local/include" and "/opt/local/lib"
+  b. Unable to install lXpm as native library
+      export ARCHFLAGS='-arch arm64'
+      brew install -s libxpm
+	 Creates files in "/opt/homebrew/Cellar/libxpm"
+  c. files in ./avovk (e.g. 3dkmeans) require gsl
+      export ARCHFLAGS='-arch arm64'
+      brew install -s gsl
+	 Creates files in "/opt/homebrew/Cellar/gsl/2.6/include" and "/opt/homebrew/Cellar/gsl/2.6/lib"
+  d. Suma requires glib must be installed as native library. This will require python3.9, which is not yet available for the M1
+      export ARCHFLAGS='-arch arm64'
+      brew install -s glib
+	 Creates files in "/opt/homebrew/Cellar/glib/2.66.2_1/include" and "/opt/homebrew/Cellar/glib/2.66.2_1/lib"
+  e. Suma requires libGLU and libGL. The versions included with XQuartz (2.7.11, /opt/X11/lib/libGLU.dylib and /opt/X11/lib/libGL.dylib) are not ARM native.
+      export ARCHFLAGS='-arch arm64'
+      brew install -s libGLU       
+	 Creates libGLU.dylib in "/opt/homebrew/Cellar/mesa-glu/9.0.1/include" and "/opt/homebrew/Cellar/mesa-glu/9.0.1/lib" 
+	 It also creates libGL.dylib in "/opt/homebrew/opt/mesa/include" and "/opt/homebrew/opt/mesa/lib"
+  f. Suma requires <X11/XInput.h>:
+      export ARCHFLAGS='-arch arm64'
+	  brew install -s libxi
+	 Creates files in "/opt/homebrew/Cellar/libxi/1.7.10/include" and "/opt/homebrew/Cellar/libxi/1.7.10/lib"
+ 4. while the headers are not required to compile "vastness", AFNI wants to copy these libraries to the executable folder - perhaps they are dependencies?	
+    export ARCHFLAGS='-arch arm64'
+	brew install -s freetype
+    brew install -s glib
+	
+  7. brew is unable to create several libraries that the AFNI makefile wants to copy. It is unclear if these are linked to any executables:
+	cp: /usr/local/lib/gcc/8/lib/libgcc_s.1.dylib: No such file or directory
+	cp: /usr/local/lib/libglib-2.0.0.dylib: No such file or directory
+	cp: /usr/local/lib/libbz2.1.dylib: No such file or directory
+	cp: /usr/local/lib/libintl.8.dylib: No such file or directory
+	libpython*.dylib not native (makefile does not define "LDPYTHON" but not required to build executables)
+
+ 
+ 
+
+

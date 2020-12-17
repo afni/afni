@@ -3663,7 +3663,11 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                   if (lbuf[ij]<20) dbuf[ij]=-1.0; /* max it out */
                }
                /* rewrite depth buffer */
+               #if defined(__aarch64__) 
+               //TODO: glWindowPos2s() does not exist!
+               #else
                glWindowPos2s(0,0); /* specify raster position */
+               #endif
                glDrawPixels(sv->X->aWIDTH, sv->X->aHEIGHT, 
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                /* render last slice again */

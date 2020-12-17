@@ -2,6 +2,10 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
 
+#if defined(__aarch64__) //TODO: see Ziad's notes from 17, Dec , 2013 regarding glCheckFramebufferStatus()
+#define SUMA_GL_NO_CHECK_FRAME_BUFFER
+#endif
+
 extern int selenium_close(void) ;
 
 /*! Parts of the code in this file are based on code from the motif programming manual.

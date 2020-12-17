@@ -1,7 +1,9 @@
 #include "mrilib.h"
 #include "basic_boring.h"
 #include <gsl/gsl_matrix.h>
-
+#if defined(__clang__)	   
+ #include "../afni.h"
+#endif
 
 /* 
    Basic thing to get dimensions of a data set and returned Nvox, just

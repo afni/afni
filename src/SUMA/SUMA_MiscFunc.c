@@ -1,5 +1,11 @@
 #include "SUMA_suma.h"
 
+#if defined(__clang__)	
+extern void   pause_mcw_malloc(void);
+extern void   resume_mcw_malloc(void);
+extern int    mcw_malloc_paused(void);
+#endif
+
 extern SUMA_CommonFields *SUMAg_CF; 
 
 #ifdef USE_SUMA_MALLOC
