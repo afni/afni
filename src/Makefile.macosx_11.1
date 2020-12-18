@@ -34,11 +34,21 @@ LGIFTI    = -lexpat
 # X configuration
 #
 
-#/opt/X11 x86-64 only, we will use brew to install Motif in /opt/local, e.g. 
+#XQuartz: /opt/X11 x86-64 only, we will use brew to install Motif in /opt/local, e.g. 
 #XROOT   = /opt/X11
-XROOT = /opt/local
+XROOT   = /opt/local
+#XROOT = /opt/local
 XROOT_I = -I$(XROOT)/include
 XROOT_L = -L$(XROOT)/lib
+
+#does not support ARM: /opt/X11/lib/libX11.dylib
+#macports does:
+# file /Applications/MacPorts/X11.app/Contents/MacOS/X11.bin
+# otool -L /Applications/MacPorts/X11.app/Contents/MacOS/X11.bin
+# file /opt/local/lib/libX11.6.dylib
+
+
+
 
 
 XLIBS = -lXm -ljpeg.9 -lXt
@@ -146,8 +156,8 @@ GLw_LIB = libGLws.a
 
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0 
-SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0
+SUMA_LINK_PATH =  $(XROOT_L) $(LFLAGS) -L..
 
 SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${usr_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile

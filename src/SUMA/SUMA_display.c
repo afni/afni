@@ -2,8 +2,13 @@
 #include "coxplot.h"
 #include "SUMA_plot.h"
 
-#if defined(__aarch64__) //TODO: see Ziad's notes from 17, Dec , 2013 regarding glCheckFramebufferStatus()
-#define SUMA_GL_NO_CHECK_FRAME_BUFFER
+#if defined(__clang__) //see Ziad's notes from 17, Dec , 2013 regarding glCheckFramebufferStatus()
+	//XQuartz supports this function, but does not support ARM
+	//#include <GL/glext.h> 
+	// file /usr/X11/lib/libX11.dylib
+	//macports X11 does not support this function, but does support ARM
+    //file /opt/local/lib/libX11.6.dylib
+	#define SUMA_GL_NO_CHECK_FRAME_BUFFER
 #endif
 
 extern int selenium_close(void) ;

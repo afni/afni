@@ -1,16 +1,22 @@
-cd ~/src/afni/src
-make vastness
+
 
 Install
- 1. gcc not yet available (use Clang)
- 2. OpenMP for Clang must be installed
+ 1. Since Xquartz is not natively compiled for arm64 Macs, one work around is to install xorg via macports (you can actually run AFNI with the translated Xquartz, but SUMA will not compile). Note that macports is unable to build motif natively for arm64, and homebrew is unable to install x11 natively for arm64 macs. Therefore, a full build requires using both tools:
+	Install MacPorts
+	sudo port install xorg
+	sudo port install xorg-server
+	X11.app will be installed in /Applications/MacPorts
+	Potentially profile to avoid exporting DISPLAY=:0
+	Logout and login
+ 2. gcc not yet available (use Clang)
+ 3. OpenMP for Clang must be installed
   a. EITHER Install precompiled version: https://mac.r-project.org/openmp/
   b. OR compile your own
 		git clone https://github.com/llvm/llvm-project.git
 		cd llvm-project/openmp; mkdir build; cd build 
 		cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES='arm64;x86_64' .. 
 		 make install  
- 3. Some libraries will need to be generated
+ 4. Some libraries will need to be generated
   a. Motif must be installed as native library
       export ARCHFLAGS='-arch arm64'
       brew install -s motif
@@ -36,17 +42,19 @@ Install
       export ARCHFLAGS='-arch arm64'
 	  brew install -s libxi
 	 Creates files in "/opt/homebrew/Cellar/libxi/1.7.10/include" and "/opt/homebrew/Cellar/libxi/1.7.10/lib"
- 4. while the headers are not required to compile "vastness", AFNI wants to copy these libraries to the executable folder - perhaps they are dependencies?	
+ 5. while the headers are not required to compile "vastness", AFNI wants to copy these libraries to the executable folder - perhaps they are dependencies?	
     export ARCHFLAGS='-arch arm64'
 	brew install -s freetype
-    brew install -s glib
-	
-  7. brew is unable to create several libraries that the AFNI makefile wants to copy. It is unclear if these are linked to any executables:
+    brew install -s glib	
+ 6. brew is unable to create several libraries that the AFNI makefile wants to copy. It is unclear if these are linked to any executables:
 	cp: /usr/local/lib/gcc/8/lib/libgcc_s.1.dylib: No such file or directory
 	cp: /usr/local/lib/libglib-2.0.0.dylib: No such file or directory
 	cp: /usr/local/lib/libbz2.1.dylib: No such file or directory
 	cp: /usr/local/lib/libintl.8.dylib: No such file or directory
 	libpython*.dylib not native (makefile does not define "LDPYTHON" but not required to build executables)
+ 7. You should now be able to build afni
+	cd ~/afni/src
+	make vastness
 
  
  

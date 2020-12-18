@@ -1,4 +1,13 @@
 #include "SUMA_suma.h"
+#undef noglWindowPos2s
+#if defined(__clang__)
+	//XQuartz supports this function, but does not support ARM
+	//#include <GL/glext.h> 
+	// file /usr/X11/lib/libX11.dylib
+	//macports X11 does not support this function, but does support ARM
+	#define noglWindowPos2s
+#endif
+
 
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
@@ -3663,11 +3672,11 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                   if (lbuf[ij]<20) dbuf[ij]=-1.0; /* max it out */
                }
                /* rewrite depth buffer */
-               #if defined(__aarch64__) 
-               //TODO: glWindowPos2s() does not exist!
-               #else
+#ifdef noglWindowPos2s
+			   
+#else
                glWindowPos2s(0,0); /* specify raster position */
-               #endif
+#endif
                glDrawPixels(sv->X->aWIDTH, sv->X->aHEIGHT, 
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                /* render last slice again */
