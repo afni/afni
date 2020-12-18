@@ -225,7 +225,7 @@ void BSY_help_the_pitiful_user(void)
    "    AA Joshi, M Chong, RM Leahy.\n"
    "    BrainSync: An Orthogonal Transformation for Synchronization of fMRI\n"
    "    Data Across Subjects, Proc. MICCAI 2017\n"
-   "  https://www.dropbox.com/s/tu4kuqqlg6r02kt/brainsync_miccai2017.pdf\n"
+   "  https://pubmed.ncbi.nlm.nih.gov/29075682/\n"
    "  https://www.google.com/search?q=joshi+brainsync\n"
    "  http://neuroimage.usc.edu/neuro/Resources/BrainSync\n"
    "\n"
