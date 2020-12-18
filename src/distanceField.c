@@ -175,6 +175,7 @@ int usage(){
     fprintf(stderr, "Optional arguments specifically for MARCHING_PARABOLAS:\n");
     fprintf(stderr, "\ts: Square root the output\n");
     fprintf(stderr, "\te: Treat edge of field of view as zero\n");
+    fprintf(stderr, "\td: (Debug mode.)  Generate test object set internally\n");
 
     return 0;
 }
