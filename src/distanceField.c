@@ -4,7 +4,7 @@ NAME:
     distanceField - determines depth of voxels in 3D binary objects
 
 SYNOPSIS:
-    distanceField -i <input filename> [-m <metric>][-s <0|1>][-e <0|1>]
+    distanceField -i <input filename> [-m <metric>][-s <0|1>][-e <0|1>][-d]
 
 The input file is expected to be an AFNI dataset.
 
@@ -16,6 +16,7 @@ EROSION - Erosion algorithm.
 Optional arguments specifically for MARCHING_PARABOLAS:
     s: Square root the output
     e: Treat edge of field of view as zero
+    d: (Debug mode.)  Generate test object set internally
 
 *********************************************************************************************************/
 
@@ -41,7 +42,7 @@ typedef enum METRIC_TYPE {
 
 
 int Cleanup(char *inputFileName, THD_3dim_dataset *din);
-static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz);
+static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
 static int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
@@ -81,10 +82,12 @@ int main( int argc, char *argv[] )
     THD_3dim_dataset * din = NULL;
     ERROR_NUMBER    errorNumber;
     float *outImg;
-    bool    do_sqrt=TRUE, edges_are_zero_for_nz=TRUE;
+    bool    do_sqrt=TRUE, edges_are_zero_for_nz=TRUE, debugMode = FALSE;
 
     for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
         switch(argv[i][1]){
+        case 'd': debugMode = TRUE;
+            break;
         case 'e':
             edges_are_zero_for_nz = atoi(argv[++i]);
             break;
@@ -130,7 +133,7 @@ int main( int argc, char *argv[] )
     // Apply metric
     switch (metric){
     case MARCHING_PARABOLAS:
-        if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz))!=ERROR_NONE){
+        if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz, debugMode))!=ERROR_NONE){
             Cleanup(inputFileName, din);
             return errorNumber;
         }
@@ -143,17 +146,15 @@ int main( int argc, char *argv[] )
         break;
     }
 
-
-#define DEBUG     1
-#if DEBUG
+if (debugMode){
     // Output result to afni dataset
     free(outImg);
     outImg = debugOutImage;
     outputDistanceFieldDebug(outImg, din, metric);
-#else
+} else {
     // Output result to afni dataset
     outputDistanceField(outImg, din, metric);
-#endif
+}
 
     Cleanup(inputFileName,  din);
 
@@ -208,7 +209,7 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
     THD_fvec3 xyzdel = {debugScaleFactors[2], debugScaleFactors[1], debugScaleFactors[0]};
 
     // Output Fourier spectrum image (if it does not already exist)
-    if (!outputFileExists){
+    // if (!outputFileExists){
         THD_3dim_dataset *dout = EDIT_empty_copy(din);
         sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
         EDIT_dset_items( dout ,
@@ -219,7 +220,7 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
                         ADN_none ) ;
         EDIT_substitute_brick(dout, 0, MRI_float, outImg);
         DSET_write(dout);
-    }
+    //}
 
     // Cleanup
     free(outputFileName);
@@ -252,7 +253,7 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
     int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
 
     // Output Fourier spectrum image (if it does not already exist)
-    if (!outputFileExists){
+    //if (!outputFileExists){
         THD_3dim_dataset *dout = EDIT_empty_copy(din);
         sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
         EDIT_dset_items( dout ,
@@ -261,7 +262,7 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
                         ADN_none ) ;
         EDIT_substitute_brick(dout, 0, MRI_float, outImg);
         DSET_write(dout);
-    }
+    //}
 
     // Cleanup
     free(outputFileName);
@@ -338,7 +339,7 @@ int getIndex(int x, int y, int z, int nx, int ny, int nz){
 }
 
 
-static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz){
+static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode){
 
     // Get dimensions in voxels
     int nz = DSET_NZ(din);
@@ -349,7 +350,8 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
     int *indices;
     BYTE * byteImg;
     short * shortImg;
-    float   *floatImg;
+    float   *floatImg, ad3[3];
+    int *vol;
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -378,18 +380,20 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             break;
     }
 
+if (debugMode){
     // DEBUG: Make test volume
     // make a test image: a map of various ROIs
     debugNz = nz = 80;
     debugNy = ny = 40;
     debugNx = nx = 20;
     nvox = nx*ny*nz;
-    int *vol;
     vol = (int *)calloc(nx*ny*nz, sizeof(int));
     //free(outImg);
     outImg = (float *)calloc(nvox,sizeof(float));
     debugOutImage = outImg;
-    float ad3[3] = {0.5, 1.0, 2.0};
+    ad3[0] = 0.5;
+    ad3[1] = 1.0;
+    ad3[2] = 2.0;
     memcpy(debugScaleFactors, ad3, 3*sizeof(float));
 
     // LX, LY, LZ = np.shape(vol)
@@ -402,7 +406,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=4; x<8; ++x){
                 vol[yOffset+x] = 1;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -413,7 +416,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=4; x<8; ++x){
                 vol[yOffset+x] = 4;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -424,7 +426,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=11; x<14; ++x){
                 vol[yOffset+x] = 7;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -446,7 +447,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=3; x<6; ++x){
                 vol[yOffset+x] = 1;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -457,7 +457,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=3; x<6; ++x){
                 vol[yOffset+x] = 10;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -468,7 +467,6 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=14; x<19; ++x){
                 vol[yOffset+x] = 17;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
@@ -491,32 +489,10 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
             int yOffset = zOffset + y*nx;
             for (int x=4; x<8; ++x){
                 vol[yOffset+x] = 5;
-                fprintf(stderr, "%d,", yOffset+x);
             }
         }
     }
-
-    // vol[4:18, 2:8, 4:8]     = 1
-    // vol[2:8, 4:18, 4:8]     = 4
-    // vol[21:30, 0:10, 11:14] = 7
-    // for i in range(LX):
-        // for j in range(LY):
-            // for k in range(LZ):
-                // if (15-i)**2 + (25-j)**2 + (10-k)**2 < 31:
-                    //vol[i,j,k] = 2
-    // vol[17:19, :, 3:6]           = 1
-    // vol[:, 19:21, 3:6]           = 10
-    // vol[60:70,28:36,14:19]       = 17
-    /*
-    for i in range(LX):
-        for j in range(LY):
-            for k in range(LZ):
-                if (65-i)**2 + (10-j)**2 + (10-k)**2 < 75:
-                    if not((60-i)**2 + (7-j)**2 + (10-k)**2 < 31):
-                        vol[i,j,k] = 2
-
-    vol[40:56, 25:33, 4:8]     = 5    # a square depending on vox size
-*/
+}
 
 #if PROCESS_ROIS_SEPARATELY
     // Get unique nonzero index values
@@ -535,10 +511,16 @@ static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool ed
         for (int j=0; j<nvox; ++j) outImg[j]+=addend[j];
     }
 #else
+if (debugMode){
+    inputImg = vol;
+} else {
     // Get real world voxel sizes
-    // DEBUG float ad3[3]={fabs(DSET_DX(din)), fabs(DSET_DY(din)), fabs(DSET_DZ(din))};
+    // float ad3[3]={fabs(DSET_DX(din)), fabs(DSET_DY(din)), fabs(DSET_DZ(din))};
+    ad3[0] = fabs(DSET_DX(din));
+    ad3[1] = fabs(DSET_DY(din));
+    ad3[2] = fabs(DSET_DZ(din));
+}
 
-    inputImg = vol; // DEBUG
     img3d_Euclidean_DT(inputImg, nx, ny, nz,
                        do_sqrt, edges_are_zero_for_nz, ad3, outImg);
 #endif
