@@ -72,7 +72,7 @@ commands:
             tests_dir=tests/afni_ci_test_data
             vol_dir=/opt/afni/src/$tests_dir
 
-            TEST_ARGS="--extra-args='--runveryslow -vv' $TEST_ARGS -v traceback --u container"
+            TEST_ARGS="--extra-args='--runveryslow' $TEST_ARGS -v traceback --u container"
 
             # Coverage is off by default
             if [[  "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
