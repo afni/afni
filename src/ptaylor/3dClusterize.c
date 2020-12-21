@@ -1421,7 +1421,11 @@ int main(int argc, char *argv[]) {
       // [PT: Dec 21, 2020] allow user's opt above to transmit through
       if( ! HAVE_USER_ORIENT ) 
          THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
-      INFO_message("TEST: coord: %s", CL_cord.orcode);
+
+      // [PT] comment: at the moment, the next condition should
+      // *never* be true.  Also, if someone wants to start using this,
+      // perhaps they would want to test "do_mni", instead, which
+      // seems what would likely be intended
       if( CL_do_mni )
          THD_coorder_fill( "LPI", &CL_cord );
 
