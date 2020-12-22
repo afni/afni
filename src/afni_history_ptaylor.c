@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New default feature_size: 0.5.  (Old default: was unset).",
+   "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"
+},
+
 { 22, Dec , 2020 , PT , "3dmaskave" , MINOR , TYPE_BUG_FIX,
    "MRI_TYPE_maxval fixed for byte case-- thanks, C Rorden!",
    "Same fix applied in: plug_maskave.c and thd_makemask.c.\n"
