@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Dec, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed 6 copy-and-paste errors using MRI_TYPE_maxval",
+   "Thanks to C Rorden for bringing this up and suggesting code fixes."
+ } ,
+
  { 17, Dec, 2020, RCR, "1dBport", MICRO, TYPE_BUG_FIX,
    "guard against silent failure of int overflow for ftop",
    NULL
