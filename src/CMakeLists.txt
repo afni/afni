@@ -1,9 +1,28 @@
 # ##### Create global entity in which to store installed targets
 set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
-
-# ##### Add core targets from elsewhere
-add_subdirectory(rickr)
 add_subdirectory(niml)
+if(COMP_MRILIB_MINI)
+  add_afni_library(
+      mri_mini
+      mri_blur3d_variable.c
+      mri_new.c
+      mri_free.c
+      debugtrace.c
+  )
+  set_target_properties(
+      mri_mini
+      PROPERTIES
+      PRIVATE_HEADER
+          "mrilib_mini.h;dbtrace.h;debugtrace.h"
+  )
+
+  target_include_directories(mri_mini PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  target_link_libraries(mri_mini PRIVATE AFNI::niml m)
+  return()
+endif()
+
+##### Add core targets from elsewhere
+add_subdirectory(rickr)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 add_subdirectory(3DEdge)

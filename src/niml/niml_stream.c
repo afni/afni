@@ -418,6 +418,13 @@ static int tcp_connect( char *host , int port )
    The return value is the descriptor for the listening socket.
 ----------------------------------------------------------------------------*/
 
+#ifdef MRILIB_MINI
+#define get_port_numbered(x)  (x)
+#define get_port_numbered(x) (x)
+
+int get_user_np(){ return 0; }
+#endif
+
 static int tcp_listen( int port )
 {
    int sd , l , q,qq ;

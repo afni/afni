@@ -4,6 +4,17 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
+#include "debugtrace.h"  /* 26 Jan 2001 addition */
+#include "Amalloc.h"     /* 09 Dec 2003 addition */
+#include "Aomp.h"
+#include "mcw_malloc.h"
+#include "vecmat.h"
+
 #ifndef _MCW_MRILIB_HEADER_
 #define _MCW_MRILIB_HEADER_
 
@@ -35,9 +46,50 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 # define RESTRICT /*nada*/
 #endif
 
-/*------------------------------------------------------------------*/
+#ifdef MRILIB_MINI
+# define MRILIB_verb 0
+/******************* Some sample data structures (from nifti2io.h) ***********************/
 
-extern int MRILIB_verb ;                /* 01 May 2009 */
+typedef struct {                   /** 4x4 matrix struct **/
+  float m[4][4] ;
+} mat44 ;
+
+typedef struct {                   /** 3x3 matrix struct **/
+  float m[3][3] ;
+} mat33 ;
+
+typedef struct {                   /** 4x4 matrix struct (double) **/
+  double m[4][4] ;
+} nifti_dmat44 ;
+
+typedef struct {                   /** 3x3 matrix struct (double) **/
+  double m[3][3] ;
+} nifti_dmat33 ;
+/*------------------------------------------------------------------*/
+/*******************3ddata.h stuff  ***********************/
+typedef struct {
+  int    nvec , nvals , ignore ;
+  int   *ivec ;
+  float *fvec ;
+  int    nx,ny,nz ;
+  float  dx,dy,dz , dt ;
+} MRI_vectim ;
+
+/*------------------------------------------------------------------*/
+#else
+ extern int MRILIB_verb ;                /* 01 May 2009 */
+ #include "nifti2_io.h"
+ #include "mri_dicom_stuff.h"
+ extern AFD_dicom_header **MRILIB_dicom_header ; 
+ /* preferentially include f2c header from local directory, otherwise use system
+  header */
+ #include "f2c.h"
+ /* The following was added to harmonize with system f2c header. Subsequent
+ typedef for complex is now ignored */
+ #define TYPEDEF_complex
+#endif /* MRILIB_MINI */
+
+
 
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
@@ -74,18 +126,11 @@ extern int     valid_g_siemens_times(int, float, int, int);
 
 /*----------------------------------------------------------------------------*/
 
-#ifdef  __cplusplus
-}
-#endif
-
-#include "nifti2_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
-#include "mri_dicom_stuff.h"
 extern int                MRILIB_dicom_count ;  /* 15 Mar 2006 */
 extern int                MRILIB_dicom_s16_overflow ;  /* 9 Jul 2013 [rickr] */
-extern AFD_dicom_header **MRILIB_dicom_header ;
 
 /*! Clear the MRILIB globals
     (which transmit info from image files to to3d.c). */
@@ -99,22 +144,6 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
      use_MRILIB_dicom_matrix=0;                           \
      MRILIB_dicom_count=0; MRILIB_dicom_header=NULL;      \
  } while(0)
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
-#include "mcw_malloc.h"  /* 06 Mar 1999 addition */
-#include "debugtrace.h"  /* 26 Jan 2001 addition */
-#include "Amalloc.h"     /* 09 Dec 2003 addition */
-#include "Aomp.h"
-
-/* preferentially include f2c header from local directory, otherwise use system
- header */
-#include "f2c.h"
-/* The following was added to harmonize with system f2c header. Subsequent
-typedef for complex is now ignored */
-#define TYPEDEF_complex
 
 
 /*----------------------------------------------------------------------------*/
@@ -709,9 +738,7 @@ static int MRI_mm ;
 
 /**** prototypes ****/
 
-#ifdef  __cplusplus
-extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
-#endif
+#ifndef MRILIB_MINI
 
 extern void        mri_input_delay( MRI_IMAGE * ) ;
 extern void        mri_purge_delay( MRI_IMAGE * ) ;
@@ -725,6 +752,20 @@ extern void   mri_killpurge( MRI_IMAGE * ) ;
 extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
 extern char * mri_purge_get_tsuf(void) ;      /* 02 Aug 2007 */
 extern char * mri_get_tempfilename( char * ); /* 27 Jul 2009 */
+
+#else
+
+# define mri_killpurge(x)         /*nada*/
+# define mri_purge(x)             /*nada*/
+# define mri_unpurge(x)           /*nada*/
+# define mri_get_tempfilename(x)  NULL
+# define mri_input_delay(x)       /*nada*/
+# define mri_purge_delay(x)       /*nada*/
+# define mri_add_fname_delay(x,y) /*nada*/
+# define mri_read_file_delay(x)   NULL
+# define mri_read_3D_delay(x)     NULL
+
+#endif /* MRILIB_MINI */
 
 extern int mri_counter( MRI_IMAGE * , float , float ) ; /* 16 Jul 2007 */
 
@@ -1321,6 +1362,9 @@ extern int mri_int_order(void) ;
 extern void mri_swap2( int , short * ) ;
 extern void mri_swap4( int , int * ) ;
 
+#undef min
+#undef max
+
 /*---------------------------------------------------------------------*/
 /*------------------ 18 Sep 2001: drawing stuff -----------------------*/
 
@@ -1347,20 +1391,9 @@ extern void mri_drawcircle( MRI_IMAGE *im ,
 
 /**********************************************************************/
 
-#ifdef  __cplusplus
-}
-#endif
-
-#undef min
-#undef max
-
-#ifdef  __cplusplus
-extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
-#endif
 extern MRI_IMAGE * mri_downsize_by2( MRI_IMAGE * ) ;    /* 27 Apr 2012 */
 
 /************************ Statistics routines *************************/
-
 /**
   if the math library doesn't have the log(gamma(x))
   function (as on Linux, for example)
@@ -1421,10 +1454,6 @@ extern double gamma_p2t   ( double qq , double sh , double sc ) ;
 extern double poisson_t2p ( double xx , double lambda ) ;
 extern double poisson_t2z ( double xx , double lambda ) ;
 extern double poisson_p2t ( double qq , double lambda ) ;
-
-#ifdef  __cplusplus
-}
-#endif
 
 /*-----------------------------------------------------*/
 /* Add extra int 'kk' to floatvec struct [26 Jun 2018] */
@@ -1610,46 +1639,47 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #ifndef __COMPILE_UNUSED_FUNCTIONS__
 #define __COMPILE_UNUSED_FUNCTIONS__
 #endif
-#include "nifticdf.h"    /* was cdflib.h */
-/*------------------------------------------------------------------------*/
-
-/*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
-#include "mcw_glob.h"
-/*------------------------------------------------------------------------*/
 
 /*-----------------  06 Dec 2004: incorporation of list_struct  ----------*/
 #include "list_struct.h"
 
-/*-----------------  02 Feb 1998:
-                     incoroporation of 3ddata, 3dmaker, iochan -----------*/
+#ifndef MRILIB_MINI
 
+#include "nifticdf.h"    /* was cdflib.h */
 #include "thd_iochan.h"
 #include "3ddata.h"
 #include "thd_maker.h"
 #include "editvol.h"
 
 #include "cs.h"            /* 17 Aug 1998 addition */
-
 #include "multivector.h"   /* 18 May 1999 addition */
-
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
-
 #include "r_new_resam_dset.h" /* 31 Jul 2007 */
 #include "r_idisp.h"
 #include "r_misc.h"
 
+#include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
+#include "thd_StatsPDL.h"     /* 22 Jul 2020 [PDL] */
+
+THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
+
+#endif /* MRILIB_MINI */
+
 #include "rcmat.h"            /* 30 Dec 2008 */
+/*------------------------------------------------------------------------*/
+
+/*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
+#include "mcw_glob.h"
+/*------------------------------------------------------------------------*/
+
+/*-----------------  02 Feb 1998:
+                     incoroporation of 3ddata, 3dmaker, iochan -----------*/
 
 #ifdef HAVE_ZLIB
 #include <zlib.h>             /* 02 Mar 2009 */
 #endif
 
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
-
-#include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
-#include "thd_StatsPDL.h"     /* 22 Jul 2020 [PDL] */
-
-THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
 /* 09 Feb 2017: change the way thresholds are short-ified,
                 along with changes in the relevant functions */
@@ -1705,6 +1735,7 @@ extern void mri_genARMA11_set_tdof( float ttt ) ;
 /*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
 
+#ifndef MRILIB_MINI
 typedef struct {
   int nvox ;
   float volume , xcm , ycm , zcm ;
@@ -1721,6 +1752,7 @@ extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl, int icent);
 extern MRI_IMAGE * mri_bi_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                                       float thb , float tht  , MRI_IMAGE *tim ,
                                       byte *mask ) ;  /* 29 Jan 2015 */
+#endif /* MRILIB_MINI */
 
 extern void mri_fdr_setmask( byte *mmm ) ;                /* 27 Mar 2009 */
 extern int mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
@@ -1729,10 +1761,6 @@ extern floatvec * mri_fdr_getmdf(void) ;                  /* 22 Oct 2008 */
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
-
-#ifdef  __cplusplus
-extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
-#endif
 
 extern MRI_IMAGE * mri_matrix_mult     ( MRI_IMAGE *, MRI_IMAGE *);
 extern MRI_IMAGE * mri_matrix_multranA ( MRI_IMAGE *, MRI_IMAGE *);
@@ -1761,8 +1789,10 @@ extern void mri_matrix_print( FILE *fp , MRI_IMAGE *ima , char *label ) ;
 
 /*------------------------------------------------------------------------*/
 
+#ifndef MRILIB_MINI
 extern MRI_IMAGE * THD_average_timeseries( MCW_cluster_array *, THD_3dim_dataset *) ;
 extern MRI_IMAGE * THD_average_one_timeseries( MCW_cluster *, THD_3dim_dataset *) ;
+#endif
 
 /** mri_warp3D.c functions: 14 Apr 2003 */
 
@@ -1795,11 +1825,9 @@ extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 
 extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 
-#ifdef  __cplusplus
-}
-#endif
-
 /*------------------------------------------------------------------*/
+
+#ifndef MRILIB_MINI
 
 #include "AFNI_version.h"
 #undef  PRINT_VERSION
@@ -1822,6 +1850,8 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #undef  AUTHOR
 #define AUTHOR(aa) \
  do{ if( !machdep_be_quiet() ) INFO_message("Authored by: %s",aa) ; } while(0)
+
+#endif /* MRILIB_MINI */
 
 #undef  WROTE_DSET_MSG
 #define WROTE_DSET_MSG(dd,ss)                                        \
@@ -1865,6 +1895,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
 /*--------------------------------------------------------------------*/
 /** July 2006: stuff for generic alignment functions: mri_genalign.c **/
+
+#ifndef MRILIB_MINI
 
 #include "mri_warpfield.h"
 
@@ -2159,10 +2191,14 @@ extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
 
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
 
+#endif /* MRILIB_MINI */
+
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
-extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) ;
 extern void FHWM_1dif_dontcheckplus( int ) ;
 extern THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *, byte * , int ) ;
+#ifndef MRILIB_MINI
+extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) ;
+#endif
 
 
 extern THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE * , byte * ) ;
@@ -2170,19 +2206,23 @@ extern THD_fvec3 mri_estimate_FWHM_12dif_MAD( MRI_IMAGE * , byte * ) ; /* 24 Mar
 
 extern THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE * , byte * ) ; /* 11 Aug 2015 */
 
+#ifndef MRILIB_MINI
 extern MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
                                        byte *mask, int demed, int unif, float radius ) ;
 extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz ) ;
 extern MRI_IMAGE * ACF_get_1D(void) ;
 extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius ) ;
+#endif
 
 void set_ACF_2D( int nn ) ; /* 25 Oct 2018 */
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
+#ifndef MRILIB_MINI
 extern float mri_nstat  ( int , int , float * , float, MCW_cluster *) ;  /* 19 Aug 2005 */
 extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
                                     MRI_IMAGE *, byte *, MCW_cluster * );
+#endif
 
 extern int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5);
 extern int mri_nstat_diffs( int npt , float *far , float *fv5, int doabs);
@@ -2335,6 +2375,7 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
    } while(0)
 /*----------------------------------------------------------------------------*/
 
+#ifndef MRILIB_MINI
 extern THD_3dim_dataset * THD_svdblur( THD_3dim_dataset *inset, byte *mask,
                                 float rad, int pdim, int nort, float **ort ) ;
 extern MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
@@ -2342,6 +2383,7 @@ extern MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
 extern MRI_IMAGE * mri_svdproj( MRI_IMARR *imar , int nev ) ;
 extern MRI_IMAGE * mri_first_principal_vector( MRI_IMARR *imar ) ;
 extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float *uvec ) ;
+#endif
 
 /*----------------------------------------------------------------------------*/
 /* for mri_nwarp.c */
@@ -2393,6 +2435,7 @@ typedef struct { /* 17 Oct 2014 */
      free(mv) ;                                \
  } while(0) ;
 
+#ifndef MRILIB_MINI
 typedef struct { /* 17 Oct 2014 */
   int ncat , nvar , flags ;
   THD_3dim_dataset **nwarp ;
@@ -2471,6 +2514,7 @@ extern int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
                                   float dfac , int npt ,
                                   float *xin , float *yin , float *zin ,
                                   float *xut , float *yut , float *zut  ) ;
+#endif /* MRILIB_MINI */
 /*----------------------------------------------------------------------------*/
 /* Aug 2018 - sound stuff - cs_playsound.c */
 
@@ -2513,5 +2557,9 @@ extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
 /*----------------------------------------------------------------------------*/
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_MRILIB_HEADER_ */

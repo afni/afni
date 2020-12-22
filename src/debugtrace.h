@@ -7,6 +7,10 @@
 #ifndef _MCW_DEBUGTRACE_
 #define _MCW_DEBUGTRACE_
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /** inputs:
      USE_TRACING ==> if set, include tracing information **/
 
@@ -71,13 +75,11 @@ extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
    Define things to be used in debugtrace.c
 ------------------------------------------------------------------*/
 
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
+#include <string.h>
 
 #ifdef _DEBUGTRACE_MAIN_
    char *DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
@@ -420,17 +422,17 @@ extern void clock_time_atexit(void) ;
 # define MPROBE /* nada */
 #endif
 
-#ifdef  __cplusplus
+/*#ifdef  __cplusplus
 }
-#endif
+#endif*/
 
 /*---------------------------------------------------------------*/
 
 /** #include <stdarg.h> **/
 
-#ifdef  __cplusplus
+/*#ifdef  __cplusplus
 extern "C" {
-#endif
+#endif*/
 
 extern void INFO_message   ( char *fmt , ... ) ;  /* 13 Jul 2005 */
 extern void ININFO_message ( char *fmt , ... ) ;
