@@ -91,7 +91,8 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
-            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+            // [PT: Dec 22, 2020] Thanks for the fix here, C Rorden!
+            mtop = (byte) MRI_TYPE_maxval[MRI_byte] ;
          }
          if( !empty )   /* 6 Jun 2007 */
             for( ii=0 ; ii < nvox ; ii++ )
@@ -223,7 +224,8 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
-            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+            // [PT: Dec 22, 2020] Thanks for the fix here, C Rorden!
+            mtop = (byte) MRI_TYPE_maxval[MRI_byte] ;
          }
          if (empty) {  /* if empty, clear result   6 Jun 2007 */
             for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Dec , 2020 , PT , "3dmaskave" , MINOR , TYPE_BUG_FIX,
+   "MRI_TYPE_maxval fixed for byte case-- thanks, C Rorden!",
+   "Same fix applied in: plug_maskave.c and thd_makemask.c.\n"
+},
+
 { 21, Dec , 2020 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
    "Tweak internal handling of reading inputs, prohibit hanging args.",
    "Now, hanging args should produce error (not just be silently ignored).\n"
