@@ -208,7 +208,7 @@ commands:
       - run:
           name: Setup on macos
           command: |
-            brew cask install xquartz
+            brew  install --cask xquartz
             brew unlink python@2
 
             # add hack for git upgrade to not raise an error
