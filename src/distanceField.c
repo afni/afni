@@ -41,12 +41,12 @@ typedef enum METRIC_TYPE {
  } METRIC_TYPE ;
 
 
-int Cleanup(char *inputFileName, THD_3dim_dataset *din);
+int Cleanup(char *inputFileName, char *outputFileName, THD_3dim_dataset *din);
 static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
 static int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
-int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric);
-int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric);
+int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileName);
+int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputFileName);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
 void edt1_local(THD_3dim_dataset * din, flt * df, int n);
 void edt_local(float scale, flt * f, int n);
@@ -77,7 +77,7 @@ float sqr(float x){
 
 int main( int argc, char *argv[] )
 {
-    char    *inputFileName=NULL;
+    char    *inputFileName=NULL, *outputFileName=NULL;
     int     i, metric=MARCHING_PARABOLAS;
     THD_3dim_dataset * din = NULL;
     ERROR_NUMBER    errorNumber;
@@ -93,7 +93,7 @@ int main( int argc, char *argv[] )
             break;
         case 'i':
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
-                return Cleanup(inputFileName,  din);
+                return Cleanup(inputFileName,  outputFileName, din);
             sprintf(inputFileName,"%s",argv[i]);
             break;
 
@@ -109,6 +109,13 @@ int main( int argc, char *argv[] )
                 return ERROR_UNRECOGNIZABLE_SPECIES;
             }
             break;
+
+        case 'o':
+            if (!(outputFileName=(char*)malloc(strlen(argv[++i])+8)))
+                return Cleanup(inputFileName,  outputFileName, din);
+            sprintf(outputFileName,"%s",argv[i]);
+            break;
+
         case 's':
             do_sqrt = atoi(argv[++i]);
             break;
@@ -121,12 +128,37 @@ int main( int argc, char *argv[] )
 
     // Open dataset
     if ( (errorNumber=open_input_dset(&din, inputFileName))!=ERROR_NONE ){
-        Cleanup(inputFileName, din);
+        Cleanup(inputFileName,  outputFileName, din);
         return errorNumber;
     }
 
+    if (!outputFileName){        // Default output filename
+        char *prefix=DSET_PREFIX(din);
+        char *searchPath=DSET_DIRNAME(din);
+        char  appendage[256];
+
+        // Set appendage
+        switch (metric){
+        case MARCHING_PARABOLAS:
+            sprintf(appendage, "MarParab");
+            break;
+        case EROSION:
+            sprintf(appendage, "Erosion");
+            break;
+        }
+
+        if (debugMode) sprintf(appendage, "%s", strcat(appendage, "Debug"));
+
+        // Allocate memory to output name buffer
+        if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+strlen(appendage)+8))){
+           return ERROR_MEMORY_ALLOCATION;
+        }
+
+        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+    }
+
     if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
-        Cleanup(inputFileName, din);
+        Cleanup(inputFileName,  outputFileName, din);
         return ERROR_MEMORY_ALLOCATION;
     }
 
@@ -134,29 +166,29 @@ int main( int argc, char *argv[] )
     switch (metric){
     case MARCHING_PARABOLAS:
         if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz, debugMode))!=ERROR_NONE){
-            Cleanup(inputFileName, din);
+            Cleanup(inputFileName,  outputFileName, din);
             return errorNumber;
         }
         break;
     case EROSION:
         if ((errorNumber=erosion(din, outImg))!=ERROR_NONE){
-            Cleanup(inputFileName, din);
+            Cleanup(inputFileName,  outputFileName, din);
             return errorNumber;
         }
         break;
     }
 
-if (debugMode){
-    // Output result to afni dataset
-    free(outImg);
-    outImg = debugOutImage;
-    outputDistanceFieldDebug(outImg, din, metric);
-} else {
-    // Output result to afni dataset
-    outputDistanceField(outImg, din, metric);
-}
+    if (debugMode){
+        // Output result to afni dataset
+        free(outImg);
+        outImg = debugOutImage;
+        outputDistanceFieldDebug(outImg, din, outputFileName);
+    } else {
+        // Output result to afni dataset
+        outputDistanceField(outImg, din, outputFileName);
+    }
 
-    Cleanup(inputFileName,  din);
+    Cleanup(inputFileName,  outputFileName, din);
 
     return 0;
 }
@@ -180,83 +212,29 @@ int usage(){
     return 0;
 }
 
-int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, int metric){
-
-    char *prefix=DSET_PREFIX(din);
-    char *searchPath=DSET_DIRNAME(din);
-    char *outputFileName;
-    char  appendage[256];
-
-    // Set appendage
-    switch (metric){
-    case MARCHING_PARABOLAS:
-        sprintf(appendage, "MarParabDebug");
-        break;
-    case EROSION:
-        sprintf(appendage, "ErosionDebug");
-        break;
-    }
-
-    // Allocate memory to output name buffer
-    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+strlen(appendage)+8))){
-       return ERROR_MEMORY_ALLOCATION;
-    }
-
-    // Determine whether output file already exists
-    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
+int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputFileName){
 
     // Set output dimensions
     THD_ivec3 nxyz={debugNx, debugNy, debugNz};
     THD_fvec3 xyzdel = {debugScaleFactors[2], debugScaleFactors[1], debugScaleFactors[0]};
 
-    // Output Fourier spectrum image (if it does not already exist)
-    // if (!outputFileExists){
-        THD_3dim_dataset *dout = EDIT_empty_copy(din);
-        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
-        EDIT_dset_items( dout ,
-                        ADN_prefix, outputFileName,
-                        ADN_type, MRI_float,
-                        ADN_nxyz, nxyz,
-                        ADN_xyzdel, xyzdel,
-                        ADN_none ) ;
-        EDIT_substitute_brick(dout, 0, MRI_float, outImg);
-        DSET_write(dout);
-    //}
-
-    // Cleanup
-    free(outputFileName);
+    // Output Fourier distance image
+    THD_3dim_dataset *dout = EDIT_empty_copy(din);
+    EDIT_dset_items( dout ,
+                    ADN_prefix, outputFileName,
+                    ADN_type, MRI_float,
+                    ADN_nxyz, nxyz,
+                    ADN_xyzdel, xyzdel,
+                    ADN_none ) ;
+    EDIT_substitute_brick(dout, 0, MRI_float, outImg);
+    DSET_write(dout);
 
     return ERROR_NONE;
 }
 
-int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
-    char *prefix=DSET_PREFIX(din);
-    char *searchPath=DSET_DIRNAME(din);
-    char *outputFileName;
-    char  appendage[256];
-
-    // Set appendage
-    switch (metric){
-    case MARCHING_PARABOLAS:
-        sprintf(appendage, "MarParab");
-        break;
-    case EROSION:
-        sprintf(appendage, "Erosion");
-        break;
-    }
-
-    // Allocate memory to output name buffer
-    if (!(outputFileName=(char *)malloc(strlen(searchPath)+strlen(prefix)+strlen(appendage)+8))){
-       return ERROR_MEMORY_ALLOCATION;
-    }
-
-    // Determine whether output file already exists
-    int outputFileExists = doesFileExist(searchPath,prefix,appendage,outputFileName);
-
-    // Output Fourier spectrum image (if it does not already exist)
-    //if (!outputFileExists){
+int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileName){
         THD_3dim_dataset *dout = EDIT_empty_copy(din);
-        sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
+        // sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
         EDIT_dset_items( dout ,
                         ADN_prefix, outputFileName,
                         ADN_type, MRI_float,
@@ -266,7 +244,7 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, int metric){
     //}
 
     // Cleanup
-    free(outputFileName);
+    // free(outputFileName);
 
     return ERROR_NONE;
 }
@@ -511,6 +489,8 @@ if (debugMode){
         }
         for (int j=0; j<nvox; ++j) outImg[j]+=addend[j];
     }
+
+    free(indices);
 #else
 if (debugMode){
     inputImg = vol;
@@ -528,7 +508,6 @@ if (debugMode){
 
 	// Cleanup
 	free(inputImg);
-	free(indices);
 
 	return ERROR_NONE;
 }
@@ -540,7 +519,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
     int planeSize = nx*ny;
 
     // initialize the "output" or answer array
-    for (int i=0; i<nvox; ++i) odt[i] = (im[i]>0)? BIG : 0;
+    // for (int i=0; i<nvox; ++i) odt[i] = (im[i]>0)? BIG : 0;
+    for (int i=0; i<nvox; ++i) odt[i] = BIG;
 
     // first pass: start with all BIGs (along x-axes)
     int *inRow = im;
@@ -1181,9 +1161,10 @@ int shortToByte(THD_3dim_dataset ** din){
     return ERROR_NONE;
 }
 
-int Cleanup(char *inputFileName, THD_3dim_dataset *din){
+int Cleanup(char *inputFileName, char *outputFileName, THD_3dim_dataset *din){
 
     if (inputFileName) free(inputFileName);
+    if (outputFileName) free(outputFileName);
 
     return 0;
 }
