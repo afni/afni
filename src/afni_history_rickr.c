@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Dec, 2020, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "add help example for creating a new dataset given a raw data file",
+   NULL
+ } ,
+
  { 29, Dec, 2020, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "sync with nifti_clib",
    NULL

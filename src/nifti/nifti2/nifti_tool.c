@@ -196,10 +196,11 @@ static const char * g_history[] =
   "2.10 27 Aug 2020 [rickr]\n",
   "   - nt_image_read() takes a new make_ver parameter\n",
   "   - possibly convert default NIFTI-2 MAKE_IM result to NIFTI-1\n"
+  "2.11 29 Dec 2020 [rickr] - add example to create dset from raw data\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "2.10";
-static char g_version_date[] = "August 27, 2020";
+static char g_version[] = "2.11";
+static char g_version_date[] = "December 29, 2020";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -1158,6 +1159,18 @@ int use_full()
    "      3. nifti_tool -mod_hdr -mod_field descrip 'dataset with mods'  \\\n"
    "                    -new_dims 3 10 20 30 0 0 0 0                     \\\n"
    "                    -prefix new_desc.nii -infiles MAKE_IM\n"
+   "\n");
+   printf("\n"
+   "      4. Given a raw data file VALS.dat of 80x40x20 floats, with\n"
+   "         grid spacing 0.5mm x 1mm x 2mm, make a 2-file NIFTI dataset\n"
+   "         and overwrite the all-zero data with 'VALS.dat'.\n"
+   "         Use -mod_hdr to specify that the output type is 2-files.\n\n"
+   "         nifti_tool -infiles MAKE_IM -prefix newdata.hdr           \\\n"
+   "                    -new_dims 3 80 40 20 0 0 0 0                   \\\n"
+   "                    -new_datatype 16                               \\\n"
+   "                    -mod_hdr -mod_field pixdim '1 0.5 1 2 1 1 1 1' \\\n"
+   "                    -mod_hdr -mod_field magic ni1\n\n"
+   "         cp VALS.dat newdata.img\n"
    "\n");
    printf(
    "    E. copy dataset, brick list or collapsed image:\n"
