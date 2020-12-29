@@ -84,7 +84,7 @@ endif()
 #message(STATUS "---------------------ZLIB -${NIFTI_ZLIB_LIBRARIES}--")
 add_definitions(-DHAVE_ZLIB)
 
-set_if_not_defined(NIFTI_INSTALL_NO_DOCS FALSE)
+set_if_not_defined(NIFTI_INSTALL_NO_DOCS TRUE)
 
 # Include test to verify linking in installed executables
 # The test should only be added when applications are built, and no prefix string is set.
@@ -253,13 +253,14 @@ if(NIFTI_INSTALL_EXPORT_NAME STREQUAL "NIFTITargets")
         FILE NIFTITargets.cmake
         NAMESPACE     ${PACKAGE_NAME}::
         DESTINATION   ${ConfigPackageLocation}
+        COMPONENT     Development
         )
 
   install(FILES
            ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
            ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
-        DESTINATION   ${ConfigPackageLocation}
         COMPONENT     Development
+        DESTINATION   ${ConfigPackageLocation}
   )
 endif()
 

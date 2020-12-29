@@ -133,3 +133,7 @@ Updated in version 3.0.0 July 16, 2020
     - RR added c21 test scripts
     
 
+Updated in version 3.0.1 Aug 07, 2020
+    - JL made fix for cmake config add example usage and a test for it
+    - JL changed default behavior to not build manpages
+    - RR made a fix for the make build and added a suggestion to use the cmake

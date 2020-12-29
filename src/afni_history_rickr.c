@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Dec, 2020, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
  { 22, Dec, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fixed 6 copy-and-paste errors using MRI_TYPE_maxval",
    "Thanks to C Rorden for bringing this up and suggesting code fixes."

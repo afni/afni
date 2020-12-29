@@ -28,8 +28,10 @@ ${NT} -copy_im -prefix ${OUT_DATA}/ncopy4.nii -infiles ${OUT_DATA}/new4.nii.gz
 ${NT} -copy_im -prefix ${OUT_DATA}/ncopy5.nii -infiles ${OUT_DATA}/new5.nia
 
 # verify that they are all the same
+# note: MAKE_IM defaults to NIFTI-2, while .nia is NIFTI-1, 
+#       so either skip index 5 or convert to NIFTI-2
 set count = 0
-for index in 2 3 4 5 ; do
+for index in 2 3 4 ; do
     diff ${OUT_DATA}/ncopy1.nii ${OUT_DATA}/ncopy$index.nii
     if [ $? -ne 0 ] ; then
         echo "-- failure on test index $index --"

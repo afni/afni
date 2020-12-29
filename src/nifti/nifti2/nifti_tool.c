@@ -193,10 +193,13 @@ static const char * g_history[] =
   "   - warn on type, and block print buffer overflow\n"
   "2.09  7 Apr 2020 [rickr]\n",
   "   - add -see_also and -ver_man, for man page generation\n",
+  "2.10 27 Aug 2020 [rickr]\n",
+  "   - nt_image_read() takes a new make_ver parameter\n",
+  "   - possibly convert default NIFTI-2 MAKE_IM result to NIFTI-1\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "2.09";
-static char g_version_date[] = "April 7, 2020";
+static char g_version[] = "2.10";
+static char g_version_date[] = "August 27, 2020";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2119,7 +2122,7 @@ int act_add_exts( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1, 0 );
       if( !nim ) return 1;  /* errors come from the library */
 
       for( ec = 0; ec < opts->elist.len; ec++ ){
@@ -2258,7 +2261,7 @@ int act_strip( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1, 0 );
       if( !nim ) return 1;  /* errors come from the library */
 
       /* now remove the extensions */
@@ -2325,7 +2328,7 @@ int act_rm_ext( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1, 0 );
       if( !nim ) return 1;  /* errors come from the library */
 
       /* note the number of extensions for later */
@@ -2675,10 +2678,10 @@ int act_diff_nims( nt_opts * opts )
 
    /* get the nifiti images */
 
-   nim0 = nt_image_read(opts, opts->infiles.list[0], 0);
+   nim0 = nt_image_read(opts, opts->infiles.list[0], 0, 0);
    if( ! nim0 ) return 1;  /* errors have been printed */
 
-   nim1 = nt_image_read(opts, opts->infiles.list[1], 0);
+   nim1 = nt_image_read(opts, opts->infiles.list[1], 0, 0);
    if( ! nim1 ){ free(nim0); return 1; }
 
    if( g_debug > 1 )
@@ -2781,7 +2784,7 @@ int act_disp_exts( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nt_image_read(opts, opts->infiles.list[fc], 0);
+      nim = nt_image_read(opts, opts->infiles.list[fc], 0, 0);
       if( !nim ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2817,7 +2820,7 @@ int act_disp_cext( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nt_image_read(opts, opts->infiles.list[fc], 0);
+      nim = nt_image_read(opts, opts->infiles.list[fc], 0, 0);
       if( !nim ) return 1;  /* errors are printed from library */
 
       if( g_debug > 1 )
@@ -3091,7 +3094,7 @@ int act_disp_nims( nt_opts * opts )
 
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
-      nim = nt_image_read(opts, opts->infiles.list[filenum], 0);
+      nim = nt_image_read(opts, opts->infiles.list[filenum], 0, 0);
       if( !nim ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -3190,12 +3193,14 @@ int act_mod_hdrs( nt_opts * opts )
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
       {
-         nim = nt_image_read(opts, fname, 1); /* get data */
+         /* if MAKE_IM, request NIFTI-1 in this case  18 Aug 2020 [rickr] */
+         nim = nt_image_read(opts, fname, 1, 1); /* get data */
          if( !nim ) {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
                     fname);
             return 1;
          }
+
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
                                 strlen(opts->command), NIFTI_ECODE_COMMENT) )
                fprintf(stderr,"** failed to add command to image as exten\n");
@@ -3300,7 +3305,8 @@ int act_mod_hdr2s( nt_opts * opts )
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
       {
-         nim = nt_image_read(opts, fname, 1); /* get data */
+         /* if MAKE_IM, request NIFTI-2 in this case  18 Aug 2020 [rickr] */
+         nim = nt_image_read(opts, fname, 1, 2); /* get data */
          if( !nim ) {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
                     fname);
@@ -3439,7 +3445,8 @@ int act_swap_hdrs( nt_opts * opts )
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
       {
-         nim = nt_image_read(opts, fname, 1); /* get data */
+         /* if MAKE_IM, request NIFTI-1 in this case  18 Aug 2020 [rickr] */
+         nim = nt_image_read(opts, fname, 1, 1); /* get data */
          if( !nim ) {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
                     fname);
@@ -3490,7 +3497,7 @@ int act_mod_nims( nt_opts * opts )
 
    for( filec = 0; filec < opts->infiles.len; filec++ )
    {
-      nim = nt_image_read(opts, opts->infiles.list[filec], 1); /* with data */
+      nim = nt_image_read(opts, opts->infiles.list[filec], 1, 0); /* data */
       if( !nim ) return 1;
 
       if( g_debug > 1 )
@@ -4879,7 +4886,7 @@ int act_disp_ci( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       err = 0;
-      nim = nt_image_read(opts, opts->infiles.list[filenum], 0);
+      nim = nt_image_read(opts, opts->infiles.list[filenum], 0, 0);
       if( !nim ) continue;  /* errors are printed from library */
       if( opts->dts && nim->ndim != 4 )
       {
@@ -5066,7 +5073,7 @@ int act_run_misc_tests( nt_opts * opts )
                  fname, is_nifti_file(fname));
       }
 
-      nim = nt_image_read(opts, fname, 0);
+      nim = nt_image_read(opts, fname, 0, 0);
       if( !nim ) return 1;  /* errors are printed from library */
 
       /* actually run the tests */
@@ -5316,7 +5323,7 @@ int act_cbl( nt_opts * opts )
    if( g_debug > 1 )
       fprintf(stderr,"+d -cbl: using '%s' for selection string\n", selstr);
 
-   nim = nt_image_read(opts, fname, 0);  /* get image */
+   nim = nt_image_read(opts, fname, 0, 0);  /* get image */
    if( !nim ) return 1;
 
    /* since nt can be zero now (sigh), check for it   02 Mar 2006 [rickr] */
@@ -5381,7 +5388,7 @@ int act_cci( nt_opts * opts )
       return 1;
    }
 
-   nim = nt_image_read(opts, opts->infiles.list[0], 0);
+   nim = nt_image_read(opts, opts->infiles.list[0], 0, 0);
    if( !nim ) return 1;
    nim->data = NULL;    /* just to be sure */
 
@@ -5443,9 +5450,14 @@ static int free_opts_mem( nt_opts * nopt )
  *
  * this adds the option to generage an empty image, if the
  * filename starts with "MAKE_IM"
+ *   - in the case of MAKE_IM, use make_ver to specify the NIFTI version
+ *     (so possibly mod nifti_type and iname_offset)
  *----------------------------------------------------------------------*/
-nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread )
+nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread,
+                             int make_ver )
 {
+    nifti_image * nim;
+
     if( !opts || !fname  ) {
         fprintf(stderr,"** nt_image_read: bad params (%p,%p)\n",
                 (void *)opts, (void *)fname);
@@ -5460,6 +5472,7 @@ nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread )
     }
 
     /* so generate an emtpy image */
+
     if(g_debug > 1) {
         fprintf(stderr,"+d NT_IR: generating EMPTY IMAGE from %s...\n",fname);
         if(g_debug > 2) {
@@ -5470,8 +5483,17 @@ nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread )
         }
     }
 
-    /* create a new nifti_image, with data depending on doread */
-    return nifti_make_new_nim(opts->new_dim, opts->new_datatype, doread);
+    /* create a new nifti_image, with data depending on doread   */
+    /* (and possibly alter, if make_ver is not the default of 2) */
+    nim = nifti_make_new_nim(opts->new_dim, opts->new_datatype, doread);
+
+    /* if NIFTI-1 is requested, alter nim for it */
+    if( nim && make_ver == 1 ) {
+       nim->nifti_type   = NIFTI_FTYPE_NIFTI1_1;
+       nim->iname_offset = -1; /* let it be reset */
+    }
+
+    return nim;
 }
 
 
@@ -5498,7 +5520,8 @@ void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
     /* if the user does not want an empty image, do normal image_read */
     if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
         if(g_debug > 1)
-            fprintf(stderr,"-d calling nifti_read_n1_hdr(%s,...)\n", fname);
+            fprintf(stderr,"-d calling nifti_read_header(%s, %d...)\n",
+                    fname, nver ? *nver : -1);
 
         /* if not set or 0, return whatever is found */
         if( ! nver || ! *nver ) return nifti_read_header(fname, nver, check);
