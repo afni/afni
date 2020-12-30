@@ -244,13 +244,13 @@ ERROR_NUMBER  getDistanceFieldDataSet(THD_3dim_dataset *din, THD_3dim_dataset **
         THD_ivec3 nxyz={20, 40, 80};
         THD_fvec3 xyzdel = {2.0, 1.0, 0.5};
 
-        EDIT_dset_items( dout ,
+        EDIT_dset_items( *dout ,
                         ADN_nxyz, nxyz,
                         ADN_xyzdel, xyzdel,
                         ADN_none ) ;
     }
 
-    EDIT_substitute_brick(dout, 0, MRI_float, outImg);
+    EDIT_substitute_brick(*dout, 0, MRI_float, outImg);
 
     return ERROR_NONE;
 }
