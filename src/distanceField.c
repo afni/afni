@@ -4,7 +4,7 @@ NAME:
     distanceField - determines depth of voxels in 3D binary objects
 
 SYNOPSIS:
-    distanceField -i <input filename> [-m <metric>][-s <0|1>][-e <0|1>][-d]
+    distanceField -i <input filename> [-o <output filename>][-m <metric>][-s <0|1>][-e <0|1>][-d]
 
 The input file is expected to be an AFNI dataset.
 
@@ -15,8 +15,11 @@ EROSION - Erosion algorithm.
 
 Optional arguments specifically for MARCHING_PARABOLAS:
     s: Square root the output
-    e: Treat edge of field of view as zero
+    e: Treat edge of field of view as zero (default)
     d: (Debug mode.)  Generate test object set internally
+
+If the output filename is not specified, a default name is assigned.  The default name reflects the input
+filename, metric and whether the program was run in debug mode.
 
 *********************************************************************************************************/
 
@@ -42,10 +45,10 @@ typedef enum METRIC_TYPE {
 
 
 int Cleanup(char *inputFileName, char *outputFileName, THD_3dim_dataset *din);
-static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
-static int erosion(THD_3dim_dataset * din, float *outImg);
+int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
+int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
-int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileName);
+int outputDistanceField(THD_3dim_dataset *dout, char *outputFileName);
 int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputFileName);
 int doesFileExist(char * searchPath, char * prefix,char *appendage , char * outputFileName);
 void edt1_local(THD_3dim_dataset * din, flt * df, int n);
@@ -66,6 +69,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
 ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
                        float delta, bool edges_are_zero_for_nz);
 float * Euclidean_DT_delta(float *f, int n, float delta);
+ERROR_NUMBER  getDistanceFieldDataSet(THD_3dim_dataset *din, THD_3dim_dataset **dout, int metric,
+    bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
 
 // Debugging variables
 int debugNx, debugNy, debugNz;
@@ -79,7 +84,7 @@ int main( int argc, char *argv[] )
 {
     char    *inputFileName=NULL, *outputFileName=NULL;
     int     i, metric=MARCHING_PARABOLAS;
-    THD_3dim_dataset * din = NULL;
+    THD_3dim_dataset *din = NULL, *dout = NULL;
     ERROR_NUMBER    errorNumber;
     float *outImg;
     bool    do_sqrt=TRUE, edges_are_zero_for_nz=TRUE, debugMode = FALSE;
@@ -132,6 +137,11 @@ int main( int argc, char *argv[] )
         return errorNumber;
     }
 
+    if ( (errorNumber=getDistanceFieldDataSet(din, &dout, metric, do_sqrt, edges_are_zero_for_nz, debugMode))!=ERROR_NONE ){
+        Cleanup(inputFileName,  outputFileName, din);
+        return errorNumber;
+    }
+
     if (!outputFileName){        // Default output filename
         char *prefix=DSET_PREFIX(din);
         char *searchPath=DSET_DIRNAME(din);
@@ -157,27 +167,12 @@ int main( int argc, char *argv[] )
         sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
     }
 
-    if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
+    if ( (errorNumber=outputDistanceField(dout, outputFileName))!=ERROR_NONE ){
         Cleanup(inputFileName,  outputFileName, din);
-        return ERROR_MEMORY_ALLOCATION;
+        return errorNumber;
     }
 
-    // Apply metric
-    switch (metric){
-    case MARCHING_PARABOLAS:
-        if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz, debugMode))!=ERROR_NONE){
-            Cleanup(inputFileName,  outputFileName, din);
-            return errorNumber;
-        }
-        break;
-    case EROSION:
-        if ((errorNumber=erosion(din, outImg))!=ERROR_NONE){
-            Cleanup(inputFileName,  outputFileName, din);
-            return errorNumber;
-        }
-        break;
-    }
-
+    /*
     if (debugMode){
         // Output result to afni dataset
         free(outImg);
@@ -187,7 +182,7 @@ int main( int argc, char *argv[] )
         // Output result to afni dataset
         outputDistanceField(outImg, din, outputFileName);
     }
-
+*/
     Cleanup(inputFileName,  outputFileName, din);
 
     return 0;
@@ -195,7 +190,7 @@ int main( int argc, char *argv[] )
 
 int usage(){
     fprintf(stderr, "SYNOPSIS:\n");
-        fprintf(stderr, "\tdistanceField -i <input filename> [-m <metric>]\n\n");
+        fprintf(stderr, "\tdistanceField -i <input filename> [-o <output filename>][-m <metric>]\n\n");
 
     fprintf(stderr, "The input file is expected to be an AFNI dataset.\n\n");
 
@@ -206,10 +201,69 @@ int usage(){
 
     fprintf(stderr, "Optional arguments specifically for MARCHING_PARABOLAS:\n");
     fprintf(stderr, "\ts: Square root the output\n");
-    fprintf(stderr, "\te: Treat edge of field of view as zero\n");
-    fprintf(stderr, "\td: (Debug mode.)  Generate test object set internally\n");
+    fprintf(stderr, "\te: Treat edge of field of view as zero (default)\n");
+    fprintf(stderr, "\td: (Debug mode.)  Generate test object set internally\n\n");
+
+    fprintf(stderr, "If the output filename is not specified, a default name is assigned.\n");
+    fprintf(stderr, "The default name reflects the input filename, metric and whether \n");
+    fprintf(stderr, "the program was run in debug mode.\n");
 
     return 0;
+}
+
+ERROR_NUMBER  getDistanceFieldDataSet(THD_3dim_dataset *din, THD_3dim_dataset **dout, int metric,
+    bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode){
+
+    ERROR_NUMBER errorNumber;
+    float *outImg;
+
+    if (!(outImg = (float *)calloc(DSET_NVOX(din), sizeof(float)))){
+        return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Apply metric
+    switch (metric){
+    case MARCHING_PARABOLAS:
+        if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz, debugMode))!=ERROR_NONE){
+            return errorNumber;
+        }
+        break;
+    case EROSION:
+        if ((errorNumber=erosion(din, outImg))!=ERROR_NONE){
+            return errorNumber;
+        }
+        break;
+    }
+
+    *dout = EDIT_empty_copy(din);
+    EDIT_dset_items( *dout ,
+                    ADN_type, MRI_float,
+                    ADN_none ) ;
+
+    if (debugMode){
+        THD_ivec3 nxyz={20, 40, 80};
+        THD_fvec3 xyzdel = {2.0, 1.0, 0.5};
+
+        EDIT_dset_items( dout ,
+                        ADN_nxyz, nxyz,
+                        ADN_xyzdel, xyzdel,
+                        ADN_none ) ;
+    }
+
+    EDIT_substitute_brick(dout, 0, MRI_float, outImg);
+
+    return ERROR_NONE;
+}
+
+int outputDistanceField(THD_3dim_dataset *dout, char *outputFileName){
+
+    // Output Fourier distance image
+    EDIT_dset_items( dout ,
+                    ADN_prefix, outputFileName,
+                    ADN_none ) ;
+    DSET_write(dout);
+
+    return ERROR_NONE;
 }
 
 int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputFileName){
@@ -232,6 +286,7 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputF
     return ERROR_NONE;
 }
 
+/*
 int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileName){
         THD_3dim_dataset *dout = EDIT_empty_copy(din);
         // sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
@@ -248,8 +303,9 @@ int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileNa
 
     return ERROR_NONE;
 }
+*/
 
-static int erosion(THD_3dim_dataset * din, float *outImg){
+int erosion(THD_3dim_dataset * din, float *outImg){
 
     // Get dimensions in voxels
     int nz = DSET_NZ(din);
@@ -318,7 +374,7 @@ int getIndex(int x, int y, int z, int nx, int ny, int nz){
 }
 
 
-static int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode){
+int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode){
 
     // Get dimensions in voxels
     int nz = DSET_NZ(din);
@@ -998,7 +1054,7 @@ void edt1_local(THD_3dim_dataset * din, flt * df, int n) { //first dimension is 
     }
 }
 
-static flt vx(flt * f, int p, int q) {
+flt vx(flt * f, int p, int q) {
 	if ((f[p] == BIG) || (f[q] == BIG))
 		return BIG;
 	else
