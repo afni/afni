@@ -172,17 +172,6 @@ int main( int argc, char *argv[] )
         return errorNumber;
     }
 
-    /*
-    if (debugMode){
-        // Output result to afni dataset
-        free(outImg);
-        outImg = debugOutImage;
-        outputDistanceFieldDebug(outImg, din, outputFileName);
-    } else {
-        // Output result to afni dataset
-        outputDistanceField(outImg, din, outputFileName);
-    }
-*/
     Cleanup(inputFileName,  outputFileName, din);
 
     return 0;
@@ -286,25 +275,6 @@ int outputDistanceFieldDebug(float *outImg, THD_3dim_dataset *din, char *outputF
     return ERROR_NONE;
 }
 
-/*
-int outputDistanceField(float *outImg, THD_3dim_dataset *din, char *outputFileName){
-        THD_3dim_dataset *dout = EDIT_empty_copy(din);
-        // sprintf(outputFileName,"%s%s%s",searchPath,prefix,appendage);
-        EDIT_dset_items( dout ,
-                        ADN_prefix, outputFileName,
-                        ADN_type, MRI_float,
-                        ADN_none ) ;
-        EDIT_substitute_brick(dout, 0, MRI_float, outImg);
-        DSET_write(dout);
-    //}
-
-    // Cleanup
-    // free(outputFileName);
-
-    return ERROR_NONE;
-}
-*/
-
 int erosion(THD_3dim_dataset * din, float *outImg){
 
     // Get dimensions in voxels
@@ -315,12 +285,6 @@ int erosion(THD_3dim_dataset * din, float *outImg){
     int i;
     bool objectVoxelsLeft=TRUE;
     BYTE * buffer;
-
-/*
-    // Get real world voxel sizes
-    int yDim = fabs(DSET_DY(din));
-    int zDim = fabs(DSET_DZ(din));
-    */
 
 	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -651,16 +615,6 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
     }
     free(outRow);
     free(inRow);
-/*
-    for jj in range(SH[1]) :
-        for kk in range(SH[2]) :
-                # get a line...
-                aa = im[:,jj,kk]
-                # ... and then calc with it, and save results
-                odt[:,jj,kk] = run_EDTD_per_line( inRow, outRow, nz,
-                                                  delta = ad3[0],
-                                                  edges_are_zero_for_nz = edges_are_zero_for_nz )
-                                                  */
 
     if (do_sqrt)
         for (int i=0; i<nvox; ++i) odt[i] = sqrt(odt[i]);
@@ -678,15 +632,17 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
     if (!(line_out=(float *)malloc(rowLengthInBytes))) return ERROR_MEMORY_ALLOCATION;
 
     int limit = Na-1;
-    while (idx < limit){
+    while (idx < Na){
         // get interval of line with current ROI value
         int roi = roi_line[idx];
-        for (n = idx+1; n < Na; ++n){
+        n = idx;
+        while (n < Na){
             if (roi_line[n] != roi){
-                n -= 1;
                 break;
             }
+            n += 1;
         }
+        n -= 1;
         // n now has the index of last matching element
 
         float *paddedLine=(float *)calloc(Na+2,sizeof(float));
@@ -718,6 +674,11 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
         idx = n+1;
     }
 
+    // DEBUG
+    for (int i=0; i<Na; ++i) if (line_out[i]==0){
+        fprintf(stderr, "Zero valued distance\n");
+    }
+
     memcpy(dist2_line, line_out, rowLengthInBytes);
     free(line_out);
 
@@ -725,23 +686,22 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
 }
 
 float * Euclidean_DT_delta(float *f, int n, float delta){
-    /*Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
-        Huttenlocher (2012), but for given voxel lengths.
+//    Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
+//        Huttenlocher (2012), but for given voxel lengths.
+//
+//    Assumes that: len(f) < sqrt(10**10).
+//
+//    In this version, all voxels should have equal length, and units
+//    are "edge length" or "number of voxels."
+//
+//    Parameters
+//    ----------
+//
+//    f     : 1D array or list, distance**2 values (or, to start, binarized
+//    between 0 and BIG).
+//
+//    delta : voxel edge length size along a particular direction
 
-    Assumes that: len(f) < sqrt(10**10).
-
-    In this version, all voxels should have equal length, and units
-    are "edge length" or "number of voxels."
-
-    Parameters
-    ----------
-
-    f     : 1D array or list, distance**2 values (or, to start, binarized
-    between 0 and BIG).
-
-    delta : voxel edge length size along a particular direction
-
-    */
 
     int *v, k = 0;
     float *z, *Df;
@@ -1070,56 +1030,26 @@ void edt_local(float scale, flt * f, int n) {
 	flt * z = (flt *)calloc((n)*sizeof(flt), 64);
 	int * v = (int *)calloc((n)*sizeof(int), 64);
 
-    /*# Find the lower envelope of a sequence of parabolas.
-    #   f...source data (returns the Y of the parabola vertex at X)
-    #   d...destination data (final distance values are written here)
-    #   z...temporary used to store X coords of parabola intersections
-    #   v...temporary used to store X coords of parabola vertices
-    #   i...resulting X coords of parabola vertices
-    #   n...number of pixels in "f" to process
-    # Always add the first pixel to the enveloping set since it is
-    # obviously lower than all parabolas processed so far.*/
+//    # Find the lower envelope of a sequence of parabolas.
+//    #   f...source data (returns the Y of the parabola vertex at X)
+//    #   d...destination data (final distance values are written here)
+//    #   z...temporary used to store X coords of parabola intersections
+//    #   v...temporary used to store X coords of parabola vertices
+//    #   i...resulting X coords of parabola vertices
+//    #   n...number of pixels in "f" to process
+//    # Always add the first pixel to the enveloping set since it is
+//    # obviously lower than all parabolas processed so far.
+
     k = 0;
     v[0] = 0;
     z[0] = -BIG;
     z[1] = BIG;
-        /*
-   for q in range(1, n):
-        s = ((f[q] + (q*delta)**2) - (f[v[k]] + (v[k]*delta)**2))
-        s/= 2. * delta * (q - v[k])
-        while s <= z[k] :
-            k-= 1
-            s = ((f[q] + (q*delta)**2) - (f[v[k]] + (v[k]*delta)**2))
-            s/= 2. * delta * (q - v[k])
-        k+= 1
-        v[k]   = q
-        z[k]   = s
-        z[k+1] = BIG * delta
-*/
-/*
-    for (q = 1; q < n; q++ ) {
-	    /* If the new parabola is lower than the right-most parabola in
-        # the envelope, remove it from the envelope. To make this
-        # determination, find the X coordinate of the intersection (s)
-        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).*//*
-        s = (f[q] + pow(q*scale,2.0)) - (f[v[k]] + pow(v[k]*scale, 2.0));
-        s/= 2. * scale * (q - v[k]);
-        while (s <= z[k]) {
-            k-= 1;
-            s = (f[q] + pow(q*scale,2.0)) - (f[v[k]] + pow(v[k]*scale,2.0));
-            s/= 2.0 * scale * (q - v[k]);
-        k+= 1;
-        v[k]   = q;
-        z[k]   = s;
-        z[k+1] = BIG;
-        }
-    }
-*/
-    for (q = 1; q < n; q++ ) {
-	    /* If the new parabola is lower than the right-most parabola in
-        # the envelope, remove it from the envelope. To make this
-        # determination, find the X coordinate of the intersection (s)
-        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).*/
+
+     for (q = 1; q < n; q++ ) {
+//	    If the new parabola is lower than the right-most parabola in
+//        # the envelope, remove it from the envelope. To make this
+//        # determination, find the X coordinate of the intersection (s)
+//        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).
         p = v[k]; // DO NOT CHANGE
         s = vx(f, p,q);
         while (s <= z[k]) {
@@ -1133,8 +1063,8 @@ void edt_local(float scale, flt * f, int n) {
         z[k] = s;
         z[k + 1] = BIG;
     }
-    /*# Go back through the parabolas in the envelope and evaluate them
-    # in order to populate the distance values at each X coordinate.*/
+//    # Go back through the parabolas in the envelope and evaluate them
+//    # in order to populate the distance values at each X coordinate.
     k = 0;
     for (q = 0; q < n; q++ ) {
 	    while (z[k + 1] < q)
