@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Dec, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "modify help: be more clear about bandpassing being undesirable",
+   "Also, add example of high-pass filter to model slow drift.\n"
+   "See help for option -regress_polort."
+ } ,
+
  { 29, Dec, 2020, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
    "add help example for creating a new dataset given a raw data file",
    NULL
