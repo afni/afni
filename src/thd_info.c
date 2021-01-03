@@ -495,6 +495,7 @@ ENTRY("THD_dataset_info") ;
       { char *gstr = EDIT_get_geometry_string(dset) ;
         if( gstr != NULL && *gstr != '\0' )
           outbuf = THD_zzprintf(outbuf,"Geometry String: \"%s\"\n",gstr) ;
+          free(gstr);
       }
    } else {
       sprintf (soblq,
