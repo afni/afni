@@ -117,6 +117,8 @@ typedef struct
 /* protos */
 
 int	add_to_flist         ( func_t * F, char * fname );
+void    empty_flist          ( func_t * F );
+
 int	all_mappable_surfs   ( opts_t * opts, param_t * p );
 int	check_func_name      ( char * func );
 int	compute_face_vols    ( opts_t * opts, param_t * p );
