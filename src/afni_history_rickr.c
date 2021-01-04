@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
+   "shift memory allocation/free around, mostly to match libSUMA",
+   "Inspired by C Rorden via sanitizer warnings."
+ } ,
+
  { 31, Dec, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "modify help: be more clear about bandpassing being undesirable",
    "Also, add example of high-pass filter to model slow drift.\n"
