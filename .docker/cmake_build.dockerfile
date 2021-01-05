@@ -20,7 +20,7 @@ RUN \
     fi; \
     cmake \
         -GNinja \
-        -DCOMP_BINARIES=ON \
+        -DCOMP_COREBINARIES=ON \
         -DUSE_SYSTEM_NIFTI=OFF \
         -DUSE_SYSTEM_GIFTI=OFF \
         -DCOMP_GUI=ON \
