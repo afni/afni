@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Dec. 31, 2020 
+Version 0.0.1, Jan. 6, 2020 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
@@ -41,10 +41,11 @@ Usage: ~1~
  dataset, use the conventional intraclass correlation (ICC) with, for 
  example, 3dICC for neuroimaging data. However, when there are multiple 
  trials for each condition, the traditional intraclass correlation may 
- underestimate TRR to various extent. 3dLMEr could be utilized to estimate 
- test-retest reliability with trial-level data for whole-brain analysis; 
- however, it may only work for data with strong effects such as a single 
- effect (e.g., one condition or average across conditions). 
+ underestimate TRR to various extent. 3dLMEr could be utilized with the
+ option -TRR to estimate test-retest reliability with trial-level data for 
+ whole-brain analysis; however, it may only work for data with strong 
+ effects such as a single effect (e.g., one condition or average across 
+ conditions). 
 
  The input data for the program TRR have to be at the trial level without 
  any summarization at the condition level. The TRR estimation is conducted 
@@ -57,6 +58,7 @@ Usage: ~1~
 
  Chen G, et al., Beyond the intraclass correlation: A hierarchical modeling
  approach to test-retest assessment.
+ https://www.biorxiv.org/content/10.1101/2021.01.04.425305v1
 
 =============================== 
  Read the following carefully!
