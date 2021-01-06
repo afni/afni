@@ -76,6 +76,8 @@ option(COMP_CORELIBS_ONLY
 )
 set(COMP_CORELIBS "Core C libraries" ON)
 
+option(COMP_MINI_MRI "Build a reduced version of mrilib functionality" OFF)
+
 cmake_dependent_option(
   COMP_COREBINARIES "Build a large portion of the C executables" ON
   "NOT COMP_CORELIBS_ONLY" OFF

@@ -69,6 +69,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New default feature_size: 0.5.  (Old default: was unset).",
+   "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"
+},
+
+{ 22, Dec , 2020 , PT , "3dmaskave" , MINOR , TYPE_BUG_FIX,
+   "MRI_TYPE_maxval fixed for byte case-- thanks, C Rorden!",
+   "Same fix applied in: plug_maskave.c and thd_makemask.c.\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dROIMaker" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "The '-orient ..' opt wasn't working-- that has been fixed.",
+   "Now user can specify table coords with this opt.\n"
+},
+
 { 1, Dec , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "Tweaked default temp 'junk' filename to avoid low-probability badness ",
    "New opt '-tmp_name_nice' for, well, read opt name. Improved help, too.\n"

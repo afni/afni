@@ -258,7 +258,8 @@ int write_hdr2_to_file(nifti_2_header * nhdr, const char * fname);
 
 
 /* wrappers for nifti reading functions (allow MAKE_IM) */
-nifti_image    * nt_image_read (nt_opts * opts, const char * fname, int doread);
+nifti_image    * nt_image_read (nt_opts * opts, const char * fname,
+                                int doread, int make_ver);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
                                 int64_t * list, nifti_brick_list * NBL);
 void * nt_read_header(const char * fname, int * nver, int * swapped, int check,

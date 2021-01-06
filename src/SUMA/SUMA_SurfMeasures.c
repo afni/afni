@@ -116,12 +116,14 @@ static char g_history[] =
 extern void machdep( void );
 
 
-/* globals */
+/* globals - these are now in SUMA_global.c, it seems */
+#if 0
 SUMA_SurfaceViewer * SUMAg_SVv = NULL;  /* array of Surf View structs   */
 int                  SUMAg_N_SVv = 0;   /* length of SVv array          */
 SUMA_DO            * SUMAg_DOv = NULL;  /* array of Displayable Objects */
 int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
+#endif
 
 /* these must match smeasure_codes_e enum */
 char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
@@ -163,7 +165,11 @@ int main ( int argc, char * argv[] )
     machdep();
     AFNI_logger(PROG_NAME,argc,argv);
 
+    memset(&p, 0, sizeof(param_t));   /* clear main structs */
+    memset(&opts, 0, sizeof(opts_t));
+
     if ( (rv = init_options(&opts, argc, argv)) != 0 ) {
+        final_cleanup(&opts, &p);
         if( rv > 0 ) return 0;
         else         return 1;
     }
@@ -172,22 +178,28 @@ int main ( int argc, char * argv[] )
         fprintf(stderr,"-- timing: init opts         : time = %.3f\n",
                 COX_clock_time());
 
-    if ( (rv = validate_options(&opts, &p)) != 0 )
+    if ( (rv = validate_options(&opts, &p)) != 0 ) {
+        final_cleanup(&opts, &p);
         return rv;
+    }
 
     if ( opts.debug > 1 )
         fprintf(stderr,"-- timing: validate opts     : time = %.3f\n",
                 COX_clock_time());
 
-    if ( (rv = get_surf_data(&opts, &p)) != 0 )
+    if ( (rv = get_surf_data(&opts, &p)) != 0 ) {
+        final_cleanup(&opts, &p);
         return rv;
+    }
 
     if ( opts.debug > 1 )
         fprintf(stderr,"-- timing: get surf data     : time = %.3f\n",
                 COX_clock_time());
 
-    if ( (rv = write_output(&opts, &p)) != 0 )
+    if ( (rv = write_output(&opts, &p)) != 0 ) {
+        final_cleanup(&opts, &p);
         return rv;
+    }
 
     if (p.out_dset) { /* add history and write out dset */
       char *oname = NULL;
@@ -196,6 +208,7 @@ int main ( int argc, char * argv[] )
                                      SUMA_NO_DSET_FORMAT,
                                      THD_ok_overwrite(), 0))) {
          fprintf(stderr,"** failed to write %s\n", opts.out_file);
+         final_cleanup(&opts, &p);
          return 1;
       }
       SUMA_free(oname);
@@ -1835,6 +1848,17 @@ ENTRY("add_to_flist");
     RETURN(0);
 }
 
+void empty_flist( func_t * F )
+{
+   if( ! F ) return;
+
+   if( F->nalloc <= 0 ) return;
+   if( F->names ) free(F->names);
+   if( F->codes ) free(F->codes);
+   F->nused = 0;
+   F->nalloc = 0;
+}
+
 int add_all_to_flist( func_t * F)
 {
    int c;
@@ -1865,8 +1889,6 @@ int init_opts_t( opts_t * opts )
     int c;
 
 ENTRY("init_opts_t");
-
-    memset(opts, 0, sizeof(opts_t));
 
     /* init the function list func_t struct */
     opts->F.names  = NULL;
@@ -1960,10 +1982,12 @@ ENTRY("init_options");
                if ( add_to_flist(&opts->F, argv[ac]) != 0 ) RETURN(-1);
             }
         }
-        else if ( ! strncmp(argv[ac], "-help", 5) )
+        else if ( ! strncmp(argv[ac], "-help", 5) ) {
             RETURN(usage(PROG_NAME, ST_USE_LONG));
-        else if ( ! strncmp(argv[ac], "-hist", 5) )
+        }
+        else if ( ! strncmp(argv[ac], "-hist", 5) ) {
             RETURN(usage(PROG_NAME, ST_USE_HIST));
+        }
         else if ( ! strncmp(argv[ac], "-info_all",9) )
         {
             opts->info |= ST_INFO_ALL;
@@ -2109,7 +2133,7 @@ ENTRY("validate_options");
 
 
     /* options look good, now fill the param_t struct */
-    memset(p, 0, sizeof(param_t));      /* clear params    */
+    /* (memset moved to main())            3 Jan 2021 */
 
     p->S.slist    = NULL;                       /* to be safe...   */
     p->S.narea[0] = NULL;
@@ -2807,7 +2831,9 @@ ENTRY("final_cleanup");
     /* first, close the output file, the rest are in order */
     if ( p->outfp && p->outfp != stdout )
            fclose(p->outfp);
+
     SUMA_FreeSpecFields(&(p->S.spec)); /* ZSS Jan 9 06 */
+
     if ( p->S.narea[0] )  free(p->S.narea[0]);
     if ( p->S.narea[1] )  free(p->S.narea[1]);
     if ( p->S.slist    )  free(p->S.slist);
@@ -2815,11 +2841,7 @@ ENTRY("final_cleanup");
     if ( p->S.nvolg    )  free(p->S.nvolg);
     if ( p->S.fvol     )  free(p->S.fvol);
 
-    if ( p->F->nalloc > 0 )
-    {
-        free(p->F->names);
-        free(p->F->codes);
-    }
+    empty_flist( &opts->F );
 
     if ( p->nodes )
         free(p->nodes);

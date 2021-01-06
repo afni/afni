@@ -65,3 +65,6 @@ AFNI_version.h
 *.lo
 *.libs
 *.deps
+
+#Cscope
+*cscope*

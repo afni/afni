@@ -251,7 +251,8 @@ char * MASKAVE_main( PLUGIN_interface * plint )
             }
          } else {
             mbot = 0 ;
-            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+            // [PT: Dec 22, 2020] Thanks for the fix here, C Rorden!
+            mtop = (byte) MRI_TYPE_maxval[MRI_byte] ; 
          }
          for( mcount=0,ii=0 ; ii < nvox ; ii++ )
             if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mmm[ii] = 1 ; mcount++ ; }

@@ -53,6 +53,37 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
+   "shift memory allocation/free around, mostly to match libSUMA",
+   "Inspired by C Rorden via sanitizer warnings."
+ } ,
+
+ { 31, Dec, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "modify help: be more clear about bandpassing being undesirable",
+   "Also, add example of high-pass filter to model slow drift.\n"
+   "See help for option -regress_polort."
+ } ,
+
+ { 29, Dec, 2020, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "add help example for creating a new dataset given a raw data file",
+   NULL
+ } ,
+
+ { 29, Dec, 2020, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
+ { 22, Dec, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed 6 copy-and-paste errors using MRI_TYPE_maxval",
+   "Thanks to C Rorden for bringing this up and suggesting code fixes."
+ } ,
+
+ { 17, Dec, 2020, RCR, "1dBport", MICRO, TYPE_BUG_FIX,
+   "guard against silent failure of int overflow for ftop",
+   NULL
+ } ,
+
  { 29, Sep, 2020, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
    "be specific about limits for 'param must be in' error messages",
    NULL
