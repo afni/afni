@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Dec 24, 2020
+Version 0.0.7, Jan 6, 2020
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -76,7 +76,11 @@ Introduction
  http://dx.doi.org/10.1016/j.neuroimage.2013.01.047
 
  Cite the following if test-retest analysis is performed using the trial-level
- effect estimates as input with 3dLEMr:
+ effect estimates as input with 3dLEMr through the option -TRR:
+ 
+ Chen G, et al., Beyond the intraclass correlation: A hierarchical modeling
+ approach to test-retest assessment.
+ https://www.biorxiv.org/content/10.1101/2021.01.04.425305v1
 
  To be added soon---
 
