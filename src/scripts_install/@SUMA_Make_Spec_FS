@@ -1684,7 +1684,7 @@ OPTIONS ~1~
     -extra_annot_labels L1 L2 ...  : convert extra annot files into ROI dsets
           e.g. -extra_annot_labels aparc
 
-          FS typically outputs annotaion files:
+          FS typically outputs annotation files:
                 lh.aparc.a2005s.annot
                 rh.aparc.a2005s.annot
                 lh.aparc.a2009s.annot
