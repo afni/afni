@@ -631,16 +631,18 @@ static char *tip[] = {
  ,
    "Did someone give you a dataset with the spatial orientation 'flipped',\n"
    "so that the subject's left is marked as being the right?\n"
-   " * Program 3dLRflip can flip the data rows to rearrange the data so the\n"
-   "   dataset header information and the actual data match again.\n"
+   "* Program 3dLRflip can flip the data rows to rearrange the data so the\n"
+   "  dataset header information and the actual data match again.\n"
    "* Processing scripts afni_proc.py and align_epi_anat.py can check\n"
-   "   if the EPI and T1w anatomical datasets appear to be left-right flipped."
+   "  if the EPI and T1w anatomical datasets appear to be left-right flipped.\n"
+   "* See Glen et al. (2020):\n"
+   "  https://www.frontiersin.org/articles/10.3389/fninf.2020.00018/full"
  ,
    "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
    "is a good starting point. It shows how to read, calculate, and write\n"
    "datasets, and is heavily commented."
  ,
-  "Almost all AFNI command line programs take '-help' as an option; for example\n"
+  "Almost all AFNI command line programs take '-help' as an option, e.g.:\n"
   "  3dTstat -help\n"
   "This method is how you can get the most up-to-date information about using\n"
   "an AFNI program. All '-help' output are also formatted as Web pages and\n"
@@ -657,7 +659,7 @@ static char *tip[] = {
  ,
   "Interested in the AFNI source code? You can get it here:\n"
   "  git clone https://github.com/afni/afni.git\n"
-  "This will create a directory called 'afni' in your current working directory.\n"
+  "This creates a directory called 'afni' in your current working directory.\n"
   "You will find the source code for AFNI (1 million+ lines) in afni/src.\n"
   "Have fun!"
 
