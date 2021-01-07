@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Oct 30, 2020
+Version 0.0.3, Jan 6, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -44,11 +44,11 @@ Introduction
  predictors. More theoretical discussion can be found in
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
- in neuroimaging.
+ in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
 
  To be able to run 3dMSS, one needs to have the following R packaages 
- installed: "gamm4", "phia" and "snow". To install these R packages, run 
- the following command at the terminal:
+ installed: "gamm4" and "snow". To install these R packages, run the
+ following command at the terminal:
 
  rPkgsInstall -pkgs "gamm4,snow"
 
@@ -166,7 +166,7 @@ Introduction
   specified with
 
           -lme 's(age)'                        \\
-          -ranEff '(1|Subj)'                      \\
+          -ranEff 'list(Subj=~1)'                      \\
 
   which is solved through the linear mixed-effect (lme) platform. The -vt is
   not needed when making prediction through the option -prediction. The two
@@ -206,7 +206,7 @@ Introduction
 
   3dMSS -prefix MSS -jobs 16                     \\
           -lme 's(age)+s(age,by=grp)'             \\
-          -ranEff '(1|Subj)'                      \\
+          -ranEff 'list(Subj=~1)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -290,7 +290,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the MSS context the simplest model is \"(1|Subj)\" in which the",
+   "         In the MSS context the simplest model is \"list(Subj=~1)\" in which the",
    "         varying or random effect from each subject is incorporated in the model.",
    "         Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
@@ -621,8 +621,7 @@ runMSS <- function(myData, DM, tag) {
 runLME <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$nBrk)
-   if(!all(myData == 0)) {
-      #DM$yy <- myData
+   if(!all(myData == 0)) { #DM$yy <- myData
       fm <- NULL
       options(warn=-1)
       DM$yy <- myData
@@ -631,16 +630,24 @@ runLME <- function(myData, DM, tag) {
       if(!is.null(fm)) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm$gam)$p.table[,c('Estimate', 't value')]))
-	 pp <- summary(fm$gam)$s.table[,'p-value']
+	 if(!is.null(summary(fm$gam)$s.table)) pp <- summary(fm$gam)$s.table[,'p-value']
          if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
             try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
-         if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$vt)) {
-               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
-            } else
-            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+         if(is.null(summary(fm$gam)$s.table)) { # having no smooth terms
+            if(!is.null(tmp)) { # prediction successful
+               Stat <- c(ll, summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
                       tmp$se.fit[1:lop$nr])))
-         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
+            } else Stat[1:length(ll)] <- c(ll, summary(fm$gam)$r.sq)
+         } else { # having smooth terms
+            pp <- summary(fm$gam)$s.table[,'p-value']
+            if(!is.null(tmp)) { # prediction successful
+               if(is.null(lop$vt)) {
+                  Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               } else
+               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+                      tmp$se.fit[1:lop$nr])))
+            } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
+         } # if(is.null(summary(fm$gam)$s.table))
       } # if(!is.null(fm))
    } # if(!all(myData == 0))
    return(Stat)
@@ -797,7 +804,8 @@ if(!is.na(lop$maskFN)) {
 fm<-NULL
 if(is.null(lop$mrr)) {
    lop$lme <- as.formula(paste0('yy~',lop$lme))
-   if(!is.null(lop$ranEff)) lop$ranEff <- as.formula(paste0('~',lop$ranEff))
+   if(!is.null(lop$ranEff)) #lop$ranEff <- as.formula(paste0('~',lop$ranEff))
+      lop$ranEff <- eval(parse(text=lop$ranEff))
 } else lop$mrr <- as.formula(paste0('yy~',lop$mrr))
 #chi_DF <- NULL
 while(is.null(fm)) {
@@ -809,7 +817,8 @@ while(is.null(fm)) {
       if(!is.null(fm)) {
          print(sprintf("Runtime per spatial element: %.3f sec", tt[3])); cat('\n')
          #lop$mm <- gamm(lop$lme, data=lop$dataStr, random=lop$ranEff)
-         lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
+         if(is.null(summary(fm$gam)$s.table)) lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+1 else
+            lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
          if(!is.null(lop$prediction)) {
             tmp <- NULL
             if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
@@ -922,7 +931,7 @@ if(!is.null(lop$mrr))
 if(!is.null(lop$lme))
    brickNames <- c(c(rbind(rownames(summary(fm$gam)$p.table), paste0(rownames(summary(fm$gam)$p.table), '-Z'))),
       rownames(summary(fm$gam)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
-      paste0(as.character(lop$Pred[1:lop$nr,1]),'.se')))) else
+      paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
 
 statsym <- NULL
 if(!is.null(lop$mrr)) {
@@ -930,12 +939,14 @@ if(!is.null(lop$mrr)) {
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
    for(n in 1:nrow(summary(fm)$s.table))
       statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fict", par=2)))
-   }
+}
 if(!is.null(lop$lme)) {
    for(n in 1:nrow(summary(fm$gam)$p.table))
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
-   for(n in 1:nrow(summary(fm$gam)$s.table))
-      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fict", par=2)))
+   if(!is.null(summary(fm$gam)$s.table)) { # having no smooth terms
+      for(n in 1:nrow(summary(fm$gam)$s.table))
+         statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fict", par=2)))
+   }
 }
 
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),
