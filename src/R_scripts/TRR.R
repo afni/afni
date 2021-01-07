@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Jan. 6, 2020 
+Version 0.0.1, Jan. 6, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
