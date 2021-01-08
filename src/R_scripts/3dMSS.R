@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Jan 6, 2021
+Version 0.0.4, Jan 8, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -606,11 +606,11 @@ runMSS <- function(myData, DM, tag) {
             try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
             if(is.null(lop$vt)) { 
-               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, summary(fm)$dev.expl, c(rbind(tmp$fit, tmp$se.fit)))
             } else
-            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
+            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, summary(fm)$dev.expl, c(rbind(tmp$fit[1:lop$nr], 
                       tmp$se.fit[1:lop$nr])))
-         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
+         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, summary(fm)$dev.expl)
       }
    }
    return(Stat)
@@ -817,8 +817,8 @@ while(is.null(fm)) {
       if(!is.null(fm)) {
          print(sprintf("Runtime per spatial element: %.3f sec", tt[3])); cat('\n')
          #lop$mm <- gamm(lop$lme, data=lop$dataStr, random=lop$ranEff)
-         if(is.null(summary(fm$gam)$s.table)) lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+1 else
-            lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
+         if(is.null(summary(fm$gam)$s.table)) lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+2 else
+            lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+2  # +1 for R.sq + dev.expl 
          if(!is.null(lop$prediction)) {
             tmp <- NULL
             if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
@@ -836,7 +836,7 @@ while(is.null(fm)) {
          lop$mm <- gam(lop$mrr, fit=FALSE, data=lop$dataStr, method='REML')
          tmp <- NULL; try(tmp <- summary(fm), silent=TRUE)
          if(is.null(tmp)) fm <- NULL else {
-            lop$nBrk <- 2*nrow(summary(fm)$p.table)+nrow(summary(fm)$s.table)+1  # +1 for R.sq
+            lop$nBrk <- 2*nrow(summary(fm)$p.table)+nrow(summary(fm)$s.table)+2  # +1 for R.sq
             if(!is.null(lop$prediction)) {
                tmp <- NULL
                #if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
@@ -926,11 +926,11 @@ Stat[is.na(Stat)] <- 0
 
 if(!is.null(lop$mrr))
    brickNames <- c(c(rbind(rownames(summary(fm)$p.table), paste0(rownames(summary(fm)$p.table), '-Z'))),
-      rownames(summary(fm)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
+      rownames(summary(fm)$s.table), 'R.sq', 'deviance', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
 if(!is.null(lop$lme))
    brickNames <- c(c(rbind(rownames(summary(fm$gam)$p.table), paste0(rownames(summary(fm$gam)$p.table), '-Z'))),
-      rownames(summary(fm$gam)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
+      rownames(summary(fm$gam)$s.table), 'R.sq', 'deviance', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
 
 statsym <- NULL
