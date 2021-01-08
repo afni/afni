@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 
 set stat = 0
 set sdir = $PWD

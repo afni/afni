@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 
 set extlist = ( 1D 1D.dset m nii asc ply 1D.coord 1D.topo coord topo srf)
 PARSE:   

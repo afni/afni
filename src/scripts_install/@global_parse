@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 
 if ($#argv == 1) then
    if ("$1" == "-h" || "$1" == "-help") then

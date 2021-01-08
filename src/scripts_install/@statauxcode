@@ -1,4 +1,4 @@
-#!/bin/tcsh -f 
+#!/usr/bin/env -S tcsh -f 
 
 
 # List is straight from README.attributes, under scene data.

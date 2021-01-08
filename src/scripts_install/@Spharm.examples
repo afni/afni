@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # [PT: Apr 19, 2019] Updated some INIT_VARS and then names of some

@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 
 # return something useful for $status     16 May 2011 [rickr]
 set retval = 1
