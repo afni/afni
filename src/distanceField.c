@@ -548,7 +548,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
     for (int z = 0; z <nz; ++z){
         for (int y = 0; y < ny; ++y){
             // Calc with it, and save results
-            run_EDTD_per_line( inRow, outRow, nx, ad3[2], edges_are_zero_for_nz) ;
+            // [PT: Jan 5, 2020] fix which index goes here
+            run_EDTD_per_line( inRow, outRow, nx, ad3[0], edges_are_zero_for_nz) ;
 
             // Increment row
             inRow += nx;
@@ -604,7 +605,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
             }
 
             // ... and then calc with it, and save results
-            run_EDTD_per_line( inRow, outRow, nz, ad3[0], edges_are_zero_for_nz) ;
+            // [PT: Jan 5, 2020] fix which index goes here
+            run_EDTD_per_line( inRow, outRow, nz, ad3[2], edges_are_zero_for_nz) ;
 
             // Record new output row
             for (int z=0; z<nz; ++z) {
