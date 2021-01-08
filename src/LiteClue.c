@@ -299,10 +299,26 @@ The font_information is derived
 
 #if XtSpecificationRelease >= 5
 /* R5 and above code */
+
+static void RWC_fixup_fontset(XcgLiteClueWidget cw) /* 08 Jan 2021 */
+{
+   char **missing_charset=NULL , *def_string=NULL ;
+   int    missing_charset_count = 0 ;
+
+   if( cw == NULL || cw->liteClue.fontset != NULL ) return ;
+
+   cw->liteClue.fontset = XCreateFontSet( XtDisplay(cw) ,
+                                          "9x15bold" ,
+                                          &missing_charset , &missing_charset_count , &def_string ) ;
+   return ;
+}
+
 static void compute_font_info(XcgLiteClueWidget cw)
 {
 	XRectangle ink;
 	XRectangle logical;
+
+   RWC_fixup_fontset(cw) ;
 
 	if (!cw->liteClue.fontset)
 		return;
@@ -502,6 +518,7 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	logical.width = oret.width;
 	}
 #else
+   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
 	XmbTextExtents(cw->liteClue.fontset, obj->text , obj->text_size ,&ink, &logical);
 #endif
 
@@ -651,6 +668,7 @@ void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int op
 
 	CheckWidgetClass(ROUTINE);	/* make sure we are called with a LiteClue widget */
 
+   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
 	obj = find_watched_widget(cw, watch);
 	if (obj)
 	{
