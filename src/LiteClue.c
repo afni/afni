@@ -300,16 +300,26 @@ The font_information is derived
 #if XtSpecificationRelease >= 5
 /* R5 and above code */
 
-static void RWC_fixup_fontset(XcgLiteClueWidget cw) /* 08 Jan 2021 */
+void RWC_fixup_fontset(Widget cww,Widget www) /* 08 Jan 2021 -- does not work */
 {
    char **missing_charset=NULL , *def_string=NULL ;
    int    missing_charset_count = 0 ;
+   XcgLiteClueWidget cw = (XcgLiteClueWidget)cww ;
 
    if( cw == NULL || cw->liteClue.fontset != NULL ) return ;
 
    cw->liteClue.fontset = XCreateFontSet( XtDisplay(cw) ,
                                           "9x15bold" ,
                                           &missing_charset , &missing_charset_count , &def_string ) ;
+
+   if( cw->liteClue.fontset != NULL ) return ;
+
+   if( www != (Widget)NULL ){
+     XFontSet xfset ;
+     XtVaGetValues( www , XtNfontSet , &xfset , NULL ) ;
+     if( xfset != (XFontSet)NULL ) cw->liteClue.fontset = xfset ;
+   }
+
    return ;
 }
 
@@ -317,8 +327,6 @@ static void compute_font_info(XcgLiteClueWidget cw)
 {
 	XRectangle ink;
 	XRectangle logical;
-
-   RWC_fixup_fontset(cw) ;
 
 	if (!cw->liteClue.fontset)
 		return;
