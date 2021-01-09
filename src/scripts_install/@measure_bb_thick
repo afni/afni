@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # h_view help instead of regular help (opens editor with -help output)
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -508,7 +508,7 @@ if ("$keep_temp_files" != "keep") then
       bb_cubesonly_thick.nii.gz bb_spheresonly_thick.nii.gz _tt*.nii.gz
 endif
 
-echo "#\!/bin/tcsh" > @show_thick
+echo "#\!/usr/bin/env tcsh" > @show_thick
 echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
 echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
 echo '     -com surf_cont -load_dset bb_thick_smooth.niml.dset \' >> @show_thick

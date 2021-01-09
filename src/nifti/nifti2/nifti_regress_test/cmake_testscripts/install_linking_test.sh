@@ -19,4 +19,16 @@ $BUILD_TOOL install
 nifti_tool 1>/dev/null
 nifti1_tool 1>/dev/null
 nifti_stats 1>/dev/null
+
+
+# Run an example of a downstream project linking against the nifti targets
+rm -rf downstream_example
+mkdir downstream_example
+cd downstream_example
+cmake \
+    -G 'Unix Makefiles' \
+    -DCMAKE_MODULE_PATH=../installed/usr/local/share \
+     ../../real_easy/minimal_example_of_downstream_usage
+make
+
 echo Success

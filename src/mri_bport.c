@@ -141,12 +141,17 @@ ENTRY("mri_bport_make_indexes") ;
    df = 1.0f / (ntime *dt) ;  /* frequency spacing */
 
    nfbot = (int)rintf(fbot/df+0.1666666f) ;
-   if( nfbot > nth      ) nfbot = nth ;
-   if( nfbot < BP_ffbot ) nfbot = BP_ffbot ;
+   /* guard against int overflow with floats   17 Dec 2020 [rickr] */
+   if   ( fbot > df*(nth+1)  ) nfbot = nth ;
+   else if( nfbot > nth      ) nfbot = nth ;
+   else if( nfbot < BP_ffbot ) nfbot = BP_ffbot ;
 
    nftop = (int)rintf(ftop/df-0.1666666f) ;
-   if( nftop < nfbot   ) nftop = nfbot ;
-   if( nftop > ntime/2 ) nftop = nth ;
+   /* guard against int overflow with floats */
+   if   ( ftop > df*(nth+1) ) nftop = nth ;
+   else if( nftop < nfbot   ) nftop = nfbot ;
+   else if( nftop > ntime/2 ) nftop = nth ;
+
 
    MAKE_intvec(ivv,nftop-nfbot+1) ;
 

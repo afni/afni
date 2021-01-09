@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # This program is just a patch/add-on to the
 # "@afni_refacer_make_master" program.  It is not really meant for

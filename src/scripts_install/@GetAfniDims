@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 if ("$1" == '-help' || "$1" == '-h' || "$1" == "") then
    echo "`basename $0` dset"
    echo "Return the dimensions of dset"

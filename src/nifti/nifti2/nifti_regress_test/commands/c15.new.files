@@ -14,6 +14,8 @@ nifti_tool -copy_im -prefix ncopy4.nii -infiles new4.nii.gz
 nifti_tool -copy_im -prefix ncopy5.nii -infiles new5.nia
 
 # verify that they are all the same
+# note: MAKE_IM defaults to NIFTI-2, while .nia is NIFTI-1, 
+#       so either skip index 5 or convert to NIFTI-2
 set count = 0
 foreach index ( 2 3 4 5 )
     diff ncopy1.nii ncopy$index.nii

@@ -1022,6 +1022,9 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
    }
 #endif
 
+   if( fname ) free(fname);
+   if( sel   ) free(sel);
+
    *nout = gnum ; *fout = gout ; return ;
 }
 

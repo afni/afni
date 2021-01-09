@@ -25,7 +25,7 @@ F2C = f2c -A
 
 INFLAGS  = $(IFLAGS) -Icoxplot -Inifti/nifti2 -Inifti/niftilib              \
            -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3     \
-           $(USE_ZLIB) $(USE_GIFTI) -If2c
+           $(USE_ZLIB) $(USE_GIFTI) $(USE_MRI_MINI) -If2c
 ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
            -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr   \
            $(USE_ZLIB) -I../f2c
@@ -3017,6 +3017,18 @@ coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
 
 #######
+# libmri_mini.so for ...
+MRI_MINI_OBJS = mri_blur3d_variable.o mri_new.o mri_free.o debugtrace.o
+
+libmri_mini.so: $(MRI_MINI_OBJS) $(NIML_OBJS)
+	$(RM) $@
+	$(CC) -shared -fPIC -o $@ $(MRI_MINI_OBJS) $(NIML_OBJS)
+
+test_mri_mini: test_mri_mini.c libmri_mini.so
+	$(RM) $@
+	$(CC) -o $@ $(INFLAGS) test_mri_mini.c libmri_mini.so -lm $(LFLAGS)
+
+#######
 # rickr objects
 
 3dresample.o: rickr/3dresample.c
@@ -3192,7 +3204,7 @@ eis_bakvec.o:
 nimlstuff:niml_b64.o
 
 $(NIML_OBJS):niml.h
-	( cd niml/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd niml/ ; $(MAKE) all 'CC=$(CC) $(USE_MRI_MINI)' ; $(MV) *.o .. ; )
 
 niml.h:niml/niml.h
 	$(CP) niml/niml.h .

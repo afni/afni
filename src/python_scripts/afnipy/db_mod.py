@@ -10006,11 +10006,15 @@ g_help_notes = """
     --------------------------------------------------
     RESTING STATE NOTE: ~2~
 
-    Resting state data should be processed with physio recordings (for typical
-    single-echo EPI data).  Without such recordings, bandpassing is currently
-    considered as the default.
+    It is preferable to process resting state data using physio recordings
+    (for typical single-echo EPI data).  Without such recordings, bandpassing
+    is currently considered as the standard in the field of FMRI (though that
+    is finally starting to change).  Multi-echo acquisitions offer other
+    possibilities.
 
     Comment on bandpassing:
+
+        Bandpassing does not seem like a great method.
 
         Bandpassing is the norm right now.  However most TRs may be too long
         for this process to be able to remove the desired components of no
@@ -10023,10 +10027,11 @@ g_help_notes = """
         censoring, bandpassing and removal of other signals of no interest).
         Many papers have been published where a lot of censoring was done,
         many regressors of no interest were projected out, and there was a
-        separate bandpass operation.  It is likely that many subjects ended up
-        with negative degrees of freedom, making the resulting signals useless
-        (or worse, misleading garbage).  But without keeping track of it,
-        researchers may not even know.
+        separate bandpass operation.  It is likely that many subjects should
+        have ended up with negative degrees of freedom (were bandpassing
+        implemented correctly), making the resulting signals useless (or worse,
+        misleading garbage).  But without keeping track of it, researchers may
+        not even know.
 
     Bandpassing and degrees of freedom:
 
@@ -14252,6 +14257,18 @@ g_help_options = """
             The default is computed from the length of a run, in seconds, as
             shown above.  For example, if each run were 320 seconds, then the
             default polort would be 3 (cubic).
+
+          * It is also possible to use a high-pass filter to model baseline
+            drift (using sinusoids).  Since sinusoids do not model quadratic
+            drift well, one could consider using both, as in:
+
+                -regress_polort 2         \\
+                -regress_bandpass 0.01 1
+
+            Here, the sinusoids allow every frequency from 0.01 on up to pass
+            (assuming the Nyquist frequency is <= 1), modeling the lower
+            frequencies as regressors of no interest, along with 3 terms for
+            polort 2.
 
             Please see '3dDeconvolve -help' for more information.
 
