@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 set echo
 
@@ -438,7 +438,7 @@ echo "++ View with: "
 echo "       suma -onestate -i ${fout}*.gii\n"
 echo "   ... and possibly add something like '-vol dt_FA.nii.gz'?\n"
 
-#echo   "#\!/bin/tcsh\n"                      > $run_file
+#echo   "#\!/usr/bin/env tcsh\n"                      > $run_file
 #printf "suma -onestate -i ${opref}*.gii "   >> $run_file
 
 #set runf = `ls $run_file`

@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env -S tcsh -f
 set min = 0
 set max = 0
 set mean = 0

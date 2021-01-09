@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 ## *** You do not need to run this script, unless you want  ***
 ## *** to make your own 'master' shell for refacing,        ***

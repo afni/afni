@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/usr/bin/env -S tcsh -ef
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 

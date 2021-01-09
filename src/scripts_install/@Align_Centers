@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env -S tcsh -fe
 
 # Make AFNI's help readable in a text editor again!
 @global_parse `basename $0` "$*" ; if ($status) exit 0

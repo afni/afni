@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env -S tcsh -fe
 
 set Narg = $#
 
