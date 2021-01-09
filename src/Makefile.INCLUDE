@@ -9,6 +9,8 @@ MAKE ?= make
 # LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
 LLIBS_X11 ?= $(LLIBS)
 
+LDFLAGS = $(LFLAGS)
+
 # for compiling with OpenMP, if available
 
 CCOMP   = $(CCFAST) $(OMPFLAG)
@@ -3227,8 +3229,8 @@ djpeg:libjpeg.a
 cjpeg:libjpeg.a
 
 libjpeg.a:
-	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;                    \
-          chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' ; \
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;               \
+          chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' 'LDFLAGS=$(LDFLAGS)' ; \
           $(MAKE) ; $(MV) cjpeg djpeg libjpeg.a .. ;            \
           $(MAKE) clean ; $(RM) Makefile )
 
