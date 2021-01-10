@@ -300,6 +300,7 @@ The font_information is derived
 #if XtSpecificationRelease >= 5
 /* R5 and above code */
 
+#if 0
 void RWC_fixup_fontset(Widget cww,Widget www) /* 08 Jan 2021 -- does not work */
 {
    char **missing_charset=NULL , *def_string=NULL ;
@@ -322,6 +323,17 @@ void RWC_fixup_fontset(Widget cww,Widget www) /* 08 Jan 2021 -- does not work */
 
    return ;
 }
+#endif
+
+/*------------------------------------------------------------------*/
+/* Check widget for integrity and honor */
+
+int RWC_liteclue_has_fontset( Widget cww ) /* 10 Jan 2021 */
+{
+   XcgLiteClueWidget cw = (XcgLiteClueWidget)cww ;
+   return ( (cw != NULL) && (cw->liteClue.fontset != NULL) ) ;
+}
+/*------------------------------------------------------------------*/
 
 static void compute_font_info(XcgLiteClueWidget cw)
 {
