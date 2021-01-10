@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, Oct 5, 2020 
+Version 1.0.5, Jan 10, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -66,10 +66,11 @@ Usage: ~1~
  S2     BNST    0.3762    16
  ...
 
- 0) You are performing Bayesian analysis!!! So, you will directly obtain
-    the probability of an effect being positive or negative with your data,
-    instead of witch hunt-hunting the straw man of p-value (weirdness of your
-    data when pretending that absolutely nothing exists).
+ 0) You are performing Bayesian analysis. So, you will directly obtain the
+    probability of the respective effect being positive or negative with your 
+    data and adopted model, instead of witch-hunting the straw-man of p-value 
+    (weirdness of your data under the modeling assumptions when pretending 
+    that absolutely no effect exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter. You can specify those column names as you
