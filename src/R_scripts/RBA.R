@@ -68,9 +68,9 @@ Usage: ~1~
 
  0) You are performing Bayesian analysis. So, you will directly obtain the
     probability of the respective effect being positive or negative with your 
-    data and adopted model, instead of witch-hunting the straw-man of p-value 
-    (weirdness of your data under the modeling assumptions when pretending 
-    that absolutely no effect exists).
+    data and adopted model, instead of looking for the p-value (weirdness of 
+    your data under the modeling assumptions when pretending that absolutely 
+    no effect exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter. You can specify those column names as you
