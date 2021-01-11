@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # ===================================================================
 # This program calculates where to put the focal point in a montaged

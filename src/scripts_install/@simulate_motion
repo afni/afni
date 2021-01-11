@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # input data vars
 set wsinc5 = ''    # '' or '-final wsinc5'

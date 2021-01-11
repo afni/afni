@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 ### script to do 2D registration on each slice of a 3D+time
 ### dataset, and glue the results back together at the end

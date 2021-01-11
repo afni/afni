@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/tcsh -f
 #Add a shell escape before the first dash in argument
 #  @escape- one -two three
 set  ll = ()

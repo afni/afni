@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 ## This script converts one dataset to MNI space in a 'big' format,
 ## used for creating a refacer 'master' dataset

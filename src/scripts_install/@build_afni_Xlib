@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # ----------------------------------------------------------------------
 # This script is for compiling openmotif, lesstif or libXt from a clean

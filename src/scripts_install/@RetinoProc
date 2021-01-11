@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/tcsh -f
 
 
 if ($#argv) then
@@ -700,7 +700,7 @@ end
 
 EXAMINE_RESULTS:
    cd $rdir
-   echo '#\!/usr/bin/env -S tcsh -f' > @ShowResult
+   echo '#\!/bin/tcsh -f' > @ShowResult
    echo "-----------------------------------------"
    echo "Close all existing AFNI and SUMA sessions"
    echo "Launch SUMA and view some results with:"

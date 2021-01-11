@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -1684,7 +1684,7 @@ OPTIONS ~1~
     -extra_annot_labels L1 L2 ...  : convert extra annot files into ROI dsets
           e.g. -extra_annot_labels aparc
 
-          FS typically outputs annotation files:
+          FS typically outputs annotaion files:
                 lh.aparc.a2005s.annot
                 rh.aparc.a2005s.annot
                 lh.aparc.a2009s.annot

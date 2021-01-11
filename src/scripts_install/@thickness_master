@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 # @thickness_master
 # compute thickness different ways
 #   ball and box, erosion and in2out methods
@@ -112,7 +112,7 @@ set in2out_outdir = "${outdir}_in2out"
 
 # display the results on surface
 if ("$surfset" != "") then
-    echo "#\!/usr/bin/env tcsh" > @show_thick_master
+    echo "#\!/bin/tcsh" > @show_thick_master
     echo "setenv SUMA_Sym_I_Range NO" >> @show_thick_master
     echo "suma -i $surfset -drive_com \" >> @show_thick_master
     echo '" -com surf_cont -view_surf_cont y \' >> @show_thick_master

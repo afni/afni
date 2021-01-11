@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -fe
+#!/bin/tcsh -fe
 
 # written by Ben Jung (June 30, 2020)
 # additional contact people about NMT issues:
