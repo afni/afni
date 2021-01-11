@@ -5282,6 +5282,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_SurfaceViewer *sv;
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
+                fprintf(stderr, "sv=%d\n", sv); // DEBUG
                 SUMA_SetObjectClip(chrTmp, sv);
             }
 
