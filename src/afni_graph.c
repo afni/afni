@@ -2879,12 +2879,12 @@ STATUS("starting time series graph loop") ;
             int labw=-1,labx=-1, aybas=0 ;
             if( do_boxlab && grapher->mat <= 9 ){
               labw = labx = DC_char_width(grapher->dc,'M') ; /* widest character */
-              if( labx > 0 ) labx = (int)(0.5*(delt-labx)-0.5f) ;
+              if( labx > 0 ) labx = (int)(0.5*(delt-labx)-1.0f) ;
               switch( do_boxlab ){
                 case DATA_BOXLAB_CODE_UP:
                   for( aybas=a_line[0].y,i=1 ; i < qnum ; i++ )
                     if( a_line[i].y < aybas ) aybas = a_line[i].y ;
-                  aybas -= BOXOFF ;
+                  aybas -= BOXOFF + grapher->gthick/3 ;
                 break ;
                 case DATA_BOXLAB_CODE_BOT:
                   aybas = yoff ;
@@ -2906,7 +2906,7 @@ STATUS("starting time series graph loop") ;
                 if( aybas > 0 )  /* fixed height for all labels */
                   fd_txt_upwards(grapher,xb+labx,aybas-3,lab) ;
                 else             /* label on top of data box */
-                  fd_txt_upwards(grapher,xb+labx,a_line[i].y-3-BOXOFF,lab) ;
+                  fd_txt_upwards(grapher,xb+labx,a_line[i].y-3-BOXOFF-grapher->gthick/3,lab) ;
               }
             }
           }
