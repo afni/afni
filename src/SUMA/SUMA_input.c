@@ -5270,19 +5270,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
-            if (pButton==4 && Kev.state & ControlMask){
-                // Decrement the last (d) number of the objectClipParams string and then
-                //  call SUMA_SetObjectClip
-                char chrTmp[64];
-                --objectPlaneD;
-                sprintf(strrchr(objectClipParams,',')+1, "%d", objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-
+            if (pButton==4 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
                 int isv;
                 SUMA_SurfaceViewer *sv;
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
                 fprintf(stderr, "sv=%d\n", sv); // DEBUG
+
+                // Decrement the last (d) number of the objectClipParams string and then
+                //  call SUMA_SetObjectClip
+                char chrTmp[64];
+                --objectPlaneD;
+
+                sprintf(strrchr(objectClipParams,',')+1, "%d", objectPlaneD);
+                sprintf(chrTmp, "%s", objectClipParams);
+
                 SUMA_SetObjectClip(chrTmp, sv);
             }
 
@@ -5382,7 +5384,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
-            if (pButton==5 && Kev.state & ControlMask){
+            if (pButton==5 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
                 char chrTmp[64];
                 // Increment the last (d) number of the objectClipParams string and then
                 //  call SUMA_SetObjectClip
