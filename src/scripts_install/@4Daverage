@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/csh -f
 
 
 if (("$1" =~ "-h") || ("$1" =~ "-help") || ("$1" =~ "")) then

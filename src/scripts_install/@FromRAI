@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/tcsh -f
 
 PARSE:
    set Narg = $#

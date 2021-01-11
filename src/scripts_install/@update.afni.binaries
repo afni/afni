@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # ----------------------------------------------------------------------
 # upgrade the AFNI binaries

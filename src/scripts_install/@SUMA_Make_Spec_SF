@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/tcsh -f
 
 # make surface spec files from the surface files
 #

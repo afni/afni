@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 set testmode = 0
 set tmpico = __donut

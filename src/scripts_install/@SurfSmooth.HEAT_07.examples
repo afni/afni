@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -fe 
+#!/bin/tcsh -fe 
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
 

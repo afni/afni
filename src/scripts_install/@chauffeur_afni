@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # for olay, default will be "show all"-- update fatcats to call for
 # 98%iles of non-zeros!
@@ -1873,7 +1873,7 @@ EOF
 # commenting out for now
 if ( 0 ) then
 set oechocmd = chauffeur_echo_${rrr}.tcsh
-echo '#\!/usr/bin/env tcsh\n' > $oechocmd
+echo '#\!/bin/tcsh\n' > $oechocmd
 
 echo "# Define all variables used in AFNI drive command." >> $oechocmd
 echo "# NB: this is the [${rrr}]th image of the 4D viewer" >> $oechocmd
@@ -1978,7 +1978,7 @@ endif
 # commenting out for now
 if ( 0 ) then
 set oechocmd = chauffeur_echo.tcsh
-echo '#\!/usr/bin/env tcsh\n' > $oechocmd
+echo '#\!/bin/tcsh\n' > $oechocmd
 
 echo "# define all variables used in AFNI drive command" >> $oechocmd
 

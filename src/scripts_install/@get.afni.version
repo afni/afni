@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 set hhh = 0
 

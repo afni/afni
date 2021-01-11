@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -f
+#!/bin/tcsh -f
 
 if ("$1" == "-h" || "$1" == "-help") then
    echo "`basename $0`  : Returns path where afni executable resides."

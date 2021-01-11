@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 ### Simple adjunct program-- don't think this is even necessary to
 ### include:
