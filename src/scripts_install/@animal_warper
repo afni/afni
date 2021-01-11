@@ -258,8 +258,11 @@ set progname = @animal_warper
 #set version = "3.0" ; set date = "Oct 19, 2020"
 # [PT] updating help file -- more useful?
 #
-set version = "3.01" ; set date = "Oct 19, 2020"
+#set version = "3.01" ; set date = "Oct 19, 2020"
 # [PT] new "pre"-QC: check src-base overlap: @djunct_overlap_check
+# 
+set version = "3.1" ; set date = "Dec 22, 2020"
+# [PT] new feature size default: 0.5 (old default: empty)
 # 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -310,8 +313,8 @@ set all_known_dset_abbrev = ( )
 set DO_ALIGN_CENTERS   = 1
 set align_centers_meth = "-grid" 
 
-set feature_option     = ""
-set feature_size       = ""
+set feature_size       = "0.5"       # [PT: Dec 22, 2020] new default
+set feature_option     = "-feature_size $feature_size"
 set modesmooth         = "1"   # 1 voxel modal smoothing
 set DO_MODE_SMOO_W_REP = 1     # use modal smoothing with rep (def)
 set supersize          = ""
@@ -2900,7 +2903,7 @@ Options ~1~
                        with surfaces of each region in native space.
 
   -feature_size mm    :set size in mm for affine alignment. Use about 0.1
-                       for mouse, 0.5 for rat
+                       for mouse, 0.5 for macaque or rat. (def: 0.5)
 
   -supersize          :allow for up to 50% size difference between subject
                        and template
