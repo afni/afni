@@ -2168,6 +2168,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMAGE *xxim=NULL, *xxim_cen=NULL , *xax_tsim=NULL ; /* 10 Feb 2015 */
    MRI_IMARR *xximar=NULL ;
    int do_xxim=0 ;
+   int do_boxes=0 ;
 
    MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 - for double plot */
    int        dplot = 0 ;
@@ -2213,7 +2214,8 @@ ENTRY("plot_graphs") ;
 
    mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
 
-   do_xxim = (grapher->xax_fdbr != NULL) && !DATA_BOXED(grapher) ;
+   do_boxes = DATA_BOXED(grapher) ;
+   do_xxim  = (grapher->xax_fdbr != NULL) && !do_boxes ;
 
    /* set colors and line widths */
 
@@ -2284,7 +2286,11 @@ ENTRY("plot_graphs") ;
 
      STATUS("  initialize graph for DPLOT") ;
 
-     if( DATA_BOXED(grapher) ){
+#if 1
+       INIT_IMARR(dplot_imar) ;
+       dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
+#else
+     if( do_boxes ){
        static int first=1 ;
        MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ; dplot = 0 ;
        if( first ){
@@ -2299,6 +2305,7 @@ ENTRY("plot_graphs") ;
        INIT_IMARR(dplot_imar) ;
        dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
      }
+#endif
    }
 
    /* how to do the plus/minus double plot overlay [01 Jun 2020] */
@@ -2824,7 +2831,7 @@ STATUS("starting time series graph loop") ;
           /** Compute X11 line coords from pixel heights in plot[].
               N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
 
-          if( DATA_BOXED(grapher) )
+          if( do_boxes )
             xpfac = grapher->gx / (float)pnum ; /* x scale factor */
           else
             xpfac = grapher->gx / (pnum-1.0f) ; /* x scale factor */
@@ -2859,7 +2866,7 @@ STATUS("starting time series graph loop") ;
                         grapher->fd_pxWind , grapher->dc->myGC ,
                         a_line , qnum ,  CoordModeOrigin , nupsam ) ;
           }
-          if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
+          if( do_boxes ){                    /* 26 Jun 2007 */
             XPoint q_line[4] ; short xb,xt ; float delt=xpfac/tsim->ny ;
             int labx=-1, aybas=0 ;
             char *eblab=my_getenv("AFNI_GRAPH_BOXLAB"), ecode='\0' ;
@@ -2915,7 +2922,7 @@ STATUS("starting time series graph loop") ;
          /* 29 Mar 2002: allow multiple time series (dsim->ny > 1) */
          /* 01 Jun 2020: PLUSMINUS (pmplot) now taken care of earlier */
 
-         if( dplot && pmplot_mode == 0 ){
+         if( dplot && pmplot_mode == 0 && !do_boxes ){
             int dny , id , qq,qtop ;
             dsim = IMARR_SUBIMAGE(dplot_imar,its) ;
             if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip to next iy */
@@ -4052,8 +4059,10 @@ STATUS(str); }
         ccc = (bbb==4) ? 0 : 4 ;
         MCW_set_bbox( grapher->opt_points_bbox[4] , ccc ) ;
         grapher->points_index[4] = ccc ;
+#if 0
         if( DATA_BOXED(grapher) )
           MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+#endif
         if( !grapher->textgraph ) redraw_graph( grapher , 0 ) ;
       }
       break ;
@@ -6915,8 +6924,10 @@ ENTRY("GRA_thick_CB") ;
      jj = grapher->points_index[ii] ;
      grapher->points_index[ii] = MCW_val_bbox( grapher->opt_points_bbox[ii] ) ;
      if( jj != grapher->points_index[ii] ){
+#if 0
        if( DATA_BOXED(grapher) )
          MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+#endif
        redraw_graph( grapher , 0 ) ;
      }
      EXRETURN ;
@@ -7166,9 +7177,11 @@ void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
    grapher->transform1D_index = tt+1 ;
    grapher->transform1D_flags = grapher->status->transforms1D->flags[tt];
 
+#if 0
    if( (grapher->transform1D_flags & SET_DPLOT_OVERLAY) && !DATA_BOXED(grapher) ){
      MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
    }
+#endif
 
    /** redraw_graph( grapher , 0 ) ; **/
    return ;
