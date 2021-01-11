@@ -267,7 +267,7 @@ int INIT_GR_boxes_thick  = 0 ,  /* if >= 0, then gets a 'Thick Lines' */
     INIT_GR_data_thick   = 1 ,
     INIT_GR_ideal_thick  = 1 ,
     INIT_GR_ort_thick    = 1 ,
-    INIT_GR_dplot_thick  = 1 , 
+    INIT_GR_dplot_thick  = 1 ,
     INIT_GR_pmplot_thick = 1  ;
 
 int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
@@ -460,8 +460,16 @@ void AFNI_XFillPolygon( Display *display, Drawable d,
 #define ORT_LINES(gr)    ((gr)->points_index[6] != 1)
 #define IGNORE_LINES(gr) ((gr)->points_index[7] != 1)
 #define DPLOT_LINES(gr)  ((gr)->points_index[8] != 1)
+#define DATA_BOXED(gr)   ((gr)->points_index[4] >= 4)  /* 26 Jun 2007 - draw boxes */
 
-#define DATA_BOXED(gr)   ((gr)->points_index[4] == 4)  /* 26 Jun 2007 */
+/* allow for interactive selection of box labeling method [11 Jan 2021] */
+
+#define DATA_BOXLAB_CODE(gr)  ( ((gr)->points_index[4] >= 8) * (gr)->points_index[4] )
+#define DATA_BOXLAB_CODE_UP     8 /* labels at top of sub-graph window */
+#define DATA_BOXLAB_CODE_ATOP  16 /* labels at top of each data point box */
+#define DATA_BOXLAB_CODE_BOT   32 /* labels at bot of sub-graph window */
+
+/* callbacks for when the color or thickness of lines are changed */
 
 extern void GRA_color_CB( MCW_arrowval * , XtPointer ) ;
 extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;

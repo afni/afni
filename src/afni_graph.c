@@ -255,7 +255,7 @@ ENTRY("new_MCW_grapher") ;
                        "K      = kill any running sound player\n"
                        "C      = cycle color scheme\n"
                        "s      = draw smooth graph curves\n"
-                       "F5     = Meltdown!\n"
+                       "^B     = cycle thru graph drawing modes\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
                        "and for other options to control graph display."
@@ -593,7 +593,12 @@ ENTRY("new_MCW_grapher") ;
    /***** 16 June 1997: Colors submenu *****/
 
    { static char *bbox_label[1] = { "Use Thick Lines" } ;
-     static char *pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes [B]" } ;
+     static char *pts_label[6]  = { "Graph Points"   ,
+                                    "Points+Lines"   ,
+                                    "Boxes     [B]"  ,
+                                    "Box+LabelUp"    ,
+                                    "Box+LabelTop"   ,
+                                    "Box+LabelDown"   } ;
      char     toplabel[64] ;
      XmString xstr ;
 
@@ -692,7 +697,7 @@ ENTRY("new_MCW_grapher") ;
         /* 01 Aug 1998: allow points+lines to be drawn as well   */
 
         if( grapher->points_index[ii] >= 0 && ii != PMPLOT_INDEX ){
-           int nbut = (ii==4) ? 3 : 2 ;
+           int nbut = (ii==4) ? 6 : 2 ;
            grapher->opt_points_bbox[ii] =
               new_MCW_bbox( grapher->opt_colors_menu ,
                             nbut , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
@@ -1102,7 +1107,9 @@ char * GRA_getlabel( MCW_grapher *grapher , int index )
    CALL_getser( grapher , index,graCR_getlabel , char * , lab ) ;
 
    if( lab == NULL || *lab == '\0' ) return NULL ;
+#if 0
    if( *lab == '?' || *lab == '#'  ) return NULL ;
+#endif
    return lab ;
 }
 
@@ -2168,7 +2175,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMAGE *xxim=NULL, *xxim_cen=NULL , *xax_tsim=NULL ; /* 10 Feb 2015 */
    MRI_IMARR *xximar=NULL ;
    int do_xxim=0 ;
-   int do_boxes=0 ;
+   int do_boxes=0 , do_boxlab=0 ;
 
    MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 - for double plot */
    int        dplot = 0 ;
@@ -2214,8 +2221,9 @@ ENTRY("plot_graphs") ;
 
    mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
 
-   do_boxes = DATA_BOXED(grapher) ;
-   do_xxim  = (grapher->xax_fdbr != NULL) && !do_boxes ;
+   do_boxes  = DATA_BOXED(grapher) ;
+   do_boxlab = DATA_BOXLAB_CODE(grapher) ;
+   do_xxim   = (grapher->xax_fdbr != NULL) && !do_boxes ;
 
    /* set colors and line widths */
 
@@ -2287,8 +2295,8 @@ ENTRY("plot_graphs") ;
      STATUS("  initialize graph for DPLOT") ;
 
 #if 1
-       INIT_IMARR(dplot_imar) ;
-       dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
+     INIT_IMARR(dplot_imar) ;
+     dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
 #else
      if( do_boxes ){
        static int first=1 ;
@@ -2868,19 +2876,19 @@ STATUS("starting time series graph loop") ;
           }
           if( do_boxes ){                    /* 26 Jun 2007 */
             XPoint q_line[4] ; short xb,xt ; float delt=xpfac/tsim->ny ;
-            int labx=-1, aybas=0 ;
-            char *eblab=my_getenv("AFNI_GRAPH_BOXLAB"), ecode='\0' ;
-            if( eblab != NULL && grapher->mat == 1 ){
-              ecode = toupper(*eblab) ;
-              if( isgraph(ecode) ){
-                labx = DC_char_width(grapher->dc,ecode) ;
-                if( labx > 0 ) labx = (int)(0.5*(delt-labx)-1.0f) ;
-              }
-              if( ecode == 'M' ){
-                for( aybas=a_line[0].y,i=1 ; i < qnum ; i++ )
-                  if( a_line[i].y < aybas ) aybas = a_line[i].y ;
-              } else if( ecode == 'Z' ){
-                aybas = yoff ;
+            int labw=-1,labx=-1, aybas=0 ;
+            if( do_boxlab && grapher->mat <= 9 ){
+              labw = labx = DC_char_width(grapher->dc,'M') ; /* widest character */
+              if( labx > 0 ) labx = (int)(0.5*(delt-labx)-0.5f) ;
+              switch( do_boxlab ){
+                case DATA_BOXLAB_CODE_UP:
+                  for( aybas=a_line[0].y,i=1 ; i < qnum ; i++ )
+                    if( a_line[i].y < aybas ) aybas = a_line[i].y ;
+                  aybas -= BOXOFF ;
+                break ;
+                case DATA_BOXLAB_CODE_BOT:
+                  aybas = yoff ;
+                break ;
               }
             }
             for( i=0 ; i < qnum ; i++ ){
@@ -2893,11 +2901,11 @@ STATUS("starting time series graph loop") ;
               AFNI_XDrawLines( grapher->dc->display ,
                           grapher->fd_pxWind , grapher->dc->myGC ,
                           q_line , 4 ,  CoordModeOrigin , 0 ) ;
-              if( labx > 0 ){
+              if( labx >= 0 ){
                 char *lab = GRA_getlabel(grapher,pbot+i) ;
-                if( ecode == 'M' || ecode == 'Z' )
+                if( aybas > 0 )  /* fixed height for all labels */
                   fd_txt_upwards(grapher,xb+labx,aybas-3,lab) ;
-                else
+                else             /* label on top of data box */
                   fd_txt_upwards(grapher,xb+labx,a_line[i].y-3-BOXOFF,lab) ;
               }
             }
@@ -4063,6 +4071,17 @@ STATUS(str); }
         if( DATA_BOXED(grapher) )
           MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
 #endif
+        if( !grapher->textgraph ) redraw_graph( grapher , 0 ) ;
+      }
+      break ;
+
+      case 2:{   /* keypress ctrl-B = cycle through Data [11 Jan 2021] */
+        int bbb=grapher->points_index[4] , ccc=bbb ,
+            nbut=grapher->opt_points_bbox[4]->nbut ;
+        ccc = (ccc <= 0) ? 1 : 2*ccc ;      /* next highest value */
+        if( ccc >= 2<<(nbut-1) ) ccc = 0 ;  /* back to beginning */
+        MCW_set_bbox( grapher->opt_points_bbox[4] , ccc ) ;
+        grapher->points_index[4] = ccc ;
         if( !grapher->textgraph ) redraw_graph( grapher , 0 ) ;
       }
       break ;
