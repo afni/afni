@@ -648,7 +648,11 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
         // n now has the index of last matching element
 
         float *paddedLine=(float *)calloc(Na+2,sizeof(float));
-        int start = 0, stop = limit;
+        // actual ROI is in range of indices [start, stop] in
+        // paddedLine.  'inc' will tell us length of distance array
+        // put into Euclidean_DT_delta(), which can include padding at
+        // either end.
+        int start = 0, stop = limit; 
         int inc=0;
         if (idx != 0 || (edges_are_zero_for_nz && roi != 0)){
             start = 1;
@@ -656,16 +660,21 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
         }
         // put actual values from dist**2 field...
         for (int m=idx; m<=n; ++m){
+            //paddedLine[inc++] = dist2_line[m];
             paddedLine[inc++] = dist2_line[m];
         }
-        stop = inc-1;
-        // pad at end?
+        // inc finishes 1 greater than the actual end: is length so far
+        stop = inc-1;  // 'stop' is index of actual end of roi
+        // pad at end? 
         if (n < limit || (edges_are_zero_for_nz && roi != 0)){
-            stop += 1;
+            inc+=1; // [PT] not 'stop', which is index of actual ROI
+                    // (not changing)
         }
 
         // float *Df = Euclidean_DT_delta(paddedLine, stop-start+1, delta);
-        float *Df = Euclidean_DT_delta(paddedLine, inc+1, delta);
+        // [PT] and 'inc' should already have correct value from
+        // above; don't add 1 here
+        float *Df = Euclidean_DT_delta(paddedLine, inc, delta);
 
         // memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
         memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
