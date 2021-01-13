@@ -3145,10 +3145,6 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                 planeC = planeC*cos(planePhi*M_PI/180);
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-/*
-                sprintf(objectClipParams, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-*/
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
@@ -3294,10 +3290,6 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                 planeC = planeC*cos(planePhi*M_PI/180);
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-/*
-                sprintf(objectClipParams, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-*/
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
@@ -3436,10 +3428,6 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                 planeC = planeC*cos(planePhi*M_PI/180);
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-/*
-                sprintf(objectClipParams, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-*/
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
@@ -3557,8 +3545,6 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                 char chrTmp[64];
                 // float  planeA, planeB, planeC;
 
-                fprintf(stderr, "Ctrl-R-arrow\n");
-
                 // Increment theta (x-axis rotation)
                 ++planePhi;
 
@@ -3571,10 +3557,6 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                 planeC = planeC*cos(planePhi*M_PI/180);
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-/*
-                sprintf(objectClipParams, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-*/
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
@@ -5386,17 +5368,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
-                // Decrement the last (d) number of the objectClipParams string and then
-                //  call SUMA_SetObjectClip
                 char chrTmp[64];
                 --objectPlaneD;
 
-                sprintf(strrchr(objectClipParams,',')+1, "%d", objectPlaneD);
-
-                // This looks redundant but using objectClipParams directly, as an
-                //  input to SUMA_SetObjectClip, seems to result in objectClipParams
-                //  being changed in an undesirable way
-                // sprintf(chrTmp, "%s", objectClipParams);
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
             }
@@ -5499,20 +5473,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             // PDL: Ctrl-scroll backward
             if (pButton==5 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
                 char chrTmp[64];
-                // Increment the last (d) number of the objectClipParams string and then
-                //  call SUMA_SetObjectClip
+
                 ++objectPlaneD;
-                sprintf(strrchr(objectClipParams,',')+1, "%d", objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
 
                 int isv;
                 SUMA_SurfaceViewer *sv;
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-/*
-                sprintf(objectClipParams, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                sprintf(chrTmp, "%s", objectClipParams);
-*/
                 sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
                 SUMA_SetObjectClip(chrTmp, sv);
            }
