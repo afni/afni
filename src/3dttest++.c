@@ -5615,24 +5615,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,  /* combine the masks */
-                            "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.*.nii* -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,  /* combine the masks */
-                            "3dmask_tool -input %s.ETACtmask.global.*.nii -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.*.nii* -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
@@ -5667,24 +5667,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.1pos.*.nii* -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii* -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
@@ -5718,31 +5718,31 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.1neg.*.nii* -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
                                   prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii* -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                }
 #if 1
-               sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim,prefix_clustsim );
+               sprintf( cmd , "\\rm %s.ETACtmask.*.nii* %s.ETACamask.*.nii*" , prefix_clustsim,prefix_clustsim );
                if( debug ) ININFO_message("Running\n  %s",cmd) ;
                system(cmd);
 #endif
