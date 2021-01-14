@@ -1,8 +1,6 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-char objectClipParams[64];
-
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD){
     static int  planeTheta=0, planePhi = 0, objectPlaneD;
     static float  planeA, planeB, planeC;
@@ -11,6 +9,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD){
     SUMA_SurfaceViewer *sv;
     Widget w;
 
+    // Update rotation and (normal) translation parameters
     planeTheta += deltaTheta;
     planePhi += deltaPhi;
     objectPlaneD += deltaPlaneD;
@@ -23,6 +22,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD){
     planeA = planeC*sin(planePhi*M_PI/180);
     planeC = planeC*cos(planePhi*M_PI/180);
 
+    // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
     sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
     SUMA_SetObjectClip(chrTmp, sv);
@@ -3148,7 +3148,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
             /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
@@ -3278,7 +3278,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Down:
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
             /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
@@ -3403,7 +3403,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
             /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
@@ -3520,7 +3520,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
             /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
@@ -4306,7 +4306,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_C:
             if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                sprintf(objectClipParams, "A: 0,0,1,0");    // PDL:
                 SUMAg_CF->X->ClipObj_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
                               "Enter object clip plane parameters (a,b,c,d)",
@@ -5331,7 +5330,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
-            if (pButton==4 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
+            if (pButton==4 && Kev.state & ControlMask && SUMAg_CF->N_ClipPlanes > 0){
             /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
@@ -5437,7 +5436,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
-            if (pButton==5 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
+            if (pButton==5 && Kev.state & ControlMask && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 0, 1);
            }
 
