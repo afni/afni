@@ -2,9 +2,32 @@
 #include "SUMA_plot.h"
 
 char objectClipParams[64];
-static int  planeTheta=0, planePhi = 0, objectPlaneD;
-float  planeA, planeB, planeC;
 
+void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD){
+    static int  planeTheta=0, planePhi = 0, objectPlaneD;
+    static float  planeA, planeB, planeC;
+    char chrTmp[64];
+    int isv;
+    SUMA_SurfaceViewer *sv;
+    Widget w;
+
+    planeTheta += deltaTheta;
+    planePhi += deltaPhi;
+    objectPlaneD += deltaPlaneD;
+
+    // Rotate around x-axis
+    planeB = -sin(planeTheta*M_PI/180);
+    planeC = cos(planeTheta*M_PI/180);
+
+    // Rotate arount y axis
+    planeA = planeC*sin(planePhi*M_PI/180);
+    planeC = planeC*cos(planePhi*M_PI/180);
+
+    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
+    sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
+    SUMA_SetObjectClip(chrTmp, sv);
+
+}
 
 /*!
    Return the code for the key that is specified in keyin
@@ -3126,27 +3149,12 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
                 char chrTmp[64];
-                // float  planeA=0, planeB, planeC;
-
-                fprintf(stderr, "Ctrl-R-arrow\n");
-
-                // Increment phi (y-axis rotation)
-                ++planeTheta;
-
-                // Rotate around x-axis
-                planeB = -sin(planeTheta*M_PI/180);
-                planeC = cos(planeTheta*M_PI/180);
-
-                // Rotate arount y axis
-                planeA = planeC*sin(planePhi*M_PI/180);
-                planeC = planeC*cos(planePhi*M_PI/180);
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+*/
+                clipPlaneTransform(1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
                /* Posterior view ctrl+shift+up*/
@@ -3271,27 +3279,13 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
                 char chrTmp[64];
-                // float  planeA=0, planeB, planeC;
+                */
 
-                fprintf(stderr, "Ctrl-R-arrow\n");
-
-                // Increment phi (y-axis rotation)
-                --planeTheta;
-
-                // Rotate around x-axis
-                planeB = -sin(planeTheta*M_PI/180);
-                planeC = cos(planeTheta*M_PI/180);
-
-                // Rotate arount y axis
-                planeA = planeC*sin(planePhi*M_PI/180);
-                planeC = planeC*cos(planePhi*M_PI/180);
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+                clipPlaneTransform(-1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
                /* Posterior view ctrl+shift+down*/
@@ -3410,26 +3404,13 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
                 char chrTmp[64];
+                */
 
-                fprintf(stderr, "Ctrl-R-arrow\n");
-
-                // Decrement theta (x-axis rotation)
-                --planePhi;
-
-                // Rotate around x-axis
-                planeB = -sin(planeTheta*M_PI/180);
-                planeC = cos(planeTheta*M_PI/180);
-
-                // Rotate arount y axis
-                planeA = planeC*sin(planePhi*M_PI/180);
-                planeC = planeC*cos(planePhi*M_PI/180);
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+                clipPlaneTransform(0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -3540,25 +3521,13 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (SUMA_CTRL_KEY(key) && strrchr(objectClipParams,',')){
+            /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
                 char chrTmp[64];
-                // float  planeA, planeB, planeC;
+                */
 
-                // Increment theta (x-axis rotation)
-                ++planePhi;
-
-                // Rotate around x-axis
-                planeB = -sin(planeTheta*M_PI/180);
-                planeC = cos(planeTheta*M_PI/180);
-
-                // Rotate arount y axis
-                planeA = planeC*sin(planePhi*M_PI/180);
-                planeC = planeC*cos(planePhi*M_PI/180);
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+                clipPlaneTransform(0, 1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -5363,16 +5332,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
             if (pButton==4 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
+            /*
                 int isv;
                 SUMA_SurfaceViewer *sv;
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-
-                char chrTmp[64];
-                --objectPlaneD;
-
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+*/
+                clipPlaneTransform(0, 0, -1);
             }
 
             if (pButton==6 || Bev.state & ShiftMask) {
@@ -5472,16 +5438,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
             if (pButton==5 && Kev.state & ControlMask && strrchr(objectClipParams,',')){
-                char chrTmp[64];
-
-                ++objectPlaneD;
-
-                int isv;
-                SUMA_SurfaceViewer *sv;
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-                sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
-                SUMA_SetObjectClip(chrTmp, sv);
+                clipPlaneTransform(0, 0, 1);
            }
 
             if (pButton==7 || Bev.state & ShiftMask) {
