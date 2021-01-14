@@ -12,6 +12,59 @@
 
    The exceptions to the "not integrated into AFNI" ukase are the parts
    of the code inside #ifdef BE_AFNI_AWARE ,,, #endif sections.
+
+   The actual graphs are drawn in function plot_graphs().
+   All the rest of the code is decoration or bureaucracy.
+
+   Note that XDrawLines and XFillPolygon are superseded by
+   function AFNI_XDrawLines and AFNI_XFillPolygon (way down in this file)
+   to provide for upsampling the curves with smoothing. Search below
+   for 'Upsampling' to find where these shenanigans begin.
+*//*----------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* The AFNI graph viewer is organized much like the image viewer (imseq.c).
+   It gets data and sends info to AFNI via a "callback" function get_ser().
+   It can be driven from outside by calling function drive_MCW_grapher().
+   Much of the early code was adapted from program FD2.c (by myself),
+   which was in turn lifted from program FD.c (by Andrzej Jesmanowicz).
+
+   This history explains why there are 2 different X11 drawing objects:
+     fd_pxWind = a Pixmap, which is a non-visible object into which
+                 most of the graphing information is drawn -- the
+                 Pixmap is a client-side object, rather than a Window,
+                 which is an X11 server-side object. The idea is
+                 that drawing into the Pixmap does not require any
+                 AFNI-to-X11 communication.
+     draw_fd   = a Motif Drawing Area widget, whose Window on the X11
+                 server is where the actual display takes place
+   The Pixmap is drawn -- in functions redraw_graph() and plot_graphs() --
+   and then pushed in a single operation to the window via function
+   fd_px_store(). The reason AJ chose for this somewhat clumsy method was
+   speed -- on the slower computers/displays of the early 1990s, redrawing
+   all the graphs just to make a minor change was slow. Instead, the idea
+   was to fix the stuff that doesn't change often, and then re-draw into
+   the window only the overlay stuff that changes more often. Of course,
+   FD and FD2 had a fixed size window, which made this choice more sensible.
+   Now, with faster everything and resizable graph windows, this division
+   of display labor perhaps seems a little silly.
+
+   But I'm not going to re-write it! -- RWCox -- January 2021
+*//*----------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* Another word of explanation. The FIM menu items in the graph viewer
+   are a legacy of FD2.c -- which was a mashup of the older programs
+   fim.c (functional image map via the correlation method) and FD.c
+   (display of one slice worth of EPI images and graphs). FD2.c allowed
+   for the first time for interactive exploration of FMRI results,
+   albeit in only 2D+time. When I came to add 3D+time data to AFNI (1996),
+   I naturally adapted FD2.c as the starting point for the graph viewer.
+   However, the FIM functions have not be changed or updated in any way
+   for years now -- they still work (I hope), but are not particularly
+   useful, as the FMRI data analysis world has gotten more complicated.
+   But interactive FIM was fun while it lasted. You kids don't know
+   what you are missing.
 *//*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------
@@ -66,7 +119,7 @@ static char *startup_1D_transform = NULL ;
  } while(0)
 
 #undef  BOXOFF
-#define BOXOFF 9  /* BOX vertical offset (pixels) */
+#define BOXOFF 9 /* BOX vertical offset (pixels) - for various spacing things */
 
 /*------------------------------------------------------------*/
 /*! Create a new MCW_grapher window and structure.            */
@@ -1228,10 +1281,8 @@ STATUS("freeing Pixmap") ;
 STATUS("destroying optmenus") ;
    FREE_AV(grapher->opt_mat_choose_av) ;
    FREE_AV(grapher->opt_slice_choose_av) ;
-#ifdef ALLOW_IGNORE
    FREE_AV(grapher->fmenu->fim_ignore_choose_av) ;
    FREE_AV(grapher->fmenu->fim_polort_choose_av) ;
-#endif
 #endif
 
 STATUS("destroying arrowvals") ;
@@ -1355,7 +1406,7 @@ ENTRY("rectangle_fdX") ;
    if( yb < 0 ) yb = 0 ;
    yb = grapher->fHIGH - yb - yw ;
 
-   DC_fg_color ( grapher->dc , clr ) ;
+   DC_fg_color ( grapher->dc , clr ) ;  /* changing color in myGC */
 
    XFillRectangle( grapher->dc->display ,
                    grapher->fd_pxWind , grapher->dc->myGC , xb,yb , xw,yw ) ;
@@ -1408,9 +1459,9 @@ ENTRY("fd_px_store") ;
                 14 Jan 1998: 2 if for points on a filled circle
 ----------------------------------------------------------------*/
 
-#define NCIR 12  /* hollow circle */
-#define NBAL 21  /* filled circle */
-#define NBAX 25  /* with points   */
+#define NCIR 12  /* number of points for hollow circle */
+#define NBAL 21  /* number of points for filled circle */
+#define NBAX 25  /* number of points for with points   */
 
 #define NBTOP NBAX  /* max # of points */
 
@@ -1439,11 +1490,12 @@ void GRA_small_circle( MCW_grapher *grapher, int xwin, int ywin, int filled )
       case 2:  ncirc = NBAX ; break ;
    }
 
-   for( i=0 ; i < ncirc ; i++ ){
+   for( i=0 ; i < ncirc ; i++ ){    /* fill pixel coords */
       a[i].x = xball[i].x + xwin ;
       a[i].y = xball[i].y + ywin ;
    }
 
+   /* just draws pixels */
    XDrawPoints( grapher->dc->display, grapher->fd_pxWind,
                 grapher->dc->myGC, a, ncirc, CoordModeOrigin ) ;
    return ;
@@ -1475,6 +1527,9 @@ void GRA_overlay_circle( MCW_grapher *grapher, int xwin, int ywin, int filled )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Draw a complete circle using the XDrawArc function
+   (where the angle of the arc is specified in units of degrees/64)
+*//*-------------------------------------------------------------------------*/
 
 void GRA_draw_circle( MCW_grapher *grapher , int xc , int yc , int rad )
 {
@@ -1489,6 +1544,7 @@ void GRA_draw_circle( MCW_grapher *grapher , int xc , int yc , int rad )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Same thing, but a filled circle = a disk */
 
 void GRA_draw_disk( MCW_grapher *grapher , int xc , int yc , int rad )
 {
@@ -1541,9 +1597,8 @@ ENTRY("GRA_redraw_overlay") ;
 
    EXRONE(grapher) ;  /* 22 Sep 2000 */
 
-   boff = DATA_BOXED(grapher) ? BOXOFF : 0 ;
+   boff = DATA_BOXED(grapher) ? BOXOFF : 0 ;  /* boxes are elevated */
 
-#ifdef ALLOW_IGNORE
    /* draw some circles over ignored data points [23 May 2005] */
 
    if( NIGNORE(grapher) > 0 && !grapher->textgraph && NSTRIDE(grapher) == 1 ){
@@ -1556,7 +1611,6 @@ ENTRY("GRA_redraw_overlay") ;
        GRA_draw_circle( grapher , grapher->cen_line[ii-jj].x ,
                                   grapher->cen_line[ii-jj].y-boff , 4 ) ;
    }
-#endif
 
    /* 22 July 1996:
       draw a ball on the graph at the currently display time_index */
@@ -1662,6 +1716,7 @@ ENTRY("redraw_graph") ;
                                     July 14th Allons enfants de la patrie,
                                     la guillottine est arrivee! */
 
+   /* this is where all the 'fun' lives */
    plot_graphs( grapher , code ) ;
 
    DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;
@@ -1864,6 +1919,8 @@ ENTRY("redraw_graph") ;
 /*------------------------------------------------
    Plot text in fd_pxWind at x,y position
    relative to lower left corner (!).
+   Note that myGC was setup in display.c,
+   where the font is defined.
 --------------------------------------------------*/
 
 void fd_txt( MCW_grapher *grapher , int x , int y , char * str )
@@ -1875,6 +1932,7 @@ void fd_txt( MCW_grapher *grapher , int x , int y , char * str )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Write the string one character at a time, upwards (for graph box labels) */
 
 void fd_txt_upwards( MCW_grapher *grapher , int x , int y , char *str )
 {
@@ -1907,6 +1965,10 @@ void overlay_txt( MCW_grapher *grapher , int x , int y , char *str )
 }
 
 /*-----------------------------------------------*/
+/* draw a line in the Pixmap;
+   this is used only for lines dividing
+   the informative text below the graphs
+*//*---------------------------------------------*/
 
 static void fd_line( MCW_grapher *grapher , int x1,int y1, int x2,int y2 )
 {
@@ -1915,7 +1977,8 @@ static void fd_line( MCW_grapher *grapher , int x1,int y1, int x2,int y2 )
    return ;
 }
 
-/*-----------------------------------------------*/
+/*------------------------------------------------------------------------*/
+/* get automatic vertical grid line spacings, given number of time points */
 
 #define GRID_MAX 13
 static int grid_ar[GRID_MAX] =
@@ -1934,6 +1997,7 @@ static void auto_grid( MCW_grapher *grapher , int npoints )
 }
 
 /*-----------------------------------------------*/
+/* Initialize some constants */
 
 void init_const( MCW_grapher *grapher )
 {
@@ -1943,14 +2007,22 @@ ENTRY("init_const") ;
 
    if( !GRA_VALID(grapher) ) EXRETURN ;
 
+   /* vertical scale factor */
+
    if( grapher->fscale == 0 ) grapher->fscale = 1 ;
+
+   /* max number of sub-graphs allowed */
 
    grapher->mat_max = MAT_MAX ;
    grapher->mat_max = MIN( grapher->mat_max , grapher->status->nx ) ;
    grapher->mat_max = MIN( grapher->mat_max , grapher->status->ny ) ;
 
+   /* initial number of sub-graphs */
+
    if( grapher->mat <= 0 ) grapher->mat = INIT_GR_gmat ;
    grapher->mat = MIN( grapher->mat , grapher->mat_max ) ;
+
+   /* initial center point in 3D space, if not previously set */
 
    if( grapher->xpoint < 0 || grapher->xpoint >= grapher->status->nx )
       grapher->xpoint = grapher->status->nx / 2 ;
@@ -1961,6 +2033,8 @@ ENTRY("init_const") ;
    if( grapher->zpoint < 0 || grapher->zpoint >= grapher->status->nz )
       grapher->zpoint = grapher->status->nz / 2 ;
 
+   /* initial grid spacing */
+
    if( grapher->grid_index < 0 ) auto_grid( grapher, NPTS(grapher) ) ;
 
 #if 0
@@ -1968,18 +2042,23 @@ ENTRY("init_const") ;
       grapher->grid_color = 1 ;  /* first overlay color */
 #endif
 
+   /* initial time point */
+
    if( grapher->time_index < 0 )
      grapher->time_index = 0 ;
    else if( grapher->time_index >= grapher->status->num_series )
      grapher->time_index = grapher->status->num_series - 1 ;
 
+   /* setup the matrix-related constants */
+
    init_mat(grapher) ;
    EXRETURN ;
 }
 
-/*-----------------------------------------------------------
-  Draw numbers instead of graphs -- 22 Sep 2000 -- RWCox
--------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+/* Draw numbers instead of graphs -- 22 Sep 2000 -- RWCox
+   Largely for the physicists out there, or the very inquisitive.
+*//*-------------------------------------------------------------*/
 
 void text_graphs( MCW_grapher *grapher )
 {
@@ -2001,6 +2080,8 @@ ENTRY("text_graphs") ;
 
    ztemp = grapher->zpoint * grapher->status->ny * grapher->status->nx ;
 
+   /* loop over sub-graph boxes */
+
    for( ix=0 ; ix < grapher->mat ; ix++ ){
       xtemp  = grapher->xpoint + ix - grapher->xc ;
            if( xtemp <  0                   ) xtemp += grapher->status->nx ;
@@ -2013,7 +2094,7 @@ ENTRY("text_graphs") ;
 
          index = ztemp + ytemp * grapher->status->nx + xtemp ;
 
-         tsim = GRA_getseries( grapher , index ) ;
+         tsim = GRA_getseries( grapher , index ) ; /* get the data */
          if( tsim == NULL ) break ;
 
          if( ix == grapher->xc && iy == grapher->yc ){
@@ -2044,7 +2125,7 @@ ENTRY("text_graphs") ;
          AV_fval_to_char( MRI_FLOAT_PTR(tsim)[jv] , str ) ;
          mri_free(tsim) ;
          strp = (str[0] == ' ') ? str+1 : str ;
-         www = DC_text_width(grapher->dc,strp) ;
+         www = DC_text_width(grapher->dc,strp) ; /* for centering, below */
 
          fd_txt( grapher , grapher->xorigin[ix][iy] + (grapher->gx-www)/2 ,
                            grapher->yorigin[ix][iy] + 2 ,
@@ -2151,6 +2232,7 @@ static void GRA_detrend_imarr( int dord , MRI_IMARR *imar ) /* 05 Dec 2012 */
 
 /*-----------------------------------------------------------
     Plot real graphs to pixmap [lots of code here]
+    This is where the most of the 'fun' or 'work' is.
 -------------------------------------------------------------*/
 
 void plot_graphs( MCW_grapher *grapher , int code )
@@ -2169,33 +2251,46 @@ void plot_graphs( MCW_grapher *grapher , int code )
    static float *tstemp=NULL ;     /* 09 Jun 2020 */
 
    static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
-   static XPoint *a_line = NULL ;
+   static XPoint *a_line = NULL ;  /* one XPoint = (x,y) coords of one point in window */
    static int  nplot_old = 0 ;
+
+   /* stuff for plotting along an arbitrary x-axis,
+      as opposed to the equal spacing provided by default */
 
    MRI_IMAGE *xxim=NULL, *xxim_cen=NULL , *xax_tsim=NULL ; /* 10 Feb 2015 */
    MRI_IMARR *xximar=NULL ;
    int do_xxim=0 ;
+   double_pair xax_minmax ; float xax_tsim_bot=0.0f , xax_tsim_top=0.0f ;
+
+   /*  boxes?       box labels? */
    int do_boxes=0 , do_boxlab=0 ;
+
+   /* stuff for extra (overlaying) plots,
+      in addition to the standard underlay plots */
 
    MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 - for double plot */
    int        dplot = 0 ;
    int        pmplot_mode = 0 ;    /* 01 Jun 2020 - new PLUSMINUS plot modes */
    int        pmplot_color= 1 ;
 
+   /* stuff for extra (above) plots -- FIM and ORTs (very old stuff) */
+
    MRI_IMARR *eximar = NULL ;
    int        iex ;
+
+   /* things for setting the vertical scale between data and pixels */
 
    float nd_bot=0 , nd_top=0 , nd_dif=0 ;                  /* 03 Feb 1998 */
    int   set_scale = ( (code & PLOTCODE_AUTOSCALE) != 0 ||
                        grapher->never_drawn ) ;
 
-   MRI_IMAGE *dsim ; /* 07 Aug 2001: for double plot */
+   MRI_IMAGE *dsim ; /* 07 Aug 2001: also for double plot */
    float     *dsar ;
-
-   double_pair xax_minmax ; float xax_tsim_bot=0.0f , xax_tsim_top=0.0f ;
 
 #define OVI_MAX 19
    int tt, use_ovi, ovi[OVI_MAX] ;  /* 29 Mar 2002: for multi-plots */
+
+   /*----- START OF EXECUTABLE CODE -----*/
 
 ENTRY("plot_graphs") ;
    if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
@@ -2206,9 +2301,11 @@ ENTRY("plot_graphs") ;
      EXRETURN ;
    } else if( grapher->status->num_series == 1 ||
               grapher->textgraph               || TPTS(grapher) < 2 ){
-     text_graphs( grapher ) ;
+     text_graphs( grapher ) ;  /* that was easy */
      EXRETURN ;
    }
+
+   /* for the x-axis specified by a time series file */
 
    if( grapher->xax_tsim != NULL ){
      xax_tsim = mri_copy(grapher->xax_tsim) ;  /* scaled local copy */
@@ -2221,16 +2318,19 @@ ENTRY("plot_graphs") ;
 
    mri_free(grapher->xax_cen) ; grapher->xax_cen = NULL ; /* 12 Feb 2015 */
 
+   /* special things to 'do' */
+
    do_boxes  = DATA_BOXED(grapher) ;
    do_boxlab = DATA_BOXLAB_CODE(grapher) ;
    do_xxim   = (grapher->xax_fdbr != NULL) && !do_boxes ;
 
-   /* set colors and line widths */
+   /* set colors and line widths [these alter the myGC X11 graphics context] */
 
    DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
    DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
 
    /* 17 Mar 2004: we will plot with x-axis = pbot..ptop-1 */
+   /*    Jun 2020: with stride of pstep [for Gang Chen]    */
 
    ptop = NTOP(grapher) ; pbot = NBOT(grapher) ; pstep = NSTRIDE(grapher) ;
    if( pbot >= ptop ){
@@ -2247,17 +2347,19 @@ ENTRY("plot_graphs") ;
    pnum = NABC(pbot,ptop,pstep) ;  /* number of data points to plot */
    if( pnum <= 1 ) EXRETURN ;      /* should never happen?! */
 
+   /* how much to upsample the lines between data values? */
+
    if( DO_UPSAM(grapher) ){               /* for smoothing [28 May 2020] */
      nupsam = XUPSAM(grapher->gx,pnum) ;  /* XUPSAM is in afni_graph.h */
      if( nupsam > 1 && xxim != NULL ) nupsam *= 2 ; /* ad hoc */
    }
 
-   /* set aside memory for plotting, etc. */
+   /* set aside static memory for plotting, etc. */
 
 #define NPLOT_INIT 9999  /* 29 Apr 1997 */
    itop = MAX( NPLOT_INIT , grapher->status->num_series ) ;
-   if( nplot_old == 0 || nplot_old < itop ){
-     myXtFree(a_line) ; myXtFree(plot) ;
+   if( nplot_old == 0 || nplot_old < itop ){  /* probably only executed once */
+     myXtFree(a_line) ; myXtFree(plot) ;      /* unless a LOT of data comes in later */
      nplot_old = 2*itop+666 ; /* just to be safe */
      plot      = (int *)    XtMalloc( sizeof(int)    * nplot_old ) ;
      a_line    = (XPoint *) XtMalloc( sizeof(XPoint) * nplot_old ) ;
@@ -2271,52 +2373,34 @@ ENTRY("plot_graphs") ;
 
    /* set the bottom point (ibot) at which to compute time series statistics */
 
-#ifdef ALLOW_IGNORE
-   ibot = NIGNORE(grapher) ;
+   ibot = NIGNORE(grapher) ;        /* first non-ignored data point */
    if( pstep >  1      ) ibot = 0 ; /* disable ignore for strides > 1 */
    if( ibot  >= ptop-1 ) ibot = 0 ; /* disable ignore if too long */
-#else
-   ibot = 0 ;
-#endif
    ibot = MAX(ibot,pbot) ;
 
-   /** loop over matrix of graphs and get all the time series for later **/
+   /** loop over matrix of graphs and get all the time series for later use **/
 
-   INIT_IMARR(tsimar) ;
+   INIT_IMARR(tsimar) ; /* image array to store the data time series */
 
-   if( do_xxim ) INIT_IMARR(xximar) ;
+   if( do_xxim ) INIT_IMARR(xximar) ; /* to store x-axis time series, if needed */
 
    /** 08 Nov 1996: initialize second array for double plotting **/
    /** 07 Aug 2001: modify to allow for multiple dplot cases    **/
+   /**  Double plotting is implemented by 'transforms' of the input data, **/
+   /**  which in the case of Dataset#N simply provides entirely new data. **/
+   /**  Why this way? Because transforms already existed in the code.     **/
 
    if( grapher->transform1D_func != NULL &&
        MCW_val_bbox(grapher->opt_dplot_bbox) != DPLOT_OFF ){
 
      STATUS("  initialize graph for DPLOT") ;
 
-#if 1
      INIT_IMARR(dplot_imar) ;
      dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
-#else
-     if( do_boxes ){
-       static int first=1 ;
-       MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ; dplot = 0 ;
-       if( first ){
-         (void) MCW_popup_message(
-                   grapher->option_rowcol ,
-                   "'Double Plot' gets turned off\n"
-                   "  in 'Boxes' graphing mode!"     ,
-                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         first = 0 ;
-       }
-     } else {                         /* get ready to save dplot data */
-       INIT_IMARR(dplot_imar) ;
-       dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
-     }
-#endif
    }
 
    /* how to do the plus/minus double plot overlay [01 Jun 2020] */
+   /* Cannot do pmplot with non-standard x-axis! */
 
    pmplot_mode = 0 ;
    if( dplot && !do_xxim && xax_tsim == NULL ){
@@ -2324,12 +2408,16 @@ ENTRY("plot_graphs") ;
      pmplot_color = PMPLOT_COLOR(grapher);
    }
 
+   /* clear the time series statistics etc. for this array of time series */
+
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
 
    /* 3D index offset to correct slice number */
    ztemp = grapher->zpoint * grapher->status->ny * grapher->status->nx ;
 
    ntmax = 0 ; /* will be length of longest time series found below */
+
+   /**--- double loop to get the data for the (ix,iy)-th sub-graph ---**/
 
    for( ix=0 ; ix < grapher->mat ; ix++ ){  /* get data for the 'main' plots */
 
@@ -2349,22 +2437,22 @@ ENTRY("plot_graphs") ;
 
          /** get the desired time series, using the provided routine **/
 
-         tsim = GRA_getseries( grapher , index ) ;
+         tsim = GRA_getseries( grapher , index ) ;  /* this is kind of important */
 
          if( do_xxim ){                                  /* 10 Feb 2015 */
            xxim = GRA_getseries_xax( grapher , index ) ; /* for user-supplied */
-           if( ix == grapher->xc && iy == grapher->yc ){ /* x-axis */
-             xxim_cen = xxim ;
+           if( ix == grapher->xc && iy == grapher->yc ){ /* x-axis from a */
+             xxim_cen = xxim ;                           /* dataset */
              mri_free(grapher->xax_cen) ; grapher->xax_cen = mri_copy(xxim) ;
            }
            xax_minmax = mri_minmax( xxim ) ;
-           grapher->xax_bot[ix][iy] = xax_minmax.a ;
-           grapher->xax_top[ix][iy] = xax_minmax.b ;
-           GRA_fixup_xaxis( grapher , xxim ) ;
-           ADDTO_IMARR(xximar,xxim) ;
+           grapher->xax_bot[ix][iy] = xax_minmax.a ;  /* get the min/max of */
+           grapher->xax_top[ix][iy] = xax_minmax.b ;  /* x-axis for (ix,iy) */
+           GRA_fixup_xaxis( grapher , xxim ) ;       /* scale to range 0..1 */
+           ADDTO_IMARR(xximar,xxim) ;                  /* save for graphing */
          } else if( xax_tsim != NULL ){
-           grapher->xax_bot[ix][iy] = xax_tsim_bot ;
-           grapher->xax_top[ix][iy] = xax_tsim_top ;
+           grapher->xax_bot[ix][iy] = xax_tsim_bot ; /* for user-supplied */
+           grapher->xax_top[ix][iy] = xax_tsim_top ; /* x-axis from a 1D file */
          }
 
          /* 08 Nov 1996: allow for return of NULL data timeseries */
@@ -2372,14 +2460,14 @@ ENTRY("plot_graphs") ;
          if( tsim == NULL ){
            ADDTO_IMARR(tsimar,NULL) ;
            if( dplot_imar != NULL ) ADDTO_IMARR(dplot_imar,NULL) ;
-           continue ;  /* skip to next iy */
+           continue ;                                      /* skip to next iy */
          }
 
-         ntmax = MAX( ntmax , tsim->nx ) ; /* longest seen thus far */
+         ntmax = MAX( ntmax , tsim->nx ) ;/* longest time series seen to here */
 
          /* 22 Oct 1996: transform each point, if ordered */
 
-         if( grapher->transform0D_func != NULL ){  /* 0D = pointwise */
+         if( grapher->transform0D_func != NULL ){  /* 0D = pointwise in place */
 STATUS("about to perform 0D transformation") ;
             AFNI_CALL_0D_function( grapher->transform0D_func ,
                                    tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
@@ -2401,8 +2489,11 @@ STATUS("about to perform 0D transformation") ;
 
 STATUS("about to perform 1D transformation") ;
 
+            /* 1D transform functions are coded with binary
+               flags, which indicate how they are to be used here */
+
             if( grapher->transform1D_flags & NEEDS_DSET_INDEX ){ /* 18 May 2000 */
-#ifdef BE_AFNI_AWARE
+#ifdef BE_AFNI_AWARE  /* if afni_graph.c is compiled for use with AFNI GUI */
                FD_brick *br=(FD_brick *)grapher->getaux ; THD_ivec3 id ;
                id = THD_fdind_to_3dind( br ,
                                         TEMP_IVEC3(xtemp,ytemp,grapher->zpoint) );
@@ -2456,7 +2547,11 @@ STATUS("about to perform 1D transformation") ;
 
             /* if this is a plus/minus double plot, we need to do some
                surgery on qim now:
-                 to make it 2 curves with tsim+qim and tsim-qim */
+                 to make it 2 curves with tsim+qim and tsim-qim.
+               So there is a double 'transformation':
+                 get the pmplot data into qim (from above)
+                 then convert it to qqim with 2 curves (below)
+                 and then pull a switcheroo, throwing qim away */
 
             if( pmplot_mode && qim != NULL ){ /* 01 Jun 2020 */
               MRI_IMAGE *qqim; float *qqar,*qar ; int kk,nx ;
@@ -2484,14 +2579,14 @@ STATUS("about to perform 1D transformation") ;
 
          } /* end of transform1D (at last) */
 
-         /* detrend and then put this base image on list of those to plot */
+         /* detrend data and then put this base image on list of those to plot */
 
          GRA_detrend_im( grapher->detrend , tsim ) ;
          ADDTO_IMARR(tsimar,tsim) ;
       }
-   }
+   } /** end of double loop to get data for sub-graphs **/
 
-   /** find the average time series [27 Jan 2004] **/
+   /** find the average data time series, for fun and profit [27 Jan 2004] **/
 
    if( ntmax > 1 && IMARR_COUNT(tsimar) > 0 ){
      float *avar , fac ; int nax , nts=0 ;
@@ -2509,6 +2604,9 @@ STATUS("about to make average time series") ;
      fac = 1.0f / MAX(nts,1) ; /* in case there isn't any data! */
      for( i=0 ; i < grapher->ave_tsim->nx ; i++ ) avar[i] *= fac ;
 
+     /* substitute new average into the
+        FIM reference timeseries if that bbox is selected */
+
      if( MCW_val_bbox(grapher->fmenu->fim_editref_winaver_bbox) ){
        if( grapher->ref_ts == NULL ) INIT_IMARR( grapher->ref_ts ) ;
        if( IMARR_COUNT(grapher->ref_ts) == 0 ){
@@ -2517,11 +2615,12 @@ STATUS("about to make average time series") ;
          IMARR_SUBIMAGE(grapher->ref_ts,0) = grapher->ave_tsim ;  /* replace first one */
        }
      }
+
    } else if( grapher->ave_tsim != NULL ){
-     mri_free(grapher->ave_tsim) ; grapher->ave_tsim = NULL ;
+     mri_free(grapher->ave_tsim) ; grapher->ave_tsim = NULL ; /* no data to average */
    }
 
-   /** find some statistics of each time series **/
+   /** find some statistics of each time series [for popup 'menu'] **/
 
 STATUS("finding statistics of time series") ;
 
@@ -2529,7 +2628,8 @@ STATUS("finding statistics of time series") ;
 
    nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
 
-   /* set the default entries for time series stat values */
+   /* set the default entries for time series stat values,
+      which is necessary if some sub-graphs don't return any data */
 
 #define DEFAULT_TSTAT(i,j)                               \
  do{ grapher->tmean[i][j] = grapher->tbot[i][j] =        \
@@ -2541,20 +2641,23 @@ STATUS("finding statistics of time series") ;
      grapher->dtop[i][j] = 0.0f ;                        \
  } while(0)
 
+   /** double loop to statistic-ate each time series
+          (just the parts being plotted, by the way) **/
+
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
       for( iy=0 ; iy < grapher->mat ; iy++,its++ ){
          float qbot,qtop ;
          double qsum , qsumq ;
 
-         tsim = IMARR_SUBIMAGE(tsimar,its) ;
-         DEFAULT_TSTAT(ix,iy) ;
+         tsim = IMARR_SUBIMAGE(tsimar,its) ;             /* the data */
+         DEFAULT_TSTAT(ix,iy) ;                    /* zero out stats */
          if( tsim == NULL || tsim->nx < 2 ) continue ; /* skip ahead */
 
-         itop  = MIN( ptop , tsim->nx ) ; /* ibot was set earlier */
-         nstep = NABC(ibot,itop,pstep) ;  /* number of data points */
+         itop  = MIN( ptop , tsim->nx ) ;    /* ibot was set earlier */
+         nstep = NABC(ibot,itop,pstep) ;    /* number of data points */
          if( nstep < 2 ) continue ;
-         tsar = MRI_FLOAT_PTR(tsim) ;     /* stats from ibot..itop-1 */
-         if( tsar == NULL ) continue ;
+         tsar = MRI_FLOAT_PTR(tsim) ;  /* do stats from ibot..itop-1 */
+         if( tsar == NULL ) continue ;        /* should NEVER happen */
 
          qbot = qtop  = tsar[ibot] ;
          qsum = qsumq = 0.0 ;
@@ -2571,6 +2674,7 @@ STATUS("finding statistics of time series") ;
          qsumq = (qsumq - ntstemp * qsum * qsum) / (ntstemp-0.999999) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
 
+         /* these statistics require a contiguous array = tstemp */
          qmedmadbmv_float( ntstemp , tstemp ,             /* 08 Mar 2001 */
                            &(grapher->tmed[ix][iy]) ,
                            &(grapher->tmad[ix][iy]) ,
@@ -2597,6 +2701,8 @@ STATUS("finding statistics of time series") ;
 
    if( set_scale && nd_bot < nd_top && nd_dif > 0.0f ){
 
+      /* here, fscale will be the number of pixels per data value */
+
       switch( grapher->common_base ){
          default:
          case BASELINE_INDIVIDUAL:
@@ -2615,20 +2721,20 @@ STATUS("finding statistics of time series") ;
          break ;
       }
 
-      /** switcheroo (holdover from old FD program):
+      /** switcheroo on fscale (holdover from old FD program):
             fscale > 0 ==> this many pixels per unit of tsar
             fscale < 0 ==> this many units of tsar per pixel **/
 
       if( grapher->fscale > 0.0f && grapher->fscale < 1.0f )
          grapher->fscale = -1.0f / grapher->fscale ;
 
-           if( grapher->fscale > 4.0f )                           /* even value */
+           if( grapher->fscale > 4.0f )               /* make it an integer */
                   grapher->fscale = (int) grapher->fscale ;
 
-      else if( grapher->fscale > 1.0f )
+      else if( grapher->fscale > 1.0f )                /* or a half-integer */
                   grapher->fscale = 0.5f * ((int)(2.0f*grapher->fscale)) ;
 
-      else if( grapher->fscale < -4.0f )
+      else if( grapher->fscale < -4.0f )         /* ditto for the negatives */
                   grapher->fscale = -((int)(1.0f-grapher->fscale)) ;
 
       else if( grapher->fscale < -1.0f )
@@ -2664,7 +2770,7 @@ STATUS("finding statistics of time series") ;
      DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;  /* drawing colors */
    }
 
-   /**** loop over matrix of graphs and plot them all to the pixmap ****/
+   /**** loops over matrix of graphs and plot them all to the pixmap ****/
 
 STATUS("starting time series graph loop") ;
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
@@ -2685,7 +2791,8 @@ STATUS("starting time series graph loop") ;
          if( do_xxim ) xxim = IMARR_SUBIMAGE(xximar,its) ;  /* 10 Feb 2015 */
          else          xxim = xax_tsim ;                  /* might be NULL */
 
-         /** find bottom value for this graph, if needed **/
+         /** find bottom value for this graph, if needed;
+             otherwise, tsbot for all graphs was set above **/
 
          if( grapher->common_base == BASELINE_INDIVIDUAL ){
            tsbot = grapher->dbot[ix][iy] ;
@@ -2706,12 +2813,12 @@ STATUS("starting time series graph loop") ;
            }
          }
 
-         /** scale factor for vertical (y):
+         /** set ypfac = scale factor for vertical (y):
               fscale > 0 ==> this many pixels per unit of tsar
               fscale < 0 ==> this many units of tsar per pixel **/
 
          ypfac = grapher->fscale ;
-              if( ypfac == 0.0 ) ypfac =  1.0f ;
+              if( ypfac == 0.0 ) ypfac =  1.0f ;   /* should not happen */
          else if( ypfac <  0.0 ) ypfac = -1.0f / ypfac ;
 
          xpfac = grapher->gx / (pnum-1.0f) ;  /* x scale factor */
@@ -2733,29 +2840,21 @@ STATUS("starting time series graph loop") ;
            int jtop = MIN(ptop,qim->nx) , jnum = NABC(pbot,jtop,pstep) ;
            if( jnum > 1 ){
              XPoint *d_line, *e_line, *f_line ; int nd_line = jnum+66 ;
-             d_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
-             e_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;
+             d_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;  /* allocate space */
+             e_line = (XPoint *)malloc(sizeof(XPoint)*nd_line) ;  /* for X11 points */
              /*--- plus lines = d_line array ---*/
-#ifdef ALLOW_IGNORE
               for( qq=0,i=pbot ; i < MIN(ibot,jtop) ; i+=pstep,qq++ ) /* pre-ignore */
-                plot[qq] = (tsar[ibot] - tsbot) * ypfac ;       /* plot first value */
-#else
-              i = pbot ; qq=0 ;
-#endif
-              for( ; i < jtop ; i+=pstep,qq++ )        /* post-ignore */
-                plot[qq] = (qar[i] - tsbot) * ypfac ;  /* plot the data */
+                plot[qq] = (tsar[ibot] - tsbot) * ypfac ;  /* just plot first value */
+              for( ; i < jtop ; i+=pstep,qq++ )                      /* post-ignore */
+                plot[qq] = (qar[i] - tsbot) * ypfac ;       /* plot the actual data */
               jnum = qq ;
 
-              for( i=0 ; i < jnum ; i++ ){             /* convert to pixels */
+              for( i=0 ; i < jnum ; i++ ){                     /* convert to pixels */
                 d_line[i].x = xoff + i*xpfac ;
-                d_line[i].y = yoff - plot[i] ;
+                d_line[i].y = yoff - plot[i] ;    /* remember: -y is UP, +y is DOWN */
               }
-             /*--- minus lines = e_line array ---*/
-#ifdef ALLOW_IGNORE
+             /*--- minus lines = e_line array [similar to above] ---*/
               for( qq=0,i=pbot ; i < MIN(ibot,jtop) ; i+=pstep,qq++ ) ; /*nada */
-#else
-              i = pbot ; qq = 0 ;
-#endif
               for( ; i < jtop ; i+=pstep,qq++ )
                 plot[qq] = (qar[i+qim->nx] - tsbot) * ypfac ;
 
@@ -2763,7 +2862,7 @@ STATUS("starting time series graph loop") ;
                 e_line[i].x = d_line[i].x ;
                 e_line[i].y = yoff - plot[i] ;
               }
-              /*--- plotting choices ---*/
+              /*--- graphics choices ---*/
               DC_fg_color ( grapher->dc , pmplot_color ) ;
               DC_linewidth( grapher->dc , PMPLOT_THICK(grapher) ) ;
               switch( pmplot_mode ){
@@ -2806,31 +2905,29 @@ STATUS("starting time series graph loop") ;
                 }
                 break ;
               }
-              free(e_line); free(d_line);
+
+              free(e_line); free(d_line); /* free the XPoint arrays */
            }
-         } /* end of dplot BEFORE tsim plot! */
+         } /* end of pmplot BEFORE tsim plot! */
 
          /*-- now do the tsim plot(s) --*/
 
-         DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
+         DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ; /* reset color */
          DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
 
-         for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002: multi-plots */
+         for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002: multi-plots in one image */
 
           /* scale to vertical pixels: before the ignore level */
 
-#ifdef ALLOW_IGNORE
           for( qq=0,i=pbot ; i < MIN(ibot,itop) ; i+=pstep,qq++ )
             plot[qq] = (tsar[ibot] - tsbot) * ypfac ;
-#else
-          i = pbot ; qq = 0 ;
-#endif
 
           /* scale after the ignore level */
 
           for( ; i < itop ; i+=pstep,qq++ )
             plot[qq] = (tsar[i] - tsbot) * ypfac ;
-          qnum = qq ;
+
+          qnum = qq ; /* number of points in plot */
 
           /* now have qnum points in plot[] */
 
@@ -2845,14 +2942,16 @@ STATUS("starting time series graph loop") ;
             xpfac = grapher->gx / (pnum-1.0f) ; /* x scale factor */
 
           /* 09 Jan 1998: allow x-axis to be chosen by a
-                         timeseries that ranges between 0 and 1 */
+                          timeseries that ranges between 0 and 1
+             '?' == get x pixel location from xxim
+             ':' == get x pixel lcation from time series index ii */
 
 #define XPIX(ii)                                            \
    ( (xxim != NULL && (ii) < xxim->nx)                      \
      ? (MRI_FLOAT_PTR(xxim)[MAX((ii),ibot)] * grapher->gx)  \
      : (((ii)-pbot) * xpfac) )
 
-          for( i=0 ; i < qnum ; i++ ){        /* generate X11 plot lines */
+          for( i=0 ; i < qnum ; i++ ){        /* generate X11 plot points */
             a_line[i].x = xoff + XPIX(i+pbot);
             a_line[i].y = yoff - plot[i] ;    /* X11 y-axis is down the screen */
           }
@@ -2860,58 +2959,88 @@ STATUS("starting time series graph loop") ;
           if( use_ovi )                       /* 29 Mar 2002: line color */
             DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
 
+/* macro to draw a data point of size ww (ww is set below) */
 #define DRAW_A_DATA_POINT(x,y)                               \
   do{ if( ww < 3 ) GRA_small_circle(grapher,(x),(y),ww>1) ;  \
       else         GRA_draw_disk   (grapher,(x),(y),ww+2) ;  \
   } while(0)
 
+          /* draw points at the data values? (using the above macro)  */
+
           if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
             int ww = DATA_THICK(grapher) ;
             for( i=0 ; i < qnum ; i++ ) DRAW_A_DATA_POINT(a_line[i].x,a_line[i].y) ;
           }
+
+          /* draw lines connecting the data values? */
+
           if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
             AFNI_XDrawLines( grapher->dc->display ,
                         grapher->fd_pxWind , grapher->dc->myGC ,
                         a_line , qnum ,  CoordModeOrigin , nupsam ) ;
           }
+
+          /* draw boxes for the data values? (exclusive of the above) */
+
           if( do_boxes ){                    /* 26 Jun 2007 */
             XPoint q_line[4] ; short xb,xt ; float delt=xpfac/tsim->ny ;
             int labw=-1,labx=-1, aybas=0 ;
+
+            /* setup for box labels as well */
+
             if( do_boxlab && grapher->mat <= 9 ){
               labw = labx = DC_char_width(grapher->dc,'M') ; /* widest character */
+              /* labx will be the x-offset for the label position,
+                 so that the label is centered above the box of width delt;
+                 Note that if labx < 0, the box is too narrow to draw labels */
               if( labx > 0 ) labx = (int)(0.5*(delt-labx)-1.0f) ;
               switch( do_boxlab ){
-                case DATA_BOXLAB_CODE_UP:
+
+                case DATA_BOXLAB_CODE_UP:  /* labels start at top of highest box */
                   for( aybas=a_line[0].y,i=1 ; i < qnum ; i++ )
                     if( a_line[i].y < aybas ) aybas = a_line[i].y ;
-                  aybas -= BOXOFF + grapher->gthick/3 ;
-                break ;
-                case DATA_BOXLAB_CODE_BOT:
+                  aybas -= BOXOFF + grapher->gthick/3 ; /* shifted up by BOXOFF, and */
+                break ;                                 /* allowance for thick lines */
+
+                case DATA_BOXLAB_CODE_BOT: /* labels start at bottom of sub-graph */
                   aybas = yoff ;
                 break ;
               }
             }
+
+            /* loop over data points and draw boxes + labels */
+            /* note that the top of a box is shifted up by BOXOFF pixels */
+            /* this is so that the shortest box doesn't have height=0 */
+
             for( i=0 ; i < qnum ; i++ ){
-              xb = (short)(a_line[i].x + tt*delt + 0.499f) ;
-              xt = (short)(xb + delt-0.999f) ;
-              q_line[0].x = xb ; q_line[0].y = yoff ;
-              q_line[1].x = xb ; q_line[1].y = a_line[i].y-BOXOFF ;
-              q_line[2].x = xt ; q_line[2].y = a_line[i].y-BOXOFF ;
-              q_line[3].x = xt ; q_line[3].y = yoff ;
+              xb = (short)(a_line[i].x + tt*delt + 0.499f) ;  /* x bot */
+              xt = (short)(xb + delt-0.999f) ;                /* x top */
+
+              /* setup the X11 corners of the box */
+              q_line[0].x = xb ; q_line[0].y = yoff ;               /* lower left */
+              q_line[1].x = xb ; q_line[1].y = a_line[i].y-BOXOFF ; /* upper left */
+              q_line[2].x = xt ; q_line[2].y = a_line[i].y-BOXOFF ; /* upper right */
+              q_line[3].x = xt ; q_line[3].y = yoff ;               /* lower right */
+
               AFNI_XDrawLines( grapher->dc->display ,
                           grapher->fd_pxWind , grapher->dc->myGC ,
-                          q_line , 4 ,  CoordModeOrigin , 0 ) ;
-              if( labx >= 0 ){
-                char *lab = GRA_getlabel(grapher,pbot+i) ;
-                if( aybas > 0 )  /* fixed height for all labels */
+                          q_line , 4 ,  CoordModeOrigin , 0 ) ;     /* draw box */
+
+              if( labx >= 0 ){             /* if labels can be fit in box width */
+                char *lab = GRA_getlabel(grapher,pbot+i) ; /* get the label (duh) */
+
+                if( aybas > 0 ){ /* fixed y-location for all labels */
                   fd_txt_upwards(grapher,xb+labx,aybas-3,lab) ;
-                else             /* label on top of data box */
+                } else {         /* label goes on top of individual data box;  */
+                                 /* adjustments of -3-grapher->gthick/3 are so */
+                                 /* the label doesn't overlap the top box line */
                   fd_txt_upwards(grapher,xb+labx,a_line[i].y-3-BOXOFF-grapher->gthick/3,lab) ;
+                }
               }
             }
-          }
+          } /* end of drawing boxes */
 
-         /* 22 July 1996: save central graph data for later use */
+          /* 22 July 1996: save central graph data for later use */
 
           if( ix == grapher->xc && iy == grapher->yc && tt == 0 ){
             for( i=0 ; i < qnum ; i++ ) grapher->cen_line[i] = a_line[i] ;
@@ -2921,7 +3050,7 @@ STATUS("starting time series graph loop") ;
           }
 
           tsar += tsim->nx ;  /* 29 Mar 2002: advance to next curve */
-         } /* end of loop over multi-plot (tt) */
+         } /* end of loop over multi-plot (tt) within a single tsim */
 
          if( use_ovi )
            DC_fg_color( grapher->dc , DATA_COLOR(grapher) ) ; /* reset color */
@@ -2929,6 +3058,7 @@ STATUS("starting time series graph loop") ;
          /* 08 Nov 1996: double plot?  Duplicate the above drawing code! */
          /* 29 Mar 2002: allow multiple time series (dsim->ny > 1) */
          /* 01 Jun 2020: PLUSMINUS (pmplot) now taken care of earlier */
+         /* Note no boxes or pmplot here! */
 
          if( dplot && pmplot_mode == 0 && !do_boxes ){
             int dny , id , qq,qtop ;
@@ -2973,12 +3103,8 @@ STATUS("starting time series graph loop") ;
              switch( dplot ){
                default:
                case DPLOT_OVERLAY:                       /* plot curve */
-#ifdef ALLOW_IGNORE
                  for( qq=0,i=pbot ; i < MIN(ibot,qtop) ; i+=pstep,qq++ )
                    plot[qq] = (dsar[ibot] - tsbot) * ypfac ;
-#else
-                 qq = 0 ; i = pbot ;
-#endif
                  for( ; i < qtop ; i+=pstep,qq++ )
                    plot[qq] = (dsar[i] - tsbot) * ypfac ;
 
@@ -3023,7 +3149,7 @@ STATUS("starting time series graph loop") ;
          /* 05 Jan 1999: plot horizontal line through zero, if desired and needed */
 
          if( grapher->HorZ && grapher->pmin[ix][iy] < 0.0 && grapher->pmax[ix][iy] > 0.0 ){
-           DC_fg_color ( grapher->dc , GRID_COLOR(grapher) ) ;
+           DC_fg_color ( grapher->dc , GRID_COLOR(grapher) ) ; /* change myGC */
            DC_linewidth( grapher->dc , GRID_THICK(grapher) ) ;
            DC_dashed_line( grapher->dc ) ;
 
@@ -3035,7 +3161,7 @@ STATUS("starting time series graph loop") ;
                       (int) xoff                , (int)(yoff + tsbot * ypfac) ,
                       (int)(xoff + grapher->gx) , (int)(yoff + tsbot * ypfac)  ) ;
 
-           DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
+           DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ; /* change myGC back */
            DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;
            DC_solid_line( grapher->dc ) ;
          }
@@ -3043,12 +3169,12 @@ STATUS("starting time series graph loop") ;
       } /* end of loop over y */
    } /* end of loop over x */
 
-   /** cast away the data timeseries! */
+   /** cast away the data timeseries! **/
 
    DESTROY_IMARR(tsimar) ;
-   if( dplot_imar != NULL ) DESTROY_IMARR(dplot_imar)     ;  /* 08 Nov 1996 */
+   if( dplot_imar != NULL ) DESTROY_IMARR(dplot_imar) ;  /* 08 Nov 1996 */
 
-   /*----- Now do extra plots in center frame, if any -----*/
+   /*---- Now do extra plots in center frame, if any [leftover from FD2] ----*/
 
 #define REFTS_FRAC 0.38  /* fraction of one graph that this takes up */
 #define REFTS_TOP  0.98  /* top of reference graph in frame */
@@ -3199,9 +3325,9 @@ STATUS("plotting extra graphs") ;
        AFNI_XDrawLines( grapher->dc->display , grapher->fd_pxWind , grapher->dc->myGC ,
                    a_line , npt-pbot ,  CoordModeOrigin , 0 ) ;
      }
-   }
+   } /* there is no code for showing the x-axis for pstep > 1, it's too hard */
 
-   /***** Done!!! *****/
+   /***** Done!!! (at last) *****/
 
    if( do_xxim ) DESTROY_IMARR(xximar) ;  /* 10 Feb 2015 */
    mri_free(xax_tsim) ;
@@ -4004,7 +4130,6 @@ STATUS(str); }
         redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;         /* 03 Feb 1998 */
       break ;
 
-#ifdef ALLOW_IGNORE /*--------------------------------------------------------*/
       case 'i':
         if( !grapher->textgraph && NIGNORE(grapher) > 0 ){     /* 24 May 2005 */
           GRA_cbs cbs ;
@@ -4024,7 +4149,6 @@ STATUS(str); }
           BEEPIT ; WARNING_message("Can't increase Ignore now") ;
         }
       break ;
-#endif              /*--------------------------------------------------------*/
 
       case 'm':
       case 'M':
@@ -5377,7 +5501,6 @@ ENTRY("drive_MCW_grapher") ;
       case graDR_setignore:{
          int new_ignore = PTOI(drive_data) ;
 
-#ifdef ALLOW_IGNORE
          if( new_ignore >= 0 && new_ignore < TTOP(grapher)-1 ){
            grapher->init_ignore = new_ignore ;
            redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;
@@ -5385,9 +5508,6 @@ ENTRY("drive_MCW_grapher") ;
          } else {
            RETURN( False ) ;
          }
-#else
-         RETURN( True ) ;
-#endif
       }
 
       /*------- set polort [27 May 1999] --------*/
@@ -5833,7 +5953,6 @@ ENTRY("GRA_fim_CB") ;
 
    /*** Ignore stuff ***/
 
-#ifdef ALLOW_IGNORE /*-----------------------------------------------------------------*/
    else if( w == grapher->fmenu->fim_ignore_down_pb && grapher->status->send_CB != NULL ){
       GRA_cbs cbs ;
 
@@ -5867,7 +5986,6 @@ ENTRY("GRA_fim_CB") ;
                           GRA_ignore_choose_CB , (XtPointer) grapher ) ;
 #endif
    }
-#endif /* ALLOW_IGNORE */ /*-----------------------------------------------------------*/
 
    /* 27 May 1999: set polort */
 
@@ -6232,12 +6350,10 @@ ENTRY("AFNI_new_fim_menu") ;
                       "      Read      --> Input from external file\n"
                       "      Write     --> Output to external file\n"
                       "      Store     --> Save in internal list\n"
-#ifdef ALLOW_IGNORE
                       " Ignore: Set how many points to ignore\n"
                       "         at beginning of time series\n"
                       "         [ Applies both to graphing ]\n"
                       "         [ and to FIM computations. ]\n"
-#endif
                       "\n"
                       "FIM Plots:\n"
                       "  Can choose to graph only first vector in\n"
@@ -6268,12 +6384,10 @@ ENTRY("AFNI_new_fim_menu") ;
                       "\n"
                       "Pick Ideal --> Choose time series from a list.\n"
                       "Pick Ort   --> Choose time series from a list.\n"
-#ifdef ALLOW_IGNORE
                       "\n"
                       "Ignore --> Set how many points to ignore at the\n"
                       "   beginning of time series.\n"
                       "   [ Applies both to graphing and FIM-ing. ]\n"
-#endif
                       "\n"
                       "Refresh Freq --> Choose number of time steps\n"
                       "   between redisplay of the functional overlay\n"
@@ -6850,7 +6964,6 @@ ENTRY("GRA_fix_optmenus") ;
    else
       AV_assign_ival( grapher->opt_slice_choose_av , grapher->zpoint ) ;
 
-#ifdef ALLOW_IGNORE
    /** fim ignoration **/
 
    igtop = MIN( grapher->status->num_series-2 , 99 ) ;
@@ -6862,7 +6975,6 @@ ENTRY("GRA_fix_optmenus") ;
                          NULL , NULL ) ;
    else
       AV_assign_ival( grapher->fmenu->fim_ignore_choose_av , grapher->init_ignore ) ;
-#endif
 
    /** 27 May 1999: fim polort **/
 
@@ -7229,7 +7341,7 @@ void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
 #define S_P3(x) (x*(x*x-1.0f)*(x*x-4.0f)*(x+3.0f)*(4.0f-x)*0.001388888889f)
 #define S_P4(x) (x*(x*x-1.0f)*(x*x-4.0f)*(x*x-9.0f)*0.0001984126984f)
 
-/* interpolate as floats, cast to short at end */
+/* 7 point interpolate as floats, cast to short at end */
 
 #define INT7(k,i)                                                \
   ( vout = ((k)==0) ? ( far[i] )                                 \
@@ -7244,13 +7356,15 @@ void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
   Uses 7th order polynomial interpolation (mostly).
   NOTE: the number of output points, and the use of shorts, is where
         this function differs from the original in mri_dup.c
-  NOTE: for use in AFNI_XDrawLines()
+  NOTE: for use in AFNI_XDrawLines(), which uses XPoint,
+        which uses shorts as the pixel locations
 ------------------------------------------------------------------------------*/
 
 static void upsample_7short( int nup , int nar , short *sar , short *sout )
 {
    int kk,ii , ibot,itop ;
    float nupi , val,vout ;
+   /* static arrays for interpolation */
    static int nupold = -1 ;
    static int nupmax = 0;
    static float *fm3=NULL, *fm2=NULL, *fm1=NULL, *f00=NULL,
@@ -7269,7 +7383,7 @@ static void upsample_7short( int nup , int nar , short *sar , short *sout )
       output values between input indexes i and i+1, for i=0..nar-2 */
 
    qar = (float *)malloc(sizeof(float)*(nar+7)) ;
-   far = qar + 3 ; /* start the trickery! */
+   far = qar + 3 ; /* start the indexing trickery! */
    for( kk=0 ; kk < nar ; kk++ ) far[kk] = (float)sar[kk] ;
    val = far[1] - far[0] ;
    far[-1] = far[0] - 3.0f*val ; /* linear extrapolate before start */
@@ -7290,10 +7404,10 @@ static void upsample_7short( int nup , int nar , short *sar , short *sout )
       RENUP_VEC(fm1,nup); RENUP_VEC(f00,nup);
       RENUP_VEC(fp1,nup); RENUP_VEC(fp2,nup);
       RENUP_VEC(fp3,nup); RENUP_VEC(fp4,nup);
-      nupmax = nup ; /* keep track of largest every used */
+      nupmax = nup ; /* keep track of largest array size ever used */
    }
 
-   if( nup != nupold ){ /* recalculate if not the same as last time in */
+   if( nup != nupold ){ /* recalculate coefs if not the same as last time in */
      for( kk=0 ; kk < nup ; kk++ ){
        val = ((float)kk) * nupi ;
        fm3[kk] = S_M3(val); fm2[kk] = S_M2(val); fm1[kk] = S_M1(val);
@@ -7341,7 +7455,7 @@ static void upsample_7short( int nup , int nar , short *sar , short *sout )
 
 /*--------------------------------------------------------------------------*/
 
-/* Hermite spline basis funcs */
+/* Hermite spline basis funcs (damn, those Frenchies was SMART) */
 
 #define H00(x) ( (x)*(x)*(2.0f*(x)-3.0f)+1.0f )
 #define H01(x) ( (x)*(x)*(3.0f-2.0f*(x)) )
@@ -7355,13 +7469,14 @@ static void upsample_7short( int nup , int nar , short *sar , short *sout )
                     : ( h00[k] * far[i] + h01[k] * far[i+1]   \
                       + h10[k] * mk[i]  + h11[k] * mk[i+1] ) , SHORTIZE(vout) )
 
-/* Monotonic cubic spline interpolation:
-   https://en.wikipedia.org/wiki/Monotone_cubic_interpolation */
+/*-------- Monotonic cubic spline interpolation:
+           https://en.wikipedia.org/wiki/Monotone_cubic_interpolation --------*/
 
 static void upsample_monoshort( int nup , int nar , short *sar , short *sout )
 {
    int kk,ii , ibot,itop ;
    float nupi , val,vout , ak,bk,tk , dmax=0.0f,fmax=0.0f ;
+   /* static arrays to avoid reallocation a milliard of times */
    static int nupold = -1 ;
    static int nupmax = 0;
    static float *far , *dk , *mk ;
@@ -7466,6 +7581,8 @@ static void upsample_monoshort( int nup , int nar , short *sar , short *sout )
    return ;
 }
 
+/*--------- Upsample/interpolate both ways, and combine them;
+            Why? It looked better than either way alone, to me [RWC] ---------*/
 
 static void upsample_comboshort( int nup , int nar , short *sar , short *sout )
 {
@@ -7480,16 +7597,18 @@ static void upsample_comboshort( int nup , int nar , short *sar , short *sout )
    upsample_7short   ( nup,nar,sar,st1 ) ;
    upsample_monoshort( nup,nar,sar,st2 ) ;
    for( ii=0 ; ii < nout ; ii++ ){
-     val = 0.3f*(float)st1[ii] + 0.7f*(float)st2[ii] ;
-     sout[ii] = (short)val ;
+     val = 0.3f*(float)st1[ii] + 0.7f*(float)st2[ii] ; /* mixing */
+     sout[ii] = SHORTIZE(val) ;
    }
    free(st2) ; free(st1) ; return ;
 }
 
+/**---- this macro defines the function used for the actual upsampling ----**/
+
 #define UPSAMPLE upsample_comboshort
 
 /*--------------------------------------------------------------------------*/
-/* Draw X11 lines, but upsampled to look smoother */
+/* Draw X11 lines, but upsampled to look smoother and more delicious  */
 
 void AFNI_XDrawLines( Display *display, Drawable d,
                       GC gc, XPoint *points, int npoints, int mode , int nupsam )
@@ -7498,9 +7617,13 @@ void AFNI_XDrawLines( Display *display, Drawable d,
    int     new_npoints , ii ;
    short  *old_xy , *new_xy ;
 
+   /* this is for the jaggedy losers */
+
    if( nupsam <= 1 ){
      XDrawLines(display,d,gc,points,npoints,mode) ; return ;
    }
+
+   /* this is for the REAL MEN out there (insert Tarzan yell) */
 
    new_npoints = (npoints-1)*nupsam+1 ;
    new_points  = (XPoint *)malloc(sizeof(XPoint)*new_npoints) ;
@@ -7508,20 +7631,24 @@ void AFNI_XDrawLines( Display *display, Drawable d,
    old_xy = (short *)malloc(sizeof(short)*npoints) ;
    new_xy = (short *)malloc(sizeof(short)*new_npoints) ;
 
+   /* upsample the x coordinates */
    for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].x ;
    UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
    for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].x = new_xy[ii] ;
-
+ 
+   /* upsample the y coordinates */
    for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].y ;
    UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
    for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].y = new_xy[ii] ;
 
+   /* and draw the straight lines between them */
    XDrawLines(display,d,gc,new_points,new_npoints,mode) ;
 
    free(new_xy) ; free(old_xy) ; free(new_points) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Similar code for drawing a smooted filled polygon (for pmplot) */
 
 void AFNI_XFillPolygon( Display *display, Drawable d,
                         GC gc, XPoint *points, int npoints, int shape ,

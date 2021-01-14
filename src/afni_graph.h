@@ -179,12 +179,7 @@ typedef struct {
 
 #define NSTRIDE(gr) ( (gr)->pin_stride )
 
-#define ALLOW_IGNORE
-#ifdef  ALLOW_IGNORE
-# define NIGNORE(gr) (gr)->init_ignore
-#else
-# define NIGNORE(gr) 0
-#endif
+#define NIGNORE(gr) (gr)->init_ignore
 
 /* #define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) ) */
 #define NABC(a,b,c) ( ((b) - (a) - 1) / (c) + 1 )
@@ -421,16 +416,24 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0,0 } ;  /* Oct 1999 */
 #define DO_UPSAM(gr)        ((gr)->do_upsam)             /* 28 May 2020 */
 
 /* amount of resampling in plot_graphs                      28 May 2020 */
+/*   www = width of graph box in pixels                                 */
+/*   npt = number of time points being plotted                          */
+/*   result is how many divisions to use for each line segment          */
+/*   www/npt = pixels per data point, so if we had XUPSAM=www/npt       */
+/*             we'd have a division for every x pixel;                  */
+/*             instead, we use a slightly smaller value for XUPSAM      */
+/* Note that if XUPSAM is returned as <= 1, no upsampling will be done. */
+
 #define XUPSAM(www,npt) ( (int)( 0.499f + 0.3456f*(www) / ((npt)+0.5f) ) )
 
 /* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
-void AFNI_XDrawLines( Display *display, Drawable d,
-                      GC gc, XPoint *points, int npoints, int mode , int nupsam ) ;
+void AFNI_XDrawLines( Display *display, Drawable d, GC gc,
+                      XPoint *points, int npoints, int mode, int nupsam ) ;
 
 /* Replacement for XFillPolygon, with champagne truffles [01 Jun 2020] */
 void AFNI_XFillPolygon( Display *display, Drawable d,
-                        GC gc, XPoint *points, int npoints, int shape ,
-                        int mode , int nupsam ) ;
+                        GC gc, XPoint *points, int npoints, int shape,
+                        int mode, int nupsam ) ;
 
 /** 01 Aug 1998: redefine _POINTS and add _LINES **/
 
