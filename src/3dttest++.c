@@ -3915,6 +3915,9 @@ int main( int argc , char *argv[] )
    if( do_Xclustsim && nval_AAA+nval_BBB < 14 )
      ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
                 clustsim_opt,nval_AAA+nval_BBB) ;
+   if( do_Xclustsim && nval_AAA+nval_BBB < 28 && ttest_opcode == 2 )
+     ERROR_exit("You can't use %s in a paired 2-sample test with nval_AAA+nval_BBB=%d < 28",
+                clustsim_opt,nval_AAA+nval_BBB) ;
 
    if( (do_Xclustsim || do_clustsim) && singletonA )  /* 21 Nov 2017 */
      ERROR_exit("You can't use -singletonA with -Clustsim OR with -ETAC :(") ;
@@ -5041,7 +5044,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      int use_sdat ;
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
-     int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 10000 ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 11100 ;
      size_t clen ;
 
      use_sdat = do_Xclustsim ||
