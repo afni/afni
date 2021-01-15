@@ -5,7 +5,8 @@ implementation of the paper:
 Efficient Implementation of Marching Cubes' Cases with Topological Guarantees
 by Thomas Lewiner, Helio Lopes, Antonio Wilson Vieira and Geovan Tavares 
 in Journal of Graphics Tools. 
-http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
+https://www.ks.uiuc.edu/Research/vmd/projects/ece498/surf/lewiner.pdf
+http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.2.8509
 */
 
 #include "SUMA_suma.h"

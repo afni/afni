@@ -435,7 +435,7 @@ printf(
 
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
-"      https://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
+"      https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/framework.html\n"
 " Class document illustrating whereami usage:\n"
 "      https://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
 "---------------\n"

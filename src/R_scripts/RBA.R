@@ -38,12 +38,20 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 Usage: ~1~
 ------ 
  RBA performs region-based analysis (RBA) as theoretically elaborated in the
- manuscript: https://rdcu.be/bhhJp and is conducted with a shell script (as
- shown in the examples below). The input data should be formulated in a
- pure-text table that codes the regions and variables. The response variable
- is some effect at the individual subject level.
+ manuscript:
+   Handling Multiplicity in Neuroimaging through Bayesian Lenses with
+   Hierarchical Modeling
+   https://www.biorxiv.org/content/10.1101/238998v2
+   https://www.biorxiv.org/content/10.1101/238998v2
+   https://rdcu.be/bhhJp
 
- Thanks to Paul-Christian Bürkner and the Stan/R communities for the strong support.
+ and is conducted with a shell script (as shown in the examples below).
+ The input data should be formulated in a pure-text table that codes the
+ regions and variables. The response variable is some effect at the
+ individual subject level.
+
+ Thanks to Paul-Christian Bürkner and the Stan/R communities for the
+ strong support.
 
  Citation: ~1~
  If you want to cite the approach for RBA, consider the following:~2~
@@ -51,6 +59,7 @@ Usage: ~1~
  Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E, 2019. Handling Multiplicity
  in Neuroimaging through Bayesian Lenses with Multilevel Modeling. Neuroinformatics.
  https://rdcu.be/bhhJp
+ https://pubmed.ncbi.nlm.nih.gov/30649677/
 
 =============================== 
  Read the following carefully!!!
