@@ -111,7 +111,7 @@ int main( int argc , char *argv[] )
         "  using 3dPeriodogram, you will have to run the program multiple\n"
         "  times, using different subsets of the input data, then average\n"
         "  the results with 3dMean.\n"
-        "  ++ http://en.wikipedia.org/wiki/Welch's_method\n"
+        "  ++ https://en.wikipedia.org/wiki/Welch's_method\n"
       ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
