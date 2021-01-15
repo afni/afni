@@ -1339,7 +1339,7 @@ THD_3dim_dataset * THD_warp3D_affine(
 /*--------------------------------------------------------------------------*/
 /*! Internal transform functions for TT <-> MNI coords.  Both are RAI,
     as per AFNI internal logic.  11 Mar 2004 - RW Cox [Jury Duty Day]
-    cf. http://www.mrc-cbu.cam.ac.uk/Imaging/Common/mnispace.shtml
+    cf. https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
 ----------------------------------------------------------------------------*/
 
 static INLINE void w3d_mni2tta( float mx , float my , float mz ,
