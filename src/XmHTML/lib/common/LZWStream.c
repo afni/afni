@@ -777,7 +777,8 @@ LZWStreamInit(LZWStream *lzw)
 	lzw->uncompressed = False;
 
 	/* temporary output file */
-	tmpnam(lzw->zName);
+
+	lzw->zName = mktemp(lzw->zName);
 	strcat(lzw->zName, ".Z");
 
 	/* open it */

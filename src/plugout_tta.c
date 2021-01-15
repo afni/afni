@@ -471,23 +471,25 @@ static char * axial_ff[] = {
 
 void handle_tta( float xx , float yy , float zz )
 {
-   char * tname ;
+   char tname[] = "ttaXXXXXX.html" ;
    int ii,jj,kk , qqq ;
    static int ii_old=-1 , jj_old=-1 , kk_old=-1 ;
    FILE * fp ;
+   int fd = -1;
    static char nbuf[444] ;
    static char * ttahome ;
 
    /* create temporary URL */
 
    if( url == NULL ){
-      tname = tempnam(NULL,"tta") ;
-      url   = (char *) malloc(strlen(tname)+16) ;
-      uff   = url + 5 ;
-      strcpy(url,"file:") ; strcat(url,tname) ; strcat(url,".html") ;
-      free(tname) ;
-      sprintf(nbuf,"netscape -remote 'openURL(%s)'" , url ) ;
-      fprintf(stderr,"Temporary URL file is %s\n",uff) ;
+      fd = mkstemps(tname, 5) ;
+
+      url = (char *) malloc(strlen(tname)+6) ;
+      uff = url + 5 ;
+      strcpy(url,"file:") ;
+      strcat(url,tname) ;
+      sprintf(nbuf,"netscape -remote 'openURL(%s)'", url ) ;
+      fprintf(stderr,"Temporary URL file is %s\n", uff) ;
 
       ttahome = getenv( "AFNI_TTAPATH" ) ;
       if( ttahome == NULL ) ttahome = TTAHOME ;
@@ -531,7 +533,7 @@ void handle_tta( float xx , float yy , float zz )
 
    /* write out url file */
 
-   fp = fopen( uff , "w" ) ;
+   fp = fdopen( fd , "w" ) ;
    if( fp == NULL ){ fprintf(stderr,"Can't write URL file\n") ; return ; }
 
    fprintf(fp , "<HEAD>\n"
