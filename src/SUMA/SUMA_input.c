@@ -3148,12 +3148,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-            /*
-                int isv;
-                SUMA_SurfaceViewer *sv;
-                char chrTmp[64];
-*/
+            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
@@ -3278,13 +3273,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Down:
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-            /*
-                int isv;
-                SUMA_SurfaceViewer *sv;
-                char chrTmp[64];
-                */
-
+            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(-1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
@@ -3403,13 +3392,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-            /*
-                int isv;
-                SUMA_SurfaceViewer *sv;
-                char chrTmp[64];
-                */
-
+            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
@@ -3520,13 +3503,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_CTRL_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-            /*
-                int isv;
-                SUMA_SurfaceViewer *sv;
-                char chrTmp[64];
-                */
-
+            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
@@ -5330,203 +5307,199 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
-            if (pButton==4 && Kev.state & ControlMask && SUMAg_CF->N_ClipPlanes > 0){
-            /*
-                int isv;
-                SUMA_SurfaceViewer *sv;
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-*/
+            if (pButton==4 && SUMA_ALTHELL /*Kev.state & ControlMask*/ && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 0, -1);
-            }
-
-            if (pButton==6 || Bev.state & ShiftMask) {
-               SUMA_ALL_DO *ado=NULL;
-               char variant[2];
-               #if 0
-               int ii;
-               SUMA_VolumeObject *VO=NULL;
-               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-                  if (SUMA_isVO(SUMAg_DOv[ii])) {
-                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
-                     if (VO->SelectedCutPlane >= 0) {
-                        SUMA_LHv("Moving cut plane %d\n",
-                                       VO->SelectedCutPlane);
-                        if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, 1.0)) {
-                           SUMA_SLP_Err("Bad");
-                        }
-                     }
-		     /* JB: only allow cutplane from 1st volume object,
-                  otherwise remove 'break' */
-		     break;
-                  }
-               }
-               SUMA_postRedisplay(w, NULL, NULL);
-               #else
-               if ((ado = SUMA_SV_Focus_ADO(sv))) {
-                  switch (ado->do_type) {
-                     case VO_type: {
-                        float incr = 1.0;
-                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
-                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-                        if (VSaux && VSaux->PR) {
-                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
-                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
-                                          0, variant, NULL)   >=0 ){
-                              SUMA_set_slice(ado, variant, &incr,
-                                             "increment", 0);
-                           }
-                        }
-                        SUMA_postRedisplay(w, NULL, NULL);
-                        break; }
-                     default:
-                        SUMA_LH("Nothing here for types %s\n",
-                              ADO_TNAME(ado));
-                        break;
-                  }
-               }
-               #endif
-            } else if (pButton==6 || Bev.state & ControlMask) {
-               SUMA_ALL_DO *ado=NULL;
-               SUMA_X_SurfCont *SurfCont;
-               if (MASK_MANIP_MODE(sv)) {
-                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
-                  if (ado && ado->do_type == MASK_type) {
-                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
-                     float fv[3];
-                     int irow=-1;
-                     {
-                        fv[0] = mdo->hdim[0]-(0.2*mdo->init_hdim[0]);
-                        fv[1] = mdo->hdim[1]-(0.2*mdo->init_hdim[1]);
-                        fv[2] = mdo->hdim[2]-(0.2*mdo->init_hdim[2]);
-                        if (fv[0] < 0 || fv[1] < 0 || fv[2] < 0) {
-                           SUMA_BEEP;
-                           break;
-                        }
-                        SUMA_MDO_New_Dim(mdo, fv);
-                     }
-                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
-                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
-                                                 ADO_ID(ado));
-                        if (irow >= 0) {
-                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
-                        }
-                     }
-                     SUMA_NEW_MASKSTATE();
-                     /* enough for now */
-                     goto REDISP;
-                  }
-               } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
-                           ado->do_type == GRAPH_LINK_type &&
-                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
-                  SUMA_OVERLAYS *Sover = NULL;
-                  SUMA_LH("Going forward one sub-brick");
-                  Sover = SUMA_ADO_CurColPlane(ado);
-                  SUMA_SwitchColPlaneIntensity( ado, Sover,
-                                                SUMA_FORWARD_ONE_SUBBRICK, 1);
-                  /* redisplay done in function above ... */
-                  SUMA_RETURNe;
-               }
             } else {
-               if (!SUMA_Z_Key(sv, "z", "interactive")) {
-                  SUMA_S_Err("Failed in key func.");
-               }
+
+                if (pButton==6 || Bev.state & ShiftMask) {
+                   SUMA_ALL_DO *ado=NULL;
+                   char variant[2];
+                   #if 0
+                   int ii;
+                   SUMA_VolumeObject *VO=NULL;
+                   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                      if (SUMA_isVO(SUMAg_DOv[ii])) {
+                         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                         if (VO->SelectedCutPlane >= 0) {
+                            SUMA_LHv("Moving cut plane %d\n",
+                                           VO->SelectedCutPlane);
+                            if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, 1.0)) {
+                               SUMA_SLP_Err("Bad");
+                            }
+                         }
+                 /* JB: only allow cutplane from 1st volume object,
+                      otherwise remove 'break' */
+                 break;
+                      }
+                   }
+                   SUMA_postRedisplay(w, NULL, NULL);
+                   #else
+                   if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                      switch (ado->do_type) {
+                         case VO_type: {
+                            float incr = 1.0;
+                            SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                            SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                            if (VSaux && VSaux->PR) {
+                               if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
+                                              VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                              0, variant, NULL)   >=0 ){
+                                  SUMA_set_slice(ado, variant, &incr,
+                                                 "increment", 0);
+                               }
+                            }
+                            SUMA_postRedisplay(w, NULL, NULL);
+                            break; }
+                         default:
+                            SUMA_LH("Nothing here for types %s\n",
+                                  ADO_TNAME(ado));
+                            break;
+                      }
+                   }
+                   #endif
+                } else if (pButton==6 || Bev.state & ControlMask) {
+                   SUMA_ALL_DO *ado=NULL;
+                   SUMA_X_SurfCont *SurfCont;
+                   if (MASK_MANIP_MODE(sv)) {
+                      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                      if (ado && ado->do_type == MASK_type) {
+                         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                         float fv[3];
+                         int irow=-1;
+                         {
+                            fv[0] = mdo->hdim[0]-(0.2*mdo->init_hdim[0]);
+                            fv[1] = mdo->hdim[1]-(0.2*mdo->init_hdim[1]);
+                            fv[2] = mdo->hdim[2]-(0.2*mdo->init_hdim[2]);
+                            if (fv[0] < 0 || fv[1] < 0 || fv[2] < 0) {
+                               SUMA_BEEP;
+                               break;
+                            }
+                            SUMA_MDO_New_Dim(mdo, fv);
+                         }
+                         if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                            irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
+                                                     ADO_ID(ado));
+                            if (irow >= 0) {
+                               SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                            }
+                         }
+                         SUMA_NEW_MASKSTATE();
+                         /* enough for now */
+                         goto REDISP;
+                      }
+                   } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
+                               ado->do_type == GRAPH_LINK_type &&
+                               !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                      SUMA_OVERLAYS *Sover = NULL;
+                      SUMA_LH("Going forward one sub-brick");
+                      Sover = SUMA_ADO_CurColPlane(ado);
+                      SUMA_SwitchColPlaneIntensity( ado, Sover,
+                                                    SUMA_FORWARD_ONE_SUBBRICK, 1);
+                      /* redisplay done in function above ... */
+                      SUMA_RETURNe;
+                   }
+                } else {
+                   if (!SUMA_Z_Key(sv, "z", "interactive")) {
+                      SUMA_S_Err("Failed in key func.");
+                   }
+                }
             }
             break;
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
-            if (pButton==5 && Kev.state & ControlMask && SUMAg_CF->N_ClipPlanes > 0){
+            if (pButton==5 && SUMA_ALTHELL /*Kev.state & ControlMask */ && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 0, 1);
-           }
+           } else {
 
-            if (pButton==7 || Bev.state & ShiftMask) {
-               SUMA_ALL_DO *ado=NULL;
-               char variant[2];
-               #if 0
-               int ii;
-               SUMA_VolumeObject *VO=NULL;
-               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-                  if (SUMA_isVO(SUMAg_DOv[ii])) {
-                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
-                     if (VO->SelectedCutPlane >= 0) {
-                        SUMA_LHv("Moving cut plane %d\n",
-                                       VO->SelectedCutPlane);
-                        if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, -1.0)) {
-                           SUMA_SLP_Err("Bad");
-                        }
-                     }
-		     /* JB: only allow cutplane from 1st volume object,
-                  otherwise remove 'break' */
-		     break;
-                  }
-               }
-               SUMA_postRedisplay(w, NULL, NULL);
-               #else
-               if ((ado = SUMA_SV_Focus_ADO(sv))) {
-                  switch (ado->do_type) {
-                     case VO_type: {
-                        float incr = -1.0;
-                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
-                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-                        if (VSaux && VSaux->PR) {
-                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
-                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
-                                          0, variant, NULL)   >=0 ){
-                              SUMA_set_slice(ado, variant, &incr,
-                                             "increment", 0);
-                           }
-                        }
-                        SUMA_postRedisplay(w, NULL, NULL);
-                        break; }
-                     default:
-                        SUMA_LH("Nothing here for types %s\n",
-                              ADO_TNAME(ado));
-                        break;
-                  }
-               }
-               #endif
-            } else if (pButton==7 || Bev.state & ControlMask) {
-               SUMA_ALL_DO *ado=NULL;
-               SUMA_X_SurfCont *SurfCont;
-               if (MASK_MANIP_MODE(sv)) {
-                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
-                  if (ado && ado->do_type == MASK_type) {
-                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
-                     float fv[3];
-                     int irow=-1;
-                     {
-                        fv[0] = mdo->hdim[0]+(0.2*mdo->init_hdim[0]);
-                        fv[1] = mdo->hdim[1]+(0.2*mdo->init_hdim[1]);
-                        fv[2] = mdo->hdim[2]+(0.2*mdo->init_hdim[2]);
-                        SUMA_MDO_New_Dim(mdo, fv);
-                     }
-                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
-                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
-                                                 ADO_ID(ado));
-                        if (irow >= 0) {
-                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
-                        }
-                     }
-                     SUMA_NEW_MASKSTATE();
-                     /* enough for now */
-                     goto REDISP;
-                  }
-               } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
-                           ado->do_type == GRAPH_LINK_type &&
-                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
-                  SUMA_OVERLAYS *Sover = NULL;
-                  SUMA_LH("Switching overlay back one");
-                  Sover = SUMA_ADO_CurColPlane(ado);
-                  SUMA_SwitchColPlaneIntensity( ado, Sover,
-                                                SUMA_BACK_ONE_SUBBRICK, 1);
-                  /* redisplay done in function above ... */
-                  SUMA_RETURNe;
-               }
-            } else {
-               if (!SUMA_Z_Key(sv, "Z", "interactive")) {
-                  SUMA_S_Err("Failed in key func.");
-               }
+                if (pButton==7 || Bev.state & ShiftMask) {
+                   SUMA_ALL_DO *ado=NULL;
+                   char variant[2];
+                   #if 0
+                   int ii;
+                   SUMA_VolumeObject *VO=NULL;
+                   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                      if (SUMA_isVO(SUMAg_DOv[ii])) {
+                         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                         if (VO->SelectedCutPlane >= 0) {
+                            SUMA_LHv("Moving cut plane %d\n",
+                                           VO->SelectedCutPlane);
+                            if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, -1.0)) {
+                               SUMA_SLP_Err("Bad");
+                            }
+                         }
+                 /* JB: only allow cutplane from 1st volume object,
+                      otherwise remove 'break' */
+                 break;
+                      }
+                   }
+                   SUMA_postRedisplay(w, NULL, NULL);
+                   #else
+                   if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                      switch (ado->do_type) {
+                         case VO_type: {
+                            float incr = -1.0;
+                            SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                            SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                            if (VSaux && VSaux->PR) {
+                               if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
+                                              VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                              0, variant, NULL)   >=0 ){
+                                  SUMA_set_slice(ado, variant, &incr,
+                                                 "increment", 0);
+                               }
+                            }
+                            SUMA_postRedisplay(w, NULL, NULL);
+                            break; }
+                         default:
+                            SUMA_LH("Nothing here for types %s\n",
+                                  ADO_TNAME(ado));
+                            break;
+                      }
+                   }
+                   #endif
+                } else if (pButton==7 || Bev.state & ControlMask) {
+                   SUMA_ALL_DO *ado=NULL;
+                   SUMA_X_SurfCont *SurfCont;
+                   if (MASK_MANIP_MODE(sv)) {
+                      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                      if (ado && ado->do_type == MASK_type) {
+                         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                         float fv[3];
+                         int irow=-1;
+                         {
+                            fv[0] = mdo->hdim[0]+(0.2*mdo->init_hdim[0]);
+                            fv[1] = mdo->hdim[1]+(0.2*mdo->init_hdim[1]);
+                            fv[2] = mdo->hdim[2]+(0.2*mdo->init_hdim[2]);
+                            SUMA_MDO_New_Dim(mdo, fv);
+                         }
+                         if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                            irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
+                                                     ADO_ID(ado));
+                            if (irow >= 0) {
+                               SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                            }
+                         }
+                         SUMA_NEW_MASKSTATE();
+                         /* enough for now */
+                         goto REDISP;
+                      }
+                   } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
+                               ado->do_type == GRAPH_LINK_type &&
+                               !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                      SUMA_OVERLAYS *Sover = NULL;
+                      SUMA_LH("Switching overlay back one");
+                      Sover = SUMA_ADO_CurColPlane(ado);
+                      SUMA_SwitchColPlaneIntensity( ado, Sover,
+                                                    SUMA_BACK_ONE_SUBBRICK, 1);
+                      /* redisplay done in function above ... */
+                      SUMA_RETURNe;
+                   }
+                } else {
+                   if (!SUMA_Z_Key(sv, "Z", "interactive")) {
+                      SUMA_S_Err("Failed in key func.");
+                   }
+                }
             }
             break;
 
