@@ -265,10 +265,14 @@ typedef struct {
 
 /* lines directly below copied from 3dXClustSim.c:
    only change these if you change them there as well! */
-#define NFARP 9
-static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
-static float min_fgoal = 1.f ;
-static float max_fgoal = 9.f ;
+#define NFARP   9
+#define NMUCHO 25                /* Expand gamut [15 Jan 2021] */
+static float farplist[NMUCHO] =
+   {        1.f,  2.f,  3.f,  4.f,  5.f,  6.f,  7.f,  8.f,  9.f,
+     10.f, 11.f, 12.f, 13.f, 14.f, 15.f, 16.f, 17.f, 18.f, 19.f,
+     20.f, 21.f, 22.f, 23.f, 24.f, 25.f                         } ;
+static float min_fgoal =  1.0f ;
+static float max_fgoal = 25.0f ;
 
 #undef MENTION_LOCAL_ETAC
 
@@ -2850,6 +2854,8 @@ int main( int argc , char *argv[] )
          float fgoal ;
          if( strncasecmp(cpt+4,"ALL",3) == 0 ){  /* 23 Aug 2017 */
            fgoal = -666.0f ;
+         } else if( strncasecmp(cpt+4,"MUCHO",5) == 0 ){ /* 15 Jan 2021 */
+           fgoal = -777.0f ;
          } else {
            fgoal = (float)rint(strtod(cpt+4,NULL)) ;
            if( fgoal < min_fgoal ){
@@ -2858,8 +2864,8 @@ int main( int argc , char *argv[] )
              fgoal = min_fgoal ;
            } else if( fgoal > max_fgoal ){
              WARNING_message("fpr=%.1f%% too large in -ETAC_opt name=%s: setting fpr=%.1f%%",
-                             fgoal , opx->name , max_fgoal ) ;
-             fgoal = 9.0f ;
+                             fgoal , opx->name , 5.0f ) ;
+             fgoal = 5.0f ;
            }
          }
          opx->farp_goal = fgoal ;
@@ -3951,7 +3957,7 @@ int main( int argc , char *argv[] )
      do_permute = 0 ; wtar_permute = 0 ;
    }
 
-   if( wtar_permute && 
+   if( wtar_permute &&
        AFNI_yesenv("AFNI_DONT_PERMUTE_WTAR") ) wtar_permute = 0 ; /* 30 Mar 2020 */
 
    if( do_permute ){
@@ -3992,7 +3998,8 @@ int main( int argc , char *argv[] )
 
    if( do_Xclustsim ){
      int64_t nsdat , nsysmem ;
-     int ncsim , ncase , ncmin = (do_local_etac) ? 30000 : 10000 ;
+     int ncsim , ncase ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? 30240 : 10080 ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
           if( ncsim <     1000 ) ncsim =  ncmin ;
@@ -5036,17 +5043,50 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*----------- This is where ETAC and ClustSim are implemented ------------*/
    /*------------- do_Xclustsim == ETAC  do_clustsim == ClustSim ------------*/
    /*------------------------------------------------------------------------*/
+   /*-- Basically, what comes next is a scripting of various programs that --*/
+   /*-- together add up to ETAC. First, a bunch of 3dttest++ runs are made --*/
+   /*-- with randomization/permutation, to get the simulated 'noise' data. --*/
+   /*-- Second, 3dClustSim may be run using those simulations as inputs,   --*/
+   /*-- which finds the tables for cluster-size vs. p-value threshold.     --*/
+   /*-- Third, 3dXClustSim may be run to do the ETAC multi-thresholding,   --*/
+   /*-- which is followed by 3dMultiThresh to actually threshold the       --*/
+   /*-- primary statistics dataset output above, and then by 3dmask_tool   --*/
+   /*-- to build the various ETAC output masks. The code is long and looks --*/
+   /*-- daunting, but it is actually simple in concept; it is just that    --*/
+   /*-- there are a lot of contingencies to deal with:                     --*/
+   /*--   creating the command line for each noise simulation, taking      --*/
+   /*--     into account existing 3dttest++ options that require           --*/
+   /*--     some special treatment in the randomization runs               --*/
+   /*--   breaking the simulations into multiple jobs to take advantage    --*/
+   /*--     of multiple CPUs                                               --*/
+   /*--   local and global ETAC                                            --*/
+   /*--   multiple ETAC cases to run -- each one requires a new run of     --*/
+   /*--     program 3dXClustsim                                            --*/
+   /*--   multiple blur cases - requires looping over those, as well as    --*/
+   /*--     looping over the separate simulation jobs                      --*/
+   /*--   using the efficient .sdat format for transmitting datasets       --*/
+   /*--     to 3dClustSim, or using the .nii format for compatibility      --*/
+   /*--     with other software (Note: ETAC/3dXClustSim requires .sdat)    --*/
+   /*--   And things I've undoubtedly overlooked at this moment :(         --*/
+   /*------------------------------------------------------------------------*/
 
    if( do_clustsim || do_Xclustsim ){  /* this will take a while */
 
-     char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
-     int ncsim , ncase , icase ; float cblur ;
-     int use_sdat ;
+     char fname[1024] , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
+     char  *cmd ;   /* string for commands */
+     size_t clen ;  /* length of string for commands */
+     int ncase , icase ; float cblur ;
+     int use_sdat ; /* use the .sdat format? */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
-     int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 11100 ;
-     size_t clen ;
 
+     /* min number of iterations (need more for local ETAC).
+        why these particular values?
+        that's an exercise for the student! (hint: prime factorization) */
+     int ncmin = (do_Xclustsim && do_local_etac) ? 30240 : 10080 ;
+     int ncsim ; /* number of iterations to run */
+
+     /* using the .sdat format, unless ordered not to */
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
 
@@ -5526,9 +5566,14 @@ LABELS_ARE_DONE:  /* target for goto above */
            numfarp = 1 ;
            flist   = &fgoal ;
          } else {
-           sprintf( cmd+strlen(cmd) , " -multiFPR" ) ;
-           numfarp = NFARP ;
-           flist   = farplist ;
+           if( fgoal > -700.0f ){
+             sprintf( cmd+strlen(cmd) , " -multiFPR" ) ;
+             numfarp = NFARP ;
+           } else {
+             sprintf( cmd+strlen(cmd) , " -muchoFPR" ) ;   /* 15 Jan 2021 */
+             numfarp = NMUCHO ;
+           }
+           flist = farplist ;
          }
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
@@ -5587,7 +5632,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              int ifarp , farp ; char sfarp[8] ;
              for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* loop over FPR goals [23 Aug 2017] */
                farp = (int)rintf(flist[ifarp]) ;
-               sprintf(sfarp,"%dperc",farp) ;
+               sprintf(sfarp,"%02dperc",farp) ;
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
