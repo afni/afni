@@ -24,6 +24,8 @@
       
 #define IS_QUOTE(m) (   m=='"' || m=='\'' )
 
+#define IS_PERIOD(m) (   m=='.' )
+
 #ifdef MAIN
    /* Table moved to thd_ttatlas_query.c, access is no longer
    restricted to when MAIN is defined */

@@ -2,7 +2,7 @@
 
 /*-----------------------------------------------------------------------*/
 /*! Convert MNI coordinates (LPI) to TT Atlas coordinates (RAI);
-    cf. http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html.
+    cf. https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
 -------------------------------------------------------------------------*/
 
 THD_fvec3 THD_mni_to_tta( THD_fvec3 mv )

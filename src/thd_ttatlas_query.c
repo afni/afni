@@ -3467,16 +3467,16 @@ not sure why it was there in the first place!
    ic = 0;
    k = 0;
    block = 0;
-   while (!IS_LETTER(lbl[k]) && !IS_NUMBER(lbl[k]) && k < nc) ++k;
+   while (!IS_LETTER(lbl[k]) && !IS_NUMBER(lbl[k]) &&  !IS_PERIOD(lbl[k]) && k < nc) ++k;
    if (IS_LETTER(lbl[k])) block = 1;
-   else if (IS_NUMBER(lbl[k])) block = 2;
+   else if (IS_NUMBER(lbl[k]) || IS_PERIOD(lbl[k])) block = 2;
    else block = 0;
 
    while (k < nc) {
       if (IS_LETTER(lbl[k]) && block == 1) {
          lachunk[ic] = TO_LOWER(lbl[k]); ++ic;
          ++k;
-      } else if (IS_NUMBER(lbl[k]) && block == 2) {
+      } else if ((IS_NUMBER(lbl[k])||IS_PERIOD(lbl[k])) && block == 2) {
          lachunk[ic] = TO_LOWER(lbl[k]); ++ic;
          ++k;
       } else {
@@ -3748,7 +3748,7 @@ char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur ,
    THD_string_array *sar = NULL;
    int nfind = 0, ii = 0, k= 0;
 
-   ENTRY("Find_Atlas_Regions");
+   ENTRY("Report_Found_Regions");
 
    if (!as || !ur || !aa) {
       ERROR_message("NULL input");
@@ -5525,12 +5525,15 @@ ATLAS_SEARCH * Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_
             if (strncmp(ur->chnks[iu], aa->reg[k]->chnks[ir], MIN_PAIR( lu, lr)) == 0) {
                /* one of the strings is inside the other */
                if (lu == lr) { /* identical match */
-                  chnk_match[ir] = 4;
+                    chnk_match[ir] = 4;
                } if (lu < lr) { /* user provided subset */
                   chnk_match[ir] = 2;
                } if (lu > lr) { /* user provided superset */
                   chnk_match[ir] = 1;
                }
+               if (iu == ir )   /* matching on the same chunk counts more! */
+                 chnk_match[ir]++;
+
                /* fprintf(stderr,"User string %s, Region %s: match = %d\n",
                   ur->chnks[iu], aa->reg[k]->chnks[ir],chnk_match[ir]);*/
             }
