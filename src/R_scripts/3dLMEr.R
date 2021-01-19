@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Jan 6, 2021
+Version 0.0.8, Jan 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1067,51 +1067,124 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 options(contrasts = c("contr.sum", "contr.poly"))
 
 if(lop$TRR) { # test-retest analysis
-# no single CPU yet
-if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
-   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
-
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "lop", envir=environment())
-   clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runTRR,
+   # no single CPU yet
+   if(dimy==1 & dimz==1) { # TRR with 1D data
+      nSeg <- 20
+      # drop the dimensions with a length of 1
+      inData <- inData[, , ,]
+      # break into 20 segments, leading to 5% increamental in parallel computing
+      dimx_n <- dimx%/%nSeg + 1
+      # number of datasets need to be filled
+      fill <- nSeg-dimx%%nSeg
+      # pad with extra 0s
+      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      # break input multiple segments for parrel computation
+      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      if (lop$nNodes==1) for(kk in 1:nSeg) {
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(apply(inData[,,kk,], 1, runTRR, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         } #  for(kk in 1:nSeg)
+      } else { # parallelization
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, "z2r", envir=environment())
+         clusterEvalQ(cl, library(lme4))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(parApply(cl, inData[,,kk,], 1, runTRR, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+         stopCluster(cl)
+      } # if (lop$nNodes>1)
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailers (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+   } else { # TRR with volumetric data
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+      if (lop$nNodes==1) {
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runTRR,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-    stopCluster(cl)
-}
-# runTRR(inData[30,30,30,], lop$model, lop$dataStr, lop$glt, nF, 0)
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         } 
+      } else {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, "lop", envir=environment())
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runTRR,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }
+      # runTRR(inData[30,30,30,], lop$model, lop$dataStr, lop$glt, nF, 0)
+   } # TRR with volumetric data
 } else {  # typical LME modeling
-
-# not set up for single node yet!!!
-   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
-   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
-
-   if (lop$nNodes==1) for (kk in 1:dimz) {
-      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, tag=0), c(2,1)) else
-      Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "lop", envir=environment())
-   clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
-                  DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-    stopCluster(cl)
-}
-# runLME(inData[30,30,30,], lop$dataStr, 0)
-}
+   if(dimy==1 & dimz==1) { # 1D data
+      nSeg <- 20
+      # drop the dimensions with a length of 1
+      inData <- inData[, , ,]
+      # break into 20 segments, leading to 5% increamental in parallel computing
+      dimx_n <- dimx%/%nSeg + 1
+      # number of datasets need to be filled
+      fill <- nSeg-dimx%%nSeg
+      # pad with extra 0s
+      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      # break input multiple segments for parrel computation
+      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      if (lop$nNodes==1) for(kk in 1:nSeg) {
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(apply(inData[,,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         }
+      } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+      
+      if (lop$nNodes>1) {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(parApply(cl, inData[,,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+         stopCluster(cl)
+      }
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailers (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+   } else { # volumetric data
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      if (lop$nNodes==1) {
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1))
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+      } else {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, "lop", envir=environment())
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1))
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      } # volumetric data
+      # runLME(inData[30,30,30,], lop$dataStr, 0)
+   } # if (lop$nNodes>1)
+} # LME modeling
 
 Top <- 100
 Stat[is.nan(Stat)] <- 0
