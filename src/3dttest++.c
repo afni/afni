@@ -1687,6 +1687,8 @@ void display_help_menu(void)
       "                                         } - must be an integer\n"
       "                                         } - or the word 'ALL' to output\n"
       "                                         }   results for 1, 2, 3, 4, ..., 9.\n"
+      "                                         } - or the word 'MUCHO' to output\n"
+      "                                         }   result for 1, 2, ..., 24, 25.\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -1803,10 +1805,10 @@ void display_help_menu(void)
       "Px.B4.0.5percent.txt                voxel-wise threshold list for a variety\n"
       "Px.B7.0.5percent.txt                  of global FPRs, for blurs 4 and 7\n"
       "                                      (not computed if '-no5percent' is given)\n"
-      "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
-      "Px.N.ETAC.mthresh.B7.0.5perc.nii      for overall 5%% global false positive rate\n"
-      "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
-      "PX.N.ETACmaskALL.2sid.5perc.nii.gz  Multi-volume mask showing which ETAC\n"
+      "Px.N.ETAC.mthresh.B4.0.05perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
+      "Px.N.ETAC.mthresh.B7.0.05perc.nii     for overall 5%% global false positive rate\n"
+      "Px.N.ETACmask.2sid.05perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
+      "PX.N.ETACmaskALL.2sid.05perc.nii.gz  Multi-volume mask showing which ETAC\n"
       "                                      sub-method(s) passed in each voxel:\n"
       "                                      There is one sub-brick per p-value,\n"
       "                                      per blur case (e.g., 5*2=10), and each\n"
@@ -1822,7 +1824,8 @@ void display_help_menu(void)
       "                                      with pthr=0.01.\n"
       "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
       "  'ETAC' will have the '5perc' component changed to that value (e.g., '4perc').\n"
-      "* If 'fpr=ALL', there would be outputs for '1perc', '2perc', ... '9perc'.\n"
+      "* If 'fpr=ALL', there would be outputs for '01perc', '02perc', ... '09perc'.\n"
+      "* If 'fpr=MUCHO', outputs for '01perc' up to '25perc' will be computed.\n"
       "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
       "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
@@ -5382,11 +5385,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( nbad < num_clustsim*ncase ){ /* if at least some files were OK */
          if( nbad > 0 ){
            ININFO_message(
-             " %d/%d minmax.1D files failed: will try to proceed with 5percent.txt anyway",
+             " %d/%d minmax.1D files failed: will try to proceed with *5percent.txt anyway",
              nbad , num_clustsim*ncase ) ;
          } else {
            ININFO_message(
-             " successfully read all %d minmax.1D files; computing 5percent.txt outputs",
+             " successfully read all %d minmax.1D files; computing *5percent.txt outputs",
              num_clustsim*ncase ) ;
          }
          for( icase=0 ; icase < ncase ; icase++ ){
@@ -5442,7 +5445,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
        } else {
          WARNING_message("COULD NOT read any .minmax.1D files for unknown reasons!") ;
-         ININFO_message ("  ==> no global threshold .5percent.txt files are output  :(") ;
+         ININFO_message ("  ==> no global threshold *.5percent.txt files are output  :(") ;
          ININFO_message ("  ... this failure does not affect any other Clustim/ETAC results!") ;
        }
        DESTROY_IMARR(inar) ;
