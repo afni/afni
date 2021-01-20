@@ -12,6 +12,11 @@
 
    [PT: Aug 21, 2020] need to include "TrackIO.h" for appropriate NIML
                       reading behavior
+
+   [PT: Jan 8, 2020] replace oddly present 'Pythonic' string
+                     comparisons in if conditions with strcmp().
+                     Thanks for pointing this out, D Glen!
+                     
 */
 
 int list_for_DTI( char *dti_listname,
@@ -84,7 +89,7 @@ int list_for_DTI( char *dti_listname,
 
    // scalar
    for( ii=0 ; ii<N_DTI_SCAL ; ii++) {
-      if( !FULL && ( !(DTI_SCAL_LABS[ii] == "FA") ) ) {
+      if( !FULL && ( strcmp(DTI_SCAL_LABS[ii], "FA") ) ) {
          INFO_message(" -> Don't need %s\n",DTI_SCAL_LABS[ii]);
          continue; // because we don't use MD or RD for 3dDWUncert
       }
@@ -92,7 +97,7 @@ int list_for_DTI( char *dti_listname,
          insetPARS[ii0 + ii] = THD_open_dataset(NameSCAL[ii]);
          if( (insetPARS[ii0 + ii] == NULL ) )
             ERROR_exit("Can't open listed dataset '%s': "
-                       "for required scalar.",
+                       "for required scalar (reg).",
                        NameSCAL[ii]);
          DSET_load(insetPARS[ii0 + ii]); CHECK_LOAD_ERROR(insetPARS[ii0 + ii]);
          fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
@@ -109,7 +114,7 @@ int list_for_DTI( char *dti_listname,
             insetPARS[i] = THD_open_dataset(NamePLUS[ii]);
             if( (insetPARS[i] == NULL ) )
                ERROR_exit("Can't open listed dataset '%s': "
-                          "for required scalar.",
+                          "for required scalar (full).",
                           NamePLUS[ii]);
             DSET_load(insetPARS[i]); 
             CHECK_LOAD_ERROR(insetPARS[i]);
@@ -135,7 +140,7 @@ int list_for_DTI( char *dti_listname,
    for( i=0 ; i<N_DTI_SCAL ; i++ ) 
       if( insetPARS[ii0+i] == NULL) 
          if( !FULL ) {
-            if( (DTI_SCAL_LABS[i] == "FA") )
+            if( !strcmp(DTI_SCAL_LABS[i], "FA") )
                ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_LABS[i] );
          }
          else
@@ -241,7 +246,8 @@ int glob_for_DTI( char *infix,
       for( i=0 ; i<N_DTI_SCAL ; i++ ) 
          // don't need MD or RD for 3dDWUncert
          if( !FULL && 
-             ((DTI_SCAL_LABS[i] == "MD") || (DTI_SCAL_LABS[i] == "RD"))) {
+             (!strcmp(DTI_SCAL_LABS[i], "MD") || \
+              !strcmp(DTI_SCAL_LABS[i], "RD")) ) {
             fprintf(stderr, "\nDon't need %s\n",DTI_SCAL_LABS[i]);
             continue;
          }
@@ -417,7 +423,7 @@ int glob_for_DTI_scal_unc( char *infix,
       // double check all got filled:
       for( i=0 ; i<N_DTI_SCAL ; i++ ) 
          // don't need MD or RD for 3dDWUncert
-         if( (DTI_SCAL_LABS[i] == "MD") || (DTI_SCAL_LABS[i] == "RD") ) {
+         if( !strcmp(DTI_SCAL_LABS[i],"MD") || !strcmp(DTI_SCAL_LABS[i],"RD")) {
             fprintf(stderr, "\nDon't need %s\n",DTI_SCAL_LABS[i]);
             continue;
          }

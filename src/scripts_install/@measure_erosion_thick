@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 # @measure_erosion_thick
 # erode a dataset repeatedly to separate datasets until nothing left
 # add up all the erosions at the end to get erosion_levels depth dataset
@@ -520,7 +520,7 @@ if ("$keep_temp_files" != "keep") then
    \rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec
 endif
 
-echo "#\!/usr/bin/env tcsh" > @show_thick
+echo "#\!/bin/tcsh" > @show_thick
 echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
 echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
 echo '     -com surf_cont -load_dset erosion_thick_smooth.niml.dset \' >> @show_thick

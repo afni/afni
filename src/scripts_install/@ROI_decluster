@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 # @ROI_decluster
 # remove small clusters from regions based on fraction or number of voxels
 

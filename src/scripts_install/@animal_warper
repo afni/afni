@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -2497,7 +2497,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 set oscript = surfaces/do_view_${surf_dir}.tcsh
 printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # All files are defined here relative to the "surfaces/" directory
 # that originally contained this script.  This can be adapted to other
@@ -2613,7 +2613,7 @@ if ( $make_orig_surfaces == "1" ) then
 set oscript = do_view_isosurf_${t_in_o_prefix}.tcsh
 printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
-#!/usr/bin/env tcsh
+#!/bin/tcsh
     
     set bkgd_vol = "../${src_dset}"
     set dset_gii = "${templ_in_origG}"

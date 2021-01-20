@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 # @AddEdge 
 # script to compute and display composite edge enhanced datasets for the
 # purpose of assessing alignment

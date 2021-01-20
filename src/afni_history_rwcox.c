@@ -49,6 +49,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JAN , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "AFNI graph viewer box labels now selectable from menu" ,
+   "In the Colors, Etc. menu, new items were added to enable and control the\n"
+   "labels used in Box mode. Keystroke ctrl-B cycles between all Data modes.\n"
+   "In addition, labels can now be drawn for graph matrix size up to 9x9." } ,
+
  { 23 , JUN , 2020 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "Add support for *.tsv and *.csv files" ,
    "Tab and Comma separated value files will be read in, like 1D files, and\n"

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S tcsh -fe
+#!/bin/tcsh -fe
 
 set CurDir = $PWD
 

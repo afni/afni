@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # h_view help instead of regular help (opens editor with -help output)
 @global_parse `basename $0` "$*" ; if ($status) exit 0
@@ -468,7 +468,7 @@ if ("$keep_temp_files" != "keep") then
    rm dist_in_out*.nii.gz *.smrec masksetd1.nii.gz in_and_out_p.nii.gz 
 endif
 
-echo "#\!/usr/bin/env tcsh" > @show_thick
+echo "#\!/bin/tcsh" > @show_thick
 echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
 echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
 echo '     -com surf_cont -load_dset inout_thick_smooth.niml.dset \' >> @show_thick

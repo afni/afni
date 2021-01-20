@@ -987,7 +987,13 @@ void MCW_register_hint( Widget w , char *msg )
       liteClue = XtVaCreatePopupShell( "help", xcgLiteClueWidgetClass, wpar,
                                           RES_CONVERT(XtNfontSet,cfont) ,
                                        NULL);
-      if( liteClue == NULL ) return ;
+      if( !RWC_liteclue_has_fontset(liteClue) ){   /* Failed :( */
+        INFO_message("\n") ;
+        INFO_message("\n Hints disabled: X11 failure to create LiteClue window") ;
+        INFO_message("\n") ;
+        clueless = 1 ;
+        return ;
+      }
 
       XtVaSetValues( liteClue , XmNsaveUnder , True , NULL ) ; /* 22 Jan 1999 */
    }

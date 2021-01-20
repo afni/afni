@@ -222,7 +222,8 @@ void powell_set_mfac( float mm , float aa )
 
     MJD Powell, "The NEWUOA software for unconstrained optimization without
     derivatives", Technical report DAMTP 2004/NA08, Cambridge University
-    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html
+    Numerical Analysis Group. 
+    See:  http://www.ii.uib.no/~lennart/drgrad/Powell2004.pdf
 
     For constrained optimization (via trickery), see powell_newuoa_con() [OLD]
     and powell_newuoa_constrained() [NEW].
@@ -448,7 +449,8 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
 
     MJD Powell, "The NEWUOA software for unconstrained optimization without
     derivatives", Technical report DAMTP 2004/NA08, Cambridge University
-    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html
+    Numerical Analysis Group.
+    See:  http://www.ii.uib.no/~lennart/drgrad/Powell2004.pdf
 ------------------------------------------------------------------------------*/
 
 int powell_newuoa_constrained( int ndim, double *x, double *cost ,
@@ -786,7 +788,8 @@ static int POW_find_relprime_fixed( int n )  /* find number relatively prime to 
 
     MJD Powell, "The NEWUOA software for unconstrained optimization without
     derivatives", Technical report DAMTP 2004/NA08, Cambridge University
-    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html
+    Numerical Analysis Group.
+    See:  http://www.ii.uib.no/~lennart/drgrad/Powell2004.pdf
 ------------------------------------------------------------------------------*/
 
 int powell_newuoa_nested( int ndim , int nper , int pstep , double *x ,

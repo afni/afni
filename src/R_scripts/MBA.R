@@ -38,7 +38,9 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 Usage: ~1~
 ------ 
  MBA performs matrix-based analysis (MBA) as theoretically elaborated in the
- manuscript: https://www.biorxiv.org/content/10.1101/459545v1
+ manuscript:
+    https://www.biorxiv.org/content/10.1101/459545v1
+    https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.24686
  MBA is conducted with a shell script (as shown in the examples below). The
  input data should be formulated in a pure-text table that codes the regions
  and variables. The response variable is usually correlation values (with or

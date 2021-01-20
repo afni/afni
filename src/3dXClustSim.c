@@ -155,14 +155,21 @@ static float farp_goal = FARP_GOAL ;
 
 /* lines directly below are also in 3dttest++.c
    only change them here if you change them there as well! */
-#define NFARP 9
-static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
-static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h", "i" } ;
-static float min_fgoal = 1.0f ;
-static float max_fgoal = 9.0f ;
+#define NFARP  9
+#define NMUCHO 25                 /* expand gamut [15 Jan 2021] */
+static float farplist[NMUCHO] =
+   {        1.f,  2.f,  3.f,  4.f,  5.f,  6.f,  7.f,  8.f,  9.f,
+     10.f, 11.f, 12.f, 13.f, 14.f, 15.f, 16.f, 17.f, 18.f, 19.f,
+     20.f, 21.f, 22.f, 23.f, 24.f, 25.f                         } ;
+static float min_fgoal =  1.0f ;
+static float max_fgoal = 25.0f ;
+static char *abcd[NMUCHO]    =                  /* just for fun */
+   {      "a", "b", "c", "d", "e", "f", "g", "h", "i",
+     "j", "k", "l", "m", "n", "o", "p", "q", "r", "s",
+     "t", "u", "v", "w", "x", "y"                       } ;
 
 static int do_multifarp = 0 ;
-static int numfarp = 1 ;
+static int numfarp      = 1 ;
 
 #define FG_GOAL  (farp_goal*fgfac)
 #define MAXITE   11
@@ -443,6 +450,11 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
+    if( strcasecmp(argv[nopt],"-muchoFPR") == 0 ){
+      do_multifarp = 2 ;
+      nopt++ ; continue ;
+    }
+
     /*-----  -minclust [21 Sep 2017]  -----*/
 
     if( strcasecmp(argv[nopt],"-minclust") == 0 ){
@@ -513,15 +525,21 @@ ENTRY("get_options") ;
   fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
   if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
 
-  if( !do_multifarp ){
-    numfarp = 1 ; farplist[0] = farp_goal ;
-    INFO_message("Single FPR goal: %.1f%%",farp_goal) ;
-  } else {
-    numfarp = NFARP ;
-    strcpy(msg,"Multiple FPR goals:") ;
-    for( ii=0 ; ii < numfarp ; ii++ )  /* quadruple % reduced to double % below */
-      sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
-    INFO_message(msg) ;                  /* and then to single % in this output */
+  switch( do_multifarp ){
+    default:
+    case 0:
+      numfarp = 1 ; farplist[0] = farp_goal ;
+      INFO_message("Single FPR goal: %.1f%%",farp_goal) ;
+    break ;
+
+    case 1:
+    case 2:
+      numfarp = (do_multifarp==1) ? NFARP : NMUCHO ;    /* 15 Jan 2021 */
+      strcpy(msg,"Multiple FPR goals:") ;
+      for( ii=0 ; ii < numfarp ; ii++ )  /* quadruple % reduced to double % below */
+        sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
+      INFO_message(msg) ;                  /* and then to single % in this output */
+    break ;
   }
 
   /*------- finalize some simple setup stuff --------*/
@@ -1798,7 +1816,7 @@ GARP_BREAKOUT: ; /*nada*/
 
            /* invent a filename for the output */
 
-           sprintf( qpr ,"globalETAC.mthresh.%s.%s.%dperc.niml" ,
+           sprintf( qpr ,"globalETAC.mthresh.%s.%s.%02dperc.niml" ,
                   qpref , lcase[qcase] , (int)rintf(farp_goal)     ) ;
 
            /* and write it out */
@@ -2518,7 +2536,7 @@ FARP_BREAKOUT: ; /*nada*/
 
        qset = EDIT_empty_copy(mask_dset) ;
 
-       sprintf(qpr,".mthresh.%s.%dperc",lcase[qcase],(int)rintf(farp_goal)) ; /* prefix modifier */
+       sprintf(qpr,".mthresh.%s.%02dperc",lcase[qcase],(int)rintf(farp_goal)) ; /* prefix modifier */
 
        EDIT_dset_items( qset ,
                           ADN_prefix    , modify_afni_prefix(prefix,NULL,qpr) ,

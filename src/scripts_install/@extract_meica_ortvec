@@ -1,4 +1,4 @@
-#!/usr/bin/env tcsh
+#!/bin/tcsh
 
 # from MEICA results dir (TED.*), partition meica_mix.1D into
 # good and bad terms, then project good from bad to create
