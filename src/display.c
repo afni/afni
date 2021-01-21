@@ -1572,6 +1572,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
    switch( cd->classKRH ){
 
       /*--- TrueColor case: make color by appropriate bit twiddling ---*/
+      /*--- The code below is duplicated in xim.c for efficiency :) ---*/
 
       case TrueColor:{
          static unsigned long pold=0 ;
@@ -1601,7 +1602,9 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
       /*--- PseudoColor case: find closest match in colormap.
             Red, green, and blue are weighted according
-            to their importance to the human visual system. ---*/
+              to their importance to the human visual system.
+            This code is slower than the TrueColor case above,
+            which is due to the search through the PseudoColor palette. */
 
       case PseudoColor:{
 
@@ -1619,7 +1622,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
          if( cd->nwhite >= 0 && rr == 255 && gg == 255 && bb == 255 ) /* cases      */
             return (Pixel) cd->nwhite ;
 
-         if( dc == dcold ){
+         if( dc == dcold ){     /* check in with the last call - maybe it's good */
             rdif = rold - rr ;
             gdif = gold - gg ;
             bdif = bold - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
@@ -1628,10 +1631,15 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
          rold = rr ; gold = gg ; bold = bb ; dcold = dc ; /* No? Remember for next time. */
 
+         /* check first color in palette; if it is "close enough" (RGBSUM), use it */
+
          rdif = cd->rr[0] - rr ;
          gdif = cd->gg[0] - gg ;
          bdif = cd->bb[0] - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
          if( dif <= RGBSUM ){ iold = 0 ; return 0 ; }
+
+         /* scan thru the rest of the colors in palette,
+            either finding one close enough, or finding the closest one */
 
          ibest = 0 ; dbest = dif ;
          for( ii=1 ; ii < cd->ncolors ; ii++ ){
@@ -1647,7 +1655,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
    /*--- Illegal case! ---*/
 
-   return 0 ;  /* always valid (but useless) */
+   return 0 ;  /* Black is always valid (but not very colorful) */
 }
 
 /*---------------------------------------------------------------------
