@@ -13,8 +13,9 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeA = -planeA;
         planeB = -planeB;
         planeC = -planeC;
-        planeTheta -= 180;
-        planePhi -= 180;
+        objectPlaneD = -objectPlaneD;
+        planeTheta = asin(-planeB)*180.0/M_PI;
+        planePhi = acos(planeC/cos(planeTheta*M_PI/180))*180.0/M_PI;
     } else {
         // Update rotation and (normal) translation parameters
         planeTheta += deltaTheta;
@@ -29,6 +30,10 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeA = planeC*sin(planePhi*M_PI/180);
         planeC = planeC*cos(planePhi*M_PI/180);
     }
+
+    // Debug
+    fprintf(stderr, "planeTheta=%d", planeTheta);
+    fprintf(stderr, ", planePhi=%d\n", planePhi);
 
     // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
