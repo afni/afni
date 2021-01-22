@@ -1502,10 +1502,18 @@ static char *gby[] = {
      "Your results may be mathematical nonsense ... but is undoubtedly neuroscience at its best"        ,
 
      "If you torture the data long enough, it will confess to anything"                 ,
+     "Data that is loved tends to survive"                                              ,
      "To purify the earth, one should purify the heart first"                           ,
      "The key to everything is to focus on one thing at a time"                         ,
      "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
      "The essence of mathematics lies in its freedom"                                   ,
+     "Maybe it's not YOU that's the impostor, it's your DATA that's faking it"          ,
+     "More's law for MRI: More Tesla is better"                                         ,
+
+     "\n  Data is not information;"
+     "\n   Information is not knowledge;"
+     "\n    Knowledge is not understanding;"
+     "\n     Understanding is not wisdom"                                               ,
 
      "Every person can become the sculptor of their own brain"                 , /* Cajal (sort of) */
      "As long as the brain is a mystery, the universe will also be a mystery"  ,
