@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, Jan 23, 2021
+Version 0.0.7, Jan 23, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -859,46 +859,75 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 options(contrasts = c("contr.sum", "contr.poly"))
 
-if(dimy==1 & dimz==1) errex.AFNI("I have not set it up for 1D and surface data yet. Let me know if you want this!\n")
-   #if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
-Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
-
-   #if (lop$nNodes==1) for (kk in 1:dimz) {
-   #   if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, tag=0), c(2,1)) else
-   #   Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runMSS, dataframe=lop$dataStr, tag=0), c(2,3,1))
-   #   cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   #}
-
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "lop", envir=environment())
-   clusterEvalQ(cl, library(gamm4))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   if(!is.null(lop$mrr)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runMSS,
+if(dimy==1 & dimz==1) { # 1D data
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   inData <- inData[, , ,]
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
+   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   # break input multiple segments for parrel computation
+   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   Stat <- array(0, dim=c(dimx_n, nSeg, lop$nBrk))
+   if (lop$nNodes==1) { # no parallization
+      if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   if(!is.null(lop$lme)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   stopCluster(cl)
-} else {
-   if(!is.null(lop$mrr)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runMSS,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   } else { # parallization
+      if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   if(!is.null(lop$lme)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
    }
+} else { # volumetric data
+   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
+   if (lop$nNodes==1) { # no parallization
+      if(!is.null(lop$mrr)) for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runMSS,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   } else { # parallization
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterExport(cl, "lop", envir=environment())
+      clusterEvalQ(cl, library(gamm4))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      if(!is.null(lop$mrr)) for (kk in 1:dimz) { # using gam
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runMSS,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) { # using gamm
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      stopCluster(cl)
+   } 
+   # runMSS(inData[30,30,30,], lop$mrr, lop$dataStr, lop$glt, nF, 0)
 }
-# runMSS(inData[30,30,30,], lop$mrr, lop$dataStr, lop$glt, nF, 0)
 
 Top <- 100
 Stat[is.nan(Stat)] <- 0
