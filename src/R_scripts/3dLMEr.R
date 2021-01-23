@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, Jan 19, 2021
+Version 0.0.9, Jan 23, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1141,7 +1141,7 @@ if(lop$TRR) { # test-retest analysis
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) for(kk in 1:nSeg) {
          for(kk in 1:nSeg) {
-            Stat[,kk,] <- aperm(apply(inData[,,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
          }
       } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
@@ -1152,7 +1152,7 @@ if(lop$TRR) { # test-retest analysis
          clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for(kk in 1:nSeg) {
-            Stat[,kk,] <- aperm(parApply(cl, inData[,,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
          } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
          stopCluster(cl)
