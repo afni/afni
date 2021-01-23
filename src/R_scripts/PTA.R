@@ -51,7 +51,7 @@ Introduction
  Profile Tracking Analysis (PTA) estimates nonlinear trajectories or profiles
  through smoothing splines. Currently the program PTA only works through a
  command-line scripting mode. Check the examples below: find one close to your
- specific scenario and use it as a tempate. The underlying theory is covered in
+ specific scenario and use it as a template. The underlying theory is covered in
  the following paper:
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
