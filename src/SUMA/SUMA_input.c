@@ -4,6 +4,7 @@
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip){
     static int  planeTheta=0, planePhi = 0, objectPlaneD;
     static float  planeA, planeB, planeC=1.0;
+    static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
@@ -14,8 +15,8 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeB = -planeB;
         planeC = -planeC;
         objectPlaneD = -objectPlaneD;
-        planeTheta = asin(-planeB)*180.0/M_PI;
-        planePhi = acos(planeC/cos(planeTheta*M_PI/180))*180.0/M_PI;
+        planeTheta = (int)(asin(-planeB)*rad2degrees+0.5);
+        planePhi = (int)(acos(planeC/cos(planeTheta*degrees2rad))*rad2degrees+0.5);
     } else {
         // Update rotation and (normal) translation parameters
         planeTheta += deltaTheta;
@@ -23,12 +24,12 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         objectPlaneD += deltaPlaneD;
 
         // Rotate around x-axis
-        planeB = -sin(planeTheta*M_PI/180);
-        planeC = cos(planeTheta*M_PI/180);
+        planeB = -sin(planeTheta*degrees2rad);
+        planeC = cos(planeTheta*degrees2rad);
 
         // Rotate arount y axis
-        planeA = planeC*sin(planePhi*M_PI/180);
-        planeC = planeC*cos(planePhi*M_PI/180);
+        planeC = planeC*cos(planePhi*degrees2rad);
+        planeA = planeC*sin(planePhi*degrees2rad);
     }
 
     // Debug
@@ -38,6 +39,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
     sprintf(chrTmp, "A: %f,%f,%f,%d", planeA, planeB, planeC, objectPlaneD);
+    fprintf(stderr, "chrTmp = %s\n", chrTmp);
     SUMA_SetObjectClip(chrTmp, sv);
 }
 
