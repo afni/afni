@@ -1408,6 +1408,9 @@ ENTRY("create_GA_BLOK_set") ;
    }
    free(nelm) ; free(elm) ;
 
+   gbs->nx = nx ; gbs->ny = ny ; gbs->nz = nz ;  /* Biden Day 3 */
+   gbs->dx = dx ; gbs->dy = dy ; gbs->dz = dz ;
+
    if( verb > 1 )
      ININFO_message("%d total points stored in %d '%s(%g)' bloks",
                     ntot , gbs->num , GA_BLOK_STRING(bloktype) , blokrad ) ;
@@ -1476,6 +1479,43 @@ floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
    }
 
    return pv ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return a volume from the pearson vector showing with the
+    voxel populated with 'their' blok's pearson correlation. [Biden day 3]
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMAGE * GA_pearson_image( GA_BLOK_set *gbs , floatvec *pv )
+{
+   MRI_IMAGE *gim ; float *gar , *pvar ;
+   int nx,ny,nz,nxyz,dd,nelm,ii,jj , *elm ;
+
+   if( gbs == NULL || pv == NULL ) return NULL ; /* dumdum user */
+
+   nx = gbs->nx ; ny = gbs->ny ; nz = gbs->nz ; nxyz = nx*ny*nz ;
+   if( nx < 2 || ny < 2 || nz < 2 ) return NULL ;
+
+   /* create output volume */
+
+   gim = mri_new_vol(nx,ny,nz,MRI_float) ;  /* zero filled */
+   if( gim == NULL ) return NULL ;          /* should never happen */
+   gim->dx = gbs->dx ; gim->dy = gbs->dy ; gim->dz = gbs->dz ;
+   gar  = MRI_FLOAT_PTR(gim) ;
+   pvar = pv->ar ;
+
+   /* loop over bloks */
+
+   for( dd=0 ; dd < gbs->num ; dd++ ){
+     nelm = gbs->nelm[dd] ;
+     elm  = gbs->elm[dd] ;  /* array of indexes for this blok */
+     for( ii=0 ; ii < nelm ; ii++ ){  /* push values to image */
+       jj = elm[ii] ;
+       if( jj >=0 && jj < nxyz ) gar[jj] = pvar[dd] ;
+     }
+   }
+
+   return gim ;
 }
 
 /*======================== End of BLOK-iness functionality ==================*/

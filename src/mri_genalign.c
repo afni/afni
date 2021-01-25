@@ -1153,7 +1153,7 @@ STATUS("extract from base") ;
 
    if( stup->blokset != NULL ){                      /* 20 Aug 2007 */
      GA_BLOK_KILL(stup->blokset) ;
-     stup->blokset = NULL ;
+     stup->blokset = NULL ;   /* will be re-created later if needed */
    }
 
    stup->need_hist_setup = 1 ;   /* 08 May 2007 */

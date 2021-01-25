@@ -1964,7 +1964,8 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
-typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
+typedef struct { int num , *nelm , **elm ; 
+                 int nx,ny,nz ; float dx,dy,dz ; } GA_BLOK_set ;
 
 /** delete a GA_BLOK_set struct and its contents **/
 
@@ -1990,6 +1991,7 @@ extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
 /** compute correlations in each blok **/
 
 extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
+extern MRI_IMAGE * GA_pearson_image( GA_BLOK_set *gbs , floatvec *pv ) ; /* Biden day 3 */
 
 extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
