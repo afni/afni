@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.15, May 11, 2020
+Version 1.0.0, Jan 26, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -38,9 +38,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 Usage: ~1~
 ------ 
  MBA performs matrix-based analysis (MBA) as theoretically elaborated in the
- manuscript:
-    https://www.biorxiv.org/content/10.1101/459545v1
-    https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.24686
+ manuscript: https://www.biorxiv.org/content/10.1101/459545v1
  MBA is conducted with a shell script (as shown in the examples below). The
  input data should be formulated in a pure-text table that codes the regions
  and variables. The response variable is usually correlation values (with or
@@ -148,6 +146,17 @@ Usage: ~1~
  Alternatively you may install them in R:
 
  install.packages("brms")
+
+ *** To take full advantage of parallelization, install both \'cmdstan\' and 
+ \'cmdstanr\' and use the option -WCP in MBA. However, extra stpes are required: 
+ both \'cmdstan\' and \'cmdstanr\' have to be installed. To install \'cmdstanir\',
+ execute the following command in R:
+ 
+ install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
+    
+ Follow the instruction here for the installation of \'cmdstan\' (and put it under
+ your home directory ~/cmdstan): 
+    https://mc-stan.org/cmdstanr/articles/cmdstanr.html 
  
  Running: ~1~
  Once the MBA command script is constructed, it can be run by copying and
@@ -181,6 +190,14 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
 
    The 2nd version is recommended because of its explicit specifications.
 
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the option -WCP. For example, the script assumes a computer with 24 CPUs
+   (6 CPUs per chain): 
+
+   MBA -prefix myWonderfulResult -chains 4 -WCP 6 -iterations 1000 -model 1 \\
+       -EOI 'Intercept' -r2z -dataTable myData.txt  \\
+
    The input file 'myData.txt' is a data table in pure text format as below: 
                                                              
      Subj  ROI1   ROI2      Y
@@ -199,6 +216,11 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -r2z -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
+
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the option -WCP. For example, For example, consider adding '-WCP 6' on
+   a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
    
@@ -220,6 +242,11 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    MBA -prefix result -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
    -qVars 'sex,age,SA' -r2z -EOI 'Intercept,sex,age,SA' \\
    -dataTable myData.txt
+
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the option -WCP. For example, For example, consider adding '-WCP 6' on
+   a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
    
@@ -290,6 +317,14 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         iterations (e.g., 2000) for complex models, which will lengthen the runtime.",
    "         Unfortunately there is no way to predict the optimum iterations ahead of time.\n", sep = '\n'
                      ) ),
+
+      '-WCP' = apl(n = 1, d = 1, h = paste(
+   "-WCP k: This option will invoke within-chain parallelization to speed up runtime.",
+   "         To take advantage of this feature, you need the following: 1) at least 8",
+   "         or more CPUs; 2) install 'cmdstan'; 3) install 'cmdstanr'. The value 'k'",
+   "         is the number of thread per chain that is requested. For example, with 4",
+   "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
+   "         chain will be assigned with 6 threads.\n", sep='\n')),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
    "-verb VERB: Speicify verbose level.\n", sep = '\n'
@@ -472,6 +507,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVars  <- 'Intercept'
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
+      lop$WCP    <- FALSE
       lop$qContr  <- NA
       lop$Y      <- 'Y'
       lop$Subj   <- 'Subj'
@@ -492,6 +528,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
+             WCP        = lop$WCP    <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
              verb   = lop$verb  <- ops[[i]],
              model  = lop$model <- ops[[i]],
@@ -673,6 +710,12 @@ if(any(!is.na(lop$qContr))) {
 options(contrasts = c("contr.sum", "contr.poly"))
 options(mc.cores = parallel::detectCores())
 
+# within-chain parallelization?
+if(lop$WCP) {
+   require('cmdstanr')
+   set_cmdstan_path('~/cmdstan') # where is this located for the user?
+}
+
 # Fisher transformation
 fisher <- function(r) ifelse(abs(r) < .995, 0.5*(log(1+r)-log(1-r)), stop('Are you sure that you have correlation values so close to 1 or -1?'))
 if(lop$r2z) lop$dataTable$Y <- fisher(lop$dataTable$Y)
@@ -707,11 +750,21 @@ if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI1:ROI2)
    modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI1:ROI2)+(', 
       lop$model, '|mm(ROI1, ROI2, weights = cbind(w, w), scale=FALSE))'))
 
-if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
-      iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
-   fm <- brm(modelForm, data=lop$dataTable, 
-      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
-      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
+if(lop$WCP) {
+   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
+         iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15),
+         backend = "cmdstanr", threads = threading(lop$WCP)) else
+      fm <- brm(modelForm, data=lop$dataTable, 
+         prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
+         chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15),
+         backend = "cmdstanr", threads = threading(lop$WCP))
+} else {
+   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains,
+         iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
+      fm <- brm(modelForm, data=lop$dataTable,
+         prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
+         chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
+}
 
 print(format(Sys.time(), "%D %H:%M:%OS3"))
 
