@@ -3219,10 +3219,10 @@ References ~1~
 
   If you use this program, please cite the following:
 
-  + Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, Glen DR,
-    Messinger A (2020). A Comprehensive Macaque FMRI Pipeline and
-    Hierarchical Atlas. NeuroImage (in press) doi:
-    10.1101/2020.08.05.237818
+  + Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, 
+    Ungerleider LG, Glen DR, Messinger A (2021). 
+    A Comprehensive Macaque FMRI Pipeline and Hierarchical Atlas.
+    NeuroImage (in press) doi:10.1101/2020.08.05.237818
     https://www.biorxiv.org/content/10.1101/2020.08.05.237818v1
 
   + Saad ZS, Glen DR, Chen G, Beauchamp MS, Desai R, Cox RW (2009). A
@@ -3234,7 +3234,7 @@ References ~1~
 
 This program has been written (and rewritten!) by D Glen and PA Taylor
 (SSCC, NIMH, NIH, USA), with many helpful contributions and
-suggestions from B Jung.
+suggestions from B Jung and A Messinger.
 
 SCRIPT_HELP_STRING
 
