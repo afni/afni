@@ -49,6 +49,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , JAN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
+   "New -PearSave option" ,
+   "Saves the local Pearson correlations into a dataset at the end of an\n"
+   "alignment. Mostly for visualization fun." } ,
+
  { 11 , JAN , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "AFNI graph viewer box labels now selectable from menu" ,
    "In the Colors, Etc. menu, new items were added to enable and control the\n"

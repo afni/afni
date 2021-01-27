@@ -1447,6 +1447,71 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Return an image of the local correlations [25 Jan 2021 - RWC] */
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm )
+{
+   double *wpar , val ;
+   float *avm , *bvm , *wvm ;
+   int ii , qq  ;
+   floatvec *pvec ; MRI_IMAGE *pim ;
+
+ENTRY("mri_genalign_map_pearson_local") ;
+
+   /* check for malignancy */
+
+   if( stup == NULL || stup->blokset == NULL || stup->setup != SMAGIC ) RETURN(NULL) ;
+
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) RETURN(NULL);
+
+/** INFO_message("mri_genalign_map_pearson_local: input parameters") ; **/
+
+   /* copy initial warp parameters into local wpar, scaling to range 0..1 */
+
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( !stup->wfunc_param[qq].fixed ){
+       val = (parm == NULL) ? stup->wfunc_param[qq].val_init : parm[qq] ;
+       wpar[ii] = (val - stup->wfunc_param[qq].min) / stup->wfunc_param[qq].siz;
+       if( wpar[ii] < 0.0 || wpar[ii] > 1.0 ) wpar[ii] = PRED01(wpar[ii]) ;
+/** ININFO_message("  %g  %g",val,wpar[ii]) ; **/
+       ii++ ;
+     }
+   }
+   if( ii == 0 ){ free(wpar) ; RETURN(NULL) ; } /* should never happen */
+
+   gstup    = stup ; /* I don't know if/why these statements are needed. */
+   gstup_bk = stup ; /* But I copied them from somewhere else to be safe */
+
+   avm = (float *)calloc(stup->npt_match,sizeof(float)) ; /* target points at */
+   GA_get_warped_values( stup->wfunc_numfree,wpar,avm ) ; /* warped locations */
+
+   bvm = stup->bvm->ar ;                                 /* base points */
+   wvm = (stup->wvm != NULL) ? stup->wvm->ar : NULL ;    /* weights */
+
+   /* get local correlation in each blok between avm and bvm, weighted by wvm */
+
+   pvec = GA_pearson_vector( stup->blokset , avm , bvm , wvm ) ;
+
+/** ININFO_message("Pearson vector") ;
+for( ii=0 ; ii < pvec->nar ; ii++ ){
+   fprintf(stderr,"   %g %d",pvec->ar[ii],stup->blokset->nelm[ii]) ;
+   if( ii%5 == 0 && ii > 0 ) fprintf(stderr,"\n") ;
+}
+fprintf(stderr,"\n") ; **/
+
+   /* push these into an image */
+
+   pim = GA_pearson_image( stup , pvec ) ;
+
+   KILL_floatvec(pvec) ; free(wpar) ;  /* tosso the trasholo */
+
+   RETURN(pim) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Test some random starting points.  Sets val_init values in stup.
 -----------------------------------------------------------------------------*/
 

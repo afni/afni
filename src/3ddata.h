@@ -5843,6 +5843,13 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int, char *, int );
 
+THD_3dim_dataset * THD_volume_to_dataset( THD_3dim_dataset *mset  ,
+                                          MRI_IMAGE *imin         ,
+                                          char *prefix            ,
+                                          int pad_xm , int pad_xp ,
+                                          int pad_ym , int pad_yp ,
+                                          int pad_zm , int pad_zp  ) ; /* 25 Jan 2021 */
+
 extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
                      THD_3dim_dataset *,
                      void w_in2out(float,float,float,float *,float *,float *),

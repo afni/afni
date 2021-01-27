@@ -19,7 +19,7 @@
 THD_3dim_dataset * THD_zeropad( THD_3dim_dataset *inset ,
                                 int add_I , int add_S , int add_A ,
                                 int add_P , int add_L , int add_R ,
-                                char * prefix , int flag )
+                                char *prefix , int flag )
 {
    THD_3dim_dataset *outset ;
    int nxold,nyold,nzold , nxnew,nynew,nznew , nxyold,nxynew ,
@@ -355,4 +355,85 @@ STATUS("padding") ;
 #endif
 
    RETURN( outset );
+}
+
+/*-------------------------------------------------------------------*/
+/* Create a 1-volume dataset built from
+   (a) a master dataset 'mset' -- for the geometry
+   (b) an image 'imin' containing the data
+   (c) padding amounts that reckon with the dimensional
+       differences between imin and mset -- that is, for positive
+       'pad' values, imin should be bigger than mset.
+   This function is for use in 3dAllineate.       [25 Jan 2021 - RWC]
+*//*-----------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_volume_to_dataset( THD_3dim_dataset *mset  ,
+                                          MRI_IMAGE *imin         ,
+                                          char *prefix            ,
+                                          int pad_xm , int pad_xp ,
+                                          int pad_ym , int pad_yp ,
+                                          int pad_zm , int pad_zp  )
+{
+   THD_3dim_dataset *dset ;
+   MRI_IMAGE *dim ;
+   int nxx,nyy,nzz ;
+
+ENTRY("THD_volume_to_dataset") ;
+
+   if( mset == NULL || imin == NULL ) RETURN(NULL) ;
+
+   if( !THD_filename_ok(prefix) ) prefix = "volumized" ;
+
+   /* size of dataset after it gets padded */
+
+   nxx = DSET_NX(mset) + pad_xm + pad_xp ;
+   nyy = DSET_NY(mset) + pad_ym + pad_yp ;
+   nzz = DSET_NZ(mset) + pad_zm + pad_zp ;
+
+   /* should match input image */
+
+   if( nxx != imin->nx || nyy != imin->ny || nzz != imin->nz ){
+     WARNING_message("THD_volume_to_dataset mismatch:\n"
+                     "        Dataset = %3d %3d %3d\n"
+                     "        x-pad   = %3d %3d\n"
+                     "        y-pad   = %3d %3d\n"
+                     "        z-pad   = %3d %3d\n"
+                     "        Image   = %3d %3d %3d" ,
+                     DSET_NX(mset),DSET_NY(mset),DSET_NZ(mset) ,
+                     pad_xm , pad_xp ,
+                     pad_ym , pad_yp ,
+                     pad_zm , pad_zp ,
+                     imin->nx , imin->ny , imin->nz ) ;
+     RETURN(NULL) ;
+   }
+
+   /* create an empty (no data) dataset properly padded from mset */
+
+   dset = THD_zeropad( mset ,
+                       pad_xm , pad_xp ,
+                       pad_ym , pad_yp ,
+                       pad_zm , pad_zp ,
+                       prefix , ZPAD_EMPTY | ZPAD_IJK ) ;
+
+   EDIT_dset_items( dset ,
+                      ADN_nvals     , 1 ,
+                      ADN_ntt       , 0 ,
+                      ADN_datum_all , imin->kind ,
+                    ADN_none ) ;
+
+   /* copy the data */
+
+   dim = mri_copy(imin) ;
+
+   /* shove it into the new dataset */
+
+   EDIT_substitute_brick( dset , 0 , dim->kind , mri_data_pointer(dim) ) ;
+
+   /* erase the shell of the image copy */
+
+   mri_clear_and_free( dim ) ;
+
+   /* get the hell out of Dodge */
+
+   RETURN(dset) ;
 }
