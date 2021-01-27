@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "do not convert NIFTI scaled shorts to float",
+   "If slope!=0 && inter==0, pass slope as brick_fac.\n"
+   "Thanks to C Caballero and S Moia for reporting this."
+ } ,
+
  {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
    "shift memory allocation/free around, mostly to match libSUMA",
    "Inspired by C Rorden via sanitizer warnings."
