@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Jan , 2021 , PT , "3dAttribute" , MINOR , TYPE_GENERAL,
+   "Update help to have fancy sections and more examples.",
+   "Also provide link to README.attributes file, for user reference.\n"
+},
+
 { 27, Jan , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
    "New run script created (run_01*) in L_MAKE_DRIVE_SCRIPT block.",
    "Opens std.141*both*spec in SUMA and SurfVol in AFNI, and starts talking.\n"
