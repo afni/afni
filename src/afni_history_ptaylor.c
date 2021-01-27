@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Jan , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "New run script created (run_01*) in L_MAKE_DRIVE_SCRIPT block.",
+   "Opens std.141*both*spec in SUMA and SurfVol in AFNI, and starts talking.\n"
+},
+
 { 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "New default feature_size: 0.5.  (Old default: was unset).",
    "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"
