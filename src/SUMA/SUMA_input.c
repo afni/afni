@@ -40,7 +40,9 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeC[planeIndex] = cos(planeTheta[planeIndex]*degrees2rad);
 
         // Rotate arount y axis
+        float oldPlaneA = planeA[planeIndex];
         planeA[planeIndex] = planeC[planeIndex]*sin(planePhi[planeIndex]*degrees2rad);
+        if (oldPlaneA*planeA[planeIndex] < 0.1) planeA[planeIndex] = -planeA[planeIndex];
         planeC[planeIndex] = planeC[planeIndex]*cos(planePhi[planeIndex]*degrees2rad);
     }
 
@@ -4310,6 +4312,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_C:
             if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
+/* DEBUG */
                 SUMAg_CF->X->ClipObj_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
                               "Enter object clip plane parameters (a,b,c,d)",
@@ -4326,9 +4329,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_CreatePromptDialog(
                      "Enter object clip plane parameters (a,b,c,d)",
                      SUMAg_CF->X->ClipObj_prmpt);
-
-                // This is sometimes necessary to initiate flipping.negating the clipping plane for some reason
-                clipPlaneTransform(0,0,0,0,-1);
+/**/
+                // This sets up a new clip plane independent of the dialog box.  If called with
+                //  the dialog box, two clipping planes results
+                // DEBUG clipPlaneTransform(0,0,0,0,-1);
             } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
