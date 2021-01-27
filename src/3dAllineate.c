@@ -299,6 +299,28 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      if( verb > 4 ) fprintf(stderr,"\n") ;                     \
  } while(0)
 
+/*--------- Macro to save Pearson map (for use in main) [27 Jan 2021] --------*/
+
+#define SAVE_PEARSON_MAP(sprefix,val_xxx)                                        \
+  do{ MRI_IMAGE *pim ;                                                           \
+      PAR_CPY(val_xxx) ;           /* copy output parameters to allpar[] */      \
+      pim = mri_genalign_map_pearson_local(&stup,allpar) ; /* get 3D map */      \
+      if( pim != NULL ){                                                         \
+        THD_3dim_dataset *pset ;                                                 \
+        pset = THD_volume_to_dataset( dset_base , pim , /* convert to dataset */ \
+                                      (sprefix) ,   pad_xm,pad_xp,               \
+                                      pad_ym,pad_yp,pad_zm,pad_zp ) ;            \
+        mri_free(pim) ;                                                          \
+        if( pset != NULL ){  /* save dataset */                                  \
+          DSET_write(pset) ; WROTE_DSET(pset) ; DSET_delete(pset) ;              \
+        } else {                                                                 \
+          ERROR_message("Failed to create -PearSave dataset %s :(",(sprefix)) ;  \
+        }                                                                        \
+      } else {                                                                   \
+          ERROR_message("Failed to create -PearSave volume %s :(",(sprefix)) ;   \
+      }                                                                          \
+  } while(0)
+
 /*---------------------------------------------------------------------------*/
 /* Given a string, find the cost functional method code that goes with it. */
 
@@ -1505,14 +1527,16 @@ int main( int argc , char *argv[] )
         "   *OR*          with prefix 'sss'. These are the correlations from\n"
         " -SavePear sss   which the lpc and lpa cost functionals are calculated.\n"
         "                * The values will be between -1 and 1 in each blok.\n"
+        "                   See the 'Too Much Detail' section below for how\n"
+        "                   these correlations are used to compute lpc and lpa.\n"
         "                * Locations not used in the matching will get 0.\n"
         "               ** Unless you use '-nmatch 100%%', there will be holes\n"
-        "                   in the bloks, as not all voxels are used in the\n"
-        "                   matching algorithm (for some speedup).\n"
+        "                   of 0s in the bloks, as not all voxels are used in\n"
+        "                   the matching algorithm (speedup attempt).\n"
         "                * All the matching points in a given blok will get\n"
         "                   the same value, which makes the resulting dataset\n"
-        "                   look jauntily blocky.\n"
-        "                * This dataset will be on the grid of the base\n"
+        "                   look jauntily blocky, especially in color.\n"
+        "                * This saved dataset will be on the grid of the base\n"
         "                   dataset, and may be zero padded if the program\n"
         "                   chose to do so in it wisdom. This padding means\n"
         "                   that the voxels in this output dataset may not\n"
@@ -1520,15 +1544,23 @@ int main( int argc , char *argv[] )
         "                   dataset; however, AFNI displays things using\n"
         "                   coordinates, so overlaying this dataset on the\n"
         "                   base dataset (say) should work OK.\n"
-        "                * This option only works if you use one of the\n"
-        "                  'lpc' or 'lpa' cost functionals, as those are\n"
-        "                  the ones with the building blocks.\n"
+        "                * If you really want this saved dataset to be on the\n"
+        "                   grid as the base dataset, you'll have use\n"
+        "                     3dZeropad -master {Base Dataset} ....\n"
+        "                * Option '-PearSave' works even if you don't use the\n"
+        "                   'lpc' or 'lpa' cost functionals.\n"
+        "                * If you use this option combined with '-allcostX', then\n"
+        "                   the local correlations will be saved from the INITIAL\n"
+        "                   alignment parameters, rather than from the FINAL\n"
+        "                   optimized parameters.\n"
+        "                   (Of course, with '-allcostX', there IS no final result.)\n"
+        "                * This option does NOT work with '-allcost' or '-allcostX1D'.\n"
         "\n"
         " -allcost        = Compute ALL available cost functionals and print them\n"
-        "                   at various points.\n"
+        "                   at various points in the optimization progress.\n"
         " -allcostX       = Compute and print ALL available cost functionals for the\n"
         "                   un-warped inputs, and then quit.\n"
-        "                  * This option is for testing purposes.\n"
+        "                  * This option is for testing purposes (AKA 'fun').\n"
         " -allcostX1D p q = Compute ALL available cost functionals for the set of\n"
         "                   parameters given in the 1D file 'p' (12 values per row),\n"
         "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
@@ -1539,7 +1571,32 @@ int main( int argc , char *argv[] )
         "                          matrix. An identity matrix could be provided as\n"
         "                          \"0 0 0  0 0 0  1 1 1  0 0 0\" for instance or by\n"
         "                          using the word \"IDENTITY\"\n"
-        "                  * This option is for testing purposes.\n"
+        "                  * This option is for testing purposes (even more 'fun').\n"
+       ) ;
+
+       printf("\n"
+        "===========================================================================\n" );
+       printf("\n"
+        "Too Much Detail -- How Local Pearson Correlations Are Computed and Used\n"
+        "-----------------------------------------------------------------------\n"
+        " * The automask region of the base dataset is divided into a discrete\n"
+        "    set of 'bloks'. Usually there are several thousand bloks.\n"
+        " * In each blok, the voxel values from the base and the source (after\n"
+        "    the alignment transformation is applied) are extracted and the\n"
+        "    correlation coefficient is computed -- either weighted or unweighted,\n"
+        "    depending on the options used in 3dAllineate (usually weighted).\n"
+        " * Let p[i] = correlation coefficient in blok #i,\n"
+        "       w[i] = sum of weights used in blok #i, or = 1 if unweighted.\n"
+        "** The values of p[i] are what get output via the '-PearSave' option.\n"
+        " * Define pc[i] = arctanh(p[i]) = 0.5 * log( (1+p[i]) / (1-p[i]) )\n"
+        "     This expression is designed to 'stretch' out larger correlations,\n"
+        "     giving them more emphasis in psum below. The same reasoning\n"
+        "     is why p[i]*abs(p[i]) is used below, to make bigger correlations\n"
+        "     have a bigger impact in the final result.\n"
+        " * psum = SUM_OVER_i { w[i]*p[i]*abs(p[i]) }\n"
+        "   wsum = SUM_OVER_i { w[i] }\n"
+        "   lpc  = psum / wsum   ==> negative correlations are good (smaller lpc)\n"
+        "   lpa  = 1 - abs(lpc)  ==> positive correlations are good (smaller lpa)\n"
        ) ;
 
        printf("\n"
@@ -4798,6 +4855,11 @@ STATUS("zeropad weight dataset") ;
            fprintf(stderr,"   %-4s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
 
+         if( do_allcost == -1 ){
+           SAVE_PEARSON_MAP(save_pearson_prefix,val_init) ;
+           do_save_pearson_map == 0 ;
+         }
+
          if( save_hist != NULL ) SAVEHIST("allcost_init",0) ;
          if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
 
@@ -5269,6 +5331,9 @@ STATUS("zeropad weight dataset") ;
      }
 
      if( do_save_pearson_map ){  /*-- Save Pearson map [25 Jan 2021] --*/
+       SAVE_PEARSON_MAP(save_pearson_prefix,val_out) ;
+       do_save_pearson_map == 0 ;
+#if 0
        MRI_IMAGE *pim ;
        PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
        pim = mri_genalign_map_pearson_local( &stup , allpar ) ;
@@ -5286,6 +5351,7 @@ STATUS("zeropad weight dataset") ;
        } else {
            ERROR_message("Failed to create -PearSave volume :(") ;
        }
+#endif
      }
 
 #if 0

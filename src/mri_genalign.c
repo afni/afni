@@ -1461,10 +1461,26 @@ ENTRY("mri_genalign_map_pearson_local") ;
 
    /* check for malignancy */
 
-   if( stup == NULL || stup->blokset == NULL || stup->setup != SMAGIC ) RETURN(NULL) ;
+   if( stup == NULL || stup->setup != SMAGIC ) RETURN(NULL) ;
 
    GA_param_setup(stup) ;
    if( stup->wfunc_numfree <= 0 ) RETURN(NULL);
+
+   if( stup->blokset == NULL ){  /* Create blokset if not done before */
+     float rad=stup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
+     if( stup->smooth_code > 0 && stup->smooth_radius_base > 0.0f )
+       rad = sqrt( rad*rad + SQR(stup->smooth_radius_base) ) ;
+     mrad = 1.2345f*(stup->base_di + stup->base_dj + stup->base_dk) ;
+     rad  = MAX(rad,mrad) ;
+     if( stup->im != NULL ) ima = stup->im->ar ;
+     if( stup->jm != NULL ) jma = stup->jm->ar ;
+     if( stup->km != NULL ) kma = stup->km->ar ;
+     stup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
+                            stup->bsim->nx, stup->bsim->ny, stup->bsim->nz,
+                            stup->base_di , stup->base_dj , stup->base_dk ,
+                            stup->npt_match , ima,jma,kma ,
+                            stup->bloktype , rad , stup->blokmin , 1.0f,mverb ) ;
+   }
 
 /** INFO_message("mri_genalign_map_pearson_local: input parameters") ; **/
 

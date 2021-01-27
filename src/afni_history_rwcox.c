@@ -49,6 +49,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , JAN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Enhance -PearSave option" ,
+   "Now it works with -allcostX to give the LPC values at the start of the\n"
+   "run, instead of only at the end.\n"
+   "Now it works with any cost functional, say '-hel', instead of '-lpc' and\n"
+   "'-lpa'. That is, you can get the local Pearson stuff even if it isn't\n"
+   "actually used in the optimization." } ,
+
  { 26 , JAN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
    "New -PearSave option" ,
    "Saves the local Pearson correlations into a dataset at the end of an\n"
