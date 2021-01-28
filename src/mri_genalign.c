@@ -371,8 +371,8 @@ void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
+   int nblok , nelm , *elm , dd , ii,jj , nm , use_ppow=0 ;
+   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f , pabs,ppow=1.0f ;
    static int uwb=-1 , wsold=0 ;  /* flags set by the environment */
 
 ENTRY("GA_pearson_local") ;
@@ -398,6 +398,7 @@ ENTRY("GA_pearson_local") ;
    gbs   = gstup->blokset ;
    nblok = gbs->num ;
    if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
+   ppow  = gbs->ppow ; use_ppow = (ppow != 1.0f) ;  /* 28 Jan 2021 */
 
    if( uwb < 0 ){
      uwb   = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
@@ -447,7 +448,9 @@ ENTRY("GA_pearson_local") ;
           if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
      else if( pcor < -CMAX ) pcor = -CMAX ;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
-     psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
+     pabs = fabsf(pcor) ;
+     if( use_ppow ) pabs = powf(pabs,ppow) ;        /* 28 Jan 2021 */
+     psum += ws * pcor * pabs ;                     /* emphasize large values */
      if( !wsold ) wss += ws ;                       /* moved here 02 Mar 2010 */
    }
 

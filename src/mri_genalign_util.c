@@ -1451,6 +1451,9 @@ ENTRY("create_GA_BLOK_set") ;
    }
    free(nelm) ; free(elm) ;
 
+   gbs->ppow = AFNI_numenv("AFNI_LPC_POWER") ;   /* 28 Jan 2021 */
+   if( gbs->ppow <= 0.0f || gbs->ppow > 2.0f ) gbs->ppow = 1.0f ;
+
    gbs->nx = nx ; gbs->ny = ny ; gbs->nz = nz ;  /* Biden Day 3 */
    gbs->dx = dx ; gbs->dy = dy ; gbs->dz = dz ;
 

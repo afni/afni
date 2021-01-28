@@ -1964,8 +1964,8 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
-typedef struct { int num , *nelm , **elm ;
-                 int nx,ny,nz ; float dx,dy,dz ; } GA_BLOK_set ;
+typedef struct { int num , *nelm , **elm;
+                 int nx,ny,nz; float dx,dy,dz; float ppow; } GA_BLOK_set ;
 
 /** delete a GA_BLOK_set struct and its contents **/
 
