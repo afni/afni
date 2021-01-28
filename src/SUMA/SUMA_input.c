@@ -3,12 +3,12 @@
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane){
     static int  planeIndex;
-    static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,0,90,0};
-    static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,90};
+    static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
+    static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
     static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
     static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,-1.0,0.0,0.0,0.0,0.0};
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
-    static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,0,0,0};
+    static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,1,1,1};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
     char chrTmp[64];
     int isv;
