@@ -4333,8 +4333,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 // This sets up a new clip plane (independent of the dialog box.  If called with
                 //  the dialog box, two clipping planes result.)  The new plane is automatically
                 //  assigned a label which is its 1-based index
-                sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
+                if (SUMAg_CF->N_ClipPlanes>=6){
+                    fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
+                } else {
+                    sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
+                }
             } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
