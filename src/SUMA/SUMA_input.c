@@ -17,7 +17,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
-    if (activePlane >0 ){
+    if (activePlane >=0 ){
         if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
@@ -4843,6 +4843,38 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_S_Notev("!!!!!!!!!!!!!!%d!!!!!!!\n", sv->Do_3Drender);
             break;
          #endif
+
+         // alt-<number> keys, where number in [1,6] select the clipping plane by index
+         case XK_1:
+            if (SUMAg_CF->N_ClipPlanes>=1 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,0);
+            }
+            break;
+         case XK_2:
+            if (SUMAg_CF->N_ClipPlanes>=2 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,1);
+            }
+            break;
+         case XK_3:
+            if (SUMAg_CF->N_ClipPlanes>=3 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,2);
+            }
+            break;
+         case XK_4:
+            if (SUMAg_CF->N_ClipPlanes>=4 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,3);
+            }
+            break;
+         case XK_5:
+            if (SUMAg_CF->N_ClipPlanes>=5 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,4);
+            }
+            break;
+         case XK_6:
+            if (SUMAg_CF->N_ClipPlanes>=6 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,5);
+            }
+            break;
          case XK_8:
             {
                char stmp[100];
