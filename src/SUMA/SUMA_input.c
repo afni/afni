@@ -3,10 +3,10 @@
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane){
     static int  planeIndex;
-    static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,0,0,0,0,0};
-    static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,0,0,0,0};
-    static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,0.0,0.0,0.0,0.0};
-    static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,0.0,0.0,0.0,0.0};
+    static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,0,90,0};
+    static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,90};
+    static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
+    static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,-1.0,0.0,0.0,0.0,0.0};
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
     static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,0,0,0};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
@@ -18,8 +18,8 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
     if (activePlane >0 ){
-        if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane/* - 1*/;
-        else  planeIndex = SUMAg_CF->N_ClipPlanes/* - 1*/;
+        if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
+        else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
 
     if (flip){
@@ -4330,16 +4330,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      "Enter object clip plane parameters (a,b,c,d)",
                      SUMAg_CF->X->ClipObj_prmpt);
 /**/
-                // This sets up a new clip plane independent of the dialog box.  If called with
-                //  the dialog box, two clipping planes result
-                fprintf(stderr, "1: Num planes = %d\n", SUMAg_CF->N_ClipPlanes);
-                //++(SUMAg_CF->N_ClipPlanes);
-                //fprintf(stderr, "2: Num planes = %d\n", SUMAg_CF->N_ClipPlanes);
+                // This sets up a new clip plane (independent of the dialog box.  If called with
+                //  the dialog box, two clipping planes result.)  The new plane is automatically
+                //  assigned a label which is its 1-based index
                 sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                 clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
-                fprintf(stderr, "3: Num planes = %d\n", SUMAg_CF->N_ClipPlanes);
-                // --(SUMAg_CF->N_ClipPlanes);
-                //fprintf(stderr, "4: Num planes = %d\n", SUMAg_CF->N_ClipPlanes);
             } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
