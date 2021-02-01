@@ -1,14 +1,15 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane){
+void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
+    int activePlane){
     static int  planeIndex;
     static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
     static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
     static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
     static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,-1.0,0.0,0.0,0.0,0.0};
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
-    static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,1,1,1};
+    static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,50,50,50};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
     char chrTmp[64];
     int isv;
@@ -4333,7 +4334,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 // This sets up a new clip plane (independent of the dialog box.  If called with
                 //  the dialog box, two clipping planes result.)  The new plane is automatically
                 //  assigned a label which is its 1-based index
-                if (SUMAg_CF->N_ClipPlanes>=6){
+                if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
+                    fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
+                    for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
+                    }
+                } else if (SUMAg_CF->N_ClipPlanes>=6){
                     fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
                 } else {
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
