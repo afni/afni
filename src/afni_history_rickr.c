@@ -387,11 +387,6 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
-   "add initial NT parameter",
-   NULL
- } ,
-
  { 16, Jul, 2020, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "update for shared libmri.so: linux_centos_7_64, linux_ubuntu_16_64",
    NULL
@@ -5050,7 +5045,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
+   "madd initial NT parametercw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
    "Apparently it does not like inconsistent declaration in same file,\n"
    "and mcw_malloc.h does not offer prototypes to many functions in the\n"
    "case of DONT_USE_MCW_MALLOC, including this one."
