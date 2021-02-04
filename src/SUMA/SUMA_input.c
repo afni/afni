@@ -2,7 +2,7 @@
 #include "SUMA_plot.h"
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
-    int activePlane){
+    int activePlane, Bool toggleOffOn){
     static int  planeIndex;
     static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
     static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
@@ -11,10 +11,18 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
     static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,50,50,50};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
+    static Bool active[6] = {1,1,1,1,1,1};
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
     Widget w;
+
+    // Turn clipping plane on or off as required
+    fprintf(stderr, "toggleOffOn = %d\n", toggleOffOn);    // Debug
+    fprintf(stderr, "planeIndex = %d\n", planeIndex);    // Debug
+    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
+    // if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
+    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
@@ -54,7 +62,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
     sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
-        planeC[planeIndex], planeD[planeIndex]);
+        planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
     // fprintf(stderr, "chrTmp = %s\n", chrTmp);    // Debug
     SUMA_SetObjectClip(chrTmp, sv);
 }
@@ -3179,7 +3187,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(1, 0, 0, 0, -1);
+                clipPlaneTransform(1, 0, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
                /* Posterior view ctrl+shift+up*/
@@ -3304,7 +3312,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(-1, 0, 0, 0, -1);
+                clipPlaneTransform(-1, 0, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
                /* Posterior view ctrl+shift+down*/
@@ -3423,7 +3431,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, -1, 0, 0, -1);
+                clipPlaneTransform(0, -1, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -3534,7 +3542,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 1, 0, 0, -1);
+                clipPlaneTransform(0, 1, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -4312,7 +4320,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
-            if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
+            if ((SUMA_ALTHELL)){
             /* Remove clip plane dialog from SUMA GUI
                 SUMAg_CF->X->ClipObj_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
@@ -4338,13 +4346,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
                     for (int planeIndex=0; planeIndex<6; ++planeIndex){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
                     }
                 } else if (SUMAg_CF->N_ClipPlanes>=6){
                     fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
                 } else {
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes);
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
                 }
             } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
@@ -4489,7 +4497,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_f:
             if (SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){    // PDL: Flip clipping plane
-                clipPlaneTransform(0,0,0,1,-1);
+                clipPlaneTransform(0,0,0,1,-1, 0);
             } else {
                 /* Show/hide the foreground */
                 if (!list) list = SUMA_CreateList();
@@ -4853,33 +4861,33 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          // alt-<number> keys, where number in [1,6] select the clipping plane by index
          case XK_1:
-            if (SUMAg_CF->N_ClipPlanes>=1 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,0);
+            if (SUMAg_CF->N_ClipPlanes>=1 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,0, 0);
             }
             break;
          case XK_2:
-            if (SUMAg_CF->N_ClipPlanes>=2 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,1);
+            if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,1, 0);
             }
             break;
          case XK_3:
-            if (SUMAg_CF->N_ClipPlanes>=3 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,2);
+            if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,2, 0);
             }
             break;
          case XK_4:
-            if (SUMAg_CF->N_ClipPlanes>=4 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,3);
+            if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,3, 0);
             }
             break;
          case XK_5:
-            if (SUMAg_CF->N_ClipPlanes>=5 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,4);
+            if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,4, 0);
             }
             break;
          case XK_6:
-            if (SUMAg_CF->N_ClipPlanes>=6 && SUMAg_CF->Dev && (SUMA_ALTHELL)){
-                clipPlaneTransform(0,0,0,0,5);
+            if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){
+                clipPlaneTransform(0,0,0,0,5, 0);
             }
             break;
          case XK_8:
@@ -5392,7 +5400,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
             if (pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -1, 0,-1);
+                clipPlaneTransform(0, 0, -1, 0,-1, 0);
             } else {
 
                 if (pButton==6 || Bev.state & ShiftMask) {
@@ -5493,7 +5501,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
             if (pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, 1, 0,-1);
+                clipPlaneTransform(0, 0, 1, 0,-1, 0);
            } else {
 
                 if (pButton==7 || Bev.state & ShiftMask) {
