@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New QC image, of affine warping.",
+   "Also pass along '-echo' opt to modal smoo/report script.\n"
+},
+
 { 27, Jan , 2021 , PT , "3dAttribute" , MINOR , TYPE_GENERAL,
    "Update help to have fancy sections and more examples.",
    "Also provide link to README.attributes file, for user reference.\n"

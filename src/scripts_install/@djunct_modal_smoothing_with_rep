@@ -90,8 +90,6 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-echo" ) then
         set echo
 
-    
-
     else
         echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
         goto BAD_EXIT
