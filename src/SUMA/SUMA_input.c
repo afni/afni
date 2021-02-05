@@ -21,7 +21,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     fprintf(stderr, "toggleOffOn = %d\n", toggleOffOn);    // Debug
     fprintf(stderr, "planeIndex = %d\n", planeIndex);    // Debug
     fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
-    // if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
+    if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
     fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
@@ -4861,32 +4861,44 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          // alt-<number> keys, where number in [1,6] select the clipping plane by index
          case XK_1:
-            if (SUMAg_CF->N_ClipPlanes>=1 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=1 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,0, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=1 && (SUMA_ALTHELL)){    // Select clipping plane 1
                 clipPlaneTransform(0,0,0,0,0, 0);
             }
             break;
          case XK_2:
-            if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=2 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,1, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){        // Select clipping plane 2
                 clipPlaneTransform(0,0,0,0,1, 0);
             }
             break;
          case XK_3:
-            if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=3 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,2, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){        // Select clipping plane 3
                 clipPlaneTransform(0,0,0,0,2, 0);
             }
             break;
          case XK_4:
-            if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=4 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,3, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){        // Select clipping plane 4
                 clipPlaneTransform(0,0,0,0,3, 0);
             }
             break;
          case XK_5:
-            if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=5 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,4, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){        // Select clipping plane 5
                 clipPlaneTransform(0,0,0,0,4, 0);
             }
             break;
          case XK_6:
-            if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){
+            if (SUMAg_CF->N_ClipPlanes>=6 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                clipPlaneTransform(0,0,0,0,5, 1);
+            } else if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){        // Select clipping plane 6
                 clipPlaneTransform(0,0,0,0,5, 0);
             }
             break;
