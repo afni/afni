@@ -43,6 +43,8 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define APPLY_PARAM   1   /* 23 Jul 2007 */
 #define APPLY_AFF12   2
 
+/*** parameter counts for the obsolescent -nwarp option ***/
+
 #define NPBIL          39 /* plus 4 */
 #define WARP_BILINEAR 661
 #define APPLY_BILIN     3
@@ -67,13 +69,16 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 #define NONLINEAR_APPLY(aa) ( (aa) >= APPLY_BILIN )
 
+/****/
+
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
-static int   doing_2D     = 0 ;       /* 28 Apr 2020 */
-
-static int verb = 1 ; /* somewhat on by default */
-
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ); /* prototype */
+
+static int  doing_2D = 0 ; /* 28 Apr 2020: 2D registration */
+static int  verb     = 1 ; /* somewhat on by default */
+
+/* for checking how far 2 sets of parameters are apart from each other */
 
 float param_dist( GA_setup *stp , float *aa , float *bb ) ;      /* prototype */
 
@@ -101,6 +106,8 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 #define ALLOW_METH_CHECK   /* for the -check option: 03 Apr 2008 */
 
 /*----------------------------------------------------------------------------*/
+/*** Stuff that defines the method codes and name ***/
+
 #undef  NMETH
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
@@ -547,7 +554,7 @@ int main( int argc , char *argv[] )
 
    int do_xflip_bset           = 0 ;             /* 18 Jun 2019 */
 
-#undef ALLOW_UNIFIZE
+#undef ALLOW_UNIFIZE   /* I decided this was a bad idea */
 #ifdef ALLOW_UNIFIZE
    int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
    int do_unifize_targ         = 0 ;             /* not implemented */
@@ -2124,7 +2131,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dAllineate"); machdep();
    AFNI_logger("3dAllineate",argc,argv);
    PRINT_VERSION("3dAllineate"); AUTHOR("Zhark the Registrator");
-   THD_check_AFNI_version("3dAllineate");
+   THD_check_AFNI_version("3dAllineate"); /* no longer does anything */
    (void)COX_clock_time() ;
 
    /*-- initialize -final interp from environment? [25 Nov 2018] --*/
@@ -3449,6 +3456,7 @@ int main( int argc , char *argv[] )
    /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
 
+   /* set random seed */
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 
@@ -3486,6 +3494,8 @@ int main( int argc , char *argv[] )
       "-lpc or -lpa cost functionals do NOT work well with 2D images :(") ;
    }
 
+   /* set histogram mode (for computing -hel, -mi, -cr, etc) */
+
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
      switch( meth_code ){
        case GA_MATCH_PEARSON_LOCALS:
@@ -3501,6 +3511,8 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /* if the user wants to see all cost functional values */
+
    if( do_allcost < 0 && prefix != NULL ){  /* 19 Sep 2007 */
      prefix = NULL ;
      WARNING_message("-allcostX means -prefix is ignored :-(") ;
@@ -3514,7 +3526,11 @@ int main( int argc , char *argv[] )
      WARNING_message("-allcostX means -1Dmatrix_save is ignored :-(") ;
    }
 
+   /* I don't think anyone uses this option */
+
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
+
+   /* applying an input transformation from -nwarp: obsolescent code */
 
    if( apply_mode > 0 && nwarp_pass ){
      switch( nwarp_type ){
@@ -3597,7 +3613,7 @@ int main( int argc , char *argv[] )
      if( verb ) WARNING_message("-check disabled because of -nwarp") ;
    }
 
-   /* open target from last argument, if not already open */
+   /** open target/source from last argument, if not already open **/
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
@@ -3606,6 +3622,8 @@ int main( int argc , char *argv[] )
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
+
+   /* speak to the user? */
 
    if( verb ){
      INFO_message("Source dataset: %s",DSET_HEADNAME(dset_targ)) ;
@@ -3628,7 +3646,7 @@ int main( int argc , char *argv[] )
 
    if( replace_base && DSET_NVALS(dset_targ) == 1 ) replace_base = 0 ;
 
-   /* check target data type */
+   /** check target data type **/
 
    targ_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
    if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte ){
@@ -3671,7 +3689,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /* if no base input, target should have more than 1 sub-brick */
+   /** if no base input, target should have more than 1 sub-brick **/
 
    if( dset_base == NULL && apply_1D == NULL ){
      if( DSET_NVALS(dset_targ) == 1 )
@@ -3680,6 +3698,8 @@ int main( int argc , char *argv[] )
      WARNING_message("No -base dataset: using sub-brick #0 of source") ;
      skip_first = 1 ;  /* don't register sub-brick #0 of targ to itself! */
    }
+
+   /** check on interpolation codes **/
 
    if( final_interp < 0 ) final_interp = interp_code ;  /* not used */
 
@@ -3700,7 +3720,7 @@ int main( int argc , char *argv[] )
 
    if( do_save_pearson_map && dset_base == NULL ){
      WARNING_message(
-           "-PearSave option disabled -- you did not input a base dataset") ;
+           "-PearSave option disabled -- you did not input a base dataset :(") ;
      do_save_pearson_map = 0 ;
    }
 
@@ -3761,6 +3781,7 @@ int main( int argc , char *argv[] )
    /*-- load base dataset if defined --*/
 
    if( dset_base != NULL ){
+
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
@@ -3773,7 +3794,9 @@ int main( int argc , char *argv[] )
      dz_base = fabsf(DSET_DZ(dset_base)) ;
      if( im_base->nx < 2 || im_base->ny < 2 )
        ERROR_exit("Base dataset has nx=%d ny=%d ???",im_base->nx,im_base->ny) ;
-   } else {
+
+   } else {  /* no -base, so use target[0] as the base image */
+
      if( apply_mode == 0 )
        INFO_message("no -base option ==> base is #0 sub-brick of source") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
@@ -3784,12 +3807,17 @@ int main( int argc , char *argv[] )
      if( do_cmass && apply_mode == 0 ){   /* 30 Jul 2007 */
        INFO_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
      }
+
    }
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   /* 2D image registration? */
+
    doing_2D = (nz_base == 1) ;          /* 28 Apr 2020 */
+
+   /* check if there is some substance to the base image */
 
    if( !APPLYING ){                     /* 13 Mar 2017 */
      nnz = mri_nonzero_count(im_base) ;
@@ -3810,10 +3838,14 @@ int main( int argc , char *argv[] )
    if( nx_base < 9 || ny_base < 9 )
      ERROR_exit("Base volume i- and/or j-axis dimension < 9") ;
 
+   /* largest grid spacing */
+
    dxyz_top = dx_base ;
    dxyz_top = MAX(dxyz_top,dy_base) ; dxyz_top = MAX(dxyz_top,dz_base) ;
    dxyz_top = MAX(dxyz_top,dx_targ) ;
    dxyz_top = MAX(dxyz_top,dy_targ) ; dxyz_top = MAX(dxyz_top,dz_targ) ;
+
+   /* crop off negative voxels in the base */
 
    if( do_zclip ){
      float *bar = MRI_FLOAT_PTR(im_base) ;
@@ -3835,8 +3867,7 @@ int main( int argc , char *argv[] )
       INFO_message("3dAllineate: x-flipped base dataset") ;
    }
 
-
-   /* find the autobbox, and setup zero-padding */
+   /*-- find the autobbox, and setup zero-padding --*/
 
 #undef  MPAD
 #define MPAD 8
@@ -3916,6 +3947,8 @@ int main( int argc , char *argv[] )
 
      }
    }
+
+   /* dimensions of the (possibly padded) base image */
 
    nxyz_base[0] = nx_base; nxyz_base[1] = ny_base; nxyz_base[2] = nz_base;
    dxyz_base[0] = dx_base; dxyz_base[1] = dy_base; dxyz_base[2] = dz_base;
@@ -4006,9 +4039,10 @@ int main( int argc , char *argv[] )
    if( doing_2D && nwarp_pass && !NONLINEAR_IS_POLY(nwarp_type) )
      ERROR_exit("Can't use non-polynomial -nwarp on 2D images :-(") ;
 
-   /* load weight dataset if defined */
+   /*-- load weight dataset if defined --*/
 
    if( dset_weig != NULL ){
+
 STATUS("load weight dataset") ;
      DSET_load(dset_weig) ; CHECK_LOAD_ERROR(dset_weig) ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
@@ -4038,7 +4072,8 @@ STATUS("zeropad weight dataset") ;
        for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
      }
 
-   } else if( auto_weight ){  /* manufacture weight from the base */
+   } else if( auto_weight ){ /* manufacture weight from base = the USUAL case */
+
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
        WARNING_message("Cost function '%s' ('%s') uses -automask NOT -autoweight",
                        meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
@@ -4091,7 +4126,7 @@ STATUS("zeropad weight dataset") ;
    }
    if( usetemp ) mri_purge(im_mask) ;
 
-   /* save weight? */
+   /* save weight into a dataset? */
 
    if( wtprefix != NULL && im_weig != NULL ){
      THD_3dim_dataset *wset ;
@@ -4115,7 +4150,9 @@ STATUS("zeropad weight dataset") ;
    /* initialize ntask, regardless     26 Aug 2008 [rickr] */
    ntask = DSET_NVOX(dset_targ) ;
    ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
-   /* number of points to use for matching */
+
+   /* number of points to use for matching base to target */
+
    if( nmask_frac < 0 ){
       if( npt_match < 0     ) npt_match = (int)(-0.01f*npt_match*ntask) ;
       if( npt_match < 9999  ) npt_match = 9999 ;
@@ -4145,6 +4182,7 @@ STATUS("zeropad weight dataset") ;
    /* base coordinates are drawn from it's header, or are same as target */
 
    if( dset_base != NULL ){
+
      float bdet , tdet ;
 
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
@@ -4172,6 +4210,7 @@ STATUS("zeropad weight dataset") ;
        ININFO_message(
          "    - But it is always important to check the alignment visually to be sure." ) ;
      }
+
    } else {
      stup.base_cmat = stup.targ_cmat ;
    }
@@ -4228,6 +4267,8 @@ STATUS("zeropad weight dataset") ;
      warp_code = WARP_AFFINE ;
    }
 
+   /* how many parameters will be used for affine transformation (3D) */
+
    switch( warp_code ){
      case WARP_SHIFT:  stup.wfunc_numpar =  3; strcpy(warp_code_string,"shift_only")        ; break;
      case WARP_ROTATE: stup.wfunc_numpar =  6; strcpy(warp_code_string,"shift_rotate")      ; break;
@@ -4267,9 +4308,11 @@ STATUS("zeropad weight dataset") ;
 
    /*-- compute range of shifts allowed --*/
 
-   xxx = 0.321f * (nx_base-1) ;
+   xxx = 0.321f * (nx_base-1) ; /* about 1/3 of base */
    yyy = 0.321f * (ny_base-1) ;
    zzz = 0.321f * (nz_base-1) ; xxx_m = yyy_m = zzz_m = 0.01f ;
+   /* transform 8 corners of a cube from index space to DICOM */
+   /* space, and then find largest coordinates that happen */
    for( ii=-1 ; ii <= 1 ; ii+=2 ){
     for( jj=-1 ; jj <= 1 ; jj+=2 ){
       for( kk=-1 ; kk <= 1 ; kk+=2 ){
@@ -4357,6 +4400,8 @@ STATUS("zeropad weight dataset") ;
      xc = yc = zc = 0.0f ; /* pleonastic, to be safe */
    }
 
+   /*-- smaller than normal range for parameter search? --*/
+
    if( do_small ){ xxx *= 0.5f ; yyy *= 0.5f ; zzz *= 0.5f ; }
    xxx_p = xc + xxx ; xxx_m = xc - xxx ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
@@ -4367,6 +4412,8 @@ STATUS("zeropad weight dataset") ;
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
    /*-- we now define all 12 affine parameters, though not all may be used --*/
+
+   /* shifts = the first 3 */
 
    DEFPAR( 0, "x-shift" , xxx_m , xxx_p , 0.0 , 0.0 , 0.0 ) ;    /* mm */
    DEFPAR( 1, "y-shift" , yyy_m , yyy_p , 0.0 , 0.0 , 0.0 ) ;
@@ -4379,18 +4426,22 @@ STATUS("zeropad weight dataset") ;
 
    { float rval,sval ;
 
+     /* angles = the next 3 */
+
      rval = (do_small) ? 15.0f : 30.0 ;
      DEFPAR( 3, "z-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
      DEFPAR( 4, "x-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
      DEFPAR( 5, "y-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
 
-     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
+     /* scales = the next 3 */
 
+     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
      DEFPAR( 6, "x-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /* identity */
      DEFPAR( 7, "y-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
      DEFPAR( 8, "z-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;
 
-     /* the code below (for shear params) was modified 16 Jul 2014, to
+     /* shears = the final 3:
+        The code below (for shear params) was modified 16 Jul 2014, to
         correct the labels (per user Mingbo) for the various EPI/FPS cases;
         see the usage of the 'a', 'b', 'c' parameters in defining the shear
         matrix 'ss' in function GA_setup_affine() in file mri_genalign.c.  */
@@ -4408,6 +4459,8 @@ STATUS("zeropad weight dataset") ;
        DEFPAR( 11, clab , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
      }
    }
+
+   /*-- adjustments for 2D images --*/
 
    if( twodim_code > 0 ){               /* 03 Dec 2010 */
      int i1=0,i2=0,i3=0,i4=0,i5=0,i6=0 ;
@@ -4485,7 +4538,7 @@ STATUS("zeropad weight dataset") ;
      }
    }
 
-   /* check to see if we have free parameters so we can actually do something */
+   /*-- check to see if we have free parameters so we can actually do something --*/
 
    for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* count free params */
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
@@ -4504,8 +4557,9 @@ STATUS("zeropad weight dataset") ;
      }
    }
 
-   /*-- set convergence radius for parameter search --*/
+   /*-- set normalized convergence radius for parameter search --*/
 
+   /* get size of box we are dealing with */
    if( im_weig == NULL ){
      xsize = xxx = 0.5f * (nx_base-1) * dx_base ;
      ysize = yyy = 0.5f * (ny_base-1) * dy_base ;
@@ -4524,20 +4578,23 @@ STATUS("zeropad weight dataset") ;
      ysize = yyy = 0.5f * (yp-ym) * dy_base ;
      zsize = zzz = 0.5f * (zp-zm) * dz_base ;
    }
+   /* convert box size to a single size */
    xxx = (nz_base > 1) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
-   zzz = 0.01f ;
-   for( jj=0 ; jj < 9 && jj < stup.wfunc_numpar ; jj++ ){
-     if( stup.wfunc_param[jj].fixed ) continue ;
-     siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ;
+   zzz = 0.01f ;  /* smallest normalized value */
+   for( jj=0 ; jj < 9 && jj < stup.wfunc_numpar ; jj++ ){ /* loop over params */
+     if( stup.wfunc_param[jj].fixed ) continue ;             /* except shears */
+     siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ; /* par range */
      if( siz <= 0.0f ) continue ;
-          if( jj < 3 ) yyy = conv_mm / siz ;               /* shift */
-     else if( jj < 6 ) yyy = 57.3f * conv_mm / (xxx*siz) ; /* angle */
-     else              yyy = conv_mm / (xxx*siz) ;         /* scale */
-     zzz = MIN(zzz,yyy) ;
+        /* normalization = conv_mm scaled by mm size of the param range since */
+        /*    optimization is done on unitless params scaled to [-1..1] range */
+          if( jj < 3 ) yyy = conv_mm / siz ;                   /* shift param */
+     else if( jj < 6 ) yyy = 57.3f * conv_mm / (xxx*siz) ;     /* angle param */
+     else              yyy = conv_mm / (xxx*siz) ;             /* scale param */
+     zzz = MIN(zzz,yyy) ;               /* smallest scaled value found so far */
    }
-   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.000005f) ;
+   conv_rad = MIN(zzz,0.001f); conv_rad = MAX(conv_rad,0.000005f);  /* limits */
    if( verb > 1 && apply_mode == 0 )
-     INFO_message("Normalized convergence radius = %.7f",conv_rad) ;
+     INFO_message("Normalized (unitless) convergence radius = %.7f",conv_rad) ;
 
    /*-- print parameter ranges [10 Mar 2020] --*/
 
@@ -4554,7 +4611,7 @@ STATUS("zeropad weight dataset") ;
 
    /*-- special case: 04 Apr 2008 --*/
 
-   switch( apply_mode ){
+   switch( apply_mode ){  /* all this is for -nwarp inputs (obsolescent) */
      default:                                  break ;
      case APPLY_BILIN: SETUP_BILINEAR_PARAMS ; break ;
      case APPLY_CUBIC: SETUP_CUBIC_PARAMS    ; break ;
@@ -4664,7 +4721,7 @@ STATUS("zeropad weight dataset") ;
 
 /* macros useful for verbosity */
 
-#undef  PARDUMP
+#undef  PARDUMP  /* xxx = field name in param */
 #define PARDUMP(ss,xxx)                                     \
   do{ fprintf(stderr," + %s Parameters =",ss) ;             \
       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
@@ -4696,6 +4753,8 @@ STATUS("zeropad weight dataset") ;
   do{ for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) \
         allpar[jj] = stup.wfunc_param[jj].xxx ;   \
   } while(0)
+
+/* for the final output of parameters, with commentary */
 
 #undef  PARLIST
 #define PARLIST(ss,xxx)                                     \
@@ -4753,6 +4812,7 @@ STATUS("zeropad weight dataset") ;
       matsave = (mat44 * )calloc(sizeof(mat44),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
    }
 
+/* as you might guess, this is for saving joint histogram to a file */
 #undef  SAVEHIST
 #define SAVEHIST(nnn,docc)                                                 \
  do{ int nbin ; float *xyc ;                                               \
@@ -4821,7 +4881,9 @@ STATUS("zeropad weight dataset") ;
        THD_delete_3dim_dataset(uset,True) ;
      }
    } /* end of -unifize_base */
-#endif
+#endif  /* ALLOW_UNIFIZE */
+
+   /* for filling the outside of the target mask with random crap */
 
    stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){
@@ -4829,6 +4891,8 @@ STATUS("zeropad weight dataset") ;
      mri_free(im_tmask) ; im_tmask = NULL ;           /* is copied inside */
      if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
    }
+
+   /* for the overlap portion of lpc+ and lpa+ */
 
    if( !APPLYING && micho_ov != 0.0 ){
      byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
@@ -4855,13 +4919,15 @@ STATUS("zeropad weight dataset") ;
          meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
+   /*------ process the target dataset volumes, one at a time ------*/
+
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
 
      stup.match_code = meth_code ;
 
-     ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate */
+     ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate the matrix */
 
-     bfac = DSET_BRICK_FACTOR(dset_targ,kk) ;  /* 14 Oct 2008 */
+     bfac = DSET_BRICK_FACTOR(dset_targ,kk) ;  /* sub-brick scale factor [14 Oct 2008] */
 
      skipped = 0 ;
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
@@ -4880,7 +4946,7 @@ STATUS("zeropad weight dataset") ;
        skipped = 1 ; goto WRAP_IT_UP_BABY ;
      }
 
-     /* make copy of target brick, and deal with that */
+     /*-- make copy of target brick, and process that --*/
 
      /* show if verbose, else use light output     7 Jul 2017 [rickr] */
      if( verb > 1 )
@@ -4900,14 +4966,18 @@ STATUS("zeropad weight dataset") ;
 
      if( targ_was_vector ){  /* 12 May 2020 (for RGB images) */
        if( im_targ_vector != NULL ) mri_free(im_targ_vector) ;
-       im_targ_vector = mri_copy( DSET_BRICK(dset_targ,kk) ) ;
+       im_targ_vector = mri_copy( DSET_BRICK(dset_targ,kk) ) ;  /* for use at end */
      }
-     DSET_unload_one(dset_targ,kk) ;
+     DSET_unload_one(dset_targ,kk) ; /* it's been copied in, so can unload it now */
+
+     /* clip off negative values from the target? */
 
      if( do_zclip ){
        float *bar = MRI_FLOAT_PTR(im_targ) ;
        for( ii=0 ; ii < im_targ->nvox ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
      }
+
+     /* check for empty-ish volume */
 
      nnz = mri_nonzero_count(im_targ) ;
      if( nnz < 66 )
@@ -4915,6 +4985,7 @@ STATUS("zeropad weight dataset") ;
                        kk , nnz , (nnz==1) ? "\0" : "s" ) ;
 
      /*** if we are just applying input parameters, set up for that now ***/
+     /*** we set output params as if they had been found by optimizing  ***/
 
      if( apply_1D != NULL ){
        int rr=kk ;
@@ -4946,6 +5017,8 @@ STATUS("zeropad weight dataset") ;
        }
        goto WRAP_IT_UP_BABY ;
      }
+
+     /*--- at this point, am actually going to do optimization ---*/
 
      /* initialize parameters (for the -onepass case) */
 
@@ -5026,11 +5099,14 @@ STATUS("zeropad weight dataset") ;
 
      didtwo = 0 ;
      if( twopass && (!twofirst || !tfdone) ){
+
        int tb , ib , ccode , nrand ; char *eee ;
+
        if( verb ) INFO_message("*** Coarse pass begins ***") ;
+       /* used to do NN in the coarse pass, but found than Linear worked better */
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
-       stup.npt_match   = ntask / 15 ;
+       stup.npt_match   = ntask / 15 ;  /* small number of matching points */
        if( stup.npt_match < nmatch_setup ) stup.npt_match = nmatch_setup;
 
        stup.smooth_code        = sm_code ;
@@ -5047,15 +5123,15 @@ STATUS("zeropad weight dataset") ;
 
        /*- search for coarse start parameters, then optimize them? -*/
 
-       if( tbest > 0 ){  /* default tbest==4 */
+       if( tbest > 0 ){  /* default tbest==5 */
          int nrefine ;
 
          if( verb > 1 ) ININFO_message("- Search for coarse starting parameters") ;
 
          /* startup search only allows up to 6 parameters, so freeze excess */
 
-         eee = my_getenv("AFNI_TWOPASS_NUM") ;
-         if( eee == NULL || *eee != ':' ){
+         eee = my_getenv("AFNI_TWOPASS_NUM") ;  /* normally, eee is NULL */
+         if( eee == NULL || *eee != ':' ){      /* so this branch is taken */
            if( eee != NULL ) sscanf( eee , "%d" , &nptwo ) ;
            if( nptwo < 1 || nptwo > 6 ) nptwo = 6 ;
            if( nparam_free > nptwo ){  /* old way: just free first nptwo params */
@@ -5086,15 +5162,16 @@ STATUS("zeropad weight dataset") ;
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
-         powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 */
+         powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 - for some speedup */
 
-         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
-         mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
+         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ; /* num random param setups to try */
+
+         mri_genalign_scalar_ransetup( &stup , nrand ) ;  /**** the initial search! ****/
 
          if( verb > 1 )
            ININFO_message("- Coarse startup search net CPU time = %.1f s",COX_cpu_time()-ctim);
 
-         /* unfreeze those that were temporarily frozen above */
+         /* unfreeze those parameters that were temporarily frozen above */
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
@@ -5104,11 +5181,13 @@ STATUS("zeropad weight dataset") ;
          tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
+         /* copy parameters out */
+
          for( ib=0 ; ib < tb ; ib++ )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         /* add identity transform to set, for comparisons */
+         /* add identity transform to set, for comparisons (and insurance) */
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            tfparm[tb][jj] = stup.wfunc_param[jj].val_pinit ;
@@ -5116,8 +5195,10 @@ STATUS("zeropad weight dataset") ;
          tfdone = tb+1 ;  /* number of parameter sets now saved in tfparm */
 
          nrefine = (int)AFNI_numenv("AFNI_TWOPASS_REFINE") ;
-         if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;
+         if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;  /* number of refinement passes */
          rad = 0.0444 ;  /* initial search radius in parameter space */
+
+         /* loop over refinement passes: try to make each trial parameter set better */
 
          for( rr=0 ; rr < nrefine ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
 
@@ -5131,12 +5212,14 @@ STATUS("zeropad weight dataset") ;
            stup.smooth_radius_base = MAX(stup.smooth_radius_base,fine_rad) ;
            stup.smooth_radius_targ = MAX(stup.smooth_radius_targ,fine_rad) ;
 
-           stup.npt_match          *= 1.5 ;     /* more points for matching */
+           stup.npt_match          *= 1.5 ;     /* more voxels for matching */
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
            for( ib=0 ; ib < tfdone ; ib++ ){              /* loop over param sets */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+
+             /* optimize a little */
 
              nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 99 ) ;
 
@@ -5194,12 +5277,15 @@ STATUS("zeropad weight dataset") ;
 
        } else {  /*- if stoopid user did '-twobest 0' -*/
                  /*- just optimize coarse setup from default parameters -*/
+                 /*- mimicking the 3 loop passes above --*/
 
          if( verb     ) ININFO_message("- Start coarse optimization with -twobest 0") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          powell_set_mfac( 2.0f , 1.0f ) ;  /* 07 Jun 2011 */
+         /* optimize pass 1 */
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 444 ) ;
          if( verb > 2 ) PAROUT("--(a)") ;
+         /* optimize pass 2 */
          stup.npt_match = ntask / 7 ;
          if( stup.npt_match < nmatch_setup  ) stup.npt_match = nmatch_setup ;
          stup.smooth_radius_base *= 0.456 ;
@@ -5207,6 +5293,7 @@ STATUS("zeropad weight dataset") ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.00333 , 444 ) ;
          if( verb > 2 ) PAROUT("--(b)") ;
+         /* optimize pass 2 */
          stup.smooth_radius_base *= 0.456 ;
          stup.smooth_radius_targ *= 0.456 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
@@ -5236,6 +5323,7 @@ STATUS("zeropad weight dataset") ;
 
      /*-----------------------------------------------------------------------*/
      /*----------------------- do final resolution pass ----------------------*/
+     /*-------- which has less smoothing and more voxels for matching --------*/
 
      if( verb > 1 || (verb && kk == 0) ) /* 7 Jan 2019 [rickr] */
         INFO_message("*** Fine pass begins ***") ;
@@ -5262,6 +5350,8 @@ STATUS("zeropad weight dataset") ;
                                                  : sqrt(tr*tr-br*br) ;
      }
 
+     /*-- setup the optimization --*/
+
      stup.npt_match = npt_match ;
      if( didtwo )                                  /* did first pass already: */
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ); /* simple re-setup */
@@ -5272,8 +5362,8 @@ STATUS("zeropad weight dataset") ;
      }
 
      switch( tfdone ){                  /* initial param radius for optimizer */
-        case 0: rad = 0.0345 ; break ;
-        case 1:
+        case 0: rad = 0.0345 ; break ;  /* this is size of initial trust region */
+        case 1:                         /* -- in the unitless [-1..1] space */
         case 2: rad = 0.0266 ; break ;
        default: rad = 0.0166 ; break ;
      }
@@ -5307,8 +5397,8 @@ STATUS("zeropad weight dataset") ;
          for( ib=0 ; ib < tfdone ; ib++ )  /* save all cases into ffparm */
            memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar ) ;
 
-       } else {             /* now: try to make these a little better instead */
-
+       } else {            /* now: try to make these a little better instead */
+                           /*      and THEN choose the best one at that point */
          if( verb > 1 )
            ININFO_message("-num_rtb %d ==> refine all %d cases",num_rtb,tfdone);
          cbest = 1.e+33 ;
@@ -5434,6 +5524,8 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
+     /*** Optimzation is done, so do some cleanup and some output ***/
+
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
      if( verb > 1 ) ININFO_message("- Fine net CPU time = %.1f s",COX_cpu_time()-ctim) ;
@@ -5489,6 +5581,7 @@ STATUS("zeropad weight dataset") ;
 
      /*----------------------------------------------------------------------*/
      /*------------ Nonlinear warp improvement to the above results? --------*/
+     /*----------- Someday soon (?), this code will be expunged! ------------*/
 
 /* macro to (re)setup some parameters in the work below */
 

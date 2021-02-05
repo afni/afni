@@ -306,7 +306,7 @@ void Qhelp(void)
     "    source dataset to the base grid before doing the nonlinear stuff,\n"
     "    without doing any preliminary affine alignment. '-resample' is much\n"
     "    faster than '-allineate', but of course doesn't do anything but\n"
-    "    make the spatial grids match.\n"
+    "    make the spatial grids match. Normally, I would not recommend this!\n"
     " +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
     " ++ UNLESS the base and source datasets are fairly close to each other    ++\n"
     " ++ already, the '-allineate' option will make the process better. For    ++\n"
