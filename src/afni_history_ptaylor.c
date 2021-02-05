@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_GENERAL,
+   "Add in more intermediate QC snapshots (intermed align): init*jpg ",
+   "Also add '-echo' opt for verbose terminal stuff.\n"
+},
+
 { 3, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "New QC image, of affine warping.",
    "Also pass along '-echo' opt to modal smoo/report script.\n"

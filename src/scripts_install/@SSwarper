@@ -116,6 +116,10 @@ set version   = "2.33"; set rev_dat   = "Dec 1, 2020"
 #            simpler temp file name (use esp. when odir holds single
 #            subj output)
 #
+set version   = "2.4"; set rev_dat   = "Feb 5, 2020"
+#   + [PT] more QC along the processing: 2 new init*jpg files
+#        + add "-echo" as an opt
+#
 # ----------------------------------------------------------------
 
 # some AFNI environment variables
@@ -327,6 +331,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set SSopt = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
 
     # ---------- fin ------------------
 
@@ -636,6 +643,28 @@ if ( ${status} ) then
     goto BAD_EXIT
 endif
 
+# -------- check early NL alignment to ref vol space ---------
+
+set ulay  = "${pref}TAL5.nii"
+set olay  = "${Basedset}"
+set opref_qc_nl0 = "${odir}/init_qc_01_nl0.${SubID}.jpg"
+
+@djunct_edgy_align_check               \
+    -montx            8                \
+    -monty            1                \
+    -ulay             "${ulay}"        \
+    -olay             "${olay}"        \
+    -box_focus_slices "${olay}"        \
+    -prefix           ${pref}MONT3
+
+2dcat                                  \
+    -gap 5                             \
+    -gap_col 255 204 153               \
+    -nx 1                              \
+    -ny 3                              \
+    -prefix ${opref_qc_nl0}            \
+    ${pref}MONT3*jpg
+
 ## Step #4: mask off the skull using the template (second skull-strip)
 echo "++ SSW Step 4"
 
@@ -756,6 +785,30 @@ if ( ${status} ) then
     echo "** ERROR: program failed in Step 6.0"
     goto BAD_EXIT
 endif
+
+# -------- check aff alignment to ref vol space ---------
+
+set ulay  = "${pref}AffSS.nii"
+set olay  = "${Basedset}"
+set opref_qc_aff = "${odir}/init_qc_02_aff.${SubID}.jpg"
+
+@djunct_edgy_align_check               \
+    -montx            8                \
+    -monty            1                \
+    -ulay             "${ulay}"        \
+    -olay             "${olay}"        \
+    -box_focus_slices "${olay}"        \
+    -prefix           ${pref}MONT6
+
+2dcat                                  \
+    -gap 5                             \
+    -gap_col 255 204 153               \
+    -nx 1                              \
+    -ny 3                              \
+    -prefix ${opref_qc_aff}            \
+    ${pref}MONT6*jpg
+
+
 
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
@@ -1055,6 +1108,8 @@ USAGE ~1~
        {-SSopt 'strings'     \
        {-aniso_off}          \
        {-ceil_off}           \
+       {-tmp_name_nice}      \
+       {-echo}               \
        {-verb}               \
        {-noclean}
 
@@ -1188,6 +1243,9 @@ grown/improved over time):
 
   -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
               verbose progress information - mostly used for debugging.
+
+  -echo      :(opt) Run the script with "set echo", for extra verbosity
+              in the terminal output.  Mainly for debugging times. 
 
   -noclean   :(opt) Do not delete the 'junk' files at the end of
               computations - mostly used for debugging and testing.
