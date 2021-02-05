@@ -220,7 +220,7 @@ static int Hverb = 1 ;
     (C10) Functions to invert an index warp in its entirety
     (C11) Functions to compute the 'square root' of a warp
     (C12) Functions for taking stuff from 3dAllineate -nwarp output and
-          producing a warp (obsolete, or nearly so)
+          producing a warp (obsolete, or nearly so -- DO NOT USE!)
     (C13) Functions for interpolating images
     (C14) Functions used in 3dNwarpXYZ.c to warp a small number of points given
           by x,y,z triples, rather than warping a whole grid at once
@@ -3644,7 +3644,8 @@ ENTRY("THD_nwarp_invert") ;
 /*============================================================================*/
 /* (C11) Functions to compute the 'square root' of a warp.
    The square root is probably not actually very useful
-   (especially given the 3dQwarp -plusminus option). */
+   (especially given the 3dQwarp -plusminus option).
+     [[The old code to do this was excised completely on 05 Feb 2021.]] */
 /*============================================================================*/
 
 /*---------------------------------------------------------------------------*/
@@ -3745,6 +3746,23 @@ IndexWarp3D_pair * IW3D_sqrtpair( IndexWarp3D *AA , int icode )
 
    inewtfix = 0 ;
    return YYZZ ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Adaptations [05 Feb 2021] */
+
+IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , int icode )
+{
+   IndexWarp3D_pair *YZ ; IndexWarp3D *QQ ;
+   YZ = IW3D_sqrtpair(AA,icode) ;
+   QQ = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; free(YZ) ; return QQ ;
+}
+
+IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , int icode )
+{
+   IndexWarp3D_pair *YZ ; IndexWarp3D *QQ ;
+   YZ = IW3D_sqrtpair(AA,icode) ;
+   QQ = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; free(YZ) ; return QQ ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -5909,13 +5927,7 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrtinv") == 0 || strcasecmp(cmd,"&invsqrt") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-#else
-        { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
-          AA = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; free(YZ) ;
-        }
-#endif
+        AA = IW3D_sqrtinv( iwstk[nstk-1] , icode ) ;
         if( AA == NULL ) ERREX("inverse square root failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
@@ -5927,16 +5939,8 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrt") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
-        BB = IW3D_invert( AA , NULL , icode ) ; IW3D_destroy(AA) ;
-        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
-#else
-        { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
-          BB = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; free(YZ) ;
-        }
-#endif
+        AA = IW3D_sqrt( iwstk[nstk-1] , icode ) ;
+        if( AA == NULL ) ERREX("square root failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = BB ;
         if( verb_nww )
           ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -5947,16 +5951,9 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrtpair") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
-        BB = IW3D_invert( AA , NULL , icode ) ;
-        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
-#else
         { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
           BB = YZ->fwarp ; AA = YZ->iwarp ; free(YZ) ;
         }
-#endif
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ; ADDTO_iwstk(BB) ;
         if( verb_nww )
           ININFO_message(" -- square root pair CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -6453,12 +6450,8 @@ ENTRY("CW_read_dataset_warp") ;
    /**--- do any functional processing of the warp ---**/
 
    if( do_sqrt ){        /* user wants SQRT or SQRTINV */
-#ifndef USE_SQRTPAIR
-     ERROR_exit("mri_nwarp compiled without dataset SQRT :-(") ;
-#else
      eset = THD_nwarp_sqrt(dset,do_inv) ;
      DSET_delete(dset) ; dset = eset ; eset = NULL ;
-#endif
    } else if( do_inv ){  /* user wants INV */
      eset = THD_nwarp_invert(dset) ;
      DSET_delete(dset) ; dset = eset ; eset = NULL ;
