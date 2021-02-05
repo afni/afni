@@ -17,19 +17,19 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     SUMA_SurfaceViewer *sv;
     Widget w;
 
-    // Turn clipping plane on or off as required
-    fprintf(stderr, "toggleOffOn = %d\n", toggleOffOn);    // Debug
-    fprintf(stderr, "planeIndex = %d\n", planeIndex);    // Debug
-    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
-    if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
-    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
-
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
     if (activePlane >=0 ){
         if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
+
+    // Turn clipping plane on or off as required
+    fprintf(stderr, "toggleOffOn = %d\n", toggleOffOn);    // Debug
+    fprintf(stderr, "planeIndex = %d\n", planeIndex);    // Debug
+    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
+    if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
+    fprintf(stderr, "active[planeIndex] = %d\n", active[planeIndex]);    // Debug
 
     if (flip){
         planeA[planeIndex] = -planeA[planeIndex];
