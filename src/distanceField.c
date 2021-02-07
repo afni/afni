@@ -1,27 +1,5 @@
 /*****************************************************************************
 
-NAME:
-    distanceField - determines depth of voxels in 3D binary objects
-
-SYNOPSIS:
-    distanceField -i <input filename>                                \
-    [-o <output filename>][-m <metric>][-s <0|1>][-e <0|1>][-d]
-
-The input file is expected to be an AFNI dataset.
-
-The 'metric' is a text string (upper case) describing the algorithm
-used to estimate the depth. It may be one of the following.
-MARCHING_PARABOLAS - Marching parabolas (default)
-EROSION - Erosion algorithm.
-
-Optional arguments specifically for MARCHING_PARABOLAS:
-    s: Square root the output
-    e: Treat edge of field of view as zero (default)
-    d: (Debug mode.)  Generate test object set internally
-
-If the output filename is not specified, a default name is assigned.
-The default name reflects the input filename, metric and whether the
-program was run in debug mode.
 
 ****************************************************************************/
 
@@ -48,7 +26,8 @@ typedef enum METRIC_TYPE {
 
 int Cleanup(char *inputFileName, char *outputFileName, THD_3dim_dataset *din);
 int afni_edt(THD_3dim_dataset * din, float *outImg, 
-             bool do_sqrt, bool edges_are_zero_for_nz, bool debugMode);
+             bool do_sqrt, bool edges_are_zero_for_nz, int dist_centroid,
+             bool debugMode);
 int erosion(THD_3dim_dataset * din, float *outImg);
 int open_input_dset(THD_3dim_dataset ** din, char * fname);
 int outputDistanceField(THD_3dim_dataset *dout, char *outputFileName);
@@ -74,13 +53,16 @@ ERROR_NUMBER processIndex(int index, int *inputImg,
 int usage();
 ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
                                 bool do_sqrt, bool edges_are_zero_for_nz, 
-                                float *ad3, float *odt);
+                                float *ad3, float *odt, int dist_centroid);
 ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
-                               float delta, bool edges_are_zero_for_nz);
+                               float delta, bool edges_are_zero_for_nz,
+                               int dist_centroid);
 float * Euclidean_DT_delta(float *f, int n, float delta);
+float * Euclidean_DT_delta_surfy(float *g, int ng, float delta_in);
 ERROR_NUMBER getDistanceFieldDataSet(THD_3dim_dataset *din, 
                                      THD_3dim_dataset **dout, int metric,
-                                     bool do_sqrt, bool edges_are_zero_for_nz, 
+                                     bool do_sqrt, bool edges_are_zero_for_nz,
+                                     int dist_centroid,
                                      bool debugMode);
 
 // Debugging variables
@@ -99,6 +81,11 @@ int main( int argc, char *argv[] )
    ERROR_NUMBER    errorNumber;
    float   *outImg;
    bool    do_sqrt=TRUE, edges_are_zero_for_nz=TRUE, debugMode = FALSE;
+   int dist_centroid = 1;  // by default, distance is calculated
+                           // between centroids; use opt to switch
+                           // to dist to a surface wrapping each
+                           // ROI
+
 
    for (i=0; i<argc; ++i) if (argv[i][0]=='-'){
          switch(argv[i][1]){
@@ -111,6 +98,9 @@ int main( int argc, char *argv[] )
             if (!(inputFileName=(char*)malloc(strlen(argv[++i])+8)))
                return Cleanup(inputFileName,  outputFileName, din);
             sprintf(inputFileName,"%s",argv[i]);
+            break;
+         case 'S':
+            dist_centroid = 0;
             break;
 
          case 'm':
@@ -150,6 +140,7 @@ int main( int argc, char *argv[] )
 
    if ( (errorNumber=getDistanceFieldDataSet(din, &dout, metric, do_sqrt, 
                                              edges_are_zero_for_nz, 
+                                             dist_centroid,
                                              debugMode)) != ERROR_NONE ){
       Cleanup(inputFileName,  outputFileName, din);
       return errorNumber;
@@ -211,6 +202,8 @@ int usage(){
 "EROSION - Erosion algorithm.\n"
 "\n"
 "Optional arguments specifically for MARCHING_PARABOLAS:\n"
+"  S: Distances are to surfaces wrapping/separating each ROI, not to\n"
+"     the nearest centroid of a neighboring region (latter is default).\n"
 "  s: Square root the output\n"
 "  e: Treat edge of field of view as zero (default)\n"
 "  d: (Debug mode.)  Generate test object set internally\n"
@@ -226,6 +219,7 @@ int usage(){
 ERROR_NUMBER getDistanceFieldDataSet(THD_3dim_dataset *din, 
                                      THD_3dim_dataset **dout, int metric,
                                      bool do_sqrt, bool edges_are_zero_for_nz,
+                                     int dist_centroid,
                                      bool debugMode){
 
    ERROR_NUMBER errorNumber;
@@ -239,7 +233,7 @@ ERROR_NUMBER getDistanceFieldDataSet(THD_3dim_dataset *din,
    switch (metric){
    case MARCHING_PARABOLAS:
       if ((errorNumber=afni_edt(din, outImg, do_sqrt, edges_are_zero_for_nz, 
-                                debugMode))!=ERROR_NONE){
+                                dist_centroid, debugMode))!=ERROR_NONE){
          return errorNumber;
       }
       break;
@@ -373,7 +367,8 @@ int getIndex(int x, int y, int z, int nx, int ny, int nz){
 
 
 int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, 
-             bool edges_are_zero_for_nz, bool debugMode){
+             bool edges_are_zero_for_nz, int dist_centroid, 
+             bool debugMode){
 
    // Get dimensions in voxels
    int nz = DSET_NZ(din);
@@ -564,7 +559,8 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt,
    }
 
    img3d_Euclidean_DT(inputImg, nx, ny, nz,
-                      do_sqrt, edges_are_zero_for_nz, ad3, outImg);
+                      do_sqrt, edges_are_zero_for_nz, ad3, outImg,
+                      dist_centroid);
 #endif
 
 	// Cleanup
@@ -575,7 +571,7 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt,
 
 ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
                                 bool do_sqrt, bool edges_are_zero_for_nz, 
-                                float *ad3, float *odt){
+                                float *ad3, float *odt, int dist_centroid){
 
    int i, x, y, z;
    int offset, planeOffset;
@@ -595,7 +591,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
          // Calc with it, and save results
          // [PT: Jan 5, 2020] fix which index goes here
          run_EDTD_per_line( inRow, outRow, nx, ad3[0], 
-                            edges_are_zero_for_nz ) ;
+                            edges_are_zero_for_nz,
+                            dist_centroid );
 
          // Increment row
          inRow += nx;
@@ -622,7 +619,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
 
          // ... and then calc with it, and save results
          run_EDTD_per_line( inRow, outRow, ny, ad3[1], 
-                            edges_are_zero_for_nz);
+                            edges_are_zero_for_nz,
+                            dist_centroid);
 
          // Record new output row
          for ( y=0; y<ny; ++y ){
@@ -656,7 +654,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
          // ... and then calc with it, and save results
          // [PT: Jan 5, 2020] fix which index goes here
          run_EDTD_per_line( inRow, outRow, nz, ad3[2], 
-                            edges_are_zero_for_nz);
+                            edges_are_zero_for_nz,
+                            dist_centroid);
 
          // Record new output row
          for ( z=0; z<nz; ++z ) {
@@ -675,11 +674,14 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
 }
 
 ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
-                               float delta, bool edges_are_zero_for_nz) {
+                               float delta, bool edges_are_zero_for_nz,
+                               int dist_centroid) {
    int  idx = 0;
    int  i, m, n;
    float *line_out=NULL;
    int start, stop, inc, roi;
+
+   float *Df = NULL;
 
    int limit = Na-1;
    size_t  rowLengthInBytes = Na*sizeof(float);
@@ -729,13 +731,17 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
       // float *Df = Euclidean_DT_delta(paddedLine, stop-start+1, delta);
       // [PT] and 'inc' should already have correct value from
       // above; don't add 1 here
-      float *Df = Euclidean_DT_delta(paddedLine, inc, delta);
+      if ( dist_centroid ) 
+         Df = Euclidean_DT_delta(paddedLine, inc, delta);
+      else 
+         Df = Euclidean_DT_delta_surfy(paddedLine, inc, delta);
 
       // memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
       memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
 
       free(paddedLine);
-      free(Df);
+      if( Df )
+         free(Df);
 
       idx = n+1;
    }
@@ -750,6 +756,99 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
    free(line_out);
 
    return ERROR_NONE;
+}
+
+float * Euclidean_DT_delta_surfy(float *g, int ng, float delta_in){
+   //    Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
+   //        Huttenlocher (2012), but for given voxel lengths.
+   //
+   //    Assumes that: len(f) < sqrt(10**10).
+   //
+   //    In this version, all voxels should have equal length, and units
+   //    are "edge length" or "number of voxels."
+   //
+   //    Parameters
+   //    ----------
+   //
+   //    f     : 1D array or list, distance**2 values (or, to start, binarized
+   //    between 0 and BIG).
+   //
+   //    delta : voxel edge length size along a particular direction
+
+   int q, i;
+   int *v=NULL;
+   int k = 0;
+   float *z=NULL, *Df=NULL;
+   float s;
+
+   float delta = delta_in/2.0;  // new delta, for upsampling
+   int   n     = 2*ng - 1;      // the length of f, our upsampled ROI
+   float *f    = NULL;          // upsampled ROI from input g
+   float *Dg   = NULL;
+
+	f  = (float *)calloc(n, sizeof(int));
+	Dg = (float *)calloc(ng, sizeof(int));
+   if( f == NULL || Dg == NULL ) { 
+      fprintf(stderr, "\n MemAlloc failure with inputs.\n");
+      exit(18);
+   }
+      
+   // rules for making f from g
+   f[0] = g[0];
+   f[1] = g[0];
+   for( i=1 ; i<ng-1 ; i++ ){
+      f[2*i]   = g[i];
+      f[2*i+1] = g[i];
+   }
+   f[n-1] = g[ng-1];
+   if ( ng > 1 ) 
+      f[n-2] = g[ng-1];
+
+   // ... and now we proceed as usual with f, delta, etc.
+
+   if (!(v=(int *)calloc(n, sizeof(int))) ||
+       !(z=(float *)calloc(n+1, sizeof(float)))){
+      if (v) free(v);
+      return NULL;
+   }
+   z[0] = -BIG;
+   z[1] =  BIG;
+
+   for ( q = 1; q<n; ++q ) {
+      s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
+      s/= 2. * delta * (q - v[k]);
+      while (s <= z[k]){
+         k-= 1;
+         s = f[q] + pow(q*delta,2.0) - (f[v[k]] + pow(v[k]*delta, 2.0));
+         s/= 2. * delta * (q - v[k]);
+      }
+      k+= 1;
+      v[k]   = q;
+      z[k]   = s;
+      z[k+1] = BIG;
+   }
+
+   k   = 0;
+   if (!(Df=(float *)calloc(n, sizeof(float)))){
+      free(v);
+      free(z);
+      return NULL;
+   }
+   for ( q=0; q<n; ++q ){
+      while (z[k+1] < q * delta) k+= 1;
+      Df[q] = pow(delta*(q - v[k]), 2.0) + f[v[k]];
+   }
+
+   // finalize output: go back to looking like 'g' 
+   for ( i=0 ; i<ng ; i++ )
+      Dg[i] = Df[2*i];
+
+   free(v);
+   free(z);
+   free(f);
+   free(Df);
+
+   return Dg;
 }
 
 float * Euclidean_DT_delta(float *f, int n, float delta){
@@ -770,8 +869,10 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
    //    delta : voxel edge length size along a particular direction
 
    int q;
-   int *v, k = 0;
-   float *z, *Df;
+   int *v=NULL;
+   int k = 0;
+   float *z=NULL, *Df=NULL;
+   float s;
 
    if (!(v=(int *)calloc(n, sizeof(int))) ||
        !(z=(float *)calloc(n+1, sizeof(float)))){
@@ -782,7 +883,7 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
    z[1] =  BIG;
 
    for ( q = 1; q<n; ++q ) {
-      float s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
+      s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
       s/= 2. * delta * (q - v[k]);
       while (s <= z[k]){
          k-= 1;
