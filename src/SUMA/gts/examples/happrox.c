@@ -20,7 +20,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pgm.h>
+#include "pgm.h"
 #include "config.h"
 #ifdef HAVE_GETOPT_H
 #  include <getopt.h>

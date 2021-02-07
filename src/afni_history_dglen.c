@@ -53,6 +53,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 7, FEB, 2021, DRG, "clang+gcc10 macos 10.15 mods",
+     MAJOR, TYPE_BUG_FIX,
+    "Lots of little code fixes to handle compiler warnings",
+    "Makefile updated and some long outstanding issues fixed"
+},    
 { 16, SEP, 2020, DRG, "atlas label range selector",
      MICRO, TYPE_BUG_FIX,
     "atlas labels not interpreted in range selector properly",

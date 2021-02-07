@@ -30,6 +30,9 @@
 #include "matrix.h"
 #include "mrilib.h"
 
+// drg - mac os gcc10 requires declarations - here to include AFNI_ijk_to_xyz()
+#include "afni.h"
+
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4
 

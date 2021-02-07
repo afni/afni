@@ -244,6 +244,11 @@
 #endif
 
 extern void SUMA_freep(void *) ; /* 07 Oct 2015 */
+// drg - mac os 10.15 changes - gcc10 requires declarations
+#include "../mcw_malloc.h"
+extern void resume_mcw_malloc(void);
+extern void pause_mcw_malloc(void);
+
 
 /******************************* BEGIN IGNORE THIS CHUNK ********************************/
 #ifdef USE_SUMA_MALLOC

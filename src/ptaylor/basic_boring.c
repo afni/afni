@@ -1,4 +1,7 @@
 #include "mrilib.h"
+// drg - mac os gcc10 requires declarations - here to include AFNI_ijk_to_xyz()
+#include "afni.h"
+
 #include "basic_boring.h"
 #include <gsl/gsl_matrix.h>
 

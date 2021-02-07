@@ -1,5 +1,7 @@
 #include "SUMA_suma.h"
 
+// drg - mac os 10.15 build needs explicit declaration
+extern void glWindowPos2s (GLshort x, GLshort y);
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;

@@ -2,14 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mcw_malloc.h"
-#ifndef MRILIB_MINI
 #include "AFNI_version.h"
-#endif
+// drg - adding this for mac os 10.15 compilation
+#include <string.h>
+
 #include "debugtrace.h"  /* contains 1 function */
 #include <ctype.h>
 #include <stdarg.h>
-#include <string.h>
-
 /*--------------------------------------------------------------------------*/
 
 static int colorize_prefix = 0 ;  /* use ANSI codes to change prefix colors? */
@@ -299,7 +298,6 @@ extern int THD_is_directory( char * ) ;
 
 void clock_time_atexit(void)
 {
-#ifndef MRILIB_MINI
    char *eee=getenv("HOME") ;
    int ct=NI_clock_time() ;
    time_t tnow=time(NULL) ;
@@ -314,6 +312,5 @@ void clock_time_atexit(void)
    fp = fopen(fname,"a") ; free(fname) ; if( fp == NULL ) return ;
    fprintf(fp,"[%.24s] %s =%s\n",ctime(&tnow) , pname , nice_time_string(ct) ) ;
    fclose(fp) ;
-#endif
    return ;
 }

@@ -6006,7 +6006,7 @@ if( verb_nww > 1 ) fprintf(stderr,"d%s",MEMORY_SHORT) ;
        jp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,1) ) ;  /* for interpolation */
        kp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,2) ) ;  /* of dataset values */
 
-     } else if( !reuse & verb_nww ){
+     } else if( !reuse && verb_nww ){
        reuse = 1 ; fprintf(stderr,"[R]") ;  /* flag that re-use has started */
      }
 
@@ -7238,7 +7238,9 @@ ENTRY("IW3D_set_geometry_nwarp_catlist") ;
      for( ii=jj=0 ; ii < nwc->ncat ; ii++ ){
        if( ISVALID_DSET(nwc->nwarp[ii]) ){
          nset[jj]   = nwc->nwarp[ii] ;
-         gset[jj++] = EDIT_get_geometry_string(nset[jj]) ;
+         gset[jj] = EDIT_get_geometry_string(nset[jj]) ;
+         /* separated - clang warn the order is "unsequenced" if included in gset[jj++] above*/
+         jj++; 
        }
      }
 
