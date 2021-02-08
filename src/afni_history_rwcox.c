@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , FEB , 2021 , RWC , "AFNI gui" , MICRO , TYPE_ENHANCE ,
+   "Add Mean/Sigma statistic to Button 3 popup in graph viewer" ,
+   "Kind of a cheap TSNR check for raw data." } ,
+
  { 27 , JAN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
    "Enhance -PearSave option" ,
    "Now it works with -allcostX to give the LPC values at the start of the\n"

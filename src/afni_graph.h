@@ -499,6 +499,7 @@ typedef struct {
    float tmean[MAT_MAX][MAT_MAX] , tbot[MAT_MAX][MAT_MAX] ,    /* statistics */
          ttop[MAT_MAX][MAT_MAX]  , tstd[MAT_MAX][MAT_MAX]  ;
    float dbot[MAT_MAX][MAT_MAX]  , dtop[MAT_MAX][MAT_MAX]  ;   /* 01 Jun 2020 */
+   float tsnr[MAT_MAX][MAT_MAX] ;                              /* 08 Jan 2021 */
 
    char * tuser[MAT_MAX][MAT_MAX] ;                            /* user strings */
 

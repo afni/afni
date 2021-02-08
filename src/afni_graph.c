@@ -2639,6 +2639,7 @@ STATUS("finding statistics of time series") ;
      grapher->tbmv[i][j] = 0.0f ;                        \
      grapher->dbot[i][j] = 0.0f ;                        \
      grapher->dtop[i][j] = 0.0f ;                        \
+     grapher->tsnr[i][j] = 0.0f ;                        \
  } while(0)
 
    /** double loop to statistic-ate each time series
@@ -2673,6 +2674,9 @@ STATUS("finding statistics of time series") ;
          qsum  = qsum / ntstemp ; grapher->tmean[ix][iy] = qsum ;
          qsumq = (qsumq - ntstemp * qsum * qsum) / (ntstemp-0.999999) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
+         grapher->tsnr[ix][iy] = (qsumq > 0.0) ? fabs(qsum) / grapher->tstd[ix][iy]
+                                               : 0.0 ;
+         if( grapher->tsnr[ix][iy] > 9999.9f ) grapher->tsnr[ix][iy] = 9999.9f ;
 
          /* these statistics require a contiguous array = tstemp */
          qmedmadbmv_float( ntstemp , tstemp ,             /* 08 Mar 2001 */
@@ -3867,6 +3871,7 @@ STATUS("button press") ;
                char bmin[16],bmax[16],bmean[16],bstd[16] ;
                char bmed[16] , bmad[16] ; /* 08 Mar 2001 */
                char bbmv[16] ;            /* 16 Oct 2009 */
+               char btsn[16] ;            /* 08 Jan 2021 */
                char *qstr , *eee ;        /* 07 Mar 2002 */
                int nlin , nltop=40 ;      /* 07 Mar 2002 */
 
@@ -3874,6 +3879,7 @@ STATUS("button press") ;
                AV_fval_to_char( grapher->ttop[ix][iy]  , bmax ) ;
                AV_fval_to_char( grapher->tmean[ix][iy] , bmean) ;
                AV_fval_to_char( grapher->tstd[ix][iy]  , bstd ) ;
+               AV_fval_to_char( grapher->tsnr[ix][iy]  , btsn ) ;
 
                AV_fval_to_char( grapher->tmed[ix][iy]  , bmed ) ; /* 08 Mar 2001 */
                AV_fval_to_char( 1.4826*grapher->tmad[ix][iy]  , bmad ) ;
@@ -3903,12 +3909,13 @@ STATUS("button press") ;
                               "Mean    =%s\n"
                               "Median  =%s\n"     /* 08 Mar 2001 */
                               "Sigma   =%s\n"
+                              "Mean/Sig=%s\n"     /* 08 Jan 2021 */
                               "MAD*1.48=%s\n"
                               "BiwtMidV=%s"  ,    /* 16 Oct 2009 */
                         grapher->sbot[ix][iy], grapher->stop[ix][iy], /* 19 Mar 2004 */
                         NSTRIDE(grapher) ,                            /* 11 Jun 2020 */
                         xd , yd , zd ,
-                        bmin,bmax,bmean,bmed,bstd,bmad,bbmv ) ;
+                        bmin,bmax,bmean,bmed,bstd,btsn,bmad,bbmv ) ;
 
                 /** 12 Feb 2015: incorporate x-axis range info for this voxel **/
 
