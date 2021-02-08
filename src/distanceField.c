@@ -189,8 +189,6 @@ int usage(){
 "EROSION - Erosion algorithm.\n"
 "\n"
 "Optional arguments specifically for MARCHING_PARABOLAS:\n"
-"  S: Distances are to surfaces wrapping/separating each ROI, not to\n"
-"     the nearest centroid of a neighboring region (latter is default).\n"
 "  s: Square root the output\n"
 "  e: Treat edge of field of view as zero (default)\n"
 "  d: (Debug mode.)  Generate test object set internally\n"
@@ -308,7 +306,7 @@ int erosion(THD_3dim_dataset * din, float *outImg){
    if (!(buffer = (BYTE *)malloc(nvox*sizeof(BYTE)))) 
       return ERROR_MEMORY_ALLOCATION;
 
-   // Erode volume, adding eroede volume to output until no object
+   // Erode volume, adding erode volume to output until no object
    // voxels left
    do {
       objectVoxelsLeft = FALSE;
@@ -536,9 +534,6 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt,
       inputImg = vol;
    } else {
       // Get real world voxel sizes
-
-      // float ad3[3]={fabs(DSET_DX(din)), fabs(DSET_DY(din)),
-      // fabs(DSET_DZ(din))};
       ad3[0] = fabs(DSET_DX(din));
       ad3[1] = fabs(DSET_DY(din));
       ad3[2] = fabs(DSET_DZ(din));
@@ -574,7 +569,6 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
    for ( z = 0; z <nz; ++z ){
       for ( y = 0; y < ny; ++y ){
          // Calc with it, and save results
-         // [PT: Jan 5, 2020] fix which index goes here
          run_EDTD_per_line( inRow, outRow, nx, ad3[0], 
                             edges_are_zero_for_nz );
 
@@ -615,7 +609,6 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
    free(outRow);
    free(inRow);
 
-
    // 2nd pass: start from previous; any other dimensions would carry
    // on from here
    if (!(inRow=(int *)malloc(nz*sizeof(int)))) 
@@ -629,19 +622,18 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
          planeOffset = (y*nx) + x;
          // get a line...
          for (int z=0; z<nz; ++z){
-            offset = planeOffset + (z*planeSize);
-            inRow[z] = im[offset] ;
+            offset    = planeOffset + (z*planeSize);
+            inRow[z]  = im[offset] ;
             outRow[z] = odt[offset] ;
          }
 
          // ... and then calc with it, and save results
-         // [PT: Jan 5, 2020] fix which index goes here
          run_EDTD_per_line( inRow, outRow, nz, ad3[2], 
                             edges_are_zero_for_nz );
 
          // Record new output row
          for ( z=0; z<nz; ++z ) {
-            offset = planeOffset + (z*planeSize);
+            offset      = planeOffset + (z*planeSize);
             odt[offset] = outRow[z];
          }
       }
@@ -650,7 +642,8 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
    free(inRow);
 
    if (do_sqrt)
-      for ( i=0; i<nvox; ++i ) odt[i] = sqrt(odt[i]);
+      for ( i=0; i<nvox; ++i ) 
+         odt[i] = sqrt(odt[i]);
 
    return ERROR_NONE;
 }
@@ -704,11 +697,9 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
       stop = inc-1;  // 'stop' is index of actual end of roi
       // pad at end? 
       if (n < limit || (edges_are_zero_for_nz && roi != 0)){
-         inc+=1; // [PT] not 'stop', which is index of actual ROI
-                 // (not changing)
+         inc+=1; 
       }
 
-      // float *Df = Euclidean_DT_delta(paddedLine, stop-start+1, delta);
       // [PT] and 'inc' should already have correct value from
       // above; don't add 1 here
       Df = Euclidean_DT_delta(paddedLine, inc, delta);
