@@ -383,7 +383,7 @@ files, with 1dcat, 1dtranspose, etc.).
 
 EXAMPLE ~1~
 
-  adjunct_suma_fs_rois.tcsh               \
+  adjunct_suma_fs_roi_info                \
       -sid       sub-001                  \
       -suma_dir  group/sub-001/SUMA
 

@@ -382,7 +382,7 @@ defined by the brainmask.nii*:
 
 EXAMPLE ~1~
 
-  adjunct_suma_fs_qc.tcsh                 \
+  adjunct_suma_fs_mask_and_qc             \
       -sid       sub-001                  \
       -suma_dir  group/sub-001/SUMA
 
