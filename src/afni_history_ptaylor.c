@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Add fractional volume info to the text file.",
+   "This makes 2 new columns in the output *.1D files.\n"
+},
+
 { 8, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_NEW_PROG,
    "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
    "This makes *.1D files of voxel counts of parcellations and segs.\n"
