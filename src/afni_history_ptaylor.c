@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes *.1D files of voxel counts of parcellations and segs.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes images of the brain mask, tissue segs and parcellation.\n"
+},
+
 { 5, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Add in more intermediate QC snapshots (intermed align): init*jpg ",
    "Also add '-echo' opt for verbose terminal stuff.\n"
