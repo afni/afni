@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "New column of ROI vol fraction, relative to fs_parc_wb_mask.nii.gz.",
+   "This prog should always be run after adjunct_suma_fs_mask_and_qc.\n"
+},
+
 { 9, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
    "Renamed, from adjunct_suma_fs_qc.tcsh.",
    "Removing extension.\n"
