@@ -75,8 +75,8 @@ endif
 set wa        = `which afni`
 set list_2000 = ${wa:h}/afni_fs_aparc+aseg_2000.txt
 set list_2009 = ${wa:h}/afni_fs_aparc+aseg_2009.txt
-set otxt_2000 = "stats_fs_rois_2000_${subj}.1D"
-set otxt_2009 = "stats_fs_rois_2009_${subj}.1D"
+set oroi_2000 = "stats_fs_rois_2000_${subj}.1D"
+set oroi_2009 = "stats_fs_rois_2009_${subj}.1D"
 set oseg_2000 = "stats_fs_segs_2000_${subj}.1D"
 set oseg_2009 = "stats_fs_segs_2009_${subj}.1D"
 
@@ -87,6 +87,8 @@ cd ${odir}           # now all files we need are just "here"
 set root_2000 = aparc+aseg
 set root_2009 = aparc.a2009s+aseg
 
+# don't change the order of the RENs: we pick up the "all" first, for
+# relative volume calcs
 set all_rens  = ( all gm gmrois wmat vent csf othr unkn )
 set Nren      = ${#all_rens}
 
@@ -94,7 +96,7 @@ set Nren      = ${#all_rens}
 
 # each of these lists must have the same number of items (probably 2)
 set all_lists = ( ${list_2000}    ${list_2009} )
-set all_otxts = ( ${otxt_2000}    ${otxt_2009} )
+set all_orois = ( ${oroi_2000}    ${oroi_2009} )
 set all_osegs = ( ${oseg_2000}    ${oseg_2009} )
 set all_roots = ( ${root_2000}    ${root_2009} )
 set Niter     = ${#all_lists}
@@ -102,18 +104,88 @@ set Niter     = ${#all_lists}
 foreach nn ( `seq 1 1 ${Niter}` ) 
 
     set the_list = ${all_lists[$nn]}
-    set the_otxt = ${all_otxts[$nn]}
+    set the_oroi = ${all_orois[$nn]}
     set the_oseg = ${all_osegs[$nn]}
     set the_root = ${all_roots[$nn]}
     set the_parc = ( ${the_root}*REN_all.nii* )
 
-    echo "++ ------ Process ${the_list:t} for: ${the_parc} ---------"
+    echo "++ ------------- Process ${the_list:t} ---------------"
+
+    printf "# %8s  %10s  %10s   #  %10s   %s\n"                            \
+        "Nvox" "FR_BR_MASK" "FR_ALL_ROI" "SEG__TYPE"  "FILE_NAME"          \
+        |& tee  ${the_oseg}
+
+    # ---------- first, the brainmask ----------------
+
+    set dset_mask = ( brainmask.nii* )
+
+    set ooo = `3dROIstats                       \
+                -quiet                          \
+                -nzvoxels                       \
+                -nobriklab                      \
+                -mask "3dcalc( -a ${dset_mask[1]} -expr step(a) )"  \
+                ${dset_mask[1]}`
+
+    if ( "${ooo}" != "" ) then
+        set nv = ${ooo[2]}
+    else
+        set nv = 0
+    endif
+ 
+    # this region's volume is reported into the text file, below.
+    set nbrainmask = ${nv}
+
+    # ---------- then, the tissue types ----------------
+
+    foreach jj ( `seq 1 1 ${Nren}` )
+
+        set seg      = ${all_rens[${jj}]}
+        set dset_seg = ( ${the_root}_REN_${seg}.nii* )
+        set ooo = `3dROIstats                       \
+                    -quiet                          \
+                    -nzvoxels                       \
+                    -nobriklab                      \
+                    -mask "3dcalc( -a ${dset_seg[1]} -expr step(a) )"   \
+                    "${dset_seg[1]}"`
+
+        if ( "${ooo}" != "" ) then
+            set nv = ${ooo[2]}
+        else
+            set nv = 0
+        endif
+
+        # this condition must be met on first pass through
+        if ( "${seg}" == "all" ) then
+            set nrenall = ${nv}
+
+            # report full brainmask *now*
+            set c2 = 1
+            set c3 = `echo "scale = 7; ${nbrainmask} / ${nrenall}" | bc`
+            printf "%10d  %10.6f  %10.6f   #  %10s   %s\n"                    \
+                "${nbrainmask}" "${c2}" "${c3}" "br_mask"  "${dset_mask[1]}"  \
+                |& tee -a ${the_oseg}
+        endif
+
+        # report columns for each ROI now
+        set c2 = `echo "scale = 7; ${nv} / ${nbrainmask}" | bc`
+        set c3 = `echo "scale = 7; ${nv} / ${nrenall}"    | bc`
+        printf "%10d  %10.6f  %10.6f  #  %10s   %s\n"                   \
+            "${nv}" "${c2}" "${c3}" "${seg}"  "${dset_seg[1]}"          \
+            |& tee -a ${the_oseg}
+
+    end
+
+    # ---------- finally, the parcellations ---------------- 
+
+    echo ""
+    echo "++ Start counting the ROIs."
+    echo ""
+
+    printf "# %8s  %10s  %10s   #   %4s   %10s   %s\n"                       \
+        "Nvox" "FR_BR_MASK" "FR_ALL_ROI" "VAL" "TISS__TYPE" "STRING_LABEL" \
+        |& tee  ${the_oroi}
 
     set nlines  = `cat ${the_list} | wc -l`
-
-    printf "# %8s  #   %4s   %10s   %s\n"                  \
-        "Nvox" "VAL" "TISS__TYPE" "STRING_LABEL"           \
-        |& tee  ${the_otxt}
 
     foreach ii ( `seq 2 1 ${nlines}` )
 
@@ -137,63 +209,15 @@ foreach nn ( `seq 1 1 ${Niter}` )
             set nv = 0
         endif
 
-        printf "%10d  #   %4d   %10s   %s\n"                  \
-            ${nv} ${ren_val} ${tiss_type} ${str_lab}         \
-            |& tee -a ${the_otxt}
+        set c2 = `echo "scale = 7; ${nv} / ${nbrainmask}" | bc`
+        set c3 = `echo "scale = 7; ${nv} / ${nrenall}"    | bc`
+        printf "%10d  %10.6f  %10.6f   #   %4d   %10s   %s\n"           \
+            ${nv} ${c2} ${c3} ${ren_val} ${tiss_type} ${str_lab}        \
+            |& tee -a ${the_oroi}
     end
 
-    echo "++ Done making: ${the_otxt}"
+    echo "++ Done making: ${the_oroi}"
 
-    echo "++ ------ Process tissues for: ${the_root} ---------"
-
-    printf "# %8s  #   %4s   %s\n"                \
-        "Nvox" "SEG__TYPE"  "FILE_NAME"           \
-        |& tee  ${the_oseg}
-
-    # ---------- first, the brainmask ----------------
-
-    set dset_mask = ( brainmask.nii* )
-
-    set ooo = `3dROIstats                       \
-                -quiet                          \
-                -nzvoxels                       \
-                -nobriklab                      \
-                -mask ${dset_mask[1]}           \
-                ${dset_mask[1]}`
-
-    if ( "${ooo}" != "" ) then
-        set nv = ${ooo[2]}
-    else
-        set nv = 0
-    endif
-
-    printf "%10s  #   %10s   %s\n"                \
-        "${nv}" "wb_mask"  "${dset_mask[1]}"      \
-        |& tee -a ${the_oseg}
-
-    # ---------- then, the tissue types ----------------
-
-    foreach jj ( `seq 1 1 ${Nren}` )
-
-        set seg      = ${all_rens[${jj}]}
-        set dset_seg = ( ${the_root}_REN_${seg}.nii* )
-        set ooo = `3dROIstats                       \
-                    -quiet                          \
-                    -nzvoxels                       \
-                    -nobriklab                      \
-                    -mask "3dcalc( -a ${dset_seg[1]} -expr step(a) )"   \
-                    "${dset_seg[1]}"`
-
-        if ( "${ooo}" != "" ) then
-            set nv = ${ooo[2]}
-        else
-            set nv = 0
-        endif
-
-        printf "%10s  #   %10s   %s\n"                \
-            "${nv}" "${seg}"  "${dset_seg}"           \
-            |& tee -a ${the_oseg}
-    end
 end
 
 # ---------------------------------
@@ -236,22 +260,40 @@ This program has the following options:
 OUTPUT ~1~
 
 This script makes four *.1D files in the specified SUMA/ directory.
-Column labels are present in each file.  Note that the ROI string
-labels are provided for each ROI, but behind a comment symbol in each
-line (so you can use them as regular *.1D files, with 1dcat,
-1dtranspose, etc.):
+Column labels are present in each file.  Note there are 2 ways to
+think of brain volumes after running FS's recon-all: the
+brainmask.nii* file (= br_mask), or the number of voxels in the full
+set of the aseg/aparc dset for a given atlas (= "all" segment, from
+the *_REN_all.nii* dset). 
 
-  stats_fs_rois_2000_FT.1D  : voxel counts of the "2000" parcellation 
+    Nvox                    : number of voxels in the ROI, segment or 
+                              mask. This number is always an integer,
+                              >= 0.
+
+    FR_BR_MASK              : fraction of the number of voxels, segment
+                              or mask, relative to the "br_mask" dset
+                              (that is, to the brainmask.nii* volume).
+                              
+    FR_ALL_ROI              : fraction of the number of voxels, segment
+                              or mask, relative to the full set of ROIs 
+                              in the given parcellation (that is, to the 
+                              *REN_all.nii* volume).
+
+Note that the ROI string labels are provided for each ROI, but behind
+a comment symbol in each line (so you can use them as regular *.1D
+files, with 1dcat, 1dtranspose, etc.).
+
+  stats_fs_rois_2000_FT.1D  : info for the "2000" parcellation 
                               (from the file: aparc+aseg_REN_all.nii*)
 
-  stats_fs_rois_2009_FT.1D  : voxel counts of the "2009" parcellation 
+  stats_fs_rois_2009_FT.1D  : info for the "2009" parcellation 
                               (from the file: aparc+aseg_REN_all.nii*)
 
-  stats_fs_segs_2000_FT.1D  : voxel counts of the "2000" parc brain mask
+  stats_fs_segs_2000_FT.1D  : info for the "2000" parc brain mask
                               and tissue/segmentations (from the
                               brainmask.nii* and aparc+aseg_REN_* files)
 
-  stats_fs_segs_2009_FT.1D  : voxel counts of the "2009" parc brain mask
+  stats_fs_segs_2009_FT.1D  : info for the "2009" parc brain mask
                               and tissue/segmentations (from the
                               brainmask.nii* and aparc.a2009s+aseg_REN_* 
                               files)
