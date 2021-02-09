@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Make new mask dset from parcellation.",
+   "Add new image of new dset.\n"
+},
+
 { 9, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_GENERAL,
    "Add fractional volume info to the text file.",
    "This makes 2 new columns in the output *.1D files.\n"

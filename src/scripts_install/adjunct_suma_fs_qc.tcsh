@@ -15,6 +15,8 @@ set here      = $PWD
 set subj      = ""
 set odir      = ""
 
+set parc_mask = fs_parc_wb_mask.nii.gz
+
 set opref          = "IMG_${tpname}"
 
 set pppp           = "`3dnewid -fun11`"
@@ -107,12 +109,12 @@ set dset_mask = dset_mask.nii.gz
 # make the tissue seg dset
 3dcalc                                                                    \
     -overwrite                                                            \
-    -a ../aparc+aseg_REN_wmat.nii.gz                                      \
-    -b ../aparc+aseg_REN_gm.nii.gz                                        \
-    -c ../aparc+aseg_REN_vent.nii.gz                                      \
-    -d ../aparc+aseg_REN_csf.nii.gz                                       \
-    -e ../aparc+aseg_REN_othr.nii.gz                                      \
-    -f ../aparc+aseg_REN_unkn.nii.gz                                      \
+    -a ../aparc+aseg_REN_wmat.nii*                                        \
+    -b ../aparc+aseg_REN_gm.nii*                                          \
+    -c ../aparc+aseg_REN_vent.nii*                                        \
+    -d ../aparc+aseg_REN_csf.nii*                                         \
+    -e ../aparc+aseg_REN_othr.nii*                                        \
+    -f ../aparc+aseg_REN_unkn.nii*                                        \
     -expr "step(a) + 2*step(b) + 3*step(c) + 4*(step(d)+step(e)+step(f))" \
     -prefix "${dset_tiss}"                                                \
     -datum short
@@ -137,9 +139,34 @@ if ( $status ) then
     goto BAD_EXIT
 endif
 
+# make a filled mask from aparc+aseg (output to ../. directory)
+3dmask_tool                                                       \
+    -overwrite                                                    \
+    -dilate_inputs 2                                              \
+    -prefix mask1.nii.gz                                          \
+    -inputs ../aparc+aseg_REN_all.nii.* 
+
+3dmask_tool                                                       \
+    -overwrite                                                    \
+    -fill_holes                                                   \
+    -prefix mask2.nii.gz                                          \
+    -inputs mask1.nii.gz
+
+3dmask_tool                                                       \
+    -overwrite                                                    \
+    -datum         byte                                           \
+    -dilate_inputs -2                                             \
+    -prefix mask3.nii.gz                                          \
+    -inputs mask2.nii.gz
+
+3dcopy                                                            \
+    -overwrite                                                    \
+    mask3.nii.gz                                                  \
+    ../${parc_mask}
+
 # ---------------------------- make images ----------------------------------
 
-# brain mask (and parcellation mask)
+# -------- brain mask (and parcellation mask)
 set opref = qc_00_fs_brainmask_${subj}
 
 @chauffeur_afni                                                       \
@@ -171,10 +198,39 @@ set opref = qc_00_fs_brainmask_${subj}
     -prefix  ../${opref}.jpg                                      \
     ${opref}*{sag,axi,cor}*
 
+# -------- 
+
+# filled parcellation mask (created above)
+set opref = qc_01_fs_parc_wb_mask_${subj}
+
+@chauffeur_afni                                                       \
+    -ulay  ${ulay}                                                    \
+    -olay  ../${parc_mask}                                            \
+    -box_focus_slices ${focus}                                        \
+    -ulay_range 0% 98%                                                \
+    -func_range 1                                                     \
+    -cbar "Reds_and_Blues_Inv"                                        \
+    -pbar_posonly                                                     \
+    -opacity     4                                                    \
+    -blowup      2                                                    \
+    -prefix      ${opref}                                             \
+    -montx 6 -monty 1                                                 \
+    -set_xhairs OFF                                                   \
+    -label_mode 1 -label_size 3                                       \
+    -do_clean
+
+2dcat                                                             \
+    -gap     5                                                    \
+    -gap_col 150 150 150                                          \
+    -nx 1                                                         \
+    -ny 3                                                         \
+    -prefix  ../${opref}.jpg                                      \
+    ${opref}*{sag,axi,cor}*
+
 # ----------------
 
 # major tissue classifications
-set opref = qc_01_fs_tiss_${subj}
+set opref = qc_02_fs_tiss_${subj}
 
 @chauffeur_afni                                                       \
     -ulay  ${ulay}                                                    \
@@ -203,7 +259,7 @@ set opref = qc_01_fs_tiss_${subj}
 # ----------------
 
 # aparc+aseg (2000) REN all map
-set opref = qc_02_fs_aa_REN_all_${subj}
+set opref = qc_03_fs_aa_REN_all_${subj}
 
 @chauffeur_afni                                                       \
     -ulay  ${ulay}                                                    \
@@ -234,7 +290,7 @@ set opref = qc_02_fs_aa_REN_all_${subj}
 if ( ${DO_CLEAN} ) then
     echo "++ Cleanup"
     cd ..
-    \rm -rf ${workdir_name}
+    \rm -rf ${wdir_name}
 endif
 
 goto GOOD_EXIT
@@ -274,9 +330,25 @@ This program has the following options:
 
     -ver                     :(opt) show version
 
-OUTPUT ~1~
+OUTPUTS ~1~
 
-This script makes three *.jpg files in the specified SUMA/
+1) This script creates one new dset in the SUMA/ directory, called
+fs_parc_wb_mask.nii.gz.  This dset is a whole brain mask based on the
+FS parcellation.  Note that this is *different* than the
+brainmask.nii* dset that FS creates.  This mask is created in the
+following way:
+
+    + binarize aparc+aseg_REN_all.nii.*
+    + inflate by 2 voxels (3dmask_tool)
+    + infill holes (3dmask_tool)
+    + erode by 2 voxels (3dmask_tool)
+
+The final mask seems much more specific to the brain structure than
+brainmask.nii*.  It also removes several small gaps and holes in the
+parcellation dset.  In general, it seems like quite a useful whole
+brain mask.
+
+2) This script also makes three *.jpg files in the specified SUMA/
 directory. The underlay in each is the *SurfVol.nii* dset.  Each JPG
 is row of axial, sagittal and coronal montages around the volumes
 defined by the brainmask.nii*:
@@ -292,12 +364,15 @@ defined by the brainmask.nii*:
                   aparc+aseg file.  We might prefer using one or the
                   other dsets as a mask for other work.
 
-    qc_01*.jpg  : the overlay is a set of tissues, like a segmentation
+    qc_01*.jpg  : the overlay is the fs_parc_wb_mask.nii.gz dset that
+                  this script has created (see details just above).
+
+    qc_02*.jpg  : the overlay is a set of tissues, like a segmentation
                   map of 4 classes: GM, WM, ventricles, and then
                   CSF+other+unknown (from the *REN* files made by
                   AFNI/SUMA).
 
-    qc_02*.jpg  : the overlay is the "2000" atlas parcellation (from
+    qc_03*.jpg  : the overlay is the "2000" atlas parcellation (from
                   the file: aparc+aseg*REN*all*)
 
 EXAMPLE ~1~
