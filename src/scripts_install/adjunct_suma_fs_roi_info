@@ -3,12 +3,17 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "0.1";  set rev_dat   = "Feb 8, 2021"
+#set version   = "0.1";  set rev_dat   = "Feb 8, 2021"
 # [PT] start of this program in program form.  Programmatically speaking.
+#
+set version   = "0.2";  set rev_dat   = "Feb 9, 2021"
+# [PT] better output, more consistent
+#    + fractions in masks, added
+#    + renamed
 #
 # ----------------------------------------------------------------
 
-set this_prog = "adjunct_suma_fs_rois.tcsh"
+set this_prog = "adjunct_suma_fs_roi_info"
 set tpname    = "${this_prog:gas/@djunct_//}"
 set here      = $PWD
 
