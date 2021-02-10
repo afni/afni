@@ -6,10 +6,13 @@
 #set version   = "0.1";  set rev_dat   = "Feb 8, 2021"
 # [PT] start of this program in program form.  Programmatically speaking.
 #
-set version   = "0.2";  set rev_dat   = "Feb 9, 2021"
+#set version   = "0.2";  set rev_dat   = "Feb 9, 2021"
 # [PT] add in new WB mask from parcellation
 #    + more QC images
 #    + renamed
+#
+set version   = "0.3";  set rev_dat   = "Feb 10, 2021"
+# [PT] add in GM and WM QC images: Molfesian suggesions, thanks!
 #
 # ----------------------------------------------------------------
 
@@ -25,7 +28,7 @@ set parc_mask = fs_parc_wb_mask.nii.gz
 set opref          = "IMG_${tpname}"
 
 set pppp           = "`3dnewid -fun11`"
-set wdir_name      = "__workdir_olap_${pppp}"
+set wdir_name      = "__workdir_fs_qc_${pppp}"
 set tpref          = "for_img_qc"
 
 set DO_CLEAN       = 1
@@ -239,7 +242,65 @@ set opref = qc_02_fs_tiss_${subj}
 
 @chauffeur_afni                                                       \
     -ulay  ${ulay}                                                    \
-    -olay  ${dset_tiss}                                               \
+    -olay  "${dset_tiss}"                                             \
+    -box_focus_slices ${focus}                                        \
+    -ulay_range 0% 110%                                               \
+    -func_range 256                                                   \
+    -cbar "ROI_glasbey_256 FLIP"                                      \
+    -pbar_posonly                                                     \
+    -opacity     6                                                    \
+    -blowup      2                                                    \
+    -prefix      ${opref}                                             \
+    -montx 6 -monty 1                                                 \
+    -set_xhairs OFF                                                   \
+    -label_mode 1 -label_size 3                                       \
+    -do_clean
+
+2dcat                                                             \
+    -gap     5                                                    \
+    -gap_col 150 150 150                                          \
+    -nx 1                                                         \
+    -ny 3                                                         \
+    -prefix  ../${opref}.jpg                                      \
+    ${opref}*{sag,axi,cor}*
+
+# ----------------
+
+# major tissue classifications
+set opref = qc_03_fs_gm_${subj}
+
+@chauffeur_afni                                                       \
+    -ulay  ${ulay}                                                    \
+    -olay  "${dset_tiss}<2>"                                          \
+    -box_focus_slices ${focus}                                        \
+    -ulay_range 0% 110%                                               \
+    -func_range 256                                                   \
+    -cbar "ROI_glasbey_256 FLIP"                                      \
+    -pbar_posonly                                                     \
+    -opacity     6                                                    \
+    -blowup      2                                                    \
+    -prefix      ${opref}                                             \
+    -montx 6 -monty 1                                                 \
+    -set_xhairs OFF                                                   \
+    -label_mode 1 -label_size 3                                       \
+    -do_clean
+
+2dcat                                                             \
+    -gap     5                                                    \
+    -gap_col 150 150 150                                          \
+    -nx 1                                                         \
+    -ny 3                                                         \
+    -prefix  ../${opref}.jpg                                      \
+    ${opref}*{sag,axi,cor}*
+
+# ----------------
+
+# major tissue classifications
+set opref = qc_04_fs_wm_${subj}
+
+@chauffeur_afni                                                       \
+    -ulay  ${ulay}                                                    \
+    -olay  "${dset_tiss}<1>"                                          \
     -box_focus_slices ${focus}                                        \
     -ulay_range 0% 110%                                               \
     -func_range 256                                                   \
@@ -264,7 +325,7 @@ set opref = qc_02_fs_tiss_${subj}
 # ----------------
 
 # aparc+aseg (2000) REN all map
-set opref = qc_03_fs_aa_REN_all_${subj}
+set opref = qc_05_fs_aa_REN_all_${subj}
 
 @chauffeur_afni                                                       \
     -ulay  ${ulay}                                                    \
