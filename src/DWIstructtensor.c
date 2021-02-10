@@ -31,7 +31,10 @@
 #include "mrilib.h"
 
 // drg - mac os gcc10 requires declarations - here to include AFNI_ijk_to_xyz()
-#include "afni.h"
+// hopefully this will be in a thd_coords.h soon instead for this and other
+// programs
+extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
+     int,int,int, float *,float *,float *) ;
 
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4

@@ -1286,7 +1286,7 @@ int SUMA_SwitchColPlaneIntensity_one (
          if (lab) {
             ipair=0;
             while(ind2 < 0 && (ext = exta[ipair*2])) {
-               if (ext == "" || STRING_HAS_SUFFIX(lab,ext)) {
+               if ((strcmp(ext, "")==0) || STRING_HAS_SUFFIX(lab,ext)) {
                   lab[strlen(lab)-strlen(ext)]='\0';
                   lab2 = SUMA_append_string(lab,exta[ipair*2+1]);
                   SUMA_LHv("  Looking for %s\n", lab2);
@@ -1923,7 +1923,11 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    curColPlane->OptScl->MaskZero = 
       !curColPlane->OptScl->MaskZero;
    
-   if (!curColPlane->ShowMode < 0) { 
+  /* DG - not sure what !curColPlane... is supposed to do
+   * this never gets called the way it was written.
+   *  trying this change*/
+//   if (!curColPlane->ShowMode < 0) {   
+   if (!(curColPlane->ShowMode < 0)) {   
       /* nothing else to do */ 
       SUMA_RETURNe;
    } 
@@ -1983,8 +1987,10 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
       SUMA_INSERT_CELL_VALUE(TF, 1, 2, 
                   curColPlane->OptScl->IntRange[1]);
    }
-   
-   if (!curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
+ 
+// similar question as above  
+//   if (!curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
+   if (!(curColPlane->ShowMode < 0)) { SUMA_RETURNe; } 
       /* nothing else to do */
    
    
@@ -3576,9 +3582,9 @@ void SUMA_CreateTable(  Widget parent,
    }
    
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
-   if (wname) { /* override useless default */
+//   if (wname) { /* override useless default */ /* always allocated above char array string */
       snprintf(TF->wname,63,"%s", iwname);
-   }
+//   }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable; 
    TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int));
    TF->rowobject_id = (char **)SUMA_calloc(TF->Ni, sizeof(char *));
@@ -12692,8 +12698,8 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
       if (!Sover) {
          SUMA_RETURN(NOPE);
       }
-
-      if (!Sover->ShowMode > 0) {
+// DRG - ShowMode value not handled reliably here
+      if (!(Sover->ShowMode > 0)) {
          SUMA_LH("Col plane hidden");
          sprintf(str_col,"hidden color overlay");
          if (lbls) lbls = SUMA_append_replace_string(lbls, str_col, "; col=", 1);

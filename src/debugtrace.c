@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include "mcw_malloc.h"
 #include "AFNI_version.h"
-// drg - adding this for mac os 10.15 compilation
-#include <string.h>
-
 #include "debugtrace.h"  /* contains 1 function */
 #include <ctype.h>
 #include <stdarg.h>

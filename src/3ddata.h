@@ -3620,10 +3620,10 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 */
 #if 1  /* 18 Dec 2017 */
 
-#define DSET_BRICK_STATCODE(ds,iv)                                         \
-   ( ((ds)->dblk->brick_statcode != NULL)                                  \
-      ? (ds)->dblk->brick_statcode[iv]                                     \
-      : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])               \
+#define DSET_BRICK_STATCODE(ds,iv)                                        \
+      ( (((ds)->dblk->brick_statcode != NULL) && (iv >= 0))          \
+      ? (ds)->dblk->brick_statcode[iv]                                         \
+      : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])        \
         ? (ds)->func_type : -1                               )
 
 #else  /* Ye Olde Waye */
