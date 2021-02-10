@@ -11,8 +11,12 @@
 #    + more QC images
 #    + renamed
 #
-set version   = "0.3";  set rev_dat   = "Feb 10, 2021"
+#set version   = "0.3";  set rev_dat   = "Feb 10, 2021"
 # [PT] add in GM and WM QC images: Molfesian suggesions, thanks!
+#
+set version   = "0.31";  set rev_dat   = "Feb 10, 2021"
+# [PT] adjust mask dset in qc_00* for disambiguating masks
+#    + Rick told me to, I swear!
 #
 # ----------------------------------------------------------------
 
@@ -138,7 +142,7 @@ endif
 3dcalc                                                                     \
     -a       "${focus}"                                                    \
     -b       "${dset_tiss}"                                                \
-    -expr    "step(a)+step(b)"                                             \
+    -expr    "step(a)+2*step(b)"                                           \
     -prefix  "${dset_mask}"                                                \
     -datum   short
 
@@ -205,7 +209,7 @@ set opref = qc_00_fs_brainmask_${subj}
     -ny 3                                                         \
     -prefix  ../${opref}.jpg                                      \
     ${opref}*{sag,axi,cor}*
-
+exit
 # -------- 
 
 # filled parcellation mask (created above)
