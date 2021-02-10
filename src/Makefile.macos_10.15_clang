@@ -22,7 +22,9 @@
 #ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.a /usr/local/lib/libXm.a
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.a
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.9.a
-# I've removed libbz2.dylib from the list because it doesn't
+#ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h /usr/local/include/pgm.h
+
+# I've removed libbz2.dylib from the installed dylib list because it doesn't
 # seem to be used below, but on 10.15 with brew install
 # there is /usr/lib/libbz2.1.0.dylib
 
