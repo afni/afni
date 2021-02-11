@@ -1015,7 +1015,7 @@ ENTRY("new_MCW_grapher") ;
    grapher->detrend_av =
          new_MCW_optmenu( grapher->opt_menu ,
                           "Detrend" ,
-                          -1 , 7 , -1 , 0 ,
+                          -1 , GRA_MAX_DETREND , -1 , 0 ,
                           GRA_detrend_CB , (XtPointer)grapher ,
                           NULL , NULL ) ;
 
@@ -2209,7 +2209,7 @@ static void GRA_detrend_im( int dord , MRI_IMAGE *im ) /* 05 Dec 2012 */
    iar = MRI_FLOAT_PTR(im) ;           if( iar == NULL ) return ;
    nx = im->nx ; ny = im->ny ;         if( dord > nx+1 ) return ;
    for( jy=0 ; jy < ny ; jy++ )
-     THD_generic_detrend_L1( nx , iar+(jy*nx) , dord , 0,0,NULL ) ;
+     THD_generic_detrend_L1( nx , iar+(jy*nx) , dord , 0,NULL,NULL ) ;
 
    return ;
 }

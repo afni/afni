@@ -1,6 +1,10 @@
 #include "mrilib.h"
 #include <ctype.h>
 
+/*----------------------------------------------------------------------------*/
+/***** This is where the ETAC algorithm is implemented (God help us all). *****/
+/*----------------------------------------------------------------------------*/
+
 #undef DEBUG_MEM
 #if 0 && defined(ALLOW_MCW_MALLOC)
 # define DEBUG_MEM
@@ -36,11 +40,11 @@
 /*---------------------------------------------------------------------------*/
 /*--- Global data ---*/
 
-static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset */
-static byte              *mask_vol   = NULL;  /* mask volume */
+static THD_3dim_dataset  *mask_dset  = NULL ; /* mask dataset (required) */
+static byte              *mask_vol   = NULL;  /* mask dataset volume */
 static int mask_nvox = 0, mask_ngood = 0;     /* number of good voxels in mask volume */
 
-#define INMASK(ijk) (mask_vol[ijk]!=0)
+#define INMASK(ijk) (mask_vol[ijk]!=0)        /* is a voxel in the mask? */
 
 /* 3D indexes for each point in the mask */
 
@@ -314,6 +318,7 @@ ENTRY("get_options") ;
       if( verb )
         INFO_message("Loading %s datasets",argv[nopt-1]) ;
 
+      /* see thd_Xdataset.c */
       xinset = open_Xdataset( argv[nopt], nfile-1,argv+(nopt+1) ) ;
 
       if( xinset->ngood < min_mask )
@@ -695,6 +700,8 @@ void generate_image( float *fim , int ind )
      Xclustar_g[icase][ipthr][iter] = cluster array at iteration iter,
      for threshold ipthr, for case icase. The basic array created in main().
 *//*-------------------------------------------------------------------------*/
+
+/* pointer to pointer to pointer to pointer to struct! Isn't C great? */
 
 static Xcluster_array ****Xclustar_g ;
 

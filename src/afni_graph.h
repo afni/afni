@@ -645,6 +645,8 @@ typedef struct {
 
 } MCW_grapher ;
 
+#define GRA_MAX_DETREND      7     /* max order for detrending */
+
 #define GRA_TIMERFUNC_INDEX  701
 #define GRA_TIMERFUNC_BOUNCE 702
 
