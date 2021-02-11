@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Add in -mask_ss option, to replace skullstripping with a mask.",
+   "For example, using fs*mask*nii from @SUMA_Make_Spec_FS after FS.\n"
+},
+
 { 10, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
    "More QC images: WM and GM tissue, solo.",
    "Thanks for suggestions, P Molfese.\n"

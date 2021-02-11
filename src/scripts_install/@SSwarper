@@ -100,7 +100,7 @@
 #set version   = "2.31"; set rev_dat   = "Oct 19, 2020"
 #   + [PT] new qc image of initial overlap (with/without applying obl)
 #
-set version   = "2.33"; set rev_dat   = "Dec 1, 2020"
+#set version   = "2.33"; set rev_dat   = "Dec 1, 2020"
 #   + [PT] minorly change default "junk" file names 
 #          - amusing anecdote: one AFNI user got an unexpected failure
 #            when a random string started with "1D", so a file name
@@ -116,9 +116,13 @@ set version   = "2.33"; set rev_dat   = "Dec 1, 2020"
 #            simpler temp file name (use esp. when odir holds single
 #            subj output)
 #
-set version   = "2.4"; set rev_dat   = "Feb 5, 2020"
+#set version   = "2.4"; set rev_dat   = "Feb 5, 2020"
 #   + [PT] more QC along the processing: 2 new init*jpg files
 #        + add "-echo" as an opt
+#
+set version   = "2.5"; set rev_dat   = "Feb 10, 2020"
+#   + [PT] allow input mask
+#        + try Strategy 1 of just replacing 3dSkullStrip with it
 #
 # ----------------------------------------------------------------
 
@@ -178,6 +182,8 @@ set gaus_wt    = 4.5    # def for 3dQwarp
 set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
 
 set SSopt      = " "
+
+set mask_ss    = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -269,6 +275,13 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-aniso_off" ) then
         set DO_ANISO = 0
 
+    # [PT: Feb 11, 2019]
+    else if ( "$argv[$ac]" == "-mask_ss" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mask_ss = "$argv[$ac]"
+        set DO_SKULLST = 0
+
     # [PT: Jan 31, 2020]
     else if ( "$argv[$ac]" == "-extra_qc_off" ) then
         set DO_EXTRA_QC = 0
@@ -283,7 +296,6 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-saveall" ) then
         set saveall = "-saveall"
-
 
     # [PT: Jan 14, 2020] probably only for backwards compatibility:
     # default will be lpa+ZZ (could be 'hel' for back-compat)
@@ -379,6 +391,14 @@ endif
 if( "$SubID" == "" )then
   echo "***** ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
+endif
+
+if ( "${mask_ss}" != "" ) then
+    set check = `3dinfo -prefix "${mask_ss}"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find inset file ${mask_ss}"
+        goto BAD_EXIT
+    endif
 endif
 
 # edit SubID to remove any dataset suffixes [29 Mar 2019]
@@ -480,6 +500,18 @@ if ( ${DO_DEOB} ) then
         "$Adataset"
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
+
+    if ( "${mask_ss}" != "" ) then
+        set mask_do = $odir/maskDO."${SubID}".nii.gz
+        3dWarp                        \
+            -deoblique                \
+            -wsinc5                   \
+            -prefix "${mask_do}"      \
+            "${mask_ss}"
+        # ... and this will be new "input" dset
+        set mask_ss = "${mask_do}"
+    endif 
+
 else if ( ${DO_DEOB_REF} ) then
     set dset_do = $odir/anatDO."${SubID}".nii
     # copy
@@ -491,9 +523,25 @@ else if ( ${DO_DEOB_REF} ) then
     3drefit                       \
         -deoblique                \
         "${dset_do}"
-
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
+
+    if ( "${mask_ss}" != "" ) then
+        set mask_do = $odir/maskDO."${SubID}".nii.gz
+
+        # copy
+        3dcalc                        \
+            -a "${mask_ss}"            \
+            -expr 'a'                 \
+            -prefix "${mask_do}"
+        # purge obliquity info
+        3drefit                       \
+            -deoblique                \
+            "${mask_do}"
+        # ... and this will be new "input" dset
+        set mask_ss = "${mask_do}"
+    endif 
+
 endif
 
 if ( ${status} ) then
@@ -582,8 +630,7 @@ endif
 # Step #2: Strip Skull (Ziad's way)
 echo "++ SSW Step 2"
 
-# [PT: Feb 11, 2019] now allows for option *not* to skullstrip (e.g.,
-# for macaque data)
+# [PT: Feb 11, 2019] now allows for option *not* to skullstrip 
 if( ! -f $odir/anatS."${SubID}".nii ) then
     if ( ${DO_SKULLST} ) then
         3dSkullStrip \
@@ -593,6 +640,13 @@ if( ! -f $odir/anatS."${SubID}".nii ) then
             -shrink_fac_bot_lim 0.777          \
             -exp_frac 0.0666 -orig_vol         \
             $SSopt
+    else if ( "${mask_ss}" != "" ) then
+        echo "++ Instead of skullstripping, apply mask_ss dset."
+        3dcalc                                 \
+            -a $odir/anatUAC."$SubID".nii      \
+            -b ${mask_ss}                      \
+            -expr 'a*step(b)'                  \
+            -prefix $odir/anatS."$SubID".nii
     else
         echo "++ NOT pre-skullstripping dset."
         3dcopy                                 \
@@ -1232,6 +1286,13 @@ grown/improved over time):
               to have 3dSkullStrip produce a .ply surface file
               as an additional output.
 
+  -mask_ss MSS :(opt) as an alternative to skullstripping at an early
+              stage, you can provide a mask to be used before the
+              initial affine alignment.  The mask MSS can come from
+              anywhere, but @SUMA_Make_Spec_FS now makes a convenient
+              one from the FS parcellation (though it would have to be
+              resampled to the input anatomical's grid).
+
   -tmp_name_nice :(opt) default temporary "junk.*" filenames include
               a large, random char string.  This is ugly, but useful
               if outputting several different SSW runs into the same
@@ -1482,6 +1543,20 @@ EXAMPLES ~1~
         -base   MNI152_2009_template_SSW.nii.gz  \
         -subid  sub-001                          \
         -odir   group/o.aw_sub-001
+
+  3) As of version 2.5, you can input a mask to be used instead of
+  skullstripping.  For example, a good one might be the
+  parcellation-derived (but filled in) mask from @SUMA_Make_Spec_FS
+  after running FS's recon-all (though you will have to resample it
+  from the FS output grid to that of your input anatomical):
+
+    @SSwarper                                     \
+        -tmp_name_nice                            \
+        -input   anat_t1w.nii.gz                  \
+        -mask_ss fs_parc_wb_mask_RES.nii.gz       \
+        -base    MNI152_2009_template_SSW.nii.gz  \
+        -subid   sub-001                          \
+        -odir    group/o.aw_sub-001
 
 EOF
 
