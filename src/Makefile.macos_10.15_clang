@@ -79,7 +79,7 @@ INSTALLDIR = $(SYSTEM_NAME)
 
 EXTRA_INSTALL_FILES = /usr/local/lib/libXm.4.dylib			  \
 		      /usr/local/lib/libjpeg.9.dylib			  \
-		      /usr/local/opt/libgsl.dylib               \
+		      /usr/local/lib/libgsl.dylib               \
 		      /usr/local/lib/libglib-2.0.0.dylib		  \
 		      /usr/local/lib/libgslcblas.0.dylib		  \
 		      /usr/local/lib/libpng16.16.dylib			  \
