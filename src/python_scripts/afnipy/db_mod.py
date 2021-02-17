@@ -12173,7 +12173,7 @@ g_help_options = """
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
 
-        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: from afnipy import auto_warp.py output
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
 
                 e.g. -tlrc_NL_warped_dsets anat.nii           \\
                                            anat.un.aff.Xat.1D \\

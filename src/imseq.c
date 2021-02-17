@@ -16,6 +16,75 @@
    generic image viewing, and in SUMA for capturing image snapshots.
 *//*----------------------------------------------------------------------*/
 
+/*------------------------------------------------------------------------*/
+/* Structure of this AFNI image viewer:
+
+    * An image viewer's data structure is an MCW_imseq, created by
+      calling open_MCW_imseq(). Each AFNI controller has 3 MCW_imseq's:
+      the axial, sagittal, and coronal viewers.
+
+    * The prototype is
+        MCW_imseq * open_MCW_imseq( MCW_DC *dc ,
+                                    get_ptr get_image , XtPointer aux )
+         dc        = "display context" (display.[ch]) that holds the
+                     information about X11 display, colors, fonts,
+                     graphics contexts, .... This information is
+                     used when actually drawing to the display.
+         get_image = function that returns a pointer, which is the
+                     way the MCW_imseq gets information from AFNI.
+         aux       = pointer to any information that AFNI wants when
+                     get_image() is called -- information that lets
+                     AFNI identify what image viewer is calling.
+
+    * get_image() is called by get_image(n,type,aux), where
+         n         = (int) calling parameter - for example, image index
+         type      = (int) one of the isqCR_xxx codes in imseq.h,
+                     indicating the "Callback Reason" -- what AFNI is
+                     to do with this call.
+         aux       = the same "aux" as above, to give back to AFNI the
+                     auxiliary information needed to identify this viewer.
+      The type of object pointed to by get_image()'s return depends on
+      "type" -- at this date [Jan 2021] there are 33 isqCR_xxx codes.
+
+    * In turn, AFNI can control what the image viewer does by calling
+      the function drive_MCW_imseq(), which will carry out some action
+      specified by one of the isqDR_xxx "Drive Reason" codes in imseq.h.
+      At this date, there are 73 such isqDR_xxx codes.
+
+    * And of course, the user can control what the viewer does by using
+      the Widgets created in open_MCW_imseq(). Most user actions also
+      result in a call to get_image() to inform AFNI about the change;
+      for example, if the slice viewed is changed, AFNI needs to know
+      to update the crosshairs, the displayed coordinates, etc.
+
+    * This image viewer is also used in programs aiv, to3d, Xphace (a toy),
+      and in SUMA via the ISQ_snap*() functions -- which are located
+      in imseq.c and xim.c, and provide a way for a program to snapshot
+      an image or a Widget and save it to a viewer or directly to a file.
+
+    * Over the years (starting July 1994), the image viewer has grown
+      to have more and more functionality, which makes the code below
+      more and more ugly. However, the basic structure is not complicated:
+         User does something
+           imseq.c may make a change itself (e.g., Zoom current image)
+           or it may call AFNI to do something (e.g., provide a new image)
+         AFNI drives viewer to do something
+           which may in turn call AFNI back to provide data
+           (there are safeguards to prevent infinite recursion)
+      The ugliness comes from the many operations included in the word
+      "something" above, and the necessity for providing controls and
+      functions for all of them. And from the fact that the image viewer
+      has far outgrown its original scope, and pieces were added over
+      Lo These Many Years, so the code is kind of a mess.
+
+    * As a measure of the growth of the code, on 1997-11-05 (the date
+      I put AFNI under code version control via SCCS), there were 3409
+      lines in this file. As of right now (2021-01-13), the line count
+      has expanded to 14510 -- 426% growth over 23 years.
+
+    * Good luck, and be careful in here -- Bob Cox.
+*//*----------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>       /* 01 May 2003 - rickr */

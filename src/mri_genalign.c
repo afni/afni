@@ -371,8 +371,8 @@ void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
+   int nblok , nelm , *elm , dd , ii,jj , nm , use_ppow=0 ;
+   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f , pabs,ppow=1.0f ;
    static int uwb=-1 , wsold=0 ;  /* flags set by the environment */
 
 ENTRY("GA_pearson_local") ;
@@ -398,6 +398,7 @@ ENTRY("GA_pearson_local") ;
    gbs   = gstup->blokset ;
    nblok = gbs->num ;
    if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
+   ppow  = gbs->ppow ; use_ppow = (ppow != 1.0f) ;  /* 28 Jan 2021 */
 
    if( uwb < 0 ){
      uwb   = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
@@ -447,7 +448,9 @@ ENTRY("GA_pearson_local") ;
           if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
      else if( pcor < -CMAX ) pcor = -CMAX ;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
-     psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
+     pabs = fabsf(pcor) ;
+     if( use_ppow ) pabs = powf(pabs,ppow) ;        /* 28 Jan 2021 */
+     psum += ws * pcor * pabs ;                     /* emphasize large values */
      if( !wsold ) wss += ws ;                       /* moved here 02 Mar 2010 */
    }
 
@@ -1153,7 +1156,7 @@ STATUS("extract from base") ;
 
    if( stup->blokset != NULL ){                      /* 20 Aug 2007 */
      GA_BLOK_KILL(stup->blokset) ;
-     stup->blokset = NULL ;
+     stup->blokset = NULL ;   /* will be re-created later if needed */
    }
 
    stup->need_hist_setup = 1 ;   /* 08 May 2007 */
@@ -1444,6 +1447,87 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 
    free((void *)wpar); free((void *)avm);    /* toss the trash */
    RETURN(costvec) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return an image of the local correlations [25 Jan 2021 - RWC] */
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm )
+{
+   double *wpar , val ;
+   float *avm , *bvm , *wvm ;
+   int ii , qq  ;
+   floatvec *pvec ; MRI_IMAGE *pim ;
+
+ENTRY("mri_genalign_map_pearson_local") ;
+
+   /* check for malignancy */
+
+   if( stup == NULL || stup->setup != SMAGIC ) RETURN(NULL) ;
+
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) RETURN(NULL);
+
+   if( stup->blokset == NULL ){  /* Create blokset if not done before */
+     float rad=stup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
+     if( stup->smooth_code > 0 && stup->smooth_radius_base > 0.0f )
+       rad = sqrt( rad*rad + SQR(stup->smooth_radius_base) ) ;
+     mrad = 1.2345f*(stup->base_di + stup->base_dj + stup->base_dk) ;
+     rad  = MAX(rad,mrad) ;
+     if( stup->im != NULL ) ima = stup->im->ar ;
+     if( stup->jm != NULL ) jma = stup->jm->ar ;
+     if( stup->km != NULL ) kma = stup->km->ar ;
+     stup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
+                            stup->bsim->nx, stup->bsim->ny, stup->bsim->nz,
+                            stup->base_di , stup->base_dj , stup->base_dk ,
+                            stup->npt_match , ima,jma,kma ,
+                            stup->bloktype , rad , stup->blokmin , 1.0f,mverb ) ;
+   }
+
+/** INFO_message("mri_genalign_map_pearson_local: input parameters") ; **/
+
+   /* copy initial warp parameters into local wpar, scaling to range 0..1 */
+
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( !stup->wfunc_param[qq].fixed ){
+       val = (parm == NULL) ? stup->wfunc_param[qq].val_init : parm[qq] ;
+       wpar[ii] = (val - stup->wfunc_param[qq].min) / stup->wfunc_param[qq].siz;
+       if( wpar[ii] < 0.0 || wpar[ii] > 1.0 ) wpar[ii] = PRED01(wpar[ii]) ;
+/** ININFO_message("  %g  %g",val,wpar[ii]) ; **/
+       ii++ ;
+     }
+   }
+   if( ii == 0 ){ free(wpar) ; RETURN(NULL) ; } /* should never happen */
+
+   gstup    = stup ; /* I don't know if/why these statements are needed. */
+   gstup_bk = stup ; /* But I copied them from somewhere else to be safe */
+
+   avm = (float *)calloc(stup->npt_match,sizeof(float)) ; /* target points at */
+   GA_get_warped_values( stup->wfunc_numfree,wpar,avm ) ; /* warped locations */
+
+   bvm = stup->bvm->ar ;                                 /* base points */
+   wvm = (stup->wvm != NULL) ? stup->wvm->ar : NULL ;    /* weights */
+
+   /* get local correlation in each blok between avm and bvm, weighted by wvm */
+
+   pvec = GA_pearson_vector( stup->blokset , avm , bvm , wvm ) ;
+
+/** ININFO_message("Pearson vector") ;
+for( ii=0 ; ii < pvec->nar ; ii++ ){
+   fprintf(stderr,"   %g %d",pvec->ar[ii],stup->blokset->nelm[ii]) ;
+   if( ii%5 == 0 && ii > 0 ) fprintf(stderr,"\n") ;
+}
+fprintf(stderr,"\n") ; **/
+
+   /* push these into an image */
+
+   pim = GA_pearson_image( stup , pvec ) ;
+
+   KILL_floatvec(pvec) ; free(wpar) ;  /* tosso the trasholo */
+
+   RETURN(pim) ;
 }
 
 /*---------------------------------------------------------------------------*/

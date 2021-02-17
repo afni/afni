@@ -2375,9 +2375,9 @@ int SUMA_THD_dicomm_to_1dind(THD_3dim_dataset *dset,
 
 /*!
    \brief transforms XYZ coordinates from  AFNI'S RAI 
-   talairach space to MNI space in in RAI or (LPI) 
-   http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html.
-   see Bob's THD_tta_to_mni in thd_mnicoords.c
+   talairach space to MNI space in in RAI or (LPI). see, e.g.:
+   https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
+   Also see Bob's THD_tta_to_mni in thd_mnicoords.c
    
    \param NodeList (float *) vector of coordinates, 3 * N_Node long
    \param N_Node (int) number of nodes in vector above

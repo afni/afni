@@ -43,6 +43,8 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define APPLY_PARAM   1   /* 23 Jul 2007 */
 #define APPLY_AFF12   2
 
+/*** parameter counts for the obsolescent -nwarp option ***/
+
 #define NPBIL          39 /* plus 4 */
 #define WARP_BILINEAR 661
 #define APPLY_BILIN     3
@@ -67,13 +69,16 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 #define NONLINEAR_APPLY(aa) ( (aa) >= APPLY_BILIN )
 
+/****/
+
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
-static int   doing_2D     = 0 ;       /* 28 Apr 2020 */
-
-static int verb = 1 ; /* somewhat on by default */
-
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ); /* prototype */
+
+static int  doing_2D = 0 ; /* 28 Apr 2020: 2D registration */
+static int  verb     = 1 ; /* somewhat on by default */
+
+/* for checking how far 2 sets of parameters are apart from each other */
 
 float param_dist( GA_setup *stp , float *aa , float *bb ) ;      /* prototype */
 
@@ -101,6 +106,8 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 #define ALLOW_METH_CHECK   /* for the -check option: 03 Apr 2008 */
 
 /*----------------------------------------------------------------------------*/
+/*** Stuff that defines the method codes and name ***/
+
 #undef  NMETH
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
@@ -159,7 +166,16 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "lpa + hel + mi + nmi + crA + overlap"
   } ;
 
+/* check if method code implies use of BLOKs */
+
+#undef  METH_USES_BLOKS
+#define METH_USES_BLOKS(mmm) ( mmm == GA_MATCH_PEARSON_LOCALS   || \
+                               mmm == GA_MATCH_LPC_MICHO_SCALAR || \
+                               mmm == GA_MATCH_LPA_MICHO_SCALAR || \
+                               mmm == GA_MATCH_PEARSON_LOCALA       )
+
 /*---------------------------------------------------------------------------*/
+/* For the bilinear warp method -- this is obsolete IMHO [RWC] */
 
 #define SETUP_BILINEAR_PARAMS                                                \
  do{ char str[16] ;                                                          \
@@ -208,6 +224,7 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 }
 
 /*---------------------------------------------------------------------------*/
+/* for the polynomial warp setup - also obsolete [RWC] */
 
 #define SETUP_POLYNO_PARAMS(nnl,ran,nam)                                     \
  do{ char str[32] , *spt , xyz[3] = { 'x', 'y', 'z' } ;                     \
@@ -244,6 +261,8 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
 #define SETUP_NONI_PARAMS do{ SETUP_POLYNO_PARAMS(648,nwarp_parmax,"nonic");  \
                               stup.wfunc = mri_genalign_nonic ; } while(0)
 
+/*---------- Macros for freezing motions in particular directions ----------*/
+
 /* cc = 1,2,3 for x,y,z directions:
    permanently freeze parameters that cause motion in that direction */
 
@@ -253,7 +272,6 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
         if( 1+pp%3 == (cc) ) stup.wfunc_param[pp].fixed = 2 ;  \
       }                                                        \
   } while(0)
-
 /* cc = 1,2,3 for x,y,z directions:
    freeze parameters whose basis funcs are dependent on that coordinate */
 
@@ -275,7 +293,7 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      if( nwarp_fixdepY ) FREEZE_POLYNO_PARAMS_DEP(2) ;         \
      if( nwarp_fixdepZ ) FREEZE_POLYNO_PARAMS_DEP(3) ; } while(0)
 
-/* count free params into variable 'nf' */
+/*----------- count free params into variable 'nf' -----------*/
 
 #define COUNT_FREE_PARAMS(nf)                                  \
  do{ int jj ;                                                  \
@@ -288,7 +306,30 @@ static float BILINEAR_offdiag_norm(GA_setup stup)
      if( verb > 4 ) fprintf(stderr,"\n") ;                     \
  } while(0)
 
+/*--------- Macro to save Pearson map (for use in main) [27 Jan 2021] --------*/
+
+#define SAVE_PEARSON_MAP(sprefix,val_xxx)                                        \
+  do{ MRI_IMAGE *pim ;                                                           \
+      PAR_CPY(val_xxx) ;           /* copy output parameters to allpar[] */      \
+      pim = mri_genalign_map_pearson_local(&stup,allpar) ; /* get 3D map */      \
+      if( pim != NULL ){                                                         \
+        THD_3dim_dataset *pset ;                                                 \
+        pset = THD_volume_to_dataset( dset_base , pim , /* convert to dataset */ \
+                                      (sprefix) ,   pad_xm,pad_xp,               \
+                                      pad_ym,pad_yp,pad_zm,pad_zp ) ;            \
+        mri_free(pim) ;                                                          \
+        if( pset != NULL ){  /* save dataset */                                  \
+          DSET_write(pset) ; WROTE_DSET(pset) ; DSET_delete(pset) ;              \
+        } else {                                                                 \
+          ERROR_message("Failed to create -PearSave dataset %s :(",(sprefix)) ;  \
+        }                                                                        \
+      } else {                                                                   \
+          ERROR_message("Failed to create -PearSave volume %s :(",(sprefix)) ;   \
+      }                                                                          \
+  } while(0)
+
 /*---------------------------------------------------------------------------*/
+/* Given a string, find the cost functional method code that goes with it. */
 
 int meth_name_to_code( char *nam )  /* 15 Dec 2010 */
 {
@@ -302,6 +343,7 @@ int meth_name_to_code( char *nam )  /* 15 Dec 2010 */
 }
 
 /*---------------------------------------------------------------------------*/
+/* Given an interpolation code, find the name that goes with it. */
 
 char * INTERP_methname( int iii )
 {
@@ -316,6 +358,8 @@ char * INTERP_methname( int iii )
    }
    return "MYSTERIOUS" ; /* unreachable */
 }
+
+/*---------------------------- And vice-versa ------------------------------*/
 
 int INTERP_code( char *name )
 {
@@ -339,13 +383,19 @@ int INTERP_code( char *name )
 }
 
 /*---------------------------------------------------------------------------*/
+/*============================ Ye Olde Main Programme =======================*/
+/* Note the GA_setup struct 'stup' below.
+   This struct contains all the alignment setup information,
+   and is passed to functions in mri_genalign.c to do lots of things,
+   like evaluate the cost functional, optimize the cost, and so forth. */
+/*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
+   GA_setup stup ;                   /* holds all the setup info */
    THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
    MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
-   GA_setup stup ;
    int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 , nnz ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
@@ -463,6 +513,8 @@ int main( int argc , char *argv[] )
    int blokmin                 = 0 ;
 
    int do_allcost              = 0 ;            /* 19 Sep 2007 */
+   int do_save_pearson_map     = 0 ;            /* 25 Jan 2021 */
+   char *save_pearson_prefix   = NULL ;
 
    MRI_IMAGE *allcostX1D       = NULL ;         /* 02 Sep 2008 */
    char *allcostX1D_outname    = NULL ;
@@ -502,7 +554,7 @@ int main( int argc , char *argv[] )
 
    int do_xflip_bset           = 0 ;             /* 18 Jun 2019 */
 
-#undef ALLOW_UNIFIZE
+#undef ALLOW_UNIFIZE   /* I decided this was a bad idea */
 #ifdef ALLOW_UNIFIZE
    int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
    int do_unifize_targ         = 0 ;             /* not implemented */
@@ -517,6 +569,8 @@ int main( int argc , char *argv[] )
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
+   /*--- A couple thousand lines of help code goes here for some reason ---*/
+
    if( argc < 2 || strcmp(argv[1],"-help")==0 ||
                    strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
 
@@ -524,12 +578,27 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < NMETH ; ii++ )
        if( meth_visible[ii] && meth_noweight[ii] ) visible_noweights++ ;
 
-     printf(
+     printf("\n"
 "Usage: 3dAllineate [options] sourcedataset\n"
 "\n"
-"Program to align one dataset (the 'source') to a base dataset,\n"
-"using an affine (matrix) transformation of space.\n"
-"* Options are available to control:\n"
+"--------------------------------------------------------------------------\n"
+"      Program to align one dataset (the 'source') to a 'base'\n"
+"      dataset, using an affine (matrix) transformation of space.\n"
+"--------------------------------------------------------------------------\n"
+"\n"
+"--------------------------------------------------------------------------\n"
+"    ***** Please check your results visually, or at some point  *****\n"
+"    ***** in time you will have bad results and not know it :-( *****\n"
+"    *****                                                       *****\n"
+"    ***** No method for 3D image alignment, however tested it   *****\n"
+"    ***** was, can be relied upon 100%% of the time, and anyone  *****\n"
+"    ***** who tells you otherwise is a madman or is a liar!!!!  *****\n"
+"    *****                                                       *****\n"
+"    ***** Furthermore, don't EVER think that \"I have so much    *****\n"
+"    ***** data that a few errors will not matter\"!!!!           *****\n"
+"--------------------------------------------------------------------------\n"
+"\n"
+"* Options (lots of them!) are available to control:\n"
 " ++ How the matching between the source and the base is computed\n"
 "    (i.e., the 'cost functional' measuring image mismatch).\n"
 " ++ How the resliced source is interpolated to the base space.\n"
@@ -547,6 +616,9 @@ int main( int argc , char *argv[] )
 "  skips the alignment process, whose function is to compute the matrix,\n"
 "  and instead it reads the matrix in, computes the output dataset,\n"
 "  writes it out, and stops.\n"
+"\n"
+"* If you are curious about the stepwise process used, see the section below\n"
+"  titled 'SUMMARY of the Default Allineation Process'.\n"
 "\n"
 "=====----------------------------------------------------------------------\n"
 "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -863,7 +935,7 @@ int main( int argc , char *argv[] )
 "\n"
 " -verb       = Print out verbose progress reports.\n"
 "               [Using '-VERB' will give even more prolix reports :]\n"
-" -quiet      = Don't print out verbose stuff.\n"
+" -quiet      = Don't print out verbose stuff. (But WHY?)\n"
 "\n"
 " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
 "               Using this will slow the program down, but may make it\n"
@@ -918,7 +990,7 @@ int main( int argc , char *argv[] )
 "\n"
 " -onepass    = Use only the refining pass -- do not try a coarse\n"
 "               resolution pass first.  Useful if you know that only\n"
-"               small amounts of image alignment are needed.\n"
+"               SMALL amounts of image alignment are needed.\n"
 "               [The default is to use both passes.]\n"
 "\n"
 " -twopass    = Use a two pass alignment strategy, first searching for\n"
@@ -937,7 +1009,8 @@ int main( int argc , char *argv[] )
 "              * The ultimate winner of THAT stage is what starts\n"
 "                 the second (fine) pass alignment. Usually, this starting\n"
 "                 point is so good that the fine pass optimization does\n"
-"                 not provide a lot of improvement.\n"
+"                 not provide a lot of improvement; that is, most of the\n"
+"                 run time ends up in coarse pass with its multiple stages.\n"
 "              * All of these stages are intended to help the program avoid\n"
 "                 stopping at a 'false' minimum in the cost functional.\n"
 "                 They were added to the software as we gathered experience\n"
@@ -1008,6 +1081,11 @@ int main( int argc , char *argv[] )
 "                 If given in the form '-cmass+xy' (for example), means to\n"
 "                 do the CoM calculation in the x- and y-directions, but\n"
 "                 not the z-direction.\n"
+"               * MY OPINION: This option is REALLY useful in most cases.\n"
+"                             However, if you only have partial coverage in\n"
+"                             the -source dataset, you will need to use\n"
+"                             one of the '+' additions to restrict the\n"
+"                             use of the CoM limits.\n"
 "\n"
 " -nocmass      = Don't use the center-of-mass calculation. [The default]\n"
 "                  (You would not want to use the C-o-M calculation if the  )\n"
@@ -1088,7 +1166,7 @@ int main( int argc , char *argv[] )
 "               will not be included (i.e., their weights will be set to zero).\n"
 "             * Like all the weight options, it applies in the base image\n"
 "               coordinate system.\n"
-"             * Like all the weight options, it means nothing if you are using\n"
+"            ** Like all the weight options, it means nothing if you are using\n"
 "               one of the 'apply' options.\n"
       ) ;
 
@@ -1121,19 +1199,28 @@ int main( int argc , char *argv[] )
        "                 affine_general     *OR* aff = 12 parameters\n"
        "               [Default = affine_general, which includes image]\n"
        "               [      shifts, rotations, scaling, and shearing]\n"
+       "             * MY OPINION: Shearing is usually unimportant, so\n"
+       "                            you can omit it if you want: '-warp srs'.\n"
+       "                           But it doesn't hurt to keep shearing,\n"
+       "                            except for a little extra CPU time.\n"
+       "                           On the other hand, scaling is often\n"
+       "                            important, so should not be omitted.\n"
        "\n"
        " -warpfreeze = Freeze the non-rigid body parameters (those past #6)\n"
        "               after doing the first sub-brick.  Subsequent volumes\n"
        "               will have the same spatial distortions as sub-brick #0,\n"
        "               plus rigid body motions only.\n"
+       "             * MY OPINION: This option is almost useless.\n"
        "\n"
        " -replacebase   = If the source has more than one sub-brick, and this\n"
        "                  option is turned on, then after the #0 sub-brick is\n"
        "                  aligned to the base, the aligned #0 sub-brick is used\n"
        "                  as the base image for subsequent source sub-bricks.\n"
+       "                * MY OPINION: This option is almost useless.\n"
        "\n"
        " -replacemeth m = After sub-brick #0 is aligned, switch to method 'm'\n"
        "                  for later sub-bricks.  For use with '-replacebase'.\n"
+       "                * MY OPINION: This option is almost useless.\n"
        "\n"
        " -EPI        = Treat the source dataset as being composed of warped\n"
        "               EPI slices, and the base as comprising anatomically\n"
@@ -1355,11 +1442,19 @@ int main( int argc , char *argv[] )
         "               case is starting with the identity transformation, which\n"
         "               helps insure against the chance that the coarse pass\n"
         "               optimizations ran totally amok.\n"
+        "             * MY OPINION: This option is mostly useless - but not always!\n"
+        "                         * Every step in the multi-step alignment process\n"
+        "                            was added at some point to solve a difficult\n"
+        "                            alignment problem.\n"
+        "                         * Since you usually don't know if YOUR problem\n"
+        "                            is difficult, you should not reduce the default\n"
+        "                            process without good reason.\n"
         "\n"
         " -nocast     = By default, parameter vectors that are too close to the\n"
         "               best one are cast out at the end of the coarse pass\n"
         "               refinement process. Use this option if you want to keep\n"
         "               them all for the fine resolution pass.\n"
+        "             * MY OPINION: This option is nearly useless.\n"
         "\n"
         " -norefinal  = Do NOT re-start the fine iteration step after it\n"
         "               has converged.  The default is to re-start it, which\n"
@@ -1379,6 +1474,7 @@ int main( int argc , char *argv[] )
         "                  the -allcost evaluations takes place\n"
         "                * this option is mostly useless unless '-histbin' is\n"
         "                  also used\n"
+        "               * MY OPINION: This option is mostly for debugging.\n"
 #if 0
         " -seed iii     = Set random number seed (for coarse startup search)\n"
         "                 to 'iii'.\n"
@@ -1386,6 +1482,7 @@ int main( int argc , char *argv[] )
 #endif
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
         "                 (Somewhat slower, and not obviously useful.)\n"
+        "               * MY OPINION: This option is nearly useless.\n"
         "\n"
         " -powell m a   = Set the Powell NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. source code in powell_int.c).\n"
@@ -1395,6 +1492,7 @@ int main( int argc , char *argv[] )
         "                 are m=2 and a=3.  Larger values will probably slow\n"
         "                 the program down for no good reason.  The smallest\n"
         "                 allowed values are 1.\n"
+        "               * MY OPINION: This option is nearly useless.\n"
         "\n"
         " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
         "                 what I now call the 'source' dataset was called the\n"
@@ -1429,6 +1527,7 @@ int main( int argc , char *argv[] )
         "                         non-negative; any negative voxels in either\n"
         "                         the input or source volumes will force a switch\n"
         "                         to all equal-spaced bins.\n"
+        "               * MY OPINION: The above histogram-altering options are useless.\n"
         "\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
@@ -1443,11 +1542,56 @@ int main( int argc , char *argv[] )
         "                   truncated octahedra\n"
         "                 where 'r' is the size parameter in mm.\n"
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
+        "               * Changing the 'blok' definition/radius should only be\n"
+        "                 needed if the resolution of the base dataset is\n"
+        "                 radically different from the common 1 mm.\n"
+        "               * HISTORICAL NOTES:\n"
+        "                 * CUBE, RHDD, and TOHD are space filling polyhedra.\n"
+        "                 * To even approximately fill space, BALLs must overlap,\n"
+        "                   unlike the other blok shapes. Which means that BALL\n"
+        "                   bloks will use some voxels twice.\n"
+        "                 * The TOHD is the 'most compact' or 'most ball-like'\n"
+        "                   of the known convex space filling polyhedra.\n"
+        "                 * Kepler discovered/invented the RHDD (honeybees also did).\n"
+        "\n"
+        " -PearSave sss = Save the final local Pearson correlations into a dataset\n"
+        "   *OR*          with prefix 'sss'. These are the correlations from\n"
+        " -SavePear sss   which the lpc and lpa cost functionals are calculated.\n"
+        "                * The values will be between -1 and 1 in each blok.\n"
+        "                   See the 'Too Much Detail' section below for how\n"
+        "                   these correlations are used to compute lpc and lpa.\n"
+        "                * Locations not used in the matching will get 0.\n"
+        "               ** Unless you use '-nmatch 100%%', there will be holes\n"
+        "                   of 0s in the bloks, as not all voxels are used in\n"
+        "                   the matching algorithm (speedup attempt).\n"
+        "                * All the matching points in a given blok will get\n"
+        "                   the same value, which makes the resulting dataset\n"
+        "                   look jauntily blocky, especially in color.\n"
+        "                * This saved dataset will be on the grid of the base\n"
+        "                   dataset, and may be zero padded if the program\n"
+        "                   chose to do so in it wisdom. This padding means\n"
+        "                   that the voxels in this output dataset may not\n"
+        "                   match one-to-one with the voxels in the base\n"
+        "                   dataset; however, AFNI displays things using\n"
+        "                   coordinates, so overlaying this dataset on the\n"
+        "                   base dataset (say) should work OK.\n"
+        "                * If you really want this saved dataset to be on the\n"
+        "                   grid as the base dataset, you'll have use\n"
+        "                     3dZeropad -master {Base Dataset} ....\n"
+        "                * Option '-PearSave' works even if you don't use the\n"
+        "                   'lpc' or 'lpa' cost functionals.\n"
+        "                * If you use this option combined with '-allcostX', then\n"
+        "                   the local correlations will be saved from the INITIAL\n"
+        "                   alignment parameters, rather than from the FINAL\n"
+        "                   optimized parameters.\n"
+        "                   (Of course, with '-allcostX', there IS no final result.)\n"
+        "                * This option does NOT work with '-allcost' or '-allcostX1D'.\n"
         "\n"
         " -allcost        = Compute ALL available cost functionals and print them\n"
-        "                   at various points.\n"
+        "                   at various points in the optimization progress.\n"
         " -allcostX       = Compute and print ALL available cost functionals for the\n"
         "                   un-warped inputs, and then quit.\n"
+        "                  * This option is for testing purposes (AKA 'fun').\n"
         " -allcostX1D p q = Compute ALL available cost functionals for the set of\n"
         "                   parameters given in the 1D file 'p' (12 values per row),\n"
         "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
@@ -1458,13 +1602,39 @@ int main( int argc , char *argv[] )
         "                          matrix. An identity matrix could be provided as\n"
         "                          \"0 0 0  0 0 0  1 1 1  0 0 0\" for instance or by\n"
         "                          using the word \"IDENTITY\"\n"
+        "                  * This option is for testing purposes (even more 'fun').\n"
        ) ;
 
        printf("\n"
         "===========================================================================\n" );
        printf("\n"
-        "Modifying '-final wsinc5'\n"
-        "-------------------------\n"
+        "Too Much Detail -- How Local Pearson Correlations Are Computed and Used\n"
+        "-----------------------------------------------------------------------\n"
+        " * The automask region of the base dataset is divided into a discrete\n"
+        "    set of 'bloks'. Usually there are several thousand bloks.\n"
+        " * In each blok, the voxel values from the base and the source (after\n"
+        "    the alignment transformation is applied) are extracted and the\n"
+        "    correlation coefficient is computed -- either weighted or unweighted,\n"
+        "    depending on the options used in 3dAllineate (usually weighted).\n"
+        " * Let p[i] = correlation coefficient in blok #i,\n"
+        "       w[i] = sum of weights used in blok #i, or = 1 if unweighted.\n"
+        "** The values of p[i] are what get output via the '-PearSave' option.\n"
+        " * Define pc[i] = arctanh(p[i]) = 0.5 * log( (1+p[i]) / (1-p[i]) )\n"
+        "     This expression is designed to 'stretch' out larger correlations,\n"
+        "     giving them more emphasis in psum below. The same reasoning\n"
+        "     is why pc[i]*abs(pc[i]) is used below, to make bigger correlations\n"
+        "     have a bigger impact in the final result.\n"
+        " * psum = SUM_OVER_i { w[i]*pc[i]*abs(pc[i]) }\n"
+        "   wsum = SUM_OVER_i { w[i] }\n"
+        "   lpc  = psum / wsum   ==> negative correlations are good (smaller lpc)\n"
+        "   lpa  = 1 - abs(lpc)  ==> positive correlations are good (smaller lpa)\n"
+       ) ;
+
+       printf("\n"
+        "===========================================================================\n" );
+       printf("\n"
+        "Modifying '-final wsinc5' -- for the truly crazy people out there\n"
+        "-----------------------------------------------------------------\n"
         " * The windowed (tapered) sinc function interpolation can be modified\n"
         "     by several environment variables.  This is expert-level stuff, and\n"
         "     you should understand what you are doing if you use these options.\n"
@@ -1514,7 +1684,7 @@ int main( int argc , char *argv[] )
         "     you'll have to experiment with this parameter yourself.\n"
         " * A spherical mask is also VERY slow, since the cubical mask allows\n"
         "     evaluation as a tensor product.  There is really no good reason\n"
-        "     to use a spherical mask; I only put it in for experimental purposes.\n"
+        "     to use a spherical mask; I only put it in for fun/experimental purposes.\n"
         "** For most users, there is NO reason to ever use these environment variables\n"
         "     to modify wsinc5.  You should only do this kind of thing if you have a\n"
         "     good and articulable reason!  (Or if you really like to screw around.)\n"
@@ -1572,6 +1742,7 @@ int main( int argc , char *argv[] )
               " * In addition, if you want the initial alignments to be with '-lpc+' and\n"
               "   then finish the Final alignment with pure '-lpc', you can indicate this\n"
               "   by putting 'ZZ' somewhere in the option string, as in '-lpc+ZZ'.\n"
+              " ***** '-cost lpc+ZZ' is very useful for aligning EPI to T1w volumes *****\n"
               "\n"
               " * [28 Nov 2018]\n"
               "   All of the above now applies to the 'lpa+' cost functional,\n"
@@ -1593,6 +1764,20 @@ int main( int argc , char *argv[] )
               "   so that the best image alignment will be found when the cost\n"
               "   is minimized.  See the descriptions above and the references\n"
               "   below for more details for each functional.\n");
+       printf("\n") ;
+       printf(" * MY OPINIONS:\n"
+              "   * Some of these cost functionals were implemented only for\n"
+              "      the purposes of fun and/or comparison and/or experimentation\n"
+              "      and/or special circumstances. These are\n"
+              "        sp je lss crM crA crM hel mi nmi\n"
+              "   * For many purposes, lpc+ZZ and lpa+ZZ are the most robust\n"
+              "      cost functionals, but usually the slowest to evaluate.\n"
+              "   * HOWEVER, just because some method is best MOST of the\n"
+              "      time does not mean it is best ALL of the time.\n"
+              "      Please check your results visually, or at some point\n"
+              "      in time you will have bad results and not know it!\n"
+              "   * For speed and for 'like-to-like' alignment, '-cost ls'\n"
+              "      can work well.\n") ;
        printf("\n") ;
        printf(" * For more information about the 'lpc' functional, see\n"
               "     ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
@@ -1641,17 +1826,114 @@ int main( int argc , char *argv[] )
        printf("\n"
         "===========================================================================\n"
         "\n"
+        "SUMMARY of the Default Allineation Process\n"
+        "------------------------------------------\n"
+        "As mentioned earlier, each of these steps was added to deal with a problem\n"
+        " that came up over the years. The resulting process is reasonably robust :),\n"
+        " but then tends to be slow :(. If you use the '-verb' or '-VERB' option, you\n"
+        " will get a lot of fun fun fun progress messages that show the results from\n"
+        " this sequence of steps.\n"
+        "\n"
+        "Below, I refer to different scales of effort in the optimizations at each\n"
+        " step. Easier/faster optimization is done using: matching with fewer points\n"
+        " from the datasets; more smoothing of the base and source datasets; and by\n"
+        " putting a smaller upper limit on the number of trials the optimizer is\n"
+        " allowed to take. The Coarse phase starts with the easiest optimization,\n"
+        " and increases the difficulty a little at each refinement. The Fine phase\n"
+        " starts with the most difficult optimization setup: the most points for\n"
+        " matching, little or no smoothing, and a large limit on the number of\n"
+        " optimizer trials.\n"
+        "\n"
+        " 0. Preliminary Setup [Goal: create the basis for the following steps]\n"
+        "  a. Create the automask and/or autoweight from the '-base' dataset.\n"
+        "     The cost functional will only be computed from voxels inside the\n"
+        "     automask, and only a fraction of those voxels will actually be used\n"
+        "     for evaluating the cost functional (unless '-nmatch 100%%' is used).\n"
+        "  b. If the automask is 'too close' to the outside of the base 3D volume,\n"
+        "     zeropad the base dataset to avoid edge effects.\n"
+        "  c. Determine the 3D (x,y,z) shifts for the '-cmass' center-of-mass\n"
+        "     crude alignment, if ordered by the user.\n"
+        "  d. Set ranges of transformation parameters and which parameters are to\n"
+        "     be frozen at fixed values.\n"
+        "\n"
+        " 1. Coarse Phase [Goal: explore the vastness of 6-12D parameter space]\n"
+        "  a. The first step uses only the first 6 parameters (shifts + rotations),\n"
+        "     and evaluates thousands of potential starting points -- selected from\n"
+        "     a 6D grid in parameter space and also from random points in 6D\n"
+        "     parameter space. This step is fairly slow. The best 45 parameter\n"
+        "     sets (in the sense of the cost functional) are kept for the next step.\n"
+        "  b. Still using only the first 6 parameters, the best 45 sets of parameters\n"
+        "     undergo a little optimization. The best 6 parameter sets after this\n"
+        "     refinement are kept for the next step. (The number of sets chosen\n"
+        "     to go on to the next step can be set by the '-twobest' option.)\n"
+        "     The optimizations in this step use the blurring radius that is\n"
+        "     given by option '-twoblur', which defaults to 7.77 mm, and use\n"
+        "     relatively few points in each dataset for computing the cost functional.\n"
+        "  c. These 6 best parameter sets undergo further, more costly, optimization,\n"
+        "     now using all 12 parameters. This optimization runs in 3 passes, each\n"
+        "     more costly (less smoothing, more matching points) than the previous.\n"
+        "     (If 2 sets get too close in parameter space, 1 of them will be cast out\n"
+        "     -- this does not happen often.) Output parameter sets from the 3rd pass\n"
+        "     of successive refinement are inputs to the fine refinement phase.\n"
+        "\n"
+        " 2. Fine Phase [Goal: use more expensive optimization on good starting points]\n"
+        "  a. The 6 outputs from step 1c have the null parameter set (all 0, except\n"
+        "     for the '-cmass' shifts) appended. Then a small amount of optimization\n"
+        "     is applied to each of these 7 parameter sets ('-num_rtb'). The null\n"
+        "     parameter set is added here to insure against the possibility that the\n"
+        "     coarse optimizations 'ran away' to some unpleasant locations in the 12D\n"
+        "     parameter space. These optimizations use the full set of points specified\n"
+        "     by '-nmatch', and the smoothing specified by '-fineblur' (default = 0),\n"
+        "     but the number of functional evaluations is small, to make this step fast.\n"
+        "  b. The best (smallest cost) set from step 2a is chosen for the final\n"
+        "     optimization, which is run until the '-conv' limit is reached.\n"
+        "     These are the 'Finalish' parameters (shown using '-verb').\n"
+        "  c. The set of parameters from step 2b is used as the starting point\n"
+        "     for a new optimization, in an attempt to avoid a false minimum.\n"
+        "     The results of this optimization are the final parameter set.\n"
+        "\n"
+        " 3. The final set of parameters is used to produce the output volume,\n"
+        "    using the '-final' interpolation method.\n"
+        "\n"
+        "In practice, the output from the Coarse phase successive refinements is\n"
+        "usually so good that the Fine phase runs quickly and makes only small\n"
+        "adjustments. The quality resulting from the Coarse phase steps is mostly\n"
+        "due, in my opinion, to the large number of initial trials (1ab), followed by\n"
+        "by the successive refinements of several parameter sets (1c) to help usher\n"
+        "'good' candidates to the starting line for the Fine phase.\n"
+        "\n"
+        "For some 'easy' registration problems -- such as T1w-to-T1w alignment, high\n"
+        "quality images, a lot of overlap to start with -- the process can be sped\n"
+        "up by reducing the number of steps. For example, '-num_rtb 0 -twobest 0'\n"
+        "would eliminate step 2a and speed up step 1c. Even more extreme, '-onepass'\n"
+        "could be used to skip all of the Coarse phase. But be careful out there!\n"
+        "\n"
+        "For 'hard' registration problems, cleverness is usually needed. Choice\n"
+        "of cost functional matters. Preprocessing the datasets may be necessary.\n"
+        "Using '-twobest %d' could help by providing more candidates for the\n"
+        "Fine phase -- at the cost of CPU time. If you run into trouble -- which\n"
+        "happens sooner or later -- try the AFNI Message Board -- and please\n"
+        "give details, including the exact command line(s) you used.\n"
+       , PARAM_MAXTRIAL
+       ) ;
+
+#if 0               /* No longer show help for -nwarp [29 Jan 2021] */
+       printf("\n"
+        "===========================================================================\n"
+        "\n"
         " -nwarp type = Experimental nonlinear warping:\n"
         "\n"
-        "              ***** Note that these '-nwarp' options are superseded  *****\n"
-        "              ***** by the AFNI program 3dQwarp,  which does a more  *****\n"
-        "              ***** accurate and better and job of nonlinear warping *****\n"
-        "              ***** ------ Zhark the Warper ------ July 2013 ------- *****\n"
+        "              ***** Note that these '-nwarp' options are superseded   *****\n"
+        "              ***** by the AFNI program 3dQwarp,  which does a more   *****\n"
+        "              ***** accurate and more better job of nonlinear warping *****\n"
+        "            ********* I strongly recommend against using -nwarp!!!  *********\n"
+        "            ********* [And I will not support or help you with it.] *********\n"
+        "            ******* ------ Zhark the Warper ------ July 2013 -------- *******\n"
         "\n"
         "              * At present, the only 'type' is 'bilinear',\n"
         "                as in 3dWarpDrive, with 39 parameters.\n"
         "              * I plan to implement more complicated nonlinear\n"
-        "                warps in the future, someday ....\n"
+        "                warps in the future, someday .... [HAH!]\n"
         "              * -nwarp can only be applied to a source dataset\n"
         "                that has a single sub-brick!\n"
         "              * -1Dparam_save and -1Dparam_apply work with\n"
@@ -1812,8 +2094,9 @@ int main( int argc , char *argv[] )
         "\n"
         "===========================================================================\n"
        ) ;
+#endif
 
-     } else {
+     } else {  /* now unreachable */
 
        printf(
         "\n"
@@ -1833,7 +2116,9 @@ int main( int argc , char *argv[] )
      PRINT_COMPILE_DATE ; exit(0);
    }
 
-   /**--- bookkeeping and marketing ---**/
+   /**-------------------------------------------------------------------**/
+   /**-------------------- bookkeeping and marketing --------------------**/
+   /**-------------------------------------------------------------------**/
 
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
@@ -1846,7 +2131,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dAllineate"); machdep();
    AFNI_logger("3dAllineate",argc,argv);
    PRINT_VERSION("3dAllineate"); AUTHOR("Zhark the Registrator");
-   THD_check_AFNI_version("3dAllineate");
+   THD_check_AFNI_version("3dAllineate"); /* no longer does anything */
    (void)COX_clock_time() ;
 
    /*-- initialize -final interp from environment? [25 Nov 2018] --*/
@@ -2031,6 +2316,22 @@ int main( int argc , char *argv[] )
          ERROR_exit("-allcostX1D '%s' has only %d values per row :-(" ,
                     argv[iarg] , allcostX1D->nx ) ;
        allcostX1D_outname = strdup(argv[++iarg]) ;
+       ++iarg ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-PearSave") == 0 ||
+         strcasecmp(argv[iarg],"-SavePear") == 0   ){  /* 25 Jan 2021 */
+       static char *pppname = "PearSave.nii.gz" ;
+       do_save_pearson_map = 1 ; iarg++ ;
+       if( !THD_filename_ok(argv[iarg]) ){
+         WARNING_message("Option '%s' has illegal prefix '%s' - replacing with '%s'",
+                         argv[iarg-1] , argv[iarg] , pppname ) ;
+         save_pearson_prefix = strdup(pppname) ;
+       } else {
+         save_pearson_prefix = strdup(argv[iarg]) ;
+       }
        ++iarg ; continue ;
      }
 
@@ -3119,7 +3420,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-blok") == 0 ){   /* hidden */
+     if( strcmp(argv[iarg],"-blok") == 0 ){
        int ia=0 ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after -blok :-(") ;
        if( strncmp(argv[iarg],"SPHERE(",7) == 0 ){
@@ -3155,6 +3456,7 @@ int main( int argc , char *argv[] )
    /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
 
+   /* set random seed */
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 
@@ -3192,6 +3494,8 @@ int main( int argc , char *argv[] )
       "-lpc or -lpa cost functionals do NOT work well with 2D images :(") ;
    }
 
+   /* set histogram mode (for computing -hel, -mi, -cr, etc) */
+
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
      switch( meth_code ){
        case GA_MATCH_PEARSON_LOCALS:
@@ -3207,6 +3511,8 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /* if the user wants to see all cost functional values */
+
    if( do_allcost < 0 && prefix != NULL ){  /* 19 Sep 2007 */
      prefix = NULL ;
      WARNING_message("-allcostX means -prefix is ignored :-(") ;
@@ -3220,7 +3526,11 @@ int main( int argc , char *argv[] )
      WARNING_message("-allcostX means -1Dmatrix_save is ignored :-(") ;
    }
 
+   /* I don't think anyone uses this option */
+
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
+
+   /* applying an input transformation from -nwarp: obsolescent code */
 
    if( apply_mode > 0 && nwarp_pass ){
      switch( nwarp_type ){
@@ -3303,7 +3613,7 @@ int main( int argc , char *argv[] )
      if( verb ) WARNING_message("-check disabled because of -nwarp") ;
    }
 
-   /* open target from last argument, if not already open */
+   /** open target/source from last argument, if not already open **/
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
@@ -3312,6 +3622,8 @@ int main( int argc , char *argv[] )
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
+
+   /* speak to the user? */
 
    if( verb ){
      INFO_message("Source dataset: %s",DSET_HEADNAME(dset_targ)) ;
@@ -3334,7 +3646,7 @@ int main( int argc , char *argv[] )
 
    if( replace_base && DSET_NVALS(dset_targ) == 1 ) replace_base = 0 ;
 
-   /* check target data type */
+   /** check target data type **/
 
    targ_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
    if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte ){
@@ -3377,7 +3689,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /* if no base input, target should have more than 1 sub-brick */
+   /** if no base input, target should have more than 1 sub-brick **/
 
    if( dset_base == NULL && apply_1D == NULL ){
      if( DSET_NVALS(dset_targ) == 1 )
@@ -3386,6 +3698,8 @@ int main( int argc , char *argv[] )
      WARNING_message("No -base dataset: using sub-brick #0 of source") ;
      skip_first = 1 ;  /* don't register sub-brick #0 of targ to itself! */
    }
+
+   /** check on interpolation codes **/
 
    if( final_interp < 0 ) final_interp = interp_code ;  /* not used */
 
@@ -3401,6 +3715,14 @@ int main( int argc , char *argv[] )
        ( MRI_HIGHORDER(interp_code) && !MRI_HIGHORDER(final_interp) )  )
      WARNING_message("-interp is %s but -final is %s -- are you sure?",
                      INTERP_methname(interp_code) , INTERP_methname(final_interp) ) ;
+
+   /*-- check if saving Pearson map is practicable [25 Jan 2021] --*/
+
+   if( do_save_pearson_map && dset_base == NULL ){
+     WARNING_message(
+           "-PearSave option disabled -- you did not input a base dataset :(") ;
+     do_save_pearson_map = 0 ;
+   }
 
    /*--- load input datasets ---*/
 
@@ -3459,6 +3781,7 @@ int main( int argc , char *argv[] )
    /*-- load base dataset if defined --*/
 
    if( dset_base != NULL ){
+
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
@@ -3471,7 +3794,9 @@ int main( int argc , char *argv[] )
      dz_base = fabsf(DSET_DZ(dset_base)) ;
      if( im_base->nx < 2 || im_base->ny < 2 )
        ERROR_exit("Base dataset has nx=%d ny=%d ???",im_base->nx,im_base->ny) ;
-   } else {
+
+   } else {  /* no -base, so use target[0] as the base image */
+
      if( apply_mode == 0 )
        INFO_message("no -base option ==> base is #0 sub-brick of source") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
@@ -3482,12 +3807,17 @@ int main( int argc , char *argv[] )
      if( do_cmass && apply_mode == 0 ){   /* 30 Jul 2007 */
        INFO_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
      }
+
    }
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   /* 2D image registration? */
+
    doing_2D = (nz_base == 1) ;          /* 28 Apr 2020 */
+
+   /* check if there is some substance to the base image */
 
    if( !APPLYING ){                     /* 13 Mar 2017 */
      nnz = mri_nonzero_count(im_base) ;
@@ -3508,10 +3838,14 @@ int main( int argc , char *argv[] )
    if( nx_base < 9 || ny_base < 9 )
      ERROR_exit("Base volume i- and/or j-axis dimension < 9") ;
 
+   /* largest grid spacing */
+
    dxyz_top = dx_base ;
    dxyz_top = MAX(dxyz_top,dy_base) ; dxyz_top = MAX(dxyz_top,dz_base) ;
    dxyz_top = MAX(dxyz_top,dx_targ) ;
    dxyz_top = MAX(dxyz_top,dy_targ) ; dxyz_top = MAX(dxyz_top,dz_targ) ;
+
+   /* crop off negative voxels in the base */
 
    if( do_zclip ){
      float *bar = MRI_FLOAT_PTR(im_base) ;
@@ -3533,8 +3867,7 @@ int main( int argc , char *argv[] )
       INFO_message("3dAllineate: x-flipped base dataset") ;
    }
 
-
-   /* find the autobbox, and setup zero-padding */
+   /*-- find the autobbox, and setup zero-padding --*/
 
 #undef  MPAD
 #define MPAD 8
@@ -3614,6 +3947,8 @@ int main( int argc , char *argv[] )
 
      }
    }
+
+   /* dimensions of the (possibly padded) base image */
 
    nxyz_base[0] = nx_base; nxyz_base[1] = ny_base; nxyz_base[2] = nz_base;
    dxyz_base[0] = dx_base; dxyz_base[1] = dy_base; dxyz_base[2] = dz_base;
@@ -3704,9 +4039,10 @@ int main( int argc , char *argv[] )
    if( doing_2D && nwarp_pass && !NONLINEAR_IS_POLY(nwarp_type) )
      ERROR_exit("Can't use non-polynomial -nwarp on 2D images :-(") ;
 
-   /* load weight dataset if defined */
+   /*-- load weight dataset if defined --*/
 
    if( dset_weig != NULL ){
+
 STATUS("load weight dataset") ;
      DSET_load(dset_weig) ; CHECK_LOAD_ERROR(dset_weig) ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
@@ -3736,7 +4072,8 @@ STATUS("zeropad weight dataset") ;
        for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
      }
 
-   } else if( auto_weight ){  /* manufacture weight from the base */
+   } else if( auto_weight ){ /* manufacture weight from base = the USUAL case */
+
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
        WARNING_message("Cost function '%s' ('%s') uses -automask NOT -autoweight",
                        meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
@@ -3789,7 +4126,7 @@ STATUS("zeropad weight dataset") ;
    }
    if( usetemp ) mri_purge(im_mask) ;
 
-   /* save weight? */
+   /* save weight into a dataset? */
 
    if( wtprefix != NULL && im_weig != NULL ){
      THD_3dim_dataset *wset ;
@@ -3813,7 +4150,9 @@ STATUS("zeropad weight dataset") ;
    /* initialize ntask, regardless     26 Aug 2008 [rickr] */
    ntask = DSET_NVOX(dset_targ) ;
    ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
-   /* number of points to use for matching */
+
+   /* number of points to use for matching base to target */
+
    if( nmask_frac < 0 ){
       if( npt_match < 0     ) npt_match = (int)(-0.01f*npt_match*ntask) ;
       if( npt_match < 9999  ) npt_match = 9999 ;
@@ -3843,6 +4182,7 @@ STATUS("zeropad weight dataset") ;
    /* base coordinates are drawn from it's header, or are same as target */
 
    if( dset_base != NULL ){
+
      float bdet , tdet ;
 
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
@@ -3870,15 +4210,16 @@ STATUS("zeropad weight dataset") ;
        ININFO_message(
          "    - But it is always important to check the alignment visually to be sure." ) ;
      }
+
    } else {
      stup.base_cmat = stup.targ_cmat ;
    }
 
+   /* for the local correlation methods:
+      set the blok type (RHDD, etc), and the blok radius */
+
    stup.blokset = NULL ;
-   if( meth_code == GA_MATCH_PEARSON_LOCALS   ||
-       meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
-       meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
-       meth_code == GA_MATCH_PEARSON_LOCALA   || do_allcost  ){
+   if( METH_USES_BLOKS(meth_code) || do_allcost || do_save_pearson_map ){
      float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
                          +MAT44_COLNORM(stup.base_cmat,1)
                          +MAT44_COLNORM(stup.base_cmat,2) ) ;
@@ -3887,6 +4228,8 @@ STATUS("zeropad weight dataset") ;
      if( verb ) INFO_message("Local correlation: blok type = '%s(%g)'",
                              GA_BLOK_STRING(bloktype) , blokrad        ) ;
    }
+
+   /* setup for a matching functional that combines multiple methods */
 
    if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
        meth_code == GA_MATCH_LPA_MICHO_SCALAR   ){
@@ -3923,6 +4266,8 @@ STATUS("zeropad weight dataset") ;
      WARNING_message("Use of -nwarp ==> must allow all 12 affine parameters") ;
      warp_code = WARP_AFFINE ;
    }
+
+   /* how many parameters will be used for affine transformation (3D) */
 
    switch( warp_code ){
      case WARP_SHIFT:  stup.wfunc_numpar =  3; strcpy(warp_code_string,"shift_only")        ; break;
@@ -3963,9 +4308,11 @@ STATUS("zeropad weight dataset") ;
 
    /*-- compute range of shifts allowed --*/
 
-   xxx = 0.321f * (nx_base-1) ;
+   xxx = 0.321f * (nx_base-1) ; /* about 1/3 of base */
    yyy = 0.321f * (ny_base-1) ;
    zzz = 0.321f * (nz_base-1) ; xxx_m = yyy_m = zzz_m = 0.01f ;
+   /* transform 8 corners of a cube from index space to DICOM */
+   /* space, and then find largest coordinates that happen */
    for( ii=-1 ; ii <= 1 ; ii+=2 ){
     for( jj=-1 ; jj <= 1 ; jj+=2 ){
       for( kk=-1 ; kk <= 1 ; kk+=2 ){
@@ -4053,6 +4400,8 @@ STATUS("zeropad weight dataset") ;
      xc = yc = zc = 0.0f ; /* pleonastic, to be safe */
    }
 
+   /*-- smaller than normal range for parameter search? --*/
+
    if( do_small ){ xxx *= 0.5f ; yyy *= 0.5f ; zzz *= 0.5f ; }
    xxx_p = xc + xxx ; xxx_m = xc - xxx ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
@@ -4063,6 +4412,8 @@ STATUS("zeropad weight dataset") ;
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
    /*-- we now define all 12 affine parameters, though not all may be used --*/
+
+   /* shifts = the first 3 */
 
    DEFPAR( 0, "x-shift" , xxx_m , xxx_p , 0.0 , 0.0 , 0.0 ) ;    /* mm */
    DEFPAR( 1, "y-shift" , yyy_m , yyy_p , 0.0 , 0.0 , 0.0 ) ;
@@ -4075,18 +4426,22 @@ STATUS("zeropad weight dataset") ;
 
    { float rval,sval ;
 
+     /* angles = the next 3 */
+
      rval = (do_small) ? 15.0f : 30.0 ;
      DEFPAR( 3, "z-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
      DEFPAR( 4, "x-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
      DEFPAR( 5, "y-angle" , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
 
-     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
+     /* scales = the next 3 */
 
+     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
      DEFPAR( 6, "x-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /* identity */
      DEFPAR( 7, "y-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
      DEFPAR( 8, "z-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;
 
-     /* the code below (for shear params) was modified 16 Jul 2014, to
+     /* shears = the final 3:
+        The code below (for shear params) was modified 16 Jul 2014, to
         correct the labels (per user Mingbo) for the various EPI/FPS cases;
         see the usage of the 'a', 'b', 'c' parameters in defining the shear
         matrix 'ss' in function GA_setup_affine() in file mri_genalign.c.  */
@@ -4104,6 +4459,8 @@ STATUS("zeropad weight dataset") ;
        DEFPAR( 11, clab , -rval , rval , 0.0 , 0.0 , 0.0 ) ;
      }
    }
+
+   /*-- adjustments for 2D images --*/
 
    if( twodim_code > 0 ){               /* 03 Dec 2010 */
      int i1=0,i2=0,i3=0,i4=0,i5=0,i6=0 ;
@@ -4181,7 +4538,7 @@ STATUS("zeropad weight dataset") ;
      }
    }
 
-   /* check to see if we have free parameters so we can actually do something */
+   /*-- check to see if we have free parameters so we can actually do something --*/
 
    for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* count free params */
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
@@ -4200,8 +4557,9 @@ STATUS("zeropad weight dataset") ;
      }
    }
 
-   /*-- set convergence radius for parameter search --*/
+   /*-- set normalized convergence radius for parameter search --*/
 
+   /* get size of box we are dealing with */
    if( im_weig == NULL ){
      xsize = xxx = 0.5f * (nx_base-1) * dx_base ;
      ysize = yyy = 0.5f * (ny_base-1) * dy_base ;
@@ -4220,20 +4578,23 @@ STATUS("zeropad weight dataset") ;
      ysize = yyy = 0.5f * (yp-ym) * dy_base ;
      zsize = zzz = 0.5f * (zp-zm) * dz_base ;
    }
+   /* convert box size to a single size */
    xxx = (nz_base > 1) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
-   zzz = 0.01f ;
-   for( jj=0 ; jj < 9 && jj < stup.wfunc_numpar ; jj++ ){
-     if( stup.wfunc_param[jj].fixed ) continue ;
-     siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ;
+   zzz = 0.01f ;  /* smallest normalized value */
+   for( jj=0 ; jj < 9 && jj < stup.wfunc_numpar ; jj++ ){ /* loop over params */
+     if( stup.wfunc_param[jj].fixed ) continue ;             /* except shears */
+     siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ; /* par range */
      if( siz <= 0.0f ) continue ;
-          if( jj < 3 ) yyy = conv_mm / siz ;               /* shift */
-     else if( jj < 6 ) yyy = 57.3f * conv_mm / (xxx*siz) ; /* angle */
-     else              yyy = conv_mm / (xxx*siz) ;         /* scale */
-     zzz = MIN(zzz,yyy) ;
+        /* normalization = conv_mm scaled by mm size of the param range since */
+        /*    optimization is done on unitless params scaled to [-1..1] range */
+          if( jj < 3 ) yyy = conv_mm / siz ;                   /* shift param */
+     else if( jj < 6 ) yyy = 57.3f * conv_mm / (xxx*siz) ;     /* angle param */
+     else              yyy = conv_mm / (xxx*siz) ;             /* scale param */
+     zzz = MIN(zzz,yyy) ;               /* smallest scaled value found so far */
    }
-   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.000005f) ;
+   conv_rad = MIN(zzz,0.001f); conv_rad = MAX(conv_rad,0.000005f);  /* limits */
    if( verb > 1 && apply_mode == 0 )
-     INFO_message("Normalized convergence radius = %.7f",conv_rad) ;
+     INFO_message("Normalized (unitless) convergence radius = %.7f",conv_rad) ;
 
    /*-- print parameter ranges [10 Mar 2020] --*/
 
@@ -4250,7 +4611,7 @@ STATUS("zeropad weight dataset") ;
 
    /*-- special case: 04 Apr 2008 --*/
 
-   switch( apply_mode ){
+   switch( apply_mode ){  /* all this is for -nwarp inputs (obsolescent) */
      default:                                  break ;
      case APPLY_BILIN: SETUP_BILINEAR_PARAMS ; break ;
      case APPLY_CUBIC: SETUP_CUBIC_PARAMS    ; break ;
@@ -4358,9 +4719,9 @@ STATUS("zeropad weight dataset") ;
  }
 #endif
 
-/* macros for verbosity */
+/* macros useful for verbosity */
 
-#undef  PARDUMP
+#undef  PARDUMP  /* xxx = field name in param */
 #define PARDUMP(ss,xxx)                                     \
   do{ fprintf(stderr," + %s Parameters =",ss) ;             \
       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
@@ -4369,10 +4730,13 @@ STATUS("zeropad weight dataset") ;
       }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)
+
 #undef  PAROUT
 #define PAROUT(ss) PARDUMP(ss,val_out)
+
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
+
 #undef  PARVEC
 #define PARVEC(ss,vv)                              \
   do{ fprintf(stderr," + %s Parameters =",ss) ;    \
@@ -4381,11 +4745,16 @@ STATUS("zeropad weight dataset") ;
       fprintf(stderr,"\n") ;                       \
   } while(0)
 
+/* copy parameter set 'xxx' from stup to the
+   allpar array, for ease of use in calling other functions */
+
 #undef  PAR_CPY
 #define PAR_CPY(xxx)                              \
   do{ for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) \
         allpar[jj] = stup.wfunc_param[jj].xxx ;   \
   } while(0)
+
+/* for the final output of parameters, with commentary */
 
 #undef  PARLIST
 #define PARLIST(ss,xxx)                                     \
@@ -4443,6 +4812,7 @@ STATUS("zeropad weight dataset") ;
       matsave = (mat44 * )calloc(sizeof(mat44),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
    }
 
+/* as you might guess, this is for saving joint histogram to a file */
 #undef  SAVEHIST
 #define SAVEHIST(nnn,docc)                                                 \
  do{ int nbin ; float *xyc ;                                               \
@@ -4511,7 +4881,9 @@ STATUS("zeropad weight dataset") ;
        THD_delete_3dim_dataset(uset,True) ;
      }
    } /* end of -unifize_base */
-#endif
+#endif  /* ALLOW_UNIFIZE */
+
+   /* for filling the outside of the target mask with random crap */
 
    stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){
@@ -4519,6 +4891,8 @@ STATUS("zeropad weight dataset") ;
      mri_free(im_tmask) ; im_tmask = NULL ;           /* is copied inside */
      if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
    }
+
+   /* for the overlap portion of lpc+ and lpa+ */
 
    if( !APPLYING && micho_ov != 0.0 ){
      byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
@@ -4545,13 +4919,15 @@ STATUS("zeropad weight dataset") ;
          meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
+   /*------ process the target dataset volumes, one at a time ------*/
+
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
 
      stup.match_code = meth_code ;
 
-     ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate */
+     ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate the matrix */
 
-     bfac = DSET_BRICK_FACTOR(dset_targ,kk) ;  /* 14 Oct 2008 */
+     bfac = DSET_BRICK_FACTOR(dset_targ,kk) ;  /* sub-brick scale factor [14 Oct 2008] */
 
      skipped = 0 ;
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
@@ -4570,7 +4946,7 @@ STATUS("zeropad weight dataset") ;
        skipped = 1 ; goto WRAP_IT_UP_BABY ;
      }
 
-     /* make copy of target brick, and deal with that */
+     /*-- make copy of target brick, and process that --*/
 
      /* show if verbose, else use light output     7 Jul 2017 [rickr] */
      if( verb > 1 )
@@ -4590,14 +4966,18 @@ STATUS("zeropad weight dataset") ;
 
      if( targ_was_vector ){  /* 12 May 2020 (for RGB images) */
        if( im_targ_vector != NULL ) mri_free(im_targ_vector) ;
-       im_targ_vector = mri_copy( DSET_BRICK(dset_targ,kk) ) ;
+       im_targ_vector = mri_copy( DSET_BRICK(dset_targ,kk) ) ;  /* for use at end */
      }
-     DSET_unload_one(dset_targ,kk) ;
+     DSET_unload_one(dset_targ,kk) ; /* it's been copied in, so can unload it now */
+
+     /* clip off negative values from the target? */
 
      if( do_zclip ){
        float *bar = MRI_FLOAT_PTR(im_targ) ;
        for( ii=0 ; ii < im_targ->nvox ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
      }
+
+     /* check for empty-ish volume */
 
      nnz = mri_nonzero_count(im_targ) ;
      if( nnz < 66 )
@@ -4605,6 +4985,7 @@ STATUS("zeropad weight dataset") ;
                        kk , nnz , (nnz==1) ? "\0" : "s" ) ;
 
      /*** if we are just applying input parameters, set up for that now ***/
+     /*** we set output params as if they had been found by optimizing  ***/
 
      if( apply_1D != NULL ){
        int rr=kk ;
@@ -4637,6 +5018,8 @@ STATUS("zeropad weight dataset") ;
        goto WRAP_IT_UP_BABY ;
      }
 
+     /*--- at this point, am actually going to do optimization ---*/
+
      /* initialize parameters (for the -onepass case) */
 
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
@@ -4668,6 +5051,11 @@ STATUS("zeropad weight dataset") ;
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
            fprintf(stderr,"   %-4s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
+
+         if( do_allcost == -1 ){
+           SAVE_PEARSON_MAP(save_pearson_prefix,val_init) ;
+           do_save_pearson_map == 0 ;
+         }
 
          if( save_hist != NULL ) SAVEHIST("allcost_init",0) ;
          if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
@@ -4711,11 +5099,14 @@ STATUS("zeropad weight dataset") ;
 
      didtwo = 0 ;
      if( twopass && (!twofirst || !tfdone) ){
+
        int tb , ib , ccode , nrand ; char *eee ;
+
        if( verb ) INFO_message("*** Coarse pass begins ***") ;
+       /* used to do NN in the coarse pass, but found than Linear worked better */
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
-       stup.npt_match   = ntask / 15 ;
+       stup.npt_match   = ntask / 15 ;  /* small number of matching points */
        if( stup.npt_match < nmatch_setup ) stup.npt_match = nmatch_setup;
 
        stup.smooth_code        = sm_code ;
@@ -4732,15 +5123,15 @@ STATUS("zeropad weight dataset") ;
 
        /*- search for coarse start parameters, then optimize them? -*/
 
-       if( tbest > 0 ){  /* default tbest==4 */
+       if( tbest > 0 ){  /* default tbest==5 */
          int nrefine ;
 
          if( verb > 1 ) ININFO_message("- Search for coarse starting parameters") ;
 
          /* startup search only allows up to 6 parameters, so freeze excess */
 
-         eee = my_getenv("AFNI_TWOPASS_NUM") ;
-         if( eee == NULL || *eee != ':' ){
+         eee = my_getenv("AFNI_TWOPASS_NUM") ;  /* normally, eee is NULL */
+         if( eee == NULL || *eee != ':' ){      /* so this branch is taken */
            if( eee != NULL ) sscanf( eee , "%d" , &nptwo ) ;
            if( nptwo < 1 || nptwo > 6 ) nptwo = 6 ;
            if( nparam_free > nptwo ){  /* old way: just free first nptwo params */
@@ -4771,15 +5162,16 @@ STATUS("zeropad weight dataset") ;
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
-         powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 */
+         powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 - for some speedup */
 
-         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ;
-         mri_genalign_scalar_ransetup( &stup , nrand ) ;  /* the initial search! */
+         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ; /* num random param setups to try */
+
+         mri_genalign_scalar_ransetup( &stup , nrand ) ;  /**** the initial search! ****/
 
          if( verb > 1 )
            ININFO_message("- Coarse startup search net CPU time = %.1f s",COX_cpu_time()-ctim);
 
-         /* unfreeze those that were temporarily frozen above */
+         /* unfreeze those parameters that were temporarily frozen above */
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
@@ -4789,11 +5181,13 @@ STATUS("zeropad weight dataset") ;
          tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
+         /* copy parameters out */
+
          for( ib=0 ; ib < tb ; ib++ )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         /* add identity transform to set, for comparisons */
+         /* add identity transform to set, for comparisons (and insurance) */
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            tfparm[tb][jj] = stup.wfunc_param[jj].val_pinit ;
@@ -4801,8 +5195,10 @@ STATUS("zeropad weight dataset") ;
          tfdone = tb+1 ;  /* number of parameter sets now saved in tfparm */
 
          nrefine = (int)AFNI_numenv("AFNI_TWOPASS_REFINE") ;
-         if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;
+         if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;  /* number of refinement passes */
          rad = 0.0444 ;  /* initial search radius in parameter space */
+
+         /* loop over refinement passes: try to make each trial parameter set better */
 
          for( rr=0 ; rr < nrefine ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
 
@@ -4816,12 +5212,14 @@ STATUS("zeropad weight dataset") ;
            stup.smooth_radius_base = MAX(stup.smooth_radius_base,fine_rad) ;
            stup.smooth_radius_targ = MAX(stup.smooth_radius_targ,fine_rad) ;
 
-           stup.npt_match          *= 1.5 ;     /* more points for matching */
+           stup.npt_match          *= 1.5 ;     /* more voxels for matching */
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
            for( ib=0 ; ib < tfdone ; ib++ ){              /* loop over param sets */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+
+             /* optimize a little */
 
              nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 99 ) ;
 
@@ -4879,12 +5277,15 @@ STATUS("zeropad weight dataset") ;
 
        } else {  /*- if stoopid user did '-twobest 0' -*/
                  /*- just optimize coarse setup from default parameters -*/
+                 /*- mimicking the 3 loop passes above --*/
 
          if( verb     ) ININFO_message("- Start coarse optimization with -twobest 0") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          powell_set_mfac( 2.0f , 1.0f ) ;  /* 07 Jun 2011 */
+         /* optimize pass 1 */
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 444 ) ;
          if( verb > 2 ) PAROUT("--(a)") ;
+         /* optimize pass 2 */
          stup.npt_match = ntask / 7 ;
          if( stup.npt_match < nmatch_setup  ) stup.npt_match = nmatch_setup ;
          stup.smooth_radius_base *= 0.456 ;
@@ -4892,6 +5293,7 @@ STATUS("zeropad weight dataset") ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.00333 , 444 ) ;
          if( verb > 2 ) PAROUT("--(b)") ;
+         /* optimize pass 2 */
          stup.smooth_radius_base *= 0.456 ;
          stup.smooth_radius_targ *= 0.456 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
@@ -4921,6 +5323,7 @@ STATUS("zeropad weight dataset") ;
 
      /*-----------------------------------------------------------------------*/
      /*----------------------- do final resolution pass ----------------------*/
+     /*-------- which has less smoothing and more voxels for matching --------*/
 
      if( verb > 1 || (verb && kk == 0) ) /* 7 Jan 2019 [rickr] */
         INFO_message("*** Fine pass begins ***") ;
@@ -4947,6 +5350,8 @@ STATUS("zeropad weight dataset") ;
                                                  : sqrt(tr*tr-br*br) ;
      }
 
+     /*-- setup the optimization --*/
+
      stup.npt_match = npt_match ;
      if( didtwo )                                  /* did first pass already: */
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ); /* simple re-setup */
@@ -4957,8 +5362,8 @@ STATUS("zeropad weight dataset") ;
      }
 
      switch( tfdone ){                  /* initial param radius for optimizer */
-        case 0: rad = 0.0345 ; break ;
-        case 1:
+        case 0: rad = 0.0345 ; break ;  /* this is size of initial trust region */
+        case 1:                         /* -- in the unitless [-1..1] space */
         case 2: rad = 0.0266 ; break ;
        default: rad = 0.0166 ; break ;
      }
@@ -4992,8 +5397,8 @@ STATUS("zeropad weight dataset") ;
          for( ib=0 ; ib < tfdone ; ib++ )  /* save all cases into ffparm */
            memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar ) ;
 
-       } else {             /* now: try to make these a little better instead */
-
+       } else {            /* now: try to make these a little better instead */
+                           /*      and THEN choose the best one at that point */
          if( verb > 1 )
            ININFO_message("-num_rtb %d ==> refine all %d cases",num_rtb,tfdone);
          cbest = 1.e+33 ;
@@ -5119,6 +5524,8 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
+     /*** Optimzation is done, so do some cleanup and some output ***/
+
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
      if( verb > 1 ) ININFO_message("- Fine net CPU time = %.1f s",COX_cpu_time()-ctim) ;
@@ -5139,6 +5546,30 @@ STATUS("zeropad weight dataset") ;
        if( save_hist != NULL ) SAVEHIST("allcost_finefinal",0) ;
      }
 
+     if( do_save_pearson_map ){  /*-- Save Pearson map [25 Jan 2021] --*/
+       SAVE_PEARSON_MAP(save_pearson_prefix,val_out) ;
+       do_save_pearson_map == 0 ;
+#if 0
+       MRI_IMAGE *pim ;
+       PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
+       pim = mri_genalign_map_pearson_local( &stup , allpar ) ;
+       if( pim != NULL ){
+         THD_3dim_dataset *pset ;
+         pset = THD_volume_to_dataset( dset_base , pim ,
+                                       save_pearson_prefix ,
+                                       pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp ) ;
+         mri_free(pim) ;
+         if( pset != NULL ){
+           DSET_write(pset) ; WROTE_DSET(pset) ; DSET_delete(pset) ;
+         } else {
+           ERROR_message("Failed to create -PearSave dataset :(") ;
+         }
+       } else {
+           ERROR_message("Failed to create -PearSave volume :(") ;
+       }
+#endif
+     }
+
 #if 0
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
        stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
@@ -5150,6 +5581,7 @@ STATUS("zeropad weight dataset") ;
 
      /*----------------------------------------------------------------------*/
      /*------------ Nonlinear warp improvement to the above results? --------*/
+     /*----------- Someday soon (?), this code will be expunged! ------------*/
 
 /* macro to (re)setup some parameters in the work below */
 

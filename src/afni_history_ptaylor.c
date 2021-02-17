@@ -69,6 +69,71 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Add in -mask_ss option, to replace skullstripping with a mask.",
+   "For example, using fs*mask*nii from @SUMA_Make_Spec_FS after FS.\n"
+},
+
+{ 10, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "More QC images: WM and GM tissue, solo.",
+   "Thanks for suggestions, P Molfese.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "New column of ROI vol fraction, relative to fs_parc_wb_mask.nii.gz.",
+   "This prog should always be run after adjunct_suma_fs_mask_and_qc.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_fs_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_rois_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Make new mask dset from parcellation.",
+   "Add new image of new dset.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Add fractional volume info to the text file.",
+   "This makes 2 new columns in the output *.1D files.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes *.1D files of voxel counts of parcellations and segs.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes images of the brain mask, tissue segs and parcellation.\n"
+},
+
+{ 5, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Add in more intermediate QC snapshots (intermed align): init*jpg ",
+   "Also add '-echo' opt for verbose terminal stuff.\n"
+},
+
+{ 3, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New QC image, of affine warping.",
+   "Also pass along '-echo' opt to modal smoo/report script.\n"
+},
+
+{ 27, Jan , 2021 , PT , "3dAttribute" , MINOR , TYPE_GENERAL,
+   "Update help to have fancy sections and more examples.",
+   "Also provide link to README.attributes file, for user reference.\n"
+},
+
+{ 27, Jan , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "New run script created (run_01*) in L_MAKE_DRIVE_SCRIPT block.",
+   "Opens std.141*both*spec in SUMA and SurfVol in AFNI, and starts talking.\n"
+},
+
 { 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "New default feature_size: 0.5.  (Old default: was unset).",
    "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"

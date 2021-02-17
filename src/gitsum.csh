@@ -79,6 +79,8 @@ else
 endif
 echo                                       >> gitsum.out.txt
 
+if ( $#argv > 0 ) exit 0
+
 # list of AFNI authors needing only one alias (not case sensitive)
 # - anyone whose alias has spaces in it is out of luck
 

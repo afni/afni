@@ -80,7 +80,7 @@ typedef struct {
  extern int MRILIB_verb ;                /* 01 May 2009 */
  #include "nifti2_io.h"
  #include "mri_dicom_stuff.h"
- extern AFD_dicom_header **MRILIB_dicom_header ; 
+ extern AFD_dicom_header **MRILIB_dicom_header ;
  /* preferentially include f2c header from local directory, otherwise use system
   header */
  #include "f2c.h"
@@ -1964,7 +1964,8 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
-typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
+typedef struct { int num , *nelm , **elm;
+                 int nx,ny,nz; float dx,dy,dz; float ppow; } GA_BLOK_set ;
 
 /** delete a GA_BLOK_set struct and its contents **/
 
@@ -1986,10 +1987,6 @@ extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
                                          int npt, float *im, float *jm, float *km,
                                          int bloktype, float blokrad, int minel,
                                                        float shfac  , int verb ) ;
-
-/** compute correlations in each blok **/
-
-extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
 
 extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
@@ -2060,6 +2057,13 @@ typedef struct {
   int          setup ;
   float        vbest ;
 } GA_setup ;
+
+
+/** compute correlations in each blok **/
+
+extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
+extern MRI_IMAGE * GA_pearson_image( GA_setup *stup , floatvec *pv ) ;            /* Biden day 3 */
+extern MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm ) ; /* Biden day 6 */
 
 #undef  IFREE
 #define IFREE(x) do{ if((x)!=NULL)free(x); (x)=NULL; }while(0)
@@ -2474,7 +2478,8 @@ extern float IW3D_load_energy( IndexWarp3D *AA ) ;
 extern void IW3D_load_bsv( IndexWarp3D *AA , float,float,float, float *bb , float *ss , float *vv ) ;
 extern IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
 extern IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-extern IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
+extern IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , int icode ) ;
+extern IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , int icode ) ;
 extern IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
 extern THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode ) ;
 extern void NwarpCalcRPN_verb(int i) ;

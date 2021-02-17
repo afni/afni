@@ -17,6 +17,8 @@ MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
 
 int npane_big = 256 ;                  /* 06 May 2016 */
 
+extern int find_color_name( char *cnam, float *rr, float *gg, float *bb ) ; ;
+
 /*--------------------------------------------------------------------------*/
 #undef  USE_TURBO                      /* 22 Aug 2019 - made obsolete below */
 #define USE_PBARDEFS                   /* 24 Oct 2019 */
@@ -102,6 +104,8 @@ static void setup_byper( MCW_DC *dc )
   14 Sep 1998: Modified to add argument
     newcmap = if nonzero, create a new Colormap;
               if zero, use the default Colormap for the display
+              this option is only for PseudoColor
+              [does anyone use PseudoColor any more?]
 ------------------------------------------------------------------------*/
 
 static MCW_DCOV * only_ovc = NULL ;  /* Dec 1997 */
@@ -333,12 +337,16 @@ if(PRINT_TRACING){
    }
    OVC_mostest( dc->ovc ) ;
 
-   /*-- May 1996: create new GC for use with text and graphics --*/
+   /*-- May 1996: create new GC for use with text and graphics. --*/
+   /*-- Note that myGC is used only for text in afni_graph.c,  --*/
+   /*-- but is used for drawing graphics in some other places. --*/
 
    { XGCValues gcv;
      int ifont ;
      XFontStruct *mfinfo = NULL ;
      char *xdef , dashlist[2] = {6,4} ;
+
+     /* create the GC */
 
      gcv.function = GXcopy ;
      dc->myGC     = XCreateGC( dc->display,
@@ -347,27 +355,50 @@ if(PRINT_TRACING){
 
      /** XSetFillRule( dc->display, dc->myGC, WindingRule ) ; **/
 
-     xdef = XGetDefault(dc->display,"AFNI","gfont") ;
-     if( xdef == NULL ) xdef = getenv("AFNI_GRAPH_FONT") ;
-     if( xdef != NULL )
+     /**** find some font to load into myGC ****/
+
+     /* first try */
+
+     xdef = XGetDefault(dc->display,"AFNI","gfont") ;  /* from ~/.Xdefaults */
+     if( xdef != NULL ){
        mfinfo = XLoadQueryFont(dc->display,xdef) ;
+       /** if( mfinfo != NULL ) INFO_message("gfontX = %s",xdef) ; **/
+     }
+
+     /* second try */
+
+     if( mfinfo == NULL ){
+       xdef = getenv("AFNI_GRAPH_FONT") ;              /* from ~/.afnirc */
+       if( xdef != NULL ){
+         mfinfo = XLoadQueryFont(dc->display,xdef) ;
+         /** if( mfinfo != NULL ) INFO_message("gfontA = %s",xdef) ; **/
+       }
+     }
+
+     /* third try: a list of fonts in display.h */
 
      if( mfinfo == NULL ){
         for( ifont=0 ; tfont_hopefuls[ifont] != NULL ; ifont++ ){
            mfinfo = XLoadQueryFont(dc->display, tfont_hopefuls[ifont]) ;
-           if( mfinfo != NULL ) break ;
+           if( mfinfo != NULL ) break ; /* found one! */
         }
+        /** if( mfinfo != NULL ) INFO_message("gfont[%d] = %s",ifont,tfont_hopefuls[ifont]) ; **/
      }
-     if( mfinfo == NULL ){  /* this should not happen, fondly we do hope */
-        fprintf(stderr,
-                "\n*** Cannot load any text fonts in display.c ***\n" ) ;
+
+     /* store font that we found above */
+
+     if( mfinfo == NULL ){  /* This has never happened, to my knowledge */
+        ERROR_message("Cannot load any text fonts in display.c :(") ;
      } else {
-        XSetFont( dc->display , dc->myGC , mfinfo->fid ) ;
+        XSetFont( dc->display, dc->myGC, mfinfo->fid ); /* put font into myGC */
      }
+     dc->myFontStruct = mfinfo ; /* save font info into AFNI display context (dc) */
+
+     /*** set initial colors in myGC ***/
+
      XSetForeground(dc->display , dc->myGC , dc->ovc->pixov_darkest ) ;
      XSetBackground(dc->display , dc->myGC , dc->ovc->pixov_brightest ) ;
      XSetDashes(    dc->display , dc->myGC , 0 , dashlist , 2 ) ;
-     dc->myFontStruct = mfinfo ;
    }
 
    dc->parent = dc->aux = NULL ;
@@ -1544,6 +1575,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
    switch( cd->classKRH ){
 
       /*--- TrueColor case: make color by appropriate bit twiddling ---*/
+      /*--- The code below is duplicated in xim.c for efficiency :) ---*/
 
       case TrueColor:{
          static unsigned long pold=0 ;
@@ -1573,7 +1605,9 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
       /*--- PseudoColor case: find closest match in colormap.
             Red, green, and blue are weighted according
-            to their importance to the human visual system. ---*/
+              to their importance to the human visual system.
+            This code is slower than the TrueColor case above,
+            which is due to the search through the PseudoColor palette. */
 
       case PseudoColor:{
 
@@ -1591,7 +1625,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
          if( cd->nwhite >= 0 && rr == 255 && gg == 255 && bb == 255 ) /* cases      */
             return (Pixel) cd->nwhite ;
 
-         if( dc == dcold ){
+         if( dc == dcold ){     /* check in with the last call - maybe it's good */
             rdif = rold - rr ;
             gdif = gold - gg ;
             bdif = bold - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
@@ -1600,10 +1634,15 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
          rold = rr ; gold = gg ; bold = bb ; dcold = dc ; /* No? Remember for next time. */
 
+         /* check first color in palette; if it is "close enough" (RGBSUM), use it */
+
          rdif = cd->rr[0] - rr ;
          gdif = cd->gg[0] - gg ;
          bdif = cd->bb[0] - bb ; dif = RW*abs(rdif)+GW*abs(gdif)+BW*abs(bdif) ;
          if( dif <= RGBSUM ){ iold = 0 ; return 0 ; }
+
+         /* scan thru the rest of the colors in palette,
+            either finding one close enough, or finding the closest one */
 
          ibest = 0 ; dbest = dif ;
          for( ii=1 ; ii < cd->ncolors ; ii++ ){
@@ -1619,7 +1658,7 @@ Pixel DC_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 
    /*--- Illegal case! ---*/
 
-   return 0 ;  /* always valid (but useless) */
+   return 0 ;  /* Black is always valid (but not very colorful) */
 }
 
 /*---------------------------------------------------------------------

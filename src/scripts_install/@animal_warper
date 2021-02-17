@@ -261,8 +261,12 @@ set progname = @animal_warper
 #set version = "3.01" ; set date = "Oct 19, 2020"
 # [PT] new "pre"-QC: check src-base overlap: @djunct_overlap_check
 # 
-set version = "3.1" ; set date = "Dec 22, 2020"
+#set version = "3.1" ; set date = "Dec 22, 2020"
 # [PT] new feature size default: 0.5 (old default: empty)
+# 
+set version = "3.2" ; set date = "Feb 3, 2021"
+# [PT] add snapshot of aff, intermed qc
+#    + pass along set echo to at least some subscript(s)
 # 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -322,6 +326,8 @@ set keep_temp          = ""
 
 set animal_outs        = "animal_outs.txt" # recreated, even with exist
 set backup_ao          = ""
+
+set DO_ECHO            = ""
 
 # ------------------------ process user options --------------------------
 
@@ -784,6 +790,7 @@ while ($ac <= $#argv)
 
     else if ( "$argv[$ac]" == "-echo" ) then
         set echo
+        set DO_ECHO = "-echo"   
 
     # ---------- fin ------------------
 
@@ -796,6 +803,8 @@ end
 
 # ===========================================================================
 # ===========================================================================
+
+echo "++ Start @animal_warper, ver = ${version}"
 
 # ------------------------- check for required inputs
 if ("${src_dset0}" == "") then
@@ -1403,6 +1412,11 @@ else
         -base   "${base_dset}"                                  \
         -master BASE                                            \
         -source "${imed}/${srcsh2_dset}"
+
+    @djunct_overlap_check                             \
+        -ulay   "${imed}/${srcsh2_prefix}_aff.nii.gz" \
+        -olay   "${base_dset}"                        \
+        -prefix ${outdir}/QC/init_qc_01_overlap_uaff_obase
 endif
 
 if ( ${status} ) then
@@ -1819,7 +1833,7 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
                # Modal smoothing *with* replacement; output has
                # INT_CMAP and tables copied
                @djunct_modal_smoothing_with_rep                            \
-                    -overwrite                                             \
+                    -overwrite  ${DO_ECHO}                                 \
                     -input      ${imed}/${follow_in_std_pre}               \
                     -prefix     ${follow_in_std}                           \
                     -modesmooth $modesmooth 
@@ -2295,7 +2309,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
              # Modal smoothing *with* replacement; output has
              # INT_CMAP and tables copied
              @djunct_modal_smoothing_with_rep                            \
-                  -overwrite                                             \
+                  -overwrite  ${DO_ECHO}                                 \
                   -input      ${imed}/${segm_in_orig_pre}                \
                   -prefix     ${segm_in_orig}                            \
                   -modesmooth ${modesmooth} 
@@ -3219,10 +3233,10 @@ References ~1~
 
   If you use this program, please cite the following:
 
-  + Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, Glen DR,
-    Messinger A (2020). A Comprehensive Macaque FMRI Pipeline and
-    Hierarchical Atlas. NeuroImage (in press) doi:
-    10.1101/2020.08.05.237818
+  + Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, 
+    Ungerleider LG, Glen DR, Messinger A (2021). 
+    A Comprehensive Macaque FMRI Pipeline and Hierarchical Atlas.
+    NeuroImage (in press) doi:10.1101/2020.08.05.237818
     https://www.biorxiv.org/content/10.1101/2020.08.05.237818v1
 
   + Saad ZS, Glen DR, Chen G, Beauchamp MS, Desai R, Cox RW (2009). A
@@ -3234,7 +3248,7 @@ References ~1~
 
 This program has been written (and rewritten!) by D Glen and PA Taylor
 (SSCC, NIMH, NIH, USA), with many helpful contributions and
-suggestions from B Jung.
+suggestions from B Jung and A Messinger.
 
 SCRIPT_HELP_STRING
 

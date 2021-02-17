@@ -1107,10 +1107,12 @@ ENTRY("GA_interp_quintic") ;
 /*===========================================================================*/
 /*--- Stuff for storing sub-BLOKs of data points for localized cost funcs ---*/
 
-/* is abs(a) <= s ?? */
+/* Test: is abs(a) <= s ?? */
 
 #undef  FAS
 #define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
+
+/**** Macros to test if a point is inside a given BLOK type ****/
 
 /** define inside of a ball; is point (a,b,c) inside?  **/
 /** volume of ball = 4*PI/3 * siz**3 = 4.1888 * siz**3 **/
@@ -1152,7 +1154,8 @@ ENTRY("GA_interp_quintic") ;
   : ((bt)==GA_BLOK_TOHD) ? GA_BLOK_inside_tohd((a),(b),(c),(s)) \
   : 0 )
 
-/** add 1 value to a dynamically allocated integer array **/
+/** add 1 value to a dynamically allocated integer array;
+    note that we expand it by 50% if we have overflowed current space **/
 
 #define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
  do{ if( (nar) == (nal) ){                                                  \
@@ -1161,7 +1164,7 @@ ENTRY("GA_interp_quintic") ;
      (ar)[(nar)++] = (val);                                                 \
  } while(0)
 
-/** truncate dynamically allocated integer array down to size **/
+/** truncate dynamically allocated integer array down to final size **/
 
 #define GA_BLOK_CLIP_intar(nar,nal,ar)                               \
  do{ if( (nar) < (nal) && (nar) > 0 ){                               \
@@ -1184,6 +1187,8 @@ ENTRY("GA_interp_quintic") ;
                  you can specify shfac to change the lattice size:
                  < 1 makes them overlap more, and > 1 makes them spaced apart
     - verb     = whether to print out some verbosity stuff FYI
+
+   I admit this code is tricksy. I'll try to comment it better now [Jan 2021].
 *//*--------------------------------------------------------------------------*/
 
 GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
@@ -1201,21 +1206,29 @@ GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
 
 ENTRY("create_GA_BLOK_set") ;
 
+   /* check for badness */
+
    if( nx < 3 || ny < 3 || nz < 1 ) RETURN(NULL) ;
    if( dx <= 0.0f ) dx = 1.0f ;
    if( dy <= 0.0f ) dy = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
 
+   /* correct for crazy input shrinkage factor */
+
    if( shfac < 0.2f || shfac > 5.0f ) shfac = 1.0f ;
+
+   /* Normal operation specifies only a subset of full 3D space
+      to be used for matching and so to be included in the BLOKs.
+      If code below is used, then all of 3D space will be used instead. */
 
    if( npt <= 0 || im == NULL || jm == NULL || km == NULL ){
      im = jm = km = NULL ; npt = 0 ;
    }
 
-   /* mark type of blok being stored */
+   /*-- Mark type of blok being stored --*/
 
-   /* Create lattice vectors to generate translated bloks:
-      The (p,q,r)-th blok -- for integral p,q,r -- is at (x,y,z) offset
+   /* Create lattice vectors (dxp,dyp,dzp) etc, to generate translated bloks:
+      The (p,q,r)-th blok - for integral p,q,r - is centered at (x,y,z) offset
         (dxp,dyp,dzp)*p + (dxq,dyq,dzq)*q + (dxr,dyr,dzr)*r
       Also set the 'siz' parameter for the blok, to test for inclusion. */
 
@@ -1276,125 +1289,155 @@ ENTRY("create_GA_BLOK_set") ;
      default:  RETURN(NULL) ;  /** should not happen! **/
    }
 
-   /* find range of (p,q,r) indexes needed to cover volume,
-      by checking out all 7 corners besides (0,0,0) (where p=q=r=0) */
+   /*** find range of (p,q,r) indexes needed to cover volume,
+        by checking out all 7 corners besides (0,0,0) (where p=q=r=0) ***/
+
+   /* latmat = lattice matrix
+             = 3x3 matrix that takes (p,q,r) to blok center (x,y,z)
+      So invlatmat is a 3x3 matrix that takes (x,y,z) to (p,q,r).
+      We apply invlatmat to each corner of the 3D volume, and
+      find the smallest and largest (p,q,r) values that happen.
+      Those min/max values give the range of (p,q,r)
+      that has to be scanned for entry into the blokset. */
 
    LOAD_MAT( latmat, dxp , dxq , dxr ,
                      dyp , dyq , dyr ,
                      dzp , dzq , dzr  ) ; invlatmat = MAT_INV(latmat) ;
 
+   /* corner 0 */
    xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ;
    pb = pt = qb = qt = rb = rt = 0 ;  /* initialize (p,q,r) bot, top values */
 
+   /* corner 1 */
    LOAD_FVEC3(xyz , xt,0.0f,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 2 */
    LOAD_FVEC3(xyz , xt,yt,0.0f )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 3 */
    LOAD_FVEC3(xyz , xt,0.0f,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 4 */
    LOAD_FVEC3(xyz , xt,yt,zt )    ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 5 */
    LOAD_FVEC3(xyz , 0.0f,yt,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 6 */
    LOAD_FVEC3(xyz , 0.0f,0.0f,zt ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
+   /* corner 7 */
    LOAD_FVEC3(xyz , 0.0f,yt,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive */
+   /*** Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive ***/
 
    np = pt-pb+1 ;                /* number of p values to consider */
    nq = qt-qb+1 ; npq = np*nq ;
    nr = rt-rb+1 ;
    nblok = npq*nr ;              /* total number of bloks to consider */
+                                 /* not all of them will actually get used */
 
    /* Now have list of bloks, so put points into each blok list */
+
+   /* create empty lists of points */
 
    nelm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # pts in each blok */
    nalm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # malloc-ed in each blok */
    elm  = (int **)calloc(sizeof(int *),nblok) ;  /* list of pts in each blok */
 
-   nxy = nx*ny ; if( npt == 0 ) npt = nxy*nz ;
+   nxy = nx*ny ; if( npt == 0 ) npt = nxy*nz ;   /* npt = all of 3D space?? */
+
+   /* loop over points to put into bloks */
 
    for( ndup=ntot=ii=0 ; ii < npt ; ii++ ){
-     if( im != NULL ){
+
+     if( im != NULL ){  /* 3D index of point #ii comes from arrays */
        pp = (int)im[ii]; qq = (int)jm[ii]; rr = (int)km[ii]; /* xyz indexes */
-     } else {
+     } else {           /* 3D index is computed from ii, as we use all points */
        pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ;
      }
-     ss = ii ; /* index in 1D array */
+     ss = ii ; /* index in 1D array of points to be matched*/
+               /* this is NOT the index in the dataset, unless im==NULL */
+               /* it is the index into the point list given by (im,jm,km) */
+               /* so the index in the 3D dataset is pp+qq*nx+rr*nxy */
+
      xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* xyz spatial coordinates */
      LOAD_FVEC3( xyz , xx,yy,zz ) ;
      pqr = MATVEC( invlatmat , xyz ) ;      /* float lattice coordinates */
      pp = (int)floorf(pqr.xyz[0]+.499f) ;   /* integer lattice coords */
      qq = (int)floorf(pqr.xyz[1]+.499f) ;
-     rr = (int)floorf(pqr.xyz[2]+.499f) ; nsav = 0 ;
+     rr = (int)floorf(pqr.xyz[2]+.499f) ;
+     nsav = 0 ; /* nsav = num times this point is saved to a blok */
      for( cc=rr-1 ; cc <= rr+1 ; cc++ ){    /* search nearby bloks */
        if( cc < rb || cc > rt ) continue ;  /* for inclusion of (xx,yy,zz) */
-       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){
-         if( bb < qb || bb > qt ) continue ;
-         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){
+       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){  /* into that blok */
+         if( bb < qb || bb > qt ) continue ;  /* a point might end up in */
+         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){  /* more than 1 blok (not common) */
            if( aa < pb || aa > pt ) continue ;
            LOAD_FVEC3( pqr , aa,bb,cc ) ;  /* compute center of this */
            xyz = MATVEC( latmat , pqr ) ;  /* blok into xyz vector  */
-           uu = xx - xyz.xyz[0] ;    /* xyz coords relative to blok center */
-           vv = yy - xyz.xyz[1] ;
+           uu = xx - xyz.xyz[0] ;    /* xyz coords of point #ii */
+           vv = yy - xyz.xyz[1] ;    /* relative to blok center */
            ww = zz - xyz.xyz[2] ;
-           if( GA_BLOK_inside( bloktype , uu,vv,ww , siz ) ){
-             dd = (aa-pb) + (bb-qb)*np + (cc-rb)*npq ; /* blok index */
+           if( GA_BLOK_inside( bloktype , uu,vv,ww , siz ) ){ /* add to blok */
+             dd = (aa-pb) + (bb-qb)*np + (cc-rb)*npq ;        /* blok index */
              GA_BLOK_ADDTO_intar( nelm[dd], nalm[dd], elm[dd], ss ) ;
-             ntot++ ; nsav++ ;
+             ntot++ ;  /* total number of points saved into bloks */
+             nsav++ ;  /* how many times THIS point was saved into a blok */
            }
          }
        }
      }
-     if( nsav > 1 ) ndup++ ;
+     if( nsav > 1 ) ndup++ ;  /* count of duplicat saves */
    }
+
+   /** compute minimum number of points saved per blok? **/
 
    if( minel < 9 ){
      for( minel=dd=0 ; dd < nblok ; dd++ ) minel = MAX(minel,nelm[dd]) ;
      minel = (int)(0.456*minel)+1 ;
    }
 
-   /* now cast out bloks that have too few points,
-      and truncate those arrays that pass the threshold */
+   /** now cast out bloks that have too few points,
+       and truncate those arrays that pass the threshold **/
 
    for( nsav=dd=0 ; dd < nblok ; dd++ ){
-     if( nelm[dd] < minel ){
+     if( nelm[dd] < minel ){     /* destroy blok */
        if( elm[dd] != NULL ){ free(elm[dd]); elm[dd] = NULL; }
        nelm[dd] = 0 ;
-     } else {
+     } else {                    /* clip back to used array size */
        GA_BLOK_CLIP_intar( nelm[dd] , nalm[dd] , elm[dd] ) ; nsav++ ;
      }
    }
-   free(nalm) ;
+   free(nalm) ;  /* allocated space per blok -- no longer needed */
 
-   if( nsav == 0 ){  /* didn't find any arrays to keep!? */
+   if( nsav == 0 ){  /* didn't find any blok arrays to keep!? */
      ERROR_message("create_GA_BLOK_set can't get bloks with %d elements",minel);
      free(nelm) ; free(elm) ; RETURN(NULL) ;
    }
 
-   /* create output struct */
+   /* create output struct from all of the above */
 
    gbs = (GA_BLOK_set *)malloc(sizeof(GA_BLOK_set)) ;
    gbs->num  = nsav ;
@@ -1407,6 +1450,12 @@ ENTRY("create_GA_BLOK_set") ;
      }
    }
    free(nelm) ; free(elm) ;
+
+   gbs->ppow = AFNI_numenv("AFNI_LPC_POWER") ;   /* 28 Jan 2021 */
+   if( gbs->ppow <= 0.0f || gbs->ppow > 2.0f ) gbs->ppow = 1.0f ;
+
+   gbs->nx = nx ; gbs->ny = ny ; gbs->nz = nz ;  /* Biden Day 3 */
+   gbs->dx = dx ; gbs->dy = dy ; gbs->dz = dz ;
 
    if( verb > 1 )
      ININFO_message("%d total points stored in %d '%s(%g)' bloks",
@@ -1476,6 +1525,67 @@ floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
    }
 
    return pv ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return a volume from the pearson vector showing with the
+    voxel populated with 'their' blok's pearson correlation. [Biden day 3]
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMAGE * GA_pearson_image( GA_setup *stup , floatvec *pv )
+{
+   MRI_IMAGE *gim ; float *gar , *pvar ;
+   GA_BLOK_set *gbs ;
+   float *ima=NULL , *jma=NULL , *kma=NULL ;
+   int nx,ny,nz,nxy,nxyz,dd,nelm,ii,jj , pp,qq,rr,npt ;
+   int *elm ;
+
+   if( stup == NULL || pv == NULL ) return NULL ; /* dumdum user */
+
+   gbs = stup->blokset ; if( gbs == NULL ) return NULL ;
+
+   nx = gbs->nx ; ny = gbs->ny ; nz = gbs->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   if( nx < 2 || ny < 2 || nz < 2 || nxyz < 99 ) return NULL ;
+
+   /* point indexes available? */
+
+   if( stup->im != NULL ) ima = stup->im->ar ;
+   if( stup->jm != NULL ) jma = stup->jm->ar ;
+   if( stup->km != NULL ) kma = stup->km->ar ;
+   npt = stup->npt_match ;
+   if( ima == NULL || jma == NULL || kma == NULL ){ /* no point index arrays */
+     ima = jma = kma = NULL ; npt = nxyz ;         /* so use all of 3D space */
+   }
+
+   /* create output 3D volume */
+
+   gim = mri_new_vol(nx,ny,nz,MRI_float) ;  /* zero filled */
+   if( gim == NULL ) return NULL ;          /* should never happen */
+   gim->dx = gbs->dx ; gim->dy = gbs->dy ; gim->dz = gbs->dz ;
+   gar  = MRI_FLOAT_PTR(gim) ;
+   pvar = pv->ar ;
+
+   /* loop over bloks */
+
+/** INFO_message("GA_pearson_image: npt=%d ima=%s",npt,(ima==NULL)?"NULL":"non-NULL") ; **/
+   for( dd=0 ; dd < gbs->num ; dd++ ){
+     nelm = gbs->nelm[dd] ;
+     elm  = gbs->elm[dd] ;  /* array of indexes for this blok */
+/** ININFO_message("  blok[%d] has %d points with value %g",dd,nelm,pvar[dd]) ; **/
+     for( ii=0 ; ii < nelm ; ii++ ){  /* push values to image */
+       /* jj = index into 1D matching arrays (ima,jma,kma) */
+       jj = elm[ii] ;
+       /* but 1D matching arrays are not usually all of 3D space! */
+       if( ima != NULL ){
+         pp = (int)ima[jj]; qq = (int)jma[jj]; rr = (int)kma[jj]; /* xyz indexes */
+         jj = pp + qq*nx + rr*nxy ;  /* now jj = index into 3D space */
+/** ININFO_message("    [%d] is at (%d,%d,%d) = %d",ii,pp,qq,rr,jj) ; **/
+       }
+       if( jj >=0 && jj < nxyz ) gar[jj] = pvar[dd] ;  /* store into 3D volume */
+     }
+   }
+
+   return gim ;
 }
 
 /*======================== End of BLOK-iness functionality ==================*/

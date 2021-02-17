@@ -57,6 +57,12 @@ afni_history_struct rickr_history[] = {
    "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
    "All thd_coords.c protos are in 3ddata.h now."
  } ,
+  
+ { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "do not convert NIFTI scaled shorts to float",
+   "If slope!=0 && inter==0, pass slope as brick_fac.\n"
+   "Thanks to C Caballero and S Moia for reporting this."
+ } ,
 
  {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
    "shift memory allocation/free around, mostly to match libSUMA",
@@ -379,11 +385,6 @@ afni_history_struct rickr_history[] = {
    "add env var control over pre-comp e2x, limit and pieces",
    "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"
    "AFNI_MODEL_PRF_MAX_EXP_PIECES.\n"
- } ,
-
- { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
-   "add initial NT parameter",
-   NULL
  } ,
 
  { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
@@ -5049,7 +5050,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
+   "madd initial NT parametercw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
    "Apparently it does not like inconsistent declaration in same file,\n"
    "and mcw_malloc.h does not offer prototypes to many functions in the\n"
    "case of DONT_USE_MCW_MALLOC, including this one."

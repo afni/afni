@@ -220,7 +220,7 @@ static int Hverb = 1 ;
     (C10) Functions to invert an index warp in its entirety
     (C11) Functions to compute the 'square root' of a warp
     (C12) Functions for taking stuff from 3dAllineate -nwarp output and
-          producing a warp (obsolete, or nearly so)
+          producing a warp (obsolete, or nearly so -- DO NOT USE!)
     (C13) Functions for interpolating images
     (C14) Functions used in 3dNwarpXYZ.c to warp a small number of points given
           by x,y,z triples, rather than warping a whole grid at once
@@ -3642,447 +3642,15 @@ ENTRY("THD_nwarp_invert") ;
 
 #if 1
 /*============================================================================*/
-/* (C11) Functions to compute the 'square root' of a warp.  There are various
-   flavors here, because this is a difficult problem that may not always
-   have an exact solution.  On the other hand, the square root is probably
-   not actually very useful (esp. given the 3dQwarp -plusminus option).       */
+/* (C11) Functions to compute the 'square root' of a warp.
+   The square root is probably not actually very useful
+   (especially given the 3dQwarp -plusminus option).
+     [[The old code to do this was excised completely on 05 Feb 2021.]] */
 /*============================================================================*/
 
-#define USE_SQRTPAIR  /* this enables the better code (farther below) */
-
-#ifndef USE_SQRTPAIR  /* old and worser method [sometimes does not converge] */
-/*----------------------------------------------------------------------------*/
-/* Iteration step for sqrt:  Bnew(x) = B( 1.5*x - 0.5*A(B(B(x))) )
-   This is actually a step to produce the square root of inverse(A).
-   [This method can be unstable -- the IW3D_sqrtpair functions are better
-                                -- which is why this code is now disabled.]
-*//*-------------------------------------------------------------------------*/
-
-static float sstepfac = 0.5f ;
-
-static float sstepfac_MAX = 0.432111f ;
-static float sstepfac_MIN = 0.135799f ;
-
-IndexWarp3D * IW3D_sqrtinv_step( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
-{
-   int nx,ny,nz,nxy,nxyz , nall , pp,qtop ;
-   float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
-   IndexWarp3D *CC ;
-   float esar[18] ;
-
-ENTRY("IW3D_sqrtinv_step") ;
-
-   if( AA == NULL || BB == NULL ) RETURN(NULL) ;  /* stoopidd luser */
-
-   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
-
-   if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
-
-   nall = NALL(nxyz) ;
-
-   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
-   yq = (float *)malloc(sizeof(float)*nall) ;
-   zq = (float *)malloc(sizeof(float)*nall) ;
-
-   xr = (float *)malloc(sizeof(float)*nall) ;
-   yr = (float *)malloc(sizeof(float)*nall) ;
-   zr = (float *)malloc(sizeof(float)*nall) ;
-
-   CC = IW3D_empty_copy(AA) ;
-
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-   xdb = BB->xd ; ydb = BB->yd ; zdb = BB->zd ;
-   xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
-
-   /* Warps are stored as displacments:
-       A(x) = x + a(x)
-       B(x) = x + b(x)  et cetera */
-
-   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
-
-     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
-
-     /* Compute [xq,yq,zq] = B(x) = x+b(x) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xq[qq-pp] = ii + xdb[qq] ;
-       yq[qq-pp] = jj + ydb[qq] ;
-       zq[qq-pp] = kk + zdb[qq] ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xr,yr,zr] = b(B(x)) */
-
-     if( BB->use_es ) ES_PACK(BB,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
-                         BB->use_es , esar ,
-                         qtop-pp  , xq , yq , zq ,
-                                    xr , yr , zr  ) ;
-
-     /* Compute [xr,yr,zr] = B(B(x)) = B(x) + b(B(x)) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       xr[qq-pp] += xq[qq-pp] ;
-       yr[qq-pp] += yq[qq-pp] ;
-       zr[qq-pp] += zq[qq-pp] ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xq,yq,zq] = a(B(B(x))) */
-
-     if( AA->use_es ) ES_PACK(AA,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xda, yda, zda,
-                         AA->use_es , esar ,
-                         qtop-pp  , xr , yr , zr ,
-                                    xq , yq , zq  ) ;
-
-     /* Compute [xq,yq,zq] = 1.5*x - 0.5*A(B(B(x)))
-                           = 1.5*x - 0.5*( B(B(x)) + a(B(B(x))) ) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xq[qq-pp] = 1.5f*ii - 0.5f*( xr[qq-pp] + xq[qq-pp] ) ;
-       yq[qq-pp] = 1.5f*jj - 0.5f*( yr[qq-pp] + yq[qq-pp] ) ;
-       zq[qq-pp] = 1.5f*kk - 0.5f*( zr[qq-pp] + zq[qq-pp] ) ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xr,yr,zr] = b(1.5*x - 0.5*A(B(B(x)))) */
-
-     if( BB->use_es ) ES_PACK(BB,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
-                         BB->use_es , esar ,
-                         qtop-pp  , xq , yq , zq ,
-                                    xr , yr , zr  ) ;
-
-     /* Compute the answer: B(1.5*x - 0.5*A(B(B(x))))
-                          = 1.5*x - 0.5*A(B(B(x))) + b(1.5*x - 0.5*A(B(B(x)))) */
-
-     if( sstepfac <= 0.0f ){
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-       for( qq=pp ; qq < qtop ; qq++ ){
-         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-         xdc[qq] = xq[qq-pp] + xr[qq-pp] - ii ; /* must subtract off x [ii,jj,kk] */
-         ydc[qq] = yq[qq-pp] + yr[qq-pp] - jj ; /* to make result be displacments */
-         zdc[qq] = zq[qq-pp] + zr[qq-pp] - kk ;
-       }
- }
- AFNI_OMP_END ;
-
-     } else {
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-   register float sf , sf1 ;
-   sf = sstepfac ; sf1 = 1.0f - sf ;
-#pragma omp for
-       for( qq=pp ; qq < qtop ; qq++ ){
-         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-         xdc[qq] = sf * (xq[qq-pp] + xr[qq-pp] - ii) + sf1 * xdb[qq] ;
-         ydc[qq] = sf * (yq[qq-pp] + yr[qq-pp] - jj) + sf1 * ydb[qq] ;
-         zdc[qq] = sf * (zq[qq-pp] + zr[qq-pp] - kk) + sf1 * zdb[qq] ;
-       }
- }
- AFNI_OMP_END ;
-
-     }
-
-   } /* end of loop over segments of length NPER (or less) */
-
-   free(zr); free(yr); free(xr); free(zq); free(yq); free(xq);
-   IW3D_load_external_slopes(CC) ; RETURN(CC);
-}
-
-/*---------------------------------------------------------------------------*/
-/*** This code is bad (unstable) -- don't use it! ***/
-#if 0
-IndexWarp3D * IW3D_sqrtinv_stepQ( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
-{
-   int nx,ny,nz,nxy,nxyz , nall , pp,qtop ;
-   float *xda,*yda,*zda , *xq,*yq,*zq,*xr,*yr,*zr , *xdc,*ydc,*zdc , *xdb,*ydb,*zdb ;
-   IndexWarp3D *CC ;
-   float esar[18] ;
-
-ENTRY("IW3D_sqrtinv_stepQ") ;
-
-   if( AA == NULL || BB == NULL ) RETURN(NULL) ;  /* stoopidd luser */
-
-   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
-
-   if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
-
-   nall = NALL(nxyz) ;
-
-   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
-   yq = (float *)malloc(sizeof(float)*nall) ;
-   zq = (float *)malloc(sizeof(float)*nall) ;
-
-   xr = (float *)malloc(sizeof(float)*nall) ;
-   yr = (float *)malloc(sizeof(float)*nall) ;
-   zr = (float *)malloc(sizeof(float)*nall) ;
-
-   CC = IW3D_empty_copy(AA) ;
-
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-   xdb = BB->xd ; ydb = BB->yd ; zdb = BB->zd ;
-   xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
-
-   /* Warps are stored as displacments:
-       A(x) = x + a(x)
-       B(x) = x + b(x)  et cetera */
-
-   for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
-
-     qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
-
-     /* Compute [xq,yq,zq] = A(x) = x+a(x) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xq[qq-pp] = ii + xda[qq] ;
-       yq[qq-pp] = jj + yda[qq] ;
-       zq[qq-pp] = kk + zda[qq] ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xr,yr,zr] = b(A(x)) */
-
-     if( BB->use_es ) ES_PACK(BB,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
-                         BB->use_es , esar ,
-                         qtop-pp  , xq , yq , zq ,
-                                    xr , yr , zr  ) ;
-
-     /* Compute [xr,yr,zr] = B(A(x)) = A(x) + b(A(x)) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       xr[qq-pp] += xq[qq-pp] ;
-       yr[qq-pp] += yq[qq-pp] ;
-       zr[qq-pp] += zq[qq-pp] ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xq,yq,zq] = b(B(A(x))) */
-
-     if( AA->use_es ) ES_PACK(AA,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
-                         AA->use_es , esar ,
-                         qtop-pp  , xr , yr , zr ,
-                                    xq , yq , zq  ) ;
-
-     /* Compute [xq,yq,zq] = 1.5*x - 0.5*B(B(A(x)))
-                           = 1.5*x - 0.5*( B(A(x)) + b(B(A(x))) ) */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xq[qq-pp] = 1.5f*ii - 0.5f*( xr[qq-pp] + xq[qq-pp] ) ;
-       yq[qq-pp] = 1.5f*jj - 0.5f*( yr[qq-pp] + yq[qq-pp] ) ;
-       zq[qq-pp] = 1.5f*kk - 0.5f*( zr[qq-pp] + zq[qq-pp] ) ;
-     }
- }
- AFNI_OMP_END ;
-
-     /* Compute [xr,yr,zr] = b(1.5*x - 0.5*B(B(A(x)))) */
-
-     if( BB->use_es ) ES_PACK(BB,esar) ;
-     IW3D_interp( icode, nx,ny,nz , xdb, ydb, zdb,
-                         BB->use_es , esar ,
-                         qtop-pp  , xq , yq , zq ,
-                                    xr , yr , zr  ) ;
-
-     /* Compute the answer: B(1.5*x - 0.5*B(B(A(x))))
-                          = 1.5*x - 0.5*B(B(A(x))) + b(1.5*x - 0.5*B(B(A(x)))) */
-
-     if( sstepfac <= 0.0f ){
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-       for( qq=pp ; qq < qtop ; qq++ ){
-         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-         xdc[qq] = xq[qq-pp] + xr[qq-pp] - ii ; /* must subtract off x [ii,jj,kk] */
-         ydc[qq] = yq[qq-pp] + yr[qq-pp] - jj ; /* to make result be displacments */
-         zdc[qq] = zq[qq-pp] + zr[qq-pp] - kk ;
-       }
- }
- AFNI_OMP_END ;
-
-     } else {
-
- AFNI_OMP_START ;
-#pragma omp parallel if( qtop-pp > 1111 )
- { int qq , ii,jj,kk ;
-   register float sf , sf1 ;
-   sf = sstepfac ; sf1 = 1.0f - sf ;
-#pragma omp for
-       for( qq=pp ; qq < qtop ; qq++ ){
-         ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-         xdc[qq] = sf * (xq[qq-pp] + xr[qq-pp] - ii) + sf1 * xdb[qq] ;
-         ydc[qq] = sf * (yq[qq-pp] + yr[qq-pp] - jj) + sf1 * ydb[qq] ;
-         zdc[qq] = sf * (zq[qq-pp] + zr[qq-pp] - kk) + sf1 * zdb[qq] ;
-       }
- }
- AFNI_OMP_END ;
-
-     }
-
-   } /* end of loop over segments of length NPER (or less) */
-
-   free(zr); free(yr); free(xr); free(zq); free(yq); free(xq);
-   IW3D_load_external_slopes(CC) ; RETURN(CC);
-}
-#endif
-
-/*---------------------------------------------------------------------------*/
-/* Find the inverse square root of warp AA(x):
-      the warp BB(x) such that AA(BB(BB(x))) = identity.
-   If you want the square root of AA(x), then either invert AA
-   before calling this function, or invert the result afterwards.
-   NOTE: this code is disabled unless USE_SQRTPAIR is #undef-ed!  */
-
-IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode )
-{
-   IndexWarp3D *BB , *CC ;
-   float normAA , normBC , nrat , orat ;
-   int ii , nstep=0 , nss , jcode=MRI_LINEAR ;
-
-ENTRY("IW3D_sqrtinv") ;
-
-   if( AA == NULL ) RETURN(NULL) ;
-
-   normAA = IW3D_normLinf( AA , NULL ) ;
-   if( normAA == 0.0f ){
-     BB = IW3D_empty_copy(AA) ; RETURN(BB) ;
-   }
-   if( icode == MRI_WSINC5 ) icode = MRI_QUINTIC ;
-
-   /* BB = initial guess at inverse square root */
-
-   if( verb_nww ) ININFO_message(" -- sqrtinv max|AA|=%f",normAA) ;
-
-   if( BBinit == NULL ){
-     int pp = 2 + (int)ceil(log2(normAA)) ; float qq ;
-     if( pp < 4 ) pp = 4 ;
-     qq = pow(0.5,pp+1.0) ;
-     if( verb_nww ) ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp+1,qq) ;
-     BB = IW3D_copy( AA,-qq ) ;
-     for( ii=0 ; ii < pp ; ii++ ){
-       if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
-       CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
-     }
-   } else {
-     BB = IW3D_copy( BBinit , 1.0f ) ;
-   }
-
-   normAA   = IW3D_normL1( AA , NULL ) ;
-   sstepfac = 1.0f / (1.0f+sqrtf(normAA)) ;  /* Newton damping factor */
-
-   nrat = AFNI_numenv("AFNI_NWARP_SSTEPFAC_MIN") ;
-   if( nrat > 0.0f && nrat < 1.0f ) sstepfac_MIN = nrat ;
-
-   nrat = AFNI_numenv("AFNI_NWARP_SSTEPFAC_MAX") ;
-   if( nrat > 0.0f && nrat < 1.0f ) sstepfac_MAX = nrat ;
-
-   if( sstepfac > sstepfac_MIN ) sstepfac = sstepfac_MIN ;
-
-   if( verb_nww )
-     ININFO_message("  - start iterations: normAA=%f sstepfac=%f",normAA,sstepfac) ;
-
-   /* iterate some, until convergence or exhaustion */
-
-   nrat = 666.666f ;
-
-   for( nss=ii=0 ; ii < 39 ; ii++ ){
-
-     /* take a step */
-
-     CC = BB ;
-#if 1
-     BB = IW3D_sqrtinv_step(AA,CC,jcode) ;
-#else
-     BB = IW3D_sqrtinv_stepQ(AA,CC,jcode) ;  /* the old (bad) way */
-#endif
-
-     /* how close are they now? */
-
-     normBC = IW3D_normL1( BB , CC ) ; IW3D_destroy(CC) ;
-
-     orat = nrat ; nrat = normBC / normAA ;
-
-     if( verb_nww ) ININFO_message("  - iterate %d nrat=%f",++nstep,nrat) ;
-
-     /* check for convergence of B and C */
-
-     if( jcode != icode && nrat < 0.002f ){
-       jcode = icode ; nss = 0 ;
-       if( verb_nww ) ININFO_message("  - switching from linear interp") ;
-       continue ;
-     }
-
-     if( nrat < 0.001f ){
-       if( verb_nww ) ININFO_message(" -- iteration converged") ;
-       RETURN(BB) ;   /* converged */
-     }
-
-     if( nss > 0 && nrat < 0.199f && nrat < orat && sstepfac < sstepfac_MAX ){
-       nss = 0 ; sstepfac *= 1.123f ; if( sstepfac > sstepfac_MAX ) sstepfac = sstepfac_MAX ;
-       if( verb_nww > 1 ) ININFO_message("  - switch to sstepfac=%f",sstepfac) ;
-     } else if( nss > 0 && nrat > orat ){
-       nss = -66 ; sstepfac *= 0.444f ;
-       if( verb_nww > 1 ) ININFO_message("  - switch to sstepfac=%f",sstepfac) ;
-     } else {
-       nss++ ;
-     }
-
-   }
-
-   /* failed to converge, return latest result anyhoo */
-
-   WARNING_message("sqrtinv: iterations failed to converge beautifully") ;
-   RETURN(BB) ;
-}
-/*---------------------------------------------------------------------------*/
-#else /* USE_SQRTPAIR is defined!!! */
 /*---------------------------------------------------------------------------*/
 /* The following iterates on pairs of warps to produce the sqrt and
-   sqrtinv at the same time.  It is slower but more stable than the
-   previous methods.
+   sqrtinv at the same time.
 *//*-------------------------------------------------------------------------*/
 
 static float spgam = 1.0f ;
@@ -4181,6 +3749,23 @@ IndexWarp3D_pair * IW3D_sqrtpair( IndexWarp3D *AA , int icode )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Adaptations [05 Feb 2021] */
+
+IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , int icode )
+{
+   IndexWarp3D_pair *YZ ; IndexWarp3D *QQ ;
+   YZ = IW3D_sqrtpair(AA,icode) ;
+   QQ = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; free(YZ) ; return QQ ;
+}
+
+IndexWarp3D * IW3D_sqrt( IndexWarp3D *AA , int icode )
+{
+   IndexWarp3D_pair *YZ ; IndexWarp3D *QQ ;
+   YZ = IW3D_sqrtpair(AA,icode) ;
+   QQ = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; free(YZ) ; return QQ ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Compute the warp pair ( sqrt(dset) , sqrtinv(dset) ) from a dataset. */
 
 THD_3dim_dataset * THD_nwarp_sqrt( THD_3dim_dataset *dset_nwarp , int invert )
@@ -4214,7 +3799,6 @@ ENTRY("THD_nwarp_sqrt") ;
    THD_init_diskptr_names( qset->dblk->diskptr, NULL,NULL,NULL, qset->view_type, False ) ;
    RETURN(qset) ;
 }
-#endif  /* USE_SQRTPAIR */
 
 #endif /*(C11)*/ /*###########################################################*/
 
@@ -6343,13 +5927,7 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrtinv") == 0 || strcasecmp(cmd,"&invsqrt") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-#else
-        { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
-          AA = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; free(YZ) ;
-        }
-#endif
+        AA = IW3D_sqrtinv( iwstk[nstk-1] , icode ) ;
         if( AA == NULL ) ERREX("inverse square root failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
@@ -6361,16 +5939,8 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrt") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
-        BB = IW3D_invert( AA , NULL , icode ) ; IW3D_destroy(AA) ;
-        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
-#else
-        { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
-          BB = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; free(YZ) ;
-        }
-#endif
+        AA = IW3D_sqrt( iwstk[nstk-1] , icode ) ;
+        if( AA == NULL ) ERREX("square root failed :-(") ;
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = BB ;
         if( verb_nww )
           ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -6381,16 +5951,9 @@ ENTRY("NwarpCalcRPN") ;
      else if( strcasecmp(cmd,"&sqrtpair") == 0 ){
         double ct = COX_cpu_time() ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
-#ifndef USE_SQRTPAIR
-        AA = IW3D_sqrtinv( iwstk[nstk-1] , NULL , icode ) ;
-        if( AA == NULL ) ERREX("inverse square root failed :-(") ;
-        BB = IW3D_invert( AA , NULL , icode ) ;
-        if( BB == NULL ) ERREX("inversion after sqrtinv failed :-(") ;
-#else
         { IndexWarp3D_pair *YZ = IW3D_sqrtpair(iwstk[nstk-1],icode) ;
           BB = YZ->fwarp ; AA = YZ->iwarp ; free(YZ) ;
         }
-#endif
         IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ; ADDTO_iwstk(BB) ;
         if( verb_nww )
           ININFO_message(" -- square root pair CPU time = %.1f s",COX_cpu_time()-ct) ;
@@ -6887,12 +6450,8 @@ ENTRY("CW_read_dataset_warp") ;
    /**--- do any functional processing of the warp ---**/
 
    if( do_sqrt ){        /* user wants SQRT or SQRTINV */
-#ifndef USE_SQRTPAIR
-     ERROR_exit("mri_nwarp compiled without dataset SQRT :-(") ;
-#else
      eset = THD_nwarp_sqrt(dset,do_inv) ;
      DSET_delete(dset) ; dset = eset ; eset = NULL ;
-#endif
    } else if( do_inv ){  /* user wants INV */
      eset = THD_nwarp_invert(dset) ;
      DSET_delete(dset) ; dset = eset ; eset = NULL ;
