@@ -1,8 +1,4 @@
 #include "mrilib.h"
-// drg - mac os gcc10 requires declarations - here to include AFNI_ijk_to_xyz()
-extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
-                             int,int,int, float *,float *,float *) ;
-                             
 #include "basic_boring.h"
 #include <gsl/gsl_matrix.h>
 

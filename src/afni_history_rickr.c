@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
+   "All thd_coords.c protos are in 3ddata.h now."
+ } ,
+
  {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
    "shift memory allocation/free around, mostly to match libSUMA",
    "Inspired by C Rorden via sanitizer warnings."

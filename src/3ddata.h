@@ -5578,6 +5578,16 @@ extern int  THD_dicom_real_to_card(THD_3dim_dataset *dset, /* 23 Mar 2020 */
                                    THD_fvec3 * coords, int rnd);
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
 
+/* coordinate converters - moved from afni.h  17 Feb 2021 [rickr] */
+extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
+                             int,int,int, float *,float *,float *) ;
+extern void AFNI_xyz_to_ijk( THD_3dim_dataset * ,
+                             float,float,float , int *,int *,int *) ;
+extern void AFNI_xyz_to_dicomm( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+
 /* [PT: Nov 4, 2020] functions for reorienting dset via
    ijk_to_dicom_real */
 extern int   is_valid_orient_char( char ochar[3] );
