@@ -168,9 +168,9 @@ Introduction
           -lme 's(age)'                        \\
           -ranEff 'list(Subj=~1)'                      \\
 
-  which is solved through the linear mixed-effect (lme) platform. The -vt is
-  not needed when making prediction through the option -prediction. The two
-  specifications, -mrr and -lme, would render similar results, but the 
+  which is solved through the linear mixed-effect (lme) platform. The -vt option
+  is not needed in this case when making prediction through the option -prediction. 
+  The two specifications, -mrr and -lme, would render similar results, but the 
   runtime may differ depending on the amount of data and model complexity.
    \n"
 
