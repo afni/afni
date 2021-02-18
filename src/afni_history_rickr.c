@@ -53,11 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+  { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "warn about problematic version of XQuartz",
+   NULL
+ } ,
+
  { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
    "All thd_coords.c protos are in 3ddata.h now."
  } ,
-  
+
  { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "do not convert NIFTI scaled shorts to float",
    "If slope!=0 && inter==0, pass slope as brick_fac.\n"

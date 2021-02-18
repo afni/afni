@@ -4,7 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /* Please note that this file is not "integrated" into AFNI. By this I
    mean that it doesn't know about AFNI controllers, datasets, and so on.
    It is an image viewing server, and the caller needs to provide a
@@ -14,9 +14,9 @@
    to view slices from a 3D dataset, the imseq functionality is also used
    in the Rendering plugin to view 3D renderings, in the aiv program for
    generic image viewing, and in SUMA for capturing image snapshots.
-*//*----------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /* Structure of this AFNI image viewer:
 
     * An image viewer's data structure is an MCW_imseq, created by
@@ -83,7 +83,7 @@
       has expanded to 14510 -- 426% growth over 23 years.
 
     * Good luck, and be careful in here -- Bob Cox.
-*//*----------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <string.h>
@@ -109,6 +109,7 @@
 
 #define DONT_ONOFF_ONE        /* 29 Jul 2002 */
 
+/* macro to send information to AFNI */
 #define SEND(sq,cb)                                     \
   AFNI_CALL_VOID_3ARG( (sq)->status->send_CB ,          \
                        MCW_imseq * , sq ,               \
@@ -152,19 +153,25 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *im ) ;
 #define DISP_OK   1  /* indices for button labels */
 #define DISP_UNDO 0
 
+/*** do NOT re-enable group statistics -- it's very old code ***/
+#define NO_GROUP_SCALE  /* button box NTOG_SCL will be disabled */
+#ifdef  NO_GROUP_SCALE  /* and no group statistics will be computed */
+# undef AUTOMATE_STATISTICS
+#endif
+
 static MCW_action_item ISQ_disp_act[NACT_DISP] = {
  {"Reset",ISQ_disp_act_CB,NULL,"Sets all options back\nto earlier values","Undo changes", 0 },
  {"Done" ,ISQ_disp_act_CB,NULL,"Closes this window"                      ,"Close window", 1 }
 } ;
 
-/*-- structures defining toggle button boxes --*/
+/*-- structures defining the 9 toggle button boxes --*/
 
                        /* number of buttons in each button box */
 #define NBUT_DISP1  4  /* Rotation box */
 #define NBUT_DISP2  1  /* Mirror box */
 #define NBUT_DISP3  1  /* No overlay box */
 #define NBUT_DISP4  3  /* Range scaling box */
-#define NBUT_DISP5  2  /* Auto- or Group- scale box */
+#define NBUT_DISP5  2  /* Auto- or Group- scale box [will be hidden] */
 #define NBUT_DISP6  1  /* Free aspect box */
 #define NBUT_DISP7  2  /* Save box */          /* 26 Jul 2001: was 3, now 2 */
 #define NBUT_DISP8  4  /* IMPROC buttons */
@@ -195,6 +202,8 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
      }                                                           \
  } while(0)
 
+/* labels for the toggle buttons in each box */
+
 static char * ISQ_dl1[NBUT_DISP1] = {
    "No Rotation" , "CCW 90" , "Rot 180" , "CW 90" } ;
 static char * ISQ_dl2[NBUT_DISP2] = { "+ LR Mirror" } ;
@@ -207,6 +216,11 @@ static char * ISQ_dl8[NBUT_DISP8] = { "Flatten" , "Sharpen" , "Edge Detect" , "V
 static char * ISQ_dl9[NBUT_DISP9] = {
    "Complex->Mag" , "Complex->Arg" , "Complex->Real" , "Complex->Imag" } ;
 
+/* collect info about boxes, including the type (see bbox.c):
+     radio_one  = exactly one button can be pressed in
+     radio_zero = zero or one button can be pressed in
+     check      = any combination of buttons can be pressed in */
+
 static ISQ_boxdef ISQ_dispbb[] = {
    { NBUT_DISP1 , ISQ_dl1 , MCW_BB_radio_one  , MCW_BB_frame } ,
    { NBUT_DISP2 , ISQ_dl2 , MCW_BB_check      , MCW_BB_frame } ,
@@ -218,6 +232,8 @@ static ISQ_boxdef ISQ_dispbb[] = {
    { NBUT_DISP8 , ISQ_dl8 , MCW_BB_check      , MCW_BB_frame } ,
    { NBUT_DISP9 , ISQ_dl9 , MCW_BB_radio_one  , MCW_BB_frame } ,
 } ;
+
+/* helps and hints for the ignorant */
 
 static char * ISQ_bb1_help[NBUT_DISP1] = {
    "Sets orientation to the\noriginal in the data set" ,
@@ -346,7 +362,10 @@ static char ** ISQ_bb_allhint[] = {
 } ;
 /*************************************************************************/
 
-/*------ 27 Jun 2001: external programs that may be of use ------*/
+/*------ 27 Jun 2001: list of external programs that may be of use ------*/
+
+/* ppmto = programs to take as image input the simple PPM format
+           and convert the image to something more useful, like JPEG */
 
 static char ** ppmto_filter  = NULL ;
 static char ** ppmto_suffix  = NULL ;
@@ -360,7 +379,7 @@ static char *  ppmto_agif_filter = NULL ;
 #define USE_GIFF  /* use Fixed colormap GIF for animations */
 #ifdef  USE_GIFF
 static char *  ppmto_giff_filter = NULL ;   /* 05 Oct 2004 */
-#define GIFF_MAPFILE "Qwerty53211.ppm"
+#define GIFF_MAPFILE "Qwerty53211.ppm"      /* 53211 was my Zip code in WI */
 #endif
 
 static char *  ppmto_mpeg_filter = NULL ;   /* 02 Aug 2001 */
@@ -377,7 +396,7 @@ static char *  gimp_path          = NULL ;  /* 27 Oct 2017 */
 
 #define GIFSICLE_SUFFIX    "-O2 -d %d -k 127 -l %%s > %%s"
 #define WHIRLGIF_SUFFIX    "-time %d -loop %%s > %%s"
-#define FFMPEG_SUFFIX "-loglevel quiet -y"
+#define FFMPEG_SUFFIX      "-loglevel quiet -y"
 
 #define DO_AGIF(sq) ((sq)->opt.save_agif)
 #define DO_MPEG(sq) ((sq)->opt.save_mpeg)
@@ -423,7 +442,11 @@ static char *  gimp_path          = NULL ;  /* 27 Oct 2017 */
      } ncant++ ;                                                         \
  } while(0)
 
-/*---- setup programs as filters: ppm stdin to some output file ----*/
+/*------------------------------------------------------------------*/
+/*---- Setup programs as filters: ppm stdin to some output file ----*/
+/*---- Doing image output this way avoids having to incorporate ----*/
+/*---- external libraries, but means NETPBM needs to be present ----*/
+/*------------------------------------------------------------------*/
 
 void ISQ_setup_ppmto_filters(void)
 {
@@ -441,7 +464,7 @@ void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "gimp" ) ;
    if( pg != NULL ) gimp_path = strdup(pg) ;
-#ifdef DARWIN
+#ifdef DARWIN  /* for MacosX, if in the App directory  */
    else if( THD_is_directory("/Applications/GIMP.app") )
      gimp_path = strdup("open -a /Applications/GIMP.app") ;
    else if( THD_is_directory("/Applications/MacPorts/GIMP.app") )
@@ -631,15 +654,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
        fprintf(stderr,
                "++ Some of the missing image Save programs are in\n"
                "++  the netpbm software package, which is freeware.\n" ) ;
-#ifdef DARWIN
-       fprintf(stderr,
-               "++  The 'fink' package at http://fink.sourceforge.net/\n"
-               "++  is a way to get the netpbm programs for OS X; *OR*\n");
-#endif
-       fprintf(stderr,
-               "++  Netpbm can be found at http://netpbm.sourceforge.net/\n");
      }
-
      fprintf(stderr,
                "++ To disable these warnings, set environment\n"
                "++  variable AFNI_IMSAVE_WARNINGS to 'NO'.\n"
@@ -776,20 +791,20 @@ static char * ISQ_but_rig_hint[NBUTTON_RIG] = {
 static char * ISQ_scale_help =
   "Moves between images:\nDrag bar, or click in trough" ;
 
+/* The next 2 helps will be overwritten by AFNI */
+
 static char * ISQ_default_image_help = "This is the image!" ;
 
 static char * ISQ_form_help =
      "************************************************\n"
      "* Image Sequence Display Module                *\n"
      "*                                              *\n"
-     "* Copyright 1994, Medical College of Wisconsin *\n"
-     "*          -2000  Milwaukee, WI 53226-0509     *\n"
      "* Released under the GPL (v2 or later)         *\n"
      "*                                              *\n"
      "* Author:  Robert W Cox, PhD                   *\n"
      "************************************************"   ;
 
-/*-- arrow definitions --*/
+/*-- arrow definitions for widgets down the right side of viewer --*/
 
 static char * ISQ_arrow_label[NARROW] = { "c" , "b" , "r" , "g" , "i" } ;
 
@@ -853,7 +868,7 @@ ENTRY("open_MCW_imseq") ;
    if( ppmto_num < 0 ){
       ISQ_setup_ppmto_filters() ;  /* get filter program names */
 
-      if( ppmto_num > 0 ){         /* modify Save button box setup */
+      if( ppmto_num > 0 ){         /* modify Save button box setup for Disp */
 
          int nbut_old     = ISQ_dispbb[NTOG_SAV].nbut , qq,pp ;
          char ** lbut_old = ISQ_dispbb[NTOG_SAV].lbut ;
@@ -884,6 +899,8 @@ ENTRY("open_MCW_imseq") ;
       }
    }
 
+   /* Creation ex nihilo! */
+
    newseq = (MCW_imseq *) XtMalloc( sizeof(MCW_imseq) ) ;  /* new structure */
    memset(newseq, 0, sizeof(MCW_imseq));
 
@@ -891,17 +908,24 @@ ENTRY("open_MCW_imseq") ;
    newseq->getim  = get_image ;
    newseq->getaux = aux ;
 
-   newseq->never_drawn = 1 ;
+   newseq->never_drawn = 1 ;           /* used when viewer is first opened */
 
+   /*** The way the get_image function is called was changed
+        to use a macro that casts the arguments to the proper
+        types, to avoid bitter complaints from C++ compilers.
+        See Amalloc.h for these macros and other similar fixes. ***/
+
+   /* get the status of the images to be supplied */
 #if 0
    imstatus = (MCW_imseq_status *) get_image(0,isqCR_getstatus,aux) ;
 #else
    AFNI_CALL_VALU_3ARG( get_image , MCW_imseq_status *,imstatus ,
                         int,0 , int,isqCR_getstatus , XtPointer,aux ) ;
 #endif
-   if( imstatus->num_total < 1 ){ ERREX ; }
-   one_image = (imstatus->num_total == 1) ;
+   if( imstatus->num_total < 1 ){ ERREX ; }  /* bad */
+   one_image = (imstatus->num_total == 1) ;  /* special case */
 
+  /* get the first image, for sizing purposes */
 #if 0
    tim = (MRI_IMAGE *) get_image(0,isqCR_getqimage,aux) ;  /* fake image */
 #else
@@ -912,17 +936,15 @@ ENTRY("open_MCW_imseq") ;
    newseq->horig = tim->nx ;  /* save original dimensions */
    newseq->vorig = tim->ny ;
 
-   newseq->cropit       =  0 ; /* 11 Jun 2002 */
-   newseq->crop_allowed =  1 ;
-   newseq->crop_nxorg   = newseq->crop_nyorg = -1 ;
-   newseq->crop_autocenter = AFNI_yesenv("AFNI_CROP_AUTOCENTER") ;
-
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
 
    newseq->last_dx = newseq->last_dy = 1.0 ; /* 08 Jun 2004 */
-   newseq->rgb_gamma  = 1.0 ;                /* 25 Apr 2005 */
-   newseq->rgb_offset = 0.0 ;
+
+   newseq->cropit       =  0 ; /* Cropping stuff - 11 Jun 2002 */
+   newseq->crop_allowed =  1 ;
+   newseq->crop_nxorg   = newseq->crop_nyorg = -1 ;
+   newseq->crop_autocenter = AFNI_yesenv("AFNI_CROP_AUTOCENTER") ;
 
    fac = (newseq->last_width_mm  / newseq->horig)    /* width per pixel over */
         /(newseq->last_height_mm / newseq->vorig) ;  /* height per pixel */
@@ -952,7 +974,7 @@ if( PRINT_TRACING ){
                     newseq->old_vact = yhigh ;
 
    newseq->status = imstatus ;
-   newseq->im_nr  = imstatus->num_total / 2 ;  /* do this image 1st */
+   newseq->im_nr  = imstatus->num_total / 2 ;  /* do middle image 1st */
    newseq->scl    = 0.0 ;                      /* autoscaling */
    newseq->lev    = dc->ncol_im-1 ;            /* to range 0..ncol_im-1 */
    newseq->bot    = 0 ;
@@ -960,6 +982,10 @@ if( PRINT_TRACING ){
 
    newseq->clbot  = newseq->cltop  = 0.0f ;     /* 29 Jul 2001 */
    newseq->barbot = newseq->bartop = 0.0f ;
+
+   /* color curve correction parameters */
+   newseq->rgb_gamma  = 1.0 ;                /* 25 Apr 2005 */
+   newseq->rgb_offset = 0.0 ;
 
    strcpy( newseq->im_label , "hi bob" ) ;
    newseq->scl_label[0] = '\0' ;
@@ -970,30 +996,30 @@ if( PRINT_TRACING ){
    ISQ_DEFAULT_OPT(newseq->opt) ;  /* 09 Oct 1998: macro replaces explicit code */
    if( ppmto_num > 0 ) newseq->opt.save_filter = 0 ;  /* 26 Mar 2002 */
    newseq->opt.parent = (XtPointer) newseq ;
-   newseq->old_opt    = newseq->opt ;         /* backup copy */
+   newseq->old_opt    = newseq->opt ;      /* backup copy */
 
-   newseq->last_image_type = -1 ;     /* not a legal datum type */
+   newseq->last_image_type = -1 ;          /* not a legal datum type */
 
-   newseq->dialog         = NULL ;               /* no dialog at present */
-   newseq->num_bbox       = 0 ;
+   newseq->dialog         = NULL ;         /* no dialog at present */
+   newseq->num_bbox       = 0 ;            /* dialog = Disp, etc */
    newseq->dialog_starter = -1 ;
    newseq->dont_place_dialog = 0 ;         /* 23 Jan 2004 */
 
-   newseq->imim = newseq->ovim = NULL ;    /* NULL out all images */
+   newseq->imim = newseq->ovim = NULL ;    /* NULL out all stored images */
 
-   newseq->orim      = NULL ;              /* 30 Dec 1998 */
+   newseq->orim      = NULL ;              /* original image - 30 Dec 1998 */
    newseq->set_orim  = 0 ;
    newseq->need_orim = 0 ;
 
    newseq->last_automask = NULL ;          /* 12 Dec 2014 */
 
-   newseq->saver_blowup = 1 ;
+   newseq->saver_blowup = 1 ;              /* image save blowup factor */
 
-   newseq->given_xim = newseq->sized_xim
-                     = newseq->given_xbar
+   newseq->given_xim = newseq->sized_xim   /* XImages for actual drawing */
+                     = newseq->given_xbar  /* saved for re-use when possible */
                      = newseq->sized_xbar = NULL ;
 
-   /* Feb 1998: button2 drawing stuff */
+   /* Feb 1998: button2 drawing stuff [enabled/used by Draw Dataset plugin] */
 
    newseq->button2_enabled  = 0 ;
    newseq->button2_active   = 0 ;
@@ -1010,6 +1036,8 @@ if( PRINT_TRACING ){
    newseq->imstat = (ISQ_indiv_statistics *)
                     XtMalloc( sizeof(ISQ_indiv_statistics)
                               * imstatus->num_total ) ;
+
+   /* the global statistics are no longer used */
 
    newseq->glstat = (ISQ_glob_statistics * )
                     XtMalloc( sizeof(ISQ_glob_statistics) ) ;
@@ -2397,6 +2425,7 @@ ENTRY("ISQ_copy_status") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/* Labels for the opacity arrow at the right of the viewer */
 
 char * ISQ_opacity_label( int val ) /* 07 Mar 2001 */
 {
@@ -2406,6 +2435,9 @@ char * ISQ_opacity_label( int val ) /* 07 Mar 2001 */
 }
 
 /*-----------------------------------------------------------------------*/
+/* Return the (i,j,k) of the current image crosshairs,
+   retrieved from AFNI (if available)
+*//*---------------------------------------------------------------------*/
 
 int_triple ISQ_get_crosshairs( MCW_imseq *seq ) /* 27 Aug 2009 */
 {
@@ -2419,6 +2451,7 @@ int_triple ISQ_get_crosshairs( MCW_imseq *seq ) /* 27 Aug 2009 */
 }
 
 /*-----------------------------------------------------------------------*/
+/* What happens when the opacity arrow is clicked up or down */
 
 void ISQ_opacity_CB( MCW_arrowval *av , XtPointer cd ) /* 07 Mar 2001 */
 {
@@ -2498,7 +2531,7 @@ ENTRY("ISQ_zoom_av_CB") ;
       POPUP_cursorize( seq->wimage ) ;
    }
 
-   /* free pixmap (need a new one for a new image size) */
+   /* free the zooming pixmap (need a new one for a new image size) */
 
    if( seq->zoom_pixmap != (Pixmap) 0 ){
       XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
@@ -2518,7 +2551,7 @@ ENTRY("ISQ_zoom_av_CB") ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Callback for 'pan' button. */
+/*! Callback for 'pan' button - used when zoom is on, of course  */
 
 void ISQ_zoom_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -2536,6 +2569,7 @@ ENTRY("ISQ_zoom_pb_CB") ;
 
    seq->zoom_button1 = !seq->zoom_button1 ; /* toggle dragging */
 
+   /* change the cursor */
    if( seq->zoom_button1 ) HAND_cursorize ( seq->wimage ) ;
    else                    POPUP_cursorize( seq->wimage ) ;
 
@@ -2845,6 +2879,11 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
 }
 
 /*-----------------------------------------------------------------------*/
+/* Convert a short image of indexes into color tables to RGB.
+   overlay != 0 ==> use overlay color table only
+                    otherwise, use underlay table for positive values
+                           and use overlay table for netative values
+*//*---------------------------------------------------------------------*/
 
 MRI_IMAGE * ISQ_index_to_rgb( MCW_DC *dc , int overlay , MRI_IMAGE *im ) /* 07 Mar 2001 */
 {
@@ -3018,7 +3057,7 @@ ENTRY("ISQ_overlay") ;
             our[jj+2] = aa*orr[jj+2] + bb*our[jj+2] ;
          }
       }
-   } else {       /* mix by scaling color with brightness of background */
+   } else {      /* mix by scaling color with brightness of background - ZSS */
       register float aa=alpha, bb,
                      mings, maxgs, *gs=NULL,
                      MaxGain = 2.0-alpha*alpha,
@@ -3181,6 +3220,7 @@ ENTRY("ISQ_overlay_rgba") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/* Produce a 0-1 mask from an overlay-type dataset */
 
 MRI_IMAGE * ISQ_binarize_overlay( MRI_IMAGE *tim )  /* Mar 2013 */
 {
@@ -3227,7 +3267,10 @@ ENTRY("ISQ_binarize_overlay") ;
 }
 
 /*-----------------------------------------------------------------------
-   Make a color bar "given" XImage
+   Make a color bar "given" XImage, for display next to the image
+   viewer. Here, the MRI_IMAGE is just the short-valued indexes
+   into the color map, which mri_to_XImage() will convert to
+   the actual colors for pushing out the window.
 -------------------------------------------------------------------------*/
 
 void ISQ_make_bar( MCW_imseq *seq )
@@ -3254,6 +3297,8 @@ ENTRY("ISQ_make_bar") ;
 }
 
 /*------------------------------------------------------------------------*/
+/* Apply a binary mask to an image iim */
+
 void ISQ_apply_mask( MRI_IMAGE *maskim , MRI_IMAGE *iim )
 {
    byte *mmm ; int ii , npix ;
@@ -3477,7 +3522,7 @@ ENTRY("ISQ_make_image") ;
       if( tim == NULL ) tim = im ;                    /* shouldn't happen */
    }
 
-   if( vfac > 0.0f ){
+   if( vfac > 0.0f ){ /* the Van Gogh effect - just for fun, not for science! */
      MRI_IMAGE *qim ;
      MCW_invert_widget(seq->wbut_bot[NBUT_DISP]) ;
      vgize_sigfac = vfac ; qim = mri_vgize(tim) ;
@@ -3528,6 +3573,7 @@ ENTRY("ISQ_plot_label") ;
    set_opacity_memplot(1.0f) ;                       /* 21 Mar 2017 */
 
    /* get the color to plot with */
+   /* colors in coxplot are RGB triples, values from 0.0 to 1.0 */
 
    eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
    if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
@@ -3570,6 +3616,8 @@ ENTRY("ISQ_plot_label") ;
 /*-----------------------------------------------------------------------
    process an MRI_IMAGE from the user into a scaled format for display
    -- the output will be MRI_short (grayscale index) or MRI_rgb
+   -- this is where the 'image processing' options from the
+      Disp control panel are applied
 -------------------------------------------------------------------------*/
 
 MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im , int flags )
@@ -3825,6 +3873,7 @@ ENTRY("ISQ_process_mri") ;
          }
          break ;  /* end of autoscaling */
 
+#ifndef NO_GROUP_SCALE 
          case ISQ_SCL_GRP:{         /* scale on group statistics */
             ISQ_glob_statistics *gl = seq->glstat ;
 
@@ -3851,6 +3900,7 @@ ENTRY("ISQ_process_mri") ;
             }
          }
          break ;  /* end of groupscaling */
+#endif
       }  /* end of scaling */
       floatfix(seq->clbot) ; floatfix(seq->cltop) ; /* 24 Aug 2009 */
 
@@ -4048,6 +4098,7 @@ STATUS("call ISQ_perpoints") ;
    }
 
    /**** at this point, the processed image is in "newim" ****/
+   /****       and will be in short or RGB format         ****/
 
    /** 14 Jun 2010: automask 2D image **/
 
@@ -4158,6 +4209,8 @@ ENTRY("ISQ_but_color_CB") ;
 
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
 
+   /* change the color bar */
+
    if( seq->dc->use_xcol_im ) DC_palette_setgray( seq->dc ) ;
    else                       DC_palette_setcolor( seq->dc ) ;
 
@@ -4167,6 +4220,7 @@ ENTRY("ISQ_but_color_CB") ;
 }
 
 /*-------------------------------------------------------------------*/
+/* Color bar inversion */
 
 void ISQ_but_cswap_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
@@ -4184,9 +4238,11 @@ ENTRY("ISQ_but_cswap_CB") ;
 }
 
 /*-------------------------------------------------------------------
-   image saving options
-   * modified 26 Nov 2013 to get all inputs at once
-     nval == 2 is the Save One case  (val = prefix, blowup)
+   Execute the image saving options, called from ISQ_but_save_CB(),
+   which will use MCW_choose_stuff() to let the user select the
+   parameters for the saving -- which are in array val.
+   * nval == 2 is the Save One case  (val = prefix, blowup)
+     nval == 3 is Save One case, but with option to invoke Gimp
      nval == 4 is the Save Many case (val = prefix, blowup, from, to)
 ---------------------------------------------------------------------*/
 
@@ -4229,6 +4285,9 @@ ENTRY("ISQ_saver_CB") ;
    ll = strlen(cval1) ; if( ll > 32 ) EXRETURN ;
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
+
+   /* check if we are ordered to save an animation
+      but do not actually have the animation conversion filter */
 
    if( ppmto_agif_filter == NULL && DO_AGIF(seq) ){  /* 07 Apr 2005! */
       (void) MCW_popup_message( seq->wtop ,
@@ -4290,11 +4349,15 @@ ENTRY("ISQ_saver_CB") ;
 
          if( dbg ) fprintf(stderr,"IMSAVE: convert XImage to RGB\n") ;
 
+         /* we take the XImage used to draw the window
+            and convert it back to an MRI_IMAGE for saving */
+
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
 
-/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
+         /* save in square aspect? */
+
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
            if( dbg ) fprintf(stderr,"  square-ize aspect\n") ;
@@ -4302,7 +4365,7 @@ ENTRY("ISQ_saver_CB") ;
            if( flim != NULL ){ mri_free(tim); tim = flim; }
          }
 
-         /* Apply VG filter? [20 Jun 2019] */
+         /* Apply VG filter? [20 Jun 2019] -- only for fun */
 
          { float vfac = VGFAC(seq) ;
            if( vfac > 0.0f ){
@@ -4328,7 +4391,8 @@ ENTRY("ISQ_saver_CB") ;
            mri_free(tim) ; tim = qim ;
          }
 
-         /* 23 Mar 2002: draw overlay lines on top, if any */
+         /* 23 Mar 2002: draw overlay lines on top, if any,
+                         since they are not in the XImage, only in the window */
 
          if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb ){
            if( dbg ) fprintf(stderr,"  overlay geometry stuff\n") ;
@@ -4340,7 +4404,7 @@ ENTRY("ISQ_saver_CB") ;
          /* 25 Mar 2002: perhaps cut up zoomed image
                          (after overlay is drawn on it, that is) */
 
-         if( seq->zoom_fac      >  1          &&
+         if( seq->zoom_fac      > 1           &&
              seq->saver_blowup == 1           &&
              seq->mont_nx      == 1           &&
              seq->mont_ny      == 1           &&
@@ -4360,7 +4424,7 @@ ENTRY("ISQ_saver_CB") ;
             mri_free(tim) ; tim = qim ;
          }
 
-         /* save image to disk */
+         /* save image to file */
 
          if( tim != NULL ){                  /* if we have image, that is */
             static int warned=0 ;
@@ -4381,7 +4445,7 @@ ENTRY("ISQ_saver_CB") ;
                char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
                int pc ;
 
-               /* open a pipe to the filter function */
+               /* create the output filename with the correct suffix */
 
                sprintf(filt,".%s.",ppmto_suffix[ff]) ;
                if( STRING_HAS_SUFFIX_CASE(seq->saver_prefix,filt) ){
@@ -4390,14 +4454,19 @@ ENTRY("ISQ_saver_CB") ;
                } else {
                  sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
                }
+
+               /* create the command to do the image conversion and output */
+
                sprintf( filt , ppmto_filter[ff] , fname ) ;
                INFO_message("Writing one %dx%d image to file %s",
                             tim->nx,tim->ny,fname) ;
+
+               /* open a pipe to the filter function */
 #ifndef CYGWIN
-               signal( SIGPIPE , SIG_IGN ) ;
+               signal( SIGPIPE , SIG_IGN ) ;  /* if the pipe fails, ignore it */
 #endif
                errno = 0 ;
-               fp = popen( filt , "w" ) ;
+               fp = popen( filt , "w" ) ;  /* filter command waiting for data */
                if( fp == NULL ){
                   fprintf(stderr,"** Can't open output filter: %s\a\n",filt) ;
                   if( errno != 0 ) perror("** Unix error message") ;
@@ -4409,28 +4478,28 @@ ENTRY("ISQ_saver_CB") ;
 
                fprintf(fp,"P6\n%d %d\n255\n" , tim->nx,tim->ny ) ;
                fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
-               pc = pclose(fp) ;
-               if( pc == -1 ){
+               pc = pclose(fp) ;   /* close the pipe */
+               if( pc == -1 ){     /* this error should be nearly impossible */
                   perror("** Error in image output pipe") ;
                   fprintf(stderr,"** filter command was %s\n",filt) ;
                   POPDOWN_first_one ; mri_free(tim) ; EXRETURN ;
                }
 
-               /* 27 Oct 2017 */
+               /* Open Gimp with this new file? [27 Oct 2017] */
                if( gimp_path != NULL && use_gimp && THD_is_file(fname) ){
                  sprintf(filt,"%s %s &",gimp_path,fname) ;
                  system(filt) ;
                }
-            }
+            }  /* finished outputting the single image */
 
             mri_free( tim ) ; tim = NULL ;  /* 17 June 1997 */
 
             if( seq->dc->visual_class == TrueColor &&
                 seq->dc->depth == 16               && !warned ){ /* 30 May 2000 */
 
-               warned = 1 ;
-               fprintf(stderr,
-                "\n"
+               warned = 1 ;      /* This can happen because colors R G B      */
+               fprintf(stderr,   /* might not all use the same number of bits */
+                "\n"             /* For example, with R=B=5 bits, G=6 bits    */
                 "*** WARNING: Save One with X11 TrueColor depth=16 can ***\n"
                 "***          result in gray pixels not having R=G=B.  ***\n");
             }
@@ -4445,7 +4514,7 @@ ENTRY("ISQ_saver_CB") ;
 
    /*--- save many case here ---*/
 
-   seq->saver_from = ival3 ;
+   seq->saver_from = ival3 ;  /* saving images from..to (inclusive) */
    seq->saver_to   = ival4 ;
 
    /* check if all inputs are good */
@@ -4477,6 +4546,8 @@ ENTRY("ISQ_saver_CB") ;
    }
 #endif
 
+   /* special stuff for animation temp files */
+
    if( DO_ANIM(seq) ){                     /* 09 Dec 2002:  */
      tsuf[0] = (lrand48()>>5)%26 + 'A' ;   /* random suffix */
      tsuf[1] = (lrand48()>>5)%26 + 'A' ;   /* for animation */
@@ -4499,7 +4570,8 @@ ENTRY("ISQ_saver_CB") ;
    }
 #endif
 
-   /*---- loop thru, get images, save them ----*/
+   /*---------------- loop thru, get images, save them -----------------*/
+   /*-- In this instance, we have to re-create the image as displayed --*/
 
    for( akk=0,kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
@@ -4585,7 +4657,7 @@ ENTRY("ISQ_saver_CB") ;
            if( tim != NULL ){ mri_free(flim); flim = tim; }
          }
 
-         /* if needed, convert from indices to RGB */
+         /* if needed, convert image from indices to RGB */
 
          if( flim->kind == MRI_short ){
            if( dbg ) fprintf(stderr,"  convert to RGB\n") ;
@@ -4619,7 +4691,7 @@ ENTRY("ISQ_saver_CB") ;
            }
          }
 
-         if( seq->wbar_label_av->ival != 0 ){  /* 17 Jun 2005 */
+         if( seq->wbar_label_av->ival != 0 ){  /* Label overlay - 17 Jun 2005 */
            char *lab = ISQ_getlabel( kf , seq ) ;
            if( lab != NULL ){
              MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
@@ -4996,6 +5068,8 @@ ENTRY("ISQ_but_save_CB") ;
    seq->saver_prefix = NULL ;
    seq->saver_from = seq->saver_to = -1 ;
 
+   /* popup a chooser to choose 'stuff' = items of different kinds */
+
    if( seq->opt.save_one && !DO_ANIM(seq) ){
      if( seq->opt.save_filter >= 0 &&
          ppmto_gimpize != NULL     && ppmto_gimpize[seq->opt.save_filter] ){
@@ -5039,7 +5113,7 @@ void ISQ_but_done_reset( MCW_imseq *seq )
 #endif
 
 /*-----------------------------------------------------------------------
-   Deletion of an imseq
+   Deletion of an imseq from the Macrocosmic All
 -------------------------------------------------------------------------*/
 
 void ISQ_but_done_CB( Widget w , XtPointer client_data ,
@@ -5063,10 +5137,12 @@ ENTRY("ISQ_but_done_CB") ;
 
    /*-- second call: kill --*/
 
+#ifdef AUTOMATE_STATISTICS  /* no longer allowed */
    if( seq->glstat->worker != 0 ){  /* remove work process, if started */
      XtRemoveWorkProc( seq->glstat->worker ) ;
      seq->glstat->worker = 0 ;
    }
+#endif
 
    ISQ_timer_stop(seq) ;
 
@@ -5203,7 +5279,7 @@ ENTRY("ISQ_free_alldata") ;
 }
 
 /*----------------------------------------------------------------------
-  callback when the scale is moved
+  callback when the slider (scale) is moved
 ------------------------------------------------------------------------*/
 
 void ISQ_scale_CB( Widget w , XtPointer client_data , XtPointer call_data )
@@ -5401,7 +5477,7 @@ ENTRY("ISQ_set_image_number") ;
    if( seq->im_nr != n ){
      XmScaleSetValue( seq->wscale , n ) ;  /* be sure to change scale */
 
-     if( seq->status->send_CB != NULL ){
+     if( seq->status->send_CB != NULL ){   /* send info to AFNI */
        ISQ_cbs cbs ;
        seq->im_nr = n ;
        cbs.reason = isqCR_newimage ;
@@ -5409,9 +5485,9 @@ ENTRY("ISQ_set_image_number") ;
 #if 0
        seq->status->send_CB( seq , seq->getaux , &cbs ) ;
 #else
-       SEND(seq,cbs) ;
+       SEND(seq,cbs) ;  /* AFNI will do the redisplay for all viewers */
 #endif
-     } else {
+     } else {           /* no AFNI == do the redisplay now myself */
 #if 0
        ISQ_redisplay( seq , n , isqDR_display ) ;  /* 07 Nov 2002 */
 #endif
@@ -5466,6 +5542,7 @@ ENTRY("ISQ_center_zoom") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/* Put the zoomed image fragment to the display */
 
 int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
@@ -5528,11 +5605,11 @@ STATUS("killing old XImage because have new image") ;
      MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
    }
 
-   /* scale up the given_xim, if needed;
+   /* scale up the XImage given_xim, if needed;
       it will be save in the seq struct for next time,
       unless the image changes, in which case it will have been axed */
 
-   if( seq->zoom_xim == NULL ){
+   if( seq->zoom_xim == NULL ){  /* zoom_xim will be the thing we pan around */
      MRI_IMAGE *im , *tim ;
 STATUS("inverting zoom label") ;
      flash = 1 ; MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
@@ -5575,7 +5652,7 @@ STATUS("drawing overlay plot into pixmap") ;
    }
 
    /* now we can copy the relevant area
-      from the pixmap into the image window */
+      from the pixmap into the image window, which is very fast and smooth  */
 
    xoff = seq->zoom_hor_off * pw ; if( xoff+iw > pw ) xoff = pw-iw ;
    yoff = seq->zoom_ver_off * ph ; if( yoff+ih > ph ) yoff = ph-ih ;
@@ -5711,7 +5788,7 @@ INFO_message("ISQ_show_image(seq=%p) %d x %d",
 }
 
 /*-------------------------------------------------------------------
-  Draw the message data in the winfo label
+  Draw the message data in the winfo label (below the image)
 ---------------------------------------------------------------------*/
 
 void ISQ_draw_winfo( MCW_imseq *seq )
@@ -7106,10 +7183,9 @@ ENTRY("ISQ_but_disp_CB") ;
          MCW_register_hint( seq->bbox[ib]->wbut[jh] , cch[jh] ) ;
       }
 
-   }
+   } /* end of loop creating widgets in Disp */
 
-#define NO_GROUP_SCALE
-#ifdef  NO_GROUP_SCALE
+#ifdef NO_GROUP_SCALE
    XtUnmanageChild( seq->bbox[NTOG_SCL]->wtop ) ;  /* turn this box off! */
 #endif
 
@@ -7423,10 +7499,14 @@ DPRI("set scale_range =",seq->opt.scale_range) ;
    }
 }
 
+/*----------------------------------------------------------------------*/
+/** Group scaling is disabled, and should be removed entirely someday. **/
+#ifndef NO_GROUP_SCALE
 /*----------------------------------------------------------------------
   routines to collect statistics for scaling these images;
      ISQ_statify_all   -> do all statistics (individual then global)
      ISQ_statistics_WP -> Xt work process to do statistics on one image
+  *** The functions below should not be removed, though ***
      ISQ_statify_one   -> actually do statistics on one image
      ISQ_perpoints     -> get the percentage points for 2%-to-98% scaling
 ------------------------------------------------------------------------*/
@@ -7577,6 +7657,7 @@ ENTRY("ISQ_statistics_WP") ;
    fprintf(stderr,"\a\n*** imseq work process error!\n") ;
    RETURN( True );
 }
+#endif /*---------- NO_GROUP_SCALE not defined --------------------------*/
 
 /*-----------------------------------------------------------------------
    collect statistics on an image and put into location n in table
@@ -7634,6 +7715,8 @@ ENTRY("ISQ_statify_one") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+/* Percentage points for the 2%-98% scaling.
 /*-----------------------------------------------------------------------*/
 
 void ISQ_perpoints( float bot , float top ,
@@ -9035,10 +9118,12 @@ static unsigned char record_bits[] = {
 
          /* stop the automatic statistics calculations, if started */
 
+#ifdef AUTOMATE_STATISTICS  /* no longer allowed */
          if( seq->glstat->worker != 0 ){
             XtRemoveWorkProc( seq->glstat->worker ) ;
             seq->glstat->worker = 0 ;
          }
+#endif
 
          /* setup new space for the per image statistics */
 
@@ -9083,10 +9168,12 @@ static unsigned char record_bits[] = {
          seq->opt.scale_group = ISQ_SCL_AUTO ;  /* autoscaling */
          ISQ_disp_options( seq , False ) ;      /* set buttons */
 
+#ifdef AUTOMATE_STATISTICS  /* no longer allowed */
          if( seq->glstat->worker != 0 ){  /* remove work process */
             XtRemoveWorkProc( seq->glstat->worker ) ;
             seq->glstat->worker = 0 ;
          }
+#endif
 
          for( ii=0 ; ii < seq->status->num_total ; ii++ )
             seq->imstat[ii].one_done = seq->imstat[ii].glob_done = False ;
@@ -9244,10 +9331,12 @@ ENTRY("ISQ_setup_new") ;
                             sizeof(ISQ_indiv_statistics)
                             * imstatus->num_total ) ;
 
+#ifdef AUTOMATE_STATISTICS  /* no longer allowed */
    if( seq->glstat->worker != 0 ){  /* remove work process, if started */
       XtRemoveWorkProc( seq->glstat->worker ) ;
       seq->glstat->worker = 0 ;
    }
+#endif
 
    for( ii=0 ; ii < imstatus->num_total ; ii++ ){
       seq->imstat[ii].one_done = seq->imstat[ii].glob_done = False ;
