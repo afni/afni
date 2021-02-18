@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
    // ------------------------ start mask --------------------------------
 
    mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd2 == NULL)) { 
+   if( mskd2 == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
