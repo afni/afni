@@ -484,7 +484,7 @@ class SysInfo:
       fvar = 'DYLD_FALLBACK_LIBRARY_PATH'
       if fvar not in os.environ:
          print('** AFNI program failures' \
-	       ' and DYLD_FALLBACK_LIBRARY_PATH not set')
+               ' and DYLD_FALLBACK_LIBRARY_PATH not set')
          if nadylib > 0:
             self.comments.append('consider setting DYLD_FALLBACK_LIBRARY_PATH'\
                                  ' to abin, e.g.\n   '                        \
@@ -1185,7 +1185,7 @@ class SysInfo:
 
          # some vesions are not considered good
          if self.check_xquartz_version(vstr, warn=1): 
-	    print("  ** for macos install instructions, see:\n\n    %s\n" \
+            print("  ** for macos install instructions, see:\n\n    %s\n" \
                   % g_site_install_mac)
 
          return 1, (dstr+vstr)
@@ -1215,7 +1215,7 @@ class SysInfo:
       except:
          print("** failed to parse X version string, '%s'" % vstr)
          self.comments.append("strange XQuartz version: %s" % vstr)
-	 return 1
+         return 1
 
       if len(vnlist) != 3:
          print("** failed to parse X version levels in '%s'" % vstr)
@@ -1234,7 +1234,7 @@ class SysInfo:
          return 1
 
       if vnlist[0] > 2:
-	 return 0
+         return 0
 
       # -------- so the major version is 2
 
@@ -1249,7 +1249,7 @@ class SysInfo:
 
       # now only worry about 2.8.0, can expand later
       if vnlist[1] > 8 or vnlist[2] > 0:
-	 return 0
+         return 0
 
       # -------- now have 2.8.0, check vtype
 
@@ -1257,27 +1257,27 @@ class SysInfo:
          return 0
 
       if vtype.startswith('alpha'):
-	 estr = "XQuartz is an alpha release, and should be updated"
+         estr = "XQuartz is an alpha release, and should be updated"
          print("** %s" % estr)
          self.comments.append(estr)
          return 1
 
-      elif vtype.startswith('beta'):
-	 # get trailer
+      if vtype.startswith('beta'):
+         # get trailer
          btype = vtype[4:]
 
          # see if there is a number attached
-	 if btype in ['1', '2']:
-	    estr = "XQuartz is an early beta release, and should be updated"
+         if btype in ['1', '2']:
+            estr = "XQuartz is an early beta release, and should be updated"
             print("** %s" % estr)
             self.comments.append(estr)
+            return 1
 
          # beta 3+ (or empty?) is okay, for now
-	 return 0
-
-      else:
-	 # currently another future condition: neither alpha nor beta
          return 0
+
+      # currently another future condition: neither alpha nor beta
+      return 0
 
    def get_kmdi_version(self, path, verb=1):
       """for the given program, run: mdls -name kMDItemVersion
@@ -1372,7 +1372,7 @@ class SysInfo:
                dmesg = open('/var/run/dmesg.boot').read()
            except IOError:
                dmesgProcess = subprocess.Popen(['dmesg'],
-					       stdout=subprocess.PIPE)
+                                               stdout=subprocess.PIPE)
                dmesg = dmesgProcess.communicate()[0]
            res = 0
            while '\ncpu' + str(res) + ':' in dmesg:
