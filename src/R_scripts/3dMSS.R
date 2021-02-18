@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Jan 23, 2021
+Version 0.0.8, Feb 18, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -38,15 +38,15 @@ Introduction
  practice may be a reasonable approximation especially when the variable 
  is confined within a narrow range, but can be inappropriate under some 
  circumstances when the variable\'s effect is non-monotonic or tortuous. 
- As a more flexible and adaptive approach, multilevel smoothing splines 
- (MSS) offers a more powerful analytical tool for population-level 
- neuroimaging data analysis that involves one or more quantitative
- predictors. More theoretical discussion can be found in
+ As a more flexible and adaptive approach, modeling through multilevel
+ smoothing splines (MSS) offers a more powerful analytical tool for
+ population-level neuroimaging data analysis that involves one or more
+ quantitative predictors. More theoretical discussion can be found in
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
  in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
 
- To be able to run 3dMSS, one needs to have the following R packaages 
+ To be able to run 3dMSS, one needs to have the following R packages 
  installed: "gamm4" and "snow". To install these R packages, run the
  following command at the terminal:
 
@@ -78,11 +78,11 @@ Introduction
 
   ex1 <-
 "Example 1 --- simplest case: one group of subjects with a between-subject 
-  quantitative variable that does not vary within subject. MSS analysis is 
-  set up to model the trajectory or trend along age, and can be specified 
-  through the option -mrr, which is solved via a model formuation of ridge 
-  regression. Again, the following exemplary script assumes that 'age' is 
-  a between-subjects variable (not varying within subject):
+  quantitative variable (e.g., age) that does not vary within subject. MSS 
+  analysis is set up to estimate the trajectory or trend along age, and can 
+  be specified through the option -mrr, which is solved via a model formuation 
+  of ridge regression. Again, the following exemplary script assumes that 'age' 
+  is a between-subjects variable (not varying within subject):
 
    3dMSS -prefix MSS -jobs 16                     \\
           -mrr 's(age)'                           \\
@@ -98,7 +98,7 @@ Introduction
   as missing. If you want to set a range, choose one that make sense with 
   your specific input data. 
 
-   The file pred.txt lists all the expl1anatory variables (excluding lower-level variables
+   The file pred.txt lists all the explanatory variables (excluding lower-level variables
    such as subject) for prediction. The file should be in a data.frame format as below:
 
    label  age 
@@ -179,12 +179,13 @@ Introduction
   set up to compare the trajectory or trend along age between the two groups,
   which are quantitatively coded as -1 and 1. For example, if the two groups
   are females and males, you can code females as -1 and males as 1. The following
-  script applies to the situation when  the quantitative variable does not vary 
-  within subject, 
+  script applies to the situation when the quantitative variable does not vary 
+  within subject (notice that sex is treated as a quantitative variable in the
+  model because of factor coding):
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)'             \\
-          -qVars 'age'                            \\
+          -mrr 's(age)+s(age,by=sex)'             \\
+          -qVars 'sex,age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
           -prediction @pred.txt                   \\
@@ -194,9 +195,9 @@ Introduction
   varies within subject,
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
+          -mrr 's(age)+s(age,by=sex)+s(Subj,bs=\"re\")' \\
           -vt  Subj 's(Subj)'                \\
-          -qVars 'age'                            \\
+          -qVars 'sex,age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
           -prediction @pred.txt                   \\
@@ -205,13 +206,65 @@ Introduction
   or an LME version:
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -lme 's(age)+s(age,by=grp)'             \\
+          -lme 's(age)+s(age,by=sex)'             \\
           -ranEff 'list(Subj=~1)'                      \\
-          -qVars 'age'                            \\
+          -qVars 'sex,age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
           -prediction @pred.txt                   \\
           -dataTable  @data.txt
+
+  The file pred.txt for prediction should be formulated in a data.frame as
+  the following with all the explanatory variables (excluding lower-level 
+  variables such as subject):
+
+   label  age  sex
+   F.t1    1   -1   (female at age 1)
+   M.t1    1    1   (male   at age 1)
+   G.t1    1    0   (group average at age 1)
+   F.t2    2   -1   (female at age 2)
+   M.t2    2  	1   (male   at age 2)
+   G.t2    2  	0   (group average at age 2)
+    ...
+   \n"
+
+   ex4 <-
+"Example 4 --- 2 x 2 ANOVA with one between-subject factor (sex) and one within-
+  subject factor (condition: positive and negative) plus one quantitative
+  variable (age). MSS analysis is set up to compare the trajectory or trend along
+  age between the two sexes and between the two conditions and to expore the
+  interaction of age trajectory between sex and condition. We convert both factors
+  and their interaction into quantitative variables by using -1/1 coding and adopt 
+  the following script regardless of the quantitative variable (e.g., age) being 
+  within- or between-subject. This example can be extended to situations where
+  a factor has more than 2 levels: in general, a factor with k levels is 
+  represented by k-1 coding variables.
+
+  3dMSS -prefix MSS -jobs 16                     \\
+          -mrr 's(age)+s(age,by=sex)+s(age,by=cond)+s(age,by=SC)+s(Subj,bs=\"re\")' \\
+          -vt  Subj 's(Subj)'                \\
+          -qVars 'sex,cond,SC,age'                            \\
+          -mask myMask.nii                        \\
+          -bounds  -2 2                           \\
+          -prediction @pred.txt                   \\
+          -dataTable  @data.txt
+
+  The file pred.txt for prediction should be formulated in a data.frame as
+  the following with all the explanatory variables (excluding lower-level
+  variables such as subject). Some rows can be removed from the following
+  table if they are not of research interest.
+
+   label  age  sex cond SC 
+   FP.t1    1   -1   -1  1 (female at positive condition and age 1)
+   MP.t1    1    1   -1 -1 (male   at positive condition and age 1)
+   FN.t1    1   -1    1 -1 (female at negative condition and age 1)
+   MN.t1    1    1    1  1 (male   at negative condition and age 1)
+   SP.t1    1    0   -1  0 (group average at positive condition and age 1)
+   SN.t1    1    0    1  0 (group average at negative condition and age 1)
+   FP.t1    1   -1    0  0 (female at condition average and age 1)
+   MP.t1    1    1    0  0 (male   at condition average and age 1)
+   SC.t1    1    0    0  0 (overall average              at age 1)
+   ...
    \n"
 
    parnames <- names(params)
@@ -227,7 +280,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
