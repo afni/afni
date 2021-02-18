@@ -138,7 +138,7 @@ int list_for_DTI( char *dti_listname,
 
    // double check all got filled:
    for( i=0 ; i<N_DTI_SCAL ; i++ ) 
-      if( insetPARS[ii0+i] == NULL ) 
+      if( insetPARS[ii0+i] == NULL ) {
          if( !FULL ) {
             if( !strcmp(DTI_SCAL_LABS[i], "FA") )
                ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_LABS[i] );
@@ -146,6 +146,7 @@ int list_for_DTI( char *dti_listname,
          else{
             ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_LABS[i] );
          }
+      }
    for( i=0 ; i<N_DTI_VECT ; i++ ) 
       if( insetVECS[i] == NULL ) 
          ERROR_exit("Can't open dataset: '%s' file",DTI_VECT_LABS[i] );
