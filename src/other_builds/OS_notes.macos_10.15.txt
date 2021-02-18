@@ -4,11 +4,15 @@
 # 
 # Typesetting what DRG hath wrought.
 
+# UPDATE your Xquartz version to be at least 2.8.0_beta4.
+# + this appears to be necessary for SUMA to work (AFNI worked fine at 2.7.11)
+
 # INSTALL the following with homebrew (for gcc, ver=10 is used here by
 # default, though actually at the moment 'gcc' is just Mac's clang):
 
-brew install  libpng jpeg expat freetype fontconfig openmotif libomp
-              libxt gsl glib pkg-config gcc
+  brew update
+  brew install  libpng jpeg expat freetype fontconfig openmotif libomp
+                libxt gsl glib pkg-config gcc
 
 # LINK the following, but note that:
 # + many of these existed already on my machine
