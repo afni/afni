@@ -1923,11 +1923,10 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    curColPlane->OptScl->MaskZero = 
       !curColPlane->OptScl->MaskZero;
    
-  /* DG - not sure what !curColPlane... is supposed to do
-   * this never gets called the way it was written.
-   *  trying this change*/
-//   if (!curColPlane->ShowMode < 0) {   
-   if (!(curColPlane->ShowMode < 0)) {   
+   /* was: if (!curColPlane->ShowMode < 0) */
+   /* That would always fail.  Since ShowMode flags when to display, it
+    * looks like this should return on simply <0.   17 Feb 2021 [rickr] */
+   if (curColPlane->ShowMode < 0) {   
       /* nothing else to do */ 
       SUMA_RETURNe;
    } 
@@ -1988,11 +1987,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
                   curColPlane->OptScl->IntRange[1]);
    }
  
-// similar question as above  
-//   if (!curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
-   if (!(curColPlane->ShowMode < 0)) { SUMA_RETURNe; } 
-      /* nothing else to do */
-   
+   /* if not showing this, nothing else to do   17 Feb 2021 [rickr] */
+   if (curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
    
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
