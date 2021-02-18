@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.7, Feb 8, 2021 
+Version 1.0.8, Feb 18, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -537,7 +537,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop <- AFNI.new.options.list(history = '', parsed_args = ops)
       lop$chains <- 1
       lop$WCP    <- FALSE
-      lop$StanPath   <- NULL
+      lop$StanPath   <- '~'
       lop$iterations <- 1000
       lop$model  <- 1
       lop$cVars  <- NULL

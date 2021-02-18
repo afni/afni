@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Feb. 8, 2021 
+Version 0.0.3, Feb. 18, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
@@ -498,7 +498,7 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
       lop$PDP    <- NULL
       lop$SE     <- NULL
       lop$WCP    <- FALSE
-      lop$StanPath   <- NULL
+      lop$StanPath   <- '~'
       lop$repetition <- 'sess'
       lop$condition  <- NULL
 

@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, Feb 8, 2021
+Version 1.0.2, Feb 18, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -519,7 +519,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
       lop$WCP    <- FALSE
-      lop$StanPath   <- NULL
+      lop$StanPath   <- '~'
       lop$qContr  <- NA
       lop$Y      <- 'Y'
       lop$Subj   <- 'Subj'
