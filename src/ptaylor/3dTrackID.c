@@ -1693,9 +1693,9 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       }
 
       // Sept 2014:  Labeltable stuff
-      if ((ROI_set->Label_Dtable = DSET_Label_Dtable(ROI_set))) {
-         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROI_set),
-                                                "VALUE_LABEL_DTABLE"))) {
+      if ( ROI_set->Label_Dtable = DSET_Label_Dtable(ROI_set) ) {
+         if ( LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROI_set),
+                                                "VALUE_LABEL_DTABLE") ) {
             //fprintf(stdout,"%s", LabTabStr);
             if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
                ERROR_exit("Could not parse labeltable.");
