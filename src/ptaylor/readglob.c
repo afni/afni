@@ -143,8 +143,9 @@ int list_for_DTI( char *dti_listname,
             if( !strcmp(DTI_SCAL_LABS[i], "FA") )
                ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_LABS[i] );
          }
-         else
+         else{
             ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_LABS[i] );
+         }
    for( i=0 ; i<N_DTI_VECT ; i++ ) 
       if( insetVECS[i] == NULL ) 
          ERROR_exit("Can't open dataset: '%s' file",DTI_VECT_LABS[i] );

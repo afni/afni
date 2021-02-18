@@ -121,6 +121,8 @@ int ROI_make_inflate( int *Dim,
 		}
       
 	}
+
+   RETURN(1);
 }
 
 

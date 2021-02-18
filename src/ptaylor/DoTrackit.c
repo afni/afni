@@ -410,7 +410,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
 			temp_arr2[i] = calloc( Nvox,sizeof(float)); 
 
-		if( ( temp_arr2 == NULL) ) {
+		if( temp_arr2 == NULL ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
