@@ -422,18 +422,18 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
             intersec[i] = calloc(MAXOVERLAP+1,sizeof( int )); 
          
          if( PAIR_POWERON ) {      
-            if( temp_arrFL == NULL) {
+            if( temp_arrFL == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
          else {
-            if( temp_arrSH == NULL) {
+            if( temp_arrSH == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
-         if(  ( intersec == NULL)) {
+         if( intersec == NULL ) {
             fprintf(stderr, "\n\n MemAlloc failure.\n\n");
             exit(122);
          }
