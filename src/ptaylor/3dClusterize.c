@@ -562,7 +562,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-inset'");
 
          insetA = THD_open_dataset(argv[iarg]);
-         if( (insetA == NULL ))
+         if( insetA == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
          iarg++ ; continue ;
@@ -863,7 +863,7 @@ int main(int argc, char *argv[]) {
    THD_load_no_mmap();
    DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
    Dim = (int *)calloc(4, sizeof(int));
-   if( (Dim == NULL) )
+   if( Dim == NULL )
       ERROR_exit("MemAlloc failure (arrs).\n\n");
    Nvox = Basic_Info_Dim_and_Nvox( insetA, Dim, 4);
 
@@ -1132,7 +1132,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Badness in first internal copy");
    }
 
-   if( (thr_type==-2 ) ) { // in case of bisidedness
+   if( thr_type == -2 ) { // in case of bisidedness
       if( ival < 0 ) // i.e., no data set input: use only thr dset
          cim2 = mri_copy(tim);
       else // use extra dset
