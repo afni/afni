@@ -612,7 +612,11 @@ static void Enter_event(Widget w, XtPointer client_data, XEvent * xevent, Boolea
 	*/
 	if ((event->time -  cw->liteClue.HelpPopDownTime) > 
 			cw->liteClue.cancelWaitPeriod ) 
+#if 0
+/* old typo in original? */
 		current_waitPeriod = cw->liteClue.waitPeriod,timeout_event;
+#endif
+		current_waitPeriod = cw->liteClue.waitPeriod;
 	else
 		current_waitPeriod = 0;
 

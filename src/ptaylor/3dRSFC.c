@@ -644,7 +644,7 @@ int main( int argc , char * argv[] )
 		}
 
 		/* create output dataset, populate it, write it, then quit */
-		if( (NumDen==0) ) { // @@ BP'ed version;  will do filt if BP_LAST
+		if( NumDen == 0 ) { // @@ BP'ed version;  will do filt if BP_LAST
 
 			if(BP_LAST) // do bandpass here for BP_LAST
 				(void)THD_bandpass_vectim(mrv,dt,fbot,ftop,qdet,0,NULL);

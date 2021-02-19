@@ -1045,16 +1045,16 @@ ENTRY("THD_mask_erode") ;
               if( ii == 0    ) im = 0 ;
               if( ii == nx-1 ) ip = ii ;
 
-              if (nnn[ii+jy+kz] =              /* see if= has any nbhrs */
+              if ((nnn[ii+jy+kz] =              /* see if= has any nbhrs */
                                    mmm[ii+jy+km]
                                 || mmm[im+jy+kz]
                || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
                                 || mmm[ip+jy+kz] 
-                                || mmm[ii+jy+kp])
+                                || mmm[ii+jy+kp]))
                  (void) 0;
               else { 
-                if(NN>=2)
-                  if (nnn[ii+jy+kz] =      // if NN2 neighbors (also with if nnn=)
+                if(NN>=2) {
+                  if ((nnn[ii+jy+kz] =      // if NN2 neighbors (also with if nnn=)
                                    mmm[im+jy+km]
                || mmm[ii+jm+km]                  || mmm[ii+jp+km]
                                 || mmm[ip+jy+km]
@@ -1072,9 +1072,9 @@ ENTRY("THD_mask_erode") ;
                                + mmm[ip+jm+km]           + mmm[ip+jp+km]
                                + mmm[im+jm+kp]           + mmm[im+jp+kp]
                                + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
-
+                    }
                   }
-              } // end else NN2,3 cases 
+              }} // end else NN2,3 cases 
             } // end if in mask
       }}} /* end of ii,jj,kk loops */
 

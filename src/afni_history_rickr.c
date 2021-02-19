@@ -53,9 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "updates for ShowMode in SUMA_xColBar.c",
+   "Resolve compiler warnings, but avoid logic changes at the same time\n"
+   "as XQuartz beta issues.  So temporarily keep original logic.\n"
+   "Once we feel stable with XQuartz, look into expected fixes.\n"
+   "Search for 'todo: apply ShowMode' in SUMA_xColBar.c."
+ } ,
+
  { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "warn about problematic version of XQuartz",
    NULL
+ } ,
+
+ { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
+   "All thd_coords.c protos are in 3ddata.h now."
  } ,
 
  { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,

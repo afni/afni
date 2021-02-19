@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
 
          //sprintf(in_name,"%s", argv[iarg]); 
          insetTIME = THD_open_dataset(argv[iarg]);
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.", argv[iarg]); 
 
          Dim = (int *)calloc(4,sizeof(int));
@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -581,7 +581,7 @@ int main(int argc, char *argv[]) {
    else {
 
       censor_sh = (short *)calloc( Dim[3], sizeof(short) );
-      if( (censor_sh == NULL) ) {
+      if( censor_sh == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(233);
       }
@@ -630,7 +630,7 @@ int main(int argc, char *argv[]) {
    }
    censor_flt = (float *)calloc(Npts_cen, sizeof(float));
    
-   if( (censor_flt == NULL) ) {
+   if( censor_flt == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(233);
    }
@@ -664,7 +664,7 @@ int main(int argc, char *argv[]) {
    for ( i = 0 ; i < Dim[0] ; i++ ) 
       for ( j = 0 ; j < Dim[1] ; j++ ) 
          mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
-   if( (mskd == NULL) ) {
+   if( mskd == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure (mask).\n\n");
       exit(233);
    }

@@ -988,8 +988,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    const char *nbspp = " &nbsp;&nbsp; " ;
    const char *sp = " ";
    const char *spp = "  ";
-   char *nsp = NULL;
-   char *nspp = NULL;
+   const char *nsp = NULL;
+   const char *nspp = NULL;
 
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
@@ -5911,7 +5911,7 @@ char *Atlas_Name(ATLAS *atl)
 
 int is_Coord_Space_Named(ATLAS_COORD ac, char *name)
 {
-   if (ac.space_name && !strcmp(ac.space_name,name)) return(1);
+   if (strlen(ac.space_name) && !strcmp(ac.space_name,name)) return(1);
    return(0);
 }
 
@@ -6684,14 +6684,14 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
    switch(Atlas_name_type()){
      /* just the long name */
       case 1:
-          if (atp->longname && strlen(atp->longname))
+          if (strlen(atp->longname))
              sprintf(tmps, "%s", atp->longname);
           else
              sprintf(tmps, "%s", atp->name);
           break;
       /* combination - both name and long name with brackets around long name*/
       case 2:
-          if (atp->longname && strlen(atp->longname) && strcmp(atp->longname, atp->name))
+          if (strlen(atp->longname) && strcmp(atp->longname, atp->name))
              sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
              sprintf(tmps, "%s", atp->name);

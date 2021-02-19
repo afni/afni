@@ -1,0 +1,53 @@
+
+# Notes for building AFNI on Mac OS 10.15, using this makefile:
+# Makefile.macos_10.15_clang
+# 
+# Typesetting what DRG hath wrought.
+
+# UPDATE your Xquartz version to be at least 2.8.0_beta4.
+# + this appears to be necessary for SUMA to work (AFNI worked fine at 2.7.11)
+
+# INSTALL the following with homebrew (for gcc, ver=10 is used here by
+# default, though actually at the moment 'gcc' is just Mac's clang):
+
+  brew update
+  brew install  libpng jpeg expat freetype fontconfig openmotif libomp
+                libxt gsl glib pkg-config gcc
+
+# LINK the following, but note that:
+# + many of these existed already on my machine
+# + many of these are version dependent, and so must be searched for.
+# We might end up scripting some of this...
+#
+# These existed already on my computer:
+# 
+#   ln -s /usr/local/Cellar/gsl/2.6/lib/libgsl.25.dylib                 \
+#         /usr/local/lib/libgsl.dylib  
+#   ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.4.dylib         \
+#         /usr/local/lib/libXm.4.dylib
+#   # if XQuartz doesn't include libXm (as it used to), then use this:
+#   ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.a               \
+#         /usr/local/lib/libXm.a
+#   ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a                       \
+#         /usr/local/lib/libjpeg.a
+# 
+# ... and these I did make (though with a different path for the 
+# *netpbm* one:
+#
+#   ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a                       \
+#         /usr/local/lib/libjpeg.9.a
+#   ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h        \
+#         /usr/local/include/pgm.h
+
+# NOTE: DRG removed libbz2.dylib from the installed dylib list because
+# it doesn't seem to be used below, but on 10.15 with brew install
+# there is /usr/lib/libbz2.1.0.dylib
+
+# After those installs+linking, I was able to build on my Mac by
+# copying the appropriate Makefile:
+# 
+#   cp Makefile.macos_10.15_clang Makefile
+# 
+# ... and then firing off the make:
+#
+#   make vastness

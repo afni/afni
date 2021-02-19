@@ -515,10 +515,10 @@ int main(int argc, char *argv[])
    
    //  * * * * * * * * * * * * * * * * * * * * * * * * * * * 
    
-   if( (Fname_input == NULL) ) 
+   if( Fname_input == NULL ) 
       ERROR_exit("Bad command lining!  Option '-in_*' requires argument.");
    
-   if( (Fname_output == NULL) ) 
+   if( Fname_output == NULL ) 
       ERROR_exit("Bad command lining!  Option '-out_*' requires arg.");
 
    if( count_in > 1 ) 

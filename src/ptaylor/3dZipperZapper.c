@@ -323,7 +323,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-input'");
 
          insetA = THD_open_dataset(argv[iarg]);
-         if( (insetA == NULL ))
+         if( insetA == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
 
@@ -444,7 +444,7 @@ int main(int argc, char *argv[]) {
 
    // Now, collect this info!
    Dim = (int *)calloc(4, sizeof(int));
-   if( (Dim == NULL) ) { 
+   if( Dim == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (small array!).\n\n");
       exit(12);
    }
@@ -794,7 +794,7 @@ int main(int argc, char *argv[]) {
       for(i=0 ; i<Dim[3] ; i++) 
          badarr[i] = calloc( Nvox, sizeof(byte) ); 
       
-      if( (badarr == NULL) ) { 
+      if( badarr == NULL ) { 
          fprintf(stderr, "\n\n MemAlloc failure (bad-list array).\n\n");
          exit(13);
       }

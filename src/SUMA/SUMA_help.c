@@ -876,7 +876,7 @@ char * SUMA_sources_Info(void)
 "  The code for the heart of the program IsoSurface is a translation of:\n"
 "  Thomas Lewiner's C++ implementation of the algorithm in:\n"
 "  Efficient Implementation of Marching Cubes´ Cases with Topological Guarantees\n"
-"  by Thomas Lewiner, Hélio Lopes, Antônio Wilson Vieira and Geovan Tavares \n"
+"  by Thomas Lewiner, Helio Lopes, Antonio Wilson Vieira and Geovan Tavares \n"
 "  in Journal of Graphics Tools. \n"
 "  http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf\n"
 "  Permission to use this translation in other programs must be obtained \n"

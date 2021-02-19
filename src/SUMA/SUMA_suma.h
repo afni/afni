@@ -1,6 +1,13 @@
 #ifndef SUMA_SUMA_SUMA_INCLUDED
 #define SUMA_SUMA_SUMA_INCLUDED
 
+/* DRG- MacOS gcc clang sees suma_suma.h and SUMA_suma.h as close-enough.
+   It uses the wrong one and warns, so we use the ../ in the path name.
+   We really want the suma_suma.h  in the AFNI/src directory above.
+   We should probably rename the AFNI version to something a little different.
+   This more basic suma_suma.h is used by other C files in the SUMA directory,
+   so name changes should be repeated in SUMA_niprobe.c and SUMA_expval.c.   
+*/
 #include "../suma_suma.h"
 #include "SUMA_DataSets.h"
 #include "TrackIO.h"
@@ -244,6 +251,11 @@
 #endif
 
 extern void SUMA_freep(void *) ; /* 07 Oct 2015 */
+// drg - mac os 10.15 changes - gcc10 requires declarations
+#include "mcw_malloc.h"
+extern void resume_mcw_malloc(void);
+extern void pause_mcw_malloc(void);
+
 
 /******************************* BEGIN IGNORE THIS CHUNK ********************************/
 #ifdef USE_SUMA_MALLOC

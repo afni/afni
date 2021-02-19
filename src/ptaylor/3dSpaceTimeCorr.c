@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-insetA'");
 
          insetTIMEA = THD_open_dataset(argv[iarg]);
-         if( (insetTIMEA == NULL ))
+         if( insetTIMEA == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 
          Dim = (int *)calloc(4,sizeof(int));
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-insetB'");
 
          insetTIMEB = THD_open_dataset(argv[iarg]);
-         if( (insetTIMEB == NULL ))
+         if( insetTIMEB == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 
          DSET_load(insetTIMEB); CHECK_LOAD_ERROR(insetTIMEB);
@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-mask'");
 
          MASK = THD_open_dataset(argv[iarg]) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
       for ( j = 0 ; j < Dim[1] ; j++ ) 
          mskd[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
-   if( (mskd == NULL) ) { 
+   if( mskd == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(4);
    }

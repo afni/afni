@@ -309,7 +309,7 @@ int WB_netw_corr(int Do_r,
    for(i=0 ; i<1 ; i++) 
       AVE_TS_fl[i] = calloc(Dim[3],sizeof(float)); 
    
-   if( (AVE_TS_fl == NULL) ) {
+   if( AVE_TS_fl == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure (time series out).\n\n");
       exit(123);
    }
@@ -372,7 +372,7 @@ int WB_netw_corr(int Do_r,
                           DSET_HEADNAME(OUT_Z_MAP));
 
             zscores = (float *)calloc(Nvox,sizeof(float)); 
-            if( (zscores == NULL) ) {
+            if( zscores == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
                exit(123);
             }

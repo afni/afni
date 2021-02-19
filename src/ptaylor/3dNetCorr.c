@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_name,"%s", argv[iarg]); 
          insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
          // just 0th time point for output...
 
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -420,7 +420,7 @@ int main(int argc, char *argv[]) {
       
          sprintf(in_rois,"%s", argv[iarg]); 
          ROIS = THD_open_dataset(in_rois) ;
-         if( (ROIS == NULL ))
+         if( ROIS == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_rois);
       
          DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
@@ -767,7 +767,7 @@ int main(int argc, char *argv[]) {
       for ( i=0 ; i<HAVE_ROIS ; i++ ) 
          for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
-      if(  (ROI_STR_LABELS == NULL)) {
+      if( ROI_STR_LABELS == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[]) {
    ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
    for (j=0; j<Noutmat; ++j) 
       ParLab[j] = (char *)calloc(32, sizeof(char));
-   if( (ParLab == NULL) ) {
+   if( ParLab == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(121);
    }

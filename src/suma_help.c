@@ -814,7 +814,7 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help,
    }
    /* copy last one */
    strncpy(gwh->name[gwh->name_lvl], sstmp, 63); 
-                     gwh->name[gwh->name_lvl][64] = '\0'; 
+                     gwh->name[gwh->name_lvl][63] = '\0'; 
    ++gwh->name_lvl;
    
    /* store the hint */
