@@ -1923,11 +1923,19 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
    curColPlane->OptScl->MaskZero = 
       !curColPlane->OptScl->MaskZero;
    
-   /* was: if (!curColPlane->ShowMode < 0) */
-   /* That would always fail.  Since ShowMode flags when to display,
-    * it looks like this should return on simply <0.                 */
-   /* (might be a question about == 0)           17 Feb 2021 [rickr] */
-   if (curColPlane->ShowMode < 0) {   
+   /* seems the '!' were remnants -                                 */
+   /* revert to original "logic", but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *   
+    *   comments     : orig/temp would never show
+    *                : we probably want to RETURN if not showing ( < 0 )
+    *                : so '!' was just a remnant typo
+    *                : might be unclear when == 0
+    *                                           19 Feb 2021 [rickr] */
+   if ( 0 ) {
       /* nothing else to do */ 
       SUMA_RETURNe;
    } 
@@ -1988,8 +1996,17 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
                   curColPlane->OptScl->IntRange[1]);
    }
  
-   /* if not showing this, nothing else to do   17 Feb 2021 [rickr] */
-   if (curColPlane->ShowMode < 0) { SUMA_RETURNe; } 
+   /* seems the '!' were remnants -                                 */
+   /* revert to original "logic", but avoid warnings
+    * (to later evaluate changes) todo: apply ShowMode
+    *   original     : if (!curColPlane->ShowMode < 0)
+    *   fix??        : if (curColPlane->ShowMode < 0)
+    *   temp.as.orig : if ( 0 )
+    *   
+    *   comments     : orig/temp would never RETURN
+    *                : seems we should return if < 0
+    *                                           19 Feb 2021 [rickr] */
+   if ( 0 ) { SUMA_RETURNe; } 
    
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -12698,8 +12715,19 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
       if (!Sover) {
          SUMA_RETURN(NOPE);
       }
-      /* seems we want to show, and the '!' were remnants [rickr] */
-      if (Sover->ShowMode > 0) {
+      /* seems the '!' were remnants -                                 */
+      /* revert to original "logic", but avoid warnings
+       * (to later evaluate changes) todo: apply ShowMode
+       *   original     : if (!Sover->ShowMode > 0)
+       *   fix??        : if ( Sover->ShowMode > 0)
+       *                  - seems like we want to actually show here
+       *   temp.as.orig : if ( !Sover->ShowMode )
+       *   
+       *   comment      : orig/temp would only show on 0,
+       *                  which does not make sense
+       *                : since block adds, prob a show>0 condition
+       *                                           19 Feb 2021 [rickr] */
+      if ( ! Sover->ShowMode ) {
          SUMA_LH("Col plane hidden");
          sprintf(str_col,"hidden color overlay");
          if (lbls) lbls = SUMA_append_replace_string(lbls, str_col, "; col=", 1);

@@ -53,7 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
-  { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+ { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "updates for ShowMode in SUMA_xColBar.c",
+   "Resolve compiler warnings, but avoid logic changes at the same time\n"
+   "as XQuartz beta issues.  So temporarily keep original logic.\n"
+   "Once we feel stable with XQuartz, look into expected fixes.\n"
+   "Search for 'todo: apply ShowMode' in SUMA_xColBar.c."
+ } ,
+
+ { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "warn about problematic version of XQuartz",
    NULL
  } ,
