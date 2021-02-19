@@ -3033,7 +3033,7 @@ STATUS("make GLTs from matrix file") ;
      if( ndone == 0 && verb > 1 && nallz > 0 )
        ININFO_message("No GLT matrices neededed editing") ;
    }
-   if( allz != NULL ){ free(allz) ; allz == NULL ; }
+   if( allz != NULL ){ free(allz) ; allz = NULL ; }
 
    /***--------- done with nelmat ---------***/
 

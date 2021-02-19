@@ -6522,7 +6522,7 @@ ENTRY("TT_centerize") ;
        }
      }
 
-     if( Bxx != NULL & Bxx != Axx ){
+     if( Bxx != NULL && Bxx != Axx ){
        for( jj=1 ; jj <= mcov ; jj++ ){
          for( kk=0 ; kk < nval_BBB ; kk++ ) vv[kk] = BXX(kk,jj) ;
          if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_BBB,vv) ;

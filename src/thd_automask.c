@@ -1063,9 +1063,9 @@ ENTRY("THD_mask_erode") ;
                || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
                                 || mmm[im+jy+kp]
                || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
-                                || mmm[ip+jy+kp])
+                                || mmm[ip+jy+kp]) {
                    (void) 0; 
-                  else {
+                } else {
                      if(NN==3)   // consider corners (corners of -1,+1 slices)
                         nnn[ii+jy+kz] = 
                                  mmm[im+jm+km]           + mmm[im+jp+km]

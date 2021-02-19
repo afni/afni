@@ -43,10 +43,6 @@ static int sigurg = 0 ;  /* 02 Jan 2004 */
 
 #define tcp_send send
 
-/*! This macro casts a pointer to (socklen_t *) to avoid compiler warnings *
-
-#define SOCKLEN_TP(x) ((socklet_t *)(x))
-
 #ifndef MIN
 /*! Duh. */
 #  define MIN(a,b) (((a)>(b)) ? (b) : (a))
@@ -329,7 +325,7 @@ static int tcp_alivecheck( int sd )
 
 static int tcp_connect( char *host , int port )
 {
-   int sd , l , q,qq ;
+   int sd , l , q ; socklen_t qq ;
    struct sockaddr_in sin ;
    struct hostent    *hostp ;
 
@@ -360,13 +356,13 @@ static int tcp_connect( char *host , int port )
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;                                 /* 03 Dec 2002:    */
-   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;  /* only modify      */
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;  /* only modify      */
    if( q < SOCKET_BUFSIZE ){                                  /* if current buffer */
      l = SOCKET_BUFSIZE ;                                     /* is too small     */
      setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    }
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -431,19 +427,19 @@ int get_user_np(){ return 0; }
 
 static int tcp_listen( int port )
 {
-   int sd , l , q,qq ;
+   int sd , l , q ; socklen_t qq ;
    struct sockaddr_in sin ;
    char serr[128]={""};
-   
+
    if( port < 1 ) return -1 ; /* bad input */
 
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ 
-      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)", 
+   if( sd == -1 ){
+      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)",
                get_port_numbered(port), port);
-      PERROR(serr); return -1; 
+      PERROR(serr); return -1;
    }
 
    /** set socket options (no delays, large buffers) **/
@@ -462,13 +458,13 @@ static int tcp_listen( int port )
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    }
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -483,13 +479,13 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)", 
+     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)",
                get_port_numbered(port), port, sd);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)", 
+     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)",
                get_port_numbered(port), port);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
@@ -530,14 +526,14 @@ static int tcp_listen( int port )
 static int tcp_accept( int sd , char **hostname , char **hostaddr )
 {
    struct sockaddr_in pin ;
-   int addrlen , sd_new ;
+   int sd_new ; socklen_t addrlen ;
    struct hostent *hostp ;
    char *str ;
 
    /** accept the connection **/
 
    addrlen = sizeof(pin) ;
-   sd_new = accept( sd , (struct sockaddr *)&pin , SOCKLEN_TP(&addrlen) ) ;
+   sd_new = accept( sd , (struct sockaddr *)&pin , &addrlen ) ;
    if( sd_new == -1 ){ PERROR("tcp_accept"); return -1; }
 
    /** get dotted form address of connector **/
@@ -842,11 +838,11 @@ static int SHM_nattach( int shmid )
    static struct shmid_ds buf ;
    char *eee = getenv( "NIML_DNAME" ) ;
    static int nid=0;
-   
+ 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
-     if( eee != NULL ) 
+     if( eee != NULL )
       fprintf(stderr,
   "SHM_nattach (%s): (shmid=%d, buf.shm_nattach %d, errno %d), trying again!\n"
   "                     EACCES %d, EFAULT %d, EINVAL %d, EPERM %d\n",
@@ -872,12 +868,13 @@ static int SHM_nattach( int shmid )
      nid = 0;
      free((void *)ppp); return -1;
    } else if( eee != NULL ){
-     if (!nid) 
+     if (!nid) {
       fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n"
                      "  Similar messages muted until SHM_nattach fails again.\n",
              eee,
              (unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
-             (int)buf.shm_nattch ) ; 
+             (int)buf.shm_nattch ) ;
+     }
       ++nid;
    }
    return (int)buf.shm_nattch ;

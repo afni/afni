@@ -15,6 +15,7 @@ static float           active_thick = 0.0 ;
 
 static float           active_opacity = 1.0 ;   /* 22 Jul 2004 */
 
+#undef  STATUS
 #define STATUS(str) fprintf(stderr,"** " str "\n")
 
 /*------------------------------------------------------------------------
@@ -576,6 +577,7 @@ void cutlines_memplot( int nbot , int ntop , MEM_plotdata *mp )
 
 /*----------------------------------------------------------------------------*/
 
+#undef INLINE
 #ifdef __GNUC__
 # define INLINE inline
 #else

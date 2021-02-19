@@ -119,10 +119,10 @@ float ** VL_get_displacments( THD_3dim_dataset *, THD_dmat33, THD_dfvec3 ) ;
 
 void VL_normalize_timeseries( THD_3dim_dataset *dset ) ;
 
-void * VL_create_disprod( THD_3dim_dataset *tdset ,
-                          THD_3dim_dataset *xdset , int xp ,
-                          THD_3dim_dataset *ydset , int yp ,
-                          THD_3dim_dataset *zdset , int zp  ) ;
+void VL_create_disprod( THD_3dim_dataset *tdset ,
+                        THD_3dim_dataset *xdset , int xp ,
+                        THD_3dim_dataset *ydset , int yp ,
+                        THD_3dim_dataset *zdset , int zp  ) ;
 
 /**********************************************************************/
 /***************************** the program! ***************************/
@@ -2778,10 +2778,10 @@ void VL_normalize_timeseries( THD_3dim_dataset *dset )
 #undef  Pleg
 #define Pleg(n,x) ( ((n)==0) ? 1 : ((n)==1) ? (x) : ((n)==2) ? Pleg2(x) : Pleg3(x) )
 
-void * VL_create_disprod( THD_3dim_dataset *tdset ,
-                          THD_3dim_dataset *xdset , int xp ,
-                          THD_3dim_dataset *ydset , int yp ,
-                          THD_3dim_dataset *zdset , int zp  )
+void VL_create_disprod( THD_3dim_dataset *tdset ,
+                        THD_3dim_dataset *xdset , int xp ,
+                        THD_3dim_dataset *ydset , int yp ,
+                        THD_3dim_dataset *zdset , int zp  )
 {
    char *pr = malloc(sizeof(char)*THD_MAX_NAME) ;
    char lab[8] ,

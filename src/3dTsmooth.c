@@ -316,7 +316,7 @@ int main( int argc , char *argv[] )
       else                 fac[kk] = 1.0 ;
    }
    if( !use_fac ){
-      free(fac) ; fac == NULL ;
+      free(fac) ; fac = NULL ;
    } else {
       faci = (float *) malloc( sizeof(float) * ntime ) ;
       for( kk=0 ; kk < ntime ; kk++ ) faci[kk] = 1.0 / fac[kk] ;
