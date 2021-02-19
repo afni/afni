@@ -1056,11 +1056,11 @@ int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       SUMA_Fetch_OverlayPointerByDset()
       
       For each subdomain in CO and each corresponding dset and color plane
-      	 
-	 If the subdomain and the colorplane are different from ado , adoC (that
-	 would be (SUMA_ALL_DO *)SOC above), colp and colpC  
-	 
-	    call  SUMA_SetScaleThr_one() as per above 
+
+      If the subdomain and the colorplane are different from ado , adoC (that
+      would be (SUMA_ALL_DO *)SOC above), colp and colpC  
+
+      call  SUMA_SetScaleThr_one() as per above 
    
    
    
@@ -1924,7 +1924,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
       !curColPlane->OptScl->MaskZero;
    
    /* seems the '!' were remnants -                                 */
-   /* revert to original "logic", but avoid warnings
+   /* revert to original logic, but avoid warnings
     * (to later evaluate changes) todo: apply ShowMode
     *   original     : if (!curColPlane->ShowMode < 0)
     *   fix??        : if (curColPlane->ShowMode < 0)
@@ -1997,7 +1997,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    }
  
    /* seems the '!' were remnants -                                 */
-   /* revert to original "logic", but avoid warnings
+   /* revert to original logic, but avoid warnings
     * (to later evaluate changes) todo: apply ShowMode
     *   original     : if (!curColPlane->ShowMode < 0)
     *   fix??        : if (curColPlane->ShowMode < 0)
@@ -3484,7 +3484,7 @@ Font lesson from http://www-h.eng.cam.ac.uk/help/tpl/graphics/Motif/mt3 :
 [How do you find out which font names are valid on your system? Generally,
 type the command:
 
-	xlsfonts -fn "*" > out,
+    xlsfonts -fn "*" > out,
 
 and then look at "out". All the font names will be in the file. Some of 
 them are short, like "6x10" used above, but some are monsters, as shown 
@@ -3495,8 +3495,8 @@ in the fragment of my "out" file copied below:
 -adobe-times-bold-i-normal--34-240-100-100-p-170-iso8859-1
 
 To use one of these fonts, I can say:
-	
-	 namestring="*times*-25-*";
+
+    namestring="*times*-25-*";
 
 in the above code. This will get a 25 point times font. If I want a specific
 times font I can be more specific, like "*times*bold*-25-*". The "*" is
@@ -5247,7 +5247,7 @@ double SUMA_Pval2ThreshVal (SUMA_ALL_DO *ado, double pval)
 /*!
    set the threshold bar when a new value is entered
 
-	Crash note for suma in macosx_10.7_Intel_64 binaries.
+   Crash note for suma in macosx_10.7_Intel_64 binaries.
 
 With gcc 4.7.0 and 4.7.1, SUMA crashed when two hemispheres are loaded
 and the threshold level is changed for one hemisphere. Because of LR yoking
@@ -5258,7 +5258,7 @@ to SUMA_SetScaleThr_one(), right after the call to SUMA_ThreshVal2ScalePos().
 Debugging messages show that SUMA_ThreshVal2ScalePos() returns OK, but not even
 a simple statement can get printed right afterwards. Valgrind showed no relevant
 errors. 
-	To reproduce the problem, use the toy surfaces under std10_toy. Something like
+   To reproduce the problem, use the toy surfaces under std10_toy. Something like
  suma -spec std.10both.mini.spec , followed by ctrl+s and a few threshold adjustments
  is enough to cause the crash.
  
@@ -12716,7 +12716,7 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
          SUMA_RETURN(NOPE);
       }
       /* seems the '!' were remnants -                                 */
-      /* revert to original "logic", but avoid warnings
+      /* revert to original logic, but avoid warnings
        * (to later evaluate changes) todo: apply ShowMode
        *   original     : if (!Sover->ShowMode > 0)
        *   fix??        : if ( Sover->ShowMode > 0)
@@ -13853,23 +13853,23 @@ int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
          break; }
       case CDOM_type: {
          SUMA_CIFTI_DO *CO=(SUMA_CIFTI_DO *)ado;
-	 switch(dtlvl) {
-	    int i, nn;
-	    case SUMA_ELEM_DAT: /* The maximum possible number of data
-	             	      	   assuming all domains are filled to 
-				   the max */
-	       nn = 0;
-	       for (i=0; i<CO->N_subdoms; ++i) {
-	          nn += SUMA_ADO_N_Datum(SUMA_CIFTI_subdom_ado(CO,i));
-	       }
-	       return(nn);
-	       break;
-	    default:
-	       SUMA_S_Err("Should not be here, not yet at least (dtlvl = %d)", 
-	             	  dtlvl);
-	       return(-1);
-	       break;
-	 }
+         switch(dtlvl) {
+            int i, nn;
+            case SUMA_ELEM_DAT: /* The maximum possible number of data
+                                   assuming all domains are filled to 
+                                   the max */
+               nn = 0;
+               for (i=0; i<CO->N_subdoms; ++i) {
+                  nn += SUMA_ADO_N_Datum(SUMA_CIFTI_subdom_ado(CO,i));
+               }
+               return(nn);
+               break;
+            default:
+               SUMA_S_Err("Should not be here, not yet at least (dtlvl = %d)", 
+                          dtlvl);
+               return(-1);
+               break;
+         }
          return(-1);
          break; }
       case GDSET_type: {
@@ -14308,7 +14308,7 @@ SUMA_Boolean SUMA_isADO_Cont_Realized(SUMA_ALL_DO *ado)
    return(0); 
 }
 
-#define NVALS_XYZ_NODE 3				      
+#define NVALS_XYZ_NODE 3
 float *SUMA_GDSET_NodeXYZ(SUMA_DSET *dset, int node, char *variant, float *here) 
 {
    static char FuncName[]={"SUMA_GDSET_NodeXYZ"};
@@ -14841,7 +14841,7 @@ float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here)
    SUMA_RETURN(here);
 }
 
-#define NVALS_XYZ_EDGE 6	
+#define NVALS_XYZ_EDGE 6
 float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here) 
 {
    static char FuncName[]={"SUMA_GDSET_EdgeXYZ"};
