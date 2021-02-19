@@ -399,6 +399,7 @@ ENTRY("mri_indmax_nz") ;
    npix = im->nvox ;
 
    switch( im->kind ){
+      default: break ;
 
       case MRI_byte:{
          byte *qar = MRI_BYTE_PTR(im) ;
@@ -488,6 +489,7 @@ ENTRY("mri_indmin_nz") ;
    npix = im->nvox ;
 
    switch( im->kind ){
+      default: break ;
 
       case MRI_byte:{
          byte *qar = MRI_BYTE_PTR(im) ;

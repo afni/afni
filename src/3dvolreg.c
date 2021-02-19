@@ -2230,7 +2230,7 @@ void VL_command_line(void)
    /*** 08 Dec 2000: check some twopass options ***/
 
    if( VL_twodup ){
-      if( !VL_twopass || VL_intern ) VL_twodup == 0 ;
+      if( !VL_twopass || VL_intern ) VL_twodup = 0 ;
    }
 
    /*** 14 Feb 2001 ***/

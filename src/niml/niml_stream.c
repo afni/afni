@@ -43,6 +43,10 @@ static int sigurg = 0 ;  /* 02 Jan 2004 */
 
 #define tcp_send send
 
+/*! This macro casts a pointer to (socklen_t *) to avoid compiler warnings *
+
+#define SOCKLEN_TP(x) ((socklet_t *)(x))
+
 #ifndef MIN
 /*! Duh. */
 #  define MIN(a,b) (((a)>(b)) ? (b) : (a))
@@ -356,13 +360,13 @@ static int tcp_connect( char *host , int port )
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;                                 /* 03 Dec 2002:    */
-   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;  /* only modify      */
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;  /* only modify      */
    if( q < SOCKET_BUFSIZE ){                                  /* if current buffer */
      l = SOCKET_BUFSIZE ;                                     /* is too small     */
      setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    }
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -458,13 +462,13 @@ static int tcp_listen( int port )
 
 #ifdef SOCKET_BUFSIZE
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, &qq ) ;
+   getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    }
    q = 0 ; qq = sizeof(int) ;
-   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, &qq ) ;
+   getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&q, SOCKLEN_TP(&qq) ) ;
    if( q < SOCKET_BUFSIZE ){
      l = SOCKET_BUFSIZE ;
      setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -533,7 +537,7 @@ static int tcp_accept( int sd , char **hostname , char **hostaddr )
    /** accept the connection **/
 
    addrlen = sizeof(pin) ;
-   sd_new = accept( sd , (struct sockaddr *)&pin , &addrlen ) ;
+   sd_new = accept( sd , (struct sockaddr *)&pin , SOCKLEN_TP(&addrlen) ) ;
    if( sd_new == -1 ){ PERROR("tcp_accept"); return -1; }
 
    /** get dotted form address of connector **/

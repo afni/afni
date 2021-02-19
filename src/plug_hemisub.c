@@ -158,7 +158,7 @@ char * HEMISUB_main( PLUGIN_interface * plint )
 	    hs.thresh_type = PLUTO_string_index( tag, NUM_T_OPTS, thresh_opts );
     }
 
-    if ( ret_string = process_data( new_dset, &hs ) )
+    if ( (ret_string = process_data( new_dset, &hs )) )
 	return  ret_string;
 
     if ( PLUTO_add_dset( plint, new_dset, DSET_ACTION_MAKE_CURRENT ) )

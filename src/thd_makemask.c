@@ -1277,7 +1277,7 @@ char * mask_to_b64string( int nvox , byte *mful )
    if( nvox < 1 || mful == NULL ) return NULL ;          /* bad inputs */
 
    mbin = mask_binarize( nvox , mful ) ;
-   str  = array_to_zzb64( 1+(nvox-1)/8 , mbin , 72 ) ; free(mbin) ;
+   str  = array_to_zzb64( 1+(nvox-1)/8 , (char *)mbin , 72 ) ; free(mbin) ;
    if( str == NULL ) return NULL ;              /* should never happen */
 
    nstr = strlen(str) ;
