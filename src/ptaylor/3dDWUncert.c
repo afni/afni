@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-inset'");
 
          dwiset1 = THD_open_dataset(argv[iarg]);
-         if( (dwiset1 == NULL ))
+         if( dwiset1 == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
 
@@ -600,7 +600,7 @@ int main(int argc, char *argv[]) {
    bseven = calloc( Dim[3], sizeof(bseven));
    for( i=0 ; i<Dim[3] ; i++) 
       bseven[i] = calloc( 7, sizeof(float)); 
-   if( (bseven == NULL) ) {
+   if( bseven == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(32);
    }
@@ -639,7 +639,7 @@ int main(int argc, char *argv[]) {
    StoreRandInd = calloc(Nj,sizeof(StoreRandInd)); 
 	for(i=0 ; i<Nj ; i++) 
 		StoreRandInd[i] = calloc(Mj,sizeof(int)); 
-   if(  ( StoreRandInd == NULL) ) {
+   if(   StoreRandInd == NULL ) {
       fprintf(stderr,"\n\nMemAlloc failure: prepping index selection.\n\n");
       exit(12);
    }
@@ -668,7 +668,7 @@ int main(int argc, char *argv[]) {
    for (j=0; j<N_DTI_MAX_PARS; ++j) 
       wild_names[j] = (char *)calloc(32, sizeof(char));
    
-   if( (wild_names == NULL) ) {
+   if( wild_names == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
    }
@@ -767,7 +767,7 @@ int main(int argc, char *argv[]) {
       }
 
    minds = (int *)calloc(Ntodo, sizeof(int)); 
-   if( (minds == NULL) ) { 
+   if( minds == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(4);
    } 

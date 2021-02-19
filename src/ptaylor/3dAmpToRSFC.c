@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
    }
    else{
          insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
          
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);

@@ -1454,7 +1454,7 @@ int NI_getDTI_inputs( NI_element *nel,
    if (!nel) RETURN(1);
 
    atr = (char *)calloc(100, sizeof(char)); 
-   if( (atr == NULL) ) {
+   if( atr == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(126);
    }

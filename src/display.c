@@ -3,6 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
+// drg - added this coxplot.h inclusion for macos10.15 
+// implicit declaration of find_color_name not allowed
+#include "coxplot.h"
 
 #include "display.h"
 #include "mrilib.h"

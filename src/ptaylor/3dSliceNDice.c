@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-insetA'");
 
          insetA = THD_open_dataset(argv[iarg]);
-         if( (insetA == NULL ))
+         if( insetA == NULL )
             ERROR_exit("Can't open dataset '%s'.",
                        argv[iarg]);
 
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-insetB'");
          
          insetB = THD_open_dataset(argv[iarg]);
-         if( (insetB == NULL ))
+         if( insetB == NULL )
             ERROR_exit("Can't open dataset '%s'.",
                        argv[iarg]);
          
@@ -360,7 +360,7 @@ orange = calloc( 3, sizeof(orange) );
 for(i=0 ; i<3 ; i++) 
    orange[i] = calloc( mm, sizeof(byte) );
 
-if( (orange == NULL) ) { 
+if( orange == NULL ) { 
    fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
    exit(12);
  }

@@ -317,7 +317,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Error reading Nvox from eigenvalue file.");
 
    mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd2 == NULL)) { 
+   if( mskd2 == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }

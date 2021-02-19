@@ -733,7 +733,7 @@ char *form_C_progopt_string_from_struct(PROG_OPTS po)
 
 char *form_C_progopt_string(char *prog, char **ws, int N_ws) 
 {
-   char *sout=NULL, sbuf[128];
+   char *sout=NULL, sbuf[128], *wsptr;
    int maxch=0, i, jj, N_opts=0;
    NI_str_array *nisa=NULL;
    
@@ -747,7 +747,8 @@ char *form_C_progopt_string(char *prog, char **ws, int N_ws)
          maxch+=strlen(ws[i])+10;
          if (strlen(ws[i]) > 127) {
             WARNING_message("Truncating atrocious option %s\n", ws[i]);
-            ws[127] = '\0';
+            wsptr = ws[i]+127;
+            *wsptr = '\0';
          }
       }
    }
@@ -1184,7 +1185,7 @@ char *find_popt(char *sh, char *opt, int *nb)
 }
 
 char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
-   char *sout=NULL, sbuf[128];
+   char *sout=NULL, sbuf[128], *wsptr;
    int maxch=0, i, jj;
    int nargs = 0;
    NI_str_array *nisa=NULL;
@@ -1201,7 +1202,8 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
          maxch+=strlen(ws[i])+10;
          if (strlen(ws[i]) > 127) {
             WARNING_message("Truncating atrocious option %s\n", ws[i]);
-            ws[127] = '\0';
+            wsptr = ws[i]+127;
+            *wsptr = '\0';
          }
       }
    }

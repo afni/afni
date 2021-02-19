@@ -410,7 +410,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
 			temp_arr2[i] = calloc( Nvox,sizeof(float)); 
 
-		if( ( temp_arr2 == NULL) ) {
+		if( temp_arr2 == NULL ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
@@ -422,18 +422,18 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
             intersec[i] = calloc(MAXOVERLAP+1,sizeof( int )); 
          
          if( PAIR_POWERON ) {      
-            if( temp_arrFL == NULL) {
+            if( temp_arrFL == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
          else {
-            if( temp_arrSH == NULL) {
+            if( temp_arrSH == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
-         if(  ( intersec == NULL)) {
+         if( intersec == NULL ) {
             fprintf(stderr, "\n\n MemAlloc failure.\n\n");
             exit(122);
          }
@@ -832,7 +832,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   if(OUT_FLOAT_MAP) {
                     // will be single brik output
                     temp_arr_FL = (float *)calloc(Nvox, sizeof(float));
-                    if(( temp_arr_FL== NULL)) {
+                    if( temp_arr_FL== NULL ) {
                       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                       exit(120);
                     }
@@ -840,7 +840,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   else {
                     // will be single brik output
                     temp_arr_BY = (byte *)calloc(Nvox, sizeof(byte));
-                    if(( temp_arr_BY== NULL)) {
+                    if( temp_arr_BY== NULL ) {
                       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                       exit(121);
                     }
@@ -854,7 +854,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   for(bb=0 ; bb<Param_grid[hh][idx3][0] ; bb++) 
                     temp_arr2[bb] = calloc(4,sizeof(int)); //x,y,z,1
                   
-						if(( temp_arr2== NULL)) {
+						if( temp_arr2 == NULL ) {
                     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                     exit(122);
 						}
