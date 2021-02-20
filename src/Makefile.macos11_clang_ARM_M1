@@ -1,0 +1,200 @@
+
+# This Makefile is for Mac OS 11 for 64 bit AFNI, with local linking
+# the default gcc with 
+# Xcode (Apple clang v.12 )
+# The required libraries for use should come with Xcode, XQuartz 
+# and homebrew
+# two versions of homebrew are provided with an installation on an M1 ARM
+# system. The ARM version is installed in /opt/homebrew/bin/brew
+# and the Intel version is installed in /usr/local/bin/brew
+# Either call the path to these explicitly or change the path to get
+# the one you want.
+# the Intel version must be run from a Rosetta terminal
+# tested with clang is 12.0.0
+
+# use homebrew to install the following:
+#
+#  brew install
+#    libpng jpeg expat freetype fontconfig openmotif libomp
+#    libxt gsl glib pkg-config, gcc (version 10 used here by default)
+#
+# also brew install netpbm libiconv
+
+
+# brew install gsl
+# put this symbolic link for needed library
+#ln -s /usr/local/Cellar/gsl/2.6/lib/libgsl.25.dylib /usr/local/lib/libgsl.dylib 
+#ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.4.dylib /usr/local/lib/libXm.4.dylib
+# if XQuartz doesn't include libXm (as it used to), then use this
+#ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.a /usr/local/lib/libXm.a
+#ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.a
+#ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.9.a
+#ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h /usr/local/include/pgm.h
+
+# I've removed libbz2.dylib from the installed dylib list because it doesn't
+# seem to be used below, but on 10.15 with brew install
+# there is /usr/lib/libbz2.1.0.dylib
+
+# DRG: M1 homebrew location
+usr_ROOT   = /opt/homebrew
+USE_ZLIB  = -DHAVE_ZLIB
+LZLIB     = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat
+
+# ------------------------------
+# python from C
+#IPYTHON     = -I/Users/molfesepj/anaconda3/include/python3.8 -DSELENIUM_READY
+#LPYTHON     = -L/Users/molfesepj/anaconda3/lib/python3.8/config
+#LDPYTHON    = -lpython3.8
+
+# ----------------------------------------------------------------------
+# X configuration
+#
+
+XROOT   = /opt/X11
+XROOT_I = -I$(XROOT)/include
+XROOT_L = -L$(XROOT)/lib
+
+XLIBS = -lXm -ljpeg.9 -lXt
+
+# ----------------------------------------------------------------------
+
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
+	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+# choose gcc version below from homebrew directory in 
+# either /opt/homebrew/bin
+# or Apple clang from /usr/bin with 
+# architecture set for x86_64 or arm64
+# set CC and CCMIN to appropriate directory
+#CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
+# MacOS default is clang
+CC     = /usr/bin/gcc -O2 -arch arm64 -DDARWIN -DARM_M1 $(CEXTRA)
+CCVOL  = $(CC)
+CCFAST = $(CC)
+#CCMIN  = /opt/homebrew/bin/gcc-10 -arch arm64
+CCMIN  = /usr/bin/gcc -arch arm64 -DDARWIN -DARM_M1
+CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
+ARM_M1 = "true"
+# previous mac versions for brew put omp in a separate directory
+# here it's just homebrew's standard install directories for the ARM
+BREWI =  /opt/homebrew/include
+BREWL =  /opt/homebrew/lib
+
+OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$BREWI -L$BREWL -DUSE_OMP
+
+SYSTEM_NAME = macos_11_local_clang_M1
+
+INSTALLDIR = $(SYSTEM_NAME)
+
+# these are homebrew's install library and include files
+# repeats definitions BREWI and BREWL above but 
+# separating for now in case OMP goes back to a separate directory
+BREWLIBDIR = /opt/homebrew/lib
+BREWINCDIR = /opt/homebrew/lib
+
+EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
+		      $(BREWLIBDIR)/libjpeg.9.dylib			  \
+		      $(BREWLIBDIR)/libgsl.dylib               \
+		      $(BREWLIBDIR)/libglib-2.0.0.dylib		  \
+		      $(BREWLIBDIR)/libgslcblas.0.dylib		  \
+		      $(BREWLIBDIR)/libpng16.16.dylib			     \
+		      $(BREWLIBDIR)/libintl.8.dylib                  \
+              /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
+
+
+# these were the PJM's library files to copy to binary distribution directory
+# The list above includes different versions to copy
+#  
+#              /usr/local/lib/libfreetype.6.dylib       \
+#		      /usr/local/lib/gcc/8/lib/libgomp.1.dylib		  \
+#		      /usr/local/lib/gcc/8/lib/libgcc_s.1.dylib		  \
+#		      /usr/local/lib/libgsl.0.dylib			  \
+#		      /usr/local/lib/libiconv.2.dylib			  \
+#		      /usr/local/lib/freetype219/lib/libfreetype.6.dylib \
+#  	      /Users/molfesepj/anaconda3/lib/python3.8/config-3.8-darwin/libpython3.8.a \
+#		      /usr/local/lib/libbz2.1.dylib			  \
+#
+
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
+                           chmod u+w *.dylib ;                                \
+                           if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
+
+IFLAGS = -I. $(XROOT_I) -I$(BREWINCDIR) -I/usr/include
+         
+LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+
+CCSVD  = $(CCMIN) -m64 -O0
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -m64 -bundle -flat_namespace -undefined suppress -Wl,-x
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -m64 -dynamic $(LFLAGS)
+
+# include the line below if you want to include vector arith in 3dDeconvolve_f
+# SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = $(CCMIN)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+LIBDIR = $(INSTALLDIR)
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+
+INSTALL_PREREQ = suma_gts
+# uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
+# GSLPROGS = balloon
+EXPROGS = $(GSLPROGS)
+
+# for dynamic linking
+
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig \
+         -lpng16 -liconv -lXmu -lXp -lXpm -lXext -lX11      \
+         $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
+
+# this is called a hack - command to convert dyname -lXm to static for R_io.so
+#RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'
+RLIB_CONVERT = | sed 's/-lXm/\/usr\/local\/lib\/libXm.a/'
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a
+
+SUMA_GL_DYLIB_CMD = -lGL
+
+GLw_IPATH  =
+GLw_LIB = -lGLw
+# uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
+GLw_IPATH  = -IGLw_local
+GLw_LIB = libGLws.a
+
+
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0 
+#SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${usr_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
