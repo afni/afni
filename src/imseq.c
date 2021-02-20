@@ -13782,6 +13782,7 @@ ENTRY("mri_rgb_transform_nD") ;
    /* loop over pixels, adjusting color of each one by transformed intensity */
 
    switch( im->kind ){
+     default: break ;   /* unreachable - just to stifle compiler warning */
      case MRI_rgb:{
        byte *iar = MRI_BYTE_PTR(im) ;
        nvox = im->nvox ;
