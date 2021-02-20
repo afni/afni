@@ -277,7 +277,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       "-debias_TEopt: 0 <= debias_TEopt <= number of input datasets             \n",
       "     * For debiasing, only consider the 'debias_TEopt' input dataset,    \n",
       "       i.e. if debias_TEopt=2, the dataset corresponding to the second   \n",
-      "       TE will beused for debiasing. This option is available in case    \n",
+      "       TE will be used for debiasing. This option is available in case   \n",
       "       you really know that one of the echoes is the 'optimal' TE  ...   \n",
       "       As if this information was easy to know and match :)              \n",
       "     * Default is debias_TEopt = 0, i.e. all echoes will be considered.  \n",
@@ -350,6 +350,11 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       "          Default = 10                                                   \n"
     ) ),
 
+    '-sustained' = apl(0, d = FALSE, h = paste(
+      "-sustained:                                                                 \n",
+      "     * Use integration operator in design matrix.                        \n"
+    ) ),
+
     '-verb' = apl(n=1, d = 0, h = paste(
       "-verb VERB: VERB is an integer specifying verbosity level.\n",
       "            0 for quiet, 1 (default) or more: talkative.\n"
@@ -388,6 +393,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
   lop$debias_TEopt <- NULL
   lop$do_prior_debias <- FALSE
   lop$R2only <- FALSE
+  lop$sustained <- FALSE
   lop$rho <- 0
   lop$factor_MAD <- 1
   lop$factor_min_lambda <- 0.1
@@ -418,6 +424,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
            n_selection_Nscans = lop$n_selection_Nscans <- TRUE,
            do_prior_debias = lop$do_prior_debias <- TRUE,
            R2only = lop$R2only <- TRUE,
+           sustained = lop$sustained <- TRUE,
            hrf = lop$hrf <- ops[[i]],
            idx_hrf = lop$idx_hrf <- ops[[i]],
            hrf_vol = lop$vol_hrfs <- ops[[i]],
@@ -464,6 +471,7 @@ Rprog.MEPFM <- function( inData, infoDeconv = NULL) {
   idx2normalize <- infoDeconv$idx2normalize
   do_prior_debias <- infoDeconv$do_prior_debias
   R2only <- infoDeconv$R2only
+  sustained <- infoDeconv$sustained
   n_selection_Nscans <- infoDeconv$n_selection_Nscans
   factor_MAD <- infoDeconv$factor_MAD
   factor_min_lambda <- infoDeconv$factor_min_lambda
@@ -1019,7 +1027,11 @@ if ( (!is.null(lop$hrf)) && (is.null(lop$idx_hrf)) ) {
     hrf_mtx_ME <- matrix(0,n_inputs*nscans,2*nscans)
     for (iter_input in 1:n_inputs){
       hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = diag(1,nscans)
-      hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(nscans+1):(2*nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
+      if (lop$sustained == TRUE) {
+        hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(nscans+1):(2*nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx %*% lower.tri(hrf_mtx, diag=TRUE)
+      } else {
+        hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(nscans+1):(2*nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
+      }
     }
     infoDeconv$hrf_mtx_ME <- hrf_mtx_ME
     # normalize columns to unit norm
@@ -1049,8 +1061,13 @@ if ( (!is.null(lop$hrf)) && (is.null(lop$idx_hrf)) ) {
     # create model matrix for multi-echo formulation with only DR2
     hrf_mtx_ME <- matrix(0,n_inputs*nscans,nscans)
     for (iter_input in 1:n_inputs){
-      hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
+      if (lop$sustained == TRUE) {
+        hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx %*% lower.tri(hrf_mtx, diag=TRUE)
+      } else {
+        hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
+      }
     }
+
     infoDeconv$hrf_mtx_ME <- hrf_mtx_ME
     # normalize columns to unit norm
     hrf_mtx_ME_norm = matrix(0,n_inputs*nscans,nscans)

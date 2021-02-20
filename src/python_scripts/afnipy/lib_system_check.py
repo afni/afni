@@ -17,6 +17,17 @@ import platform, glob
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
 
+# ------------------------------ globals ------------------------------
+
+# ---- sites   e.g. https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/
+#                           background_install/install_instructs/steps_mac.html
+
+g_site_afnidoc      = 'https://afni.nimh.nih.gov/pub/dist/doc/htmldoc'
+g_site_install_root = '%s/background_install/install_instructs' % g_site_afnidoc
+g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
+
+# ------------------------------ main class  ------------------------------
+
 class SysInfo:
    """system info class"""
 
@@ -203,7 +214,8 @@ class SysInfo:
       try:
          self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
       except UnicodeDecodeError:
-         print("Unicode decoding error occurred when trying to read %s. No info retrieved"%hname)
+         print("Unicode decoding error occurred when trying to read %s." \
+               " No info retrieved"%hname)
 
       return 0
 
@@ -471,7 +483,8 @@ class SysInfo:
       # if set, check if any dylibs exist
       fvar = 'DYLD_FALLBACK_LIBRARY_PATH'
       if fvar not in os.environ:
-         print('** AFNI program failures and DYLD_FALLBACK_LIBRARY_PATH not set')
+         print('** AFNI program failures' \
+               ' and DYLD_FALLBACK_LIBRARY_PATH not set')
          if nadylib > 0:
             self.comments.append('consider setting DYLD_FALLBACK_LIBRARY_PATH'\
                                  ' to abin, e.g.\n   '                        \
@@ -1170,6 +1183,11 @@ class SysInfo:
             # clear on failure
             if vstr == '': dstr = ''
 
+         # some vesions are not considered good
+         if self.check_xquartz_version(vstr, warn=1): 
+            print("  ** for macos install instructions, see:\n\n    %s\n" \
+                  % g_site_install_mac)
+
          return 1, (dstr+vstr)
 
       elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
@@ -1181,6 +1199,85 @@ class SysInfo:
       else:
          print('** no version method for prog : %s' % prog)
          return -1, ''
+
+   def check_xquartz_version(self, vstr, warn=1):
+      """bad versions:
+             <= 2.6*
+             == 2.8.0_alpha*
+             == 2.8.0_beta[12] (so 3+ is good)
+
+         return 0 on ok, 1 on bad version or problem
+      """
+      # -------- set vnlist and vtype, and fail on errors
+      try:
+         vlist = vstr.split('_')
+         vnlist = [int(v) for v in vlist[0].split('.')]
+      except:
+         print("** failed to parse X version string, '%s'" % vstr)
+         self.comments.append("strange XQuartz version: %s" % vstr)
+         return 1
+
+      if len(vnlist) != 3:
+         print("** failed to parse X version levels in '%s'" % vstr)
+         self.comments.append("strange XQuartz version: %s" % vstr)
+         return 1
+
+      # and note any sub-type, e.g. 'alpha*'
+      if len(vlist) < 2:
+         vtype = ""
+      else:
+         vtype = vlist[1]
+
+      # -------- check for major version 2, (warn if less)
+      if vnlist[0] < 2:
+         self.comments.append("strange XQuartz major version: %s" % vstr)
+         return 1
+
+      if vnlist[0] > 2:
+         return 0
+
+      # -------- so the major version is 2
+
+      # check minor version 7 or 8
+      if vnlist[1] < 7:
+         estr = "early XQuartz version, but might be okay: %s" % vstr
+         self.comments.append(estr)
+         return 0
+
+      if vnlist[1] == 7:
+         return 0
+
+      # now only worry about 2.8.0, can expand later
+      if vnlist[1] > 8 or vnlist[2] > 0:
+         return 0
+
+      # -------- now have 2.8.0, check vtype
+
+      if vtype == "":
+         return 0
+
+      if vtype.startswith('alpha'):
+         estr = "XQuartz is an alpha release, and should be updated"
+         print("** %s" % estr)
+         self.comments.append(estr)
+         return 1
+
+      if vtype.startswith('beta'):
+         # get trailer
+         btype = vtype[4:]
+
+         # see if there is a number attached
+         if btype in ['1', '2']:
+            estr = "XQuartz is an early beta release, and should be updated"
+            print("** %s" % estr)
+            self.comments.append(estr)
+            return 1
+
+         # beta 3+ (or empty?) is okay, for now
+         return 0
+
+      # currently another future condition: neither alpha nor beta
+      return 0
 
    def get_kmdi_version(self, path, verb=1):
       """for the given program, run: mdls -name kMDItemVersion
@@ -1274,7 +1371,8 @@ class SysInfo:
            try:
                dmesg = open('/var/run/dmesg.boot').read()
            except IOError:
-               dmesgProcess = subprocess.Popen(['dmesg'], stdout=subprocess.PIPE)
+               dmesgProcess = subprocess.Popen(['dmesg'],
+                                               stdout=subprocess.PIPE)
                dmesg = dmesgProcess.communicate()[0]
            res = 0
            while '\ncpu' + str(res) + ':' in dmesg:
@@ -1327,6 +1425,8 @@ class SysInfo:
       self.show_os_specific()
 
       self.show_comments()
+
+# non-class functions
 
 def tup_str(some_tuple):
    """just listify some string tuple"""
