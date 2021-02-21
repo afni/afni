@@ -575,7 +575,7 @@ ENTRY("get_options") ;
 
   /* create the default label for ncase=1 */
 
-  if( ncase == 1 & lcase == NULL ){
+  if( ncase == 1 && lcase == NULL ){
     lcase = (char **)malloc(sizeof(char *)) ;
     lcase[0] = strdup("A") ;
     if( verb > 1 )

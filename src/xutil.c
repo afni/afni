@@ -772,7 +772,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
        if( nel == NULL ) break ;
        if( strcmp(nel->name,"AFNI_saw_message") == 0 ){
          char *rhs = NI_get_attribute(nel,"codestring") ;
-         if( rhs != NULL & strcmp(rhs,codestring) == 0 ) seen = 1 ;
+         if( rhs != NULL && strcmp(rhs,codestring) == 0 ) seen = 1 ;
        }
        NI_free_element(nel) ;
      }
@@ -2063,8 +2063,8 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
 
 /*---------------------------------------------------------------------------*/
 
-static int RWC_draw_rect( Display *dis, Window win, GC gc,
-                          int x1, int y1, int x2, int y2  )
+static void RWC_draw_rect( Display *dis, Window win, GC gc,
+                           int x1, int y1, int x2, int y2  )
 {
   int xb,yb , xt,yt ;
   unsigned int short w,h ;

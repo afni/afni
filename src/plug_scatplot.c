@@ -398,6 +398,8 @@ char * SCAT_main( PLUGIN_interface *plint )
             if( mmm[ii] ) xar[jj++] = mfac*bar[ii] ;
       }
       break ;
+
+      default: break ;
    }
 
    /*-- load values into y array --*/
@@ -429,6 +431,8 @@ char * SCAT_main( PLUGIN_interface *plint )
             if( mmm[ii] ) yar[jj++] = mfac*bar[ii] ;
       }
       break ;
+
+      default: break ;
    }
 
    /* remove those voxels that aren't in the data ranges for both datasets */

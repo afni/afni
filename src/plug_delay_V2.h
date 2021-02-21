@@ -15,9 +15,7 @@
 /*-------------------------------------------------------------------*/
 /* taken from #include "/usr/people/ziad/Programs/C/Z/Zlib/prototype.h" */
 
-#if defined(SCO) || defined(SOLARIS) || defined(ARM_M1)
-#define drem remainder
-#endif
+
 #ifndef NOWAYXCORCOEF
    #define NOWAYXCORCOEF 0               /* A flag value indicating that something lethal went on */
 #endif
@@ -1087,7 +1085,7 @@ static float punwrap (float p,int opt )
                         error_message ("punwrap","wrong opt parameter",1);
                         exit (1);
                 }
- alf = (float) drem ((double)p,(double)topi);
+ alf = (float) remainder ((double)p,(double)topi);
  
  if (alf > topi/2.0) alf = topi/2.0-alf;
  

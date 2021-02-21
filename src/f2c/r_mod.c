@@ -2,14 +2,14 @@
 
 #ifdef KR_headers
 #ifdef IEEE_drem
-double drem();
+double remainder();
 #else
 double floor();
 #endif
 double r_mod(x,y) real *x, *y;
 #else
 #ifdef IEEE_drem
-double drem(double, double);
+double remainder(double, double);
 #else
 #undef abs
 #include "mathh.h"
@@ -21,7 +21,7 @@ double r_mod(real *x, real *y)
 	double xa, ya, z;
 	if ((ya = *y) < 0.)
 		ya = -ya;
-	z = drem(xa = *x, ya);
+	z = remainder(xa = *x, ya);
 	if (xa > 0) {
 		if (z < 0)
 			z += ya;

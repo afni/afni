@@ -177,6 +177,7 @@ void ppmd_line( byte *pixels, int cols, int rows,
 
 /*----------------------------------------------------------------------------*/
 
+#if 0   /* NOT USED AT THIS TIME */
 #define SPLINE_THRESH 3
 
 /*! Draw a spline between 3 points, using recursion and lines. */
@@ -203,9 +204,11 @@ void ppmd_spline3( byte *pixels, int cols, int rows,
     else
 	ppmd_line( pixels, cols, rows, xb, yb, x2, y2, r,g,b ) ;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 
+#if 0   /* NOT USED AT THIS TIME */
 /*! Draw a spline between a bunch of points. */
 
 static
@@ -223,6 +226,7 @@ void ppmd_polyspline( byte *pixels, int cols, int rows,
     }
     ppmd_spline3( pixels, cols, rows, x, y, xc[nc - 1], yc[nc - 1], x1, y1, r,g,b ) ;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 

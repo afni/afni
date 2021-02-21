@@ -652,8 +652,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    /* 12 May 2005: add a signature to check the file on input to AFNI */
 
    /* n2   10 Jul, 2015 [rickr] */
-   sprintf(buf,"%ld,%ld,%ld,%ld,%ld,%d" ,
-           nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype ) ;
+   sprintf(buf,"%d,%d,%d,%d,%d,%d" ,
+           (int)nim->nx, (int)nim->ny, (int)nim->nz, (int)nim->nt, (int)nim->nu, (int)nim->datatype ) ;
    NI_set_attribute( ngr , "NIfTI_nums" , buf ) ;
 
    /** now, scan attribute elements in the group, and mark some

@@ -181,7 +181,7 @@ int main( int argc , char *argv[] )
          }
        }
        nx = DSET_NX(dset_nwarp[0]); ny = DSET_NY(dset_nwarp[0]); nz = DSET_NZ(dset_nwarp[0]); nxyz = nx*ny*nz;
-       if( npad == 0 & verb )
+       if( npad == 0 && verb )
          INFO_message("All %d input warp datasets matched grid %dx%dx%d",nwset,nx,ny,nz) ;
        else
          INFO_message("%d input warp dataset%s (out of %d) %s padded to match grid %dx%dx%d",

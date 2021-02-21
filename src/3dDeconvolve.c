@@ -8687,14 +8687,14 @@ void output_results
 
 
   /*----- Write the bucket dataset -----*/
-  if (option_data->bucket_filename != NULL)
+  if (option_data->bucket_filename != NULL){
     if (nxyz > 1)
       write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol,
                fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
                glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
     else
       write_one_ts (option_data->bucket_filename, p, coef_vol);
-
+  }
 
   /*----- Write the impulse response function 3D+time dataset -----*/
   ib = qp;
@@ -8763,36 +8763,38 @@ void output_results
       /* old style iresp: each coef is a response, so coef var is what we want */
 
       ts_length = max_lag[is] - min_lag[is] + 1;
-      if (option_data->sresp_filename[is] != NULL)
-      if (nxyz > 1)
-        write_ts_array (argc, argv, option_data, ts_length,
-                    nptr[is], 0, scoef_vol+ib,
-                    option_data->sresp_filename[is]);
-      else
-        write_one_ts (option_data->sresp_filename[is],
-                  ts_length, scoef_vol+ib);
-
+      if (option_data->sresp_filename[is] != NULL){
+        if (nxyz > 1){
+          write_ts_array (argc, argv, option_data, ts_length,
+                      nptr[is], 0, scoef_vol+ib,
+                      option_data->sresp_filename[is]);
+        } else {
+          write_one_ts (option_data->sresp_filename[is],
+                    ts_length, scoef_vol+ib);
+        }
+      }
       ib += ts_length;
     }
 
 
   /*----- Write the fitted (full model) 3D+time dataset -----*/
-  if (option_data->fitts_filename != NULL)
+  if (option_data->fitts_filename != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
                   option_data->fitts_filename);
     else
       write_one_ts (option_data->fitts_filename, nt, fitts_vol);
-
+  }
 
 
   /*----- Write the residual errors 3D+time dataset -----*/
-  if (option_data->errts_filename != NULL)
+  if (option_data->errts_filename != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
                   option_data->errts_filename);
     else
       write_one_ts (option_data->errts_filename, nt, errts_vol);
+  }
 
 }
 

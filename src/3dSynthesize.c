@@ -437,7 +437,7 @@ int main( int argc , char * argv[] )
 
        int aa , bb=-1 ; char *spt=select[kk] , *qpt ;
        for( ; *spt != '\0' && !isdigit(*spt) ; spt++ ) ; /* skip nondigits */
-       if( spt != '\0' ){
+       if( *spt != '\0' ){
          aa = (int)strtol(spt,&qpt,10) ;
          if( *qpt != '\0' ){
            for( ; *qpt != '\0' && !isdigit(*qpt) ; qpt++ ) ; /* skip */

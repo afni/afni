@@ -161,6 +161,8 @@ ENTRY("AFNI_vnlist_func_overlay") ;
      memcpy( vlist , voxijk , sizeof(int)*nvox ) ; /* then prune it */
 
      switch( im_thr->kind ){
+       default: break ;  /* should not happen */
+
        case MRI_short:{
          float thresh = im3d->vinfo->func_threshold
                       * im3d->vinfo->func_thresh_top / scale_thr ;

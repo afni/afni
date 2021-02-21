@@ -483,6 +483,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
          }
          break ;
 
+         default: break ;
       }
       if( nbin < 10 ) nbin = 10 ; else if( nbin > 1000 ) nbin = 1000 ;
    }
@@ -861,6 +862,8 @@ static char *  CORREL_main( PLUGIN_interface * plint )
                   if( mmm[ii] ) vval[jj++] = mfac*bar[ii] ;
          }
          break ;
+
+         default: break ;
       }
 
       PCOR_update_float( vval , pc_ref , pc_vc ) ;
