@@ -5732,7 +5732,7 @@ THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode 
    char *cmd , acmd[4096] , mess[4096] ;
    IndexWarp3D **iwstk=NULL ;
    int            nstk=0 , ii , ss ;
-   IndexWarp3D *AA , *BB ;
+   IndexWarp3D *AA=NULL , *BB=NULL ;
    THD_3dim_dataset *oset=NULL ;
    int nx=0,ny=0,nz=0 ;
    mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
@@ -5941,7 +5941,7 @@ ENTRY("NwarpCalcRPN") ;
         if( nstk < 1 ) ERREX("nothing on stack") ;
         AA = IW3D_sqrt( iwstk[nstk-1] , icode ) ;
         if( AA == NULL ) ERREX("square root failed :-(") ;
-        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = BB ;
+        IW3D_destroy( iwstk[nstk-1] ) ; iwstk[nstk-1] = AA ;
         if( verb_nww )
           ININFO_message(" -- square root CPU time = %.1f s",COX_cpu_time()-ct) ;
      }
@@ -6796,10 +6796,8 @@ ENTRY("IW3D_set_geometry_nwarp_catlist") ;
      gset = (char             **)malloc(sizeof(char             *)*nw) ;
      for( ii=jj=0 ; ii < nwc->ncat ; ii++ ){
        if( ISVALID_DSET(nwc->nwarp[ii]) ){
-         nset[jj]   = nwc->nwarp[ii] ;
-         gset[jj] = EDIT_get_geometry_string(nset[jj]) ;
-         /* separated - clang warn the order is "unsequenced" if included in gset[jj++] above*/
-         jj++; 
+         nset[jj] = nwc->nwarp[ii] ;
+         gset[jj] = EDIT_get_geometry_string(nset[jj]) ; jj++ ;
        }
      }
 

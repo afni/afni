@@ -69,7 +69,7 @@ double gam_find_cost( int npar , double *par )
    p = *par ; q = Gpeak / p ;
 
    hmp = gam_find_val( p , q , 0.5 ) ;
-   return fabsf( hmp.b - hmp.a - Gfwhm ) ;
+   return fabs( hmp.b - hmp.a - Gfwhm ) ;
 }
 
 /*---------- This is the externally callable function ----------*/

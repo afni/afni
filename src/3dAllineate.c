@@ -5054,7 +5054,7 @@ STATUS("zeropad weight dataset") ;
 
          if( do_allcost == -1 ){
            SAVE_PEARSON_MAP(save_pearson_prefix,val_init) ;
-           do_save_pearson_map == 0 ;
+           do_save_pearson_map = 0 ;
          }
 
          if( save_hist != NULL ) SAVEHIST("allcost_init",0) ;
@@ -5548,7 +5548,7 @@ STATUS("zeropad weight dataset") ;
 
      if( do_save_pearson_map ){  /*-- Save Pearson map [25 Jan 2021] --*/
        SAVE_PEARSON_MAP(save_pearson_prefix,val_out) ;
-       do_save_pearson_map == 0 ;
+       do_save_pearson_map = 0 ;
 #if 0
        MRI_IMAGE *pim ;
        PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
@@ -5644,7 +5644,7 @@ STATUS("zeropad weight dataset") ;
          brad = MAX(conv_rad,0.001f) ;
               if( rad > 55.5f*brad ) rad = 55.5f*brad ;
          else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
-         crad = (nwarp_flags&1 == 0) ? (11.1f*brad) : (2.22f*brad) ;
+         crad = ( (nwarp_flags&1) == 0 ) ? (11.1f*brad) : (2.22f*brad) ;
          nite = MAX(555,nwarp_itemax) ;
          nbf  = mri_genalign_scalar_optim( &stup , rad, crad, nite );
          if( verb ){

@@ -1010,6 +1010,7 @@ int main( int argc , char *argv[] )
                for( kk=ivbot ; kk < ivtop ; kk++ ){     /* detrend */
                   qq = kk - ivbot ;
                   switch( DSET_BRICK_TYPE(new_dset,kk) ){
+                     default: break ; /* should not happen, I hope */
 
 #undef  ROUND
 #define ROUND(qq) ((short)rint((qq)+0.00001))
@@ -1056,6 +1057,7 @@ int main( int argc , char *argv[] )
 
       for( kk=0 ; kk < new_nvals ; kk++ ){
          switch( DSET_BRICK_TYPE(new_dset,kk) ){
+            default: break ; /* should not happen, I hope */
             case MRI_short:{
                short * bar = (short *) DSET_ARRAY(new_dset,kk) ;
                float fac = DSET_BRICK_FACTOR(new_dset,kk) , val,finv ;

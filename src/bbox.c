@@ -1909,9 +1909,10 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId *id )
                      XtWidgetToApplicationContext( av->wrowcol ) ,
                      av->delay , AV_timer_CB , av ) ;
 
-   if( av->delay == MCW_AV_longdelay )
+   if( av->delay == MCW_AV_longdelay ){
       if( av->fastdelay > 0 ) av->delay = av->fastdelay ;
       else                    av->delay = MCW_AV_shortdelay ;
+   }
 
    return ;
 }
@@ -2877,9 +2878,10 @@ void AP_timer_CB( XtPointer client_data , XtIntervalId *id )
                      XtWidgetToApplicationContext( apad->wform ) ,
                      apad->delay , AP_timer_CB , apad ) ;
 
-   if( apad->delay == MCW_AV_longdelay )
+   if( apad->delay == MCW_AV_longdelay ){
       if( apad->fastdelay > 0 ) apad->delay = apad->fastdelay ;
       else                      apad->delay = MCW_AV_shortdelay ;
+   }
 
    return ;
 }

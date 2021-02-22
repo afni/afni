@@ -645,7 +645,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
       bv <<= 1 ; ADDTO_PPMTO(str,"png",bv,1) ;
       ppmto_png_filter = strdup(str) ;  /* 07 Dec 2007 */
    }
-   else { CANT_FIND("pnmtopng","PNG"); need_netpbm; }
+   else { CANT_FIND("pnmtopng","PNG"); need_netpbm++; }
 
    /*----- 16 Nov 2004: more warnings? -----*/
 
@@ -1297,11 +1297,12 @@ if( PRINT_TRACING ){
 
       MCW_register_help( newseq->wbut_bot[ii] , ISQ_but_bot_help[ii] ) ;
       MCW_register_hint( newseq->wbut_bot[ii] , ISQ_but_bot_hint[ii] ) ;
-   }
+
+   } /* end of loop over bottom buttons */
    SET_SAVE_LABEL(newseq) ;
 
    MCW_set_widget_bg( newseq->wbut_bot[NBUT_DONE] ,
-                      MCW_hotcolor(newseq->wbut_bot[ii]) , 0 ) ;
+                      MCW_hotcolor(newseq->wbut_bot[0]) , 0 ) ;
 
    /* 27 Jun 2001: popup menu for Save: button */
 
@@ -2512,10 +2513,10 @@ ENTRY("ISQ_zoom_av_CB") ;
                                                /* keep current center */
       seq->zoom_hor_off += dh ;
       seq->zoom_ver_off += dh ;
-           if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
-      else if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
-           if( seq->zoom_ver_off > mh  ) seq->zoom_ver_off = mh  ;
-      else if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
+           if( seq->zoom_hor_off > mh  ){ seq->zoom_hor_off = mh  ; }
+      else if( seq->zoom_hor_off < 0.0 ){ seq->zoom_hor_off = 0.0 ; }
+           if( seq->zoom_ver_off > mh  ){ seq->zoom_ver_off = mh  ; }
+      else if( seq->zoom_ver_off < 0.0 ){ seq->zoom_ver_off = 0.0 ; }
    }
 
    /* change some widgets depending on zoom level */
@@ -2806,6 +2807,7 @@ void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
    ISQ_timer_stop(seq) ;
 
    switch( ev->type ){
+     default: break ;
      case ButtonPress:{
        XButtonEvent *event = (XButtonEvent *)ev ;
        if( event->button == Button3 && seq->status->send_CB != NULL ){
@@ -2838,6 +2840,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
    ISQ_timer_stop(seq) ;
 
    switch( ev->type ){
+     default: break ;
       case ButtonPress:{
          XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 ){
@@ -3308,6 +3311,7 @@ void ISQ_apply_mask( MRI_IMAGE *maskim , MRI_IMAGE *iim )
    mmm = MRI_BYTE_PTR(maskim) ;                  if( mmm == NULL ) return ;
 
    switch( iim->kind ){
+     default: break ;
      case MRI_byte:{
        byte *ar = mri_data_pointer(iim) ;
        for( ii=0 ; ii < npix ; ii++ ) if( mmm[ii] == 0 ) ar[ii] = 0 ;
@@ -3873,7 +3877,7 @@ ENTRY("ISQ_process_mri") ;
          }
          break ;  /* end of autoscaling */
 
-#ifndef NO_GROUP_SCALE 
+#ifndef NO_GROUP_SCALE
          case ISQ_SCL_GRP:{         /* scale on group statistics */
             ISQ_glob_statistics *gl = seq->glstat ;
 
@@ -4121,6 +4125,7 @@ STATUS("call ISQ_perpoints") ;
              if( !mmm[ii] ) ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
          }
          break ;
+         default: break ;
        } /* end of switch on newim->kind */
        /* now save the automask for usage later (soon later) [12 Dec 2014] */
        KILL_1MRI(seq->last_automask) ;
@@ -4152,6 +4157,7 @@ STATUS("call ISQ_perpoints") ;
        if( ar[ii] == seq->bot ) ar[ii] = zz ;   /* the olden way */
 #else
      switch( lim->kind ){                       /* the new way: 14 Jun 2010 */
+       default: break ;
        case MRI_short:{
          short *lar = MRI_SHORT_PTR(lim) ;
          for( ii=0 ; ii < npix ; ii++ ) if( lar[ii] == 0 ) ar[ii] = zz ;
@@ -5810,6 +5816,7 @@ ENTRY("ISQ_draw_winfo") ;
          case ISQ_CX_PHASE: strcat( buf , "[arg]" ) ; break ;
          case ISQ_CX_REAL:  strcat( buf , "[re]"  ) ; break ;
          case ISQ_CX_IMAG:  strcat( buf , "[im]"  ) ; break ;
+         default: break ;
        }
      }
    }
@@ -5855,6 +5862,7 @@ ENTRY("ISQ_draw_winfo") ;
          case ISQ_ROT_90 : iw=1 ; break ;
          case ISQ_ROT_180: iw=2 ; break ;
          case ISQ_ROT_270: iw=3 ; break ;
+         default: break ;
        }
        if( seq->opt.mirror ) iw = (iw+2)%4 ;
 
@@ -5869,6 +5877,7 @@ ENTRY("ISQ_draw_winfo") ;
            case ISQ_ROT_90 : strcat(qbuf,"[90" ) ; break ;
            case ISQ_ROT_180: strcat(qbuf,"[180") ; break ;
            case ISQ_ROT_270: strcat(qbuf,"[270") ; break ;
+           default: break ;
          }
          if( seq->opt.mirror ){
            if( seq->opt.rot == ISQ_ROT_0 ) strcat(qbuf,"l] " ) ;
@@ -6148,10 +6157,10 @@ ENTRY("ISQ_drawing_EV") ;
             if( xdif || ydif ){                             /* if big enough change */
               if( seq->imim != NULL && seq->imim->kind == MRI_rgb ){ /* 26 Apr 2005 */
 
-                     if( xdif > 0 ) seq->rgb_gamma  *= 0.95 ;  /* change the RGB */
-                else if( xdif < 0 ) seq->rgb_gamma  /= 0.95 ;      /* colorizing */
-                     if( ydif < 0 ) seq->rgb_offset += 0.014;
-                else if( ydif > 0 ) seq->rgb_offset -= 0.014;
+                     if( xdif > 0 ){ seq->rgb_gamma  *= 0.95 ; } /* change the RGB */
+                else if( xdif < 0 ){ seq->rgb_gamma  /= 0.95 ; }     /* colorizing */
+                     if( ydif < 0 ){ seq->rgb_offset += 0.014; }
+                else if( ydif > 0 ){ seq->rgb_offset -= 0.014; }
                 ISQ_redisplay( seq , -1 , isqDR_reimage ) ;
                 seq->cmap_changed = 1 ;
                 seq->last_bx = event->x ; seq->last_by = event->y;
@@ -7716,7 +7725,7 @@ ENTRY("ISQ_statify_one") ;
 }
 
 /*-----------------------------------------------------------------------*/
-/* Percentage points for the 2%-98% scaling.
+/* Percentage points for the 2%-98% scaling. */
 /*-----------------------------------------------------------------------*/
 
 void ISQ_perpoints( float bot , float top ,
@@ -13773,6 +13782,7 @@ ENTRY("mri_rgb_transform_nD") ;
    /* loop over pixels, adjusting color of each one by transformed intensity */
 
    switch( im->kind ){
+     default: break ;   /* unreachable - just to stifle compiler warning */
      case MRI_rgb:{
        byte *iar = MRI_BYTE_PTR(im) ;
        nvox = im->nvox ;

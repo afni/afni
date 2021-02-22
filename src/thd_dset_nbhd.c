@@ -338,6 +338,7 @@ int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
    if( inim == NULL || nbhd == NULL || nar == NULL ) return 0 ;
 
    switch( inim->kind ){
+     default: break ;
      case MRI_float:
        return mri_get_nbhd_array_float(inim,mask,xx,yy,zz,nbhd,(float *)nar) ;
      case MRI_short:

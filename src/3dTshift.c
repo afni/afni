@@ -240,7 +240,7 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-voxshift") == 0 ){  /* 21 Sep 2011 */
         if( TS_fset != NULL ) ERROR_exit("Can't use -voxshift twice!") ;
-        TS_fset = TS_fset = THD_open_dataset( argv[++nopt] ) ;
+        TS_fset = THD_open_dataset( argv[++nopt] ) ;
         if( TS_fset == NULL )
           ERROR_exit("Can't open -voxshift dataset '%s'",argv[nopt]) ;
         DSET_load(TS_fset) ; CHECK_LOAD_ERROR(TS_fset) ;

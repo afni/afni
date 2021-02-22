@@ -296,6 +296,7 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < DSET_NVALS(inset) ; ii++ ){ /* add to overall histogram */
        if( verb ) fprintf(stderr,".") ;
        switch( DSET_BRICK_TYPE(inset,ii) ){
+         default: continue ;  /* go to next ii */
          case MRI_short:{
            short *sar = (short *)DSET_BRICK_ARRAY(inset,ii) ;
            for( kk=0 ; kk < nvox ; kk++ ) ohist[ sar[kk]+TWO15 ]++ ;
@@ -549,6 +550,7 @@ ENTRY("THD_localhistog") ;
        if( nnpt == 1 ){                            /* only 1 voxel in nbhd */
          int qq,ii,jj,kk,ib,nb ;
          switch( bbim->kind ){
+           default: continue ;  /* go to next iv */
            case MRI_short:{
              short *sar = MRI_SHORT_PTR(bbim) ;
              for( qq=0 ; qq < nvox ; qq++ ) listar[sar[qq]+TWO15][qq]++ ;
@@ -579,6 +581,7 @@ ENTRY("THD_localhistog") ;
            nb = mri_get_nbhd_array( bbim , NULL , ii,jj,kk , nbhd , nar ) ;
            if( nb == 0 ) continue ;
            switch( btyp ){
+             default: break ;
              case MRI_short:
                for( ib=0 ; ib < nb ; ib++ ) listar[sar[ib]+TWO15][qq]++ ;
              break ;

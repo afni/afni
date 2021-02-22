@@ -4966,6 +4966,7 @@ ENTRY("AFNI_set_valabel") ;
    /* otherwise, extract a value from the image and put into blab */
 
    switch( im->kind ){
+      default: strcpy(blab,":(") ;
 
       case MRI_byte:{
          int val = MRI_BYTE_2D(im , ib.ijk[0],ib.ijk[1]) ;
@@ -5007,7 +5008,6 @@ ENTRY("AFNI_set_valabel") ;
          sprintf(blab,"(%d,%d,%d)",(int)rgb[3*ii],(int)rgb[3*ii+1],(int)rgb[3*ii+2]) ;
       }
       break ;
-
    }
    EXRETURN ;
 }

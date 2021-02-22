@@ -1028,7 +1028,7 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncasecmp(argv[iarg],"-consign",7) == 0 ){
-       char *cpt , nvec ;
+       char *cpt ; int nvec ;
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( convec != NULL )

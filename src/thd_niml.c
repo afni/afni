@@ -806,8 +806,8 @@ ENTRY("process_NSD_labeltable");
     }
 
     /* if there are colors, get them */
-    if( ncols == 6 ) if(gni.debug) INFO_message("Colors will be ignored");
-    else             rgba = NULL;
+    if( ncols == 6 ){ if(gni.debug) INFO_message("Colors will be ignored"); }
+    else            {  rgba = NULL; }
 
     /* convert to label table */
     ii = rint(sqrt(2*length+1.0l)) ;
