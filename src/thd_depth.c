@@ -166,7 +166,7 @@ int erosion(THD_3dim_dataset * din, float *outImg){
     bool objectVoxelsLeft=TRUE;
     BYTE * buffer;
 
-	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
+    if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
     int brickType=DSET_BRICK_TYPE(din, 0);
     if( brickType != MRI_byte ) return ERROR_DATATYPENOTHANDLED;
@@ -232,12 +232,12 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are
     float   *floatImg, ad3[3];
     int *vol;
 
-	if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
+    if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
-	// Alliocate memory to integer input buffer
-	if (!(inputImg=(int *)calloc(nvox,sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
+    // Alliocate memory to integer input buffer
+    if (!(inputImg=(int *)calloc(nvox,sizeof(int)))) return ERROR_MEMORY_ALLOCATION;
 
-	DSET_load(din);
+    DSET_load(din);
     int brickType=DSET_BRICK_TYPE(din, 0);
     fprintf(stderr, "brickType=%d\n", brickType);
     switch(brickType){
@@ -406,10 +406,10 @@ if (debugMode){
                        do_sqrt, edges_are_zero_for_nz, ad3, outImg);
 #endif
 
-	// Cleanup
-	free(inputImg);
+    // Cleanup
+    free(inputImg);
 
-	return ERROR_NONE;
+    return ERROR_NONE;
 }
 
 ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
@@ -643,10 +643,10 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
     int nx = DSET_NX(din);
     int nvox = nx*ny*nz;
 
-	int nVol = 1;
-	int nvox3D = nx * ny * MAX(nz, 1);
-	nVol = nvox / nvox3D;
-	if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
+    int nVol = 1;
+    int nvox3D = nx * ny * MAX(nz, 1);
+    nVol = nvox / nvox3D;
+    if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
 
     // Get real world voxel sizes
     float xDim = fabs(DSET_DX(din));
@@ -658,96 +658,96 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 
     if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
 
-	for (size_t i = 0; i < nvox; i++ ) {
-		if (inputImg[i] == index)
-			(*outImg)[i] = BIG;
-	}
-	size_t nRow = ny*nz;
+    for (size_t i = 0; i < nvox; i++ ) {
+        if (inputImg[i] == index)
+            (*outImg)[i] = BIG;
+    }
+    size_t nRow = ny*nz;
 
-	//EDT in left-right direction
-	for (int r = 0; r < nRow; r++ ) {
-		flt * imgRow = (*outImg) + (r * nx);
-		edt_local(xDim, imgRow, nx);
-	}
+    //EDT in left-right direction
+    for (int r = 0; r < nRow; r++ ) {
+        flt * imgRow = (*outImg) + (r * nx);
+        edt_local(xDim, imgRow, nx);
+    }
 
-	//EDT in anterior-posterior direction
-	nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
-	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
-		flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
+    //EDT in anterior-posterior direction
+    nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
+    for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
+        flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
 
-		//transpose data
-		size_t vo = v * nvox3D; //volume offset
-		for (int z = 0; z < nz; z++ ) {
-			int zo = z * nx * ny;
-			for (int y = 0; y < ny; y++ ) {
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					img3D[zo+xo+y] = (*outImg)[vo]/yDimSqrd;
-					vo += 1;
-					xo += ny;
-				}
-			}
-		}
-		//perform EDT for all rows
-		for (int r = 0; r < nRow; r++ ) {
-			flt * imgRow = img3D + (r * ny);
-			edt_local(yDim, imgRow, ny);
-		}
-		//transpose data back
-		vo = v * nvox3D; //volume offset
-		for (int z = 0; z < nz; z++ ) {
-			int zo = z * nx * ny;
-			for (int y = 0; y < ny; y++ ) {
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[zo+xo+y];
-					vo += 1;
-					xo += ny;
-				}
-			}
-		}
-		free (img3D);
-	} //for each volume
+        //transpose data
+        size_t vo = v * nvox3D; //volume offset
+        for (int z = 0; z < nz; z++ ) {
+            int zo = z * nx * ny;
+            for (int y = 0; y < ny; y++ ) {
+                int xo = 0;
+                for (int x = 0; x < nx; x++ ) {
+                    img3D[zo+xo+y] = (*outImg)[vo]/yDimSqrd;
+                    vo += 1;
+                    xo += ny;
+                }
+            }
+        }
+        //perform EDT for all rows
+        for (int r = 0; r < nRow; r++ ) {
+            flt * imgRow = img3D + (r * ny);
+            edt_local(yDim, imgRow, ny);
+        }
+        //transpose data back
+        vo = v * nvox3D; //volume offset
+        for (int z = 0; z < nz; z++ ) {
+            int zo = z * nx * ny;
+            for (int y = 0; y < ny; y++ ) {
+                int xo = 0;
+                for (int x = 0; x < nx; x++ ) {
+                    (*outImg)[vo] = img3D[zo+xo+y];
+                    vo += 1;
+                    xo += ny;
+                }
+            }
+        }
+        free (img3D);
+    } //for each volume
 
-	//EDT in head-foot direction
-	nRow = nx * ny; //transpose XYZ to ZXY and blur Z columns with XY Rows
-	for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
-		flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
-		//transpose data
-		size_t vo = v * nvox3D; //volume offset
-		for (int z = 0; z < nz; z++ ) {
-			for (int y = 0; y < ny; y++ ) {
-				int yo = y * nz * nx;
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					img3D[z+xo+yo] = (*outImg)[vo]/zDimSqrd;
-					vo += 1;
-					xo += nz;
-				}
-			}
-		}
-		//perform EDT for all "rows"
-		for (int r = 0; r < nRow; r++ ) {
-			flt * imgRow = img3D + (r * nz);
-			edt_local(zDim, imgRow, nz);
-		}
-		//transpose data back
-		vo = v * nvox3D; //volume offset
-		for (int z = 0; z < nz; z++ ) {
-			for (int y = 0; y < ny; y++ ) {
-				int yo = y * nz * nx;
-				int xo = 0;
-				for (int x = 0; x < nx; x++ ) {
-					(*outImg)[vo] = img3D[z+xo+yo];
-					vo += 1;
-					xo += nz;
-				} //x
-			} //y
-		} //z
-		free (img3D);
-	} //for each volume
+    //EDT in head-foot direction
+    nRow = nx * ny; //transpose XYZ to ZXY and blur Z columns with XY Rows
+    for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
+        flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
+        //transpose data
+        size_t vo = v * nvox3D; //volume offset
+        for (int z = 0; z < nz; z++ ) {
+            for (int y = 0; y < ny; y++ ) {
+                int yo = y * nz * nx;
+                int xo = 0;
+                for (int x = 0; x < nx; x++ ) {
+                    img3D[z+xo+yo] = (*outImg)[vo]/zDimSqrd;
+                    vo += 1;
+                    xo += nz;
+                }
+            }
+        }
+        //perform EDT for all "rows"
+        for (int r = 0; r < nRow; r++ ) {
+            flt * imgRow = img3D + (r * nz);
+            edt_local(zDim, imgRow, nz);
+        }
+        //transpose data back
+        vo = v * nvox3D; //volume offset
+        for (int z = 0; z < nz; z++ ) {
+            for (int y = 0; y < ny; y++ ) {
+                int yo = y * nz * nx;
+                int xo = 0;
+                for (int x = 0; x < nx; x++ ) {
+                    (*outImg)[vo] = img3D[z+xo+yo];
+                    vo += 1;
+                    xo += nz;
+                } //x
+            } //y
+        } //z
+        free (img3D);
+    } //for each volume
 
-	return ERROR_NONE;
+    return ERROR_NONE;
 }
 
 ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **indices){
@@ -781,20 +781,20 @@ ERROR_NUMBER getNonzeroIndices(int nvox, int *inputImg, int *numIndices, int **i
 }
 
 flt vx(flt * f, int p, int q) {
-	if ((f[p] == BIG) || (f[q] == BIG))
-		return BIG;
-	else
-		return ((f[q] + q*q) - (f[p] + p*p)) / (2.0*q - 2.0*p);
+    if ((f[p] == BIG) || (f[q] == BIG))
+        return BIG;
+    else
+        return ((f[q] + q*q) - (f[p] + p*p)) / (2.0*q - 2.0*p);
 }
 
 void edt_local(float scale, flt * f, int n) {
     float scaleSqrd = scale*scale;
 
-	int q, p, k;
-	flt s, dx;
-	flt * d = (flt *)calloc((n)*sizeof(flt), 64);
-	flt * z = (flt *)calloc((n)*sizeof(flt), 64);
-	int * v = (int *)calloc((n)*sizeof(int), 64);
+    int q, p, k;
+    flt s, dx;
+    flt * d = (flt *)calloc((n)*sizeof(flt), 64);
+    flt * z = (flt *)calloc((n)*sizeof(flt), 64);
+    int * v = (int *)calloc((n)*sizeof(int), 64);
 
 //    # Find the lower envelope of a sequence of parabolas.
 //    #   f...source data (returns the Y of the parabola vertex at X)
@@ -811,8 +811,8 @@ void edt_local(float scale, flt * f, int n) {
     z[0] = -BIG;
     z[1] = BIG;
 
-     for (q = 1; q < n; q++ ) {
-//	    If the new parabola is lower than the right-most parabola in
+    for (q = 1; q < n; q++ ) {
+//      If the new parabola is lower than the right-most parabola in
 //        # the envelope, remove it from the envelope. To make this
 //        # determination, find the X coordinate of the intersection (s)
 //        # between the parabolas with vertices at (q,f[q]) and (p,f[p]).
@@ -833,17 +833,17 @@ void edt_local(float scale, flt * f, int n) {
 //    # in order to populate the distance values at each X coordinate.
     k = 0;
     for (q = 0; q < n; q++ ) {
-	    while (z[k + 1] < q)
+        while (z[k + 1] < q)
             k = k + 1;
         dx = (q - v[k])*scale;
         // d[q] = dx * dx + f[v[k]];
         d[q] = dx * dx + f[v[k]]*scaleSqrd;
     }
     for (q = 0; q < n; q++ )
-		f[q] = d[q];
-	free (d);
-	free (z);
-	free (v);
+        f[q] = d[q];
+    free (d);
+    free (z);
+    free (v);
 }
 
 int open_input_dset(THD_3dim_dataset ** din, char * fname)
