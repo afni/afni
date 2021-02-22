@@ -5053,6 +5053,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
 
+
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
     bopt = block.opts.find_opt('-regress_basis')
@@ -5477,6 +5478,7 @@ def db_mod_regress(block, proc, user_opts):
     # check on tsnr and gcor
     apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
     apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
+    apply_uopt_to_block('-regress_mask_tsnr', user_opts, block)
 
     # possibly update cbucket option
     apply_uopt_to_block('-regress_make_cbucket', user_opts, block)
@@ -6660,11 +6662,13 @@ def db_cmd_regress_rsfc(proc, block):
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
 
-    # no mask for surface based analysis
-    if proc.mask and not proc.surf_anat:
-       mask_pre = proc.mask.prefix
-    else:
-       mask_pre = ''
+    # changing default to no mask, prob want to add -regress_mask_tsnr
+    # (requested by P Taylor)                              22 Feb 2021
+    mask_pre = ''
+    if block.opts.have_yes_opt('-regress_mask_tsnr', default=0):
+       # also, no mask for surface based analysis
+       if proc.mask and not proc.surf_anat:
+          mask_pre = proc.mask.prefix
 
     return db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
@@ -13753,7 +13757,7 @@ g_help_options = """
             Note: computation of GCOR requires a residual dataset, an EPI mask,
                   and a volume analysis (no surface at the moment).
 
-        -regress_compute_tsnr yes/no : compute TSNR datasets from errts
+        -regress_compute_tsnr yes/no : compute TSNR dataset from errts
 
                 e.g. -regress_compute_tsnr no
                 default: yes
@@ -13775,6 +13779,22 @@ g_help_options = """
             'regress' block.
 
             See also -volreg_compute_tsnr.
+
+        -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
+
+                e.g. -regress_mask_tsnr yes
+                default: no
+
+            By default, a temporal signal to noise (TSNR) dataset is created at
+            the end of the regress block.  By default, this dataset is not
+            masked (to match what is done in the regression).
+
+            To mask, apply this option with 'yes'.
+
+          * This dataset was originally masked, with the default changing to
+            match the regression 22 Feb, 2021.
+
+            See also -regress_compute_tsnr.
 
         -regress_fout yes/no         : output F-stat sub-bricks
 

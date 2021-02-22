@@ -683,9 +683,11 @@ g_history = """
        - specify whether each example is reasonably recommended
     7.11 Mar 11, 2020: add details on why examples are not considered complete
     7.12 Apr 14, 2020: copy with absolute paths if inputs have them
+    7.13 Feb 22, 2021:
+       - add -regress_mask_tsnr; change default to no mask for TSNR dset
 """
 
-g_version = "version 7.12, April 14, 2020"
+g_version = "version 7.13, February 22, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1515,6 +1517,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
+        self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="apply mask to TSNR dset (yes/no, def=no)")
         self.valid_opts.add_opt('-regress_cormat_warnings', 1, [],
                         acplist=['yes','no'],
                         helpstr='show any correl warns from Xmat (def=yes)')
