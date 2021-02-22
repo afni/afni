@@ -685,6 +685,7 @@ g_history = """
     7.12 Apr 14, 2020: copy with absolute paths if inputs have them
     7.13 Feb 22, 2021:
        - add -regress_mask_tsnr; change default to no mask for TSNR dset
+       - pass mask_dset explicitly to gen_ss_review_scripts.py
 """
 
 g_version = "version 7.13, February 22, 2021"

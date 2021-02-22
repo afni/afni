@@ -6736,7 +6736,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
 
     cmd += "%s3dcalc -a rm.signal%s%s \\\n"     \
            "%s       -b rm.noise%s%s %s \\\n"   \
-           "%s       -expr '%s' -prefix %s \n"  \
+           "%s       -expr '%s' -prefix %s\n"   \
            % (istr, suff, vsuff,
               istr, suff, vsuff, cstr,
               istr, estr, dname)
@@ -8212,27 +8212,31 @@ def db_cmd_gen_review(proc):
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
+
+    # subsequent options get their own lines
+    if lopts != '': lopts = ' \\\n   %s' % lopts
+
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
        lopts += ' \\\n    -errts_dset %s' % ename
 
+    # specify mask dataset to be used for stats, since it might not be clear
+    # (no longer def in TSNR)                                    22 Feb 2021
+    if proc.mask and not proc.surf_anat:
+       lopts += ' \\\n    -mask_dset %s' % proc.mask.shortinput(head=1)
+
     # generally include the review output file name as a uvar
     if proc.ssr_b_out != '':
-       revstr = ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
-    else:
-       revstr = ''
+       lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
 
     if proc.ssr_uvars:
-       uvopt = ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
-    else:
-       uvopt = ''
+       lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py%s -exit0'                          \
-           '%s%s\n\n'                                                   \
-           % (lopts, revstr, uvopt)
+           'gen_ss_review_scripts.py -exit0'                            \
+           '%s\n\n' % lopts
 
     return cmd
 
