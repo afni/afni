@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Feb, 2021, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "cast fabs args to double, to appease VERY whiny compiler",
+   NULL
+ } ,
+
  { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
    "updates for ShowMode in SUMA_xColBar.c",
    "Resolve compiler warnings, but avoid logic changes at the same time\n"
