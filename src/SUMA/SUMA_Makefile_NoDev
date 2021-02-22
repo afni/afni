@@ -871,17 +871,3 @@ standalones: ${SUMA_EXECS}
 anew: clean ${SUMALIB} mainobj suma standalones  install 
 
 testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps SUMA_test_DrawingAreaWidget
-
-
-# for GTS must change this line to explicitly include pcre library in /opt/homebrew/lib
-@ CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre  -Wall -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0 -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/Cellar/pcre/8.44/include
-
-/bin/sh ../libtool --tag=CC --mode=link gcc -g -O2 -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
- -Wmissing-prototypes -Wmissing-declarations -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0 \
- -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include -I/opt/homebrew/opt/gettext/include \
- -L/opt/homebrew/lib -lpcre -I/opt/homebrew/Cellar/pcre/8.44/include -L/opt/homebrew/Cellar/glib/2.66.7/lib \
- -L/opt/homebrew/opt/gettext/lib -lglib-2.0 -lintl -o libgts.la -rpath /opt/homebrew/lib \
- -version-info 4:0:0 -release 0.7 -export-dynamic \
-  object.lo point.lo vertex.lo segment.lo edge.lo triangle.lo face.lo kdtree.lo bbtree.lo misc.lo predicates.lo \
-  heap.lo eheap.lo fifo.lo matrix.lo surface.lo stripe.lo vopt.lo refine.lo iso.lo isotetra.lo split.lo psurface.lo \
-  hsurface.lo cdt.lo boolean.lo named.lo oocs.lo container.lo graph.lo pgraph.lo partition.lo curvature.lo tribox3.lo
