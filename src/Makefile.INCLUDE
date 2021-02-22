@@ -2707,7 +2707,7 @@ LIBMRI_MACOS: mrilib.h                                                  \
               $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h   \
               Aomp.h thd_selenium_off.o                                 \
               $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
-	$(RM) $@
+	$(RM) libmri.so
 	$(CC) -shared -fPIC -o libmri.so                                \
               -L. $(LZLIB) $(LGIFTI) -lf2c $(LEXLIBS) -lmrix -lcoxplot  \
               -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib    \
@@ -2726,7 +2726,7 @@ LIBMRI_LINUX: niml.h mrilib.h                                           \
               $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) 3ddata.h          \
               Aomp.h thd_selenium_off.o                                 \
               $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
-	$(RM) $@
+	$(RM) libmri.so
 	$(CC) -shared -fPIC -o libmri.so                                  \
               $(LFLAGS)                                                   \
               $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) $(NIML_OBJS) $(CS_OBJS) \

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Feb, 2021, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "remove actual targets in RM for LIBMRI_*",
+   NULL
+ } ,
+
  { 21, Feb, 2021, RCR, "@djunct_glue_imgs_vert", MICRO, TYPE_MODIFY,
    "allow -help without deps, so move dependency tests",
    NULL
