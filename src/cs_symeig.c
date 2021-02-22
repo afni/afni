@@ -132,7 +132,7 @@ void symeig_3( double *a , double *e , int dovec )
    /*-- Rewrite classical formula for qq as a sum of squares [26 Oct 2005] --*/
 #if 0
    qq = (a1*a1 - 3.0*a2) / 9.0 ;
-#else
+#else  /* note SQR(a) = (a)*(a) */
    qq = (  0.5 * ( SQR(dd-aa) + SQR(ff-aa) + SQR(ff-dd) )
          + 3.0 * ( bb*bb      + cc*cc      + ee*ee      ) ) / 9.0 ;
 #endif
