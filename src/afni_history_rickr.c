@@ -53,8 +53,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 21, Feb, 2021, RCR, "GIFTI", MICRO, TYPE_MODIFY,
-   "cast fabs args to double, to appease VERY whiny compiler",
+ { 21, Feb, 2021, RCR, "@djunct_glue_imgs_vert", MICRO, TYPE_MODIFY,
+   "allow -help without deps, so move dependency tests",
    NULL
  } ,
 
