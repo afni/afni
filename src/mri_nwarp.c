@@ -58,9 +58,15 @@
 /*--- for debugging memory usage, when there is a problem       --------------*/
 /*--- not a good idea with OpenMP: mcw_malloc isn't thread safe --------------*/
 
-#define DEBUG_MEMORY
+#ifdef USE_OMP
+# undef  DEBUG_MEMORY
+# else
+# define DEBUG_MEMORY
+#endif
 #undef  MEMORY_CHECK
+#undef  MEMORY_SHORT
 
+       /*--- use mcw_malloc() functions for memory checking, if available ----*/
 #if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC) /*---------------------*/
 
 # define MEMORY_CHECK(mm)                                              \
@@ -82,21 +88,20 @@ static char * wans(void)
 
 # define MEMORY_SHORT wans()
 
-#else  /*--- try something else for memory checking --------------------------*/
+       /*--- try something else for memory checking --------------------------*/
+#elif defined(DEBUG_MEMORY) && ( defined(__linux__) || defined(__FreeBSD__) )
 
 # define MEMORY_CHECK(mm)  show_malloc_stats(mm) ;
 # define MEMORY_SHORT     "\0"
 
-#if defined(__FreeBSD__)
-  #include <stdlib.h>
-  #include <malloc_np.h>
-#endif
-
 #if defined(__linux__)
-#include <malloc.h>
+#  include <malloc.h>
+#elif defined(__FreeBSD__)
+#  include <stdlib.h>
+#  include <malloc_np.h>
 #endif
 
-static void show_malloc_stats(char *mesg)  /*-- stolen from Rick R --*/
+static void show_malloc_stats(char *mesg)  /*-- lifted from Rick R --*/
 {
 #if defined(__linux__)
       INFO_message("Memory usage: %s",mesg) ;
@@ -105,9 +110,12 @@ static void show_malloc_stats(char *mesg)  /*-- stolen from Rick R --*/
       INFO_message("Memory usage: %s",mesg) ;
       malloc_stats_print(NULL, NULL, "g");
 #endif
+      /* nothing for MacOS X, as Apple doesn't supply such functions :( */
 }
 
-#endif /* #if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC) -------------*/
+#endif /* memory checking possibilities */
+
+/* Backup definitions for the MEMORY_ macros */
 
 #ifndef MEMORY_CHECK
 # define MEMORY_CHECK(mm) /* nada */
@@ -4196,9 +4204,8 @@ void IW3D_mat44_into_floatim( mat44 imat , MRI_IMAGE *sim, MRI_IMAGE *fim,
                               int jbot, int jtop ,
                               int kbot, int ktop , int code )
 {
-   int nx,ny,nz,nxy , nii,njj,nkk , np , ii,jj,kk,ijk , pp ;
-   float *ip,*jp,*kp ;
-   float *far , *xd,*yd,*zd ;
+   int nx,ny,nz,nxy , nii,njj,nkk , np , ii,jj,kk , pp ;
+   float *ip,*jp,*kp , *far ;
 
 ENTRY("IW3D_mat44_into_floatim") ;
 
