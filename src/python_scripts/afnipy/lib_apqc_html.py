@@ -164,6 +164,18 @@ combined stimulus plots are generated (with any censoring also shown).
 The degrees of freedom (DF) summary is also provided, so one can check
 if too many get used up during processing (careful with bandpassing!).
 
+The "corr_brain" plot shows correlation of each voxel with the errts
+average within the whole brain mask (what could be called the 'global
+signal').
+
+The voxelwise TSNR after regression modeling is shown throughout the
+whole FOV: the brain mask dset is just used for defining a region
+within which percentiles are calculated.  The formula for TSNR is:
+            TSNR = average(signal) / stdev(noise)
+The hot colors (yellow-orange-red) are defined by the 5-95%ile range
+of TSNR in the mask.  The 1-5%ile values within the mask are shown in
+light blue, and the lower values are shown in dark blue.
+
 And a grayplot of residuals (with motion/outliers/censoring) is
 provided.  The '-pvorder' is used for output, placing the time series
 in decreasing order of similarity to the top two principal components
@@ -539,9 +551,9 @@ def make_inline_pbar_str(ss) :
         if pbar_dict['vthr_comm'] :
             out+= ''' ({vthr_comm})'''.format(**pbar_dict)
 
-#    if pbar_dict['gen_comm'] :
-#        out+= '''\n'''
-#        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
+    if pbar_dict['gen_comm'] :
+        out+= '''\n'''
+        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
 
     return out
 

@@ -147,7 +147,7 @@ auth = 'PA Taylor'
 #    + if ~normal smoothing is done, this is needed
 #    + if no smoothing is done
 #
-ver = '3.65' ; date = 'July 30, 2020' 
+#ver = '3.65' ; date = 'July 30, 2020' 
 # [PT] 
 #    + search for template first with full given path, then just by
 #      basename.  this makes it easier to have QC work if directory
@@ -155,6 +155,13 @@ ver = '3.65' ; date = 'July 30, 2020'
 #      different computers)
 #    + also include a wildcard to help clean intermed file, in case
 #      auto GZIP is on
+#
+#ver = '3.7' ; date = 'Feb 22, 2021'
+# [PT] add in TSNR images
+#
+ver = '3.71' ; date = 'Feb 22, 2021'
+# [PT] updates with TSNR images/fnames 
+#    + following on from AP updates from RCR---thanks!
 #
 #########################################################################
 
@@ -2603,6 +2610,142 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
 # -----------------------------------------------------------------
 
+# [PT: Feb 22, 2021] add in TSNR plots for final dset
+
+# ['mask_dset', 'tsnr_dset']
+def apqc_regr_tsnr( obase, qcb, qci, 
+                    ulay, focusbox,     # bc some flexibility in usage
+                    HAVE_MASK=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    #if HAVE_MASK:
+
+    comm  = '''TSNR: 5-95%ile range in mask_dset highlighted'''
+
+    # NB: below, note the '.axi.json', because of how @chauffeur_afni
+    # appends slice plane in the name of each output image
+    pre = '''
+    set opref = {opref}
+    set ulay_dset = {ulay}
+    set focus_box = {focusbox}
+    set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
+    set olay_name = `3dinfo -prefix ${{tsnr_dset}}`
+    set mask_name = `3dinfo -prefix ${{mask_dset}}`
+    set avsp      = `3dinfo -av_space ${{tsnr_dset}}`
+    set olaylabel = `3dinfo -label ${{tsnr_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
+    '''.format( opref=opref, ulay=ulay, focusbox=focusbox )
+
+    cmd0 = '''
+    adjunct_apqc_tsnr_with_mask
+    -ulay         ${ulay_dset}
+    -olay         ${tsnr_dset}
+    -focus        ${focus_box}  
+    -mask         ${mask_dset}
+    -prefix       ${odir_img}/${opref}
+    -prefix_cbar  ${opbarrt}
+    '''
+
+
+    #pbar_comm_range = str(perc_olay_top)+'%ile' + perc_olay_fov
+    #    pbar_comm_thr   = str(perc_thr_thr)+'%ile' 
+    #    pbar_comm_thr  += perc_olay_fov + ', alpha+boxed on'
+
+    #pbar_comm_thr   = "{} p={}, {}".format( vso.thr_sided_txt, 
+    #                                            pvalue_thr_thr, 
+    #                                            "alpha+boxed on" )
+
+    ttext = ''
+    ttext+= '''"olay: ${olay_name} (final TSNR dset)"'''
+    ttext+= ''' ,, '''
+    ttext+= '''"mask: ${mask_name} (for percentile range)"'''
+
+    # As default, use :: and ,, as major and minor delimiters,
+    # respectively, because those should be useful in general.  
+    # NB: because we want the single apostrophe to appear as a text
+    # character, we have to wrap this with the double quotes
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
+    jsontxt2  = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {} 
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               osubtext2 )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, 
+            pbarjsontxt_cmd,
+            jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
+# -----------------------------------------------------------------
+
 # [PT: June 27, 2019] expanding to include enorm, if available and
 # in Pythonic mode
 
@@ -4087,6 +4230,10 @@ def parse_stats_dset_labels( fname, lsearch = [] ) :
                   "".format(pre, fname))
 
     return list_objs
+
+####################################################################
+
+# -----------------------------------------------------------------
 
 
 # =========================================================================

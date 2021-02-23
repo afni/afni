@@ -260,13 +260,18 @@
 #   + [PT] add new opt, controlling AGIF delay time from AFNI env vars
 #        + change way movie files are cleaned up, so no __tmp* dir left over
 #
-set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
+#set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
 # [PT] new opt: -colorscale_idx_file, to make use of the existing env var
 #      AFNI_COLORSCALE_xx
 #      + user can enter own scale values this way
 #
-set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
+#set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
 # [PT] added help example of "fun" cbar usage
+#
+set version   = "6.1"; set rev_dat   = "Feb 22, 2021"
+# [PT] add '-pbar_comm_gen ..' opt, for TSNR QC
+#    + set AFNI_IMSAVE_WARNINGS if ftype != MPEG; stops annoying warning
+
 #
 # =====================================================================
 
@@ -335,6 +340,7 @@ set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar
 set SAVE_PBAR    = 0             # [PT: Oct 21, 2018] flag for assorted stuff
 set pbar_comm  = ""            # [PT: May 8, 2019] pbar json output
 set vthr_comm  = ""            # [PT: May 8, 2019] pbar json output
+set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
@@ -758,6 +764,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set vthr_comm = "$argv[$ac]"
 
+    # [PT: Feb 22, 2021] save other info to display
+    else if ( "$argv[$ac]" == "-pbar_comm_gen" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set gen_comm = "$argv[$ac]"
+
     # [PT: Aug 26, 2019] save reason for ulay range
     else if ( "$argv[$ac]" == "-ulay_comm" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1073,6 +1085,10 @@ if ( ${USER_CSCALE} ) then
 
     # get new cbar name from top line of file
     set my_cbar = `head -n 1 "${cscale_fname}"`
+endif
+
+if ( "${ftype}" != "MPEG" ) then
+    setenv AFNI_IMSAVE_WARNINGS NO
 endif
 
 # -------------------- make temp working dir
@@ -1807,6 +1823,7 @@ pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
+gen_comm     :: "${gen_comm}"
 ulay_bot     :: "${umin}"
 ulay_top     :: "${umax}"
 ulay_globran :: "${urange}"
@@ -2391,10 +2408,15 @@ COMMAND OPTIONS ~1~
                     key 'ulay_comm').  Use quotes around on command
                     line.
 
--pbar_comm_thr PBR :same as '-pbar_comm_range ..', but for storing a
+-pbar_comm_thr PBT :similar to '-pbar_comm_range ..', but for storing a
                     comment about the selected threshold value. It
                     will also be stored in the PBS.txt file (the value
                     of the key 'vthr_comm').
+
+-pbar_comm_gen PBG :similar to '-pbar_comm_range ..', but for storing a
+                    general comment about the pbar or plot or color range. 
+                    It will also be stored in the PBS.txt file (the value
+                    of the key 'gen_comm').
 
 -pbar_for  PF      :tiny option, mainly for APQC purposes.  In the output
                     txt file of info for the pbar, can state if the pbar
