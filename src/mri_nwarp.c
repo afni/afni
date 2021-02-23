@@ -92,6 +92,10 @@ static char * wans(void)
   #include <malloc_np.h>
 #endif
 
+#if defined(__linux__)
+#include <malloc.h>
+#endif
+
 static void show_malloc_stats(char *mesg)  /*-- stolen from Rick R --*/
 {
 #if defined(__linux__)
