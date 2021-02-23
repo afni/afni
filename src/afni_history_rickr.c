@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "masking is no longer applied to TSNR dset; pass mask_dset to gen_ss",
+   "Requested by P Taylor."
+ } ,
+
  { 21, Feb, 2021, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "remove actual targets in RM for LIBMRI_*",
    NULL

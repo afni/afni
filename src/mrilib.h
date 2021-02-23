@@ -2467,6 +2467,7 @@ extern void IW3D_destroy( IndexWarp3D *AA ) ;
 extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 extern float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 extern float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
+extern float IW3D_outsidedness( IndexWarp3D *AA, float fac ) ; /* 22 Feb 2021 */
 extern IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
 extern IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
 extern IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;

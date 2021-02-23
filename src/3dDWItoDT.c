@@ -1091,7 +1091,7 @@ main (int argc, char *argv[])
       for(i=0 ; i<2 ; i++) 
          ccc[i] = calloc( nxyz, sizeof(float)); 
       
-      if( (ccc == NULL) ) { 
+      if( ccc == NULL ) { 
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(4);
       } 

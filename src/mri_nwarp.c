@@ -1580,6 +1580,39 @@ ENTRY("THD_nwarp_maxdisp") ;
    dxyz.a = dx ; dxyz.b = dy ; dxyz.c = dz ; RETURN(dxyz) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Find the largest amount that a displacement might get outside
+   of the warp grid; this value might be zero -- RWCox [22 Feb 2021] */
+/*---------------------------------------------------------------------------*/
+
+float IW3D_outsidedness( IndexWarp3D *AA , float fac )
+{
+   int qq , nx,ny,nz,nxy,nxyz , ii,jj,kk ;
+   float ddd,di,dj,dk , dmax , xn1,yn1,zn1 ,  *xda,*yda,*zda ;
+
+   if( AA == NULL ) return 0.0f ;
+   if( fac <= 0.0f ) fac = 1.0f ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   dmax = 0.0f ; xn1 = nx-1.0f ; yn1 = ny-1.0f ; zn1 = nz-1.0f ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii  = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     ddd = fac * sqrtf( xda[qq]*xda[qq]+yda[qq]*yda[qq]+zda[qq]*zda[qq] ) ;
+     di  = ii - ddd       ; if( di < 0.0f && -di > dmax ) dmax = -di ;
+     di  = ii + ddd - xn1 ; if( di > dmax               ) dmax =  di ;
+     dj  = jj - ddd       ; if( dj < 0.0f && -dj > dmax ) dmax = -dj ;
+     dj  = jj + ddd - yn1 ; if( dj > dmax               ) dmax =  dj ;
+     dk  = kk - ddd       ; if( dk < 0.0f && -dk > dmax ) dmax = -dk ;
+     dk  = kk + ddd - zn1 ; if( dk > dmax               ) dmax =  dk ;
+   }
+
+   return dmax ;
+}
+
 /*===========================================================================*/
 #if 0
 /*----------------------------------------------------------------------------*/
@@ -10973,10 +11006,14 @@ ENTRY("IW3D_warpomatic") ;
 
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
      if( Hverb > 0 ){
-       if( Hdone > 0 )
-         fprintf(stderr," done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped]\n",Hcostbeg,Hcost,Hdone,Hskipped) ;
-       else
+       if( Hdone > 0 ){
+         float wout = IW3D_outsidedness(Haawarp,2.0f) ;
+         fprintf(stderr,
+                  "done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped, wout=%.2f]\n",
+                  Hcostbeg,Hcost,Hdone,Hskipped,wout) ;
+       } else {
          fprintf(stderr," done [cost:%.5f ; all patches skipped]\n",Hcost) ;
+       }
      }
      Hcostbeg = Hcost ;
 

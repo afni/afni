@@ -6632,7 +6632,7 @@ SUMA_Boolean SUMA_SetMouseMode(SUMA_SurfaceViewer *sv,
                SUMA_RETURN(YUP);
             } else {
                /* Need to turn on ROI_mode, and kill other modes */
-               SUMAg_CF->ROI_mode == YUP;
+               SUMAg_CF->ROI_mode = YUP;  // [PT: Feb 22, 2021] fix '='
                sv->MouseMode = SUMA_DEF_MMODE;
                SUMA_RETURN(YUP);
             }
@@ -6641,7 +6641,7 @@ SUMA_Boolean SUMA_SetMouseMode(SUMA_SurfaceViewer *sv,
                SUMA_RETURN(YUP);
             } else {
                /* Need to turn off ROI_mode */
-               SUMAg_CF->ROI_mode == NOPE;
+               SUMAg_CF->ROI_mode = NOPE; // [PT: Feb 22, 2021] fix '='
                SUMA_RETURN(YUP);
             }
          }
