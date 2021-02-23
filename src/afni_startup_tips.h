@@ -1553,6 +1553,9 @@ static char *gby[] = {
 
      /* Multi-line quotes */
 
+     "\n  Once in a while you get shown the light,\n"
+     " in the strangest of places if you look at it right"               ,
+
      "\n  One clear result from FMRI resting state connectivity:\n"
      " Some people have their brains together, and some people do not"   ,
 
