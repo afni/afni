@@ -49,6 +49,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , FEB , 2021 , RWC , "lots of them" , MICRO , TYPE_GENERAL ,
+   "Changes to avoid compile warnings with -Wall option" ,
+   "Mostly cosmetic fixes, but a few minor errors discovered and patched.\n"
+   "About 50 .c files affected." } ,
+
  { 8 , FEB , 2021 , RWC , "AFNI gui" , MICRO , TYPE_ENHANCE ,
    "Add Mean/Sigma statistic to Button 3 popup in graph viewer" ,
    "Kind of a cheap TSNR check for raw data." } ,
