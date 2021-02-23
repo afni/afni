@@ -688,6 +688,40 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
+    # QC block: "mot"
+    # item    : grayplot of errts (task, rest, naturalistic, etc.)
+
+    # [PT: June 27, 2019] expanding to include enorm, if available and
+    # in Pythonic mode
+    # [PT: Feb 23, 2021] moved here to 'mot' from 'regr'
+
+    # [PT: Feb 25, 2019] 
+    ldep  = ['errts_dset', 'mask_dset']
+    ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
+    if lat.check_dep(ap_ssdict, ldep) :
+        # [PT: Jun 18, 2019] special case check-- 
+        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
+            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
+            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
+            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+
+            ban      = lat.bannerize('make grayplot of residuals')
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_mot_grayplot( obase, "mot", "grayplot",
+                                              RUN_STYLE,  
+                                              has_mot_dset=HAS_mot_dset,
+                                              has_out_dset=HAS_out_dset,
+                                              has_mot_lim=HAS_mot_limit,
+                                              has_out_lim=HAS_out_limit,
+                                              has_cen_dset=HAS_censor_dset )
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
+
+    # --------------------------------------------------------------------
+
     # QC block: "regr"
     # item    : sum of stims (regressors of interest)
 
@@ -796,7 +830,7 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
-    # QC block: "regr" *****
+    # QC block: "regr" 
     # item    : TSNR
 
     # !! temporarily: require mask for this (will come up with other
@@ -827,33 +861,26 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
-    # QC block: "regr"
-    # item    : grayplot of errts (task, rest, naturalistic, etc.)
+    # QC block: "rcorr"
+    # item    : flag to make radial_correlate images
+    # [PT: Feb 23, 2021] moved here, seemed more logical place, 
+    # above warns
 
-    # [PT: June 27, 2019] expanding to include enorm, if available and
-    # in Pythonic mode
-
-    # [PT: Feb 25, 2019] 
-    ldep = ['errts_dset', 'mask_dset']
-    ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
+    ldep = ['have_radcor_dirs'] # binary flag
     if lat.check_dep(ap_ssdict, ldep) :
-        # [PT: Jun 18, 2019] special case check-- 
-        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
-            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
-            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
-            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+        all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
+        for ii in range(len(all_dir_radcor)):
 
-            ban      = lat.bannerize('make grayplot of residuals')
+            rcdir  = all_dir_radcor[ii]
+            aaa    = rcdir.split(".")
+            rcname = "rc_" + aaa[2] # to be the label
+        
+            ban      = lat.bannerize('@radial_correlate '
+                                     'images: {}'.format(rcname))
             obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot",
-                                               RUN_STYLE,  
-                                               has_mot_dset=HAS_mot_dset,
-                                               has_out_dset=HAS_out_dset,
-                                               has_mot_lim=HAS_mot_limit,
-                                               has_out_lim=HAS_out_limit,
-                                               has_cen_dset=HAS_censor_dset )
+            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
+                                              rcdir, ith_run=ii )
+
             str_FULL+= ban
             str_FULL+= cmd
             idx     += 1
@@ -978,30 +1005,6 @@ if __name__ == "__main__":
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
-
-    # --------------------------------------------------------------------
-
-    # QC block: "rcorr"
-    # item    : flag to make radial_correlate images
-
-    ldep = ['have_radcor_dirs'] # binary flag
-    if lat.check_dep(ap_ssdict, ldep) :
-        all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
-        for ii in range(len(all_dir_radcor)):
-
-            rcdir  = all_dir_radcor[ii]
-            aaa    = rcdir.split(".")
-            rcname = "rc_" + aaa[2] # to be the label
-        
-            ban      = lat.bannerize('@radial_correlate '
-                                     'images: {}'.format(rcname))
-            obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
-                                              rcdir, ith_run=ii )
-
-            str_FULL+= ban
-            str_FULL+= cmd
-            idx     += 1
 
     # --------------------------------------------------------------------
 

@@ -2748,16 +2748,17 @@ def apqc_regr_tsnr( obase, qcb, qci,
 
 # [PT: June 27, 2019] expanding to include enorm, if available and
 # in Pythonic mode
+# [PT: Feb 23, 2021] moved here to 'mot' from 'regr'
 
 # ['errts_dset', 'mask_dset']
 # ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
-def apqc_regr_grayplot( obase, qcb, qci,
-                        run_style, 
-                        has_mot_dset=False,
-                        has_out_dset=False,
-                        has_mot_lim=False,
-                        has_out_lim=False,
-                        has_cen_dset=False ):
+def apqc_mot_grayplot( obase, qcb, qci,
+                       run_style, 
+                       has_mot_dset=False,
+                       has_out_dset=False,
+                       has_mot_lim=False,
+                       has_out_lim=False,
+                       has_cen_dset=False ):
 
     #print("AA", has_mot_dset)
     #print("AA", has_out_dset)
