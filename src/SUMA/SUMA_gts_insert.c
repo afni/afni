@@ -36,7 +36,7 @@ static void vertex_load (GtsPoint * p, gpointer * data)
           (double)NodeList[*n*3+2]); 
   }
   GTS_OBJECT (p)->reserved = GUINT_TO_POINTER ((*((guint *) data[1]))++);
-  *n++; /* does not work, but trick above does */
+//  *n++; /* does not work, but trick above does */
 }
 static void face_load (GtsTriangle * t, gpointer * data)
 {
@@ -54,7 +54,7 @@ static void face_load (GtsTriangle * t, gpointer * data)
                    FaceSetList[*n*3+2]); 
   }
   GTS_OBJECT (t)->reserved = GUINT_TO_POINTER ((*((guint *) data[1]))++);
-  *n++; /* does not work, but trick above does */
+//  *n++; /* does not work, but trick above does */
 }
 
 
