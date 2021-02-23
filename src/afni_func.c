@@ -3752,9 +3752,8 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       } else {
         for( ii=0 ; ii < ss_new->num_dsset ; ii++ ) {
           temp_dset = GET_SESSION_DSET(ss_new, ii, old_view);
-          if( ISVALID_3DIM_DATASET(temp_dset) )
-             new_anat = ii ; break ;
-          }
+          if( ISVALID_3DIM_DATASET(temp_dset) ){ new_anat = ii ; break ; }
+        }
       }
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
@@ -6958,7 +6957,7 @@ ENTRY("AFNI_bucket_label_CB") ;
 
    /** 04 May 2005: customize width to this dataset **/
 
-   if( dset != dset_last && ISVALID_DSET(dset) || force_label_resize ){
+   if( ISVALID_DSET(dset) && ( dset != dset_last || force_label_resize ) ){
      int nvals,kk,blw,mblw=4 ; char *lab ;
      dset_last = dset ;
      nvals = DSET_NVALS(dset) ;
