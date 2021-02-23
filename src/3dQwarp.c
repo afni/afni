@@ -3224,7 +3224,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
    /*------ Do we need to zeropad datasets? [Friday the 13th, Sep 2013] ------*/
    /*(((((( That is, do we expand the universe with dark matter/energy? ))))))*/
 
-   if( expad > 0 || minpad > 0 && zeropad == 0 ) zeropad = 1 ;
+   if( (expad > 0 || minpad > 0) && zeropad == 0 ) zeropad = 1 ;
 
    if( zeropad ){                /* adapted/stolen/liberated from 3dAllineate */
      float cv , *qar  ; MRI_IMAGE *qim ; int mpad_min=9 ;
