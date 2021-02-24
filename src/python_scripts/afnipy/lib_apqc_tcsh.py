@@ -159,9 +159,13 @@ auth = 'PA Taylor'
 #ver = '3.7' ; date = 'Feb 22, 2021'
 # [PT] add in TSNR images
 #
-ver = '3.71' ; date = 'Feb 22, 2021'
+#ver = '3.71' ; date = 'Feb 22, 2021'
 # [PT] updates with TSNR images/fnames 
 #    + following on from AP updates from RCR---thanks!
+#
+ver = '3.72' ; date = 'Feb 24, 2021'
+# [PT] TSNR image no longer *requires* mask
+#    + add a type-check to dep_check.  
 #
 #########################################################################
 
@@ -330,6 +334,11 @@ def get_warn_level_3( val, cutoff_list=[] ):
 
 def check_dep(D, lcheck):
     '''Does dictionary 'D' contain each of the elements of 'lcheck'?'''
+
+    if type(lcheck) != list :
+        sys.exit("** ERROR: input to check_dep() needs to be a list, not:\n"
+                 "          {}".format(type(lcheck)))
+
 
     HAS_ALL = 1
     for x in lcheck:
@@ -695,7 +704,7 @@ def make_apqc_top_vars(ssdict, fulllist):
         print('++ Found {} files for QCing.'.format(Nap))
     else:
         print('*+ Warning! Found *0* files for QCing???')
-        sys.exit(0)
+        sys.exit(1)
 
     out = ''
     for x in fulllist:
@@ -2612,58 +2621,68 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
 # [PT: Feb 22, 2021] add in TSNR plots for final dset
 
-# ['mask_dset', 'tsnr_dset']
+# ['tsnr_dset']
 def apqc_regr_tsnr( obase, qcb, qci, 
-                    ulay, focusbox,     # bc some flexibility in usage
+                    ulay, focusbox, olay,
+                    descrip="",
                     HAVE_MASK=False ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
-
-    #if HAVE_MASK:
-
-    comm  = '''TSNR: 5-95%ile range in mask_dset highlighted'''
 
     # NB: below, note the '.axi.json', because of how @chauffeur_afni
     # appends slice plane in the name of each output image
     pre = '''
     set opref = {opref}
     set ulay_dset = {ulay}
+    set olay_dset = {olay}
     set focus_box = {focusbox}
     set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
-    set olay_name = `3dinfo -prefix ${{tsnr_dset}}`
-    set mask_name = `3dinfo -prefix ${{mask_dset}}`
-    set avsp      = `3dinfo -av_space ${{tsnr_dset}}`
-    set olaylabel = `3dinfo -label ${{tsnr_dset}}`
+    set olay_name = `3dinfo -prefix ${{olay_dset}}`
+    set avsp      = `3dinfo -av_space ${{olay_dset}}`
+    set olaylabel = `3dinfo -label ${{olay_dset}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     set opbarrt = ${{odir_img}}/${{opref}}.pbar
-    '''.format( opref=opref, ulay=ulay, focusbox=focusbox )
-
-    cmd0 = '''
-    adjunct_apqc_tsnr_with_mask
-    -ulay         ${ulay_dset}
-    -olay         ${tsnr_dset}
-    -focus        ${focus_box}  
-    -mask         ${mask_dset}
-    -prefix       ${odir_img}/${opref}
-    -prefix_cbar  ${opbarrt}
-    '''
-
-
-    #pbar_comm_range = str(perc_olay_top)+'%ile' + perc_olay_fov
-    #    pbar_comm_thr   = str(perc_thr_thr)+'%ile' 
-    #    pbar_comm_thr  += perc_olay_fov + ', alpha+boxed on'
-
-    #pbar_comm_thr   = "{} p={}, {}".format( vso.thr_sided_txt, 
-    #                                            pvalue_thr_thr, 
-    #                                            "alpha+boxed on" )
+    '''.format( opref=opref, ulay=ulay, olay=olay,
+                focusbox=focusbox )
 
     ttext = ''
-    ttext+= '''"olay: ${olay_name} (final TSNR dset)"'''
-    ttext+= ''' ,, '''
-    ttext+= '''"mask: ${mask_name} (for percentile range)"'''
+    ttext+= '''"olay: ${{olay_name}} {descrip}"'''.format(descrip=descrip)
+
+    if HAVE_MASK:
+
+        pre+= '''set mask_name = `3dinfo -prefix ${mask_dset}`
+        '''
+
+        comm  = '''TSNR: 5-95%ile range in mask_dset highlighted'''
+
+        cmd0 = '''
+        adjunct_apqc_tsnr_with_mask
+        -ulay         ${ulay_dset}
+        -olay         ${olay_dset}
+        -focus        ${focus_box}  
+        -mask         ${mask_dset}
+        -prefix       ${odir_img}/${opref}
+        -prefix_cbar  ${opbarrt}
+        '''
+
+        ttext+= ''' ,, '''
+        ttext+= '''"mask: ${mask_name} (for percentile range)"'''
+
+    else:
+
+        comm  = '''TSNR: 0-98%ile range in FOV highlighted'''
+
+        cmd0 = '''
+        adjunct_apqc_tsnr_no_mask
+        -ulay         ${ulay_dset}
+        -olay         ${olay_dset}
+        -focus        ${focus_box}  
+        -prefix       ${odir_img}/${opref}
+        -prefix_cbar  ${opbarrt} 
+        '''
 
     # As default, use :: and ,, as major and minor delimiters,
     # respectively, because those should be useful in general.  

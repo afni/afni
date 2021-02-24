@@ -179,13 +179,22 @@ The "corr_brain" plot shows correlation of each voxel with the errts
 average within the whole brain mask (what could be called the 'global
 signal').
 
-The voxelwise TSNR after regression modeling is shown throughout the
-whole FOV: the brain mask dset is just used for defining a region
-within which percentiles are calculated.  The formula for TSNR is:
+Two TSNR dsets can be shown.  In each case, voxelwise TSNR is shown
+throughout the full FOV, and any brain mask dset is just used for
+defining a region within which percentiles are calculated. The generic 
+formula for TSNR is:
             TSNR = average(signal) / stdev(noise)
-The hot colors (yellow-orange-red) are defined by the 5-95%ile range
-of TSNR in the mask.  The 1-5%ile values within the mask are shown in
-light blue, and the lower values are shown in dark blue.
++ First, the TSNR of r01 after volreg is shown if the user used the
+  '-volreg_compute_tsnr yes' opt in AP. Here, the "signal" is the time
+  series and the "noise" is the detrended time series.
++ Second, the TSNR of the combined runs after regression modeling is
+  shown. Here, the "signal" is the all_runs dset and the "noise" is
+  the errts time series.
+When a mask is present, the olay's hot colors (yellow-orange-red) are
+defined by the 5-95%ile range of TSNR in the mask.  The 1-5%ile values
+within the mask are shown in light blue, and the lower values are
+shown in dark blue.  In the absence of a mask, then the colorbar goes from
+0 to the 98%ile value within the whole dset.
 '''
 
 qcb_helps["radcor"] = '''

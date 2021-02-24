@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add more TSNR plotting: if vreg TSNR is calc'ed, or if no mask exists.",
+   "Also a bug fix in HAVE_MASK definition; fix ranges in some plots.\n"
+},
+
+{ 24, Feb , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, for when *no* mask exists.\n"
+},
+
 { 22, Feb , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_PROG,
    "Now used in APQC to make TSNR plot.",
    "Has mostly required olay/ulay args, as well as mask.\n"
