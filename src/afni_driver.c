@@ -2721,7 +2721,7 @@ int AFNI_drive_setenv( char *cmd )
 
    /*-- if didn't get both, try "name=value" --*/
 
-   if( nam[0] == '\0' || val[0] == '\0' && strchr(cmd,'=') != NULL ){
+   if( (nam[0] == '\0' || val[0] == '\0') && strchr(cmd,'=') != NULL ){
      char *ccc = strdup(cmd) ;
      eee = strchr(ccc,'=') ; *eee = ' ' ;
      sscanf( ccc , "%255s %1023s" , nam , val ) ;

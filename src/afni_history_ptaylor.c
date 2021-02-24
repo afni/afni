@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Feb , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, as well as mask.\n"
+},
+
+{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New part of regr block: TSNR plot.",
+   "Shows brain slices.\n"
+},
+
+{ 22, Feb , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: -pbar_comm_gen, for APQC.",
+   "Also remove warning about ffmpeg unless using MPEG.\n"
+},
+
 { 10, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "Add in -mask_ss option, to replace skullstripping with a mask.",
    "For example, using fs*mask*nii from @SUMA_Make_Spec_FS after FS.\n"

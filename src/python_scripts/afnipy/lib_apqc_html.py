@@ -22,9 +22,12 @@
 # + [PT] QC block ID now in QC block titles
 # + [PT] added more help descriptions
 #
-ver = '2.4' ; date = 'March 27, 2020' 
+#ver = '2.4' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
 #    + absorb those lahh.* functions and variables here
+#
+ver = '2.5' ; date = 'Feb 23, 2021' 
+# [PT] update helps, reorder
 #
 #########################################################################
 
@@ -70,31 +73,30 @@ qc_title["Top"]    = [ "Top of page for:&#10${subj}",
 qc_blocks          = coll.OrderedDict()
 qc_blocks["vorig"]  = [ "vols in orig space", 
                         "Check vols in original space" ]
-#                        "Check: vols in orig space" ]
+
 qc_blocks["ve2a" ]  = [ "vol alignment (EPI-anat)", 
                         "Check vol alignment (EPI to anat)" ]
-#                        "Check: vol alignment (EPI-anat)" ]
+
 qc_blocks["va2t" ]  = [ "vol alignment (anat-template)", 
                         "Check vol alignment (anat to template)" ]
-#                        "Check: vol alignment (anat-template)" ]
+
 qc_blocks["vstat"]  = [ "statistics vols", 
                         "Check statistics vols (and effect estimates)" ]
-#                        "Check: statistics vols" ]
+
 qc_blocks["mot"  ]  = [ "motion and outliers", 
                         "Check motion and outliers" ] 
-#                        "Check: motion and outliers" ] 
+
 qc_blocks["regr" ]  = [ "regressors", 
                         "Check regressors, DFs and residuals" ]
-#                        "Check: regressors (combined and individual)" ]
-qc_blocks["warns"]  = [ "all warnings from processing", 
-                        "Check all warnings from processing" ]
-#                        "Check: all warnings from processing" ]
+
 qc_blocks["radcor"] = [ "@radial_correlate vols", 
                         "Check extent of local correlation" ]
-#                        "Check: extent of local correlation" ]
+
+qc_blocks["warns"]  = [ "all warnings from processing", 
+                        "Check all warnings from processing" ]
+
 qc_blocks["qsumm"]  = [ "summary quantities from @ss_review_basic", 
                         "Check summary quantities from @ss_review_basic" ]
-#                        "Check: summary quantities from @ss_review_basic" ]
 
 qc_link_final       = [ "FINAL", 
                        "overall subject rating" ] 
@@ -155,14 +157,6 @@ and light gray.
 
 Boxplots summarize parameter values, both before censoring (BC) and
 after censoring (AC).
-'''
-
-qcb_helps["regr" ]  = '''
-When processing with stimulus time series, both individual and
-combined stimulus plots are generated (with any censoring also shown).
-
-The degrees of freedom (DF) summary is also provided, so one can check
-if too many get used up during processing (careful with bandpassing!).
 
 And a grayplot of residuals (with motion/outliers/censoring) is
 provided.  The '-pvorder' is used for output, placing the time series
@@ -172,7 +166,33 @@ the value at which a standard normal distribution N(0,1) has a
 two-sided tail probability of 0.001.  The grayplot's top row contains
 a plot of the motion enorm and outlier frac across time, for reference
 with the grayplot series.
+'''
 
+qcb_helps["regr" ]  = '''
+When processing with stimulus time series, both individual and
+combined stimulus plots are generated (with any censoring also shown).
+
+The degrees of freedom (DF) summary is also provided, so one can check
+if too many get used up during processing (careful with bandpassing!).
+
+The "corr_brain" plot shows correlation of each voxel with the errts
+average within the whole brain mask (what could be called the 'global
+signal').
+
+The voxelwise TSNR after regression modeling is shown throughout the
+whole FOV: the brain mask dset is just used for defining a region
+within which percentiles are calculated.  The formula for TSNR is:
+            TSNR = average(signal) / stdev(noise)
+The hot colors (yellow-orange-red) are defined by the 5-95%ile range
+of TSNR in the mask.  The 1-5%ile values within the mask are shown in
+light blue, and the lower values are shown in dark blue.
+'''
+
+qcb_helps["radcor"] = '''
+@radial_correlate plots (per run, per block). These can show
+scanner coil artifacts, as well as large subject motion; both factors
+can lead to large areas of very high correlation, which would be
+highlighted here.  
 '''
 
 qcb_helps["warns"]  = '''
@@ -187,13 +207,6 @@ The warning level is written, with color coding, at the top of each
 warning's text box.  The QC block label 'warns' at the top of the page
 is also colored according to the maximum warning level present.  
 '''.format( lahc.wlevel_str )
-
-qcb_helps["radcor"] = '''
-@radial_correlate plots (per run, per block). These can show
-scanner coil artifacts, as well as large subject motion; both factors
-can lead to large areas of very high correlation, which would be
-highlighted here.  
-'''
 
 qcb_helps["qsumm"]  = '''
 This is the output of @ss_review_basic, which contains a loooot of
@@ -539,9 +552,9 @@ def make_inline_pbar_str(ss) :
         if pbar_dict['vthr_comm'] :
             out+= ''' ({vthr_comm})'''.format(**pbar_dict)
 
-#    if pbar_dict['gen_comm'] :
-#        out+= '''\n'''
-#        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
+    if pbar_dict['gen_comm'] :
+        out+= '''\n'''
+        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
 
     return out
 

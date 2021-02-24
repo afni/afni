@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, Jan 18, 2020
+Version 0.0.9, Feb 23, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1043,7 +1043,8 @@ cat('is likely inappropriate.\n\n')
 if(!is.na(lop$maskFN)) {
    idx <- which(lop$maskData == 1, arr.ind = T)
    idx <- idx[floor(dim(idx)[1]/2),1:3]
-   ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
+   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
    if(dimy==1) yinit <- 1 else yinit <- dimy%/%3

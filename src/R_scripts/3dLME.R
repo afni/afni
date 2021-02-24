@@ -25,9 +25,9 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.4, Dec 24, 2020
+Version 2.0.5, Feb 25, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/lme_model.html
+Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1567,7 +1567,8 @@ cat('is likely inappropriate.\n\n')
 if(!is.na(lop$maskFN)) {
    idx <- which(lop$maskData == 1, arr.ind = T)
    idx <- idx[floor(dim(idx)[1]/2),1:3]
-   ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
+   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
    if(dimy==1) yinit <- 1 else yinit <- dimy%/%2

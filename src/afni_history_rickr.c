@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "masking is no longer applied to TSNR dset; pass mask_dset to gen_ss",
+   "Requested by P Taylor."
+ } ,
+
+ { 21, Feb, 2021, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "remove actual targets in RM for LIBMRI_*",
+   NULL
+ } ,
+
+ { 21, Feb, 2021, RCR, "@djunct_glue_imgs_vert", MICRO, TYPE_MODIFY,
+   "allow -help without deps, so move dependency tests",
+   NULL
+ } ,
+
  { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
    "updates for ShowMode in SUMA_xColBar.c",
    "Resolve compiler warnings, but avoid logic changes at the same time\n"

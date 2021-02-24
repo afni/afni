@@ -140,9 +140,10 @@ static char * gifti_history[] =
   "     - gifti_xml.c fix for Windows-style newline characters\n",
   "     - noticed and fixed by R Vincent\n"
   "1.16 02 May, 2017: added control over array indexing order\n"
+  "1.17 19 Feb, 2021: promote fabs() args explicitly to avoid warnings\n"
 };
 
-static char gifti_version[] = "gifti library version 1.16, 2 May, 2017";
+static char gifti_version[] = "gifti library version 1.17, 19 Feb, 2021";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -3854,7 +3855,8 @@ long long gifti_compare_raw_data(const void * p1, const void * p2,
 
 /* make a local definition for this symmetric fractional difference */
 #undef GIFTI_SFD
-#define GIFTI_SFD(a,b) (fabs((a)-(double)(b))/(fabs(a)+fabs(b)))
+#define GIFTI_SFD(a,b) (fabs((double)(a)-(double)(b)) \
+                             / (fabs((double)(a))+fabs((double)(b))))
 
 /*---------------------------------------------------------------------*/
 /*! approximate comparison of raw data, returing the first location difference

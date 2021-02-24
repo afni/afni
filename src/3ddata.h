@@ -3522,19 +3522,12 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 #define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
                            fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->zzdel)   )
 
-#if 0  /* 22 Sep 2000 */
-#define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
-                             (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
-                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
-#else
 /*! Determine if a graph window can be opened for dataset ds.
-
     Cannot graph warp-on-demand datasets.
 */
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False                            && \
-                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
-#endif
+                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) || DSET_LOCKED(ds) ) )
 
 /*! Return the TR for dataset ts; will be 0 if not time-dependent. */
 

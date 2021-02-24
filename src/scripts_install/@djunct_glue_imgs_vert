@@ -2,47 +2,17 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.0";  set rev_dat   = "June 27, 2019"
+#set version   = "1.0";  set rev_dat   = "June 27, 2019"
 #   + Start: glue imgs together vertically
+#
+set version   = "1.1";  set rev_dat   = "Feb 21, 2021"
+#   + [rickr]: shift dependency tests until after -help
 #
 # ----------------------------------------------------------------
 
 set this_prog = "@djunct_edgy_align_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
 set here      = $PWD
-
-# ----------------- find AFNI and set viewer ---------------------
-
-# find AFNI binaries directory and viewer location
-set adir      = ""
-set my_viewer = ""
-which afni >& /dev/null
-if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
-    goto BAD_EXIT
-else
-    set aa   = `which afni`
-    set adir = $aa:h
-endif
-
-# from @snapshot volreg
-set nerr = 0
-set errm = "** ERROR:"
-
-set plist = ( djpeg cjpeg pnmcat )
-foreach pppp ( $plist )
-  set wwww = `which $pppp`
-  if( $status != 0 )then
-    @ nerr++
-    set errm = "$errm $pppp"
-  endif
-end
-
-if( $nerr > 0 )then
-  echo "$errm -- not found in path -- @djunct_glue_imgs_vert fails"
-  echo "** WARNING: this script cannot run without installing package netpbm11"
-  exit 1
-endif
 
 # ----------------------- set defaults --------------------------
 
@@ -97,6 +67,42 @@ while ( $ac <= $#argv )
     endif
     @ ac += 1
 end
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# check for dependency failures after -help    21 Feb 2021 [rickr]
+# (this section is currently self-contained, variables are local)
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# from @snapshot volreg
+set nerr = 0
+set errm = "** ERROR:"
+
+set plist = ( djpeg cjpeg pnmcat )
+foreach pppp ( $plist )
+  set wwww = `which $pppp`
+  if( $status != 0 )then
+    @ nerr++
+    set errm = "$errm $pppp"
+  endif
+end
+
+if( $nerr > 0 )then
+  echo "$errm -- not found in path -- @djunct_glue_imgs_vert fails"
+  echo "** WARNING: this script cannot run without installing package netpbm11"
+  exit 1
+endif
 
 # =======================================================================
 # ============================ ** SETUP ** ==============================
