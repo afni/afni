@@ -62,7 +62,7 @@ XLIBS = -lXm -ljpeg.9 -lXt
 
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
+CEXTRA = -m64 -Wall -Wno_deprecate -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
 	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
 # choose gcc version below from homebrew directory in 
 # either /opt/homebrew/bin
@@ -85,7 +85,7 @@ ARM_M1 = "true"
 BREWI =  /opt/homebrew/include
 BREWL =  /opt/homebrew/lib
 
-OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$BREWI -L$BREWL -DUSE_OMP
+OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$(BREWI) -L$(BREWL) -DUSE_OMP
 
 SYSTEM_NAME = macos_11_local_clang_M1
 
@@ -95,7 +95,7 @@ INSTALLDIR = $(SYSTEM_NAME)
 # repeats definitions BREWI and BREWL above but 
 # separating for now in case OMP goes back to a separate directory
 BREWLIBDIR = /opt/homebrew/lib
-BREWINCDIR = /opt/homebrew/lib
+BREWINCDIR = /opt/homebrew/include
 
 EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
 		      $(BREWLIBDIR)/libjpeg.9.dylib			  \
