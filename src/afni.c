@@ -2222,6 +2222,7 @@ int main( int argc , char *argv[] )
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){
        for( jj=0 ; jj < NTIP ; jj ++ ) AFNI_print_startup_tip(jj) ;
      } else {
+       srand48((long)time(NULL)+(long)getpid()) ;
        ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
        for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip(-1) ;
      }
