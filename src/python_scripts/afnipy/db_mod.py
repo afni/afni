@@ -5028,6 +5028,8 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5218,6 +5220,40 @@ def db_mod_regress(block, proc, user_opts):
                   (nxstim, nxlabs))
             errs += 1
 
+    # check for extra ortvecs
+    oname = '-regress_extra_ortvec'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:  # only check length against labels
+        bopt.parlist = uopt.parlist
+        # convert paths to the local stimulus directory
+        proc.extra_ortvec = []
+        proc.extra_ortvec_orig = bopt.parlist
+        for fname in bopt.parlist:
+            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    oname = '-regress_extra_ortvec_labels'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:
+        bopt.parlist = uopt.parlist
+        proc.extra_ortvec_labs = uopt.parlist
+        nxlabs = len(proc.extra_ortvec_labs)
+        nxorts = len(proc.extra_ortvec)
+        if nxorts == 0:
+            print("** have -regress_extra_ortvec_labels without" + \
+                  " -regress_extra_ortvec")
+            errs += 1
+        elif nxorts != nxlabs:
+            print("** have %d extra ortvec but %d extra ort labels" % \
+                  (nxorts, nxlabs))
+            errs += 1
+    elif bopt and len(proc.extra_ortvec) > 0:
+        # no ortvec label option, so fasion some
+        print("-- auto-generating labels for extra ortvec files")
+        proc.extra_ortvec_labs = \
+              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) > 0:
@@ -5243,7 +5279,7 @@ def db_mod_regress(block, proc, user_opts):
             proc.stims.append('stimuli/%s%s' % \
                 (pre, os.path.basename(fname)))
 
-    # note whether this seems to be task at all
+    # note whether this seems to be task at all (no orts)
     if len(proc.stims) + len(proc.extra_stims) > 0:
        proc.have_task_regs = 1
     else:
@@ -5615,6 +5651,18 @@ def db_cmd_regress(proc, block):
         if newcmd: cmd = cmd + newcmd
 
     # ----------------------------------------
+    # user ortvecs, add vec/lab pairs to self.regress_orts list
+    nxort = len(proc.extra_ortvec)
+    if nxort > 0:
+        if len(proc.extra_ortvec_labs) != nxort:
+           print("** # extra_orvec != # extra_ortvec_labs")
+           return
+        ov = proc.extra_ortvec
+        ol = proc.extra_ortvec_labs
+        for ind in range(nxort):
+           proc.regress_orts.append([ov[ind], ol[ind]])
+
+    # ----------------------------------------
     # bandpass?
     if block.opts.find_opt('-regress_bandpass'):
         err, newcmd = db_cmd_regress_bandpass(proc, block)
@@ -5693,6 +5741,7 @@ def db_cmd_regress(proc, block):
     mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
+    # - extra_ortvec do not count
     if mot_as_ort: nmotion = 0
     else:          nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
@@ -14680,6 +14729,33 @@ g_help_options = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_stim_files, -regress_stim_times,
                      -regress_stim_labels.
+
+        -regress_extra_ortvec FILE1 ... : specify extra -ortvec files
+
+                e.g. -regress_extra_ortvec ort_resp.1D ort_cardio.1D
+                e.g. -regress_extra_ortvec lots_of_orts.1D
+
+            Use this option to specify extra files to be applied with the
+            -ortvec option in 3dDeconvolve.  These are applied as regressors
+            of no interest, going into the baseline model.
+
+            These files should be in 1D format, columns of regressors in text
+            files.  They are not modified by the program, and should match the
+            length of the final regression.
+
+            Corresponding labels can be set with -regress_extra_ortvec_labels.
+
+            See also -regress_extra_ortvec_labels.
+
+        -regress_extra_ortvec_labels LAB1 ... : specify label for extra ortvecs
+
+                e.g. -regress_extra_ortvec_labels resp cardio
+                e.g. -regress_extra_ortvec_labels EXTERNAL_ORTs
+
+            Use this option to specify labels to correspond with files given
+            by -regress_extra_ortvec.  There should be one label per file.
+
+            See also -regress_extra_ortvec.
 
         -----------------------------------------------------------------
         3dClustSim options ~3~
