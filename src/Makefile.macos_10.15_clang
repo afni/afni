@@ -72,7 +72,7 @@ CCOLD  = $(CC)
 
 BREWI =  /usr/local/opt/libomp/include/
 BREWL =  /usr/local/opt/libomp/lib/
-OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$BREWI -L$BREWL -DUSE_OMP
+OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$(BREWI) -L$(BREWL) -DUSE_OMP
 
 SYSTEM_NAME = macos_10.15_local_gcc_clang
 INSTALLDIR = $(SYSTEM_NAME)
