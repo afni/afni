@@ -651,9 +651,17 @@ printf("\njpeg_compress %d\n", jpeg_compress);
 
    if( !AFNI_noenv("AFNI_IMSAVE_WARNINGS") && ncant > 0 ){
      if( need_netpbm > 0 ){
+       fprintf(stderr,"++\n") ;
        fprintf(stderr,
                "++ Some of the missing image Save programs are in\n"
                "++  the netpbm software package, which is freeware.\n" ) ;
+       fprintf(stderr,"++\n") ;
+#ifdef DARWIN
+       fprintf(stderr,
+               "++ Netpbm can be installed on MacOS X using the brew\n"
+               "++ system: https://brew.sh/\n"                         ) ;
+       fprintf(stderr,"++\n") ;
+#endif
      }
      fprintf(stderr,
                "++ To disable these warnings, set environment\n"

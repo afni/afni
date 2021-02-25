@@ -2054,7 +2054,27 @@ Jan 2003) are
 The third column is the name of the external filter program that AFNI
 uses to write the format. If a filter is not present on your system,
 then that option is not available. Most of these filters are part of
-the netpbm package.
+the netpbm package, which can be installed on MacOS X by using the
+brew package (for example).
+
+------------------------------
+Variable: AFNI_IMSAVE_WARNINGS
+------------------------------
+If this variable is not set, then if the program cannot find one
+of the output filter programs listed above, then a warning message
+will be printed to the terminal. However, if you set this variable
+to NO, then such warning messages will NOT be printed out. The
+purpose of this variable is to let you silence these messages
+once you get sick of seeing them.
+
+---------------------------
+Variable: AFNI_IMSAVE_DEBUG
+---------------------------
+If this variable is set to YES, then when you save an image from the
+image viewer, the various steps will be printed to the terminal
+as the process happens. As the variable name is implied, this
+capability is here for debugging, and has not actually been used
+for years (at least by the AFNI Imperial Command Team).
 
 -----------------------------
 Variables: AFNI_COLORSCALE_xx  for xx=01, 02, ..., 99
