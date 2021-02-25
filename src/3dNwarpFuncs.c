@@ -102,10 +102,12 @@ int main( int argc , char *argv[] )
       "define the first MNI152 template back in the 1990s.\n"
       "\n"
       "I have no easy interpretation handy for the '-shear' and '-vorticity'\n"
-      "outputs, alas.\n"
+      "outputs, alas. They are computed as part of the penalty function used\n"
+      "to control weirdness in the 3dQwarp optimization process.\n"
       "\n"
       "---------------------------\n"
       "AUTHOR -- RWCox == @AFNIman\n"
+      "---------------------------\n"
      ) ;
 
      PRINT_COMPILE_DATE ;
