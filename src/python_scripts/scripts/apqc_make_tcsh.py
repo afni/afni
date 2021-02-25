@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     DO_REGR_CORR_ERRTS = 0
     DO_TSNR            = 0
-    HAVE_MASK          = lat.check_dep(ap_ssdict, 'mask_dset') 
+    HAVE_MASK          = lat.check_dep(ap_ssdict, ['mask_dset'])
 
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
@@ -466,7 +466,6 @@ if __name__ == "__main__":
     # QC block: "vstat"
     # item    : stats in vol (task FMRI): F-stat (def) and other stim/contrasts
     DO_VSTAT_TASK   = 0
-    #VSTAT_HAVE_MASK = 0
 
     ldep     = ['stats_dset', 'final_anat']
     ldep2    = ['template']                                # 2ary consid
@@ -494,9 +493,6 @@ if __name__ == "__main__":
         all_vstat_obj = lat.parse_stats_dset_labels( ap_ssdict['stats_dset'], 
                                                      all_vstat )
         Nobj = len(all_vstat_obj)
-
-        #if lat.check_dep(ap_ssdict, ldep4) :
-        #    VSTAT_HAVE_MASK = 1
 
         for ii in range(Nobj):
 
@@ -528,7 +524,6 @@ if __name__ == "__main__":
     if not(DO_VSTAT_TASK) :               # only done in resting/non-task cases
         # mirror same logic as task (above) for deciding ulay/olay
         DO_VSTAT_SEED_REST = 0
-        #VSTAT_HAVE_MASK    = 0
 
         ldep     = ['errts_dset', 'final_anat']
         ldep2    = ['template']                                # 2ary consid
@@ -555,9 +550,6 @@ if __name__ == "__main__":
             abin_dir = lat.get_path_abin()
 
             SPECIAL_FILE = abin_dir + '/' + 'afni_seeds_per_space.txt'
-
-            #if lat.check_dep(ap_ssdict, ldep4) :
-            #    VSTAT_HAVE_MASK = 1
 
             if 0 :
                 print("This branch will be for a user-entered file. Someday.")
@@ -831,12 +823,50 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "regr" 
-    # item    : TSNR
+    # item    : TSNR of volreg (r01) dset.  
+    # --> NB: This will get UVAR of its own some day!!!
+        
+    ldep     = ['tsnr_dset', 'final_anat']
+    alt_ldep = ['tsnr_dset', 'vr_base_dset']  # elif to ldep
 
-    # !! temporarily: require mask for this (will come up with other
-    # !! condition if no mask is present
-    ldep     = ['mask_dset', 'tsnr_dset', 'final_anat']
-    alt_ldep = ['mask_dset', 'tsnr_dset', 'vr_base_dset']  # elif to ldep
+    if lat.check_dep(ap_ssdict, ldep) :
+        DO_TSNR = 1
+        ulay     = '${main_dset}' 
+        focusbox = '${main_dset}'
+    elif lat.check_dep(ap_ssdict, alt_ldep) :
+        DO_TSNR = 1
+        ulay     = '${vr_base_dset}'
+        focusbox = 'AMASK_FOCUS_ULAY' 
+
+    DO_TSNR_VREG = 0
+    tsnr_vreg = glob.glob( iopts.subjdir + '/' + 'TSNR*vreg*HEAD' )
+    if len(tsnr_vreg) == 1 :
+        DO_TSNR_VREG = 1
+
+    if DO_TSNR and DO_TSNR_VREG :
+
+        print("++ Will calc vreg TSNR.")
+        olay     = '( TSNR*vreg*HEAD )'
+        descrip  = '(TSNR, from r01 dset after volreg)'
+
+        ban      = lat.bannerize('check vreg (r01) TSNR')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr",
+                                       ulay, focusbox, olay,
+                                       descrip=descrip,
+                                       HAVE_MASK=HAVE_MASK )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "regr" 
+    # item    : TSNR of *final* dset
+
+    ldep     = ['tsnr_dset', 'final_anat']
+    alt_ldep = ['tsnr_dset', 'vr_base_dset']  # elif to ldep
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_TSNR = 1
@@ -848,11 +878,14 @@ if __name__ == "__main__":
         focusbox = 'AMASK_FOCUS_ULAY' 
 
     if DO_TSNR :
+        olay     = '${tsnr_dset}' 
+        descrip  = '(final TSNR dset)'
 
-        ban      = lat.bannerize('check TSNR through brain+FOV')
+        ban      = lat.bannerize('check final TSNR')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr",
-                                       ulay, focusbox,
+                                       ulay, focusbox, olay,
+                                       descrip=descrip,
                                        HAVE_MASK=HAVE_MASK )
 
         str_FULL+= ban

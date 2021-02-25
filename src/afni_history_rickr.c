@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -regress_extra_ortvec, -regress_extra_ortvec_labels",
+   "Pass sets of regressors of no interest, to go into the baseline.\n"
+   "Requested by multiple people, including Carolin31 on MB."
+ } ,
+
  { 22, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "masking is no longer applied to TSNR dset; pass mask_dset to gen_ss",
    "Requested by P Taylor."

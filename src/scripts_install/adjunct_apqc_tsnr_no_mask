@@ -5,25 +5,23 @@
 
 #set version   = "0.1";  set rev_dat   = "Feb 22, 2021"
 # [PT] start of this program in program form.  Programmatically speaking.
-#
-set version   = "0.2";  set rev_dat   = "Feb 22, 2021"
-# [PT] program up and running.
-#    + requires a mask
+#    + complements adjunct_apqc_tsnr_with_mask
 #
 # ----------------------------------------------------------------
 
-set this_prog = "adjunct_apqc_tsnr_with_mask"
+set this_prog = "adjunct_apqc_tsnr_no_mask"
 set tpname    = "${this_prog:gas/adjunct_//}"
 set here      = $PWD
 
 set ulay  = ""
 set olay  = ""
 set focus = ""
-set mask  = ""
 set opref = ""
 set opref_cbar = ""
-set hot_max = 95   # %ile
-set hot_min =  5   # %ile
+
+set hot_min = 90   # %ile
+set hot_max = 98   # %ile
+set cbar    = Viridis
 
 # ------------------- process options, a la rr ----------------------
 
@@ -50,11 +48,6 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set olay = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-mask" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set mask = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-focus" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -100,11 +93,6 @@ if ( "${focus}" == "" ) then
     goto BAD_EXIT
 endif
 
-if ( "${mask}" == "" ) then
-    echo "** ERROR: use '-mask ..'"
-    goto BAD_EXIT
-endif
-
 if ( "${opref}" == "" ) then
     echo "** ERROR: use '-prefix ..'"
     goto BAD_EXIT
@@ -117,52 +105,22 @@ endif
 
 # =========================== calcs ==============================
 
+# get the 2 values were are interested in
+
 @ hot_diff = ${hot_max} - ${hot_min}
 
-set uuu0 = `3dBrickStat -slow                \
-              -non-zero                      \
-              -mask "${mask}"                \
-              -percentile 1 1 1              \
-              ${olay}`
-
-set uuu2 = `3dBrickStat -slow                \
-              -non-zero                      \
-              -mask "${mask}"                \
+set uuu2 = `3dBrickStat -slow                     \
               -percentile ${hot_min} ${hot_diff} ${hot_max} \
               ${olay}`
 
 # round values to nearest int; easier for presentation/reporting
-set uuu0[2] = `echo "scale=0; $uuu0[2] / 1.0" | bc`
 set uuu2[2] = `echo "scale=0; $uuu2[2] / 1.0" | bc`
 set uuu2[4] = `echo "scale=0; $uuu2[4] / 1.0" | bc`
 
-# =========================== make cbar ==============================
-
-set colors   = ( red        oran-red   orange    \
-                 oran-yell  yell-oran  yellow    \
-                 lt-blue2   blue )
-
-# calc size of spacing within 5-95%ile range
-@   ncol     = ${#colors} - 2
-set col_step = `echo "scale=3; ($uuu2[4] - $uuu2[2])/(${ncol} * 1.0)" | bc`
-
-# make colorstring within 5-95%ile range
-set ll       = 0
-set cbar_str = ""
-
-foreach kk ( `seq 0 1 ${ncol}` )
-    @ ll += 1
-    set val = `echo "scale=0; ($uuu2[4] - ${kk} * ${col_step})/1.0" | bc`
-    set cbar_str = "${cbar_str}  ${val}=${colors[$ll]}"
-end
-
-# add the bottom values to colorstring
-@ ll += 1
-set cbar_str = "${cbar_str}  ${uuu0[2]}=${colors[$ll]}"
-set cbar_str = "${cbar_str}  0=none"
+# ========================= make cbar info ===========================
 
 set range    = "`printf ': %3d - %3d' ${uuu2[2]} ${uuu2[4]}`"
-set gen_comm = " cbar: hot color range (${hot_min}-${hot_max}%ile TSNR in mask)"
+set gen_comm = " info: 90-98%ile TSNR in volume"
 set gen_comm = "${gen_comm}${range}" 
 
 # =========================== plot ==============================
@@ -175,12 +133,10 @@ set gen_comm = "${gen_comm}${range}"
     -box_focus_slices "${focus}"                            \
     -set_subbricks    0 0 0                                 \
     -pbar_posonly                                           \
-    -cbar_ncolors     "${ll}"                               \
-    -cbar_topval      ""                                    \
-    -cbar             "${cbar_str}"                         \
-    -opacity          4                                     \
+    -cbar             "${cbar}"                             \
+    -opacity          5                                     \
     -pbar_saveim      "${opref_cbar}"                       \
-    -pbar_comm_range  "${hot_max}%ile in mask"              \
+    -pbar_comm_range  "${hot_max}%ile in volume"            \
     -pbar_comm_gen    "${gen_comm}"                         \
     -prefix           "${opref}"                            \
     -save_ftype JPEG                                        \
@@ -190,7 +146,6 @@ set gen_comm = "${gen_comm}${range}"
     -set_xhairs OFF                                         \
     -label_mode 1 -label_size 3                             \
     -do_clean                        
-
 
 # ---------------------------------
 
@@ -214,11 +169,10 @@ written by PA Taylor.
 
 EXAMPLE ~1~
 
-adjunct_apqc_tsnr_with_mask                       \
+adjunct_apqc_tsnr_no_mask                         \
     -ulay         MNI152_2009_template_SSW.nii.gz \
     -focus        MNI152_2009_template_SSW.nii.gz \
     -olay         TSNR*HEAD                       \
-    -mask         mask_epi_anat.*HEAD             \
     -prefix       img                             \
     -prefix_cbar  img.cbar
 

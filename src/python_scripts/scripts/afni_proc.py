@@ -686,9 +686,10 @@ g_history = """
     7.13 Feb 22, 2021:
        - add -regress_mask_tsnr; change default to no mask for TSNR dset
        - pass mask_dset explicitly to gen_ss_review_scripts.py
+    7.14 Feb 24, 2021: -add -regress_extra_ortvec and _ortvec_labels
 """
 
-g_version = "version 7.13, February 22, 2021"
+g_version = "version 7.14, February 24, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -854,6 +855,7 @@ g_eg_skip_opts = [
    '-tlrc_NL_warped_dsets', 
    # '-volreg_base_dset',   (not sure, so allow for now)
    '-regress_censor_extern', '-regress_extra_stim_files', 
+   '-regress_extra_ortvec', '-regress_extra_ortvec_labels',
    '-regress_motion_file', 
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
@@ -878,9 +880,13 @@ class SubjProcSream:
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
-        self.extra_stims_orig = []      # orig list of extra_stims
-        self.extra_stims      = []      # extra -stim_file list
-        self.extra_labs       = []      # labels for extra -stim_file list
+        self.extra_stims_orig  = []     # orig list of extra_stims
+        self.extra_stims       = []     # extra -stim_file list
+        self.extra_labs        = []     # labels for extra -stim_file list
+        self.extra_ortvec_orig = []     # orig list of ortvec files to apply
+        self.extra_ortvec      = []     # ortvec files to use in regression
+        self.extra_ortvec_labs = []     # labels for reg_ort files
+
         self.have_task_regs   = 0       # any proc.stims or proc.extra_stims?
 
         # general file tracking
@@ -1589,6 +1595,11 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_stim_files', -1, [], okdash=0,
                         helpstr="extra -stim_files to apply")
         self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [], okdash=0,
+                        helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_extra_ortvec', -1, [], okdash=0,
+                        helpstr="extra -ortvec opts in regression")
+        self.valid_opts.add_opt('-regress_extra_ortvec_labels',
+                                -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
         self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
                         helpstr="extra PPI -stim_files to apply")
@@ -2956,6 +2967,15 @@ class SubjProcSream:
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
             self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
+
+        opt = self.user_opts.find_opt('-regress_extra_ortvec')
+        if opt and len(opt.parlist) > 0:
+            tstr = '# copy external ortvec files into stimuli dir\n' \
+                  'cp %s %s/stimuli\n' %                             \
+                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
+            self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
+            self.write_text(add_line_wrappers(tstr))
+            self.write_text("%s\n" % stat_inc)
 
         if self.anat:
             oanat = self.anat.nice_input()
