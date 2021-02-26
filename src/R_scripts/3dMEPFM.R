@@ -350,12 +350,12 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       "          Default = 10                                                   \n"
     ) ),
 
-    '-block' = apl(0, d = FALSE, h = paste(
-      "-block:                                                                  \n",
-      "     * Use integration operator in design matrix.                        \n",
-      "     * May be useful for sustained events.                               \n",
-      "     * It estimates innovation signals, i.e, the derivative of DR2.      \n"
-    ) ),
+    # '-block' = apl(0, d = FALSE, h = paste(
+    #   "-block:                                                                  \n",
+    #   "     * Use integration operator in design matrix.                        \n",
+    #   "     * May be useful for sustained events.                               \n",
+    #   "     * It estimates innovation signals, i.e, the derivative of DR2.      \n",
+    # ) ),
 
     '-verb' = apl(n=1, d = 0, h = paste(
       "-verb VERB: VERB is an integer specifying verbosity level.\n",
