@@ -264,9 +264,17 @@ set progname = @animal_warper
 #set version = "3.1" ; set date = "Dec 22, 2020"
 # [PT] new feature size default: 0.5 (old default: empty)
 # 
-set version = "3.2" ; set date = "Feb 3, 2021"
+#set version = "3.2" ; set date = "Feb 3, 2021"
 # [PT] add snapshot of aff, intermed qc
 #    + pass along set echo to at least some subscript(s)
+# 
+set version = "3.3" ; set date = "Feb 25, 2021"
+# [PT] the rigid, rigid_equiv and affine align_types now go all the
+#      way through the full processing, warping dsets, etc.  This
+#      functionality changed for Adam Messinger.
+#    + NL alignment is unchanged
+#    + record align_type in animal_outs.txt
+#    + fixed bug in 3drefitting a 'dset_follower' as if it were int-valued
 # 
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -497,10 +505,10 @@ while ($ac <= $#argv)
             exit 1
         endif
         set align_type =  $argv[$ac]
-        if (($align_type == "all")         || \
-            ($align_type == "rigid")       || \
-            ($align_type == "rigid_equiv") || \
-            ($align_type == "affine")) then
+        if (( "$align_type" == "all" )         || \
+            ( "$align_type" == "rigid" )       || \
+            ( "$align_type" == "rigid_equiv" ) || \
+            ( "$align_type" == "affine" )) then
            echo "align_type set to $align_type"
         else
            echo "align_type $align_type is not a valid choice"
@@ -1185,6 +1193,18 @@ printf "%-37s : %s\n"                   \
         "${center_out}"                 \
        >> ${animal_outs}
 
+if ( "$align_type" == "all" ) then
+    set al_meth = "all (= nonlinear)"
+else
+    set al_meth = "$align_type"
+endif
+
+# Record the type of alignment
+printf "%-37s : %s\n"                   \
+        "Alignment type"                \
+        "${al_meth}"                    \
+    >> ${animal_outs}
+
 echo "" >> ${animal_outs}
 
 # -----------------------------------------------------------------------
@@ -1259,7 +1279,7 @@ printf "%-37s : %s\n"                             \
 # source are treated differently by align_epi_anats resampling and by
 # 3dAllineate)
 
-if ($align_type == "rigid") then
+if ( "$align_type" == "rigid" ) then
    set rigidopt = "-rigid_body"
 else
    set rigidopt = ""
@@ -1381,7 +1401,7 @@ printf "%-37s : %s\n"                                               \
         "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"              \
        >> ${animal_outs}
 
-if ($align_type == rigid_equiv) then
+if ( "$align_type" == "rigid_equiv" ) then
     set affmat = ${srcsh2_prefix}_al2std_mat_rigid.aff12.1D
     cat_matvec                                                      \
         ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -P             \
@@ -1479,20 +1499,28 @@ printf "%-37s : %s\n"                                       \
 
 # ---------------------- end aff; can go to NL ----------------------------
 
-# if nonlinear alignment is not requested, then exit
-if ( $align_type != "all" ) then
-   echo ""
-   echo "++ Finished aligning with only ${align_type} alignment"
-   echo ""
-   if ( $align_type == "rigid" ) then
-      echo "++ This 'rigid' alignment method requires restarting"
-      echo "   the alignment for other types of alignment"
-   else
-      echo "++ You may restart for other types of alignment with"
-      echo "   a different align_type and -ok_to_exist"
-   endif
-      goto FINISH_OUTS
+#### no longer the case!
+#
+## if nonlinear alignment is not requested, then exit
+#if ( "$align_type" != "all" ) then
+#    echo ""
+#    echo "++ Finished aligning with only ${align_type} alignment"
+#    echo ""
+#    if ( "$align_type" == "rigid" ) then
+#        echo "++ This 'rigid' alignment method requires restarting"
+#        echo "   the alignment for other types of alignment"
+#    else
+#        echo "++ You may restart for other types of alignment with"
+#        echo "   a different align_type and -ok_to_exist"
+#    endif
+#    goto FINISH_OUTS
+#endif
+
+if ( "$align_type" != "all" ) then
+    echo "++ With align_type = '$align_type', we jump ahead."
+    goto JUMP_RIGID
 endif
+
 
 # ------------------------ MAKE_WARP aff2base, base2aff --------------------
 
@@ -1634,6 +1662,9 @@ printf "%-37s : %s\n"                                             \
         "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"           \
        >> ${animal_outs}
 
+
+JUMP_RIGID:
+
 # -----------------------------------------------------------------------
 # --------------------- APPLY_WARP osh2base: input dset -----------------
 
@@ -1644,23 +1675,38 @@ printf "%-37s : %s\n"                                             \
 if ( ($ok_to_exist == "1") &&                  \
      (-f ${src_abbrev}_warp2std.nii.gz) && \
      (-f ${src_abbrev}_warp2std_nsu.nii.gz) ) then
-   echo "++ Reusing nonlinear transformed dataset and its unifized version"
+    echo "++ Reusing warped input dataset and its unifized version"
 else
-   # [DRG: 07 Nov 2016] combine nonlinear and affine warps for dataset
-   # warped to standard template space 
-   3dNwarpApply -overwrite                                     \
-      -prefix "${src_abbrev}_warp2std.nii.gz"                  \
-      -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"  \
-      -source "${imed}/${srcsh2_dset}"                         \
-      -master "${base_dset}"
+    if ( "$align_type" == "all" ) then
+        # [DRG: 07 Nov 2016] combine nonlinear and affine warps for dataset
+        # warped to standard template space 
+        3dNwarpApply -overwrite                                      \
+            -prefix "${src_abbrev}_warp2std.nii.gz"                  \
+            -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"  \
+            -source "${imed}/${srcsh2_dset}"                         \
+            -master "${base_dset}"
 
-   if ( ${status} ) then
-       echo "** ERROR: program failed (3dNwarpApply, osh2base)"
-       exit 1
-   endif
+        if ( ${status} ) then
+            echo "** ERROR: program failed (3dNwarpApply, osh2base)"
+            exit 1
+        endif
+    else 
+        3dAllineate -overwrite                                       \
+            -prefix "${src_abbrev}_warp2std.nii.gz"                  \
+            -1Dmatrix_apply "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D" \
+            -source "${imed}/${srcsh2_dset}"                         \
+            -master "${base_dset}"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed ($align_type 3dAllineate, osh2base)"
+            exit 1
+        endif
+    endif
 
    # make masked version of orig dset in template space, using the
    # template itself.
+   # [PT: Feb 25, 2021] not sure how much sense this makes with rigid aligns,
+   # but will leave it in for user to decide about utility
    3dcalc -overwrite                                    \
       -a      "${src_abbrev}_warp2std.nii.gz"           \
       -b      "${base_dset}"                            \
@@ -1803,24 +1849,38 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
           -dset tempfollow.nii.gz                     \
           -shift_xform_inv ${imed}/${srcsh2_shft}
 
-      # apply NL warp
-      3dNwarpApply  -overwrite                                       \
-          -ainterp ${follow_interp}                                  \
-          -prefix  ${follow_in_std}                                  \
-          -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"    \
-          -source  tempfollow.nii.gz                                 \
-          -master  "${base_dset}"
+      if ( "$align_type" == "all" ) then
+          # apply NL warp
+          3dNwarpApply  -overwrite                                       \
+              -ainterp ${follow_interp}                                  \
+              -prefix  ${follow_in_std}                                  \
+              -nwarp  "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"    \
+              -source  tempfollow.nii.gz                                 \
+              -master  "${base_dset}"
 
-      if ( ${status} ) then
-         echo "** ERROR: program failed (follower data, 1)"
-         exit 1
+          if ( ${status} ) then
+             echo "** ERROR: program failed (follower data, 1)"
+             exit 1
+          endif
+      else 
+          3dAllineate -overwrite                                         \
+              -final   ${follow_interp}                                  \
+              -prefix  ${follow_in_std}                                  \
+              -1Dmatrix_apply "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D" \
+              -source  tempfollow.nii.gz                                 \
+              -master "${base_dset}"
+
+          if ( ${status} ) then
+             echo "** ERROR: program failed ($align_type follower data, 1)"
+             exit 1
+          endif
       endif
-
-      # keep propagating labels/atlases
-      3drefit -copytables "${followset}" ${follow_in_std}
-      3drefit -cmap INT_CMAP             ${follow_in_std}
  
       if ( "${follow_interp}" == "NN" ) then
+         # keep propagating labels/atlases
+         3drefit -copytables "${followset}" ${follow_in_std}
+         3drefit -cmap INT_CMAP             ${follow_in_std}
+
          echo "++ Created follower ROI dset: ${follow_in_std}"
 
          if ( "${modesmooth}" != "0") then
@@ -1870,12 +1930,12 @@ foreach ii ( `seq 1 1 ${#all_follow}` )
    # final part, for text file info
    if ( "${follow_interp}" == "NN" ) then
       printf "%-37s : %s\n"                                \
-               "Follower ROI dset, NL-warped to base"      \
+               "Follower ROI dset, warped to base"         \
                "${follow_in_std}"                          \
              >> ${animal_outs}
    else if ( "${follow_interp}" == "wsinc5" ) then
       printf "%-37s : %s\n"                         \
-               "Follower dset, NL-warped to base"   \
+               "Follower dset, warped to base"      \
                "${follow_in_std}"                   \
             >> ${animal_outs}
    else 
@@ -1906,17 +1966,31 @@ if ( ($ok_to_exist == "1") && \
      (-f  ${templ_in_orig} ) ) then
    echo "++ Reusing template transformed to native space dataset"
 else 
-   # warp to orig+shft space
-   3dNwarpApply -overwrite                                   \
-     -ainterp wsinc5                                         \
-     -nwarp  "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
-     -source "${base_dset}"                                  \
-     -master ${imed}/${srcsh2_dset}                          \
-     -prefix ${templ_in_orig}
-   
-   if ( ${status} ) then
-      echo "** ERROR: program failed (3dNwarpApply, base2osh, 1)"
-      exit 1
+   if ( "$align_type" == "all" ) then
+       # warp to orig+shft space
+       3dNwarpApply -overwrite                                   \
+         -ainterp wsinc5                                         \
+         -nwarp  "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+         -source "${base_dset}"                                  \
+         -master ${imed}/${srcsh2_dset}                          \
+         -prefix ${templ_in_orig}
+
+       if ( ${status} ) then
+          echo "** ERROR: program failed (3dNwarpApply, base2osh, 1)"
+          exit 1
+       endif
+   else 
+       3dAllineate -overwrite                                              \
+           -final   wsinc5                                                 \
+           -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+           -source "${base_dset}"                                          \
+           -master ${imed}/${srcsh2_dset}                                  \
+           -prefix ${templ_in_orig}
+
+       if ( ${status} ) then
+          echo "** ERROR: program failed ($align_type 3dAllineate, base2osh, 1)"
+          exit 1
+       endif
    endif
 
    # put back in non-shifted version (really native space); default
@@ -1959,17 +2033,32 @@ else
            (-f  ${src_abbrev}_mask.nii.gz) ) then
          echo "++ Reusing template transformed to native space dataset"
       else
-         3dNwarpApply -overwrite                                  \
-           -ainterp NN                                            \
-           -short                                                 \
-           -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
-           -source ${brainmask}                                   \
-           -master ${imed}/${srcsh2_dset}                         \
-           -prefix ${src_abbrev}_mask.nii.gz
+         if ( "$align_type" == "all" ) then
+             # warp to orig+shft space
+             3dNwarpApply -overwrite                                  \
+               -ainterp NN                                            \
+               -short                                                 \
+               -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+               -source ${brainmask}                                   \
+               -master ${imed}/${srcsh2_dset}                         \
+               -prefix ${src_abbrev}_mask.nii.gz
 
-         if ( ${status} ) then
-            echo "** ERROR: program failed (base2osh, brainmask)"
-            exit 1
+             if ( ${status} ) then
+                echo "** ERROR: program failed (base2osh, brainmask)"
+                exit 1
+             endif
+         else 
+             3dAllineate -overwrite                                                 \
+                 -final   NN                                                        \
+                 -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+                 -source ${brainmask}                                               \
+                 -master ${imed}/${srcsh2_dset}                                     \
+                 -prefix ${src_abbrev}_mask.nii.gz
+
+             if ( ${status} ) then
+                echo "** ERROR: program failed ($align_type 3dAllineate base2osh, brainmask)"
+                exit 1
+             endif
          endif
 
          # put back in non-shifted version (really native space);
@@ -2138,17 +2227,32 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
       echo "++ Reusing template transformed to native space dataset:"
       echo "   ${template_in_orig}"
    else
-      3dNwarpApply -overwrite                                  \
-        -short                                                 \
-        -ainterp wsinc5                                        \
-        -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
-        -source ${template_dset}                               \
-        -master ${imed}/${srcsh2_dset}                         \
-        -prefix ${template_in_orig}
-      
-      if ( ${status} ) then
-         echo "** ERROR: program failed (base2osh templ foll, ${template_dset})"
-         exit 1
+      if ( "$align_type" == "all" ) then
+          # warp to orig+shft space
+          3dNwarpApply -overwrite                                  \
+            -short                                                 \
+            -ainterp wsinc5                                        \
+            -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+            -source ${template_dset}                               \
+            -master ${imed}/${srcsh2_dset}                         \
+            -prefix ${template_in_orig}
+
+          if ( ${status} ) then
+             echo "** ERROR: program failed (base2osh templ foll, ${template_dset})"
+             exit 1
+          endif
+      else 
+          3dAllineate -overwrite                                                 \
+              -final   wsinc5                                                    \
+              -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+              -source ${template_dset}                               \
+              -master ${imed}/${srcsh2_dset}                         \
+              -prefix ${template_in_orig}
+
+          if ( ${status} ) then
+             echo "** ERROR: program failed ($align_type base2osh templ foll, ${template_dset})"
+             exit 1
+          endif
       endif
 
       # put back in non-shifted version (really native space) 
@@ -2228,23 +2332,36 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 
    if ( ( $ok_to_exist == "1" ) && \
         ( -f  ${segm_in_orig} ) ) then
-      echo "++ Reusing ${segm_type} in native space: ${segm_in_orig}"
+       echo "++ Reusing ${segm_type} in native space: ${segm_in_orig}"
    else
+       if ( "$align_type" == "all" ) then
+           # warp to orig+shft space
+           3dNwarpApply -overwrite                                   \
+              -ainterp NN                                            \
+              -short                                                 \
+              -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
+              -source ${segm_dset}                                   \
+              -master ${imed}/${srcsh2_dset}                         \
+              -prefix ${segm_in_orig}
 
-       # use concatenated affine and nonlinear warp to go back to
-       # shifted original space
-       3dNwarpApply -overwrite                                   \
-          -ainterp NN                                            \
-          -short                                                 \
-          -nwarp "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz" \
-          -source ${segm_dset}                                   \
-          -master ${imed}/${srcsh2_dset}                         \
-          -prefix ${segm_in_orig}
-   
-       if ( ${status} ) then
-          echo "** ERROR: program failed (base2osh atl/seg foll)"
-          echo "   ... for dset: ${segm_dset}"
-          exit 1
+           if ( ${status} ) then
+              echo "** ERROR: program failed (base2osh atl/seg foll)"
+              echo "   ... for dset: ${segm_dset}"
+              exit 1
+           endif
+       else 
+           3dAllineate -overwrite                                                 \
+               -final   NN                                                        \
+               -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+               -source ${segm_dset}                                   \
+               -master ${imed}/${srcsh2_dset}                         \
+               -prefix ${segm_in_orig}
+
+           if ( ${status} ) then
+              echo "** ERROR: program failed ($align_type base2osh atl/seg foll)"
+              echo "   ... for dset: ${segm_dset}"
+              exit 1
+           endif
        endif
 
        # put back in non-shifted version (really native space) 
@@ -2349,28 +2466,6 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
              endif
           endif
        endif
-
-       ### OLD
-       # modal smoothing
-       # overwrite its own dataset if enabled (default)
-       #if ("${modesmooth}" != "0") then
-       #   3dLocalstat -overwrite                                 \
-       #     -stat mode                                           \
-       #     -nbhd "SPHERE(-${modesmooth})"                       \
-       #     -prefix ${segm_in_orig}                              \
-       #     ${segm_in_orig}
-       #endif
-       #
-       # copy segmentation information from atlas to this
-       # native-space segmentation dataset and mark to be shown
-       # with integer colormap
-       #3drefit                       \
-       #     -cmap  INT_CMAP          \
-       #     -space ${origspace}      \
-       #     ${segm_in_orig}
-       #3drefit                       \
-       #     -copytables ${segm_dset} \
-       #     ${segm_in_orig}
 
        # Image : [ulay] edge enhanced orig dset;
        #         [olay] atlas warped to orig space
@@ -2650,6 +2745,7 @@ endif
 if( "${keep_temp}" != "1") then
    \rm -rf "${awpy_dir}/"
    \rm -f `\ls __tmp*`
+   \rm -f tempfollow.nii*
    echo "++ Done cleaning up."
 endif
 
@@ -2961,23 +3057,28 @@ Options ~1~
                          @Align_Centers -base template -dset mydset \
                           -child dset2 dset3 ...
 
-  -align_type         :provide alignment only to specified level
-                       (rigid,rigid_equiv,affine,all)
-                       rigid - align using rotation and translation
-                       rigid_equiv - compute alignment with full affine
-                          but apply only the rigid parameters.
-                          This is usually preferred over the rigid body
-                          alignment because it handles different sizes
-                          better. The purpose here is to put data into
-                          approximately the same position as the template
-                          (AC-PC, axialized, ...)
-                       affine - full affine, 12 parameters
-                          rotation, translation, shearing and scaling
-                       all - go through affine and nonlinear warps (Default)
-                       Note, any option other than all will forego the
-                       reverse warps for now. You may restart and reuse
-                       existing warp transformations with the -ok_to_exist
-                       option
+  -align_type         :provide alignment only to specified level, of which  
+                       your choices are:
+                         rigid       - align using rotation and translation
+                         rigid_equiv - compute alignment with full
+                                       affine but apply only the rigid
+                                       parameters.  This is usually
+                                       preferred over the rigid body
+                                       alignment because it handles
+                                       different sizes better. The
+                                       purpose here is to put data
+                                       into approximately the same
+                                       position as the template
+                                       (AC-PC, axialized, ...)
+                         affine      - full affine, 12 parameters
+                                       rotation, translation, shearing and 
+                                       scaling
+                         all         - go through affine and nonlinear warps
+                                       (default)
+                       In each case the full script runs.  However, note that
+                       the detail of alignment (and quality of masking) from
+                       less-than-nonlinear warps will necessarily be more 
+                       approximate.
 
   -keep_temp          :keep temporary files including awpy directory and
                        other intermediate datasets
