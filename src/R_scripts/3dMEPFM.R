@@ -350,9 +350,11 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       "          Default = 10                                                   \n"
     ) ),
 
-    '-sustained' = apl(0, d = FALSE, h = paste(
-      "-sustained:                                                                 \n",
-      "     * Use integration operator in design matrix.                        \n"
+    '-block' = apl(0, d = FALSE, h = paste(
+      "-block:                                                                  \n",
+      "     * Use integration operator in design matrix.                        \n",
+      "     * May be useful for sustained events.                               \n",
+      "     * It estimates innovation signals, i.e, the derivative of DR2.      \n"
     ) ),
 
     '-verb' = apl(n=1, d = 0, h = paste(
@@ -393,7 +395,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
   lop$debias_TEopt <- NULL
   lop$do_prior_debias <- FALSE
   lop$R2only <- FALSE
-  lop$sustained <- FALSE
+  lop$block <- FALSE
   lop$rho <- 0
   lop$factor_MAD <- 1
   lop$factor_min_lambda <- 0.1
@@ -424,7 +426,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
            n_selection_Nscans = lop$n_selection_Nscans <- TRUE,
            do_prior_debias = lop$do_prior_debias <- TRUE,
            R2only = lop$R2only <- TRUE,
-           sustained = lop$sustained <- TRUE,
+           block = lop$block <- TRUE,
            hrf = lop$hrf <- ops[[i]],
            idx_hrf = lop$idx_hrf <- ops[[i]],
            hrf_vol = lop$vol_hrfs <- ops[[i]],
@@ -471,7 +473,7 @@ Rprog.MEPFM <- function( inData, infoDeconv = NULL) {
   idx2normalize <- infoDeconv$idx2normalize
   do_prior_debias <- infoDeconv$do_prior_debias
   R2only <- infoDeconv$R2only
-  sustained <- infoDeconv$sustained
+  block <- infoDeconv$block
   n_selection_Nscans <- infoDeconv$n_selection_Nscans
   factor_MAD <- infoDeconv$factor_MAD
   factor_min_lambda <- infoDeconv$factor_min_lambda
@@ -861,8 +863,10 @@ library('abind')
 # load appropriate libraries
 cat(sprintf('Loading lars package. Required for LASSO.\n'))
 library('lars')
-cat(sprintf('Loading genlasso package. Required for Generalized LASSO.\n'))
-library('genlasso')
+if (lop$rho) {
+  cat(sprintf('Loading genlasso package. Required for Generalized LASSO.\n'))
+  library('genlasso')
+}
 cat(sprintf('Loading wavethresh package. Required for wavelet analysis.\n'))
 library(wavethresh)
 
@@ -1027,7 +1031,7 @@ if ( (!is.null(lop$hrf)) && (is.null(lop$idx_hrf)) ) {
     hrf_mtx_ME <- matrix(0,n_inputs*nscans,2*nscans)
     for (iter_input in 1:n_inputs){
       hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = diag(1,nscans)
-      if (lop$sustained == TRUE) {
+      if (lop$block == TRUE) {
         hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(nscans+1):(2*nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx %*% lower.tri(hrf_mtx, diag=TRUE)
       } else {
         hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(nscans+1):(2*nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
@@ -1061,7 +1065,7 @@ if ( (!is.null(lop$hrf)) && (is.null(lop$idx_hrf)) ) {
     # create model matrix for multi-echo formulation with only DR2
     hrf_mtx_ME <- matrix(0,n_inputs*nscans,nscans)
     for (iter_input in 1:n_inputs){
-      if (lop$sustained == TRUE) {
+      if (lop$block == TRUE) {
         hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx %*% lower.tri(hrf_mtx, diag=TRUE)
       } else {
         hrf_mtx_ME[(((iter_input-1)*nscans)+1):(iter_input*nscans),(1:nscans)] = -(lop$TEs[iter_input]/mean(lop$TEs))*hrf_mtx
