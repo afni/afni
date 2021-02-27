@@ -572,6 +572,10 @@ SET_XHAIRS [c.]code
        OFF  SINGLE  MULTI   LR_AP   LR_IS  AP_IS  LR  AP  IS
   which correspond to the menu items on the Xhairs button.
 
+SET_XHAIR_GAP [c.]val
+  Set the crosshairs ('Xhairs') gap to the specified number of pixels 
+  between -1  and 19
+
 READ_NIML_FILE fname
   Reads the NIML-formatted file 'fname' from disk and processes it as if
   the data in the file had been sent to AFNI through a TCP/IP socket.

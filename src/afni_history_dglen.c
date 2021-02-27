@@ -53,6 +53,18 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27, FEB, 2021, DRG, "gap setting via plugout_drive",
+     MICRO, TYPE_NEW_OPT,
+    "Set the AFNI GUI crosshair gap with plugout_drive",
+    "See README.driver for details"
+},    
+
+{ 27, FEB, 2021, DRG, "clang macos 11 M1-ARM mods",
+     MAJOR, TYPE_GENERAL,
+    "Makefile changes for ARM builds for new Macs",
+    "Makefile, misc. changes for building for M1"
+},    
+
 { 7, FEB, 2021, DRG, "clang+gcc10 macos 10.15 mods",
      MAJOR, TYPE_BUG_FIX,
     "Lots of little code fixes to handle compiler warnings",

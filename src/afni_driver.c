@@ -54,6 +54,7 @@ static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_get_ijk( char *cmd ) ;        /* 07 Oct 2010 */
 static int AFNI_drive_set_ijk_index( char *cmd ) ;  /* 29 Jul 2010 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
+static int AFNI_drive_xhairs_gap( char *cmd ) ;     /* 27 Feb 2021 */
 static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
 static int AFNI_drive_save_allpng( char *cmd ) ;    /* 15 Dec 2006 */
 static int AFNI_drive_write_underlay( char *cmd ) ; /* 16 Jun 2014 */
@@ -131,6 +132,11 @@ typedef int dfunc(char *) ;  /* action functions */
 typedef struct { char *nam; dfunc *fun; } AFNI_driver_pair ;
 
   /* this array controls the dispatch of commands to functions */
+     /* note the string compare below checks only the beginning of string
+        matches command - so SET_XHAIRS_GAP can match SET_XHAIRS_GAP
+        and SET_XHAIRS. The order of comparison then matters.
+        Either change here or set the order in command list or 
+        make sure name is unique */
 
 static AFNI_driver_pair dpair[] = {
  { "RESCAN_THIS"      , AFNI_drive_rescan_controller } ,
@@ -180,8 +186,10 @@ static AFNI_driver_pair dpair[] = {
  { "SET_IJK"          , AFNI_drive_set_ijk           } ,
  { "GET_IJK"          , AFNI_drive_get_ijk           } ,
  { "SET_INDEX"        , AFNI_drive_set_ijk_index     } ,
+ { "SET_XHAIRS_GAP"   , AFNI_drive_xhairs_gap        } ,
  { "SET_XHAIRS"       , AFNI_drive_set_xhairs        } ,
  { "SET_CROSSHAIRS"   , AFNI_drive_set_xhairs        } ,
+ { "SET_XHAIR_GAP"    , AFNI_drive_xhairs_gap        } ,  /* repeat -s */
  { "SET_OUTPLUG"      , AFNI_drive_set_outstream     } ,
  { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
  { "CLOSE_GRAPH_XY"   , AFNI_drive_close_graph_xy    } ,
@@ -318,6 +326,11 @@ ENTRY("AFNI_driver") ;
    for( dd=0 ; dpair[dd].nam != NULL ; dd++ ){
 
      dlen = strlen(dpair[dd].nam) ;
+     /* note the string compare below checks only the beginning of string
+        matches command - so SET_XHAIRS_GAP can match SET_XHAIRS_GAP
+        and SET_XHAIRS. The order of comparison then matters.
+        Either change here or set the order in command list or 
+        make sure name is unique */
      if( clen >= dlen                         &&
          strncmp(cmd,dpair[dd].nam,dlen) == 0   ){  /* found it */
 
@@ -3562,6 +3575,30 @@ static int AFNI_drive_set_xhairs( char *cmd )
    AFNI_crosshair_visible_CB( im3d->vwid->imag->crosshair_av, (XtPointer)im3d );
    return 0 ;
 }
+
+static int AFNI_drive_xhairs_gap( char *cmd )
+{
+   int ic , dadd=2 , hh=-1 ;
+   Three_D_View *im3d ;
+   int gapsize ;
+
+   if( strlen(cmd) < 1 ) return -1;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) return -1 ;
+
+   ic = sscanf( cmd+dadd , "%d" , &gapsize ) ;
+   if( ic < 1 ) return -1;
+   AV_assign_ival( im3d->vwid->imag->crosshair_gap_av, gapsize);
+   AFNI_crosshair_gap_CB( im3d->vwid->imag->crosshair_gap_av,
+                         (XtPointer) im3d ) ;
+
+   return 0 ;
+}
+
+
 
 /*--------------------------------------------------------------------*/
 /*! TRACE {YES | NO} */
