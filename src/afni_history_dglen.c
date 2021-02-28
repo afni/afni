@@ -53,6 +53,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27, FEB, 2021, DRG, "atlas labels - remove trailing spaces",
+     MICRO, TYPE_BUG_FIX,
+    "Remove trailing spaces introduced by @Atlasize"
+},    
 { 27, FEB, 2021, DRG, "gap setting via plugout_drive",
      MICRO, TYPE_NEW_OPT,
     "Set the AFNI GUI crosshair gap with plugout_drive",

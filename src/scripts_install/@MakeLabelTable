@@ -365,6 +365,8 @@ MAKE_ATLAS_TABLE:
             endif
          endif
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
+         # remove any trailing spaces from the short structure name
+         set lln[2] = `echo $lln[2] | tr -d ' $'`
          # might have a long name in the last column
          if($lncol) then
             printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2]`" $lln[1] \
@@ -377,8 +379,12 @@ MAKE_ATLAS_TABLE:
                printf ' LONGNAME="%s"\n' "$lln[3-]"  >> $labeltable
             endif
          else
-            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
+            # remove any trailing spaces from the short structure name
+            set longshortname = `echo $lln[2-] | tr -d ' $'`
+            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $longshortname`" $lln[1] \
                               >> $labeltable
+            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $longshortname`" $lln[1] 
+                             
          endif
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
