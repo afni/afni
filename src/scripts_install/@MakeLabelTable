@@ -382,9 +382,7 @@ MAKE_ATLAS_TABLE:
             # remove any trailing spaces from the short structure name
             set longshortname = `echo $lln[2-] | tr -d ' $'`
             printf ' STRUCT="%s"\n VAL=%s\n' "`echo $longshortname`" $lln[1] \
-                              >> $labeltable
-            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $longshortname`" $lln[1] 
-                             
+                              >> $labeltable                             
          endif
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
