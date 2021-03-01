@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Mar , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Fix output dir of an intermediate QC image.",
+   "The init*uaff* should now be in the usual QC/ dir.\n"
+},
+
 { 25, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "With non-nonlinear warps, processing now goes all they way through.",
    "Bit more *.txt output, fixed mapping of anat follower non-ROI dset.\n"

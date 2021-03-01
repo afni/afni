@@ -268,7 +268,7 @@ set progname = @animal_warper
 # [PT] add snapshot of aff, intermed qc
 #    + pass along set echo to at least some subscript(s)
 # 
-set version = "3.3" ; set date = "Feb 25, 2021"
+#set version = "3.3" ; set date = "Feb 25, 2021"
 # [PT] the rigid, rigid_equiv and affine align_types now go all the
 #      way through the full processing, warping dsets, etc.  This
 #      functionality changed for Adam Messinger.
@@ -276,6 +276,9 @@ set version = "3.3" ; set date = "Feb 25, 2021"
 #    + record align_type in animal_outs.txt
 #    + fixed bug in 3drefitting a 'dset_follower' as if it were int-valued
 # 
+set version = "3.31" ; set date = "Mar 1, 2021"
+# [PT] fix location of affine align init*jpg
+#
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -1436,7 +1439,7 @@ else
     @djunct_overlap_check                             \
         -ulay   "${imed}/${srcsh2_prefix}_aff.nii.gz" \
         -olay   "${base_dset}"                        \
-        -prefix ${outdir}/QC/init_qc_01_overlap_uaff_obase
+        -prefix  QC/init_qc_01_overlap_uaff_obase
 endif
 
 if ( ${status} ) then
