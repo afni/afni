@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar, 2021, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_BUG_FIX,
+   "On one system an instrutable error message 'Unknown user: 1~.' occurred.",
+   "This change (doublequote file name? remove EOL in backticks?) fixed it.\n"
+},
+
 { 1, Mar , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Fix output dir of an intermediate QC image.",
    "The init*uaff* should now be in the usual QC/ dir.\n"
