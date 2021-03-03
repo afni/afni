@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2021, RCR, "@clean_help_dir", MINOR, TYPE_MODIFY,
+   "warn on any error in 'cat *.complete* > xx' commands",
+   "In MacOS 11 Rosetta terminals, those commands are *sometimes* crashing.\n"
+   "Warn on any such failure.\n"
+   "Such a crash could cause trouble for other programs, too."
+ } ,
+
  { 24, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add options -regress_extra_ortvec, -regress_extra_ortvec_labels",
    "Pass sets of regressors of no interest, to go into the baseline.\n"
