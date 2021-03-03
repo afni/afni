@@ -1372,11 +1372,9 @@ endif
 
 # and possibly run apsearch
 if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
-   rehash
-   set cmd = "apsearch -update_all_afni_help"
-   echo "++ running $cmd ..."
-   $cmd
-   
+   # update dotfiles *before* running apsearch, so apsearch/@clean_help_dir
+   # do not suggest the user do it, too                  3 Mar 2021 [rickr]
+
    \grep all_progs.COMP $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
       echo "++ adding source of all_progs.COMP to $rcfile"
@@ -1466,6 +1464,13 @@ EOF
       echo ""
    endif
 
+   # dot files are good, now run apsearch
+   rehash
+   set cmd = "apsearch -update_all_afni_help"
+   echo "++ running $cmd ..."
+   $cmd
+   
+# end for running apsearch
 endif
 
 # maybe they need to set the DYLD_F_L_P

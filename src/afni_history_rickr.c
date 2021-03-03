@@ -53,11 +53,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "update dotfiles for 'complete' files before running apsearch",
+   "Do this so apsearch will not tell users to update the dotfiles again.\n"
+   "Thanks to D Glen."
+ } ,
+
  {  3, Mar, 2021, RCR, "@clean_help_dir", MINOR, TYPE_MODIFY,
    "warn on any error in 'cat *.complete* > xx' commands",
    "In MacOS 11 Rosetta terminals, those commands are *sometimes* crashing.\n"
    "Warn on any such failure.\n"
-   "Such a crash could cause trouble for other programs, too."
+   "Such a crash could cause trouble for other programs, too.\n"
+   "Thanks to D Glen."
  } ,
 
  { 24, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
