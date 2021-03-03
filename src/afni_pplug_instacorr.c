@@ -227,6 +227,7 @@ PLUGIN_interface * ICOR_init( char *lab )
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
+   /* only the first 4 of these methods is available to a "normal" user */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
                                     "BCpearson" , "VCpearson", "Euclidian",
@@ -265,7 +266,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , MAYBE ) ;
    PLUTO_add_number( plint , "Lower" , 0, 9000,3, 10 , TRUE ) ;
    PLUTO_add_number( plint , "Upper" , 0,10000,3,100 , TRUE ) ;
-   PLUTO_add_string( plint , "Despike" , 2 , yn , 0 ) ;
+	PLUTO_add_string( plint , "Despike" , 2 , yn , 0 ) ;
 
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
@@ -285,10 +286,11 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number( plint , "Polort" , -1,2,0,2 , FALSE ) ;
    { char *un = tross_username() ;
      PLUTO_add_string( plint , "Method" ,
-                       (un != NULL &&
-                        (strstr(un,"cox")  != NULL ||
-                         strstr(un,"ziad") != NULL)||
-                         AFNI_yesenv("AFNI_ICORR_UBER_USER")  ) ? 10 : 4 ,
+                       ( un != NULL &&                 /* here is where we */
+                         (strstr(un,"cox")  != NULL || /* choose how many  */
+                          strstr(un,"ziad") != NULL || /* methods are seen */
+                          AFNI_yesenv("AFNI_ICORR_UBER_USER") ) )
+                       ? 10 : 4 ,
                        meth_string , 0 ) ;
    }
 
@@ -1267,7 +1269,7 @@ ENTRY("GICOR_setup_func") ;
                         "   (in an image viewer)\n"
                         "* Or press Ctrl+Shift+\n"
                         "  Mouse-left-click in\n"
-                        "  an image viewer. " 
+                        "  an image viewer. "
  ,
                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
 

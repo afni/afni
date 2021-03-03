@@ -612,7 +612,8 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    }
    else { CANT_FIND("ppmtobmp","BMP"); need_netpbm++; }
 
-   /*-- write Encapsulated PostScript --*/
+#if 0
+   /*-- write Encapsulated PostScript [removed 02 Mar 2021] --*/
 
    pg = THD_find_executable( "pnmtops" ) ;
    if( pg != NULL ){
@@ -622,6 +623,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    }
 #if 0
    else { CANT_FIND("pnmtops","EPS"); need_netpbm++; }
+#endif
 #endif
 
 #if 0
@@ -636,7 +638,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    else CANT_FIND("pnmtops AND/OR epstopdf","PDF") ;
 #endif
 
-   /*-- Write a PNG file (again, query God) --*/
+   /*-- Write a PNG file --*/
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg != NULL ){
@@ -647,10 +649,11 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    }
    else { CANT_FIND("pnmtopng","PNG"); need_netpbm++; }
 
-   /*----- 16 Nov 2004: more warnings? -----*/
+   /*----- 16 Nov 2004: output more warnings? -----*/
 
    if( !AFNI_noenv("AFNI_IMSAVE_WARNINGS") && ncant > 0 ){
-     if( need_netpbm > 0 ){
+
+     if( need_netpbm > 0 ){  /* warnings for netpbm filters */
        fprintf(stderr,"++\n") ;
        fprintf(stderr,
                "++ Some of the missing image Save programs are in\n"
@@ -658,15 +661,21 @@ printf("\njpeg_compress %d\n", jpeg_compress);
        fprintf(stderr,"++\n") ;
 #ifdef DARWIN
        fprintf(stderr,
-               "++ Netpbm can be installed on MacOS X using the brew\n"
-               "++ system: https://brew.sh/\n"                         ) ;
+               "++ Netpbm can be installed on MacOS X using one of these systems:\n"
+               "++    brew   https://brew.sh/\n"
+               "++    fink   https://www.finkproject.org/\n"
+               "++    ports  https://www.macports.org/\n"
+               "++ brew is the system currently recommended at the AFNI Mac installation page\n"
+               "++ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html\n"
+              ) ;
        fprintf(stderr,"++\n") ;
 #endif
      }
+     /* warnings for all problems */
      fprintf(stderr,
                "++ To disable these warnings, set environment\n"
                "++  variable AFNI_IMSAVE_WARNINGS to 'NO'.\n"
-               "+++++++++++++++++++++++++++++++++++++++++++\n" ) ;
+               "+++++++++++++++++++++++++++++++++++++++++++++\n" ) ;
    }
 
    return ;
