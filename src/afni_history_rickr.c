@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
+   "fix surprising slowness",
+   "This would previously unload/mallocize/reload every time point,\n"
+   "possibly to free completed data.\n"
+   "Now, NIFTI input would be re-read every time point (why the change?).\n"
+   "Just mallocize in the first place, not per time point.\n"
+   "Also, avoid scaling floats by 1.0.\n"
+   "Thanks to C Craddock for reporting the problem."
+ } ,
+
  {  3, Mar, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
    "update dotfiles for 'complete' files before running apsearch",
    "Do this so apsearch will not tell users to update the dotfiles again.\n"
