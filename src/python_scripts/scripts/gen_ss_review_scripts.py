@@ -4,6 +4,8 @@
 
 # [PT: Oct 4, 2019] add @animal_warper to list of programs for getting
 #                   template name
+# [PT: Mar 3, 2021] add sswarper2 to list of programs for getting
+#                   template name
 
 # system libraries
 import sys, os, glob
@@ -1896,6 +1898,9 @@ class MyInterface:
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
       if warp_cmd == '':
          prog = '@animal_warper'
+         warp_cmd = UTIL.get_last_history_command(afinal, prog)
+      if warp_cmd == '':
+         prog = 'sswarper2'
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
 
       if warp_cmd == '': return 1

@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -13,10 +13,16 @@
 #   + reattach any tables, 
 #   + and put in 'cmap INT_CMAP' properties
 #
-set version   = "0.3";  set rev_dat   = "May 30"
+#set version   = "0.3";  set rev_dat   = "May 30"
 # [PT] 
 #   + all intermediate files are now *.nii.gz, to play more nicerly
 #     with @animal_warper
+#
+set version   = "0.4";  set rev_dat   = "March 3, 2021"
+# [PT] 
+#   + Squashing the WEIRDEST bug ever, where either line spacing or
+#     not doublequoting a safe filename caused an error.  Thanks,
+#     Veena, for helping to track this down!
 #
 # ----------------------------------------------------------------
 
@@ -166,9 +172,11 @@ cd ${wdir}            # move into workdir
 # -------- go through and *check* if we need to make any new dsets ---------
 
 # get upper index
-set nvi = `3dinfo            \
-              -nvi           \
-              ${dset_smoo0}`
+### [PT: Mar 30, 2021] on one system, consistently this program usage
+### caused an error 'Unknown user: 1~.' when this was spaced across a
+### few lines and the variable was not in double quotes.  I still
+### don't know precisely why, but I know when to take a hint...
+set nvi = `3dinfo -nvi "${dset_smoo0}"`
 
 foreach nn ( `seq 0 1 ${nvi}` ) 
     set nnn    = `printf "%05d" "${nn}"`

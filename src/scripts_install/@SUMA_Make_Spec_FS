@@ -35,8 +35,12 @@
 #    + use mris_convert/3dcopy for now, instead of FSread_annot/ConvertDset
 # [Jan 27, 2021] PT : add another driving script in L_MAKE_DRIVE_SCRIPT block
 #    + has both AFNI+SUMA run, plus talk 
+# [Mar  3, 2021] PT : add some functionality in new L_MASK_QC_ROIS block
+#    + make a nice WB mask
+#    + make some QC images of mask(s), segmentations and ROIs
+#    + make some tables of ROI info
 
-set ver = 2.2.2
+set ver = 2.2.3
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -75,13 +79,17 @@ goto L_ICO
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
 
-# PT added [Jan 27, 2020]
+# PT added [Jan 27, 2021]
 goto L_MAKE_DRIVE_SCRIPT
      L_MAKE_DRIVE_SCRIPT_DONE:
 
 # PT added [Dec 30, 2016]
 goto L_RENUMBER_ROIS
      L_RENUMBER_ROIS_DONE:
+
+# PT added [Mar 3, 2021]
+goto L_MASK_QC_ROIS
+     L_MASK_QC_ROIS_DONE:
 
 # [27 Jan 2020 rickr]
 goto L_COMPRESS_FILES
@@ -1637,6 +1645,26 @@ L_RENUMBER_ROIS:
     @SUMA_renumber_FS $suma_dir
 
 goto L_RENUMBER_ROIS_DONE
+
+####################################################################
+# [PT, Mar 3 2021]
+# Make a useful WB mask and QC images;  also make tables of ROI info.
+
+L_MASK_QC_ROIS:
+
+    echo "\n\n++ Going to make a nice WB mask."
+    echo "       ... and some useful QC images."
+    echo "       ... and some useful ROI info tables.\n\n"
+
+    adjunct_suma_fs_mask_and_qc             \
+        -sid       ${subj_id}               \
+        -suma_dir  $suma_dir
+
+    adjunct_suma_fs_roi_info                \
+        -sid       ${subj_id}               \
+        -suma_dir  $suma_dir
+
+goto L_MASK_QC_ROIS_DONE
 
 ####################################################################
 # [27 Jan 2020 rickr]

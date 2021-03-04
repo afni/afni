@@ -69,6 +69,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_BUG_FIX,
+   "Had an early exit from earlier debugging.",
+   "Ironic, really, that a debugging line became a bug.  Go figure.\n"
+},
+
+{ 3, Mar , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "Make nice new WB mask, make some QC images of mask/segs/ROIs.",
+   "Also make tables of ROI info (size stuff).\n"
+},
+
+{ 3, Mar, 2021, PT , "gen_ss_review_scripts.py" , MINOR, TYPE_GENERAL,
+   "Add sswarper2 to name of recognized progs for getting template dset.",
+   "Can get uvar for APQC for this top secret NL alignment prog.\n"
+},
+
+{ 3, Mar, 2021, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_BUG_FIX,
+   "On one system an instrutable error message 'Unknown user: 1~.' occurred.",
+   "This change (doublequote file name? remove EOL in backticks?) fixed it.\n"
+},
+
 { 1, Mar , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "Fix output dir of an intermediate QC image.",
    "The init*uaff* should now be in the usual QC/ dir.\n"
@@ -79,7 +99,7 @@ afni_history_struct ptaylor_history[] = {
    "Bit more *.txt output, fixed mapping of anat follower non-ROI dset.\n"
 },
 
-{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+{ 24, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add more TSNR plotting: if vreg TSNR is calc'ed, or if no mask exists.",
    "Also a bug fix in HAVE_MASK definition; fix ranges in some plots.\n"
 },

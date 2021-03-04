@@ -39,7 +39,7 @@ help.PTA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to PTA ==================
                Program for Profile Tracking Analysis (PTA)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Jan 23, 2021
+Version 0.0.2, Mar 3, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -57,7 +57,7 @@ Introduction
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
  in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
 
- To be able to run PTA, one needs to have the R packaages "mgcv" installed with
+ To be able to run PTA, one needs to have the R packages "mgcv" installed with
  the following command at the terminal:
 
  rPkgsInstall -pkgs "mgcv"
@@ -68,8 +68,8 @@ Introduction
 
  When a factor (e.g, groups, conditions) is involved, numerical coding is
  required in formulating the data information. See Examples 3 and 4. The
- following website provides some explanations regrding factor coding that
- might be useful for modeling formuation:
+ following website provides some explanations regarding factor coding that
+ might be useful for modeling formulation:
 
  https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
@@ -95,10 +95,8 @@ Introduction
   The function 's(age)' indicates that 'age' is modeled via a smooth curve.
   No empty space is allowed in the model formulation.
 
-   The file pred.txt lists all the expl1anatory variables (excluding lower-level variables
-   such as subject) for prediction. The file should be in a data.frame format as below
-   (set the age values with a small grid so that the graphical illustration would be
-   smooth):
+   The file pred.txt lists all the explanatory variables (excluding lower-level variables
+   such as subject) for prediction. The file should be in a data.frame format as below:
 
     age 
     10   
@@ -109,6 +107,10 @@ Introduction
     22 
     24
     ...
+
+   The age step in the above example is 2 years. To obtain smoother graphical appearance
+   in plotted profiles, one can set the age values in pred.txt with a small grid sizer of, 
+   for example, 0.5.
 
    The file data.txt stores the information for all the variables and input data in a
    data.frame format as below:
@@ -211,8 +213,8 @@ Introduction
    \n"
 
    ex4 <-
-"Example 4 --- This example demonstrates the situations wheren more than two
-  levels are involved in a betweeen- or within-subject factor. Suppose that 
+"Example 4 --- This example demonstrates the situations where more than two
+  levels are involved in a between- or within-subject factor. Suppose that 
   three groups and one quantitative variable (age). The analysis is 
   set up to compare the trajectory or trend along age between the three groups,
   A, B and C that are quantitatively represented using dummy coding.
@@ -228,7 +230,7 @@ Introduction
    S1    27   A   1    0
    S2    21   A   1    0
    S3    17   B   0    1
-   S4    24   b   0    1
+   S4    24   B   0    1
    S5    28   C   0    0
    S6    18   C   0    0
   ...
@@ -323,7 +325,7 @@ read.PTA.opts.batch <- function (args=NULL, verb = 0) {
 
       '-vt' = apl(n=2, h = paste(
    "-vt var formulation: This option is for specifying varying smoothing terms. Two components",
-   "         are required: the first one 'var' indicates the varaible (e.g., subject) around",
+   "         are required: the first one 'var' indicates the variable (e.g., subject) around",
    "         which the smoothing will vary while the second component specifies the smoothing",
    "         formulation (e.g., s(age,subject)). When there is no varying smoothing terms (e.g.,",
    "         no within-subject variables), do not use this option.\n", sep='\n')),
@@ -332,7 +334,7 @@ read.PTA.opts.batch <- function (args=NULL, verb = 0) {
    "-prediction TABLE: Provide a data table so that predicted values could be generated for",
    "graphical illustration. Usually the table should contain similar structure as the input",
    "file except that columns for those varying smoothing terms (e.g., subject) and response",
-   "variable (i.e., Y) should not be includes. Try to specify equally-spaced values with a small",
+   "variable (i.e., Y) should not be included. Try to specify equally-spaced values with a small",
    "for the quantitative variable of modeled trajectory (e.g., age) so that smooth curves could",
    "be plotted after the analysis. See Examples in the help for a couple of specific tables used",
    "for predictions.\n", sep = '\n'

@@ -156,8 +156,11 @@ auth = 'PA Taylor'
 #ver = '3.62' ; date = 'May 31, 2020' 
 # [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
 #
-ver = '3.63' ; date = 'May 31, 2020' 
+#ver = '3.63' ; date = 'May 31, 2020' 
 # [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
+#
+ver = '3.7' ; date = 'Feb 24, 2021' 
+# [PT] Have been adding TSNR plotting, more added.
 #
 #########################################################################
 
@@ -431,7 +434,6 @@ if __name__ == "__main__":
     # item    : EPI to anat align
 
     ldep  = ['final_anat', 'final_epi_dset']
-    ldep2 = ['template'] # secondary consideration
     if lat.check_dep(ap_ssdict, ldep) :
         focusbox = '${main_dset}'
 
