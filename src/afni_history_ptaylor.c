@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_BUG_FIX,
+   "Had an early exit from earlier debugging.",
+   "Ironic, really, that a debugging line became a bug.  Go figure.\n"
+},
+
+{ 3, Mar , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "Make nice new WB mask, make some QC images of mask/segs/ROIs.",
+   "Also make tables of ROI info (size stuff).\n"
+},
+
 { 3, Mar, 2021, PT , "gen_ss_review_scripts.py" , MINOR, TYPE_GENERAL,
    "Add sswarper2 to name of recognized progs for getting template dset.",
    "Can get uvar for APQC for this top secret NL alignment prog.\n"
