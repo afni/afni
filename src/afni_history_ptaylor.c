@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar, 2021, PT , "gen_ss_review_scripts.py" , MINOR, TYPE_GENERAL,
+   "Add sswarper2 to name of recognized progs for getting template dset.",
+   "Can get uvar for APQC for this top secret NL alignment prog.\n"
+},
+
 { 3, Mar, 2021, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_BUG_FIX,
    "On one system an instrutable error message 'Unknown user: 1~.' occurred.",
    "This change (doublequote file name? remove EOL in backticks?) fixed it.\n"
