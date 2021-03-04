@@ -99,7 +99,7 @@ afni_history_struct ptaylor_history[] = {
    "Bit more *.txt output, fixed mapping of anat follower non-ROI dset.\n"
 },
 
-{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+{ 24, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add more TSNR plotting: if vreg TSNR is calc'ed, or if no mask exists.",
    "Also a bug fix in HAVE_MASK definition; fix ranges in some plots.\n"
 },
