@@ -152,11 +152,18 @@ examples (very basic for now): ~1~
 
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
+       This option does not include warnings from baseline regressors,
+       which are common (from polort 0, from similar motion, etc).
+
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
    Example 6b.  Show entire correlation matrix. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat
+
+   Example 6c.  Like 6a, but include warnings for baseline regressors. ~2~
+
+         1d_tool.py -infile X.xmat.1D -show_cormat_warnings_full
 
    Example 7a. Output temporal derivative of motion regressors. ~2~
 
@@ -950,7 +957,11 @@ general options: ~2~
                                   file, and zeros are simply counted.
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
-   -show_df_info                : display info about degrees of freedom in xmat.1D file
+                                  (this does not include baseline terms)
+   -show_cormat_warnings_full   : display correlation matrix warnings
+                                  (this DOES include baseline terms)
+   -show_df_info                : display info about degrees of freedom
+                                  (found in in xmat.1D formatted files)
    -show_df_protect yes/no      : protection flag (def=yes)
    -show_gcor                   : display GCOR: the average correlation
    -show_gcor_all               : display many ways of computing (a) GCOR
@@ -1226,9 +1237,10 @@ g_history = """
    2.07 Aug  9, 2019 - tiny: make formatting more specific
    2.08 Dec 17, 2019 - allow labels as column selectors when reading xmat.1D
    2.09 Jun  1, 2020 - added -show_regs and -show_regs_style
+   2.10 Mar  5, 2021 - added -show_cormat_warnings_full, to include baseline
 """
 
-g_version = "1d_tool.py version 2.09, June 1, 2020"
+g_version = "1d_tool.py version 2.10, March 5, 2021"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1293,6 +1305,7 @@ class A1DInterface:
       self.show_clustsize  = 0          # show min clust size for corrected p
       self.show_cormat     = 0          # show cormat
       self.show_cormat_warn= 0          # show cormat warnings
+      self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
       self.show_df_protect = 1          # flag for show_df_info()
@@ -1553,6 +1566,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
+
+      self.valid_opts.add_opt('-show_cormat_warnings_full', 0, [], 
+                      helpstr='cormat warnings include baseline')
 
       self.valid_opts.add_opt('-show_df_info', 0, [], 
                       helpstr='show degrees of freedom information from xmat.1D')
@@ -2001,6 +2017,8 @@ class A1DInterface:
 
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
+         elif opt.name == '-show_cormat_warnings_full':
+            self.show_corwarnfull = 1
 
          elif opt.name == '-show_censor_count':
             self.show_censor_count = 1
@@ -2378,6 +2396,10 @@ class A1DInterface:
       if self.show_cormat_warn:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
+         print(wstr)
+      if self.show_corwarnfull:
+         err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
+                                            name=self.infile, skip_expected=0)
          print(wstr)
 
       # ---- possibly write: last option -----

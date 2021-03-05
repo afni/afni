@@ -2026,7 +2026,8 @@ class Afni1D:
             print(ps, end='')
          print("")
 
-   def make_cormat_warnings_string(self, cutoff=0.4, name=''):
+   def make_cormat_warnings_string(self, cutoff=0.4, name='',
+                                   skip_expected=1):
       """make a string for any entires at or above cutoffs:
             cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
 
@@ -2047,7 +2048,8 @@ class Afni1D:
       cut2 = cutoff
 
       # badlist holds cov, cos, row, col
-      err, errstr, badlist = self.list_cormat_warnings(cutoff=cut2)
+      err, errstr, badlist = self.list_cormat_warnings(cutoff=cut2,
+                                        skip_expected=skip_expected)
       if err: return err, errstr
 
       blen = len(badlist)
@@ -3689,7 +3691,7 @@ class AfniData(object):
       # negative result is terminal, positive can continue with warnings
       errs = self.file_type_errors_1D(run_lens=run_lens, nstim=nstim, verb=verb)
       if errs < 0:
-         if verb > 0: print('== BAD: %s does not look like 1D' % self.fname)
+         if verb>0: print('== BAD: %s does not look like valid 1D'%self.fname)
          return 0
       else:
          if verb > 0:
@@ -3736,11 +3738,11 @@ class AfniData(object):
          # if TR, scale it in
          tot_dur = UTIL.loc_sum(rlens)
 
-         # if nrows is too small, error -- if too big, just warn
-         if tot_dur > self.nrows:
+         # if nrows does not match total run length, fail
+         if tot_dur != self.nrows:
             errors |= ERR_ANY_MISC
             if verb > 1:
-               print("** file %s: nrows too small for run dur: %d < %d" \
+               print("** file %s: nrows does not match run dur: %d != %d" \
                                % (self.fname, self.nrows, tot_dur))
 
       if nstim > 0 and nstim != self.ncols:
@@ -3776,8 +3778,8 @@ class AfniData(object):
          # if TR, scale it in
          tot_dur = UTIL.loc_sum(rlens)
 
-         if tot_dur < self.nrows:
-            print("** warning for 1D file %s, more rows than TRs: %d > %d" \
+         if tot_dur != self.nrows:
+            print("** warning for 1D file %s, num rows != num TRs: %d != %d" \
                   % (self.fname, self.nrows, tot_dur))
             return 1
 
