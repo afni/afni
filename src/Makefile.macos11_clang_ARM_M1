@@ -62,7 +62,7 @@ XLIBS = -lXm -ljpeg.9 -lXt
 
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -m64 -Wall -Wno_deprecate -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
+CEXTRA = -m64 -Wall -Wno-deprecated-declarations -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
 	 -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
 # choose gcc version below from homebrew directory in 
 # either /opt/homebrew/bin
@@ -79,7 +79,9 @@ CCMIN  = /usr/bin/gcc -arch arm64 -DDARWIN -DARM_M1
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
-ARM_M1 = "true"
+# set CPU_TYPE for libgts.a building and anything else that might need it
+CPU_TYPE = ARM_M1
+
 # previous mac versions for brew put omp in a separate directory
 # here it's just homebrew's standard install directories for the ARM
 BREWI =  /opt/homebrew/include
@@ -126,7 +128,7 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
 
 IFLAGS = -I. $(XROOT_I) -I$(BREWINCDIR) -I/usr/include
          
-LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
 
 CCSVD  = $(CCMIN) -m64 -O0
 

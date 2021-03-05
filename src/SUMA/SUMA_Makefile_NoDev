@@ -716,19 +716,23 @@ libgts.a:
 #      $(MAKE) 'CFLAGS=$(CFLAGS)' ; \
 #	  ./configure --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	\
 #
-ifdef ARM_M1
+# set default CPU_TYPE if not set already
+ifndef CPU_TYPE
+   CPU_TYPE = x86_64
+endif
+
+ifeq ($(CPU_TYPE), ARM_M1)
 	( cd gts ;	\
-      LFLAGS = "-L/opt/homebrew/lib" \
-	  ./configure --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	\
+      ./configure 'LDFLAGS=$(SUMA_LINK_PATH)' --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	\
 	  $(MAKE) clean ; \
       $(MAKE) 'CFLAGS=$(CFLAGS)' ; \
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; )
 else
 	( cd gts ;	\
-	  ./configure  ;	\
+	  ./configure 'CFLAGS=$(CFLAGS)' 'LDFLAGS=$(SUMA_LINK_PATH)'  ;	\
 	  $(MAKE) clean ; \
-      $(MAKE)  ; \
+      $(MAKE) 'CFLAGS=$(CFLAGS)' ; \
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; )
 endif
