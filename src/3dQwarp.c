@@ -2364,6 +2364,7 @@ int main( int argc , char *argv[] )
        Huse_cubic_lite = Huse_quintic_lite = 0 ; nopt++ ; continue ;
      }
 
+#if 0
      /*--------------------------------------------------------------*/
      /** this option is [SECRET] since it doesn't seem to help with **/
      /** with speed - it is faster at larger patches but slows down **/
@@ -2374,7 +2375,9 @@ int main( int argc , char *argv[] )
        Huse_sincc = 1 ; Hznoq = 1 ;          /* use sinc compact basis */
        nopt++ ; continue ;                   /* functions for speedup */
      }     /* does not seem to help: faster at first, then slower :( */
-     /*--------------------------------------------------------------*/
+           /* and also tends to produce worse results :((           */
+     /*------------------------------------------------------------*/
+#endif
 
 #ifdef ALLOW_BASIS5
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */

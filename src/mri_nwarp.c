@@ -9,7 +9,10 @@
 /***      3dNwarpCat  3dNwarpFuncs   3dNwarpXYZ    3dNwarpCalc             ***/
 /*****************************************************************************/
 
-       /*** Search forward for TOC to find the Table of Contents ***/
+       /***-------------------------------------------------------***/
+       /*** Search forward for TOC to find the Table of Contents, ***/
+       /*** wherein you will find lengthy commentary on warping.  ***/
+       /***-------------------------------------------------------***/
 
 /***-----------------------------------------------------------------------
    Potential housecleaning chores:           [Dec 2018]
@@ -3066,7 +3069,7 @@ void IW3D_interp( int icode ,
 #undef  NPER
 #define NPER 8388608  /* 32 Mbyte per temp float array */
 
-/* determine size of a temp array */
+/* determine size of a temp array for when we do things in segments */
 
 #undef  NALL
 #define NALL(nnn) (((nnn) > NPER+524288) ? NPER : (nnn))
@@ -3100,11 +3103,22 @@ ENTRY("IW3D_compose_w1m2") ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
 
+   /* In the following code:
+        MAT33_VEC is used to apply the 3x3 matrix in BL to [xda,yda,zda],
+          which ignores the shifts in the 4x4 matrix, but will take care
+          of rotations (say)
+        MAT44_VEC is used to apply the 4x4 matrix in BI = BL-I to the
+          base location [ii,jj,kk], which will include the shifts and
+          any bulk rotation of the grid; the identity matrix I is
+          subtracted so that we just get displacements from [ii,jj,kk]
+      I hope the above helps elucidate the slightly mysterious code below. */
+
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 1111 )
  { int qq , ii,jj,kk ; float xb,yb,zb , xm,ym,zm ;
 #pragma omp for
      for( qq=0 ; qq < nxyz ; qq++ ){
+       /* compute 3D indexes [ii,jj,kk] from 1D index qq */
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
        MAT33_VEC(BL,xda[qq],yda[qq],zda[qq],xb,yb,zb) ;  /* B * dis(x) */
        MAT44_VEC(BI,ii     ,jj     ,kk     ,xm,ym,zm) ;  /* (B-I) * x  */
@@ -3144,7 +3158,7 @@ ENTRY("IW3D_compose_m1w2") ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
 
-   nall = NALL(nxyz) ;
+   nall = NALL(nxyz) ;   /* allocation size for segments to work on */
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* indexes at which to */
    yq = (float *)malloc(sizeof(float)*nall) ;  /* interpolate the AA warp */
@@ -3154,19 +3168,24 @@ ENTRY("IW3D_compose_m1w2") ;
 
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
+     /* step 1: Transform the [ii,jj,kk] index by the matrix;
+                this is the B(x) locations needed for the next step,
+                stored in the temp arrays xq[], yq[], and zq[].     */
+
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
  { int qq , ii,jj,kk ;
 #pragma ivdep  /* for Intel icc compiler */
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;  /* compute xq, */
-       MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;  /* yq, and zd */
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;  /* compute xq */
+       MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;  /* yq and zd  */
      }
  }
  AFNI_OMP_END ;
 
-     /* Interpolate A() warp index displacments at the B(x) locations */
+     /* step 2: Interpolate A() warp index displacments at B(x) locations,
+                and save them in the output arrays xdc[], ydc[], and zdc[]. */
 
      if( AA->use_es ) ES_PACK(AA,esar) ;  /* load external slopes */
      IW3D_interp( icode, nx,ny,nz , xda   , yda   , zda      ,
@@ -3174,8 +3193,8 @@ ENTRY("IW3D_compose_m1w2") ;
                          qtop-pp  , xq    , yq    , zq       ,
                                     xdc+pp, ydc+pp, zdc+pp    ) ;
 
-     /* Add in the B(x) displacments to get the total
-        index displacment from each original position: B(x)-x + A(x+B(x)) */
+     /* step 3: Add in the B(x) displacments to get the total index
+                displacment from each original position: B(x)-x + A(x+B(x)) */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
@@ -3192,7 +3211,7 @@ ENTRY("IW3D_compose_m1w2") ;
 
    } /* end of loop over segments of length NPER (or less) */
 
-   free(zq) ; free(yq) ; free(xq) ;
+   free(zq) ; free(yq) ; free(xq) ;  /* tossa la trashola */
    IW3D_load_external_slopes(CC) ; RETURN(CC) ;
 }
 
@@ -3215,7 +3234,7 @@ ENTRY("IW3D_compose") ;
 
    if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
 
-   nall = NALL(nxyz) ;
+   nall = NALL(nxyz) ;  /* size of segments to process */
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspaces */
    yq = (float *)malloc(sizeof(float)*nall) ;  /* for x+A(x) */
@@ -3690,7 +3709,7 @@ ENTRY("THD_nwarp_invert") ;
 /* (C11) Functions to compute the 'square root' of a warp.
    The square root is probably not actually very useful
    (especially given the 3dQwarp -plusminus option).
-     [[The old code to do this was excised completely on 05 Feb 2021.]] */
+     [[The old code to do this was excised completely on 05 Feb 2021]] */
 /*============================================================================*/
 
 /*---------------------------------------------------------------------------*/
@@ -7905,7 +7924,7 @@ static INLINE float HSCwarp_eval_basis( float x )
 {
    float aa = fabsf(x) ;
    if( aa >= 1.0f ) return 0.0f ;
-   return ( 0.5f * ( 1 + sinc(aa) - sinc(1.0f-aa) ) ) ;
+   return ( 0.5f * ( 1.0f + sinc(aa) - sinc(1.0f-aa) ) ) ;
 }
 
 #ifdef ALLOW_BASIS5
