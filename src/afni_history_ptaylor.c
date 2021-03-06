@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Mar , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
+{ 6, Mar , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
 { 5, Mar , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Have APQC copy the ss_review_basic text file into the QC dir.",
    "Might want this text info available for easy parsing at group level.\n"
