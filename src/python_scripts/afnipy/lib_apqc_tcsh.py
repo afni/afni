@@ -163,9 +163,12 @@ auth = 'PA Taylor'
 # [PT] updates with TSNR images/fnames 
 #    + following on from AP updates from RCR---thanks!
 #
-ver = '3.72' ; date = 'Feb 24, 2021'
+#ver = '3.72' ; date = 'Feb 24, 2021'
 # [PT] TSNR image no longer *requires* mask
 #    + add a type-check to dep_check.  
+#
+ver = '3.73' ; date = 'Mar 5, 2021'
+# [PT] cp review basic text to QC_*/ dir
 #
 #########################################################################
 
@@ -3933,11 +3936,30 @@ def apqc_DO_cp_subj_jsons( all_json ):
 
     comm = commentize( comm )
     pre  = commandize( pre )
-    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False  )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
 
     lout = [comm, pre, cmd]
     return '\n\n'.join(lout)
 
+# ========================== cp rev basic txt ===========================
+
+# cp rev basic text to QC_*/ dir
+# ['ss_review_dset']
+def apqc_DO_cp_subj_rev_basic( ):
+
+    comm  = '''preserve subj review_basic text file'''
+
+    cmd = '''
+    \cp ${ss_review_dset} ${odir_info}/.
+    '''
+
+    comm = commentize( comm )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
+
+    lout = [comm, cmd]
+    return '\n\n'.join(lout)
 
 # ========================== term echo ==============================
 
@@ -3955,7 +3977,7 @@ def apqc_DO_term_ss_review_basic( ):
     '''
 
     cmd0 = '''
-    cat out.ss_review.${subj}.txt
+    cat ${ss_review_dset}
     '''
 
     comm  = commentize( comm )

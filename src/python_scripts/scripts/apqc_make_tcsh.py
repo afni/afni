@@ -159,8 +159,11 @@ auth = 'PA Taylor'
 #ver = '3.63' ; date = 'May 31, 2020' 
 # [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
 #
-ver = '3.7' ; date = 'Feb 24, 2021' 
+#ver = '3.7' ; date = 'Feb 24, 2021' 
 # [PT] Have been adding TSNR plotting, more added.
+#
+ver = '3.73' ; date = 'Mar 5, 2021'
+# [PT] cp review basic text to QC_*/ dir
 #
 #########################################################################
 
@@ -1067,6 +1070,16 @@ if __name__ == "__main__":
         ban      = lat.bannerize('copy JSONs over to QC dir')
         all_json = [iopts.json] # only one at the moment...
         cmd      = lat.apqc_DO_cp_subj_jsons( all_json )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # cp @ss_review_basic text file to QC dir; should always be true
+    ldep = ['ss_review_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('copy review basic text file to QC dir')
+        cmd      = lat.apqc_DO_cp_subj_rev_basic()
 
         str_FULL+= ban
         str_FULL+= cmd

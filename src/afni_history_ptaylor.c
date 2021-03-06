@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Mar , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Have APQC copy the ss_review_basic text file into the QC dir.",
+   "Might want this text info available for easy parsing at group level.\n"
+},
+
 { 3, Mar , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_BUG_FIX,
    "Had an early exit from earlier debugging.",
    "Ironic, really, that a debugging line became a bug.  Go figure.\n"
