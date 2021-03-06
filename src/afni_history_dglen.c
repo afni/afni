@@ -53,6 +53,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 06, MAR, 2021, DRG, "@AddEdge PBAR fix",
+     MICRO, TYPE_BUG_FIX,
+    "PBAR fix"
+},    
 { 06, MAR, 2021, DRG, "MNI HCP Glasser atlas regrid",
      MICRO, TYPE_BUG_FIX,
     "Move from grid of FreeSurfer 256^3 to match MNI 2009c grid.\n"

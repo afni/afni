@@ -3,6 +3,9 @@
 # script to compute and display composite edge enhanced datasets for the
 # purpose of assessing alignment
 
+# modifications
+# drg - 06 March 2021 bug fix pbar change in AFNI broke the display in script
+
 set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
@@ -525,12 +528,15 @@ while ($cnt < $#olist)
    else
       set FUNC_RANGE = "SET_FUNC_RANGE A.0"
    endif
+# mod -drg 06 Mar 2021
+# pbar setting was +99 1.0 Add_Edge but PBAR settings
+# have changed in AFNI
    plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
-      -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
+      -com "SET_PBAR_ALL A.+99 255 Add_Edge" \
       -com "$FUNC_RANGE"   \
       -quit
    if ($unlayed) then
@@ -561,6 +567,15 @@ while ($cnt < $#olist)
          end
       endif
       set unlayed = 0 
+      # adding extra drive command to show for slower montages and dsets above
+      plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
+         -com "SWITCH_UNDERLAY $ana"   \
+         -com "SWITCH_OVERLAY  $ep"    \
+         -com "SEE_OVERLAY +"          \
+         -com "SET_THRESHOLD A.0"      \
+         -com "SET_PBAR_ALL A.+99 255 Add_Edge" \
+         -com "$FUNC_RANGE"   \
+         -quit
    endif
    set ilst = 2
    set iii  = 0
@@ -571,6 +586,7 @@ while ($cnt < $#olist)
       @ ilst ++
    end
    set stay = 1
+
    while ($stay == 1)
       # next label number
       @ nextlbl = $ilbl + 1
