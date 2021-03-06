@@ -53,6 +53,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 06, MAR, 2021, DRG, "MNI HCP Glasser atlas regrid",
+     MICRO, TYPE_BUG_FIX,
+    "Move from grid of FreeSurfer 256^3 to match MNI 2009c grid.\n"
+    "The FreeSurfer grid is zeropadded to 256 slices.\n"
+    "All values remain the same, so essentially same atlas\n"
+    "except memory requirements are less and easier to combine\n"
+    "with template-based datasets. Also works better in Draw\n"
+    "Dataset plugin because of the grid match. No source code\n"
+    "changes, just a change in the pub/dist/atlases/current\n"
+    "directory"
+},    
 { 27, FEB, 2021, DRG, "atlas labels - remove trailing spaces",
      MICRO, TYPE_BUG_FIX,
     "Remove trailing spaces introduced by @Atlasize"
