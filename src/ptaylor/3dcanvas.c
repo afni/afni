@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix="PREFIX" ;
-   // char in_name[300];
+   // char in_name[THD_MAX_NAME];
 
    // FILE *fout0, *fout1;
 

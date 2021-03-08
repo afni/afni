@@ -69,6 +69,66 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Mar , 2021 , PT , "3dRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "map_TrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dZipperZapper" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dNetCorr" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dDWUncert" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dLombScargle" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dMatch" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dROIMaker" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3ddot_beta" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dAmpToRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dReHo" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dTrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
 { 6, Mar , 2021 , PT , "@fat_tract_colorize" , MINOR , TYPE_GENERAL,
    "Run a bit more quietly, setting ENV vars and GUI opts.",
    "Fewer warnings and messages.  And tweak help to be more useful.\n"

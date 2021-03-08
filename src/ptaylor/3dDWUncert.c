@@ -279,7 +279,6 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *dwiset1 = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix="PREFIX" ;
-   // char in_name[300];
    THD_3dim_dataset *outset = NULL;
 
    THD_3dim_dataset **insetPARS=NULL; // [0] FA, [1] MD, [2] L1

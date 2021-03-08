@@ -132,11 +132,11 @@ int main(int argc, char *argv[]) {
    // THD_3dim_dataset *inset0 = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix="REHO" ;
-   char in_name[300];
-   char in_mask[300];
+   char in_name[THD_MAX_NAME];
+   char in_mask[THD_MAX_NAME];
    
    THD_3dim_dataset *outset=NULL;
-   char outname[300];
+   char outname[THD_MAX_NAME];
 
    int NIFTI_OUT=0;
    int DTYPE=0;

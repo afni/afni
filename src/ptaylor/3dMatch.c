@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 	int X,Y,Z;
 	int iarg=0;
 	THD_3dim_dataset *inset = NULL;
-	char in_name[300];
+	char in_name[THD_MAX_NAME];
 	int THR=0.;
 	char *prefix="NAME_Match";
    int HAVEPREFIX=0;
@@ -147,16 +147,16 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *outset=NULL;
 	THD_3dim_dataset *outset2=NULL;
 	float **temp_arr;
-	char bri_lab[300];
+	char bri_lab[THD_MAX_NAME];
 	FILE *fout1;
 
 
-	char in_REF[300];
-	char in_MASK[300];
-	char out_corr[300];
-	char out_corr2[300];
-	char prefix2[300];
-	char prefix1[300];
+	char in_REF[THD_MAX_NAME];
+	char in_MASK[THD_MAX_NAME];
+	char out_corr[THD_MAX_NAME];
+	char out_corr2[THD_MAX_NAME];
+	char prefix2[THD_MAX_NAME-15];
+	char prefix1[THD_MAX_NAME-15];
 
 	int HAVEMASK=0;
 	int ONLY_DICE_THR=0; // about what to threshold when

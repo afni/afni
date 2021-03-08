@@ -1402,7 +1402,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    SUMA_DSET *gset=NULL;
    float ***flat_matr=NULL;
    float *xyz=NULL;
-   char OUT_gdset[300];
+   char OUT_gdset[THD_MAX_NAME];
    NI_group *GDSET_netngrlink=NULL;
    char *NAME_gdset=NULL;
 
@@ -1422,10 +1422,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
 	int EXTRAFILE=0; // switch for whether other file is input as WM map
 
-	char OUT_grid[300];
-	char OUT_map[300];
-	char OUT_mask[300];
-	char OUT_rois[300];
+	char OUT_grid[THD_MAX_NAME];
+	char OUT_map[THD_MAX_NAME];
+	char OUT_mask[THD_MAX_NAME];
+	char OUT_rois[THD_MAX_NAME];
 	FILE *fin4, *fout1;
 
 	float MaxAng=0.;
@@ -1501,7 +1501,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    int start_loc=0;
    int trL=0;
    char **prefix_det=NULL;
-	char OUT_bin[300];
+	char OUT_bin[THD_MAX_NAME];
    FILE **fout0=NULL;
    tv_io_header headerDTI = {.id_string = "TRACK\0", 
                              .origin = {0,0,0},   
@@ -2473,7 +2473,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
       prefix_det = calloc( N_nets,sizeof(prefix_det));  
       for(i=0 ; i<N_nets ; i++) 
-         prefix_det[i] = calloc( 300,sizeof(char)); 
+         prefix_det[i] = calloc( THD_MAX_NAME,sizeof(char)); 
 
       if( opts.OUTPUT_TRK)
          fout0 = (FILE **)calloc(N_nets, sizeof(FILE)); 

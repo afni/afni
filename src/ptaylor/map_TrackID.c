@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 	char *prefix_map="default_map";
 	char *prefix_trk="default_trk";
 	char *prefix_out="default_out";
-	char TRK_OUT[300];
+	char TRK_OUT[THD_MAX_NAME];
 
 	int INP_3DALLIN = 0; // switch about input/format of *.1D matr file
 	int MATR_REV = 1; // to do the inversion here (input to not do so)
