@@ -289,9 +289,9 @@ int WB_netw_corr(int Do_r,
 {
    int i,j,k;
    float **AVE_TS_fl=NULL;    // not great, but another format of TS
-   char OUT_indiv0[300];
-   char OUT_indiv[300];
-   char OUT_indivZ[300];
+   char OUT_indiv0[THD_MAX_NAME-340];   // save space for full outname
+   char OUT_indiv[THD_MAX_NAME];
+   char OUT_indivZ[THD_MAX_NAME];
    MRI_IMAGE *mri=NULL;
    THD_3dim_dataset *OUT_CORR_MAP=NULL;
    THD_3dim_dataset *OUT_Z_MAP=NULL;

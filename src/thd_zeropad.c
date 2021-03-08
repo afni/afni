@@ -1,7 +1,6 @@
 #include "mrilib.h"
 
-/*-------------------------------------------------------------------
-  Create a new dataset from an old one, with zero padding around
+/*------------------------------------------------------------------- Create a new dataset from an old one, with zero padding around
   the edges.  For example,
     add_I = number of zero planes to add at inferior edge
             (if < 0, number of data planes to cut off inferior edge)
@@ -53,6 +52,7 @@ ENTRY("THD_zeropad") ;
         outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
       } else {
         outset = EDIT_empty_copy( inset ) ;          /* 15 Sep 2020 - oops */
+        EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
         EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
       }
       RETURN( outset );
@@ -436,4 +436,92 @@ ENTRY("THD_volume_to_dataset") ;
    /* get the hell out of Dodge */
 
    RETURN(dset) ;
+}
+
+/*-------------------------------------------------------------------*/
+/* Create a dataset from an MRI_IMARR.
+   All sub-images must be the same dimensions.
+   All sub-images will be converted (if necessary) to the same
+     datum type as the [0] image.
+   NULL is returned if inputs are stooopid.
+   [RWC - 05 Mar 2021]
+*//*-----------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_imarr_to_dataset( MRI_IMARR *imar, char *prefix )
+{
+   int nx,ny,nz , nvals , vv ;
+   MRI_IMAGE *qim ;
+   MRI_TYPE   qtyp ;
+   THD_3dim_dataset *qset ;
+   THD_ivec3  nxyz ;
+   THD_fvec3  dxyz ;
+
+ENTRY("THD_imarr_to_dataset") ;
+
+   if( imar == NULL || IMARR_COUNT(imar) == 0 ) RETURN(NULL) ;
+
+   qim = IMARR_SUBIM(imar,0); if( qim == NULL ) RETURN(NULL) ;
+
+   /* dimensions */
+
+   nx = qim->nx ; ny = qim->ny ; nz = qim->nz ;
+   if( nx < 2 && ny < 2 && nz < 2 )             RETURN(NULL) ;
+   LOAD_IVEC3(nxyz,nx,ny,nz) ;
+   LOAD_FVEC3(dxyz,1.0f,1.0f,1.0f) ;
+
+   qtyp  = qim->kind ;
+   nvals = IMARR_COUNT(imar) ;
+
+   /* dimension check */
+
+   for( vv=1 ; vv < nvals ; vv++ ){
+     qim = IMARR_SUBIM(imar,vv) ;        if( qim == NULL ) RETURN(NULL) ;
+     if( qim->nx != nx || qim->ny != ny || qim->nz != nz ) RETURN(NULL) ;
+   }
+
+   /* create empty shell of dataset and set dimensions */
+
+   qset = EDIT_empty_copy(NULL) ;
+
+   if( !THD_filename_ok(prefix) ) prefix = "fromIMARR" ;
+
+   EDIT_dset_items( qset ,
+                     ADN_datum_all , (int)qtyp ,
+                     ADN_nvals     , nvals ,
+                     ADN_nxyz      , nxyz ,
+                     ADN_xyzdel    , dxyz ,
+                     ADN_prefix    , prefix ,
+                    ADN_none ) ;
+
+   /* make a copy of each image,
+      and stuff its data into the dataset,
+      then clear out copy's data (now inside dataset) and free image struct */
+
+   for( vv=0 ; vv < nvals ; vv++ ){
+     qim = mri_to_mri( (int)qtyp , IMARR_SUBIM(imar,vv) ) ;
+     EDIT_substitute_brick( qset , vv , (int)qtyp , mri_data_pointer(qim) ) ;
+     mri_clear_and_free( qim ) ;
+   }
+
+   RETURN(qset) ;
+}
+
+/*-------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_image_to_dataset( MRI_IMAGE *imin, char *prefix )
+{
+   MRI_IMARR *imar ;
+   THD_3dim_dataset *qset ;
+
+ENTRY("THD_image_to_dataset") ;
+
+   if( imin == NULL ) RETURN(NULL) ;
+
+   INIT_IMARR(imar) ; ADDTO_IMARR(imar,imin) ;
+
+   qset = THD_imarr_to_dataset( imar , prefix ) ;
+
+   FREE_IMARR(imar) ;
+
+   RETURN(qset) ;
 }

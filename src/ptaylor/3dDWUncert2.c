@@ -127,14 +127,14 @@ int main(int argc, char *argv[]) {
   THD_3dim_dataset *UNC_OUT=NULL;
   char *prefix="tracky" ;
 
-  char in_FA[300];
-  char in_V1[300];
-  char in_V2[300];
-  char in_V3[300];
-  char in_DT[300];
-  char in_L1[300];
-  char in_L2[300];
-  char in_L3[300];
+  char in_FA[THD_MAX_NAME];
+  char in_V1[THD_MAX_NAME];
+  char in_V2[THD_MAX_NAME];
+  char in_V3[THD_MAX_NAME];
+  char in_DT[THD_MAX_NAME];
+  char in_L1[THD_MAX_NAME];
+  char in_L2[THD_MAX_NAME];
+  char in_L3[THD_MAX_NAME];
 
   int xmask1=0,ymask1=0,zmask1=0;
 
@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
   int BADNESS;
   float randmagn;
 
-  char evalevecs[300]; 
+  char evalevecs[THD_MAX_NAME]; 
   float dummy_fl;
 
   int Nj=0;

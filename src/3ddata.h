@@ -5853,6 +5853,9 @@ THD_3dim_dataset * THD_volume_to_dataset( THD_3dim_dataset *mset  ,
                                           int pad_ym , int pad_yp ,
                                           int pad_zm , int pad_zp  ) ; /* 25 Jan 2021 */
 
+THD_3dim_dataset * THD_imarr_to_dataset( MRI_IMARR *imar, char *prefix ) ; /* 05 Mar 2021 */
+THD_3dim_dataset * THD_image_to_dataset( MRI_IMAGE *imin, char *prefix ) ;
+
 extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
                      THD_3dim_dataset *,
                      void w_in2out(float,float,float,float *,float *,float *),

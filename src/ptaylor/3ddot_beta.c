@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
    float **MAT=NULL;    // correlation matrix
    
    int WHICH_TEST = 0; // 1 = eta2  (**only choice right now**)
-   char out_eta2[300];
+   char out_eta2[THD_MAX_NAME];
    
 
    // ###################################################################

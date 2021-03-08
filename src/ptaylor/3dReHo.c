@@ -192,11 +192,11 @@ int main(int argc, char *argv[]) {
   THD_3dim_dataset *MASK=NULL;
   THD_3dim_dataset *ROIS=NULL;
   char *prefix="REHO" ;
-  char in_name[300];
-  char out_pref[300];
-  char in_mask[300];
-  char in_rois[300];
-  char out_rois[300];
+  char in_name[THD_MAX_NAME];
+  char out_pref[THD_MAX_NAME];
+  char in_mask[THD_MAX_NAME];
+  char in_rois[THD_MAX_NAME];
+  char out_rois[THD_MAX_NAME];
 
   FILE *fout0;
   float **INDEX; // hold ranks

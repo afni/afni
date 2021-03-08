@@ -271,23 +271,21 @@ int main(int argc, char *argv[]) {
    int idx;
    int iarg;
    THD_3dim_dataset *insetTIME = NULL;
-   //THD_3dim_dataset *inset0 = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix=NULL ;
-   //   char in_name[300];
-   char in_mask[300];
+   char in_mask[THD_MAX_NAME];
    char *in_censor=NULL;
    char *str_censor=NULL;
    int  *int_cens=NULL;
    THD_3dim_dataset *outset_LS=NULL;
-   char outset_name[300];
+   char outset_name[THD_MAX_NAME];
 
    char *out_type[2] = {"pow","amp"};
 
    float temp_sum = 0.;
 
-   char out_TS[300];
-   char out_LS[300];
+   char out_TS[THD_MAX_NAME];
+   char out_LS[THD_MAX_NAME];
 
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero

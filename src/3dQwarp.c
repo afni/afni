@@ -1900,6 +1900,7 @@ int main( int argc , char *argv[] )
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 , nnz ;
    int do_awarp=0 ; /* 21 Dec 2016 */
+   int save_indexwarps=0 ;  /* 05 Mar 2021 */
    int qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
    float dxal=0.0f,dyal=0.0f,dzal=0.0f ; int have_dxyzal=0 ;
@@ -1998,6 +1999,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-iwarp") == 0 ){
        nowarpi = 0 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-inwarp") == 0 ){   /* HIDDEN */
+       save_indexwarps = 1 ; nopt++ ; continue ;    /* for debugging */
      }
 
      /*---------------*/
@@ -3822,6 +3829,16 @@ STATUS("output awarp") ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
+
+     if( save_indexwarps ){ /* 05 Mar 2021 */
+       qprefix = modify_afni_prefix(prefix,NULL,"_AWARP_index") ;
+       qset = IW3D_to_index_dataset( awarp , qprefix ) ;
+       tross_Copy_History( bset , qset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
+     }
+
+     IW3D_destroy(awarp) ; /* forgot this before! [05 Mar 2021] */
    }
 
    if( do_allin || do_resam ){
@@ -3953,6 +3970,14 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
        THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
      }
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
+
+     if( save_indexwarps ){ /* 05 Mar 2021 */
+       qprefix = modify_afni_prefix(prefix,NULL,"_WARP_index") ;
+       qset = IW3D_to_index_dataset( oww , qprefix ) ;
+       tross_Copy_History( bset , qset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
+     }
 
      if( do_plusminus && qiw != NULL ){
        sprintf(appendage,"_%s_WARP",minusname) ;

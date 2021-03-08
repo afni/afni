@@ -280,8 +280,8 @@ int main(int argc, char *argv[]) {
 	int X,Y,Z;
 	int iarg=0;
 	THD_3dim_dataset *inset=NULL;
-	char in_name[300];
-	char inpre_name[300];
+	char in_name[THD_MAX_NAME];
+	char inpre_name[THD_MAX_NAME];
 	float THR=0.;
 	char *prefix="NAME_ROIMaker";
 	THD_3dim_dataset *insetREF=NULL;
@@ -294,13 +294,13 @@ int main(int argc, char *argv[]) {
    int NEIGHBOR_LIMIT = 2; 
 
 	THD_3dim_dataset *MASK=NULL;
-	char in_mask[300];
+	char in_mask[THD_MAX_NAME];
 	int HAVE_MASK=0;
    int HAVEPREFIX=0;
 
-	char in_REF[300];
-	char prefix_GM[300];
-	char prefix_GMI[300];
+	char in_REF[THD_MAX_NAME];
+	char prefix_GM[THD_MAX_NAME];
+	char prefix_GMI[THD_MAX_NAME];
 	char voxel_order[4]="---";
 
 
@@ -361,8 +361,8 @@ int main(int argc, char *argv[]) {
    char EleNameStr[128];
    int DUMP_with_LABELS = 1;
 	int MAXNROI=0;
-	char prefix_dtable[300];
-	char prefix_dtableGM[300];
+	char prefix_dtable[THD_MAX_NAME];
+	char prefix_dtableGM[THD_MAX_NAME];
    char *Dtable_str=NULL;
    char *Dtable_strGM=NULL;
    Dtable *new_dt=NULL;
