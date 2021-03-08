@@ -1761,6 +1761,8 @@ ENTRY("IW3D_pair_from_dataset") ;
 /*----------------------------------------------------------------------------*/
 /* Convert an index warp to a 3D dataset of spatial displacmements in mm.
    See IW3D_from_dataset() for the reverse operation.
+   See IW3D_to_index_dataset() to convert index displacmeents without
+     scaling to mm.
 *//*--------------------------------------------------------------------------*/
 
 static int save_aux_volumes = 0 ; /* user sets this to get auxiliary volumes */
@@ -1857,6 +1859,43 @@ STATUS("substitute bricks") ;
 
 STATUS("done") ;
    RETURN(dset) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Convert an index warp to a 3D dataset of index displacements. [05 Mar 2021]
+*//*--------------------------------------------------------------------------*/
+
+THD_3dim_dataset * IW3D_to_index_dataset( IndexWarp3D *AA , char *prefix )
+{
+   THD_3dim_dataset *qset ;
+   MRI_IMAGE *qim ; MRI_IMARR *imar ; float *qar ;
+   int nx,ny,nz ; size_t nbytes ;
+
+ENTRY("IW3D_to_index_dataset") ;
+
+   if( AA == NULL ) RETURN(NULL) ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ;
+   nbytes = sizeof(float) * nx*ny*nz ;
+
+   INIT_IMARR(imar) ;
+
+   qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
+   memcpy( qar , AA->xd , nbytes ) ;
+   ADDTO_IMARR( imar , qim ) ;
+
+   qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
+   memcpy( qar , AA->yd , nbytes ) ;
+   ADDTO_IMARR( imar , qim ) ;
+
+   qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
+   memcpy( qar , AA->zd , nbytes ) ;
+   ADDTO_IMARR( imar , qim ) ;
+
+   qset = THD_imarr_to_dataset( imar , prefix ) ;
+
+   DESTROY_IMARR(imar) ;
+   RETURN(qset) ;
 }
 
 #endif /*(C6)*/ /*############################################################*/
