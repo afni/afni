@@ -13,9 +13,14 @@ CPU_TYPE ?= x86_64
 
 # and possibly init CFLAGS based on CPU_TYPE
 ifeq ($(CPU_TYPE), ARM_M1)
-CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre  -Wall -Werror-implicit-function-declaration -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0 -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/Cellar/pcre/8.44/include
+CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre                               \
+         -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
+         -Wmissing-prototypes -Wmissing-declarationsa                    \
+         -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0a            \
+         -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/includea        \
+         -I/opt/homebrew/opt/gettext/includea                            \
+         -I/opt/homebrew/Cellar/pcre/8.44/include
 endif
-
 
 SUMASLIB = libSUMAseg.a
 SUMAGTSLIB = libSUMAGTS.a
@@ -726,18 +731,18 @@ libgts.a:
 #
 
 ifeq ($(CPU_TYPE), ARM_M1)
-	( cd gts ;	\
-      ./configure 'LDFLAGS=$(SUMA_LINK_PATH)' --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	\
-	  $(MAKE) clean ; \
-      $(MAKE) 'CFLAGS=$(CFLAGS)' ; \
-	  $(RANLIB) src/.libs/$@ ;	\
+	( cd gts ;	                     \
+     ./configure 'LDFLAGS=$(SUMA_LINK_PATH)' --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	     \
+	  $(MAKE) clean ;                \
+	  $(MAKE) 'CFLAGS=$(CFLAGS)' ;   \
+	  $(RANLIB) src/.libs/$@ ;	      \
 	  $(CP) -p src/.libs/$@ .. ; )
 else
-	( cd gts ;	\
+	( cd gts ;	                                     \
 	  ./configure --includedir /usr/include/netpbm ; \
-	  $(MAKE) clean ; \
-      $(MAKE) ; \
-	  $(RANLIB) src/.libs/$@ ;	\
+	  $(MAKE) clean ;                                \
+     $(MAKE) ;                                      \
+	  $(RANLIB) src/.libs/$@ ;	                      \
 	  $(CP) -p src/.libs/$@ .. ; )
 endif
 
