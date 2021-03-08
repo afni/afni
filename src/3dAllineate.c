@@ -2246,7 +2246,9 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
        nwarp_pass = 1 ; iarg++ ;
 
-       WARNING_message(" !! Consider using program 3dQwarp instead of 3dAllineate -nwarp !!" ) ;
+       WARNING_message(" !! Use program 3dQwarp instead of 3dAllineate -nwarp !!" ) ;
+       WARNING_message(" !! 3dAllineate -nwarp is obsolete and inferior :(    !!" ) ;
+       WARNING_message(" (( YOU HAVE BEEN WARNED -- here lurketh the dragons  ))" ) ;
 
        if( iarg >= argc ){
          ERROR_exit("need a warp type after '-nwarp' :-(") ;
