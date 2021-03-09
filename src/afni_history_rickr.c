@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Mar, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "applying NIFTI scale_slope to dset must be after setting ADN_datum",
+   "Previously, NIFTI scalars were applied only after a DSET_load().\n"
+   "Thanks to D Glen for reporting the issue."
+ } ,
+
  {  5, Mar, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_cormat_warnings_full",
    "This version includes the baseline terms in the warning list."

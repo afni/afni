@@ -141,6 +141,7 @@ ENTRY("THD_open_nifti") ;
         * No longer scale if inter==0 && slope!=0 (set brick_fac).
         * Thanks to C Caballero and S Moia for reporting this.  
         *                                      26 Jan 2021 [rickr] */
+       /* still scale if slope == 1 && inter != 0 */
        scale_data = nim->scl_slope != 0.0 && nim->scl_inter != 0.0 ;
    }
    { char *eee = getenv("AFNI_NIFTI_SCALE") ;
@@ -710,6 +711,14 @@ ENTRY("THD_open_nifti") ;
      } /* end of slice timing stuff */
 
    } /* end of 3D+time dataset stuff */
+
+   /* if scalars are attached (and we did not xform data), set them  */
+   /* note: this MUST be after EDIT_dset_items(ADN_datum_all), as it
+            will clear any existing values        8 Mar 2021 [rickr] */
+   if( ! xform_data && nim->scl_slope != 0.0 && nim->scl_slope != 1.0) {
+     for( ibr=0 ; ibr < nvals ; ibr++ )
+       DBLK_BRICK_FACTOR(dset->dblk, ibr) = nim->scl_slope;
+   }
 
 
    /* set atlas space based on NIFTI s/qform code */
