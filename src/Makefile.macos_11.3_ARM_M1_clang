@@ -106,7 +106,7 @@ BREWL =  /opt/homebrew/lib
 
 OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$(BREWI) -L$(BREWL) -DUSE_OMP
 
-SYSTEM_NAME = macos_11_local_clang_M1
+SYSTEM_NAME = macos_11.3_ARM_M1_clang
 
 INSTALLDIR = $(SYSTEM_NAME)
 
