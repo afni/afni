@@ -6,9 +6,15 @@
 #set version   = "0.1";  set rev_dat   = "Feb 22, 2021"
 # [PT] start of this program in program form.  Programmatically speaking.
 #
-set version   = "0.2";  set rev_dat   = "Feb 22, 2021"
+#set version   = "0.2";  set rev_dat   = "Feb 22, 2021"
 # [PT] program up and running.
 #    + requires a mask
+#
+#set version   = "0.3";  set rev_dat   = "Mar 10, 2021"
+# [PT] add in more @chauffeur_afni options
+#
+set version   = "0.4";  set rev_dat   = "Mar 10, 2021"
+# [PT] even more @chauffeur_afni options
 #
 # ----------------------------------------------------------------
 
@@ -24,6 +30,21 @@ set opref = ""
 set opref_cbar = ""
 set hot_max = 95   # %ile
 set hot_min =  5   # %ile
+
+set urange_meth    = "-ulay_range"
+set umin           = "0%"
+set umax           = "120%"
+
+set opacity        = 4
+set Nx             = 7                   # num of mont wins, b/c Ny=1
+set Ny             = 1                   
+set mgap           = 1                   # gapsize (in px) bt montage slices
+set mcolor         = 'black'             # color of montage gap
+
+set user_coors     = "-pass"
+set label_mode     = 1
+
+set delta_slices   = "-pass"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -70,6 +91,86 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set opref_cbar = "$argv[$ac]"
+
+    # --------------------- opts ------------------
+
+    else if ( "$argv[$ac]" == "-montgap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mgap = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-montcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-montx" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Nx = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-monty" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Ny = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-opacity" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opacity = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-label_mode" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set label_mode = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_dicom_xyz "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_ijk" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_ijk "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-ulay_range_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set urange_meth = "-ulay_range_nz"
+
+    else if ( "$argv[$ac]" == "-delta_slices" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set delta_slices = "-delta_slices "
+        set delta_slices = "$delta_slices $argv[$ac]"
+        @ ac += 1
+        set delta_slices = "$delta_slices $argv[$ac]"
+        @ ac += 1
+        set delta_slices = "$delta_slices $argv[$ac]"
+
+    # ------- end
 
     else
         echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
@@ -170,7 +271,7 @@ set gen_comm = "${gen_comm}${range}"
 @chauffeur_afni                                             \
     -ulay             "${ulay}"                             \
     -olay             "${olay}"                             \
-    -ulay_range       0% 120%                               \
+    "${urange_meth}" "${umin}" "${umax}"    \
     -func_range       "${uuu2[4]}"                          \
     -box_focus_slices "${focus}"                            \
     -set_subbricks    0 0 0                                 \
@@ -178,18 +279,19 @@ set gen_comm = "${gen_comm}${range}"
     -cbar_ncolors     "${ll}"                               \
     -cbar_topval      ""                                    \
     -cbar             "${cbar_str}"                         \
-    -opacity          4                                     \
+    -opacity          "${opacity}"                          \
     -pbar_saveim      "${opref_cbar}"                       \
     -pbar_comm_range  "${hot_max}%ile in mask"              \
     -pbar_comm_gen    "${gen_comm}"                         \
     -prefix           "${opref}"                            \
     -save_ftype JPEG                                        \
-    -montx 7 -monty 1                                       \
-    -montgap 1                                              \
-    -montcolor 'black'                                      \
+    -montx ${Nx}    -monty ${Ny}                            \
+    -montgap $mgap  -montcolor $mcolor                      \
     -set_xhairs OFF                                         \
-    -label_mode 1 -label_size 3                             \
-    -do_clean                        
+    -label_mode ${label_mode}   -label_size 3               \
+    -do_clean                                               \
+    ${user_coors}                                           \
+    ${delta_slices}
 
 
 # ---------------------------------
@@ -211,6 +313,19 @@ Just an adjunct program for making TSNR plots for APQC.
 Ceci n'est pas un fichier d'aide utile!
 
 written by PA Taylor.
+
+EXTRA OPTS ~1~
+
+-montgap        A
+-montcolor      A 
+-montx          A
+-monty          A
+-opacity        A
+-set_dicom_xyz  A B C
+-set_ijk        A B C
+-ulay_range_nz  A B 
+-ulay_range     A B
+-delta_slices   A B C
 
 EXAMPLE ~1~
 
