@@ -4,6 +4,14 @@
 # Xcode (Apple clang v.12 )
 # The required libraries for use should come with Xcode, XQuartz 
 # and homebrew
+
+# ******* IMPORTANT - Please READ ********
+# ***** SET PATH to point to /opt/homebrew/bin before /usr/local/bin
+#
+#  1. to get right version of brew for ARM (see below)
+#  2. to get right version of autoconf for ARM to build libgts.a
+#     in SUMA Makefile
+#
 # two versions of homebrew are provided with an installation on an M1 ARM
 # system. The ARM version is installed in /opt/homebrew/bin/brew
 # and the Intel version is installed in /usr/local/bin/brew
@@ -11,7 +19,6 @@
 # the one you want.
 # the Intel version must be run from a Rosetta terminal
 # tested with clang is 12.0.0
-
 # use homebrew to install the following:
 #
 #  brew install
@@ -30,6 +37,16 @@
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.a
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.9.a
 #ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h /usr/local/include/pgm.h
+# ***** for MAC ARM-M1 and 10.15 clang x86_64 builds    09 Mar 2021 [drg]
+#   once again have confusing problem with pgm.h missing from standard
+#   kinds of places, so libgts has errors
+#   solve with symbolic link to Cellar versions in homebrew
+#   ARM_M1 version
+#   sudo ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h  \
+#     /opt/homebrew/include/pgm.h
+#   x86_64 version as above
+#   sudo ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h     \
+#     /usr/local/homebrew/include/pgm.h
 
 # I've removed libbz2.dylib from the installed dylib list because it doesn't
 # seem to be used below, but on 10.15 with brew install
@@ -100,12 +117,12 @@ BREWLIBDIR = /opt/homebrew/lib
 BREWINCDIR = /opt/homebrew/include
 
 EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
-		      $(BREWLIBDIR)/libjpeg.9.dylib			  \
-		      $(BREWLIBDIR)/libgsl.dylib               \
-		      $(BREWLIBDIR)/libglib-2.0.0.dylib		  \
-		      $(BREWLIBDIR)/libgslcblas.0.dylib		  \
-		      $(BREWLIBDIR)/libpng16.16.dylib			     \
-		      $(BREWLIBDIR)/libintl.8.dylib                  \
+		      $(BREWLIBDIR)/libjpeg.9.dylib			          \
+		      $(BREWLIBDIR)/libgsl.dylib                      \
+		      $(BREWLIBDIR)/libglib-2.0.0.dylib		          \
+		      $(BREWLIBDIR)/libgslcblas.0.dylib		          \
+		      $(BREWLIBDIR)/libpng16.16.dylib			      \
+		      $(BREWLIBDIR)/libintl.8.dylib                   \
               /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
 
 

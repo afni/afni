@@ -15,10 +15,10 @@ CPU_TYPE ?= x86_64
 ifeq ($(CPU_TYPE), ARM_M1)
 CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre                               \
          -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
-         -Wmissing-prototypes -Wmissing-declarationsa                    \
-         -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0a            \
-         -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/includea        \
-         -I/opt/homebrew/opt/gettext/includea                            \
+         -Wmissing-prototypes -Wmissing-declarations                     \
+         -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0             \
+         -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include         \
+         -I/opt/homebrew/opt/gettext/include                             \
          -I/opt/homebrew/Cellar/pcre/8.44/include
 endif
 
@@ -721,6 +721,16 @@ libply.a:
 #     in netpbm-devel version 10.47
 #   - until then: "yum downgrade netpbm netpbm-devel" to go back to 10.35
 #   - or look for corresponding GTS update
+# ***** for MAC ARM-M1 and 10.15 clang x86_64 builds    09 Mar 2021 [drg]
+#   once again have confusing problem with pgm.h missing from standard
+#   kinds of places, so libgts has errors
+#   solve with symbolic link to Cellar versions in homebrew
+#   ARM_M1 version
+#   sudo ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h  \
+#     /opt/homebrew/include/pgm.h
+#   x86_64 version should be something like this one, but haven't tried
+#   sudo ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h     \
+#     /usr/local/homebrew/include/pgm.h
 
 
 libgts.a:
