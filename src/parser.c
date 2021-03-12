@@ -9,19 +9,19 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b432 = 0.;
-static doublereal c_b446 = 1.;
-static doublereal c_b447 = 2.;
-static doublereal c_b448 = 3.;
-static doublereal c_b449 = 4.;
-static doublereal c_b450 = 5.;
-static doublereal c_b451 = 6.;
-static doublereal c_b452 = 7.;
-static doublereal c_b453 = 8.;
-static doublereal c_b454 = 9.;
-static doublereal c_b455 = 10.;
-static doublereal c_b456 = 11.;
-static doublereal c_b457 = 12.;
+static doublereal c_b433 = 0.;
+static doublereal c_b447 = 1.;
+static doublereal c_b448 = 2.;
+static doublereal c_b449 = 3.;
+static doublereal c_b450 = 4.;
+static doublereal c_b451 = 5.;
+static doublereal c_b452 = 6.;
+static doublereal c_b453 = 7.;
+static doublereal c_b454 = 8.;
+static doublereal c_b455 = 9.;
+static doublereal c_b456 = 10.;
+static doublereal c_b457 = 11.;
+static doublereal c_b458 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
@@ -1104,6 +1104,7 @@ L520:
 		do_fio(&c__1, (char *)&npos, (ftnlen)sizeof(integer));
 		e_wsfi();
 	    }
+	    *(unsigned char *)&c_val__[31] = '\0';
 	    ici__1.icierr = 1;
 	    ici__1.iciend = 1;
 	    ici__1.icirnum = 1;
@@ -3761,7 +3762,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b432);
+    d__1 = (*top + 1.) * unif_(&c_b433);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3786,7 +3787,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b432);
+    u1 = unif_(&c_b433);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3814,7 +3815,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b432);
+    u1 = unif_(&c_b433);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3838,7 +3839,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b432);
+    ret_val = *x * unif_(&c_b433);
     return ret_val;
 } /* uran_ */
 
@@ -3870,11 +3871,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b432);
+	u1 = unif_(&c_b433);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b432);
+	u2 = unif_(&c_b433);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3899,10 +3900,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b446) - 6. + unif_(&c_b447) + unif_(&c_b448) + unif_(&c_b449)
-	     + unif_(&c_b450) + unif_(&c_b451) + unif_(&c_b452) + unif_(&
-	    c_b453) + unif_(&c_b454) + unif_(&c_b455) + unif_(&c_b456) + 
-	    unif_(&c_b457);
+    g = unif_(&c_b447) - 6. + unif_(&c_b448) + unif_(&c_b449) + unif_(&c_b450)
+	     + unif_(&c_b451) + unif_(&c_b452) + unif_(&c_b453) + unif_(&
+	    c_b454) + unif_(&c_b455) + unif_(&c_b456) + unif_(&c_b457) + 
+	    unif_(&c_b458);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3923,7 +3924,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b432);
+    uu = unif_(&c_b433);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
