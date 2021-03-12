@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Mar , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_OPT,
+   "Add in more control features, so can apply in more cases.",
+   "Basically just allowing more chauffeur control.\n"
+},
+
 { 8, Mar , 2021 , PT , "3dRSFC" , MICRO , TYPE_MODIFY,
    "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
    NULL
