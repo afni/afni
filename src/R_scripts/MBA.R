@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, Feb 18, 2021
+Version 1.0.3, March 13, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -434,6 +434,14 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        invoked) is 'Y'.\n", sep = '\n'
                      ) ),
 
+      '-distY' = apl(n = 1, d = NA,  h = paste(
+   "-distY distr_name: Use this option to specify the distribution for the response",
+   "        variable. The default is Gaussian when this option is not invoked. When",
+   "        skewness or outliers occur in the data, consider adopting the Student's",
+   "        t-distribution or exGaussian by using this option with 'student' or",
+   "        'exgaussian'.\n", sep = '\n'
+                     ) ),
+
       '-Subj' = apl(n = 1, d = NA,  h = paste(
    "-Subj var_name: var_name is used to specify the column name that is designated as",
    "        as the measuring unit variable (usually subject). The default (when this",
@@ -522,6 +530,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$StanPath   <- '~'
       lop$qContr  <- NA
       lop$Y      <- 'Y'
+      lop$distY  <- 'gaussian'
       lop$Subj   <- 'Subj'
       lop$ROI1   <- 'ROI1'
       lop$ROI2   <- 'ROI2'
@@ -551,6 +560,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              EOI    = lop$EOI   <- ops[[i]],
              qContr = lop$qContr <- ops[[i]],       
              Y      = lop$Y      <- ops[[i]],
+             distY  = lop$distY  <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
              ROI1   = lop$ROI1   <- ops[[i]],
              ROI2   = lop$ROI2   <- ops[[i]],
@@ -767,17 +777,17 @@ if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI1:ROI2)
       lop$model, '|mm(ROI1, ROI2, weights = cbind(w, w), scale=FALSE))'))
 
 if(lop$WCP) {
-   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
+   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, family=lop$distY, chains = lop$chains, 
          iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15),
          backend = "cmdstanr", threads = threading(lop$WCP)) else
-      fm <- brm(modelForm, data=lop$dataTable, 
+      fm <- brm(modelForm, data=lop$dataTable, family=lop$distY, 
          prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
          chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15),
          backend = "cmdstanr", threads = threading(lop$WCP))
 } else {
-   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains,
+   if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, family=lop$distY, chains = lop$chains,
          iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
-      fm <- brm(modelForm, data=lop$dataTable,
+      fm <- brm(modelForm, data=lop$dataTable, family=lop$distY,
          prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
          chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 }
