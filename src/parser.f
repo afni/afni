@@ -705,6 +705,7 @@ C!number runs from position 1 to NPOS
             WRITE(UNIT=C_VAL,FMT=5502) NPOS
 5502        FORMAT('(F',I2,'.0)')
          ENDIF
+         C_VAL(32:32) = '\0'
          READ(UNIT=C_INPUT(1:NPOS),FMT=C_VAL,IOSTAT=IO_CODE) VALUE
 C
 CCC         WRITE(*,5509) C_INPUT(1:NPOS) , C_VAL , VALUE
