@@ -53,6 +53,7 @@ SYSTEM_NAME = macos_10.12_local
 INSTALLDIR = $(SYSTEM_NAME)
 
 EXTRA_INSTALL_FILES = /sw/lib/libXm.4.dylib                        \
+                      /opt/X11/lib/libXp.6.dylib                   \
                       /sw/lib/libjpeg.9.dylib                      \
                       /sw/lib/libiconv.2.dylib                     \
                       /sw/lib/python2.7/config/libpython2.7.dylib  \
