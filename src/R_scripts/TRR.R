@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Feb. 18, 2021 
+Version 0.0.3, March 13, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
@@ -340,8 +340,8 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
    "         .TRR.dbg.AFNI.args in the current directory so that debugging can be",
    "         performed.\n", sep='\n')),
 
-      '-SE'  = apl(n = 1, d = 0, h = paste(
-   "-SE: This option indicates that standard error for the response variable is",
+      '-se'  = apl(n = 1, d = 0, h = paste(
+   "-se: This option indicates that standard error for the response variable is",
    "         available as input, and a column is designated for the standard error",
    "         in the data table. If effect estimates and their t-statistics are the",
    "         output from preceding analysis, standard errors can be obtained by",
@@ -496,9 +496,8 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
       lop$se     <- NULL
       lop$tstat  <- NULL
       lop$PDP    <- NULL
-      lop$SE     <- NULL
       lop$WCP    <- FALSE
-      lop$StanPath   <- '~'
+      lop$StanPath   <- NULL
       lop$repetition <- 'sess'
       lop$condition  <- NULL
 
@@ -525,7 +524,6 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
              subject    = lop$subject   <- ops[[i]],
              PDP        = lop$PDP    <- ops[[i]],
 	     WCP        = lop$WCP    <- ops[[i]],
-             SE         = lop$SE     <- ops[[i]],
              StanPath   = lop$StanPath   <- ops[[i]],
              repetition = lop$repetition <- ops[[i]],
              condition  = lop$condition  <- ops[[i]],
@@ -674,8 +672,14 @@ if(lop$WCP) {
    #set_cmdstan_path('~/cmdstan') # where is this located for the user?
 }
 
-if(!is.null(lop$tstat)) 
-   lop$dataTable$se <- lop$dataTable$Y/lop$dataTable$tstat
+# change the se column name when se is provided as input
+if(!is.null(lop$se)) names(lop$dataTable)[which(names(lop$dataTable)==lop$se)] <- 'se'
+
+# convert tstat to se when tstat is provided as input
+if(!is.null(lop$tstat)) {
+   lop$se <- TRUE
+   lop$dataTable$se <- lop$dataTable$Y/lop$dataTable[[lop$tstat]]
+}
 
 # model specifications: one effect or contrast; se as input or not
 if(is.null(lop$cond)) {
