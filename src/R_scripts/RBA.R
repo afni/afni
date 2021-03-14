@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.8, Feb 18, 2021 
+Version 1.0.9, March 13, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -209,6 +209,22 @@ Example 1 --- Simplest scenario. Values from regions are the input from
      S03   DMNLAG     0.249
      S04   DMNPCC     0.568
      ...
+
+   If t-statistic (or standard error) values corresponding to the response variable
+   Y are available, add the t-statistic (or standard error) values as a column in the input
+   data table so that they can be incorporated into the BML model using the option -tstat
+   or -se with the following script (assuming the tstat column is named as 'tvalue),
+
+   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -tstat tvalue \\
+   -dataTable myData.txt  \\
+
+   or (assuming the se column is named as 'SE'),
+
+   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -se SE \\
+   -dataTable myData.txt  \\
+
  \n"         
      
    ex2 <-
@@ -429,6 +445,22 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        invoked) is 'Y'.\n", sep = '\n'
                      ) ),
 
+
+      '-tstat' = apl(n = 1, d = NA,  h = paste(
+   "-tstat var_name: var_name is used to specify the column name that lists",
+   "        the t-statistic values, if available, for the response variable 'Y'.", 
+   "        In the case where standard errors are available for the effect", 
+   "        estiamtes of 'Y', use the option -se.\n", sep = '\n'
+                     ) ),
+
+      '-se'  = apl(n = 1, d = 0, h = paste(
+   "-se: This option indicates that standard error for the response variable is",
+   "         available as input, and a column is designated for the standard error",
+   "         in the data table. If effect estimates and their t-statistics are the",
+   "         output from preceding analysis, standard errors can be obtained by",
+   "         dividing the effect estimatrs ('betas') by their t-statistics. The",
+   "         default assumes that standard error is not part of the input.\n", sep='\n')),
+
       '-distY' = apl(n = 1, d = NA,  h = paste(
    "-distY distr_name: Use this option to specify the distribution for the response",
    "        variable. The default is Gaussian when this option is not invoked. When",
@@ -537,7 +569,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop <- AFNI.new.options.list(history = '', parsed_args = ops)
       lop$chains <- 1
       lop$WCP    <- FALSE
-      lop$StanPath   <- '~'
+      lop$StanPath   <- NULL
       lop$iterations <- 1000
       lop$model  <- 1
       lop$cVars  <- NULL
@@ -545,6 +577,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
       lop$qContr <- NA
+      lop$se     <- NULL
+      lop$tstat  <- NULL
       lop$Y      <- 'Y'
       lop$distY  <- 'gaussian'
       lop$distROI  <- NA
@@ -579,6 +613,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              qContr = lop$qContr <- ops[[i]],
              Y      = lop$Y      <- ops[[i]],
              distY  = lop$distY  <- ops[[i]],
+             se         = lop$se     <- ops[[i]],
+             tstat      = lop$tstat  <- ops[[i]],
              distROI   = lop$distROI   <- ops[[i]],
              distSubj  = lop$distSubj  <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
@@ -735,6 +771,15 @@ if(!is.na(lop$qContr)) {
       stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
 }
 
+# change the se column name when se is provided as input
+if(!is.null(lop$se)) names(lop$dataTable)[which(names(lop$dataTable)==lop$se)] <- 'se'
+
+# convert tstat to se when tstat is provided as input
+if(!is.null(lop$tstat)) {
+   lop$se <- TRUE
+   lop$dataTable$se <- lop$dataTable$Y/lop$dataTable[[lop$tstat]]
+}
+
 # deviation coding: -1/0/1 - the intercept is associated with the mean across the levels of the factor
 # each coding variable corresponds to the level relative to the mean: alphabetically last level is
 # is baseline or reference level
@@ -780,23 +825,50 @@ ptm <- proc.time()
 #lop$model <- '1+V1+V2'
 
 ##################### MCMC ####################
-if(!is.na(lop$distROI) & lop$distROI == 'student') {
-   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))  
-   } else {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+
+##### model formulation #####
+if(is.null(lop$se))  { # model without standard errors
+
+   if(!is.na(lop$distROI) & lop$distROI == 'student') {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))  
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      }
+   } else { 
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))  
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
+            modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      }
    }
-} else { 
-   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))  
+
+} else { # model with standard errors
+
+   if(!is.na(lop$distROI) & lop$distROI == 'student') {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      }
    } else {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
-         modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|ROI)')) else
+            modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      }
    }
+
 }
+
 
 if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 
@@ -1255,7 +1327,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    #   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    #}
    
-   cat(sprintf('===== Summary of region effects inder GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects under GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) {
       cat(sprintf('----- level comparison: %i vs reference level', jj), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat(capture.output(ss[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
