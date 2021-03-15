@@ -138,12 +138,12 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-quick") == 0 ){
-	quick_flag = 1;
+        quick_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-percentile") == 0 ){
-	perc_flag = 1;
+        perc_flag = 1;
         ++nopt;
         if (nopt + 2 >= argc) {
            ERROR_exit( "** Error: Need 3 parameter after -percentile\n"); 
@@ -162,7 +162,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-median") == 0 ){
-	perc_flag = 1;
+        perc_flag = 1;
         mp0 = 0.50f; 
         mps = 0.01f; 
         mp1 = 0.50f;
@@ -170,57 +170,57 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-slow") == 0 ){
-	slow_flag = 1;
+        slow_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-min") == 0 ){
-	min_flag = 1;
+        min_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-max") == 0 ){
-	max_flag = 1;
+        max_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-sum") == 0 ){
-	sum_flag = 1;
+        sum_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-mean") == 0 ){
-	mean_flag = 1;
+        mean_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-var") == 0 ){
-	if (var_flag) {
-      ERROR_message("Looks like -stdev is already used.\n"
-                    "-var and -stdev are mutually exclusive");
-      exit (1);
-   }
-	var_flag = 1;
+        if (var_flag) {
+          ERROR_message("Looks like -stdev is already used.\n"
+                        "-var and -stdev are mutually exclusive");
+          exit (1);
+        }
+        var_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-stdev") == 0 ){
-	if (var_flag) {
-      ERROR_message("Looks like -var is already used.\n"
-                    "-var and -stdev are mutually exclusive");
-      exit (1);
-   }
-   var_flag = 2;
+        if (var_flag) {
+          ERROR_message("Looks like -var is already used.\n"
+                        "-var and -stdev are mutually exclusive");
+          exit (1);
+        }
+        var_flag = 2;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-count") == 0 ){
-	count_flag = 1;
+        count_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-volume") == 0 ){
-	vol_flag = 1;
+        vol_flag = 1;
         nopt++; continue;
       }
 
@@ -230,7 +230,7 @@ int main( int argc , char * argv[] )
           
         }
         positive_flag = 1;
-	negative_flag = 0;
+        negative_flag = 0;
         zero_flag = 0;
         nopt++; continue;
       }
@@ -238,10 +238,9 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-negative") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
         }
         positive_flag = 0;
-	negative_flag = 1;
+        negative_flag = 1;
         zero_flag = 0;
         nopt++; continue;
       }
@@ -249,31 +248,28 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-zero") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
         }
         positive_flag = 0;
         negative_flag = 0;
-	zero_flag = 1;
+        zero_flag = 1;
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-non-positive") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
         }
         positive_flag = 0;
-	negative_flag = 1;
+        negative_flag = 1;
         zero_flag = 1;
         nopt++; continue;
       }
       if( strcmp(argv[nopt],"-non-negative") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
         }
         positive_flag = 1;
-	negative_flag = 0;
+        negative_flag = 0;
         zero_flag = 1;
         nopt++; continue;
       }
@@ -281,10 +277,9 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-non-zero") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
         }
         positive_flag = 1;
-	negative_flag = 1;
+        negative_flag = 1;
         zero_flag = 0;
         nopt++; continue;
       }
@@ -297,7 +292,6 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-nan") == 0 ){
         if(nan_flag!=-1) {
           ERROR_exit( "Can not use both -nan -nonan options");
-          
         }
         nan_flag = 1;
         nopt++; continue;
@@ -390,21 +384,22 @@ int main( int argc , char * argv[] )
       slow_flag = 1;
    }
 
-  /* if max_flag is not set by user, check if other user options set */
+   /* if max_flag is not set by user, check if other user options set */
    if(max_flag==-1) {                
      if(min_flag || mean_flag || count_flag || vol_flag || sum_flag
                  || perc_flag || var_flag) 
          max_flag = 0;
-      else
-	max_flag = 1;                  /* otherwise check only for max */
-     }
+     else
+         max_flag = 1;                  /* otherwise check only for max */
+   }
 
    if((var_flag==1)||(mean_flag==1)||(count_flag==1)||
       (vol_flag==1)||(absolute_flag==1) ||
       (positive_flag!=-1)||(nan_flag!=-1)||
-      (sum_flag == 1)||(perc_flag == 1) || (var_flag==2)) {
-          /* mean flag or count_flag implies slow */
-     slow_flag = 1;
+      (sum_flag == 1)||(perc_flag == 1) || (var_flag==2))
+   {
+      /* mean flag or count_flag implies slow */
+      slow_flag = 1;
    }
    
    /* check slow and quick options */
@@ -457,10 +452,11 @@ int main( int argc , char * argv[] )
    /* ZSS do some diddlyiddly sorting - DO not affect Daniel's function later on*/
    if (perc_flag == 1) {
       DSET_mallocize (old_dset);
-      DSET_load (old_dset);	                
+      DSET_load (old_dset);
       if (DSET_NVALS(old_dset) != 1) {
          ERROR_exit( "-percentile can only be used on one sub-brick only.\n"
-                     "Use sub-brick selectors '[.]' to specify sub-brick of interest.\n");
+                     "Use sub-brick selectors '[.]' to specify "
+                     "sub-brick of interest.\n");
       }
       
      /* prep for input and output of percentiles */
@@ -533,9 +529,9 @@ int main( int argc , char * argv[] )
                  "temp" ,               /* output prefix */
                  datum ,                /* output datum  */
                  0 ,                    /* ignore count  */
-                 0 ,              /* can't detrend in maker function  KRH 12/02*/
+                 0 ,         /* can't detrend in maker function  KRH 12/02*/
                  nbriks ,               /* number of briks */
-		 Max_tsfunc ,         /* timeseries processor */
+                 Max_tsfunc ,         /* timeseries processor */
                  NULL,                   /* data for tsfunc */
                  NULL,  /* mask */
                  0   /* Allow auto scaling of output */
@@ -569,23 +565,23 @@ THD_3dim_dataset * dset;
       tf = DSET_BRICK_FACTOR(dset,ival) ;
       if( ISVALID_STATISTIC(dset->stats) ){
          if( tf != 0.0 ){
-	   internalmin = dset->stats->bstat[ival].min/tf;
-	   internalmax = dset->stats->bstat[ival].max/tf;
-          }
+           internalmin = dset->stats->bstat[ival].min/tf;
+           internalmax = dset->stats->bstat[ival].max/tf;
+         }
          scaledmin = dset->stats->bstat[ival].min;
          scaledmax = dset->stats->bstat[ival].max;
          if( tf != 0.0 ){
             if(internalmin < overallmin)
-	       overallmin = scaledmin;
+               overallmin = scaledmin;
             if(internalmax > overallmax)
-	      overallmax = scaledmax;
+              overallmax = scaledmax;
          }
          else {
             if(scaledmin < overallmin)
-	       overallmin = scaledmin;
+               overallmin = scaledmin;
             if(scaledmax > overallmax)
-	      overallmax = scaledmax;
-	 }
+              overallmax = scaledmax;
+         }
       } 
       else {
          WARNING_message("No valid statistics in header. \n"
@@ -637,96 +633,97 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
    sum2 = 0.0;
    npts = 0;
    DSET_mallocize (dset);
-   DSET_load (dset);	                /* load dataset */
+   DSET_load (dset);                    /* load dataset */
    npts = 0;                            /* keep track of number of points */
    for(i=0;i<dset->dblk->nvals; i++) {  /* for each sub-brik in dataset */
-      data_im = DSET_BRICK (dset, i);	/* set pointer to the 0th sub-brik of the dataset */
+      data_im = DSET_BRICK (dset, i);   /* set pointer to the 0th sub-brik of the dataset */
       fac = DSET_BRICK_FACTOR(dset, i); /* get scale factor for each sub-brik*/
       if(fac==0.0) fac=1.0;
       if( mmm != NULL)                  /* masked out */
-	nvox = mmvox;
+        nvox = mmvox;
       else
         nvox = data_im->nvox;           /* number of voxels in the sub-brik */
 
       for(k=0;k<nvox;k++) {
-             if( mmm != NULL && mmm[k] == 0 ) continue ;  /* masked out */
+         if( mmm != NULL && mmm[k] == 0 ) continue ;  /* masked out */
 
-              switch( data_im->kind ){
-               case MRI_short:{
-                  short *ar = mri_data_pointer(data_im) ;
-                  voxval = ar[k];
-               }
-               break ;
-
-               case MRI_byte:{
-                  byte *ar = mri_data_pointer(data_im) ;
-                  voxval = ar[k];
-               }
-               break ;
-
-               case MRI_float:{
-                  float *ar = mri_data_pointer(data_im) ;
-                  voxval = ar[k];
-               }
-               break ;
-
-              case MRI_double:{
-                  double *ar = mri_data_pointer(data_im) ;
-                  voxval = ar[k];
-               }
-               break ;
-
-              case MRI_int:{
-                  int *ar = mri_data_pointer(data_im) ;
-                  voxval = ar[k];
-               }
-               break ;
-
-              case MRI_complex:{
-                  complex *ar = mri_data_pointer(data_im) ;
-                  voxval = CABS(ar[k]);
-               }
-               break ;
-
-              case MRI_rgb:{
-                  byte *ar = mri_data_pointer(data_im) ;
-                  voxval = 0.299*ar[3*k]+0.587*ar[3*k+1]+0.114*ar[3*k+2];
-               }
-               break ;
-
-	      default:                          /* unknown type */
-		 voxval = 0.0;                   /* ignore this voxel */
-                 k = nvox;                       /* skip to next sub-brik */
-                 WARNING_message("Unknown type, %s, in sub-brik %d", MRI_TYPE_name[data_im->kind], i);
-	       break;
+         switch( data_im->kind ){
+            case MRI_short:{
+               short *ar = mri_data_pointer(data_im) ;
+               voxval = ar[k];
             }
+            break ;
+   
+            case MRI_byte:{
+               byte *ar = mri_data_pointer(data_im) ;
+               voxval = ar[k];
+            }
+            break ;
+   
+            case MRI_float:{
+               float *ar = mri_data_pointer(data_im) ;
+               voxval = ar[k];
+            }
+            break ;
+   
+            case MRI_double:{
+               double *ar = mri_data_pointer(data_im) ;
+               voxval = ar[k];
+            }
+            break ;
+   
+            case MRI_int:{
+               int *ar = mri_data_pointer(data_im) ;
+               voxval = ar[k];
+            }
+            break ;
+   
+            case MRI_complex:{
+               complex *ar = mri_data_pointer(data_im) ;
+               voxval = CABS(ar[k]);
+            }
+            break ;
+   
+            case MRI_rgb:{
+               byte *ar = mri_data_pointer(data_im) ;
+               voxval = 0.299*ar[3*k]+0.587*ar[3*k+1]+0.114*ar[3*k+2];
+            }
+            break ;
+   
+            default:                          /* unknown type */
+              voxval = 0.0;                   /* ignore this voxel */
+              k = nvox;                       /* skip to next sub-brik */
+              WARNING_message("Unknown type, %s, in sub-brik %d", MRI_TYPE_name[data_im->kind], i);
+            break;
+         }
 
-             if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){   /* masked in voxel? */
-	      voxval = voxval * fac;             /* apply scale factor */
-              if(nan_flag!=-1) {       /* check for various not a numbers */
-                test_flag = isfinite(voxval);
-                if((nan_flag==1) && (test_flag==1)) /* only looking for NaNs*/
-		  continue;
-                if((nan_flag==0) && (test_flag==0)) /* only looking for finites */
-		  continue;
-                if(test_flag==0) {  /* not a number */
-		  ++npts;
-                  continue;
-                }
-              }
-              /* use only absolute values */
-              if(Absflag) voxval = abs(voxval);
-              /* limit data by sign */
-              if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)||((voxval>0)&&Posflag)) {
-	         sum += voxval;
-            if (Varflag) sum2 += voxval*voxval;
-                 ++npts;            
-                 if(voxval<overallmin)
-	            overallmin = voxval;
-                 if(voxval>overallmax)
-                    overallmax = voxval;
-              }
-             }
+         if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){   /* masked in voxel? */
+          voxval = voxval * fac;             /* apply scale factor */
+          if(nan_flag!=-1) {       /* check for various not a numbers */
+            test_flag = isfinite(voxval);
+            if((nan_flag==1) && (test_flag==1)) /* only looking for NaNs*/
+              continue;
+            if((nan_flag==0) && (test_flag==0)) /* only looking for finites */
+              continue;
+            if(test_flag==0) {  /* not a number */
+              ++npts;
+              continue;
+            }
+          }
+          /* use only absolute values */
+          if(Absflag) voxval = abs(voxval);
+          /* limit data by sign */
+          if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)
+                                  ||((voxval>0)&&Posflag)) {
+             sum += voxval;
+             if (Varflag) sum2 += voxval*voxval;
+             ++npts;            
+             if(voxval<overallmin)
+                overallmin = voxval;
+             if(voxval>overallmax)
+                overallmax = voxval;
+          }
+         }
       }
    }
    if(Minflag)
@@ -759,9 +756,9 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
    }
    printf("\n");
 
-    mri_free (data_im);
-    /*    DSET_unload_one (dset, 0);*/
-    EXRETURN;
+   mri_free (data_im);
+   /*    DSET_unload_one (dset, 0);*/
+   EXRETURN;
 }
 
 /* unused code time series method for extracting data */
