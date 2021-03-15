@@ -64,7 +64,11 @@ void usage_3dBrickStat(int detail) {
 "              Only one sub-brick is accepted as input with this option.\n"
 "              Write the author if you REALLY need this option\n"
 "              to work with multiple sub-bricks.\n"
-"  -median a shortcut for -percentile 50 1 50\n"
+"  -perclist NUM_PERC PERC1 PERC2 ...\n"
+"              Like -percentile, but output the given percentiles, rather\n"
+"              than a list on an evenly spaced grid using 'ps'.\n"
+"  -median a shortcut for -percentile 50 1 50 (or -perclist 1 50)\n"
+"  -perc_quiet = only print percentile results, not input percentile cutoffs\n"
 "  -ver = print author and version info\n"
 "  -help = print this help screen\n"
            ) ;
@@ -92,7 +96,7 @@ int main( int argc , char * argv[] )
    int    mmvox=0 ;
    int nxyz, i;
    float *dvec = NULL, mmin=0.0, mmax=0.0;
-   int N_mp;
+   int N_mp=0, perc_quiet=0;
    double *mpv=NULL, *perc = NULL;
    double mp =0.0f, mp0 = 0.0f, mps = 0.0f, mp1 = 0.0f, di =0.0f ;
    byte *mmf = NULL;
@@ -152,12 +156,58 @@ int main( int argc , char * argv[] )
         mps = atof(argv[nopt])/100.0f; ++nopt;
         mp1 = atof(argv[nopt])/100.0f; 
         if (mps == 0.0f) {
-         ERROR_exit( "** Error: step cannot be 0" ); 
+           ERROR_exit( "** Error: step cannot be 0" ); 
         }
         if (mp0 < 0 || mp0 > 100 || mp1 < 0 || mp1 > 100) {
-         ERROR_exit( "** Error: p0 and p1 must be >=0 and <= 100" ); 
+           ERROR_exit( "** Error: p0 and p1 must be >=0 and <= 100" ); 
         }
         
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-perclist") == 0 ) {
+         /* initialize N_mp and mpv from user list */
+         perc_flag = 1;
+         ++nopt;
+
+         /* init N_mp */
+         if (nopt + 1 >= argc)
+            ERROR_exit( "Need at least 2 params after -perclist\n");
+
+         N_mp = atoi(argv[nopt]);
+         if( N_mp <= 0 )
+           ERROR_exit("need NUM_PERC (and percs) after -perclist\n"
+                      "  (have NUM_PERC = '%s')\n", argv[nopt]);
+         ++nopt;
+
+         /* allocate mpv */
+         mpv = (double *)malloc(sizeof(double)*N_mp);
+         if (!mpv)
+            ERROR_exit("Failed to allocate %d doubles for mpv", N_mp);
+         if (nopt + N_mp >= argc)
+            ERROR_exit("Need %d percentiles for -perclist\n", N_mp);
+
+         /* and populate mpv */
+         for(i=0; i<N_mp; i++) {
+            /* use mp0 just for a local var */
+            mp0 = atof(argv[nopt])/100.0f;
+            if (mp0 < 0 || mp0 > 100 
+                        || (mp0 == 0 && ! isdigit(argv[nopt][0])) ) {
+               ERROR_message("** Error: bad -perclist perc #%d of %d: %s\n"
+                             "   percentiles should be in the range [0,100]\n",
+                             i+1, N_mp, argv[nopt]);
+               exit(1);
+            }
+        
+            mpv[i] = mp0;
+            ++nopt;
+         }
+
+         continue;
+      }
+
+      if( strcmp(argv[nopt],"-perc_quiet") == 0 ){
+        perc_quiet = 1;
         nopt++; continue;
       }
 
@@ -459,25 +509,35 @@ int main( int argc , char * argv[] )
                      "sub-brick of interest.\n");
       }
       
-     /* prep for input and output of percentiles */
-      if (mp0 > mp1) {
-         N_mp = 1; 
+      /* prep for input and output of percentiles */
+      /* if N_mp > 0, it and mpv have already been initialized  15 Mar 2021 */
+      /* (just allocate perc) */
+      if( N_mp > 0 ) {
+         perc = (double *)malloc(sizeof(double)*N_mp);
+         if (!mpv || !perc) {
+            ERROR_message("Failed to allocate mpv or perc");
+            exit(1);
+         }  
       } else {
-         /* allocate one above ceiling to prevent truncation error (and crash),
-            N_mp is recomputed anyway      16 Mar 2009 [rickr]               */
-         N_mp = (int)((double)(mp1-mp0)/(double)mps) + 2;
-      } 
-      mpv = (double *)malloc(sizeof(double)*N_mp);
-      perc = (double *)malloc(sizeof(double)*N_mp);
-      if (!mpv || !perc) {
-         ERROR_message("Failed to allocate for mpv or perc");
-         exit(1);
-      }  
-      N_mp = 0;
-      mp = mp0;
-      do {
-         mpv[N_mp] = mp; ++N_mp; mp += mps;
-      } while (mp <= mp1+.00000001);
+         if (mp0 > mp1) {
+            N_mp = 1; 
+         } else {
+            /* allocate one above ceiling to prevent truncation error (and crash),
+               N_mp is recomputed anyway      16 Mar 2009 [rickr]               */
+            N_mp = (int)((double)(mp1-mp0)/(double)mps) + 2;
+         } 
+         mpv = (double *)malloc(sizeof(double)*N_mp);
+         perc = (double *)malloc(sizeof(double)*N_mp);
+         if (!mpv || !perc) {
+            ERROR_message("Failed to allocate for mpv or perc");
+            exit(1);
+         }  
+         N_mp = 0;
+         mp = mp0;
+         do {
+            mpv[N_mp] = mp; ++N_mp; mp += mps;
+         } while (mp <= mp1+.00000001);
+      }
 
       if (!Percentate (DSET_ARRAY(old_dset, 0), mmm, nxyz,
                DSET_BRICK_TYPE(old_dset,0), mpv, N_mp,
@@ -496,7 +556,10 @@ int main( int argc , char * argv[] )
       }
       
       for (i=0; i<N_mp; ++i) {
-         fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]); 
+         if( perc_quiet )
+            fprintf(stdout,"%f   ", perc[i]); 
+         else
+            fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]); 
       }
       free(mpv); mpv = NULL;
       free(perc); perc = NULL;

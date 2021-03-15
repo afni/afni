@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2021, RCR, "3dBrickStat", MINOR, TYPE_NEW_OPT,
+   "add convenience options -perclist and -perc_quiet",
+   NULL
+ } ,
+
  { 13, Mar, 2021, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
    "distribute libXp.6.dylib, since XQuartz has stopped doing it",
    "Thanks to C Gaillard and others on the MB."
