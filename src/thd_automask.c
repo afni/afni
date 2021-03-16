@@ -1005,8 +1005,8 @@ ENTRY("THD_mask_erode") ;
                         + mmm[im+jy+kp]
                         + mmm[ii+jm+kp]                + mmm[ii+jp+kp]
                                         + mmm[ip+jy+kp] ;
-                 // if not enough neighbors, erode
-                 if( num < 18 ) victim = 1 ;  /* mark to erode */
+               // if not enough neighbors, erode
+               if( num < 18 ) victim = 1 ;  /* mark to erode */
             }
       
             /* check NN3 cases (26 neighbors), if not already a victim */
