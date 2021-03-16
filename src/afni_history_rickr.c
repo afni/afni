@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Mar, 2021, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "simplify logic in THD_mask_erode(), with negligible slowdown",
+   NULL
+ } ,
+
  { 15, Mar, 2021, RCR, "3dBrickStat", MINOR, TYPE_NEW_OPT,
    "add convenience options -perclist and -perc_quiet",
    NULL
