@@ -3472,7 +3472,8 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( zeropad ){  /*----- print a report and actually do it -----*/
 
        int do_warn , wx,wy,wz ;  /* excess padding? [11 Jan 2018] */
-       wx = bim->nx/2; wy = bim->ny/2; wz = bim->nz/2;
+       wx = bim->nx/2;  wy = bim->ny/2;                wz = bim->nz/2;
+       wx = MAX(wx,11); wy = MAX(wy,11) ; if( wx > 1 ) wz = MAX(wz,11) ;
        do_warn = (pad_xm > wx) || (pad_xp > wx) ||
                  (pad_ym > wy) || (pad_yp > wy) ||
                  ( wz > 1 && ((pad_zm >= wz) || (pad_zp >= wz)) ) ;

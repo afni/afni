@@ -598,7 +598,13 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
                    ADN_none )
 
 /*------------------------------------------------------------------*/
+/* Added 15 Mar 2021 -- why didn't I do this before??? */
+/*------------------------------------------------------------------*/
 
+#define EDIT_DSET_PREFIX(ds,pf)                        \
+  EDIT_dset_items( (ds), ADN_prefix,(pf) , ADN_none )
+
+/*------------------------------------------------------------------*/
 /*! Change statistical parameters in dataset ds, sub-brick iv,
     to statistical type ft, with parameters a,b,c,d.
 */

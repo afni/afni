@@ -5453,6 +5453,26 @@ ENTRY("THD_nwarp_dataset") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* This function is used to tell THD_nwarp_dataset_array() to save
+   all generated warps into datasets (for debugging purposes, mostly)
+*//*--------------------------------------------------------------------------*/
+
+static char *QWARP_prefix = NULL ;
+
+void THD_set_nwarp_apply_prefix( char *ppp )
+{
+ENTRY("set_nwarp_apply_prefix") ;
+   if( QWARP_prefix != NULL ){
+     free(QWARP_prefix) ;
+     QWARP_prefix = NULL ;
+   }
+   if( THD_filename_ok(ppp) ){
+     QWARP_prefix = strdup(ppp) ;
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Warp a dataset dset_src using the Nwarp_catlist nwc to control the
    displacements, patterning the output after dset_mast.  [21 Oct 2014]
 *//*--------------------------------------------------------------------------*/
@@ -5674,6 +5694,17 @@ if( verb_nww > 1 ) fprintf(stderr,"c%s",MEMORY_SHORT) ;
        fim = THD_extract_float_brick(0,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
        fim = THD_extract_float_brick(1,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
        fim = THD_extract_float_brick(2,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+
+       /* Save this warp? [15 Mar 2021] */
+
+       if( QWARP_prefix != NULL ){
+         char *qprefix , qstr[32] ;
+         sprintf(qstr,"_%04d",iv) ;
+         qprefix = modify_afni_prefix(QWARP_prefix,NULL,qstr) ;
+         EDIT_dset_items( dset_qwarp, ADN_prefix , qprefix , ADN_none ) ;
+         DSET_write(dset_qwarp) ;
+         if( verb_nww ) ININFO_message(" wrote warp dataset %s",DSET_BRIKNAME(dset_qwarp)) ;
+       }
 
        DSET_delete(dset_qwarp) ; dset_qwarp = NULL ; /* 07 Jan 2019 */
 
@@ -6169,6 +6200,8 @@ ENTRY("NwarpCalcRPN") ;
 /*    (for the '-nwarp' input of various 3dNwarp programs)                    */
 /*============================================================================*/
 
+/**** These CW_ values are globals used only for this catenated warp stuff ****/
+
 #define CW_NMAX 99  /* max number of warps allowed in input expression */
 
 static int          CW_nwtop=0 ;
@@ -6177,13 +6210,13 @@ static float        CW_iwfac[CW_NMAX] ;  /* always 1.0 at present */
 static mat44       *CW_awarp[CW_NMAX] ;
 static mat44_vec   *CW_vwarp[CW_NMAX] ;
 static int CW_nx=0,CW_ny=0,CW_nz=0 ; static char *CW_geomstring=NULL ;
-static mat44 CW_cmat , CW_imat ;
+static mat44 CW_cmat , CW_imat ; /* matrices between indexes and coords */
 
 static float CW_dxal=0.0f , CW_dyal=0.0f , CW_dzal=0.0f ;
 static float CW_dx  =1.0f , CW_dy  =1.0f , CW_dz  =1.0f ;
 
-static THD_3dim_dataset *CW_inset=NULL ;
-
+static THD_3dim_dataset *CW_inset=NULL ;  /* template for saving index */
+                                          /* warp as an AFNI dataset */
 /*----------------------------------------------------------------------------*/
 static char *CW_saved_geomstring = NULL ;
 static int   CW_saved_expad      = 0 ;
@@ -6247,6 +6280,7 @@ float_triple M44_max_shifts( mat44_vec *mvv )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Reads a bunch of matrices, not just one */
 
 mat44_vec * CW_read_affine_warp( char *cp )
 {
@@ -6335,6 +6369,7 @@ ININFO_message("output Matrix[%d]",nmat) ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Reads just one matrix - used in 3dNwarpCat.c */
 
 mat44 CW_read_affine_warp_OLD( char *cp )
 {
@@ -6354,6 +6389,9 @@ mat44 CW_read_affine_warp_OLD( char *cp )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Read a warp from a dataset -- don't convert to index warp (yet).
+   Allows for all the weird pre-processing prefixes, like INV, SQRT, etc.
+*//*--------------------------------------------------------------------------*/
 
 THD_3dim_dataset * CW_read_dataset_warp( char *cp )
 {
@@ -6563,7 +6601,10 @@ ENTRY("CW_read_dataset_warp") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Load one warp into the nn-th static data, inverting it if necessary (etc.) */
+/* Load one warp into the nn-th static data array,
+   converting to index warp (if it's not a matrix),
+   and inverting it (or whatever) if necessary.
+*//*--------------------------------------------------------------------------*/
 
 void CW_load_one_warp( int nn , char *cp )
 {
@@ -6624,21 +6665,21 @@ INFO_message("CW_load_one_warp: matrix vector") ;
      ERROR_message("Can't make warp from dataset '%s'",cp); EXRETURN;
    }
 
-   /* first dataset ==> set geometry globals */
+   /* first dataset ==> set geometry globals for this chain of warps */
 
    if( CW_geomstring == NULL ){
      CW_geomstring = strdup(AA->geomstring) ; CW_saved_geomstring = strdup(CW_geomstring) ;
      CW_nx = AA->nx; CW_ny = AA->ny; CW_nz = AA->nz; CW_cmat = AA->cmat; CW_imat = AA->imat;
      CW_dx = fabsf(DSET_DX(dset)); CW_dy = fabsf(DSET_DY(dset)); CW_dz = fabsf(DSET_DZ(dset));
 
-   /* later dataset ==> check it against the first */
+   /* later dataset ==> check its geometry against the first */
 
    } else if( EDIT_geometry_string_diff(CW_geomstring,AA->geomstring) > 0.01f ){
      ERROR_message("warp from dataset '%s' doesn't match earlier input geometry",cp) ;
      EXRETURN ;
    }
 
-   /* save first dataset as template */
+   /* save first dataset as template for index warp to dataset conversion */
 
    if( CW_inset == NULL ){
      DSET_unload(dset) ; CW_inset = dset ;
@@ -6657,7 +6698,12 @@ INFO_message("CW_load_one_warp: matrix vector") ;
 /* Read in a string like
      "warp1 warp2 warp3"
    and return the dataset that instantiates warp3(warp2(warp1(x))).
-   This is how the '-nwarp' option in 3dNwarp*.c is implemented.
+   This is how the '-nwarp' option in 3dNwarp*.c is implemented,
+   except for 3dNwarpApply, which uses IW3D_read_nwarp_catlist().
+
+   N.B.: The nonlinear warps input this function  must on the same grids!
+         For a function that does not have this limitation, see the more
+         complicated IW3D_read_nwarp_catlist() -- some distance below.
 *//*--------------------------------------------------------------------------*/
 
 THD_3dim_dataset * IW3D_read_catenated_warp( char *cstr )
@@ -6672,12 +6718,12 @@ ENTRY("IW3D_read_catenated_warp") ;
 
    if( cstr == NULL || *cstr == '\0' ) RETURN(NULL) ;
 
-   CW_clear_data() ;
+   CW_clear_data() ;  /* clear out any global CW_ data that's hanging around */
 
    csar = NI_decode_string_list(cstr,";") ;
    if( csar == NULL || csar->num < 1 ) RETURN(NULL) ;
 
-   /*-- simple case of a single dataset input --*/
+   /*-- simple case of a single dataset input (very common) --*/
 
    if( csar->num == 1 && strchr(csar->str[0],'(') == NULL && strchr(csar->str[0],':') == NULL ){
      oset = THD_open_dataset(csar->str[0]) ; DSET_COPYOVER_REAL(oset) ;
@@ -7341,7 +7387,9 @@ if( verb_nww > 1 ) fprintf(stderr,"}") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Construct an Nwarp_catlist from a list of strings (filenames). */
+/* Construct an Nwarp_catlist from a list of strings (filenames).
+   This function is used in 3dNwarpApply.
+*//*--------------------------------------------------------------------------*/
 
 Nwarp_catlist * IW3D_read_nwarp_catlist( char *cstr )
 {

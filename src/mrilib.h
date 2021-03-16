@@ -2461,6 +2461,7 @@ extern THD_3dim_dataset * IW3D_from_nwarp_catlist( Nwarp_catlist * , int ) ;
 extern void IW3D_destroy_nwarp_catlist( Nwarp_catlist * ) ;
 extern int IW3D_reduce_nwarp_catlist( Nwarp_catlist * ) ;
 extern Nwarp_catlist * IW3D_read_nwarp_catlist( char * ) ;
+extern void THD_set_nwarp_apply_prefix( char *ppp ) ; /* 15 Mar 2021 */
 
 extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
 extern void IW3D_destroy( IndexWarp3D *AA ) ;

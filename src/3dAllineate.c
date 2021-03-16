@@ -71,6 +71,15 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 /****/
 
+#define DEFAULT_TBEST     5
+#define DEFAULT_MICHO_MI  0.2
+#define DEFAULT_MICHO_NMI 0.2
+#define DEFAULT_MICHO_CRA 0.4
+#define DEFAULT_MICHO_HEL 0.4
+#define DEFAULT_MICHO_OV  0.4
+
+/****/
+
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ); /* prototype */
@@ -383,465 +392,279 @@ int INTERP_code( char *name )
 }
 
 /*---------------------------------------------------------------------------*/
-/*============================ Ye Olde Main Programme =======================*/
-/* Note the GA_setup struct 'stup' below.
-   This struct contains all the alignment setup information,
-   and is passed to functions in mri_genalign.c to do lots of things,
-   like evaluate the cost functional, optimize the cost, and so forth. */
-/*---------------------------------------------------------------------------*/
 
-int main( int argc , char *argv[] )
+void Allin_Help(void)  /* moved here 15 Mar 2021 */
 {
-   GA_setup stup ;                   /* holds all the setup info */
-   THD_3dim_dataset *dset_out=NULL ;
-   MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
-   MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 , nnz ;
-   int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
-   float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
-   int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
-   float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
-   int nvox_base ;
-   float v1,v2 , xxx_p,yyy_p,zzz_p,siz , xxx_m,yyy_m,zzz_m , xxx,yyy,zzz , xc,yc,zc ;
-   float xxc,yyc,zzc ; int CMbad=0 ; /* 26 Feb 2020 */
-   int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
-   int tfdone=0;  /* stuff for -twofirst */
-   float tfparm[PARAM_MAXTRIAL+2][MAXPAR];  /* +2 for some extra cases */
-   float ffparm[PARAM_MAXTRIAL+2][MAXPAR];  /* not really used yet */
-   float tfcost[PARAM_MAXTRIAL+2] ;
-   int   tfindx[PARAM_MAXTRIAL+2] ;
-   int skip_first=0 , didtwo , targ_kind, skipped=0 , nptwo=6 ;
-   int targ_was_vector=0, targ_vector_kind=-1 ; MRI_IMAGE *im_targ_vector=NULL ;
-   double ctim=0.0,dtim , rad , conv_rad ;
-   float **parsave=NULL ;
-   mat44 *matsave=NULL ;
-   mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv,
-         qmat,wmat ;
-   MRI_IMAGE *apply_im = NULL ;
-   float *apply_far    = NULL ;
-   int apply_nx=0, apply_ny=0, apply_mode=0, nparam_free , diffblur=1 ;
-   float cost, cost_ini ;
-   mat44 cmat_bout , cmat_tout , aff12_xyz ;
-   int   nxout=0,nyout=0,nzout=0 ;
-   float dxout,dyout,dzout ;
-   floatvec *allcost ;   /* 19 Sep 2007 */
-   float     allpar[MAXPAR] ;
-   float xsize , ysize , zsize ;  /* 06 May 2008: box size */
-   float bfac ;                   /* 14 Oct 2008: brick factor */
-   int twodim_code=0 , xx_code=0 , yy_code=0 , zz_code=0 ;
-
-   /*----- input parameters, to be filled in from the options -----*/
-
-   THD_3dim_dataset *dset_base = NULL ;
-   THD_3dim_dataset *dset_targ = NULL ;
-   THD_3dim_dataset *dset_mast = NULL ;
-   THD_3dim_dataset *dset_weig = NULL ;
-   int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
-   int auto_weight             = 3 ;            /* -autobbox == default */
-   float auto_wclip            = 0.0f ;         /* 31 Jul 2007 */
-   float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
-   char *auto_string           = "-autobox" ;
-   int auto_dilation           = 0 ;            /* for -automask+N */
-   int wtspecified             = 0 ;            /* 10 Sep 2007 (was weight specified?) */
-   double dxyz_mast            = 0.0  ;         /* implemented 24 Jul 2007 */
-   int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
-   int sm_code                 = GA_SMOOTH_GAUSSIAN ;
-   float sm_rad                = 0.0f ;
-   float fine_rad              = 0.0f ;
-   int floatize                = 0 ;            /* off by default */
-   int twopass                 = 1 ;            /* on by default */
-   int twofirst                = 1 ;            /* on by default */
-   int zeropad                 = 1 ;            /* on by default */
-   char *prefix                = NULL ;         /* off by default */
-   char *wtprefix              = NULL ;         /* off by default */
-   char *param_save_1D         = NULL ;         /* off by default */
-   char *matrix_save_1D        = NULL ;         /* 23 Jul 2007 */
-   char *apply_1D              = NULL ;         /* off by default */
-   int interp_code             = MRI_LINEAR ;
-   int got_interp              = 0 ;
-   int npt_match               = -47 ;          /* 47%, that is */
-   int final_interp            = MRI_CUBIC ;
-   int got_final               = 0 ;
-   int warp_code               = WARP_AFFINE ;
-   char warp_code_string[64]   = "\0" ;         /* 22 Feb 2010 */
-   int warp_freeze             = 0 ;            /* off by default */
-   int do_small                = 0 ;            /* 12 May 2020 */
-   int nparopt                 = 0 ;
-   MRI_IMAGE *matini           = NULL ;
-   int tbest                   = 5 ;            /* default=try best 5 */
-   int num_rtb                 = 99 ;           /* 28 Aug 2008 */
-   int nocast                  = 0 ;            /* 29 Aug 2008 */
-   param_opt paropt[MAXPAR] ;
-   float powell_mm             = 0.0f ;
-   float powell_aa             = 0.0f ;
-   float conv_mm               = 0.001f ;       /* millimeters */
-   float nmask_frac            = -1.0;          /* use default for voxel fraction */
-   int matorder                = MATORDER_SDU ; /* matrix mult order */
-   int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
-   int dcode                   = DELTA_AFTER ;  /* shift after */
-   int meth_check_count        = 0 ;            /* don't do it */
-   int meth_check[NMETH+1] ;
-   int meth_median_replace     = 0 ;            /* don't do it */
-   char *save_hist             = NULL ;         /* don't save it */
-   long seed                   = 7654321 ;      /* random? */
-   int XYZ_warp                = 0 ;            /* off by default */
-   double hist_pow             = 0.0 ;
-   int hist_nbin               = 0 ;
-   int epi_fe                  = -1 ;           /* off by default */
-   int epi_pe                  = -1 ;
-   int epi_se                  = -1 ;
-   int epi_targ                = -1 ;
-   int replace_base            = 0 ;            /* off by default */
-   int replace_meth            = 0 ;            /* off by default */
-   int usetemp                 = 0 ;            /* off by default */
-   int nmatch_setup            = 98765 ;
-   int ignout                  = 0 ;            /* 28 Feb 2007 */
-   int    hist_mode            = 0 ;            /* 08 May 2007 */
-   float  hist_param           = 0.0f ;
-   int    hist_setbyuser       = 0 ;
-   int    do_cmass             = 0 ;            /* 30 Jul 2007 */
-   int    do_refinal           = 1 ;            /* 14 Nov 2007 */
-   int    use_realaxes         = 0 ;            /* 10 Oct 2014 */
-
-   int auto_tdilation          = 0 ;            /* for -source_automask+N */
-   int auto_tmask              = 0 ;
-   char *auto_tstring          = NULL ;
-   int fill_source_mask        = 0 ;
-
-   int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
-   float blokrad               = 6.54321f ;
-   int blokmin                 = 0 ;
-
-   int do_allcost              = 0 ;            /* 19 Sep 2007 */
-   int do_save_pearson_map     = 0 ;            /* 25 Jan 2021 */
-   char *save_pearson_prefix   = NULL ;
-
-   MRI_IMAGE *allcostX1D       = NULL ;         /* 02 Sep 2008 */
-   char *allcostX1D_outname    = NULL ;
-
-   int   nwarp_pass            = 0 ;
-   int   nwarp_type            = WARP_CUBIC ;
-   float nwarp_parmax          = 0.10f ;         /* 05 Jan 2011 */
-   int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
-   int   nwarp_itemax          = 0 ;
-   int   nwarp_fixaff          = 0 ;             /* 26 Nov 2010 */
-   int   nwarp_fixmotX         = 0 ;             /* 07 Dec 2010 */
-   int   nwarp_fixdepX         = 0 ;
-   int   nwarp_fixmotY         = 0 ;
-   int   nwarp_fixdepY         = 0 ;
-   int   nwarp_fixmotZ         = 0 ;
-   int   nwarp_fixdepZ         = 0 ;
-   int   nwarp_fixmotI         = 0 ;
-   int   nwarp_fixdepI         = 0 ;
-   int   nwarp_fixmotJ         = 0 ;
-   int   nwarp_fixdepJ         = 0 ;
-   int   nwarp_fixmotK         = 0 ;
-   int   nwarp_fixdepK         = 0 ;
-   char *nwarp_save_prefix     = NULL ;          /* 10 Dec 2010 */
-   int   nwarp_meth_code       = 0 ;             /* 15 Dec 2010 */
-
-   int    micho_zfinal         = 0 ;             /* 24 Feb 2010 */
-   double micho_mi             = 0.2 ;           /* -lpc+ stuff */
-   double micho_nmi            = 0.2 ;
-   double micho_crA            = 0.4 ;
-   double micho_hel            = 0.4 ;
-   double micho_ov             = 0.4 ;           /* 02 Mar 2010 */
-   int    micho_fallthru       = 0 ;             /* 19 Nov 2016 */
-
-   int do_zclip                = 0 ;             /* 29 Oct 2010 */
-
-   bytevec *emask              = NULL ;          /* 14 Feb 2013 */
-
-   int do_xflip_bset           = 0 ;             /* 18 Jun 2019 */
-
-#undef ALLOW_UNIFIZE   /* I decided this was a bad idea */
-#ifdef ALLOW_UNIFIZE
-   int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
-   int do_unifize_targ         = 0 ;             /* not implemented */
-   MRI_IMAGE *im_ubase         = NULL ;
-   MRI_IMAGE *im_utarg         = NULL ;
-#endif
-
-#define APPLYING ( apply_1D != NULL || apply_mode != 0 )  /* 13 Mar 2017 */
-
-   /**----------------------------------------------------------------------*/
-   /**----------------- Help the pitifully ignorant user? -----------------**/
-
-   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
-
-   /*--- A couple thousand lines of help code goes here for some reason ---*/
-
-   if( argc < 2 || strcmp(argv[1],"-help")==0 ||
-                   strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
+   int ii ;
 
      visible_noweights = 0 ;
      for( ii=0 ; ii < NMETH ; ii++ )
        if( meth_visible[ii] && meth_noweight[ii] ) visible_noweights++ ;
 
      printf("\n"
-"Usage: 3dAllineate [options] sourcedataset\n"
-"\n"
-"--------------------------------------------------------------------------\n"
-"      Program to align one dataset (the 'source') to a 'base'\n"
-"      dataset, using an affine (matrix) transformation of space.\n"
-"--------------------------------------------------------------------------\n"
-"\n"
-"--------------------------------------------------------------------------\n"
-"    ***** Please check your results visually, or at some point  *****\n"
-"    ***** in time you will have bad results and not know it :-( *****\n"
-"    *****                                                       *****\n"
-"    ***** No method for 3D image alignment, however tested it   *****\n"
-"    ***** was, can be relied upon 100%% of the time, and anyone  *****\n"
-"    ***** who tells you otherwise is a madman or is a liar!!!!  *****\n"
-"    *****                                                       *****\n"
-"    ***** Furthermore, don't EVER think that \"I have so much    *****\n"
-"    ***** data that a few errors will not matter\"!!!!           *****\n"
-"--------------------------------------------------------------------------\n"
-"\n"
-"* Options (lots of them!) are available to control:\n"
-" ++ How the matching between the source and the base is computed\n"
-"    (i.e., the 'cost functional' measuring image mismatch).\n"
-" ++ How the resliced source is interpolated to the base space.\n"
-" ++ The complexity of the spatial transformation ('warp') used.\n"
-" ++ And many many technical options to control the process in detail,\n"
-"    if you know what you are doing (or just like to fool around).\n"
-"\n"
-"* This program is a generalization of and improvement on the older\n"
-"    software 3dWarpDrive.\n"
-"\n"
-"* For nonlinear transformations, see progam 3dQwarp.\n"
-"\n"
-"* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
-"  to produce the transformed output. In this mode of operation, it just\n"
-"  skips the alignment process, whose function is to compute the matrix,\n"
-"  and instead it reads the matrix in, computes the output dataset,\n"
-"  writes it out, and stops.\n"
-"\n"
-"* If you are curious about the stepwise process used, see the section below\n"
-"  titled 'SUMMARY of the Default Allineation Process'.\n"
-"\n"
-"=====----------------------------------------------------------------------\n"
-"NOTES: For most 3D image registration purposes, we now recommend that you\n"
-"=====  use Daniel Glen's script align_epi_anat.py (which, despite its name,\n"
-"       can do many more registration problems than EPI-to-T1-weighted).\n"
-"  -->> In particular, using 3dAllineate with the 'lpc' cost functional\n"
-"       (to align EPI and T1-weighted volumes) requires using a '-weight'\n"
-"       volume to get good results, and the align_epi_anat.py script will\n"
-"       automagically generate such a weight dataset that works well for\n"
-"       EPI-to-structural alignment.\n"
-"  -->> This script can also be used for other alignment purposes, such\n"
-"       as T1-weighted alignment between field strengths using the\n"
-"       '-lpa' cost functional.  Investigate align_epi_anat.py to\n"
-"       see if it will do what you need -- you might make your life\n"
-"       a little easier and nicer and happier and more tranquil.\n"
-"  -->> Also, if/when you ask for registration help on the AFNI\n"
-"       message board, we'll probably start by recommending that you\n"
-"       try align_epi_anat.py if you haven't already done so.\n"
-"  -->> For aligning EPI and T1-weighted volumes, we have found that\n"
-"       using a flip angle of 50-60 degrees for the EPI works better than\n"
-"       a flip angle of 90 degrees.  The reason is that there is more\n"
-"       internal contrast in the EPI data when the flip angle is smaller,\n"
-"       so the registration has some image structure to work with.  With\n"
-"       the 90 degree flip angle, there is so little internal contrast in\n"
-"       the EPI dataset that the alignment process ends up being just\n"
-"       trying to match brain outlines -- which doesn't always give accurate\n"
-"       results: see http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
-"  -->> Although the total MRI signal is reduced at a smaller flip angle,\n"
-"       there is little or no loss in FMRI/BOLD information, since the bulk\n"
-"       of the time series 'noise' is from physiological fluctuation signals,\n"
-"       which are also reduced by the lower flip angle -- for more details,\n"
-"       see http://dx.doi.org/10.1016/j.neuroimage.2010.11.020\n"
-"---------------------------------------------------------------------------\n"
-"  **** New (Summer 2013) program 3dQwarp is available to do nonlinear  ****\n"
-"  ***  alignment between a base and source dataset, including the use   ***\n"
-"  **   of 3dAllineate for the preliminary affine alignment.  If you are  **\n"
-"  *    interested, see the output of '3dQwarp -help' for the details.     *\n"
-"---------------------------------------------------------------------------\n"
-"\n"
-"COMMAND LINE OPTIONS:\n"
-"====================\n"
-" -base bbb   = Set the base dataset to be the #0 sub-brick of 'bbb'.\n"
-"               If no -base option is given, then the base volume is\n"
-"               taken to be the #0 sub-brick of the source dataset.\n"
-"               (Base must be stored as floats, shorts, or bytes.)\n"
-"            ** -base is not needed if you are just applying a given\n"
-"               transformation to the -source dataset to produce\n"
-"               the output, using -1Dmatrix_apply or -1Dparam_apply\n"
-"            ** Unless you use the -master option, the aligned\n"
-"               output dataset will be stored on the same 3D grid\n"
-"               as the -base dataset.\n"
-"\n"
-" -source ttt = Read the source dataset from 'ttt'.  If no -source\n"
-"   *OR*        (or -input) option is given, then the source dataset\n"
-" -input ttt    is the last argument on the command line.\n"
-"               (Source must be stored as floats, shorts, or bytes.)\n"
-"            ** This is the dataset to be transformed, to match the\n"
-"               -base dataset, or directly with one of the options\n"
-"               -1Dmatrix_apply or -1Dparam_apply\n"
-"            ** 3dAllineate can register 2D datasets (single slice),\n"
-"               but both the base and source must be 2D -- you cannot\n"
-"               use this program to register a 2D slice into a 3D volume!\n"
-"               -- However, the 'lpc' and 'lpa' cost functionals do not\n"
-"                  work properly with 2D images, as they are designed\n"
-"                  around local 3D neighborhoods and that code has not\n"
-"                  been patched to work with 2D neighborhoods :(\n"
-"               -- You can input .jpg files as 2D 'datasets', register\n"
-"                  them with 3dAllineate, and write the result back out\n"
-"                  using a prefix that ends in '.jpg'; HOWEVER, the color\n"
-"                  information will not be used in the registration, as\n"
-"                  this program was written to deal with monochrome medical\n"
-"                  datasets. At the end, if the source was RGB (color), then\n"
-"                  the output will be also be RGB, and then a color .jpg\n"
-"                  can be output.\n"
-"               -- The above remarks also apply to aligning 3D RGB datasets:\n"
-"                  it will be done using only the 3D volumes converted to\n"
-"                  grayscale, but the final output will be the source\n"
-"                  RGB dataset transformed to the (hopefully) aligned grid.\n"
-"                 * However, I've never tested aligning 3D color datasets;\n"
-"                   you can be the first one ever!\n"
-"            ** See the script @2dwarper.Allin for an example of using\n"
-"               3dAllineate to do slice-by-slice nonlinear warping to\n"
-"               align 3D volumes distorted by time-dependent magnetic\n"
-"               field inhomogeneities.\n"
-"\n"
-" ** NOTA BENE: The base and source dataset do NOT have to be defined **\n"
-" ** [that's]   on the same 3D grids; the alignment process uses the  **\n"
-" ** [Latin ]   coordinate systems defined in the dataset headers to  **\n"
-" ** [  for ]   make the match between spatial locations, rather than **\n"
-" ** [ NOTE ]   matching the 2 datasets on a voxel-by-voxel basis     **\n"
-" ** [ WELL ]   (as 3dvolreg and 3dWarpDrive do).                     **\n"
-" **       -->> However, this coordinate-based matching requires that **\n"
-" **            image volumes be defined on roughly the same patch of **\n"
-" **            of (x,y,z) space, in order to find a decent starting  **\n"
-" **            point for the transformation.  You might need to use  **\n"
-" **            the script @Align_Centers to do this, if the 3D       **\n"
-" **            spaces occupied by the images do not overlap much.    **\n"
-" **       -->> Or the '-cmass' option to this program might be       **\n"
-" **            sufficient to solve this problem, maybe, with luck.   **\n"
-" **            (Another reason why you should use align_epi_anat.py) **\n"
-" **       -->> If the coordinate system in the dataset headers is    **\n"
-" **            WRONG, then 3dAllineate will probably not work well!  **\n"
-" **            And I say this because we have seen this in several   **\n"
-" **            datasets downloaded from online archives.             **\n"
-"\n"
-" -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
-"   *OR*        option is NOT given, no dataset will be output!  The\n"
-" -out ppp      transformation matrix to align the source to the base will\n"
-"               be estimated, but not applied.  You can save the matrix\n"
-"               for later use using the '-1Dmatrix_save' option.\n"
-"        *N.B.: By default, the new dataset is computed on the grid of the\n"
-"                base dataset; see the '-master' and/or the '-mast_dxyz'\n"
-"                options to change this grid.\n"
-"        *N.B.: If 'ppp' is 'NULL', then no output dataset will be produced.\n"
-"                This option is for compatibility with 3dvolreg.\n"
-"\n"
-" -floatize   = Write result dataset as floats.  Internal calculations\n"
-" -float        are all done on float copies of the input datasets.\n"
-"               [Default=convert output dataset to data format of  ]\n"
-"               [        source dataset; if the source dataset was ]\n"
-"               [        shorts with a scale factor, then the new  ]\n"
-"               [        dataset will get a scale factor as well;  ]\n"
-"               [        if the source dataset was shorts with no  ]\n"
-"               [        scale factor, the result will be unscaled.]\n"
-"\n"
-" -1Dparam_save ff   = Save the warp parameters in ASCII (.1D) format into\n"
-"                      file 'ff' (1 row per sub-brick in source).\n"
-"                    * A historical synonym for this option is '-1Dfile'.\n"
-"                    * At the top of the saved 1D file is a #comment line\n"
-"                      listing the names of the parameters; those parameters\n"
-"                      that are fixed (e.g., via '-parfix') will be marked\n"
-"                      by having their symbolic names end in the '$' character.\n"
-"                      You can use '1dcat -nonfixed' to remove these columns\n"
-"                      from the 1D file if you just want to further process the\n"
-"                      varying parameters somehow (e.g., 1dsvd).\n"
-"                    * However, the '-1Dparam_apply' option requires the\n"
-"                      full list of parameters, including those that were\n"
-"                      fixed, in order to work properly!\n"
-"\n"
-" -1Dparam_apply aa  = Read warp parameters from file 'aa', apply them to \n"
-"                      the source dataset, and produce a new dataset.\n"
-"                      (Must also use the '-prefix' option for this to work!  )\n"
-"                      (In this mode of operation, there is no optimization of)\n"
-"                      (the cost functional by changing the warp parameters;  )\n"
-"                      (previously computed parameters are applied directly.  )\n"
+     "Usage: 3dAllineate [options] sourcedataset\n"
+     "\n"
+     "--------------------------------------------------------------------------\n"
+     "      Program to align one dataset (the 'source') to a 'base'\n"
+     "      dataset, using an affine (matrix) transformation of space.\n"
+     "--------------------------------------------------------------------------\n"
+     "\n"
+     "--------------------------------------------------------------------------\n"
+     "    ***** Please check your results visually, or at some point  *****\n"
+     "    ***** in time you will have bad results and not know it :-( *****\n"
+     "    *****                                                       *****\n"
+     "    ***** No method for 3D image alignment, however tested it   *****\n"
+     "    ***** was, can be relied upon 100%% of the time, and anyone  *****\n"
+     "    ***** who tells you otherwise is a madman or is a liar!!!!  *****\n"
+     "    *****                                                       *****\n"
+     "    ***** Furthermore, don't EVER think that \"I have so much    *****\n"
+     "    ***** data that a few errors will not matter\"!!!!           *****\n"
+     "--------------------------------------------------------------------------\n"
+     "\n"
+     "* Options (lots of them!) are available to control:\n"
+     " ++ How the matching between the source and the base is computed\n"
+     "    (i.e., the 'cost functional' measuring image mismatch).\n"
+     " ++ How the resliced source is interpolated to the base space.\n"
+     " ++ The complexity of the spatial transformation ('warp') used.\n"
+     " ++ And many many technical options to control the process in detail,\n"
+     "    if you know what you are doing (or just like to fool around).\n"
+     "\n"
+     "* This program is a generalization of and improvement on the older\n"
+     "    software 3dWarpDrive.\n"
+     "\n"
+     "* For nonlinear transformations, see progam 3dQwarp.\n"
+     "\n"
+     "* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
+     "  to produce the transformed output. In this mode of operation, it just\n"
+     "  skips the alignment process, whose function is to compute the matrix,\n"
+     "  and instead it reads the matrix in, computes the output dataset,\n"
+     "  writes it out, and stops.\n"
+     "\n"
+     "* If you are curious about the stepwise process used, see the section below\n"
+     "  titled 'SUMMARY of the Default Allineation Process'.\n"
+     "\n"
+     "=====----------------------------------------------------------------------\n"
+     "NOTES: For most 3D image registration purposes, we now recommend that you\n"
+     "=====  use Daniel Glen's script align_epi_anat.py (which, despite its name,\n"
+     "       can do many more registration problems than EPI-to-T1-weighted).\n"
+     "  -->> In particular, using 3dAllineate with the 'lpc' cost functional\n"
+     "       (to align EPI and T1-weighted volumes) requires using a '-weight'\n"
+     "       volume to get good results, and the align_epi_anat.py script will\n"
+     "       automagically generate such a weight dataset that works well for\n"
+     "       EPI-to-structural alignment.\n"
+     "  -->> This script can also be used for other alignment purposes, such\n"
+     "       as T1-weighted alignment between field strengths using the\n"
+     "       '-lpa' cost functional.  Investigate align_epi_anat.py to\n"
+     "       see if it will do what you need -- you might make your life\n"
+     "       a little easier and nicer and happier and more tranquil.\n"
+     "  -->> Also, if/when you ask for registration help on the AFNI\n"
+     "       message board, we'll probably start by recommending that you\n"
+     "       try align_epi_anat.py if you haven't already done so.\n"
+     "  -->> For aligning EPI and T1-weighted volumes, we have found that\n"
+     "       using a flip angle of 50-60 degrees for the EPI works better than\n"
+     "       a flip angle of 90 degrees.  The reason is that there is more\n"
+     "       internal contrast in the EPI data when the flip angle is smaller,\n"
+     "       so the registration has some image structure to work with.  With\n"
+     "       the 90 degree flip angle, there is so little internal contrast in\n"
+     "       the EPI dataset that the alignment process ends up being just\n"
+     "       trying to match brain outlines -- which doesn't always give accurate\n"
+     "       results: see http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
+     "  -->> Although the total MRI signal is reduced at a smaller flip angle,\n"
+     "       there is little or no loss in FMRI/BOLD information, since the bulk\n"
+     "       of the time series 'noise' is from physiological fluctuation signals,\n"
+     "       which are also reduced by the lower flip angle -- for more details,\n"
+     "       see http://dx.doi.org/10.1016/j.neuroimage.2010.11.020\n"
+     "---------------------------------------------------------------------------\n"
+     "  **** New (Summer 2013) program 3dQwarp is available to do nonlinear  ****\n"
+     "  ***  alignment between a base and source dataset, including the use   ***\n"
+     "  **   of 3dAllineate for the preliminary affine alignment.  If you are  **\n"
+     "  *    interested, see the output of '3dQwarp -help' for the details.     *\n"
+     "---------------------------------------------------------------------------\n"
+     "\n"
+     "COMMAND LINE OPTIONS:\n"
+     "====================\n"
+     " -base bbb   = Set the base dataset to be the #0 sub-brick of 'bbb'.\n"
+     "               If no -base option is given, then the base volume is\n"
+     "               taken to be the #0 sub-brick of the source dataset.\n"
+     "               (Base must be stored as floats, shorts, or bytes.)\n"
+     "            ** -base is not needed if you are just applying a given\n"
+     "               transformation to the -source dataset to produce\n"
+     "               the output, using -1Dmatrix_apply or -1Dparam_apply\n"
+     "            ** Unless you use the -master option, the aligned\n"
+     "               output dataset will be stored on the same 3D grid\n"
+     "               as the -base dataset.\n"
+     "\n"
+     " -source ttt = Read the source dataset from 'ttt'.  If no -source\n"
+     "   *OR*        (or -input) option is given, then the source dataset\n"
+     " -input ttt    is the last argument on the command line.\n"
+     "               (Source must be stored as floats, shorts, or bytes.)\n"
+     "            ** This is the dataset to be transformed, to match the\n"
+     "               -base dataset, or directly with one of the options\n"
+     "               -1Dmatrix_apply or -1Dparam_apply\n"
+     "            ** 3dAllineate can register 2D datasets (single slice),\n"
+     "               but both the base and source must be 2D -- you cannot\n"
+     "               use this program to register a 2D slice into a 3D volume!\n"
+     "               -- However, the 'lpc' and 'lpa' cost functionals do not\n"
+     "                  work properly with 2D images, as they are designed\n"
+     "                  around local 3D neighborhoods and that code has not\n"
+     "                  been patched to work with 2D neighborhoods :(\n"
+     "               -- You can input .jpg files as 2D 'datasets', register\n"
+     "                  them with 3dAllineate, and write the result back out\n"
+     "                  using a prefix that ends in '.jpg'; HOWEVER, the color\n"
+     "                  information will not be used in the registration, as\n"
+     "                  this program was written to deal with monochrome medical\n"
+     "                  datasets. At the end, if the source was RGB (color), then\n"
+     "                  the output will be also be RGB, and then a color .jpg\n"
+     "                  can be output.\n"
+     "               -- The above remarks also apply to aligning 3D RGB datasets:\n"
+     "                  it will be done using only the 3D volumes converted to\n"
+     "                  grayscale, but the final output will be the source\n"
+     "                  RGB dataset transformed to the (hopefully) aligned grid.\n"
+     "                 * However, I've never tested aligning 3D color datasets;\n"
+     "                   you can be the first one ever!\n"
+     "            ** See the script @2dwarper.Allin for an example of using\n"
+     "               3dAllineate to do slice-by-slice nonlinear warping to\n"
+     "               align 3D volumes distorted by time-dependent magnetic\n"
+     "               field inhomogeneities.\n"
+     "\n"
+     " ** NOTA BENE: The base and source dataset do NOT have to be defined **\n"
+     " ** [that's]   on the same 3D grids; the alignment process uses the  **\n"
+     " ** [Latin ]   coordinate systems defined in the dataset headers to  **\n"
+     " ** [  for ]   make the match between spatial locations, rather than **\n"
+     " ** [ NOTE ]   matching the 2 datasets on a voxel-by-voxel basis     **\n"
+     " ** [ WELL ]   (as 3dvolreg and 3dWarpDrive do).                     **\n"
+     " **       -->> However, this coordinate-based matching requires that **\n"
+     " **            image volumes be defined on roughly the same patch of **\n"
+     " **            of (x,y,z) space, in order to find a decent starting  **\n"
+     " **            point for the transformation.  You might need to use  **\n"
+     " **            the script @Align_Centers to do this, if the 3D       **\n"
+     " **            spaces occupied by the images do not overlap much.    **\n"
+     " **       -->> Or the '-cmass' option to this program might be       **\n"
+     " **            sufficient to solve this problem, maybe, with luck.   **\n"
+     " **            (Another reason why you should use align_epi_anat.py) **\n"
+     " **       -->> If the coordinate system in the dataset headers is    **\n"
+     " **            WRONG, then 3dAllineate will probably not work well!  **\n"
+     " **            And I say this because we have seen this in several   **\n"
+     " **            datasets downloaded from online archives.             **\n"
+     "\n"
+     " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
+     "   *OR*        option is NOT given, no dataset will be output!  The\n"
+     " -out ppp      transformation matrix to align the source to the base will\n"
+     "               be estimated, but not applied.  You can save the matrix\n"
+     "               for later use using the '-1Dmatrix_save' option.\n"
+     "        *N.B.: By default, the new dataset is computed on the grid of the\n"
+     "                base dataset; see the '-master' and/or the '-mast_dxyz'\n"
+     "                options to change this grid.\n"
+     "        *N.B.: If 'ppp' is 'NULL', then no output dataset will be produced.\n"
+     "                This option is for compatibility with 3dvolreg.\n"
+     "\n"
+     " -floatize   = Write result dataset as floats.  Internal calculations\n"
+     " -float        are all done on float copies of the input datasets.\n"
+     "               [Default=convert output dataset to data format of  ]\n"
+     "               [        source dataset; if the source dataset was ]\n"
+     "               [        shorts with a scale factor, then the new  ]\n"
+     "               [        dataset will get a scale factor as well;  ]\n"
+     "               [        if the source dataset was shorts with no  ]\n"
+     "               [        scale factor, the result will be unscaled.]\n"
+     "\n"
+     " -1Dparam_save ff   = Save the warp parameters in ASCII (.1D) format into\n"
+     "                      file 'ff' (1 row per sub-brick in source).\n"
+     "                    * A historical synonym for this option is '-1Dfile'.\n"
+     "                    * At the top of the saved 1D file is a #comment line\n"
+     "                      listing the names of the parameters; those parameters\n"
+     "                      that are fixed (e.g., via '-parfix') will be marked\n"
+     "                      by having their symbolic names end in the '$' character.\n"
+     "                      You can use '1dcat -nonfixed' to remove these columns\n"
+     "                      from the 1D file if you just want to further process the\n"
+     "                      varying parameters somehow (e.g., 1dsvd).\n"
+     "                    * However, the '-1Dparam_apply' option requires the\n"
+     "                      full list of parameters, including those that were\n"
+     "                      fixed, in order to work properly!\n"
+     "\n"
+     " -1Dparam_apply aa  = Read warp parameters from file 'aa', apply them to \n"
+     "                      the source dataset, and produce a new dataset.\n"
+     "                      (Must also use the '-prefix' option for this to work!  )\n"
+     "                      (In this mode of operation, there is no optimization of)\n"
+     "                      (the cost functional by changing the warp parameters;  )\n"
+     "                      (previously computed parameters are applied directly.  )\n"
 /** "               *N.B.: A historical synonym for this is '-1Dapply'.\n" **/
-"               *N.B.: If you use -1Dparam_apply, you may also want to use\n"
-"                       -master to control the grid on which the new\n"
-"                       dataset is written -- the base dataset from the\n"
-"                       original 3dAllineate run would be a good possibility.\n"
-"                       Otherwise, the new dataset will be written out on the\n"
-"                       3D grid coverage of the source dataset, and this\n"
-"                       might result in clipping off part of the image.\n"
-"               *N.B.: Each row in the 'aa' file contains the parameters for\n"
-"                       transforming one sub-brick in the source dataset.\n"
-"                       If there are more sub-bricks in the source dataset\n"
-"                       than there are rows in the 'aa' file, then the last\n"
-"                       row is used repeatedly.\n"
-"               *N.B.: A trick to use 3dAllineate to resample a dataset to\n"
-"                       a finer grid spacing:\n"
-"                         3dAllineate -input dataset+orig         \\\n"
-"                                     -master template+orig       \\\n"
-"                                     -prefix newdataset          \\\n"
-"                                     -final wsinc5               \\\n"
-"                                     -1Dparam_apply '1D: 12@0'\\'  \n"
-"                       Here, the identity transformation is specified\n"
-"                       by giving all 12 affine parameters as 0 (note\n"
-"                       the extra \\' at the end of the '1D: 12@0' input!).\n"
-"                     ** You can also use the word 'IDENTITY' in place of\n"
-"                        '1D: 12@0'\\' (to indicate the identity transformation).\n"
-"              **N.B.: Some expert options for modifying how the wsinc5\n"
-"                       method works are described far below, if you use\n"
-"                       '-HELP' instead of '-help'.\n"
-"            ****N.B.: The interpolation method used to produce a dataset\n"
-"                       is always given via the '-final' option, NOT via\n"
-"                       '-interp'.  If you forget this and use '-interp'\n"
-"                       along with one of the 'apply' options, this program\n"
-"                       will chastise you (gently) and change '-final'\n"
-"                       to match what the '-interp' input.\n"
-"\n"
-" -1Dmatrix_save ff  = Save the transformation matrix for each sub-brick into\n"
-"                      file 'ff' (1 row per sub-brick in the source dataset).\n"
-"                      If 'ff' does NOT end in '.1D', then the program will\n"
-"                      append '.aff12.1D' to 'ff' to make the output filename.\n"
-"               *N.B.: This matrix is the coordinate transformation from base\n"
-"                       to source DICOM coordinates. In other terms:\n"
-"                          Xin = Xsource = M Xout = M Xbase\n"
-"                                   or\n"
-"                          Xout = Xbase = inv(M) Xin = inv(M) Xsource\n"
-"                       where Xin or Xsource is the 4x1 coordinates of a\n"
-"                       location in the input volume. Xout is the \n"
-"                       coordinate of that same location in the output volume.\n"
-"                       Xbase is the coordinate of the corresponding location\n"
-"                       in the base dataset. M is ff augmented by a 4th row of\n"
-"                       [0 0 0 1], X. is an augmented column vector [x,y,z,1]'\n"
-"                       To get the inverse matrix inv(M)\n"
-"                       (source to base), use the cat_matvec program, as in\n"
-"                         cat_matvec fred.aff12.1D -I\n"
-"\n"
-" -1Dmatrix_apply aa = Use the matrices in file 'aa' to define the spatial\n"
-"                      transformations to be applied.  Also see program\n"
-"                      cat_matvec for ways to manipulate these matrix files.\n"
-"               *N.B.: You probably want to use either -base or -master\n"
-"                      with either *_apply option, so that the coordinate\n"
-"                      system that the matrix refers to is correctly loaded.\n"
-"                     ** You can also use the word 'IDENTITY' in place of a\n"
-"                        filename to indicate the identity transformation --\n"
-"                        presumably for the purpose of resampling the source\n"
-"                        dataset to a new grid.\n"
-"\n"
-"  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
-"  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
-"  * saved transformation matrices, you can also adjust these matrices to      *\n"
-"  * other alignments. These matrices can also be combined with nonlinear      *\n"
-"  * warps (from 3dQwarp) using programs 3dNwarpApply or 3dNwarpCat.           *\n"
-"\n"
-"  * The script 'align_epi_anat.py' uses 3dAllineate and 3dvolreg to align EPI *\n"
-"  * datasets to T1-weighted anatomical datasets, using saved matrices between *\n"
-"  * the two programs.  This script is our currently recommended method for    *\n"
-"  * doing such intra-subject alignments.                                      *\n"
-"\n"
-" -cost ccc   = Defines the 'cost' function that defines the matching\n"
-"               between the source and the base; 'ccc' is one of\n"
+     "               *N.B.: If you use -1Dparam_apply, you may also want to use\n"
+     "                       -master to control the grid on which the new\n"
+     "                       dataset is written -- the base dataset from the\n"
+     "                       original 3dAllineate run would be a good possibility.\n"
+     "                       Otherwise, the new dataset will be written out on the\n"
+     "                       3D grid coverage of the source dataset, and this\n"
+     "                       might result in clipping off part of the image.\n"
+     "               *N.B.: Each row in the 'aa' file contains the parameters for\n"
+     "                       transforming one sub-brick in the source dataset.\n"
+     "                       If there are more sub-bricks in the source dataset\n"
+     "                       than there are rows in the 'aa' file, then the last\n"
+     "                       row is used repeatedly.\n"
+     "               *N.B.: A trick to use 3dAllineate to resample a dataset to\n"
+     "                       a finer grid spacing:\n"
+     "                         3dAllineate -input dataset+orig         \\\n"
+     "                                     -master template+orig       \\\n"
+     "                                     -prefix newdataset          \\\n"
+     "                                     -final wsinc5               \\\n"
+     "                                     -1Dparam_apply '1D: 12@0'\\'  \n"
+     "                       Here, the identity transformation is specified\n"
+     "                       by giving all 12 affine parameters as 0 (note\n"
+     "                       the extra \\' at the end of the '1D: 12@0' input!).\n"
+     "                     ** You can also use the word 'IDENTITY' in place of\n"
+     "                        '1D: 12@0'\\' (to indicate the identity transformation).\n"
+     "              **N.B.: Some expert options for modifying how the wsinc5\n"
+     "                       method works are described far below, if you use\n"
+     "                       '-HELP' instead of '-help'.\n"
+     "            ****N.B.: The interpolation method used to produce a dataset\n"
+     "                       is always given via the '-final' option, NOT via\n"
+     "                       '-interp'.  If you forget this and use '-interp'\n"
+     "                       along with one of the 'apply' options, this program\n"
+     "                       will chastise you (gently) and change '-final'\n"
+     "                       to match what the '-interp' input.\n"
+     "\n"
+     " -1Dmatrix_save ff  = Save the transformation matrix for each sub-brick into\n"
+     "                      file 'ff' (1 row per sub-brick in the source dataset).\n"
+     "                      If 'ff' does NOT end in '.1D', then the program will\n"
+     "                      append '.aff12.1D' to 'ff' to make the output filename.\n"
+     "               *N.B.: This matrix is the coordinate transformation from base\n"
+     "                       to source DICOM coordinates. In other terms:\n"
+     "                          Xin = Xsource = M Xout = M Xbase\n"
+     "                                   or\n"
+     "                          Xout = Xbase = inv(M) Xin = inv(M) Xsource\n"
+     "                       where Xin or Xsource is the 4x1 coordinates of a\n"
+     "                       location in the input volume. Xout is the \n"
+     "                       coordinate of that same location in the output volume.\n"
+     "                       Xbase is the coordinate of the corresponding location\n"
+     "                       in the base dataset. M is ff augmented by a 4th row of\n"
+     "                       [0 0 0 1], X. is an augmented column vector [x,y,z,1]'\n"
+     "                       To get the inverse matrix inv(M)\n"
+     "                       (source to base), use the cat_matvec program, as in\n"
+     "                         cat_matvec fred.aff12.1D -I\n"
+     "\n"
+     " -1Dmatrix_apply aa = Use the matrices in file 'aa' to define the spatial\n"
+     "                      transformations to be applied.  Also see program\n"
+     "                      cat_matvec for ways to manipulate these matrix files.\n"
+     "               *N.B.: You probably want to use either -base or -master\n"
+     "                      with either *_apply option, so that the coordinate\n"
+     "                      system that the matrix refers to is correctly loaded.\n"
+     "                     ** You can also use the word 'IDENTITY' in place of a\n"
+     "                        filename to indicate the identity transformation --\n"
+     "                        presumably for the purpose of resampling the source\n"
+     "                        dataset to a new grid.\n"
+     "\n"
+     "  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
+     "  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
+     "  * saved transformation matrices, you can also adjust these matrices to      *\n"
+     "  * other alignments. These matrices can also be combined with nonlinear      *\n"
+     "  * warps (from 3dQwarp) using programs 3dNwarpApply or 3dNwarpCat.           *\n"
+     "\n"
+     "  * The script 'align_epi_anat.py' uses 3dAllineate and 3dvolreg to align EPI *\n"
+     "  * datasets to T1-weighted anatomical datasets, using saved matrices between *\n"
+     "  * the two programs.  This script is our currently recommended method for    *\n"
+     "  * doing such intra-subject alignments.                                      *\n"
+     "\n"
+     " -cost ccc   = Defines the 'cost' function that defines the matching\n"
+     "               between the source and the base; 'ccc' is one of\n"
       ) ;
 
       for( ii=0 ; ii < NMETH ; ii++ )
@@ -850,324 +673,324 @@ int main( int argc , char *argv[] )
                   meth_shortname[ii] , meth_longname[ii] , meth_username[ii] ) ;
 
       printf(
-"               You can also specify the cost functional using an option\n"
-"               of the form '-mi' rather than '-cost mi', if you like\n"
-"               to keep things terse and cryptic (as I do).\n"
-"               [Default == '-hel' (for no good reason, but it sounds nice).]\n"
-"               **NB** See more below about lpa and lpc, which are typically\n"
-"                      what we would recommend as first-choice cost functions\n"
-"                      now:\n"
-"                        lpa if you have similar contrast vols to align;\n"
-"                        lpc if you have *non*similar contrast vols to align!\n"
-"\n"
-" -interp iii = Defines interpolation method to use during matching\n"
-"               process, where 'iii' is one of\n"
-"                 NN      *OR* nearestneighbour *OR nearestneighbor\n"
-"                 linear  *OR* trilinear\n"
-"                 cubic   *OR* tricubic\n"
-"                 quintic *OR* triquintic\n"
-"               Using '-NN' instead of '-interp NN' is allowed (e.g.).\n"
-"               Note that using cubic or quintic interpolation during\n"
-"               the matching process will slow the program down a lot.\n"
-"               Use '-final' to affect the interpolation method used\n"
-"               to produce the output dataset, once the final registration\n"
-"               parameters are determined.  [Default method == 'linear'.]\n"
-"            ** N.B.: Linear interpolation is used during the coarse\n"
-"                     alignment pass; the selection here only affects\n"
-"                     the interpolation method used during the second\n"
-"                     (fine) alignment pass.\n"
-"            ** N.B.: '-interp' does NOT define the final method used\n"
-"                     to produce the output dataset as warped from the\n"
-"                     input dataset.  If you want to do that, use '-final'.\n"
-"\n"
-" -final iii  = Defines the interpolation mode used to create the\n"
-"               output dataset.  [Default == 'cubic']\n"
-"            ** N.B.: If you are applying a transformation to an\n"
-"                       integer-valued dataset (such as an atlas),\n"
-"                       then you should use '-final NN' to avoid\n"
-"                       interpolation of the integer labels.\n"
-"            ** N.B.: For '-final' ONLY, you can use 'wsinc5' to specify\n"
-"                       that the final interpolation be done using a\n"
-"                       weighted sinc interpolation method.  This method\n"
-"                       is so SLOW that you aren't allowed to use it for\n"
-"                       the registration itself.\n"
-"                  ++ wsinc5 interpolation is highly accurate and should\n"
-"                       reduce the smoothing artifacts from lower\n"
-"                       order interpolation methods (which are most\n"
-"                       visible if you interpolate an EPI time series\n"
-"                       to high resolution and then make an image of\n"
-"                       the voxel-wise variance).\n"
-"                  ++ On my Intel-based Mac, it takes about 2.5 s to do\n"
-"                       wsinc5 interpolation, per 1 million voxels output.\n"
-"                       For comparison, quintic interpolation takes about\n"
-"                       0.3 s per 1 million voxels: 8 times faster than wsinc5.\n"
-"                  ++ The '5' refers to the width of the sinc interpolation\n"
-"                       weights: plus/minus 5 grid points in each direction;\n"
-"                       this is a tensor product interpolation, for speed.\n"
-"\n"
-"TECHNICAL OPTIONS (used for fine control of the program):\n"
-"=================\n"
-" -nmatch nnn = Use at most 'nnn' scattered points to match the\n"
-"               datasets.  The smaller nnn is, the faster the matching\n"
-"               algorithm will run; however, accuracy may be bad if\n"
-"               nnn is too small.  If you end the 'nnn' value with the\n"
-"               '%%' character, then that percentage of the base's\n"
-"               voxels will be used.\n"
-"               [Default == 47%% of voxels in the weight mask]\n"
-"\n"
-" -nopad      = Do not use zero-padding on the base image.\n"
-"               (I cannot think of a good reason to use this option.)\n"
-"               [Default == zero-pad, if needed; -verb shows how much]\n"
-"\n"
-" -zclip      = Replace negative values in the input datasets (source & base)\n"
-" -noneg        with zero.  The intent is to clip off a small set of negative\n"
-"               values that may arise when using 3dresample (say) with\n"
-"               cubic interpolation.\n"
-"\n"
-" -conv mmm   = Convergence test is set to 'mmm' millimeters.\n"
-"               This doesn't mean that the results will be accurate\n"
-"               to 'mmm' millimeters!  It just means that the program\n"
-"               stops trying to improve the alignment when the optimizer\n"
-"               (NEWUOA) reports it has narrowed the search radius\n"
-"               down to this level.\n"
-"               * To set this value to the smallest allowable, use '-conv 0'.\n"
-"               * A coarser value for 'quick-and-dirty' alignment is 0.05.\n"
-"\n"
-" -verb       = Print out verbose progress reports.\n"
-"               [Using '-VERB' will give even more prolix reports :]\n"
-" -quiet      = Don't print out verbose stuff. (But WHY?)\n"
-"\n"
-" -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
-"               Using this will slow the program down, but may make it\n"
-"               possible to register datasets that need lots of space.\n"
-"       **N.B.: Temporary files are written to the directory given\n"
-"               in environment variable TMPDIR, or in /tmp, or in ./\n"
-"               (preference in that order).  If the program crashes,\n"
-"               these files are named TIM_somethingrandom, and you\n"
-"               may have to delete them manually. (TIM=Temporary IMage)\n"
-"       **N.B.: If the program fails with a 'malloc failure' type of\n"
-"               message, then try '-usetemp' (malloc=memory allocator).\n"
-"             * If the program just stops with a message 'killed', that\n"
-"               means the operating system (Unix/Linux) stopped the\n"
-"               program, which almost always is due to the system running\n"
-"               low on memory -- so it starts killing programs to save itself.\n"
+     "               You can also specify the cost functional using an option\n"
+     "               of the form '-mi' rather than '-cost mi', if you like\n"
+     "               to keep things terse and cryptic (as I do).\n"
+     "               [Default == '-hel' (for no good reason, but it sounds nice).]\n"
+     "               **NB** See more below about lpa and lpc, which are typically\n"
+     "                      what we would recommend as first-choice cost functions\n"
+     "                      now:\n"
+     "                        lpa if you have similar contrast vols to align;\n"
+     "                        lpc if you have *non*similar contrast vols to align!\n"
+     "\n"
+     " -interp iii = Defines interpolation method to use during matching\n"
+     "               process, where 'iii' is one of\n"
+     "                 NN      *OR* nearestneighbour *OR nearestneighbor\n"
+     "                 linear  *OR* trilinear\n"
+     "                 cubic   *OR* tricubic\n"
+     "                 quintic *OR* triquintic\n"
+     "               Using '-NN' instead of '-interp NN' is allowed (e.g.).\n"
+     "               Note that using cubic or quintic interpolation during\n"
+     "               the matching process will slow the program down a lot.\n"
+     "               Use '-final' to affect the interpolation method used\n"
+     "               to produce the output dataset, once the final registration\n"
+     "               parameters are determined.  [Default method == 'linear'.]\n"
+     "            ** N.B.: Linear interpolation is used during the coarse\n"
+     "                     alignment pass; the selection here only affects\n"
+     "                     the interpolation method used during the second\n"
+     "                     (fine) alignment pass.\n"
+     "            ** N.B.: '-interp' does NOT define the final method used\n"
+     "                     to produce the output dataset as warped from the\n"
+     "                     input dataset.  If you want to do that, use '-final'.\n"
+     "\n"
+     " -final iii  = Defines the interpolation mode used to create the\n"
+     "               output dataset.  [Default == 'cubic']\n"
+     "            ** N.B.: If you are applying a transformation to an\n"
+     "                       integer-valued dataset (such as an atlas),\n"
+     "                       then you should use '-final NN' to avoid\n"
+     "                       interpolation of the integer labels.\n"
+     "            ** N.B.: For '-final' ONLY, you can use 'wsinc5' to specify\n"
+     "                       that the final interpolation be done using a\n"
+     "                       weighted sinc interpolation method.  This method\n"
+     "                       is so SLOW that you aren't allowed to use it for\n"
+     "                       the registration itself.\n"
+     "                  ++ wsinc5 interpolation is highly accurate and should\n"
+     "                       reduce the smoothing artifacts from lower\n"
+     "                       order interpolation methods (which are most\n"
+     "                       visible if you interpolate an EPI time series\n"
+     "                       to high resolution and then make an image of\n"
+     "                       the voxel-wise variance).\n"
+     "                  ++ On my Intel-based Mac, it takes about 2.5 s to do\n"
+     "                       wsinc5 interpolation, per 1 million voxels output.\n"
+     "                       For comparison, quintic interpolation takes about\n"
+     "                       0.3 s per 1 million voxels: 8 times faster than wsinc5.\n"
+     "                  ++ The '5' refers to the width of the sinc interpolation\n"
+     "                       weights: plus/minus 5 grid points in each direction;\n"
+     "                       this is a tensor product interpolation, for speed.\n"
+     "\n"
+     "TECHNICAL OPTIONS (used for fine control of the program):\n"
+     "=================\n"
+     " -nmatch nnn = Use at most 'nnn' scattered points to match the\n"
+     "               datasets.  The smaller nnn is, the faster the matching\n"
+     "               algorithm will run; however, accuracy may be bad if\n"
+     "               nnn is too small.  If you end the 'nnn' value with the\n"
+     "               '%%' character, then that percentage of the base's\n"
+     "               voxels will be used.\n"
+     "               [Default == 47%% of voxels in the weight mask]\n"
+     "\n"
+     " -nopad      = Do not use zero-padding on the base image.\n"
+     "               (I cannot think of a good reason to use this option.)\n"
+     "               [Default == zero-pad, if needed; -verb shows how much]\n"
+     "\n"
+     " -zclip      = Replace negative values in the input datasets (source & base)\n"
+     " -noneg        with zero.  The intent is to clip off a small set of negative\n"
+     "               values that may arise when using 3dresample (say) with\n"
+     "               cubic interpolation.\n"
+     "\n"
+     " -conv mmm   = Convergence test is set to 'mmm' millimeters.\n"
+     "               This doesn't mean that the results will be accurate\n"
+     "               to 'mmm' millimeters!  It just means that the program\n"
+     "               stops trying to improve the alignment when the optimizer\n"
+     "               (NEWUOA) reports it has narrowed the search radius\n"
+     "               down to this level.\n"
+     "               * To set this value to the smallest allowable, use '-conv 0'.\n"
+     "               * A coarser value for 'quick-and-dirty' alignment is 0.05.\n"
+     "\n"
+     " -verb       = Print out verbose progress reports.\n"
+     "               [Using '-VERB' will give even more prolix reports :]\n"
+     " -quiet      = Don't print out verbose stuff. (But WHY?)\n"
+     "\n"
+     " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
+     "               Using this will slow the program down, but may make it\n"
+     "               possible to register datasets that need lots of space.\n"
+     "       **N.B.: Temporary files are written to the directory given\n"
+     "               in environment variable TMPDIR, or in /tmp, or in ./\n"
+     "               (preference in that order).  If the program crashes,\n"
+     "               these files are named TIM_somethingrandom, and you\n"
+     "               may have to delete them manually. (TIM=Temporary IMage)\n"
+     "       **N.B.: If the program fails with a 'malloc failure' type of\n"
+     "               message, then try '-usetemp' (malloc=memory allocator).\n"
+     "             * If the program just stops with a message 'killed', that\n"
+     "               means the operating system (Unix/Linux) stopped the\n"
+     "               program, which almost always is due to the system running\n"
+     "               low on memory -- so it starts killing programs to save itself.\n"
 #ifdef USING_MCW_MALLOC
-"       **N.B.: If you use '-verb', then memory usage is printed out\n"
-"               at various points along the way.\n"
+     "       **N.B.: If you use '-verb', then memory usage is printed out\n"
+     "               at various points along the way.\n"
 #endif
-"\n"
-" -nousetemp  = Don't use temporary workspace on disk [the default].\n"
-"\n"
+     "\n"
+     " -nousetemp  = Don't use temporary workspace on disk [the default].\n"
+     "\n"
 #ifdef ALLOW_METH_CHECK
-" -check hhh  = After cost functional optimization is done, start at the\n"
-"               final parameters and RE-optimize using the new cost\n"
-"               function 'hhh'.  If the results are too different, a\n"
-"               warning message will be printed.  However, the final\n"
-"               parameters from the original optimization will be\n"
-"               used to create the output dataset. Using '-check'\n"
-"               increases the CPU time, but can help you feel sure\n"
-"               that the alignment process did not go wild and crazy.\n"
-"               [Default == no check == don't worry, be happy!]\n"
-"       **N.B.: You can put more than one function after '-check', as in\n"
-"                 -nmi -check mi hel crU crM\n"
-"               to register with Normalized Mutual Information, and\n"
-"               then check the results against 4 other cost functionals.\n"
-"       **N.B.: On the other hand, some cost functionals give better\n"
-"               results than others for specific problems, and so\n"
-"               a warning that 'mi' was significantly different than\n"
-"               'hel' might not actually mean anything useful (e.g.).\n"
+     " -check hhh  = After cost functional optimization is done, start at the\n"
+     "               final parameters and RE-optimize using the new cost\n"
+     "               function 'hhh'.  If the results are too different, a\n"
+     "               warning message will be printed.  However, the final\n"
+     "               parameters from the original optimization will be\n"
+     "               used to create the output dataset. Using '-check'\n"
+     "               increases the CPU time, but can help you feel sure\n"
+     "               that the alignment process did not go wild and crazy.\n"
+     "               [Default == no check == don't worry, be happy!]\n"
+     "       **N.B.: You can put more than one function after '-check', as in\n"
+     "                 -nmi -check mi hel crU crM\n"
+     "               to register with Normalized Mutual Information, and\n"
+     "               then check the results against 4 other cost functionals.\n"
+     "       **N.B.: On the other hand, some cost functionals give better\n"
+     "               results than others for specific problems, and so\n"
+     "               a warning that 'mi' was significantly different than\n"
+     "               'hel' might not actually mean anything useful (e.g.).\n"
 #if 0
-"       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
-"               at least two extra check functions specified (in addition\n"
-"               to the primary cost functional), then the output parameter\n"
-"               set will be the median of all the final parameter sets\n"
-"               generated at this stage (including the primary set).\n"
-"                 **** '-CHECK' is experimental and CPU intensive ****\n"
+     "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
+     "               at least two extra check functions specified (in addition\n"
+     "               to the primary cost functional), then the output parameter\n"
+     "               set will be the median of all the final parameter sets\n"
+     "               generated at this stage (including the primary set).\n"
+     "                 **** '-CHECK' is experimental and CPU intensive ****\n"
 #endif
 #endif
-"\n"
-" ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
-"\n"
-" -onepass    = Use only the refining pass -- do not try a coarse\n"
-"               resolution pass first.  Useful if you know that only\n"
-"               SMALL amounts of image alignment are needed.\n"
-"               [The default is to use both passes.]\n"
-"\n"
-" -twopass    = Use a two pass alignment strategy, first searching for\n"
-"               a large rotation+shift and then refining the alignment.\n"
-"               [Two passes are used by default for the first sub-brick]\n"
-"               [in the source dataset, and then one pass for the others.]\n"
-"               ['-twopass' will do two passes for ALL source sub-bricks.]\n"
-"            *** The first (coarse) pass is relatively slow, as it tries\n"
-"                 to search a large volume of parameter (rotations+shifts)\n"
-"                 space for initial guesses at the alignment transformation.\n"
-"              * A lot of these initial guesses are kept and checked to\n"
-"                 see which ones lead to good starting points for the\n"
-"                 further refinement.\n"
-"              * The winners of this competition are then passed to the\n"
-"                 '-twobest' (infra) successive optimization passes.\n"
-"              * The ultimate winner of THAT stage is what starts\n"
-"                 the second (fine) pass alignment. Usually, this starting\n"
-"                 point is so good that the fine pass optimization does\n"
-"                 not provide a lot of improvement; that is, most of the\n"
-"                 run time ends up in coarse pass with its multiple stages.\n"
-"              * All of these stages are intended to help the program avoid\n"
-"                 stopping at a 'false' minimum in the cost functional.\n"
-"                 They were added to the software as we gathered experience\n"
-"                 with difficult 3D alignment problems. The combination of\n"
-"                 multiple stages of partial optimization of multiple\n"
-"                 parameter candidates makes the coarse pass slow, but also\n"
-"                 makes it (usually) work well.\n"
-"\n"
-" -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
-"               millimeters.  [Default == 11 mm]\n"
-"       **N.B.: You may want to change this from the default if\n"
-"               your voxels are unusually small or unusually large\n"
-"               (e.g., outside the range 1-4 mm along each axis).\n"
-"\n"
-" -twofirst   = Use -twopass on the first image to be registered, and\n"
-"               then on all subsequent images from the source dataset,\n"
-"               use results from the first image's coarse pass to start\n"
-"               the fine pass.\n"
-"               (Useful when there may be large motions between the   )\n"
-"               (source and the base, but only small motions within   )\n"
-"               (the source dataset itself; since the coarse pass can )\n"
-"               (be slow, doing it only once makes sense in this case.)\n"
-"       **N.B.: [-twofirst is on by default; '-twopass' turns it off.]\n"
-"\n"
-" -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
-"               points to search for the starting point for the fine\n"
-"               pass.  If bb==0, then no search is made for the best\n"
-"               starting point, and the identity transformation is\n"
-"               used as the starting point.  [Default=%d; min=0 max=%d]\n"
-"       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
-"\n"
-" -fineblur x = Set the blurring radius to use in the fine resolution\n"
-"               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
-"               the fine step may help with convergence, if there is\n"
-"               some problem, especially if the base volume is very noisy.\n"
-"               [Default == 0 mm = no blurring at the final alignment pass]\n"
-"\n"
-"   **NOTES ON\n"
-"   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
-"                 then using '-onepass' or '-twobest 0' makes sense.\n"
-"               * If you expect large-ish image movements, then do not\n"
-"                 use '-onepass' or '-twobest 0'; the purpose of the\n"
-"                 '-twobest' parameter is to search for large initial\n"
-"                 rotations/shifts with which to start the coarse\n"
-"                 optimization round.\n"
-"               * If you have multiple sub-bricks in the source dataset,\n"
-"                 then the default '-twofirst' makes sense if you don't expect\n"
-"                 large movements WITHIN the source, but expect large motions\n"
-"                 between the source and base.\n"
-"               * '-twopass' re-starts the alignment process for each sub-brick\n"
-"                 in the source dataset -- this option can be time consuming,\n"
-"                 and is really intended to be used when you might expect large\n"
-"                 movements between sub-bricks; for example, when the different\n"
-"                 volumes are gathered on different days.  For most purposes,\n"
-"                 '-twofirst' (the default process) will be adequate and faster,\n"
-"                 when operating on multi-volume source datasets.\n"
+     "\n"
+     " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
+     "\n"
+     " -onepass    = Use only the refining pass -- do not try a coarse\n"
+     "               resolution pass first.  Useful if you know that only\n"
+     "               SMALL amounts of image alignment are needed.\n"
+     "               [The default is to use both passes.]\n"
+     "\n"
+     " -twopass    = Use a two pass alignment strategy, first searching for\n"
+     "               a large rotation+shift and then refining the alignment.\n"
+     "               [Two passes are used by default for the first sub-brick]\n"
+     "               [in the source dataset, and then one pass for the others.]\n"
+     "               ['-twopass' will do two passes for ALL source sub-bricks.]\n"
+     "            *** The first (coarse) pass is relatively slow, as it tries\n"
+     "                 to search a large volume of parameter (rotations+shifts)\n"
+     "                 space for initial guesses at the alignment transformation.\n"
+     "              * A lot of these initial guesses are kept and checked to\n"
+     "                 see which ones lead to good starting points for the\n"
+     "                 further refinement.\n"
+     "              * The winners of this competition are then passed to the\n"
+     "                 '-twobest' (infra) successive optimization passes.\n"
+     "              * The ultimate winner of THAT stage is what starts\n"
+     "                 the second (fine) pass alignment. Usually, this starting\n"
+     "                 point is so good that the fine pass optimization does\n"
+     "                 not provide a lot of improvement; that is, most of the\n"
+     "                 run time ends up in coarse pass with its multiple stages.\n"
+     "              * All of these stages are intended to help the program avoid\n"
+     "                 stopping at a 'false' minimum in the cost functional.\n"
+     "                 They were added to the software as we gathered experience\n"
+     "                 with difficult 3D alignment problems. The combination of\n"
+     "                 multiple stages of partial optimization of multiple\n"
+     "                 parameter candidates makes the coarse pass slow, but also\n"
+     "                 makes it (usually) work well.\n"
+     "\n"
+     " -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
+     "               millimeters.  [Default == 11 mm]\n"
+     "       **N.B.: You may want to change this from the default if\n"
+     "               your voxels are unusually small or unusually large\n"
+     "               (e.g., outside the range 1-4 mm along each axis).\n"
+     "\n"
+     " -twofirst   = Use -twopass on the first image to be registered, and\n"
+     "               then on all subsequent images from the source dataset,\n"
+     "               use results from the first image's coarse pass to start\n"
+     "               the fine pass.\n"
+     "               (Useful when there may be large motions between the   )\n"
+     "               (source and the base, but only small motions within   )\n"
+     "               (the source dataset itself; since the coarse pass can )\n"
+     "               (be slow, doing it only once makes sense in this case.)\n"
+     "       **N.B.: [-twofirst is on by default; '-twopass' turns it off.]\n"
+     "\n"
+     " -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
+     "               points to search for the starting point for the fine\n"
+     "               pass.  If bb==0, then no search is made for the best\n"
+     "               starting point, and the identity transformation is\n"
+     "               used as the starting point.  [Default=%d; min=0 max=%d]\n"
+     "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
+     "\n"
+     " -fineblur x = Set the blurring radius to use in the fine resolution\n"
+     "               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
+     "               the fine step may help with convergence, if there is\n"
+     "               some problem, especially if the base volume is very noisy.\n"
+     "               [Default == 0 mm = no blurring at the final alignment pass]\n"
+     "\n"
+     "   **NOTES ON\n"
+     "   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
+     "                 then using '-onepass' or '-twobest 0' makes sense.\n"
+     "               * If you expect large-ish image movements, then do not\n"
+     "                 use '-onepass' or '-twobest 0'; the purpose of the\n"
+     "                 '-twobest' parameter is to search for large initial\n"
+     "                 rotations/shifts with which to start the coarse\n"
+     "                 optimization round.\n"
+     "               * If you have multiple sub-bricks in the source dataset,\n"
+     "                 then the default '-twofirst' makes sense if you don't expect\n"
+     "                 large movements WITHIN the source, but expect large motions\n"
+     "                 between the source and base.\n"
+     "               * '-twopass' re-starts the alignment process for each sub-brick\n"
+     "                 in the source dataset -- this option can be time consuming,\n"
+     "                 and is really intended to be used when you might expect large\n"
+     "                 movements between sub-bricks; for example, when the different\n"
+     "                 volumes are gathered on different days.  For most purposes,\n"
+     "                 '-twofirst' (the default process) will be adequate and faster,\n"
+     "                 when operating on multi-volume source datasets.\n"
 
-       , tbest , PARAM_MAXTRIAL  /* for -twobest */
+       , DEFAULT_TBEST , PARAM_MAXTRIAL  /* for -twobest */
       ) ;
 
       printf(
-"\n"
-" -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
-"                   [This option is OFF by default]\n"
-"                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
-"                 where +a means to try determine automatically in which\n"
-"                 direction the data is partial by looking for a too large shift\n"
-"                 If given in the form '-cmass+xy' (for example), means to\n"
-"                 do the CoM calculation in the x- and y-directions, but\n"
-"                 not the z-direction.\n"
-"               * MY OPINION: This option is REALLY useful in most cases.\n"
-"                             However, if you only have partial coverage in\n"
-"                             the -source dataset, you will need to use\n"
-"                             one of the '+' additions to restrict the\n"
-"                             use of the CoM limits.\n"
-"\n"
-" -nocmass      = Don't use the center-of-mass calculation. [The default]\n"
-"                  (You would not want to use the C-o-M calculation if the  )\n"
-"                  (source sub-bricks have very different spatial locations,)\n"
-"                  (since the source C-o-M is calculated from all sub-bricks)\n"
-"\n"
-" **EXAMPLE: You have a limited coverage set of axial EPI slices you want to\n"
-"            register into a larger head volume (after 3dSkullStrip, of course).\n"
-"            In this case, '-cmass+xy' makes sense, allowing CoM adjustment\n"
-"            along the x = R-L and y = A-P directions, but not along the\n"
-"            z = I-S direction, since the EPI doesn't cover the whole brain\n"
-"            along that axis.\n"
+     "\n"
+     " -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
+     "                   [This option is OFF by default]\n"
+     "                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
+     "                 where +a means to try determine automatically in which\n"
+     "                 direction the data is partial by looking for a too large shift\n"
+     "                 If given in the form '-cmass+xy' (for example), means to\n"
+     "                 do the CoM calculation in the x- and y-directions, but\n"
+     "                 not the z-direction.\n"
+     "               * MY OPINION: This option is REALLY useful in most cases.\n"
+     "                             However, if you only have partial coverage in\n"
+     "                             the -source dataset, you will need to use\n"
+     "                             one of the '+' additions to restrict the\n"
+     "                             use of the CoM limits.\n"
+     "\n"
+     " -nocmass      = Don't use the center-of-mass calculation. [The default]\n"
+     "                  (You would not want to use the C-o-M calculation if the  )\n"
+     "                  (source sub-bricks have very different spatial locations,)\n"
+     "                  (since the source C-o-M is calculated from all sub-bricks)\n"
+     "\n"
+     " **EXAMPLE: You have a limited coverage set of axial EPI slices you want to\n"
+     "            register into a larger head volume (after 3dSkullStrip, of course).\n"
+     "            In this case, '-cmass+xy' makes sense, allowing CoM adjustment\n"
+     "            along the x = R-L and y = A-P directions, but not along the\n"
+     "            z = I-S direction, since the EPI doesn't cover the whole brain\n"
+     "            along that axis.\n"
       ) ;
 
       printf(
-"\n"
-" -autoweight = Compute a weight function using the 3dAutomask\n"
-"               algorithm plus some blurring of the base image.\n"
-"       **N.B.: '-autoweight+100' means to zero out all voxels\n"
-"                 with values below 100 before computing the weight.\n"
-"               '-autoweight**1.5' means to compute the autoweight\n"
-"                 and then raise it to the 1.5-th power (e.g., to\n"
-"                 increase the weight of high-intensity regions).\n"
-"               These two processing steps can be combined, as in\n"
-"                 '-autoweight+100**1.5'\n"
-"               ** Note that '**' must be enclosed in quotes;\n"
-"                  otherwise, the shell will treat it as a wildcard\n"
-"                  and you will get an error message before 3dAllineate\n"
-"                  even starts!!\n"
-"               ** UPDATE: one can now use '^' for power notation, to \n"
-"                  avoid needing to enclose the string in quotes.\n"
+     "\n"
+     " -autoweight = Compute a weight function using the 3dAutomask\n"
+     "               algorithm plus some blurring of the base image.\n"
+     "       **N.B.: '-autoweight+100' means to zero out all voxels\n"
+     "                 with values below 100 before computing the weight.\n"
+     "               '-autoweight**1.5' means to compute the autoweight\n"
+     "                 and then raise it to the 1.5-th power (e.g., to\n"
+     "                 increase the weight of high-intensity regions).\n"
+     "               These two processing steps can be combined, as in\n"
+     "                 '-autoweight+100**1.5'\n"
+     "               ** Note that '**' must be enclosed in quotes;\n"
+     "                  otherwise, the shell will treat it as a wildcard\n"
+     "                  and you will get an error message before 3dAllineate\n"
+     "                  even starts!!\n"
+     "               ** UPDATE: one can now use '^' for power notation, to \n"
+     "                  avoid needing to enclose the string in quotes.\n"
       ) ;
       if( visible_noweights ){
          printf(
-"       **N.B.: Some cost functionals do not allow -autoweight, and\n"
-"               will use -automask instead.  A warning message\n"
-"               will be printed if you run into this situation.\n"
-"               If a clip level '+xxx' is appended to '-autoweight',\n"
-"               then the conversion into '-automask' will NOT happen.\n"
-"               Thus, using a small positive '+xxx' can be used trick\n"
-"               -autoweight into working on any cost functional.\n"
+     "       **N.B.: Some cost functionals do not allow -autoweight, and\n"
+     "               will use -automask instead.  A warning message\n"
+     "               will be printed if you run into this situation.\n"
+     "               If a clip level '+xxx' is appended to '-autoweight',\n"
+     "               then the conversion into '-automask' will NOT happen.\n"
+     "               Thus, using a small positive '+xxx' can be used trick\n"
+     "               -autoweight into working on any cost functional.\n"
          ) ;
       }
       printf(
-"\n"
-" -automask   = Compute a mask function, which is like -autoweight,\n"
-"               but the weight for a voxel is set to either 0 or 1.\n"
-"       **N.B.: '-automask+3' means to compute the mask function, and\n"
-"               then dilate it outwards by 3 voxels (e.g.).\n"
-"               ** Note that '+' means something very different\n"
-"                  for '-automask' and '-autoweight'!!\n"
-"\n"
-" -autobox    = Expand the -automask function to enclose a rectangular\n"
-"               box that holds the irregular mask.\n"
-"       **N.B.: This is the default mode of operation!\n"
-"               For intra-modality registration, '-autoweight' may be better!\n"
-"             * If the cost functional is 'ls', then '-autoweight' will be\n"
-"               the default, instead of '-autobox'.\n"
-"\n"
-" -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
-"               also used, then every voxel will be counted equally.\n"
-"\n"
-" -weight www = Set the weighting for each voxel in the base dataset;\n"
-"               larger weights mean that voxel counts more in the cost\n"
-"               function.\n"
-"       **N.B.: The weight dataset must be defined on the same grid as\n"
-"               the base dataset.\n"
-"       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
-"               use a weight dataset that is not 0/1 valued.  The\n"
-"               risk is yours, of course (!*! as always in AFNI !*!).\n"
-"\n"
-" -wtprefix p = Write the weight volume to disk as a dataset with\n"
-"               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
-"               lets you see what voxels were important in the algorithm.\n"
-"\n"
-" -emask ee   = This option lets you specify a mask of voxels to EXCLUDE from\n"
-"               the analysis. The voxels where the dataset 'ee' is nonzero\n"
-"               will not be included (i.e., their weights will be set to zero).\n"
-"             * Like all the weight options, it applies in the base image\n"
-"               coordinate system.\n"
-"            ** Like all the weight options, it means nothing if you are using\n"
-"               one of the 'apply' options.\n"
+     "\n"
+     " -automask   = Compute a mask function, which is like -autoweight,\n"
+     "               but the weight for a voxel is set to either 0 or 1.\n"
+     "       **N.B.: '-automask+3' means to compute the mask function, and\n"
+     "               then dilate it outwards by 3 voxels (e.g.).\n"
+     "               ** Note that '+' means something very different\n"
+     "                  for '-automask' and '-autoweight'!!\n"
+     "\n"
+     " -autobox    = Expand the -automask function to enclose a rectangular\n"
+     "               box that holds the irregular mask.\n"
+     "       **N.B.: This is the default mode of operation!\n"
+     "               For intra-modality registration, '-autoweight' may be better!\n"
+     "             * If the cost functional is 'ls', then '-autoweight' will be\n"
+     "               the default, instead of '-autobox'.\n"
+     "\n"
+     " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
+     "               also used, then every voxel will be counted equally.\n"
+     "\n"
+     " -weight www = Set the weighting for each voxel in the base dataset;\n"
+     "               larger weights mean that voxel counts more in the cost\n"
+     "               function.\n"
+     "       **N.B.: The weight dataset must be defined on the same grid as\n"
+     "               the base dataset.\n"
+     "       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
+     "               use a weight dataset that is not 0/1 valued.  The\n"
+     "               risk is yours, of course (!*! as always in AFNI !*!).\n"
+     "\n"
+     " -wtprefix p = Write the weight volume to disk as a dataset with\n"
+     "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
+     "               lets you see what voxels were important in the algorithm.\n"
+     "\n"
+     " -emask ee   = This option lets you specify a mask of voxels to EXCLUDE from\n"
+     "               the analysis. The voxels where the dataset 'ee' is nonzero\n"
+     "               will not be included (i.e., their weights will be set to zero).\n"
+     "             * Like all the weight options, it applies in the base image\n"
+     "               coordinate system.\n"
+     "            ** Like all the weight options, it means nothing if you are using\n"
+     "               one of the 'apply' options.\n"
       ) ;
 
       if( visible_noweights > 0 ){
@@ -1255,10 +1078,10 @@ int main( int argc , char *argv[] )
        "                * Default shearing range is plus/minus 0.1111\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
-"\n"
+     "\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
        "                 If not given, default ranges are used.\n"
-"\n"
+     "\n"
        " -parini n v   = Initialize parameter #n to value 'v', but then\n"
        "                 allow the algorithm to adjust it.\n"
        "         **N.B.: Multiple '-par...' options can be used, to constrain\n"
@@ -1270,17 +1093,17 @@ int main( int argc , char *argv[] )
        " -maxrot dd    = Allow maximum rotation of 'dd' degrees.  Equivalent\n"
        "                 to '-parang 4 -dd dd -parang 5 -dd dd -parang 6 -dd dd'\n"
        "                 [Default=30 degrees]\n"
-"\n"
+     "\n"
        " -maxshf dd    = Allow maximum shift of 'dd' millimeters.  Equivalent\n"
        "                 to '-parang 1 -dd dd -parang 2 -dd dd -parang 3 -dd dd'\n"
        "                 [Default=32%% of the size of the base image]\n"
        "         **N.B.: This max shift setting is relative to the center-of-mass\n"
        "                 shift, if the '-cmass' option is used.\n"
-"\n"
+     "\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
        "                 [Default=1.2=image can go up or down 20%% in size]\n"
-"\n"
+     "\n"
        " -maxshr dd    = Allow maximum shearing factor to be 'dd'. Equivalent\n"
        "                 to '-parang 10 -dd dd -parang 11 -dd dd -parang 12 -dd dd'\n"
        "                 [Default=0.1111 for no good reason]\n"
@@ -1747,7 +1570,7 @@ int main( int argc , char *argv[] )
               " * [28 Nov 2018]\n"
               "   All of the above now applies to the 'lpa+' cost functional,\n"
               "   which can be used as a robust method for like-to-like alignment.\n"
-             , micho_hel , micho_crA , micho_nmi , micho_mi , micho_ov
+             , DEFAULT_MICHO_HEL , DEFAULT_MICHO_CRA , DEFAULT_MICHO_NMI , DEFAULT_MICHO_MI , DEFAULT_MICHO_OV
              ) ;
 
        printf("\n"
@@ -2114,6 +1937,201 @@ int main( int argc , char *argv[] )
       ) ;
 
      PRINT_COMPILE_DATE ; exit(0);
+}
+
+/*---------------------------------------------------------------------------*/
+/*============================ Ye Olde Main Programme =======================*/
+/* Note the GA_setup struct 'stup' below.
+   This struct contains all the alignment setup information,
+   and is passed to functions in mri_genalign.c to do lots of things,
+   like evaluate the cost functional, optimize the cost, and so forth. */
+/*---------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   GA_setup stup ;                   /* holds all the setup info */
+   THD_3dim_dataset *dset_out=NULL ;
+   MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
+   MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 , nnz ;
+   int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
+   float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
+   int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
+   float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
+   int nvox_base ;
+   float v1,v2 , xxx_p,yyy_p,zzz_p,siz , xxx_m,yyy_m,zzz_m , xxx,yyy,zzz , xc,yc,zc ;
+   float xxc,yyc,zzc ; int CMbad=0 ; /* 26 Feb 2020 */
+   int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
+   int tfdone=0;  /* stuff for -twofirst */
+   float tfparm[PARAM_MAXTRIAL+2][MAXPAR];  /* +2 for some extra cases */
+   float ffparm[PARAM_MAXTRIAL+2][MAXPAR];  /* not really used yet */
+   float tfcost[PARAM_MAXTRIAL+2] ;
+   int   tfindx[PARAM_MAXTRIAL+2] ;
+   int skip_first=0 , didtwo , targ_kind, skipped=0 , nptwo=6 ;
+   int targ_was_vector=0, targ_vector_kind=-1 ; MRI_IMAGE *im_targ_vector=NULL ;
+   double ctim=0.0,dtim , rad , conv_rad ;
+   float **parsave=NULL ;
+   mat44 *matsave=NULL ;
+   mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv,
+         qmat,wmat ;
+   MRI_IMAGE *apply_im = NULL ;
+   float *apply_far    = NULL ;
+   int apply_nx=0, apply_ny=0, apply_mode=0, nparam_free , diffblur=1 ;
+   float cost, cost_ini ;
+   mat44 cmat_bout , cmat_tout , aff12_xyz ;
+   int   nxout=0,nyout=0,nzout=0 ;
+   float dxout,dyout,dzout ;
+   floatvec *allcost ;   /* 19 Sep 2007 */
+   float     allpar[MAXPAR] ;
+   float xsize , ysize , zsize ;  /* 06 May 2008: box size */
+   float bfac ;                   /* 14 Oct 2008: brick factor */
+   int twodim_code=0 , xx_code=0 , yy_code=0 , zz_code=0 ;
+
+   /*----- input parameters, to be filled in from the options -----*/
+
+   THD_3dim_dataset *dset_base = NULL ;
+   THD_3dim_dataset *dset_targ = NULL ;
+   THD_3dim_dataset *dset_mast = NULL ;
+   THD_3dim_dataset *dset_weig = NULL ;
+   int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
+   int auto_weight             = 3 ;            /* -autobbox == default */
+   float auto_wclip            = 0.0f ;         /* 31 Jul 2007 */
+   float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
+   char *auto_string           = "-autobox" ;
+   int auto_dilation           = 0 ;            /* for -automask+N */
+   int wtspecified             = 0 ;            /* 10 Sep 2007 (was weight specified?) */
+   double dxyz_mast            = 0.0  ;         /* implemented 24 Jul 2007 */
+   int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
+   int sm_code                 = GA_SMOOTH_GAUSSIAN ;
+   float sm_rad                = 0.0f ;
+   float fine_rad              = 0.0f ;
+   int floatize                = 0 ;            /* off by default */
+   int twopass                 = 1 ;            /* on by default */
+   int twofirst                = 1 ;            /* on by default */
+   int zeropad                 = 1 ;            /* on by default */
+   char *prefix                = NULL ;         /* off by default */
+   char *wtprefix              = NULL ;         /* off by default */
+   char *param_save_1D         = NULL ;         /* off by default */
+   char *matrix_save_1D        = NULL ;         /* 23 Jul 2007 */
+   char *apply_1D              = NULL ;         /* off by default */
+   int interp_code             = MRI_LINEAR ;
+   int got_interp              = 0 ;
+   int npt_match               = -47 ;          /* 47%, that is */
+   int final_interp            = MRI_CUBIC ;
+   int got_final               = 0 ;
+   int warp_code               = WARP_AFFINE ;
+   char warp_code_string[64]   = "\0" ;         /* 22 Feb 2010 */
+   int warp_freeze             = 0 ;            /* off by default */
+   int do_small                = 0 ;            /* 12 May 2020 */
+   int nparopt                 = 0 ;
+   MRI_IMAGE *matini           = NULL ;
+   int tbest                   = DEFAULT_TBEST; /* default=try best 5 */
+   int num_rtb                 = 99 ;           /* 28 Aug 2008 */
+   int nocast                  = 0 ;            /* 29 Aug 2008 */
+   param_opt paropt[MAXPAR] ;
+   float powell_mm             = 0.0f ;
+   float powell_aa             = 0.0f ;
+   float conv_mm               = 0.001f ;       /* millimeters */
+   float nmask_frac            = -1.0;          /* use default for voxel fraction */
+   int matorder                = MATORDER_SDU ; /* matrix mult order */
+   int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
+   int dcode                   = DELTA_AFTER ;  /* shift after */
+   int meth_check_count        = 0 ;            /* don't do it */
+   int meth_check[NMETH+1] ;
+   int meth_median_replace     = 0 ;            /* don't do it */
+   char *save_hist             = NULL ;         /* don't save it */
+   long seed                   = 7654321 ;      /* random? */
+   int XYZ_warp                = 0 ;            /* off by default */
+   double hist_pow             = 0.0 ;
+   int hist_nbin               = 0 ;
+   int epi_fe                  = -1 ;           /* off by default */
+   int epi_pe                  = -1 ;
+   int epi_se                  = -1 ;
+   int epi_targ                = -1 ;
+   int replace_base            = 0 ;            /* off by default */
+   int replace_meth            = 0 ;            /* off by default */
+   int usetemp                 = 0 ;            /* off by default */
+   int nmatch_setup            = 98765 ;
+   int ignout                  = 0 ;            /* 28 Feb 2007 */
+   int    hist_mode            = 0 ;            /* 08 May 2007 */
+   float  hist_param           = 0.0f ;
+   int    hist_setbyuser       = 0 ;
+   int    do_cmass             = 0 ;            /* 30 Jul 2007 */
+   int    do_refinal           = 1 ;            /* 14 Nov 2007 */
+   int    use_realaxes         = 0 ;            /* 10 Oct 2014 */
+
+   int auto_tdilation          = 0 ;            /* for -source_automask+N */
+   int auto_tmask              = 0 ;
+   char *auto_tstring          = NULL ;
+   int fill_source_mask        = 0 ;
+
+   int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
+   float blokrad               = 6.54321f ;
+   int blokmin                 = 0 ;
+
+   int do_allcost              = 0 ;            /* 19 Sep 2007 */
+   int do_save_pearson_map     = 0 ;            /* 25 Jan 2021 */
+   char *save_pearson_prefix   = NULL ;
+
+   MRI_IMAGE *allcostX1D       = NULL ;         /* 02 Sep 2008 */
+   char *allcostX1D_outname    = NULL ;
+
+   int   nwarp_pass            = 0 ;
+   int   nwarp_type            = WARP_CUBIC ;
+   float nwarp_parmax          = 0.10f ;         /* 05 Jan 2011 */
+   int   nwarp_flags           = 0 ;             /* 29 Oct 2010 */
+   int   nwarp_itemax          = 0 ;
+   int   nwarp_fixaff          = 0 ;             /* 26 Nov 2010 */
+   int   nwarp_fixmotX         = 0 ;             /* 07 Dec 2010 */
+   int   nwarp_fixdepX         = 0 ;
+   int   nwarp_fixmotY         = 0 ;
+   int   nwarp_fixdepY         = 0 ;
+   int   nwarp_fixmotZ         = 0 ;
+   int   nwarp_fixdepZ         = 0 ;
+   int   nwarp_fixmotI         = 0 ;
+   int   nwarp_fixdepI         = 0 ;
+   int   nwarp_fixmotJ         = 0 ;
+   int   nwarp_fixdepJ         = 0 ;
+   int   nwarp_fixmotK         = 0 ;
+   int   nwarp_fixdepK         = 0 ;
+   char *nwarp_save_prefix     = NULL ;          /* 10 Dec 2010 */
+   int   nwarp_meth_code       = 0 ;             /* 15 Dec 2010 */
+
+   int    micho_zfinal         = 0 ;                  /* 24 Feb 2010 */
+   double micho_mi             = DEFAULT_MICHO_MI  ;  /* -lpc+ stuff */
+   double micho_nmi            = DEFAULT_MICHO_NMI ;
+   double micho_crA            = DEFAULT_MICHO_CRA ;
+   double micho_hel            = DEFAULT_MICHO_HEL ;
+   double micho_ov             = DEFAULT_MICHO_OV  ;  /* 02 Mar 2010 */
+   int    micho_fallthru       = 0 ;                  /* 19 Nov 2016 */
+
+   int do_zclip                = 0 ;             /* 29 Oct 2010 */
+
+   bytevec *emask              = NULL ;          /* 14 Feb 2013 */
+
+   int do_xflip_bset           = 0 ;             /* 18 Jun 2019 */
+
+#undef ALLOW_UNIFIZE   /* I decided this was a bad idea */
+#ifdef ALLOW_UNIFIZE
+   int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
+   int do_unifize_targ         = 0 ;             /* not implemented */
+   MRI_IMAGE *im_ubase         = NULL ;
+   MRI_IMAGE *im_utarg         = NULL ;
+#endif
+
+#define APPLYING ( apply_1D != NULL || apply_mode != 0 )  /* 13 Mar 2017 */
+
+   /**----------------------------------------------------------------------*/
+   /**----------------- Help the pitifully ignorant user? -----------------**/
+
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
+   /*--- A couple thousand lines of help code goes here for some reason ---*/
+
+   if( argc < 2 || strcmp(argv[1],"-help")==0 ||
+                   strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
+
+     Allin_Help() ; exit(0) ;
    }
 
    /**-------------------------------------------------------------------**/
