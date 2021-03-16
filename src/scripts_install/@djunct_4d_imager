@@ -42,11 +42,15 @@ set this_prog = "@djunct_4d_imager"
 #set set version = "2.2";  set rev_dat = "Feb 20, 2018"
 #   + miiinor: modify output filename postfix
 #
-set version   = "2.3";   set rev_dat   = "Feb 12, 2019"
+#set version   = "2.3";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
 #
+set version   = "2.31";  set rev_dat   = "Mar 16, 2021"
+# [PT] AFNI_COMPRESSOR -> NONE
+#
 # ----------------- find AFNI and set viewer ---------------------
+setenv AFNI_COMPRESSOR NONE
 
 # find AFNI binaries directory and viewer location
 set adir      = ""

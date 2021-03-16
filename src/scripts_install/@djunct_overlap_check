@@ -5,10 +5,14 @@
 #set version   = "0.1";  set rev_dat   = "Oct 19"
 # [PT] start of this program in program form.  Programmatically speaking.
 #
-set version   = "0.2";  set rev_dat   = "Oct 19"
+#set version   = "0.2";  set rev_dat   = "Oct 19"
 # [PT] include deobliqued version
 #
+set version   = "0.3";  set rev_dat   = "Mar 16, 2021"
+# [PT] AFNI_COMPRESSOR -> NONE
+#
 # ----------------------------------------------------------------
+setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_overlap_check"
 set tpname    = "${this_prog:gas/@djunct_//}"

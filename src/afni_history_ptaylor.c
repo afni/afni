@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Mar , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_4d_imager" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
 { 10, Mar , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_OPT,
    "Add in more control features, so can apply in more cases.",
    "Basically just allowing more chauffeur control.\n"

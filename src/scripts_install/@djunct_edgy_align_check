@@ -64,10 +64,14 @@
 # [PT] bug fix on olay regrid: don't jump to wdir yet
 #    + new opt : '-ulay_range_nz ..' for passing umin/umax to @chauff*
 #
-set version   = "1.44";  set rev_dat   = "June 22, 2020"
+#set version   = "1.44";  set rev_dat   = "June 22, 2020"
 # [PT] bug fix:  "-monty .." value was being ignored
 #
+set version   = "1.45";  set rev_dat   = "Mar 16, 2021"
+# [PT] AFNI_COMPRESSOR -> NONE
+#
 # ----------------------------------------------------------------
+setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_edgy_align_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
