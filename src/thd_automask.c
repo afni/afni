@@ -942,6 +942,7 @@ ENTRY("THD_mask_clust") ;
 void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte NN )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   int victim ; /* do we apply operation to current voxel? */
    int nxy=nx*ny , nxyz=nxy*nz ;
    int jmkm,jykm,jpkm, jmkz,jykz,jpkz, jmkp,jykp,jpkp;
    byte *nnn ;
@@ -973,45 +974,54 @@ ENTRY("THD_mask_erode") ;
            ( ii == nx-1 ) || ( jj == ny-1 ) || ( kk == nz-1 ))
             nnn[ii+jykz] = 1;
          else {
+
             // count neighbors
             // note slices are semi-graphically shown
             // the text order seems to indicate ijk as row,col,slice
             // but they're really col,row,slice. It doesn't really matter
             // because all combinations are used similarly
-            num =  
-                                mmm[ii+jy+km] 
-                              + mmm[im+jy+kz]
-              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
-                              + mmm[ip+jykz] 
-                              + mmm[ii+jy+kp];
-            if(num<6) nnn[ii+jykz] = 1 ;
-            else {
-             if(NN>=2) {   //consider NN2,3 with 18,26 neighbors
-                 // first NN2 case
-                 num +=               mmm[im+jy+km]
-                  + mmm[ii+jm+km]                + mmm[ii+jp+km]
-                                  + mmm[ip+jy+km]
-                  + mmm[im+jm+kz]                + mmm[im+jp+kz]
-                                  
-                  + mmm[ip+jm+kz]                + mmm[ip+jp+kz]
-                  + mmm[im+jy+kp]
-                  + mmm[ii+jm+kp]                + mmm[ii+jp+kp]
-                                  + mmm[ip+jy+kp] ;
-                 // if not enough neighbors, erode
-                 if( num < 18 ) nnn[ii+jykz] = 1 ;  /* mark to erode */
-                 else {
-                     // if enough neighbors for NN1,2 - might not be enough for NN3 
-                     if(NN==3) {
-                         num +=  mmm[im+jm+km]           + mmm[im+jp+km]
-                               + mmm[ip+jm+km]           + mmm[ip+jp+km]
-                               + mmm[im+jm+kp]           + mmm[im+jp+kp]
-                               + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
-                         if( num < 26 ) nnn[ii+jykz] = 1 ;  /* mark to erode */
-                     }
-    
-                 }
-             } // end if NN>=2
-            } // end else num<6 for NN1 case
+
+            /* Complicated logic is confusing both compilers (warnings) */
+            /* and coders, so simplify.  Use 'victim' to decide whether */
+            /* to apply the current operation.  Then set nnn later.     */
+            /* First check NN1 voxels, then if needed, NN2 and NN3.     */
+            /*                                      16 Mar 2021 [rickr] */
+            victim = 0 ;
+            num =                        mmm[ii+jy+km] 
+                                       + mmm[im+jy+kz]
+                       + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
+                                       + mmm[ip+jykz] 
+                                       + mmm[ii+jy+kp];
+            if(num<6) victim = 1 ;  /* mark to erode */
+
+            /* check NN2 cases (18 neighbors), if not already a victim */
+            if(NN>=2 && !victim) {
+               num +=                     mmm[im+jy+km]
+                        + mmm[ii+jm+km]                + mmm[ii+jp+km]
+                                        + mmm[ip+jy+km]
+                        + mmm[im+jm+kz]                + mmm[im+jp+kz]
+                                        
+                        + mmm[ip+jm+kz]                + mmm[ip+jp+kz]
+                        + mmm[im+jy+kp]
+                        + mmm[ii+jm+kp]                + mmm[ii+jp+kp]
+                                        + mmm[ip+jy+kp] ;
+               // if not enough neighbors, erode
+               if( num < 18 ) victim = 1 ;  /* mark to erode */
+            }
+      
+            /* check NN3 cases (26 neighbors), if not already a victim */
+            if(NN==3 && !victim) {
+               num +=      mmm[im+jm+km]           + mmm[im+jp+km]
+                         + mmm[ip+jm+km]           + mmm[ip+jp+km]
+                         + mmm[im+jm+kp]           + mmm[im+jp+kp]
+                         + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
+
+               if( num < 26 ) victim = 1 ;  /* mark to erode */
+            }
+
+            /* mark victims for erosion */
+            nnn[ii+jykz] = victim ;
+
        }  // end non-edge box (ii,jj,kk=0,...)
       } // end if in mask 
    } } }
@@ -1039,42 +1049,48 @@ ENTRY("THD_mask_erode") ;
 
           for( ii=0 ; ii < nx ; ii++ ){
             if( nnn[ii+jy+kz] ){           /* was eroded */
+
               im = ii-1 ; ip = ii+1 ;
               // borders make more sense here as placeholders than for
               // erosion case
               if( ii == 0    ) im = 0 ;
               if( ii == nx-1 ) ip = ii ;
 
-              if ((nnn[ii+jy+kz] =              /* see if= has any nbhrs */
-                                   mmm[ii+jy+km]
-                                || mmm[im+jy+kz]
-               || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
-                                || mmm[ip+jy+kz] 
-                                || mmm[ii+jy+kp])){
-                 (void) 0;
-              } else { 
-                if(NN>=2) {
-                  if ((nnn[ii+jy+kz] =      // if NN2 neighbors (also with if nnn=)
-                                   mmm[im+jy+km])
-               || mmm[ii+jm+km]                  || mmm[ii+jp+km]
-                                || mmm[ip+jy+km]
-               || mmm[im+jm+kz]                  || mmm[im+jp+kz]
+              /* Complicated logic is confusing both compilers (warnings)  */
+              /* and coders, so simplify.                                  */
+              /* Set victim if any NN1 voxel is set (else go to NN2,3).    */
+              /* (dglen indentation provides a "visual" of neighbors)      */
+              /* (nnn[] will later be set to victim)   16 Mar 2021 [rickr] */
 
-               || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
-                                || mmm[im+jy+kp]
-               || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
-                                || mmm[ip+jy+kp]) {
-                   (void) 0; 
-                  } else {
-                     if(NN==3)   // consider corners (corners of -1,+1 slices)
-                        nnn[ii+jy+kz] = 
-                                 mmm[im+jm+km]           + mmm[im+jp+km]
-                               + mmm[ip+jm+km]           + mmm[ip+jp+km]
-                               + mmm[im+jm+kp]           + mmm[im+jp+kp]
-                               + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
-                  }
-                }
-              } // end else NN2,3 cases 
+              /* NN1 case, check for set first neighbors */
+              victim =                   mmm[ii+jy+km]
+                                      || mmm[im+jy+kz]
+                     || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
+                                      || mmm[ip+jy+kz] 
+                                      || mmm[ii+jy+kp];
+
+              /* similar NN2 case */
+              if(NN>=2 && !victim)
+                 victim =                mmm[im+jy+km]
+                     || mmm[ii+jm+km]                  || mmm[ii+jp+km]
+                                      || mmm[ip+jy+km]
+                     || mmm[im+jm+kz]                  || mmm[im+jp+kz]
+
+                     || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
+                                      || mmm[im+jy+kp]
+                     || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
+                                      || mmm[ip+jy+kp];
+
+              /* similar NN3 case */
+              if(NN>=3 && !victim)
+                 victim =     mmm[im+jm+km]          || mmm[im+jp+km]
+                           || mmm[ip+jm+km]          || mmm[ip+jp+km]
+                           || mmm[im+jm+kp]          || mmm[im+jp+kp]
+                           || mmm[ip+jm+kp]          || mmm[ip+jp+kp];
+
+              /* if we found a victim (neighbor), mark for redilation */
+              nnn[ii+jy+kz] = victim;
+
             } // end if in mask
       }}} /* end of ii,jj,kk loops */
 

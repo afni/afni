@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, March 13, 2021
+Version 1.0.5, March 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -861,6 +861,8 @@ cat(format(Sys.time(), "%D %H:%M:%OS3"), file = paste0(lop$outFN, '.txt'), sep =
 cat(capture.output(proc.time() - ptm), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 ##################### Post Processing ####################
+
+options(max.print = .Machine$integer.max)
 
 cat('\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
 cat('***** Summary information of model information *****\n')
