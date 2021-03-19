@@ -1567,6 +1567,80 @@ ENTRY("MRI_autobbox") ;
 
 /*------------------------------------------------------------------------*/
 
+void MRI_autobbox_byte( MRI_IMAGE *qim ,
+                        int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
+{
+   byte *mmm ;
+   int nvox , ii,jj,kk , nmm , nx,ny,nz,nxy ;
+
+ENTRY("MRI_autobbox_byte") ;
+
+   ASSIF(xm,0) ; ASSIF(xp,0) ;  /* initialize output params */
+   ASSIF(ym,0) ; ASSIF(yp,0) ;
+   ASSIF(zm,0) ; ASSIF(zp,0) ;
+
+   if( qim->kind != MRI_byte ) EXRETURN ; /* bad input */
+
+   mmm = MRI_BYTE_PTR(qim) ; if( qim == NULL ) EXRETURN ;
+
+   nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny; nvox = nxy*nz ;
+
+   /* For each plane direction,
+      find the first and last index that have nonzero voxels in that plane */
+
+   if( xm != NULL ){
+     for( ii=0 ; ii < nx ; ii++ )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
+     CP5: ASSIF(xm,ii) ;
+   }
+
+   if( xp != NULL ){
+     for( ii=nx-1 ; ii >= 0 ; ii-- )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
+     CP6: ASSIF(xp,ii) ;
+   }
+
+   if( ym != NULL ){
+     for( jj=0 ; jj < ny ; jj++ )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
+     CP3: ASSIF(ym,jj) ;
+   }
+
+   if( yp != NULL ){
+     for( jj=ny-1 ; jj >= 0 ; jj-- )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
+     CP4: ASSIF(yp,jj) ;
+   }
+
+   if( zm != NULL ){
+     for( kk=0 ; kk < nz ; kk++ )
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
+     CP1: ASSIF(zm,kk) ;
+   }
+
+   if( zp != NULL ){
+     for( kk=nz-1 ; kk >= 0 ; kk-- )
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
+     CP2: ASSIF(zp,kk) ;
+   }
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
 int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
 {
    int nxy=nx*ny , ii,jj,kk , ijk , bot,top , pd=pdepth ;
