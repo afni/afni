@@ -15,6 +15,7 @@
 /*-------------------------------------------------------------------*/
 /* taken from #include "/usr/people/ziad/Programs/C/Z/Zlib/prototype.h" */
 
+
 #ifndef NOWAYXCORCOEF
    #define NOWAYXCORCOEF 0               /* A flag value indicating that something lethal went on */
 #endif

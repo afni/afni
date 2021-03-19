@@ -6,6 +6,9 @@
 # be sure MAKE is defined      c/o J Bacon 22 May 2019
 MAKE ?= make
 
+# set default CPU_TYPE if not set already   8 Mar 2021
+CPU_TYPE ?= x86_64
+
 # LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
 LLIBS_X11 ?= $(LLIBS)
 
@@ -3725,6 +3728,7 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	'MAKE=$(MAKE)'     \
 	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
+	'CPU_TYPE=$(CPU_TYPE)'                    \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
@@ -3732,12 +3736,15 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	$(CP) SUMA/$(LIBSUMA_OBJ) ./;	)
 
 libgts.a:
-	( cd SUMA ;	\
-	rm -f libgts.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libgts.a ;	\
-	cd ../	;	\
-	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
+	( cd SUMA ;	                              \
+	rm -f libgts.a	;                          \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME)          \
+	   'SUMA_LINK_PATH=$(SUMA_LINK_PATH)'     \
+	   'CPU_TYPE=$(CPU_TYPE)'                 \
+       libgts.a ;	                           \
+	cd ../	;	                              \
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; \
+	$(CP) SUMA/libgts.a ${INSTALLDIR};        \
 	$(CP) SUMA/libgts.a ./;	)
 
 libSUMAseg.a:
@@ -3785,7 +3792,7 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 #link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
           LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a $(LIBF2C_OBJ)
-	( cd SUMA ;	                                               \
+	( cd SUMA ;	                                                   \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST)             \
 	'INSTALLDIR=$(INSTALLDIR)'                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                     \
@@ -3796,8 +3803,9 @@ suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                         \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                               \
 	'RANLIB=$(RANLIB)'                                             \
-        'MAKE=$(MAKE)'                                                 \
+        'MAKE=$(MAKE)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)' \
+    'CPU_TYPE=$(CPU_TYPE)'                                         \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                               \
 	cd ../	;)
 
@@ -3815,6 +3823,7 @@ suma_gts_progs: libgts.a
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
             'MAKE=$(MAKE)'                                                   \
+           	'CPU_TYPE=$(CPU_TYPE)'                                           \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
@@ -3835,6 +3844,7 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CPU_TYPE=$(CPU_TYPE)'                                           \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
 
@@ -3854,6 +3864,7 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CPU_TYPE=$(CPU_TYPE)'                                           \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
 
@@ -4009,9 +4020,10 @@ suma_link:
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                                 \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                       \
 	'RANLIB=$(RANLIB)'                                                     \
-        'MAKE=$(MAKE)'                                                         \
+        'MAKE=$(MAKE)'                                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'         \
+    'CPU_TYPE=$(CPU_TYPE)'                                                 \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                                       \
 	cd ../	;)
 

@@ -42,6 +42,10 @@
   if(x2<min) min=x2;\
   if(x2>max) max=x2;
 
+// drg 22 Feb 2021 - clang wants everything declared
+int planeBoxOverlap(double normal[3], double vert[3], double maxbox[3]);
+int triBoxOverlap(double boxcenter[3],double boxhalfsize[3],double triverts[3][3]);
+
 int planeBoxOverlap(double normal[3], double vert[3], double maxbox[3])	// -NJMP-
 {
   int q;
@@ -141,23 +145,24 @@ int triBoxOverlap(double boxcenter[3],double boxhalfsize[3],double triverts[3][3
 
    /* Bullet 3:  */
    /*  test the 9 tests first (this was faster) */
-   fex = fabsf(e0[X]);
-   fey = fabsf(e0[Y]);
-   fez = fabsf(e0[Z]);
+// drg - 22 Feb 2021 - changed fabsf() to fabs to avoid warnings
+//  everything is doubles already, so why not?
+   fex = fabs(e0[X]);
+   fey = fabs(e0[Y]);
+   fez = fabs(e0[Z]);
    AXISTEST_X01(e0[Z], e0[Y], fez, fey);
    AXISTEST_Y02(e0[Z], e0[X], fez, fex);
    AXISTEST_Z12(e0[Y], e0[X], fey, fex);
-
-   fex = fabsf(e1[X]);
-   fey = fabsf(e1[Y]);
-   fez = fabsf(e1[Z]);
+   fex = fabs(e1[X]);
+   fey = fabs(e1[Y]);
+   fez = fabs(e1[Z]);
    AXISTEST_X01(e1[Z], e1[Y], fez, fey);
    AXISTEST_Y02(e1[Z], e1[X], fez, fex);
    AXISTEST_Z0(e1[Y], e1[X], fey, fex);
 
-   fex = fabsf(e2[X]);
-   fey = fabsf(e2[Y]);
-   fez = fabsf(e2[Z]);
+   fex = fabs(e2[X]);
+   fey = fabs(e2[Y]);
+   fez = fabs(e2[Z]);
    AXISTEST_X2(e2[Z], e2[Y], fez, fey);
    AXISTEST_Y1(e2[Z], e2[X], fez, fex);
    AXISTEST_Z12(e2[Y], e2[X], fey, fex);
