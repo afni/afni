@@ -1592,36 +1592,76 @@ ENTRY("THD_nwarp_maxdisp") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Find the largest amount that a displacement might get outside
-   of the warp grid; this value might be zero -- RWCox [22 Feb 2021] */
-/*---------------------------------------------------------------------------*/
+/* Find the bounding box for the warp, which is defined 2 ways:
+    A) the box that includes all displacments > dthr
+    B) the box that includes the displaced locations of all voxels
+       with displacment > dthr
+   It is possible (if unlikely) that the box will actually be bigger
+   than the warp grid, due to condition B.
+*//*-------------------------------------------------------------------------*/
 
-float IW3D_outsidedness( IndexWarp3D *AA , float fac )
+int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr )
 {
    int qq , nx,ny,nz,nxy,nxyz , ii,jj,kk ;
-   float ddd,di,dj,dk , dmax , xn1,yn1,zn1 ,  *xda,*yda,*zda ;
+   float di,dj,dk , dx,dy,dz ,  *xda,*yda,*zda ;
+   MRI_IMAGE *qim ; byte *qmm ;
+   int   ibot,itop,jbot,jtop,kbot,ktop ; int_sextet sext={0,0,0,0,0,0} ;
+   float xbot,xtop,ybot,ytop,zbot,ztop ;
 
-   if( AA == NULL ) return 0.0f ;
-   if( fac <= 0.0f ) fac = 1.0f ;
+   if( AA == NULL ) return sext ;
+
+   if( fac <= 0.0f ) fac  = 1.0f ;
+   if( dthr < 0.0f ) dthr = 0.0f ;
 
    nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   dmax = 0.0f ; xn1 = nx-1.0f ; yn1 = ny-1.0f ; zn1 = nz-1.0f ;
+   xbot = ybot = zbot =  999999.9f ;
+   xtop = ytop = ztop = -999999.9f ;
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
+   qim = mri_new_vol( nx,ny,nz , MRI_byte ) ;  /* mask of above threshold */
+   qmm = MRI_BYTE_PTR(qim) ;                   /* displacments */
+
    for( qq=0 ; qq < nxyz ; qq++ ){
-     ii  = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-     ddd = fac * sqrtf( xda[qq]*xda[qq]+yda[qq]*yda[qq]+zda[qq]*zda[qq] ) ;
-     di  = ii - ddd       ; if( di < 0.0f && -di > dmax ) dmax = -di ;
-     di  = ii + ddd - xn1 ; if( di > dmax               ) dmax =  di ;
-     dj  = jj - ddd       ; if( dj < 0.0f && -dj > dmax ) dmax = -dj ;
-     dj  = jj + ddd - yn1 ; if( dj > dmax               ) dmax =  dj ;
-     dk  = kk - ddd       ; if( dk < 0.0f && -dk > dmax ) dmax = -dk ;
-     dk  = kk + ddd - zn1 ; if( dk > dmax               ) dmax =  dk ;
+
+     dx = fabsf(fac * xda[qq]) ;
+     dy = fabsf(fac * yda[qq]) ;
+     dz = fabsf(fac * zda[qq]) ;
+
+     qmm[qq] = ( (dx+dy+dz) > dthr ) ; /* mask displacement is big */
+
+     if( qmm[qq] == 0 ) continue ;
+
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+
+     di = ii - dx ; if( di < xbot ) xbot = di ;
+     di = ii + dx ; if( di > xtop ) xtop = di ;
+
+     dy = fabsf(fac * yda[qq]) ;
+     dj = jj - dy ; if( dj < ybot ) ybot = dj ;
+     dj = jj + dy ; if( dj > ytop ) ytop = dj ;
+
+     dz = fabsf(fac * zda[qq]) ;
+     dk = kk - dz ; if( dk < zbot ) zbot = dk ;
+     dk = kk + dz ; if( dk > ztop ) ztop = dk ;
    }
 
-   return dmax ;
+   MRI_autobbox_byte( qim , &ibot,&itop , &jbot,&jtop , &kbot,&ktop ) ;
+   mri_free(qim) ;
+
+   if( xbot < ibot ) ibot = (int)floorf(xbot) ;
+   if( ybot < jbot ) jbot = (int)floorf(ybot) ;
+   if( zbot < kbot ) kbot = (int)floorf(zbot) ;
+   if( xtop > itop ) itop = (int)ceilf (xtop) ;
+   if( ytop > jtop ) jtop = (int)ceilf (ytop) ;
+   if( ztop > ktop ) ktop = (int)ceilf (ztop) ;
+
+   sext.a = ibot ; sext.b = itop ;
+   sext.c = jbot ; sext.d = jtop ;
+   sext.e = kbot ; sext.f = ktop ;
+
+   return sext ;
 }
 
 /*===========================================================================*/
@@ -11120,10 +11160,11 @@ ENTRY("IW3D_warpomatic") ;
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
      if( Hverb > 0 ){
        if( Hdone > 0 ){
-         float wout = IW3D_outsidedness(Haawarp,2.0f) ;
+         int_sextet sext = IW3D_warpbox(Haawarp,2.0f,0.001f) ;
          fprintf(stderr,
-                  "done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped, wout=%.2f]\n",
-                  Hcostbeg,Hcost,Hdone,Hskipped,wout) ;
+                  "done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped, bbox=%d:%d,%d:%d,%d:%d]\n",
+                  Hcostbeg,Hcost,Hdone,Hskipped,
+                  sext.a,sext.b , sext.c,sext.d , sext.e,sext.f ) ;
        } else {
          fprintf(stderr," done [cost:%.5f ; all patches skipped]\n",Hcost) ;
        }

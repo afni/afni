@@ -5452,6 +5452,9 @@ extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
 extern void THD_autobbox_npad(int) ;
 extern void THD_autobbox_noexpand(int) ;                   /* 08 Jan 2019 */
 
+void MRI_autobbox_byte( MRI_IMAGE *qim ,                   /* 18 Mar 2021 */
+                        int *xm, int *xp , int *ym, int *yp , int *zm, int *zp ) ;
+
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
 extern void THD_automask_set_gradualize( int ) ;

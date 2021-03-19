@@ -317,6 +317,11 @@ typedef struct { float a,b,c,d ; } float_quad ;
 typedef struct { float a,b,c,d,e ; } float_quint ;  /* 02 Nov 2015 */
 #endif
 
+#ifndef TYPEDEF_float_sextet
+#define TYPEDEF_float_sextet
+typedef struct { float a,b,c,d,e,f ; } float_sextet ;  /* 18 Mar 2021 */
+#endif
+
 #ifndef TYPEDEF_double_pair
 #define TYPEDEF_double_pair
 typedef struct { double a,b ; } double_pair ;
@@ -598,6 +603,11 @@ extern MRI_IMARR * mri_to_imarr( MRI_IMAGE *imin ) ; /* 06 Dec 2007 */
 typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 typedef struct { int i; float a; } intfloat ; /* 02 Jun 2014 */
+
+#ifndef TYPEDEF_int_sextet
+#define TYPEDEF_int_sextet
+typedef struct { int a,b,c,d,e,f ; } int_sextet ;  /* 18 Mar 2021 */
+#endif
 
 /******* macros for complex arithmetic, using comma operator *******/
 
@@ -2468,7 +2478,7 @@ extern void IW3D_destroy( IndexWarp3D *AA ) ;
 extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 extern float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
 extern float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-extern float IW3D_outsidedness( IndexWarp3D *AA, float fac ) ; /* 22 Feb 2021 */
+extern int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr ) ; /* 18 Mar 2021 */
 extern IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
 extern IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
 extern IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
