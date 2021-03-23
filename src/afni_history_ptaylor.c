@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Mar , 2021 , PT , "3dBrickStat" , MICRO , TYPE_GENERAL,
+   "Uniformize internal spacing. Should be no change in behavior.",
+   "Just a few comments stretch far still.\n"
+},
+
 { 16, Mar , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
    "Set env AFNI_COMPRESSOR to NONE.",
    "Avoid minor badnesses occasionally.\n"
