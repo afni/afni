@@ -9,7 +9,7 @@ static void Print_Header_MinMax(int Minflag, int Maxflag,
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
                      int Posflag, int Negflag, int Zeroflag, int Absflag, 
                      int nan_flag, int Sumflag,
-                     int Varflag, int Volflag,  THD_3dim_dataset * dset, 
+                     int Varflag, int Volflag, THD_3dim_dataset * dset, 
                      byte *mmm, int mmvox);
 
 void usage_3dBrickStat(int detail) {
@@ -457,12 +457,12 @@ int main( int argc , char * argv[] )
       }
    
    /* check slow and quick options */
-   if((slow_flag)&&(quick_flag!=1))  /* if user asked for slow give it to him */
+   if((slow_flag) && (quick_flag!=1))  /* if user asked for slow, do so */
       quick_flag = 0;
    else
       quick_flag = 1;
 
-   if((max_flag==0)&&(min_flag==0))   /* if the user only asked for mean */
+   if((max_flag==0) && (min_flag==0))   /* if the user only asked for mean */
       quick_flag = 0;                  /*  no need to do quick way */
 
    if((quick_flag) && 
@@ -545,7 +545,7 @@ int main( int argc , char * argv[] )
       }
 
       if (!Percentate (DSET_ARRAY(old_dset, 0), mmm, nxyz,
-                       DSET_BRICK_TYPE(old_dset,0), mpv, N_mp,
+                       DSET_BRICK_TYPE(old_dset, 0), mpv, N_mp,
                        0, perc,
                        zero_flag, positive_flag, negative_flag )) {
 
@@ -678,7 +678,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
                      int Posflag, int Negflag, int Zeroflag, int Absflag, 
                      int nan_flag, 
                      int Sumflag,
-                     int Varflag, int Volflag,  THD_3dim_dataset * dset, 
+                     int Varflag, int Volflag, THD_3dim_dataset * dset, 
                      byte *mmm, int mmvox)
 {
    double overallmin, overallmax, overallmean;
@@ -707,7 +707,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
    DSET_load (dset);                    /* load dataset */
    npts = 0;                            /* keep track of number of points */
    for(i=0;i<dset->dblk->nvals; i++) {  /* for each sub-brik in dataset */
-      data_im = DSET_BRICK (dset, i);   /* set pointer to the 0th sub-brik of the dataset */
+      data_im = DSET_BRICK (dset, i);   // set pointer to 0th sub-brik of dset 
       fac = DSET_BRICK_FACTOR(dset, i); /* get scale factor for each sub-brik*/
       if(fac==0.0) fac=1.0;
       if( mmm != NULL)                  /* masked out */
@@ -764,17 +764,18 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
          default:                          /* unknown type */
             voxval = 0.0;                   /* ignore this voxel */
             k = nvox;                       /* skip to next sub-brik */
-            WARNING_message("Unknown type, %s, in sub-brik %d", MRI_TYPE_name[data_im->kind], i);
+            WARNING_message("Unknown type, %s, in sub-brik %d", 
+                            MRI_TYPE_name[data_im->kind], i);
             break;
          }
 
-         if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){   /* masked in voxel? */
+         if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){ // masked in voxel?
             voxval = voxval * fac;             /* apply scale factor */
-            if(nan_flag!=-1) {             /* check for various not a numbers */
+            if(nan_flag!=-1) {               // check for various not a numbers
                test_flag = isfinite(voxval);
                if((nan_flag==1) && (test_flag==1)) /* only looking for NaNs*/
                   continue;
-               if((nan_flag==0) && (test_flag==0)) /* only looking for finites */
+               if((nan_flag==0) && (test_flag==0)) // only looking for finites
                   continue;
                if(test_flag==0) {  /* not a number */
                   ++npts;
