@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2021 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "-FWHMxyz allows different blurring amounts in different directions" ,
+   NULL } ,
+
  { 15 , MAR , 2021 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
    "Move help from main() to function Allin_Help()" ,
    NULL } ,

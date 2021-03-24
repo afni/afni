@@ -31,8 +31,11 @@ int main( int argc , char *argv[] )
    int do_preserve=0 , use_qsar ;         /* 19 Oct 2009 */
 
    THD_3dim_dataset *fwhmset=NULL ;
-   MRI_IMAGE *fxim=NULL, *fyim=NULL, *fzim=NULL ; /* 13 Jun 2016 */
+   MRI_IMAGE *fxim=NULL, *fyim=NULL, *fzim=NULL ;  /* 13 Jun 2016 */
    int niter_fxyz=0 ; float dmax=0.0f , dmin=0.0f ;
+
+   float fwhmxx=0.0f , fwhmyy=0.0f , fwhmzz=0.0f ; /* 24 Mar 2021 */
+   int   do_addfwhm3=0 ;
 
    /*------- help the pitifully ignorant luser? -------*/
 
@@ -78,6 +81,23 @@ int main( int argc , char *argv[] )
       "                      the ONLY purpose of the '-float' option is to\n"
       "                      force an all-shorts input dataset to be saved\n"
       "                      as all-floats after blurring.\n"
+      " ** NEW IN 2021 **\n"
+      " -FWHMxyz fx fy fz = Add different amounts of smoothness in the 3\n"
+      "                     spatial directions.\n"
+      "                    ** If one of the 'f' values is 0, no smoothing is done\n"
+      "                       in that direction.\n"
+      "                    ** Here, the axes names ('x', 'y', 'z') refer to the\n"
+      "                       order of storage in the dataset, as can be seen\n"
+      "                       in the output of 3dinfo; for example, from a dataset\n"
+      "                       that I happen to have lying around:\n"
+      "                         Data Axes Orientation:\n"
+      "                         first  (x) = Anterior-to-Posterior\n"
+      "                         second (y) = Superior-to-Inferior\n"
+      "                         third  (z) = Left-to-Right   \n"
+      "                       In this example, 'fx' is the FWHM blurring along the\n"
+      "                       A-P direction, et cetera.\n"
+      "                    ** In other words, x-y-z does not necessarily refer\n"
+      "                       to the DICOM order of coordinates (R-L, A-P, I-S)!\n"
       "\n"
       "NOTES ~1~\n"
       "-----\n"
@@ -194,6 +214,18 @@ int main( int argc , char *argv[] )
        automask = 1 ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-FWHMxyz") == 0 || strcasecmp(argv[iarg],"-FHWMxyz") == 0 ){
+       iarg++ ;
+       if( iarg+2 >= argc ) ERROR_exit("Need 3 arguments after '%s'",argv[iarg-1]);
+       fwhmxx = (float)strtod(argv[iarg++],NULL) ;
+       fwhmyy = (float)strtod(argv[iarg++],NULL) ;
+       fwhmzz = (float)strtod(argv[iarg++],NULL) ;
+       if( fwhmxx <= 0.0f && fwhmyy <= 0.0f && fwhmzz <= 0.0f )
+         ERROR_exit("All values after option '%s' are non-positive :(",argv[iarg-4]) ;
+       do_addfwhm3 = 1 ;
+       continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-FWHM") == 0 || strcasecmp(argv[iarg],"-FHWM") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        val = (float)strtod(argv[iarg],NULL) ;
@@ -232,7 +264,7 @@ int main( int argc , char *argv[] )
 
    /*----- check for stupid inputs, load datasets, et cetera -----*/
 
-   if( fwhmset == NULL && fwhm_goal == 0.0f )
+   if( fwhmset == NULL && fwhm_goal == 0.0f && !do_addfwhm3 )
      ERROR_exit("No -FWHM option given! What do you want?") ;
 
    if( fwhmset != NULL && fwhm_goal > 0.0f ){
@@ -430,7 +462,11 @@ STATUS("load input") ;
            /* copy data from dataset to qar */
            for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qar[vv] = dsar[vv] ;
            /* blur qar (output will be zero where qmask==0) */
-           mri_blur3D_addfwhm( qim , qmask , fwhm_goal ) ;  /** the real work **/
+           if( do_addfwhm3 ){
+             mri_blur3D_addfwhm3( qim , qmask , fwhmxx,fwhmyy,fwhmzz ) ;
+           } else {
+             mri_blur3D_addfwhm ( qim , qmask , fwhm_goal ) ;  /** the real work **/
+           }
            /* copy results back to qsar */
            for( vv=0 ; vv < nvox ; vv++ ) if( qmask[vv] ) qsar[vv] = qar[vv] ;
          }
@@ -438,7 +474,11 @@ STATUS("load input") ;
 
      } else {                      /* the olden way: 1 mask */
 
-       mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
+       if( do_addfwhm3 ){
+         mri_blur3D_addfwhm3( dsim , mask , fwhmxx,fwhmyy,fwhmzz ) ;
+       } else {
+         mri_blur3D_addfwhm ( dsim , mask , fwhm_goal ) ;  /** all the work **/
+       }
 
        /* dsim will be zero where mask==0;
           if we want to preserve the input values, copy dsar into qsar now
