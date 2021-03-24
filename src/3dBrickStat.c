@@ -105,6 +105,7 @@ int main( int argc , char * argv[] )
    byte *mmf = NULL;
    MRI_IMAGE *anat_im = NULL;
    char *mask_dset_name=NULL;
+   void *tmp_vec = NULL;
 
    /*----- Read command line -----*/
 
@@ -544,11 +545,17 @@ int main( int argc , char * argv[] )
          } while (mp <= mp1+.00000001);
       }
 
-      if (!Percentate (DSET_ARRAY(old_dset, 0), mmm, nxyz,
-                       DSET_BRICK_TYPE(old_dset, 0), mpv, N_mp,
-                       0, perc,
-                       zero_flag, positive_flag, negative_flag )) {
+      // [PT: March 24, 2021] Squash a bug that affects mean/stdev
+      // calcs when a non-full-FOV mask is used, by setting the arg
+      // 'option' to be 1, not 0 in Percentate().  This way, the input
+      // dset is not sorted/changed (while the mask wasn't).  Below,
+      // non-percentile calcs should now be OK.
+      tmp_vec = Percentate (DSET_ARRAY(old_dset, 0), mmm, nxyz,
+                            DSET_BRICK_TYPE(old_dset, 0), mpv, N_mp,
+                            1, perc,
+                            zero_flag, positive_flag, negative_flag );
 
+      if ( !tmp_vec ) {
          ERROR_message("Failed to compute percentiles.");
          exit(1);         
       }
@@ -566,9 +573,10 @@ int main( int argc , char * argv[] )
          else
             fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]); 
       }
-      free(mpv); mpv = NULL;
-      free(perc); perc = NULL;
-      
+
+      free(mpv);     mpv     = NULL;
+      free(perc);    perc    = NULL;
+      free(tmp_vec); tmp_vec = NULL;
    }
 
    Max_func(min_flag, max_flag, mean_flag,count_flag,

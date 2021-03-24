@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Mar , 2021 , PT , "3dBrickStat" , MAJOR , TYPE_BUG_FIX,
+   "Fix bug: having non-full-FOV mask + perc calcs affected other calcs.",
+   "Calcs should now be consistent even with those opts used. Thanks, RCR.\n"
+},
+
 { 23, Mar , 2021 , PT , "3dBrickStat" , MICRO , TYPE_GENERAL,
    "Uniformize internal spacing. Should be no change in behavior.",
    "Just a few comments stretch far still.\n"
