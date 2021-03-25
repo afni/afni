@@ -20,7 +20,7 @@ weighted (DW) data.  It has graphical displays for both slice-wise and surface-b
 | https://afni.nimh.nih.gov/
 | https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
 
-| The AFNI Message Board is here:  
+| For questions on using AFNI programs, our Message Board is here:  
 | https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
  
 AFNI code directory
