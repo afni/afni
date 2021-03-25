@@ -16,13 +16,15 @@ images.  It comprises a suite of C, Python, R programs and shell scripts primari
 analysis and display of multiple MRI modalities: anatomical, functional MRI (FMRI) and diffusion 
 weighted (DW) data.  It has graphical displays for both slice-wise and surface-based viewing.
   
-| Please see these websites for more information:
+| Please visit these websites for more information:
 | https://afni.nimh.nih.gov/
 | https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
 
+
 | For questions on using AFNI programs, our Message Board is here:  
 | https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
- 
+
+
 AFNI code directory
 -------------------
 
