@@ -90,7 +90,8 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
               Vovk Zosky Torres Schmidt Novak Hanke \
-              Gianfranco Markiewicz                   )
+              Gianfranco Markiewicz Lauren Teves    \
+              Eneko Bloom Papademetris )
 
 # list of AFNI authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
@@ -127,6 +128,7 @@ set gunk = ( -v -i )
 foreach uuu ( $alist $blist1 $blist2 )
   set gunk = ( $gunk -e $uuu )
 end
+set gunk = ( $gunk -e scripts_install -e imnotamember -e CircleCI )
 
 # will acccumulate all unknown lines in to one file, for later research
 if( -f gitsum.unknown.txt ) \rm -f gitsum.unknown.txt

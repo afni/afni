@@ -2250,6 +2250,12 @@ extern void mri_blur3D_addfwhm_speedy( MRI_IMAGE *, byte *, float ) ;
 extern void mri_blur3D_inmask_NN( MRI_IMAGE *im, byte *mask, int  ) ;
 extern void mri_blur3D_getfac ( float, float, float, float,
                                 int *, float *, float *, float * ) ;
+extern void mri_blur3D_getfac3( float fwhmx, float fwhmy, float fhwmz ,  /* 24 Mar 2021 */
+                                float dx   , float dy   , float dz    , 
+                                int *nrep , float *fx , float *fy , float *fz ) ;
+extern void mri_blur3D_addfwhm3( MRI_IMAGE *im , byte *mask ,
+                                 float fwhmx,float fwhmy,float fwhmz ) ;
+
 
 extern MRI_IMAGE * mri_rgb_blur2D  ( float sig , MRI_IMAGE *im ) ;
 extern MRI_IMAGE * mri_byte_blur2D( float sig , MRI_IMAGE *im );

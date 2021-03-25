@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Mar , 2021 , PT , "3dinfo" , MICRO , TYPE_NEW_OPT,
+   "New opt: -is_atlas_or_labeltable.",
+   "1 if dset has an atlas or labeltable;  otherwise, 0.\n"
+},
+
+{ 24, Mar , 2021 , PT , "3dBrickStat" , MAJOR , TYPE_BUG_FIX,
+   "Fix bug: having non-full-FOV mask + perc calcs affected other calcs.",
+   "Calcs should now be consistent even with those opts used. Thanks, RCR.\n"
+},
+
+{ 23, Mar , 2021 , PT , "3dBrickStat" , MICRO , TYPE_GENERAL,
+   "Uniformize internal spacing. Should be no change in behavior.",
+   "Just a few comments stretch far still.\n"
+},
+
 { 16, Mar , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
    "Set env AFNI_COMPRESSOR to NONE.",
    "Avoid minor badnesses occasionally.\n"

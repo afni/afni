@@ -233,7 +233,7 @@ int main( int argc , char * argv[] )
 "                   parameters (not recommended, since the point of\n"
 "                   calculating RSFC params here is to have them be quite\n"
 "                   related to the time series themselves which are used for\n"
-"                   further analysis)."
+"                   further analysis).\n"
 " -un_bp_out      = Output the un-bandpassed series as well (default is not \n"
 "                   to).  Name would be, e.g., ppp_unBP+orig.* .\n"
 "                   with suffix `_unBP'.\n"
