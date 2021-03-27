@@ -10774,8 +10774,12 @@ ENTRY("IW3D_warpomatic") ;
       add xwid voxels on each end (if possible) -- etc for the other directions */
 
    xwid = (imax-imin)/8       ; ywid = (jmax-jmin)/8       ; zwid = (kmax-kmin)/8       ;
-   ibbb = MAX(0,imin-xwid)    ; jbbb = MAX(0,jmin-ywid)    ; kbbb = MAX(0,kmin-zwid)    ;
-   ittt = MIN(Hnx-1,imax+xwid); jttt = MIN(Hny-1,jmax+ywid); kttt = MIN(Hnz-1,kmax+zwid);
+   ibbb = MAX(1,imin-xwid)    ; jbbb = MAX(1,jmin-ywid)    ; kbbb = MAX(1,kmin-zwid)    ;
+   ittt = MIN(Hnx-2,imax+xwid); jttt = MIN(Hny-2,jmax+ywid); kttt = MIN(Hnz-2,kmax+zwid);
+
+   if( Hnx == 1 ){ ibbb = ittt = 0 ; }
+   if( Hny == 1 ){ jbbb = jttt = 0 ; }
+   if( Hnz == 1 ){ kbbb = kttt = 0 ; }
 
    /* initial patch width at lev=0 == largest patch */
 
@@ -10826,6 +10830,7 @@ ENTRY("IW3D_warpomatic") ;
      /* always start with cubic steps (lite then heavy) */
      BOXOPT ;
      /* step A = lite cubic */
+     (void)IW3D_improve_warp( MRI_SINCC      , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      /* step B: heavy cubic */
@@ -12210,6 +12215,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* cubic then quintic - somewhat different than 'normal' warping */
      BOXOPT ;
+     (void)IW3D_improve_warp_plusminus( MRI_SINCC       , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC_LITE  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      BALLOPT ;

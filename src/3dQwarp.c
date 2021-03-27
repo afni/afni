@@ -3316,7 +3316,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
    if( (expad > 0 || minpad > 0) && zeropad == 0 ) zeropad = 1 ;
 
    if( zeropad ){                /* adapted/stolen/liberated from 3dAllineate */
-     float cv , *qar  ; MRI_IMAGE *qim ; int mpad_min=9 ;
+     float cv , *qar  ; MRI_IMAGE *qim ; int mpad_minx=9,mpad_miny=9,mpad_minz=9 ;
      int bpad_xm,bpad_xp, bpad_ym,bpad_yp, bpad_zm,bpad_zp ;
      int spad_xm,spad_xp, spad_ym,spad_yp, spad_zm,spad_zp ;
      int mpad_x , mpad_y , mpad_z , ii ;
@@ -3355,20 +3355,19 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
      if( have_dxyzal ){                           /* extend pad size for */
        int mmm ;
-       float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
-       dxal /= dm ; dyal /= dm ; dzal /= dm ;
-       dm = MAX(dxal,dyal); dm = MAX(dm,dzal); mmm = (int)rintf(1.0111f*dm);
-       if( mmm > mpad_min && Hverb > 1 ){
-         ININFO_message("3dAllineate shift wants minimum padding on autobox = %d",mmm) ;
-         mpad_min = mmm ;
-       }
+       mmm = (int)rintf(1.0111f*dxal/dx) ; if( mmm > mpad_minx ) mpad_minx = mmm ;
+       mmm = (int)rintf(1.0111f*dyal/dy) ; if( mmm > mpad_miny ) mpad_miny = mmm ;
+       mmm = (int)rintf(1.0111f*dzal/dz) ; if( mmm > mpad_minz ) mpad_minz = mmm ;
+       if( Hverb > 1 )
+         ININFO_message("Zero-pad: 3dAllineate gives minimum pads = %d %d %d",
+                        mpad_minx , mpad_miny , mpad_minz ) ;
      }
 
      /* define minimum padding for each direction */
 
-     mpad_x = (int)rintf(0.1111f*bim->nx) ; mpad_x = MAX(mpad_x,mpad_min) ;
-     mpad_y = (int)rintf(0.1111f*bim->ny) ; mpad_y = MAX(mpad_y,mpad_min) ;
-     mpad_z = (int)rintf(0.1111f*bim->nz) ; mpad_z = MAX(mpad_z,mpad_min) ;
+     mpad_x = (int)rintf(0.1111f*bim->nx)+1 ; mpad_x = MAX(mpad_x,mpad_minx) ;
+     mpad_y = (int)rintf(0.1111f*bim->ny)+1 ; mpad_y = MAX(mpad_y,mpad_miny) ;
+     mpad_z = (int)rintf(0.1111f*bim->nz)+1 ; mpad_z = MAX(mpad_z,mpad_minz) ;
 
      /* compute padding so at least mpad_Q all-zero slices on each Q-face
         will be present after the padding is done, for Q = x or y or z   */
@@ -3393,17 +3392,17 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
        ININFO_message("dataset padding needs at least %d %d  %d %d  %d %d voxels",
                       pad_xm, pad_xp, pad_ym, pad_yp, pad_zm, pad_zp ) ;
 
-     if( pad_xm < minpad   ) pad_xm = minpad ;  /* minimum padding allowed? */
-     if( pad_xp < minpad   ) pad_xp = minpad ;  /* (SECRET OPTION) */
-     if( pad_ym < minpad   ) pad_ym = minpad ;
-     if( pad_yp < minpad   ) pad_yp = minpad ;
-     if( pad_zm < minpad   ) pad_zm = minpad ;
-     if( pad_zp < minpad   ) pad_zp = minpad ;
+     if( pad_xm < minpad ) pad_xm = minpad ;  /* minimum padding allowed? */
+     if( pad_xp < minpad ) pad_xp = minpad ;  /* (SECRET OPTION) */
+     if( pad_ym < minpad ) pad_ym = minpad ;
+     if( pad_yp < minpad ) pad_yp = minpad ;
+     if( pad_zm < minpad ) pad_zm = minpad ;
+     if( pad_zp < minpad ) pad_zp = minpad ;
 
      if( expad > 0 ){                             /* extra padding   */
        pad_xm += expad ; pad_xp += expad ;        /* ordered by the  */
        pad_ym += expad ; pad_yp += expad ;        /* cautious user   */
-       pad_zm += expad ; pad_zp += expad ;
+       pad_zm += expad ; pad_zp += expad ;        /* should not be needed */
      }
 
      if( bim->nz == 1 ){     /* but no z-padding for 2D image! */
