@@ -197,7 +197,7 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "DW (1) = %p\n", SO1->DW);
     fprintf(stderr, "DW (2) = %p\n", SO2->DW);
 
-    fprintf(stderr, "Beginning surface comparison\n");
+    fprintf(stderr, "Ending surface comparison\n");
 }
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
@@ -274,14 +274,11 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         // Set up point source
         // for (int i=0; i<4; ++i) sv->light1_position[i]=location[i];
         for (int i=0; i<3; ++i) sv->light0_position[i]=location[i]*2;
-        /*
-        sv->light0_position[0]=A*D*2;
-        sv->light0_position[1]=B*D*2;
-        sv->light0_position[2]=C*D*2;
-        */
 
+        #if 0
         fprintf(stderr, "position=%f,%f,%f\n", sv->light0_position[0],
             sv->light0_position[1], sv->light0_position[2]);
+        #endif
 
         glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
         for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
@@ -5041,9 +5038,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                        SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
                     }
 
-                    fprintf(stderr, "SUMAg_DOv = %p\n", SUMAg_DOv);
-                    fprintf(stderr, "SUMAg_N_DOv = %d\n", SUMAg_N_DOv);
-                    fprintf(stderr, "SUMAg_CF = %p\n", SUMAg_CF);
                     /* Add this surface to SUMA's displayable objects */
                     if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
                        SUMA_S_Err("Failed to add mappable SOs ");
@@ -5090,11 +5084,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                        N_dov = SUMAg_N_DOv-1;
                         sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
 
-                        fprintf(stderr,"Surface object of new DO = %p\n", dov[N_dov].OP);
                          /* register DO with viewer */
-                        fprintf(stderr,"SUMAg_N_DOv = %d\n", SUMAg_N_DOv);
-
-
                         if (!SUMA_RegisterDO(N_dov, sv)) {
                            fprintf(SUMA_STDERR,
                                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
@@ -5167,7 +5157,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     sv->ColList[N_dov] = NULL;
                     SUMA_FillColorList (sv, (SUMA_ALL_DO *)SO);
 
-                    compareSurfaces(dov[N_dov-1].OP, SO);
+                    // compareSurfaces(dov[N_dov-1].OP, SO);
 
 #endif
 
