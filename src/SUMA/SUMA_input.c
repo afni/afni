@@ -4975,14 +4975,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMA_SetSphereParams(SO, -0.1);
                     }  // sets the spheriosity parameters
 
-                    Bool SurfIn = TRUE;
-                    /*
-                    SO->Group = (char *)SUMA_calloc(100, sizeof(char));
-                    SO->State = (char *)SUMA_calloc(100, sizeof(char));
-                    */
-
-                    // SO->Label = "Rectangle";
-
                     if (SO->isSphere == SUMA_GEOM_NOT_SET) {
                     SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
                     }
@@ -5056,48 +5048,47 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     and it has not been loaded previously, register it */
                     SO->MeshAxis = NULL;
                     SO->NodeDim = 3;
-                    if (SurfIn) {
-                        /* Change the defaults of Mesh axis to fit standard  */
-                        SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
 
-                        /*turn off the viewing for the axis */
-                        SO->ShowMeshAxis = NOPE;
+                    /* Change the defaults of Mesh axis to fit standard  */
+                    SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
 
-                        /* Create a Mesh Axis for the surface */
-                        SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
-                            if (SO->MeshAxis == NULL) {
-                            fprintf( SUMA_STDERR,
-                            "Error %s: Error Allocating axis\n", FuncName);
-                            SUMA_RETURN(NOPE);
-                        }
+                    /*turn off the viewing for the axis */
+                    SO->ShowMeshAxis = NOPE;
 
-                        // Store it into dov
-                        SO->patchNodeMask = NULL;
-                        sprintf(SO->Group, "DefGroup");
-                        SO->SphereRadius = -1.0;
-                        SO->SphereCenter[0] = -1.0;
-                        SO->SphereCenter[1] = -1.0;
-                        SO->SphereCenter[2] = -1.0;
-                        SO->LocalDomainParent = "SAME";
-                        if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
-                            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-                            return;
-                        }
+                    /* Create a Mesh Axis for the surface */
+                    SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
+                        if (SO->MeshAxis == NULL) {
+                        fprintf( SUMA_STDERR,
+                        "Error %s: Error Allocating axis\n", FuncName);
+                        SUMA_RETURN(NOPE);
+                    }
 
-                       N_dov = SUMAg_N_DOv-1;
-                        sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+                    // Store it into dov
+                    SO->patchNodeMask = NULL;
+                    sprintf(SO->Group, "DefGroup");
+                    SO->SphereRadius = -1.0;
+                    SO->SphereCenter[0] = -1.0;
+                    SO->SphereCenter[1] = -1.0;
+                    SO->SphereCenter[2] = -1.0;
+                    SO->LocalDomainParent = "SAME";
+                    if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
+                        fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+                        return;
+                    }
 
-                         /* register DO with viewer */
-                        if (!SUMA_RegisterDO(N_dov, sv)) {
-                           fprintf(SUMA_STDERR,
-                                    "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-                           SUMA_RETURN(NOPE);
-                        }
+                   N_dov = SUMAg_N_DOv-1;
+                    sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
 
-                        SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
-                        SO->Saux = SUMA_ADO_CSaux(ado);
-                        // SO->Saux = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Saux;
-                   }
+                     /* register DO with viewer */
+                    if (!SUMA_RegisterDO(N_dov, sv)) {
+                       fprintf(SUMA_STDERR,
+                                "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+                       SUMA_RETURN(NOPE);
+                    }
+
+                    SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
+                    SO->Saux = SUMA_ADO_CSaux(ado);
+
                    SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
                    SO->NodeList_swp = NULL;
                    SO->N_Overlays = 1;
