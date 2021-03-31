@@ -5095,10 +5095,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
 
                         SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
-                        // SO->Saux = SUMA_ADO_CSaux(ado);
-                        SO->Saux = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Saux;
+                        SO->Saux = SUMA_ADO_CSaux(ado);
+                        // SO->Saux = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Saux;
                    }
-                   SO->Show = 1;
+                   SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
                    SO->NodeList_swp = NULL;
                    SO->N_Overlays = 1;
                    SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
