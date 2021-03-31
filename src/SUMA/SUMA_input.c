@@ -4888,6 +4888,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 sv->clipPlaneIdentificationMode = !sv->clipPlaneIdentificationMode;
 
                 clipPlaneIdentificationMode = sv->clipPlaneIdentificationMode;
+
+                /* Color adjustment
                 if (sv->clipPlaneIdentificationMode){
                     // Turn off ambient lighting
                     for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
@@ -4914,6 +4916,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     glLightfv(GL_LIGHT0, GL_DIFFUSE, sv->light0_color);
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                 }
+                */
 
                 // Try setting vaiables from display
                 SUMA_DO *dov = SUMAg_DOv;
@@ -5158,6 +5161,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     SUMA_FillColorList (sv, (SUMA_ALL_DO *)SO);
 
                     // compareSurfaces(dov[N_dov-1].OP, SO);
+
+                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
 #endif
 
