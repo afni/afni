@@ -3,6 +3,211 @@
 
 #include "GL/glcorearb.h"
 
+SUMA_SurfaceObject *makeClipPlaneIdentificationPlane(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
+
+        // Set global variables
+        char *FuncName = "makeClipPlaneIdentificationPlane";
+        SUMA_DO *dov = SUMAg_DOv;
+        int N_dov = SUMAg_N_DOv-1;
+        SUMA_ALL_DO *ado;
+        ado = SUMA_SV_Focus_ADO(sv);
+
+        SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)malloc(sizeof(SUMA_SurfaceObject));
+        SO->N_Node = FS.N_Node;
+        // Save the pointers to NodeList and FaceSetList and
+        //  clear what is left of FS structure at the end
+        SO->NodeList = FS.NodeList;
+        SO->FaceSetList = FS.FaceSetList;
+
+        SO->N_FaceSet = FS.N_FaceSet;
+        SO->FaceSetDim = 3; //This must also be automated
+
+        SO->SUMA_VolPar_Aligned = NOPE;
+        SO->normdir = 1; // normals point out
+
+        if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+            SUMA_SetSphereParams(SO, -0.1);
+        }  // sets the spheriosity parameters
+
+        if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+        SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
+        }
+
+        SO->do_type = SO_type;
+        SO->MaxDims[0] = 100.0;
+        SO->MaxDims[1] = 100.0;
+        SO->MaxDims[2] = 100.0;
+        SO->MinDims[0] = -100.0;
+        SO->MinDims[1] = -100.0;
+        SO->MinDims[2] = -100.0;
+        SO->aMaxDims = 100.0;
+        SO->aMinDims = -100.0;
+        SO->SurfCont = NULL;
+
+        // SO->EmbedDim = 2;
+        SO->Side = SUMA_GuessSide (SO);
+        SO->AnatCorrect = NOPE;
+
+        SO->FileType = SUMA_FREE_SURFER;
+        SO->Name.Path = NULL;
+        SO->Name.FileName = NULL;
+        SO->idcode_str = "RectangleID";
+
+        SUMA_AutoLoad_SO_Dsets(SO);
+
+        /* set its MappingRef id to NULL if none is specified */
+        // make sure that specified Mapping ref had been loaded
+        SO->LocalDomainParentID =
+        (char *)calloc( strlen(SO->idcode_str)+1,
+                            sizeof(char));
+        sprintf(SO->idcode_str, "%s", SO->idcode_str);
+        if (SO->LocalDomainParentID == NULL) {
+            fprintf(stderr,
+            "Error SUMA_display_one: Failed to allocate for "
+            "SO->LocalDomainParentID. \n"
+            "That is pretty bad.\n");
+            return;
+        }
+
+        char sid[100];
+        SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
+            SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+        SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
+        /* change this in sync with string in macro
+        SUMA_BLANK_NEW_SPEC_SURF*/
+        sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
+        SO->State = SUMA_copy_string(sid);
+        sprintf(sid, "surf_%d", Opt->obj_type);
+        SO->Label = SUMA_copy_string(sid);
+        SO->EmbedDim = 3;
+        SO->AnatCorrect = NOPE;
+
+        /* make this surface friendly for suma */
+        if (!SUMA_PrepSO_GeomProp_GL(SO)) {
+           SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+        }
+
+        /* Add this surface to SUMA's displayable objects */
+        if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+           SUMA_S_Err("Failed to add mappable SOs ");
+        }
+
+        if (!SO->Group || !SO->State || !SO->Label) {
+            fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
+            SUMA_RETURN (NULL);
+        }
+
+        /* Non Mappable surfaces */
+        /* if the surface is loaded OK,
+        and it has not been loaded previously, register it */
+        SO->MeshAxis = NULL;
+        SO->NodeDim = 3;
+
+        /* Change the defaults of Mesh axis to fit standard  */
+        SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
+
+        /*turn off the viewing for the axis */
+        SO->ShowMeshAxis = NOPE;
+
+        /* Create a Mesh Axis for the surface */
+        SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
+            if (SO->MeshAxis == NULL) {
+            fprintf( SUMA_STDERR,
+            "Error %s: Error Allocating axis\n", FuncName);
+            SUMA_RETURN(NOPE);
+        }
+
+        // Store it into dov
+        SO->patchNodeMask = NULL;
+        sprintf(SO->Group, "DefGroup");
+        SO->SphereRadius = -1.0;
+        SO->SphereCenter[0] = -1.0;
+        SO->SphereCenter[1] = -1.0;
+        SO->SphereCenter[2] = -1.0;
+        SO->LocalDomainParent = "SAME";
+        if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
+            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+            return;
+        }
+
+       N_dov = SUMAg_N_DOv-1;
+        sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+
+         /* register DO with viewer */
+        if (!SUMA_RegisterDO(N_dov, sv)) {
+           fprintf(SUMA_STDERR,
+                    "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+           SUMA_RETURN(NOPE);
+        }
+
+        // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
+        SO->LocalDomainParentID = NULL;
+        SO->Saux = SUMA_ADO_CSaux(ado);
+
+       SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
+       SO->NodeList_swp = NULL;
+       SO->N_Overlays = 1;
+       SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
+
+        if (!SUMA_PrepSO_GeomProp_GL (SO)) {
+            SUMA_SL_Err("Failed to set surface's properties");
+        }
+
+        /* create the colorlist vector and calculate the surface metrics
+        with the possibility of inheriting from the mapping reference */
+        fprintf(stderr, "######################create the colorlist vector and calculate the surface metrics\n");
+        SUMA_SurfaceObject *SOinh = NULL;
+        int ifound = 1;
+
+        if (SO->LocalDomainParentID) {
+                ifound =  SUMA_findSO_inDOv ( SO->LocalDomainParentID,
+                                dov, N_dov);
+            if (ifound < 0) {
+                SOinh = NULL;
+            }else {
+                SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
+            }
+        } else SOinh = NULL;
+
+        // deal with surface controller
+        if (SOinh) {
+            // create a link to the surface controller pointer
+            if (!SO->SurfCont) {
+                SO->SurfCont = (SUMA_X_SurfCont*)
+                    SUMA_LinkToPointer((void *)SOinh->SurfCont);
+            } else {
+                fprintf(stderr, "Surface Controller Exists Already (c)\n");
+            }
+        } else {
+            // brand new one
+            if (!SO->SurfCont) {
+                SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str,
+                                              SO_type);
+            } else {
+                fprintf(stderr,"Surface Controller Exists Already (d)\n");
+            }
+        }
+
+        if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace",
+                         SOinh, FALSE, SUMAg_CF->DsetList)) {
+            fprintf (stderr,
+            "Error %s: Failed in SUMA_SurfaceMetrics.\n",
+            FuncName);
+            return;
+        }
+
+        // sv->ColList[] = NULL;
+        if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
+                                    SUMA_AutoLoad_SO_Dsets(SO);
+
+        sv->ColList[N_dov] = NULL;
+        SUMA_FillColorList (sv, (SUMA_ALL_DO *)SO);
+
+        // compareSurfaces(dov[N_dov-1].OP, SO);
+
+    return SO;
+}
+
 void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "Beginning surface comparison\n");
 
@@ -4881,7 +5086,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
             } else if (SUMAg_CF->N_ClipPlanes>=0) {
 
-#if 1
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
                 // Turn on light in front of selected clipping plane.
@@ -4918,17 +5122,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 */
 
-                // Try setting vaiables from display
-                SUMA_DO *dov = SUMAg_DOv;
-                int N_dov = SUMAg_N_DOv-1;
-                SUMA_ALL_DO *ado;
-                ado = SUMA_SV_Focus_ADO(sv);
-
                 if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.  This actually works
 
                    int inc=0;
                     static SUMA_FreeSurfer_struct FS;
-                    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)malloc(sizeof(SUMA_SurfaceObject));
 
                     FS.N_Node = 4;
                     FS.N_FaceSet = 3;
@@ -4959,257 +5156,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.FaceSetList[inc++] = 0;
                     FS.FaceSetList[inc++] = 1;
 
-                    SO->N_Node = FS.N_Node;
-                    // Save the pointers to NodeList and FaceSetList and
-                    //  clear what is left of FS structure at the end
-                    SO->NodeList = FS.NodeList;
-                    SO->FaceSetList = FS.FaceSetList;
-
-                    SO->N_FaceSet = FS.N_FaceSet;
-                    SO->FaceSetDim = 3; //This must also be automated
-
-                    SO->SUMA_VolPar_Aligned = NOPE;
-                    SO->normdir = 1; // normals point out
-
-                    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-                        SUMA_SetSphereParams(SO, -0.1);
-                    }  // sets the spheriosity parameters
-
-                    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-                    SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
-                    }
-
-                    SO->do_type = SO_type;
-                    SO->MaxDims[0] = 100.0;
-                    SO->MaxDims[1] = 100.0;
-                    SO->MaxDims[2] = 100.0;
-                    SO->MinDims[0] = -100.0;
-                    SO->MinDims[1] = -100.0;
-                    SO->MinDims[2] = -100.0;
-                    SO->aMaxDims = 100.0;
-                    SO->aMinDims = -100.0;
-                    SO->SurfCont = NULL;
-
-                    // SO->EmbedDim = 2;
-                    SO->Side = SUMA_GuessSide (SO);
-                    SO->AnatCorrect = NOPE;
-
-                    SO->FileType = SUMA_FREE_SURFER;
-                    SO->Name.Path = NULL;
-                    SO->Name.FileName = NULL;
-                    SO->idcode_str = "RectangleID";
-
-                    SUMA_AutoLoad_SO_Dsets(SO);
-
-                    /* set its MappingRef id to NULL if none is specified */
-                    // make sure that specified Mapping ref had been loaded
-                    SO->LocalDomainParentID =
-                    (char *)calloc( strlen(SO->idcode_str)+1,
-                                        sizeof(char));
-                    sprintf(SO->idcode_str, "%s", SO->idcode_str);
-                    if (SO->LocalDomainParentID == NULL) {
-                        fprintf(stderr,
-                        "Error SUMA_display_one: Failed to allocate for "
-                        "SO->LocalDomainParentID. \n"
-                        "That is pretty bad.\n");
-                        return;
-                    }
-
-                    char sid[100];
-                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
-                        SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
-                    SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
-                    /* change this in sync with string in macro
-                    SUMA_BLANK_NEW_SPEC_SURF*/
-                    sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
-                    SO->State = SUMA_copy_string(sid);
-                    sprintf(sid, "surf_%d", Opt->obj_type);
-                    SO->Label = SUMA_copy_string(sid);
-                    SO->EmbedDim = 3;
-                    SO->AnatCorrect = NOPE;
-
-                    /* make this surface friendly for suma */
-                    if (!SUMA_PrepSO_GeomProp_GL(SO)) {
-                       SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
-                    }
-
-                    /* Add this surface to SUMA's displayable objects */
-                    if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
-                       SUMA_S_Err("Failed to add mappable SOs ");
-                    }
-
-                    if (!SO->Group || !SO->State || !SO->Label) {
-                        fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
-                        SUMA_RETURN (NULL);
-                    }
-
-                    /* Non Mappable surfaces */
-                    /* if the surface is loaded OK,
-                    and it has not been loaded previously, register it */
-                    SO->MeshAxis = NULL;
-                    SO->NodeDim = 3;
-
-                    /* Change the defaults of Mesh axis to fit standard  */
-                    SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
-
-                    /*turn off the viewing for the axis */
-                    SO->ShowMeshAxis = NOPE;
-
-                    /* Create a Mesh Axis for the surface */
-                    SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
-                        if (SO->MeshAxis == NULL) {
-                        fprintf( SUMA_STDERR,
-                        "Error %s: Error Allocating axis\n", FuncName);
-                        SUMA_RETURN(NOPE);
-                    }
-
-                    // Store it into dov
-                    SO->patchNodeMask = NULL;
-                    sprintf(SO->Group, "DefGroup");
-                    SO->SphereRadius = -1.0;
-                    SO->SphereCenter[0] = -1.0;
-                    SO->SphereCenter[1] = -1.0;
-                    SO->SphereCenter[2] = -1.0;
-                    SO->LocalDomainParent = "SAME";
-                    if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
-                        fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-                        return;
-                    }
-
-                   N_dov = SUMAg_N_DOv-1;
-                    sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
-
-                     /* register DO with viewer */
-                    if (!SUMA_RegisterDO(N_dov, sv)) {
-                       fprintf(SUMA_STDERR,
-                                "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-                       SUMA_RETURN(NOPE);
-                    }
-
-                    SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
-                    SO->Saux = SUMA_ADO_CSaux(ado);
-
-                   SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
-                   SO->NodeList_swp = NULL;
-                   SO->N_Overlays = 1;
-                   SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
-
-                    fprintf(stderr,"sv->ColList[N_dov] = %p\n", sv->ColList[N_dov]);
-
-                    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
-                        SUMA_SL_Err("Failed to set surface's properties");
-                    }
-
-                    #if 1
-                    /* create the colorlist vector and calculate the surface metrics
-                    with the possibility of inheriting from the mapping reference */
-                    fprintf(stderr, "######################create the colorlist vector and calculate the surface metrics\n");
-                    SUMA_SurfaceObject *SOinh = NULL;
-                    int ifound = 1;
-
-                    if (SO->LocalDomainParentID) {
-                            ifound =  SUMA_findSO_inDOv ( SO->LocalDomainParentID,
-                                            dov, N_dov);
-                        if (ifound < 0) {
-                            SOinh = NULL;
-                        }else {
-                            SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
-                        }
-                    } else SOinh = NULL;
-
-                    // deal with surface controller
-                    if (SOinh) {
-                        // create a link to the surface controller pointer
-                        if (!SO->SurfCont) {
-                            SO->SurfCont = (SUMA_X_SurfCont*)
-                                SUMA_LinkToPointer((void *)SOinh->SurfCont);
-                        } else {
-                            fprintf(stderr, "Surface Controller Exists Already (c)\n");
-                        }
-                    } else {
-                        // brand new one
-                        if (!SO->SurfCont) {
-                            SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str,
-                                                          SO_type);
-                        } else {
-                            fprintf(stderr,"Surface Controller Exists Already (d)\n");
-                        }
-                    }
-
-                    if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace",
-                                     SOinh, FALSE, SUMAg_CF->DsetList)) {
-                        fprintf (stderr,
-                        "Error %s: Failed in SUMA_SurfaceMetrics.\n",
-                        FuncName);
-                        return;
-                    }
-
-                    // sv->ColList[] = NULL;
-                    if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
-                                                SUMA_AutoLoad_SO_Dsets(SO);
-
-                    sv->ColList[N_dov] = NULL;
-                    SUMA_FillColorList (sv, (SUMA_ALL_DO *)SO);
-
-                    // compareSurfaces(dov[N_dov-1].OP, SO);
+                    SUMA_SurfaceObject *SO = makeClipPlaneIdentificationPlane(sv, FS);
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-
-#endif
-
-
-                    /*
-                    free(FS.NodeList );
-                    free(FS.FaceSetList );
-                    free(SO->Group );
-                    free(SO->State );
-                    free(SO->MeshAxis);
-                    free(SO->LocalDomainParentID);
-                    */
-
-
-
-                    /*
-                    float **PlEq = (float **)malloc(sizeof(float *));
-                    float **cen = (float **)malloc(sizeof(float *));
-                    float *sz = NULL;
-                    int N_pl = 1;
-
-                    PlEq[0] = (float *)calloc(4,sizeof(float));
-                    cen[0] = (float *)calloc(3, sizeof(float));
-
-                    PlEq[0][1] = 1.0;
-                    PlEq[0][2] = 1.0;
-                    PlEq[0][3] = -100.0;
-
-                    cen[0][0] = 20.0;
-                    cen[0][1] = 65.0;
-                    cen[0][2] = -20.0;
-
-                    // fprintf(stderr, "SUMA_Display.c SUMA_DrawPlanes\n");
-                    glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_SVv[0].light0_position);
-                    SUMA_DrawPlanes( PlEq, cen, sz, N_pl, csv);
-
-                    free(PlEq[0]);
-                    free(PlEq);
-                    free(cen[0]);
-                    free(cen);
-                    */
-
                 }
-#endif
-
-/*
-                drawClipPlane(0.0, 0.0, 0.0, 0.0, w, sv, isv);
-
-                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
-
-                // Refresh the window
-                list = SUMA_CreateList();
-                SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay,
-                                                  SES_Suma, sv);
-                                                  */
-
             }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
