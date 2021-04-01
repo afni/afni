@@ -39,7 +39,7 @@ help.PTA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to PTA ==================
                Program for Profile Tracking Analysis (PTA)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Mar 3, 2021
+Version 0.0.3, Mar 30, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -934,8 +934,10 @@ if (lop$interactive) {  # GUI mode
    }
    lop$model <- as.formula(paste0(lop$Y, '~', lop$model))
    nr <- nrow(lop$prediction)
-   lop$Pred <- lop$prediction[rep(seq_len(nr), times=nlevels(lop$dat[, lop$vt[1]])), ]
-   lop$Pred[,lop$vt[1]] <- as.factor(rep(levels(lop$dat[,lop$vt[1]]), each = nr))
+   if(is.null(lop$vt)) lop$Pred <- lop$prediction else {
+      lop$Pred <- lop$prediction[rep(seq_len(nr), times=nlevels(lop$dat[, lop$vt[1]])), ]
+      lop$Pred[,lop$vt[1]] <- as.factor(rep(levels(lop$dat[,lop$vt[1]]), each = nr))
+   }
 
    require(mgcv)
    try(fm <- gam(lop$model, data=lop$dat, method='REML'), silent=TRUE)
