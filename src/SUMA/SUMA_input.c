@@ -3,10 +3,10 @@
 
 #include "GL/glcorearb.h"
 
-SUMA_SurfaceObject *makeClipPlaneIdentificationPlane(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
 
         // Set global variables
-        char *FuncName = "makeClipPlaneIdentificationPlane";
+        char *FuncName = "drawPlaneFromNodeAndFaceSetList";
         SUMA_DO *dov = SUMAg_DOv;
         int N_dov = SUMAg_N_DOv-1;
         SUMA_ALL_DO *ado;
@@ -504,6 +504,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
 SUMA_Boolean SUMA_DrawPlanes2( float **PlEq, float **cen, float *sz,
                               int N_pl, SUMA_SurfaceViewer *sv)
+    // PDL: Developmental program that doesn'treally work in its present form
 {
    static char FuncName[]={"SUMA_DrawPlane"};
    SUMA_PlaneDO *SDO=NULL;
@@ -573,6 +574,7 @@ SUMA_Boolean SUMA_DrawPlanes2( float **PlEq, float **cen, float *sz,
 }
 
 void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget wTemp,
+    // PDL: Developmental program that doesn'treally work in its present form
     SUMA_SurfaceViewer *sv, int isv){
     float plane[4] = {planeA, planeB, planeC, planeD};
     float points[4][3];
@@ -727,6 +729,113 @@ void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widge
     // TODO: Add code
 }
 
+ void getPlanePtClosestToViewerOrigin(float *plane, float *point){
+    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
+    point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
+    k = D/(A^2 + B^2 + C^2)
+    */
+
+    float k = plane[3]/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
+
+    for (int i=0; i<3; ++i) point[i] = k*plane[i];
+}
+
+void crossProduct(float input1[], float input2[], float output[]){
+    output[0] = (input1[1]*input2[2]) - (input1[2]*input2[1]);
+    output[1] = (input1[2]*input2[0]) - (input1[0]*input2[2]);
+    output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
+}
+
+void getSquareOnPlane(float *plane, float points[4][3]){
+
+    float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
+    float   divisor;
+
+    // Get plane point closest to view origin
+    getPlanePtClosestToViewerOrigin(plane, planeOrigin);
+
+    // Get other point on plane.  Adjust x and determine y to setisfy Ax+By+Cz=D
+    otherPoint[0]=planeOrigin[0]+10.0;
+    otherPoint[2]=planeOrigin[2];
+    otherPoint[1]=(plane[3]-(plane[0]*otherPoint[0])-(plane[2]*otherPoint[2]))/plane[1];
+
+    // Debug
+    fprintf(stderr, "Plane origin = <%f, %f, %f>\n", planeOrigin[0], planeOrigin[1], planeOrigin[2]);
+    fprintf(stderr, "Other point = <%f, %f, %f>\n", otherPoint[0], otherPoint[1], otherPoint[2]);
+
+    // Get normal vector of plane
+    divisor = sqrt((plane[0]*plane[0]) + (plane[1]*plane[1]) + (plane[2]*plane[2]));
+    for (int i=0; i<3; ++i ) normal[i] = plane[i]/divisor;
+
+    // Debug
+    fprintf(stderr, "Normal = <%f, %f, %f>\n", normal[0], normal[1], normal[2]);
+
+    // Get unnormalized tangent of plane
+    for (int i=0; i<3; ++i ) tangent[i] = otherPoint[i] - planeOrigin[i];
+
+    // Normalize tangent
+    divisor = sqrt((tangent[0]*tangent[0]) + (tangent[1]*tangent[1]) + (tangent[2]*tangent[2]));
+    for (int i=0; i<3; ++i ) tangent[i] = tangent[i]/divisor;
+
+    // Debug
+    fprintf(stderr, "Tangent = <%f, %f, %f>\n", tangent[0], tangent[1], tangent[2]);
+
+    // Get bitangent which is the cross product of the tangent and the normal
+    crossProduct(tangent, normal, bitangent);
+
+    // Debug
+    fprintf(stderr, "Bitangent = <%f, %f, %f>\n", bitangent[0], bitangent[1], bitangent[2]);
+
+
+
+
+
+/*
+    double normalVector[3] = {plane[0],plane[1],plane[2]};
+    double divisor=sqrt((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
+    float origin[3];
+
+    for (int i=0; i<3; ++i){
+        normalVector[i] /= divisor;
+        origin [i] = normalVector[i]*plane[3];
+    }
+
+    // First point
+    points[0][0]=x;
+    points[0][1]=y;
+    points[0][2]=z;
+
+    // Second point
+    x+=50;
+    y=D-x-z;
+    points[1][0]=x;
+    points[1][1]=y;
+    points[1][2]=z;
+
+    // Third point
+    x-=50;
+    y=-plane[1]*D/divisor+50;
+    z=D-x-y;
+    points[2][0]=x;
+    points[2][1]=y;
+    points[2][2]=z;
+
+    // Fourth point
+    y-=50;
+    z=-plane[2]*D/divisor+50;
+    x=D-z-y;
+    points[3][0]=x;
+    points[3][1]=y;
+    points[3][2]=z;
+
+    // Debug
+    for (int i=0; i<4; ++i){
+        fprintf(stderr, "point %d = (%f, %f, %f)\n", i,
+            points[i][0], points[i][1], points[i][2]);
+    }
+    */
+}
+
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
 
     float divisor=plane[0]+plane[1]+plane[2];
@@ -771,33 +880,6 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
     }
 }
 
-/*
-void DrawPlane(const Vector3 * center, const Vector3 * laneNormal, float planeScale, float normalVecScale,
-    const fColorRGBA * planeColor, const fColorRGBA * normalVecColor)
-{
-    Vector3 tangent, bitangent;
-    OrthogonalBasis(planeNormal, tangent, bitangent);
-
-    const Vector3 v1(center - (tangent * planeScale) - (bitangent * planeScale));
-    const Vector3 v2(center + (tangent * planeScale) - (bitangent * planeScale));
-    const Vector3 v3(center + (tangent * planeScale) + (bitangent * planeScale));
-    const Vector3 v4(center - (tangent * planeScale) + (bitangent * planeScale));
-
-    // Draw wireframe plane quadrilateral:
-    DrawLine(v1, v2, planeColor);
-    DrawLine(v2, v3, planeColor);
-    DrawLine(v3, v4, planeColor);
-    DrawLine(v4, v1, planeColor);
-
-    // And a line depicting the plane normal:
-    const Vector3 pvn(
-       (center[0] + planeNormal[0] * normalVecScale),
-       (center[1] + planeNormal[1] * normalVecScale),
-       (center[2] + planeNormal[2] * normalVecScale)
-    );
-    DrawLine(center, pvn, normalVecColor);
-}
-*/
 /*!
    Return the code for the key that is specified in keyin
 */
@@ -5124,13 +5206,29 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                 if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.  This actually works
 
-                   int inc=0;
+                    float plane[4], points[4][3];
+
+                    // Test values for plane
+                    for (int i=0; i<3; ++i) plane[i]=i+1.0;
+                    plane[3]=10.0;
+
+                    getFourCoordsJustInsideClipPlane(plane, points);
+
+                    getSquareOnPlane(plane, points);
+
+
+
                     static SUMA_FreeSurfer_struct FS;
 
                     FS.N_Node = 4;
                     FS.N_FaceSet = 3;
 
                     FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
+                    int inc=0;
+                    for (int i=0; i<4; ++i)
+                        for (int j=0; j<3; ++j)
+                            FS.NodeList[inc++] = points[i][j];
+                    /*
                     FS.NodeList[inc++] = -100.065079;
                     FS.NodeList[inc++] = 52.573112;
                     FS.NodeList[inc++] = 0.000000;
@@ -5143,6 +5241,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.NodeList[inc++] = -100.065079;
                     FS.NodeList[inc++] = -52.573112;
                     FS.NodeList[inc++] = 0.000000;
+                    */
 
                     FS.FaceSetList = (float *)malloc(FS.N_FaceSet*3*sizeof(int));
                     inc = 0;
@@ -5156,7 +5255,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.FaceSetList[inc++] = 0;
                     FS.FaceSetList[inc++] = 1;
 
-                    SUMA_SurfaceObject *SO = makeClipPlaneIdentificationPlane(sv, FS);
+                    SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                 }

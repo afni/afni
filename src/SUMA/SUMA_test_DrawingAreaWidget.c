@@ -1,32 +1,7 @@
 
 #include <stdio.h>
 
-#ifdef BUILD_WITHOUT_SUMA
-
-   /* -----------------------------------------------------------------
-      If BUILD_WITHOUT_SUMA, compile as a standalone that does not
-      depend on SUMA.
-      In this case, one should be able to compile using something like:
-     
-         gcc -DBUILD_WITHOUT_SUMA -o IlikeJello  \
-             SUMA_test_DrawingAreaWidget.c -I/usr/include/GL -lGLw
-    * ----------------------------------------------------------------- */
-
-   #include <X11/IntrinsicP.h>
-   #include <X11/StringDefs.h>
-
-#else
-
-   /* -----------------------------------------------------------------
-      By default, compile as a normal SUMA program.
-     
-         make SUMA_test_DrawingAreaWidget
-    * ----------------------------------------------------------------- */
-
-   #include "../suma_suma.h"
-
-#endif
-
+#include "../suma_suma.h"
 
 #ifdef SUMA_MOTIF_GLXAREA
    #include <GL/GLwMDrawA.h>

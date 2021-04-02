@@ -38,6 +38,11 @@ typedef struct {
    char *type;
 } SUMA_SAVE_LIST_EL;
 
+typedef struct sVector3
+{
+    float x, y, z;
+} Vector3;
+
 
 int SUMA_KeyPress(char *key, char *keyname);
 int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
@@ -191,6 +196,12 @@ void SUMA_SetRotCenter (char *s, void *data);
 // PDL
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane,
     Bool toggleOffOn);
+void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget w,
+    SUMA_SurfaceViewer *sv, int isv);
+void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
+
+// static int clipPlaneIndex;
+static Bool clipPlaneIdentificationMode;
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke
