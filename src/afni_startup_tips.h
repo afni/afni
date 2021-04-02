@@ -892,6 +892,7 @@ static char *gby[] = {
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- Man but walks in a vain shadow"                    ,
      "Remember -- The laws of physics always win"                    ,
      "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,

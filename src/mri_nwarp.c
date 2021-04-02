@@ -1466,6 +1466,152 @@ ENTRY("THD_nwarp_extend") ;
    RETURN(qset) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Find the bounding box for the warp, which is defined 2 ways:
+    A) the box that includes all displacments > dthr
+    B) the box that includes the displaced locations of all voxels
+       with displacment > dthr
+   It is possible (if unlikely) that the box will actually be bigger
+   than the warp grid, due to condition B.
+*//*-------------------------------------------------------------------------*/
+
+int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr )
+{
+   int qq , nx,ny,nz,nxy,nxyz , ii,jj,kk ;
+   float di,dj,dk , dx,dy,dz,dq ,  *xda,*yda,*zda ;
+   MRI_IMAGE *qim ; byte *qmm ;
+   int   ibot,itop,jbot,jtop,kbot,ktop ; int_sextet sext={0,0,0,0,0,0} ;
+   float xbot,xtop,ybot,ytop,zbot,ztop ;
+
+   if( AA == NULL ) return sext ;
+
+   if( fac  == 0.0f ) fac  = 1.0f ;
+   if( dthr == 0.0f ) dthr = 0.09999f ;
+   dthr = dthr*dthr ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   xbot = ybot = zbot =  999999.9f ;
+   xtop = ytop = ztop = -999999.9f ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   qim = mri_new_vol( nx,ny,nz , MRI_byte ) ;  /* mask of above threshold */
+   qmm = MRI_BYTE_PTR(qim) ;                   /* displacments */
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+
+     dx = fabsf(fac * xda[qq]) ;
+     dy = fabsf(fac * yda[qq]) ;
+     dz = fabsf(fac * zda[qq]) ; dq = dx*dx+dy*dy+dz*dz ;
+
+     qmm[qq] = ( dq > dthr ) ; /* mask that displacement is "big" or not */
+
+     if( qmm[qq] == 0 ) continue ;  /* not in mask ==> dont check */
+
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+
+     di = ii - dx ; if( di < xbot ) xbot = di ;
+     di = ii + dx ; if( di > xtop ) xtop = di ;
+
+     dj = jj - dy ; if( dj < ybot ) ybot = dj ;
+     dj = jj + dy ; if( dj > ytop ) ytop = dj ;
+
+     dk = kk - dz ; if( dk < zbot ) zbot = dk ;
+     dk = kk + dz ; if( dk > ztop ) ztop = dk ;
+   }
+
+   /* box from mask of "big" displacments */
+
+   MRI_autobbox_byte( qim , &ibot,&itop , &jbot,&jtop , &kbot,&ktop ) ;
+   mri_free(qim) ;
+
+   /* extend it if some displacment goes farther than the above box */
+
+   if( xbot < ibot ) ibot = (int)floorf(xbot) ;
+   if( ybot < jbot ) jbot = (int)floorf(ybot) ;
+   if( zbot < kbot ) kbot = (int)floorf(zbot) ;
+   if( xtop > itop ) itop = (int)ceilf (xtop) ;
+   if( ytop > jtop ) jtop = (int)ceilf (ytop) ;
+   if( ztop > ktop ) ktop = (int)ceilf (ztop) ;
+
+   sext.a = ibot ; sext.b = itop ;
+   sext.c = jbot ; sext.d = jtop ;
+   sext.e = kbot ; sext.f = ktop ;
+
+   return sext ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Mistaken duplicate of the above  [29 Mar 2021] */
+
+int_sextet IW3D_bounding_box( IndexWarp3D *AA , float thresh )
+{
+#if 1
+   return IW3D_warpbox( AA , 1.0f , thresh ) ;
+#else
+   MRI_IMAGE *bim ; byte *bar ; int_sextet sbox={0,0,0,0,0,0} ;
+   int nx,ny,nz , nxy,nxyz , ii , aa=0,bb=0,cc=0,dd=0,ee=0,ff=0 ;
+   float val , *xd,*yd,*zd ;
+
+ENTRY("IW3D_bounding_box") ;
+
+   if( AA == NULL ) RETURN(sbox) ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   xd = AA->xd ; yd = AA->yd ; zd = AA->zd ;
+
+   bim = mri_new_vol( nx,ny,nz , MRI_byte ) ;
+   bar = MRI_BYTE_PTR(bim) ;
+
+   if( thresh < 0.0f ) thresh = 0.099999f ;
+   thresh = thresh*thresh ;
+
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     val = xd[ii]*xd[ii] + yd[ii]+yd[ii] + zd[ii]*zd[ii] ;
+     bar[ii] = (val > thresh) ;
+   }
+
+   MRI_autobbox_byte( bim , &aa,&bb,&cc,&dd,&ee,&ff ) ;
+   sbox.a = aa ; sbox.b = bb ; sbox.c = cc ;
+   sbox.d = dd ; sbox.e = ee ; sbox.f = ff ;
+
+   mri_free(bim) ; RETURN(sbox) ;
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+/* Zero out an index warp outside of its bounding box [29 Mar 2021] */
+
+void IW3D_bounding_box_clear( IndexWarp3D *AA , float thresh )
+{
+   float *xd,*yd,*zd ;
+   int_sextet sbox ;
+   int nx,ny,nz,nxy,nxyz , ii,jj,kk,qq , ibot,itop , jbot,jtop , kbot,ktop ;
+
+ENTRY("IW3D_bounding_box_clear") ;
+
+   if( AA == NULL ) EXRETURN ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   xd = AA->xd ; yd = AA->yd ; zd = AA->zd ;
+
+   sbox = IW3D_bounding_box( AA , thresh ) ;
+   ibot = sbox.a ; itop = sbox.b ;
+   jbot = sbox.c ; jtop = sbox.d ;
+   kbot = sbox.e ; ktop = sbox.f ;
+   if( ibot==0 && itop==0 && jbot==0 && jtop==0 && kbot==0 && ktop==0 ) EXRETURN ;
+
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     if( !( ii >= ibot && ii <= itop &&
+            jj >= jbot && jj <= jtop &&
+            kk >= kbot && kk <= ktop   ) ){ xd[qq] = yd[qq] = zd[qq] = 0.0f ; }
+   }
+
+   EXRETURN ;
+}
+
 #endif /*(C4)*/ /*###########################################################*/
 
 #if 1
@@ -1589,79 +1735,6 @@ ENTRY("THD_nwarp_maxdisp") ;
      val = fabsf(zd[ii]) ; if( val > dz ) dz = val ;
    }
    dxyz.a = dx ; dxyz.b = dy ; dxyz.c = dz ; RETURN(dxyz) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* Find the bounding box for the warp, which is defined 2 ways:
-    A) the box that includes all displacments > dthr
-    B) the box that includes the displaced locations of all voxels
-       with displacment > dthr
-   It is possible (if unlikely) that the box will actually be bigger
-   than the warp grid, due to condition B.
-*//*-------------------------------------------------------------------------*/
-
-int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr )
-{
-   int qq , nx,ny,nz,nxy,nxyz , ii,jj,kk ;
-   float di,dj,dk , dx,dy,dz ,  *xda,*yda,*zda ;
-   MRI_IMAGE *qim ; byte *qmm ;
-   int   ibot,itop,jbot,jtop,kbot,ktop ; int_sextet sext={0,0,0,0,0,0} ;
-   float xbot,xtop,ybot,ytop,zbot,ztop ;
-
-   if( AA == NULL ) return sext ;
-
-   if( fac <= 0.0f ) fac  = 1.0f ;
-   if( dthr < 0.0f ) dthr = 0.0f ;
-
-   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
-
-   xbot = ybot = zbot =  999999.9f ;
-   xtop = ytop = ztop = -999999.9f ;
-
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-
-   qim = mri_new_vol( nx,ny,nz , MRI_byte ) ;  /* mask of above threshold */
-   qmm = MRI_BYTE_PTR(qim) ;                   /* displacments */
-
-   for( qq=0 ; qq < nxyz ; qq++ ){
-
-     dx = fabsf(fac * xda[qq]) ;
-     dy = fabsf(fac * yda[qq]) ;
-     dz = fabsf(fac * zda[qq]) ;
-
-     qmm[qq] = ( (dx+dy+dz) > dthr ) ; /* mask displacement is big */
-
-     if( qmm[qq] == 0 ) continue ;
-
-     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-
-     di = ii - dx ; if( di < xbot ) xbot = di ;
-     di = ii + dx ; if( di > xtop ) xtop = di ;
-
-     dy = fabsf(fac * yda[qq]) ;
-     dj = jj - dy ; if( dj < ybot ) ybot = dj ;
-     dj = jj + dy ; if( dj > ytop ) ytop = dj ;
-
-     dz = fabsf(fac * zda[qq]) ;
-     dk = kk - dz ; if( dk < zbot ) zbot = dk ;
-     dk = kk + dz ; if( dk > ztop ) ztop = dk ;
-   }
-
-   MRI_autobbox_byte( qim , &ibot,&itop , &jbot,&jtop , &kbot,&ktop ) ;
-   mri_free(qim) ;
-
-   if( xbot < ibot ) ibot = (int)floorf(xbot) ;
-   if( ybot < jbot ) jbot = (int)floorf(ybot) ;
-   if( zbot < kbot ) kbot = (int)floorf(zbot) ;
-   if( xtop > itop ) itop = (int)ceilf (xtop) ;
-   if( ytop > jtop ) jtop = (int)ceilf (ytop) ;
-   if( ztop > ktop ) ktop = (int)ceilf (ztop) ;
-
-   sext.a = ibot ; sext.b = itop ;
-   sext.c = jbot ; sext.d = jtop ;
-   sext.e = kbot ; sext.f = ktop ;
-
-   return sext ;
 }
 
 /*===========================================================================*/
@@ -7624,7 +7697,8 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
        (2a) IW3D_warpomatic() == produces the optimized warp, by driving
                                  IW3D_improve_warp() over global and then
                                  local (overlapping) patches
-        (3a) IW3D_setup_for_improvement() == sets up data for warp optimizing
+        (3a) IW3D_setup_for_improvement() == sets up data for warp optimizing;
+                                             called at IW3D_warpomatic() start
          (4) IW3D_load_energy() == compute 'energy' fields for global warp
                                    as it is now, for warp penalty later
                                    -- if the inital warp (S2BIM_iwarp) is
@@ -7945,11 +8019,11 @@ static float save_H_zero = 0 ;
 
 /*---------- Code and variables for '-inedge' enhancement [Jul 2018] ---------*/
 
-#define ALLOW_INEDGE
+#undef ALLOW_INEDGE
 
 #ifdef ALLOW_INEDGE
 # include "mri_intedge.c"
-  static int   Hinedge_erode = 4 ;
+  static int   Hinedge_erode = 3 ;
   static float Hinedge_frac  = 0.333f ;
   static int   Hinedge_doit  = 0 ;
 #endif
@@ -8191,12 +8265,12 @@ static INLINE float_triple HQwarp_eval_basis( float x )
 
 /* Rational possibilities here are:
             ILEFT = 0    IRGHT = n-1    :: 0 at last grid point
-            ILEFT = -1/2 IRGHT = n-1/2  :: 0 halfway past last grid point
+            ILEFT = -1/2 IRGHT = n-1/2  :: 0 halfway outside last grid point
             ILEFT = -1   IRGHT = n      :: 0 at next grid point outside patch
    Note that all the basis functions are 0 when evaluated at x=-1 or +1.      */
 
 #define ILEFT    (-0.5f)        /* and these are the choices made by Zhark */
-#define IRGHT(n) ((n)-0.5f)
+#define IRGHT(n) ((n)-0.5f)     /* are they "best"? only The Shadow knows! */
 
 #define COMPUTE_CAB(n)                                                   \
   do{ cb = 2.0f / (IRGHT(n)-ILEFT) ; ca = -1.0f - cb*ILEFT ; } while(0)
@@ -10150,9 +10224,11 @@ ENTRY("IW3D_setup_for_improvement") ;
 
 #ifdef ALLOW_INEDGE /* Jul 2018 */
    if( Hinedge_doit ){
+     int be,ce ;
      if( Hverb > 1 ) ININFO_message("  enhancing interior edges of base and source") ;
-     mri_interior_edgeize( Hbasim , Hinedge_erode , Hinedge_frac ) ;
-     mri_interior_edgeize( Hsrcim , Hinedge_erode , Hinedge_frac ) ;
+     be = mri_interior_edgeize( Hbasim , Hinedge_erode , Hinedge_frac ) ;
+     ce = mri_interior_edgeize( Hsrcim , Hinedge_erode , Hinedge_frac ) ;
+     if( Hverb > 1 ) ININFO_message("    enhancement counts: base = %d  source = %d",be,ce) ;
    }
 #endif
 
@@ -11003,12 +11079,15 @@ ENTRY("IW3D_warpomatic") ;
 
      /* bbbottom and tttop indexes to warp over */
 
-     ibbb = imin-xdel/2-1 ; if( ibbb <  0   ) ibbb = 0 ;
-     jbbb = jmin-ydel/2-1 ; if( jbbb <  0   ) jbbb = 0 ;
-     kbbb = kmin-zdel/2-1 ; if( kbbb <  0   ) kbbb = 0 ;
-     ittt = imax+xdel/2+1 ; if( ittt >= Hnx ) ittt = Hnx-1 ;
-     jttt = jmax+ydel/2+1 ; if( jttt >= Hny ) jttt = Hny-1 ;
-     kttt = kmax+zdel/2+1 ; if( kttt >= Hnz ) kttt = Hnz-1 ;
+     ibbb = imin-xdel/4-1 ; if( ibbb <= 0     ) ibbb = 1 ;
+     jbbb = jmin-ydel/4-1 ; if( jbbb <= 0     ) jbbb = 1 ;
+     kbbb = kmin-zdel/4-1 ; if( kbbb <= 0     ) kbbb = 2 ;
+     ittt = imax+xdel/4+1 ; if( ittt >= Hnx-1 ) ittt = Hnx-2 ;
+     jttt = jmax+ydel/4+1 ; if( jttt >= Hny-1 ) jttt = Hny-2 ;
+     kttt = kmax+zdel/4+1 ; if( kttt >= Hnz-1 ) kttt = Hnz-2 ;
+     if( Hnx == 1 ){ ibbb = ittt = 0 ; }
+     if( Hny == 1 ){ jbbb = jttt = 0 ; }
+     if( Hnz == 1 ){ kbbb = kttt = 0 ; }
 
      zmode = zmode2 = cmode ;      /* cubic patches from here on down */
      do_qfinal = (Hfinal && Hqfinal) ;
@@ -11051,15 +11130,17 @@ ENTRY("IW3D_warpomatic") ;
 
      if( cmode == MRI_SINCC ){ nlevr = 2 ; nsup = 1 ; } /* sincc mode ==> must work hard */
 
-     if( Hverb > 1 )
+     if( Hverb > 1 ){
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
                       lev,xwid,ywid,zwid,Hfactor,
                       (Hpen_use)?Hpen_fff:0.0f ,
                       (levdone   ? "FINAL"  : "\0") ,
                       (nlevr > 1 ? "WORKHARD" : "\0") ,
                       nice_time_string(NI_clock_time()) ) ;
-     else if( Hverb == 1 )
+       ININFO_message("  .........  volume = %d..%d  %d..%d  %d..%d" , ibbb,ittt , jbbb,jttt , kbbb,kttt ) ;
+     } else if( Hverb == 1 ) {
        fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
+     }
      if( Hverb > 1 ) MEMORY_CHECK("continuing") ;
      Hdone = Hskipped = 0 ;
 
@@ -11165,7 +11246,7 @@ ENTRY("IW3D_warpomatic") ;
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
      if( Hverb > 0 ){
        if( Hdone > 0 ){
-         int_sextet sext = IW3D_warpbox(Haawarp,2.0f,0.001f) ;
+         int_sextet sext = IW3D_warpbox(Haawarp,1.0f,0.03333f) ;
          fprintf(stderr,
                   "done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped, bbox=%d:%d,%d:%d,%d:%d]\n",
                   Hcostbeg,Hcost,Hdone,Hskipped,

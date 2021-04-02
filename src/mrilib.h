@@ -2502,6 +2502,9 @@ extern IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
 extern THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode ) ;
 extern void NwarpCalcRPN_verb(int i) ;
 
+extern void IW3D_bounding_box_clear( IndexWarp3D *AA , float thresh ) ; /* 29 Mar 2021 */
+extern int_sextet IW3D_bounding_box( IndexWarp3D *AA , float thresh ) ;
+
 extern void THD_interp_floatim( MRI_IMAGE *fim ,
                                 int np , float *ip , float *jp , float *kp ,
                                 int code, float *outar ) ;
