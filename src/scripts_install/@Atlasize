@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -68,9 +68,9 @@ if ("$flab" != "IS_ATLAS") then
    else
       set lnarg = ""
    endif
-   # once over for labeltable
+   # once over for labeltable (don't need long names for labeltable yet)
    @MakeLabelTable -lab_file_delim "$delim"  \
-                   -lab_file $flab $iL $iV $lnarg \
+                   -lab_file $flab $iL $iV \
                    -dset $target_dset  $replace \
                    $skipnovoxopt
    # second over for atlas_points_list (eventually only once over...)
