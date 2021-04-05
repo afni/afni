@@ -139,7 +139,8 @@ afni_history_struct rickr_history[] = {
 
  { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "warn about problematic version of XQuartz",
-   NULL
+   "Bad versions seem to be 2.8.0_alpa*, 2.8.0_betas[12] (3+ okay?).\n"
+   "With improvements we have seen, maybe we should warn on any beta."
  } ,
 
  { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
