@@ -522,6 +522,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
 
    /* Calculate Min, Max, Mean */
 
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO = %p\n", SO);
+
    if (!SUMA_isSODimInitialized(SO)) {
       if (!SUMA_SetSODims(SO)) {
          SUMA_S_Err("Failed to set dims!");
@@ -530,6 +532,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    } else {
       SUMA_LH("SODim initialized already");
    }
+
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO->N_patchNode = %p\n", SO->N_patchNode);
 
    /* calculate the center and dimensions for the nodes in the patch only */
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
@@ -564,6 +568,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SUMA_MAX_VEC (SO->patchMaxDims, 3, SO->patchaMaxDims);
    }
 
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO->patchNodeMask = %p\n", SO->patchNodeMask);
+
    if (SO->patchNodeMask) {
       SUMA_S_Err( "Hmm, unexpected."
           "This function is usually called once per surface, "
@@ -572,6 +578,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SUMA_free(SO->patchNodeMask);
    }
    SO->patchNodeMask = NULL;
+
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: PatchNodeMask = %p\n", PatchNodeMask);
    if (PatchNodeMask) {
       if (SO->N_patchNode != SO->N_Node) {
          SO->patchNodeMask =   PatchNodeMask; PatchNodeMask = NULL;
@@ -610,6 +618,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    }
    #endif
    #ifdef DO_SCALE
+
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: PatchNodeMask = %p\n", PatchNodeMask);
 
    /* Now do some scaling */
    SUMA_LH("In scale section");
@@ -658,6 +668,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    }
    #endif
 
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO->MaxCentDist = %p\n", SO->MaxCentDist);
+
    SUMA_LHv("Checking too small a surface: %f\n", SO->MaxCentDist);
    /* check for too small a surface */
    if (SO->MaxCentDist < 10.0 && !iwarn) {
@@ -678,6 +690,10 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    }
    SUMA_LH("Computing normals");
    /* Calculate SurfaceNormals */
+
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO->FaceNormList = %p\n", SO->FaceNormList);
+
+   fprintf(stderr, "SUMA_PrepSO_GeomProp_GL: SO->NodeNormList = %p\n", SO->NodeNormList);
    if (SO->NodeNormList && SO->FaceNormList) {
       SUMA_LH("Node normals already computed, skipping...");
    } else {
