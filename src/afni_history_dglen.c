@@ -53,6 +53,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 04, APR, 2021, DRG, "@Atlasize, @MakeLabeltable longname fix",
+     MICRO, TYPE_BUG_FIX,
+    "Longnames not working in combination with labels fixed for atlases"
+},    
 { 06, MAR, 2021, DRG, "@AddEdge PBAR fix",
      MICRO, TYPE_BUG_FIX,
     "PBAR fix"
