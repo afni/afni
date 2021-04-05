@@ -740,6 +740,17 @@ void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widge
     for (int i=0; i<3; ++i) point[i] = k*plane[i];
 }
 
+ void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point){
+    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
+    point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
+    k = D/(A^2 + B^2 + C^2)
+    */
+
+    float k = (plane[3]-(plane[0]*viewerPt[0])-(plane[1]*viewerPt[1])-(plane[2]*viewerPt[2]))/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
+
+    for (int i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
+}
+
 void crossProduct(float input1[], float input2[], float output[]){
     output[0] = (input1[1]*input2[2]) - (input1[2]*input2[1]);
     output[1] = (input1[2]*input2[0]) - (input1[0]*input2[2]);
@@ -755,20 +766,12 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     getPlanePtClosestToViewerOrigin(plane, planeOrigin);
 
     // Get other point on plane.  Adjust x and determine y to setisfy Ax+By+Cz=D
-    otherPoint[0]=planeOrigin[0]+10.0;
-    otherPoint[2]=planeOrigin[2];
-    otherPoint[1]=(plane[3]-(plane[0]*otherPoint[0])-(plane[2]*otherPoint[2]))/plane[1];
-
-    // Debug
-    fprintf(stderr, "Plane origin = <%f, %f, %f>\n", planeOrigin[0], planeOrigin[1], planeOrigin[2]);
-    fprintf(stderr, "Other point = <%f, %f, %f>\n", otherPoint[0], otherPoint[1], otherPoint[2]);
+    float otherViewerPt[3] = {10.0, 10.0, 10.0};
+    getPlanePtClosestToViewerPoint(plane, otherViewerPt, otherPoint);
 
     // Get normal vector of plane
     divisor = sqrt((plane[0]*plane[0]) + (plane[1]*plane[1]) + (plane[2]*plane[2]));
     for (int i=0; i<3; ++i ) normal[i] = plane[i]/divisor;
-
-    // Debug
-    fprintf(stderr, "Normal = <%f, %f, %f>\n", normal[0], normal[1], normal[2]);
 
     // Get unnormalized tangent of plane
     for (int i=0; i<3; ++i ) tangent[i] = otherPoint[i] - planeOrigin[i];
@@ -777,14 +780,26 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     divisor = sqrt((tangent[0]*tangent[0]) + (tangent[1]*tangent[1]) + (tangent[2]*tangent[2]));
     for (int i=0; i<3; ++i ) tangent[i] = tangent[i]/divisor;
 
-    // Debug
-    fprintf(stderr, "Tangent = <%f, %f, %f>\n", tangent[0], tangent[1], tangent[2]);
-
     // Get bitangent which is the cross product of the tangent and the normal
     crossProduct(tangent, normal, bitangent);
 
-    // Debug
-    fprintf(stderr, "Bitangent = <%f, %f, %f>\n", bitangent[0], bitangent[1], bitangent[2]);
+    fprintf(stderr, "planeOrigin = <%f, %f, %f>\n", planeOrigin[0], planeOrigin[1], planeOrigin[2]);
+    fprintf(stderr, "otherPoint = <%f, %f, %f>\n", otherPoint[0], otherPoint[1], otherPoint[2]);
+    fprintf(stderr, "normal = <%f, %f, %f>\n", normal[0], normal[1], normal[2]);
+    fprintf(stderr, "tangent = <%f, %f, %f>\n", tangent[0], tangent[1], tangent[2]);
+    fprintf(stderr, "bitangent = <%f, %f, %f>\n", bitangent[0], bitangent[1], bitangent[2]);
+
+    // Get points from tangent and bitangent
+    for (int i=0; i<3; ++i){
+        points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
+        points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
+        points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
+        points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
+    }
+
+    for (int i=0; i<4; ++i){
+        fprintf(stderr, "point %d: <%f, %f, %f>\n", i, points[i][0], points[i][1], points[i][2]);
+    }
 
 
 
@@ -5209,10 +5224,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     float plane[4], points[4][3];
 
                     // Test values for plane
-                    for (int i=0; i<3; ++i) plane[i]=i+1.0;
+                    for (int i=0; i<2; ++i) plane[i]=0.0;
+                    plane[2] = 1.0;
                     plane[3]=10.0;
 
-                    getFourCoordsJustInsideClipPlane(plane, points);
+                    // getFourCoordsJustInsideClipPlane(plane, points);
 
                     getSquareOnPlane(plane, points);
 
