@@ -466,6 +466,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
     // Show user which clip plane is active
     if (clipPlaneIdentificationMode){
+    #if 0   // Turn off recoloration
        // Get clip plane paramaters.  NBB. Simplify by assuming first plane
         int offset = 4*planeIndex;
         float  A = planeA[planeIndex];
@@ -494,7 +495,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
 
         drawClipPlane(A, B, C, D, w, sv, isv);
-
+#endif
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window.  (Not sure this is necessary or helps)
     }
 
