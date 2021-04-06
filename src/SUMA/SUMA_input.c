@@ -12,8 +12,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SUMA_ALL_DO *ado;
         ado = SUMA_SV_Focus_ADO(sv);
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 1\n");
-
         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
         SO->N_Node = FS.N_Node;
         // Save the pointers to NodeList and FaceSetList and
@@ -27,8 +25,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->SUMA_VolPar_Aligned = NOPE;
         SO->normdir = 1; // normals point out
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 2\n");
-
         if (SO->isSphere == SUMA_GEOM_NOT_SET) {
             SUMA_SetSphereParams(SO, -0.1);
         }  // sets the spheriosity parameters
@@ -36,8 +32,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         if (SO->isSphere == SUMA_GEOM_NOT_SET) {
         SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 3\n");
 
         SO->do_type = SO_type;
         SO->MaxDims[0] = 100.0;
@@ -50,8 +44,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->aMinDims = -100.0;
         SO->SurfCont = NULL;
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 4\n");
-
         // SO->EmbedDim = 2;
         SO->Side = SUMA_GuessSide (SO);
         SO->AnatCorrect = NOPE;
@@ -61,11 +53,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->Name.FileName = NULL;
         SO->idcode_str = "RectangleID";
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 5\n");
-
         SUMA_AutoLoad_SO_Dsets(SO);
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 6\n");
 
         /* set its MappingRef id to NULL if none is specified */
         // make sure that specified Mapping ref had been loaded
@@ -81,8 +69,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
             return;
         }
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 7\n");
-
         char sid[100];
         SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
             SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
@@ -96,30 +82,20 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->EmbedDim = 3;
         SO->AnatCorrect = NOPE;
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 8\n");
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 8.1\n");
-
         // make this surface friendly for suma
         if (!SUMA_PrepSO_GeomProp_GL(SO)) {
            SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 8.2\n");
 
         /* Add this surface to SUMA's displayable objects */
         if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
            SUMA_S_Err("Failed to add mappable SOs ");
         }
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 9\n");
-
         if (!SO->Group || !SO->State || !SO->Label) {
             fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
             SUMA_RETURN (NULL);
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 10\n");
 
         /* Non Mappable surfaces */
         /* if the surface is loaded OK,
@@ -127,12 +103,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->MeshAxis = NULL;
         SO->NodeDim = 3;
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 11\n");
-
         /* Change the defaults of Mesh axis to fit standard  */
         SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 12\n");
 
         /*turn off the viewing for the axis */
         SO->ShowMeshAxis = NOPE;
@@ -144,8 +116,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
             "Error %s: Error Allocating axis\n", FuncName);
             SUMA_RETURN(NOPE);
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 13\n");
 
         // Store it into dov
         SO->patchNodeMask = NULL;
@@ -160,12 +130,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
             return;
         }
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 14\n");
-
        N_dov = SUMAg_N_DOv-1;
         sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 15\n");
 
          /* register DO with viewer */
         if (!SUMA_RegisterDO(N_dov, sv)) {
@@ -173,8 +139,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
            SUMA_RETURN(NOPE);
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 16\n");
 
         // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
         SO->LocalDomainParentID = NULL;
@@ -190,8 +154,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         if (!SUMA_PrepSO_GeomProp_GL (SO)) {
             SUMA_SL_Err("Failed to set surface's properties");
         }
-
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 18\n");
 
         /* create the colorlist vector and calculate the surface metrics
         with the possibility of inheriting from the mapping reference */
@@ -5176,8 +5138,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
-                fprintf(stderr, "OK 1\n");
-
                 // Turn on light in front of selected clipping plane.
                 sv->clipPlaneIdentificationMode = !sv->clipPlaneIdentificationMode;
 
@@ -5212,8 +5172,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 */
 
-                fprintf(stderr, "OK 2\n");
-
                 if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.  This actually works
 
                     float plane[4], points[4][3];
@@ -5226,9 +5184,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     // getFourCoordsJustInsideClipPlane(plane, points);
 
                     getSquareOnPlane(plane, points);
-
-
-                fprintf(stderr, "OK 3\n");
 
 
                     static SUMA_FreeSurfer_struct FS;
@@ -5256,8 +5211,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.NodeList[inc++] = 0.000000;
                     */
 
-                fprintf(stderr, "OK 4\n");
-
                     FS.FaceSetList = (float *)malloc(FS.N_FaceSet*3*sizeof(int));
                     inc = 0;
                     FS.FaceSetList[inc++] = 0;
@@ -5270,19 +5223,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.FaceSetList[inc++] = 0;
                     FS.FaceSetList[inc++] = 1;
 
-                fprintf(stderr, "OK 5\n");
-
                     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
 
-                fprintf(stderr, "OK 6\n");
-
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-
-                fprintf(stderr, "OK 7\n");
                }
             }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
 
-                fprintf(stderr, "OK 8\n");
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
                      "Enter screen clip plane parameters (a,b,c,d)",
@@ -5295,14 +5241,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      NULL, NULL,
                      SUMAg_CF->X->Clip_prmpt);
 
-                fprintf(stderr, "OK 9\n");
-
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialog(
                      "Enter screen clip plane parameters (a,b,c,d)",
                      SUMAg_CF->X->Clip_prmpt);
-
-                fprintf(stderr, "OK 10\n");
            }
             break;
          case XK_c:
