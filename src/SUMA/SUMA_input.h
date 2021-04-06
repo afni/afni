@@ -202,6 +202,7 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 // static int clipPlaneIndex;
 static Bool clipPlaneIdentificationMode;
+static SUMA_SurfaceObject *clipIdentificationPlane;
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke

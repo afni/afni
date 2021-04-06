@@ -5173,7 +5173,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 */
 
-                if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.  This actually works
+                if (clipIdentificationPlane){
+                    if (sv->clipPlaneIdentificationMode){
+                        clipIdentificationPlane->Show = 1;
+                    } else {
+                        clipIdentificationPlane->Show = 0;
+                    }
+
+                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+                }
+                else if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.
 
                     float plane[4], points[4][3];
 
@@ -5197,20 +5206,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     for (int i=0; i<4; ++i)
                         for (int j=0; j<3; ++j)
                             FS.NodeList[inc++] = points[i][j];
-                    /*
-                    FS.NodeList[inc++] = -100.065079;
-                    FS.NodeList[inc++] = 52.573112;
-                    FS.NodeList[inc++] = 0.000000;
-                    FS.NodeList[inc++] = 100.065079;
-                    FS.NodeList[inc++] = 52.573112;
-                    FS.NodeList[inc++] = 0.000000;
-                    FS.NodeList[inc++] = 100.065079;
-                    FS.NodeList[inc++] = -52.573112;
-                    FS.NodeList[inc++] = 0.000000;
-                    FS.NodeList[inc++] = -100.065079;
-                    FS.NodeList[inc++] = -52.573112;
-                    FS.NodeList[inc++] = 0.000000;
-                    */
 
                     FS.FaceSetList = (float *)malloc(FS.N_FaceSet*3*sizeof(int));
                     inc = 0;
@@ -5225,6 +5220,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.FaceSetList[inc++] = 1;
 
                     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
+                    clipIdentificationPlane = SO;   // Record pointer to clip identification plane object
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                }
