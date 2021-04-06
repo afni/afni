@@ -2748,7 +2748,7 @@ typedef struct {
                              Default is 3 types*/
    int PryAx;             /* Prying axis. 3 == Z axis, 2 == Y axis */
 
-   Bool clipPlaneIdentificationMode; // PDL
+   // Bool clipPlaneIdentificationMode; // PDL
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

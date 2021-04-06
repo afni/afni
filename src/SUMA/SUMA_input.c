@@ -505,233 +505,6 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     SUMA_SetObjectClip(chrTmp, sv);
 }
 
-SUMA_Boolean SUMA_DrawPlanes2( float **PlEq, float **cen, float *sz,
-                              int N_pl, SUMA_SurfaceViewer *sv)
-    // PDL: Developmental program that doesn'treally work in its present form
-{
-   static char FuncName[]={"SUMA_DrawPlane"};
-   SUMA_PlaneDO *SDO=NULL;
-   int itmp, itmp2;
-
-   SUMA_ENTRY;
-
-   SDO = SUMA_Alloc_PlaneDO(N_pl, FuncName, PL_type);
-
-   /* fill up equations */
-   itmp = 0;
-   while (itmp < SDO->N_n) {
-
-    fprintf(stderr, "itmp = %d\n", itmp);
-      itmp2 = 4*itmp;
-    fprintf(stderr, "SDO->pleq[itmp2] = %f\n", SDO->pleq[itmp2]);
-    fprintf(stderr, "PlEq[itmp] = %d\n", PlEq[itmp]);
-    fprintf(stderr, "PlEq[itmp][0] = %f\n", PlEq[itmp][0]);
-      SDO->pleq[itmp2]     = PlEq[itmp][0];
-    fprintf(stderr, "SDO->pleq[itmp+1] = %f\n", SDO->pleq[itmp+1]);
-    fprintf(stderr, "PlEq[itmp][1] = %f\n", PlEq[itmp][1]);
-      SDO->pleq[itmp2+1]   = PlEq[itmp][1];
-    fprintf(stderr, "SDO->pleq[itmp+2] = %f\n", SDO->pleq[itmp+2]);
-    fprintf(stderr, "PlEq[itmp][2] = %f\n", PlEq[itmp][2]);
-      SDO->pleq[itmp2+2]   = PlEq[itmp][2];
-    fprintf(stderr, "SDO->pleq[itmp+3] = %f\n", SDO->pleq[itmp+3]);
-    fprintf(stderr, "PlEq[itmp][3] = %f\n", PlEq[itmp][3]);
-      SDO->pleq[itmp2+3]   = PlEq[itmp][3];
-      ++itmp;
-   }
-
-   /* fill up centers */
-   itmp = 0;
-   while (itmp < SDO->N_n) {
-      itmp2 = 3*itmp;
-      SDO->cxyz[itmp2]   = cen[itmp][0];
-      SDO->cxyz[itmp2+1] = cen[itmp][1];
-      SDO->cxyz[itmp2+2] = cen[itmp][2];
-      ++itmp;
-   }
-
-   SDO->boxdimv = (float *)SUMA_calloc(3*SDO->N_n, sizeof(float));
-   if (sz) {
-      itmp = 0;
-      while (itmp < SDO->N_n) {
-         itmp2 = 3*itmp;
-         SDO->boxdimv[itmp2] = sz[itmp];
-         SDO->boxdimv[itmp2+1] = sz[itmp];
-         SDO->boxdimv[itmp2+2] = sz[itmp];
-         ++itmp;
-      }
-   } else {
-      itmp = 0;
-      while (itmp < SDO->N_n) {
-         itmp2 = 3*itmp;
-         SDO->boxdimv[itmp2] = 100;
-         SDO->boxdimv[itmp2+1] = 100;
-         SDO->boxdimv[itmp2+2] = 100;
-         ++itmp;
-      }
-   }
-
-   SUMA_DrawPlaneDO(SDO, sv);
-   SUMA_free_PlaneDO(SDO);
-
-   SUMA_RETURN(YUP);
-}
-
-void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget wTemp,
-    // PDL: Developmental program that doesn'treally work in its present form
-    SUMA_SurfaceViewer *sv, int isv){
-    float plane[4] = {planeA, planeB, planeC, planeD};
-    float points[4][3];
-
-    /* DEBUG
-
-    getFourCoordsJustInsideClipPlane(plane, points);
-
-    glBegin(GL_POLYGON);
-    for (int i=0; i<4; ++i)
-        glVertex3f(points[i][0], points[i][1], points[i][2]);
-    glEnd();
-
-    */
-
-/**/
-   SUMA_Axis* Ax = sv->WAx;
-   static char FuncName[]={"SUMA_DrawAxis"};
-   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   double P1[3], P2[3], cP[8][3], SC[12][3], d[12];
-   int i, N_Ax, fst=-1, sec=-1, thr=-1;
-   DList *slist=NULL;
-   DListElmt *Elm=NULL;
-   SUMA_AxisSegmentInfo *ASI = NULL;
-   SUMA_AxisSegmentInfo *ASIv[3] = { NULL, NULL, NULL };
-   SUMA_Boolean ShowTxt[3];
-   float coslim = 0.9;
-   SUMA_Boolean LocalHead = NOPE;
-
-    // SUMA_ENTRY;
-
-   if (sv && sv->DO_PickMode) {
-      SUMA_LH("DrawAxis not for do picking mode");
-      SUMA_RETURN(YUP); // this condition is never fatal
-   }
-
-   if (!Ax) {
-      SUMA_SL_Err("Null Axis!");
-      SUMA_RETURN(NOPE);
-   }
-
-   Ax->LineWidth = 1.0;
-   glLineWidth(Ax->LineWidth);
-   switch (Ax->Stipple) {
-      case SUMA_DASHED_LINE:
-         glEnable(GL_LINE_STIPPLE);
-         glLineStipple (1, 0x00FF); // dashed, see OpenGL Prog guide, page 55
-         break;
-      case SUMA_SOLID_LINE:
-         break;
-      default:
-         fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
-         SUMA_RETURN(NOPE);
-   }
-
-   Ax->atype = SUMA_STD_ZERO_CENTERED;
-   //switch (Ax->atype) {
-     // case SUMA_STD_ZERO_CENTERED:
-         // SUMA_SET_GL_MODELVIEW(sv);
-
-         GLfloat lineVertices[] = {
-            -200, -200, -10,
-            200, 200, 10
-         };
-
-         float **PlEq = (float **)malloc(sizeof(float *));
-         float **cen = (float **)malloc(sizeof(float *));
-         float *sz = NULL;
-         int N_pl = 1;
-
-         PlEq[0] = (float *)calloc(4,sizeof(float));
-         cen[0] = (float *)calloc(3, sizeof(float));
-
-          PlEq[0][1] = 1.0;
-          PlEq[0][2] = 1.0;
-          PlEq[0][3] = -100.0;
-
-          cen[0][0] = 20.0;
-          cen[0][1] = 65.0;
-          cen[0][2] = -20.0;
-
-          /*
-         for (PlEq[0][3] = -1000.0; PlEq[0][3]<1000.0; ++PlEq[0][3]){
-            fprintf(stderr, "PlEq[0][3]=%f\r", PlEq[0][3]);
-            SUMA_DrawPlanes( PlEq, cen, sz, N_pl, sv);
-            usleep(100000);
-         }
-         fprintf(stderr, "\n");
-         */
-
-         SUMA_DrawPlanes( PlEq, cen, sz, N_pl, sv);
-
-         free(PlEq[0]);
-         free(PlEq);
-         free(cen[0]);
-         free(cen);
-
- /*
-        // NBB: This just changes the emissivity of the displayed objects.  Doesn't draw anything
-         GLfloat materialColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
-         SUMA_LHv("SUMA_STD_ZERO_CENTERED at %f %f %f\n",
-                  Ax->Center[0], Ax->Center[1], Ax->Center[2]);
-         glMaterialfv(GL_FRONT, GL_AMBIENT, materialColor);
-            // turn off ambient and diffuse components
-         glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColor);
-
-         glMaterialfv(GL_FRONT, GL_EMISSION, materialColor);
-         /*
-            //turn on emissivity for axis
-         glBegin(GL_LINES);
-         glVertex3f(-Ax->XYZspan[0]+Ax->Center[0], Ax->Center[1], Ax->Center[2]);
-         glVertex3f(Ax->XYZspan[0]+Ax->Center[0], Ax->Center[1], Ax->Center[2]);
-         glEnd();
-         glFlush();
-/*
-         glMaterialfv(GL_FRONT, GL_EMISSION, materialColor);
-            //turn on emissivity for axis
-         glBegin(GL_LINES);
-         glVertex3f(Ax->Center[0], -Ax->XYZspan[1]+Ax->Center[1], Ax->Center[2]);
-         glVertex3f(Ax->Center[0], +Ax->XYZspan[1]+Ax->Center[1], Ax->Center[2]);
-         glEnd();
-         glFlush();
-
-
-         glMaterialfv(GL_FRONT, GL_EMISSION, materialColor);
-/*
-            //turn on emissivity for axis
-         glBegin(GL_LINES);
-         glVertex3f(Ax->Center[0], Ax->Center[1], -Ax->XYZspan[2]+Ax->Center[2]);
-         glVertex3f(Ax->Center[0], Ax->Center[1], Ax->XYZspan[2]+Ax->Center[2]);
-         glEnd();
-         glFlush();
-
-         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, materialColor);
-*//*
-         // Draw line
-         glBegin(GL_LINES);
-      glColor3f(0.4f, 1.0f, 0.0f);     // Green
-      glVertex3f( 100.0f, 100.0f, -1.0f);
-      glVertex3f(-100.0f, 100.0f, -100.0f);
-      glVertex3f(-100.0f, -100.0f,  100.0f);
-      glVertex3f( 100.0f, -100.0f,  100.0f);
-         glEnd();
-         glFlush();
-
-         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, materialColor);
-*/
-
-
-
-
-    // TODO: Add code
-}
-
  void getPlanePtClosestToViewerOrigin(float *plane, float *point){
     /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
@@ -5140,12 +4913,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
                 // Turn on light in front of selected clipping plane.
-                sv->clipPlaneIdentificationMode = !sv->clipPlaneIdentificationMode;
+                clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
 
-                clipPlaneIdentificationMode = sv->clipPlaneIdentificationMode;
+                // clipPlaneIdentificationMode = clipPlaneIdentificationMode;
 
                 /* Color adjustment
-                if (sv->clipPlaneIdentificationMode){
+                if (clipPlaneIdentificationMode){
                     // Turn off ambient lighting
                     for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
                     sv->lmodel_ambient[1]=0.2;
@@ -5174,7 +4947,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 */
 
                 if (clipIdentificationPlane){
-                    if (sv->clipPlaneIdentificationMode){
+                    if (clipPlaneIdentificationMode){
                         clipIdentificationPlane->Show = 1;
                     } else {
                         clipIdentificationPlane->Show = 0;
@@ -5182,7 +4955,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                 }
-                else if (sv->clipPlaneIdentificationMode){   // ### Drawing plane.
+                else if (clipPlaneIdentificationMode){   // ### Drawing plane.
 
                     float plane[4], points[4][3];
 
