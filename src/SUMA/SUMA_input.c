@@ -464,6 +464,12 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
+    // Record active clip plane as global variable
+    activeClipPlane[0] = planeA[planeIndex];
+    activeClipPlane[1] = planeB[planeIndex];
+    activeClipPlane[2] = planeC[planeIndex];
+    activeClipPlane[3] = planeD[planeIndex];
+
     // Show user which clip plane is active
     if (clipPlaneIdentificationMode){
     #if 0   // Turn off recoloration
@@ -499,6 +505,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window.  (Not sure this is necessary or helps)
     }
 
+    // Activate/update clip plane
     sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
     // fprintf(stderr, "chrTmp = %s\n", chrTmp);    // Debug
@@ -4908,7 +4915,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                     clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
                 }
-            } else if (SUMAg_CF->N_ClipPlanes>=0) {
+            } else if (SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
@@ -4960,9 +4967,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     float plane[4], points[4][3];
 
                     // Test values for plane
-                    for (int i=0; i<2; ++i) plane[i]=0.0;
-                    plane[2] = 1.0;
-                    plane[3]=10.0;
+                    for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
+                    plane[3] += (activeClipPlane[3]<0)? -5 : 5;
 
                     // getFourCoordsJustInsideClipPlane(plane, points);
 
