@@ -149,8 +149,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
        SO->N_Overlays = 1;
        SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
 
-        fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 17\n");
-
         if (!SUMA_PrepSO_GeomProp_GL (SO)) {
             SUMA_SL_Err("Failed to set surface's properties");
         }
@@ -407,6 +405,26 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "Ending surface comparison\n");
 }
 
+void updateClipSquare(){
+    float plane[4], points[4][3];
+
+    // Test values for plane
+    for (int i=0; i<3; ++i) plane[i]=activeClipPlane[i];
+    fprintf(stderr, "Active clip plane D: %f\n", activeClipPlane[3]);
+    plane[3] = -activeClipPlane[3];
+    fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
+    if (activeClipPlane[3]!=0) plane[3] += (activeClipPlane[3]>0)? 1 : 1;
+    fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
+
+
+    getSquareOnPlane(plane, points);
+
+    int inc=0;
+    for (int i=0; i<4; ++i)
+        for (int j=0; j<3; ++j)
+            clipIdentificationPlane->NodeList[inc++] = points[i][j];
+}
+
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
     int activePlane, Bool toggleOffOn){
     static int  planeIndex;
@@ -472,6 +490,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
     // Show user which clip plane is active
     if (clipPlaneIdentificationMode){
+        updateClipSquare();
     #if 0   // Turn off recoloration
        // Get clip plane paramaters.  NBB. Simplify by assuming first plane
         int offset = 4*planeIndex;
@@ -4970,10 +4989,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
                     plane[3] += (activeClipPlane[3]<0)? -5 : 5;
 
-                    // getFourCoordsJustInsideClipPlane(plane, points);
-
                     getSquareOnPlane(plane, points);
-
 
                     static SUMA_FreeSurfer_struct FS;
 
