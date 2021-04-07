@@ -413,7 +413,7 @@ void updateClipSquare(){
     fprintf(stderr, "Active clip plane D: %f\n", activeClipPlane[3]);
     plane[3] = -activeClipPlane[3];
     fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
-    if (activeClipPlane[3]!=0) plane[3] += (activeClipPlane[3]>0)? 1 : 1;
+    plane[3] += 1;
     fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
 
 
