@@ -280,8 +280,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                 }
             }
 
-            /* if the amount of memory exceeds budget, dont do anything more */
-            if ( mem_budget >= 0 )
+	    if ( mem_budget >= 0 )
             {
                 /* get ref time series from this voxel */
                 xsar = VECTIM_PTR(xvectim,lout);
@@ -291,7 +290,11 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                 for( lin=(lout+1) ; lin < xvectim->nvec ; lin++ )
                 {  /*----- inner loop over voxels -----*/
 
-                    if ( mem_budget >= 0 )
+		    if ( mem_budget < 0 )
+		    {
+		        break;
+		    }
+		    else if ( mem_budget >= 0 )
                     {
                         /* extract the voxel time series */
                         ysar = VECTIM_PTR(xvectim,lin);
@@ -438,7 +441,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     {
         if ( mem_budget < 0 )
         {
-            ERROR_message( "Memory budget (%lf MB) exceeded, consider using a"
+            ERROR_message( "Memory budget (%lf MB) exceeded, consider using a "
                 "higher correlation or lower sparsity threshold",
                 ((double)mem_allowance/(1024.0*1024.0)));
         }
