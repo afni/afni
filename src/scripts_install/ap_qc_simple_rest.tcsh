@@ -141,6 +141,7 @@ while ( $ac <= $narg )
     @ ac ++
 end
 
+# ---------------------------------------------------------------------------
 if ( $verb > 1 ) then
    # display parameters?
 cat << EOF
@@ -158,26 +159,7 @@ endif
 
 
 # ===========================================================================
-# check on things
-
-# do we have anat and EPI parameters?
-if ( $#anat == 0 || $#epi_list == 0 ) then
-   echo "** missing -anat or -epi dataset names (have $#anat and $#epi_list)"
-   exit 1
-endif
-
-# do we have valid anat and EPI
-set vtmp = `3dinfo -nt $anat`
-if ( $status || $vtmp == "NO-DSET" ) then
-   echo "** do not seem to have valid anat, '$anat'"
-   exit 1
-endif
-
-set vtmp = `3dinfo -nt $epi_list | grep NO-DSET | wc -l`
-if ( $status || $vtmp > 0 ) then
-   echo "** invalid EPI: found $vtmp bad dsets out of $#epi_list"
-   exit 1
-endif
+# prepare afni_proc.py command script
 
 # are expect processing files already here?
 set script_ap   = run_ap_$subjid
@@ -194,8 +176,17 @@ foreach file ( $script_ap $script_proc $dir_results )
    endif
 end
 
-# ===========================================================================
+# do we have anat and EPI parameters?
+if ( $#anat == 0 || $#epi_list == 0 ) then
+   echo "** missing -anat or -epi dataset names (have $#anat and $#epi_list)"
+   exit 1
+endif
+
+# ---------------------------------------------------------------------------
 # generate afni_proc.py script
+
+if ( $verb > 0 ) echo "++ writing afni_proc.py command script, $script_ap"
+
 cat << EOF > $script_ap
 
 # This is a simple AP command used for QC, treating the EPI as rest,
@@ -230,15 +221,40 @@ afni_proc.py                                                         \
 
 EOF
 
+# ===========================================================================
+# if we are not actually running the proc script, we are done
 if ( ! $run_ap ) exit 0
+
+
+# ===========================================================================
+# check on existence of datasets, only when processing
+
+# do we have valid anat and EPI
+set vtmp = `3dinfo -nt $anat`
+if ( $status || $vtmp == "NO-DSET" ) then
+   echo "** do not seem to have valid anat, '$anat'"
+   exit 1
+endif
+
+set vtmp = `3dinfo -nt $epi_list | grep NO-DSET | wc -l`
+if ( $status || $vtmp > 0 ) then
+   echo "** invalid EPI: found $vtmp bad dsets out of $#epi_list"
+   exit 1
+endif
+
+# ===========================================================================
+# actually run afni_proc.py, and possibly the proc script
+
 tcsh -x $script_ap |& tee output.$script_ap
 
 if ( $status || ! $run_proc ) exit 0
 time tcsh -xef $script_proc |& tee output.$script_proc
 
 
+# ===========================================================================
 # terminate script, to separate help
 exit
+
 
 # ===========================================================================
 # display the -help output
@@ -276,9 +292,9 @@ Overview:
 This program may be devoured by afni_proc.py itself, at some point.
 
 ------------------------------------------------------------------------------
-example 0: just create an afni_proc.py script, run_ap_SUBJ
+example 0: just create an afni_proc.py script, no data required
 
-      $prog -anat FT_anat+orig -epi FT_epi_r*.HEAD -subjid ft.qc
+      $prog -anat anat.nii -epi epi.nii
 
 
 example 1: preferred - run an analysis from a clean directory
