@@ -234,6 +234,11 @@ afni_proc.py                                                        \
 
 EOF
 
+if ( $status ) then
+   echo "** failed to create $script_ap, can you write here?"
+   exit 1
+endif
+
 # ---------------------------------------------------------------------------
 # possibly fix line wrappers
 set wapw = `which afni_python_wrapper.py`
@@ -325,7 +330,7 @@ Overview:
 This program may be devoured by afni_proc.py itself, at some point.
 
 ------------------------------------------------------------------------------
-example 0: just create an afni_proc.py script, no data required
+example 0: just create an afni_proc.py script, run_ap_SUBJ, no data required
 
       $prog -anat anat.nii -epi epi.nii
 
