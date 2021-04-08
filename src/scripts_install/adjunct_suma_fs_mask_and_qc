@@ -441,11 +441,18 @@ defined by the brainmask.nii*:
                   this script has created (see details just above).
 
     qc_02*.jpg  : the overlay is a set of tissues, like a segmentation
-                  map of 4 classes: GM, WM, ventricles, and then
-                  CSF+other+unknown (from the *REN* files made by
-                  AFNI/SUMA).
+                  map of 4 classes: 
+                        red    - GM - red
+                        blue   - WM                
+                        green  - ventricles        
+                        violet - CSF+other+unknown 
+                  (from the *REN* files made by AFNI/SUMA).
 
-    qc_03*.jpg  : the overlay is the "2000" atlas parcellation (from
+    qc_03*.jpg  : the GM only 
+
+    qc_04*.jpg  : the WM only
+
+    qc_05*.jpg  : the overlay is the "2000" atlas parcellation (from
                   the file: aparc+aseg*REN*all*)
 
 EXAMPLE ~1~
