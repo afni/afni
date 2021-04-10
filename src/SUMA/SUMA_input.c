@@ -5,205 +5,213 @@
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
 
-        // Set global variables
-        char *FuncName = "drawPlaneFromNodeAndFaceSetList";
-        SUMA_DO *dov = SUMAg_DOv;
-        int N_dov = SUMAg_N_DOv-1;
-        SUMA_ALL_DO *ado;
-        ado = SUMA_SV_Focus_ADO(sv);
+    fprintf(stderr, "drawPlaneFromNodeAndFaceSetList\n");
 
-        SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
-        SO->N_Node = FS.N_Node;
-        // Save the pointers to NodeList and FaceSetList and
-        //  clear what is left of FS structure at the end
-        SO->NodeList = FS.NodeList;
-        SO->FaceSetList = FS.FaceSetList;
+    // Set global variables
+    char *FuncName = "drawPlaneFromNodeAndFaceSetList";
+    SUMA_DO *dov = SUMAg_DOv;
+    int N_dov = SUMAg_N_DOv-1;
+    SUMA_ALL_DO *ado;
+    ado = SUMA_SV_Focus_ADO(sv);
+    SUMA_OVERLAYS *NewColPlane=NULL;
 
-        SO->N_FaceSet = FS.N_FaceSet;
-        SO->FaceSetDim = 3; //This must also be automated
+    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+    SO->N_Node = FS.N_Node;
+    // Save the pointers to NodeList and FaceSetList and
+    //  clear what is left of FS structure at the end
+    SO->NodeList = FS.NodeList;
+    SO->FaceSetList = FS.FaceSetList;
 
-        SO->SUMA_VolPar_Aligned = NOPE;
-        SO->normdir = 1; // normals point out
+    SO->N_FaceSet = FS.N_FaceSet;
+    SO->FaceSetDim = 3; //This must also be automated
 
-        if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-            SUMA_SetSphereParams(SO, -0.1);
-        }  // sets the spheriosity parameters
+    SO->SUMA_VolPar_Aligned = NOPE;
+    SO->normdir = 1; // normals point out
 
-        if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-        SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
+    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+        SUMA_SetSphereParams(SO, -0.1);
+    }  // sets the spheriosity parameters
+
+    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+    SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
+    }
+
+    SO->do_type = SO_type;
+    SO->MaxDims[0] = 100.0;
+    SO->MaxDims[1] = 100.0;
+    SO->MaxDims[2] = 100.0;
+    SO->MinDims[0] = -100.0;
+    SO->MinDims[1] = -100.0;
+    SO->MinDims[2] = -100.0;
+    SO->aMaxDims = 100.0;
+    SO->aMinDims = -100.0;
+    SO->SurfCont = NULL;
+
+    // SO->EmbedDim = 2;
+    SO->Side = SUMA_GuessSide (SO);
+    SO->AnatCorrect = NOPE;
+
+    SO->FileType = SUMA_FREE_SURFER;
+    SO->Name.Path = NULL;
+    SO->Name.FileName = NULL;
+    SO->idcode_str = "RectangleID";
+
+    SUMA_AutoLoad_SO_Dsets(SO);
+
+    /* set its MappingRef id to NULL if none is specified */
+    // make sure that specified Mapping ref had been loaded
+    SO->LocalDomainParentID =
+    (char *)calloc( strlen(SO->idcode_str)+1,
+                        sizeof(char));
+    sprintf(SO->idcode_str, "%s", SO->idcode_str);
+    if (SO->LocalDomainParentID == NULL) {
+        fprintf(stderr,
+        "Error SUMA_display_one: Failed to allocate for "
+        "SO->LocalDomainParentID. \n"
+        "That is pretty bad.\n");
+        return;
+    }
+
+    char sid[100];
+    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
+        SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+    SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
+    /* change this in sync with string in macro
+    SUMA_BLANK_NEW_SPEC_SURF*/
+    sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
+    SO->State = SUMA_copy_string(sid);
+    sprintf(sid, "surf_%d", Opt->obj_type);
+    SO->Label = SUMA_copy_string(sid);
+    SO->EmbedDim = 3;
+    SO->AnatCorrect = NOPE;
+
+    // make this surface friendly for suma
+    if (!SUMA_PrepSO_GeomProp_GL(SO)) {
+       SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+    }
+
+    /* Add this surface to SUMA's displayable objects */
+    if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+       SUMA_S_Err("Failed to add mappable SOs ");
+    }
+
+    if (!SO->Group || !SO->State || !SO->Label) {
+        fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
+        SUMA_RETURN (NULL);
+    }
+
+    /* Non Mappable surfaces */
+    /* if the surface is loaded OK,
+    and it has not been loaded previously, register it */
+    SO->MeshAxis = NULL;
+    SO->NodeDim = 3;
+
+    /* Change the defaults of Mesh axis to fit standard  */
+    SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
+
+    /*turn off the viewing for the axis */
+    SO->ShowMeshAxis = NOPE;
+
+    /* Create a Mesh Axis for the surface */
+    SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
+        if (SO->MeshAxis == NULL) {
+        fprintf( SUMA_STDERR,
+        "Error %s: Error Allocating axis\n", FuncName);
+        SUMA_RETURN(NOPE);
+    }
+
+    // Store it into dov
+    SO->patchNodeMask = NULL;
+    sprintf(SO->Group, "DefGroup");
+    SO->SphereRadius = -1.0;
+    SO->SphereCenter[0] = -1.0;
+    SO->SphereCenter[1] = -1.0;
+    SO->SphereCenter[2] = -1.0;
+    SO->LocalDomainParent = "SAME";
+    fprintf(stderr, "Before SUMA_AddDO: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+    fprintf(stderr, "Before SUMA_AddDO: sv->SelAdo = %p\n", sv->SelAdo);
+    if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
+        fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+        return;
+    }
+    fprintf(stderr, "After SUMA_AddDO: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+    fprintf(stderr, "After SUMA_AddDO: sv->SelAdo = %p\n", sv->SelAdo);
+
+   N_dov = SUMAg_N_DOv-1;
+    sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+
+     /* register DO with viewer */
+    if (!SUMA_RegisterDO(N_dov, sv)) {
+       fprintf(SUMA_STDERR,
+                "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+       SUMA_RETURN(NOPE);
+    }
+
+    // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
+    SO->LocalDomainParentID = NULL;
+    SO->Saux = SUMA_ADO_CSaux(ado);
+
+   SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
+   SO->NodeList_swp = NULL;
+   SO->N_Overlays = 1;
+   SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
+
+    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
+        SUMA_SL_Err("Failed to set surface's properties");
+    }
+
+    /* create the colorlist vector and calculate the surface metrics
+    with the possibility of inheriting from the mapping reference */
+    fprintf(stderr, "######################create the colorlist vector and calculate the surface metrics\n");
+    SUMA_SurfaceObject *SOinh = NULL;
+    int ifound = 1;
+
+    if (SO->LocalDomainParentID) {
+            ifound =  SUMA_findSO_inDOv ( SO->LocalDomainParentID,
+                            dov, N_dov);
+        if (ifound < 0) {
+            SOinh = NULL;
+        }else {
+            SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
         }
+    } else SOinh = NULL;
 
-        SO->do_type = SO_type;
-        SO->MaxDims[0] = 100.0;
-        SO->MaxDims[1] = 100.0;
-        SO->MaxDims[2] = 100.0;
-        SO->MinDims[0] = -100.0;
-        SO->MinDims[1] = -100.0;
-        SO->MinDims[2] = -100.0;
-        SO->aMaxDims = 100.0;
-        SO->aMinDims = -100.0;
-        SO->SurfCont = NULL;
-
-        // SO->EmbedDim = 2;
-        SO->Side = SUMA_GuessSide (SO);
-        SO->AnatCorrect = NOPE;
-
-        SO->FileType = SUMA_FREE_SURFER;
-        SO->Name.Path = NULL;
-        SO->Name.FileName = NULL;
-        SO->idcode_str = "RectangleID";
-
-        SUMA_AutoLoad_SO_Dsets(SO);
-
-        /* set its MappingRef id to NULL if none is specified */
-        // make sure that specified Mapping ref had been loaded
-        SO->LocalDomainParentID =
-        (char *)calloc( strlen(SO->idcode_str)+1,
-                            sizeof(char));
-        sprintf(SO->idcode_str, "%s", SO->idcode_str);
-        if (SO->LocalDomainParentID == NULL) {
-            fprintf(stderr,
-            "Error SUMA_display_one: Failed to allocate for "
-            "SO->LocalDomainParentID. \n"
-            "That is pretty bad.\n");
-            return;
-        }
-
-        char sid[100];
-        SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
-            SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
-        SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
-        /* change this in sync with string in macro
-        SUMA_BLANK_NEW_SPEC_SURF*/
-        sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
-        SO->State = SUMA_copy_string(sid);
-        sprintf(sid, "surf_%d", Opt->obj_type);
-        SO->Label = SUMA_copy_string(sid);
-        SO->EmbedDim = 3;
-        SO->AnatCorrect = NOPE;
-
-        // make this surface friendly for suma
-        if (!SUMA_PrepSO_GeomProp_GL(SO)) {
-           SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
-        }
-
-        /* Add this surface to SUMA's displayable objects */
-        if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
-           SUMA_S_Err("Failed to add mappable SOs ");
-        }
-
-        if (!SO->Group || !SO->State || !SO->Label) {
-            fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
-            SUMA_RETURN (NULL);
-        }
-
-        /* Non Mappable surfaces */
-        /* if the surface is loaded OK,
-        and it has not been loaded previously, register it */
-        SO->MeshAxis = NULL;
-        SO->NodeDim = 3;
-
-        /* Change the defaults of Mesh axis to fit standard  */
-        SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
-
-        /*turn off the viewing for the axis */
-        SO->ShowMeshAxis = NOPE;
-
-        /* Create a Mesh Axis for the surface */
-        SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
-            if (SO->MeshAxis == NULL) {
-            fprintf( SUMA_STDERR,
-            "Error %s: Error Allocating axis\n", FuncName);
-            SUMA_RETURN(NOPE);
-        }
-
-        // Store it into dov
-        SO->patchNodeMask = NULL;
-        sprintf(SO->Group, "DefGroup");
-        SO->SphereRadius = -1.0;
-        SO->SphereCenter[0] = -1.0;
-        SO->SphereCenter[1] = -1.0;
-        SO->SphereCenter[2] = -1.0;
-        SO->LocalDomainParent = "SAME";
-        if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
-            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-            return;
-        }
-
-       N_dov = SUMAg_N_DOv-1;
-        sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
-
-         /* register DO with viewer */
-        if (!SUMA_RegisterDO(N_dov, sv)) {
-           fprintf(SUMA_STDERR,
-                    "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-           SUMA_RETURN(NOPE);
-        }
-
-        // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
-        SO->LocalDomainParentID = NULL;
-        SO->Saux = SUMA_ADO_CSaux(ado);
-
-       SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
-       SO->NodeList_swp = NULL;
-       SO->N_Overlays = 1;
-       SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
-
-        if (!SUMA_PrepSO_GeomProp_GL (SO)) {
-            SUMA_SL_Err("Failed to set surface's properties");
-        }
-
-        /* create the colorlist vector and calculate the surface metrics
-        with the possibility of inheriting from the mapping reference */
-        fprintf(stderr, "######################create the colorlist vector and calculate the surface metrics\n");
-        SUMA_SurfaceObject *SOinh = NULL;
-        int ifound = 1;
-
-        if (SO->LocalDomainParentID) {
-                ifound =  SUMA_findSO_inDOv ( SO->LocalDomainParentID,
-                                dov, N_dov);
-            if (ifound < 0) {
-                SOinh = NULL;
-            }else {
-                SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
-            }
-        } else SOinh = NULL;
-
-        // deal with surface controller
-        if (SOinh) {
-            // create a link to the surface controller pointer
-            if (!SO->SurfCont) {
-                SO->SurfCont = (SUMA_X_SurfCont*)
-                    SUMA_LinkToPointer((void *)SOinh->SurfCont);
-            } else {
-                fprintf(stderr, "Surface Controller Exists Already (c)\n");
-            }
+    // deal with surface controller
+    if (SOinh) {
+        // create a link to the surface controller pointer
+        if (!SO->SurfCont) {
+            SO->SurfCont = (SUMA_X_SurfCont*)
+                SUMA_LinkToPointer((void *)SOinh->SurfCont);
         } else {
-            // brand new one
-            if (!SO->SurfCont) {
-                SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str,
-                                              SO_type);
-            } else {
-                fprintf(stderr,"Surface Controller Exists Already (d)\n");
-            }
+            fprintf(stderr, "Surface Controller Exists Already (c)\n");
         }
-
-        if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace",
-                         SOinh, FALSE, SUMAg_CF->DsetList)) {
-            fprintf (stderr,
-            "Error %s: Failed in SUMA_SurfaceMetrics.\n",
-            FuncName);
-            return;
+    } else {
+        // brand new one
+        if (!SO->SurfCont) {
+            SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str,
+                                          SO_type);
+        } else {
+            fprintf(stderr,"Surface Controller Exists Already (d)\n");
         }
+    }
 
-        // sv->ColList[] = NULL;
-        if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
-                                    SUMA_AutoLoad_SO_Dsets(SO);
+    if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace",
+                     SOinh, FALSE, SUMAg_CF->DsetList)) {
+        fprintf (stderr,
+        "Error %s: Failed in SUMA_SurfaceMetrics.\n",
+        FuncName);
+        return;
+    }
 
-        sv->ColList[N_dov] = NULL;
-        SUMA_FillColorList (sv, (SUMA_ALL_DO *)SO);
+    // sv->ColList[] = NULL;
+    if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
+                                SUMA_AutoLoad_SO_Dsets(SO);
 
-        // compareSurfaces(dov[N_dov-1].OP, SO);
+    if (SUMA_ComputeLineSurfaceIntersect (sv, dov, 0, NULL) < 0){
+       SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
+     }
+
+    fprintf(stderr, "After drawPlaneFromNodeAndFaceSetList: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
     return SO;
 }
@@ -412,9 +420,7 @@ void updateClipSquare(){
     for (int i=0; i<3; ++i) plane[i]=activeClipPlane[i];
     fprintf(stderr, "Active clip plane D: %f\n", activeClipPlane[3]);
     plane[3] = -activeClipPlane[3];
-    fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
     plane[3] += 1;
-    fprintf(stderr, "Clip plane rectangle D: %f\n", plane[3]);
 
 
     getSquareOnPlane(plane, points);
@@ -4900,6 +4906,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
+            fprintf(stderr, "shift-C\n");
             if ((SUMA_ALTHELL)){
             /* Remove clip plane dialog from SUMA GUI
                 SUMAg_CF->X->ClipObj_prmpt =
@@ -4972,6 +4979,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 */
 
+                fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
                 if (clipIdentificationPlane){
                     if (clipPlaneIdentificationMode){
                         clipIdentificationPlane->Show = 1;
@@ -4987,7 +4995,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                     // Test values for plane
                     for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
-                    plane[3] += (activeClipPlane[3]<0)? -5 : 5;
+                    plane[3] += 1;
 
                     getSquareOnPlane(plane, points);
 
@@ -5016,6 +5024,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
                     clipIdentificationPlane = SO;   // Record pointer to clip identification plane object
+
+                    fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                }
@@ -6291,6 +6301,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case Button3: {
+            fprintf(stderr, "R-click 1: sv->SelAdo->size = %d\n", sv->SelAdo->size);
                SUMA_LHv("Button 3 down plain jane, "
                             "viewer #%d : X=%f, Y = %f\n",
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
@@ -6301,6 +6312,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Failed to clear selections");
                   break;
                }
+            fprintf(stderr, "R-click 2: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                /* Bev.state does work in the line below,
                   unlike Mev.state further down.
@@ -6312,6 +6324,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Holding back callbacks");
                   SUMAg_CF->HoldClickCallbacks = 1;
                }
+            fprintf(stderr, "R-click 3: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                /* are we in ROI drawing mode ? */
                if (  SUMAg_CF->ROI_mode
@@ -6323,6 +6336,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                }
 
+            fprintf(stderr, "R-click 4: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                if (!(Kev.state & ShiftMask) && (Kev.state & ControlMask)) {
                   SUMA_LH("Yoking intensity to node selection");
                   SUMAg_CF->YokeIntToNode = 1;
@@ -6330,6 +6345,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Holding back yoking");
                   SUMAg_CF->YokeIntToNode = 0;
                }
+
+            fprintf(stderr, "R-click 5: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                SUMA_LH("Get the selection line, bitte");
                if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y,
@@ -6340,6 +6357,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            FuncName);
                   break;
                }
+
+            fprintf(stderr, "R-click 6: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                if (DoubleClick && !ROI_mode){/*See if you are selecting masks */
                   SUMA_ALL_DO *mado=NULL, *ado=NULL;
@@ -6407,7 +6426,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("No mask hit, and no selection needs ignoring");
                }
 
-               if (!DoubleClick) {
+             fprintf(stderr, "R-click 7: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
+              if (!DoubleClick) {
                   /* you do not want to waist time doing double calculations if
                      the user clicks twice by mistake */
                   /* make sure no viewer, other than the one clicked in is in
@@ -6426,7 +6447,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }
 
-                  #if 0
+             fprintf(stderr, "R-click 8: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
+                 #if 0
                   /* Try this if you are having OpenGLStateReset problems at
                      node selection time. It is inefficient, but helps point
                      to the problem.
@@ -6445,7 +6468,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
 
 
-                  if (1) {
+             fprintf(stderr, "R-click 9: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
+                 if (1) {
                      hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
                      if ( (Kev.state & ShiftMask) &&
                          !(Kev.state & ControlMask) &&
@@ -6458,6 +6483,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }
 
+            fprintf(stderr, "R-click 10: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                   if (1) {
                       SUMA_LH("Trying for volume intersections");
                       hit =  SUMA_ComputeLineVOslicesIntersect(sv, SUMAg_DOv,
@@ -6469,6 +6496,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                   FuncName);
                       }
                   }
+
+            fprintf(stderr, "R-click 11: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                   if (1) {
                       SUMA_LH("Trying for volume VR intersections");
@@ -6495,15 +6524,25 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   #endif
 
+            fprintf(stderr, "R-click 12: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                   SUMA_LH("Checking on registered surfaces");
                   SwasHit = 0;
+            fprintf(stderr, "R-click 12a: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                   ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
+            fprintf(stderr, "R-click 12b: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                   if (ii == 0) { /* no surfaces, break */
                      SUMA_LH("No registrants");
+            fprintf(stderr, "R-click 12c: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                   } else {
                      /* have surfaces, find hits */
-                     hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv,
-                                                             0, NULL);
+                     hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv, 0, NULL);
+
+            fprintf(stderr, "R-click 12d: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                      if (hit < 0) {
                        SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
                      } else if (hit > 0) SwasHit = 1;
@@ -6512,6 +6551,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                }
 
+
+            fprintf(stderr, "R-click 13: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                if (ROI_mode && (SwasHit || DoubleClick)) {
                   /* keep track of mouse motion in window */
@@ -6528,10 +6569,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      sv->Pick1, YUP);
                }
 
+            fprintf(stderr, "R-click 14: sv->SelAdo->size = %d\n", sv->SelAdo->size);
+
                ASSESS:
                SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
+               SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
+               fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
+               fprintf(stderr, "sv = %p\n", sv);
+               fprintf(stderr, "ado = %p\n", ado);
+               fprintf(stderr, "Saux = %p\n", SUMA_ADO_SSaux(ado));
+               if (!(SUMA_ADO_SSaux(ado))){
+                    SUMA_S_Err("NULL Saux!!!, don't let that happen");
+                    SUMA_RETURN(NOPE);
+               }
+               fprintf(stderr, "sv->SelAdo = %p\n", sv->SelAdo);
+               fprintf(stderr, "sv->SelAdo->size = %d\n", sv->SelAdo->size);
                if (dlist_size(sv->SelAdo)) {
-                  if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
+                 fprintf(stderr, "SUMA_Button_3\n");
+                 if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
                      SUMA_S_Err("Failed to process selected ados");
                      goto OUT;
                   }
@@ -7124,6 +7179,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                ASSESS_MOTION:
                SUMA_LH("Assessment");
                if (dlist_size(sv->SelAdo)) {
+               fprintf(stderr, "SUMA_Button_3_Motion\n");
                   if (!SUMA_Process_Selected_ADO(sv, SUMA_ALTHELL)) {
                      SUMA_S_Err("Failed to process selected ado");
                      SUMA_RETURNe;
@@ -8392,6 +8448,11 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
+         if (!Saux){
+            SUMA_S_Err("NULL Saux!!!, don't let that happen");
+            SUMA_RETURN(NOPE);
+         }
+        // fprintf(stderr, "Saux = %p\n", Saux);
          SUMA_free_PickResult(Saux->PR);
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);
@@ -9328,12 +9389,14 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist, 0);
    imin = -1;
    dmin = 10000000.0;
+   fprintf(stderr, "N_SOlist = %d\n", N_SOlist);
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
       if (LocalHead)
             fprintf (SUMA_STDERR,
                      "%s: working %d/%d shown surfaces ...\n",
                      FuncName, ii, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
+      fprintf(stderr, "SO[%d] = %p\n", ii, SO);
       SUMA_VisX_Pointers4Display(SO, 1); /* using coordinates as displayed */
       if (SO->FaceSetDim != 3) {
          fprintf(SUMA_STDERR,
@@ -9370,6 +9433,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                MTI = MTIi;
             }else {
                /* not good, toss it away */
+                fprintf(stderr, " Also not good, toss it away\n");
                if (LocalHead)
                   fprintf (SUMA_STDERR,
                            "%s: ii=%d freeing MTIi...\n", FuncName, ii);
@@ -9377,6 +9441,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
             }
          }else {
             /* not good, toss it away */
+            fprintf(stderr, "not good, toss it away\n");
            if (LocalHead)
                fprintf (SUMA_STDERR,
                         "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
@@ -9384,13 +9449,13 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
         }
       }
       SUMA_VisX_Pointers4Display(SO, 0); /* put things back young man */
-
     }
 
    if (LocalHead)
       fprintf (SUMA_STDERR,
                "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
 
+   fprintf(stderr, "imin = %d\n", imin);
    if (imin >= 0) {
       SUMA_PICK_RESULT *PR;
       SUMA_ALL_DO *ado;
@@ -9405,7 +9470,8 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       PR->ignore_same_datum = IgnoreSameNode;
       PR->iAltSel[SUMA_SURF_TRI] = MTI->ifacemin;
       SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
-      /* Add selection result to stack */
+      /* Add selection result to stack.  NB.  This increments sv->SelAdo->size
+        PR has the surface details.  */
       if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
          SUMA_S_Err("Failed to add selected ado");
          SUMA_RETURN(-1);
@@ -9443,6 +9509,8 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
    PR = *PRi;   /* Keep local copy */
    /* Store the PR in ado, hide it from return potential */
+   fprintf(stderr, "ado=%p\n", ado);
+   fprintf(stderr, "PRi=%p\n", PRi);
    SUMA_ADO_StorePickResult(ado, PRi);
 
 

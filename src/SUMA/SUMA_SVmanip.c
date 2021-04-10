@@ -1253,16 +1253,19 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "sv = %p\n", sv);
    if (!sv || !sv->SelAdo) SUMA_RETURN(NOPE);
    if (!(nn=dlist_size(sv->SelAdo))) {
       SUMA_LH("Empty list");
       SUMA_RETURN(YUP);
    }
 
+   fprintf(stderr, "LocalHead = %d\n", LocalHead);
    if (LocalHead) {
       SUMA_Show_PickList(sv->SelAdo, 1, "Before sorting:\n", NULL);
    }
 
+   fprintf(stderr, "nn = %d\n", nn);
    if (nn > 1) {
       Pxyz = (float *)SUMA_calloc(3*nn, sizeof(float));
       Sxyz = (float *)SUMA_calloc(3*nn, sizeof(float));
@@ -1327,6 +1330,7 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
       SUMA_ifree(isrt); SUMA_ifree(ssv); SUMA_ifree(Pxyz); SUMA_ifree(Sxyz);
    }
 
+   fprintf(stderr, "LocalHead = %d\n", LocalHead);
    if (LocalHead) { /* Show me the list after sorting */
       if (deepfirst) {
          SUMA_Show_PickList(sv->SelAdo, 1,
@@ -1341,7 +1345,9 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
    SUMA_LH("On to apply the PR");
    el = dlist_head(sv->SelAdo);
    ss = (SUMA_SEL_ADO_DATUM *)el->data;
+   fprintf(stderr, "ss = %p\n", ss);
    SUMA_Apply_PR(sv, &(ss->PR));
+   fprintf(stderr, "After SUMA_Apply_PR\n");
    SUMA_LH("Returning");
 
    SUMA_RETURN(YUP);
