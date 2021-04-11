@@ -276,9 +276,10 @@ set progname = @animal_warper
 #    + record align_type in animal_outs.txt
 #    + fixed bug in 3drefitting a 'dset_follower' as if it were int-valued
 # 
-set version = "3.31" ; set date = "Mar 1, 2021"
+#set version = "3.31" ; set date = "Mar 1, 2021"
 # [PT] fix location of affine align init*jpg
 #
+set version = "3.32" ; set date = "Apr 6, 2021"
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -305,6 +306,7 @@ set maxlev             = "09"
 set make_orig_surfaces = "1"
 set align_type         = "all"
 set ok_to_exist        = "0"
+set extra_qw_opts      = ""
 
 # one-to-one correspondence between followers and abbrevs
 set atlas_followers      = () ; set atlas_abbrevs    = ()
@@ -517,7 +519,15 @@ while ($ac <= $#argv)
            echo "align_type $align_type is not a valid choice"
            exit 1
         endif
-
+    else if ("$argv[$ac]" == "-extra_qw_opts") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set extra_qw_opts =  ($extra_qw_opts $argv[$ac] )
+        echo "extra_qw_opts is set to "$extra_qw_opts
     else if ("$argv[$ac]" == "-center_out") then
         set this_opt = "$argv[$ac]"
         @ ac ++
@@ -1565,7 +1575,8 @@ else
       -qworkhard 0 2                                             \
       -input ${imed}/${srcsh2_prefix}_aff.nii.gz                 \
       -output_dir ${awpy_dir}                                    \
-      -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}
+      -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}          \
+      $extra_qw_opts
 
    if ( ${status} ) then
        echo "** ERROR: program failed (autowarp)"
@@ -3083,15 +3094,20 @@ Options ~1~
                        less-than-nonlinear warps will necessarily be more 
                        approximate.
 
-  -keep_temp          :keep temporary files including awpy directory and
-                       other intermediate datasets
+  -qw_opts       specify other options to add on to the existing options
+                       for 3dQwarp either as a group of options in quotes as
+                       in "-nopenalty -workhard 0:3" or by repeated use of this
+                       option. 3dQwarp is called indirectly using auto_warp.py.
+                       
+  -keep_temp          :keep temporary files including awpy directory (from
+                       auto_warp.py) and other intermediate datasets
 
   -ok_to_exist        :reuse and do not overwrite existing datasets.
                        This option is used for faster restarts or with
                        limited alignment options
 
   -echo               :copy all commands being run into the terminal 
-                         (like running 'tcsh -x ...')
+                       (like running 'tcsh -x ...')
 
 
 Outputs (we got plenty of 'em!) ~1~
