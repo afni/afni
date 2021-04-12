@@ -128,14 +128,10 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SO->SphereCenter[1] = -1.0;
     SO->SphereCenter[2] = -1.0;
     SO->LocalDomainParent = "SAME";
-    fprintf(stderr, "Before SUMA_AddDO: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-    fprintf(stderr, "Before SUMA_AddDO: sv->SelAdo = %p\n", sv->SelAdo);
     if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
         fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
         return;
     }
-    fprintf(stderr, "After SUMA_AddDO: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-    fprintf(stderr, "After SUMA_AddDO: sv->SelAdo = %p\n", sv->SelAdo);
 
    N_dov = SUMAg_N_DOv-1;
     sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
@@ -149,7 +145,9 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
     // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
     SO->LocalDomainParentID = NULL;
-    SO->Saux = SUMA_ADO_CSaux(ado);
+    SO->Saux = SUMA_ADO_Saux(ado);
+    fprintf(stderr, "ado = %p\n", ado);
+    fprintf(stderr, "SO->Saux = %p\n", SO->Saux);
 
    SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
    SO->NodeList_swp = NULL;
@@ -210,8 +208,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     if (SUMA_ComputeLineSurfaceIntersect (sv, dov, 0, NULL) < 0){
        SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
      }
-
-    fprintf(stderr, "After drawPlaneFromNodeAndFaceSetList: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
     return SO;
 }
@@ -6301,7 +6297,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case Button3: {
-            fprintf(stderr, "R-click 1: sv->SelAdo->size = %d\n", sv->SelAdo->size);
                SUMA_LHv("Button 3 down plain jane, "
                             "viewer #%d : X=%f, Y = %f\n",
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
@@ -6312,7 +6307,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Failed to clear selections");
                   break;
                }
-            fprintf(stderr, "R-click 2: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                /* Bev.state does work in the line below,
                   unlike Mev.state further down.
@@ -6324,7 +6318,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Holding back callbacks");
                   SUMAg_CF->HoldClickCallbacks = 1;
                }
-            fprintf(stderr, "R-click 3: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                /* are we in ROI drawing mode ? */
                if (  SUMAg_CF->ROI_mode
@@ -6336,8 +6329,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                }
 
-            fprintf(stderr, "R-click 4: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
                if (!(Kev.state & ShiftMask) && (Kev.state & ControlMask)) {
                   SUMA_LH("Yoking intensity to node selection");
                   SUMAg_CF->YokeIntToNode = 1;
@@ -6345,8 +6336,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Holding back yoking");
                   SUMAg_CF->YokeIntToNode = 0;
                }
-
-            fprintf(stderr, "R-click 5: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                SUMA_LH("Get the selection line, bitte");
                if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y,
@@ -6357,8 +6346,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            FuncName);
                   break;
                }
-
-            fprintf(stderr, "R-click 6: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                if (DoubleClick && !ROI_mode){/*See if you are selecting masks */
                   SUMA_ALL_DO *mado=NULL, *ado=NULL;
@@ -6426,8 +6413,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("No mask hit, and no selection needs ignoring");
                }
 
-             fprintf(stderr, "R-click 7: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
               if (!DoubleClick) {
                   /* you do not want to waist time doing double calculations if
                      the user clicks twice by mistake */
@@ -6446,8 +6431,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMA_RETURNe;
                      }
                   }
-
-             fprintf(stderr, "R-click 8: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                  #if 0
                   /* Try this if you are having OpenGLStateReset problems at
@@ -6468,8 +6451,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
 
 
-             fprintf(stderr, "R-click 9: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
                  if (1) {
                      hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
                      if ( (Kev.state & ShiftMask) &&
@@ -6483,8 +6464,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }
 
-            fprintf(stderr, "R-click 10: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
                   if (1) {
                       SUMA_LH("Trying for volume intersections");
                       hit =  SUMA_ComputeLineVOslicesIntersect(sv, SUMAg_DOv,
@@ -6496,8 +6475,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                   FuncName);
                       }
                   }
-
-            fprintf(stderr, "R-click 11: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                   if (1) {
                       SUMA_LH("Trying for volume VR intersections");
@@ -6524,24 +6501,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   #endif
 
-            fprintf(stderr, "R-click 12: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
                   SUMA_LH("Checking on registered surfaces");
                   SwasHit = 0;
-            fprintf(stderr, "R-click 12a: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                   ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
-            fprintf(stderr, "R-click 12b: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                   if (ii == 0) { /* no surfaces, break */
                      SUMA_LH("No registrants");
-            fprintf(stderr, "R-click 12c: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                   } else {
                      /* have surfaces, find hits */
                      hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv, 0, NULL);
-
-            fprintf(stderr, "R-click 12d: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                      if (hit < 0) {
                        SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
@@ -6551,8 +6521,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                }
 
-
-            fprintf(stderr, "R-click 13: sv->SelAdo->size = %d\n", sv->SelAdo->size);
 
                if (ROI_mode && (SwasHit || DoubleClick)) {
                   /* keep track of mouse motion in window */
@@ -6569,21 +6537,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      sv->Pick1, YUP);
                }
 
-            fprintf(stderr, "R-click 14: sv->SelAdo->size = %d\n", sv->SelAdo->size);
-
                ASSESS:
                SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
                SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
                fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
                fprintf(stderr, "sv = %p\n", sv);
                fprintf(stderr, "ado = %p\n", ado);
-               fprintf(stderr, "Saux = %p\n", SUMA_ADO_SSaux(ado));
-               if (!(SUMA_ADO_SSaux(ado))){
+               fprintf(stderr, "Saux = %p\n", SUMA_ADO_Saux(ado));
+               if (!(SUMA_ADO_Saux(ado))){
                     SUMA_S_Err("NULL Saux!!!, don't let that happen");
                     SUMA_RETURN(NOPE);
                }
-               fprintf(stderr, "sv->SelAdo = %p\n", sv->SelAdo);
-               fprintf(stderr, "sv->SelAdo->size = %d\n", sv->SelAdo->size);
                if (dlist_size(sv->SelAdo)) {
                  fprintf(stderr, "SUMA_Button_3\n");
                  if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
