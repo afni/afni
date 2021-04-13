@@ -153,6 +153,18 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    SO->NodeList_swp = NULL;
    SO->N_Overlays = 1;
    SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
+   SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
+   SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+    if (!(SO->Overlays)){
+        SUMA_S_Err("NULL Overlays pointer.");
+        SO->N_Overlays = 0;
+    }
+    if (SO->Overlays == 0x1){
+        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+        SO->N_Overlays = 0;
+    }
+   fprintf(stderr, "SO->Overlays = %p\n", SO->Overlays);
+   fprintf(stderr, "((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays = %p\n", ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays);
 
     if (!SUMA_PrepSO_GeomProp_GL (SO)) {
         SUMA_SL_Err("Failed to set surface's properties");
@@ -586,12 +598,6 @@ void getSquareOnPlane(float *plane, float points[4][3]){
 
     // Get bitangent which is the cross product of the tangent and the normal
     crossProduct(tangent, normal, bitangent);
-
-    fprintf(stderr, "planeOrigin = <%f, %f, %f>\n", planeOrigin[0], planeOrigin[1], planeOrigin[2]);
-    fprintf(stderr, "otherPoint = <%f, %f, %f>\n", otherPoint[0], otherPoint[1], otherPoint[2]);
-    fprintf(stderr, "normal = <%f, %f, %f>\n", normal[0], normal[1], normal[2]);
-    fprintf(stderr, "tangent = <%f, %f, %f>\n", tangent[0], tangent[1], tangent[2]);
-    fprintf(stderr, "bitangent = <%f, %f, %f>\n", bitangent[0], bitangent[1], bitangent[2]);
 
     // Get points from tangent and bitangent
     for (int i=0; i<3; ++i){
@@ -9353,7 +9359,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist, 0);
    imin = -1;
    dmin = 10000000.0;
-   fprintf(stderr, "N_SOlist = %d\n", N_SOlist);
+
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
       if (LocalHead)
             fprintf (SUMA_STDERR,

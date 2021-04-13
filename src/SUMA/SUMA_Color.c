@@ -7378,10 +7378,25 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    /* get the indices into the color structure vector of overlays to be shown */
    NshowOverlays = 0;
    NshowOverlays_Back = 0;
+   fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
    for (j=0; j < N_Overlays; ++j) {
+      fprintf(stderr, "j = %d\n", j);
+      if (!Overlays){
+            SUMA_S_Err("NULL Overlays pointer.");
+            SUMA_RETURN (NOPE);
+      }
+      if (Overlays == 0x1){
+            SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+            SUMA_RETURN (NOPE);
+      }
+      fprintf(stderr, "Overlays = %p\n", Overlays);
+      fprintf(stderr, "Overlays[j] = %p\n", Overlays[j]);
+      fprintf(stderr, "Overlays[j]->ShowMode = %d\n", Overlays[j]->ShowMode);
+      fprintf(stderr, "Overlays[j]->GlobalOpacity = %f\n", Overlays[j]->GlobalOpacity);
       if ( (Overlays[j]->ShowMode == SW_SurfCont_DsetViewCol ||
             Overlays[j]->ShowMode == SW_SurfCont_DsetViewCaC ) &&
            Overlays[j]->GlobalOpacity != 0) {
+         fprintf(stderr, "Overlays[j]->isBackGrnd = %d\n", Overlays[j]->isBackGrnd);
          if (Overlays[j]->isBackGrnd) {
             if (0) { /* There is no
                         SO->SurfCont->ShowCurBackOnly and I am not
@@ -7405,6 +7420,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                ++ NshowOverlays_Back;
             }
          }else {
+            fprintf(stderr, "SO->SurfCont = %p\n", SO->SurfCont);
             if (SO->SurfCont->ShowCurForeOnly) {
                if (SO->SurfCont->curColPlane == Overlays[j]) {
                   SUMA_LHv("Le ShowCurForeOnly %s in action\n",
@@ -7634,7 +7650,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
    }
 
-   if (!NshowOverlays && NshowOverlays_Back) {
+  if (!NshowOverlays && NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          for (i=0; i < N_Node; ++i) {
