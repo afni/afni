@@ -31,8 +31,6 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
 
-    fprintf(stderr, "drawPlaneFromNodeAndFaceSetList\n");
-
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
     SUMA_DO *dov = SUMAg_DOv;
@@ -166,31 +164,42 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
     SO->LocalDomainParentID = NULL;
     SO->Saux = SUMA_ADO_Saux(ado);
-    fprintf(stderr, "ado = %p\n", ado);
-    fprintf(stderr, "SO->Saux = %p\n", SO->Saux);
 
    SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
    SO->NodeList_swp = NULL;
+
+   // Colors
    SO->N_Overlays = 1;
-   SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-   SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
-    if (!(SO->Overlays)){
-        SUMA_S_Err("NULL Overlays pointer.");
+   if (SO->N_Overlays>0){
+       SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
+       SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+        if (!(SO->Overlays)){
+            SUMA_S_Err("NULL Overlays pointer.");
+            SO->N_Overlays = 0;
+        }
+        if (SO->Overlays == 0x1){
+            SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+            SO->N_Overlays = 0;
+        }
+        SO->Overlays[0]->GlobalOpacity = 0.4;
+
+        // Give square a green tint
+        SO->Overlays[0]->ColVec[1] = 1.0;
+        // SO->Overlays[0]->ColVec[4] = 1.0;
+        SO->Overlays[0]->ColVec[7] = 1.0;
+        // SO->Overlays[0]->ColVec[10] = 1.0;
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
+            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.1;
+   } else {
         SO->N_Overlays = 0;
-    }
-    if (SO->Overlays == 0x1){
-        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
-        SO->N_Overlays = 0;
-    }
-    SO->Overlays[0]->GlobalOpacity = 0.4;
+        SO->PermCol = (GLfloat *)malloc(3*sizeof(GLfloat));
+        SO->PermCol[1] = 1.0;
+        SO->PermCol[0] = SO->PermCol[2] = 0.0;
+   }
 
     if (!SUMA_PrepSO_GeomProp_GL (SO)) {
         SUMA_SL_Err("Failed to set surface's properties");
     }
-
-    // Give square a green tint
-    SO->Overlays[0]->ColVec[1] = 1.0;
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 0.1;
 
     /* create the colorlist vector and calculate the surface metrics
     with the possibility of inheriting from the mapping reference */
@@ -448,7 +457,6 @@ void updateClipSquare(){
 
     // Test values for plane
     for (int i=0; i<3; ++i) plane[i]=activeClipPlane[i];
-    fprintf(stderr, "Active clip plane D: %f\n", activeClipPlane[3]);
     plane[3] = -activeClipPlane[3];
     plane[3] += 1;
 
@@ -595,10 +603,26 @@ void crossProduct(float input1[], float input2[], float output[]){
     output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
 }
 
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax){
+    objectMinMax[0] = 1000.0;
+    objectMinMax[1] = -1000.0;
+
+    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
+        objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
+        objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
+    }
+}
+
 void getSquareOnPlane(float *plane, float points[4][3]){
 
     float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
     float   divisor;
+    float objectMinMax[2];
+
+    getOveralMinAndMaxOfCurrentSurfaceObjects(objectMinMax);
+    fprintf(stderr, "Overall min = %f\n", objectMinMax[0]);
+    fprintf(stderr, "Overall max = %f\n", objectMinMax[1]);
 
     // Get plane point closest to view origin
     getPlanePtClosestToViewerOrigin(plane, planeOrigin);
@@ -622,6 +646,7 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     crossProduct(tangent, normal, bitangent);
 
     // Get points from tangent and bitangent
+    float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
     for (int i=0; i<3; ++i){
         points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
         points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
@@ -629,9 +654,11 @@ void getSquareOnPlane(float *plane, float points[4][3]){
         points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
     }
 
+    /* Development
     for (int i=0; i<4; ++i){
         fprintf(stderr, "point %d: <%f, %f, %f>\n", i, points[i][0], points[i][1], points[i][2]);
     }
+    */
 }
 
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
@@ -671,11 +698,12 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
     points[3][1]=y;
     points[3][2]=z;
 
-    // Debug
+    /* // Debug
     for (int i=0; i<4; ++i){
         fprintf(stderr, "point %d = (%f, %f, %f)\n", i,
             points[i][0], points[i][1], points[i][2]);
     }
+    */
 }
 
 /*!
@@ -3732,7 +3760,7 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          if (sv->FOV[sv->iState] < FOV_MIN) {
             SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN;
          }
-         /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
+
          /* Now update the zoom compensation variable */
          if (sv->ZoomCompensate) {
             sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_auto_fov(sv);
@@ -9433,7 +9461,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
             }
          }else {
             /* not good, toss it away */
-            fprintf(stderr, "not good, toss it away\n");
            if (LocalHead)
                fprintf (SUMA_STDERR,
                         "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
@@ -9447,7 +9474,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       fprintf (SUMA_STDERR,
                "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
 
-   fprintf(stderr, "imin = %d\n", imin);
    if (imin >= 0) {
       SUMA_PICK_RESULT *PR;
       SUMA_ALL_DO *ado;
@@ -9501,8 +9527,6 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
    PR = *PRi;   /* Keep local copy */
    /* Store the PR in ado, hide it from return potential */
-   fprintf(stderr, "ado=%p\n", ado);
-   fprintf(stderr, "PRi=%p\n", PRi);
    SUMA_ADO_StorePickResult(ado, PRi);
 
 
