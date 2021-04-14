@@ -163,12 +163,15 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SUMA_S_Err("Invalid Overlays pointer: 0x1.");
         SO->N_Overlays = 0;
     }
-   fprintf(stderr, "SO->Overlays = %p\n", SO->Overlays);
-   fprintf(stderr, "((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays = %p\n", ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays);
+    SO->Overlays[0]->GlobalOpacity = 0.4;
 
     if (!SUMA_PrepSO_GeomProp_GL (SO)) {
         SUMA_SL_Err("Failed to set surface's properties");
     }
+
+    // Give square a green tint
+    SO->Overlays[0]->ColVec[1] = 1.0;
+    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 0.1;
 
     /* create the colorlist vector and calculate the surface metrics
     with the possibility of inheriting from the mapping reference */
