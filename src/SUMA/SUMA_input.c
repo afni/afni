@@ -3,6 +3,32 @@
 
 #include "GL/glcorearb.h"
 
+void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
+
+    // Initialize
+    for (int i=0; i<3; ++i){
+        SO->MaxDims[i] = -1000.0;
+        SO->MinDims[i] = 1000.0;
+    }
+    SO->aMaxDims = -1000.0;
+    SO->aMinDims = 1000.0;
+
+    // Update min and max for each axis
+    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
+        for (int i=0; i<3; ++i){
+            SO->MaxDims[i] = MAX(SO->MaxDims[i], soOld->MaxDims[i]);
+            SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
+        }
+    }
+
+    // Update overall min and max
+    for (int i=0; i<3; ++i){
+        SO->aMaxDims = MAX(SO->MaxDims[i], SO->aMaxDims);
+        SO->aMinDims = MIN(SO->MinDims[i], SO->aMinDims);
+    }
+}
+
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
 
     fprintf(stderr, "drawPlaneFromNodeAndFaceSetList\n");
@@ -32,20 +58,14 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SUMA_SetSphereParams(SO, -0.1);
     }  // sets the spheriosity parameters
 
+    // Miscelaneous fields
     if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-    SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
+        SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
     }
-
     SO->do_type = SO_type;
-    SO->MaxDims[0] = 100.0;
-    SO->MaxDims[1] = 100.0;
-    SO->MaxDims[2] = 100.0;
-    SO->MinDims[0] = -100.0;
-    SO->MinDims[1] = -100.0;
-    SO->MinDims[2] = -100.0;
-    SO->aMaxDims = 100.0;
-    SO->aMinDims = -100.0;
     SO->SurfCont = NULL;
+
+    dimensionsInscribeThoseOfPreviousSurfaceObjects(SO);
 
     // SO->EmbedDim = 2;
     SO->Side = SUMA_GuessSide (SO);
@@ -133,7 +153,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         return;
     }
 
-   N_dov = SUMAg_N_DOv-1;
+    N_dov = SUMAg_N_DOv-1;
     sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
 
      /* register DO with viewer */
