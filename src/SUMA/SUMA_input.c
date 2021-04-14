@@ -172,7 +172,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
    SO->NodeList_swp = NULL;
    SO->N_Overlays = 1;
-   SO->Overlays = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->Overlays;
    SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
    SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
     if (!(SO->Overlays)){
