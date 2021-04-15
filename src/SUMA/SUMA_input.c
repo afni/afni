@@ -286,6 +286,7 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "FileType (2) = %d\n", SO2->FileType);
     fprintf(stderr, "FileFormat (1) = %d\n", SO1->FileFormat);
     fprintf(stderr, "FileFormat (2) = %d\n", SO2->FileFormat);
+    /*
     fprintf(stderr, "Name (1) = %s, %s\n", SO1->Name.Path, SO1->Name.FileName);
     fprintf(stderr, "Name (2) = %s, %s\n", SO2->Name.Path, SO2->Name.FileName);
     fprintf(stderr, "Name_coord (1) = %s, %s\n", SO1->Name_coord.Path, SO1->Name_coord.FileName);
@@ -294,6 +295,7 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "Name_topo (2) = %s, %s\n", SO2->Name_topo.Path, SO2->Name_topo.FileName);
     fprintf(stderr, "SpecFile (1) = %s, %s\n", SO1->SpecFile.Path, SO1->SpecFile.FileName);
     fprintf(stderr, "SpecFile (2) = %s, %s\n", SO2->SpecFile.Path, SO2->SpecFile.FileName);
+    */
     fprintf(stderr, "parent_vol_idcode_str (1) = %s\n", SO1->parent_vol_idcode_str);
     fprintf(stderr, "parent_vol_idcode_str (2) = %s\n", SO2->parent_vol_idcode_str);
     fprintf(stderr, "facesetlist_idcode_str (1) = %s\n", SO1->facesetlist_idcode_str);
@@ -611,8 +613,16 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax){
 
     for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
-        objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
+        if (soOld->N_Node>0 && soOld->NodeDim==3){
+            objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
+            objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
+        }
+    }
+
+    // Account for possibility of no valid surface objects
+    if (objectMinMax[0] > objectMinMax[1]){
+        objectMinMax[0] = -100.0;
+        objectMinMax[1] = 100.0;
     }
 }
 
@@ -650,10 +660,16 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     // Get points from tangent and bitangent
     float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
     for (int i=0; i<3; ++i){
+        points[0][i]=planeOrigin[i]+objectMinMax[1]*tangent[i]+objectMinMax[0]*bitangent[i];
+        points[1][i]=planeOrigin[i]+objectMinMax[1]*tangent[i]+objectMinMax[1]*bitangent[i];
+        points[2][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[1]*bitangent[i];
+        points[3][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[0]*bitangent[i];
+    /*
         points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
         points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
         points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
         points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
+        */
     }
 
     /* Development
