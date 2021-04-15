@@ -202,7 +202,7 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 // static int clipPlaneIndex;
 static Bool clipPlaneIdentificationMode;
-static SUMA_SurfaceObject *clipIdentificationPlane;
+static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 
 /*!

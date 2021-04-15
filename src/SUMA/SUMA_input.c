@@ -470,7 +470,7 @@ void updateClipSquare(){
     int inc=0;
     for (int i=0; i<4; ++i)
         for (int j=0; j<3; ++j)
-            clipIdentificationPlane->NodeList[inc++] = points[i][j];
+            clipIdentificationPlane[0]->NodeList[inc++] = points[i][j];
 }
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
@@ -664,12 +664,12 @@ void getSquareOnPlane(float *plane, float points[4][3]){
         points[1][i]=planeOrigin[i]+objectMinMax[1]*tangent[i]+objectMinMax[1]*bitangent[i];
         points[2][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[1]*bitangent[i];
         points[3][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[0]*bitangent[i];
-    /*
+#if 0
         points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
         points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
         points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
         points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
-        */
+#endif
     }
 
     /* Development
@@ -5049,12 +5049,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 */
 
-                fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
-                if (clipIdentificationPlane){
+                fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
+                if (clipIdentificationPlane[0]){
                     if (clipPlaneIdentificationMode){
-                        clipIdentificationPlane->Show = 1;
+                        clipIdentificationPlane[0]->Show = 1;
                     } else {
-                        clipIdentificationPlane->Show = 0;
+                        clipIdentificationPlane[0]->Show = 0;
                     }
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
@@ -5093,9 +5093,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     FS.FaceSetList[inc++] = 1;
 
                     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
-                    clipIdentificationPlane = SO;   // Record pointer to clip identification plane object
+                    clipIdentificationPlane[0] = SO;   // Record pointer to clip identification plane object
 
-                    fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
+                    fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
 
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                }
@@ -6614,7 +6614,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                ASSESS:
                SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
                SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
-               fprintf(stderr, "clipIdentificationPlane = %p\n", clipIdentificationPlane);
+               fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
                fprintf(stderr, "sv = %p\n", sv);
                fprintf(stderr, "ado = %p\n", ado);
                fprintf(stderr, "Saux = %p\n", SUMA_ADO_Saux(ado));
