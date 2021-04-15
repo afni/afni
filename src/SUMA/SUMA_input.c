@@ -29,6 +29,13 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     }
 }
 
+void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[1] = 1.0;
+        SO->Overlays[0]->ColVec[7] = 1.0;
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
+            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.1;
+}
+
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
 
     // Set global variables
@@ -183,13 +190,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         }
         SO->Overlays[0]->GlobalOpacity = 0.4;
 
-        // Give square a green tint
-        SO->Overlays[0]->ColVec[1] = 1.0;
-        // SO->Overlays[0]->ColVec[4] = 1.0;
-        SO->Overlays[0]->ColVec[7] = 1.0;
-        // SO->Overlays[0]->ColVec[10] = 1.0;
-        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
-            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.1;
+        // Make common nodes of rectangle green
+        makeCommonNodesOfRectangleGreen(SO);
    } else {
         SO->N_Overlays = 0;
         SO->PermCol = (GLfloat *)malloc(3*sizeof(GLfloat));
