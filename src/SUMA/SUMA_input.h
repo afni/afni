@@ -205,6 +205,7 @@ static Bool clipPlaneIdentificationMode;
 static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 
+
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke
    Since not all elements of brushstroke have a surface node, the macro continues searching until

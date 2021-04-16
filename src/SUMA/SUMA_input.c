@@ -36,7 +36,7 @@ void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
             SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.1;
 }
 
-SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS){
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
 
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
@@ -79,7 +79,14 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SO->FileType = SUMA_FREE_SURFER;
     SO->Name.Path = NULL;
     SO->Name.FileName = NULL;
-    SO->idcode_str = "RectangleID";
+    switch (planeIndex){
+        case 0: SO->idcode_str = "ClipSquare1"; break;
+        case 1: SO->idcode_str = "ClipSquare2"; break;
+        case 2: SO->idcode_str = "ClipSquare3"; break;
+        case 3: SO->idcode_str = "ClipSquare4"; break;
+        case 4: SO->idcode_str = "ClipSquare5"; break;
+        case 5: SO->idcode_str = "ClipSquare6"; break;
+    }
 
     SUMA_AutoLoad_SO_Dsets(SO);
 
@@ -135,7 +142,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
 
     /*turn off the viewing for the axis */
-    SO->ShowMeshAxis = NOPE;
+    SO->ShowMeshAxis = clipPlaneIdentificationMode;
 
     /* Create a Mesh Axis for the surface */
     SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
@@ -159,7 +166,9 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     }
 
     N_dov = SUMAg_N_DOv-1;
-    sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+    // sv->ColList[N_dov] = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+
+    fprintf(stderr, "SUMAg_N_DOv=%p\n", SUMAg_N_DOv);
 
      /* register DO with viewer */
     if (!SUMA_RegisterDO(N_dov, sv)) {
@@ -172,7 +181,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SO->LocalDomainParentID = NULL;
     SO->Saux = SUMA_ADO_Saux(ado);
 
-   SO->Show = 1;    // *** Most important part.  The plane is not shown if this value is zero
+   SO->Show = clipPlaneIdentificationMode;    // *** Most important part.  The plane is not shown if this value is zero
    SO->NodeList_swp = NULL;
 
    // Colors
@@ -456,7 +465,7 @@ void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
     fprintf(stderr, "Ending surface comparison\n");
 }
 
-void updateClipSquare(){
+void updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
 
     // Test values for plane
@@ -467,10 +476,54 @@ void updateClipSquare(){
 
     getSquareOnPlane(plane, points);
 
+    fprintf(stderr, "planeIndex = %d\n", planeIndex);
+    fprintf(stderr, "clipIdentificationPlane[planeIndex] = %p\n", clipIdentificationPlane[planeIndex]);
     int inc=0;
     for (int i=0; i<4; ++i)
         for (int j=0; j<3; ++j)
-            clipIdentificationPlane[0]->NodeList[inc++] = points[i][j];
+            clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
+    fprintf(stderr, "End of updateClipSquare\n");
+}
+
+Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
+    float plane[4], points[4][3];
+
+    // Test values for plane
+    for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
+    plane[3] += 1;
+
+    getSquareOnPlane(plane, points);
+
+    static SUMA_FreeSurfer_struct FS;
+
+    FS.N_Node = 4;
+    FS.N_FaceSet = 3;
+
+    FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
+    int inc=0;
+    for (int i=0; i<4; ++i)
+        for (int j=0; j<3; ++j)
+            FS.NodeList[inc++] = points[i][j];
+
+    FS.FaceSetList = (float *)malloc(FS.N_FaceSet*3*sizeof(int));
+    inc = 0;
+    FS.FaceSetList[inc++] = 0;
+    FS.FaceSetList[inc++] = 1;
+    FS.FaceSetList[inc++] = 2;
+    FS.FaceSetList[inc++] = 1;
+    FS.FaceSetList[inc++] = 2;
+    FS.FaceSetList[inc++] = 3;
+    FS.FaceSetList[inc++] = 3;
+    FS.FaceSetList[inc++] = 0;
+    FS.FaceSetList[inc++] = 1;
+
+    SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS, planeIndex);
+    clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
+
+    fprintf(stderr, "clipIdentificationPlane[planeIndex] = %p\n", clipIdentificationPlane[planeIndex]);
+
+    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
 }
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
@@ -538,7 +591,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
     // Show user which clip plane is active
     if (clipPlaneIdentificationMode){
-        updateClipSquare();
+        if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
     #if 0   // Turn off recoloration
        // Get clip plane paramaters.  NBB. Simplify by assuming first plane
         int offset = 4*planeIndex;
@@ -4978,24 +5031,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_C:
             fprintf(stderr, "shift-C\n");
             if ((SUMA_ALTHELL)){
-            /* Remove clip plane dialog from SUMA GUI
-                SUMAg_CF->X->ClipObj_prmpt =
-                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
-                              "Enter object clip plane parameters (a,b,c,d)",
-                              "A: 0,0,1,0",
-                              sv->X->TOPLEVEL, YUP,
-                              SUMA_APPLY_BUTTON,
-                              SUMA_SetObjectClip, (void *)sv,
-                              NULL, NULL,
-                              NULL, NULL,
-                              NULL, NULL,
-                              SUMAg_CF->X->ClipObj_prmpt);
 
-               SUMAg_CF->X->ClipObj_prmpt =
-                  SUMA_CreatePromptDialog(
-                     "Enter object clip plane parameters (a,b,c,d)",
-                     SUMAg_CF->X->ClipObj_prmpt);
-/**/
                 // This sets up a new clip plane (independent of the dialog box.  If called with
                 //  the dialog box, two clipping planes result.)  The new plane is automatically
                 //  assigned a label which is its 1-based index
@@ -5010,95 +5046,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                     clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                    makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv);
                 }
             } else if (SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
-                // Turn on light in front of selected clipping plane.
+                // Toggle clip plane identification mode
                 clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
 
-                // clipPlaneIdentificationMode = clipPlaneIdentificationMode;
-
-                /* Color adjustment
-                if (clipPlaneIdentificationMode){
-                    // Turn off ambient lighting
-                    for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
-                    sv->lmodel_ambient[1]=0.2;
-                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-                    // Local light color (red)
-                    sv->light0_color[0]=1.0;
-                    sv->light0_color[1]=0.0;
-                    sv->light0_color[2]=0.0;
-
-                    glLightfv(GL_LIGHT0, GL_DIFFUSE, sv->light0_color);
-
-                    clipPlaneTransform(0,0,0,0,-1, 0);
-                } else {
-                    // Turn on ambient lighting
-                    for (int i=0; i<4; ++i) sv->lmodel_ambient[i] = 0.4;
-                    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
-                    // Adjust diffuse lighting to light gray
-                    sv->light0_color[0]=0.8;
-                    sv->light0_color[1]=0.8;
-                    sv->light0_color[2]=0.8;
-
-                    glLightfv(GL_LIGHT0, GL_DIFFUSE, sv->light0_color);
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-                }
-                */
-
-                fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
-                if (clipIdentificationPlane[0]){
+                for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                     if (clipPlaneIdentificationMode){
-                        clipIdentificationPlane[0]->Show = 1;
+                        clipIdentificationPlane[planeIndex]->Show = 1;
                     } else {
-                        clipIdentificationPlane[0]->Show = 0;
+                        clipIdentificationPlane[planeIndex]->Show = 0;
                     }
-
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                 }
-                else if (clipPlaneIdentificationMode){   // ### Drawing plane.
 
-                    float plane[4], points[4][3];
-
-                    // Test values for plane
-                    for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
-                    plane[3] += 1;
-
-                    getSquareOnPlane(plane, points);
-
-                    static SUMA_FreeSurfer_struct FS;
-
-                    FS.N_Node = 4;
-                    FS.N_FaceSet = 3;
-
-                    FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
-                    int inc=0;
-                    for (int i=0; i<4; ++i)
-                        for (int j=0; j<3; ++j)
-                            FS.NodeList[inc++] = points[i][j];
-
-                    FS.FaceSetList = (float *)malloc(FS.N_FaceSet*3*sizeof(int));
-                    inc = 0;
-                    FS.FaceSetList[inc++] = 0;
-                    FS.FaceSetList[inc++] = 1;
-                    FS.FaceSetList[inc++] = 2;
-                    FS.FaceSetList[inc++] = 1;
-                    FS.FaceSetList[inc++] = 2;
-                    FS.FaceSetList[inc++] = 3;
-                    FS.FaceSetList[inc++] = 3;
-                    FS.FaceSetList[inc++] = 0;
-                    FS.FaceSetList[inc++] = 1;
-
-                    SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS);
-                    clipIdentificationPlane[0] = SO;   // Record pointer to clip identification plane object
-
-                    fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
-
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-               }
+                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
             }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
 
                SUMAg_CF->X->Clip_prmpt =
@@ -6614,10 +6579,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                ASSESS:
                SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
                SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
-               fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
-               fprintf(stderr, "sv = %p\n", sv);
-               fprintf(stderr, "ado = %p\n", ado);
-               fprintf(stderr, "Saux = %p\n", SUMA_ADO_Saux(ado));
                if (!(SUMA_ADO_Saux(ado))){
                     SUMA_S_Err("NULL Saux!!!, don't let that happen");
                     SUMA_RETURN(NOPE);
@@ -9434,7 +9395,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                      "%s: working %d/%d shown surfaces ...\n",
                      FuncName, ii, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[ii]].OP;
-      fprintf(stderr, "SO[%d] = %p\n", ii, SO);
       SUMA_VisX_Pointers4Display(SO, 1); /* using coordinates as displayed */
       if (SO->FaceSetDim != 3) {
          fprintf(SUMA_STDERR,
@@ -9471,7 +9431,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                MTI = MTIi;
             }else {
                /* not good, toss it away */
-                fprintf(stderr, " Also not good, toss it away\n");
                if (LocalHead)
                   fprintf (SUMA_STDERR,
                            "%s: ii=%d freeing MTIi...\n", FuncName, ii);
