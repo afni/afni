@@ -38,7 +38,8 @@ Shift+Alt+c       : successively add new clipping planes, which are active
 
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 
-Alt+[a number]    : turn view of clipping plane on (does not toggle off again)
+Alt+[a number]    : select a particular clipping plane (e.g., so you can 
+                    rotate/translate it with other key presses)
 
 Alt+f             : reverse clipping direction of any active planes
 
