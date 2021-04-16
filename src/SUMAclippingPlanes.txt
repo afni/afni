@@ -13,3 +13,6 @@ or about the x-axis with alt-(up or down arrow keys).
 The clipping plane is selected with alt-(number of the plane)
 The clipping plane is toggled on and off with ctrl-(number of the plane)
 
+Alt-f reverses the normal of the selected clipping plane.
+
+

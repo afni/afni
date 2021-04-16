@@ -229,7 +229,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
             SUMA_S_Err("Invalid Overlays pointer: 0x1.");
             SO->N_Overlays = 0;
         }
-        SO->Overlays[0]->GlobalOpacity = 0.4;
+        // SO->Overlays[0]->GlobalOpacity = 0.4;
+        SO->Overlays[0]->GlobalOpacity = 0.7;
 
         // Make common nodes of rectangle the RGBCMY color for the particular plane
         switch(planeIndex){
@@ -516,13 +517,10 @@ void updateClipSquare(int planeIndex){
 
     getSquareOnPlane(plane, points);
 
-    fprintf(stderr, "planeIndex = %d\n", planeIndex);
-    fprintf(stderr, "clipIdentificationPlane[planeIndex] = %p\n", clipIdentificationPlane[planeIndex]);
     int inc=0;
     for (int i=0; i<4; ++i)
         for (int j=0; j<3; ++j)
             clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
-    fprintf(stderr, "End of updateClipSquare\n");
 }
 
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
@@ -668,7 +666,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     // Activate/update clip plane
     sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
-    // fprintf(stderr, "chrTmp = %s\n", chrTmp);    // Debug
+
     SUMA_SetObjectClip(chrTmp, sv);
 }
 
@@ -726,8 +724,6 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     float objectMinMax[2];
 
     getOveralMinAndMaxOfCurrentSurfaceObjects(objectMinMax);
-    fprintf(stderr, "Overall min = %f\n", objectMinMax[0]);
-    fprintf(stderr, "Overall max = %f\n", objectMinMax[1]);
 
     // Get plane point closest to view origin
     getPlanePtClosestToViewerOrigin(plane, planeOrigin);
@@ -5069,7 +5065,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
-            fprintf(stderr, "shift-C\n");
+
             if ((SUMA_ALTHELL)){
 
                 // This sets up a new clip plane (independent of the dialog box.  If called with
@@ -5087,6 +5083,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                     clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
                     makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv);
+
+                    // For some reason, this appears necessary to place planes, or their squares, in the right position
+                    //  if thet are planes 4-6
+                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
                 }
             } else if (SUMAg_CF->N_ClipPlanes>0) {
 
