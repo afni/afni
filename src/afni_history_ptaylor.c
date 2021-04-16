@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Use newer adjunct_apqc_tsnr_general for TSNR images.",
+   "Single/more adjunct general prog than previous separate ones.\n"
+},
+
 { 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
    "Internal logic for making TSNR dsets tweaked.",
    "TSNR images in QC*/media/ dir get unique name, too (no change for user).\n"

@@ -165,9 +165,12 @@ auth = 'PA Taylor'
 #ver = '3.73' ; date = 'Mar 5, 2021'
 # [PT] cp review basic text to QC_*/ dir
 #
-ver = '3.74' ; date = 'Mar 5, 2021'
+#ver = '3.74' ; date = 'Apr 6, 2021'
 # [PT] update TSNR-vreg checks
 #    + give sep names for TSNR images: tsnr_vreg and tsnr_fin
+#
+ver = '3.75' ; date = 'Apr 6, 2021'
+# [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
 #
 #########################################################################
 
