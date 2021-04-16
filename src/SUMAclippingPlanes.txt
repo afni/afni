@@ -16,3 +16,32 @@ The clipping plane is toggled on and off with ctrl-(number of the plane)
 Alt-f reverses the normal of the selected clipping plane.
 
 
+# ------------------------------------------------------------------------
+#
+# [PT: Apr 16, 2021] notes/comments on current clipping plane behavior
+# on Ubuntu 20.04.
+
+There can be up to 6 clipping planes, numbered [1, 6].  Each has a
+separate color, being in order R G B C M Y.  So, plane 1 can be viewed
+in Red, plane 4 in Cyan, etc.
+
+Below, "a number" can be in range [1, 6].
+
+Key+mouse behavior
+------------------
+
+Shift+Alt+c       : successively add new clipping planes, which clip as they
+                    appear (you might not see them to start, just their
+                    clipping effect)
+
+Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
+
+Alt+[a number]    : turn view of clipping plane on (does not toggle off again)
+
+Shift+c           : toggle view of all clipping planes on/off
+Ctlr+Shift+c      : same behavior
+
+alt+[scrollwheel] : translate a clipping plane in space
+
+alt+[arrow key]   : rotate a clipping plane in space
+
