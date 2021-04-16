@@ -272,8 +272,12 @@
 # [PT] add '-pbar_comm_gen ..' opt, for TSNR QC
 #    + set AFNI_IMSAVE_WARNINGS if ftype != MPEG; stops annoying warning
 #
-set version   = "6.11"; set rev_dat   = "Mar 6, 2021"
+#set version   = "6.11"; set rev_dat   = "Mar 6, 2021"
 # [PT] run GUI more quietly, and disable some warning messages
+#
+set version   = "6.2"; set rev_dat   = "April 16, 2021"
+# [PT] for "-topval .." arg, defined a keyword to mimic empty doublequotes
+#    + also fixed up help example a bit (discrete cbar case)
 #
 # =====================================================================
 
@@ -578,7 +582,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-cbar_topval" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set topval = "$argv[$ac]"
+
+        if ( "$argv[$ac]" == "EMPTY" )then
+            set topval = ""
+        else
+            set topval = "$argv[$ac]"
+        endif
         
     # [PT: Apr 23, 2020] enable AFNI_COLORSCALE_xx env var behavior.
     # NB: this will *require* 2 args: index in range [01,99], and filename
@@ -2457,6 +2466,13 @@ COMMAND OPTIONS ~1~
 -cbar_topval  TOPV :set colorscale mode (def: 1) (See DR:
                     SET_PBAR_ALL, the 2nd usage case, description
                     about 'topval').
+                    Now, the value of TOPV could also be a special
+                    keyword, 'EMPTY' (yes, written in all caps), which
+                    gives the same behavior as making TOPV the empty
+                    "", but makes scripting easier (not needing to
+                    pass double quotes in shell variables...).  This
+                    is probably only useful if defining a discrete
+                    colorbar (see Examples).
 
 -opacity   OO      :enter an "opacity factor" for the olay, where OO is 
                     an integer in the interval [0, 9], with the 9 being
@@ -2747,6 +2763,10 @@ EXAMPLES ~1~
      option, as another way to enter your own colorbar; colors
      entered there are *not* discrete regions, but get blended
      together.)
+     NB 1: now you can replace the "" with the keyword EMPTY, to make
+           scripting easier (needing to keep quotes around can be a pain).
+     NB 2: the string following cbar probably can*not* be split into
+           multiple lines with continuation-of-line chars.  Mi dispiace.
 
     @chauffeur_afni                       \
         -ulay FT_anat+orig.               \
@@ -2757,13 +2777,7 @@ EXAMPLES ~1~
         -pbar_posonly                     \
         -cbar_ncolors 6                   \
         -cbar_topval ""                   \
-        -cbar "1000=yellow                \
-                800=cyan                  \
-                600=rbgyr20_10            \
-                400=rbgyr20_08            \
-                200=rbgyr20_05            \
-                100=rbgyr20_03            \
-                0=none"
+        -cbar "1000=yellow 800=cyan 600=rbgyr20_10 400=rbgyr20_08 200=rbgyr20_05 100=rbgyr20_03 0=none"
 
 
 # -------------------------------------------------------------------

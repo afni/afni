@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New keyword EMPTY for '-topval ..' opt, make scripting easier.",
+   "Corrected discrete cbar help example, too.\n"
+},
+
 { 24, Mar , 2021 , PT , "3dinfo" , MICRO , TYPE_NEW_OPT,
    "New opt: -is_atlas_or_labeltable.",
    "1 if dset has an atlas or labeltable;  otherwise, 0.\n"
