@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_PROG,
+   "Made to replace adjunct_apqc_tsnr_with_mask and adjunct_apqc_tsnr_no_mask.",
+   "Also expands/generalizes this functionality.\n"
+},
+
 { 16, Apr , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "New keyword EMPTY for '-topval ..' opt, make scripting easier.",
    "Corrected discrete cbar help example, too.\n"
