@@ -27,21 +27,25 @@ in Red, plane 4 in Cyan, etc.
 
 Below, "a number" can be in range [1, 6].
 
+"active" means a clipping plane is clipping, not just visible.
+
 Key+mouse behavior
 ------------------
 
-Shift+Alt+c       : successively add new clipping planes, which clip as they
-                    appear (you might not see them to start, just their
-                    clipping effect)
+Shift+Alt+c       : successively add new clipping planes, which are active
+                    as they appear (you might not see them to start,
+                    just their clipping effect)
 
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 
 Alt+[a number]    : turn view of clipping plane on (does not toggle off again)
 
-Shift+c           : toggle view of all clipping planes on/off
+Alt+f             : reverse clipping direction of any active planes
+
+Shift+c           : toggle view of all active clipping planes on/off
 Ctlr+Shift+c      : same behavior
 
-alt+[scrollwheel] : translate a clipping plane in space
+Alt+[scrollwheel] : translate a clipping plane in space
 
-alt+[arrow key]   : rotate a clipping plane in space
+Alt+[arrow key]   : rotate a clipping plane in space
 
