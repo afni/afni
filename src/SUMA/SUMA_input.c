@@ -29,11 +29,43 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     }
 }
 
+void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[0] = 1.0;
+        SO->Overlays[0]->ColVec[6] = 1.0;
+        SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] =
+            SO->Overlays[0]->ColVec[5] = SO->Overlays[0]->ColVec[7] = 0.0;
+}
+
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
         SO->Overlays[0]->ColVec[1] = 1.0;
         SO->Overlays[0]->ColVec[7] = 1.0;
         SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
-            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.1;
+            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.0;
+}
+
+void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[2] = 1.0;
+        SO->Overlays[0]->ColVec[8] = 1.0;
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] =
+            SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 0.0;
+}
+
+void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = 1.0;
+        SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[6] = 0.0;
+}
+
+void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 1.0;
+        SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
+        SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[7] = 0.0;
+}
+
+void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
+        SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] = 1.0;
+        SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
+        SO->Overlays[0]->ColVec[2] = SO->Overlays[0]->ColVec[8] = 0.0;
 }
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
@@ -199,8 +231,16 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         }
         SO->Overlays[0]->GlobalOpacity = 0.4;
 
-        // Make common nodes of rectangle green
-        makeCommonNodesOfRectangleGreen(SO);
+        // Make common nodes of rectangle the RGBCMY color for the particular plane
+        switch(planeIndex){
+            case 0: makeCommonNodesOfRectangleRed(SO); break;
+            case 1: makeCommonNodesOfRectangleGreen(SO); break;
+            case 2: makeCommonNodesOfRectangleBlue(SO); break;
+            case 3: makeCommonNodesOfRectangleCyan(SO); break;
+            case 4: makeCommonNodesOfRectangleMagenta(SO); break;
+            case 5: makeCommonNodesOfRectangleYellow(SO); break;
+        }
+
    } else {
         SO->N_Overlays = 0;
         SO->PermCol = (GLfloat *)malloc(3*sizeof(GLfloat));
