@@ -19,10 +19,13 @@
 # [PT] generalize, and absorb no-mask case here, as well as specifying
 # limits
 #
-set version   = "1.0";  set rev_dat   = "April 16, 2021"
+#set version   = "1.0";  set rev_dat   = "April 16, 2021"
 # [PT] generalized to both mask and non-mask case, and to user setting
 #      cbar range for both continuous and discrete (hot/cold) cbar
 #    + can also add in a continuous cbar of own choosing
+#
+set version   = "1.1";  set rev_dat   = "April 16, 2021"
+# [PT] add several more @chauffeur_afni opts to pass along. Sigh.
 #
 # ----------------------------------------------------------------
 
@@ -43,7 +46,13 @@ set SET_LIMITS_MODE = 1     # controls where color ranges come from
                             # 10 -> mask input, known %iles, discrete cbar
                             # 3 -> ... will see
 
-set cbar_cont      = Viridis   # default cbar for continuous case
+set subbb          = ( 0 0 0 ) # def: [0]th vol for all
+set save_ftype     = JPEG      # def for HTML
+set blowup         = 2         # def in @chauffeur_afni
+set cbar_cont      = Viridis   # def cbar for continuous case
+set olay_alpha     = "No"      
+set olay_boxed     = "No"      
+set thrnew         = "0"                 # threshold value (zero default)
 
 set urange_meth    = "-ulay_range"       # ulay properties
 set umin           = "0%"
@@ -188,6 +197,40 @@ while ( $ac <= $#argv )
         @ ac += 1
         set delta_slices = "$delta_slices $argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-blowup" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set blowup = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set save_ftype = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_subbricks" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set subbb[1] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[2] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[3] = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay_alpha" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_alpha = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-olay_boxed" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_boxed = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-thr_olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set thrnew = "$argv[$ac]"
+
     # --------- extra control 
 
     else if ( "$argv[$ac]" == "-cbar_cont" ) then
@@ -245,10 +288,12 @@ if ( "${focus}" == "" ) then
     goto BAD_EXIT
 endif
 
-#if ( "${mask}" == "" ) then
-#    echo "** ERROR: use '-mask ..'"
-#    goto BAD_EXIT
-#endif
+if ( "${SET_LIMITS_MODE}" == "10" ) then
+    if ( "${mask}" == "" ) then
+        echo "** ERROR: use '-mask ..'"
+        goto BAD_EXIT
+    endif
+endif
 
 if ( "${opref}" == "" ) then
     echo "** ERROR: use '-prefix ..'"
@@ -382,7 +427,6 @@ else if ( "${SET_LIMITS_MODE}" == "10" || "${SET_LIMITS_MODE}" == "11") then
     set cbar_str = "${cbar_str}  ${percvs[1]}=${colors[${cbar_ncol}]}"
     set cbar_str = "${cbar_str}  0=none"
     set cbar_DEETS = "-cbar_ncolors ${cbar_ncol} -cbar_topval EMPTY"
-
     
     if ( "${SET_LIMITS_MODE}" == "10" ) then
         set loc        = "in mask"
@@ -415,15 +459,19 @@ endif
     "${urange_meth}"  "${umin}" "${umax}"                   \
     -func_range       "${frange_max}"                       \
     -box_focus_slices "${focus}"                            \
-    -set_subbricks     0 0 0                                \
+    -set_subbricks     ${subbb}                             \
     -pbar_posonly                                           \
+    -blowup           "${blowup}"                           \
     -cbar             "${cbar_str}"  ${cbar_DEETS}          \
     -opacity          "${opacity}"                          \
+    -olay_alpha       "${olay_alpha}"                       \
+    -olay_boxed       "${olay_boxed}"                       \
+    -thr_olay         "${thrnew}"                           \
     -pbar_saveim      "${opref_cbar}"                       \
     -pbar_comm_range  "${range_comm}"                       \
     -pbar_comm_gen    "${gen_comm}"                         \
     -prefix           "${opref}"                            \
-    -save_ftype JPEG                                        \
+    -save_ftype       "${save_ftype}"                       \
     -montx    ${Nx}   -monty     ${Ny}                      \
     -montgap  ${mgap} -montcolor ${mcolor}                  \
     -set_xhairs  OFF                                        \
@@ -460,8 +508,14 @@ EXTRA OPTS ~1~
 -montx          A
 -monty          A
 -opacity        A
+-blowup         A
+-save_ftype     A
 -set_dicom_xyz  A B C
 -set_ijk        A B C
+-set_subbricks  A B C
+-olay_alpha     A
+-olay_boxed     A
+-thr_olay       A
 -ulay_range_nz  A B 
 -ulay_range     A B
 -delta_slices   A B C

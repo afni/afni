@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "More options from @chauffeur_afni here.",
+   "Tryin' to make nicer images.\n"
+},
+
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
    "This program has been superceded by: adjunct_apqc_tsnr_general.",
    "The new version is more... general.\n"
