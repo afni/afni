@@ -1,31 +1,39 @@
 #!/bin/tcsh
 
-set version   = "0.1";  set rev_dat   = "April 16, 2021"
+#set version   = "0.1";  set rev_dat   = "April 16, 2021"
 # [PT] start of program
 #    + used to take zoomed-in snapshots of TSNR in regions
 #
+set version   = "0.2";  set rev_dat   = "April 17, 2021"
+# [PT] start of program
+#    + generalize input a bit, and realizing more than TSNR can be
+#      snapshotted... "tsnr" -> "olay", in most cases, excepting prog
+#      names and example input file names
+#
 # ---------------------------------------------------------------------
 
+set prog = "do_make_roi_zoom_imgs.tcsh" # who am i?
 
-set dset_roi  = ""
-set dset_tsnr = ""
-set roi       = ""
+set full_dset_roi = ""       # dset<roi>: together in one, or...
+set dset_roi  = ""           # dset
+set roi       = ""           # roi
+set dset_olay = ""            
 set npad      = 2
 
-set hot_bot    = 100     # the lower bound of hot
-set hot_top    = 240     # upper bound of hot
+set hot_bot    = 100     # the lower bound of hot; def for final TSNR
+set hot_top    = 240     # upper bound of hot    ; def for final TSNR
 
 set prefix    = ""
 
 set pppp      = "`3dnewid -fun11`"
-set wname     = __wdir_apqc_tsnr_${pppp}
+set wname     = __wdir_roi_zoom_imgs_${pppp}
 set DO_CLEAN  = 1
 
 # ---------------------------------------------------------------------
 # names of dsets in wdir
 
 set dset_abox    = dset_00_abox.nii.gz
-set dset_tsnr_ZP = dset_01_tsnr_ZP.nii.gz
+set dset_olay_ZP = dset_01_olay_ZP.nii.gz
 set dset_all_one = dset_02_all_one.nii.gz
 set dset_thr     = dset_03_thr.nii.gz
 set dset_tcat    = dset_04_tcat.nii.gz
@@ -56,10 +64,15 @@ while ( $ac <= $#argv )
         @ ac += 1
         set roi = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-dset_tsnr" ) then
+    else if ( "$argv[$ac]" == "-full_dset_name_roi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set dset_tsnr = "$argv[$ac]"
+        set full_dset_roi = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-dset_olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set dset_olay = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -98,18 +111,20 @@ end
 
 # =======================================================================
 
-if ( "${dset_roi}" == "" ) then
-    echo "** ERROR: use '-dset_roi ..'"
+if ( "${dset_roi}" != "" && "${roi}" != "" ) then
+    set full_dset_roi = "${dset_roi}<${roi}>"
+    echo "++ combining dset and name: ${full_dset_roi}"
+else if ( "${full_dset_roi}" != "" ) then
+    echo "++ using already-combined dset and name: ${full_dset_roi}"
+else
+    echo "** ERROR: use '-dset_roi ..' and '-name_roi ..'"
+    echo "   OR"
+    echo "   '-full_dset_name_roi ..'"
     goto BAD_EXIT
 endif
 
-if ( "${roi}" == "" ) then
-    echo "** ERROR: use '-name_roi ..'"
-    goto BAD_EXIT
-endif
-
-if ( "${dset_tsnr}" == "" ) then
-    echo "** ERROR: use '-dset_tsnr ..'"
+if ( "${dset_olay}" == "" ) then
+    echo "** ERROR: use '-dset_olay ..'"
     goto BAD_EXIT
 endif
 
@@ -143,13 +158,13 @@ set opbarrt      = ../${opref}.cbar
     -noclust                              \
     -prefix  "${wdir}/${dset_abox}"       \
     -npad    "${npad}"                    \
-    -input   "${dset_roi}<${roi}>"
+    -input   "${full_dset_roi}"
 
 3dZeropad                                   \
     -overwrite                              \
     -master "${wdir}/${dset_abox}"          \
-    -prefix "${wdir}/${dset_tsnr_ZP}"       \
-    "${dset_tsnr}"
+    -prefix "${wdir}/${dset_olay_ZP}"       \
+    "${dset_olay}"
 
 # now can work in wdir
 cd ${wdir}
@@ -171,7 +186,7 @@ cd ${wdir}
     -overwrite                              \
     -tr 1                                   \
     -prefix "${dset_tcat}"                  \
-    "${dset_tsnr_ZP}" "${dset_thr}"
+    "${dset_olay_ZP}" "${dset_thr}"
 
 set center_coor = `3dCM "${dset_all_one}"`
 
@@ -225,18 +240,30 @@ Make zoomed-in images of region.
 
 # Examples
 
-tcsh do_view.tcsh                                                        \
+# 1) quotes necessary around name here (at least around "<....>")
+
+tcsh ${prog}  \
+    -full_dset_name_roi "follow_ROI_FSall00+tlrc.HEAD<Left-Accumbens-area>" \
+    -cbar_hot_range     100 240                                             \
+    -dset_olay          TSNR.sub-22228_ses-02+tlrc.HEAD                     \
+    -prefix             img_tsnr_Left-Accumbens-area_sub-22228_ses-02
+
+# 2) exact alternative to above, roi info just provided separately
+
+tcsh ${prog}  \
     -dset_roi       follow_ROI_FSall00+tlrc.HEAD                         \
     -name_roi       Left-Accumbens-area                                  \
     -cbar_hot_range 100 240                                              \
-    -dset_tsnr      TSNR.sub-22228_ses-02+tlrc.HEAD                      \
+    -dset_olay      TSNR.sub-22228_ses-02+tlrc.HEAD                      \
     -prefix         img_tsnr_Left-Accumbens-area_sub-22228_ses-02
 
-tcsh do_view.tcsh                                                        \
+# 3) same as above just the other side o' the brain 
+
+tcsh ${prog}  \
     -dset_roi       follow_ROI_FSall00+tlrc.HEAD                         \
     -name_roi       Right-Accumbens-area                                 \
     -cbar_hot_range 100 240                                              \
-    -dset_tsnr      TSNR.sub-22228_ses-02+tlrc.HEAD                      \
+    -dset_olay      TSNR.sub-22228_ses-02+tlrc.HEAD                      \
     -prefix         img_tsnr_Right-Accumbens-area_sub-22228_ses-02
 
 EOF
