@@ -495,9 +495,9 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     }
 
     /*-- CC update our memory stats to reflect v_new -- */
-    INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
-        sizeof(sparse_array_node), "sparse array");
-    PRINT_MEM_STATS( "sparse array" );
+    INC_MEM_STATS(sparse_array->peak_mem_usage, "sparse_array");
+    DEC_MEM_STATS(sparse_array->peak_mem_usage-(sizeof(sparse_array_head_node)+
+        sparse_array->num_nodes*sizeof(sparse_array_node)), "sparse_array");
 
     /* power iterator */
     power_it = 0;
@@ -608,10 +608,12 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     {
         /* update running memory statistics to reflect freeing the vectim */
         DEC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
-            sizeof(sparse_array_node), "sparse array");
+            sizeof(sparse_array_node), "sparse_array");
 
         sparse_array = free_sparse_array(sparse_array);
     }
+
+    PRINT_MEM_STATS( "return then result" );
 
     /* return the result */
     return(v_prev);
@@ -994,7 +996,6 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         }
     }
 
-    printf( "finished with calculation! now freeing mem\n" );
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
     if( v_new != NULL ) 
@@ -1334,7 +1335,7 @@ int main( int argc , char *argv[] )
     double  scale = 1.0;
     double  shift = 0.0;
     double  thresh = -1.2;
-    double  sparsity = 100.0;
+    double  sparsity = 1.0;
     long    mem_bytes = (long)2147483648;
 
     /* CC - flags to control behaviour */
@@ -1358,7 +1359,10 @@ int main( int argc , char *argv[] )
      /* CC - vectors to hold the results (bin/wght) */
     double* eigen_vec = NULL;
 
-    
+    /* CC - number of voxels with zero variance that were
+       masked out */
+    int rem_count = 0;
+
    /*----*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -1612,7 +1616,6 @@ int main( int argc , char *argv[] )
 
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
-    printf("opened input dataset %s\n", argv[nopt]);
 
     /* Check fast method isnt enabled with non-compatible options */
     if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || (do_full == 1)))
@@ -1707,14 +1710,26 @@ int main( int argc , char *argv[] )
    }
    /* otherwise we use all of the voxels in the image */
    else {
-      nmask = nvox ;
-      INFO_message("computing for all %d voxels",nmask) ;
+        nmask = nvox ;
+
+        mask = (byte *) malloc( sizeof(byte) * nmask ) ;
+        if( mask == NULL ) ERROR_EXIT_CC("Can't allocate mask?!") ;
+        
+        INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+        PRINT_MEM_STATS( "mask" );
+
+        /* set it all to ones */
+        memset(mask, 1, nmask*sizeof(byte));
+
+        INFO_message("computing for all %d voxels\n",nmask) ;
    }
 
     /*-- create vectim from input dataset --*/
     INFO_message("vectim-izing input dataset") ;
 
     /*-- CC added in mask to reduce the size of xvectim -- */
+    nmask = THD_countmask( nvox , mask ) ;
+
     xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
     if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim?!") ;
 
@@ -1724,20 +1739,70 @@ int main( int argc , char *argv[] )
                     sizeof(MRI_vectim), "vectim");
     PRINT_MEM_STATS( "vectim" );
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
-         tap into that here to avoid duplicating memory usage, also create a
-         mapping that goes the other way ---*/
-
-    if( mask != NULL )
+    /*-- CC now that the data is in an easy to use form, go through
+         and remove all of the zero variance voxels */
+    for (ii=0; ii < xvectim->nvec; ii++)
     {
-        /* tap into the xvectim mapping */
-        mask_ndx_to_vol_ndx = xvectim->ivec;
+        float* test_vec = VECTIM_PTR(xvectim, ii);
+        double sum = 0;
+        double sum2 = 0;
+        double var = 0;
 
+        for (int t_ndx = 0; t_ndx < nvals; t_ndx++)
+        {
+            sum += test_vec[t_ndx];
+            sum2 += test_vec[t_ndx] * test_vec[t_ndx];
+        }
+
+        var = (sum2-sum*sum/(double)nvals)/(double)(nvals-1);
+
+        if (var < eps)
+        {
+            mask[xvectim->ivec[ii]] = 0;
+            rem_count++;
+        }
+    }
+
+    if(rem_count > 0)
+    {
+        /* re-generate xvectim with zero variance voxels removed */
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
+                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                        sizeof(MRI_vectim)), "vectim");
+
+        /* toss some trash */
+        VECTIM_destroy(xvectim) ;
+
+        /* now re-create an xvectim with the fewer number of voxels */
+        /*-- CC added in mask to reduce the size of xvectim -- */
+        xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
+        if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim (var filter)?!") ;
+
+        /*-- CC update our memory stats to reflect vectim -- */
+        INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
+                ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                sizeof(MRI_vectim), "vectim");
+        PRINT_MEM_STATS( "vectim" );
+
+    }
+
+    if (mask != NULL)
+    {
         /* --- CC free the mask */
         DEC_MEM_STATS( nmask*sizeof(byte), "mask array" );
         free(mask); mask=NULL;
         PRINT_MEM_STATS( "mask unload" );
     }
+
+
+   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+        tap into that here to avoid duplicating memory usage, this exists
+        regardless of whether there was a mask ---*/
+    mask_ndx_to_vol_ndx = xvectim->ivec;
+    nmask = xvectim->nvec;
+
+    INFO_message("! %d voxels remain after removing voxels with zero variance\n",nmask) ;
 
     /* -- CC unloading the dataset to reduce memory usage ?? -- */
     DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), 
@@ -1761,6 +1826,12 @@ int main( int argc , char *argv[] )
           have zero variance -- */
     THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
+    /* if using sparsity calculate an initial guess for the 
+       correlation threshold that will give that sparsity, 
+       from the p-value */
+    /* THD_pval_to_stat
+     */
+
     /* update the user so that they know what we are up to */
 
     /* calculate the eigenvector */
@@ -1769,7 +1840,7 @@ int main( int argc , char *argv[] )
         /* -- CC tell the user what we are up to */
         INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,\n"
             " thresh=%3.3f, scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f,\n"
-            " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
+            " binary=%d, mem=%ld)\n", 100*sparsity, thresh, scale, shift, max_iter,
             eps, do_binary, mem_bytes - running_mem);
 
         eigen_vec=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
@@ -1780,7 +1851,7 @@ int main( int argc , char *argv[] )
     {
         INFO_message( "Calculating ECM with FECM (sparsity=%3.3f%%,thresh=%3.3f,\n"
             "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f, binary=%d)\n",
-            sparsity, thresh, scale, shift, max_iter, eps, do_binary);
+            100*sparsity, thresh, scale, shift, max_iter, eps, do_binary);
         eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
 
@@ -1795,7 +1866,6 @@ int main( int argc , char *argv[] )
     /*-- configure the output dataset */
     if( abuc )
     {
-        printf( "creating output bucket(%s)\n", prefix );
         EDIT_dset_items( cset ,
             ADN_prefix    , prefix         ,
             ADN_nvals     , nsubbriks      , /*  subbricks */
@@ -1867,7 +1937,7 @@ int main( int argc , char *argv[] )
         eigen_vec = NULL;
 
         /* update running memory statistics to reflect freeing the vectim */
-        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "eigen_vec");
+        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
     }
 
     /*-- tell the user what we are about to do --*/
