@@ -17,6 +17,9 @@
 # [PT: Apr 16, 2021] add the ROI snapshotting
 ### ver = 3.1
 # [PT: Apr 18, 2021] updated ROI snapshotting; no new inputs needed
+### ver = 3.2
+# [PT: Apr 18, 2021] the all_vols members should be local, not with path
+#                    info
 
 # ------------------------------------------------------------------------
 # user specifies inputs and parameters
@@ -116,10 +119,11 @@ echo "++ Make intermediate dset: mean across time of volreg data"
     -prefix ${tpref}_vr.nii.gz        \
     "${dset_vr_4d}"
 
-# corresponding dsets (all from which we will get stats) and labels
+# corresponding dsets (all from which we will get stats) and labels;
+# each is in the AP results dir
 
-set all_vols     = ( ${dir_ap_ss}/TSNR.vreg.r01.${subj}+tlrc.HEAD \
-                     ${dir_ap_ss}/TSNR.${subj}+tlrc.HEAD          \
+set all_vols     = ( TSNR.vreg.r01.${subj}+tlrc.HEAD              \
+                     TSNR.${subj}+tlrc.HEAD                       \
                      ${tpref}_vr.nii.gz                           )
 
 set lab_vols     = ( tsnr_vr  \
