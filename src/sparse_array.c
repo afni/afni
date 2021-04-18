@@ -149,6 +149,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     float binwidth = 0.0;
     long nhistbins = 10000;
     long mem_budget = 0;
+    long mem_peak = 0;
 
     /* retain the original threshold*/
     double othresh = thresh;
@@ -189,7 +190,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
         {
            WARNING_message( "The sparse array with %3.2lf%% of the %ld total"
                             " would exceed the memory budget (%3.2lf MB) refusing to proceed\n",
-                            sparsity, totPosCor,((double)mem_budget)/(1024.0*1024.0));
+                            100*sparsity, totPosCor,((double)mem_budget)/(1024.0*1024.0));
            return( NULL );
         }
         else
@@ -210,7 +211,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     }
 
     INFO_message( "Extracting sparse correlation array with threshold = %f and"
-                  " sparsity = %3.2f%% (%d)\n", thresh, sparsity, nretain);
+                  " sparsity = %3.2f%% (%d)\n", thresh, 100*sparsity, nretain);
 
     /* if we are using a sparsity threshold, setup the histogram to sort the values */
     if ( sparsity < 100.0 )
@@ -227,7 +228,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
             return( NULL );
         }
 
-        /* initialize history bins */
+        /* initialize histogram bins */
         for( kout = 0; kout < nhistbins; kout++ )
         {
             histogram[ kout ].bin_low = thresh+kout*binwidth;
@@ -280,7 +281,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                 }
             }
 
-	    if ( mem_budget >= 0 )
+	        if ( mem_budget >= 0 )
             {
                 /* get ref time series from this voxel */
                 xsar = VECTIM_PTR(xvectim,lout);
@@ -290,11 +291,11 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                 for( lin=(lout+1) ; lin < xvectim->nvec ; lin++ )
                 {  /*----- inner loop over voxels -----*/
 
-		    if ( mem_budget < 0 )
-		    {
-		        break;
-		    }
-		    else if ( mem_budget >= 0 )
+                    if ( mem_budget < 0 )
+                    {
+                        break;
+                    }
+                    else if ( mem_budget >= 0 )
                     {
                         /* extract the voxel time series */
                         ysar = VECTIM_PTR(xvectim,lin);
@@ -321,9 +322,19 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                     if( mem_budget >= 0 )
                                     {
                                         new_node = (sparse_array_node*)calloc(1,sizeof(sparse_array_node));
+                                        if (new_node == NULL)
+                                        {
+                                            ERROR_message("Calloc returned a NULL\n");
+                                        }
+
+                                        if (mem_allowance - mem_budget > mem_peak)
+                                        {
+                                            mem_peak = mem_allowance - mem_budget;
+                                        }
                                     }
                                     else
                                     {
+                                        ERROR_message("mem_budget exceeded (%ld) not allocating new node!\n", mem_budget);
                                         new_node = NULL; 
                                     }
                                 }
@@ -337,7 +348,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                 {
                                     /* allocate memory for this node, rather than fiddling with 
                                        error handling here, lets just move on */
-                                    WARNING_message("Could not allocate a new node!");
+                                    ERROR_message("Could not allocate a new node!");
                                 }
                                 else
                                 {
@@ -416,8 +427,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
              
                                                 /* get the new threshold */
                                                 thresh = (double)histogram[++bottom_node_idx].bin_low;
-                                                /*INFO_message("Increasing threshold to %3.2f (%d)\n",
-                                                    thresh,bottom_node_idx); */
+
                                             } /* while */
                                         } /* else, new_node_idx in range */
                                     } /* else, sparsity >= 100.0 */
@@ -508,9 +518,12 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
             INFO_message( "Correlation threshold (%3.2lf) resulted in %ld"
                 " correlations (%3.2lf%% sparsity).\n", thresh, 
                 sparse_array->num_nodes,
-                100.0*((double)sparse_array->num_nodes)/((double)totPosCor));
+                (100.0*(double)sparse_array->num_nodes)/((double)totPosCor));
         }
     }
+
+    /* keep track of the peak mem used by this operation */
+    sparse_array->peak_mem_usage = mem_peak;
 
     /* free residual mem */
     histogram = free_histogram( histogram, nhistbins );
