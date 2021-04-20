@@ -1335,7 +1335,7 @@ int main( int argc , char *argv[] )
     double  scale = 1.0;
     double  shift = 0.0;
     double  thresh = -1.2;
-    double  sparsity = 1.0;
+    double  sparsity = 100.0;
     long    mem_bytes = (long)2147483648;
 
     /* CC - flags to control behaviour */
@@ -1432,8 +1432,8 @@ int main( int argc , char *argv[] )
 "                are NOT used.\n"
 "  -thresh r   = exclude connections with correlation < r. cannot be\n"
 "                used with FECM\n"
-"  -sparsity p = only include the top p%% connectoins in the calculation\n"
-"                cannot be used with FECM method. (default = 100)\n"
+"  -sparsity p = only include the top p%% (0 < p <= 100) connectoins in the calculation\n"
+"                cannot be used with FECM method. (default)\n"
 "  -do_binary  = perform the ECM calculation on a binarized version of the\n"
 "                connectivity matrix, this requires a connnectivity or \n"
 "                sparsity threshold.\n"
@@ -1541,7 +1541,7 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val < 0 || val > 100 ){
+         if( *cpt != '\0' || val <= 0 || val > 100 ){
             ERROR_EXIT_CC("Illegal value after -sparsity!") ;
          }
          sparsity = val ; do_sparsity = 1; nopt++ ; continue ;
@@ -1840,7 +1840,7 @@ int main( int argc , char *argv[] )
         /* -- CC tell the user what we are up to */
         INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,\n"
             " thresh=%3.3f, scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f,\n"
-            " binary=%d, mem=%ld)\n", 100*sparsity, thresh, scale, shift, max_iter,
+            " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
             eps, do_binary, mem_bytes - running_mem);
 
         eigen_vec=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
@@ -1851,7 +1851,7 @@ int main( int argc , char *argv[] )
     {
         INFO_message( "Calculating ECM with FECM (sparsity=%3.3f%%,thresh=%3.3f,\n"
             "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f, binary=%d)\n",
-            100*sparsity, thresh, scale, shift, max_iter, eps, do_binary);
+            sparsity, thresh, scale, shift, max_iter, eps, do_binary);
         eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
 
