@@ -116,7 +116,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
 
    inputs:
        xvectim: the input time courses that will be correlated
-       sparsity: the percentage of the top correlations that should be retained
+       sparsity: the percentage of the top correlations that should be retained (100 = 100%)
        threshold: a threshold that should be applied to determine if a correlation 
            should be retained. For sparsity thresholding this value will be used
            as an initial guess to speed calculation and a higher threshold may
@@ -211,7 +211,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     }
 
     INFO_message( "Extracting sparse correlation array with threshold = %f and"
-                  " sparsity = %3.2f%% (%d)\n", thresh, 100*sparsity, nretain);
+                  " sparsity = %3.2f%% (%d)\n", thresh, sparsity, nretain);
 
     /* if we are using a sparsity threshold, setup the histogram to sort the values */
     if ( sparsity < 100.0 )
@@ -308,6 +308,11 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                             continue;
                         }
 
+/* when OMP is enabled, the following will be a critical section, and threads that enter
+   this section will run serially, this is a bottleneck and should be avoided. That is why
+   we check to see if the correlation is above the threshold before entering this section.
+   For most data this threshold should not be met and the above continue will prevent the
+   thread from entering the following critical section */
 #pragma omp critical(dataupdate)
                         {
                             /* the threshold might have changed while we were waiting,
