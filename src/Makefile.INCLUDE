@@ -1712,7 +1712,7 @@ sparse_array.o:sparse_array.c sparse_array.h
 	$(RM) $@
 	$(CCOMP) -c 3dMSE.c $(INFLAGS)
 
-3dMSE:3dMSE.o sparse_array.o
+3dMSE:3dMSE.o
 	$(RM) $@
 	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
 
