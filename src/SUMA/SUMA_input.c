@@ -725,6 +725,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
+    SUMA_RETURN(YUP);
 }
 
 void lightenActiveClipPlaneSquare(activePlane){

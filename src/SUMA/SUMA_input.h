@@ -193,12 +193,18 @@ void SUMA_SetNumForeSmoothing (char *s, void *data);
 void SUMA_SetNumFinalSmoothing (char *s, void *data);
 void SUMA_SetRotCenter (char *s, void *data);
 
+
 // PDL
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane,
     Bool toggleOffOn);
 void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget w,
     SUMA_SurfaceViewer *sv, int isv);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
+void getPlanePtClosestToViewerOrigin(float *plane, float *point);
+void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt,float *point);
+void crossProduct(float input1[], float input2[], float output[]);
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax);
+
 
 // static int clipPlaneIndex;
 static Bool clipPlaneIdentificationMode;
