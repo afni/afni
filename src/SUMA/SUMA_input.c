@@ -8868,7 +8868,7 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
                break;
             case ANY_DSET_type:
-	    case GDSET_type:
+            case GDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "
