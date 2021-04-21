@@ -329,6 +329,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    if (SO->N_Overlays>0){
        SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
        SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+       // SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+
         if (!(SO->Overlays)){
             SUMA_S_Err("NULL Overlays pointer.");
             SO->N_Overlays = 0;
@@ -840,7 +842,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
 #if 0   // Darken inactive clip planes
-        if (clipIdentificationPlane[planeIndex].Overlays) lightenActiveClipPlaneSquare(planeIndex);
+        if (clipIdentificationPlane[planeIndex]) lightenActiveClipPlaneSquare(planeIndex);
         darkenInactiveClipPlaneSquares(planeIndex);
 #endif
 
@@ -5239,12 +5241,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_C:
 
+         fprintf(stderr, "Shift-C\n");
+
             if ((SUMA_ALTHELL)){
+
+            fprintf(stderr, "Shift-Alt-C\n");
 
                 // This sets up a new clip plane (independent of the dialog box.  If called with
                 //  the dialog box, two clipping planes result.)  The new plane is automatically
                 //  assigned a label which is its 1-based index
                 if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
+
                     fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
                     for (int planeIndex=0; planeIndex<6; ++planeIndex){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
