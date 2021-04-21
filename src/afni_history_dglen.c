@@ -53,6 +53,46 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 04, APR, 2021, DRG, "@Atlasize, @MakeLabeltable longname fix",
+     MICRO, TYPE_BUG_FIX,
+    "Longnames not working in combination with labels fixed for atlases"
+},    
+{ 06, MAR, 2021, DRG, "@AddEdge PBAR fix",
+     MICRO, TYPE_BUG_FIX,
+    "PBAR fix"
+},    
+{ 06, MAR, 2021, DRG, "MNI HCP Glasser atlas regrid",
+     MICRO, TYPE_BUG_FIX,
+    "Move from grid of FreeSurfer 256^3 to match MNI 2009c grid.\n"
+    "The FreeSurfer grid is zeropadded to 256 slices.\n"
+    "All values remain the same, so essentially same atlas\n"
+    "except memory requirements are less and easier to combine\n"
+    "with template-based datasets. Also works better in Draw\n"
+    "Dataset plugin because of the grid match. No source code\n"
+    "changes, just a change in the pub/dist/atlases/current\n"
+    "directory"
+},    
+{ 27, FEB, 2021, DRG, "atlas labels - remove trailing spaces",
+     MICRO, TYPE_BUG_FIX,
+    "Remove trailing spaces introduced by @Atlasize"
+},    
+{ 27, FEB, 2021, DRG, "gap setting via plugout_drive",
+     MICRO, TYPE_NEW_OPT,
+    "Set the AFNI GUI crosshair gap with plugout_drive",
+    "See README.driver for details"
+},    
+
+{ 27, FEB, 2021, DRG, "clang macos 11 M1-ARM mods",
+     MAJOR, TYPE_GENERAL,
+    "Makefile changes for ARM builds for new Macs",
+    "Makefile, misc. changes for building for M1"
+},    
+
+{ 7, FEB, 2021, DRG, "clang+gcc10 macos 10.15 mods",
+     MAJOR, TYPE_BUG_FIX,
+    "Lots of little code fixes to handle compiler warnings",
+    "Makefile updated and some long outstanding issues fixed"
+},    
 { 16, SEP, 2020, DRG, "atlas label range selector",
      MICRO, TYPE_BUG_FIX,
     "atlas labels not interpreted in range selector properly",

@@ -884,14 +884,14 @@ void display_help_menu(int detail)
     "                       [here,   and  these  datasets  will   be]       \n"
     "                       [auto-catenated in time; if you do this,]       \n"
     "                       ['-concat' is not needed and is ignored.]       \n"
-    "                  ** You can input a 1D time series file here,         \n"
+    "                **** You can input a 1D time series file here,         \n"
     "                     but the time axis should run along the            \n"
     "                     ROW direction, not the COLUMN direction as        \n"
     "                     in the -input1D option.  You can automatically    \n"
     "                     transpose a 1D file on input using the \\'        \n"
     "                     operator at the end of the filename, as in        \n"
     "                       -input fred.1D\\'                               \n"
-    "                   * This is the only way to use 3dDeconvolve          \n"
+    "                  ** This is the only way to use 3dDeconvolve          \n"
     "                     with a multi-column 1D time series file.          \n"
     "                   * The output datasets by default will then          \n"
     "                     be in 1D format themselves.  To have them         \n"
@@ -905,6 +905,7 @@ void display_help_menu(int detail)
     "-sat OR -trans     * 3dDeconvolve can check the dataset time series    \n"
     "                     for initial saturation transients, which should   \n"
     "                     normally have been excised before data analysis.  \n"
+    "                     (Or should be censored out: see '-censor' below.) \n"
     "                     If you want to have it do this somewhat time      \n"
     "                     consuming check, use the option '-sat'.           \n"
     "                   * Or set environment variable AFNI_SKIP_SATCHECK to NO.\n"
@@ -915,7 +916,7 @@ void display_help_menu(int detail)
     "                     be separate image runs that get separate baseline \n"
     "                     models.  If you want to have the program consider \n"
     "                     these to be all one big run, use -noblock.        \n"
-    "                   * If any of the input dataset has only 1 sub-brick, \n"
+    "                   * If any of the input datasets has only 1 sub-brick,\n"
     "                     then this option is automatically invoked!        \n"
     "                   * If the auto-catenation feature isn't used, then   \n"
     "                     this option has no effect, no how, no way.        \n"
@@ -926,6 +927,9 @@ void display_help_menu(int detail)
     "\n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "                             where time run downs the column.          \n"
+    "                    * If you want to analyze multiple columns from a   \n"
+    "                      .1D file, see the '-input' option above for      \n"
+    "                      the technique.                                   \n"
     "\n"
     "[-TR_1D tr1d]        tr1d = TR for .1D time series [default 1.0 sec].  \n"
     "                     This option has no effect without -input1D        \n"
@@ -1515,6 +1519,33 @@ void display_help_menu(int detail)
     "          for a 2 run 'tname' file to be used with -stim_times_*.      \n"
     "       ** In such a case, you will also need the -allzero_OK option,   \n"
     "          and probably -GOFORIT as well.                               \n"
+    "    ** It is possible to combine '-stim_times_AM1' with the Rmodel     \n"
+    "       being TENT. If you have an amplitude parameter at each TR,      \n"
+    "       and you want to try to deconvolve its impact on the data,       \n"
+    "       you can try the following:                                      \n"
+    "         a) create a 1D column file with the amplitude parameter,      \n"
+    "            one value per TR, matching the length of the data;         \n"
+    "            say this file is called Akk.1D                             \n"
+    "         b) create a 1D column file with the actual TR time in         \n"
+    "            each row; for example, if you have 150 time points         \n"
+    "            and TR=2 s, then                                           \n"
+    "              1deval -num 150 -expr '2*i' > Att.1D                     \n"
+    "         c) glue these files together for use with -stim_times_AM1:    \n"
+    "              echo `1dMarry Att.1D Akk.1D` > Atk.1D                    \n"
+    "         d) Use option                                                 \n"
+    "              -stim_times 1 Atk.1D 'TENT(0,20,11)' -stim_label 1 TENT  \n"
+    "            which gives a TENT response lasting 20s with 11 parameters \n"
+    "            -- one every TR.                                           \n"
+    "         e) Use all the other clever options you need in 3dDeconvolve, \n"
+    "            such as censoring, baseline, motion parameters, ....       \n"
+    "       Variations on the options chosen here can be made to            \n"
+    "       constrain the deconvolution; e.g., use CSPLIN vs. TENT, or      \n"
+    "       CSPLINzero; use fewer parameters in the TENT/CSPLIN to force    \n"
+    "       a smoother deconvolution, etc.                                  \n"
+    "       Graphing the regression matrix is useful in this type of        \n"
+    "       analysis, to be sure you are getting the analysis you want;     \n"
+    "       for example:                                                    \n"
+    "         1dplot -sep_scl prefix.xmat.1D                                \n"
     "\n"
     "[-stim_times_AM2 k tname Rmodel]                                       \n"
     "   Similar, but generates 2 response models: one with the mean         \n"
@@ -8687,14 +8718,14 @@ void output_results
 
 
   /*----- Write the bucket dataset -----*/
-  if (option_data->bucket_filename != NULL)
+  if (option_data->bucket_filename != NULL){
     if (nxyz > 1)
       write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol,
                fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
                glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
     else
       write_one_ts (option_data->bucket_filename, p, coef_vol);
-
+  }
 
   /*----- Write the impulse response function 3D+time dataset -----*/
   ib = qp;
@@ -8763,36 +8794,38 @@ void output_results
       /* old style iresp: each coef is a response, so coef var is what we want */
 
       ts_length = max_lag[is] - min_lag[is] + 1;
-      if (option_data->sresp_filename[is] != NULL)
-      if (nxyz > 1)
-        write_ts_array (argc, argv, option_data, ts_length,
-                    nptr[is], 0, scoef_vol+ib,
-                    option_data->sresp_filename[is]);
-      else
-        write_one_ts (option_data->sresp_filename[is],
-                  ts_length, scoef_vol+ib);
-
+      if (option_data->sresp_filename[is] != NULL){
+        if (nxyz > 1){
+          write_ts_array (argc, argv, option_data, ts_length,
+                      nptr[is], 0, scoef_vol+ib,
+                      option_data->sresp_filename[is]);
+        } else {
+          write_one_ts (option_data->sresp_filename[is],
+                    ts_length, scoef_vol+ib);
+        }
+      }
       ib += ts_length;
     }
 
 
   /*----- Write the fitted (full model) 3D+time dataset -----*/
-  if (option_data->fitts_filename != NULL)
+  if (option_data->fitts_filename != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
                   option_data->fitts_filename);
     else
       write_one_ts (option_data->fitts_filename, nt, fitts_vol);
-
+  }
 
 
   /*----- Write the residual errors 3D+time dataset -----*/
-  if (option_data->errts_filename != NULL)
+  if (option_data->errts_filename != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
                   option_data->errts_filename);
     else
       write_one_ts (option_data->errts_filename, nt, errts_vol);
+  }
 
 }
 

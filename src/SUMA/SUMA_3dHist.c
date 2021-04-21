@@ -609,7 +609,7 @@ int main(int argc, char **argv)
                } else {
                   SUMA_S_Warn( "Have no -voxvol in mm^3 and no dataset "
                               "from which to compute it, assuming 1mm^3");
-                  Opt->f1 == 1.0;
+                  Opt->f1 = 1.0; // [PT: Feb 22, 2021] fix '='
                }
 
             }

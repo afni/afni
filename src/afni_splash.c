@@ -1214,7 +1214,7 @@ STATUS("no ***LAYOUT found") ;
       controller_geom[cc][0] =
        image_geom[cc][0][0] = image_geom[cc][1][0] = image_geom[cc][2][0] =
        image_mont[cc][0][0] = image_mont[cc][1][0] = image_mont[cc][2][0] =
-       graph_geom[cc][0][0] = graph_geom[cc][1][0] = graph_geom[cc][1][0] = '\0' ;
+       graph_geom[cc][0][0] = graph_geom[cc][1][0] = graph_geom[cc][2][0] = '\0' ;
 
       controller_mask[cc] =
        image_mask[cc][0] = image_mask[cc][1] = image_mask[cc][2] =

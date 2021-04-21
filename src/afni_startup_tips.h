@@ -138,6 +138,21 @@ static char *tip[] = {
    "settings in your .afnirc file; with some work, you can setup the\n"
    "graph viewer to look the way you want it to be permanently."
  ,
+   "In the graph viewer, the keypress Ctrl-B will cycle the Data plotting\n"
+   " between the available modes, which are\n"
+   "    Lines         = the default graphing mode\n"
+   "    Points        = points only, plotted at each data value\n"
+   "    Points+Lines  = points plotted with lines between them\n"
+   "    Boxes         = a bar graph\n"
+   "    Box+LabelUp   = with sub-brick labels at top of mini-graph\n"
+   "    Box+LabelTop  = labels on top of each box\n"
+   "    Box+LabelDown = labels at bottom of mini-graph\n"
+   "Labels for the boxes are taken from the sub-brick labels of the\n"
+   " underlay dataset. Thus, you might want to re-label the dataset\n"
+   " to have more meaningful labels on your graphs. This can be done\n"
+   " with the '3drefit -relabel_all' command.\n"
+   "The B key alone will toggle between 'Lines' and 'Boxes' (no labels)."
+ ,
    "The graph viewer 'Opt->Detrend' menu item lets you choose a polynomial degree\n"
    "for detrending the graph data. This can help you visualize the features of the\n"
    "data you want to see without be distracted by long term trends up or down.\n"
@@ -425,6 +440,28 @@ static char *tip[] = {
   "   the ~/.afnirc file.\n"
   "* All AFNI environment variables (including many that do not affect the GUI)\n"
   "   are described in the README.environment file."
+,
+  "In a main AFNI controller window, the 'Index' field (left-middle) shows the\n"
+  "sub-brick/volume/time index currently being displayed in the image viewers.\n"
+  "If you right-click on the 'Index' label, a hidden popup control window\n"
+  "opens, with these occasionally useful items:\n"
+  "  Index Step     : Lets you set the stepsize for the Index arrow buttons.\n"
+  "  SLAVE_FUNCTIME : Lets you turn off or on the 'slaving' of the\n"
+  "                   overlay volume index to the underlay volume index;\n"
+  "                   this feature is useful when the overlay is a time-\n"
+  "                   dependent dataset itself.\n"
+  "  Thr = Olay?+1?   Lets you lock the Define Overlay 'Thr' volume\n"
+  "                   index chooser to the 'OLay' volume index chooser,\n"
+  "                   so that as you change which overlay dataset volume\n"
+  "                   you are colorizing, the threshold volume changes\n"
+  "                   in lockstep. The choices on this item are\n"
+  "                     free : Thr and OLay indexes are not locked\n"
+  "                      ==  : Thr and OLay indexes are locked to be equal\n"
+  "                      +1  : Thr index is locked to be OLay index + 1\n"
+  "                            which is useful for the Coef/t-statistic\n"
+  "                            volume pairs output by various AFNI codes.\n"
+  "                   When the Thr and OLay indexes are locked, the 'Thr'\n"
+  "                   label in Define Overlay will change to 'Thr*'."
 
 /*----------------- tips below here are for non-GUI programs -----------------*/
  ,
@@ -631,16 +668,18 @@ static char *tip[] = {
  ,
    "Did someone give you a dataset with the spatial orientation 'flipped',\n"
    "so that the subject's left is marked as being the right?\n"
-   " * Program 3dLRflip can flip the data rows to rearrange the data so the\n"
-   "   dataset header information and the actual data match again.\n"
+   "* Program 3dLRflip can flip the data rows to rearrange the data so the\n"
+   "  dataset header information and the actual data match again.\n"
    "* Processing scripts afni_proc.py and align_epi_anat.py can check\n"
-   "   if the EPI and T1w anatomical datasets appear to be left-right flipped."
+   "  if the EPI and T1w anatomical datasets appear to be left-right flipped.\n"
+   "* See Glen et al. (2020):\n"
+   "  https://www.frontiersin.org/articles/10.3389/fninf.2020.00018/full"
  ,
    "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
    "is a good starting point. It shows how to read, calculate, and write\n"
    "datasets, and is heavily commented."
  ,
-  "Almost all AFNI command line programs take '-help' as an option; for example\n"
+  "Almost all AFNI command line programs take '-help' as an option, e.g.:\n"
   "  3dTstat -help\n"
   "This method is how you can get the most up-to-date information about using\n"
   "an AFNI program. All '-help' output are also formatted as Web pages and\n"
@@ -657,7 +696,7 @@ static char *tip[] = {
  ,
   "Interested in the AFNI source code? You can get it here:\n"
   "  git clone https://github.com/afni/afni.git\n"
-  "This will create a directory called 'afni' in your current working directory.\n"
+  "This creates a directory called 'afni' in your current working directory.\n"
   "You will find the source code for AFNI (1 million+ lines) in afni/src.\n"
   "Have fun!"
 
@@ -1485,10 +1524,18 @@ static char *gby[] = {
      "Your results may be mathematical nonsense ... but is undoubtedly neuroscience at its best"        ,
 
      "If you torture the data long enough, it will confess to anything"                 ,
+     "Data that is loved tends to survive"                                              ,
      "To purify the earth, one should purify the heart first"                           ,
      "The key to everything is to focus on one thing at a time"                         ,
      "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
      "The essence of mathematics lies in its freedom"                                   ,
+     "Maybe it's not YOU that's the impostor, it's your DATA that's faking it"          ,
+     "More's law for MRI: More Tesla is better"                                         ,
+
+     "\n  Data is not information;"
+     "\n   Information is not knowledge;"
+     "\n    Knowledge is not understanding;"
+     "\n     Understanding is not wisdom"                                               ,
 
      "Every person can become the sculptor of their own brain"                 , /* Cajal (sort of) */
      "As long as the brain is a mystery, the universe will also be a mystery"  ,
@@ -1527,6 +1574,9 @@ static char *gby[] = {
      "Crippled but free, I was blind all the time I was learning to see"                                ,
 
      /* Multi-line quotes */
+
+     "\n  Once in a while you get shown the light,\n"
+     " in the strangest of places if you look at it right"               ,
 
      "\n  One clear result from FMRI resting state connectivity:\n"
      " Some people have their brains together, and some people do not"   ,
@@ -1616,6 +1666,11 @@ static char *gby[] = {
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     "\n  Distinguishing the signal from the noise requires both scientific\n"
+     "   knowledge and self-knowledge: the serenity to accept the things we\n"
+     "   cannot predict, the courage to predict the things we can, and the\n"
+     "   wisdom to know the difference"                                                       ,
+
      // Galois
      "Apres cela, il y aura, j'espere, des gens qui\n"
      "  trouveront leur profit a dechiffrer tout ce gachis"                                   ,
@@ -1640,7 +1695,7 @@ static char *gby[] = {
      "in an entirely different way"                                                           ,
 
      // Morpheus
-     "Remember: all I'm offering you is the truth, nothing more."                             ,
+     "Remember: all I'm offering you is the truth, nothing more"                              ,
 
      // *Not* No. 6
      "I am not a number-- I am a free program!"                                               ,
@@ -1704,7 +1759,7 @@ static char *gby[] = {
      "   Say 'Oh crap' over and over and over" ,
 
      "\n    Never should I forget this event\n"
-     "    in the life of my fatigued retinas\n" ,
+     "    in the life of my fatigued retinas" ,
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,

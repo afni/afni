@@ -16,20 +16,28 @@ PYTEST_MANUAL_HELP = (
     "Manual pytest management (conflicts with pytest execution modifiers)"
 )
 VALID_MOUNT_MODES = "host test-code test-data-only test-data-volume".split()
+VALID_VERBOSITY_MODES = [
+    "quiet",
+    "normal",
+    "summary",
+    "verbose",
+    "traceback",
+    "diarrhetic",
+]
 
 
-def parse_user_args(user_args=None, tests_dir=None):
+def get_parser(tests_dir=None, return_subparsers=False):
     parser = argparse.ArgumentParser(
-        description=""" run_afni_tests.py is a wrapper script to help run
-        tests for the AFNI suite of tools. This wrapping is an attempt to
-        reduce the burden of executing tests and to facilitate the various
-        usage patterns. Such usage patterns include: running the tests using
-        dependencies installed on the local host; using a container to
-        encapsulate most build/testing dependencies; making use of the cmake
-        build system to make the iterative process of changing code and
-        running tests easier; running the tests while making use of all the
-        cores on the computer; subsetting the tests that are executed during a
-        test run.""",
+        description="""
+        run_afni_tests.py is a wrapper script to help run tests for the AFNI
+        suite of tools. This wrapping is an attempt to reduce the burden of
+        executing tests and to facilitate the various usage patterns. Such
+        usage patterns include: running the tests using dependencies installed
+        on the local host; using a container to encapsulate most build/testing
+        dependencies; making use of the cmake build system to make the
+        iterative process of changing code and running tests easier; running
+        the tests while making use of all the cores on the computer;
+        subsetting the tests that are executed during a test run.""",
         add_help=False,
     )
     parser.add_argument(
@@ -92,6 +100,12 @@ def parse_user_args(user_args=None, tests_dir=None):
         help="Make use of all cpus for tests (requires pytest-parallel).",
     )
 
+    thread_management.add_argument(
+        "--trace",
+        help=("Immediately drop into the call stack (the pdb debugger) for each test."),
+        action="store_true",
+    )
+
     parser.add_argument(
         "--ignore-dirty-data",
         action="store_true",
@@ -117,11 +131,14 @@ def parse_user_args(user_args=None, tests_dir=None):
         ),
     )
     pytest_mod.add_argument(
-        "--verbose",
+        "--verbosity",
         "-v",
-        action="count",
-        default=0,
-        help="Increase the verbosity of reporting (conflicts with --debug). More v's is more verbose.",
+        choices=VALID_VERBOSITY_MODES,
+        default="normal",
+        help=(
+            "Increase the verbosity of reporting. Levels other than "
+            "quiet and normal conflict with --debug. "
+        ),
     )
     pytest_mod.add_argument(
         "--log-file-level",
@@ -148,6 +165,58 @@ def parse_user_args(user_args=None, tests_dir=None):
         "-l",
         help=("Only run tests that failed on the last test run."),
         action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--runslow",
+        help=("Run default tests and tests marked with 'slow'."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--runveryslow",
+        help=("Run default tests and tests marked with 'slow' or 'veryslow'."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--runall",
+        help=("Ignore all test markers and run everything."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--create-sample-output",
+        "-c",
+        help=(
+            "Create sample output instead of running a diff with pre- "
+            "existing output. This is a required step when initially "
+            "writing a test. "
+        ),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
+        "--diff-with-sample",
+        help=(
+            "Provide a path of pre-existing output that you wish to "
+            "compare against that is not the default data saved in the "
+            "datalad repository afni_ci_test_data. "
+        ),
+    )
+
+    pytest_mod.add_argument(
+        "--marker-expression",
+        "-m",
+        metavar="EXPR",
+        help=(
+            "Provide an expression for filtering tests using markers. "
+            "This should be quoted if more than one word. It is a "
+            "boolean expression; 'A and B' would run all tests that are "
+            "marked with the A AND B. If you wished to run both types "
+            "of tests you would use 'A or B'. See the pytest help "
+            "documentation for more information."
+        ),
     )
 
     pytest_mod_manual = parser.add_argument_group(PYTEST_MANUAL_HELP)
@@ -256,7 +325,16 @@ def parse_user_args(user_args=None, tests_dir=None):
         action="store_true",
         help="Include a verbose explanation along with the examples",
     )
+    if return_subparsers:
+        return parser, subparsers, local, container, examples
+    else:
+        return parser
 
+
+def parse_user_args(user_args=None, tests_dir=None):
+    parser, subparsers, local, container, examples = get_parser(
+        tests_dir=tests_dir, return_subparsers=True
+    )
     args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
@@ -268,19 +346,21 @@ def parse_user_args(user_args=None, tests_dir=None):
             print(EXAMPLES)
         sys.exit(0)
     if args.installation_help:
-        print((tests_dir / "README.md").read_text())
+        print((tests_dir / "README.rst").read_text())
         sys.exit(0)
     if not args.subparser:
-        sys.exit(
-            ValueError(
-                "Unless requesting help you must specify a subcommand "
-                f"one of {list(subparsers.choices.keys())} "
-            )
+        print(
+            "Unless requesting help you must specify a subcommand "
+            f"one of {list(subparsers.choices.keys())} "
         )
+        sys.exit(2)
 
     # verbosity breaks exception hook so check not used together
-    if args.debug and args.verbose:
-        raise ValueError("If you wish to use debugging, turn off verbosity.")
+    if args.debug and args.verbosity not in ["normal", "quiet"]:
+        raise ValueError(
+            "If you wish to use debugging, turn off verbosity set to "
+            "normal or quiet. "
+        )
 
     # Make sure manual option and pytest help options were not both used
     for group in parser._action_groups:
@@ -295,6 +375,21 @@ def parse_user_args(user_args=None, tests_dir=None):
         raise ValueError(
             "Use pytest execution modifiers or manual pytest management, not both"
         )
+
+    # runslow and runveryslow options are shortcuts... more extensive
+    # selection should use -m and -k options (marker and keyword expressions).
+    # The latter pair cannont be combined with the shortcuts.
+    if (args.runall or args.runslow or args.runveryslow) and (
+        args.marker_expression or args.filter_expr
+    ):
+        print(
+            "ERROR: Cannot use marker or keyword filtering with the "
+            "--runslow, --runveryslow, --runall options. You can instead "
+            "include the slow and veryslow markers in the expression "
+            "passed to --marker-expression. e.g. run_afni_tests.py -m 'slow and "
+            "combinations' "
+        )
+        sys.exit(1)
 
     return args
 
@@ -398,7 +493,7 @@ def get_dependency_requirements(tests_dir):
     """
 
     if len(sys.argv) == 1 or any(
-        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help"]
+        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help", "", " "]
     ):
         return "minimal"
 
@@ -530,14 +625,13 @@ def configure_for_coverage(tests_dir, cmd_args, **kwargs):
                 "supported "
             )
 
-        # check that the pytest-cov plugin is installed
-        res = sp.run("pytest --help".split(), stdout=sp.PIPE, stderr=sp.STDOUT)
-        if "coverage reporting" not in res.stdout.decode("utf-8"):
-            raise EnvironmentError(
-                "It seems pytest is missing the pytest-cov plugin used "
-                "for python coverage. "
-            )
-
+        # check that the pytest-cov plugin is installed... This causes
+        # problems with the session cache (lock file is removed upon pytest
+        # removal and the pytest cache didn't seem to provide process safe
+        # setting of a variable.) res = sp.run("pytest --help".split(),
+        # stdout=sp.PIPE, stderr=sp.STDOUT) if "coverage reporting" not in
+        # res.stdout.decode("utf-8"): raise EnvironmentError( "It seems pytest
+        # is missing the pytest-cov plugin used " "for python coverage. " )
         out_args = add_coverage_args(tests_dir, out_args)
         os.environ[
             "CXXFLAGS"
@@ -558,16 +652,21 @@ def get_test_cmd_args(**kwargs):
     else:
         cmd_args = ["scripts"]
 
-    if not kwargs.get("verbose"):
-        verb_args = "--tb=no --no-summary --show-capture=no"
-    elif kwargs.get("verbose") == 1:
-        verb_args = "--tb=no --no-summary -v --log-cli-level=INFO"
-    elif kwargs.get("verbose") == 2:
-        verb_args = "--tb=short -r Exs -v --log-cli-level=INFO"
-    elif kwargs.get("verbose") == 3:
-        verb_args = "--tb=auto -r Exs -v --log-cli-level=INFO --showlocals  -s"
-    elif kwargs.get("verbose") > 3:
-        verb_args = "--tb=long -r Exs -v --log-cli-level=DEBUG --showlocals -s"
+    if not kwargs.get("verbosity"):
+        kwargs["verbosity"] = "normal"
+
+    if kwargs["verbosity"] == "quiet":
+        verb_args = "--tb=no -r fE --show-capture=no"
+    elif kwargs.get("verbosity") == "normal":
+        verb_args = "--tb=no  -r fEs --show-capture=no"
+    elif kwargs.get("verbosity") == "summary":
+        verb_args = "--tb=no -r a"
+    elif kwargs.get("verbosity") == "verbose":
+        verb_args = "--tb=no -r fEsxX -v --log-cli-level=INFO  -s"
+    elif kwargs.get("verbosity") == "traceback":
+        verb_args = "--tb=auto -r fEsxX --log-cli-level=INFO --showlocals -s"
+    elif kwargs.get("verbosity") == "diarrhetic":
+        verb_args = "--tb=long -r fEsxX -vv --log-cli-level=DEBUG --showlocals -s"
 
     cmd_args += verb_args.split()
 
@@ -575,10 +674,31 @@ def get_test_cmd_args(**kwargs):
         cmd_args.append("--pdb")
 
     if kwargs.get("filter_expr"):
-        cmd_args.append(f"-k={kwargs['filter_expr']}")
+        cmd_args.append(f"""-k='{kwargs["filter_expr"]}'""")
 
     if kwargs.get("log_file_level"):
         cmd_args.append(f"--log-file-level={kwargs['log_file_level']}")
+
+    if kwargs.get("trace"):
+        cmd_args.append("--trace")
+
+    if kwargs.get("runslow"):
+        cmd_args.append("--runslow")
+
+    if kwargs.get("runveryslow"):
+        cmd_args.append("--runveryslow")
+
+    if kwargs.get("runall"):
+        cmd_args.append("--runall")
+
+    if kwargs.get("create_sample_output"):
+        cmd_args.append("--create-sample-output")
+
+    if kwargs.get("diff_with_sample"):
+        cmd_args.append(f"--diff-with-sample={kwargs.get('diff_with_sample')}")
+
+    if kwargs.get("marker_expression"):
+        cmd_args.append(f"""-m='{kwargs.get("marker_expression")}'""")
 
     if kwargs.get("lf"):
         cmd_args.append("--lf")
@@ -619,7 +739,7 @@ def make_sure_afnipy_not_importable():
     )
 
 
-def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
+def modify_path_and_env_if_not_using_cmake(**args_dict):
     """
     This function does some path/environment modifications to deal with the
     different installation configurations that the tests might be run under.
@@ -684,8 +804,10 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
             return
 
-    #  Now just situation 3. and 4 remaining.
+    # Now just situation 3 and 4 remaining.
     make_sure_afnipy_not_importable()
+    if not args_dict.get("abin") and not test_bin_path:
+        raise EnvironmentError("Cannot find local AFNI binaries. ")
     abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
 
     # Modify sys.path and os.environ. Makes afnipy importable

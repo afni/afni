@@ -132,11 +132,11 @@ int main(int argc, char *argv[]) {
    // THD_3dim_dataset *inset0 = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix="REHO" ;
-   char in_name[300];
-   char in_mask[300];
+   char in_name[THD_MAX_NAME];
+   char in_mask[THD_MAX_NAME];
    
    THD_3dim_dataset *outset=NULL;
-   char outname[300];
+   char outname[THD_MAX_NAME];
 
    int NIFTI_OUT=0;
    int DTYPE=0;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
    }
    else{
          insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
          
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);

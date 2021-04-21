@@ -260,13 +260,24 @@
 #   + [PT] add new opt, controlling AGIF delay time from AFNI env vars
 #        + change way movie files are cleaned up, so no __tmp* dir left over
 #
-set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
+#set version   = "6.0"; set rev_dat   = "Apr 23, 2020"
 # [PT] new opt: -colorscale_idx_file, to make use of the existing env var
 #      AFNI_COLORSCALE_xx
 #      + user can enter own scale values this way
 #
-set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
+#set version   = "6.01"; set rev_dat   = "Apr 23, 2020"
 # [PT] added help example of "fun" cbar usage
+#
+#set version   = "6.1"; set rev_dat   = "Feb 22, 2021"
+# [PT] add '-pbar_comm_gen ..' opt, for TSNR QC
+#    + set AFNI_IMSAVE_WARNINGS if ftype != MPEG; stops annoying warning
+#
+#set version   = "6.11"; set rev_dat   = "Mar 6, 2021"
+# [PT] run GUI more quietly, and disable some warning messages
+#
+set version   = "6.2"; set rev_dat   = "April 16, 2021"
+# [PT] for "-topval .." arg, defined a keyword to mimic empty doublequotes
+#    + also fixed up help example a bit (discrete cbar case)
 #
 # =====================================================================
 
@@ -287,6 +298,10 @@ setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
 setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
 setenv AFNI_AGIF_DELAY        30         # [PT: Feb 22, 2020] 
+setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
+setenv AFNI_STARTUP_WARNINGS     NO
+setenv AFNI_MOTD_CHECK           NO
+
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -335,6 +350,7 @@ set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar
 set SAVE_PBAR    = 0             # [PT: Oct 21, 2018] flag for assorted stuff
 set pbar_comm  = ""            # [PT: May 8, 2019] pbar json output
 set vthr_comm  = ""            # [PT: May 8, 2019] pbar json output
+set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
@@ -566,7 +582,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-cbar_topval" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set topval = "$argv[$ac]"
+
+        if ( "$argv[$ac]" == "EMPTY" )then
+            set topval = ""
+        else
+            set topval = "$argv[$ac]"
+        endif
         
     # [PT: Apr 23, 2020] enable AFNI_COLORSCALE_xx env var behavior.
     # NB: this will *require* 2 args: index in range [01,99], and filename
@@ -757,6 +778,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set vthr_comm = "$argv[$ac]"
+
+    # [PT: Feb 22, 2021] save other info to display
+    else if ( "$argv[$ac]" == "-pbar_comm_gen" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set gen_comm = "$argv[$ac]"
 
     # [PT: Aug 26, 2019] save reason for ulay range
     else if ( "$argv[$ac]" == "-ulay_comm" ) then
@@ -1073,6 +1100,10 @@ if ( ${USER_CSCALE} ) then
 
     # get new cbar name from top line of file
     set my_cbar = `head -n 1 "${cscale_fname}"`
+endif
+
+if ( "${ftype}" != "MPEG" ) then
+    setenv AFNI_IMSAVE_WARNINGS NO
 endif
 
 # -------------------- make temp working dir
@@ -1807,6 +1838,7 @@ pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
+gen_comm     :: "${gen_comm}"
 ulay_bot     :: "${umin}"
 ulay_top     :: "${umax}"
 ulay_globran :: "${urange}"
@@ -1921,7 +1953,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu              \\\
+afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1950,7 +1982,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-        afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu            \
+        afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu         \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
@@ -2026,7 +2058,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 # before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \\\
+afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -2064,7 +2096,7 @@ endif
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC!
-afni -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu             \
+afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
@@ -2391,10 +2423,15 @@ COMMAND OPTIONS ~1~
                     key 'ulay_comm').  Use quotes around on command
                     line.
 
--pbar_comm_thr PBR :same as '-pbar_comm_range ..', but for storing a
+-pbar_comm_thr PBT :similar to '-pbar_comm_range ..', but for storing a
                     comment about the selected threshold value. It
                     will also be stored in the PBS.txt file (the value
                     of the key 'vthr_comm').
+
+-pbar_comm_gen PBG :similar to '-pbar_comm_range ..', but for storing a
+                    general comment about the pbar or plot or color range. 
+                    It will also be stored in the PBS.txt file (the value
+                    of the key 'gen_comm').
 
 -pbar_for  PF      :tiny option, mainly for APQC purposes.  In the output
                     txt file of info for the pbar, can state if the pbar
@@ -2429,6 +2466,13 @@ COMMAND OPTIONS ~1~
 -cbar_topval  TOPV :set colorscale mode (def: 1) (See DR:
                     SET_PBAR_ALL, the 2nd usage case, description
                     about 'topval').
+                    Now, the value of TOPV could also be a special
+                    keyword, 'EMPTY' (yes, written in all caps), which
+                    gives the same behavior as making TOPV the empty
+                    "", but makes scripting easier (not needing to
+                    pass double quotes in shell variables...).  This
+                    is probably only useful if defining a discrete
+                    colorbar (see Examples).
 
 -opacity   OO      :enter an "opacity factor" for the olay, where OO is 
                     an integer in the interval [0, 9], with the 9 being
@@ -2719,6 +2763,10 @@ EXAMPLES ~1~
      option, as another way to enter your own colorbar; colors
      entered there are *not* discrete regions, but get blended
      together.)
+     NB 1: now you can replace the "" with the keyword EMPTY, to make
+           scripting easier (needing to keep quotes around can be a pain).
+     NB 2: the string following cbar probably can*not* be split into
+           multiple lines with continuation-of-line chars.  Mi dispiace.
 
     @chauffeur_afni                       \
         -ulay FT_anat+orig.               \
@@ -2729,13 +2777,7 @@ EXAMPLES ~1~
         -pbar_posonly                     \
         -cbar_ncolors 6                   \
         -cbar_topval ""                   \
-        -cbar "1000=yellow                \
-                800=cyan                  \
-                600=rbgyr20_10            \
-                400=rbgyr20_08            \
-                200=rbgyr20_05            \
-                100=rbgyr20_03            \
-                0=none"
+        -cbar "1000=yellow 800=cyan 600=rbgyr20_10 400=rbgyr20_08 200=rbgyr20_05 100=rbgyr20_03 0=none"
 
 
 # -------------------------------------------------------------------

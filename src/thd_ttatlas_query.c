@@ -988,8 +988,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    const char *nbspp = " &nbsp;&nbsp; " ;
    const char *sp = " ";
    const char *spp = "  ";
-   char *nsp = NULL;
-   char *nspp = NULL;
+   const char *nsp = NULL;
+   const char *nspp = NULL;
 
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
@@ -3467,16 +3467,16 @@ not sure why it was there in the first place!
    ic = 0;
    k = 0;
    block = 0;
-   while (!IS_LETTER(lbl[k]) && !IS_NUMBER(lbl[k]) && k < nc) ++k;
+   while (!IS_LETTER(lbl[k]) && !IS_NUMBER(lbl[k]) &&  !IS_PERIOD(lbl[k]) && k < nc) ++k;
    if (IS_LETTER(lbl[k])) block = 1;
-   else if (IS_NUMBER(lbl[k])) block = 2;
+   else if (IS_NUMBER(lbl[k]) || IS_PERIOD(lbl[k])) block = 2;
    else block = 0;
 
    while (k < nc) {
       if (IS_LETTER(lbl[k]) && block == 1) {
          lachunk[ic] = TO_LOWER(lbl[k]); ++ic;
          ++k;
-      } else if (IS_NUMBER(lbl[k]) && block == 2) {
+      } else if ((IS_NUMBER(lbl[k])||IS_PERIOD(lbl[k])) && block == 2) {
          lachunk[ic] = TO_LOWER(lbl[k]); ++ic;
          ++k;
       } else {
@@ -3748,7 +3748,7 @@ char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur ,
    THD_string_array *sar = NULL;
    int nfind = 0, ii = 0, k= 0;
 
-   ENTRY("Find_Atlas_Regions");
+   ENTRY("Report_Found_Regions");
 
    if (!as || !ur || !aa) {
       ERROR_message("NULL input");
@@ -5525,12 +5525,15 @@ ATLAS_SEARCH * Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_
             if (strncmp(ur->chnks[iu], aa->reg[k]->chnks[ir], MIN_PAIR( lu, lr)) == 0) {
                /* one of the strings is inside the other */
                if (lu == lr) { /* identical match */
-                  chnk_match[ir] = 4;
+                    chnk_match[ir] = 4;
                } if (lu < lr) { /* user provided subset */
                   chnk_match[ir] = 2;
                } if (lu > lr) { /* user provided superset */
                   chnk_match[ir] = 1;
                }
+               if (iu == ir )   /* matching on the same chunk counts more! */
+                 chnk_match[ir]++;
+
                /* fprintf(stderr,"User string %s, Region %s: match = %d\n",
                   ur->chnks[iu], aa->reg[k]->chnks[ir],chnk_match[ir]);*/
             }
@@ -5908,7 +5911,7 @@ char *Atlas_Name(ATLAS *atl)
 
 int is_Coord_Space_Named(ATLAS_COORD ac, char *name)
 {
-   if (ac.space_name && !strcmp(ac.space_name,name)) return(1);
+   if (strlen(ac.space_name) && !strcmp(ac.space_name,name)) return(1);
    return(0);
 }
 
@@ -6681,14 +6684,14 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
    switch(Atlas_name_type()){
      /* just the long name */
       case 1:
-          if (atp->longname && strlen(atp->longname))
+          if (strlen(atp->longname))
              sprintf(tmps, "%s", atp->longname);
           else
              sprintf(tmps, "%s", atp->name);
           break;
       /* combination - both name and long name with brackets around long name*/
       case 2:
-          if (atp->longname && strlen(atp->longname) && strcmp(atp->longname, atp->name))
+          if (strlen(atp->longname) && strcmp(atp->longname, atp->name))
              sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
              sprintf(tmps, "%s", atp->name);

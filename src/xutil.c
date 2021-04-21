@@ -772,7 +772,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
        if( nel == NULL ) break ;
        if( strcmp(nel->name,"AFNI_saw_message") == 0 ){
          char *rhs = NI_get_attribute(nel,"codestring") ;
-         if( rhs != NULL & strcmp(rhs,codestring) == 0 ) seen = 1 ;
+         if( rhs != NULL && strcmp(rhs,codestring) == 0 ) seen = 1 ;
        }
        NI_free_element(nel) ;
      }
@@ -983,17 +983,19 @@ void MCW_register_hint( Widget w , char *msg )
       while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
 
       cfont = XGetDefault(XtDisplay(wpar),"AFNI","cluefont") ;
-      if( cfont != NULL ){
-         liteClue = XtVaCreatePopupShell( "help", xcgLiteClueWidgetClass, wpar,
-                                             RES_CONVERT(XtNfontSet,cfont) ,
-                                          NULL);
-      } else {
-         liteClue = XtVaCreatePopupShell( "help", xcgLiteClueWidgetClass, wpar,
-                                          NULL);
+      if( cfont == NULL ) cfont = "10x20" ;                    /* 08 Jan 2021 */
+      liteClue = XtVaCreatePopupShell( "help", xcgLiteClueWidgetClass, wpar,
+                                          RES_CONVERT(XtNfontSet,cfont) ,
+                                       NULL);
+      if( !RWC_liteclue_has_fontset(liteClue) ){   /* Failed :( */
+        INFO_message("\n") ;
+        INFO_message("\n Hints disabled: X11 failure to create LiteClue window") ;
+        INFO_message("\n") ;
+        clueless = 1 ;
+        return ;
       }
-      if( liteClue == NULL ) return ;
 
-      XtVaSetValues( liteClue , XmNsaveUnder , True , NULL ) ;  /* 22 Jan 1999 */
+      XtVaSetValues( liteClue , XmNsaveUnder , True , NULL ) ; /* 22 Jan 1999 */
    }
 
    /*-- attach the hint to the widget, if it is a widget --*/
@@ -2061,8 +2063,8 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
 
 /*---------------------------------------------------------------------------*/
 
-static int RWC_draw_rect( Display *dis, Window win, GC gc,
-                          int x1, int y1, int x2, int y2  )
+static void RWC_draw_rect( Display *dis, Window win, GC gc,
+                           int x1, int y1, int x2, int y2  )
 {
   int xb,yb , xt,yt ;
   unsigned int short w,h ;

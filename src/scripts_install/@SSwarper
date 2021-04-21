@@ -97,8 +97,32 @@
 #set version   = "2.3"; set rev_dat   = "Sep 23, 2020"
 #   + [PT] put ${status} checks to terminate on ~first failures
 #
-set version   = "2.31"; set rev_dat   = "Oct 19, 2020"
+#set version   = "2.31"; set rev_dat   = "Oct 19, 2020"
 #   + [PT] new qc image of initial overlap (with/without applying obl)
+#
+#set version   = "2.33"; set rev_dat   = "Dec 1, 2020"
+#   + [PT] minorly change default "junk" file names 
+#          - amusing anecdote: one AFNI user got an unexpected failure
+#            when a random string started with "1D", so a file name
+#            looked like "junk.SSwarper.1DfZbuq78qk.nii".  When 3dcalc
+#            got hold of such a file, it complained about not being
+#            able to read a *.1D file, because that combination
+#            appears in the middle of a filename (!?!?), but it output
+#            correctly; however, 3dNwarpApply wanted none of it, and
+#            produced a fatal error.
+#          - Anyways, we can avoid this one in a bazillion hassleby
+#            changing a dot to an underscore, so did.
+#          - And added new "-tmp_nice_name" opt flag to have to a
+#            simpler temp file name (use esp. when odir holds single
+#            subj output)
+#
+#set version   = "2.4"; set rev_dat   = "Feb 5, 2020"
+#   + [PT] more QC along the processing: 2 new init*jpg files
+#        + add "-echo" as an opt
+#
+set version   = "2.5"; set rev_dat   = "Feb 10, 2020"
+#   + [PT] allow input mask
+#        + try Strategy 1 of just replacing 3dSkullStrip with it
 #
 # ----------------------------------------------------------------
 
@@ -147,6 +171,7 @@ set DO_DEOB    = 0       # 3dWarp-style
 set DO_DEOB_REF = 0      # 3drefit-style
 set DO_EXTRA_QC = 1      # more chauffeur output 
 set JUMP_TO_EXTRA_QC = 0 # just for testing/internal purposes
+set DO_RANDOM_TMP = 1    # use random chars in tmp fname; can use nicer
 
 set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
 set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
@@ -157,6 +182,8 @@ set gaus_wt    = 4.5    # def for 3dQwarp
 set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
 
 set SSopt      = " "
+
+set mask_ss    = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -248,6 +275,13 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-aniso_off" ) then
         set DO_ANISO = 0
 
+    # [PT: Feb 11, 2019]
+    else if ( "$argv[$ac]" == "-mask_ss" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mask_ss = "$argv[$ac]"
+        set DO_SKULLST = 0
+
     # [PT: Jan 31, 2020]
     else if ( "$argv[$ac]" == "-extra_qc_off" ) then
         set DO_EXTRA_QC = 0
@@ -262,7 +296,6 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-saveall" ) then
         set saveall = "-saveall"
-
 
     # [PT: Jan 14, 2020] probably only for backwards compatibility:
     # default will be lpa+ZZ (could be 'hel' for back-compat)
@@ -294,6 +327,11 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-verb" ) then
         set verbopt = "-verb"
 
+    # [PT: Dec 1, 2020] changing default tmp fnames; this reverts to
+    # old/ugly style
+    else if ( "$argv[$ac]" == "-tmp_name_nice" ) then
+        set DO_RANDOM_TMP = 0
+
     # output dir
     else if ( "$argv[$ac]" == "-odir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -305,6 +343,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set SSopt = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
 
     # ---------- fin ------------------
 
@@ -352,6 +393,14 @@ if( "$SubID" == "" )then
   goto BAD_EXIT
 endif
 
+if ( "${mask_ss}" != "" ) then
+    set check = `3dinfo -prefix "${mask_ss}"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find inset file ${mask_ss}"
+        goto BAD_EXIT
+    endif
+endif
+
 # edit SubID to remove any dataset suffixes [29 Mar 2019]
 set sss = `basename "$SubID" .nii.gz`
 set sss = `basename "$sss"   .nii`
@@ -388,8 +437,17 @@ endif
 
 # set random prefix for temp files
 
-set pppp = "`3dnewid -fun11`"
-set pref = $odir/junk.SSwarper.${pppp}_
+### [PT: Dec 1, 2020] doesn't seem a need to have giant random string
+### chars in temporary "junk" file names
+if ( $DO_RANDOM_TMP ) then
+    # original style, slightly modified bc the purely random chars
+    # after '.' caaaan cause mischief (see amusing anecdote in
+    # comments at top for this date).
+    set pppp = "`3dnewid -fun11`"
+    set pref = $odir/junk.SSwarper_${pppp}_
+else
+    set pref = $odir/junk_ssw_
+endif 
 
 # ---------------------------- !! this will change !! -------------------
 #### ----> also add check that it has multiple subbricks
@@ -442,6 +500,18 @@ if ( ${DO_DEOB} ) then
         "$Adataset"
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
+
+    if ( "${mask_ss}" != "" ) then
+        set mask_do = $odir/maskDO."${SubID}".nii.gz
+        3dWarp                        \
+            -deoblique                \
+            -wsinc5                   \
+            -prefix "${mask_do}"      \
+            "${mask_ss}"
+        # ... and this will be new "input" dset
+        set mask_ss = "${mask_do}"
+    endif 
+
 else if ( ${DO_DEOB_REF} ) then
     set dset_do = $odir/anatDO."${SubID}".nii
     # copy
@@ -453,9 +523,25 @@ else if ( ${DO_DEOB_REF} ) then
     3drefit                       \
         -deoblique                \
         "${dset_do}"
-
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
+
+    if ( "${mask_ss}" != "" ) then
+        set mask_do = $odir/maskDO."${SubID}".nii.gz
+
+        # copy
+        3dcalc                        \
+            -a "${mask_ss}"            \
+            -expr 'a'                 \
+            -prefix "${mask_do}"
+        # purge obliquity info
+        3drefit                       \
+            -deoblique                \
+            "${mask_do}"
+        # ... and this will be new "input" dset
+        set mask_ss = "${mask_do}"
+    endif 
+
 endif
 
 if ( ${status} ) then
@@ -544,8 +630,7 @@ endif
 # Step #2: Strip Skull (Ziad's way)
 echo "++ SSW Step 2"
 
-# [PT: Feb 11, 2019] now allows for option *not* to skullstrip (e.g.,
-# for macaque data)
+# [PT: Feb 11, 2019] now allows for option *not* to skullstrip 
 if( ! -f $odir/anatS."${SubID}".nii ) then
     if ( ${DO_SKULLST} ) then
         3dSkullStrip \
@@ -555,6 +640,13 @@ if( ! -f $odir/anatS."${SubID}".nii ) then
             -shrink_fac_bot_lim 0.777          \
             -exp_frac 0.0666 -orig_vol         \
             $SSopt
+    else if ( "${mask_ss}" != "" ) then
+        echo "++ Instead of skullstripping, apply mask_ss dset."
+        3dcalc                                 \
+            -a $odir/anatUAC."$SubID".nii      \
+            -b ${mask_ss}                      \
+            -expr 'a*step(b)'                  \
+            -prefix $odir/anatS."$SubID".nii
     else
         echo "++ NOT pre-skullstripping dset."
         3dcopy                                 \
@@ -605,6 +697,28 @@ if ( ${status} ) then
     goto BAD_EXIT
 endif
 
+# -------- check early NL alignment to ref vol space ---------
+
+set ulay  = "${pref}TAL5.nii"
+set olay  = "${Basedset}"
+set opref_qc_nl0 = "${odir}/init_qc_01_nl0.${SubID}.jpg"
+
+@djunct_edgy_align_check               \
+    -montx            8                \
+    -monty            1                \
+    -ulay             "${ulay}"        \
+    -olay             "${olay}"        \
+    -box_focus_slices "${olay}"        \
+    -prefix           ${pref}MONT3
+
+2dcat                                  \
+    -gap 5                             \
+    -gap_col 255 204 153               \
+    -nx 1                              \
+    -ny 3                              \
+    -prefix ${opref_qc_nl0}            \
+    ${pref}MONT3*jpg
+
 ## Step #4: mask off the skull using the template (second skull-strip)
 echo "++ SSW Step 4"
 
@@ -619,6 +733,11 @@ echo "++ SSW Step 4"
     -expr 'step(a)*b'              \
     -prefix "${pref}TAL5mm.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 4"
+    goto BAD_EXIT
+endif
+
 ## Step #5: warp this masked dataset back to original space
 echo "++ SSW Step 5"
 
@@ -629,7 +748,7 @@ echo "++ SSW Step 5"
     -prefix "${pref}TAL5ww.nii"
 
 if ( ${status} ) then
-    echo "** ERROR: program failed in Step 4a"
+    echo "** ERROR: program failed in Step 5a"
     goto BAD_EXIT
 endif
 
@@ -648,7 +767,7 @@ endif
     -ainterp NN
 
 if ( ${status} ) then
-    echo "** ERROR: program failed in Step 4b"
+    echo "** ERROR: program failed in Step 5b"
     goto BAD_EXIT
 endif
 
@@ -662,6 +781,11 @@ endif
        -expr 'step(c)*max(a,b)'       \
        -prefix "$odir/anatSS.${SubID}.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 5c"
+    goto BAD_EXIT
+endif
+
 # DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
 3dmask_tool                           \
     -dilate_inputs -3 3               \
@@ -673,6 +797,11 @@ endif
     -expr 'a*step(b)'                 \
     -prefix "$odir/anatSSc.${SubID}.nii"
 
+if ( ${status} ) then
+    echo "** ERROR: program failed in Step 5d"
+    goto BAD_EXIT
+endif
+
 # Throw in an automask step to clean up the outer edges [18 Jun 2019]
 \rm -f ${pref}de3.nii "$odir/anatSS.${SubID}.nii"
 3dAutomask                                            \
@@ -682,7 +811,7 @@ endif
 \rm -f "$odir/anatSSc.${SubID}.nii"
 
 if ( ${status} ) then
-    echo "** ERROR: program failed in Step 4c"
+    echo "** ERROR: program failed in Step 5e"
     goto BAD_EXIT
 endif
 
@@ -710,6 +839,30 @@ if ( ${status} ) then
     echo "** ERROR: program failed in Step 6.0"
     goto BAD_EXIT
 endif
+
+# -------- check aff alignment to ref vol space ---------
+
+set ulay  = "${pref}AffSS.nii"
+set olay  = "${Basedset}"
+set opref_qc_aff = "${odir}/init_qc_02_aff.${SubID}.jpg"
+
+@djunct_edgy_align_check               \
+    -montx            8                \
+    -monty            1                \
+    -ulay             "${ulay}"        \
+    -olay             "${olay}"        \
+    -box_focus_slices "${olay}"        \
+    -prefix           ${pref}MONT6
+
+2dcat                                  \
+    -gap 5                             \
+    -gap_col 255 204 153               \
+    -nx 1                              \
+    -ny 3                              \
+    -prefix ${opref_qc_aff}            \
+    ${pref}MONT6*jpg
+
+
 
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
@@ -777,7 +930,7 @@ if( $minp > 13 )then
       -prefix $odir/anatQQ."${SubID}".nii
 
   if ( ${status} ) then
-      echo "** ERROR: program failed in Step 6.30"
+      echo "** ERROR: program failed in Step 6.3a"
       goto BAD_EXIT
   endif
 
@@ -799,7 +952,7 @@ else
       -nodset -prefix "${pref}QQ9.nii"
 
   if ( ${status} ) then
-      echo "** ERROR: program failed in Step 6.3a"
+      echo "** ERROR: program failed in Step 6.3b"
       goto BAD_EXIT
   endif
 
@@ -819,7 +972,7 @@ else
       -prefix $odir/anatQQ."${SubID}".nii
 
   if ( ${status} ) then
-      echo "** ERROR: program failed in Step 6.3b"
+      echo "** ERROR: program failed in Step 6.3c"
       goto BAD_EXIT
   endif
 
@@ -827,7 +980,7 @@ endif
 
 echo "++ SSW: done warping.  Finalize."
 
-# DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
+# DRG's erode-dilate trick for cleanup of little stuff [16 Jan 2019]
 3dmask_tool                             \
     -dilate_inputs -1 1                 \
     -prefix ${pref}de3.nii              \
@@ -982,7 +1135,7 @@ skull-stripped volume and the warps to the processing program.  That
 is convenient!
 
 Current version = $version
-Authorship      = RW Cox
+Authorship      = Bob, Bob, there is one Bob, He spells it B-O-B.
 
 # -----------------------------------------------------------------
 
@@ -1009,6 +1162,8 @@ USAGE ~1~
        {-SSopt 'strings'     \
        {-aniso_off}          \
        {-ceil_off}           \
+       {-tmp_name_nice}      \
+       {-echo}               \
        {-verb}               \
        {-noclean}
 
@@ -1131,8 +1286,27 @@ grown/improved over time):
               to have 3dSkullStrip produce a .ply surface file
               as an additional output.
 
+  -mask_ss MSS :(opt) as an alternative to skullstripping at an early
+              stage, you can provide a mask to be used before the
+              initial affine alignment.  The mask MSS can come from
+              anywhere, but @SUMA_Make_Spec_FS now makes a convenient
+              one from the FS parcellation (though it would have to be
+              resampled to the input anatomical's grid).
+
+  -tmp_name_nice :(opt) default temporary "junk.*" filenames include
+              a large, random char string.  This is ugly, but useful
+              if outputting several different SSW runs into the same
+              directory that we intermediate files (very likely) don't
+              get overwritten.  However, if you prefer, you can use a
+              nicer, non-random intermediate file prefix: "junk_ssw".
+              I would use this when the output dir ("-odir ..")
+              doesn't contain multiple SSW outputs.
+
   -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
               verbose progress information - mostly used for debugging.
+
+  -echo      :(opt) Run the script with "set echo", for extra verbosity
+              in the terminal output.  Mainly for debugging times. 
 
   -noclean   :(opt) Do not delete the 'junk' files at the end of
               computations - mostly used for debugging and testing.
@@ -1160,8 +1334,10 @@ help).
 
 OUTPUTS ~1~
 
-Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
-Then the outputs from this script will be"
+Datasets ~2~
+
+  Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
+  Then the outputs from this script will be"
 
   anatDO.sub007.nii       = deobliqued version of original dataset;
                             (*only if* using '-deoblique' opt);
@@ -1172,6 +1348,7 @@ Then the outputs from this script will be"
   anatUAC.sub007.nii      = ceiling-capped ver of the above (at 98%ile of 
                             non-zero values)
                             (or, if '-ceil_off' used, a copy of anatUA.*.nii)
+
   anatS.sub007.nii        = first pass skull-stripped original dataset
                             (or, if '-init_skullstr_off' used, a copy of
                             anatUAC.*.nii);
@@ -1187,12 +1364,20 @@ Then the outputs from this script will be"
                                        -b anatSS.sub007.nii   \
                                        -expr 'a*step(b)'      \
                                        -prefix anatSSorig.sub007.nii
+
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
                             the base template space;
   anatQQ.sub007.aff12.1D  = affine matrix to transform original dataset
                             to base template space;
   anatQQ.sub007_WARP.nii  = incremental warp from affine transformation
                             to nonlinearly aligned dataset;
+
+  * The .aff12.1D and _WARP.nii transformations need to be catenated to get
+    the full warp from orginal space to the base space; example:
+
+      3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
+
+QC images ~2~
 
   AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii
                             dataset with the edges from the base template
@@ -1203,6 +1388,7 @@ Then the outputs from this script will be"
   QC_anatSS.sub007.jpg    = check skullstripping in orig space: ulay is
                             input dset, and olay is mask of
                             skullstripped output (anatSS* dset)
+
   init_qc_00_overlap_uinp_obase.jpg
     o [ulay] original source dset
       [olay] original base dset
@@ -1215,18 +1401,12 @@ Then the outputs from this script will be"
       deobliquing with 3dWarp is created (*DEOB.jpg), and a text file
       about obliquity is also created (*DEOB.txt).
 
-* The .aff12.1D and _WARP.nii transformations need to be catenated to get
-  the full warp from orginal space to the base space; example:
-    3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
-
 * It is important to examine (at least) the two .jpg snapshot images to
   make sure that the skull-stripping and nonlinear warping worked well.
 
-* The inputs needed for the '-tlrc_NL_warped_dsets' option to afni_proc.py
-  are (in this order):
-    anatQQ.sub007.nii anatQQ.sub007.aff12.1D anatQQ.sub007_WARP.nii
+USING SSW WITH AFNI_PROC.PY ~1~
 
-* When B-O-B uses this script for skull-stripping plus warping, He
+  When B-O-B uses @SSwarper for skull-stripping plus warping, He
   gives afni_proc.py these options (among others), after running
   ${this_prog} successfully -- here, 'subj' is the subject
   identifier:
@@ -1249,7 +1429,6 @@ Then the outputs from this script will be"
   |       anatQQ.\${subj}.aff12.1D                                  \
   |       anatQQ.\${subj}_WARP.nii
 
-# -------------------------------------------------------------------
 
 NOTES ~1~
 
@@ -1276,7 +1455,9 @@ The Template dataset ~2~
   the Interweb:
     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/sswarper_base.html
 
-You Know My Methods, Watson ~2~
+The steps being run ~2~
+
+  You Know My Methods, Watson...
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
@@ -1300,12 +1481,82 @@ You Know My Methods, Watson ~2~
 Temporary files ~2~
 
   If the script crashes for some reason, it might leave behind files
-  whose names start with 'junk.SSwarper' -- you should delete these
-  files manually.
+  whose names start with 'junk' -- you should delete these files
+  manually.
 
-# -------------------------------------------------------
-  Author: Bob, Bob, there is one Bob, He spells it B-O-B.
-# -------------------------------------------------------
+WHAT TO DO IF RESULTS ARE WAY OFF? ~1~
+
+  The importance of initial dset overlap ~2~
+
+  Always, always, always check the initial image made by SSW when it
+  runs:  
+
+      init_qc_00_overlap_uinp_obase.jpg
+
+  This image tells you how well your datasets overlap initially before
+  the alignment work begins. **The better the overlap, the lower the
+  chance that something weird happens in your output.** All the SSW
+  templates have reasonable coordinates, meaning that (x, y, z) = (0,
+  0, 0) is in a good spot for it.  If there is poor overlap, probably
+  your input dataset has weird/bad coordinates for some reason.  
+
+  You can use @Align_Centers to put your anatomical dset in a better
+  spot (though note, if you are going to be processing EPI data
+  afterwards, you will want to move that along, as well, perhaps as a
+  "child" dataset).
+
+  By far the most common problem leading to obviously bad outputs is
+  that the initial datasets are waaay far apart when they start, and
+  the program gets stuck in a false minimum of solutions.
+
+  Other issues ~2~
+
+  Sometimes, it can be hard to separate the brain from dura and/or
+  skull surrounding the brain.  If little bits are left around in the
+  masking images, then perhaps adding one of the following options for
+  will help (this can help the initial skullstripping):
+
+    -SSopt '-blur_fwhm 2'
+    -SSopt '-blur_fwhm 3'
+
+  Any other questions/oddities, please don't hesitate to inquire on
+  the AFNI Message Board!
+
+EXAMPLES ~1~
+
+  1) Run the program, deciding what the main output directory will be
+  called (e.g., based on the subject ID):
+
+    @SSwarper                                    \
+        -input  anat_t1w.nii.gz                  \
+        -base   MNI152_2009_template_SSW.nii.gz  \
+        -subid  sub-001                          \
+        -odir   group/o.aw_sub-001
+
+  2) Same as above, but since we are using one outdir per subject, use
+  more aesthetically pleasing names of temporary files (which get
+  deleted, anyways):
+
+    @SSwarper                                    \
+        -tmp_name_nice                           \
+        -input  anat_t1w.nii.gz                  \
+        -base   MNI152_2009_template_SSW.nii.gz  \
+        -subid  sub-001                          \
+        -odir   group/o.aw_sub-001
+
+  3) As of version 2.5, you can input a mask to be used instead of
+  skullstripping.  For example, a good one might be the
+  parcellation-derived (but filled in) mask from @SUMA_Make_Spec_FS
+  after running FS's recon-all (though you will have to resample it
+  from the FS output grid to that of your input anatomical):
+
+    @SSwarper                                     \
+        -tmp_name_nice                            \
+        -input   anat_t1w.nii.gz                  \
+        -mask_ss fs_parc_wb_mask_RES.nii.gz       \
+        -base    MNI152_2009_template_SSW.nii.gz  \
+        -subid   sub-001                          \
+        -odir    group/o.aw_sub-001
 
 EOF
 

@@ -61,6 +61,9 @@
                  properties than -skel_stop, because it won't
                  go in any further to the WM itself.
 
+    Dec 2020 [pt]:
+        change input opt style so no dangling entries can be placed
+        without error
 */
 
 
@@ -277,8 +280,8 @@ int main(int argc, char *argv[]) {
 	int X,Y,Z;
 	int iarg=0;
 	THD_3dim_dataset *inset=NULL;
-	char in_name[300];
-	char inpre_name[300];
+	char in_name[THD_MAX_NAME];
+	char inpre_name[THD_MAX_NAME];
 	float THR=0.;
 	char *prefix="NAME_ROIMaker";
 	THD_3dim_dataset *insetREF=NULL;
@@ -291,13 +294,13 @@ int main(int argc, char *argv[]) {
    int NEIGHBOR_LIMIT = 2; 
 
 	THD_3dim_dataset *MASK=NULL;
-	char in_mask[300];
+	char in_mask[THD_MAX_NAME];
 	int HAVE_MASK=0;
    int HAVEPREFIX=0;
 
-	char in_REF[300];
-	char prefix_GM[300];
-	char prefix_GMI[300];
+	char in_REF[THD_MAX_NAME];
+	char prefix_GM[THD_MAX_NAME];
+	char prefix_GMI[THD_MAX_NAME];
 	char voxel_order[4]="---";
 
 
@@ -358,8 +361,8 @@ int main(int argc, char *argv[]) {
    char EleNameStr[128];
    int DUMP_with_LABELS = 1;
 	int MAXNROI=0;
-	char prefix_dtable[300];
-	char prefix_dtableGM[300];
+	char prefix_dtable[THD_MAX_NAME];
+	char prefix_dtableGM[THD_MAX_NAME];
    char *Dtable_str=NULL;
    char *Dtable_strGM=NULL;
    Dtable *new_dt=NULL;
@@ -380,14 +383,14 @@ int main(int argc, char *argv[]) {
 	// scan args
 	if (argc == 1) { usage_ROIMaker(1); exit(0); }
 	iarg = 1; 
-	while( iarg < argc && argv[iarg][0] == '-' ){
+	while( iarg < argc ){ //&& argv[iarg][0] == '-' ){
 		if( strcmp(argv[iarg],"-help") == 0 || 
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_ROIMaker(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
 			 
-		if( strcmp(argv[iarg],"-inset") == 0 ){
+		else if( strcmp(argv[iarg],"-inset") == 0 ){
 			iarg++ ; 
 			if( iarg >= argc ) 
 				ERROR_exit("Need argument after '-inset'");
@@ -398,7 +401,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-thresh") == 0 ){
+		else if( strcmp(argv[iarg],"-thresh") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-thresh'");
 			//INFO_message("Size of threshold is: %s",argv[iarg]);
@@ -407,7 +410,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 		
-		if( strcmp(argv[iarg],"-prefix") == 0 ){
+		else if( strcmp(argv[iarg],"-prefix") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-prefix'");
 			prefix = strdup(argv[iarg]);
@@ -420,7 +423,7 @@ int main(int argc, char *argv[]) {
 		}
 
 
-		if( strcmp(argv[iarg],"-refset") == 0 ) {
+		else if( strcmp(argv[iarg],"-refset") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-refset'");
 			
@@ -435,7 +438,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-      if( strcmp(argv[iarg],"-dump_no_labtab") == 0) {
+      else if( strcmp(argv[iarg],"-dump_no_labtab") == 0) {
          // if REFSET has a label table, default is to use it in
          // naming a dump_rois output;  this can turn that off.
 			DUMP_with_LABELS=0;
@@ -444,7 +447,7 @@ int main(int argc, char *argv[]) {
 
 
 
-      if( strcmp(argv[iarg],"-preinfl_inset") == 0 ) {
+      else if( strcmp(argv[iarg],"-preinfl_inset") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-preinfl_inset'");
 			
@@ -455,7 +458,7 @@ int main(int argc, char *argv[]) {
 		}      
 
 		// can determine size of expansion based on this
-		if( strcmp(argv[iarg],"-preinfl_inflate") == 0 ){
+		else if( strcmp(argv[iarg],"-preinfl_inflate") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-preinfl_inflate'");
 			PREINFL_NUM = atoi(argv[iarg]);
@@ -468,7 +471,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// can have vol thr.
-		if( strcmp(argv[iarg],"-volthr") == 0 ){
+		else if( strcmp(argv[iarg],"-volthr") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-volthr'");
 			VOLTHR = atoi(argv[iarg]);
@@ -480,7 +483,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-      if( strcmp(argv[iarg],"-only_some_top") == 0 ){
+      else if( strcmp(argv[iarg],"-only_some_top") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-only_some_top'");
 			HOT_POINTS = atoi(argv[iarg]);
@@ -493,7 +496,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-      if( strcmp(argv[iarg],"-only_conn_top") == 0 ){
+      else if( strcmp(argv[iarg],"-only_conn_top") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-only_conn_top'");
 			HOT_CONN = atoi(argv[iarg]);
@@ -508,7 +511,7 @@ int main(int argc, char *argv[]) {
 
 
 		// can determine size of expansion based on this
-		if( strcmp(argv[iarg],"-inflate") == 0 ){
+		else if( strcmp(argv[iarg],"-inflate") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-inflate'");
 			INFL_NUM = atoi(argv[iarg]);
@@ -521,7 +524,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// use this to also to determine size of expansion
-		if( strcmp(argv[iarg],"-wm_skel") == 0 ) {
+		else if( strcmp(argv[iarg],"-wm_skel") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-wm_skel'");
 			
@@ -535,7 +538,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-skel_thr") == 0 ){
+		else if( strcmp(argv[iarg],"-skel_thr") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-skel_thr'");
 			SKEL_THR = atof(argv[iarg]);
@@ -543,7 +546,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-nifti") == 0) {
+		else if( strcmp(argv[iarg],"-nifti") == 0) {
 			NIFTI_OUT=1;
 			iarg++ ; continue ;
 		}
@@ -553,18 +556,18 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-skel_stop") == 0) {
+		else if( strcmp(argv[iarg],"-skel_stop") == 0) {
 			SKEL_STOP=1;
 			iarg++ ; continue ;
 		}
 
       // [PT: June 6, 2017]: new stricter conditions with this opt
-		if( strcmp(argv[iarg],"-skel_stop_strict") == 0) {
+		else if( strcmp(argv[iarg],"-skel_stop_strict") == 0) {
 			SKEL_STOP=2;
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-csf_skel") == 0 ) {
+		else if( strcmp(argv[iarg],"-csf_skel") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-csf_skel'");
 			
@@ -578,7 +581,7 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-neigh_face_only") == 0) {
+		else if( strcmp(argv[iarg],"-neigh_face_only") == 0) {
 			// NEIGHBOR_LIMIT=2;
          WARNING_message("This option no longer exists -> "
                          "in fact, it is default behavior.");
@@ -586,17 +589,17 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-neigh_face_edge") == 0) {
+		else if( strcmp(argv[iarg],"-neigh_face_edge") == 0) {
 			NEIGHBOR_LIMIT=3;
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-neigh_upto_vert") == 0) {
+      else if( strcmp(argv[iarg],"-neigh_upto_vert") == 0) {
 			NEIGHBOR_LIMIT=4;
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-mask") == 0 ){
+		else if( strcmp(argv[iarg],"-mask") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-mask'");
 			// HAVE_MASK=1;
@@ -612,9 +615,11 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
-		suggest_best_prog_option(argv[0], argv[iarg]);
-		exit(1);
+      else{
+         ERROR_message("Bad option '%s'\n",argv[iarg]) ;
+         suggest_best_prog_option(argv[0], argv[iarg]);
+         exit(1);
+      }
 	}
 
 	if (iarg < 3) {

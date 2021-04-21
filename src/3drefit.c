@@ -922,7 +922,7 @@ int main( int argc , char *argv[] )
             SynErr("need 2 arguments after -sublabel!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
-         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+         if( iv < 0 || (iv == 0 && cpt == argv[iarg]) )
             SynErr("illegal sub-brick index after -sublabel!") ;
 
          sublab = (SUBlabel *) RwcRealloc( (char *)sublab ,
@@ -950,7 +950,7 @@ int main( int argc , char *argv[] )
             SynErr("need arguments after -sub...key!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
-         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+         if( iv < 0 || (iv == 0 && cpt == argv[iarg]) )
             SynErr("illegal sub-brick index after -sub...key!") ;
 
          subkeyword = (SUBkeyword *) RwcRealloc( (char *)subkeyword ,
@@ -992,7 +992,7 @@ int main( int argc , char *argv[] )
             SynErr("need at least 2 arguments after -substatpar!") ;
 
          iv = strtol( argv[++iarg] , &cpt , 10 ) ;
-         if( iv < 0 || iv == 0 && cpt == argv[iarg] )
+         if( iv < 0 || (iv == 0 && cpt == argv[iarg]) )
             SynErr("illegal sub-brick index after -substatpar!") ;
 
          iarg++ ;

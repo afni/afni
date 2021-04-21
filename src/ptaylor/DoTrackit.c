@@ -292,7 +292,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
    Dtable *new_dt=NULL;
    char mini[50];
 	THD_3dim_dataset *networkMAPS=NULL,*networkMAPS2=NULL;
-   char bric_labs[300];
+   char bric_labs[THD_MAX_NAME];
    int idx3;
    FILE *fout1;
    int MAXOVERLAP = 2;
@@ -302,15 +302,15 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
    int MULTI_ROI = 0;
 
 	// ****** alloc'ing
-	prefix_netmap = calloc( N_nets,sizeof(prefix_netmap));  
+	prefix_netmap = calloc( N_nets, sizeof(prefix_netmap));  
 	for(i=0 ; i<N_nets ; i++) 
-		prefix_netmap[i] = calloc( 300,sizeof(char)); 
-	prefix_netmap2 = calloc( N_nets,sizeof(prefix_netmap2));  
+		prefix_netmap[i] = calloc( THD_MAX_NAME, sizeof(char)); 
+	prefix_netmap2 = calloc( N_nets, sizeof(prefix_netmap2));  
 	for(i=0 ; i<N_nets ; i++) 
-		prefix_netmap2[i] = calloc( 300,sizeof(char)); 
-	prefix_dtable = calloc( N_nets,sizeof(prefix_dtable));  
+		prefix_netmap2[i] = calloc( THD_MAX_NAME, sizeof(char)); 
+	prefix_dtable = calloc( N_nets, sizeof(prefix_dtable));  
 	for(i=0 ; i<N_nets ; i++) 
-		prefix_dtable[i] = calloc( 300,sizeof(char)); 
+		prefix_dtable[i] = calloc( THD_MAX_NAME, sizeof(char)); 
 
 	if( ( prefix_netmap== NULL) || ( prefix_netmap2== NULL)
        || ( prefix_dtable== NULL) ) {
@@ -395,45 +395,45 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		// still just need one set of matrices output
       if( MULTI_ROI ) {
          if( PAIR_POWERON ) {
-            temp_arrFL = calloc( (NROI[hh]+MULTI_ROI),sizeof(temp_arrFL));
+            temp_arrFL = calloc( (NROI[hh]+MULTI_ROI), sizeof(temp_arrFL));
             for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
-               temp_arrFL[i] = calloc( Nvox,sizeof(float)); 
+               temp_arrFL[i] = calloc( Nvox, sizeof(float)); 
          }
          else {
-            temp_arrSH = calloc( (NROI[hh]+MULTI_ROI),sizeof(temp_arrSH)); 
+            temp_arrSH = calloc( (NROI[hh]+MULTI_ROI), sizeof(temp_arrSH)); 
             for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
-               temp_arrSH[i] = calloc( Nvox,sizeof(short int)); 
+               temp_arrSH[i] = calloc( Nvox, sizeof(short int)); 
          }
       }
 
-		temp_arr2 = calloc( (NROI[hh]+MULTI_ROI),sizeof(temp_arr2));
+		temp_arr2 = calloc( (NROI[hh]+MULTI_ROI), sizeof(temp_arr2));
 		for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
-			temp_arr2[i] = calloc( Nvox,sizeof(float)); 
+			temp_arr2[i] = calloc( Nvox, sizeof(float)); 
 
-		if( ( temp_arr2 == NULL) ) {
+		if( temp_arr2 == NULL ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
 
       // use this per vox
       if( MULTI_ROI ){
-         intersec = calloc( (NROI[hh]+MULTI_ROI),sizeof(intersec)); 
+         intersec = calloc( (NROI[hh]+MULTI_ROI), sizeof(intersec)); 
          for(i=0 ; i<(NROI[hh]+MULTI_ROI) ; i++) 
-            intersec[i] = calloc(MAXOVERLAP+1,sizeof( int )); 
+            intersec[i] = calloc(MAXOVERLAP+1, sizeof( int )); 
          
          if( PAIR_POWERON ) {      
-            if( temp_arrFL == NULL) {
+            if( temp_arrFL == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
          else {
-            if( temp_arrSH == NULL) {
+            if( temp_arrSH == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                exit(122);
             }
          }
-         if(  ( intersec == NULL)) {
+         if( intersec == NULL ) {
             fprintf(stderr, "\n\n MemAlloc failure.\n\n");
             exit(122);
          }
@@ -759,13 +759,13 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 			prefix_netmap[i] = (char **) calloc( N_totpair[i], sizeof(char *) );
 		for ( i = 0 ; i < N_nets ; i++ ) 
 			for ( j = 0 ; j < N_totpair[i] ; j++ ) 
-				prefix_netmap[i][j] = (char *) calloc( 300, sizeof(char) );
+				prefix_netmap[i][j] = (char *) calloc( THD_MAX_NAME, sizeof(char) );
 		prefix_dump = (char ***) calloc( N_nets, sizeof(char **) );
 		for ( i = 0 ; i < N_nets ; i++ ) 
 			prefix_dump[i] = (char **) calloc( N_totpair[i], sizeof(char *) );
 		for ( i = 0 ; i < N_nets ; i++ ) 
 			for ( j = 0 ; j < N_totpair[i] ; j++ ) 
-				prefix_dump[i][j] = (char *) calloc( 300, sizeof(char) );
+				prefix_dump[i][j] = (char *) calloc( THD_MAX_NAME, sizeof(char) );
 
 		if( ( prefix_netmap== NULL) || ( prefix_dump== NULL)) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -782,31 +782,31 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 					if(Prob_grid[hh][idx3]>0) {
                   if( ROI_STR_LAB && NameLabelsOut ) {
                      if( NIFTI_OUT )
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%s__%s.nii.gz", prefix, hh,
                                  ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
                      else
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%s__%s", prefix, hh,
                                  ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
                   }
 						else if(!DUMP_ORIG_LABS) {
                      if( NIFTI_OUT )
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%03d__%03d.nii.gz",
                                  prefix,hh,i+1,j+1); 
                      else
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%03d__%03d",
                                  prefix,hh,i+1,j+1); 
                   }
                   else{
                      if( NIFTI_OUT )
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%03d__%03d.nii.gz",prefix,hh,
                                  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
                      else
-                        snprintf(prefix_netmap[hh][count], 300,
+                        snprintf(prefix_netmap[hh][count], THD_MAX_NAME,
                                  "%s/NET_%03d_ROI_%03d__%03d",prefix,hh,
                                  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
                   }
@@ -832,7 +832,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   if(OUT_FLOAT_MAP) {
                     // will be single brik output
                     temp_arr_FL = (float *)calloc(Nvox, sizeof(float));
-                    if(( temp_arr_FL== NULL)) {
+                    if( temp_arr_FL== NULL ) {
                       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                       exit(120);
                     }
@@ -840,7 +840,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   else {
                     // will be single brik output
                     temp_arr_BY = (byte *)calloc(Nvox, sizeof(byte));
-                    if(( temp_arr_BY== NULL)) {
+                    if( temp_arr_BY== NULL ) {
                       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                       exit(121);
                     }
@@ -852,9 +852,9 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                   temp_arr2=calloc(Param_grid[hh][idx3][0],
                                    sizeof(temp_arr2)); 
                   for(bb=0 ; bb<Param_grid[hh][idx3][0] ; bb++) 
-                    temp_arr2[bb] = calloc(4,sizeof(int)); //x,y,z,1
+                    temp_arr2[bb] = calloc(4, sizeof(int)); //x,y,z,1
                   
-						if(( temp_arr2== NULL)) {
+						if( temp_arr2 == NULL ) {
                     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
                     exit(122);
 						}
@@ -1266,8 +1266,8 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
 int Two_DOF_Rot(float *X, float *Y, 
                 double POL, double AZIM, float rot[3][3] )
 {
-   int i,j,k;
-   float C0,C1,S0,S1;
+   int i, j, k;
+   float C0, C1, S0, S1;
 
    C0 = cos(POL);
    S0 = sin(POL);

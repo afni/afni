@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset", ".niml.do",
-    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".png" , ".heic"
+    ".gii", ".gii.dset", ".niml.tract" , ".jpg" , ".jpeg" , ".png" , ".heic"
 };
 
 /*
@@ -256,9 +256,10 @@ ENTRY("THD_open_one_dataset") ;
      RETURN(dset) ;
    }
 
-   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg") ||
-       STRING_HAS_SUFFIX_CASE(pathname,".png") ||
-       STRING_HAS_SUFFIX_CASE(pathname,".heic")  ){  /* 06 Jul 2016 */
+   if( STRING_HAS_SUFFIX_CASE(pathname,".jpg")  ||
+       STRING_HAS_SUFFIX_CASE(pathname,".png")  ||
+       STRING_HAS_SUFFIX_CASE(pathname,".jpeg") ||
+       STRING_HAS_SUFFIX_CASE(pathname,".heic")   ){  /* 06 Jul 2016 */
 
      CHECK_FOR_DATA(pathname) ;
      dset = THD_open_image(pathname) ;  /* will be loaded, too */

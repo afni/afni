@@ -50,7 +50,9 @@ ENTRY("mri_free") ;
    if( im == NULL ) EXRETURN ;
    if( !mcw_malloc_OK(im) ){  /* 07 Oct 2015 */
      ERROR_message("bad image ptr=%p passed to mri_free()",im) ;
-     TRACEBACK ; EXRETURN ;
+     TRACEBACK ;
+     ININFO_message(" [Not a fatal error - program continues - I hope]") ;
+     EXRETURN ;
    }
    STATUS("call killpurge") ;
    mri_killpurge(im) ;  /* 20 Dec 2006 */

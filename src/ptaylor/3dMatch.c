@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 	int X,Y,Z;
 	int iarg=0;
 	THD_3dim_dataset *inset = NULL;
-	char in_name[300];
+	char in_name[THD_MAX_NAME];
 	int THR=0.;
 	char *prefix="NAME_Match";
    int HAVEPREFIX=0;
@@ -147,16 +147,16 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *outset=NULL;
 	THD_3dim_dataset *outset2=NULL;
 	float **temp_arr;
-	char bri_lab[300];
+	char bri_lab[THD_MAX_NAME];
 	FILE *fout1;
 
 
-	char in_REF[300];
-	char in_MASK[300];
-	char out_corr[300];
-	char out_corr2[300];
-	char prefix2[300];
-	char prefix1[300];
+	char in_REF[THD_MAX_NAME];
+	char in_MASK[THD_MAX_NAME];
+	char out_corr[THD_MAX_NAME];
+	char out_corr2[THD_MAX_NAME];
+	char prefix2[THD_MAX_NAME-15];
+	char prefix1[THD_MAX_NAME-15];
 
 	int HAVEMASK=0;
 	int ONLY_DICE_THR=0; // about what to threshold when
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
 
 			sprintf(in_name,"%s", argv[iarg]); 
 			inset = THD_open_dataset(in_name) ;
-			if( (inset == NULL ))
+			if( inset == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_name);
 			DSET_load(inset); CHECK_LOAD_ERROR(inset);
 
@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
 			
 			sprintf(in_REF,"%s", argv[iarg]); 
 			insetREF = THD_open_dataset(in_REF) ;
-			if( (insetREF == NULL ))
+			if( insetREF == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_REF);
 			
 			DSET_load(insetREF); CHECK_LOAD_ERROR(insetREF);
@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
 	if(HAVEMASK) {
 
       insetMASK = THD_open_dataset(in_MASK) ;
-      if( (insetMASK == NULL ))
+      if( insetMASK == NULL )
          ERROR_exit("Can't open time series dataset '%s'.",in_MASK);
       
       DSET_load(insetMASK); CHECK_LOAD_ERROR(insetMASK);
@@ -431,16 +431,18 @@ int main(int argc, char *argv[]) {
 		for( m=0 ; m< REFBRIKS ; m++ ) 
 			for( n=0 ; n< Dim[3] ; n++ ) 
 				if( (gsl_stats_variance(Data_In[n],1,Larray)>0) &&
-					 (gsl_stats_variance(Data_Ref[m],1,Larray)>0) ) 
+					 (gsl_stats_variance(Data_Ref[m],1,Larray)>0) ){
 					Stats_Matr[n][m][0] = (float) 
 						CORR_FUN(Data_In[n], Data_Ref[m], Larray);
-				else
+            }
+				else{
 					Stats_Matr[n][m][0] = 0.;
 
 
-	//				Stats_Matr[n][m][0] = (float) 
-	//				CORR_FUN(Data_In[n], Data_Ref[m], Larray);
-	
+               // Stats_Matr[n][m][0] = (float) 
+               // CORR_FUN(Data_In[n], Data_Ref[m], Larray);
+            }
+
 	// because we squared the data!!
 	MIN_THR_IN*=dabs(MIN_THR_IN);
 	MAX_THR_IN*=dabs(MAX_THR_IN);

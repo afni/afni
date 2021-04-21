@@ -225,9 +225,10 @@ g_history = """
    1.11 Sep 15, 2020
         - whine if .zshrc references all_progs.COMP.bash
         - some python 3.8 distribution do not come with distro
+   1.12 Feb 18, 2021 - check for reasonable XQuartz version
 """
 
-g_version = "afni_system_check.py version 1.11, September 15, 2020"
+g_version = "afni_system_check.py version 1.12, February 18, 2021"
 
 
 class CmdInterface:

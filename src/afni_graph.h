@@ -179,12 +179,7 @@ typedef struct {
 
 #define NSTRIDE(gr) ( (gr)->pin_stride )
 
-#define ALLOW_IGNORE
-#ifdef  ALLOW_IGNORE
-# define NIGNORE(gr) (gr)->init_ignore
-#else
-# define NIGNORE(gr) 0
-#endif
+#define NIGNORE(gr) (gr)->init_ignore
 
 /* #define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) ) */
 #define NABC(a,b,c) ( ((b) - (a) - 1) / (c) + 1 )
@@ -267,7 +262,7 @@ int INIT_GR_boxes_thick  = 0 ,  /* if >= 0, then gets a 'Thick Lines' */
     INIT_GR_data_thick   = 1 ,
     INIT_GR_ideal_thick  = 1 ,
     INIT_GR_ort_thick    = 1 ,
-    INIT_GR_dplot_thick  = 1 , 
+    INIT_GR_dplot_thick  = 1 ,
     INIT_GR_pmplot_thick = 1  ;
 
 int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
@@ -421,16 +416,24 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0,0 } ;  /* Oct 1999 */
 #define DO_UPSAM(gr)        ((gr)->do_upsam)             /* 28 May 2020 */
 
 /* amount of resampling in plot_graphs                      28 May 2020 */
+/*   www = width of graph box in pixels                                 */
+/*   npt = number of time points being plotted                          */
+/*   result is how many divisions to use for each line segment          */
+/*   www/npt = pixels per data point, so if we had XUPSAM=www/npt       */
+/*             we'd have a division for every x pixel;                  */
+/*             instead, we use a slightly smaller value for XUPSAM      */
+/* Note that if XUPSAM is returned as <= 1, no upsampling will be done. */
+
 #define XUPSAM(www,npt) ( (int)( 0.499f + 0.3456f*(www) / ((npt)+0.5f) ) )
 
 /* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
-void AFNI_XDrawLines( Display *display, Drawable d,
-                      GC gc, XPoint *points, int npoints, int mode , int nupsam ) ;
+void AFNI_XDrawLines( Display *display, Drawable d, GC gc,
+                      XPoint *points, int npoints, int mode, int nupsam ) ;
 
 /* Replacement for XFillPolygon, with champagne truffles [01 Jun 2020] */
 void AFNI_XFillPolygon( Display *display, Drawable d,
-                        GC gc, XPoint *points, int npoints, int shape ,
-                        int mode , int nupsam ) ;
+                        GC gc, XPoint *points, int npoints, int shape,
+                        int mode, int nupsam ) ;
 
 /** 01 Aug 1998: redefine _POINTS and add _LINES **/
 
@@ -460,8 +463,16 @@ void AFNI_XFillPolygon( Display *display, Drawable d,
 #define ORT_LINES(gr)    ((gr)->points_index[6] != 1)
 #define IGNORE_LINES(gr) ((gr)->points_index[7] != 1)
 #define DPLOT_LINES(gr)  ((gr)->points_index[8] != 1)
+#define DATA_BOXED(gr)   ((gr)->points_index[4] >= 4)  /* 26 Jun 2007 - draw boxes */
 
-#define DATA_BOXED(gr)   ((gr)->points_index[4] == 4)  /* 26 Jun 2007 */
+/* allow for interactive selection of box labeling method [11 Jan 2021] */
+
+#define DATA_BOXLAB_CODE(gr)  ( ((gr)->points_index[4] >= 8) * (gr)->points_index[4] )
+#define DATA_BOXLAB_CODE_UP     8 /* labels at top of sub-graph window */
+#define DATA_BOXLAB_CODE_ATOP  16 /* labels at top of each data point box */
+#define DATA_BOXLAB_CODE_BOT   32 /* labels at bot of sub-graph window */
+
+/* callbacks for when the color or thickness of lines are changed */
 
 extern void GRA_color_CB( MCW_arrowval * , XtPointer ) ;
 extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
@@ -488,6 +499,7 @@ typedef struct {
    float tmean[MAT_MAX][MAT_MAX] , tbot[MAT_MAX][MAT_MAX] ,    /* statistics */
          ttop[MAT_MAX][MAT_MAX]  , tstd[MAT_MAX][MAT_MAX]  ;
    float dbot[MAT_MAX][MAT_MAX]  , dtop[MAT_MAX][MAT_MAX]  ;   /* 01 Jun 2020 */
+   float tsnr[MAT_MAX][MAT_MAX] ;                              /* 08 Jan 2021 */
 
    char * tuser[MAT_MAX][MAT_MAX] ;                            /* user strings */
 
@@ -632,6 +644,8 @@ typedef struct {
    MCW_bbox  *opt_tfade_bbox ;
 
 } MCW_grapher ;
+
+#define GRA_MAX_DETREND      7     /* max order for detrending */
 
 #define GRA_TIMERFUNC_INDEX  701
 #define GRA_TIMERFUNC_BOUNCE 702

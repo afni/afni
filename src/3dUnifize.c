@@ -409,7 +409,7 @@ ENTRY("mri_local_percmean") ;
    if( do_double ){
      bim = mri_double_down(aim) ; bar = MRI_FLOAT_PTR(bim) ; mri_free(aim) ;
    } else {
-     bim = aim ; bar = bar = MRI_FLOAT_PTR(bim) ;
+     bim = aim ; bar = MRI_FLOAT_PTR(bim) ;
    }
 
    bms = (byte *)malloc(sizeof(byte)*bim->nvox) ;

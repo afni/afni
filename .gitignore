@@ -37,6 +37,7 @@ octave-workspace
 # Python
 __pycache__
 *.pyc
+*.egg-info
 
 # Test and coverage artifacts
 .pytest_cache
@@ -64,3 +65,6 @@ AFNI_version.h
 *.lo
 *.libs
 *.deps
+
+#Cscope
+*cscope*

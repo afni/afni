@@ -15,7 +15,9 @@ extern "C" {
 #endif
 
 #ifndef ALLOW_MCW_MALLOC
-# define DONT_USE_MCW_MALLOC  /* old way to mark  mcw_malloc usage/non-usage */
+#ifndef DONT_USE_MCW_MALLOC  /* don't redefine to avoid warnings */
+#define DONT_USE_MCW_MALLOC  /* old way to mark  mcw_malloc usage/non-usage */
+#endif
 #else
 # undef  DONT_USE_MCW_MALLOC
 #endif

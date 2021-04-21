@@ -91,7 +91,8 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
-            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+            // [PT: Dec 22, 2020] Thanks for the fix here, C Rorden!
+            mtop = (byte) MRI_TYPE_maxval[MRI_byte] ;
          }
          if( !empty )   /* 6 Jun 2007 */
             for( ii=0 ; ii < nvox ; ii++ )
@@ -223,7 +224,8 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
-            mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
+            // [PT: Dec 22, 2020] Thanks for the fix here, C Rorden!
+            mtop = (byte) MRI_TYPE_maxval[MRI_byte] ;
          }
          if (empty) {  /* if empty, clear result   6 Jun 2007 */
             for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;
@@ -1275,7 +1277,7 @@ char * mask_to_b64string( int nvox , byte *mful )
    if( nvox < 1 || mful == NULL ) return NULL ;          /* bad inputs */
 
    mbin = mask_binarize( nvox , mful ) ;
-   str  = array_to_zzb64( 1+(nvox-1)/8 , mbin , 72 ) ; free(mbin) ;
+   str  = array_to_zzb64( 1+(nvox-1)/8 , (char *)mbin , 72 ) ; free(mbin) ;
    if( str == NULL ) return NULL ;              /* should never happen */
 
    nstr = strlen(str) ;

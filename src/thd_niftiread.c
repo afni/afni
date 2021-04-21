@@ -133,8 +133,16 @@ ENTRY("THD_open_nifti") ;
       fprintf(stderr,"** bad scl_slope and inter = %f, %f, ignoring...\n",
               nim->scl_slope, nim->scl_inter);
    } else {
-       scale_data = nim->scl_slope != 0.0 &&
-                        (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+       /* do not scale if either slope or inter is zero
+        *    slope==0 : treat as unset (rather than constant data)
+        *    inter==0 : use slope as brick_fac */
+
+       /* Any NIFTI scalar previously implied conversion to float.
+        * No longer scale if inter==0 && slope!=0 (set brick_fac).
+        * Thanks to C Caballero and S Moia for reporting this.  
+        *                                      26 Jan 2021 [rickr] */
+       /* still scale if slope == 1 && inter != 0 */
+       scale_data = nim->scl_slope != 0.0 && nim->scl_inter != 0.0 ;
    }
    { char *eee = getenv("AFNI_NIFTI_SCALE") ;
      if( eee != NULL && toupper(*eee) == 'N' ) scale_data = 0 ;
@@ -704,6 +712,14 @@ ENTRY("THD_open_nifti") ;
 
    } /* end of 3D+time dataset stuff */
 
+   /* if scalars are attached (and we did not xform data), set them  */
+   /* note: this MUST be after EDIT_dset_items(ADN_datum_all), as it
+            will clear any existing values        8 Mar 2021 [rickr] */
+   if( ! xform_data && nim->scl_slope != 0.0 && nim->scl_slope != 1.0) {
+     for( ibr=0 ; ibr < nvals ; ibr++ )
+       DBLK_BRICK_FACTOR(dset->dblk, ibr) = nim->scl_slope;
+   }
+
 
    /* set atlas space based on NIFTI s/qform code */
    NIFTI_code_to_space(form_code,dset);
@@ -997,9 +1013,17 @@ ENTRY("THD_load_nifti") ;
    /*-- scale results? ---*/
 
    /* errors for !isfinite() have been printed */
+
+   /* do not scale if either slope or inter is zero
+    *    slope==0 : treat as unset (rather than constant data)
+    *    inter==0 : use slope as brick_fac */
+
+   /* Any NIFTI scalar previously implied conversion to float.
+    * No longer scale if inter==0 && slope!=0 (set brick_fac).
+    * Thanks to C Caballero and S Moia for reporting this.  
+    *                                      26 Jan 2021 [rickr] */
    scale_data = isfinite(nim->scl_slope) && isfinite(nim->scl_inter) 
-                     && (nim->scl_slope != 0.0)
-                     && (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+                     && (nim->scl_slope != 0.0) && (nim->scl_inter != 0.0) ;
 
    if( scale_data ){
      STATUS("scaling sub-bricks") ;
@@ -1018,6 +1042,11 @@ ENTRY("THD_load_nifti") ;
          }
        }
      }
+   } else if ( isfinite(nim->scl_slope) && nim->scl_slope != 0.0 ) {
+
+     /* actually pass slope as brick_fac   26 Jan 2021 [rickr] */
+     for( ibr=0 ; ibr < nv ; ibr++ )
+       DBLK_BRICK_FACTOR(dblk, ibr) = nim->scl_slope;
    }
 
    /* rcr - replace this with DBLK_IS_RANGE_MASTERED to also check for

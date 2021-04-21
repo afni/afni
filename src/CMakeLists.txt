@@ -1,9 +1,28 @@
 # ##### Create global entity in which to store installed targets
 set_property(GLOBAL PROPERTY INSTALLED_PROGS "")
-
-# ##### Add core targets from elsewhere
-add_subdirectory(rickr)
 add_subdirectory(niml)
+if(COMP_MRILIB_MINI)
+  add_afni_library(
+      mri_mini
+      mri_blur3d_variable.c
+      mri_new.c
+      mri_free.c
+      debugtrace.c
+  )
+  set_target_properties(
+      mri_mini
+      PROPERTIES
+      PRIVATE_HEADER
+          "mrilib_mini.h;dbtrace.h;debugtrace.h"
+  )
+
+  target_include_directories(mri_mini PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  target_link_libraries(mri_mini PRIVATE AFNI::niml m)
+  return()
+endif()
+
+##### Add core targets from elsewhere
+add_subdirectory(rickr)
 add_subdirectory(eispack)
 add_subdirectory(Audio)
 add_subdirectory(3DEdge)
@@ -81,29 +100,29 @@ if(NOT COMP_CORELIBS_ONLY)
 endif()
 
 # Add majority of binaries
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   include(CMakeLists_binaries.txt)
 endif()
 
 # Add scripts (includes shell and R scripts)
-if(COMP_ADD_TCSH)
+if(COMP_TCSH)
   add_subdirectory(scripts_install)
 endif()
 
 # Add python code
-if(COMP_ADD_PYTHON)
+if(COMP_PYTHON)
   add_subdirectory(python_scripts)
 endif()
 
 # Add targets with a dependency on X
-if(COMP_X_DEPENDENT_GUI_PROGS)
+if(COMP_GUI)
   add_subdirectory(coxplot)
   include(CMakeLists_x_dependent.txt)
   set(PROGRAMS_BUILT mrix)
 endif()
 
 # Add suma
-if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
+if(COMP_SUMA)
   # segtools/avovk only used by suma so add it here
   add_subdirectory(ptaylor)
   add_subdirectory(avovk)
@@ -111,11 +130,11 @@ if(COMP_OPENGL_DEPENDENT_GUI_PROGS)
 endif()
 
 # Add_plugin targets
-if(COMP_ADD_PLUGINS)
+if(COMP_PLUGINS)
   include(CMakeLists_plugins.txt)
 endif()
 
-if(COMP_ADD_RSTATS)
+if(COMP_RSTATS)
   # Add rio
   set_source_files_properties(R_io.c PROPERTIES COMPILE_DEFINITIONS "std=gnu99")
   add_afni_library(rio R_io.c)
@@ -126,13 +145,13 @@ if(COMP_ADD_RSTATS)
   target_link_libraries(rio PUBLIC ${LIBR_LIBRARIES} PRIVATE AFNI::mri)
 endif()
 
-
+if(COMP_FUNSTUFF)
 install(
     DIRECTORY
         ${CMAKE_CURRENT_SOURCE_DIR}/faces/
         ${CMAKE_CURRENT_SOURCE_DIR}/poems/
     DESTINATION ${AFNI_INSTALL_FUNSTUFF_DIR})
-
+endif()
 
 # ##### Create list of programs built
 set(PROGRAMS_BUILT ${PROGRAM_BUILT})

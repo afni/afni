@@ -345,7 +345,7 @@ MRI_IMARR * THD_extract_many_series( int ns, int *ind, THD_3dim_dataset *dset )
 
 ENTRY("THD_extract_many_series") ;
 
-   if( ns <= 0 || ind == NULL | dset == NULL ) RETURN( NULL );
+   if( ns <= 0 || ind == NULL || dset == NULL ) RETURN( NULL );
 
    /* try to load dataset */
 
@@ -550,7 +550,7 @@ void THD_extract_many_arrays( int ns , int *ind ,
 
 ENTRY("THD_extract_many_arrays") ;
 
-   if( ns <= 0 || ind == NULL | dset == NULL || dsar == NULL ) EXRETURN ;
+   if( ns <= 0 || ind == NULL || dset == NULL || dsar == NULL ) EXRETURN ;
 
    /* try to load dataset */
 

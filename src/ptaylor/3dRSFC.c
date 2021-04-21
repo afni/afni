@@ -80,14 +80,14 @@ int main( int argc , char * argv[] )
 	THD_3dim_dataset *outsetRSFA=NULL;
 	THD_3dim_dataset *outsetmRSFA=NULL;
 	THD_3dim_dataset *outsetfRSFA=NULL;
-	char out_lff[300];
-	char out_alff[300];
-	char out_malff[300];
-	char out_falff[300];
-	char out_rsfa[300];
-	char out_mrsfa[300];
-	char out_frsfa[300];
-	char out_unBP[300];
+	char out_lff[THD_MAX_NAME];
+	char out_alff[THD_MAX_NAME];
+	char out_malff[THD_MAX_NAME];
+	char out_falff[THD_MAX_NAME];
+	char out_rsfa[THD_MAX_NAME];
+	char out_mrsfa[THD_MAX_NAME];
+	char out_frsfa[THD_MAX_NAME];
+	char out_unBP[THD_MAX_NAME];
 	int SERIES_OUT = 1;
 	int UNBP_OUT = 0; 
 	int DO_RSFA = 1;
@@ -233,7 +233,7 @@ int main( int argc , char * argv[] )
 "                   parameters (not recommended, since the point of\n"
 "                   calculating RSFC params here is to have them be quite\n"
 "                   related to the time series themselves which are used for\n"
-"                   further analysis)."
+"                   further analysis).\n"
 " -un_bp_out      = Output the un-bandpassed series as well (default is not \n"
 "                   to).  Name would be, e.g., ppp_unBP+orig.* .\n"
 "                   with suffix `_unBP'.\n"
@@ -644,7 +644,7 @@ int main( int argc , char * argv[] )
 		}
 
 		/* create output dataset, populate it, write it, then quit */
-		if( (NumDen==0) ) { // @@ BP'ed version;  will do filt if BP_LAST
+		if( NumDen == 0 ) { // @@ BP'ed version;  will do filt if BP_LAST
 
 			if(BP_LAST) // do bandpass here for BP_LAST
 				(void)THD_bandpass_vectim(mrv,dt,fbot,ftop,qdet,0,NULL);

@@ -6,8 +6,13 @@
 # be sure MAKE is defined      c/o J Bacon 22 May 2019
 MAKE ?= make
 
+# set default CPU_TYPE if not set already   8 Mar 2021
+CPU_TYPE ?= x86_64
+
 # LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
 LLIBS_X11 ?= $(LLIBS)
+
+LDFLAGS = $(LFLAGS)
 
 # for compiling with OpenMP, if available
 
@@ -23,7 +28,7 @@ F2C = f2c -A
 
 INFLAGS  = $(IFLAGS) -Icoxplot -Inifti/nifti2 -Inifti/niftilib              \
            -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr -Ileej3     \
-           $(USE_ZLIB) $(USE_GIFTI) -If2c
+           $(USE_ZLIB) $(USE_GIFTI) $(USE_MRI_MINI) -If2c
 ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
            -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr   \
            $(USE_ZLIB) -I../f2c
@@ -1365,11 +1370,13 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
 
-3dBallMatch.o:3dBallMatch.c thd_ballcorr.c
+3dBallMatch.o:3dBallMatch.c thd_ballcorr.c fftn_OMP.c
+	$(RM) $@
+	$(CCOMP) -c 3dBallMatch.c $(INFLAGS)
 
 3dBallMatch:3dBallMatch.o
 	$(RM) $@
-	$(CC) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
 
 # --------------------------------------------------------------------------
 # this is the list of nonlinear warping program, and is here just for Zhark
@@ -2703,7 +2710,7 @@ LIBMRI_MACOS: mrilib.h                                                  \
               $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h   \
               Aomp.h thd_selenium_off.o                                 \
               $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
-	$(RM) $@
+	$(RM) libmri.so
 	$(CC) -shared -fPIC -o libmri.so                                \
               -L. $(LZLIB) $(LGIFTI) -lf2c $(LEXLIBS) -lmrix -lcoxplot  \
               -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib    \
@@ -2722,7 +2729,7 @@ LIBMRI_LINUX: niml.h mrilib.h                                           \
               $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) 3ddata.h          \
               Aomp.h thd_selenium_off.o                                 \
               $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
-	$(RM) $@
+	$(RM) libmri.so
 	$(CC) -shared -fPIC -o libmri.so                                  \
               $(LFLAGS)                                                   \
               $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) $(NIML_OBJS) $(CS_OBJS) \
@@ -3013,6 +3020,18 @@ coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
 
 #######
+# libmri_mini.so for ...
+MRI_MINI_OBJS = mri_blur3d_variable.o mri_new.o mri_free.o debugtrace.o
+
+libmri_mini.so: $(MRI_MINI_OBJS) $(NIML_OBJS)
+	$(RM) $@
+	$(CC) -shared -fPIC -o $@ $(MRI_MINI_OBJS) $(NIML_OBJS)
+
+test_mri_mini: test_mri_mini.c libmri_mini.so
+	$(RM) $@
+	$(CC) -o $@ $(INFLAGS) test_mri_mini.c libmri_mini.so -lm $(LFLAGS)
+
+#######
 # rickr objects
 
 3dresample.o: rickr/3dresample.c
@@ -3198,7 +3217,7 @@ eis_bakvec.o:
 nimlstuff:niml_b64.o
 
 $(NIML_OBJS):niml.h
-	( cd niml/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
+	( cd niml/ ; $(MAKE) all 'CC=$(CC) $(USE_MRI_MINI)' ; $(MV) *.o .. ; )
 
 niml.h:niml/niml.h
 	$(CP) niml/niml.h .
@@ -3235,8 +3254,8 @@ djpeg:libjpeg.a
 cjpeg:libjpeg.a
 
 libjpeg.a:
-	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;                    \
-          chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' ; \
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;               \
+          chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' 'LDFLAGS=$(LDFLAGS)' ; \
           $(MAKE) ; $(MV) cjpeg djpeg libjpeg.a .. ;            \
           $(MAKE) clean ; $(RM) Makefile )
 
@@ -3719,6 +3738,7 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	'MAKE=$(MAKE)'     \
 	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
+	'CPU_TYPE=$(CPU_TYPE)'                    \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
@@ -3726,12 +3746,15 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	$(CP) SUMA/$(LIBSUMA_OBJ) ./;	)
 
 libgts.a:
-	( cd SUMA ;	\
-	rm -f libgts.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libgts.a ;	\
-	cd ../	;	\
-	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
+	( cd SUMA ;	                              \
+	rm -f libgts.a	;                          \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME)          \
+	   'SUMA_LINK_PATH=$(SUMA_LINK_PATH)'     \
+	   'CPU_TYPE=$(CPU_TYPE)'                 \
+       libgts.a ;	                           \
+	cd ../	;	                              \
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; \
+	$(CP) SUMA/libgts.a ${INSTALLDIR};        \
 	$(CP) SUMA/libgts.a ./;	)
 
 libSUMAseg.a:
@@ -3779,7 +3802,7 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 #link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
           LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a $(LIBF2C_OBJ)
-	( cd SUMA ;	                                               \
+	( cd SUMA ;	                                                   \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST)             \
 	'INSTALLDIR=$(INSTALLDIR)'                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                     \
@@ -3790,8 +3813,9 @@ suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                         \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                               \
 	'RANLIB=$(RANLIB)'                                             \
-        'MAKE=$(MAKE)'                                                 \
+        'MAKE=$(MAKE)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)' \
+    'CPU_TYPE=$(CPU_TYPE)'                                         \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                               \
 	cd ../	;)
 
@@ -3809,6 +3833,7 @@ suma_gts_progs: libgts.a
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
             'MAKE=$(MAKE)'                                                   \
+           	'CPU_TYPE=$(CPU_TYPE)'                                           \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
@@ -3829,6 +3854,7 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CPU_TYPE=$(CPU_TYPE)'                                           \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
 
@@ -3848,6 +3874,7 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
+            'CPU_TYPE=$(CPU_TYPE)'                                           \
             'TAR=$(TAR)' 'MKDIR=$(MKDIR)';                                   \
 	cd ../	;)
 
@@ -4003,9 +4030,10 @@ suma_link:
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                                 \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                       \
 	'RANLIB=$(RANLIB)'                                                     \
-        'MAKE=$(MAKE)'                                                         \
+        'MAKE=$(MAKE)'                                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'         \
+    'CPU_TYPE=$(CPU_TYPE)'                                                 \
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	                                       \
 	cd ../	;)
 

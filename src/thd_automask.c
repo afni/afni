@@ -57,6 +57,11 @@ void THD_automask_set_cheapo( int n ){ cheapo = n; } /* 13 Aug 2007 */
 
 /*---------------------------------------------------------------------*/
 
+static int onlypos = 0 ;
+void THD_automask_set_onlypos( int n ){ onlypos = n; } /* 09 Nov 2020 */
+
+/*---------------------------------------------------------------------*/
+
 INLINE int mask_count( int nvox , byte *mmm )
 {
    register int ii , nn ;
@@ -131,13 +136,11 @@ byte * THD_automask( THD_3dim_dataset *dset )
 
 ENTRY("THD_automask") ;
 
-   /* median at each voxel */
+   /* average at each voxel */
 
-#if 0
-   medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
-#else
-   medim = THD_aveabs_brick(dset) ; if( medim == NULL ) RETURN(NULL);
-#endif
+   if( onlypos ) medim = THD_avepos_brick(dset) ;
+   else          medim = THD_aveabs_brick(dset) ;
+   if( medim == NULL ) RETURN(NULL);
 
    mmm = mri_automask_image( medim ) ;
 
@@ -939,6 +942,7 @@ ENTRY("THD_mask_clust") ;
 void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte NN )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
+   int victim ; /* do we apply operation to current voxel? */
    int nxy=nx*ny , nxyz=nxy*nz ;
    int jmkm,jykm,jpkm, jmkz,jykz,jpkz, jmkp,jykp,jpkp;
    byte *nnn ;
@@ -970,45 +974,54 @@ ENTRY("THD_mask_erode") ;
            ( ii == nx-1 ) || ( jj == ny-1 ) || ( kk == nz-1 ))
             nnn[ii+jykz] = 1;
          else {
+
             // count neighbors
             // note slices are semi-graphically shown
             // the text order seems to indicate ijk as row,col,slice
             // but they're really col,row,slice. It doesn't really matter
             // because all combinations are used similarly
-            num =  
-                                mmm[ii+jy+km] 
-                              + mmm[im+jy+kz]
-              + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
-                              + mmm[ip+jykz] 
-                              + mmm[ii+jy+kp];
-            if(num<6) nnn[ii+jykz] = 1 ;
-            else {
-             if(NN>=2) {   //consider NN2,3 with 18,26 neighbors
-                 // first NN2 case
-                 num +=               mmm[im+jy+km]
-                  + mmm[ii+jm+km]                + mmm[ii+jp+km]
-                                  + mmm[ip+jy+km]
-                  + mmm[im+jm+kz]                + mmm[im+jp+kz]
-                                  
-                  + mmm[ip+jm+kz]                + mmm[ip+jp+kz]
-                  + mmm[im+jy+kp]
-                  + mmm[ii+jm+kp]                + mmm[ii+jp+kp]
-                                  + mmm[ip+jy+kp] ;
-                 // if not enough neighbors, erode
-                 if( num < 18 ) nnn[ii+jykz] = 1 ;  /* mark to erode */
-                 else {
-                     // if enough neighbors for NN1,2 - might not be enough for NN3 
-                     if(NN==3) {
-                         num +=  mmm[im+jm+km]           + mmm[im+jp+km]
-                               + mmm[ip+jm+km]           + mmm[ip+jp+km]
-                               + mmm[im+jm+kp]           + mmm[im+jp+kp]
-                               + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
-                         if( num < 26 ) nnn[ii+jykz] = 1 ;  /* mark to erode */
-                     }
-    
-                 }
-             } // end if NN>=2
-            } // end else num<6 for NN1 case
+
+            /* Complicated logic is confusing both compilers (warnings) */
+            /* and coders, so simplify.  Use 'victim' to decide whether */
+            /* to apply the current operation.  Then set nnn later.     */
+            /* First check NN1 voxels, then if needed, NN2 and NN3.     */
+            /*                                      16 Mar 2021 [rickr] */
+            victim = 0 ;
+            num =                        mmm[ii+jy+km] 
+                                       + mmm[im+jy+kz]
+                       + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
+                                       + mmm[ip+jykz] 
+                                       + mmm[ii+jy+kp];
+            if(num<6) victim = 1 ;  /* mark to erode */
+
+            /* check NN2 cases (18 neighbors), if not already a victim */
+            if(NN>=2 && !victim) {
+               num +=                     mmm[im+jy+km]
+                        + mmm[ii+jm+km]                + mmm[ii+jp+km]
+                                        + mmm[ip+jy+km]
+                        + mmm[im+jm+kz]                + mmm[im+jp+kz]
+                                        
+                        + mmm[ip+jm+kz]                + mmm[ip+jp+kz]
+                        + mmm[im+jy+kp]
+                        + mmm[ii+jm+kp]                + mmm[ii+jp+kp]
+                                        + mmm[ip+jy+kp] ;
+               // if not enough neighbors, erode
+               if( num < 18 ) victim = 1 ;  /* mark to erode */
+            }
+      
+            /* check NN3 cases (26 neighbors), if not already a victim */
+            if(NN==3 && !victim) {
+               num +=      mmm[im+jm+km]           + mmm[im+jp+km]
+                         + mmm[ip+jm+km]           + mmm[ip+jp+km]
+                         + mmm[im+jm+kp]           + mmm[im+jp+kp]
+                         + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
+
+               if( num < 26 ) victim = 1 ;  /* mark to erode */
+            }
+
+            /* mark victims for erosion */
+            nnn[ii+jykz] = victim ;
+
        }  // end non-edge box (ii,jj,kk=0,...)
       } // end if in mask 
    } } }
@@ -1036,42 +1049,48 @@ ENTRY("THD_mask_erode") ;
 
           for( ii=0 ; ii < nx ; ii++ ){
             if( nnn[ii+jy+kz] ){           /* was eroded */
+
               im = ii-1 ; ip = ii+1 ;
               // borders make more sense here as placeholders than for
               // erosion case
               if( ii == 0    ) im = 0 ;
               if( ii == nx-1 ) ip = ii ;
 
-              if (nnn[ii+jy+kz] =              /* see if= has any nbhrs */
-                                   mmm[ii+jy+km]
-                                || mmm[im+jy+kz]
-               || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
-                                || mmm[ip+jy+kz] 
-                                || mmm[ii+jy+kp])
-                 (void) 0;
-              else { 
-                if(NN>=2)
-                  if (nnn[ii+jy+kz] =      // if NN2 neighbors (also with if nnn=)
-                                   mmm[im+jy+km]
-               || mmm[ii+jm+km]                  || mmm[ii+jp+km]
-                                || mmm[ip+jy+km]
-               || mmm[im+jm+kz]                  || mmm[im+jp+kz]
+              /* Complicated logic is confusing both compilers (warnings)  */
+              /* and coders, so simplify.                                  */
+              /* Set victim if any NN1 voxel is set (else go to NN2,3).    */
+              /* (dglen indentation provides a "visual" of neighbors)      */
+              /* (nnn[] will later be set to victim)   16 Mar 2021 [rickr] */
 
-               || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
-                                || mmm[im+jy+kp]
-               || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
-                                || mmm[ip+jy+kp])
-                   (void) 0; 
-                  else {
-                     if(NN==3)   // consider corners (corners of -1,+1 slices)
-                        nnn[ii+jy+kz] = 
-                                 mmm[im+jm+km]           + mmm[im+jp+km]
-                               + mmm[ip+jm+km]           + mmm[ip+jp+km]
-                               + mmm[im+jm+kp]           + mmm[im+jp+kp]
-                               + mmm[ip+jm+kp]           + mmm[ip+jp+kp];
+              /* NN1 case, check for set first neighbors */
+              victim =                   mmm[ii+jy+km]
+                                      || mmm[im+jy+kz]
+                     || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
+                                      || mmm[ip+jy+kz] 
+                                      || mmm[ii+jy+kp];
 
-                  }
-              } // end else NN2,3 cases 
+              /* similar NN2 case */
+              if(NN>=2 && !victim)
+                 victim =                mmm[im+jy+km]
+                     || mmm[ii+jm+km]                  || mmm[ii+jp+km]
+                                      || mmm[ip+jy+km]
+                     || mmm[im+jm+kz]                  || mmm[im+jp+kz]
+
+                     || mmm[ip+jm+kz]                  || mmm[ip+jp+kz]
+                                      || mmm[im+jy+kp]
+                     || mmm[ii+jm+kp]                  || mmm[ii+jp+kp]
+                                      || mmm[ip+jy+kp];
+
+              /* similar NN3 case */
+              if(NN>=3 && !victim)
+                 victim =     mmm[im+jm+km]          || mmm[im+jp+km]
+                           || mmm[ip+jm+km]          || mmm[ip+jp+km]
+                           || mmm[im+jm+kp]          || mmm[im+jp+kp]
+                           || mmm[ip+jm+kp]          || mmm[ip+jp+kp];
+
+              /* if we found a victim (neighbor), mark for redilation */
+              nnn[ii+jy+kz] = victim;
+
             } // end if in mask
       }}} /* end of ii,jj,kk loops */
 
@@ -1544,6 +1563,80 @@ ENTRY("MRI_autobbox") ;
    }
 
    free(mmm) ; EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void MRI_autobbox_byte( MRI_IMAGE *qim ,
+                        int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
+{
+   byte *mmm ;
+   int nvox , ii,jj,kk , nmm , nx,ny,nz,nxy ;
+
+ENTRY("MRI_autobbox_byte") ;
+
+   ASSIF(xm,0) ; ASSIF(xp,0) ;  /* initialize output params */
+   ASSIF(ym,0) ; ASSIF(yp,0) ;
+   ASSIF(zm,0) ; ASSIF(zp,0) ;
+
+   if( qim->kind != MRI_byte ) EXRETURN ; /* bad input */
+
+   mmm = MRI_BYTE_PTR(qim) ; if( qim == NULL ) EXRETURN ;
+
+   nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny; nvox = nxy*nz ;
+
+   /* For each plane direction,
+      find the first and last index that have nonzero voxels in that plane */
+
+   if( xm != NULL ){
+     for( ii=0 ; ii < nx ; ii++ )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
+     CP5: ASSIF(xm,ii) ;
+   }
+
+   if( xp != NULL ){
+     for( ii=nx-1 ; ii >= 0 ; ii-- )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
+     CP6: ASSIF(xp,ii) ;
+   }
+
+   if( ym != NULL ){
+     for( jj=0 ; jj < ny ; jj++ )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
+     CP3: ASSIF(ym,jj) ;
+   }
+
+   if( yp != NULL ){
+     for( jj=ny-1 ; jj >= 0 ; jj-- )
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
+     CP4: ASSIF(yp,jj) ;
+   }
+
+   if( zm != NULL ){
+     for( kk=0 ; kk < nz ; kk++ )
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
+     CP1: ASSIF(zm,kk) ;
+   }
+
+   if( zp != NULL ){
+     for( kk=nz-1 ; kk >= 0 ; kk-- )
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
+     CP2: ASSIF(zp,kk) ;
+   }
+
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/

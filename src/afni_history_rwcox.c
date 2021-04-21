@@ -49,6 +49,65 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2021 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "-FWHMxyz allows different blurring amounts in different directions" ,
+   NULL } ,
+
+ { 15 , MAR , 2021 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "Move help from main() to function Allin_Help()" ,
+   NULL } ,
+
+ { 15 , MAR , 2021 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+   "Add -wprefix option" ,
+   "This option will write out the computed warp for each sub-brick. Mostly\n"
+   "for Zhark's curiousity." } ,
+
+ { 13 , MAR , 2021 , RWC , "parser.f" , MICRO , TYPE_BUG_FIX ,
+   "non-NUL terminated FORMAT string" ,
+   "In Fortran-77, character strings are fixed length and filled out with\n"
+   "blanks -- they are not NUL terminated as in C. In one place in parser.f,\n"
+   "a variable FORMAT string is used (about line 709, string C_VAL) -- but\n"
+   "that gets passed to an f2c library function that assumes NUL terminated\n"
+   "string, and so a buffer overrun error can happen. This has never caused\n"
+   "a crash or error, as far as I know, but was detected using the gcc\n"
+   "-fsanitize=address option by Chris Rorden. To avoid possible error, the\n"
+   "Fortran line above the use of this string FORMAT sets the last character\n"
+   "of C_VAL to NUL.\n"
+   "\n"
+   "At the same time, changes were made to the f2c library headers to\n"
+   "properly adapt to either 32 or 64 bit pointers. Formerly, the pointer\n"
+   "size was fixed to 4 bytes.\n"
+   "\n"
+   "A long commentary here for a very small issue." } ,
+
+ { 23 , FEB , 2021 , RWC , "lots of them" , MICRO , TYPE_GENERAL ,
+   "Changes to avoid compile warnings with -Wall option" ,
+   "Mostly cosmetic fixes, but a few minor errors discovered and patched.\n"
+   "About 50 .c files affected." } ,
+
+ { 8 , FEB , 2021 , RWC , "AFNI gui" , MICRO , TYPE_ENHANCE ,
+   "Add Mean/Sigma statistic to Button 3 popup in graph viewer" ,
+   "Kind of a cheap TSNR check for raw data." } ,
+
+ { 27 , JAN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Enhance -PearSave option" ,
+   "Now it works with -allcostX to give the LPC values at the start of the\n"
+   "run, instead of only at the end.\n"
+   "Now it works with any cost functional, say '-hel', instead of '-lpc' and\n"
+   "'-lpa'. That is, you can get the local Pearson stuff even if it isn't\n"
+   "actually used in the optimization." } ,
+
+ { 26 , JAN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
+   "New -PearSave option" ,
+   "Saves the local Pearson correlations into a dataset at the end of an\n"
+   "alignment. Mostly for visualization fun." } ,
+
+ { 11 , JAN , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "AFNI graph viewer box labels now selectable from menu" ,
+   "In the Colors, Etc. menu, new items were added to enable and control the\n"
+   "labels used in Box mode. Keystroke ctrl-B cycles between all Data modes.\n"
+   "In addition, labels can now be drawn for graph matrix size up to 9x9." } ,
+
  { 23 , JUN , 2020 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "Add support for *.tsv and *.csv files" ,
    "Tab and Comma separated value files will be read in, like 1D files, and\n"

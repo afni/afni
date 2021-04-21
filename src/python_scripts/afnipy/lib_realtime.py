@@ -4,7 +4,7 @@
 
 # ----------------------------------------------------------------------
 # This module holds:
-# 
+#
 # RTInterface: the real-time socket interface, for receiving data
 #              from the real-time plugin to afni over a TCP port.
 #
@@ -24,7 +24,7 @@ import time, socket, struct
 
 # AFNI libraries (besides module_test_lib)
 from afnipy import option_list as OL
-from afnipy import afni_util as UTIL        # not actually used, but probably will be
+from afnipy import afni_util as UTIL
 
 # ----------------------------------------------------------------------
 # globals
@@ -263,7 +263,7 @@ class RTInterface:
             self.nextra = ilist[0]
          elif self.version == 2:
             self.nextra = ilist[0] * 8
-         else: # version = 2
+         else: # version = 3
             self.nextra = ilist[0]
 
          if self.verb > 2:
@@ -344,11 +344,11 @@ class RTInterface:
       if self.version in [1,3,4]:
          eprefix = "++ recv %d extras:   "%self.nextra
       elif self.version==2:
-          eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
+         eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
 
       print(UTIL.float_list_string([self.motion[i][tr] for i in range(6)],
                            nchar=9, ndec=5, nspaces=2, mesg=mprefix, left=1))
-      
+
       # version 1, all on one line
       if self.version == 1 and self.nextra > 0:
          self.print_floats_one_line(self.extras, self.nextra, tr, eprefix)

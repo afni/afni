@@ -5028,6 +5028,8 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5052,6 +5054,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
+
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -5217,6 +5220,40 @@ def db_mod_regress(block, proc, user_opts):
                   (nxstim, nxlabs))
             errs += 1
 
+    # check for extra ortvecs
+    oname = '-regress_extra_ortvec'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:  # only check length against labels
+        bopt.parlist = uopt.parlist
+        # convert paths to the local stimulus directory
+        proc.extra_ortvec = []
+        proc.extra_ortvec_orig = bopt.parlist
+        for fname in bopt.parlist:
+            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    oname = '-regress_extra_ortvec_labels'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:
+        bopt.parlist = uopt.parlist
+        proc.extra_ortvec_labs = uopt.parlist
+        nxlabs = len(proc.extra_ortvec_labs)
+        nxorts = len(proc.extra_ortvec)
+        if nxorts == 0:
+            print("** have -regress_extra_ortvec_labels without" + \
+                  " -regress_extra_ortvec")
+            errs += 1
+        elif nxorts != nxlabs:
+            print("** have %d extra ortvec but %d extra ort labels" % \
+                  (nxorts, nxlabs))
+            errs += 1
+    elif bopt and len(proc.extra_ortvec) > 0:
+        # no ortvec label option, so fasion some
+        print("-- auto-generating labels for extra ortvec files")
+        proc.extra_ortvec_labs = \
+              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) > 0:
@@ -5242,7 +5279,7 @@ def db_mod_regress(block, proc, user_opts):
             proc.stims.append('stimuli/%s%s' % \
                 (pre, os.path.basename(fname)))
 
-    # note whether this seems to be task at all
+    # note whether this seems to be task at all (no orts)
     if len(proc.stims) + len(proc.extra_stims) > 0:
        proc.have_task_regs = 1
     else:
@@ -5477,6 +5514,7 @@ def db_mod_regress(block, proc, user_opts):
     # check on tsnr and gcor
     apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
     apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
+    apply_uopt_to_block('-regress_mask_tsnr', user_opts, block)
 
     # possibly update cbucket option
     apply_uopt_to_block('-regress_make_cbucket', user_opts, block)
@@ -5613,6 +5651,18 @@ def db_cmd_regress(proc, block):
         if newcmd: cmd = cmd + newcmd
 
     # ----------------------------------------
+    # user ortvecs, add vec/lab pairs to self.regress_orts list
+    nxort = len(proc.extra_ortvec)
+    if nxort > 0:
+        if len(proc.extra_ortvec_labs) != nxort:
+           print("** # extra_orvec != # extra_ortvec_labs")
+           return
+        ov = proc.extra_ortvec
+        ol = proc.extra_ortvec_labs
+        for ind in range(nxort):
+           proc.regress_orts.append([ov[ind], ol[ind]])
+
+    # ----------------------------------------
     # bandpass?
     if block.opts.find_opt('-regress_bandpass'):
         err, newcmd = db_cmd_regress_bandpass(proc, block)
@@ -5691,6 +5741,7 @@ def db_cmd_regress(proc, block):
     mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
+    # - extra_ortvec do not count
     if mot_as_ort: nmotion = 0
     else:          nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
@@ -6660,11 +6711,13 @@ def db_cmd_regress_rsfc(proc, block):
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
 
-    # no mask for surface based analysis
-    if proc.mask and not proc.surf_anat:
-       mask_pre = proc.mask.prefix
-    else:
-       mask_pre = ''
+    # changing default to no mask, prob want to add -regress_mask_tsnr
+    # (requested by P Taylor)                              22 Feb 2021
+    mask_pre = ''
+    if block.opts.have_yes_opt('-regress_mask_tsnr', default=0):
+       # also, no mask for surface based analysis
+       if proc.mask and not proc.surf_anat:
+          mask_pre = proc.mask.prefix
 
     return db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
@@ -6732,7 +6785,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
 
     cmd += "%s3dcalc -a rm.signal%s%s \\\n"     \
            "%s       -b rm.noise%s%s %s \\\n"   \
-           "%s       -expr '%s' -prefix %s \n"  \
+           "%s       -expr '%s' -prefix %s\n"   \
            % (istr, suff, vsuff,
               istr, suff, vsuff, cstr,
               istr, estr, dname)
@@ -8208,27 +8261,31 @@ def db_cmd_gen_review(proc):
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
+
+    # subsequent options get their own lines
+    if lopts != '': lopts = ' \\\n   %s' % lopts
+
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
        lopts += ' \\\n    -errts_dset %s' % ename
 
+    # specify mask dataset to be used for stats, since it might not be clear
+    # (no longer def in TSNR)                                    22 Feb 2021
+    if proc.mask and not proc.surf_anat:
+       lopts += ' \\\n    -mask_dset %s' % proc.mask.shortinput(head=1)
+
     # generally include the review output file name as a uvar
     if proc.ssr_b_out != '':
-       revstr = ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
-    else:
-       revstr = ''
+       lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
 
     if proc.ssr_uvars:
-       uvopt = ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
-    else:
-       uvopt = ''
+       lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py%s -exit0'                          \
-           '%s%s\n\n'                                                   \
-           % (lopts, revstr, uvopt)
+           'gen_ss_review_scripts.py -exit0'                            \
+           '%s\n\n' % lopts
 
     return cmd
 
@@ -10006,11 +10063,15 @@ g_help_notes = """
     --------------------------------------------------
     RESTING STATE NOTE: ~2~
 
-    Resting state data should be processed with physio recordings (for typical
-    single-echo EPI data).  Without such recordings, bandpassing is currently
-    considered as the default.
+    It is preferable to process resting state data using physio recordings
+    (for typical single-echo EPI data).  Without such recordings, bandpassing
+    is currently considered as the standard in the field of FMRI (though that
+    is finally starting to change).  Multi-echo acquisitions offer other
+    possibilities.
 
     Comment on bandpassing:
+
+        Bandpassing does not seem like a great method.
 
         Bandpassing is the norm right now.  However most TRs may be too long
         for this process to be able to remove the desired components of no
@@ -10023,10 +10084,11 @@ g_help_notes = """
         censoring, bandpassing and removal of other signals of no interest).
         Many papers have been published where a lot of censoring was done,
         many regressors of no interest were projected out, and there was a
-        separate bandpass operation.  It is likely that many subjects ended up
-        with negative degrees of freedom, making the resulting signals useless
-        (or worse, misleading garbage).  But without keeping track of it,
-        researchers may not even know.
+        separate bandpass operation.  It is likely that many subjects should
+        have ended up with negative degrees of freedom (were bandpassing
+        implemented correctly), making the resulting signals useless (or worse,
+        misleading garbage).  But without keeping track of it, researchers may
+        not even know.
 
     Bandpassing and degrees of freedom:
 
@@ -12168,7 +12230,7 @@ g_help_options = """
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
 
-        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: from afnipy import auto_warp.py output
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
 
                 e.g. -tlrc_NL_warped_dsets anat.nii           \\
                                            anat.un.aff.Xat.1D \\
@@ -13748,7 +13810,7 @@ g_help_options = """
             Note: computation of GCOR requires a residual dataset, an EPI mask,
                   and a volume analysis (no surface at the moment).
 
-        -regress_compute_tsnr yes/no : compute TSNR datasets from errts
+        -regress_compute_tsnr yes/no : compute TSNR dataset from errts
 
                 e.g. -regress_compute_tsnr no
                 default: yes
@@ -13770,6 +13832,22 @@ g_help_options = """
             'regress' block.
 
             See also -volreg_compute_tsnr.
+
+        -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
+
+                e.g. -regress_mask_tsnr yes
+                default: no
+
+            By default, a temporal signal to noise (TSNR) dataset is created at
+            the end of the regress block.  By default, this dataset is not
+            masked (to match what is done in the regression).
+
+            To mask, apply this option with 'yes'.
+
+          * This dataset was originally masked, with the default changing to
+            match the regression 22 Feb, 2021.
+
+            See also -regress_compute_tsnr.
 
         -regress_fout yes/no         : output F-stat sub-bricks
 
@@ -14253,6 +14331,18 @@ g_help_options = """
             shown above.  For example, if each run were 320 seconds, then the
             default polort would be 3 (cubic).
 
+          * It is also possible to use a high-pass filter to model baseline
+            drift (using sinusoids).  Since sinusoids do not model quadratic
+            drift well, one could consider using both, as in:
+
+                -regress_polort 2         \\
+                -regress_bandpass 0.01 1
+
+            Here, the sinusoids allow every frequency from 0.01 on up to pass
+            (assuming the Nyquist frequency is <= 1), modeling the lower
+            frequencies as regressors of no interest, along with 3 terms for
+            polort 2.
+
             Please see '3dDeconvolve -help' for more information.
 
         -regress_reml_exec      : execute 3dREMLfit, matching 3dDeconvolve cmd
@@ -14639,6 +14729,33 @@ g_help_options = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_stim_files, -regress_stim_times,
                      -regress_stim_labels.
+
+        -regress_extra_ortvec FILE1 ... : specify extra -ortvec files
+
+                e.g. -regress_extra_ortvec ort_resp.1D ort_cardio.1D
+                e.g. -regress_extra_ortvec lots_of_orts.1D
+
+            Use this option to specify extra files to be applied with the
+            -ortvec option in 3dDeconvolve.  These are applied as regressors
+            of no interest, going into the baseline model.
+
+            These files should be in 1D format, columns of regressors in text
+            files.  They are not modified by the program, and should match the
+            length of the final regression.
+
+            Corresponding labels can be set with -regress_extra_ortvec_labels.
+
+            See also -regress_extra_ortvec_labels.
+
+        -regress_extra_ortvec_labels LAB1 ... : specify label for extra ortvecs
+
+                e.g. -regress_extra_ortvec_labels resp cardio
+                e.g. -regress_extra_ortvec_labels EXTERNAL_ORTs
+
+            Use this option to specify labels to correspond with files given
+            by -regress_extra_ortvec.  There should be one label per file.
+
+            See also -regress_extra_ortvec.
 
         -----------------------------------------------------------------
         3dClustSim options ~3~

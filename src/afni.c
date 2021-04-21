@@ -2222,6 +2222,7 @@ int main( int argc , char *argv[] )
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){
        for( jj=0 ; jj < NTIP ; jj ++ ) AFNI_print_startup_tip(jj) ;
      } else {
+       srand48((long)time(NULL)+(long)getpid()) ;
        ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
        for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip(-1) ;
      }
@@ -4966,6 +4967,7 @@ ENTRY("AFNI_set_valabel") ;
    /* otherwise, extract a value from the image and put into blab */
 
    switch( im->kind ){
+      default: strcpy(blab,":(") ;
 
       case MRI_byte:{
          int val = MRI_BYTE_2D(im , ib.ijk[0],ib.ijk[1]) ;
@@ -5007,7 +5009,6 @@ ENTRY("AFNI_set_valabel") ;
          sprintf(blab,"(%d,%d,%d)",(int)rgb[3*ii],(int)rgb[3*ii+1],(int)rgb[3*ii+2]) ;
       }
       break ;
-
    }
    EXRETURN ;
 }
@@ -12014,7 +12015,10 @@ ENTRY("AFNI_jumpto_ijk") ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
-      BEEPIT ; WARNING_message("Jumpto IJK failed -- bad indexes?!") ;
+      BEEPIT ; WARNING_message("Jumpto IJK failed -- bad input values?!") ;
+               WARNING_message("  i range = 0 .. %d (inclusive)",daxes->nxx-1) ;
+               WARNING_message("  j range = 0 .. %d (inclusive)",daxes->nyy-1) ;
+               WARNING_message("  k range = 0 .. %d (inclusive)",daxes->nzz-1) ;
       RETURN(-1) ;
    }
 }
@@ -12099,7 +12103,9 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
      ii = DSET_index_to_ix(im3d->anat_now,nn) ;
      jj = DSET_index_to_jy(im3d->anat_now,nn) ;
      kk = DSET_index_to_kz(im3d->anat_now,nn) ;
-   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+   } else if( nn != 5 ){
+     BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN;
+   }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;
@@ -12131,7 +12137,9 @@ ENTRY("AFNI_jumpto_ijk_olay_CB") ;
      ii = DSET_index_to_ix(im3d->fim_now,nn) ;
      jj = DSET_index_to_jy(im3d->fim_now,nn) ;
      kk = DSET_index_to_kz(im3d->fim_now,nn) ;
-   } else if( nn != 5 ){ BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN; }
+   } else if( nn != 5 ){
+     BEEPIT; WARNING_message("Jumpto IJK failed -- bad entries?!"); EXRETURN;
+   }
 
    nn = AFNI_jumpto_ijk_olay( im3d , ii,jj,kk ) ;
    if( nn < 0 ) BEEPIT ;

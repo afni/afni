@@ -833,6 +833,7 @@ STATUS("have new image") ;
         imar = mri_data_pointer(im) ;
          if( save_order != native_order ){                   /* 23 Nov 1999 */
             switch( im->kind ){
+               default:                                   break ;
                case MRI_short:   mri_swap2(  npix,imar) ; break ;
                case MRI_float:
                case MRI_int:     mri_swap4(  npix,imar) ; break ;

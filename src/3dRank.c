@@ -216,7 +216,7 @@ int main( int argc , char * argv[] )
             case MRI_short:{
                short *mar = (short *) DSET_ARRAY(dsets_in[ib],isb) ;
                if (imax >  MRI_TYPE_maxval[MRI_short]) {
-                  WARNING_message("Maximum rank value of %d is\n"
+                  WARNING_message("Maximum rank value of %d is more\n"
                                   "than maximum value for dset datatype of %d\n",
                                   imax, MRI_TYPE_maxval[MRI_short]);
                }
@@ -232,8 +232,8 @@ int main( int argc , char * argv[] )
             break ;
             case MRI_byte:{
                byte *mar ;
-               if (imax >  MRI_TYPE_maxval[MRI_short]) {
-                  WARNING_message("Maximum rank value of %d is\n"
+               if (imax >  MRI_TYPE_maxval[MRI_byte]) {
+                  WARNING_message("Maximum rank value of %d is more\n"
                                   "than maximum value for dset datatype of %d\n",
                                   imax, MRI_TYPE_maxval[MRI_byte]);
                }

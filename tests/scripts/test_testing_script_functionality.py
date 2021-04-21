@@ -1,5 +1,5 @@
 from argparse import Namespace
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import pathlib
 from pathlib import Path
 from unittest.mock import Mock, MagicMock
@@ -12,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 import subprocess as sp
+import signal
 import sys
 import tempfile
 import time
@@ -27,6 +28,7 @@ from afni_test_utils import run_tests_examples
 from afni_test_utils import container_execution as ce
 from afni_test_utils import tools
 from afni_test_utils import minimal_funcs_for_run_tests_cli as minfuncs
+from afni_test_utils.misc import get_param_combinations
 import afnipy
 
 # import the whole package for mocking purposes
@@ -35,9 +37,18 @@ import afni_test_utils
 TESTS_DIR = Path(__file__).parent.parent
 SCRIPT = TESTS_DIR.joinpath("run_afni_tests.py")
 # The default args to pytest will likely change with updates
-DEFAULT_ARGS = "scripts --tb=no --no-summary --show-capture=no"
+DEFAULT_ARGS = "scripts --tb=no -r fEs --show-capture=no"
 PYTEST_COV_FLAGS = "--cov=afnipy --cov-report xml:$PWD/coverage.xml"
 RETCODE_0 = Mock(**{"returncode": 0, "stdout": b"", "stderr": b""})
+
+try:
+    docker.from_env()
+    DOCKER_AVAILABLE = True
+except:
+    DOCKER_AVAILABLE = False
+
+
+data_paths = {"uni_text": "mini_data/unicode_text.txt"}
 
 
 @pytest.fixture()
@@ -56,22 +67,23 @@ def mocked_script(monkeypatch):
 @pytest.fixture()
 def sp_with_successful_execution():
 
-    RUN_WITH_0 = Mock(
+    RUN_WITH_0 = MagicMock(
         **{
             "run.return_value": RETCODE_0,
             "check_output.return_value": b"",
+            "returncode": 0,
         }
     )
 
     return RUN_WITH_0
 
 
-def run_main_func(script_obj, sys_exit):
+def run_main_func(script_obj, sys_exit, err_code=0):
     if sys_exit:
         with pytest.raises(SystemExit) as err:
             script_obj.main()
         assert err.typename == "SystemExit"
-        assert err.value.code == 0
+        assert err.value.code == err_code
     else:
         script_obj.main()
 
@@ -84,6 +96,7 @@ def run_script_and_check_imports(
     monkeypatch,
     sys_exit=True,
     no_output=True,
+    err_code=0,
 ):
     """
     This needs to be used with the mocked_script fixture.
@@ -113,9 +126,9 @@ def run_script_and_check_imports(
 
         if no_output:
             with contextlib.redirect_stdout(io.StringIO()):
-                run_main_func(script, sys_exit)
+                run_main_func(script, sys_exit, err_code=err_code)
         else:
-            run_main_func(script, sys_exit)
+            run_main_func(script, sys_exit, err_code=err_code)
 
 
 @pytest.mark.parametrize(
@@ -129,36 +142,40 @@ def run_script_and_check_imports(
         },
         {
             "test_case": "timeout",
-            "cmd_args": ["sleep", "0.1"],
-            "timeout": 0.05,
+            "cmd_args": ["sleep", "5"],
+            "timeout": 1,
             "expected_to_timeout": True,
         },
     ],
 )
 def test_execute_cmd_args(params):
+    tmpdir = Path(tempfile.gettempdir())
+    stdout = tmpdir / "text.txt"
+    stderr = tmpdir / "other_text.txt"
     try:
         proc = tools.__execute_cmd_args(
             params["cmd_args"],
             logging,
-            None,
-            tempfile.gettempdir(),
+            stdout,
+            stderr,
+            tmpdir,
             timeout=params["timeout"],
         )
         timed_out = False
-    except TimeoutError:
+    except (TimeoutError, subprocess.TimeoutExpired):
         timed_out = True
 
     assert timed_out == params["expected_to_timeout"]
 
 
-def test_run_cmd(data, monkeypatch):
+def test_run_cmd_timeout(data, monkeypatch):
     data.logger = logging
     monkeypatch.setattr(logging, "warn", lambda x: None)
 
     # Can slow this down for debugging purposes
-    t_unit = 0.1
-    # easy sit_unitation, processes behave and clean up after themselves or they
-    # timeout
+    t_unit = 0.2
+    # # easy situation, processes behave and clean up after themselves or they
+    # # timeout
     tools.run_cmd(
         data,
         f"sleep {t_unit *10} & sleep {t_unit}; kill %1",
@@ -188,25 +205,55 @@ def test_run_cmd(data, monkeypatch):
 
     # should not timeout a background process until the timeout so this should
     # work fine
-    stdout, stderr = tools.run_cmd(
+    stdout_log, stderr_log = tools.run_cmd(
         data,
         f"sleep {t_unit / 2}; echo hello & sleep {t_unit / 5}",
-        timeout=t_unit,
+        timeout=t_unit * 1,
     )
-    assert stdout == "hello\n"
+    assert stdout_log.read_text() == "hello\n"
 
-    #  bg persists but should ignored/killed immediately
-    start = time.time()
-    tools.run_cmd(
+
+def test_rewrite_paths_in_logs(data):
+    # run a command that will contain a path that should be rewritten
+    cmd = f"echo some output with a path... {data.outdir / 'sample.txt'}"
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
+
+    cmd = f"echo some output with a path... {data.outdir / 'sample.txt'}"
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
+
+
+def test_command_logger_setup(data, monkeypatch):
+    # logs should be in data.logdir and logger should be logger_in
+    logger_in = data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, logger_in)
+    assert logger_out == logger_in
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be data.logger
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == data.logger
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+    # logs should be in data.logdir and logger should be root logger
+    data.logger = None
+    logger_out, cmd_log, stdout_log, stderr_log = tools.setup_logging(data, None)
+    assert logger_out == logging
+    assert all(p.parent == data.logdir for p in [cmd_log, stdout_log, stderr_log])
+
+
+def test_run_cmd_handles_unicode(data):
+    # not sure why but at one point Path().write_text() uses the encoding
+    # scheme ascii when None was specified and so one would expect utf-8 to be
+    # used. A lesson for those not adding explicitly defining encoding (me).
+
+    # unicode in stdout should not cause any problems
+    differ = tools.OutputDiffer(
         data,
-        f" sleep {t_unit * 100} & sleep {t_unit}",
-        timeout=t_unit * 3,
-        kill_backgrounded_processes=True,
+        f"""cat {data.uni_text}""",
     )
-
-    delta_t = time.time() - start
-    # should return before timeout
-    assert delta_t < t_unit * 3
+    differ.run()
 
 
 def test_check_git_config(
@@ -366,6 +413,10 @@ def test_run_containerized(monkeypatch):
     minfuncs.is_containerized(),
     reason=("This test is not run inside the container."),
 )
+@pytest.mark.skipif(
+    not DOCKER_AVAILABLE,
+    reason=("Failed to find a running docker service."),
+)
 def test_run_containerized_fails_with_unknown_image():
     # The image needs to exist locally with only_use_local
     with pytest.raises(ValueError):
@@ -398,10 +449,31 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
 
     # Write run_afni_tests.py to an executable/importable path
     mocked_script.write_text(SCRIPT.read_text())
-    # ./README.md needs to exist
-    (mocked_script.parent / "README.md").write_text("some content")
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
     run_script_and_check_imports(
         mocked_script, argslist, expected, not_expected, monkeypatch
+    )
+
+
+def test_run_tests_with_no_args_is_instructive(mocked_script, monkeypatch):
+    """
+    If run without arguments the test script should
+    give sensible help regardless of pythonpath,
+    installation status.
+    """
+
+    # help should work even if pythonpath is set
+    monkeypatch.setenv("PYTHONPATH", "a_path")
+    not_expected = "datalad docker pytest afnipy run_tests".split()
+    expected = ""
+
+    # Write run_afni_tests.py to an executable/importable path
+    mocked_script.write_text(SCRIPT.read_text())
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    run_script_and_check_imports(
+        mocked_script, [" "], expected, not_expected, monkeypatch, err_code=2
     )
 
 
@@ -423,7 +495,7 @@ def test_installation_help_from_anywhere(mocked_script, monkeypatch):
         with pytest.raises(FileNotFoundError):
             run_main_func(script_imported, sys_exit=True)
 
-        (mocked_script.parent / "README.md").write_text("some content")
+        (mocked_script.parent / "README.rst").write_text("some content")
         run_main_func(script_imported, sys_exit=True)
 
 
@@ -469,6 +541,7 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
     run_afni_test.py to a test specific path that can be imported
     from/executed for each test parameter in an isolated manner.
     """
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     monkeypatch.setattr(afni_test_utils.run_tests_func, "run_tests", RETCODE_0)
     # env check not needed
     monkeypatch.setattr(
@@ -487,6 +560,90 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
         monkeypatch,
         sys_exit=False,
     )
+
+
+def test_write_command_info():
+    tests_data_dir = Path(tempfile.mkdtemp())
+    outdir = tests_data_dir / "output_of_tests" / "output_2029_11_07"
+    logfile = outdir / "testname" / "file.log"
+    logfile.parent.mkdir(parents=True)
+
+    tools.write_command_info(
+        logfile,
+        {
+            "outdir": outdir,
+            "tests_data_dir": tests_data_dir,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {
+            "test_case": "no change",
+            "expected": "some output text without paths",
+        },
+        {
+            "test_case": "abs paths removed",
+            "rootdirs": ["/a/base/path"],
+            "outdirs": ["/a/base/path/afni_ci_test_data/sample_test_output/dir"],
+            "txt": "/a/base/path/afni_ci_test_data/sample_test_output/dir other text",
+            "expected": "afni_ci_test_data/sample_test_output/dir other text",
+        },
+        {
+            "test_case": "outdir is normalized",
+            "rootdirs": ["/a/base/path"],
+            "outdirs": [
+                "output_of_tests/output_2020_11_12_174542/testing_script_functionality/test_rewrite_paths_in_logs"
+            ],
+            "txt": "output: output_of_tests/output_2020_11_12_174542/testing_script_functionality/test_rewrite_paths_in_logs/sample.txt",
+            "expected": "output: afni_ci_test_data/sample_test_output/testing_script_functionality/test_rewrite_paths_in_logs/sample.txt",
+        },
+    ],
+)
+def test_rewrite_paths_for_line(data, params):
+    txt = params.get("txt") or "some output text without paths"
+
+    modified_line = tools.rewrite_paths_for_line(
+        txt,
+        params.get("rootdir") or ["/a/base/path"],
+        params.get("outdirs") or ["/a/base/path/afni_ci_test_data/sample_test_output"],
+        params.get("replacements_dict") or {},
+    )
+    assert modified_line == params["expected"]
+
+
+def test_rewrite_paths_for_line_error(data, monkeypatch):
+    """
+    If the the stdout or stderr stream  output directories returned from get_command_info_dicts
+    """
+    cmd_info = defaultdict(lambda: "")
+    cmd_info["outdir"] = "/a/base/path/output_of_tests/output_2020_11_12_154136"
+    cmd_info["workdir"] = "/a/base/path"
+    cmd_info["tests_data_dir"] = "/a/base/path"
+    monkeypatch.setattr(
+        tools,
+        "get_command_info_dicts",
+        Mock(return_value=[cmd_info, defaultdict(lambda: "")]),
+    )
+    txt = ["/a/base/path/output_of_tests/output_2020_11_12_154142/subdir other text"]
+    # should fail when output directory in log has wrong timestamp
+    with pytest.raises(ValueError):
+        modified_line = tools.rewrite_paths_for_cleaner_diffs(
+            data,
+            [txt],
+        )
+
+    # should fail when outdirs are not in tests_dir
+    cmd_info[
+        "outdir"
+    ] = "/a/different/base/path/output_of_tests/output_2020_11_12_154136"
+    with pytest.raises(ValueError):
+        modified_line = tools.rewrite_paths_for_cleaner_diffs(
+            data,
+            [txt],
+        )
 
 
 def test_parser_with_relative_test_module(monkeypatch):
@@ -545,12 +702,16 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
     [
         {
             "test_case": "default",
-            "args_in": {},
+            "args_in": {"verbosity": "normal"},
             "expected_call_template": "{sys.executable} -m pytest {DEFAULT_ARGS}",
         },
         {
             "test_case": "with_coverage",
-            "args_in": {"coverage": True, "build_dir": tempfile.mkdtemp()},
+            "args_in": {
+                "verbosity": "normal",
+                "coverage": True,
+                "build_dir": tempfile.mkdtemp(),
+            },
             "expected_call_template": (
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
@@ -583,6 +744,11 @@ def test_run_tests_with_args(monkeypatch, params, sp_with_successful_execution):
         "environ",
         os.environ.copy(),
     )
+    monkeypatch.setattr(
+        afni_test_utils.run_tests_func,
+        "check_test_data_repo",
+        Mock(),
+    )
     with pytest.raises(SystemExit) as err:
         afni_test_utils.run_tests_func.run_tests(TESTS_DIR, **params["args_in"])
         assert err.typename == "SystemExit"
@@ -605,7 +771,7 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
     interpreter is raised? This would solve issues with the wrong environment
     being activated.
     """
-
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     # create a mock import to control whether afnipy is "imported correctly" or not
     mocked_import = Mock()
     mocked_import.__file__ = "mocked_path_for_imported_module"
@@ -622,14 +788,12 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
         with pytest.raises(EnvironmentError):
             # Run function to check no error is raised without afnipy
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 build_dir="a_directory",
             )
 
         mocked_import_module.side_effect = None
         # should work when afnipy is importable
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             build_dir="a_directory",
         )
 
@@ -675,7 +839,7 @@ def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation
         assert Path(afnipy.__file__).parent.parent.parent == idir
 
         # Run function to check that no error is raised spuriously
-        minfuncs.modify_path_and_env_if_not_using_cmake(os.getcwd())
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_for_default_run(
@@ -725,9 +889,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
 
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
-        minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
-        )
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
         # The current python interpreter should now be able to import afnipy
         # without issue (and it should be imported from the mocked abin)
@@ -737,9 +899,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
         # If import afnipy does not fail, an error should be raised
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
-            minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
-            )
+            minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
@@ -779,7 +939,6 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             abin=str(mocked_abin),
         )
         # The fake binary should now be able to executed with no error
@@ -796,12 +955,11 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 abin=str(mocked_abin),
             )
 
 
-def test_examples_parse_correctly(monkeypatch):
+def test_examples_parse_correctly(monkeypatch, mocked_script):
     # dir_path needs to be mocked to prevent errors being raise for
     # non-existent paths
     monkeypatch.setattr(
@@ -810,18 +968,42 @@ def test_examples_parse_correctly(monkeypatch):
         lambda x: str(Path(x).expanduser()),
     )
     stdout_ = sys.stdout  # Keep track of the previous value.
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    # the following needs to exist for one example
+    scripts_dir = mocked_script.parent / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "test_ptaylor.py").touch()
+
     for name, example in run_tests_examples.examples.items():
         # Generate the 'sys.argv' for the example
         arg_list = shlex.split(example.splitlines()[-1])[1:]
-        # Execute the script so that it can be run.
-        res = runpy.run_path(str(SCRIPT))
+        # Write run_afni_tests.py for this example
+        script_name = name.replace(" ", "_") + ".py"
+        example_script = mocked_script.with_name(f"{script_name}")
+        example_script.write_text(SCRIPT.read_text())
 
-        res["sys"].argv = [SCRIPT.name, *arg_list]
-        res["main"].__globals__["run_tests"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__["run_containerized"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__[
-            "minfuncs"
-        ].modify_path_and_env_if_not_using_cmake = lambda *args, **kwargs: None
+        # one should mock things where they are used. Here
+        # there is some hokey stuff going on with imports
+        # though, so mock the system versions.
+        monkeypatch.setattr(sys, "argv", [example_script.name, *arg_list])
+        monkeypatch.setattr(
+            afni_test_utils.run_tests_func, "run_tests", Mock(side_effect=SystemExit(0))
+        )
+        monkeypatch.setattr(
+            afni_test_utils.container_execution,
+            "run_containerized",
+            Mock(side_effect=SystemExit(0)),
+        )
+
+        monkeypatch.setattr(
+            afni_test_utils.minimal_funcs_for_run_tests_cli,
+            "modify_path_and_env_if_not_using_cmake",
+            lambda *args, **kwargs: None,
+        )
+
+        # Execute the script so that it can be run.
+        res = runpy.run_path(str(example_script))
         with pytest.raises(SystemExit) as err:
             # Run main function while redirecting to /dev/null
             sys.stdout = open(os.devnull, "w")
@@ -933,9 +1115,9 @@ def test_get_test_cmd_args():
 
     # Check default commands
     cmd_args = minfuncs.get_test_cmd_args()
-    assert cmd_args == ["scripts", "--tb=no", "--no-summary", "--show-capture=no"]
+    assert cmd_args == DEFAULT_ARGS.split()
 
-    cmd_args = minfuncs.get_test_cmd_args(verbose=3)
+    cmd_args = minfuncs.get_test_cmd_args(verbosity="traceback")
     assert "--showlocals" in cmd_args
 
 
@@ -1307,3 +1489,85 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
         afni_test_utils.minimal_funcs_for_run_tests_cli.check_if_cmake_configure_required(
             build_dir
         )
+
+
+def test_no_mod_cmd_var_works(monkeypatch, data):
+    # make a long command with paths that should trigger a trimming response
+    cmd = f"{' '.join([str(data.outdir) for x in range(5)])} "
+    # set to anything but a value that is obviously false will prevent trimming
+    monkeypatch.setenv("NO_CMD_MOD", "True")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com == com.trimcom
+
+    # trimming should occur otherwise
+    monkeypatch.setenv("NO_CMD_MOD", "no")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com != com.trimcom
+
+    monkeypatch.delenv("NO_CMD_MOD")
+    com = afnipy.afni_base.shell_com(cmd)
+    assert com.com != com.trimcom
+
+
+def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
+    monkeypatch.setenv("PATH", minfuncs.filter_afni_from_path())
+    # mock no afnipy
+    monkeypatch.setattr(
+        afni_test_utils.minimal_funcs_for_run_tests_cli,
+        "make_sure_afnipy_not_importable",
+        lambda: True,
+    )
+    # Make sure we throw an error since no abin is given, no binaries could
+    # be on path
+    with pytest.raises(EnvironmentError) as e:
+        minfuncs.modify_path_and_env_if_not_using_cmake()
+    assert "Cannot find local AFNI binaries. " == str(e.value)
+
+
+def test_get_param_combinations():
+
+    input_params = [
+        (
+            "e2a",
+            {
+                "extra_args": "-epi2anat",
+            },
+        ),
+        (
+            "giant_move",
+            {
+                "extra_args": "-giant_move",
+            },
+        ),
+        (
+            "another test",
+            {
+                "extra_args": "-for_shizzur",
+            },
+        ),
+    ]
+    output = get_param_combinations(*input_params)
+    expected = [
+        *sorted(input_params, key=lambda x: x[1]["extra_args"]),
+        pytest.param(
+            "e2a_and_another test combined",
+            {"extra_args": "-epi2anat -for_shizzur"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "e2a_and_giant_move combined",
+            {"extra_args": "-epi2anat -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "another test_and_giant_move combined",
+            {"extra_args": "-for_shizzur -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        (
+            "e2a_and_another test_and_giant_move",
+            {"extra_args": "-epi2anat -for_shizzur -giant_move"},
+        ),
+    ]
+
+    assert expected == output

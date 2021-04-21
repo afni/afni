@@ -53,6 +53,143 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Apr, 2021, RCR, "ap_qc_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
+   "run a quick afni_proc.py resting state analysis for QC",
+   NULL
+ } ,
+
+ { 16, Mar, 2021, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "simplify logic in THD_mask_erode(), with negligible slowdown",
+   NULL
+ } ,
+
+ { 15, Mar, 2021, RCR, "3dBrickStat", MINOR, TYPE_NEW_OPT,
+   "add convenience options -perclist and -perc_quiet",
+   NULL
+ } ,
+
+ { 13, Mar, 2021, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "distribute libXp.6.dylib, since XQuartz has stopped doing it",
+   "Thanks to C Gaillard and others on the MB."
+ } ,
+
+ { 10, Mar, 2021, RCR, "lib_tsv.py", MINOR, TYPE_NEW_PROG,
+   "new TSV class library, geared toward BIDS event files",
+   NULL
+ } ,
+
+ {  8, Mar, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "applying NIFTI scale_slope to dset must be after setting ADN_datum",
+   "Previously, NIFTI scalars were applied only after a DSET_load().\n"
+   "Thanks to D Glen for reporting the issue."
+ } ,
+
+ {  5, Mar, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_cormat_warnings_full",
+   "This version includes the baseline terms in the warning list."
+ } ,
+
+ {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
+   "fix surprising slowness",
+   "This would previously unload/mallocize/reload every time point,\n"
+   "possibly to free completed data.\n"
+   "Now, NIFTI input would be re-read every time point (why the change?).\n"
+   "Just mallocize in the first place, not per time point.\n"
+   "Also, avoid scaling floats by 1.0.\n"
+   "Thanks to C Craddock for reporting the problem."
+ } ,
+
+ {  3, Mar, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "update dotfiles for 'complete' files before running apsearch",
+   "Do this so apsearch will not tell users to update the dotfiles again.\n"
+   "Thanks to D Glen."
+ } ,
+
+ {  3, Mar, 2021, RCR, "@clean_help_dir", MINOR, TYPE_MODIFY,
+   "warn on any error in 'cat *.complete* > xx' commands",
+   "In MacOS 11 Rosetta terminals, those commands are *sometimes* crashing.\n"
+   "Warn on any such failure.\n"
+   "Such a crash could cause trouble for other programs, too.\n"
+   "Thanks to D Glen."
+ } ,
+
+ { 24, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -regress_extra_ortvec, -regress_extra_ortvec_labels",
+   "Pass sets of regressors of no interest, to go into the baseline.\n"
+   "Requested by multiple people, including Carolin31 on MB."
+ } ,
+
+ { 22, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "masking is no longer applied to TSNR dset; pass mask_dset to gen_ss",
+   "Requested by P Taylor."
+ } ,
+
+ { 21, Feb, 2021, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "remove actual targets in RM for LIBMRI_*",
+   NULL
+ } ,
+
+ { 21, Feb, 2021, RCR, "@djunct_glue_imgs_vert", MICRO, TYPE_MODIFY,
+   "allow -help without deps, so move dependency tests",
+   NULL
+ } ,
+
+ { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "updates for ShowMode in SUMA_xColBar.c",
+   "Resolve compiler warnings, but avoid logic changes at the same time\n"
+   "as XQuartz beta issues.  So temporarily keep original logic.\n"
+   "Once we feel stable with XQuartz, look into expected fixes.\n"
+   "Search for 'todo: apply ShowMode' in SUMA_xColBar.c."
+ } ,
+
+ { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "warn about problematic version of XQuartz",
+   "Bad versions seem to be 2.8.0_alpa*, 2.8.0_betas[12] (3+ okay?).\n"
+   "With improvements we have seen, maybe we should warn on any beta."
+ } ,
+
+ { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
+   "All thd_coords.c protos are in 3ddata.h now."
+ } ,
+
+ { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "do not convert NIFTI scaled shorts to float",
+   "If slope!=0 && inter==0, pass slope as brick_fac.\n"
+   "Thanks to C Caballero and S Moia for reporting this."
+ } ,
+
+ {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
+   "shift memory allocation/free around, mostly to match libSUMA",
+   "Inspired by C Rorden via sanitizer warnings."
+ } ,
+
+ { 31, Dec, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "modify help: be more clear about bandpassing being undesirable",
+   "Also, add example of high-pass filter to model slow drift.\n"
+   "See help for option -regress_polort."
+ } ,
+
+ { 29, Dec, 2020, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "add help example for creating a new dataset given a raw data file",
+   NULL
+ } ,
+
+ { 29, Dec, 2020, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
+ { 22, Dec, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed 6 copy-and-paste errors using MRI_TYPE_maxval",
+   "Thanks to C Rorden for bringing this up and suggesting code fixes."
+ } ,
+
+ { 17, Dec, 2020, RCR, "1dBport", MICRO, TYPE_BUG_FIX,
+   "guard against silent failure of int overflow for ftop",
+   NULL
+ } ,
+
  { 29, Sep, 2020, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
    "be specific about limits for 'param must be in' error messages",
    NULL
@@ -343,11 +480,6 @@ afni_history_struct rickr_history[] = {
    "add env var control over pre-comp e2x, limit and pieces",
    "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"
    "AFNI_MODEL_PRF_MAX_EXP_PIECES.\n"
- } ,
-
- { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
-   "add initial NT parameter",
-   NULL
  } ,
 
  { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
@@ -5013,7 +5145,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
+   "madd initial NT parametercw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
    "Apparently it does not like inconsistent declaration in same file,\n"
    "and mcw_malloc.h does not offer prototypes to many functions in the\n"
    "case of DONT_USE_MCW_MALLOC, including this one."

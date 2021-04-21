@@ -245,8 +245,8 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
                (a3 > 0) ? xyz_org[aa3] : xyz_org[aa3]+(brax->n3-1)*xyz_del[aa3] );
 
    /*-- open output BRIK file --*/
-   if ((cmode == COMPRESS_NOFILE)) { /* ignore compression for NIFTI - do in write
-   automatically later */
+   if (cmode == COMPRESS_NOFILE) { /* ignore compression for NIFTI - do in write
+                                      automatically later */
       cmode = THD_get_write_compression() ; /* check env. variable for compression*/
       }
 

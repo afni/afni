@@ -4523,8 +4523,9 @@ ENTRY("PLUGIN_seq_send_CB") ;
            if( !NO_frivolities && nold < NBIRN ){
              if( strstr(birn[nold],"Rasmus") != NULL )
                AFNI_speak("Stop it, Rasmus", 0 ) ;
-             MCW_popup_message( seq->wimage , birn[nold++] ,
-                                (nold < NBIRN) ? MCW_QUICK_KILL : MCW_USER_KILL ) ;
+             MCW_popup_message( seq->wimage , birn[nold] ,
+                                (nold+1 < NBIRN) ? MCW_QUICK_KILL : MCW_USER_KILL ) ;
+             nold++ ;
            } else {
              PLUTO_beep() ;
              if( nold == NBIRN ){ AFNI_speak("Stop it",0); nold++; }

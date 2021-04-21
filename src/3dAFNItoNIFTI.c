@@ -8,8 +8,6 @@ int main( int argc , char *argv[] )
    int narg=1 , flags=0 , ii , verb=0 , newid=1 , denote=0 , floatize=0, cmode ;
    niftiwr_opts_t options ;
 
-   PRINT_VERSION("3dAFNItoNIFTI");
-
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoNIFTI [options] dataset\n"
              "Reads an AFNI dataset, writes it out as a NIfTI-1.1 file.\n"
@@ -67,7 +65,8 @@ int main( int argc , char *argv[] )
       PRINT_COMPILE_DATE; exit(0) ;
    }
 
-   mainENTRY("3dAFNItoNIFTI main"); machdep();
+   mainENTRY("3dAFNItoNIFTI main"); machdep(); PRINT_VERSION("3dAFNItoNIFTI");
+
 
    /*--- check options ---*/
 

@@ -202,7 +202,7 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *iprefix="PREFIX" ;
-   char prefix[THD_MAX_PREFIX];
+   char prefix[THD_MAX_PREFIX-15];   // save space for full output names
    char tprefixx[THD_MAX_PREFIX];
    char tprefixy[THD_MAX_PREFIX];
    char tprefixc[THD_MAX_PREFIX];
@@ -212,8 +212,6 @@ int main(int argc, char *argv[]) {
    char gprefix[THD_MAX_PREFIX];
    char *ext=NULL, nullch; 
    char goodstring[3000];
-
-   // char in_name[300];
 
    FILE *fout0, *fout1, *fout2;
 
@@ -323,7 +321,7 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-input'");
 
          insetA = THD_open_dataset(argv[iarg]);
-         if( (insetA == NULL ))
+         if( insetA == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
 
@@ -444,7 +442,7 @@ int main(int argc, char *argv[]) {
 
    // Now, collect this info!
    Dim = (int *)calloc(4, sizeof(int));
-   if( (Dim == NULL) ) { 
+   if( Dim == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (small array!).\n\n");
       exit(12);
    }
@@ -794,7 +792,7 @@ int main(int argc, char *argv[]) {
       for(i=0 ; i<Dim[3] ; i++) 
          badarr[i] = calloc( Nvox, sizeof(byte) ); 
       
-      if( (badarr == NULL) ) { 
+      if( badarr == NULL ) { 
          fprintf(stderr, "\n\n MemAlloc failure (bad-list array).\n\n");
          exit(13);
       }

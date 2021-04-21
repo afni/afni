@@ -11,18 +11,28 @@ What the H*** is AFNI?
     :target: https://codecov.io/gh/afni/afni
 
 
-    
-AFNI is a suite of programs for looking at and analyzing 3D brain
-images.  The emphasis is on FMRI, but AFNI can be used for other
-purposes as well.  See https://afni.nimh.nih.gov/afni for more fun.
+AFNI (Analysis of Functional NeuroImages) is a suite of programs for looking at and analyzing MRI brain
+images.  It comprises a suite of C, Python, R programs and shell scripts primarily developed for the 
+analysis and display of multiple MRI modalities: anatomical, functional MRI (FMRI) and diffusion 
+weighted (DW) data.  It has graphical displays for both slice-wise and surface-based viewing.
+  
+| Please visit these websites for more information:
+| https://afni.nimh.nih.gov/
+| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
 
-AFNI directory
---------------
+|
+
+| For questions on using AFNI programs, our Message Board is here:  
+| https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
+
+
+AFNI code directory
+-------------------
 
 Currently top directory contains three sub-directories
 
 doc/
-    documentation for AFNI
+    documentation for AFNI (though this is outdated; current doc content resides in its own git tree here: https://github.com/afni/afni_doc)
 src/
     source code for AFNI
 tests/

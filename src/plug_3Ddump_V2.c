@@ -219,21 +219,21 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                    ) ;
 
    PLUTO_add_number( plint ,
-                    "Minimum" ,  /* label next to chooser */
-                    -10000 ,         /* smallest possible value */
-                    10000 ,        /* largest possible value (inactivated for now)*/
+                    "Minimum" , /* label next to chooser */
+                    -10000 ,    /* smallest possible value */
+                    10000 ,     /* largest possible value (inactivated for now)*/
                     0 ,         /* decimal shift (none in this case) */
-                    0.5 ,         /* default value */
-                    TRUE       /* allow user to edit value? */
+                    0 ,         /* default value */
+                    TRUE        /* allow user to edit value? */
                   ) ;
 
 	PLUTO_add_number( plint ,
-                    "Maximum" ,  /* label next to chooser */
-                    -10000 ,         /* smallest possible value */
-                    10000 ,        /* largest possible value (inactivated for now)*/
+                    "Maximum" , /* label next to chooser */
+                    -10000 ,    /* smallest possible value */
+                    10000 ,     /* largest possible value (inactivated for now)*/
                     0 ,         /* decimal shift (none in this case) */
                     1 ,         /* default value */
-                    TRUE       /* allow user to edit value? */
+                    TRUE        /* allow user to edit value? */
                   ) ;
 
    /*---------- 5th line: output stuff ----------*/

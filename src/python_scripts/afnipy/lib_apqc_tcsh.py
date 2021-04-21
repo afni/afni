@@ -147,7 +147,7 @@ auth = 'PA Taylor'
 #    + if ~normal smoothing is done, this is needed
 #    + if no smoothing is done
 #
-ver = '3.65' ; date = 'July 30, 2020' 
+#ver = '3.65' ; date = 'July 30, 2020' 
 # [PT] 
 #    + search for template first with full given path, then just by
 #      basename.  this makes it easier to have QC work if directory
@@ -155,6 +155,27 @@ ver = '3.65' ; date = 'July 30, 2020'
 #      different computers)
 #    + also include a wildcard to help clean intermed file, in case
 #      auto GZIP is on
+#
+#ver = '3.7' ; date = 'Feb 22, 2021'
+# [PT] add in TSNR images
+#
+#ver = '3.71' ; date = 'Feb 22, 2021'
+# [PT] updates with TSNR images/fnames 
+#    + following on from AP updates from RCR---thanks!
+#
+#ver = '3.72' ; date = 'Feb 24, 2021'
+# [PT] TSNR image no longer *requires* mask
+#    + add a type-check to dep_check.  
+#
+#ver = '3.73' ; date = 'Mar 5, 2021'
+# [PT] cp review basic text to QC_*/ dir
+#
+#ver = '3.74' ; date = 'Apr 6, 2021'
+# [PT] update TSNR-vreg checks
+#    + give sep names for TSNR images: tsnr_vreg and tsnr_fin
+#
+ver = '3.75' ; date = 'Apr 6, 2021'
+# [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
 #
 #########################################################################
 
@@ -323,6 +344,11 @@ def get_warn_level_3( val, cutoff_list=[] ):
 
 def check_dep(D, lcheck):
     '''Does dictionary 'D' contain each of the elements of 'lcheck'?'''
+
+    if type(lcheck) != list :
+        sys.exit("** ERROR: input to check_dep() needs to be a list, not:\n"
+                 "          {}".format(type(lcheck)))
+
 
     HAS_ALL = 1
     for x in lcheck:
@@ -688,7 +714,7 @@ def make_apqc_top_vars(ssdict, fulllist):
         print('++ Found {} files for QCing.'.format(Nap))
     else:
         print('*+ Warning! Found *0* files for QCing???')
-        sys.exit(0)
+        sys.exit(1)
 
     out = ''
     for x in fulllist:
@@ -2603,18 +2629,165 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
 # -----------------------------------------------------------------
 
+# [PT: Feb 22, 2021] add in TSNR plots for final dset
+
+# ['tsnr_dset']
+def apqc_regr_tsnr( obase, qcb, qci, 
+                    ulay, focusbox, olay,
+                    descrip="",
+                    HAVE_MASK=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    # NB: below, note the '.axi.json', because of how @chauffeur_afni
+    # appends slice plane in the name of each output image
+    pre = '''
+    set opref = {opref}
+    set ulay_dset = {ulay}
+    set olay_dset = {olay}
+    set focus_box = {focusbox}
+    set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
+    set olay_name = `3dinfo -prefix ${{olay_dset}}`
+    set avsp      = `3dinfo -av_space ${{olay_dset}}`
+    set olaylabel = `3dinfo -label ${{olay_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
+    '''.format( opref=opref, ulay=ulay, olay=olay,
+                focusbox=focusbox )
+
+    ttext = ''
+    ttext+= '''"olay: ${{olay_name}} {descrip}"'''.format(descrip=descrip)
+
+    if HAVE_MASK:
+
+        pre+= '''set mask_name = `3dinfo -prefix ${mask_dset}`
+        '''
+
+        comm  = '''TSNR: 5-95%ile range in mask_dset highlighted'''
+
+        cmd0 = '''
+        adjunct_apqc_tsnr_general
+        -ulay         ${ulay_dset}
+        -olay         ${olay_dset}
+        -focus        ${focus_box}  
+        -mask         ${mask_dset}
+        -prefix       ${odir_img}/${opref}
+        -prefix_cbar  ${opbarrt}
+        '''
+
+        ttext+= ''' ,, '''
+        ttext+= '''"mask: ${mask_name} (for percentile range)"'''
+
+    else:
+
+        comm  = '''TSNR: 0-98%ile range in FOV highlighted'''
+
+        cmd0 = '''
+        adjunct_apqc_tsnr_general
+        -ulay         ${ulay_dset}
+        -olay         ${olay_dset}
+        -focus        ${focus_box}  
+        -prefix       ${odir_img}/${opref}
+        -prefix_cbar  ${opbarrt} 
+        '''
+
+    # As default, use :: and ,, as major and minor delimiters,
+    # respectively, because those should be useful in general.  
+    # NB: because we want the single apostrophe to appear as a text
+    # character, we have to wrap this with the double quotes
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lah.PBAR_FLAG)
+    jsontxt2  = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {} 
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               osubtext2 )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, 
+            pbarjsontxt_cmd,
+            jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
+# -----------------------------------------------------------------
+
 # [PT: June 27, 2019] expanding to include enorm, if available and
 # in Pythonic mode
+# [PT: Feb 23, 2021] moved here to 'mot' from 'regr'
 
 # ['errts_dset', 'mask_dset']
 # ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
-def apqc_regr_grayplot( obase, qcb, qci,
-                        run_style, 
-                        has_mot_dset=False,
-                        has_out_dset=False,
-                        has_mot_lim=False,
-                        has_out_lim=False,
-                        has_cen_dset=False ):
+def apqc_mot_grayplot( obase, qcb, qci,
+                       run_style, 
+                       has_mot_dset=False,
+                       has_out_dset=False,
+                       has_mot_lim=False,
+                       has_out_lim=False,
+                       has_cen_dset=False ):
 
     #print("AA", has_mot_dset)
     #print("AA", has_out_dset)
@@ -3770,11 +3943,30 @@ def apqc_DO_cp_subj_jsons( all_json ):
 
     comm = commentize( comm )
     pre  = commandize( pre )
-    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False  )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
 
     lout = [comm, pre, cmd]
     return '\n\n'.join(lout)
 
+# ========================== cp rev basic txt ===========================
+
+# cp rev basic text to QC_*/ dir
+# ['ss_review_dset']
+def apqc_DO_cp_subj_rev_basic( ):
+
+    comm  = '''preserve subj review_basic text file'''
+
+    cmd = '''
+    \cp ${ss_review_dset} ${odir_info}/.
+    '''
+
+    comm = commentize( comm )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
+
+    lout = [comm, cmd]
+    return '\n\n'.join(lout)
 
 # ========================== term echo ==============================
 
@@ -3792,7 +3984,7 @@ def apqc_DO_term_ss_review_basic( ):
     '''
 
     cmd0 = '''
-    cat out.ss_review.${subj}.txt
+    cat ${ss_review_dset}
     '''
 
     comm  = commentize( comm )
@@ -4087,6 +4279,10 @@ def parse_stats_dset_labels( fname, lsearch = [] ) :
                   "".format(pre, fname))
 
     return list_objs
+
+####################################################################
+
+# -----------------------------------------------------------------
 
 
 # =========================================================================

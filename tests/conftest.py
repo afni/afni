@@ -1,17 +1,15 @@
-import filelock
-import os
 from pathlib import Path
-
-import pytest
-import inspect
-import importlib
-
-
 import contextlib
-import sys
+import datetime as dt
+import filelock
+import importlib
+import inspect
+import os
+import pytest
 import shutil
-
+import sys
 import tempfile
+import time
 import xvfbwrapper
 
 # make sure afni_test_utils importable (it will always either be not installed
@@ -37,9 +35,7 @@ except ImportError as err:
         raise err
 
 pytest.register_assert_rewrite("afni_test_utils.tools")
-from afni_test_utils import data_management as dm  # noqa: E402
-from afni_test_utils import tools  # noqa: E402
-
+from afni_test_utils import data_management as dm  # noqa: E40
 
 if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
     raise EnvironmentError(
@@ -51,6 +47,30 @@ if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
 
 PORT_LOCKS_DIR = Path(tempfile.mkdtemp("port_locks"))
 
+cached_outdir_lock = filelock.FileLock(
+    Path("/tmp") / "session_output_directory.lock", timeout=1
+)
+
+OUTPUT_DIR_NAME_CACHE = Path("/tmp") / "test_session_outdir_name.txt"
+try:
+    cached_outdir_lock.acquire()
+    if OUTPUT_DIR_NAME_CACHE.exists():
+        OUTPUT_DIR_NAME_CACHE.unlink()
+    CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
+    OUTPUT_DIR_NAME_CACHE.write_text(f"output_{CURRENT_TIME}")
+    time.sleep(5)
+    cached_outdir_lock.release()
+except filelock.Timeout:
+    OUTPUT_DIR_NAME_CACHE.read_text()
+
+encodings_patterns = [x.upper() for x in ["utf-8", "utf8"]]
+if not any(p in sys.getdefaultencoding().upper() for p in encodings_patterns):
+    raise EnvironmentError(
+        "Only utf-8 should be used for character encoding. Please "
+        "change your locale settings as required... LANG_C,LANG_ALL "
+        "etc. "
+    )
+
 
 def pytest_sessionstart(session):
     """called after the ``Session`` object has been created and before performing collection
@@ -59,6 +79,7 @@ def pytest_sessionstart(session):
     :param _pytest.main.Session session: the pytest session object
     """
     dm.get_tests_data_dir(session)
+    print("\n\n The output is being written to:", get_output_dir(session))
 
 
 def pytest_generate_tests(metafunc):
@@ -70,6 +91,7 @@ def pytest_generate_tests(metafunc):
         os.environ["DYLD_LIBRARY_PATH"] = "/opt/X11/lib/flat_namespace"
 
     os.environ["AFNI_SPLASH_ANIMATE"] = "NO"
+    os.environ["NO_CMD_MOD"] = "true"
     unset_vars = [
         "AFNI_PLUGINPATH",
         "AFNI_PLUGIN_PATH",
@@ -114,7 +136,7 @@ def data(pytestconfig, request):
     Returns:
         collections.NameTuple: A data object for conveniently handling the specification
     """
-    data = dm.get_data_fixture(pytestconfig, request)
+    data = dm.get_data_fixture(pytestconfig, request, get_output_dir(pytestconfig))
     return data
 
 
@@ -134,13 +156,19 @@ def pytest_addoption(parser):
         "of many minutes to hours ",
     )
     parser.addoption(
-        "--diff_with_outdir",
+        "--runall",
+        action="store_true",
+        default=False,
+        help="Ignore all test markers and run everything.",
+    )
+    parser.addoption(
+        "--diff-with-sample",
         default=None,
         help="Specify a previous tests output directory with which the output "
         "of this test session is compared.",
     )
     parser.addoption(
-        "--create_sample_output",
+        "--create-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -151,7 +179,7 @@ def pytest_addoption(parser):
         ),
     )
     parser.addoption(
-        "--save_sample_output",
+        "--save-sample-output",
         action="store_true",
         default=False,
         help=(
@@ -176,58 +204,75 @@ def pytest_addoption(parser):
             "tested in both python 3 and python 2 "
         ),
     )
-    parser.addoption(
-        "--overwrite_outdir",
-        default="",
-        help=(
-            "Specify a path to an output directory to write to. This is "
-            "not required for a typical run of the test-suite. It can "
-            "be useful to restart tests that are executing resumable "
-            "pipelines though. tested in both python 3 and python 2 "
-        ),
-    )
 
 
 def pytest_collection_modifyitems(config, items):
-    # more and more tests are skipped as each premature return is not executed:
-    if config.getoption("--runveryslow"):
-        # --runveryslow given in cli: do not skip slow tests
+    """
+    This function is a pytest hook that is executed after a collection of
+    tests (but before tests are filtered using markers or keyword expression).
+
+    The current desire behavior is to filter out tests marked with slow,
+    veryslow, or combinations by default. These tests can be executed by
+    either explicitly filtering for them using a pytest marker expression or
+    by using one of the flags --runslow, --runveryslow, --runall
+    """
+    keywordexpr = config.option.keyword
+    markexpr = config.option.markexpr
+    if keywordexpr or markexpr:
+        # let pytest handle this, runveryslow or runslow flags would not have been used
         return
-    else:
-        skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
-        for item in items:
+
+    if config.getoption("--runall"):
+        # marks filtered by default are included as requested by user
+        return
+
+    # define skip markers
+    skipping_veryslow_tests = not config.getoption("--runveryslow")
+    skip_veryslow = pytest.mark.skip(reason="need --runveryslow option to run")
+    skipping_slow_tests = not (
+        config.getoption("--runveryslow") or config.getoption("--runslow")
+    )
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    skip_combinations = pytest.mark.skip(
+        reason="need --runall or -m 'combinations' to run"
+    )
+
+    # filter out some tests by default
+    for item in items:
+        if skipping_veryslow_tests or skipping_slow_tests:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
+
+        if skipping_veryslow_tests:
             if "veryslow" in item.keywords:
                 item.add_marker(skip_veryslow)
 
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
+        if "combinations" in item.keywords:
+            item.add_marker(skip_combinations)
 
 
 def pytest_sessionfinish(session, exitstatus):
-    output_dir = dm.get_output_dir(session.config)
+    output_dir = get_output_dir(session)
+    # When configured to save output and test session was successful...
+    saving_desired = session.config.getoption("--save-sample-output")
+    user_wants = session.config.getoption("--create-sample-output")
+    create_samp_out = user_wants and not bool(exitstatus)
+    if saving_desired and not bool(exitstatus):
+        dm.save_output_to_repo()
+
     if output_dir.exists():
-        print("\nTest output is written to: ", output_dir)
+        print("\n\nTest output is written to: ", output_dir)
 
     full_log = output_dir / "all_tests.log"
     if full_log.exists():
         print("\nLog is written to: ", full_log)
 
-    if session.config.getoption("--create_sample_output") and not bool(exitstatus):
+    if create_samp_out:
         print(
             "\n Sample output is written to:",
-            tools.convert_to_sample_dir_path(output_dir),
+            dm.convert_to_sample_dir_path(output_dir),
         )
-
-    # When configured to save output and test session was successful...
-    saving_desired = session.config.getoption("--save_sample_output")
-    if saving_desired and not bool(exitstatus):
-        dm.save_output_to_repo()
-    elif saving_desired:
+    if saving_desired and bool(exitstatus):
         print(
             "Sample output not saved because the test failed. You may "
             "want to clean this up with 'cd afni_ci_test_data;git reset "
@@ -332,3 +377,21 @@ def mocked_hierarchical_installation():
     (instd / "fake_site_packages/afnipy/afni_base.py").touch()
     (instd / "fake_site_packages/afnipy/__init__.py").touch()
     return instd
+
+
+def get_output_dir(config_obj):
+    if hasattr(config_obj, "config"):
+        conf = config_obj.config
+    elif hasattr(config_obj, "rootdir"):
+        conf = config_obj
+    else:
+        print(config_obj)
+        raise TypeError("A pytest config object was expected")
+
+    rootdir = conf.rootdir
+
+    output_dir = Path(rootdir) / "output_of_tests" / OUTPUT_DIR_NAME_CACHE.read_text()
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    return output_dir

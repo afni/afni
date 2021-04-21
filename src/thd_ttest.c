@@ -39,7 +39,7 @@ float_triple student_ttest( int numx , float *xar ,
      for( ii=0 ; ii < numx ; ii++ ) avx += xar[ii]-yar[ii] ;
      avx /= numx ; sdx = 0.0f ;
      for( ii=0 ; ii < numx ; ii++ ){ val = xar[ii]-yar[ii]-avx; sdx += val*val; }
-     val = (sdx > 0.0f) ?  val = avx / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
+     val = (sdx > 0.0f) ? avx / sqrtf( sdx/((numx-1.0f)*numx) ) : 0.0f ;
      result.a = avx ; result.b = val ; result.c = numx-1.0f ;
 
    } else if( numy == 0 ){  /* Case 2: 1 sample test against mean==base */

@@ -31,7 +31,7 @@ target_include_directories(track_tools
 
 
 
-if(COMP_ADD_BINARIES)
+if(COMP_COREBINARIES)
   foreach(
     target
     1dDW_Grad_o_Mat
@@ -59,10 +59,9 @@ if(COMP_ADD_BINARIES)
     target_link_libraries(${target} track_tools)
   endforeach(target)
 
-  if(OPENMP_FOUND)
-    foreach(target 3dEigsToDT 3dDWUncert)
-      add_afni_executable(${target} ${target}.c)
-      target_link_libraries(${target} track_tools OpenMP::OpenMP_C)
-    endforeach(target)
-  endif()
+
+  foreach(target 3dEigsToDT 3dDWUncert)
+    add_afni_executable(${target} ${target}.c)
+    target_link_libraries(${target} track_tools $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>)
+  endforeach(target)
 endif()

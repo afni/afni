@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
    float **MAT=NULL;    // correlation matrix
    
    int WHICH_TEST = 0; // 1 = eta2  (**only choice right now**)
-   char out_eta2[300];
+   char out_eta2[THD_MAX_NAME];
    
 
    // ###################################################################
@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Error reading Nvox from eigenvalue file.");
    
    mskd = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd == NULL)) { 
+   if( mskd == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }

@@ -765,7 +765,7 @@ if(PRINT_TRACING)
      } else if( spval >= 0.9999 ){
        strcpy( buf , "p=1" ) ;
      } else if( spval >= 0.0010 ){
-       char qbuf[16] ;
+       char qbuf[20] ;
        sprintf( qbuf , "%5.4f" , spval ) ;
        strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ; /* qbuf+1 skips leading 0 */
      } else {
@@ -788,7 +788,7 @@ if(PRINT_TRACING)
        float qval = 2.0*qg(zval) ;         /* convert z back to FDR q */
        im3d->vinfo->func_qval = qval ;
        if( qval > 0.0f && qval < 0.9999 ){
-         char qbuf[16] ;
+         char qbuf[20] ;
          if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
          else {
            int dec = (int)(0.999 - log10(qval)) ;
@@ -1703,6 +1703,8 @@ static void mri_edgize_outer( MRI_IMAGE *im )
 
    switch( im->kind ){
 
+     default: break ;
+
      case MRI_byte:{                             /* 09 Dec 2014 */
        byte *ajj , *ajm , *ajp , *atemp , *ar ;
        ar    = MRI_BYTE_PTR(im) ;
@@ -2613,6 +2615,8 @@ STATUS("colorization") ;
 
 STATUS("threshold-ization and alpha-ization") ;
      switch( im_thr->kind ){ /* the kind of data in the threshold image */
+
+       default: break ;  /* should not happen */
 
        case MRI_short:{
          register float thb=thbot , tht=thtop , aa ; register int rej, vvz ;
@@ -3748,9 +3752,8 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       } else {
         for( ii=0 ; ii < ss_new->num_dsset ; ii++ ) {
           temp_dset = GET_SESSION_DSET(ss_new, ii, old_view);
-          if( ISVALID_3DIM_DATASET(temp_dset) )
-             new_anat = ii ; break ;
-          }
+          if( ISVALID_3DIM_DATASET(temp_dset) ){ new_anat = ii ; break ; }
+        }
       }
       if( new_anat < 0 ) new_anat = 0 ;  /* use 1st if no match */
 
@@ -6165,6 +6168,7 @@ STATUS("have new image") ;
          imar = mri_data_pointer(im) ;
          if( save_order != native_order ){                   /* 23 Nov 1999 */
             switch( im->kind ){
+               default:                                   break ;
                case MRI_short:   mri_swap2(  npix,imar) ; break ;
                case MRI_float:
                case MRI_int:     mri_swap4(  npix,imar) ; break ;
@@ -6413,7 +6417,7 @@ XmString AFNI_range_label( Three_D_View *im3d )
    char anat_minch[10] = " --------" , anat_maxch[10] = " --------" ,
         fim_minch[10]  = " --------" , fim_maxch[10]  = " --------" ,
         thr_minch[10]  = " --------" , thr_maxch[10]  = " --------"   ;
-   char buf[256] , qbuf[16] ;
+   char buf[256] , qbuf[20] ;
    XmString xstr ;
    int iv ;
 
@@ -6512,7 +6516,7 @@ XmString AFNI_autorange_label( Three_D_View *im3d )
 {
    XmString xstr ;
    float rrr ;
-   char buf[32] , qbuf[16] ;
+   char buf[32] , qbuf[20] ;
 
 ENTRY("AFNI_autorange_label") ;
 
@@ -6953,7 +6957,7 @@ ENTRY("AFNI_bucket_label_CB") ;
 
    /** 04 May 2005: customize width to this dataset **/
 
-   if( dset != dset_last && ISVALID_DSET(dset) || force_label_resize ){
+   if( ISVALID_DSET(dset) && ( dset != dset_last || force_label_resize ) ){
      int nvals,kk,blw,mblw=4 ; char *lab ;
      dset_last = dset ;
      nvals = DSET_NVALS(dset) ;

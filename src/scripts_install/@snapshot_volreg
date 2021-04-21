@@ -4,6 +4,15 @@
 
 # [PT: July 2, 2018] 
 # + Edited to allow for inclusion of path when naming output JPGs
+#
+# [PT: Mar 6, 2020]
+# + note about updating PBAR_ALL, which doesn't appear necessary at the
+#   moment, just based on how outputs look currently
+# + added '-no1D' to the afni command, to remove annoying warnings if there
+#   happens to be a *.1D file lurking
+# + add in disable IMSAVE warnings with env var
+# + make the GUI run quietly (-q)
+# + set many other env vars to be quieter.
 
 # help?
 
@@ -208,13 +217,17 @@ endif
 
 # set some AFNI GUI things
 
-setenv AFNI_NOSPLASH          YES
-setenv AFNI_SPLASH_MELT       NO
-setenv AFNI_LEFT_IS_LEFT      YES
-setenv AFNI_IMAGE_LABEL_MODE  5
-setenv AFNI_IMAGE_LABEL_SIZE  2
-setenv AFNI_ENVIRON_WARNINGS  NO
-setenv AFNI_COMPRESSOR        NONE
+setenv AFNI_NOSPLASH             YES
+setenv AFNI_SPLASH_MELT          NO
+setenv AFNI_LEFT_IS_LEFT         YES
+setenv AFNI_IMAGE_LABEL_MODE     5
+setenv AFNI_IMAGE_LABEL_SIZE     2
+setenv AFNI_ENVIRON_WARNINGS     NO
+setenv AFNI_COMPRESSOR           NONE
+setenv AFNI_IMSAVE_WARNINGS      NO
+setenv AFNI_NEVER_SAY_GOODBYE    YES
+setenv AFNI_STARTUP_WARNINGS     NO
+setenv AFNI_MOTD_CHECK           NO
 
 # start the X virtual frame buffer on display #xdisplay
 
@@ -301,7 +314,15 @@ set astep = `ccalc -int "cbrt($anatNN)/6.111"`
 
 if( $astep < 2 ) set astep = 2
 
-afni -noplugins -no_detach                                       \
+# [PT] NB: at some point, it may become necessary to adjust this line:
+##     -com "SET_PBAR_ALL +99 1 Plasma"                            \
+# ... but at present, things tend to look good as they are.  For that
+# future generation, you could perhaps use 3dBrickStat to get an
+# appropriate top_val for the PBAR_ALL
+
+echo "++ Start GUI to snapshot"
+
+afni -q -noplugins -no_detach -no1D                              \
      -DAFNI_DEFAULT_OPACITY=9                                    \
      -DAFNI_FUNC_ALPHA=Linear                                    \
      -com "SWITCH_UNDERLAY ${cdset}"                             \

@@ -69,6 +69,336 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "More options from @chauffeur_afni here.",
+   "Tryin' to make nicer images.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Use newer adjunct_apqc_tsnr_general for TSNR images.",
+   "Single/more adjunct general prog than previous separate ones.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Internal logic for making TSNR dsets tweaked.",
+   "TSNR images in QC*/media/ dir get unique name, too (no change for user).\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_PROG,
+   "Made to replace adjunct_apqc_tsnr_with_mask and adjunct_apqc_tsnr_no_mask.",
+   "Also expands/generalizes this functionality.\n"
+},
+
+{ 16, Apr , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New keyword EMPTY for '-topval ..' opt, make scripting easier.",
+   "Corrected discrete cbar help example, too.\n"
+},
+
+{ 24, Mar , 2021 , PT , "3dinfo" , MICRO , TYPE_NEW_OPT,
+   "New opt: -is_atlas_or_labeltable.",
+   "1 if dset has an atlas or labeltable;  otherwise, 0.\n"
+},
+
+{ 24, Mar , 2021 , PT , "3dBrickStat" , MAJOR , TYPE_BUG_FIX,
+   "Fix bug: having non-full-FOV mask + perc calcs affected other calcs.",
+   "Calcs should now be consistent even with those opts used. Thanks, RCR.\n"
+},
+
+{ 23, Mar , 2021 , PT , "3dBrickStat" , MICRO , TYPE_GENERAL,
+   "Uniformize internal spacing. Should be no change in behavior.",
+   "Just a few comments stretch far still.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_4d_imager" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 10, Mar , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_OPT,
+   "Add in more control features, so can apply in more cases.",
+   "Basically just allowing more chauffeur control.\n"
+},
+
+{ 8, Mar , 2021 , PT , "3dRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "map_TrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dZipperZapper" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dNetCorr" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dDWUncert" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dLombScargle" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dMatch" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dROIMaker" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3ddot_beta" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dAmpToRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dReHo" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dTrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 6, Mar , 2021 , PT , "@fat_tract_colorize" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.  And tweak help to be more useful.\n"
+},
+
+{ 6, Mar , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
+{ 6, Mar , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
+{ 5, Mar , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Have APQC copy the ss_review_basic text file into the QC dir.",
+   "Might want this text info available for easy parsing at group level.\n"
+},
+
+{ 3, Mar , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_BUG_FIX,
+   "Had an early exit from earlier debugging.",
+   "Ironic, really, that a debugging line became a bug.  Go figure.\n"
+},
+
+{ 3, Mar , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "Make nice new WB mask, make some QC images of mask/segs/ROIs.",
+   "Also make tables of ROI info (size stuff).\n"
+},
+
+{ 3, Mar, 2021, PT , "gen_ss_review_scripts.py" , MINOR, TYPE_GENERAL,
+   "Add sswarper2 to name of recognized progs for getting template dset.",
+   "Can get uvar for APQC for this top secret NL alignment prog.\n"
+},
+
+{ 3, Mar, 2021, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_BUG_FIX,
+   "On one system an instrutable error message 'Unknown user: 1~.' occurred.",
+   "This change (doublequote file name? remove EOL in backticks?) fixed it.\n"
+},
+
+{ 1, Mar , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Fix output dir of an intermediate QC image.",
+   "The init*uaff* should now be in the usual QC/ dir.\n"
+},
+
+{ 25, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "With non-nonlinear warps, processing now goes all they way through.",
+   "Bit more *.txt output, fixed mapping of anat follower non-ROI dset.\n"
+},
+
+{ 24, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add more TSNR plotting: if vreg TSNR is calc'ed, or if no mask exists.",
+   "Also a bug fix in HAVE_MASK definition; fix ranges in some plots.\n"
+},
+
+{ 24, Feb , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, for when *no* mask exists.\n"
+},
+
+{ 22, Feb , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, as well as mask.\n"
+},
+
+{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New part of regr block: TSNR plot.",
+   "Shows brain slices.\n"
+},
+
+{ 22, Feb , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: -pbar_comm_gen, for APQC.",
+   "Also remove warning about ffmpeg unless using MPEG.\n"
+},
+
+{ 10, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Add in -mask_ss option, to replace skullstripping with a mask.",
+   "For example, using fs*mask*nii from @SUMA_Make_Spec_FS after FS.\n"
+},
+
+{ 10, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "More QC images: WM and GM tissue, solo.",
+   "Thanks for suggestions, P Molfese.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "New column of ROI vol fraction, relative to fs_parc_wb_mask.nii.gz.",
+   "This prog should always be run after adjunct_suma_fs_mask_and_qc.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_fs_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_rois_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Make new mask dset from parcellation.",
+   "Add new image of new dset.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Add fractional volume info to the text file.",
+   "This makes 2 new columns in the output *.1D files.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes *.1D files of voxel counts of parcellations and segs.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes images of the brain mask, tissue segs and parcellation.\n"
+},
+
+{ 5, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Add in more intermediate QC snapshots (intermed align): init*jpg ",
+   "Also add '-echo' opt for verbose terminal stuff.\n"
+},
+
+{ 3, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New QC image, of affine warping.",
+   "Also pass along '-echo' opt to modal smoo/report script.\n"
+},
+
+{ 27, Jan , 2021 , PT , "3dAttribute" , MINOR , TYPE_GENERAL,
+   "Update help to have fancy sections and more examples.",
+   "Also provide link to README.attributes file, for user reference.\n"
+},
+
+{ 27, Jan , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "New run script created (run_01*) in L_MAKE_DRIVE_SCRIPT block.",
+   "Opens std.141*both*spec in SUMA and SurfVol in AFNI, and starts talking.\n"
+},
+
+{ 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New default feature_size: 0.5.  (Old default: was unset).",
+   "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"
+},
+
+{ 22, Dec , 2020 , PT , "3dmaskave" , MINOR , TYPE_BUG_FIX,
+   "MRI_TYPE_maxval fixed for byte case-- thanks, C Rorden!",
+   "Same fix applied in: plug_maskave.c and thd_makemask.c.\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dROIMaker" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "The '-orient ..' opt wasn't working-- that has been fixed.",
+   "Now user can specify table coords with this opt.\n"
+},
+
+{ 1, Dec , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Tweaked default temp 'junk' filename to avoid low-probability badness ",
+   "New opt '-tmp_name_nice' for, well, read opt name. Improved help, too.\n"
+},
+
+{ 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
+   "Set some env vars at top of script to turn off compression.",
+   "Was causing odd error in one case.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_read_dp_align.py" , MINOR , TYPE_NEW_PROG,
+   "Script to read TORTOISE-DIFFPREP *_transformations.txt files.",
+   "Puts them into usable order for calc'ing enorm and plotting mot/pars.\n"
+},
+
+{ 6, Nov , 2020 , PT , "adjunct_tort_plot_dp_align" , MINOR , TYPE_NEW_PROG,
+   "Script (tcsh) to translate TORTOISE-DIFFPREP *_transformations.txt files",
+   "Wraps new adjunct_tort_read_dp_align.py and 1dplot* to make plots.\n"
+},
+
+{ 2, Nov , 2020 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Can now output SVG files, and can use newline chars in labels.",
+   "Had to deal with newline escape seq internally.\n"
+},
+
+{ 28, Oct , 2020 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of source and base dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
+{ 28, Oct , 2020 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Extra QC image:  initial overlap of T1w and T2w dsets.",
+   "Should help to know, in case anything goes awry later.\n"
+},
+
 { 19, Oct , 2020 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Added new QC image: initial source-base alignment (@djunct_overlap_check)",
    "If obl, make 1 img ignoring it, and 1 3dWarp-deob'ed, with text report.\n"

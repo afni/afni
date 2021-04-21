@@ -1428,27 +1428,13 @@ interactively, the graph won't automatically be redrawn -- you'll have
 to force a graph window redraw to see the effects.)
 
 ---------------------------
-Variable: AFNI_GRAPH_BOXLAB (editable)
+Variable: AFNI_GRAPH_BOXLAB --- THIS VARIABLE HAS BEEN REMOVED [11 Jan 2021]
 ---------------------------
-This variable determines if and how the AFNI grapher displays sub-brick
+Formerly, this variable determined how the AFNI grapher displays sub-brick
 labels on top of the Box graphs (from the 'Colors, Etc.' menu, or via
-the 'B' keypress). If Box graphs are turned on, and if the graph matrix
-has only 1 graph, and if this environment variable is set properly, then
-sub-brick labels will be drawn on top of the graph boxes. The settings
-for this variable are
-  ATOP (or A) = labels go on top of their boxes
-  MAX  (or M) = labels go at the level of the tallest box
-  ZERO (or Z) = labels go at the bottom of the graph
-Labels are drawn vertically, upwards from their starting point. Play
-with this feature to see how it works and looks, and recall that
-beauty is in the eye of the beholder. (If you edit this method
-interactively, the graph won't automatically be redrawn -- you'll have
-to force a graph window redraw to see the effects.)  You can control
-the font for this text with AFNI_GRAPH_FONT (next). Note that if you
-use the Dataset#N plugin with this feature, the labels will come from
-the underlay dataset rather than the Dataset#N datasets. This bug is
-so recondite and intractable that I hope it will not cause too many
-problems for the adoring AFNI public.
+the 'B' keypress).
+Now, the choice of if and where the labels appear is made directly in
+the graph viewer menus.
 
 -------------------------
 Variable: AFNI_GRAPH_FONT
@@ -2068,7 +2054,27 @@ Jan 2003) are
 The third column is the name of the external filter program that AFNI
 uses to write the format. If a filter is not present on your system,
 then that option is not available. Most of these filters are part of
-the netpbm package.
+the netpbm package, which can be installed on MacOS X by using the
+brew package (for example).
+
+------------------------------
+Variable: AFNI_IMSAVE_WARNINGS
+------------------------------
+If this variable is not set, then if the program cannot find one
+of the output filter programs listed above, then a warning message
+will be printed to the terminal. However, if you set this variable
+to NO, then such warning messages will NOT be printed out. The
+purpose of this variable is to let you silence these messages
+once you get sick of seeing them.
+
+---------------------------
+Variable: AFNI_IMSAVE_DEBUG
+---------------------------
+If this variable is set to YES, then when you save an image from the
+image viewer, the various steps will be printed to the terminal
+as the process happens. As the variable name is implied, this
+capability is here for debugging, and has not actually been used
+for years (at least by the AFNI Imperial Command Team).
 
 -----------------------------
 Variables: AFNI_COLORSCALE_xx  for xx=01, 02, ..., 99

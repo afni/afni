@@ -10,11 +10,24 @@
 # PA Taylor, DR Glen and RC Reynolds.
 # ====================================================================
 
+set version   = "1.1";   set rev_dat   = "Mar 6, 2021"
+## [PT: Mar 6, 2021] 
+# + Tweak to run more silently, with afni GUI options and env vars
+# + fix help example (no path in filenames)
+#
 # --------------------- preliminary settings -----------------------
 
 set portnum = `afni -available_npb_quiet`
 
-setenv AFNI_ENVIRON_WARNINGS NO
+setenv AFNI_IMSAVE_WARNINGS   NO
+setenv AFNI_NOSPLASH          YES
+setenv AFNI_SPLASH_MELT       NO
+setenv AFNI_ENVIRON_WARNINGS  NO
+setenv AFNI_COMPRESSOR        NONE
+setenv AFNI_NEVER_SAY_GOODBYE    YES     
+setenv AFNI_STARTUP_WARNINGS     NO
+setenv AFNI_MOTD_CHECK           NO
+setenv AFNI_VERSION_CHECK        NO
 setenv SUMA_DriveSumaMaxCloseWait 6
 setenv SUMA_DriveSumaMaxWait 6
 
@@ -167,7 +180,14 @@ if ( $in_ulay == '' ) then
 endif
 
 # ------------------- Open up AFNI viewer and drive ------------------
-afni -npb $portnum -niml -yesplugouts &
+afni -q -no1D -echo_edu \
+    -npb $portnum -niml -yesplugouts \
+    -com "SWITCH_UNDERLAY A.${in_ulay}"                  \
+    -com "SWITCH_OVERLAY A.${in_FA}"                     \
+    -com 'SET_FUNC_VISIBLE A.+'                          \
+    -com 'SET_THRESHNEW A 0.2'                           \
+    -com 'SET_PBAR_ALL A.+99 1.0 Spectrum:yellow_to_red' \
+    & #-quit
 
 # Need to slooow things down occasionally (-> sleep commands) for
 # proper viewing behavior.  The number/length of naps may be
@@ -177,19 +197,22 @@ sleep 2
 
 # NB: Plugout drive options located at: 
 # http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
-plugout_drive -echo_edu                                  \
-    -npb $portnum                                        \
-    -com "SWITCH_UNDERLAY A.${in_ulay}"                  \
-    -com "SWITCH_OVERLAY A.${in_FA}"                     \
-    -com 'SET_FUNC_VISIBLE A.+'                          \
-    -com 'SET_THRESHNEW A 0.2'                           \
-    -com 'SET_PBAR_ALL A.+99 1.0 Spectrum:yellow_to_red' \
-    -quit
+#plugout_drive -echo_edu                                  \
+#    -npb $portnum                                        \
+#    -com "SWITCH_UNDERLAY A.${in_ulay}"                  \
+#    -com "SWITCH_OVERLAY A.${in_FA}"                     \
+#    -com 'SET_FUNC_VISIBLE A.+'                          \
+#    -com 'SET_THRESHNEW A 0.2'                           \
+#    -com 'SET_PBAR_ALL A.+99 1.0 Spectrum:yellow_to_red' #\
+#    & #-quit
 # --------------------------------------------------------------------
+
+echo "\n\nNAP 0b/4...\n\n"
+sleep 2
 
 # ------------------- Open up SUMA viewer and drive ------------------
 suma                                                    \
-    -dev                                                \
+    #-dev                                                \
     -npb $portnum                                       \
     -niml                                               \
     -spec "${mid_iso}.spec"                             \
@@ -332,10 +355,14 @@ cat << EOF
 -------------------------------------------------------------------------
 
   EXAMPLE:
+
+    # at the moment, relative paths are not allowed for the FA volume
+    # (because of how it is loaded into the AFNI GUI for viewing as
+    # part of this command
     
-    @fat_tract_colorize -in_fa DTI/DT_FA+orig.                      \
-                        -in_v1 DTI/DT_V1+orig.                      \
-                        -in_tracts DTI/o.NET_000_PAIRMAP+orig'[0]'  \
+    @fat_tract_colorize -in_fa     DT_FA+orig.                           \
+                        -in_v1     DT_V1+orig.                           \
+                        -in_tracts o.NETS_AND_000_PAIRMAP+orig'[0]'      \
                         -prefix RGB
 
 -------------------------------------------------------------------------
@@ -344,7 +371,7 @@ EOF
     goto GOOD_EXIT
 
 SHOW_VERSION:
-   echo "version  1.2 (June, 2016)"
+   echo "version:  ${version}  (${rev_dat})"
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:

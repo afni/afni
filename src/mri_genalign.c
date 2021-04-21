@@ -58,8 +58,11 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
                           -3  -2  -1   0  +1  +2  +3  +4  +5
 */
 
+#undef  MYfabsf
+#define MYfabsf(x) fabsf((float)(x))  /* to avoid compiler warnings */
+
 #undef  PRED01
-#define PRED01(x) fabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
+#define PRED01(x) MYfabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
 
 /* Max number of points to warp at a time */
 
@@ -371,8 +374,8 @@ void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
+   int nblok , nelm , *elm , dd , ii,jj , nm , use_ppow=0 ;
+   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f , pabs,ppow=1.0f ;
    static int uwb=-1 , wsold=0 ;  /* flags set by the environment */
 
 ENTRY("GA_pearson_local") ;
@@ -398,6 +401,7 @@ ENTRY("GA_pearson_local") ;
    gbs   = gstup->blokset ;
    nblok = gbs->num ;
    if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
+   ppow  = gbs->ppow ; use_ppow = (ppow != 1.0f) ;  /* 28 Jan 2021 */
 
    if( uwb < 0 ){
      uwb   = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
@@ -447,7 +451,9 @@ ENTRY("GA_pearson_local") ;
           if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
      else if( pcor < -CMAX ) pcor = -CMAX ;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
-     psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
+     pabs = MYfabsf(pcor) ;
+     if( use_ppow ) pabs = powf(pabs,ppow) ;        /* 28 Jan 2021 */
+     psum += ws * pcor * pabs ;                     /* emphasize large values */
      if( !wsold ) wss += ws ;                       /* moved here 02 Mar 2010 */
    }
 
@@ -501,7 +507,7 @@ float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
      pcor = 2.0f * sinf( 0.523599f * pcor ) ;  /* 0.523599 = PI/6 */
      if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;  /* 2*arctanh() */
-     psum += pcor * fabsf(pcor) ;              /* emphasize large values */
+     psum += pcor * MYfabsf(pcor) ;              /* emphasize large values */
      wss++ ;
    }
    if( xt != NULL ){ free(yt) ; free(xt) ; }
@@ -977,7 +983,7 @@ STATUS("load weight and mask") ;
      if( bfac == 0.0f ) ERREX("wghtim is all zero?!?") ;
      bfac = 1.0f / bfac ;
      for( ii=0 ; ii < wghtim->nvox ; ii++ ){   /* scale weight, make mask */
-       bar[ii] = fabsf(bar[ii])*bfac ;
+       bar[ii] = MYfabsf(bar[ii])*bfac ;
        stup->bmask[ii] = (bar[ii] != 0.0f) ;
      }
 
@@ -1153,7 +1159,7 @@ STATUS("extract from base") ;
 
    if( stup->blokset != NULL ){                      /* 20 Aug 2007 */
      GA_BLOK_KILL(stup->blokset) ;
-     stup->blokset = NULL ;
+     stup->blokset = NULL ;   /* will be re-created later if needed */
    }
 
    stup->need_hist_setup = 1 ;   /* 08 May 2007 */
@@ -1444,6 +1450,87 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 
    free((void *)wpar); free((void *)avm);    /* toss the trash */
    RETURN(costvec) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return an image of the local correlations [25 Jan 2021 - RWC] */
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm )
+{
+   double *wpar , val ;
+   float *avm , *bvm , *wvm ;
+   int ii , qq  ;
+   floatvec *pvec ; MRI_IMAGE *pim ;
+
+ENTRY("mri_genalign_map_pearson_local") ;
+
+   /* check for malignancy */
+
+   if( stup == NULL || stup->setup != SMAGIC ) RETURN(NULL) ;
+
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) RETURN(NULL);
+
+   if( stup->blokset == NULL ){  /* Create blokset if not done before */
+     float rad=stup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
+     if( stup->smooth_code > 0 && stup->smooth_radius_base > 0.0f )
+       rad = sqrt( rad*rad + SQR(stup->smooth_radius_base) ) ;
+     mrad = 1.2345f*(stup->base_di + stup->base_dj + stup->base_dk) ;
+     rad  = MAX(rad,mrad) ;
+     if( stup->im != NULL ) ima = stup->im->ar ;
+     if( stup->jm != NULL ) jma = stup->jm->ar ;
+     if( stup->km != NULL ) kma = stup->km->ar ;
+     stup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
+                            stup->bsim->nx, stup->bsim->ny, stup->bsim->nz,
+                            stup->base_di , stup->base_dj , stup->base_dk ,
+                            stup->npt_match , ima,jma,kma ,
+                            stup->bloktype , rad , stup->blokmin , 1.0f,mverb ) ;
+   }
+
+/** INFO_message("mri_genalign_map_pearson_local: input parameters") ; **/
+
+   /* copy initial warp parameters into local wpar, scaling to range 0..1 */
+
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( !stup->wfunc_param[qq].fixed ){
+       val = (parm == NULL) ? stup->wfunc_param[qq].val_init : parm[qq] ;
+       wpar[ii] = (val - stup->wfunc_param[qq].min) / stup->wfunc_param[qq].siz;
+       if( wpar[ii] < 0.0 || wpar[ii] > 1.0 ) wpar[ii] = PRED01(wpar[ii]) ;
+/** ININFO_message("  %g  %g",val,wpar[ii]) ; **/
+       ii++ ;
+     }
+   }
+   if( ii == 0 ){ free(wpar) ; RETURN(NULL) ; } /* should never happen */
+
+   gstup    = stup ; /* I don't know if/why these statements are needed. */
+   gstup_bk = stup ; /* But I copied them from somewhere else to be safe */
+
+   avm = (float *)calloc(stup->npt_match,sizeof(float)) ; /* target points at */
+   GA_get_warped_values( stup->wfunc_numfree,wpar,avm ) ; /* warped locations */
+
+   bvm = stup->bvm->ar ;                                 /* base points */
+   wvm = (stup->wvm != NULL) ? stup->wvm->ar : NULL ;    /* weights */
+
+   /* get local correlation in each blok between avm and bvm, weighted by wvm */
+
+   pvec = GA_pearson_vector( stup->blokset , avm , bvm , wvm ) ;
+
+/** ININFO_message("Pearson vector") ;
+for( ii=0 ; ii < pvec->nar ; ii++ ){
+   fprintf(stderr,"   %g %d",pvec->ar[ii],stup->blokset->nelm[ii]) ;
+   if( ii%5 == 0 && ii > 0 ) fprintf(stderr,"\n") ;
+}
+fprintf(stderr,"\n") ; **/
+
+   /* push these into an image */
+
+   pim = GA_pearson_image( stup , pvec ) ;
+
+   KILL_floatvec(pvec) ; free(wpar) ;  /* tosso the trasholo */
+
+   RETURN(pim) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2263,9 +2350,9 @@ mat44 GA_setup_affine( int npar , float *parvec )
    /* ss = shear */
 
    a = b = c = 0.0f ;
-   if( npar >= 10 ){ a = parvec[ 9]; if( fabsf(a) > 0.3333f ) a = 0.0f; }
-   if( npar >= 11 ){ b = parvec[10]; if( fabsf(b) > 0.3333f ) b = 0.0f; }
-   if( npar >= 12 ){ c = parvec[11]; if( fabsf(c) > 0.3333f ) c = 0.0f; }
+   if( npar >= 10 ){ a = parvec[ 9]; if( MYfabsf(a) > 0.3333f ) a = 0.0f; }
+   if( npar >= 11 ){ b = parvec[10]; if( MYfabsf(b) > 0.3333f ) b = 0.0f; }
+   if( npar >= 12 ){ c = parvec[11]; if( MYfabsf(c) > 0.3333f ) c = 0.0f; }
 #if 1
    switch( smat ){
      default:
@@ -2454,54 +2541,54 @@ void mri_genalign_bilinear( int npar, float *wpar ,
      dd_for[0][0][0] = wpar[12] * dd_fac ;  /* the real parameters */
      dd_for[0][0][1] = wpar[13] * dd_fac ;
      dd_for[0][0][2] = wpar[14] * dd_fac ;
-     emag = fabsf(wpar[12])+fabsf(wpar[13])+fabsf(wpar[14]) ;
+     emag = MYfabsf(wpar[12])+MYfabsf(wpar[13])+MYfabsf(wpar[14]) ;
 
      dd_for[0][1][0] = wpar[15] * dd_fac ;
      dd_for[0][1][1] = wpar[16] * dd_fac ;
      dd_for[0][1][2] = wpar[17] * dd_fac ;
      ddiag = (wpar[15]==0.0f) && (wpar[16]==0.0f) && (wpar[17]==0.0f) ;
-     dmag  = fabsf(wpar[15])+fabsf(wpar[16])+fabsf(wpar[17]) ;
+     dmag  = MYfabsf(wpar[15])+MYfabsf(wpar[16])+MYfabsf(wpar[17]) ;
 
      dd_for[0][2][0] = wpar[18] * dd_fac ;
      dd_for[0][2][1] = wpar[19] * dd_fac ;
      dd_for[0][2][2] = wpar[20] * dd_fac ;
      ddiag = ddiag && (wpar[18]==0.0f) && (wpar[19]==0.0f) && (wpar[20]==0.0f) ;
-     dmag += fabsf(wpar[18])+fabsf(wpar[19])+fabsf(wpar[20]) ;
+     dmag += MYfabsf(wpar[18])+MYfabsf(wpar[19])+MYfabsf(wpar[20]) ;
 
      dd_for[1][0][0] = wpar[21] * dd_fac ;
      dd_for[1][0][1] = wpar[22] * dd_fac ;
      dd_for[1][0][2] = wpar[23] * dd_fac ;
      ddiag = ddiag && (wpar[21]==0.0f) && (wpar[22]==0.0f) && (wpar[23]==0.0f) ;
-     dmag += fabsf(wpar[21])+fabsf(wpar[22])+fabsf(wpar[23]) ;
+     dmag += MYfabsf(wpar[21])+MYfabsf(wpar[22])+MYfabsf(wpar[23]) ;
 
      dd_for[1][1][0] = wpar[24] * dd_fac ;
      dd_for[1][1][1] = wpar[25] * dd_fac ;
      dd_for[1][1][2] = wpar[26] * dd_fac ;
-     emag += fabsf(wpar[24])+fabsf(wpar[25])+fabsf(wpar[26]) ;
+     emag += MYfabsf(wpar[24])+MYfabsf(wpar[25])+MYfabsf(wpar[26]) ;
 
      dd_for[1][2][0] = wpar[27] * dd_fac ;
      dd_for[1][2][1] = wpar[28] * dd_fac ;
      dd_for[1][2][2] = wpar[29] * dd_fac ;
      ddiag = ddiag && (wpar[27]==0.0f) && (wpar[28]==0.0f) && (wpar[29]==0.0f) ;
-     dmag += fabsf(wpar[27])+fabsf(wpar[28])+fabsf(wpar[29]) ;
+     dmag += MYfabsf(wpar[27])+MYfabsf(wpar[28])+MYfabsf(wpar[29]) ;
 
      dd_for[2][0][0] = wpar[30] * dd_fac ;
      dd_for[2][0][1] = wpar[31] * dd_fac ;
      dd_for[2][0][2] = wpar[32] * dd_fac ;
      ddiag = ddiag && (wpar[30]==0.0f) && (wpar[31]==0.0f) && (wpar[32]==0.0f) ;
-     dmag += fabsf(wpar[30])+fabsf(wpar[31])+fabsf(wpar[32]) ;
+     dmag += MYfabsf(wpar[30])+MYfabsf(wpar[31])+MYfabsf(wpar[32]) ;
 
      dd_for[2][1][0] = wpar[33] * dd_fac ;
      dd_for[2][1][1] = wpar[34] * dd_fac ;
      dd_for[2][1][2] = wpar[35] * dd_fac ;
      ddiag = ddiag && (wpar[33]==0.0f) && (wpar[34]==0.0f) && (wpar[35]==0.0f) ;
-     dmag += fabsf(wpar[33])+fabsf(wpar[34])+fabsf(wpar[35]) ;
+     dmag += MYfabsf(wpar[33])+MYfabsf(wpar[34])+MYfabsf(wpar[35]) ;
      dmag /= 18.0f ;
 
      dd_for[2][2][0] = wpar[36] * dd_fac ;
      dd_for[2][2][1] = wpar[37] * dd_fac ;
      dd_for[2][2][2] = wpar[38] * dd_fac ;
-     emag += fabsf(wpar[36])+fabsf(wpar[37])+fabsf(wpar[38]) ;
+     emag += MYfabsf(wpar[36])+MYfabsf(wpar[37])+MYfabsf(wpar[38]) ;
      emag /= 9.0f ;
 
 #if 0
@@ -3699,7 +3786,7 @@ void mri_genalign_heptic( int npar, float *wpar ,
    int ii ; float dd,dmax=0.0f ;
    static int ncall=0 ;
    for( ii=0 ; ii < npt ; ii++ ){
-     dd = fabsf(xo[ii]-xi[ii]) + fabsf(yo[ii]-yi[ii]) + fabsf(zo[ii]-zi[ii]) ;
+     dd = MYfabsf(xo[ii]-xi[ii]) + MYfabsf(yo[ii]-yi[ii]) + MYfabsf(zo[ii]-zi[ii]) ;
      if( dd > dmax ) dmax = dd ;
    }
    ncall++ ; ININFO_message("heptic %d: dmax = %.4g",ncall,dmax) ;
@@ -4225,7 +4312,7 @@ PUSE_LOOP:
    int ii ; float dd,dmax=0.0f ;
    static int ncall=0 ;
    for( ii=0 ; ii < npt ; ii++ ){
-     dd = fabsf(xo[ii]-xi[ii]) + fabsf(yo[ii]-yi[ii]) + fabsf(zo[ii]-zi[ii]) ;
+     dd = MYfabsf(xo[ii]-xi[ii]) + MYfabsf(yo[ii]-yi[ii]) + MYfabsf(zo[ii]-zi[ii]) ;
      if( dd > dmax ) dmax = dd ;
    }
    ncall++ ; ININFO_message("nonic %d: dmax = %.4g",ncall,dmax) ;

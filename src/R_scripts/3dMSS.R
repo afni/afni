@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Oct 30, 2020
+Version 0.0.8, April 18, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -32,7 +32,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 Introduction
 ------
 
- Multilevel Smoothing-spline (MSS) Modeling 
+ Multilevel Smoothing-Spline (MSS) Modeling 
 
  The linearity assumption surrounding a quantitative variable in common 
  practice may be a reasonable approximation especially when the variable 
@@ -40,14 +40,15 @@ Introduction
  circumstances when the variable\'s effect is non-monotonic or tortuous. 
  As a more flexible and adaptive approach, multilevel smoothing splines 
  (MSS) offers a more powerful analytical tool for population-level 
- neuroimaging data analysis. More theoretical discussion can be found in
+ neuroimaging data analysis that involves one or more quantitative
+ predictors. More theoretical discussion can be found in
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
- in neuroimaging.
+ in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
 
  To be able to run 3dMSS, one needs to have the following R packaages 
- installed: "gamm4", "phia" and "snow". To install these R packages, run 
- the following command at the terminal:
+ installed: "gamm4" and "snow". To install these R packages, run the
+ following command at the terminal:
 
  rPkgsInstall -pkgs "gamm4,snow"
 
@@ -137,12 +138,12 @@ Introduction
   two lines:
 
           -mrr 's(age)+s(Subj,bs=\"re\")'         \\
-          -VT Subj 's(Subj)'                      \\
+          -vt Subj 's(Subj)'                      \\
 
   The second term 's(Subj,bs=\"re\")' in the model specification means that
   each subject is allowed to have a varying intercept or random effect ('re'). 
   To estimate the smooth trajectory through the option -prediction, the option
-  -VT has to be included in this case to indicate the varying term (usually 
+  -vt has to be included in this case to indicate the varying term (usually 
   subjects). That is, if prediction is desirable, one has to explicitly
   declare the variable (e.g., Subj) that is associated with the varying term
   (e.g., s(Subj)). No empty space is allowed in the model formulation and the
@@ -152,7 +153,7 @@ Introduction
 
    3dMSS -prefix MSS -jobs 16                     \\
           -mrr 's(age)+s(Subj,bs=\"re\")'         \\
-          -VT Subj 's(Subj)'                      \\
+          -vt Subj 's(Subj)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -165,9 +166,9 @@ Introduction
   specified with
 
           -lme 's(age)'                        \\
-          -ranEff '(1|Subj)'                      \\
+          -ranEff 'list(Subj=~1)'                      \\
 
-  which is solved through the linear mixed-effect (lme) platform. The -VT is
+  which is solved through the linear mixed-effect (lme) platform. The -vt is
   not needed when making prediction through the option -prediction. The two
   specifications, -mrr and -lme, would render similar results, but the 
   runtime may differ depending on the amount of data and model complexity.
@@ -194,7 +195,7 @@ Introduction
 
   3dMSS -prefix MSS -jobs 16                     \\
           -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
-          -VT  Subj 's(Subj)'                \\
+          -vt  Subj 's(Subj)'                \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -205,7 +206,7 @@ Introduction
 
   3dMSS -prefix MSS -jobs 16                     \\
           -lme 's(age)+s(age,by=grp)'             \\
-          -ranEff '(1|Subj)'                      \\
+          -ranEff 'list(Subj=~1)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -289,7 +290,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the MSS context the simplest model is \"(1|Subj)\" in which the",
+   "         In the MSS context the simplest model is \"list(Subj=~1)\" in which the",
    "         varying or random effect from each subject is incorporated in the model.",
    "         Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
@@ -298,16 +299,17 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
              ) ),
 
       '-mrr' = apl(n = 1, d = 1, h = paste(
-   "-mrr FORMULA: Specify the model formulation through multilevel smoothing splines",
-   "         expression FORMULA with more than one variable has to be surrounded",
+   "-mrr FORMULA: Specify the model formulation through multilevel smoothing splines.",
+   "         Expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the MSS context the simplest model is \"(1|Subj)\" in which the",
-   "         varying or random effect from each subject is incorporated in the model.",
-   "         Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
-   "         effects of interest and confounding variables (quantitative or",
-   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
+   "         The nonlinear trajectory is specified through the expression of s(x,k=?)",
+   "         where s() indicates a smooth function, x is a quantitative variable with",
+   "         which one would like to trace the trajectory and k is the number of smooth",
+   "         splines (knots). The default (when k is missing) for k is 10, which is good",
+   "         enough most of the time when there are more than 10 data points of x. When",
+   "         there are less than 10 data points of x, choose a value of k slightly less",
+   "         than the number of data points.\n", sep = '\n'
              ) ),
 
        '-dbgArgs' = apl(n=0, h = paste(
@@ -322,12 +324,12 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
 
-       '-VT' = apl(n=2, h = paste(
-   "-VT var formulation: This option is for specifying varying smoothing terms. Two components",
+       '-vt' = apl(n=2, h = paste(
+   "-vt var formulation: This option is for specifying varying smoothing terms. Two components",
    "         are required: the first one 'var' indicates the varaible (e.g., subject) around",
    "         which the smoothing will vary while the second component specifies the smoothing",
-   "         formulation (e.g., s(age,subject)). With this option, the -ranEff option usually",
-   "         would not be needed.\n", sep='\n')),
+   "         formulation (e.g., s(age,subject)). When there is no varying smoothing terms (e.g.,",
+   "         no within-subject variables), do not use this option.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -346,34 +348,15 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
              ) ),
 
      '-prediction' = apl(n=c(1, 1000000), d=NA, h = paste(
-   "-prediction TABLE: List the data structure with a header as the first line.\n",
-   "         NOTE:\n",
-   "         1) This option has to occur last in the script; that is, no other",
-   "         options are allowed thereafter. Each line should end with a backslash",
-   "         except for the last line.\n",
-   "         2) The order of the columns should not matter except that the last",
-   "         column has to be the one for input files, 'InputFile'. Each row should",
-   "         contain only one input file in the table of long format (cf. wide format)",
-   "         as defined in R. Input files can be in AFNI, NIfTI or surface format.",
-   "         AFNI files can be specified with sub-brick selector (square brackets",
-   "         [] within quotes) specified with a number or label.\n",
-   "         3) It is fine to have variables (or columns) in the table that are",
-   "         not modeled in the analysis.\n",
-   "         4) When the table is part of the script, a backslash is needed at the end",
-   "         of each line to indicate the continuation to the next line. Alternatively,",
-   "         one can save the context of the table as a separate file, e.g.,",
-   "         calling it table.txt, and then in the script specify the data with",
-   "         '-dataTable @table.txt'. However, when the table is provided as a separate",
-   "         file, do NOT put any quotes around the square brackets for each sub-brick,",
-   "         otherwise the program would not properly read the files, unlike the",
-   "         situation when quotes are required if the table is included as part of the",
-   "         script. Backslash is also not needed at the end of each line, but it would",
-   "         not cause any problem if present. This option of separating the table from",
-   "         the script is useful: (a) when there are many input files so that",
-   "         the program complains with an 'Arg list too long' error; (b) when",
-   "         you want to try different models with the same dataset.\n",
-             sep = '\n'
-                     ) ),
+   "-prediction TABLE: Provide a data table so that predicted values could be generated for",
+   "graphical illustration. Usually the table should contain similar structure as the input",
+   "file except that 1) reserve the first column for effect labels which will be used for",
+   "sub-brick names in the output for those predicted values; 2) columns for those varying",
+   "smoothing terms (e.g., subject) and response variable (i.e., Y) should not be includes.",
+   "Try to specify equally-spaced values with a small for the quantitative variable of",
+   "modeled trajectory (e.g., age) so that smooth curves could be plotted after the",
+   "analysis. See Examples in the help for a couple of specific tables used for predictions.\n", sep = '\n'
+          ) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure with a header as the first line.\n",
@@ -435,7 +418,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
       lop$ranEff <- NULL 
       lop$qVars  <- NA
       lop$bounds <- NULL
-      lop$VT     <- NULL
+      lop$vt     <- NULL
       #lop$qVarCenters <- NA
       lop$dataTable   <- NULL
       lop$prediction  <- NULL
@@ -458,7 +441,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
 	     IF     = lop$IF     <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
              bounds = lop$bounds <- ops[[i]],
-             VT     = lop$VT     <- ops[[i]],
+             vt     = lop$vt     <- ops[[i]],
              #qVarCenters = lop$qVarCenters <- ops[[i]],
              dataTable   = lop$dataTable   <- dataTable.AFNI.parse(ops[[i]]),
              prediction  = lop$prediction  <- dataTable.AFNI.parse(ops[[i]]),
@@ -530,13 +513,13 @@ process.MSS.opts <- function (lop, verb = 0) {
       }
    }
 
-   if(!is.null(lop$VT)) {
+   if(!is.null(lop$vt)) {
       #browser()
-      if(lop$VT[1] %in% names(lop$Pred)) errex.AFNI(c("The varying smoothing unit ", lop$VT[1], " is already a variable column in the prediction file ", lop$prediction, "!\n")) else
-      if(!lop$VT[1] %in% names(lop$dataStr)) errex.AFNI(c("The varying smoothing unit ", lop$VT[1], " is not a column in the data table. Check your spelling!\n")) else {
+      if(lop$vt[1] %in% names(lop$Pred)) errex.AFNI(c("The varying smoothing unit ", lop$vt[1], " is already a variable column in the prediction file ", lop$prediction, "!\n")) else
+      if(!lop$vt[1] %in% names(lop$dataStr)) errex.AFNI(c("The varying smoothing unit ", lop$vt[1], " is not a column in the data table. Check your spelling!\n")) else {
          #nr <- nrow(lop$Pred)
-         lop$Pred <- lop$Pred[rep(seq_len(lop$nr), times=nlevels(lop$dataStr[, lop$VT[1]])), ]
-         lop$Pred[,lop$VT[1]] <- as.factor(rep(levels(lop$dataStr[,lop$VT[1]]), each = lop$nr))
+         lop$Pred <- lop$Pred[rep(seq_len(lop$nr), times=nlevels(lop$dataStr[, lop$vt[1]])), ]
+         lop$Pred[,lop$vt[1]] <- as.factor(rep(levels(lop$dataStr[,lop$vt[1]]), each = lop$nr))
       }
    }
 
@@ -601,15 +584,18 @@ runMSS <- function(myData, DM, tag) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
 	 pp <- summary(fm)$s.table[,'p-value'] # smooths
-         if(is.null(lop$VT)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
-            try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$VT[2]), silent=TRUE)
+         if(is.null(lop$vt)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
+            try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$VT)) { 
-               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+            if(is.null(lop$vt)) { 
+               #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
             } else
-            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
+            #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
+            Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
                       tmp$se.fit[1:lop$nr])))
-         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
+         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq)
+         #Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
       }
    }
    return(Stat)
@@ -620,8 +606,7 @@ runMSS <- function(myData, DM, tag) {
 runLME <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$nBrk)
-   if(!all(myData == 0)) {
-      #DM$yy <- myData
+   if(!all(myData == 0)) { #DM$yy <- myData
       fm <- NULL
       options(warn=-1)
       DM$yy <- myData
@@ -630,16 +615,27 @@ runLME <- function(myData, DM, tag) {
       if(!is.null(fm)) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm$gam)$p.table[,c('Estimate', 't value')]))
-	 pp <- summary(fm$gam)$s.table[,'p-value']
-         if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-            try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$VT[2]), silent=TRUE)
-         if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$VT)) {
-               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
-            } else
-            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+	 if(!is.null(summary(fm$gam)$s.table)) pp <- summary(fm$gam)$s.table[,'p-value']
+         if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+            try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
+         if(is.null(summary(fm$gam)$s.table)) { # having no smooth terms
+            if(!is.null(tmp)) { # prediction successful
+               Stat <- c(ll, summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
                       tmp$se.fit[1:lop$nr])))
-         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
+            } else Stat[1:length(ll)] <- c(ll, summary(fm$gam)$r.sq)
+         } else { # having smooth terms
+            pp <- summary(fm$gam)$s.table[,'p-value']
+            if(!is.null(tmp)) { # prediction successful
+               if(is.null(lop$vt)) {
+                  #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+                  Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               } else
+               Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+                      tmp$se.fit[1:lop$nr])))
+               #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr], tmp$se.fit[1:lop$nr])))
+            } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq)
+            #Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
+         } # if(is.null(summary(fm$gam)$s.table))
       } # if(!is.null(fm))
    } # if(!all(myData == 0))
    return(Stat)
@@ -796,7 +792,8 @@ if(!is.na(lop$maskFN)) {
 fm<-NULL
 if(is.null(lop$mrr)) {
    lop$lme <- as.formula(paste0('yy~',lop$lme))
-   if(!is.null(lop$ranEff)) lop$ranEff <- as.formula(paste0('~',lop$ranEff))
+   if(!is.null(lop$ranEff)) #lop$ranEff <- as.formula(paste0('~',lop$ranEff))
+      lop$ranEff <- eval(parse(text=lop$ranEff))
 } else lop$mrr <- as.formula(paste0('yy~',lop$mrr))
 #chi_DF <- NULL
 while(is.null(fm)) {
@@ -808,13 +805,14 @@ while(is.null(fm)) {
       if(!is.null(fm)) {
          print(sprintf("Runtime per spatial element: %.3f sec", tt[3])); cat('\n')
          #lop$mm <- gamm(lop$lme, data=lop$dataStr, random=lop$ranEff)
-         lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
+         if(is.null(summary(fm$gam)$s.table)) lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+1 else
+            lop$nBrk <- 2*nrow(summary(fm$gam)$p.table)+nrow(summary(fm$gam)$s.table)+1  # +1 for R.sq
          if(!is.null(lop$prediction)) {
             tmp <- NULL
-            if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-               try(tmp <- predict(fm$gam, lop$Pred, exclude=lop$VT[2], se.fit = T), silent=TRUE)
+            if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+               try(tmp <- predict(fm$gam, lop$Pred, exclude=lop$vt[2], se.fit = T), silent=TRUE)
                if(is.null(tmp)) fm <- NULL else lop$nBrk <- lop$nBrk + 2*lop$nr
-         #   if(is.null(lop$VT) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
+         #   if(is.null(lop$vt) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
          #   lop$nBrk <- lop$nBrk + 2*lop$nr
          }
       }
@@ -829,10 +827,10 @@ while(is.null(fm)) {
             lop$nBrk <- 2*nrow(summary(fm)$p.table)+nrow(summary(fm)$s.table)+1  # +1 for R.sq
             if(!is.null(lop$prediction)) {
                tmp <- NULL
-               #if(is.null(lop$VT)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
-               try(tmp <- predict(fm, lop$Pred, exclude=lop$VT[2], se.fit = T), silent=TRUE)
+               #if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
+               try(tmp <- predict(fm, lop$Pred, exclude=lop$vt[2], se.fit = T), silent=TRUE)
                if(is.null(tmp)) fm <- NULL else lop$nBrk <- lop$nBrk + 2*lop$nr
-            #   if(is.null(lop$VT) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
+            #   if(is.null(lop$vt) lop$nBrk <- lop$nBrk + 2*length(tmp$fit) else
             #   lop$nBrk <- lop$nBrk + 2*lop$nr
             }
          }
@@ -867,46 +865,75 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 options(contrasts = c("contr.sum", "contr.poly"))
 
-if(dimy==1 & dimz==1) errex.AFNI("I have not set it up for 1D and surface data yet. Let me know if you want this!\n")
-   #if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
-Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
-
-   #if (lop$nNodes==1) for (kk in 1:dimz) {
-   #   if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, tag=0), c(2,1)) else
-   #   Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runMSS, dataframe=lop$dataStr, tag=0), c(2,3,1))
-   #   cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   #}
-
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "lop", envir=environment())
-   clusterEvalQ(cl, library(gamm4))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   if(!is.null(lop$mrr)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runMSS,
+if(dimy==1 & dimz==1) { # 1D data
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   inData <- inData[, , ,]
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
+   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   # break input multiple segments for parrel computation
+   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   Stat <- array(0, dim=c(dimx_n, nSeg, lop$nBrk))
+   if (lop$nNodes==1) { # no parallization
+      if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   if(!is.null(lop$lme)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   stopCluster(cl)
-} else {
-   if(!is.null(lop$mrr)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runMSS,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   } else { # parallization
+      if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   if(!is.null(lop$lme)) for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
    }
+} else { # volumetric data
+   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
+   if (lop$nNodes==1) { # no parallization
+      if(!is.null(lop$mrr)) for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runMSS,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   } else { # parallization
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterExport(cl, "lop", envir=environment())
+      clusterEvalQ(cl, library(gamm4))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      if(!is.null(lop$mrr)) for (kk in 1:dimz) { # using gam
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runMSS,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      if(!is.null(lop$lme)) for (kk in 1:dimz) { # using gamm
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+      stopCluster(cl)
+   } 
+   # runMSS(inData[30,30,30,], lop$mrr, lop$dataStr, lop$glt, nF, 0)
 }
-# runMSS(inData[30,30,30,], lop$mrr, lop$dataStr, lop$glt, nF, 0)
 
 Top <- 100
 Stat[is.nan(Stat)] <- 0
@@ -921,20 +948,24 @@ if(!is.null(lop$mrr))
 if(!is.null(lop$lme))
    brickNames <- c(c(rbind(rownames(summary(fm$gam)$p.table), paste0(rownames(summary(fm$gam)$p.table), '-Z'))),
       rownames(summary(fm$gam)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
-      paste0(as.character(lop$Pred[1:lop$nr,1]),'.se')))) else
+      paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
 
 statsym <- NULL
 if(!is.null(lop$mrr)) {
    for(n in 1:nrow(summary(fm)$p.table))
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
    for(n in 1:nrow(summary(fm)$s.table))
-      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fict", par=2)))
-   }
+      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fizt")))
+      #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fict", par=2)))
+}
 if(!is.null(lop$lme)) {
    for(n in 1:nrow(summary(fm$gam)$p.table))
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
-   for(n in 1:nrow(summary(fm$gam)$s.table))
-      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fict", par=2)))
+   if(!is.null(summary(fm$gam)$s.table)) { # having no smooth terms
+      for(n in 1:nrow(summary(fm$gam)$s.table))
+         statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fizt")))
+         #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fict", par=2)))
+   }
 }
 
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),

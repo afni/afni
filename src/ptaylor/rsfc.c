@@ -289,9 +289,9 @@ int WB_netw_corr(int Do_r,
 {
    int i,j,k;
    float **AVE_TS_fl=NULL;    // not great, but another format of TS
-   char OUT_indiv0[300];
-   char OUT_indiv[300];
-   char OUT_indivZ[300];
+   char OUT_indiv0[THD_MAX_NAME-340];   // save space for full outname
+   char OUT_indiv[THD_MAX_NAME];
+   char OUT_indivZ[THD_MAX_NAME];
    MRI_IMAGE *mri=NULL;
    THD_3dim_dataset *OUT_CORR_MAP=NULL;
    THD_3dim_dataset *OUT_Z_MAP=NULL;
@@ -309,7 +309,7 @@ int WB_netw_corr(int Do_r,
    for(i=0 ; i<1 ; i++) 
       AVE_TS_fl[i] = calloc(Dim[3],sizeof(float)); 
    
-   if( (AVE_TS_fl == NULL) ) {
+   if( AVE_TS_fl == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure (time series out).\n\n");
       exit(123);
    }
@@ -372,7 +372,7 @@ int WB_netw_corr(int Do_r,
                           DSET_HEADNAME(OUT_Z_MAP));
 
             zscores = (float *)calloc(Nvox,sizeof(float)); 
-            if( (zscores == NULL) ) {
+            if( zscores == NULL ) {
                fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
                exit(123);
             }

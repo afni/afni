@@ -276,12 +276,12 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *MASK=NULL;
    THD_3dim_dataset *ROIS=NULL;
    char *prefix="NETCORR" ;
-   char in_name[300];
-   char in_mask[300];
-   char in_rois[300];
-   char OUT_grid[300];
-   char OUT_indiv[300];
-   char OUT_indiv0[300];
+   char in_name[THD_MAX_NAME];
+   char in_mask[THD_MAX_NAME];
+   char in_rois[THD_MAX_NAME];
+   char OUT_grid[THD_MAX_NAME];
+   char OUT_indiv[THD_MAX_NAME];
+   char OUT_indiv0[THD_MAX_NAME-15];
    //  int *SELROI=NULL; // if selecting subset of ROIs
    //  int HAVE_SELROI=0;
    
@@ -319,7 +319,7 @@ int main(int argc, char *argv[]) {
    SUMA_DSET *gset=NULL;
    float ***flat_matr=NULL;
    float *xyz=NULL;
-   char OUT_gdset[300];
+   char OUT_gdset[THD_MAX_NAME];
    NI_group *GDSET_netngrlink=NULL;
    char *NAME_gdset=NULL;
    int Noutmat = 1;  // num of matr to output: start with CC for sure
@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
    int *FLAG_nulls=NULL;
    int DO_STRLABEL = 0;
    int DO_OUTPUT_NONNULL=0;
-   char prefix_nonnull[300];
+   char prefix_nonnull[THD_MAX_NAME];
    THD_3dim_dataset *MASK_nonnull=NULL;  // output nonnull mask, if
                                          // user wants
 
@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_name,"%s", argv[iarg]); 
          insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
          // just 0th time point for output...
 
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -420,7 +420,7 @@ int main(int argc, char *argv[]) {
       
          sprintf(in_rois,"%s", argv[iarg]); 
          ROIS = THD_open_dataset(in_rois) ;
-         if( (ROIS == NULL ))
+         if( ROIS == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_rois);
       
          DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
@@ -767,7 +767,7 @@ int main(int argc, char *argv[]) {
       for ( i=0 ; i<HAVE_ROIS ; i++ ) 
          for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
-      if(  (ROI_STR_LABELS == NULL)) {
+      if( ROI_STR_LABELS == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[]) {
    ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
    for (j=0; j<Noutmat; ++j) 
       ParLab[j] = (char *)calloc(32, sizeof(char));
-   if( (ParLab == NULL) ) {
+   if( ParLab == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(121);
    }
@@ -1235,7 +1235,7 @@ int main(int argc, char *argv[]) {
          mkdir(OUT_indiv0, 0777);
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
             sprintf(OUT_indiv,"%s/ROI_%03d.netts",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+                    OUT_indiv0, ROI_LABELS_REF[k][i+1]);
             if( (fout2 = fopen(OUT_indiv, "w")) == NULL) {
                fprintf(stderr, "\nError opening file '%s'.\n",OUT_indiv);
                exit(19);

@@ -1,0 +1,197 @@
+#!/bin/tcsh
+
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.1";  set rev_dat   = "Feb 22, 2021"
+# [PT] start of this program in program form.  Programmatically speaking.
+#    + complements adjunct_apqc_tsnr_with_mask
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_apqc_tsnr_no_mask"
+set tpname    = "${this_prog:gas/adjunct_//}"
+set here      = $PWD
+
+set ulay  = ""
+set olay  = ""
+set focus = ""
+set opref = ""
+set opref_cbar = ""
+
+set hot_min = 90   # %ile
+set hot_max = 98   # %ile
+set cbar    = Viridis
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-focus" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set focus = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix_cbar" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref_cbar = "$argv[$ac]"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Prepare for running ${this_prog} (ver = ${version})"
+
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: use '-ulay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${olay}" == "" ) then
+    echo "** ERROR: use '-olay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${focus}" == "" ) then
+    echo "** ERROR: use '-focus ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${opref}" == "" ) then
+    echo "** ERROR: use '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${opref_cbar}" == "" ) then
+    echo "** ERROR: use '-prefix_cbar ..'"
+    goto BAD_EXIT
+endif
+
+# =========================== calcs ==============================
+
+# get the 2 values were are interested in
+
+@ hot_diff = ${hot_max} - ${hot_min}
+
+set uuu2 = `3dBrickStat -slow                     \
+              -percentile ${hot_min} ${hot_diff} ${hot_max} \
+              ${olay}`
+
+# round values to nearest int; easier for presentation/reporting
+set uuu2[2] = `echo "scale=0; $uuu2[2] / 1.0" | bc`
+set uuu2[4] = `echo "scale=0; $uuu2[4] / 1.0" | bc`
+
+# ========================= make cbar info ===========================
+
+set range    = "`printf ': %3d - %3d' ${uuu2[2]} ${uuu2[4]}`"
+set gen_comm = " info: 90-98%ile TSNR in volume"
+set gen_comm = "${gen_comm}${range}" 
+
+# =========================== plot ==============================
+
+@chauffeur_afni                                             \
+    -ulay             "${ulay}"                             \
+    -olay             "${olay}"                             \
+    -ulay_range       0% 120%                               \
+    -func_range       "${uuu2[4]}"                          \
+    -box_focus_slices "${focus}"                            \
+    -set_subbricks    0 0 0                                 \
+    -pbar_posonly                                           \
+    -cbar             "${cbar}"                             \
+    -opacity          5                                     \
+    -pbar_saveim      "${opref_cbar}"                       \
+    -pbar_comm_range  "${hot_max}%ile in volume"            \
+    -pbar_comm_gen    "${gen_comm}"                         \
+    -prefix           "${opref}"                            \
+    -save_ftype JPEG                                        \
+    -montx 7 -monty 1                                       \
+    -montgap 1                                              \
+    -montcolor 'black'                                      \
+    -set_xhairs OFF                                         \
+    -label_mode 1 -label_size 3                             \
+    -do_clean                        
+
+# ---------------------------------
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+Just an adjunct program for making TSNR plots for APQC.
+
+Ceci n'est pas un fichier d'aide utile!
+
+written by PA Taylor.
+
+EXAMPLE ~1~
+
+adjunct_apqc_tsnr_no_mask                         \
+    -ulay         MNI152_2009_template_SSW.nii.gz \
+    -focus        MNI152_2009_template_SSW.nii.gz \
+    -olay         TSNR*HEAD                       \
+    -prefix       img                             \
+    -prefix_cbar  img.cbar
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

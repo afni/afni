@@ -282,8 +282,8 @@ int main( int argc , char * argv[] )
 
    /*-- open output BRIK file --*/
    /* default cmode is COMPRESS_NOFILE  unless nifti.gzip output (.nii.gz) */
-   if ((cmode == COMPRESS_NOFILE)) { /* ignore compression for NIFTI - do in write
-   automatically later */
+   if (cmode == COMPRESS_NOFILE) { /* ignore compression for NIFTI - do in write
+                                      automatically later */
       cmode = THD_get_write_compression() ; /* check env. variable for compression*/
 #if 0
       if(NIFTI_mode && (cmode!=0)) /* have to compress this NIFTI data, add .gz to prefix */
