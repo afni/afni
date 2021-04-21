@@ -1,0 +1,52 @@
+Using Clipping PLanes in SUMA
+
+There may be up to six clipping planes.  They are formed with shift-ctrl-C
+No more clipping planes may be added once there are six.
+
+The clipping plane may be viewed, as a rectangle, with shift-C which toggles the
+rectangle on and off.
+
+The clipping plane may be moved forward and back with alt-scrollwheel
+The clipping plane is rotated, about the y-axis, with alt-(left or right arrow keys),
+or about the x-axis with alt-(up or down arrow keys).
+
+The clipping plane is selected with alt-(number of the plane)
+The clipping plane is toggled on and off with ctrl-(number of the plane)
+
+Alt-f reverses the normal of the selected clipping plane.
+
+
+# ------------------------------------------------------------------------
+#
+# [PT: Apr 16, 2021] notes/comments on current clipping plane behavior
+# on Ubuntu 20.04.
+
+There can be up to 6 clipping planes, numbered [1, 6].  Each has a
+separate color, being in order R G B C M Y.  So, plane 1 can be viewed
+in Red, plane 4 in Cyan, etc.
+
+Below, "a number" can be in range [1, 6].
+
+"active" means a clipping plane is clipping, not just visible.
+
+Key+mouse behavior
+------------------
+
+Shift+Alt+c       : successively add new clipping planes, which are active
+                    as they appear (you might not see them to start,
+                    just their clipping effect)
+
+Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
+
+Alt+[a number]    : select a particular clipping plane (e.g., so you can 
+                    rotate/translate it with other key presses)
+
+Alt+f             : reverse clipping direction of any active planes
+
+Shift+c           : toggle view of all active clipping planes on/off
+Ctlr+Shift+c      : same behavior
+
+Alt+[scrollwheel] : translate a clipping plane in space
+
+Alt+[arrow key]   : rotate a clipping plane in space
+

@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <dirent.h>
-#include <malloc.h>
+
+// not supported on standard C, MacOS especially
+//   include <malloc.h>
+
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
