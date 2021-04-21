@@ -17547,13 +17547,9 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    DListElmt *el=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 1\n");
-
    SUMA_ENTRY;
 
    SUMA_LH("Entered");
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 2\n");
 
    if (LocalHead) {
       SUMA_EnablingRecord SER;
@@ -17561,14 +17557,10 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 3\n");
-
    if ( (N_patches = SUMA_Prep_SO_DrawPatches(SurfObj, sv)) < 0 ) {
       SUMA_S_Err("Failed to prep SO patches");
       SUMA_RETURNe;
    }
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 4\n");
 
    SUMA_LH("Have %d patches", N_patches);
 
@@ -17577,26 +17569,18 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_RETURNe;
    }
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 5\n");
-
    if (!SurfObj->DW->DrwPtchs) {
       SUMA_S_Err("Should not have null DrwPtchs at this point");
       SUMA_RETURNe;
    }
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 6\n");
 
    if (sv->DO_PickMode) {
       SUMA_LH("No need to DrawMesh in DO picking mode");
       SUMA_RETURNe;
    }
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 7\n");
-
    SUMA_LH("Might need to swap coords from the VisX transformed data");
    SUMA_VisX_Pointers4Display(SurfObj, 1);
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 8\n");
 
    do { /* begin for each patch */
       if (!el) el = dlist_head(SurfObj->DW->DrwPtchs);
@@ -17610,8 +17594,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          SUMA_LH("Hiding surface");
          continue;
       }
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 9\n");
 
       if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
          SUMA_S_Err("Failed to create tracking list");
@@ -17628,12 +17610,8 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
         #endif
       }
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 10\n");
-
       SUMA_LH("TransMode = %d, N_FaceSet = %d",
                ptch->TransMode, ptch->N_FaceSet);
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 11\n");
 
       /* check on rendering mode */
       if (ptch->TransMode == STM_ViewerDefault) {
@@ -17642,15 +17620,11 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          trmode = ptch->TransMode;
       } else trmode = STM_0;
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 12\n");
-
       if (trmode != STM_0) {
         /* not the default, do the deed */
         SUMA_LHv("Trans Mode %d\n", trmode);
         SUMA_SET_GL_TRANS_MODE(trmode, st, SO_type);
       }
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 13\n");
 
       /* any texture for this surface? */
       texnel = SUMA_SO_NIDO_Node_Texture ( SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv );
@@ -17675,8 +17649,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             }
 
          }
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 14\n");
 
          NI_GET_INTv(texnel,"box_size", sz, 2, LocalHead);
 
@@ -17727,8 +17699,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                         #endif
       }
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 15\n");
-
       SUMA_LH("Draw Method");
       ND = SurfObj->NodeDim;
       NP = SurfObj->FaceSetDim;
@@ -17736,8 +17706,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          SUMA_S_Warn("Quads have not been tested here");
       }
 
-
-   fprintf(stderr, "SUMA_DrawMesh_mask 16\n");
 
       switch (DRAW_METHOD) {
          case STRAIGHT:
@@ -17752,6 +17720,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                   glBegin (GL_POINTS);
                   break;
             } /* switch RENDER_METHOD */
+            fprintf(stderr, "1: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
             glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
             for (i=0; i < ptch->N_FaceSet; i++)
             {
@@ -17975,8 +17944,6 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    } while (el != dlist_tail(SurfObj->DW->DrwPtchs));
 
-   fprintf(stderr, "SUMA_DrawMesh_mask 17\n");
-
    SUMA_LH("Bring the coords back where they ought to be");
    SUMA_VisX_Pointers4Display(SurfObj, 0);
 
@@ -18153,6 +18120,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                glBegin (GL_POINTS);
                break;
          } /* switch RENDER_METHOD */
+         fprintf(stderr, "2: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
          glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
          for (i=0; i < N_glar_FaceSet; i++)
          {
@@ -18505,6 +18473,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
                glBegin (GL_POINTS);
                break;
          } /* switch RENDER_METHOD */
+         fprintf(stderr, "3: glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA)\n");
          glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
          for (i=0; i < SurfObj->N_FaceSet; i++)
          {
