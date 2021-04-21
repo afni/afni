@@ -3,7 +3,7 @@
 
 #define SUMA_BRUSH_BLOCK 500
 
-#define SUMA_APPLE_AltOptMask		(1<<13)     /* empirically determined,
+#define SUMA_APPLE_AltOptMask	  (1<<13)     /* empirically determined,
                                                no sign for it in X.h
                                                Would not work for catching
                                                alt/option+character because
