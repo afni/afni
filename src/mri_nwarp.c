@@ -7989,7 +7989,12 @@ static int Hsuperhard2 = -1 ;    /* Certainly not us government employees!!! */
 
 static float Hstopcost = -666666.6f ; /* stop if 'correlation' cost goes below this */
 static int   Hstopped  = 0 ;          /* indicate that iterations were stopped */
-static int Hquitting   = 0 ;          /* set by signal handler to indicate 'quit NOW' */
+
+#include <setjmp.h>
+static volatile int Hquitting         = 0 ; /* set by signal handler to indicate 'quit NOW' */
+static volatile int Hquitting_do_jump = 0 ; /* 21 Apr 2021 */
+static volatile int Hquitting_sig     = 0 ;
+static jmp_buf      Hquitting_jmp_buf     ;
 
 static int Hqfinal  = 0 ;  /* do quintic at the final level? */
 static int Hqonly   = 0 ;  /* do quintic at all levels? (very slow) */
@@ -8035,15 +8040,24 @@ static float save_H_zero = 0 ;
 void IW3D_signal_quit(int sig)
 {
    static volatile int fff=0 ;
-   if( fff ) _exit(1) ; else fff = 1 ;
-   fprintf(stderr,"\n** quit signal received -- trying to die gracefully **\n");
-   Hquitting = 1 ;
+   if( fff ) _exit(1) ; else fff = 1 ; /* prevent recursion */
+   (void)alarm(0) ;
+   Hquitting = 1 ; Hquitting_sig = sig ;
+   fprintf(stderr,"\n** %s signal received -- trying to die gracefully **\n" ,
+                  (sig==SIGQUIT) ? "QUIT"
+                 :(sig==SIGALRM) ? "ALRM"
+                                 : "unknown" ) ;
+   if( Hquitting_do_jump ){ Hquitting_do_jump = 0 ; longjmp(Hquitting_jmp_buf,666) ; }
    return ;
 }
 
 /*-----*/
 
-void IW3D_setup_signal_quit(void){ signal(SIGQUIT,IW3D_signal_quit); return; }
+void IW3D_setup_signal_quit(void){
+  signal(SIGQUIT,IW3D_signal_quit);
+  signal(SIGALRM,IW3D_signal_quit);  /* 21 Apr 2021 */
+  return;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Make the displacement flags coherent and legal.  If impossible, return -1. */
@@ -10430,6 +10444,8 @@ ENTRY("IW3D_setup_for_improvement") ;
       }                                                 \
   } while(0)
 
+/*----------------------------------------------------------------------------*/
+
 int IW3D_improve_warp( int warp_code ,
                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
 {
@@ -10708,8 +10724,25 @@ ENTRY("IW3D_improve_warp") ;
 
    /******* do it babee!! ***********************************/
 
-   iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
-                             prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
+   Hquitting_do_jump = 666 ;
+   if( setjmp(Hquitting_jmp_buf) == 0 ){
+     int asec ;
+     asec = (int)rintf(0.000001f*Hnval*Hnpar*itmax) ;
+          if( asec <    9 ) asec =    9 ;
+     else if( asec > 1888 ) asec = 1888 ;
+     (void)alarm(asec) ; /* alarm signal if this takes too long */
+     iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
+                               prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
+     (void)alarm(0) ;   /* cancel alarm signal */
+   } else {
+     INFO_message("longjmp out of IW3D_improve_warp due to %s signal" ,
+                  (Hquitting_sig==SIGQUIT) ? "QUIT"
+                 :(Hquitting_sig==SIGALRM) ? "ALRM"
+                                           : "unknown" ) ;
+     Hquitting_do_jump = 0 ;
+     RETURN(0) ;
+   }
+   if( Hquitting ) RETURN(0) ;
 
    /******* iter = number of iterations actually used *******/
 

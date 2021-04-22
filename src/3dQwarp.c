@@ -1753,6 +1753,7 @@ void Qaniso( char *ssname , char *apref ){
             " -3D"
             " -automask"
             " -noneg"
+            " -edgefraction 0.888"
             " -prefix %s.nii"
             " %s" ,
             apref , ssname ) ;
