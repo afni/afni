@@ -330,7 +330,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
        SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
        // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
        SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
-       SO->Overlays[0]->ColVec - (float *)calloc(16*sizeof(float));
+       SO->Overlays[0]->ColVec - (float *)calloc(16, sizeof(float));
 
         if (!(SO->Overlays)){
             SUMA_S_Err("NULL Overlays pointer.");
@@ -733,7 +733,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     return TRUE;
 }
 
-void lightenActiveClipPlaneSquare(activePlane){
+void lightenActiveClipPlaneSquare(int activePlane){
 
     fprintf(stderr, "lightenActiveClipPlaneSquare\n");
     fprintf(stderr, "activePlane=%d\n", activePlane);
@@ -773,7 +773,7 @@ void lightenActiveClipPlaneSquare(activePlane){
     }
 }
 
-void darkenInactiveClipPlaneSquares(activePlane){
+void darkenInactiveClipPlaneSquares(int activePlane){
 
     fprintf(stderr, "darkenInactiveClipPlaneSquares\n");
     for (int p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
@@ -3783,7 +3783,7 @@ void SUMA_free_Save_List_El(void *selu) {
       if (sel->type) SUMA_free(sel->type);
       SUMA_free(sel);
    }
-   SUMA_RETURNe;
+   return;
 }
 
 int SUMA_Add_to_SaveList(DList **SLp, char *type,
@@ -5027,7 +5027,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
    static int stackLevel;
 
-   // SUMA_ENTRY;
+   SUMA_ENTRY;
 
    fprintf(stdout, "SUMA_Fetch_OverlayPointerByDset_arr stackLevel = %d\n", stackLevel++);
 
@@ -8852,10 +8852,10 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
    SS = SUMA_StringAppend(NULL, NULL);
 
    if (!pick_colid_list) {
-      SS = SUMA_StringAppend(SS,"NULL pick_colid_list"); goto CLEAN_SUMA_RETURNe;
+      SS = SUMA_StringAppend(SS,"NULL pick_colid_list"); goto CLEAN_RETURN;
    }
    if (!dlist_size(pick_colid_list)) {
-      SS = SUMA_StringAppend(SS,"Empty pick_colid_list"); goto CLEAN_SUMA_RETURNe;
+      SS = SUMA_StringAppend(SS,"Empty pick_colid_list"); goto CLEAN_RETURN;
    }
    SS = SUMA_StringAppend_va(SS,"DO Pick List of %d elements\n",
                               dlist_size(pick_colid_list));
@@ -14185,12 +14185,6 @@ void makeCube(){
     XVisualInfo *visual;
     GLXContext glc;
 
-    // For pointer position
-    Window  root_return, child_SUMA_RETURNe;
-    int     root_x_return, root_y_SUMA_RETURNe;
-    int     win_x_return, win_y_SUMA_RETURNe;
-    unsigned int    mask_SUMA_RETURNe;
-
     if (!(dpy = XOpenDisplay(NULL))){
         fprintf(stderr, "Cannot open display\n");
         exit(1);
@@ -14254,10 +14248,10 @@ void makeCube(){
     GLXContext glc;
 
     // For pointer position
-    Window  root_return, child_SUMA_RETURNe;
-    int     root_x_return, root_y_SUMA_RETURNe;
-    int     win_x_return, win_y_SUMA_RETURNe;
-    unsigned int    mask_SUMA_RETURNe;
+    Window  root_return, child_return;
+    int     root_x_return, root_y_return;
+    int     win_x_return, win_y_return;
+    unsigned int    mask_return;
     XSetWindowAttributes    attrs;
 
     // Get current window
