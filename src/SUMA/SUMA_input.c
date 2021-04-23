@@ -126,6 +126,7 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
 
 
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
+fprintf(stderr, "makeCommonNodesOfRectangleRed\n");
     for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
 
     SO->Overlays[0]->ColVec[0] = 1.0;
@@ -328,9 +329,11 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    SO->N_Overlays = 1;
    if (SO->N_Overlays>0){
        SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-       // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+       SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+       /*
        SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
-       SO->Overlays[0]->ColVec - (float *)calloc(16, sizeof(float));
+       SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
+       */
 
         if (!(SO->Overlays)){
             SUMA_S_Err("NULL Overlays pointer.");
@@ -359,6 +362,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SO->PermCol[1] = 1.0;
         SO->PermCol[0] = SO->PermCol[2] = 0.0;
    }
+
+    fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 3\n");
 
 #if 0
     if (!SUMA_PrepSO_GeomProp_GL (SO)) {
@@ -5025,11 +5030,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
-   static int stackLevel;
-
    SUMA_ENTRY;
-
-   fprintf(stdout, "SUMA_Fetch_OverlayPointerByDset_arr stackLevel = %d\n", stackLevel++);
 
    /* get the callData pointer */
    cd = (GLwDrawingAreaCallbackStruct *) callData;
@@ -7431,8 +7432,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
       break;
   }/* switch event type */
-
-    stackLevel = 0;
 
    SUMA_RETURNe;
 }

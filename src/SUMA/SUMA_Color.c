@@ -6813,9 +6813,6 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset_arr (SUMA_OVERLAYS **Overlays,
    int i, nfound;
    SUMA_OVERLAYS *ptr= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   static int stackLevel;
-
-   fprintf(stdout, "SUMA_Fetch_OverlayPointerByDset_arr stackLevel = %d\n", stackLevel++);
 
    SUMA_ENTRY;
    if (!dset) {
@@ -6858,8 +6855,6 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset_arr (SUMA_OVERLAYS **Overlays,
                FuncName, dset,SDSET_LABEL(dset));
 
    *OverInd = -1;
-
-   stackLevel = 0;
 
    SUMA_RETURN (NULL);
 }
