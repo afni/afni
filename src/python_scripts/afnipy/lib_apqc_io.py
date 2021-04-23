@@ -57,12 +57,17 @@
 #ver = '1.9' ; date = 'June 17, 2020' 
 # [PT] add in legend, legend_label and legend_loc functionality
 #
-ver = '1.91' ; date = 'Nov 2, 2020' 
+#ver = '1.91' ; date = 'Nov 2, 2020' 
 # [PT] 
 #    + deal with passing escape sequences from commandline
 #      - shell protects '\n' by changing it to '\\n'
 #    + 'svg' an OK output file type
 # 
+ver = '1.92' ; date = 'April 22, 2021' 
+# [PT] 
+#    + new opt for 1dplot.py, to control y-axis label length, wrapping:
+#      "-ylabels_maxlen .."
+#
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
@@ -254,6 +259,15 @@ COMMAND OPTIONS ~1~
                should match the order of infiles.
                These labels are plotted vertically along the y-axis of the
                plot.
+
+-ylabels_maxlen MM
+              :y-axis labels can get long; this opt allows you to have
+               them wrap into multiple rows, each of length <=MM.  At the
+               moment, this wrapping is done with some "logic" that tries
+               to be helpful (e.g., split at underscores where possible), 
+               as long as that helpfulness doesn't increase line numbers
+               a lot.  The value entered here will apply to all y-axis 
+               labels in the plot.
 
 -legend_on    :turn on the plotting of a legend in the plot(s).  Legend
                will not be shown in the boxplot panels, if using.
@@ -512,6 +526,7 @@ class figplobj:
         self.bplot_view   = ''
         self.boxplot_ycen = DEF_boxplot_ycen
         self.legend_on    = False
+        self.ylabels_maxlen = None
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
@@ -521,6 +536,9 @@ class figplobj:
 
     def set_legend_on(self, c):
         self.legend_on = c
+
+    def set_ylabels_maxlen(self, c):
+        self.ylabels_maxlen = c
 
     def set_boxplot(self, c):
         self.boxplot_on = c
@@ -778,6 +796,7 @@ class apqc_1dplot_opts:
         # opt input
         self.ylabels  = []
         self.nylabels = 0    
+        self.ylabels_maxlen = False
         self.xlabel  = ""
         self.onescl  = True
         self.one_graph  = False
@@ -894,6 +913,9 @@ class apqc_1dplot_opts:
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
+
+    def set_ylabels_maxlen(self, ml):
+        self.ylabels_maxlen = int(ml)
 
     def add_censor_hline(self, hh):
         val = set_valid_censor_hline_val(hh)
@@ -1419,6 +1441,12 @@ def parse_1dplot_args(full_argv):
                     break
             if not(count):
                 ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-ylabels_maxlen":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_ylabels_maxlen(argv[i])
 
         elif argv[i] == "-legend_on":
             iopts.legend_on = True

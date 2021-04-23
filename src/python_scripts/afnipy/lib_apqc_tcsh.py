@@ -1465,6 +1465,7 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
 
 # ---------------------------------------------------------------------
 # [PT: Dec 23, 2018] add in viewing censor dset, if present
+# [PT: Apr 23, 2021] add "-ylabels_maxlen", to wrap long labels
 
 
 # ['xmat_stim']
@@ -1514,6 +1515,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
         -infiles  ${{xmat_stim}}
         -xlabel   "vol"
         -ylabels ${{labels}}
+        -ylabels_maxlen 7
         ${{cen_cmd}}
         -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg"

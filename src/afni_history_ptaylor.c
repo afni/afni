@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved, so stimulus labels on y-axis will wrap.",
+   "Reduce/remove overlap of long stim labels.\n"
+},
+
+{ 23, Apr , 2021 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Can force ylabels to wrap at a certain num of chars (-ylabels_maxlen ..).",
+   "For APQC, so long stimulus labels don't run into each other.\n"
+},
+
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
    "More options from @chauffeur_afni here.",
    "Tryin' to make nicer images.\n"
