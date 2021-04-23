@@ -8035,6 +8035,7 @@ static float save_H_zero = 0 ;
 
 /*----------------------------------------------------------------------------*/
 /* Process the QUIT signal, as in 'kill -s QUIT <processID>' */
+/* And now the ALRM signal */
 
 #include <signal.h>
 void IW3D_signal_quit(int sig)
@@ -10725,24 +10726,39 @@ ENTRY("IW3D_improve_warp") ;
    /******* do it babee!! ***********************************/
 
    Hquitting_do_jump = 666 ;
-   if( setjmp(Hquitting_jmp_buf) == 0 ){
+
+   if( setjmp(Hquitting_jmp_buf) == 0 ){  /* try to do the work */
+
      int asec ;
-     asec = (int)rintf(0.000001f*Hnval*Hnpar*itmax) ;
+     asec = (int)rintf(0.0000002f*Hnval*Hnpar*itmax/nthmax) ;
           if( asec <    9 ) asec =    9 ;
      else if( asec > 1888 ) asec = 1888 ;
-     (void)alarm(asec) ; /* alarm signal if this takes too long */
+     (void)alarm(asec) ; /* ALRM signal if optimizer takes too long. */
+                         /* The reason for this folderol is that gcc OpenMP */
+                         /* sometimes (rarely) freezes in a race condition. */
+
+                         /* Also, the QUIT signal might come from user */
+
+                         /* signal handler IW3D_signal_quit() was */
+                         /* setup for ALRM and QUIT in 3dQwarp.c */
+
      iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                                prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
-     (void)alarm(0) ;   /* cancel alarm signal */
-   } else {
+
+     (void)alarm(0) ;   /* cancel alarm signal if we succeeded! */
+
+   } else {  /* if we get to here, it was from the signal handler */
+             /* using longjmp() to break from optimizer == failure */
+
      INFO_message("longjmp out of IW3D_improve_warp due to %s signal" ,
-                  (Hquitting_sig==SIGQUIT) ? "QUIT"
-                 :(Hquitting_sig==SIGALRM) ? "ALRM"
+                  (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
+                 :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout)"
                                            : "unknown" ) ;
+
      Hquitting_do_jump = 0 ;
-     RETURN(0) ;
+     RETURN(0) ;                /* failure return */
    }
-   if( Hquitting ) RETURN(0) ;
+   if( Hquitting ) RETURN(0) ;  /* this code probably redundantly pleonastic */
 
    /******* iter = number of iterations actually used *******/
 
