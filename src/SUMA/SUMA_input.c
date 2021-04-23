@@ -8881,7 +8881,7 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
                break;
             case ANY_DSET_type:
-	    case GDSET_type:
+            case GDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "
@@ -10992,8 +10992,8 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    #endif
 
    /* using sv->X->CMAP instead of
-	         DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
-		is useless */
+            DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
+      is useless */
    if (!XAllocNamedColor (sv->X->DPY,
                DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA)),
                Color, &col, &unused)) {
@@ -11013,12 +11013,12 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    \param incremental (SUMA_Boolean) YUP: draw a line between the last two points
                                      NOPE: draw the whole thing
 
-	- NB: This function used to crash when run on SGI if display is not
+   - NB: This function used to crash when run on SGI if display is not
    in TrueColor mode.
-	This happens even though the visual chosen by SUMA does not change.
-	To put the SGI in true color mode, you need to add to /var/X11/xdm/Xservers
-	the following:  -class TrueColor -depth 24
-	and then restart X or the system.
+   This happens even though the visual chosen by SUMA does not change.
+   To put the SGI in true color mode, you need to add to /var/X11/xdm/Xservers
+   the following:  -class TrueColor -depth 24
+   and then restart X or the system.
    The bug was that the graphics context (sv->X->gc) was created using the
    Screen's root window and not the GLX visual's window.
 */
@@ -11031,7 +11031,7 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
 
    SUMA_ENTRY;
 
-	if (!sv->BS) SUMA_RETURNe;
+   if (!sv->BS) SUMA_RETURNe;
 
    N = dlist_size(sv->BS);
    if (N < 2) SUMA_RETURNe;
