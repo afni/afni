@@ -328,8 +328,9 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    SO->N_Overlays = 1;
    if (SO->N_Overlays>0){
        SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-       SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
-       // SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+       // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+       SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+       SO->Overlays[0]->ColVec - (float *)calloc(16*sizeof(float));
 
         if (!(SO->Overlays)){
             SUMA_S_Err("NULL Overlays pointer.");
@@ -719,13 +720,17 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     FS.FaceSetList[inc++] = 1;
 
     SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS, planeIndex);
+    if (!SO){
+        fprintf(stderr, "Error makeClipIdentificationPlane: Error drawing clipping plane rectangle.\n");
+        return False;
+    }
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
     fprintf(stderr, "clipIdentificationPlane[planeIndex] = %p\n", clipIdentificationPlane[planeIndex]);
 
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
-    SUMA_RETURN(YUP);
+    return TRUE;
 }
 
 void lightenActiveClipPlaneSquare(activePlane){
@@ -3778,7 +3783,7 @@ void SUMA_free_Save_List_El(void *selu) {
       if (sel->type) SUMA_free(sel->type);
       SUMA_free(sel);
    }
-   return;
+   SUMA_RETURNe;
 }
 
 int SUMA_Add_to_SaveList(DList **SLp, char *type,
@@ -5020,8 +5025,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
+   static int stackLevel;
 
-   SUMA_ENTRY;
+   // SUMA_ENTRY;
+
+   fprintf(stdout, "SUMA_Fetch_OverlayPointerByDset_arr stackLevel = %d\n", stackLevel++);
 
    /* get the callData pointer */
    cd = (GLwDrawingAreaCallbackStruct *) callData;
@@ -5031,7 +5039,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    if (isv < 0) {
       fprintf (SUMA_STDERR,
                "Error %s: Failed in macro SUMA_GLXAREA_WIDGET2SV.\n", FuncName);
-      return;
+      SUMA_RETURNe;
    }
    SUMA_LH("A call from SUMA_SurfaceViewer[%d], Pointer %p\n", isv, sv);
 
@@ -5263,7 +5271,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                     clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
-                    makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv);
+                    if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                        fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                        exit(1);
+                    }
 
                     // For some reason, this appears necessary to place planes, or their squares, in the right position
                     //  if thet are planes 4-6
@@ -5342,14 +5353,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (fm == NULL) {
                fprintf(stderr,
                         "Error SUMA_input: Failed to allocate space for fm\n");
-               return;
+               SUMA_RETURNe;
             }
 
             if (SUMA_Read_2Dfile (s, fm, 4, ntot/4) != ntot/4 ) {
                fprintf(stderr,
                         "SUMA_input Error: Failed to read full matrix from %s\n",
                         s);
-               return;
+               SUMA_RETURNe;
             }
 
             if (!list) list = SUMA_CreateList();
@@ -6432,7 +6443,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       SUMA_SwitchColPlaneIntensity( ado, Sover,
                                                     SUMA_FORWARD_ONE_SUBBRICK, 1);
                       /* redisplay done in function above ... */
-                      return;
+                      SUMA_RETURNe;
                    }
                 } else {
                    if (!SUMA_Z_Key(sv, "z", "interactive")) {
@@ -6529,7 +6540,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       SUMA_SwitchColPlaneIntensity( ado, Sover,
                                                     SUMA_BACK_ONE_SUBBRICK, 1);
                       /* redisplay done in function above ... */
-                      return;
+                      SUMA_RETURNe;
                    }
                 } else {
                    if (!SUMA_Z_Key(sv, "Z", "interactive")) {
@@ -6624,7 +6635,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMA_RegisterMessage (SUMAg_CF->MessageList,
                                               s, FuncName, SMT_Error,
                                               SMA_LogAndPopup);
-                        return;
+                        SUMA_RETURNe;
                      }
                   }
 
@@ -6688,7 +6699,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMA_RegisterMessage (SUMAg_CF->MessageList,
                                               s, FuncName, SMT_Error,
                                               SMA_LogAndPopup);
-                        return;
+                        SUMA_RETURNe;
                      }
                   }
 
@@ -6789,7 +6800,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                            "Failed to create BrushStroke.",
                                            FuncName,
                                            SMT_Error, SMA_LogAndPopup);
-                     return;
+                     SUMA_RETURNe;
 
                   }
 
@@ -6802,7 +6813,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
                if (!(SUMA_ADO_Saux(ado))){
                     SUMA_S_Err("NULL Saux!!!, don't let that happen");
-                    return;
+                    SUMA_RETURNe;
                }
                if (dlist_size(sv->SelAdo)) {
                  fprintf(stderr, "SUMA_Button_3\n");
@@ -7298,7 +7309,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      SUMA_RegisterMessage (SUMAg_CF->MessageList,
                                            s, FuncName, SMT_Error,
                                            SMA_LogAndPopup);
-                     return;
+                     SUMA_RETURNe;
                   }
                }
 
@@ -7402,7 +7413,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                fprintf(stderr, "SUMA_Button_3_Motion\n");
                   if (!SUMA_Process_Selected_ADO(sv, SUMA_ALTHELL)) {
                      SUMA_S_Err("Failed to process selected ado");
-                     return;
+                     SUMA_RETURNe;
                   }
 
                   /* redisplay */
@@ -7421,7 +7432,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       break;
   }/* switch event type */
 
-   return;
+    stackLevel = 0;
+
+   SUMA_RETURNe;
 }
 
 /*!
@@ -8839,10 +8852,10 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
    SS = SUMA_StringAppend(NULL, NULL);
 
    if (!pick_colid_list) {
-      SS = SUMA_StringAppend(SS,"NULL pick_colid_list"); goto CLEAN_RETURN;
+      SS = SUMA_StringAppend(SS,"NULL pick_colid_list"); goto CLEAN_SUMA_RETURNe;
    }
    if (!dlist_size(pick_colid_list)) {
-      SS = SUMA_StringAppend(SS,"Empty pick_colid_list"); goto CLEAN_RETURN;
+      SS = SUMA_StringAppend(SS,"Empty pick_colid_list"); goto CLEAN_SUMA_RETURNe;
    }
    SS = SUMA_StringAppend_va(SS,"DO Pick List of %d elements\n",
                               dlist_size(pick_colid_list));
@@ -8868,7 +8881,7 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
                break;
             case ANY_DSET_type:
-            case GDSET_type:
+	    case GDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "
@@ -14173,10 +14186,10 @@ void makeCube(){
     GLXContext glc;
 
     // For pointer position
-    Window  root_return, child_return;
-    int     root_x_return, root_y_return;
-    int     win_x_return, win_y_return;
-    unsigned int    mask_return;
+    Window  root_return, child_SUMA_RETURNe;
+    int     root_x_return, root_y_SUMA_RETURNe;
+    int     win_x_return, win_y_SUMA_RETURNe;
+    unsigned int    mask_SUMA_RETURNe;
 
     if (!(dpy = XOpenDisplay(NULL))){
         fprintf(stderr, "Cannot open display\n");
@@ -14241,10 +14254,10 @@ void makeCube(){
     GLXContext glc;
 
     // For pointer position
-    Window  root_return, child_return;
-    int     root_x_return, root_y_return;
-    int     win_x_return, win_y_return;
-    unsigned int    mask_return;
+    Window  root_return, child_SUMA_RETURNe;
+    int     root_x_return, root_y_SUMA_RETURNe;
+    int     win_x_return, win_y_SUMA_RETURNe;
+    unsigned int    mask_SUMA_RETURNe;
     XSetWindowAttributes    attrs;
 
     // Get current window
