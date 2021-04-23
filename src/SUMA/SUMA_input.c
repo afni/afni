@@ -126,7 +126,6 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
 
 
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
-fprintf(stderr, "makeCommonNodesOfRectangleRed\n");
     for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
 
     SO->Overlays[0]->ColVec[0] = 1.0;
@@ -186,6 +185,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SUMA_ALL_DO *ado;
     ado = SUMA_SV_Focus_ADO(sv);
     SUMA_OVERLAYS *NewColPlane=NULL;
+    static int squareIndex = 0;
 
     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
     SO->N_Node = FS.N_Node;
@@ -329,11 +329,12 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
    SO->N_Overlays = 1;
    if (SO->N_Overlays>0){
        SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-       SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
-       /*
+       // Note that ado remains the same and second argument may not be >0
+       // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+       SUMA_OVERLAYS *tempOverlay = SUMA_ADO_Overlay(ado, 0);
        SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+       memcpy((void *)(SO->Overlays[0]),(void *)(tempOverlay),sizeof(SUMA_OVERLAYS));
        SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
-       */
 
         if (!(SO->Overlays)){
             SUMA_S_Err("NULL Overlays pointer.");
@@ -852,7 +853,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     if (clipPlaneIdentificationMode){
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
-#if 0   // Darken inactive clip planes
+#if 1   // Darken inactive clip planes
         if (clipIdentificationPlane[planeIndex]) lightenActiveClipPlaneSquare(planeIndex);
         darkenInactiveClipPlaneSquares(planeIndex);
 #endif
