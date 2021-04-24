@@ -366,63 +366,6 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
     fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 3\n");
 
-#if 0
-    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
-        SUMA_SL_Err("Failed to set surface's properties");
-    }
-
-    // create the colorlist vector and calculate the surface metrics
-    //  with the possibility of inheriting from the mapping reference
-    fprintf(stderr, "######################create the colorlist vector and calculate the surface metrics\n");
-    SUMA_SurfaceObject *SOinh = NULL;
-    int ifound = 1;
-
-    if (SO->LocalDomainParentID) {
-            ifound =  SUMA_findSO_inDOv ( SO->LocalDomainParentID,
-                            dov, N_dov);
-        if (ifound < 0) {
-            SOinh = NULL;
-        }else {
-            SOinh = (SUMA_SurfaceObject *)(dov[ifound].OP);
-        }
-    } else SOinh = NULL;
-
-    // deal with surface controller
-    if (SOinh) {
-        // create a link to the surface controller pointer
-        if (!SO->SurfCont) {
-            SO->SurfCont = (SUMA_X_SurfCont*)
-                SUMA_LinkToPointer((void *)SOinh->SurfCont);
-        } else {
-            fprintf(stderr, "Surface Controller Exists Already (c)\n");
-        }
-    } else {
-        // brand new one
-        if (!SO->SurfCont) {
-            SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str,
-                                          SO_type);
-        } else {
-            fprintf(stderr,"Surface Controller Exists Already (d)\n");
-        }
-    }
-
-    if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace",
-                     SOinh, FALSE, SUMAg_CF->DsetList)) {
-        fprintf (stderr,
-        "Error %s: Failed in SUMA_SurfaceMetrics.\n",
-        FuncName);
-        return NULL;
-    }
-
-    if (SUMA_isEnv("SUMA_AutoLoad_Matching_Dset","YES"))
-                                SUMA_AutoLoad_SO_Dsets(SO);
-
-    if (SUMA_ComputeLineSurfaceIntersect (sv, dov, 0, NULL) < 0){
-       SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
-     }
-
-#endif
-
     return SO;
 }
 

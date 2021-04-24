@@ -205,6 +205,34 @@ static Bool clipPlaneIdentificationMode;
 static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 
+void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO);
+void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO);
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex);
+void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
+void getSquareOnPlane(float *plane, float points[4][3]);
+void updateClipSquare(int planeIndex);
+Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv);
+void lightenActiveClipPlaneSquare(int activePlane);
+void darkenClipPlaneSquare(int planeIndex);
+void darkenInactiveClipPlaneSquares(int activePlane);
+void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
+    int activePlane, Bool toggleOffOn);
+void getPlanePtClosestToViewerOrigin(float *plane, float *point);
+void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point);
+void crossProduct(float input1[], float input2[], float output[]);
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax);
+void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke
