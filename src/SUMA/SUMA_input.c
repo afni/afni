@@ -756,7 +756,10 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     }
 
     // Turn clipping plane on or off as required
-    if (toggleOffOn) active[planeIndex] = !(active[planeIndex]);
+    if (toggleOffOn){
+        active[planeIndex] = !(active[planeIndex]);
+        clipIdentificationPlane[planeIndex]->Show = (clipPlaneIdentificationMode && active[planeIndex]);
+    }
 
     if (flip){
         planeA[planeIndex] = -planeA[planeIndex];
