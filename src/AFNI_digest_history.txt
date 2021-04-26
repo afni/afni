@@ -1,3 +1,64 @@
+AFNI Digest, week of 2020/04/12.
+
+0) afni_proc.py updates.
+1) 3dROIstats updates.
+2) Bug fix for (rare) NIFTI occurrences.
+3) Mac OS binaries update, re. XQuartz/libXp.
+4) New old notes on various AFNI stats programs.
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+
+0) afni_proc.py updates.
+++ Computed TSNR volumes are no longer masked by default, so one can
+   better evaluate things like dropout.  And images of TSNR volumes
+   (after volreg and at end) are now part of the APQC HTML.
+++ afni_proc.py: one can now pass single files with many regressors of
+   no interest via -regress_extra_ortvec and
+   -regress_extra_ortvec_labels.
+
+1) 3dROIstats updates.
+Slowness has been fixed in the processing of NIFTI float time series
+datasets.  Thanks to C Craddock for reporting the issue.
+
+2) Bug fix for (rare) NIFTI occurrences.
+A bug has been fixed in the handling of NIFTI float datasets with
+scalars attached (this is uncommon).  From 2021.01.26 to 2021.03.08,
+some programs would not apply the scalars.
+
+3) Mac OS binaries update, re. XQuartz/libXp.
+AFNI now includes libXp with the macos_10.12_local binaries, as
+XQuartz no longer distributes it.  That is required for the AFNI
+binaries to work on newer systems.  Thanks to C Gaillard for reporting
+and testing.
+
+4) New old notes on various AFNI stats programs.
+There are some new documentations for AFNI stats programs, some dating
+back to The Beginning when they were written.  These typically include
+both general theory and program-specific notes.  The current list of
+descriptions is:
++ When and how to center a variable?
++ Deconvolution Analysis of FMRI Time Series Data
++ Nonlinear Regression Analysis of FMRI Time Series Data (NLfim)
++ Notes on 3dREMLfit
++ Analysis of Variance (ANOVA)
++ Multivariate modeling (MVM) approach for group analysis
++ Linear Mixed-Effects (LME) Modeling
++ Mixed-Effects Meta Analysis (MEMA)
++ False Discovery Rate (FDR)
++ Nonparametric Statistical Analysis of FMRI Data
+... which are available here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
+
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+FreeSurfer's (FS's) recon-all performs useful parcellation and surface
+creation for T1w anatomicals.  This tutorial describes combining this
+with AFNI (via @SUMA_Make_Spec_FS), including notes on
+parallelization, speed, avoiding crashes, running on NIH's Biowulf,
+and the full set of extra dsets and QC info that @SUMA_Make_Spec_FS
+creates.  If that is of interest, check out:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/fs/main_toc.html
+
+========================================================================
+
 AFNI Digest, week of 2021/04/06.
 
 0)   Sign up for Zoom consultations occuring April 19-23, 2021.

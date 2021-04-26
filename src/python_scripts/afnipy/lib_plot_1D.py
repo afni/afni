@@ -21,8 +21,12 @@ author    = "PA Taylor (NIMH, NIH)"
 #        ... bc that is useful as a placeholder when some images have
 #        censor vals and others don't
 #
-ver = '1.9' ; date = 'June 17, 2020' 
+#ver = '1.9' ; date = 'June 17, 2020' 
 # [PT] add in legend, legend_label and legend_loc functionality
+#
+ver = '2.0' ; date = 'April 22, 2020'
+# [PT] can now wrap y-axis labels, because they might get long
+#    + couple ways of trying: purely by length, or with some 'logic'
 #
 # =================================================================
 
@@ -43,6 +47,193 @@ MULTIRUN_SHADE = '0.95'
 
 # =====================================================================
 # =====================================================================
+
+def long_string_wrap_by_char(x, maxlen = 7):
+    '''Sometimes labels are long, and you might want to wrap them to be at
+    most a certain length per line (e.g., long labels for regressors
+    of interest).  If 'x' has a newline char in that, that is OK; we
+    will split with that char, and build based on the rest of the
+    pieces.
+
+    This is the more complicated version of wrapping: pay attention to
+    contents, chopping into possibly ragged lines.
+
+    This is a helper function for: long_string_wrap().
+
+    Params
+    ------
+
+    x      : input str
+    maxlen : max number of chars per line (inclusively)
+
+    Return
+    ------
+
+    z      : str, version of x with '\n' inserted to obey wrapping len
+
+    '''
+
+    xlen   = len(x)
+
+    # simple cases
+    if type(x) != str : return '', 0
+    if xlen <= maxlen : return x, 1
+
+    xlist  = x.split('\n')
+    zsplit = []
+    
+    for y in xlist:
+    
+        ybag = []
+        the_str = y
+        count = 0
+        while len(the_str) :
+            full_len = len(the_str)-1
+            for i in range(full_len):
+                # things that partition at [i]
+                if ( the_str[i] == '_' ) :
+                    ybag.append(the_str[:i])
+                    ybag.append(the_str[i])
+                    the_str = the_str[i+1:]
+                    break
+                # things that split from [i]
+                elif ( i>0 and the_str[i].isupper() and \
+                       the_str[i+1].islower())              or \
+                    ( i>0 and the_str[i] == '#' ) :
+                    ybag.append(the_str[:i])
+                    the_str = the_str[i:]
+                    break
+                # things that split from [i+1]
+                elif ( the_str[i].isnumeric() and \
+                       not(the_str[i+1].isnumeric()))        or \
+                     ( not(the_str[i].isnumeric()) and \
+                       not(the_str[i] == '#') and      \
+                       the_str[i+1].isnumeric())  :
+                    ybag.append(the_str[:i+1])
+                    the_str = the_str[i+1:]
+                    break
+            if i == full_len-1 :
+                ybag.append(the_str)
+                the_str = ''
+                break
+                    
+            count+= 1
+            if count == 1000:
+                print("+* Warn: went into infinite (well, 1000) loop?\n"
+                      "   Stopping, and using simple split output")
+                return long_string_wrap_by_len(x, maxlen = maxlen)
+
+        # forward pass to glue
+        ny   = len(ybag)
+        idx  = 0
+
+        while idx < ny :
+            word = ''
+            lw   = len(word)
+            i    = idx
+            while i < ny:
+                if lw < maxlen:
+                    lnew = len(ybag[i])
+                    if lw + lnew <= maxlen :
+                        word+= ybag[i]
+                        i+= 1
+                    elif lnew > maxlen :
+                        word+= ybag[i][:maxlen-lw]
+                        ybag[i] = ybag[i][maxlen-lw:]
+                        break
+                    else:
+                        break
+                    lw = len(word)
+                else:
+                    break
+            idx = i
+
+            zsplit.append(word)
+
+    #print("DONE the bag:", ybag)
+    #print("DONE the str:", the_str)
+    #print("DONE zsplit:", zsplit)
+
+    nlines = len(zsplit)
+    z      = '\n'.join(zsplit)
+
+    return z, nlines
+
+def long_string_wrap_by_len(x, maxlen = 7):
+    '''Sometimes labels are long, and you might want to wrap them to be at
+    most a certain length per line (e.g., long labels for regressors
+    of interest).  If 'x' has a newline char in that, that is OK; we
+    will split with that char, and build based on the rest of the
+    pieces.
+
+    This is the simple version of wrapping: ignore any contents, just
+    chop into constant length lines.
+
+    This is a helper function for: long_string_wrap().
+
+    Params
+    ------
+
+    x      : input str
+    maxlen : max number of chars per line (inclusively)
+
+    Return
+    ------
+
+    z      : str, version of x with '\n' inserted to obey wrapping len
+
+    '''
+
+    xlen   = len(x)
+
+    # simple cases
+    if type(x) != str : return '', 0
+    if xlen <= maxlen : return x, 1
+
+    xlist  = x.split('\n')
+    zsplit = []
+    
+    for y in xlist:
+        # basic, split every 'maxlen' chars
+        ylen   = len(y)
+        npiece = ylen // maxlen
+
+        for nn in range(npiece):
+            zsplit.append( y[nn*maxlen:(nn+1)*maxlen] )
+        if ylen % maxlen :
+            zsplit.append( y[npiece*maxlen:] )
+        
+    nlines = len(zsplit)
+    z      = '\n'.join(zsplit)
+
+    return z, nlines
+
+def long_string_wrap(x, maxlen = 7, verb=0):
+    '''Main function wrapping long strings into multiple shorter ones,
+    inserting newline chars.  This calls a couple ways of trying to
+    shorten, and then picks the "best".
+    '''
+
+    x_bylen,  n_bylen  = long_string_wrap_by_len( x, maxlen=maxlen )
+    x_bychar, n_bychar = long_string_wrap_by_char( x, maxlen=maxlen )
+
+    if verb > 1 :
+        bord = "-"*maxlen
+        print("++ String, wrapped by char ({} lines):\n{}\n"
+              "{}\n{}".format(n_bychar, bord, x_bychar, bord))
+        print("++ String, wrapped by len ({} lines):\n{}\n"
+              "{}\n{}".format(n_bylen, bord, x_bylen, bord))
+
+    if n_bychar <= n_bylen :
+        if verb:
+            print("++ Output: wrapped by char")
+        return x_bychar
+    else:
+        if verb:
+            print("++ Output: wrapped by len")
+        return x_bylen
+
+# ---------------------------------------------------------------------
 
 # Note: current size limit of plots is 10**6 values in a column, if
 # using create_xarrs via "-xvals ..."
@@ -145,6 +336,10 @@ lots of individual subject 'ss' instances of the subplobj object.
         pp.set_ylim(ss.ylim)
 
         pp.set_xlabel(ss.xlabel, fontsize=bf.fontsize)
+
+        if bf.ylabels_maxlen :
+            ss.ylabel = long_string_wrap(ss.ylabel, maxlen=bf.ylabels_maxlen)
+
         pp.set_ylabel(ss.ylabel, fontsize=bf.fontsize)
 
         # get ylabels aligned horizontally
@@ -165,6 +360,11 @@ lots of individual subject 'ss' instances of the subplobj object.
 
         # only show tick labels at very bottom
         if i < bf.ngraph-1 :
+            # [PT] pp.set_xticks() here just to suppress (unnec) warning:
+            # "FixedFormatter should only be used together with FixedLocator"
+            # ... but it also makes the xaxes vary across a plot, so remove 
+            # for now. Maybe come back to this...
+            #pp.set_xticks(pp.get_xticks()) 
             nlabs = len(pp.get_xticklabels())
             pp.set_xticklabels(['']*nlabs)
 
@@ -334,6 +534,7 @@ def populate_1dplot_fig(iopts):
     bigfig.set_margin( iopts.margin_on )
     bigfig.set_bplot_view( iopts.bplot_view )
     bigfig.set_legend_on( iopts.legend_on )
+    bigfig.set_ylabels_maxlen( iopts.ylabels_maxlen )
 
     for i in range(iopts.ndsets):
 
