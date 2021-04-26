@@ -2,6 +2,9 @@
 afni/src/3dLFCD.c
 */
 
+/* 3dLFCD was created from 3dAutoTCorrelate by
+   R. Cameron Craddock */
+
 // Look for OpenMP macro
 #ifdef USE_OMP
 #include <omp.h>
@@ -21,6 +24,77 @@ afni/src/3dLFCD.c
 #define MAX_NUM_TAGS 32
 #define MAX_TAG_LEN 256
 
+#define FACES 0
+#define FACES_EDGES 1
+#define FACES_EDGES_CORNERS 2
+
+#define X 0
+#define Y 1
+#define Z 2
+
+#define faces_neighborhood_num 6
+int faces_neighborhood[18] = {
+     0,  0,  1,
+     0,  0, -1,
+     0,  1,  0,
+     0, -1,  0,
+     1,  0,  0,
+    -1,  0,  0
+};
+
+/*   x  y  z */
+#define faces_edges_neighborhood_num 18
+const int faces_edges_neighborhood[54] = {
+     0, -1, -1,
+    -1,  0, -1,
+     0,  0, -1,
+     1,  0, -1,
+     0,  1, -1,
+    -1, -1,  0,
+    -1,  0,  0,
+    -1,  1,  0,
+     0, -1,  0,
+     0,  1,  0,
+     1, -1,  0,
+     1,  0,  0,
+     1,  1,  0,
+     0, -1,  1,
+    -1,  0,  1,
+     0,  0,  1,
+     1,  0,  1,
+     0,  1,  1
+};
+
+/*   x  y  z */
+#define faces_edges_corners_neighborhood_num 26
+const int faces_edges_corners_neighborhood[78] = {
+    -1, -1, -1,
+    -1,  0, -1,
+    -1,  1, -1,
+     0, -1, -1,
+     0,  0, -1,
+     0,  1, -1,
+     1, -1, -1,
+     1,  0, -1,
+     1,  1, -1,
+    -1, -1,  0,
+    -1,  0,  0,
+    -1,  1,  0,
+     0, -1,  0,
+     0,  1,  0,
+     1, -1,  0,
+     1,  0,  0,
+     1,  1,  0,
+    -1, -1,  1,
+    -1,  0,  1,
+    -1,  1,  1,
+     0, -1,  1,
+     0,  0,  1,
+     0,  1,  1,
+     1, -1,  1,
+     1,  0,  1,
+     1,  1,  1,
+};
 
 /* CC macro for updating mem stats */
 #define INC_MEM_STATS( INC, TAG ) \
@@ -85,6 +159,11 @@ afni/src/3dLFCD.c
 #define PRINT_MEM_STATS( TAG ) \
         if ( MEM_STAT == 1 ) \
         { \
+            INFO_message("\n======\n== Mem Stats (%s): Running %fB, Total %3.3fMB, Peak %3.3fMB\n", \
+            TAG, \
+            (double)(running_mem), \
+            (double)(total_mem/(1024.0*1024.0)), \
+            (double)(peak_mem/(1024.0*1024.0))); \
             INFO_message("\n======\n== Mem Stats (%s): Running %3.3fMB, Total %3.3fMB, Peak %3.3fMB\n", \
             TAG, \
             (double)(running_mem/(1024.0*1024.0)), \
@@ -201,8 +280,7 @@ struct _list_node
     }
 
 
-/* 3dLFCD was created from 3dAutoTCorrelate by
-   R. Cameron Craddock */
+
 
 /*----------------------------------------------------------------*/
 /**** Include these hesre for potential optimization for OpenMP ****/
@@ -224,6 +302,9 @@ float zm_THD_pearson_corr( int n, float *x , float *y ) /* inputs are */
    }
    return xy ;
 }
+
+
+/* */
 
 /*----------------------------------------------------------------*/
 /* General correlation calculation. */
@@ -316,6 +397,12 @@ int main( int argc , char *argv[] )
 
     /* CC - added flags for thresholding correlations */
     double thresh = 0.0;
+
+    double eps = 1e-9;
+
+    /* CC - defines the neighborhood */
+    int num_neighbors = faces_neighborhood_num;
+    const int * neighborhood = faces_neighborhood;
   
     /* CC - variables to assist going back and forth between mask and volume indices */
     long * vol_ndx_to_mask_ndx = NULL;
@@ -332,26 +419,48 @@ int main( int argc , char *argv[] )
     int MEM_STAT = 0;
    /*----*/
 
+   /* the number of zero variance voxels removed from the data */ 
+   int rem_count = 0;
+
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
 "Usage: 3dLFCD [options] dset\n"
-"  Computes voxelwise local functional connectivity density and\n"
-"  stores the result in a new 3D bucket dataset as floats to\n"
-"  preserve their values. LFCD reflects the strength and\n"
-"  extent of the correlation of a voxel with other voxels in\n"
-"  its locally connected cluster.\n\n"
+"  Computes voxelwise local functional connectivity density as defined in:\n"
+"      Tomasi, D and Volkow, PNAS, May 2010, 107 (21) 9885-9890; \n"
+"        DOI: 10.1073/pnas.1001414107 \n\n"
+"  The results are stored in a new 3D bucket dataset\n as floats to preserve\n"
+"  their values. Local functional connectivity density (LFCD; as opposed to global\n"
+"  functional connectivity density, see 3dDegreeCentrality), reflects\n"
+"  the extent of the correlation of a voxel within its locally connected cluster.\n\n"
 "  Conceptually the process involves: \n"
 "      1. Calculating the correlation between voxel time series for\n"
 "         every pair of voxels in the brain (as determined by masking)\n"
 "      2. Applying a threshold to the resulting correlations to exclude\n"
 "         those that might have arisen by chance\n"
 "      3. Find the cluster of above-threshold voxels that are spatially\n"
-"         adjacent to the target voxel.\n"
+"         connected to the target voxel.\n"
 "      4. Count the number of voxels in the local cluster.\n"
-"   Practically the algorithm is ordered differently to optimize for\n"
-"   computational time and memory usage.\n\n"
+"  Practically the algorithm is ordered differently to optimize for\n"
+"  computational time and memory usage.\n\n"
+"  The procedure described in the paper defines a voxels\n"
+"  neighborhood to be the 6 voxels with which it shares a face.\n"
+"  This definition can be changed to include edge and corner \n"
+"  voxels using the -neighborhood flags below.\n\n"
+"  LFCD is a localized variant of binarized degree centrality,\n"
+"  the weighted alternative is calculated by changing step 4\n"
+"  above to calculate the sum of the correlation coefficients\n"
+"  between the seed region and the neigbors. 3dLFCD outputs\n"
+"  both of these values (in seperate briks), since they are\n"
+"  so easy to calculate in tandem.\n\n"
+"  You might prefer to calculate this on your data after\n"
+"  spatial normalization, so that the range of values are\n"
+"  consistent between datatsets. Similarly the same brain mask\n"
+"  should be used for all datasets that will be directly compared.\n\n"
+"  The original paper used a correlation threshold = 0.6 and \n"
+"  excluded all voxels with tSNR < 50. 3dLFCD does not discard\n"
+"  voxels based on tSNR, this would need to be done beforehand.\n"
 "\n"
 "Options:\n"
 "  -pearson  = Correlation is the normal Pearson (product moment)\n"
@@ -366,7 +475,14 @@ int main( int argc , char *argv[] )
 "\n"
 "  -thresh r = exclude correlations <= r from calculations\n"
 "\n"
-"  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
+"  -faces    = define neighborhood to include face touching\n"
+"              edges (default)\n"
+"  -faces_edges = define neighborhood to include face and \n"
+"                 edge touching voxels\n"
+"  -faces_edges_corners = define neighborhood to include face, \n"
+"                         edge, and corner touching voxels\n"
+"\n"
+"  -polort m = Remove polynomial trend of order 'm', for m=-1..3.\n"
 "               [default is m=1; removal is by least squares].\n"
 "               Using m=-1 means no detrending; this is only useful\n"
 "               for data/information that has been pre-processed.\n"
@@ -375,6 +491,7 @@ int main( int argc , char *argv[] )
 "  -automask =  so that the correlation is only computed between\n"
 "               high-intensity (presumably brain) voxels.  The\n"
 "               mask is determined the same way that 3dAutomask works.\n"
+"               This is done automatically if no mask is proveded.\n"
 "\n"
 "  -mask mmm = Mask to define 'in-brain' voxels. Reducing the number\n"
 "               the number of voxels included in the calculation will\n"
@@ -407,144 +524,151 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if( strcmp(argv[nopt],"-time") == 0 ){
-         abuc = 0 ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-time") == 0 ){
+            abuc = 0 ; nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-autoclip") == 0 ||
-          strcmp(argv[nopt],"-automask") == 0   ){
+        if( strcmp(argv[nopt],"-autoclip") == 0 ||
+            strcmp(argv[nopt],"-automask") == 0   ){
 
-         do_autoclip = 1 ; nopt++ ; continue ;
-      }
+            do_autoclip = 1 ; nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-mask") == 0 ){
-         /* mset is opened here, but not loaded? */
-         mset = THD_open_dataset(argv[++nopt]);
-         CHECK_OPEN_ERROR(mset,argv[nopt]);
-         nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-mask") == 0 ){
+            /* mset is opened here, but not loaded? */
+            mset = THD_open_dataset(argv[++nopt]);
+            CHECK_OPEN_ERROR(mset,argv[nopt]);
+            nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-pearson") == 0 ){
-         method = PEARSON ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-pearson") == 0 ){
+            method = PEARSON ; nopt++ ; continue ;
+        }
 
 #if 0
-      if( strcmp(argv[nopt],"-spearman") == 0 ){
-         method = SPEARMAN ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-spearman") == 0 ){
+            method = SPEARMAN ; nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-quadrant") == 0 ){
-         method = QUADRANT ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-quadrant") == 0 ){
+            method = QUADRANT ; nopt++ ; continue ;
+        }
 #endif
 
-      if( strcmp(argv[nopt],"-eta2") == 0 ){
-         method = ETA2 ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-eta2") == 0 ){
+            method = ETA2 ; nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-prefix") == 0 ){
-         prefix = strdup(argv[++nopt]) ;
-         if( !THD_filename_ok(prefix) ){
-            ERROR_EXIT_CC("Illegal value after -prefix!") ;
-         }
-         nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-prefix") == 0 ){
+            prefix = strdup(argv[++nopt]) ;
+            if( !THD_filename_ok(prefix) ){
+                ERROR_EXIT_CC("Illegal value after -prefix!") ;
+            }
+            nopt++ ; continue ;
+        }
 
-      if( strcmp(argv[nopt],"-thresh") == 0 ){
-         double val = (double)strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val >= 1.0 || val < 0.0 ){
-            ERROR_EXIT_CC("Illegal value (%f) after -thresh!", val) ;
-         }
-         thresh = val ; nopt++ ; continue ;
-      }
-      if( strcmp(argv[nopt],"-polort") == 0 ){
-         int val = (int)strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val < -1 || val > 3 ){
-            ERROR_EXIT_CC("Illegal value after -polort!") ;
-         }
-         polort = val ; nopt++ ; continue ;
-      }
-      if( strcmp(argv[nopt],"-mem_stat") == 0 ){
-         MEM_STAT = 1 ; nopt++ ; continue ;
-      }
-      if( strncmp(argv[nopt],"-mem_profile",8) == 0 ){
-         MEM_PROF = 1 ; nopt++ ; continue ;
-      }
+        if( strcmp(argv[nopt],"-thresh") == 0 ){
+            double val = (double)strtod(argv[++nopt],&cpt) ;
+            if( *cpt != '\0' || val >= 1.0 || val < 0.0 ){
+                ERROR_EXIT_CC("Illegal value (%f) after -thresh!", val) ;
+            }
+            thresh = val ; nopt++ ; continue ;
+        }
 
-      ERROR_EXIT_CC("Illegal option: %s",argv[nopt]) ;
-   }
+        if( strcmp(argv[nopt],"-faces") == 0 ){
+            num_neighbors = faces_neighborhood_num;
+            neighborhood = faces_neighborhood;
+            nopt++ ; continue ;
+        }
 
-   /*-- open dataset, check for legality --*/
+        if( strcmp(argv[nopt],"-faces_edges") == 0 ){
+            num_neighbors = faces_edges_neighborhood_num;
+            neighborhood = faces_edges_neighborhood;
+            nopt++ ; continue ;
+        }
+
+        if( strcmp(argv[nopt],"-faces_edges_neighborhood") == 0 ){
+            num_neighbors = faces_edges_corners_neighborhood_num;
+            neighborhood = faces_edges_corners_neighborhood;
+            nopt++ ; continue ;
+        }
+
+        if( strcmp(argv[nopt],"-polort") == 0 ){
+            int val = (int)strtod(argv[++nopt],&cpt) ;
+            if( *cpt != '\0' || val < -1 || val > 3 ){
+                ERROR_EXIT_CC("Illegal value after -polort!") ;
+            }
+            polort = val ; nopt++ ; continue ;
+        }
+
+        if( strcmp(argv[nopt],"-mem_stat") == 0 ){
+            MEM_STAT = 1 ; nopt++ ; continue ;
+        }
+
+        if( strncmp(argv[nopt],"-mem_profile",8) == 0 ){
+            MEM_PROF = 1 ; nopt++ ; continue ;
+        }
+
+        ERROR_EXIT_CC("Illegal option: %s",argv[nopt]) ;
+    }
+
+    /*-- open dataset, check for legality --*/
 
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
+
+    INFO_message("Calculating LFCD from %s using mask, r_threshold %lf and %d voxels in the neighborhood\n",
+         argv[nopt], thresh, num_neighbors);
+
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
+    if( DSET_NVALS(xset) < 3 )
+        ERROR_EXIT_CC("Input dataset %s does not have 3 or more sub-bricks!",
+            argv[nopt]) ;
+    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
-   if( DSET_NVALS(xset) < 3 )
-     ERROR_EXIT_CC("Input dataset %s does not have 3 or more sub-bricks!",
-        argv[nopt]) ;
-   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+    /*-- compute mask array, if desired --*/
+    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
+    INC_MEM_STATS((nvox * nvals * sizeof(double)), "input dset");
+    PRINT_MEM_STATS("inset");
 
-   /*-- compute mask array, if desired --*/
-   nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
-   INC_MEM_STATS((nvox * nvals * sizeof(double)), "input dset");
-   PRINT_MEM_STATS("inset");
+    /* if a mask was specified make sure it is appropriate */
+    if( mset ){
 
-   /* if a mask was specified make sure it is appropriate */
-   if( mset ){
+        if( DSET_NVOX(mset) != nvox )
+            ERROR_EXIT_CC("Input and mask dataset differ in number of voxels!") ;
+        mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
 
-      if( DSET_NVOX(mset) != nvox )
-         ERROR_EXIT_CC("Input and mask dataset differ in number of voxels!") ;
-      mask  = THD_makemask(mset, 0, 1.0, 0.0) ;
+        /* update running memory statistics to reflect loading the image */
+        INC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
+        PRINT_MEM_STATS( "mset load" );
 
-      /* update running memory statistics to reflect loading the image */
-      INC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
-      PRINT_MEM_STATS( "mset load" );
+        /* iupdate statistics to reflect creating mask array */
+        nmask = THD_countmask( nvox , mask ) ;
+        INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+        PRINT_MEM_STATS( "mask" );
 
-      /* iupdate statistics to reflect creating mask array */
-      nmask = THD_countmask( nvox , mask ) ;
-      INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
-      PRINT_MEM_STATS( "mask" );
+        INFO_message("%d voxels in -mask dataset",nmask) ;
+        if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -mask, exiting...",nmask);
 
-      INFO_message("%d voxels in -mask dataset",nmask) ;
-      if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -mask, exiting...",nmask);
+        /* update running memory statistics to reflect loading the image */
+        DEC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
+        PRINT_MEM_STATS( "mset unload" );
 
-      /* update running memory statistics to reflect loading the image */
-      DEC_MEM_STATS( mset->dblk->total_bytes, "mask dset" );
-      PRINT_MEM_STATS( "mset unload" );
-
-      /* free all memory associated with the mask datast */
-      DSET_unload(mset) ;
-      DSET_delete(mset) ;
-      mset = NULL ;
-   } 
-   /* if automasking is requested, handle that now */
-   else if( do_autoclip ){
-      mask  = THD_automask( xset ) ;
-      nmask = THD_countmask( nvox , mask ) ;
-      INFO_message("%d voxels survive -autoclip",nmask) ;
-      if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -automask!",nmask);
-   }
-   /* otherwise we use all of the voxels in the image */
-   else {
-      nmask = nvox ;
-      INFO_message("computing for all %d voxels",nmask) ;
-   }
-   
-   if( method == ETA2 && polort >= 0 )
-      WARNING_message("Polort for -eta2 should probably be -1...");
-
-   /**  For the case of Pearson correlation, we make sure the  **/
-   /**  data time series have their mean removed (polort >= 0) **/
-   /**  and are normalized, so that correlation = dot product, **/
-   /**  and we can use function zm_THD_pearson_corr for speed. **/
-
-    switch( method ){
-        default:
-        case PEARSON: corfun = zm_THD_pearson_corr ; break ;
-        case ETA2:    corfun = my_THD_eta_squared  ; break ;
-   }
-
+        /* free all memory associated with the mask datast */
+        DSET_unload(mset) ;
+        DSET_delete(mset) ;
+        mset = NULL ;
+    } 
+    /* if automasking is requested, handle that now */
+    else {
+        mask  = THD_automask( xset ) ;
+        nmask = THD_countmask( nvox , mask ) ;
+        INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+        PRINT_MEM_STATS( "mask" );
+        INFO_message("No mask provided, created one using AFNI's automask procedure, %d voxels survive",nmask) ;
+        if( nmask < 2 ) ERROR_EXIT_CC("Only %d voxels in -automask!",nmask);
+    }
+    
     /*-- create vectim from input dataset --*/
     INFO_message("vectim-izing input dataset") ;
 
@@ -557,6 +681,69 @@ int main( int argc , char *argv[] )
                     ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
                     sizeof(MRI_vectim), "vectim");
     PRINT_MEM_STATS( "vectim" );
+
+    /* iterate through and remove all voxels that have zero
+       variance */
+    for (ii=0; ii<xvectim->nvec; ii++)
+    {
+        double sum = 0.0;
+        double sum_sq = 0.0;
+
+        float* xsar = VECTIM_PTR(xvectim,ii);
+
+        for(int tt=0; tt<xvectim->nvals; tt++)
+        {
+            sum += xsar[tt];
+            sum_sq += xsar[tt] * xsar[tt];
+        }
+
+        if((sum_sq-sum*sum/(double)nvals)/(double)(nvals-1) < eps)
+        {
+            mask[xvectim->ivec[ii]] = 0;
+            rem_count++;
+        }
+    }
+
+    /* update running memory statistics to reflect freeing the vectim */
+    DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
+                       ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                       sizeof(MRI_vectim)), "vectim");
+
+    /* toss some trash */
+    VECTIM_destroy(xvectim) ;
+
+    /* make another xvectim with the updated mask */
+    xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
+    if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim?!") ;
+
+    /*-- CC update our memory stats to reflect vectim -- */
+    INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
+                    ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                    sizeof(MRI_vectim), "vectim");
+    PRINT_MEM_STATS( "vectim" ); 
+
+    INFO_message("!! %d voxels remain after removing those with no variance (%d)\n", 
+        xvectim->nvec, rem_count);
+
+
+    /* unload DSET to reduce the amount of memory used */
+    DSET_unload(xset);
+    DEC_MEM_STATS((nvox * nvals * sizeof(double)), "input dset");
+
+    /**  For the case of Pearson correlation, we make sure the  **/
+    /**  data time series have their mean removed (polort >= 0) **/
+    /**  and are normalized, so that correlation = dot product, **/
+    /**  and we can use function zm_THD_pearson_corr for speed. **/
+
+    switch( method ){
+        default:
+        case PEARSON: corfun = zm_THD_pearson_corr ; break ;
+        case ETA2:    corfun = my_THD_eta_squared  ; break ;
+    }
+
+    if( method == ETA2 && polort >= 0 )
+        WARNING_message("Polort for -eta2 should probably be -1...");
+    
 
    /*--- CC the vectim contains a mapping between voxel index and mask index, 
          tap into that here to avoid duplicating memory usage, also create a
@@ -589,12 +776,6 @@ int main( int argc , char *argv[] )
         free(mask); mask=NULL;
         PRINT_MEM_STATS( "mask unload" );
     }
-
-    /* -- CC unloading the dataset to reduce memory usage ?? -- */
-    DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), 
-        "input dset");
-    DSET_unload(xset) ;
-    PRINT_MEM_STATS("inset unload");
 
     /* -- CC configure detrending --*/
     if( polort < 0 && method == PEARSON )
@@ -649,7 +830,7 @@ int main( int argc , char *argv[] )
     /* add history information to the hearder */
     tross_Make_History( "3dLFCD" , argc,argv , cset ) ;
 
-    ININFO_message("creating output dataset in memory") ;
+    INFO_message("creating output dataset in memory") ;
 
     /* -- Configure the subbriks: Binary LFCD */
     subbrik = 0;
@@ -777,7 +958,7 @@ int main( int argc , char *argv[] )
                if the boundary list is empty, there is a problem */
             if (boundary_list != NULL)
             {
-                WARNING_message("Boundary list not empyt!\n");
+                WARNING_message("Boundary list not empty!\n");
             }
             new_node->next = boundary_list;
             boundary_list = new_node;
@@ -794,8 +975,12 @@ int main( int argc , char *argv[] )
                 boundary_list = boundary_list->next;
 
                 /* iterate through a box around the current voxel */
-                for ( dx = 0; dx < 3; dx++ )
+                for ( int neighbor_index = 0; neighbor_index < num_neighbors; neighbor_index++ )
                 {
+                    dx = neighborhood[3*neighbor_index+X];
+                    dy = neighborhood[3*neighbor_index+Y];
+                    dz = neighborhood[3*neighbor_index+Z];
+
                     ix = ( current_node->ix + (dx-1) );
                     /* make sure that we are in bounds */
                     if (( ix < 0 ) || ( ix > DSET_NX(xset) )) 
@@ -803,94 +988,88 @@ int main( int argc , char *argv[] )
                         continue;
                     }
 
-                    for( dy = 0; dy < 3; dy++ )
+                    jy = ( current_node->jy + (dy-1) );
+                    /* make sure that we are in bounds */                        
+                    if (( jy < 0 ) || ( jy > DSET_NY(xset) ))
                     {
-                        jy = ( current_node->jy + (dy-1) );
-                        /* make sure that we are in bounds */                        
-                        if (( jy < 0 ) || ( jy > DSET_NY(xset) ))
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        for ( dz = 0; dz < 3; dz++)
+                    kz = ( current_node->kz + (dz-1) );
+                    /* make sure that we are in bounds */
+                    if (( kz < 0 ) || (kz > DSET_NZ(xset))) 
+                    {
+                        continue;
+                    }
+
+                    /* get the index of this voxel */
+                    target_mask_ndx = 
+                        vol_ndx_to_mask_ndx[ DSET_ixyz_to_index(xset,ix,jy,kz) ];
+
+                    /* if the voxel is in the mask, and hasn't been
+                        seen before, evaluate it for inclusion in the
+                        boundary */
+                    if(( target_mask_ndx != 0 ) && ( seen_voxels[ target_mask_ndx ] != 1 ))
+                    {
+
+                        /* indicate that we have seen the voxel */
+                        seen_voxels[ target_mask_ndx ] = 1;
+
+                        /* extract the time series */
+                        ysar = VECTIM_PTR(xvectim,target_mask_ndx) ;
+
+                        /* calculate the correlation */
+                        car = (double)(corfun(nvals,xsar,ysar)) ;
+
+                        /* if correlation is above threshold, add
+                            it to the LFCD stats and to the boundary */
+                        if ( car > thresh )
                         {
-                            kz = ( current_node->kz + (dz-1) );
-                            /* make sure that we are in bounds */
-                            if (( kz < 0 ) || (kz > DSET_NZ(xset))) 
+
+                            if( recycled_nodes == NULL)
                             {
-                                continue;
+        /* this looks like it is redundant, but I want the first if 
+            statement to run in the critical section and the second
+            if statement to run after it */
+#pragma omp critical(mem_alloc)
+                                if(( new_node = (list_node*)malloc(sizeof(list_node)) ) != NULL )
+                                {
+                                    INC_MEM_STATS((sizeof(list_node)), "list nodes");
+                                }
+                                if( new_node == NULL )
+                                {
+                                    WARNING_message( "Could not allocate list node\n");
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                new_node = recycled_nodes;
+                                recycled_nodes = recycled_nodes->next;
                             }
 
-                            /* get the index of this voxel */
-                            target_mask_ndx = 
-                                vol_ndx_to_mask_ndx[ DSET_ixyz_to_index(xset,ix,jy,kz) ];
+                            /* determine the full ndx for the seed target */
+                            new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ target_mask_ndx ]; 
 
-                            /* if the voxel is in the mask, and hasn't been
-                               seen before, evaluate it for inclusion in the
-                               boundary */
-                            if(( target_mask_ndx != 0 ) && ( seen_voxels[ target_mask_ndx ] != 1 ))
-                            {
+                            /* add source, dest, correlation to 1D file */
+                            new_node->ix = ix ;
+                            new_node->jy = jy ;
+                            new_node->kz = kz ;
 
-                                /* indicate that we have seen the voxel */
-                                seen_voxels[ target_mask_ndx ] = 1;
+                            /* add the node to the boundary */
+                            new_node->next = boundary_list;
+                            boundary_list = new_node;
 
-                                /* extract the time series */
-                                ysar = VECTIM_PTR(xvectim,target_mask_ndx) ;
-
-                                /* calculate the correlation */
-                                car = (double)(corfun(nvals,xsar,ysar)) ;
-
-                                /* if correlation is above threshold, add
-                                   it to the LFCD stats and to the boundary */
-                                if ( car > thresh )
-                                {
-
-                                    if( recycled_nodes == NULL)
-                                    {
-                /* this looks like it is redundant, but I want the first if 
-                   statement to run in the critical section and the second
-                   if statement to run after it */
-#pragma omp critical(mem_alloc)
-                                        if(( new_node = (list_node*)malloc(sizeof(list_node)) ) != NULL )
-                                        {
-                                            INC_MEM_STATS((sizeof(list_node)), "list nodes");
-                                        }
-                                        if( new_node == NULL )
-                                        {
-                                            WARNING_message( "Could not allocate list node\n");
-                                            continue;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        new_node = recycled_nodes;
-                                        recycled_nodes = recycled_nodes->next;
-                                    }
-
-                                    /* determine the full ndx for the seed target */
-                                    new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ target_mask_ndx ]; 
-
-                                    /* add source, dest, correlation to 1D file */
-                                    new_node->ix = ix ;
-                                    new_node->jy = jy ;
-                                    new_node->kz = kz ;
-
-                                    /* add the node to the boundary */
-                                    new_node->next = boundary_list;
-                                    boundary_list = new_node;
-
-                                    /* now increment the LFCD measures, this is
-                                       done in a critical section */
+                            /* now increment the LFCD measures, this is
+                                done in a critical section */
 #pragma omp critical(dataupdate)
-                                    {
-                                        wodset[ mask_ndx_to_vol_ndx[ lout ]] += car;
-                                        bodset[ mask_ndx_to_vol_ndx[ lout ]] += 1;
-                                    }                                  
-                                } /* if car > thresh */
-                            } /* if vox is in mask and hasn't been seen */
-                        } /* for dz */
-                    } /* for dy */
-                } /* for dx */
+                            {
+                                wodset[ mask_ndx_to_vol_ndx[ lout ]] += car;
+                                bodset[ mask_ndx_to_vol_ndx[ lout ]] += 1;
+                            }                                  
+                        } /* if car > thresh */
+                    } /* if vox is in mask and hasn't been seen */
+                } /* for neighbor_index */
 
                 /* we have finished processing this node, so recycle it */
                 current_node->next = recycled_nodes;
@@ -930,10 +1109,11 @@ int main( int argc , char *argv[] )
 
     /* toss some trash */
     VECTIM_destroy(xvectim) ;
+
+
     DSET_delete(xset) ;
 
-    PRINT_MEM_STATS( "Vectim Unload" );
-
+    PRINT_MEM_STATS( "Vectim and Input dset Unload" );
 
     /* finito */
     INFO_message("Writing output dataset to disk [%s bytes]",
