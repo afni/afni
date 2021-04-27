@@ -23,8 +23,9 @@
 #
 #  brew install
 #    libpng jpeg expat freetype fontconfig openmotif libomp
-#    libxt gsl glib pkg-config, gcc (version 10 used here by default)
-#
+#    libxt gsl glib pkg-config gcc (version 10 used here by default)
+#    autoconf
+
 # also brew install netpbm libiconv
 
 
@@ -202,7 +203,7 @@ GLw_LIB = libGLws.a
 
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0 
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src  -I${usr_ROOT}/include/glib-2.0  -I${usr_ROOT}/lib/glib-2.0/include
 #SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
