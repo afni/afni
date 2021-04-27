@@ -1,4 +1,6 @@
-Using Clipping PLanes in SUMA
+﻿Using Clipping PLanes in SUMA
+
+NB. Use of clipping planes now requires that SUMA is in clipping plane mode.  By default SUMA is not in clipping plane mode.  Shift-Ctrl-C toggles in and out of clipping plane mode.
 
 There may be up to six clipping planes.  They are formed with shift-ctrl-C
 No more clipping planes may be added once there are six.

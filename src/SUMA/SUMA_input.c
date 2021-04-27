@@ -742,7 +742,6 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
     static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,50,50,50};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
-    static Bool active[6] = {1,1,1,1,1,1};
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
@@ -4065,7 +4064,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(1, 0, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
@@ -4189,7 +4188,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Down:
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(-1, 0, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
@@ -4308,7 +4307,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, -1, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
@@ -4419,7 +4418,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    switch (k) {
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
-            if (SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 1, 0, 0, -1, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
@@ -5065,6 +5064,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
+         case XK_slash:
+            if (SUMA_ALTHELL){
+                clippingPlaneMode = !clippingPlaneMode;
+                if (clippingPlaneMode){
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
+                        clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                    }
+                } else {
+                    for (int i=0; i<6; ++i){
+                        previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
+                        active[i] = 1;                      // Turn clipping plane on so it will be toggled off
+                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                    }
+                }
+            }
+            break;
+
          case XK_space:   /* The spacebar. */
             if (!SUMA_space_Key(sv, "SPACE", "interactive")) {
                SUMA_S_Err("Failed in key func.");
@@ -5198,37 +5215,50 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_C:
 
-         fprintf(stderr, "Shift-C\n");
-
             if ((SUMA_ALTHELL)){
 
-            fprintf(stderr, "Shift-Alt-C\n");
+                if (clippingPlaneMode){
 
-                // This sets up a new clip plane (independent of the dialog box.  If called with
-                //  the dialog box, two clipping planes result.)  The new plane is automatically
-                //  assigned a label which is its 1-based index
-                if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
+                    // This sets up a new clip plane (independent of the dialog box.  If called with
+                    //  the dialog box, two clipping planes result.)  The new plane is automatically
+                    //  assigned a label which is its 1-based index
+                    if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
 
-                    fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
-                    for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                        fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
+                        for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        }
+                    } else if (SUMAg_CF->N_ClipPlanes>=6){
+                        fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
+                    } else {
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
-                    }
-                } else if (SUMAg_CF->N_ClipPlanes>=6){
-                    fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
-                } else {
-                    sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
-                    if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                        fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                        exit(1);
-                    }
+                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                            exit(1);
+                        }
 
-                    // For some reason, this appears necessary to place planes, or their squares, in the right position
-                    //  if thet are planes 4-6
-                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        // For some reason, this appears necessary to place planes, or their squares, in the right position
+                        //  if thet are planes 4-6
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                    }
                 }
-            } else if (SUMAg_CF->N_ClipPlanes>0) {
+            } else if ((Kev.state & ControlMask)){
+                clippingPlaneMode = !clippingPlaneMode;
+                if (clippingPlaneMode){
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
+                        clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                    }
+                } else {
+                    for (int i=0; i<6; ++i){
+                        previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
+                        active[i] = 1;                      // Turn clipping plane on so it will be toggled off
+                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                    }
+                }
+            }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
@@ -5387,7 +5417,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_f:
-            if (SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){    // PDL: Flip clipping plane
+            if (clippingPlaneMode && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){    // PDL: Flip clipping plane
                 clipPlaneTransform(0,0,0,1,-1, 0);
             } else {
                 /* Show/hide the foreground */
@@ -5752,49 +5782,68 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          // alt-<number> keys, where number in [1,6] select the clipping plane by index
          case XK_1:
-            if (SUMAg_CF->N_ClipPlanes>=1 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,0, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=1 && (SUMA_ALTHELL)){    // Select clipping plane 1
-                clipPlaneTransform(0,0,0,0,0, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=1 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,0, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=1 && (SUMA_ALTHELL)){    // Select clipping plane 1
+                    clipPlaneTransform(0,0,0,0,0, 0);
+                }
             }
             break;
          case XK_2:
-            if (SUMAg_CF->N_ClipPlanes>=2 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,1, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){        // Select clipping plane 2
-                clipPlaneTransform(0,0,0,0,1, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=2 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,1, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){        // Select clipping plane 2
+                    clipPlaneTransform(0,0,0,0,1, 0);
+                }
             }
             break;
          case XK_3:
-            if (SUMAg_CF->N_ClipPlanes>=3 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,2, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){        // Select clipping plane 3
-                clipPlaneTransform(0,0,0,0,2, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=3 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,2, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){        // Select clipping plane 3
+                    clipPlaneTransform(0,0,0,0,2, 0);
+                }
             }
             break;
          case XK_4:
-            if (SUMAg_CF->N_ClipPlanes>=4 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,3, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){        // Select clipping plane 4
-                clipPlaneTransform(0,0,0,0,3, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=4 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,3, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){        // Select clipping plane 4
+                    clipPlaneTransform(0,0,0,0,3, 0);
+                }
             }
             break;
          case XK_5:
-            if (SUMAg_CF->N_ClipPlanes>=5 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,4, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){        // Select clipping plane 5
-                clipPlaneTransform(0,0,0,0,4, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=5 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,4, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){        // Select clipping plane 5
+                    clipPlaneTransform(0,0,0,0,4, 0);
+                }
             }
             break;
          case XK_6:
-            if (SUMAg_CF->N_ClipPlanes>=6 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                clipPlaneTransform(0,0,0,0,5, 1);
-            } else if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){        // Select clipping plane 6
-                clipPlaneTransform(0,0,0,0,5, 0);
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes>=6 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                    clipPlaneTransform(0,0,0,0,5, 1);
+                } else if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){        // Select clipping plane 6
+                    clipPlaneTransform(0,0,0,0,5, 0);
+                }
+            }
+            break;
+         case XK_7:
+            if (clippingPlaneMode){
+                // Toggle activated clippping planes on and off
             }
             break;
          case XK_8:
-            {
+            if (clippingPlaneMode){
+                // TODO: Toggle all clipping planes on
+            } else {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
                SUMAg_CF->X->N_ForeSmooth_prmpt =
@@ -6302,7 +6351,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
-            if (pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 0, -1, 0,-1, 0);
             } else {
 
@@ -6403,7 +6452,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
-            if (pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
+            if (clippingPlaneMode && pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
                 clipPlaneTransform(0, 0, 1, 0,-1, 0);
            } else {
 

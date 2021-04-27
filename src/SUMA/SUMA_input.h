@@ -201,9 +201,11 @@ void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widge
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 // static int clipPlaneIndex;
-static Bool clipPlaneIdentificationMode;
+static Bool clipPlaneIdentificationMode, clippingPlaneMode;
 static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
+static Bool active[6] = {1,1,1,1,1,1};
+static Bool previouslyActive[6] = {0,0,0,0,0,0};
 
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO);
