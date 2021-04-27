@@ -126,6 +126,10 @@ EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
 		      $(BREWLIBDIR)/libintl.8.dylib                   \
               /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
 
+# this is called a hack - command to convert dyname -lXm to static for R_io.so
+#RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'
+#RLIB_CONVERT = | sed 's/-lXm/\/usr\/local\/lib\/libXm.a/'
+RLIB_CONVERT = | sed 's/-lXm/\/opt\/Homebrew\/lib\/libXm.a/'
 
 # these were the PJM's library files to copy to binary distribution directory
 # The list above includes different versions to copy
@@ -185,9 +189,6 @@ LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig \
          -lpng16 -liconv -lXmu -lXp -lXpm -lXext -lX11      \
          $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
 
-# this is called a hack - command to convert dyname -lXm to static for R_io.so
-#RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'
-RLIB_CONVERT = | sed 's/-lXm/\/usr\/local\/lib\/libXm.a/'
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
