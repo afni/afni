@@ -126,54 +126,78 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
 
 
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = 1.0;
     SO->Overlays[0]->ColVec[6] = 1.0;
+    SO->Overlays[0]->ColVec[3] = 1.0;
+    SO->Overlays[0]->ColVec[9] = 1.0;
+    /*
     SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] =
         SO->Overlays[0]->ColVec[5] = SO->Overlays[0]->ColVec[7] = 0.0;
+        */
 }
 
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[1] = 1.0;
     SO->Overlays[0]->ColVec[7] = 1.0;
+    SO->Overlays[0]->ColVec[4] = 1.0;
+    SO->Overlays[0]->ColVec[10] = 1.0;
+    /*
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.0;
+    */
 }
 
 void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[8] = 1.0;
+    SO->Overlays[0]->ColVec[5] = 1.0;
+    SO->Overlays[0]->ColVec[11] = 1.0;
+    /*
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] =
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 0.0;
+    */
 }
 
 void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[6] = 0.0;
+    SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = 1.0;
+    SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = 1.0;
+    // SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[6] = 0.0;
 }
 
 void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
-    SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[7] = 0.0;
+    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = 1.0;
+    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = 1.0;
+    // SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[7] = 0.0;
 }
 
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] = 1.0;
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
-    SO->Overlays[0]->ColVec[2] = SO->Overlays[0]->ColVec[8] = 0.0;
+    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = 1.0;
+    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = 1.0;
+    // SO->Overlays[0]->ColVec[2] = SO->Overlays[0]->ColVec[8] = 0.0;
 }
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
