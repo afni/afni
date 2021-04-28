@@ -5262,7 +5262,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     //  assigned a label which is its 1-based index
                     if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
 
-                        fprintf(stderr, "Ctrl-Shift-alt-C\n");  // DEBUG
                         for (int planeIndex=0; planeIndex<6; ++planeIndex){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                             clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
@@ -5291,6 +5290,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_UpdateViewerTitle(sv);
 
                if (clippingPlaneMode){
+                    // Make sure there is at least one clipping plane with its colored square
+                    if (SUMAg_CF->N_ClipPlanes < 1){
+                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                            exit(1);
+                        }
+                        fprintf(stderr, "SUMAg_CF->N_ClipPlanes = %d\n", SUMAg_CF->N_ClipPlanes);
+                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
+                    }
+
+                    // Turn on clipping planes and their colored squares
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
