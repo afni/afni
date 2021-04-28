@@ -1,6 +1,8 @@
 ﻿Using Clipping PLanes in SUMA
 
-NB. Use of clipping planes now requires that SUMA is in clipping plane mode.  By default SUMA is not in clipping plane mode.  Shift-Ctrl-C toggles in and out of clipping plane mode.
+NB. Use of clipping planes now requires that SUMA is in clipping plane mode.  
+By default SUMA is not in clipping plane mode.  
+Shift-Ctrl-C toggles in and out of clipping plane mode.
 
 There may be up to six clipping planes.  They are formed with shift-ctrl-C
 No more clipping planes may be added once there are six.
@@ -23,24 +25,26 @@ Alt-f reverses the normal of the selected clipping plane.
 # [PT: Apr 16, 2021] notes/comments on current clipping plane behavior
 # on Ubuntu 20.04.
 
-There can be up to 6 clipping planes, numbered [1, 6].  Each has a
+There can be up to 6 clipping planes, numbered [1-6].  Each has a
 separate color, being in order R G B C M Y.  So, plane 1 can be viewed
 in Red, plane 4 in Cyan, etc.
 
-Below, "a number" can be in range [1, 6].
+Below, "a number" can be in range [1-6].
 
 "active" means a clipping plane is clipping, not just visible.
 
 Key+mouse behavior
 ------------------
 
-Shift+Alt+c       : successively add new clipping planes, which are active
+Shift-Ctrl-c      : toggles in and out of clipping plane mode.
+
+Shift+Alt/Cmd+c   : successively add new clipping planes, which are active
                     as they appear (you might not see them to start,
                     just their clipping effect)
 
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 
-Alt+[a number]    : select a particular clipping plane (e.g., so you can 
+Alt/Cmd+[a number]    : select a particular clipping plane (e.g., so you can 
                     rotate/translate it with other key presses)
 
 Alt+f             : reverse clipping direction of any active planes
@@ -48,7 +52,7 @@ Alt+f             : reverse clipping direction of any active planes
 Shift+c           : toggle view of all active clipping planes on/off
 Ctrl+Shift+c      : same behavior
 
-Alt+[scrollwheel] : translate a clipping plane in space
+Alt/Cmd/Opt+[scrollwheel] : translate a clipping plane in space
 
-Alt+[arrow key]   : rotate a clipping plane in space
+Alt/Cmd/Opt+[arrow key]   : rotate a clipping plane in space
 
