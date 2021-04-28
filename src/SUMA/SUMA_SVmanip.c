@@ -6009,6 +6009,9 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    SUMA_LH("Momentum");
    if (sv->GVS[sv->StdView].ApplyMomentum) SS = SUMA_StringAppend_va(SS,":M");
 
+   SUMA_LH("ClippingPlane");
+   if (sv->GVS[sv->StdView].ClippingPlane) SS = SUMA_StringAppend_va(SS,":C");
+
    SUMA_LH("Surf List");
    N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
 

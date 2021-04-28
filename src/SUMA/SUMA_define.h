@@ -2288,6 +2288,7 @@ typedef struct {
    float currentQuat[4]; /*!< Current quaternion */
    float lastQuat[4]; /*!< Quaternion last time we displayed*/
    Boolean ApplyMomentum;   /*!< Turn momentum ON/OFF */
+   Boolean ClippingPlane;   /*!< Turn clipping plane ON/OFF */
 
    float vLHpry[3];
    float vLHpry0[3];

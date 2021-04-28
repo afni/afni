@@ -621,22 +621,26 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     crossProduct(tangent, normal, bitangent);
 
     // Add mean, of each axis, to plane origin
-    // DEBUG for (int i=0; i<3; ++i) planeOrigin[i] += (axisMinMax[i][0]*tangent[i] + axisMinMax[i][1]*bitangent[i])/2;
+    // for (int i=0; i<3; ++i) planeOrigin[i] -= (axisMinMax[i][0]*tangent[i] + axisMinMax[i][1]*bitangent[i])/2;
 
     // Get points from tangent and bitangent
     float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
     for (int i=0; i<3; ++i){
+        points[0][i]=planeOrigin[i]+overallMax*tangent[i]-overallMax*bitangent[i];
+        points[1][i]=planeOrigin[i]+overallMax*tangent[i]+overallMax*bitangent[i];
+        points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
+        points[3][i]=planeOrigin[i]-overallMax*tangent[i]-overallMax*bitangent[i];
 #if 0
         points[0][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]-axisMinMax[i][0]*bitangent[i];
         points[1][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]+axisMinMax[i][1]*bitangent[i];
         points[2][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]+axisMinMax[i][1]*bitangent[i];
         points[3][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]-axisMinMax[i][0]*bitangent[i];
         fprintf(stderr, "Points[%d] = (%f, %f, %f, %f)\n", i, points[0][i], points[1][i], points[2][i], points[3][i]);
-#endif
         points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
         points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
         points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
         points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
+#endif
     }
 }
 
@@ -5279,8 +5283,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     }
                 }
             } else if ((Kev.state & ControlMask)){
-                clippingPlaneMode = !clippingPlaneMode;
-                if (clippingPlaneMode){
+                clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
+
+                //Update title bar
+                sv->GVS[sv->StdView].ClippingPlane =
+                                     !sv->GVS[sv->StdView].ClippingPlane;
+                SUMA_UpdateViewerTitle(sv);
+
+               if (clippingPlaneMode){
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
