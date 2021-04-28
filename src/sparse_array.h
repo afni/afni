@@ -30,6 +30,7 @@ typedef struct _sparse_array_head_node
 {
    /* size of sparse array */
    long num_nodes;
+   long peak_mem_usage;
    /* and pointer to nodes for access */
    sparse_array_node* nodes; 
 } sparse_array_head_node;
