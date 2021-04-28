@@ -233,7 +233,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 void getPlanePtClosestToViewerOrigin(float *plane, float *point);
 void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point);
 void crossProduct(float input1[], float input2[], float output[]);
-void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax);
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 /*!

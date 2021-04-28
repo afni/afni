@@ -233,8 +233,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
     /* set its MappingRef id to NULL if none is specified */
     // make sure that specified Mapping ref had been loaded
-    SO->LocalDomainParentID =
-    (char *)calloc( strlen(SO->idcode_str)+1,
+    SO->LocalDomainParentID = (char *)calloc( strlen(SO->idcode_str)+1,
                         sizeof(char));
     sprintf(SO->idcode_str, "%s", SO->idcode_str);
     if (SO->LocalDomainParentID == NULL) {
@@ -572,9 +571,9 @@ void getSquareOnPlane(float *plane, float points[4][3]){
 
     float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
     float   divisor;
-    float objectMinMax[2];
+    float objectMinMax[2], axisMinMax[3][2];
 
-    getOveralMinAndMaxOfCurrentSurfaceObjects(objectMinMax);
+    getOveralMinAndMaxOfCurrentSurfaceObjects(axisMinMax, objectMinMax);
 
     // Get plane point closest to view origin
     getPlanePtClosestToViewerOrigin(plane, planeOrigin);
@@ -597,26 +596,24 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     // Get bitangent which is the cross product of the tangent and the normal
     crossProduct(tangent, normal, bitangent);
 
+    // Add mean, of each axis, to plane origin
+    // DEBUG for (int i=0; i<3; ++i) planeOrigin[i] += (axisMinMax[i][0]*tangent[i] + axisMinMax[i][1]*bitangent[i])/2;
+
     // Get points from tangent and bitangent
     float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
     for (int i=0; i<3; ++i){
-        points[0][i]=planeOrigin[i]+objectMinMax[1]*tangent[i]+objectMinMax[0]*bitangent[i];
-        points[1][i]=planeOrigin[i]+objectMinMax[1]*tangent[i]+objectMinMax[1]*bitangent[i];
-        points[2][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[1]*bitangent[i];
-        points[3][i]=planeOrigin[i]+objectMinMax[0]*tangent[i]+objectMinMax[0]*bitangent[i];
 #if 0
+        points[0][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]-axisMinMax[i][0]*bitangent[i];
+        points[1][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]+axisMinMax[i][1]*bitangent[i];
+        points[2][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]+axisMinMax[i][1]*bitangent[i];
+        points[3][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]-axisMinMax[i][0]*bitangent[i];
+        fprintf(stderr, "Points[%d] = (%f, %f, %f, %f)\n", i, points[0][i], points[1][i], points[2][i], points[3][i]);
+#endif
         points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
         points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
         points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
         points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
-#endif
     }
-
-    /* Development
-    for (int i=0; i<4; ++i){
-        fprintf(stderr, "point %d: <%f, %f, %f>\n", i, points[i][0], points[i][1], points[i][2]);
-    }
-    */
 }
 
 void updateClipSquare(int planeIndex){
@@ -798,7 +795,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     if (clipPlaneIdentificationMode){
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
-#if 1   // Darken inactive clip planes
+#if 0   // Darken inactive clip planes
         if (clipIdentificationPlane[planeIndex]) lightenActiveClipPlaneSquare(planeIndex);
         darkenInactiveClipPlaneSquares(planeIndex);
 #endif
@@ -881,15 +878,24 @@ void crossProduct(float input1[], float input2[], float output[]){
     output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
 }
 
-void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax){
+void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax){
     objectMinMax[0] = 1000.0;
     objectMinMax[1] = -1000.0;
+
+    for (int i=0; i<3; ++i){
+        axisMinMax[i][0] = 1000.0;
+        axisMinMax[i][1] = -1000.0;
+    }
 
     for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
         if (soOld->N_Node>0 && soOld->NodeDim==3){
             objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
             objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
+            for (int i=0; i<3; ++i){
+                axisMinMax[i][0] = MIN(axisMinMax[i][0], soOld->MaxDims[i]);
+                axisMinMax[i][1] = MAX(axisMinMax[i][1], soOld->MaxDims[i]);
+            }
         }
     }
 
@@ -897,6 +903,10 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float *objectMinMax){
     if (objectMinMax[0] > objectMinMax[1]){
         objectMinMax[0] = -100.0;
         objectMinMax[1] = 100.0;
+        for (int i=0; i<3; ++i){
+            axisMinMax[i][0] = -100.0;
+            axisMinMax[i][1] = 100.0;
+        }
     }
 }
 
