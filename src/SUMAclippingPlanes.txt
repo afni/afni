@@ -50,7 +50,6 @@ Alt/Cmd+[a number]    : select a particular clipping plane (e.g., so you can
 Alt+f             : reverse clipping direction of any active planes
 
 Shift+c           : toggle view of all active clipping planes on/off
-Ctrl+Shift+c      : same behavior
 
 Alt/Cmd/Opt+[scrollwheel] : translate a clipping plane in space
 
