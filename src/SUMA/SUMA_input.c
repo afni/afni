@@ -4,6 +4,8 @@
 #include "GL/glcorearb.h"
 
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
+    int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
+    int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
 
     // Initialize
     for (int i=0; i<3; ++i){
@@ -17,15 +19,23 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
         for (int i=0; i<3; ++i){
-            SO->MaxDims[i] = MAX(SO->MaxDims[i], soOld->MaxDims[i]);
-            SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
+            if (soOld->MaxDims[i]<= allowableMax)SO->MaxDims[i] = MAX(SO->MaxDims[i], soOld->MaxDims[i]);
+            if (soOld->MinDims[i]>= allowableMin)SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
         }
     }
 
     // Update overall min and max
     for (int i=0; i<3; ++i){
+        if (SO->MaxDims[i]<SO->MinDims[i]){
+            SO->MaxDims[i] = 100.0;
+            SO->MinDims[i] = -100.0;
+        }
         SO->aMaxDims = MAX(SO->MaxDims[i], SO->aMaxDims);
         SO->aMinDims = MIN(SO->MinDims[i], SO->aMinDims);
+    }
+    if (SO->aMaxDims - SO->aMinDims > SUMA_TESSCON_DIFF_FLAG){
+        SO->aMaxDims = MIN(100.0, SO->aMaxDims);
+        SO->aMinDims = MAX(-100.0, SO->aMinDims);
     }
 }
 
@@ -281,6 +291,9 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SO->EmbedDim = 3;
     SO->AnatCorrect = NOPE;
 
+    fprintf(stderr, "SO->aMaxDims = %f\n", SO->aMaxDims);
+    fprintf(stderr, "SO->aMinDims = %f\n", SO->aMinDims);
+
     // make this surface friendly for suma
     if (!SUMA_PrepSO_GeomProp_GL(SO)) {
        SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
@@ -367,8 +380,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
             SUMA_S_Err("Invalid Overlays pointer: 0x1.");
             SO->N_Overlays = 0;
         }
-        // SO->Overlays[0]->GlobalOpacity = 0.4;
-        SO->Overlays[0]->GlobalOpacity = 0.7;
+        SO->Overlays[0]->GlobalOpacity = 0.4;
+        // SO->Overlays[0]->GlobalOpacity = 0.7;
 
         // Make common nodes of rectangle the RGBCMY color for the particular plane
         switch(planeIndex){
@@ -5290,24 +5303,27 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_UpdateViewerTitle(sv);
 
                if (clippingPlaneMode){
+               #if 1
                     // Make sure there is at least one clipping plane with its colored square
                     if (SUMAg_CF->N_ClipPlanes < 1){
+                        clippingPlaneMode = 1;
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
                         }
                         fprintf(stderr, "SUMAg_CF->N_ClipPlanes = %d\n", SUMAg_CF->N_ClipPlanes);
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
                     }
-
+#endif
                     // Turn on clipping planes and their colored squares
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
                     }
+                    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);    // Refresh
                 } else {
                     for (int i=0; i<6; ++i){
                         previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
@@ -5321,6 +5337,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                 // Toggle clip plane identification mode
                 clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
+                fprintf(stderr, "clipPlaneIdentificationMode = %d\n", clipPlaneIdentificationMode);
 
                 for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                     if (clipPlaneIdentificationMode){
@@ -5329,6 +5346,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipIdentificationPlane[planeIndex]->Show = 0;
                     }
                 }
+                fprintf(stderr, "clipIdentificationPlane[0]->Show = %d\n", clipIdentificationPlane[0]->Show);
 
                 SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
             }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
