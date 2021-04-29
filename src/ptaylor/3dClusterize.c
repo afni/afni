@@ -42,6 +42,14 @@
                  - ... that is, it actually affects (table) output now
                    -> Thanks to C. Gaillard for pointing out this issue!
 
+   2021 04 29: + [PT] fix some odd output behavior, raised by on MB
+                 by: AFNIuser007.  Thanks!
+                 - scale the "data" values in the output table, if a scale
+                   is used for the relevant brick.
+                 - previously, the Mean value in the table was actually
+                   |Mean|, unless '-noabs' opt was used.  Now, default
+                   will actually be Mean, unless '-abs_table_data' is used
+
 */
 
 
@@ -312,9 +320,19 @@ void usage_Clusterize(int detail)
 "                 cluster maps and other volumetric data will match that\n"
 "                 of the input dataset.\n"
 " \n"
-" -noabs         :Use the signed voxel intensities (not the absolute\n"
-"                 value) for calculation of the mean and Standard\n"
-"                 Error of the Mean (SEM)\n"
+" -abs_table_data :(new, from Apr 29, 2021) Use the absolute value of voxel\n"
+"                 intensities (not the raw values) for calculation of the\n"
+"                 mean and Standard Error of the Mean (SEM) in the report\n"
+"                 table. Prior to the cited date, this was default behavior\n"
+"                 (with '-noabs' switching out of it) but no longer.\n"
+"\n"
+" ### -noabs     :(as of Apr 29, 2021, this option is no longer needed)\n"
+"                 Previously this option switched from using default absolute\n"
+"                 values of voxel intensities for calculation of the mean\n"
+"                 and Standard Error of the Mean (SEM). But this has now\n"
+"                 changed, and the default is to just use the signed values\n"
+"                 themselves; this option will not cause an error, but is not\n"
+"                 needed.  See '-abs_table_data' for reporting abs values.\n"
 " \n"
 " -binary        :This turns the output map of cluster ROIs into a binary\n"
 "                 (0 or 1) mask, rather than a cluster-index mask.\n"
@@ -517,8 +535,12 @@ int main(int argc, char *argv[]) {
                                 a good thing. I don't see that this
                                 should ever be used -- use "-orient
                                 .." instead */
+
+   // [PT: Apr 29, 2021] CHANGING the default behavior, so this abs
+   // value is NOT applied unless user asks for it to be.
+   int CL_noabs     = 1;     
+
    int CL_1Dform    = 1;
-   int CL_noabs     = 0;
    int do_binary    = 0;
    THD_coorder CL_cord;
    float dx, dy, dz, xx, yy, zz, mm, ms, fimfac=0.0,
@@ -1601,6 +1623,10 @@ int main(int argc, char *argv[]) {
             mean = mssum / cl->num_pt;
          else      
             mean = mmsum / cl->num_pt;
+
+         // [PT: Apr 29, 2021] The Rickian solution for scaling not
+         // being applied in the table, if present
+         fimfac = DSET_BRICK_FACTOR(insetA, ival);
 
          if( fimfac != 0.0 ) {
             mean  *= fimfac;
