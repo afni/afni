@@ -201,7 +201,7 @@ void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widge
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 
 // static int clipPlaneIndex;
-static Bool clipPlaneIdentificationMode, clippingPlaneMode;
+static Bool clipPlaneIdentificationMode, previousClipPlaneIdentificationMode=1, clippingPlaneMode;
 static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};

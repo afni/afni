@@ -713,8 +713,6 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     }
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
-    fprintf(stderr, "clipIdentificationPlane[planeIndex] = %p\n", clipIdentificationPlane[planeIndex]);
-
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
     return TRUE;
@@ -832,7 +830,6 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     activeClipPlane[3] = planeD[planeIndex];
 
     // Show user which clip plane is active
-    fprintf(stderr, "clipPlaneIdentificationMode=%d\n", clipPlaneIdentificationMode);
     if (clipPlaneIdentificationMode){
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
@@ -872,14 +869,6 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
         drawClipPlane(A, B, C, D, w, sv, isv);
 #endif
-    }
-
-    // Debug
-    if (clipIdentificationPlane[0]){
-        fprintf(stderr, "clipPlaneTransform\n");
-        fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
     }
 
     // Activate/update clip plane
@@ -5303,7 +5292,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_UpdateViewerTitle(sv);
 
                if (clippingPlaneMode){
-               #if 1
                     // Make sure there is at least one clipping plane with its colored square
                     if (SUMAg_CF->N_ClipPlanes < 1){
                         clippingPlaneMode = 1;
@@ -5314,30 +5302,44 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
                         }
-                        fprintf(stderr, "SUMAg_CF->N_ClipPlanes = %d\n", SUMAg_CF->N_ClipPlanes);
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                    }
-#endif
+                    } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
+
                     // Turn on clipping planes and their colored squares
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+
+                        // Display clip plane identification mode if required
+                        fprintf(stderr, "previousClipPlaneIdentificationMode=%d\n", previousClipPlaneIdentificationMode);
+                        fprintf(stderr, "clipPlaneIdentificationMode=%d\n", clipPlaneIdentificationMode);
+                        if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
                     }
                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);    // Refresh
+                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                 } else {
+                    previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
                     for (int i=0; i<6; ++i){
                         previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
+                        clipPlaneIdentificationMode = 0;
+
+                        // Turn off display of clip plane identification squares
+                        for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
+                            clipIdentificationPlane[planeIndex]->Show = 0;
+                        /*
                         active[i] = 1;                      // Turn clipping plane on so it will be toggled off
                         if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                        */
                     }
                 }
+
+                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
             }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
                 // Toggle clip plane identification mode
                 clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
-                fprintf(stderr, "clipPlaneIdentificationMode = %d\n", clipPlaneIdentificationMode);
 
                 for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                     if (clipPlaneIdentificationMode){
@@ -5346,7 +5348,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipIdentificationPlane[planeIndex]->Show = 0;
                     }
                 }
-                fprintf(stderr, "clipIdentificationPlane[0]->Show = %d\n", clipIdentificationPlane[0]->Show);
 
                 SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
             }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
