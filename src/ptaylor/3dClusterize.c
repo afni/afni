@@ -853,6 +853,11 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      else if( strcmp(argv[iarg],"-abs_table_data") == 0 ){
+         CL_noabs = 0 ;
+         iarg++ ; continue ;
+      }
+
       else if( strcmp(argv[iarg],"-binary") == 0 ){
          do_binary = 1 ; 
          iarg++ ; continue ;
