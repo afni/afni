@@ -5581,7 +5581,7 @@ def db_cmd_regress(proc, block):
         # suffix needs the hemisphere iteration variable
         suff = '.%s.niml.dset' % proc.surf_svi_ref
         istr = ' '*4             # extra indent, for foreach hemi loop
-        vstr = suff
+        vstr = ''                # was suff, but that dupes lh.niml.dset
     else:
         feh_str = ''
         feh_end = ''
