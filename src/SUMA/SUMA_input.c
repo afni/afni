@@ -5870,7 +5870,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes>=2 && (Kev.state & ControlMask)){    // Toggle plane off/on
                     clipPlaneTransform(0,0,0,0,1, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=2 && (SUMA_ALTHELL)){        // Select clipping plane 2
+                } else if ((SUMA_ALTHELL)){        // Select clipping plane 2
+                    if (SUMAg_CF->N_ClipPlanes<2){
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+                        }
+                    }
                     clipPlaneTransform(0,0,0,0,1, 0);
                 }
             }
@@ -5879,7 +5889,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes>=3 && (Kev.state & ControlMask)){    // Toggle plane off/on
                     clipPlaneTransform(0,0,0,0,2, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=3 && (SUMA_ALTHELL)){        // Select clipping plane 3
+                } else if ((SUMA_ALTHELL)){        // Select clipping plane 3
+                    if (SUMAg_CF->N_ClipPlanes<3){
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+                        }
+                    }
                     clipPlaneTransform(0,0,0,0,2, 0);
                 }
             }
@@ -5888,7 +5908,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes>=4 && (Kev.state & ControlMask)){    // Toggle plane off/on
                     clipPlaneTransform(0,0,0,0,3, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=4 && (SUMA_ALTHELL)){        // Select clipping plane 4
+                } else if ((SUMA_ALTHELL)){        // Select clipping plane 4
+                    if (SUMAg_CF->N_ClipPlanes<4){
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+
+                            // For some reason, this appears necessary to place planes, or their squares, in the right position
+                            //  if thet are planes 4-6
+                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        }
+                    }
                     clipPlaneTransform(0,0,0,0,3, 0);
                 }
             }
@@ -5897,7 +5931,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes>=5 && (Kev.state & ControlMask)){    // Toggle plane off/on
                     clipPlaneTransform(0,0,0,0,4, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=5 && (SUMA_ALTHELL)){        // Select clipping plane 5
+                } else if ((SUMA_ALTHELL)){        // Select clipping plane 5
+                    if (SUMAg_CF->N_ClipPlanes<5){
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+
+                            // For some reason, this appears necessary to place planes, or their squares, in the right position
+                            //  if thet are planes 4-6
+                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        }
+                    }
                     clipPlaneTransform(0,0,0,0,4, 0);
                 }
             }
@@ -5906,7 +5954,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes>=6 && (Kev.state & ControlMask)){    // Toggle plane off/on
                     clipPlaneTransform(0,0,0,0,5, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=6 && (SUMA_ALTHELL)){        // Select clipping plane 6
+                } else if ((SUMA_ALTHELL)){        // Select clipping plane 6
+                    if (SUMAg_CF->N_ClipPlanes<6){
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+
+                            // For some reason, this appears necessary to place planes, or their squares, in the right position
+                            //  if thet are planes 4-6
+                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        }
+                    }
                     clipPlaneTransform(0,0,0,0,5, 0);
                 }
             }
