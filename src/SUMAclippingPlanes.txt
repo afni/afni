@@ -54,5 +54,11 @@ Shift+c           : toggle view of all active clipping planes on/off
 
 Alt/Cmd/Opt+[scrollwheel] : translate a clipping plane in space
 
-Alt/Cmd/Opt+[arrow key]   : rotate a clipping plane in space
+Ctrl-[up arrow]   : Scroll clipping plane inwards
+
+Ctrl-[down arrow]   : Scroll clipping plane outwards
+
+Alt/Cmd/Opt+[up-down arrow key]      : rotate clipping plane around x-axis
+
+Alt/Cmd/Opt+[left-right arrow key]   : rotate clipping plane around y-axis
 

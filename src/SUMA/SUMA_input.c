@@ -6355,7 +6355,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (Kev.state & ControlMask){
-               if (!SUMA_Down_Key(sv, "ctrl+down", "interactive")) {
+               if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+                clipPlaneTransform(0, 0, 1, 0,-1, 0);   // Scroll back
+               } else if (!SUMA_Down_Key(sv, "ctrl+down", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }
@@ -6386,7 +6388,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (Kev.state & ControlMask){
-               if (!SUMA_Up_Key(sv, "ctrl+up", "interactive")) {
+               if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+                clipPlaneTransform(0, 0, -1, 0,-1, 0); // Scroll forward
+               } else if (!SUMA_Up_Key(sv, "ctrl+up", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }
