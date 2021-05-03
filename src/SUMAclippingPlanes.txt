@@ -45,7 +45,8 @@ Shift+Alt/Cmd+c   : successively add new clipping planes, which are active
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 
 Alt/Cmd+[a number]    : select a particular clipping plane (e.g., so you can 
-                    rotate/translate it with other key presses)
+                    rotate/translate it with other key presses).  If the specified
+                    number > # planes, planes are added up to the specified number.
 
 Alt+f             : reverse clipping direction of any active planes
 
