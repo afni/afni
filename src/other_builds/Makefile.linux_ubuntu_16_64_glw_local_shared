@@ -7,6 +7,9 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat  #/usr/lib64/libexpat.a
 
+# use linux-style R_io.so building
+R_IO_MODIFY_LINUX = yes
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY -D_GNU_SOURCE -DREPLACE_XT
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
