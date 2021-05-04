@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, May , 2021 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Add bracket to meta-text above table in case of abs value in table.",
+   "Thanks, watchful AFNI user YurBoiRene.\n"
+},
+
 { 29, Apr , 2021 , PT , "3dClusterize" , MINOR , TYPE_NEW_OPT,
    "Forgot to actually add in the new opt for data scaling in last change...",
    "Now opt '-abs_table_data' is in the code.\n"

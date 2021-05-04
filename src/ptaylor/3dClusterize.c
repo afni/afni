@@ -1510,7 +1510,7 @@ int main(int argc, char *argv[]) {
                printf ("%s[ Mean and SEM based on "
                        "signed voxel intensities ]\n%s\n", c1d, c1d);
             else
-               printf ("%s Mean and SEM based on absolute value "
+               printf ("%s[ Mean and SEM based on absolute value "
                        "of voxel intensities ]\n%s\n", c1d, c1d);
 
             printf (
