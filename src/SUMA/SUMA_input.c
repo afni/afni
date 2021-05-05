@@ -5723,7 +5723,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_S:
-            if (SUMAg_CF->Dev) {
+            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+                clipPlaneTransform(0, 0, -1, 0,-1, 0); // Scroll outward
+            } else if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv,
                                        SO_type, &n_do_id);
@@ -5736,11 +5738,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   SUMA_free(do_id);
                }
-               break;
             }
+            break;
 
          case XK_s:
-            if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
+            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+                clipPlaneTransform(0, 0, 1, 0,-1, 0);   // Scroll inward
+               } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
                if (!SUMA_RegisterEngineListCommand (  list, ED,
@@ -6355,9 +6359,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (Kev.state & ControlMask){
-               if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, 1, 0,-1, 0);   // Scroll back
-               } else if (!SUMA_Down_Key(sv, "ctrl+down", "interactive")) {
+               if (!SUMA_Down_Key(sv, "ctrl+down", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }
@@ -6388,9 +6390,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (Kev.state & ControlMask){
-               if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -1, 0,-1, 0); // Scroll forward
-               } else if (!SUMA_Up_Key(sv, "ctrl+up", "interactive")) {
+               if (!SUMA_Up_Key(sv, "ctrl+up", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }

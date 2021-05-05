@@ -41,6 +41,7 @@ Shift-Ctrl-c      : toggles in and out of clipping plane mode.
 Shift+Alt/Cmd+c   : successively add new clipping planes, which are active
                     as they appear (you might not see them to start,
                     just their clipping effect)
+a,n (no modifier)
 
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 
@@ -48,15 +49,15 @@ Alt/Cmd+[a number]    : select a particular clipping plane (e.g., so you can
                     rotate/translate it with other key presses).  If the specified
                     number > # planes, planes are added up to the specified number.
 
-Alt+f             : reverse clipping direction of any active planes
+Alt+f             : flip clipping direction of any active planes
 
 Shift+c           : toggle view of all active clipping planes on/off
 
 Alt/Cmd/Opt+[scrollwheel] : translate a clipping plane in space
 
-Ctrl-[up arrow]   : Scroll clipping plane inwards
+s                 : Scroll clipping plane inwards
 
-Ctrl-[down arrow]   : Scroll clipping plane outwards
+Shift-S            : Scroll clipping plane outwards
 
 Alt/Cmd/Opt+[up-down arrow key]      : rotate clipping plane around x-axis
 
