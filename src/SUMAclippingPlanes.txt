@@ -38,10 +38,9 @@ Key+mouse behavior
 
 Shift-Ctrl-c      : toggles in and out of clipping plane mode.
 
-Shift+Alt/Cmd+c   : successively add new clipping planes, which are active
+n                 : successively add new clipping planes, which are active
                     as they appear (you might not see them to start,
                     just their clipping effect)
-a,n (no modifier)
 
 Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
 

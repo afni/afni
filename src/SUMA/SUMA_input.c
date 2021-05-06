@@ -5633,7 +5633,32 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
              break;
 
          case XK_n:
-               if (Kev.state & ControlMask){
+               if (clippingPlaneMode){
+
+                // This sets up a new clip plane (independent of the dialog box.  If called with
+                //  the dialog box, two clipping planes result.)  The new plane is automatically
+                //  assigned a label which is its 1-based index
+                if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
+
+                    for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                    }
+                } else if (SUMAg_CF->N_ClipPlanes>=6){
+                    fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
+                } else {
+                    sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                    if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                        fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                        exit(1);
+                    }
+
+                    // For some reason, this appears necessary to place planes, or their squares, in the right position
+                    //  if thet are planes 4-6
+                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                }
+            } else if (Kev.state & ControlMask){
                   SUMA_LH("Going to N_Key");
                   if (!SUMA_N_Key(sv, "ctrl+n", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
