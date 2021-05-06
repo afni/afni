@@ -42,9 +42,9 @@ n                 : successively add new clipping planes, which are active
                     as they appear (you might not see them to start,
                     just their clipping effect)
 
-Ctrl+[a number]   : toggle the clipping behavior of a plane on/off 
+Ctrl+[a number]   : toggle the clipping behavior of numbered plane on/off 
 
-Alt/Cmd+[a number]    : select a particular clipping plane (e.g., so you can 
+[a number]        : select the numbered clipping plane (e.g., so you can 
                     rotate/translate it with other key presses).  If the specified
                     number > # planes, planes are added up to the specified number.
 
