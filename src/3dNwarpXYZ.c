@@ -147,6 +147,15 @@ int main( int argc , char *argv[] )
 
      /*---------*/
 
+     if( strcasecmp(argv[iarg],"-nstep") == 0 ){ /** HIDDEN FROM USER **/
+       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+       invert_xyz_nstep = (int)strtod(argv[iarg],NULL) ;
+       if( invert_xyz_nstep < 5 ) invert_xyz_nstep = 5 ;
+       iarg++ ; continue ;
+     }
+
+     /*---------*/
+
 #if 0  /*** note that -wfac does not work with -iwarp !!! ***/
      if( strcasecmp(argv[iarg],"-wfac") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;

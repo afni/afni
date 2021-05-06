@@ -277,7 +277,6 @@ void Qhelp(void)
     "* Other AFNI programs in this nonlinear warping collection include:\n"
     " ++ 3dNwarpAdjust = adjust a set  of nonlinear warps to remove any mean warp\n"
     " ++ 3dNwarpApply  = apply a nonlinear warp to transform a dataset\n"
-    " ++ 3dNwarpCalc   = calculate a new nonlinear warp from other input warps\n"
     " ++ 3dNwarpCat    = catenate/compose two or more warps to produce a new warp\n"
     " ++ 3dNwarpFuncs  = compute some functions of a nonlinear warp\n"
     " ++ 3dNwarpXYZ    = apply a nonlinear warp to discrete set of (x,y,z) triples\n"
@@ -1385,9 +1384,11 @@ void Qhelp(void)
     "               * Conversely, we can calculate Wp(x) in terms of V(x) as follows:\n"
     "                   If V(x) = x + dv(x), define Vh(x) = x + dv(x)/2;\n"
     "                   then Wp(x) = V(INV(Vh(x)))\n"
+#if 0
     "               * With the above formulas, it is possible to compute Wp(x) from\n"
     "                 V(x) and vice-versa, using program 3dNwarpCalc. The requisite\n"
     "                 commands are left as exercises for aspiring AFNI Jedi Masters.\n"
+#endif
     "               *** Also see the '-pmBASE' option described below.\n"
     "           -->>* Alas: -plusminus does not work with: -allineate :-(\n"
     "                    ++ If a prior linear alignment is needed, it will have\n"
@@ -1602,8 +1603,8 @@ void Qhelp(void)
     "For this procedure to work, the source and base datasets need to be reasonably\n"
     "well aligned already (e.g., via 3dAllineate, if necessary), as the nonlinear\n"
     "optimization can only deal with relatively small displacments -- fractions of\n"
-    "a patch size.. Multiple warps can later be composed and applied via programs\n"
-    "3dNwarpApply and/or 3dNwarpCalc.\n"
+    "a patch size.. Multiple warps can later be composed and applied via program\n"
+    "3dNwarpApply and/or 3dNwarpCat.\n"
     "\n"
     "Note that it is not correct to say that the resulting warp is a piecewise cubic\n"
     "(or quintic) polynomial. The first warp created (at level 0) is such a warp;\n"
@@ -2457,7 +2458,7 @@ int main( int argc , char *argv[] )
        Huse_cubic_lite = Huse_quintic_lite = 0 ; nopt++ ; continue ;
      }
 
-#if 1
+#ifndef Huse_sincc
      /*--------------------------------------------------------------*/
      /** this option is [SECRET] since it doesn't seem to help with **/
      /** with speed - it is faster at larger patches but slows down **/

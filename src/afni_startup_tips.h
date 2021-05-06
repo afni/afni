@@ -1770,6 +1770,10 @@ static char *gby[] = {
      "               but what a man may do in the future is a hard question to answer.\n"
      "  Free Energy: Fokker-Planck equation to the rescue" ,
 
+     "\n"
+     "  Humor can be dissected, as a frog can, but the thing dies in the\n"
+     "  process and the innards are discouraging to any but the pure scientific mind" ,
+
      /* from Quentin Crisp */
 
      "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,

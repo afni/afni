@@ -1884,8 +1884,6 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
         "  ++ If the warp is symbolized by x -> w(x) [here, x is a DICOM 3-vector],\n"
         "     then the '-nwarp_save' dataset contains w(x)-x; that is, it contains\n"
         "     the warp displacement of each grid point from its grid location.\n"
-        "  ++ Also see program 3dNwarpCalc for other things you can do with this file:\n"
-        "       warp inversion, catenation, square root, ...\n"
         "\n"
         "* Bilinear warp formula:\n"
         "   Xout = inv[ I + {D1 (Xin-Xc) | D2 (Xin-Xc) | D3 (Xin-Xc)} ] [ A Xin ]\n"
