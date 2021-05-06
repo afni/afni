@@ -28,6 +28,7 @@ from afni_test_utils import run_tests_examples
 from afni_test_utils import container_execution as ce
 from afni_test_utils import tools
 from afni_test_utils import minimal_funcs_for_run_tests_cli as minfuncs
+from afni_test_utils.misc import get_param_combinations
 import afnipy
 
 # import the whole package for mocking purposes
@@ -77,12 +78,12 @@ def sp_with_successful_execution():
     return RUN_WITH_0
 
 
-def run_main_func(script_obj, sys_exit):
+def run_main_func(script_obj, sys_exit, err_code=0):
     if sys_exit:
         with pytest.raises(SystemExit) as err:
             script_obj.main()
         assert err.typename == "SystemExit"
-        assert err.value.code == 0
+        assert err.value.code == err_code
     else:
         script_obj.main()
 
@@ -95,6 +96,7 @@ def run_script_and_check_imports(
     monkeypatch,
     sys_exit=True,
     no_output=True,
+    err_code=0,
 ):
     """
     This needs to be used with the mocked_script fixture.
@@ -124,9 +126,9 @@ def run_script_and_check_imports(
 
         if no_output:
             with contextlib.redirect_stdout(io.StringIO()):
-                run_main_func(script, sys_exit)
+                run_main_func(script, sys_exit, err_code=err_code)
         else:
-            run_main_func(script, sys_exit)
+            run_main_func(script, sys_exit, err_code=err_code)
 
 
 @pytest.mark.parametrize(
@@ -147,13 +149,16 @@ def run_script_and_check_imports(
     ],
 )
 def test_execute_cmd_args(params):
+    tmpdir = Path(tempfile.gettempdir())
+    stdout = tmpdir / "text.txt"
+    stderr = tmpdir / "other_text.txt"
     try:
         proc = tools.__execute_cmd_args(
             params["cmd_args"],
             logging,
-            "text.txt",
-            "other_text.txt",
-            tempfile.gettempdir(),
+            stdout,
+            stderr,
+            tmpdir,
             timeout=params["timeout"],
         )
         timed_out = False
@@ -451,6 +456,27 @@ def test_run_tests_help_works(mocked_script, monkeypatch, help_option):
     )
 
 
+def test_run_tests_with_no_args_is_instructive(mocked_script, monkeypatch):
+    """
+    If run without arguments the test script should
+    give sensible help regardless of pythonpath,
+    installation status.
+    """
+
+    # help should work even if pythonpath is set
+    monkeypatch.setenv("PYTHONPATH", "a_path")
+    not_expected = "datalad docker pytest afnipy run_tests".split()
+    expected = ""
+
+    # Write run_afni_tests.py to an executable/importable path
+    mocked_script.write_text(SCRIPT.read_text())
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    run_script_and_check_imports(
+        mocked_script, [" "], expected, not_expected, monkeypatch, err_code=2
+    )
+
+
 def test_installation_help_from_anywhere(mocked_script, monkeypatch):
     """
     Various calls of run_afni_tests.py should have no dependencies to
@@ -515,6 +541,7 @@ def test_run_tests_local_subparsers_works(monkeypatch, params, mocked_script):
     run_afni_test.py to a test specific path that can be imported
     from/executed for each test parameter in an isolated manner.
     """
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     monkeypatch.setattr(afni_test_utils.run_tests_func, "run_tests", RETCODE_0)
     # env check not needed
     monkeypatch.setattr(
@@ -691,7 +718,9 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
                 "ninja pytest;"
                 " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
-                " bash -c 'bash <(curl -s https://codecov.io/bash)'"
+                " echo ======= REFUSING TO GO TO codecov.io ======== "
+                # there may be a security issue with getting the script this way
+                # " bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
     ],
@@ -744,7 +773,7 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
     interpreter is raised? This would solve issues with the wrong environment
     being activated.
     """
-
+    monkeypatch.setenv("PATH", os.environ["PATH"])
     # create a mock import to control whether afnipy is "imported correctly" or not
     mocked_import = Mock()
     mocked_import.__file__ = "mocked_path_for_imported_module"
@@ -761,14 +790,12 @@ def test_handling_of_binary_locations_and_afnipy_when_cmake_build_is_used(
         with pytest.raises(EnvironmentError):
             # Run function to check no error is raised without afnipy
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 build_dir="a_directory",
             )
 
         mocked_import_module.side_effect = None
         # should work when afnipy is importable
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             build_dir="a_directory",
         )
 
@@ -814,7 +841,7 @@ def test_handling_of_binary_locations_and_afnipy_for_a_heirarchical_installation
         assert Path(afnipy.__file__).parent.parent.parent == idir
 
         # Run function to check that no error is raised spuriously
-        minfuncs.modify_path_and_env_if_not_using_cmake(os.getcwd())
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_for_default_run(
@@ -864,9 +891,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
 
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
-        minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
-        )
+        minfuncs.modify_path_and_env_if_not_using_cmake()
 
         # The current python interpreter should now be able to import afnipy
         # without issue (and it should be imported from the mocked abin)
@@ -876,9 +901,7 @@ def test_handling_of_binary_locations_and_afnipy_for_default_run(
         # If import afnipy does not fail, an error should be raised
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
-            minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
-            )
+            minfuncs.modify_path_and_env_if_not_using_cmake()
 
 
 def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
@@ -918,7 +941,6 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         # Run function to check that a setup for a testing session correctly
         # modifies the environment and sys.path
         minfuncs.modify_path_and_env_if_not_using_cmake(
-            os.getcwd(),
             abin=str(mocked_abin),
         )
         # The fake binary should now be able to executed with no error
@@ -935,12 +957,11 @@ def test_handling_of_binary_locations_and_afnipy_when_abin_as_flag(
         mocked_import_module.side_effect = None
         with pytest.raises(EnvironmentError):
             minfuncs.modify_path_and_env_if_not_using_cmake(
-                os.getcwd(),
                 abin=str(mocked_abin),
             )
 
 
-def test_examples_parse_correctly(monkeypatch):
+def test_examples_parse_correctly(monkeypatch, mocked_script):
     # dir_path needs to be mocked to prevent errors being raise for
     # non-existent paths
     monkeypatch.setattr(
@@ -949,18 +970,42 @@ def test_examples_parse_correctly(monkeypatch):
         lambda x: str(Path(x).expanduser()),
     )
     stdout_ = sys.stdout  # Keep track of the previous value.
+    # ./README.rst needs to exist
+    (mocked_script.parent / "README.rst").write_text("some content")
+    # the following needs to exist for one example
+    scripts_dir = mocked_script.parent / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "test_ptaylor.py").touch()
+
     for name, example in run_tests_examples.examples.items():
         # Generate the 'sys.argv' for the example
         arg_list = shlex.split(example.splitlines()[-1])[1:]
-        # Execute the script so that it can be run.
-        res = runpy.run_path(str(SCRIPT))
+        # Write run_afni_tests.py for this example
+        script_name = name.replace(" ", "_") + ".py"
+        example_script = mocked_script.with_name(f"{script_name}")
+        example_script.write_text(SCRIPT.read_text())
 
-        res["sys"].argv = [SCRIPT.name, *arg_list]
-        res["main"].__globals__["run_tests"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__["run_containerized"] = Mock(side_effect=SystemExit(0))
-        res["main"].__globals__[
-            "minfuncs"
-        ].modify_path_and_env_if_not_using_cmake = lambda *args, **kwargs: None
+        # one should mock things where they are used. Here
+        # there is some hokey stuff going on with imports
+        # though, so mock the system versions.
+        monkeypatch.setattr(sys, "argv", [example_script.name, *arg_list])
+        monkeypatch.setattr(
+            afni_test_utils.run_tests_func, "run_tests", Mock(side_effect=SystemExit(0))
+        )
+        monkeypatch.setattr(
+            afni_test_utils.container_execution,
+            "run_containerized",
+            Mock(side_effect=SystemExit(0)),
+        )
+
+        monkeypatch.setattr(
+            afni_test_utils.minimal_funcs_for_run_tests_cli,
+            "modify_path_and_env_if_not_using_cmake",
+            lambda *args, **kwargs: None,
+        )
+
+        # Execute the script so that it can be run.
+        res = runpy.run_path(str(example_script))
         with pytest.raises(SystemExit) as err:
             # Run main function while redirecting to /dev/null
             sys.stdout = open(os.devnull, "w")
@@ -1464,3 +1509,67 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
     monkeypatch.delenv("NO_CMD_MOD")
     com = afnipy.afni_base.shell_com(cmd)
     assert com.com != com.trimcom
+
+
+def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
+    monkeypatch.setenv("PATH", minfuncs.filter_afni_from_path())
+    # mock no afnipy
+    monkeypatch.setattr(
+        afni_test_utils.minimal_funcs_for_run_tests_cli,
+        "make_sure_afnipy_not_importable",
+        lambda: True,
+    )
+    # Make sure we throw an error since no abin is given, no binaries could
+    # be on path
+    with pytest.raises(EnvironmentError) as e:
+        minfuncs.modify_path_and_env_if_not_using_cmake()
+    assert "Cannot find local AFNI binaries. " == str(e.value)
+
+
+def test_get_param_combinations():
+
+    input_params = [
+        (
+            "e2a",
+            {
+                "extra_args": "-epi2anat",
+            },
+        ),
+        (
+            "giant_move",
+            {
+                "extra_args": "-giant_move",
+            },
+        ),
+        (
+            "another test",
+            {
+                "extra_args": "-for_shizzur",
+            },
+        ),
+    ]
+    output = get_param_combinations(*input_params)
+    expected = [
+        *sorted(input_params, key=lambda x: x[1]["extra_args"]),
+        pytest.param(
+            "e2a_and_another test combined",
+            {"extra_args": "-epi2anat -for_shizzur"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "e2a_and_giant_move combined",
+            {"extra_args": "-epi2anat -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        pytest.param(
+            "another test_and_giant_move combined",
+            {"extra_args": "-for_shizzur -giant_move"},
+            marks=pytest.mark.combinations,
+        ),
+        (
+            "e2a_and_another test_and_giant_move",
+            {"extra_args": "-epi2anat -for_shizzur -giant_move"},
+        ),
+    ]
+
+    assert expected == output
