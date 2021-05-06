@@ -718,7 +718,9 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
                 "ninja pytest;"
                 " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
-                " bash -c 'bash <(curl -s https://codecov.io/bash)'"
+                " echo ======= REFUSING TO GO TO codecov.io ======== "
+                # there may be a security issue with getting the script this way
+                # " bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
     ],
@@ -1491,7 +1493,6 @@ def test_wrong_build_dir_raise_file_not_found(monkeypatch):
         )
 
 
-
 def test_no_mod_cmd_var_works(monkeypatch, data):
     # make a long command with paths that should trigger a trimming response
     cmd = f"{' '.join([str(data.outdir) for x in range(5)])} "
@@ -1508,6 +1509,7 @@ def test_no_mod_cmd_var_works(monkeypatch, data):
     monkeypatch.delenv("NO_CMD_MOD")
     com = afnipy.afni_base.shell_com(cmd)
     assert com.com != com.trimcom
+
 
 def test_no_binary_on_path_for_local_scenario_3_throws(monkeypatch):
     monkeypatch.setenv("PATH", minfuncs.filter_afni_from_path())
@@ -1571,4 +1573,3 @@ def test_get_param_combinations():
     ]
 
     assert expected == output
-
