@@ -5493,8 +5493,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_f:
-            if (clippingPlaneMode && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){    // PDL: Flip clipping plane
-                clipPlaneTransform(0,0,0,1,-1, 0);
+            if (clippingPlaneMode && (Kev.state & ControlMask) && SUMAg_CF->N_ClipPlanes > 0){
+                clipPlaneTransform(0,0,0,1,-1, 0);  // PDL: Flip clipping plane
             } else {
                 /* Show/hide the foreground */
                 if (!list) list = SUMA_CreateList();
