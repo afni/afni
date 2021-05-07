@@ -5888,18 +5888,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          // alt-<number> keys, where number in [1,6] select the clipping plane by index
          case XK_1:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=1 && (Kev.state & ControlMask)){    // Toggle plane off/on
+                if (SUMA_ALTHELL){
+                    clipPlaneTransform(0,0,0,0,0, 0);     // Select clipping plane 1
+                } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
                     clipPlaneTransform(0,0,0,0,0, 1);
-                } else if (SUMAg_CF->N_ClipPlanes>=1){    // Select clipping plane 1
-                    clipPlaneTransform(0,0,0,0,0, 0);
                 }
             }
             break;
          case XK_2:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=2 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                    clipPlaneTransform(0,0,0,0,1, 1);
-                } else {        // Select clipping plane 2
+                if (SUMA_ALTHELL){    // Select clipping plane 2
                     if (SUMAg_CF->N_ClipPlanes<2){
                         for (int i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -5911,14 +5909,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                     }
                     clipPlaneTransform(0,0,0,0,1, 0);
+                } else {        // Toggle plane 2 off/on
+                    clipPlaneTransform(0,0,0,0,1, 1);
                 }
             }
             break;
          case XK_3:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=3 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                    clipPlaneTransform(0,0,0,0,2, 1);
-                } else {        // Select clipping plane 3
+                if (SUMA_ALTHELL){    // Select clipping plane 3
                     if (SUMAg_CF->N_ClipPlanes<3){
                         for (int i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -5930,15 +5928,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                     }
                     clipPlaneTransform(0,0,0,0,2, 0);
+                } else {        // Toggle plane 3 off/on
+                    clipPlaneTransform(0,0,0,0,2, 1);
                 }
             }
             break;
          case XK_4:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=4 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                    clipPlaneTransform(0,0,0,0,3, 1);
-                } else {        // Select clipping plane 4
-                    if (SUMAg_CF->N_ClipPlanes<4){
+                if (SUMA_ALTHELL){
+                    if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
                         for (int i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                             clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
@@ -5953,14 +5951,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                     }
                     clipPlaneTransform(0,0,0,0,3, 0);
+                } else {        // Toggle plane 4 off/on
+                    clipPlaneTransform(0,0,0,0,3, 1);
                 }
             }
             break;
          case XK_5:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=5 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                    clipPlaneTransform(0,0,0,0,4, 1);
-                } else {        // Select clipping plane 5
+                if (SUMA_ALTHELL){    // Select clipping plane 5
                     if (SUMAg_CF->N_ClipPlanes<5){
                         for (int i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -5976,14 +5974,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                     }
                     clipPlaneTransform(0,0,0,0,4, 0);
+                } else {        // Toggle plane 4 off/on
+                    clipPlaneTransform(0,0,0,0,4, 1);
                 }
             }
             break;
          case XK_6:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes>=6 && (Kev.state & ControlMask)){    // Toggle plane off/on
-                    clipPlaneTransform(0,0,0,0,5, 1);
-                } else {        // Select clipping plane 6
+                if (SUMA_ALTHELL){    // Select clipping plane 6
                     if (SUMAg_CF->N_ClipPlanes<6){
                         for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -5999,17 +5997,31 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                     }
                     clipPlaneTransform(0,0,0,0,5, 0);
+                } else {        // Toggle plane 6 off/on
+                    clipPlaneTransform(0,0,0,0,5, 1);
                 }
             }
             break;
          case XK_7:
             if (clippingPlaneMode){
-                // Toggle activated clippping planes on and off
+                if (Kev.state & ControlMask){
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        // Toggle all clippping planes off
+                        active[i] = 1;
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                } else {
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        // Toggle all clippping planes on
+                        active[i] = 0;
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                }
             }
             break;
          case XK_8:
             if (clippingPlaneMode){
-                // TODO: Toggle all clipping planes on
+                // TODO: Toggle all active clipping planes on and off
             } else {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
