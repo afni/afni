@@ -1747,8 +1747,9 @@ int main( int argc , char *argv[] )
         double sum = 0;
         double sum2 = 0;
         double var = 0;
+        int    t_ndx;
 
-        for (int t_ndx = 0; t_ndx < nvals; t_ndx++)
+        for (t_ndx = 0; t_ndx < nvals; t_ndx++)
         {
             sum += test_vec[t_ndx];
             sum2 += test_vec[t_ndx] * test_vec[t_ndx];

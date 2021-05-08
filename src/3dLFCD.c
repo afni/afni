@@ -688,10 +688,11 @@ int main( int argc , char *argv[] )
     {
         double sum = 0.0;
         double sum_sq = 0.0;
+        int    tt;
 
         float* xsar = VECTIM_PTR(xvectim,ii);
 
-        for(int tt=0; tt<xvectim->nvals; tt++)
+        for(tt=0; tt<xvectim->nvals; tt++)
         {
             sum += xsar[tt];
             sum_sq += xsar[tt] * xsar[tt];
@@ -882,6 +883,7 @@ int main( int argc , char *argv[] )
         int kz = 0;
         int target_mask_ndx = 0;
         int lout,ithr,nthr,vstep,vii ;
+        int neighbor_index;
         float *xsar , *ysar ;
         list_node* current_node = NULL ;
         list_node* new_node = NULL ;
@@ -975,7 +977,7 @@ int main( int argc , char *argv[] )
                 boundary_list = boundary_list->next;
 
                 /* iterate through a box around the current voxel */
-                for ( int neighbor_index = 0; neighbor_index < num_neighbors; neighbor_index++ )
+                for ( neighbor_index = 0; neighbor_index < num_neighbors; neighbor_index++ )
                 {
                     dx = neighborhood[3*neighbor_index+X];
                     dy = neighborhood[3*neighbor_index+Y];
