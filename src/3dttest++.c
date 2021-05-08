@@ -1047,7 +1047,7 @@ void display_help_menu(void)
       "             ++ If you don't understand the difference between a\n"
       "                paired and unpaired t-test, I'm not going to teach you\n"
       "                in this help file. But please consult someone or you\n"
-      "                will undoubtedly come to grief.\n"
+      "                will undoubtedly come to grief!\n"
       "\n"
       " -unpooled = Specifies that the variance estimates for setA and\n"
       "              setB be computed separately (not pooled together).\n"
@@ -1097,13 +1097,23 @@ void display_help_menu(void)
       "                 (for no good reason).\n"
       "             ++ At this time, you can't use -zskip with -covariates,\n"
       "                 because that would require more extensive re-thinking\n"
-      "                 and then re-programming.\n"
-      "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
+      "                 and then serious re-programming.\n"
+      "             ++ You CAN use -zskip with -paired, but it works slightly\n"
+      "                 differently than with a non-paired test [06 May 2021]:\n"
+      "                 -- In a non-paired test, setA and setB are pruned of\n"
+      "                    zero values separately; e.g., setA could lose 3\n"
+      "                    values at a given voxel, while setB loses 5 there.\n"
+      "                 -- In a paired test, if EITHER setA or setB has a zero\n"
+      "                    value at a given voxel, both paired values are discarded.\n"
+      "                    This choice is necessary, since a paired t-test\n"
+      "                    requires subtracting the setA/setB values pairwise\n"
+      "                    and if one element of a pair is invalid, then the\n"
+      "                    other element has nothing to be paired with.\n"
       "             ++ You can also put a decimal fraction between 0 and 1 in\n"
       "                 place of 'n' (e.g., '0.9', or '90%%'). Such a value\n"
       "                 indicates that at least 90%% (e.g.) of the values in each\n"
       "                 set must be nonzero for the t-test to proceed. [08 Nov 2010]\n"
-      "                 -- In no case will the number of values tested fall below 2!\n"
+      "                 -- In no case will the number of values tested fall below 3!\n"
       "                 -- You can use '100%%' for 'n', to indicate that all data\n"
       "                    values must be nonzero for the test to proceed.\n"
 #ifdef ALLOW_RANK
@@ -2535,6 +2545,7 @@ int main( int argc , char *argv[] )
          zzz = (float)strtod(argv[nopt++],&cpt) ;
          if( zzz > 1.0f && *cpt == '%' ) zzz *= 0.01f ;
          if( zzz > 1.0f ){
+           if( zzz < 3.0f ) zzz = 3.0f ;
            zskip_AAA = zskip_BBB = (int)zzz ; zskip_fff = 0.0f ; do_zskip = 1 ;
          } else {
            if( zzz <= 0.0f || zzz > 1.0f ){
@@ -3824,15 +3835,19 @@ int main( int argc , char *argv[] )
    /* zskip checks */
 
    if( do_zskip && mcov > 0 )
-     ERROR_exit("-zskip and -covariates cannot be used together [yet] /:(") ;
+     ERROR_exit("-zskip and -covariates cannot be used together /:(") ;
 
+#if 0  /* No longer true [06 May 2021]*/
    if( do_zskip && ttest_opcode == 2 )
      ERROR_exit("-zskip and -paired cannot be used together /:(") ;
+#endif
+
+   /* adjust zskip values to be a fraction of each set's size */
 
    if( do_zskip && zskip_fff > 0.0f && zskip_fff <= 1.0f ){
-     zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 2 ) zskip_AAA = 2 ;
+     zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 3 ) zskip_AAA = 3 ;
      if( nval_BBB > 0 ){
-       zskip_BBB = (int)(zskip_fff*nval_BBB) ; if( zskip_BBB < 2 ) zskip_BBB = 2 ;
+       zskip_BBB = (int)(zskip_fff*nval_BBB) ; if( zskip_BBB < 3 ) zskip_BBB = 3 ;
      }
    }
 
@@ -3844,12 +3859,19 @@ int main( int argc , char *argv[] )
      ERROR_exit("-zskip (%d) is more than number of data values in setB (%d)",
                 nval_BBB ) ;
 
+   /* send a message about -zskip */
+
    if( do_zskip ){
-     INFO_message("-zskip: require %d (out of %d) nonzero values for setA",
-                  zskip_AAA,nval_AAA) ;
-     if( nval_BBB > 0 )
-       ININFO_message("    and require %d (out of %d) nonzero values for setB",
-                      zskip_BBB,nval_BBB) ;
+     if( ttest_opcode == 2 ){ /* paired case [06 May 2021] */
+       INFO_message("-zskip and -paired: require at least %d (out of %d) nonzero pairs in setA+setB",
+                    zskip_AAA,nval_AAA) ;
+     } else {
+       INFO_message("-zskip: require at least %d (out of %d) nonzero values for setA",
+                    zskip_AAA,nval_AAA) ;
+       if( nval_BBB > 0 )
+         ININFO_message("    and require at least %d (out of %d) nonzero values for setB",
+                        zskip_BBB,nval_BBB) ;
+     }
    }
 
    /* covariate count checks */
@@ -4692,7 +4714,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( do_resid ){
          if( bb == 0 ) rimout->ivec[kout] = ivox ;
          ABresid = VECTIM_PTR(rimout,kout) ;
-         memset( ABresid , 0 , sizeof(float)*(nval_AAA+nval_BBB) ) ;
+         memset( ABresid , 0 , sizeof(float)*(nval_AAA+nval_BBB) ) ; /* set to 0 */
          Aresid = ABresid ;
          if( nval_BBB > 0 ) Bresid = ABresid + nval_AAA ;
        }
@@ -4734,11 +4756,37 @@ LABELS_ARE_DONE:  /* target for goto above */
          int   *iAAA=NULL  , *iBBB=NULL , fix_resid=0 ;
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
-           if( !singletonA ){
+
+           if( ttest_opcode == 2 ){  /* -zskip for -paired [06 May 2021] */
+                                     /* -paired implies nval_AAA == nval_BBB */
+             for( ii=nz=0 ; ii < nval_AAA ; ii++ ){ /* 'bad' count: if either setA or set B is 0 */
+               nz += ( (datAAA[ii] == 0.0f) || (datBBB[ii] == 0.0f) ) ;
+             }
+/* if( nz > 0 ) ININFO_message("paired zskip: kout=%d ivox=%d nz=%d\n",kout,ivox,nz) ; */
+             if( nz > 0 ){ /* copy nonzero vals (if have enuf) to new arrays */
+               nAAA = nBBB = nval_AAA - nz ;   /* will keep fewer values than input */
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; } /* not enuf */
+               zAAA = (float *)calloc(sizeof(float),nAAA) ; /* new set A data array */
+               iAAA = (int   *)calloc(sizeof(int)  ,nAAA) ;
+               if( do_resid ){ rAAA = (float *)calloc(sizeof(float),nAAA); fix_resid++; }
+               zBBB = (float *)calloc(sizeof(float),nBBB) ; /* new set B data array */
+               iBBB = (int   *)calloc(sizeof(int)  ,nBBB) ;
+               if( do_resid ){ rBBB = (float *)calloc(sizeof(float),nBBB); fix_resid++; }
+               for( ii=qq=0 ; ii < nval_AAA ; ii++ ){ /* extract the data we're keeping */
+                 if( datAAA[ii] != 0.0f && datBBB[ii] != 0.0f ){
+                   iAAA[qq] = iBBB[qq]   = ii ; /* index where data came from */
+                   zAAA[qq] = datAAA[ii] ;      /* copies of t-test-able data */
+                   zBBB[qq] = datBBB[ii] ; qq++ ;
+                 }
+               }
+             }
+           }
+
+           if( !singletonA ){  /* -zskip for setA separately from setB */
              for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nAAA = nval_AAA - nz ;
-               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; } /* not enuf */
                zAAA = (float *)calloc(sizeof(float),nAAA) ;
                iAAA = (int   *)calloc(sizeof(int)  ,nAAA) ;
                if( do_resid ){ rAAA = (float *)calloc(sizeof(float),nAAA); fix_resid++; }
@@ -4746,11 +4794,12 @@ LABELS_ARE_DONE:  /* target for goto above */
                  if( datAAA[ii] != 0.0f ){ iAAA[qq] = ii; zAAA[qq++] = datAAA[ii]; }
              }
            }
-           if( twosam ){
+
+           if( ttest_opcode != 2 && twosam ){  /* -zskip for setB separately from setA */
              for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nBBB = nval_BBB - nz ;
-               if( nBBB < zskip_BBB ){
+               if( nBBB < zskip_BBB ){ /* not enuf */
                  if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
                  kout++ ; nzskip++ ; continue ;
                }
@@ -4762,7 +4811,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              }
            }
            if( (zAAA != datAAA && zAAA != NULL) || (zBBB != datBBB && zBBB != NULL) )
-             nzred++ ; /* count of reduced cases */
+             nzred++ ; /* count of reduced cases (where -zskip applied) */
          }
 
          if( twosam ){
@@ -4790,7 +4839,9 @@ LABELS_ARE_DONE:  /* target for goto above */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          }
-         if( fix_resid ){ /* 26 Sep 2017 */
+         if( fix_resid ){ /* -zskip => don't have all residuals [26 Sep 2017] */
+                          /* note residual arrays were initialized to zero, */
+                          /* so values not assigned here will be zero, as advertised */
            if( nAAA < nval_AAA && rAAA != NULL && rAAA != Aresid ){
              for( qq=0 ; qq < nAAA ; qq++ ) Aresid[iAAA[qq]] = rAAA[qq] ;
            }
@@ -4799,10 +4850,10 @@ LABELS_ARE_DONE:  /* target for goto above */
            }
          }
 
-         if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
-         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
-         if( rAAA != Aresid && rAAA != NULL ) free(rAAA) ;
-         if( rBBB != Bresid && rBBB != NULL ) free(rBBB) ;
+         if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;  /* free stuff */
+         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;  /* that was */
+         if( rAAA != Aresid && rAAA != NULL ) free(rAAA) ;  /* created */
+         if( rBBB != Bresid && rBBB != NULL ) free(rBBB) ;  /* for -zskip */
          if( iAAA != NULL )                   free(iAAA) ;
          if( iBBB != NULL )                   free(iBBB) ;
 
@@ -4880,17 +4931,18 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( vstep > 0 ) fprintf(stderr,"!\n") ;
 
      if( brickwise_num == 1 ){
+       char *ppp = (ttest_opcode==2) ? "pairs" : "values" ;
        if( nconst > 0 )
          ININFO_message("skipped %d voxel%s completely for having constant data" ,
                         nconst , (nconst==1) ? "\0" : "s" ) ;
 
        if( nzred > 0 )
-         ININFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
-                        nzred , (nzred==1) ? "\0" : "s" ) ;
+         ININFO_message("-zskip: %d voxel%s had some %s skipped in their t-tests",
+                        nzred  , ((nzred==1)  ? "\0" : "s") , ppp ) ;
 
        if( nzskip > 0 )
-         ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
-                        nzskip , (nzskip==1) ? "\0" : "s" ) ;
+         ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero %s" ,
+                        nzskip , ((nzskip==1) ? "\0" : "s") , ppp ) ;
      }
 
      /*--- load results from vimout into output dataset ---*/

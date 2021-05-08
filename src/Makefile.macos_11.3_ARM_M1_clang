@@ -23,8 +23,9 @@
 #
 #  brew install
 #    libpng jpeg expat freetype fontconfig openmotif libomp
-#    libxt gsl glib pkg-config, gcc (version 10 used here by default)
-#
+#    libxt gsl glib pkg-config gcc (version 10 used here by default)
+#    autoconf
+
 # also brew install netpbm libiconv
 
 
@@ -125,6 +126,10 @@ EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
 		      $(BREWLIBDIR)/libintl.8.dylib                   \
               /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
 
+# this is called a hack - command to convert dyname -lXm to static for R_io.so
+#RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'
+#RLIB_CONVERT = | sed 's/-lXm/\/usr\/local\/lib\/libXm.a/'
+RLIB_CONVERT = | sed 's/-lXm/\/opt\/Homebrew\/lib\/libXm.a/'
 
 # these were the PJM's library files to copy to binary distribution directory
 # The list above includes different versions to copy
@@ -184,9 +189,6 @@ LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig \
          -lpng16 -liconv -lXmu -lXp -lXpm -lXext -lX11      \
          $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
 
-# this is called a hack - command to convert dyname -lXm to static for R_io.so
-#RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'
-RLIB_CONVERT = | sed 's/-lXm/\/usr\/local\/lib\/libXm.a/'
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
@@ -202,7 +204,7 @@ GLw_LIB = libGLws.a
 
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0 
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src  -I${usr_ROOT}/include/glib-2.0  -I${usr_ROOT}/lib/glib-2.0/include
 #SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 

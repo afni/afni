@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2021 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "Make -zskip work with -paired" ,
+   "Rejecting any value pairs where either setA or setB is 0." } ,
+
  { 24 , MAR , 2021 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
    "-FWHMxyz allows different blurring amounts in different directions" ,
    NULL } ,

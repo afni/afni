@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
+   "Thanks to the all-seeing S Torrisi for noting the problem."
+ } ,
+
  {  6, Apr, 2021, RCR, "ap_qc_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
    "run a quick afni_proc.py resting state analysis for QC",
    NULL
