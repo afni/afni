@@ -64,7 +64,7 @@ def get_tests_data_dir(config_obj):
                 logger.warn("Installing test data")
                 datalad.install(
                     str(tests_data_dir),
-                    "https://github.com/afni/afni_ci_test_data.git",
+                    "https://gin.g-node.org/leej3/afni_ci_test_data.git",
                     recursive=True,
                     on_failure="stop",
                 )
