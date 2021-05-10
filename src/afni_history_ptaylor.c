@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "New opt: '-set_xhair_gap ..', to allow setting crosshair gap.",
+   "Default value is -1.\n"
+},
+
 { 3, May , 2021 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
    "Add bracket to meta-text above table in case of abs value in table.",
    "Thanks, watchful AFNI user YurBoiRene.\n"

@@ -275,9 +275,13 @@
 #set version   = "6.11"; set rev_dat   = "Mar 6, 2021"
 # [PT] run GUI more quietly, and disable some warning messages
 #
-set version   = "6.2"; set rev_dat   = "April 16, 2021"
+#set version   = "6.2"; set rev_dat   = "April 16, 2021"
 # [PT] for "-topval .." arg, defined a keyword to mimic empty doublequotes
 #    + also fixed up help example a bit (discrete cbar case)
+#
+set version   = "6.21"; set rev_dat   = "May 10, 2021"
+# [PT] add "-set_xhair_gap .." opt, for driving crosshair gap 
+#    + default value is -1 (closed)
 #
 # =====================================================================
 
@@ -325,6 +329,7 @@ set p_thr_side = ""              # for p-to-stat capability in thr
 set thrflag = "*"                # threshold flags
 
 set crossh = "OFF"               # crosshairs OFF by default
+set xh_gap = -1                  # default crosshair gap
 set opac   =  6                  # opacity of overlay
 
 set mx     =  3                  # 'x' dim of montage
@@ -486,6 +491,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set crossh = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_xhair_gap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set xh_gap = "$argv[$ac]"
         
     else if ( "$argv[$ac]" == "-opacity" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1929,6 +1939,7 @@ echo "set olay_alpha   = "\""${olay_alpha}"\"""  >> $oechocmd
 echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
 echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
 echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
+echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
@@ -1969,7 +1980,8 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
      -com "SET_FUNC_ALPHA  $olay_alpha"                               \\\
      -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
-     -com "SET_XHAIRS  ${crossh}"                                     \\\
+     -com "SET_XHAIRS      ${crossh}"                                 \\\
+     -com "SET_XHAIR_GAP   ${xh_gap}"                                 \\\
      -com "$coor_type $coors"                                         \\\
      -com "SAVE_${ftype} ${ppord[$rrr]}image                          \\\
             ${odir}/${impref}.${pord[$rrr]}                           \\\
@@ -1998,7 +2010,8 @@ endif
              -com "SET_FUNC_ALPHA  $olay_alpha"                             \
              -com "SET_FUNC_BOXED  $olay_boxed"                             \
              -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
-             -com "SET_XHAIRS  ${crossh}"                                   \
+             -com "SET_XHAIRS      ${crossh}"                               \
+             -com "SET_XHAIR_GAP   ${xh_gap}"                               \
              -com "$coor_type $coors"                                       \
              -com "SAVE_${ftype} ${ppord[$rrr]}image                        \
                     ${odir}/${impref}.${pord[$rrr]}                         \
@@ -2032,6 +2045,7 @@ echo "set olay_alpha   = "\""${olay_alpha}"\"""  >> $oechocmd
 echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
 echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
 echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
+echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
@@ -2080,7 +2094,8 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
     -com "SET_FUNC_ALPHA  $olay_alpha"                               \\\
     -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
-    -com "SET_XHAIRS  ${crossh}"                                     \\\
+    -com "SET_XHAIRS      ${crossh}"                                 \\\
+    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \\\
     -com "$coor_type $coors"                                         \\\
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
            blowup=${bufac}"                                          \\\
@@ -2112,7 +2127,8 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SET_FUNC_ALPHA  $olay_alpha"                               \
     -com "SET_FUNC_BOXED  $olay_boxed"                               \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
-    -com "SET_XHAIRS  ${crossh}"                                     \
+    -com "SET_XHAIRS      ${crossh}"                                 \
+    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
     -com "$coor_type $coors"                                         \
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
     -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
@@ -2484,6 +2500,9 @@ COMMAND OPTIONS ~1~
 
 -set_xhairs XX     :specify type and/or existence of crosshairs in the
                     image (see DR: SET_XHAIRS).
+
+-set_xhair_gap GG  :specify gap in the crosshairs to the specified number
+                    of pixels GG (see DR: SET_XHAIR_GAP).
 
 -delta_slices DS DC DA :when montaging, (DS, DC, DA) is the integer
                      number of slices to use as spacing between views
