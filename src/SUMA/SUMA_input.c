@@ -6024,7 +6024,33 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          case XK_8:
             if (clippingPlaneMode){
-                // TODO: Toggle all active clipping planes on and off
+                if (Kev.state & ControlMask){   // Turn all planes off
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        previouslyActive[i] = active[i];
+                        active[i] = 1;          // Turn plane on so it will be toggled off
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                } else {                        // Turn all planes on
+                    if (SUMAg_CF->N_ClipPlanes<6){  // Make sure all planes are available
+                        for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
+
+                            // For some reason, this appears necessary to place planes, or their squares, in the right position
+                            //  if thet are planes 4-6
+                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        }
+                    }
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        previouslyActive[i] = active[i];
+                        active[i] = 0;          // Turn plane off so it will be toggled on
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                }
             } else {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
