@@ -48,6 +48,8 @@ alt-[a number]    : select the numbered clipping plane (e.g., so you can
                     rotate/translate it with other key presses).  If the specified
                     number > # planes, planes are added up to the specified number.
 
+7                 : Toggle all active clipping planes on or off 
+
 ctrl+f            : flip clipping direction of selected plane
 
 Shift+c           : toggle view of all active clipping planes on/off

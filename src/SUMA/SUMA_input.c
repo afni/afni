@@ -5302,7 +5302,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
                         }
-                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        // previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
                     // Turn on clipping planes and their colored squares
@@ -6010,15 +6011,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_7:
             if (clippingPlaneMode){
                 if (Kev.state & ControlMask){
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        // Toggle all clippping planes off
-                        active[i] = 1;
-                        clipPlaneTransform(0,0,0,0,i, 1);
-                    }
+                    // Place-holder for ctrl-7
                 } else {
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        // Toggle all clippping planes on
-                        active[i] = 0;
+                        // Toggle all active clippping planes
+                        active[i] = !(previouslyActive[i]);
+                        previouslyActive[i] = active[i];
                         clipPlaneTransform(0,0,0,0,i, 1);
                     }
                 }
