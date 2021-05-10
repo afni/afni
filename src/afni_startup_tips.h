@@ -1544,6 +1544,7 @@ static char *gby[] = {
 
      "Many are stubborn in pursuit of the path they have chosen; few in pursuit of the goal" ,
      "Idleness is the beginning of all psychology - is psychology is a vice?"                ,
+     "Good judgment comes from experience; experience comes from bad judgment"               ,
 
      /* Grateful Dead (mostly) */
 
