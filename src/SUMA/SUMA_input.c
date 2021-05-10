@@ -5303,7 +5303,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             exit(1);
                         }
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        // previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
                     // Turn on clipping planes and their colored squares
@@ -5926,6 +5926,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
                         }
+                        if (i != 2){   // Disable new, unselected planes
+                            active[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 1);
+                        }
                     }
                     if (! SUMA_ALTHELL) active[2] = 0;  // Toggle plane off so it will be toggled on
                 }
@@ -5950,6 +5954,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
                         if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (i != 3){   // Disable new, unselected planes
+                            active[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 1);
+                        }
                     }
                     if (! SUMA_ALTHELL) active[3] = 0;  // Toggle plane off so it will be toggled on
                 }
@@ -5974,6 +5982,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
                         if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (i != 4){   // Disable new, unselected planes
+                            active[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 1);
+                        }
                     }
                     if (! SUMA_ALTHELL) active[4] = 0;  // Toggle plane off so it will be toggled on
                 }
@@ -5998,6 +6010,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
                         if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (i != 5){   // Disable new, unselected planes
+                            active[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 1);
+                        }
                     }
                     if (! SUMA_ALTHELL) active[5] = 0;  // Toggle plane off so it will be toggled on
                 }
