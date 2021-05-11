@@ -5318,6 +5318,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     }
                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);    // Refresh
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
+                    // Squares only displayed for active clipping planes
+                    for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
+                        clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
                 } else {
                     previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
                     for (int i=0; i<6; ++i){
@@ -5893,6 +5897,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,0, 0);     // Select clipping plane 1
                 } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
                     clipPlaneTransform(0,0,0,0,0, 1);
+                    previouslyActive[0] = active[0];
                 }
             }
             break;
@@ -5913,6 +5918,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,1, 0);
                 } else {        // Toggle plane 2 off/on
                     clipPlaneTransform(0,0,0,0,1, 1);
+                    previouslyActive[1] = active[1];
                 }
             }
             break;
@@ -5937,6 +5943,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,2, 0);
                 } else {        // Toggle plane 3 off/on
                     clipPlaneTransform(0,0,0,0,2, 1);
+                    previouslyActive[2] = active[2];
                 }
             }
             break;
@@ -5965,6 +5972,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,3, 0);
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,3, 1);
+                    previouslyActive[3] = active[3];
                 }
             }
             break;
@@ -5993,6 +6001,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,4, 0);
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,4, 1);
+                    previouslyActive[4] = active[4];
                 }
             }
             break;
@@ -6021,6 +6030,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,5, 0);
                 } else {        // Toggle plane 6 off/on
                     clipPlaneTransform(0,0,0,0,5, 1);
+                    previouslyActive[5] = active[5];
                 }
             }
             break;
@@ -6031,9 +6041,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         // Toggle all active clippping planes
-                        active[i] = !(previouslyActive[i]);
-                        previouslyActive[i] = active[i];
-                        clipPlaneTransform(0,0,0,0,i, 1);
+                        if (active[i]){
+                            previouslyActive[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 1);
+                        } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1);
                     }
                 }
             }
