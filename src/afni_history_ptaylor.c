@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved for backward compatability to Python 2.7.",
+   "So, for task FMRI, individual stim label plots work again in Py2.7.\n"
+},
+
+{ 11, May , 2021 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Replace str.isnumeric() with str.isdigit(), for backward compatability.",
+   "Python 2.7 didn't have that method for str type.\n"
+},
+
 { 10, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
    "New opt: '-set_xhair_gap ..', to allow setting crosshair gap.",
    "Default value is -1.\n"

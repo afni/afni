@@ -24,9 +24,13 @@ author    = "PA Taylor (NIMH, NIH)"
 #ver = '1.9' ; date = 'June 17, 2020' 
 # [PT] add in legend, legend_label and legend_loc functionality
 #
-ver = '2.0' ; date = 'April 22, 2020'
+#ver = '2.0' ; date = 'April 22, 2020'
 # [PT] can now wrap y-axis labels, because they might get long
 #    + couple ways of trying: purely by length, or with some 'logic'
+#
+ver = '2.1' ; date = 'May 11, 2020'
+# [PT] replace str.isnumeric() with str.isdigit(), for backward
+#      compatability with Python v2.7.  Grrr.
 #
 # =================================================================
 
@@ -104,11 +108,11 @@ def long_string_wrap_by_char(x, maxlen = 7):
                     the_str = the_str[i:]
                     break
                 # things that split from [i+1]
-                elif ( the_str[i].isnumeric() and \
-                       not(the_str[i+1].isnumeric()))        or \
-                     ( not(the_str[i].isnumeric()) and \
+                elif ( the_str[i].isdigit() and \
+                       not(the_str[i+1].isdigit()))        or \
+                     ( not(the_str[i].isdigit()) and \
                        not(the_str[i] == '#') and      \
-                       the_str[i+1].isnumeric())  :
+                       the_str[i+1].isdigit())  :
                     ybag.append(the_str[:i+1])
                     the_str = the_str[i+1:]
                     break
