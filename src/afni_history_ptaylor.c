@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Set env var to turn off NIFTI warnings.",
+   "That is, AFNI_NIFTI_TYPE_WARN -> NO.\n"
+},
+
 { 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
    "1dplot.py improved for backward compatability to Python 2.7.",
    "So, for task FMRI, individual stim label plots work again in Py2.7.\n"

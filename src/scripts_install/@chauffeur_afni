@@ -279,9 +279,12 @@
 # [PT] for "-topval .." arg, defined a keyword to mimic empty doublequotes
 #    + also fixed up help example a bit (discrete cbar case)
 #
-set version   = "6.21"; set rev_dat   = "May 10, 2021"
+#set version   = "6.21"; set rev_dat   = "May 10, 2021"
 # [PT] add "-set_xhair_gap .." opt, for driving crosshair gap 
 #    + default value is -1 (closed)
+#
+set version   = "6.22"; set rev_dat   = "May 11, 2021"
+# [PT] NIFTI warnings off
 #
 # =====================================================================
 
@@ -305,6 +308,7 @@ setenv AFNI_AGIF_DELAY        30         # [PT: Feb 22, 2020]
 setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
 setenv AFNI_STARTUP_WARNINGS     NO
 setenv AFNI_MOTD_CHECK           NO
+setenv AFNI_NIFTI_TYPE_WARN      NO
 
 # -------------------------------------------------------------------
 
