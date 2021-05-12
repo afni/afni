@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, May , 2021 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+   "Remove old/unnecessary comment from help of -NIFTI opt.",
+   "Referred to earlier misconcept (need even mat dims for anatomical dset).\n"
+},
+
 { 11, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Set env var to turn off NIFTI warnings.",
    "That is, AFNI_NIFTI_TYPE_WARN -> NO.\n"
