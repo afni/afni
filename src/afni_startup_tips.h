@@ -1545,6 +1545,7 @@ static char *gby[] = {
 
      "Many are stubborn in pursuit of the path they have chosen; few in pursuit of the goal" ,
      "Idleness is the beginning of all psychology - is psychology is a vice?"                ,
+     "Good judgment comes from experience; experience comes from bad judgment"               ,
 
      /* Grateful Dead (mostly) */
 
@@ -1913,7 +1914,18 @@ static char *gby[] = {
      "One of the drawbacks to life is that it contains moments when\n"
      "   one is compelled to tell the truth"                                           ,
 
-     "I always advise people never to give advice"
+     "I always advise people never to give advice"                                     ,
+
+     /* Misc */
+
+    "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
+
+    "\n  It is not enough to be in the right place at the right time.\n"
+    "    You should also have an open mind at the right time"                               ,  /* 12 May 2021 */
+
+    /* Keep this one last */
+
+    "You are very lucky - this is the last-in-list AFNI goodbye message"
 
 } ;
 

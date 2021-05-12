@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
+   "Thanks to the all-seeing S Torrisi for noting the problem."
+ } ,
+
+ {  6, Apr, 2021, RCR, "ap_qc_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
+   "run a quick afni_proc.py resting state analysis for QC",
+   NULL
+ } ,
+
  { 16, Mar, 2021, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
    "simplify logic in THD_mask_erode(), with negligible slowdown",
    NULL
@@ -139,7 +149,8 @@ afni_history_struct rickr_history[] = {
 
  { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "warn about problematic version of XQuartz",
-   NULL
+   "Bad versions seem to be 2.8.0_alpa*, 2.8.0_betas[12] (3+ okay?).\n"
+   "With improvements we have seen, maybe we should warn on any beta."
  } ,
 
  { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,

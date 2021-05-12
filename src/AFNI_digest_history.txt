@@ -1,3 +1,124 @@
+AFNI Digest, week of 2020/04/12.
+
+0) afni_proc.py updates.
+1) 3dROIstats updates.
+2) Bug fix for (rare) NIFTI occurrences.
+3) Mac OS binaries update, re. XQuartz/libXp.
+4) New old notes on various AFNI stats programs.
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+
+0) afni_proc.py updates.
+++ Computed TSNR volumes are no longer masked by default, so one can
+   better evaluate things like dropout.  And images of TSNR volumes
+   (after volreg and at end) are now part of the APQC HTML.
+++ afni_proc.py: one can now pass single files with many regressors of
+   no interest via -regress_extra_ortvec and
+   -regress_extra_ortvec_labels.
+
+1) 3dROIstats updates.
+Slowness has been fixed in the processing of NIFTI float time series
+datasets.  Thanks to C Craddock for reporting the issue.
+
+2) Bug fix for (rare) NIFTI occurrences.
+A bug has been fixed in the handling of NIFTI float datasets with
+scalars attached (this is uncommon).  From 2021.01.26 to 2021.03.08,
+some programs would not apply the scalars.
+
+3) Mac OS binaries update, re. XQuartz/libXp.
+AFNI now includes libXp with the macos_10.12_local binaries, as
+XQuartz no longer distributes it.  That is required for the AFNI
+binaries to work on newer systems.  Thanks to C Gaillard for reporting
+and testing.
+
+4) New old notes on various AFNI stats programs.
+There are some new documentations for AFNI stats programs, some dating
+back to The Beginning when they were written.  These typically include
+both general theory and program-specific notes.  The current list of
+descriptions is:
++ When and how to center a variable?
++ Deconvolution Analysis of FMRI Time Series Data
++ Nonlinear Regression Analysis of FMRI Time Series Data (NLfim)
++ Notes on 3dREMLfit
++ Analysis of Variance (ANOVA)
++ Multivariate modeling (MVM) approach for group analysis
++ Linear Mixed-Effects (LME) Modeling
++ Mixed-Effects Meta Analysis (MEMA)
++ False Discovery Rate (FDR)
++ Nonparametric Statistical Analysis of FMRI Data
+... which are available here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
+
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+FreeSurfer's (FS's) recon-all performs useful parcellation and surface
+creation for T1w anatomicals.  This tutorial describes combining this
+with AFNI (via @SUMA_Make_Spec_FS), including notes on
+parallelization, speed, avoiding crashes, running on NIH's Biowulf,
+and the full set of extra dsets and QC info that @SUMA_Make_Spec_FS
+creates.  If that is of interest, check out:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/fs/main_toc.html
+
+========================================================================
+
+AFNI Digest, week of 2021/04/06.
+
+0)   Sign up for Zoom consultations occuring April 19-23, 2021.
+1-2) Useful programs (3dMSS, PTA) for capturing nonlinearity in stats modeling
+3-4) Useful programs (3dLMEr, TRR) for estimating test-retest reliability 
+5)   The India Brain Templates and Atlases (IBTAs)
+6)   More AFNI Academy online video lecture/tutorials
+
+0) Sign-up open for Zoom consults, in the week of April 19-23, 2021.  
+The form for doing so is here:
+    https://forms.gle/ZeUSau2hpQVovwHbA
+It is a good opportunity to discuss MRI/FMRI/DTI processing questions,
+esp. being able to share screens looking at data.  Discussions can
+even involve *planning* a study, going over considerations beforehand
+to make later processing easier.
+
+1) 3dMSS:  multilevel smoothing splines (MSS).
+When a quantitative predictor's effect is non-monotonic, the typical
+approach of handling it as a covariate through linear modeling can be
+inappropriate or even misleading.  As a more flexible and adaptive
+approach, multilevel smoothing splines (MSS) offer a more powerful
+analytical tool for capturing nonlinearity. More details can be found
+in:
+Chen et al., 2021. Beyond linearity in neuroimaging: Capturing
+nonlinear relationships with application to longitudinal
+studies. NeuroImage 233, 117891.
+https://doi.org/10.1016/j.neuroimage.2021.117891
+
+2) PTA:  Same nonlinear modeling approach as 3dMSS, but for 1D data.
+
+3) 3dLMEr with option "-TRR" for test-retest reliability estimates.
+The new option -TRR in 3dLMEr estimates the test-retest reliability at
+the whole-brain voxel level based on trial-level effect estimates
+instead of the conventional condition-level approach. The conventional
+intraclass correlation coefficient (ICC) tends to underestimate the
+test-retest reliability, as demonstrated in the following manuscript:
+Chen et al., 2021. Beyond the intraclass correlation: A hierarchical
+modeling approach to test-retest assessment. bioRxiv
+2021.01.04.425305. https://doi.org/10.1101/2021.01.04.425305
+
+4) TRR:  Same test-retest reliability modeling as 3dLMEr -TRR, but for ROIs.
+
+5) Indian Brain Templates and Atlases (IBTAs) available.
+Working with Drs. Bharath Holla, Rose Dawn Bharath (NIMHANS, the other
+NIMH) and colleagues, we have generated a new set of brain templates
+and atlases for studies focusing on a billion-plus people. There are
+several templates with corresponding atlases, covering various age
+ranges from 5-60 years, combining data from subjects across India.
+For more information, please see:
+https://onlinelibrary.wiley.com/doi/10.1002/hbm.25182
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/ibt.html
+
+6) More AFNI Academy online video lecture/tutorials
+"MBA: Analyzing matrix data through Bayesian multilevel modeling", by G Chen:
+https://www.youtube.com/watch?v=K2nW8M3sYNY&list=PL_CD549H9kgr42Cc0Uoo6o64sPlu6c3Qz
+"Advanced Visualization - atlases as surfaces in SUMA", by D Glen:
+https://www.youtube.com/watch?v=y-6hJ8iDy5o
+
+========================================================================
+
 AFNI Digest, week of 2020/12/17. 
  
 0)  Sign up for Zoom consultations in January, 2021 (!).

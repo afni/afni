@@ -160,10 +160,8 @@ static long total_mem = 0;
 \
         if( eigen_vec != NULL ) \
         { \
-            free(eigen_vec[0]) ; \
-            free(eigen_vec[1]) ; \
-            eigen_vec[0] = NULL ; \
-            eigen_vec[1] = NULL ; \
+            free(eigen_vec) ; \
+            eigen_vec = NULL ; \
         } \
 }
 
@@ -497,9 +495,9 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     }
 
     /*-- CC update our memory stats to reflect v_new -- */
-    INC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
-        sizeof(sparse_array_node), "sparse array");
-    PRINT_MEM_STATS( "sparse array" );
+    INC_MEM_STATS(sparse_array->peak_mem_usage, "sparse_array");
+    DEC_MEM_STATS(sparse_array->peak_mem_usage-(sizeof(sparse_array_head_node)+
+        sparse_array->num_nodes*sizeof(sparse_array_node)), "sparse_array");
 
     /* power iterator */
     power_it = 0;
@@ -610,10 +608,12 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
     {
         /* update running memory statistics to reflect freeing the vectim */
         DEC_MEM_STATS(sizeof(sparse_array_head_node)+sparse_array->num_nodes*
-            sizeof(sparse_array_node), "sparse array");
+            sizeof(sparse_array_node), "sparse_array");
 
         sparse_array = free_sparse_array(sparse_array);
     }
+
+    PRINT_MEM_STATS( "return then result" );
 
     /* return the result */
     return(v_prev);
@@ -996,7 +996,6 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         }
     }
 
-    printf( "finished with calculation! now freeing mem\n" );
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
     if( v_new != NULL ) 
@@ -1352,39 +1351,61 @@ int main( int argc , char *argv[] )
     long max_iter = 10000;
     double eps = 0.00001;
 
-    /* CC - vectors to hold the results (bin/wght) */
-    double* eigen_vec[2];
-
     /* CC - we will have two subbricks: binarized and weighted */
-    int nsubbriks = 2;
+    int nsubbriks = 1;
     int subbrik = 0;
     float * wodset;
  
+     /* CC - vectors to hold the results (bin/wght) */
+    double* eigen_vec = NULL;
+
+    /* CC - number of voxels with zero variance that were
+       masked out */
+    int rem_count = 0;
+
    /*----*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 || strcmp(argv[1],"-h") == 0 ){
       printf(
 "Usage: 3dECM [options] dset\n"
-"  Computes voxelwise local functional connectivity density and\n"
+"  Computes voxelwise eigenvector centrality (ECM) and\n"
 "  stores the result in a new 3D bucket dataset as floats to\n"
-"  preserve their values. ECM reflects the strength and\n"
-"  extent of a voxel's global connectivity as well as the\n"
+"  preserve their values. ECM of a voxel reflects the strength\n"
+"  and extent of a voxel's global connectivity as well as the\n"
 "  importance of the voxels that it is directly connected to.\n\n"
 "  Conceptually the process involves: \n"
 "      1. Calculating the correlation between voxel time series for\n"
 "         every pair of voxels in the brain (as determined by masking)\n"
 "      2. Calculate the eigenvector corresponding to the largest\n"
-"         eigenvalue of the similarity matrix.\n\n" 
-"  Guaranteeing that this eigenvector is unique and all positive\n"
-"  requires that the similarity matrix is strictly positive. This\n"
-"  is enforced by either adding one to the correlations (Lohmann \n"
-"  et. al. 2010), or by adding one and dividing by two (Wink et al.\n"
-"  2012).\n\n" 
-"  Practically the power iteration algorithm described in Wink et\n"
-"  al. 2012) is used to optimize for computational time and memory\n"
-"  usage.\n\n"
+"         eigenvalue of the similarity matrix.\n\n"
+"  Guaranteeing that the largest eigenvector is unique and therefore,\n"
+"  that an ECM solution exists, requires that the similarity matrix\n"
+"  is strictly positive. This is enforced by either adding one to\n"
+"  the correlations as in (Lohmann et. al. 2010), or by adding one\n"
+"  and dividing by two (Wink et al. 2012). \n\n"
+"  Calculating the first eigenvector of a whole-brain similarity matrix\n"
+"  requires alot of system memory and time. 3dECM uses the optimizations\n"
+"  described in (Wink et al 2012) to improve performance. It additionally\n"
+"  provides a mechanism for limited the amount of system memory used to\n"
+"  avoid memory related crashes.\n\n"
+"  The perfromance can also be improved by reducing the number of\n"
+"  connections in the similarity matrix using either a correlation\n"
+"  or sparsity threshold. The correlation threshold simply removes\n"
+"  all connections with a correlation less than the threshold. The\n"
+"  sparsity threshold is a percentage and reflects the fraction of\n"
+"  the strongest connections that should be retained for analysis.\n"
+"  Sparsity thresholding uses a histogram approach to 'learn' a \n"
+"  correlation threshold that would result in the desired level \n"
+"  of sparsity. Due to ties and virtual ties due to poor precision\n"
+"  for differentiating connections, the desired level of sparsity \n"
+"  will not be met exactly, 3dECM will retain more connections than\n" 
+"  requested.\n\n"
+"  Whole brain ECM results in very small voxel values and small\n"
+"  differences between cortical areas. Reducing the number of\n"
+"  connections in the analysis improves the voxel values and \n"
+"  provides greater contrast between cortical areas\n\n."
 "  Lohmann G, Margulies DS, Horstmann A, Pleger B, Lepsien J, et al.\n"
 "      (2010) Eigenvector Centrality Mapping for Analyzing\n"
 "      Connectivity Patterns in fMRI Data of the Human Brain. PLoS\n"
@@ -1411,8 +1432,11 @@ int main( int argc , char *argv[] )
 "                are NOT used.\n"
 "  -thresh r   = exclude connections with correlation < r. cannot be\n"
 "                used with FECM\n"
-"  -sparsity p = only include the top p%% connectoins in the calculation\n"
-"                cannot be used with FECM method. (default = 100)\n"
+"  -sparsity p = only include the top p%% (0 < p <= 100) connectoins in the calculation\n"
+"                cannot be used with FECM method. (default)\n"
+"  -do_binary  = perform the ECM calculation on a binarized version of the\n"
+"                connectivity matrix, this requires a connnectivity or \n"
+"                sparsity threshold.\n"
 "  -shift s    = value that should be added to correlation coeffs to\n"
 "                enforce non-negativity, s >= 0. [default = 0.0, unless\n"
 "                -fecm is specified in which case the default is 1.0\n"
@@ -1465,7 +1489,7 @@ int main( int argc , char *argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   mainENTRY("3dECM main"); machdep(); PRINT_VERSION("3dECM");
+   mainENTRY("3dECM main"); machdep(); PRINT_VERSION("3dECM cc mods");
    AFNI_logger("3dECM",argc,argv);
 
    /*-- option processing --*/
@@ -1517,7 +1541,7 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-sparsity") == 0 ){
          double val = (double)strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val < 0 || val > 100 ){
+         if( *cpt != '\0' || val <= 0 || val > 100 ){
             ERROR_EXIT_CC("Illegal value after -sparsity!") ;
          }
          sparsity = val ; do_sparsity = 1; nopt++ ; continue ;
@@ -1556,6 +1580,10 @@ int main( int argc , char *argv[] )
          shift = val ; do_shift = 1; nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-do_binary") == 0 ){
+         do_binary = 1; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          prefix = strdup(argv[++nopt]) ;
          if( !THD_filename_ok(prefix) ){
@@ -1578,8 +1606,10 @@ int main( int argc , char *argv[] )
       if( strncmp(argv[nopt],"-mem_profile",8) == 0 ){
          MEM_PROF = 1 ; nopt++ ; continue ;
       }
-
-      ERROR_EXIT_CC("Illegal option: %s",argv[nopt]) ;
+      
+      ERROR_message("Unknown option %s\n", argv[nopt]);
+      suggest_best_prog_option(argv[0], argv[nopt]);
+      exit(1);
    }
 
    /*-- open dataset, check for legality --*/
@@ -1593,6 +1623,21 @@ int main( int argc , char *argv[] )
         WARNING_message( "Cannot use FECM, with -sparsity, -thresh,"
             " or -full, changing to full power iteration\n");
         do_fecm = 0;
+    }
+
+    if(( do_full == 1 ) && ((do_sparsity == 0) && (do_thresh == 0)))
+    {
+        WARNING_message( "Running the full ECM algorithm on a full connectome (e.g. without"
+            " a correlation threshold or sparsity target can take a long time changing to "
+            "the fast ECM method, which will do the same thing much more quickly.\n");
+        do_fecm = 1;
+        do_full = 0;
+    }
+
+    if((do_binary == 1) && (((do_sparsity == 0) && (do_thresh == 0)) || (do_fecm == 1)))
+    {
+        ERROR_EXIT_CC( "Inconsistent parameters. do_binary requires a sparsity or correlation "
+            "threshold and connot be calculated using fecm\n");
     }
 
    /* if fecm is specified default to scale = 0.5, shift = 1.0 to be
@@ -1665,14 +1710,26 @@ int main( int argc , char *argv[] )
    }
    /* otherwise we use all of the voxels in the image */
    else {
-      nmask = nvox ;
-      INFO_message("computing for all %d voxels",nmask) ;
+        nmask = nvox ;
+
+        mask = (byte *) malloc( sizeof(byte) * nmask ) ;
+        if( mask == NULL ) ERROR_EXIT_CC("Can't allocate mask?!") ;
+        
+        INC_MEM_STATS( nmask * sizeof(byte), "mask array" );
+        PRINT_MEM_STATS( "mask" );
+
+        /* set it all to ones */
+        memset(mask, 1, nmask*sizeof(byte));
+
+        INFO_message("computing for all %d voxels\n",nmask) ;
    }
 
     /*-- create vectim from input dataset --*/
     INFO_message("vectim-izing input dataset") ;
 
     /*-- CC added in mask to reduce the size of xvectim -- */
+    nmask = THD_countmask( nvox , mask ) ;
+
     xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
     if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim?!") ;
 
@@ -1682,20 +1739,71 @@ int main( int argc , char *argv[] )
                     sizeof(MRI_vectim), "vectim");
     PRINT_MEM_STATS( "vectim" );
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
-         tap into that here to avoid duplicating memory usage, also create a
-         mapping that goes the other way ---*/
-
-    if( mask != NULL )
+    /*-- CC now that the data is in an easy to use form, go through
+         and remove all of the zero variance voxels */
+    for (ii=0; ii < xvectim->nvec; ii++)
     {
-        /* tap into the xvectim mapping */
-        mask_ndx_to_vol_ndx = xvectim->ivec;
+        float* test_vec = VECTIM_PTR(xvectim, ii);
+        double sum = 0;
+        double sum2 = 0;
+        double var = 0;
+        int    t_ndx;
 
+        for (t_ndx = 0; t_ndx < nvals; t_ndx++)
+        {
+            sum += test_vec[t_ndx];
+            sum2 += test_vec[t_ndx] * test_vec[t_ndx];
+        }
+
+        var = (sum2-sum*sum/(double)nvals)/(double)(nvals-1);
+
+        if (var < eps)
+        {
+            mask[xvectim->ivec[ii]] = 0;
+            rem_count++;
+        }
+    }
+
+    if(rem_count > 0)
+    {
+        /* re-generate xvectim with zero variance voxels removed */
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(((xvectim->nvec*sizeof(int)) +
+                        ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                        sizeof(MRI_vectim)), "vectim");
+
+        /* toss some trash */
+        VECTIM_destroy(xvectim) ;
+
+        /* now re-create an xvectim with the fewer number of voxels */
+        /*-- CC added in mask to reduce the size of xvectim -- */
+        xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
+        if( xvectim == NULL ) ERROR_EXIT_CC("Can't create vectim (var filter)?!") ;
+
+        /*-- CC update our memory stats to reflect vectim -- */
+        INC_MEM_STATS((xvectim->nvec*sizeof(int)) +
+                ((xvectim->nvec)*(xvectim->nvals))*sizeof(float) +
+                sizeof(MRI_vectim), "vectim");
+        PRINT_MEM_STATS( "vectim" );
+
+    }
+
+    if (mask != NULL)
+    {
         /* --- CC free the mask */
         DEC_MEM_STATS( nmask*sizeof(byte), "mask array" );
         free(mask); mask=NULL;
         PRINT_MEM_STATS( "mask unload" );
     }
+
+
+   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+        tap into that here to avoid duplicating memory usage, this exists
+        regardless of whether there was a mask ---*/
+    mask_ndx_to_vol_ndx = xvectim->ivec;
+    nmask = xvectim->nvec;
+
+    INFO_message("! %d voxels remain after removing voxels with zero variance\n",nmask) ;
 
     /* -- CC unloading the dataset to reduce memory usage ?? -- */
     DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), 
@@ -1719,28 +1827,33 @@ int main( int argc , char *argv[] )
           have zero variance -- */
     THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
+    /* if using sparsity calculate an initial guess for the 
+       correlation threshold that will give that sparsity, 
+       from the p-value */
+    /* THD_pval_to_stat
+     */
+
     /* update the user so that they know what we are up to */
 
     /* calculate the eigenvector */
     if ((do_full == 1) || (do_sparsity == 1) || (do_thresh == 1))
     {
-        for (do_binary = 0; do_binary < 2; do_binary++) {
-            /* -- CC tell the user what we are up to */
-            INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,"
-                " thresh=%3.3f, scale=%3.3f, shift=%3.3f,\nmax_iter=%d, eps=%3.3f,"
-                " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
-                eps, do_binary, mem_bytes - running_mem);
+        /* -- CC tell the user what we are up to */
+        INFO_message( "Calculating ECM with full method (sparsity=%3.3f%%,\n"
+            " thresh=%3.3f, scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f,\n"
+            " binary=%d, mem=%ld)\n", sparsity, thresh, scale, shift, max_iter,
+            eps, do_binary, mem_bytes - running_mem);
 
-            eigen_vec[do_binary]=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
-                scale, eps, max_iter, 1-do_binary, (mem_bytes - running_mem));
-        }
+        eigen_vec=calc_full_power_sparse(xvectim, thresh, sparsity, shift,
+            scale, eps, max_iter, do_binary, (mem_bytes - running_mem));
+
     }
     else
     {
         INFO_message( "Calculating ECM with FECM (sparsity=%3.3f%%,thresh=%3.3f,\n"
             "  scale=%3.3f, shift=%3.3f, max_iter=%d, eps=%3.3f, binary=%d)\n",
             sparsity, thresh, scale, shift, max_iter, eps, do_binary);
-        eigen_vec[0]=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
+        eigen_vec=calc_fecm_power(xvectim, shift, scale, eps, max_iter);
     }
 
     if( eigen_vec == NULL )
@@ -1754,7 +1867,6 @@ int main( int argc , char *argv[] )
     /*-- configure the output dataset */
     if( abuc )
     {
-        printf( "creating output bucket(%s)\n", prefix );
         EDIT_dset_items( cset ,
             ADN_prefix    , prefix         ,
             ADN_nvals     , nsubbriks      , /*  subbricks */
@@ -1783,43 +1895,50 @@ int main( int argc , char *argv[] )
 
     ININFO_message("creating output dataset in memory") ;
 
-    for (subbrik = 0; subbrik < 2; subbrik++) {
-        /* -- Configure the subbriks -- */
+    /* -- Configure the subbriks -- */
+    subbrik = 0;
 
-        EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
-        /* CC this sets the subbrik scaling factor, which we will probably want
-           to do again after we calculate the voxel values */
-        EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
+    EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
+    /* CC this sets the subbrik scaling factor, which we will probably want
+        to do again after we calculate the voxel values */
+    EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
 
-        EDIT_BRICK_LABEL(cset,subbrik,str) ;
-        EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
+    if (do_binary == 1)
+    {
+        EDIT_BRICK_LABEL(cset,subbrik,"binary ECM") ;
+    }
+    else
+    {
+        EDIT_BRICK_LABEL(cset,subbrik,"weighted ECM") ;
+    }
 
-        /* copy measure data into the subbrik */
-        wodset = DSET_ARRAY(cset,subbrik);
+    EDIT_substitute_brick(cset,subbrik,MRI_float,NULL) ;   /* make array   */
 
-        /* increment memory stats */
-        INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)),
-            "output dset");
-        PRINT_MEM_STATS( "outset" );
+    /* copy measure data into the subbrik */
+    wodset = DSET_ARRAY(cset,subbrik);
 
-        /* set all of the voxels in the output image to zero */
-        bzero(wodset, DSET_NVOX(cset)*sizeof(float));
+    /* increment memory stats */
+    INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)),
+        "output dset");
+    PRINT_MEM_STATS( "outset" );
 
-        /* output the eigenvector, scaling it by sqrt(2) */
-        for (ii = 0; ii < xvectim->nvec; ii++ )
-        {
-           wodset[ mask_ndx_to_vol_ndx[ ii ] ] = (float)(SQRT_2 * eigen_vec[subbrik][ ii ]);
-        }
+    /* set all of the voxels in the output image to zero */
+    bzero(wodset, DSET_NVOX(cset)*sizeof(float));
 
-        /* we have copied out v_prev, now we can kill it */
-        if( eigen_vec[subbrik] != NULL )
-        {
-            free(eigen_vec[subbrik]);
-            eigen_vec[subbrik] = NULL;
+    /* output the eigenvector, scaling it by sqrt(2) */
+    for (ii = 0; ii < xvectim->nvec; ii++ )
+    {
+        wodset[ mask_ndx_to_vol_ndx[ ii ] ] = (float)(SQRT_2 * eigen_vec[ ii ]);
+    }
 
-            /* update running memory statistics to reflect freeing the vectim */
-            DEC_MEM_STATS(xvectim->nvec*sizeof(double), "eigen_vec");
-        }
+    /* we have copied out v_prev, now we can kill it */
+    if( eigen_vec != NULL )
+    {
+        free(eigen_vec);
+        eigen_vec = NULL;
+
+        /* update running memory statistics to reflect freeing the vectim */
+        DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
     }
 
     /*-- tell the user what we are about to do --*/

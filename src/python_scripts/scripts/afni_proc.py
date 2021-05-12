@@ -687,9 +687,12 @@ g_history = """
        - add -regress_mask_tsnr; change default to no mask for TSNR dset
        - pass mask_dset explicitly to gen_ss_review_scripts.py
     7.14 Feb 24, 2021: -add -regress_extra_ortvec and _ortvec_labels
+    7.15 May  1, 2021:
+       - fixed niml.dset suffix in case of -regress_compute_fitts on surface
+         (thanks to S Torrisi for noting the problem)
 """
 
-g_version = "version 7.14, February 24, 2021"
+g_version = "version 7.15, May 1, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

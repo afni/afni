@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.10, Feb 23, 2021
+Version 0.1.0, April 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -414,6 +414,28 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
+      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
+   "-vVars variable_list: Identify voxel-wise covariates with this option.",
+   "         Currently one voxel-wise covariate is allowed only. By default",
+   "         mean centering is performed voxel-wise across all subjects.",
+   "         Alternatively centering can be specified through a global value",
+   "         under -vVarsCenters. If the voxel-wise covariates have already",
+   "         been centered, set the centers at 0 with -vVarsCenters.\n",
+             sep = '\n'
+             ) ),
+
+     '-vVarCenters' = apl(n=1, d=NA, h = paste(
+   "-vVarCenters VALUES: Specify centering values for voxel-wise covariates",
+   "         identified under -vVars. Multiple centers are separated by ",
+   "         commas (,) within (single or double) quotes. The order of the",
+   "         values should match that of the quantitative variables in -qVars.",
+   "         Default (absence of option -vVarsCenters) means centering on the",
+   "         average of the variable across ALL subjects regardless their",
+   "         grouping. If within-group centering is desirable, center the",
+   "         variable yourself first before the files are fed under -dataTable.\n",
+             sep = '\n'
+                     ) ),
+
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltCode label weights: Specify the label and weights of interest in a general",
    "       linear t-style (GLT) formulation in which only one null relationship is",
@@ -456,16 +478,6 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 #             sep = '\n'
 #             ) ),
 #
-#      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
-#   "-vVars variable_list: Identify voxel-wise covariates with this option.",
-#   "         Currently one voxel-wise covariate is allowed only, but this",
-#   "         may change if demand occurs...",
-#   "         By default mean centering is performed voxel-wise across all",
-#   "         subjects. Alternatively centering can be specified through a",
-#   "         global value under -vVarsCenters. If the voxel-wise covariates",
-#   "         have already been centered, set the centers at 0 with -vVarsCenters.\n",
-#             sep = '\n'
-#             ) ),
 
      '-qVarCenters' = apl(n=c(1,100), d=NA, h = paste(
    "-qVarCenters VALUES: Specify centering values for quantitative variables",
@@ -479,19 +491,6 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
              sep = '\n'
                      ) ),
-
-#     '-vVarCenters' = apl(n=1, d=NA, h = paste(
-#   "-vVarCenters VALUES: Specify centering values for voxel-wise covariates",
-#   "         identified under -vVars. Multiple centers are separated by ",
-#   "         commas (,) within (single or double) quotes. The order of the",
-#   "         values should match that of the quantitative variables in -qVars.",
-#   "         Default (absence of option -vVarsCetners) means centering on the",
-#   "         average of the variable across ALL subjects regardless their",
-#   "         grouping. If within-group centering is desirable, center the",
-#   "         variable YOURSELF first before the files are fed into -dataTable.\n",
-#             sep = '\n'
-#
-#) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure with a header as the first line.\n",
@@ -555,10 +554,10 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$model  <- NA
       lop$qVars  <- NA
       lop$bounds <- NULL
-      #lop$vVars  <- NA
-      #lop$vQV    <- NA
+      lop$vVars  <- NA
+      lop$vQV    <- NA
       lop$qVarCenters <- NA
-      #lop$vVarCenters <- NA
+      lop$vVarCenters <- NA
       lop$gltCode    <- NULL
       lop$glfCode  <- NULL
       lop$dataTable <- NULL
@@ -584,9 +583,9 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 	     glfCode  = lop$glfCode <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
              bounds = lop$bounds <- ops[[i]],
-             #vVars  = lop$vVars  <- ops[[i]],
+             vVars  = lop$vVars  <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
-             #vVarCenters = lop$vVarCenters <- ops[[i]],
+             vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
 
              help = help.LME.opts(params, adieu=TRUE),
@@ -669,7 +668,7 @@ process.LME.opts <- function (lop, verb = 0) {
    }
    # assume the quantitative variables are separated by + here
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
-   #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+   if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!(is.null(lop$bounds))) {
       if(lop$bounds[1] > lop$bounds[2]) 
@@ -689,7 +688,7 @@ process.LME.opts <- function (lop, verb = 0) {
       # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
-      #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
    }
@@ -763,8 +762,12 @@ runLME <- function(myData, DM, tag) {
       resid <- rep(0, length(myData))
       res.na <- which(is.na(myData)) # indices for missing data
    }
+   if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
+      DM <- assVV2(DM, lop$vQV, myData[(length(myData)/2+1):length(myData)], all(is.na(lop$vVarCenters)))
+   }
+
    if(!all(myData == 0)) {
-      DM$yy <- myData
+      DM$yy <- myData[1:nrow(DM)]
       fm <- NULL
       options(warn=-1)
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
@@ -806,6 +809,16 @@ runLME <- function(myData, DM, tag) {
    return(Stat)
 }
 # runLME(inData[30,30,30,], lop$dataStr, 0)
+
+# for LME only, not TRR yet
+assVV2 <- function(DF, vQV, value, c) {
+      # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
+   #browser()
+   if(is.na(c)) DF[, vQV] <- scale(value, center=TRUE, scale=F) else
+       DF[, vQV] <- scale(value, center=c, scale=F)
+   DF[, vQV] <- as.numeric(DF[, vQV])
+   return(DF)
+}
 
 runTRR <- function(myData, DM, tag) { # assuming 2 conditions and 2 sessions
    #browser()
@@ -946,6 +959,28 @@ if(!is.na(lop$maskFN)) {
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
 
+# voxel-wise covariate files: for LME only; not TRR yet
+if(!is.na(lop$vQV)) {
+   tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+   dimx <- tmpDat$dim[1]
+   dimy <- tmpDat$dim[2]
+   dimz <- tmpDat$dim[3]
+   head <- tmpDat
+   #for(ii in lop$vQV)
+   #if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
+   #   errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
+   #             "allowed to have one volume; that is, the covariate has to be at the\n",
+   #             "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
+      #vQV <- unlist(lapply(lapply(unique(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+      vQV <- unlist(lapply(lapply(as.character(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+      #dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
+      dim(vQV) <- c(dimx, dimy, dimz, length(lop$dataStr[,lop$vQV[1]]))
+      inData <- c(inData, vQV)
+      #dim(inData) <- c(dimx, dimy, dimz, lop$nVVars+lop$nSubj)
+      dim(inData) <- c(dimx, dimy, dimz, 2*length(lop$dataStr[,lop$vQV[1]]))
+   #}
+} else vQV <- NULL
+
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's
 # for t tests (and catch potential problems as well)
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
@@ -999,11 +1034,16 @@ lop$model <- as.formula(paste('yy ~ ', lop$model))
 require(lmerTest)
 if(!lop$TRR) require(phia)
 fm<-NULL
+if(any(!is.na(lop$vQV))) {
+     lop$dataStr <- assVV2(lop$dataStr, lop$vQV, inData[ii,jj,kk,(nrow(lop$dataStr)+1):(2*nrow(lop$dataStr))], all(is.na(lop$vVarCenters)))
+}
+
 if(lop$num_glt > 0) gltRes <- vector('list', lop$num_glt)
 if(lop$num_glf > 0) glfRes <- vector('list', lop$num_glf)
 #chi_DF <- NULL
 while(is.null(fm)) {
-   lop$dataStr$yy <- inData[ii, jj, kk,]
+   #lop$dataStr$yy <- inData[ii, jj, kk,]
+   lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    try(fm <- lmer(lop$model, data=lop$dataStr), silent=TRUE)
    if(!lop$TRR) {
@@ -1150,6 +1190,7 @@ if(lop$TRR) { # test-retest analysis
       if (lop$nNodes>1) {
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, c("lop", "assVV2"), envir=environment())
          clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for(kk in 1:nSeg) {
@@ -1166,19 +1207,21 @@ if(lop$TRR) { # test-retest analysis
       Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) {
          for (kk in 1:dimz) {
-            Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
-               DM=lop$dataStr, tag=0), c(2,3,1))
+            if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1)) else
+            Stat[,,kk,1] <- apply(inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
       } else {
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
-         clusterExport(cl, "lop", envir=environment())
+         clusterExport(cl, c("lop", "assVV2"), envir=environment())
          clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
-            Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
-               DM=lop$dataStr, tag=0), c(2,3,1))
+            if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1)) else
+            Stat[,,kk,1] <- parApply(cl, inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
          stopCluster(cl)

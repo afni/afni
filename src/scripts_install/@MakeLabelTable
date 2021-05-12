@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -25,6 +25,11 @@ if ("$mode" == 1) then
    goto PUT_ATLAS_TABLE
 else if ("$mode" == 2) then
    goto ADD_ATLAS_ENTRY
+endif
+
+# set labeltable if it's not set already
+if  ($labeltable == "LABEL_TABLE_NOT_SET") then
+                 set labeltable = lt_${RNS}.niml.alt
 endif
 
 if ($autolab == 1) then
@@ -246,7 +251,8 @@ MAKE_TABLE:
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $nu[1] >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      uniq /tmp/${RNS}.___lt.txt >> $labeltable
+      # take index and label, each in quotes, not longnames if any to labeltable 
+      uniq /tmp/${RNS}.___lt.txt | awk '{print $1 " " $2}' >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
 
 PUT_TABLE:
@@ -682,7 +688,7 @@ PARSE:
             3dUndump -dimen 3 3 3 -prefix $ttdset >& /dev/null
             3drefit -labeltable $argv[$cnt] $ttdset*HEAD >& /dev/null
             3dinfo -labeltable_as_atlas_points $ttdset*HEAD > $labeltable
-            \rm -f dset_*
+            \rm -f dset_${RNS}*
             echo "Atlas point list now in file $labeltable"
             goto END
 			endif
@@ -1222,7 +1228,11 @@ BEND:
 
 END:
 \rm -f TMPLIST_${RNS}_ >& /dev/null
-if ($stat == 0 && -f $log) then
-   \rm /tmp/${RNS}.$log:t
+if ($stat == 0) then
+   if (-f $log) then
+       \rm /tmp/${RNS}.$log:t  >& /dev/null
+   endif
+   # delete some of the temporary files
+   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* /tmp/${RNS}*  >& /dev/null
 endif
 exit $stat

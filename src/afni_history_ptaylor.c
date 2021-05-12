@@ -69,6 +69,66 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, May , 2021 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Add bracket to meta-text above table in case of abs value in table.",
+   "Thanks, watchful AFNI user YurBoiRene.\n"
+},
+
+{ 29, Apr , 2021 , PT , "3dClusterize" , MINOR , TYPE_NEW_OPT,
+   "Forgot to actually add in the new opt for data scaling in last change...",
+   "Now opt '-abs_table_data' is in the code.\n"
+},
+
+{ 29, Apr , 2021 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "1) Now apply any scaling to 'data' in table (wasn't scaling, before).",
+   "2) Change table def: don't abs val Mean and SEM; use opt for that.\n"
+},
+
+{ 23, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved, so stimulus labels on y-axis will wrap.",
+   "Reduce/remove overlap of long stim labels.\n"
+},
+
+{ 23, Apr , 2021 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Can force ylabels to wrap at a certain num of chars (-ylabels_maxlen ..).",
+   "For APQC, so long stimulus labels don't run into each other.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "More options from @chauffeur_afni here.",
+   "Tryin' to make nicer images.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Use newer adjunct_apqc_tsnr_general for TSNR images.",
+   "Single/more adjunct general prog than previous separate ones.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Internal logic for making TSNR dsets tweaked.",
+   "TSNR images in QC*/media/ dir get unique name, too (no change for user).\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_PROG,
+   "Made to replace adjunct_apqc_tsnr_with_mask and adjunct_apqc_tsnr_no_mask.",
+   "Also expands/generalizes this functionality.\n"
+},
+
+{ 16, Apr , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New keyword EMPTY for '-topval ..' opt, make scripting easier.",
+   "Corrected discrete cbar help example, too.\n"
+},
+
 { 24, Mar , 2021 , PT , "3dinfo" , MICRO , TYPE_NEW_OPT,
    "New opt: -is_atlas_or_labeltable.",
    "1 if dset has an atlas or labeltable;  otherwise, 0.\n"

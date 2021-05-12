@@ -162,8 +162,15 @@ auth = 'PA Taylor'
 #ver = '3.7' ; date = 'Feb 24, 2021' 
 # [PT] Have been adding TSNR plotting, more added.
 #
-ver = '3.73' ; date = 'Mar 5, 2021'
+#ver = '3.73' ; date = 'Mar 5, 2021'
 # [PT] cp review basic text to QC_*/ dir
+#
+#ver = '3.74' ; date = 'Apr 6, 2021'
+# [PT] update TSNR-vreg checks
+#    + give sep names for TSNR images: tsnr_vreg and tsnr_fin
+#
+ver = '3.75' ; date = 'Apr 6, 2021'
+# [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
 #
 #########################################################################
 
@@ -831,24 +838,25 @@ if __name__ == "__main__":
     # item    : TSNR of volreg (r01) dset.  
     # --> NB: This will get UVAR of its own some day!!!
         
-    ldep     = ['tsnr_dset', 'final_anat']
-    alt_ldep = ['tsnr_dset', 'vr_base_dset']  # elif to ldep
+    ldep     = ['final_anat']
+    alt_ldep = ['vr_base_dset']  # elif to ldep
 
+    HAVE_ULAY = 0
     if lat.check_dep(ap_ssdict, ldep) :
-        DO_TSNR = 1
-        ulay     = '${main_dset}' 
-        focusbox = '${main_dset}'
+        HAVE_ULAY = 1
+        ulay      = '${main_dset}' 
+        focusbox  = '${main_dset}'
     elif lat.check_dep(ap_ssdict, alt_ldep) :
-        DO_TSNR = 1
-        ulay     = '${vr_base_dset}'
-        focusbox = 'AMASK_FOCUS_ULAY' 
+        HAVE_ULAY = 1
+        ulay      = '${vr_base_dset}'
+        focusbox  = 'AMASK_FOCUS_ULAY' 
 
     DO_TSNR_VREG = 0
     tsnr_vreg = glob.glob( iopts.subjdir + '/' + 'TSNR*vreg*HEAD' )
     if len(tsnr_vreg) == 1 :
         DO_TSNR_VREG = 1
 
-    if DO_TSNR and DO_TSNR_VREG :
+    if HAVE_ULAY and DO_TSNR_VREG :
 
         print("++ Will calc vreg TSNR.")
         olay     = '( TSNR*vreg*HEAD )'
@@ -856,7 +864,7 @@ if __name__ == "__main__":
 
         ban      = lat.bannerize('check vreg (r01) TSNR')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr",
+        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_vreg",
                                        ulay, focusbox, olay,
                                        descrip=descrip,
                                        HAVE_MASK=HAVE_MASK )
@@ -888,7 +896,7 @@ if __name__ == "__main__":
 
         ban      = lat.bannerize('check final TSNR')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr",
+        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_fin",
                                        ulay, focusbox, olay,
                                        descrip=descrip,
                                        HAVE_MASK=HAVE_MASK )
