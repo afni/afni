@@ -279,7 +279,11 @@ set progname = @animal_warper
 #set version = "3.31" ; set date = "Mar 1, 2021"
 # [PT] fix location of affine align init*jpg
 #
-set version = "3.32" ; set date = "Apr 6, 2021"
+#set version = "3.32" ; set date = "Apr 6, 2021"
+#
+# [DRG] fix oneline output for rigid_equiv matrix
+set version = "3.33" ; set date = "May 17, 2021"
+
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -1416,7 +1420,7 @@ printf "%-37s : %s\n"                                               \
 
 if ( "$align_type" == "rigid_equiv" ) then
     set affmat = ${srcsh2_prefix}_al2std_mat_rigid.aff12.1D
-    cat_matvec                                                      \
+    cat_matvec -ONELINE                                             \
         ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -P             \
         > ${imed}/${affmat}
 
