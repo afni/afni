@@ -386,24 +386,35 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         case 5: makeCommonNodesOfRectangleYellow(SO); break;
     }
 
-   // NBB: This assignment is vitally important in preventing the clipping plane surface from being gray
-   //   for some surface objects.  Not common but it happens.
-   SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
-   SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
-   SO->SurfCont->curColPlane->ForceIntRange[0] = -0.282182;
-   SO->SurfCont->curColPlane->ForceIntRange[1] = 0.282182;
+    // NBB: This block is vitally important in preventing the clipping plane surface from being gray
+    //   for some surface objects.  Not common but it happens.
+    {
+        SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
+        SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
+        SO->SurfCont->curColPlane->ForceIntRange[0] = -0.282182;
+        SO->SurfCont->curColPlane->ForceIntRange[1] = 0.282182;
 
-    /* switch to the recently loaded  cmap */
-    SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-    if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-     SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+        /* switch to the recently loaded  cmap */
+        SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
+         SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+        }
+
+        /* update Lbl fields */
+        SUMA_UpdateNodeLblField(ado);
+
+        SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
+        SUMA_Apply_PR_SO(sv, SO,&PR);
+
+        // Remove triangle outline
+        DList *list = NULL;
+        if (!list) list = SUMA_CreateList();
+        SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_ToggleShowSelectedFaceSet,
+                                         SES_Suma, sv);
+        if (!SUMA_Engine (&list)) {
+           fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+        }
     }
-
-  /* update Lbl fields */
-  SUMA_UpdateNodeLblField(ado);
-
-   SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-  SUMA_Apply_PR_SO(sv, SO,&PR);
 
 #if 0
    fprintf(stderr, "SO->SurfCont->curColPlane->do_type = %d\n", SO->SurfCont->curColPlane->do_type);
