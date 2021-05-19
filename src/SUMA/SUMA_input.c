@@ -357,94 +357,95 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
    // Colors
    SO->N_Overlays = 1;
-   // if (SO->N_Overlays>0){
-       SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-       // Note that ado remains the same and second argument may not be >0
-       // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
-       SUMA_OVERLAYS *tempOverlay = SUMA_ADO_Overlay(ado, 0);
-       SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
-       memcpy((void *)(SO->Overlays[0]),(void *)(tempOverlay),sizeof(SUMA_OVERLAYS));
-       SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
+   SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
+   // Note that ado remains the same and second argument may not be >0
+   // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+   SUMA_OVERLAYS *tempOverlay = SUMA_ADO_Overlay(ado, 0);
+   SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+   memcpy((void *)(SO->Overlays[0]),(void *)(tempOverlay),sizeof(SUMA_OVERLAYS));
+   SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
 
-        if (!(SO->Overlays)){
-            SUMA_S_Err("NULL Overlays pointer.");
-            SO->N_Overlays = 0;
-        }
-        if ((int)(SO->Overlays) == 1){
-            SUMA_S_Err("Invalid Overlays pointer: 0x1.");
-            SO->N_Overlays = 0;
-        }
-        SO->Overlays[0]->GlobalOpacity = 1.0;
-        // SO->Overlays[0]->GlobalOpacity = 0.7;
-
-        // Make common nodes of rectangle the RGBCMY color for the particular plane
-        switch(planeIndex){
-            case 0: makeCommonNodesOfRectangleRed(SO); break;
-            case 1: makeCommonNodesOfRectangleGreen(SO); break;
-            case 2: makeCommonNodesOfRectangleBlue(SO); break;
-            case 3: makeCommonNodesOfRectangleCyan(SO); break;
-            case 4: makeCommonNodesOfRectangleMagenta(SO); break;
-            case 5: makeCommonNodesOfRectangleYellow(SO); break;
-        }
-
-  // }
-   # if 0
-   else {
+    if (!(SO->Overlays)){
+        SUMA_S_Err("NULL Overlays pointer.");
         SO->N_Overlays = 0;
-        SO->PermCol = (GLfloat *)malloc(3*sizeof(GLfloat));
-        SO->PermCol[1] = 1.0;
-        SO->PermCol[0] = SO->PermCol[2] = 0.0;
-   }
+    }
+    if ((int)(SO->Overlays) == 1){
+        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+        SO->N_Overlays = 0;
+    }
+    SO->Overlays[0]->GlobalOpacity = 1.0;
+    // SO->Overlays[0]->GlobalOpacity = 0.7;
 
-   fprintf(stderr, "SO->SC = %p\n", SO->SC);
-   fprintf(stderr, "tempOverlay = %p\n", tempOverlay);
-   fprintf(stderr, "tempOverlay->do_type = %d\n", tempOverlay->do_type);
-   fprintf(stderr, "tempOverlay->LinkedPtrType = %d\n", tempOverlay->LinkedPtrType);
-   fprintf(stderr, "tempOverlay->N_links = %d\n", tempOverlay->N_links);
-   fprintf(stderr, "tempOverlay->owner_id = %s\n", tempOverlay->owner_id);
-   fprintf(stderr, "tempOverlay->dtlvl = %d\n", tempOverlay->dtlvl);
-   fprintf(stderr, "tempOverlay->ShowMode = %d\n", tempOverlay->ShowMode);
-   fprintf(stderr, "tempOverlay->NodeRad = %d\n", tempOverlay->NodeRad);
-   fprintf(stderr, "tempOverlay->Through = %d\n", tempOverlay->Through);
-   fprintf(stderr, "tempOverlay->NodeCol = %d\n", tempOverlay->NodeCol);
-   fprintf(stderr, "tempOverlay->BordFrac = %d\n", tempOverlay->BordFrac);
-   fprintf(stderr, "tempOverlay->EdgeThick = %d\n", tempOverlay->EdgeThick);
-   fprintf(stderr, "tempOverlay->EdgeStip = %d\n", tempOverlay->EdgeStip);
-   fprintf(stderr, "tempOverlay->AlphaVal = %d\n", tempOverlay->AlphaVal);
-   fprintf(stderr, "tempOverlay->Name = %s\n", tempOverlay->Name);
-   fprintf(stderr, "tempOverlay->Label = %s\n", tempOverlay->Label);
-   fprintf(stderr, "tempOverlay->N_NodeDef = %d\n", tempOverlay->N_NodeDef);
-   fprintf(stderr, "tempOverlay->FullList = %d\n", tempOverlay->FullList);
-   fprintf(stderr, "tempOverlay->N_V = %d\n", tempOverlay->FullList);
-   fprintf(stderr, "tempOverlay->N_Vperc = %d\n", tempOverlay->N_Vperc);
-   fprintf(stderr, "tempOverlay->N_T = %d\n", tempOverlay->N_T);
-   fprintf(stderr, "tempOverlay->T_identifier = %s\n", tempOverlay->T_identifier);
-   fprintf(stderr, "tempOverlay->N_Tperc = %d\n", tempOverlay->N_Tperc);
-   fprintf(stderr, "tempOverlay->PlaneOrder = %d\n", tempOverlay->PlaneOrder);
-   fprintf(stderr, "tempOverlay->FullList = %d\n", tempOverlay->FullList);
-   fprintf(stderr, "tempOverlay->ColVec = %p\n", tempOverlay->ColVec);
-   fprintf(stderr, "tempOverlay->ColAlpha = %p\n", tempOverlay->ColAlpha);
-   fprintf(stderr, "tempOverlay->GlobalOpacity = %f\n", tempOverlay->GlobalOpacity);
-   fprintf(stderr, "tempOverlay->PlaneOrder = %d\n", tempOverlay->PlaneOrder);
-   fprintf(stderr, "tempOverlay->isBackGrnd = %d\n", tempOverlay->isBackGrnd);
-   fprintf(stderr, "tempOverlay->ForceIntRange = %f\n", tempOverlay->ForceIntRange[1]);
-   fprintf(stderr, "tempOverlay->cmapname = %s\n", tempOverlay->cmapname);
-   fprintf(stderr, "tempOverlay->OptScl = %f\n", tempOverlay->OptScl[0]);
-   fprintf(stderr, "tempOverlay->SymIrange = %d\n", tempOverlay->SymIrange);
-   fprintf(stderr, "tempOverlay->rowgraph_num = %d\n", tempOverlay->rowgraph_num);
-   fprintf(stderr, "tempOverlay->N_Contours = %d\n", tempOverlay->N_Contours);
-   fprintf(stderr, "tempOverlay->LinkMode = %d\n", tempOverlay->LinkMode);
-   fprintf(stderr, "tempOverlay->AlphaThresh = %f\n", tempOverlay->AlphaThresh);
-   fprintf(stderr, "tempOverlay->N_Contours = %d\n", tempOverlay->N_Contours);
-   fprintf(stderr, "tempOverlay->N_Contours = %d\n", tempOverlay->N_Contours);
+    // Make common nodes of rectangle the RGBCMY color for the particular plane
+    switch(planeIndex){
+        case 0: makeCommonNodesOfRectangleRed(SO); break;
+        case 1: makeCommonNodesOfRectangleGreen(SO); break;
+        case 2: makeCommonNodesOfRectangleBlue(SO); break;
+        case 3: makeCommonNodesOfRectangleCyan(SO); break;
+        case 4: makeCommonNodesOfRectangleMagenta(SO); break;
+        case 5: makeCommonNodesOfRectangleYellow(SO); break;
+    }
 
-   if (!strcmp(tempOverlay->cmapname, "gray02")) sprintf(tempOverlay->cmapname, "rgybr20");
-   #endif
-
+   // NBB: This assignment is vitally important in preventing the clipping plane surface from being gray
+   //   for some surface objects.  Not common but it happens.
    SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
    SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
-   fprintf(stderr, "SO->SurfCont = %p\n", SO->SurfCont);
-   fprintf(stderr, "SO->SurfCont->curColPlane = %p\n", SO->SurfCont->curColPlane);
+   SO->SurfCont->curColPlane->ForceIntRange[0] = -0.282182;
+   SO->SurfCont->curColPlane->ForceIntRange[1] = 0.282182;
+
+    /* switch to the recently loaded  cmap */
+    SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+    if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
+     SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+    }
+
+  /* update Lbl fields */
+  SUMA_UpdateNodeLblField(ado);
+
+#if 0
+   fprintf(stderr, "SO->SurfCont->curColPlane->do_type = %d\n", SO->SurfCont->curColPlane->do_type);
+   fprintf(stderr, "SO->SurfCont->curColPlane->LinkedPtrType = %d\n", SO->SurfCont->curColPlane->LinkedPtrType);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_links = %d\n", SO->SurfCont->curColPlane->N_links);
+   fprintf(stderr, "SO->SurfCont->curColPlane->owner_id = %s\n", SO->SurfCont->curColPlane->owner_id);
+   fprintf(stderr, "SO->SurfCont->curColPlane->dtlvl = %d\n", SO->SurfCont->curColPlane->dtlvl);
+   fprintf(stderr, "SO->SurfCont->curColPlane->ShowMode = %d\n", SO->SurfCont->curColPlane->ShowMode);
+   fprintf(stderr, "SO->SurfCont->curColPlane->NodeRad = %d\n", SO->SurfCont->curColPlane->NodeRad);
+   fprintf(stderr, "SO->SurfCont->curColPlane->Through = %d\n", SO->SurfCont->curColPlane->Through);
+   fprintf(stderr, "SO->SurfCont->curColPlane->NodeCol = %d\n", SO->SurfCont->curColPlane->NodeCol);
+   fprintf(stderr, "SO->SurfCont->curColPlane->BordFrac = %d\n", SO->SurfCont->curColPlane->BordFrac);
+   fprintf(stderr, "SO->SurfCont->curColPlane->EdgeThick = %d\n", SO->SurfCont->curColPlane->EdgeThick);
+   fprintf(stderr, "SO->SurfCont->curColPlane->EdgeStip = %d\n", SO->SurfCont->curColPlane->EdgeStip);
+   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaVal = %d\n", SO->SurfCont->curColPlane->AlphaVal);
+   fprintf(stderr, "SO->SurfCont->curColPlane->Name = %s\n", SO->SurfCont->curColPlane->Name);
+   fprintf(stderr, "SO->SurfCont->curColPlane->Label = %s\n", SO->SurfCont->curColPlane->Label);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_NodeDef = %d\n", SO->SurfCont->curColPlane->N_NodeDef);
+   fprintf(stderr, "SO->SurfCont->curColPlane->FullList = %d\n", SO->SurfCont->curColPlane->FullList);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_V = %d\n", SO->SurfCont->curColPlane->FullList);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_Vperc = %d\n", SO->SurfCont->curColPlane->N_Vperc);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_T = %d\n", SO->SurfCont->curColPlane->N_T);
+   fprintf(stderr, "SO->SurfCont->curColPlane->T_identifier = %s\n", SO->SurfCont->curColPlane->T_identifier);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_Tperc = %d\n", SO->SurfCont->curColPlane->N_Tperc);
+   fprintf(stderr, "SO->SurfCont->curColPlane->PlaneOrder = %d\n", SO->SurfCont->curColPlane->PlaneOrder);
+   fprintf(stderr, "SO->SurfCont->curColPlane->FullList = %d\n", SO->SurfCont->curColPlane->FullList);
+   fprintf(stderr, "SO->SurfCont->curColPlane->ColVec = %p\n", SO->SurfCont->curColPlane->ColVec);
+   fprintf(stderr, "SO->SurfCont->curColPlane->ColAlpha = %p\n", SO->SurfCont->curColPlane->ColAlpha);
+   fprintf(stderr, "SO->SurfCont->curColPlane->GlobalOpacity = %f\n", SO->SurfCont->curColPlane->GlobalOpacity);
+   fprintf(stderr, "SO->SurfCont->curColPlane->PlaneOrder = %d\n", SO->SurfCont->curColPlane->PlaneOrder);
+   fprintf(stderr, "SO->SurfCont->curColPlane->isBackGrnd = %d\n", SO->SurfCont->curColPlane->isBackGrnd);
+
+   fprintf(stderr, "SO->SurfCont->curColPlane->ForceIntRange = [%f, %f]\n",
+        SO->SurfCont->curColPlane->ForceIntRange[0], SO->SurfCont->curColPlane->ForceIntRange[1]);
+
+   fprintf(stderr, "SO->SurfCont->curColPlane->cmapname = %s\n", SO->SurfCont->curColPlane->cmapname);
+   fprintf(stderr, "SO->SurfCont->curColPlane->OptScl = %f\n", SO->SurfCont->curColPlane->OptScl[0]);
+   fprintf(stderr, "SO->SurfCont->curColPlane->SymIrange = %d\n", SO->SurfCont->curColPlane->SymIrange);
+   fprintf(stderr, "SO->SurfCont->curColPlane->rowgraph_num = %d\n", SO->SurfCont->curColPlane->rowgraph_num);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
+   fprintf(stderr, "SO->SurfCont->curColPlane->LinkMode = %d\n", SO->SurfCont->curColPlane->LinkMode);
+   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaThresh = %f\n", SO->SurfCont->curColPlane->AlphaThresh);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
+   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
+   #endif
 
    /*
        fprintf(stderr, "sv->N_DO = %d\n", sv->N_DO);
