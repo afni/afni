@@ -26,8 +26,10 @@ set progname = lesion_align
 # input lesion mask for simple automatic good/bad side determination
 #set version = 1.05
 # made left and right both include x=0 symmetry line to avoid gaps
-set version = 1.06
+#set version = 1.06
 # center_split option to allow splitting of input for affine alignment
+set version = 1.07
+# warp lesion mask
 
 # get parsed and we can still get at script version number
 if ("$#" <  "1") then
@@ -51,6 +53,7 @@ set cost = "lpa"
 set maxlev = "11"
 set goodside = ""
 set centersplit = "0"
+set exclusion = ""
 
 echo "# Command  :  $argv"                           >> ${lesion_outs}
 
@@ -232,7 +235,9 @@ if ($outdir != ".") then
       else
          3dcopy $lesion_mask $outdir/${outlesion}
       endif 
-      set lesion_mask = ${outlesion}      
+      set lesion_mask = ${outlesion}
+      set lesion_prefix `basename -s .nii.gz ${lesion_mask}`
+   endif
 endif
 
 cd $outdir
@@ -363,12 +368,25 @@ endif
               -overwrite -prefix ${templatename}_${goodside}.nii.gz
    endif
 
-   
+   if ($lesion_mask != "") then
+       # Move center of lesion mask with same 1D shift as original dataset.
+       # option has '_inv', but that appears to be correct!
+       if(($ok_to_exist == "1") && (-f ${lesion_prefix}_shft.nii.gz)) then
+          echo "reusing shifted lesion mask dataset"
+       else
+          @Align_Centers -base $base -dset $lesion_mask -overwrite \
+          -shift_xform_inv ${dsetprefix}_shft.1D 
+       endif
+       echo "center shifted lesion mask dataset: ${lesion_prefix}_shft.nii.gz" \
+           >> ${lesion_outs}
+   endif
+
    # split input dataset for affine alignment only optionally
    if (($centersplit == "1") && ($goodside != "both")) then
       set dset_aff_input = ${dsetprefix}_${goodside}.nii.gz
+      set outprefix = $dset_aff_input
       if (($ok_to_exist == "1") && (-f ${dset_aff_input})) then
-         echo "reusing affine aligned subject $outprefix"
+         echo "reusing affine input center split $goodside subject $outprefix"
       else 
          set CM = `3dCM $dset`
          if ($goodside == "left") then
@@ -379,8 +397,12 @@ endif
              -prefix ${dsetprefix}_${goodside}.nii.gz -overwrite
          endif 
       endif
+      echo "affine input center split subject: ${dsetprefix}_${goodside}.nii.gz" \
+           >> ${lesion_outs}
+      set dset_aff_prefix = ${dsetprefix}_${goodside}
    else
-      set dset_aff_input = $dset 
+      set dset_aff_input = $dset
+      set dset_aff_prefix = $dsetprefix
    endif
  
    # affine align subject to good half of template
@@ -389,18 +411,18 @@ endif
      echo "reusing affine aligned subject $outprefix"
    else 
      # do affine alignment here with align_epi_anat.py
-     align_epi_anat.py -dset1 ${dset} -dset2 ${templatename}_${goodside}.nii.gz \
+     align_epi_anat.py -dset1 ${dset_aff_input} -dset2 ${templatename}_${goodside}.nii.gz \
        -dset1_strip None -dset2_strip None -suffix _at -cost ${cost} \
        -giant_move -overwrite -master_dset2 ${templatename}_${goodside}.nii.gz
      # rename the matrix output to simpler name
-     mv ${dsetprefix}_at_mat.aff12.1D ${dsetprefix}_at.aff12.1D
+     mv ${dset_aff_prefix}_at_mat.aff12.1D ${dsetprefix}_at.aff12.1D
      # make output NIFTI format
      3dAllineate -1Dmatrix_apply ${dsetprefix}_at.aff12.1D \
        -master ${templatename}_${goodside}.nii.gz -overwrite \
        -input  ${dset} -prefix $outprefix
      #3dcopy ${dsetprefix}_at+*.HEAD  $outprefix
      # delete the AFNI format version
-     \rm "${dsetprefix}_at+tlrc.*" 
+     \rm "${dset_aff_prefix}_at+tlrc.*" 
 #     @auto_tlrc -input ${dset} -no_ss -base ${templatename}_${goodside}.nii.gz \
 #        -prefix $outprefix -3dAllineate -overwrite
    endif   
@@ -426,7 +448,22 @@ endif
      3dcalc -a ${dsetprefix}_at_d3.nii.gz -b $base -expr 'b*step(a)' \
        -prefix $outprefix  -overwrite
    endif
-  
+
+   if (($lesion_mask != "") && ($exclusion != "")) then
+      set outprefix = ${lesion_prefix}_at.nii.gz
+      if (($ok_to_exist == "1") && (-f $outprefix )) then
+        echo "reusing affine transformed lesion mask $outprefix"
+      else 
+        3dAllineate -1Dmatrix_apply ${dsetprefix}_at.aff12.1D \
+        -master ${templatename}_${goodside}.nii.gz -overwrite \
+        -input  ${lesion_prefix}_shft.nii.gz \
+        -prefix $outprefix
+      endif
+#      set exclusion_opt = "-emask $outprefix"
+#   else
+#      set exclusion_opt = "" 
+   endif
+
    # align the affinely aligned subject to the masked template
    # nopenalty is used to allow for dramatically misshapen brains
    set outprefix = "${dsetprefix}_qw.nii.gz"
@@ -434,7 +471,7 @@ endif
      echo "reusing nonlinear aligned subject $outprefix"
    else 
      3dQwarp -base ${templatename}_nonlesion.nii.gz -source ${dsetprefix}_at.nii.gz \
-       -prefix $outprefix -nopenalty -overwrite -maxlev $maxlev
+       -prefix $outprefix -nopenalty -overwrite -maxlev $maxlev 
    endif
 
    # apply the concatenated affine transformation and nonlinear warp
@@ -446,6 +483,20 @@ endif
        -nwarp "${dsetprefix}_qw_WARP.nii.gz ${dsetprefix}_at.aff12.1D"
      echo "Dset, nl-xformed to templ : ${origdsetprefix}_nl.nii.gz" \
         >> ${lesion_outs}
+   endif
+
+   # apply the concatenated warp to lesion mask too
+   if($lesion_mask != "") then
+     set outprefix = "${lesion_prefix}_nl.nii.gz"
+     if (($ok_to_exist == "1") && (-f $outprefix )) then
+       echo "reusing nonlinear aligned lesion mask $outprefix"
+     else 
+       3dNwarpApply -source $lesion_mask -master $base \
+       -prefix $outprefix -overwrite \
+       -nwarp "${dsetprefix}_qw_WARP.nii.gz ${dsetprefix}_at.aff12.1D"
+       echo "Lesion mask, nl-xformed to templ : ${outprefix}" \
+         >> ${lesion_outs}
+     endif
    endif
  
    # make masked version of orig dset in template space, using the template
