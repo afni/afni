@@ -402,6 +402,9 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
   /* update Lbl fields */
   SUMA_UpdateNodeLblField(ado);
 
+   SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
+  SUMA_Apply_PR_SO(sv, SO,&PR);
+
 #if 0
    fprintf(stderr, "SO->SurfCont->curColPlane->do_type = %d\n", SO->SurfCont->curColPlane->do_type);
    fprintf(stderr, "SO->SurfCont->curColPlane->LinkedPtrType = %d\n", SO->SurfCont->curColPlane->LinkedPtrType);
