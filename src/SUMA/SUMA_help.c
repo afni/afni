@@ -2263,8 +2263,54 @@ char * SUMA_help_message_Info(TFORM targ)
 "Below, \"a number\" can be in range [1-6].  \"active\" means a`"
 " clipping plane is clipping, not just visible.  The \"selected\"`"
 " plane is controlled with the action keys.\n\n"
-);
 
+"Key+mouse behavior\n"
+"------------------\n\n"
+);
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Toggles in and out of clipping plane mode.\n\n", SUMA_hkf("Shift-Ctrl-C", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Successively add new clipping planes, which are\n"
+      "        active as they appear. (You might not see them to\n"
+      "        start, just their clipping effect).\n\n", SUMA_hkf("n", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Toggle the clipping behavior of numbered plane on/off\n",
+        SUMA_hkf("[a number]", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Select the numbered clipping plane (e.g., so you can rotate/translate\n"
+      "                              it with other key presses).  If the specified\n"
+      "                              number > # planes, planes are added up to\n"
+      "                              the specified number.\n\n",
+        SUMA_hkf("alt/cmd/opt-[a number]", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Successively add new clipping planes, which are\n"
+      "        active as they appear. (You might not see them to\n"
+      "        start, just their clipping effect).\n\n", SUMA_hkf("7", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Successively add new clipping planes, which are\n"
+      "        active as they appear. (You might not see them to\n"
+      "        start, just their clipping effect).\n\n", SUMA_hkf("0", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Toggle view of all active clipping planes on/off.\n\n",
+        SUMA_hkf("Shift+C", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Translate a clipping plane in space.\n\n",
+        SUMA_hkf("Alt/Cmd/Opt+[scrollwheel]", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Scroll clipping plane inwards.\n\n",
+        SUMA_hkf("s", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Scroll clipping plane outwards.\n\n",
+        SUMA_hkf("Shift-S", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Rotate clipping plane around x-axis.\n\n",
+        SUMA_hkf("Alt/Cmd/Opt+[up-down arrow key]", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Rotate clipping plane around y-axis.\n\n",
+        SUMA_hkf("Alt/Cmd/Opt+[left-right arrow key]", targ));
+
+      /*
+*/
 
    /* Environment variables */
    if (targ == TXT) {

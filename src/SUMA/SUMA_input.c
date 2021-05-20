@@ -5896,6 +5896,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     //  if thet are planes 4-6
                     if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
                 }
+                activeClipPlanes = activeClippingPlanes();
             } else if (Kev.state & ControlMask){
                   SUMA_LH("Going to N_Key");
                   if (!SUMA_N_Key(sv, "ctrl+n", "interactive")) {
