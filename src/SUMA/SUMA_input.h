@@ -207,6 +207,7 @@ static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 
+Boolean activeClippingPlanes();
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO);

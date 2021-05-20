@@ -3,6 +3,13 @@
 
 #include "GL/glcorearb.h"
 
+Boolean activeClippingPlanes(){
+    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        if (active[i]) return True;
+
+    return False;
+}
+
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
@@ -1016,14 +1023,6 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
 
     SUMA_SetObjectClip(chrTmp, sv);
-#if 0
-    // DEBUG
-    SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
-    if (SO && SO->Overlays && SO->Overlays[0] && SO->Overlays[0]->ColVec) for (int i=0; i<16; ++i){
-        fprintf(stderr, "ColVec[%d] = %f\n", i, SO->Overlays[0]->ColVec[i]);
-    }
-#endif
-    //  SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 }
 
  void getPlanePtClosestToViewerOrigin(float *plane, float *point){
@@ -5246,6 +5245,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
+   static Boolean activeClipPlanes = True;
    SUMA_ENTRY;
 
    /* get the callData pointer */
@@ -5349,6 +5349,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
                     }
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
 
@@ -5512,6 +5513,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         //  if thet are planes 4-6
                         if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
                     }
+                    activeClipPlanes = activeClippingPlanes();
                 }
             } else if ((Kev.state & ControlMask)){
                 clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
@@ -5534,6 +5536,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                    } else if (!activeClipPlanes){  // Toggle plane 1 on
+                        clipPlaneTransform(0,0,0,0,0, 1);
+                        previouslyActive[0] = active[0];
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
                     // Turn on clipping planes and their colored squares
@@ -6127,6 +6132,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,0, 1);
                     previouslyActive[0] = active[0];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_2:
@@ -6148,6 +6154,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,1, 1);
                     previouslyActive[1] = active[1];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_3:
@@ -6173,6 +6180,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,2, 1);
                     previouslyActive[2] = active[2];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_4:
@@ -6202,6 +6210,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,3, 1);
                     previouslyActive[3] = active[3];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_5:
@@ -6231,6 +6240,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,4, 1);
                     previouslyActive[4] = active[4];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_6:
@@ -6260,6 +6270,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     clipPlaneTransform(0,0,0,0,5, 1);
                     previouslyActive[5] = active[5];
                 }
+                activeClipPlanes = activeClippingPlanes();
             }
             break;
          case XK_7:
@@ -6274,10 +6285,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             clipPlaneTransform(0,0,0,0,i, 1);
                         } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1);
                     }
+                    activeClipPlanes = activeClippingPlanes();
                 }
             }
             break;
          case XK_8:
+         #if 0
             if (clippingPlaneMode){
                 if (Kev.state & ControlMask){   // Turn all planes off
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
@@ -6306,7 +6319,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipPlaneTransform(0,0,0,0,i, 1);
                     }
                 }
-            } else {
+            } else
+            #endif
+            {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
                SUMAg_CF->X->N_ForeSmooth_prmpt =
@@ -6324,6 +6339,39 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMAg_CF->X->N_ForeSmooth_prmpt =
                      SUMA_CreatePromptDialog("Foreground smoothing iterations",
                                              SUMAg_CF->X->N_ForeSmooth_prmpt);
+            }
+            break;
+
+         case XK_0: // Zero key
+            if (clippingPlaneMode){
+                if (activeClipPlanes){ // Turn off all clip planes if any on
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        // previouslyActive[i] = active[i];
+                        active[i] = 1;          // Turn plane on so it will be toggled off
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                    activeClipPlanes = False;
+                    clippingPlaneMode = False;
+                } else {    // Turn on all clip planes if none on
+                    activeClipPlanes = True;
+                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                        active[i] = 0;          // Turn plane off so it will be toggled on
+                        fprintf(stderr, "0: active[%d] = %d\n", i, active[i]);
+                        clipPlaneTransform(0,0,0,0,i, 1);
+                    }
+                    for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
+                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                            exit(1);
+                        }
+
+                        // For some reason, this appears necessary to place planes, or their squares, in the right position
+                        //  if thet are planes 4-6
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                    }
+                }
             }
             break;
 

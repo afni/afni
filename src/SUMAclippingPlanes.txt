@@ -50,9 +50,7 @@ alt-[a number]    : select the numbered clipping plane (e.g., so you can
 
 7                 : Toggle all active clipping planes on or off 
 
-8                 : Toggle all clipping planes on 
-
-ctrl+8            : Toggle all clipping planes off 
+0                 : If there are active clipping planes, turns all planes off and                   exits clipping plane mode.  Otherwise, turns all clipping planes on.  On reentering clipping plane mode, turns all clipping planes on. 
 
 ctrl+f            : flip clipping direction of selected plane
 
