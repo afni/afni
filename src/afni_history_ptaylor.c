@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Clean up exiting from help and version checking.",
+   "Doesn't go via the verbose GOOD_EXIT route anymore, which it shouldn't.\n"
+},
+
 { 12, May , 2021 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
    "Remove old/unnecessary comment from help of -NIFTI opt.",
    "Referred to earlier misconcept (need even mat dims for anatomical dset).\n"

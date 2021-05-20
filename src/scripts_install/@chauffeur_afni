@@ -283,8 +283,11 @@
 # [PT] add "-set_xhair_gap .." opt, for driving crosshair gap 
 #    + default value is -1 (closed)
 #
-set version   = "6.22"; set rev_dat   = "May 11, 2021"
+#set version   = "6.22"; set rev_dat   = "May 11, 2021"
 # [PT] NIFTI warnings off
+#
+set version   = "6.23"; set rev_dat   = "May 20, 2021"
+# [PT] clean up exiting from help and ver
 #
 # =====================================================================
 
@@ -2159,13 +2162,13 @@ goto GOOD_EXIT
 
 # ===========================================================================
 
-# various FAIL condition labels follow
+# various GOOD/FAIL condition labels follow
 
 SHOW_VERSION:
 
-    echo "\n\n++ Version: $version\n\n"
+    echo "$version"
 
-    goto GOOD_EXIT
+    exit 0
 
 # ---------------------------------- 
 
@@ -2807,7 +2810,7 @@ EXAMPLES ~1~
 
 EOF
 
-    goto GOOD_EXIT
+    exit 0
 
 # ---------------------------------- 
 
