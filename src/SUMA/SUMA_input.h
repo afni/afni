@@ -207,6 +207,8 @@ static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 
+int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
+                     SUMA_PICK_RESULT **PRi);
 Boolean activeClippingPlanes();
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO);
@@ -221,7 +223,8 @@ void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO);
-SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex);
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
+    SUMA_FreeSurfer_struct FS, int planeIndex);
 void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 void getSquareOnPlane(float *plane, float points[4][3]);
 void updateClipSquare(int planeIndex);
