@@ -414,12 +414,14 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SUMA_Apply_PR_SO(sv, SO,&PR);
 
         // Remove triangle outline
-        DList *list = NULL;
-        if (!list) list = SUMA_CreateList();
-        SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_ToggleShowSelectedFaceSet,
-                                         SES_Suma, sv);
-        if (!SUMA_Engine (&list)) {
-           fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+        if (planeIndex==0){
+            DList *list = NULL;
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_ToggleShowSelectedFaceSet,
+                                             SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
         }
     }
 
@@ -6352,7 +6354,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipPlaneTransform(0,0,0,0,i, 1);
                     }
                     activeClipPlanes = False;
-                    clippingPlaneMode = False;
+                    // clippingPlaneMode = False;
                 } else {    // Turn on all clip planes if none on
                     activeClipPlanes = True;
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
