@@ -2256,9 +2256,16 @@ class RegWrap:
                    (ps.dset1_generic_name, ps.dset2_generic_name ))
 
             else:   # just apply the matrix to the original data (edges)
-               e2a_mat = self.anat_mat
                self.info_msg( "Applying transformation to skullstripped %s" % \
-                          ps.dset1_generic_name)
+                ps.anat_ns0.input())
+               e2a_mat = "%s%s%s_mat.aff12.1D" %  (a.p(), ps.anat0.out_prefix(),suf)
+               # input to cat_matvec
+               com = shell_com( "mv %s %s" % (self.anat_mat, e2a_mat), ps.oexec)
+               com.run();
+
+               self.info_msg( \
+                   "renaming e2a transformation matrix is standard matrix (no obliquity)" )
+               self.anat_mat = e2a_mat
 
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
