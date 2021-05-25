@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, May , 2021 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Several small updates for convenience and organization: help updated...",
+   "more QC images; split intermediate text desc; new cmd_log.\n"
+},
+
 { 20, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Clean up exiting from help and version checking.",
    "Doesn't go via the verbose GOOD_EXIT route anymore, which it shouldn't.\n"
