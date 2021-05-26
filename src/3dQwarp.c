@@ -1395,9 +1395,12 @@ void Qhelp(void)
     "                       to be done \"manually\" using 3dAllineate, and then use\n"
     "                       the output of that program as the '-source' dataset for\n"
     "                       3dQwarp.\n"
-    "                    ++ Generally speaking, -plusminus works well if the base and\n"
-    "                       source datasets are reasonably well-aligned to start\n"
-    "                       with.\n"
+    "                    ++ -plusminus works well if the base and source datasets\n"
+    "                       are reasonably well-aligned to start with. By this, I\n"
+    "                       mean that they overlap well, are not wildly rotated from\n"
+    "                       each other, and need some 'wiggling' to make them aligned.\n"
+    "                -->>++ This option is basically meant for unwarping EPI data,\n"
+    "                       as described above.\n"
     "               * However, you can use -iniwarp with -plusminus :-)\n"
     "           -->>* The outputs have _PLUS (from the source dataset) and _MINUS\n"
     "                 (from the base dataset) in their filenames, in addition to\n"
@@ -3796,6 +3799,7 @@ STATUS("construct weight/mask volume") ;
      tmat = MAT44_MUL(qmat,cmat) ;         /* index space from  */
      smat = MAT44_MUL(imat,tmat) ;         /* coordinate space  */
      allin_adjust_matrix = smat ;
+     if( Hverb ) DUMP_MAT44( "allin_adjust_matrix (index space)" , allin_adjust_matrix ) ;
    }
 
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

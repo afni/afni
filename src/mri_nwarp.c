@@ -3231,7 +3231,7 @@ void IW3D_interp( int icode ,
 /*---------------------------------------------------------------------------*/
 
 #undef  NPER
-#define NPER 8388608  /* 32 Mbyte per temp float array */
+#define NPER 16777216  /* 64 Mbyte per temp float array */
 
 /* determine size of a temp array for when we do things in segments */
 
@@ -3299,6 +3299,15 @@ ENTRY("IW3D_compose_w1m2") ;
    -- in this function, interplation IS necessary, since the
       displacement from B(x) will not be exactly on a grid point.
    -- 'm1w2' means 'matrix #1, warp #2'      ?????
+
+     A(x)    = x + delta(x)
+     B(x)    = B x                                     [matrix multiply]
+     A(B(x)) = Bx + delta(Bx) = x + (B-I)x + delta(Bx)
+   So the displacements for A(B(x)) are (B-I)x + delta(Bx).
+   In the loops below:
+     Step 1 = compute Bx for each x=(ii,jj,kk)
+     Step 2 = interpolate delta at the Bx locations = compute delta(Bx)
+     Step 3 = add Bx-x to delta(Bx) to get the final displacments for m1w2
 *//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_compose_m1w2( mat44 BB , IndexWarp3D *AA , int icode )
@@ -3333,7 +3342,7 @@ ENTRY("IW3D_compose_m1w2") ;
      qtop = MIN( nxyz , pp+nall ) ;  /* process points from pp to qtop-1 */
 
      /* step 1: Transform the [ii,jj,kk] index by the matrix;
-                this is the B(x) locations needed for the next step,
+                these are the Bx locations needed for the next step,
                 stored in the temp arrays xq[], yq[], and zq[].     */
 
  AFNI_OMP_START ;
@@ -3341,15 +3350,15 @@ ENTRY("IW3D_compose_m1w2") ;
  { int qq , ii,jj,kk ;
 #pragma ivdep  /* for Intel icc compiler */
 #pragma omp for
-     for( qq=pp ; qq < qtop ; qq++ ){
+     for( qq=pp ; qq < qtop ; qq++ ){              /* get x=(ii,jj,kk), then */
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;  /* compute xq */
        MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;  /* yq and zd  */
      }
  }
  AFNI_OMP_END ;
 
-     /* step 2: Interpolate A() warp index displacments at B(x) locations,
-                and save them in the output arrays xdc[], ydc[], and zdc[]. */
+     /* step 2: Interpolate A() warp index displacments at B(x) locations, and
+                save in output displacement arrays xdc[], ydc[], and zdc[].   */
 
      if( 0 /*AA->use_es*/ ) ES_PACK(AA,esar) ;  /* load external slopes */
      IW3D_interp( icode, nx,ny,nz , xda   , yda   , zda      ,
@@ -3366,8 +3375,8 @@ ENTRY("IW3D_compose_m1w2") ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xdc[qq] += xq[qq-pp] - ii ;
-       ydc[qq] += yq[qq-pp] - jj ;
+       xdc[qq] += xq[qq-pp] - ii ;  /* subtract ii since we are storing */
+       ydc[qq] += yq[qq-pp] - jj ;  /* displacement from index ii (etc) */
        zdc[qq] += zq[qq-pp] - kk ;
      }
  }

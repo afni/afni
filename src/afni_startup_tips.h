@@ -1242,6 +1242,16 @@ static char *gby[] = {
      "  presence of the strangling fruit, its dark flame shall acquire every\n"
      "  part of you that remains"                                                     ,
 
+     "Some questions will ruin you if you are denied the answer long enough"          ,  /* 20 May 2021 */
+
+     "A brain map is a form of misdirection, for what is a map but a way\n"
+     "     of emphasizing some things and making other things invisible?"             ,  /* 20 May 2021 */
+
+     "When you are too close to the center of a mystery there is no way\n"
+     "     pull back and see the shape of it entire"                                  ,  /* 20 May 2021 */
+
+     "What can you do when your five senses are not enough?"                          ,  /* 20 May 2021 */
+
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
      "If you have any problems with AFNI, blame goes to ... Mike Beauchamp :)" ,
@@ -1682,7 +1692,7 @@ static char *gby[] = {
 
      // Eliot
      "                           Not fare well,\n"
-     "But fare forward, voyagers."                                                            ,
+     "But fare forward, voyagers"                                                             ,
 
      // Lem
      "\n"
@@ -1922,6 +1932,12 @@ static char *gby[] = {
 
     "\n  It is not enough to be in the right place at the right time.\n"
     "    You should also have an open mind at the right time"                               ,  /* 12 May 2021 */
+
+    "Sometimes the Bluebird of Happiness is in your own back yard"                          ,  /* 12 May 2021 */
+
+    "Better than the Gold standard for FMRI -- I'm the Bitcoin standard"                    ,  /* 21 May 2021 */
+
+    "When you discover that you are riding a dead horse, the best strategy is to dismount"  ,  /* 21 May 2021 */
 
     /* Keep this one last */
 

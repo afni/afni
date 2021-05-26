@@ -2209,6 +2209,7 @@ int main( int argc , char *argv[] )
    if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
 
    if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+     printf("\n") ;
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){ /* 30 Jan 2018 */
        AFNI_sigfunc_alrm(-666666) ;
      } else {
@@ -6787,7 +6788,7 @@ STATUS("reading timeseries files") ;
       REFRESH ;
       if( GLOBAL_library.timeseries == NULL )     /* empty but not NULL */
          INIT_IMARR(GLOBAL_library.timeseries) ;
-      sprintf( str , "\n Time series   = %d files read" ,
+      sprintf( str , "\n Timeseries.1D = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
       REPORT_PROGRESS(str) ;
 
@@ -6961,7 +6962,7 @@ STATUS("reading timeseries files") ;
 
       FREE_IMARR(webtsar) ;
 
-      sprintf( str , "\n Time series   = %d files read" ,
+      sprintf( str , "\n Timeseries.1D = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
       REPORT_PROGRESS(str) ;
 
