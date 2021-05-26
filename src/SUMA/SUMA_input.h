@@ -207,6 +207,7 @@ static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 
+float getObjectMinMaxForAxes(float objectMinMax[][2]);
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi);
 Boolean activeClippingPlanes();

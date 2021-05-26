@@ -3,11 +3,62 @@
 
 #include "GL/glcorearb.h"
 
+int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
+                     SUMA_PICK_RESULT **PRi)
+{
+   static char FuncName[]={"colorPlanes"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_PICK_RESULT *PR;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
+
+   // Mark intersection Facsets
+   ado = (SUMA_ALL_DO *)SO;
+
+   PR = *PRi;   // Keep local copy
+   // Store the PR in ado, hide it from return potential
+   SUMA_ADO_StorePickResult(ado, PRi);
+
+   sv->Focus_DO_ID = ADO_iDO(ado);
+   SUMA_UpdateViewerTitle(sv);
+
+   SUMA_LH("Returning");
+   SUMA_RETURN (1); /* OK */
+}/* determine intersection */
+
 Boolean activeClippingPlanes(){
     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
         if (active[i]) return True;
 
     return False;
+}
+
+float getObjectMinMaxForAxes(float objectMinMax[][2]){
+    int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
+    int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
+
+    // Itialise
+    for (int i=0; i<3; ++i){
+        objectMinMax[i][0] = 10000.0;
+        objectMinMax[i][1] = -10000.0;
+    }
+
+    // Update min and max for each axis
+    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
+        for (int i=0; i<3; ++i){
+            if (soOld->MaxDims[i]<= allowableMax) objectMinMax[i][1] = MAX(objectMinMax[i][1], soOld->MaxDims[i]);
+            if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
+        }
+    }
+
+    // Debug
+    for (int i=0; i<3; ++i){
+        fprintf(stderr, "Min/Max(%d) = %f/%f\n", i, objectMinMax[i][0], objectMinMax[i][1]);
+    }
 }
 
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
@@ -30,6 +81,13 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
             if (soOld->MinDims[i]>= allowableMin)SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
         }
     }
+
+    /*
+    // Debug
+    for (int i=0; i<3; ++i){
+        fprintf(stderr, "Max[%d] = %f, Min[%d] = %f\n", i, SO->MaxDims[i], i, SO->MinDims[i]);
+    }
+    */
 
     // Update overall min and max
     for (int i=0; i<3; ++i){
@@ -398,158 +456,23 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     {
         SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
         SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
-        SO->SurfCont->curColPlane->ForceIntRange[0] = -0.282182;
-        SO->SurfCont->curColPlane->ForceIntRange[1] = 0.282182;
 
-        /* switch to the recently loaded  cmap */
+       // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
          SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
         }
 
-        /* update Lbl fields */
-        SUMA_UpdateNodeLblField(ado);
-
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-        SUMA_Apply_PR_SO(sv, SO,&PR);
-
-        // Remove triangle outline
-        if (planeIndex==0){
-            DList *list = NULL;
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_ToggleShowSelectedFaceSet,
-                                             SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-            }
-        }
+        colorPlanes(sv, SO,&PR);
     }
 
-#if 0
-   fprintf(stderr, "SO->SurfCont->curColPlane->do_type = %d\n", SO->SurfCont->curColPlane->do_type);
-   fprintf(stderr, "SO->SurfCont->curColPlane->LinkedPtrType = %d\n", SO->SurfCont->curColPlane->LinkedPtrType);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_links = %d\n", SO->SurfCont->curColPlane->N_links);
-   fprintf(stderr, "SO->SurfCont->curColPlane->owner_id = %s\n", SO->SurfCont->curColPlane->owner_id);
-   fprintf(stderr, "SO->SurfCont->curColPlane->dtlvl = %d\n", SO->SurfCont->curColPlane->dtlvl);
-   fprintf(stderr, "SO->SurfCont->curColPlane->ShowMode = %d\n", SO->SurfCont->curColPlane->ShowMode);
-   fprintf(stderr, "SO->SurfCont->curColPlane->NodeRad = %d\n", SO->SurfCont->curColPlane->NodeRad);
-   fprintf(stderr, "SO->SurfCont->curColPlane->Through = %d\n", SO->SurfCont->curColPlane->Through);
-   fprintf(stderr, "SO->SurfCont->curColPlane->NodeCol = %d\n", SO->SurfCont->curColPlane->NodeCol);
-   fprintf(stderr, "SO->SurfCont->curColPlane->BordFrac = %d\n", SO->SurfCont->curColPlane->BordFrac);
-   fprintf(stderr, "SO->SurfCont->curColPlane->EdgeThick = %d\n", SO->SurfCont->curColPlane->EdgeThick);
-   fprintf(stderr, "SO->SurfCont->curColPlane->EdgeStip = %d\n", SO->SurfCont->curColPlane->EdgeStip);
-   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaVal = %d\n", SO->SurfCont->curColPlane->AlphaVal);
-   fprintf(stderr, "SO->SurfCont->curColPlane->Name = %s\n", SO->SurfCont->curColPlane->Name);
-   fprintf(stderr, "SO->SurfCont->curColPlane->Label = %s\n", SO->SurfCont->curColPlane->Label);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_NodeDef = %d\n", SO->SurfCont->curColPlane->N_NodeDef);
-   fprintf(stderr, "SO->SurfCont->curColPlane->FullList = %d\n", SO->SurfCont->curColPlane->FullList);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_V = %d\n", SO->SurfCont->curColPlane->FullList);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_Vperc = %d\n", SO->SurfCont->curColPlane->N_Vperc);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_T = %d\n", SO->SurfCont->curColPlane->N_T);
-   fprintf(stderr, "SO->SurfCont->curColPlane->T_identifier = %s\n", SO->SurfCont->curColPlane->T_identifier);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_Tperc = %d\n", SO->SurfCont->curColPlane->N_Tperc);
-   fprintf(stderr, "SO->SurfCont->curColPlane->PlaneOrder = %d\n", SO->SurfCont->curColPlane->PlaneOrder);
-   fprintf(stderr, "SO->SurfCont->curColPlane->FullList = %d\n", SO->SurfCont->curColPlane->FullList);
-   fprintf(stderr, "SO->SurfCont->curColPlane->ColVec = %p\n", SO->SurfCont->curColPlane->ColVec);
-   fprintf(stderr, "SO->SurfCont->curColPlane->ColAlpha = %p\n", SO->SurfCont->curColPlane->ColAlpha);
-   fprintf(stderr, "SO->SurfCont->curColPlane->GlobalOpacity = %f\n", SO->SurfCont->curColPlane->GlobalOpacity);
-   fprintf(stderr, "SO->SurfCont->curColPlane->PlaneOrder = %d\n", SO->SurfCont->curColPlane->PlaneOrder);
-   fprintf(stderr, "SO->SurfCont->curColPlane->isBackGrnd = %d\n", SO->SurfCont->curColPlane->isBackGrnd);
-
-   fprintf(stderr, "SO->SurfCont->curColPlane->ForceIntRange = [%f, %f]\n",
-        SO->SurfCont->curColPlane->ForceIntRange[0], SO->SurfCont->curColPlane->ForceIntRange[1]);
-
-   fprintf(stderr, "SO->SurfCont->curColPlane->cmapname = %s\n", SO->SurfCont->curColPlane->cmapname);
-   fprintf(stderr, "SO->SurfCont->curColPlane->OptScl = %f\n", SO->SurfCont->curColPlane->OptScl[0]);
-   fprintf(stderr, "SO->SurfCont->curColPlane->SymIrange = %d\n", SO->SurfCont->curColPlane->SymIrange);
-   fprintf(stderr, "SO->SurfCont->curColPlane->rowgraph_num = %d\n", SO->SurfCont->curColPlane->rowgraph_num);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
-   fprintf(stderr, "SO->SurfCont->curColPlane->LinkMode = %d\n", SO->SurfCont->curColPlane->LinkMode);
-   fprintf(stderr, "SO->SurfCont->curColPlane->AlphaThresh = %f\n", SO->SurfCont->curColPlane->AlphaThresh);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
-   fprintf(stderr, "SO->SurfCont->curColPlane->N_Contours = %d\n", SO->SurfCont->curColPlane->N_Contours);
-   #endif
-
-   /*
-       fprintf(stderr, "sv->N_DO = %d\n", sv->N_DO);
-       fprintf(stderr, "sv->RegistDO = %p\n", sv->RegistDO);
-       fprintf(stderr, "sv->Record = %d\n", sv->Record);
-       fprintf(stderr, "sv->ColList = %p\n", sv->ColList);
-       */
-       #if 0
-       fprintf(stderr, "sv->N_ColList = %d\n", sv->N_ColList);
-       for (int i=0; i<sv->N_ColList; ++i){
-        fprintf(stderr, "sv->ColList[%d]->do_type = %d\n", i, sv->ColList[i]->do_type);
-        fprintf(stderr, "sv->ColList[%d]->LinkedPtrType = %d\n", i, sv->ColList[i]->LinkedPtrType);
-        fprintf(stderr, "sv->ColList[%d]->N_links = %d\n", i, sv->ColList[i]->N_links);
-        fprintf(stderr, "sv->ColList[%d]->owner_id = %s\n", i, sv->ColList[i]->owner_id);
-        fprintf(stderr, "sv->ColList[%d]->glar_ColorList_private = %p\n", i, sv->ColList[i]->glar_ColorList_private);
-        fprintf(stderr, "sv->ColList[%d]->N_glar_ColorList = %d\n", i, sv->ColList[i]->N_glar_ColorList);
-        fprintf(stderr, "sv->ColList[%d]->idcode_str = %s\n", i, sv->ColList[i]->idcode_str);
-        fprintf(stderr, "sv->ColList[%d]->Remix = %d\n", i, sv->ColList[i]->Remix);
-        fprintf(stderr, "sv->ColList[%d]->RemixID = %d\n", i, sv->ColList[i]->RemixID);
-        fprintf(stderr, "sv->ColList[%d]->per_sv_extra = %p\n", i, sv->ColList[i]->per_sv_extra);
-        for (int j=0; j<SUMA_MAX_SURF_VIEWERS; ++j){
-            fprintf(stderr, "sv->ColList[%d]->per_sv_extra[%d] = %d\n", i, j, sv->ColList[i]->per_sv_extra[j]);
-        }
-       }
-       /*
-       fprintf(stderr, "sv->PolyMode = %d\n", sv->PolyMode);
-       fprintf(stderr, "sv->TransMode = %d\n", sv->TransMode);
-       fprintf(stderr, "sv->DO_DrawMask = %d\n", sv->DO_DrawMask);
-       fprintf(stderr, "sv->Back_Modfact = %f\n", sv->Back_Modfact);
-       fprintf(stderr, "sv->ContThick = %f\n", sv->ContThick);
-       fprintf(stderr, "sv->ShowForeground = %d\n", sv->ShowForeground);
-       fprintf(stderr, "sv->ShowBackground = %d\n", sv->ShowBackground);
-       fprintf(stderr, "sv->UsePatchDims = %d\n", sv->UsePatchDims);
-       fprintf(stderr, "sv->Focus_DO_ID = %d\n", sv->Focus_DO_ID);
-       fprintf(stderr, "sv->N_VSv = %d\n", sv->N_VSv);
-       fprintf(stderr, "sv->State = %s\n", sv->State);
-       fprintf(stderr, "sv->iState = %d\n", sv->iState);
-       fprintf(stderr, "sv->isShaded = %d\n", sv->isShaded);
-       fprintf(stderr, "sv->BS = %p\n", sv->BS);
-       fprintf(stderr, "sv->Blend_Mode = %d\n", sv->Blend_Mode);
-       fprintf(stderr, "sv->pick_colid_list = %p\n", sv->pick_colid_list);
-       fprintf(stderr, "sv->pickrenpix4 = %p\n", sv->pickrenpix4);
-       fprintf(stderr, "sv->C_mode = %d\n", sv->C_mode);
-       */
-
-    fprintf(stderr, "drawPlaneFromNodeAndFaceSetList 3\n");
-#endif
-    #if 0
-
-    // Determine colormap
-    SUMA_EngineData *ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
-    SUMA_COLOR_MAP *Cmp = XDefaultColormapOfScreen(XtScreen(sv->X->GLXAREA));
-    if (Cmp) fprintf(stderr, "Cmp->N_M = %p\n", Cmp->N_M);
-    fprintf(stderr, "Color matrix\n");
-    fprintf(stderr, "Cmp = %p\n", Cmp);
-    fprintf(stderr, "sv->X->CMAP = %ld\n", sv->X->CMAP);
-    fprintf(stderr, "ED = %p\n", ED);
-    fprintf(stderr, "ED->CommandCode = %d\n", ED->CommandCode);
-    // fprintf(stderr, "Cmp->M = %p\n", Cmp->M);
-    #endif
-
-    /*
-    fprintf(stderr, "Cmp->M = %p\n", Cmp->M);
-    fprintf(stderr, "Cmp->Name = %s\n", Cmp->Name);
-    for (int i=0; i<1; ++i){
-        fprintf(stderr, "name[%d]: %s\n", i, Cmp->cname[i]);
-        fprintf(stderr, "frac[%d]: %f\n", i, Cmp->frac[i]);
-        for (int j=0; j<3; ++j){
-            fprintf(stderr, "%f\t", Cmp->M[i][j]);
-        }
+    // Reduce opacity of current surface object (clipping plane square)
+    for (int i=0; i<2; ++i){
+       SUMA_Set_ADO_TransMode(SUMA_SV_Focus_ADO(sv), sv->TransMode,
+                              SUMAg_CF->TransModeStep, 1);
+       SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
     }
-    fprintf(stderr, "N_M = %d, %d\n", Cmp->N_M[0], Cmp->N_M[1]);
-    fprintf(stderr, "top_frac = %f\n",Cmp->top_frac);
-    fprintf(stderr, "Sgn = %d\n",Cmp->Sgn);
-    fprintf(stderr, "Name = %s\n",Cmp->Name);
-    fprintf(stderr, "SO = %p\n",Cmp->SO);
-    fprintf(stderr, "M0 = %f, %f, %f, %f\n",Cmp->M0[0],Cmp->M0[1],Cmp->M0[2],Cmp->M0[3]);
-    fprintf(stderr, "flipped = %d\n",Cmp->flipped);
-    */
-
-    // compareSurfaces(SO, SO);
 
     return SO;
 }
@@ -927,16 +850,30 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
     static int    planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,50,50,50};
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
+    static float objectMinMax[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
     Widget w;
+    static SUMA_Boolean    firstCall = 1;
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
     if (activePlane >=0 ){
         if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
+    }
+
+    if (firstCall)  {
+        getObjectMinMaxForAxes(objectMinMax);
+
+        planeD[0] = -objectMinMax[2][0];
+        planeD[3] = objectMinMax[2][1];
+        planeD[1] = objectMinMax[1][1];
+        planeD[4] = -objectMinMax[1][0];
+        planeD[2] = -objectMinMax[0][0];
+        planeD[5] = objectMinMax[0][1];
+        firstCall = 0;
     }
 
     // Turn clipping plane on or off as required
