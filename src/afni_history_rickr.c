@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, May, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix volreg TSNR computation in surface analysis (TSNR still in volume)",
+   NULL
+ } ,
+
  {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
    "Thanks to the all-seeing S Torrisi for noting the problem."

@@ -53,6 +53,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17, MAY, 2021, DRG, "lesion_align",
+     MAJOR, TYPE_NEW_PROG,
+    "Alignment for data with large lesions",
+    "Developed for hemispherectomy and lobectomy data.\n"
+    "May be applicable to stroke and smaller lesion data too"
+},
 { 04, APR, 2021, DRG, "@Atlasize, @MakeLabeltable longname fix",
      MICRO, TYPE_BUG_FIX,
     "Longnames not working in combination with labels fixed for atlases"

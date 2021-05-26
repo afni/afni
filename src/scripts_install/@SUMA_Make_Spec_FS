@@ -39,8 +39,11 @@
 #    + make a nice WB mask
 #    + make some QC images of mask(s), segmentations and ROIs
 #    + make some tables of ROI info
+# [May 12, 2021] PT : remove old NIFTI message about needing even matrix
+#      dimensions for anatomical input to recon-all.  Yikes, that wasn't
+#      need, just the way we were viewing it...
 
-set ver = 2.2.3
+set ver = 2.2.4
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -1877,30 +1880,6 @@ OPTIONS ~1~
 
                 * If you are seeing this message, that problem was fixed
                   years ago.
-
-    NOTE for -NIFTI:
-        If you really care that the volumes in SUMA/ are in exact
-        register with the volume you passed to FreeSurfer, you 
-        should be sure that the volume passed to FreeSurfer has 
-        an even number of slices in all directions and a voxel
-        resolution of 1x1x1, otherwise the resultant volumes in
-        SUMA/ might be off by half a voxel or less in directions
-        with odd number of slices. The reason has to do (I think)
-        with FreeSurfer's resampling and volume centering approach.
-        In either case, surfaces and volumes under SUMA/ will be in
-        proper register.
-
-        For example, when creating a surface model of the TT_N27 brain
-        I padded the TT_N27+tlrc volume before submitting it to 
-        FreeSurfer with the following command:
-           3dZeropad -L 1 -P 1 -S 1 -prefix anat.nii TT_N27+tlrc.HEAD
-
-        After zeropadding, anat.nii remains in perfect register with
-        TT_N27+tlrc by it has an even number of slices in all
-        directions.  For example, running:
-            3dinfo -n4  -d3 -prefix anat.nii
-        produces:
-            162  192  152   1    1.0     1.0     1.0     anat.nii
 
     -inflate INF: Create modereately inflated surfaces using
                   SurfSmooth. INF controls the amount of smoothness
