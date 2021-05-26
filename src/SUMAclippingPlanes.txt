@@ -1,68 +1,78 @@
 ﻿Using Clipping PLanes in SUMA
 
-NB. Use of clipping planes now requires that SUMA is in clipping plane mode.  
-By default SUMA is not in clipping plane mode.  
-Shift-Ctrl-C toggles in and out of clipping plane mode.
+NB: Use of clipping planes now requires that SUMA is in clipping plane
+mode.  By default SUMA is not in clipping plane mode.  Shift-Ctrl-c
+toggles in and out of clipping plane mode.
 
-There may be up to six clipping planes.  They are formed with shift-ctrl-C
-No more clipping planes may be added once there are six.
+There may be up to six clipping planes.  No more clipping planes may
+be added once there are six.
 
-The clipping plane may be viewed, as a rectangle, with shift-C which toggles the
-rectangle on and off.
+The clipping plane may be viewed as a rectangle, with Shift-c which
+toggles the rectangle on and off.
 
-The clipping plane may be moved forward and back with alt-scrollwheel
-The clipping plane is rotated, about the y-axis, with alt-(left or right arrow keys),
-or about the x-axis with alt-(up or down arrow keys).
+The clipping plane may be moved forward and back with alt-scrollwheel.
 
-The clipping plane is selected with alt-(number of the plane)
-The clipping plane is toggled on and off with ctrl-(number of the plane)
+The clipping plane is rotated, about the y-axis, with Alt-[left or
+right arrow key], or about the x-axis with Alt-[up or down arrow
+key].
 
-f reverses the normal of the selected clipping plane.
+The clipping plane is selected with Alt-[number of the plane].
+
+The clipping plane is toggled on and off with Ctrl-[number of the
+plane].
+
+f reverses ("flips") the normal of the selected clipping plane.
 
 
 # ------------------------------------------------------------------------
-#
-# [PT: Apr 16, 2021] notes/comments on current clipping plane behavior
-# on Ubuntu 20.04.
 
-There can be up to 6 clipping planes, numbered [1-6].  Each has a
-separate color, being in order R G B C M Y.  So, plane 1 can be viewed
-in Red, plane 4 in Cyan, etc.
+There can be up to 6 clipping planes, numbered:  1 2 3 4 5 6.  
+Each has a separate color, being, in order       R G B C M Y.  
+So, Plane 1 is Red, Plane 4 is Cyan, etc.
 
-Below, "a number" can be in range [1-6].
+Below, "a number" can be in range [1-6].  There is additional
+"super"-plane behavior (affecting all planes) for digits 7 and 0,
+described below.
 
-"active" means a clipping plane is clipping, not just visible.
+Here, "active" means a clipping plane is clipping, not just visible.
 
 Key+mouse behavior
 ------------------
 
-Shift-Ctrl-c      : toggles in and out of clipping plane mode.
+Shift-Ctrl-c      : Toggles in and out of clipping plane mode
 
-n                 : successively add new clipping planes, which are active
-                    as they appear (you might not see them to start,
-                    just their clipping effect)
+n                 : Successively add new clipping planes (in increasing 
+                    numerical order), which are active as they appear (you 
+                    might not see them to start, just their clipping effect)
 
-[a number]        : toggle the clipping behavior of numbered plane on/off 
+[a number]        : Toggle the clipping behavior of numbered plane on/off 
 
-alt-[a number]    : select the numbered clipping plane (e.g., so you can 
-                    rotate/translate it with other key presses).  If the specified
-                    number > # planes, planes are added up to the specified number.
+Alt-[a number]    : Select the numbered clipping plane (e.g., so you can
+                    rotate/translate it with other key presses).  If
+                    the specified number > # planes, planes are added
+                    up to the specified number.
 
 7                 : Toggle all active clipping planes on or off 
 
-0                 : If there are active clipping planes, turns all planes off and                   exits clipping plane mode.  Otherwise, turns all clipping planes on.  On reentering clipping plane mode, turns all clipping planes on. 
+0                 : If there are active clipping planes, turns all planes 
+                    off and exits clipping plane mode.  Otherwise, turns all
+                    clipping planes on.  On reentering clipping plane mode, 
+                    turns all clipping planes on. 
 
-ctrl+f            : flip clipping direction of selected plane
+Ctrl+f            : Flip clipping direction of selected plane
 
-Shift+c           : toggle view of all active clipping planes on/off
+Shift+c           : Toggle view of all active clipping planes on/off
 
-Alt/Cmd/Opt+[scrollwheel] : translate a clipping plane in space
+Alt/Cmd/Opt+[scrollwheel] 
+                  : Translate a clipping plane in space
 
 s                 : Scroll clipping plane inwards
 
-Shift-S            : Scroll clipping plane outwards
+Shift-s           : Scroll clipping plane outwards
 
-Alt/Cmd/Opt+[up-down arrow key]      : rotate clipping plane around x-axis
+Alt/Cmd/Opt+[up-down arrow key]      
+                  : rotate clipping plane around x-axis
 
-Alt/Cmd/Opt+[left-right arrow key]   : rotate clipping plane around y-axis
+Alt/Cmd/Opt+[left-right arrow key]   
+                  : rotate clipping plane around y-axis
 
