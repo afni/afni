@@ -49,13 +49,15 @@ float getObjectMinMaxForAxes(float objectMinMax[][2]){
     // Update min and max for each axis
     for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        for (int i=0; i<3; ++i){
+        // fprintf(stderr, "soOld->SUMA_VolPar_Aligned = %d\n", soOld->SUMA_VolPar_Aligned);
+        if (soOld->Show==1) for (int i=0; i<3; ++i){
             if (soOld->MaxDims[i]<= allowableMax) objectMinMax[i][1] = MAX(objectMinMax[i][1], soOld->MaxDims[i]);
             if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
         }
     }
 
     // Debug
+    fprintf(stderr, "Num. existing objects: %d\n", SUMAg_N_DOv);
     for (int i=0; i<3; ++i){
         fprintf(stderr, "Min/Max(%d) = %f/%f\n", i, objectMinMax[i][0], objectMinMax[i][1]);
     }
@@ -864,6 +866,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
 
+    // Set up normal offset loactions s.t. clipping planes just enclose existing objects
     if (firstCall)  {
         getObjectMinMaxForAxes(objectMinMax);
 
@@ -5451,6 +5454,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
                         if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+
+                        // Quick fic for qrongly placed new planes when incremented
+                        active[SUMAg_CF->N_ClipPlanes-1] = 0;
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1);
                     }
                     activeClipPlanes = activeClippingPlanes();
                 }
@@ -5834,6 +5841,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     // For some reason, this appears necessary to place planes, or their squares, in the right position
                     //  if thet are planes 4-6
                     if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+
+                    // Quick fic for qrongly placed new planes when incremented
+                    active[SUMAg_CF->N_ClipPlanes-1] = 0;
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1);
                 }
                 activeClipPlanes = activeClippingPlanes();
             } else if (Kev.state & ControlMask){
