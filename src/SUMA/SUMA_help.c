@@ -1353,7 +1353,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "in drawing mode.\n\n",
       SUMA_hkf("Ctrl+d", targ));
    SS = SUMA_StringAppend_va (SS,
-   "   %s: Attch to the current dataset 'parent' a dot product\n"
+   "   %s: Attach to the current dataset 'parent' a dot product\n"
    "        transform. The 'child' (transformed) dataset\n"
    "        is created by calculating the dot product between\n"
    "        each node time series and the time series of the current\n"
@@ -1476,9 +1476,9 @@ char * SUMA_help_message_Info(TFORM targ)
 "   %s: Cycle between restrictions of where DO node-based \n"
 "         objects are displayed. Available modes are:\n"
 "           All: No restrictions\n"
-"           n3Crosshair: Crosshair node + 3 neighboring layers\n"
-"           n2Crosshair: Crosshair node + 2 neighboring layers\n"
-"           n1Crosshair: Crosshair node only\n"
+"           n3cross-hair: cross-hair node + 3 neighboring layers\n"
+"           n2cross-hair: cross-hair node + 2 neighboring layers\n"
+"           n1cross-hair: cross-hair node only\n"
 "           None: Show nothing.\n\n"
 "              See also -do_draw_mask option in DriveSuma\n\n"
 "        ** DO stands for displayable objects, see also\n"
@@ -1582,7 +1582,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "                 8  cols: n0 n1 c0 c1 c2 c3 th st\n\n"
 "                          with st being a stippling, or dashing for some,\n"
 "                          flag. Use integers between 1 and 5 for a variety\n"
-"                          of syles.\n\n"
+"                          of styles.\n\n"
 "              For coordinate-based\n"
 "                 6  cols: x0 y0 z0 x1 y1 z1\n"
 "                 7  cols: x0 y0 z0 x1 y1 z1 th\n\n"
@@ -1602,7 +1602,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "                 in the file:\n\n"
 "                 3  cols: dx dy dz\n\n"
 "                          with dx dy dz defining the direction. The\n"
-"                          triplet need not be of unti norm though that\n"
+"                          triplet need not be of unit norm though that\n"
 "                          would affect the default coloring scheme detailed\n"
 "                          below. The segment drawn has origin 0, 0, 0\n\n"
 "                 4  cols: dx dy dz mag\n\n"
@@ -1710,7 +1710,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "                 They are a little inefficient to reproduce with\n"
 "                 each redraw. Complain if you need them.\n\n"
 ":SPX:\n\n   .. _load_nido:\n\n:SPX:"
-"         Type 8: :ref:`Another<load_nido>` class of displayble objects is described in\n"
+"         Type 8: :ref:`Another<load_nido>` class of displayable objects is described in\n"
 "                 the output of :ref:`suma -help_nido<suma--help_nido>` and the demonstration\n"
 "                 script :ref:`@DO.examples<@DO.examples>`. This new class allows for displaying \n"
 "                 text and figures in both screen and world space.\n"
@@ -1932,7 +1932,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "       SUMA_LHunify = YES (see your ~/.sumarc for help)\n",
          SUMA_hkf("Ctrl+Button 1-Motion", targ));
    SS = SUMA_StringAppend_va (SS,
-      "  %s: Reset to Home vieweing angle, zooming is\n"
+      "  %s: Reset to Home viewing angle, zooming is\n"
       "       left unchanged. See also 'HOME' key\n",
          SUMA_hkf("Button 1-DoubleClick", targ));
    SS = SUMA_StringAppend_va (SS,
@@ -1957,7 +1957,7 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va (SS,
 "  %s: Node/Voxel/Edge/etc. picking.\n"
 "                     In ROI mode, initiates a path to new node in DrawROI mode.\n"
-"                     Picking of graph edges/nodes can get difficut \n"
+"                     Picking of graph edges/nodes can get difficult \n"
 "                     when surfaces are also displayed. To help with that,\n"
 "                     see Alt+Button 3-Press next.:LR:\n"
 "                Also see :ref:`Selecting Objects<Selecting_Objects>` below.\n",
@@ -1994,7 +1994,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "  %s: If double clicking on a tract mask, select\n"
       "                           the tract mask and turn the viewer into Mask\n"
       "                           Manipulation Mode. In this mode, the mask is\n"
-      "                           shown as a wiremesh, and selections on any \n"
+      "                           shown as a wire mesh, and selections on any \n"
       "                           object will move the mask to that location.\n"
       "                           New tract/masks intersections are computed\n"
       "                           at the new location.\n"
@@ -2021,7 +2021,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "                      Intersections with surfaces are ignored.\n" ,
          SUMA_hkf("Alt+Button 3-Motion", targ));
    SS = SUMA_StringAppend_va (SS,
-      "  %s: continous yoking of intensity selection to\n"
+      "  %s: continuous yoking of intensity selection to\n"
       "                           selected node*K.\n",
          SUMA_hkf("Ctrl+Button 3-Motion", targ));
    SS = SUMA_StringAppend_va (SS,
@@ -2064,7 +2064,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "to the corresponding location. SUMA can also talk to other programs such as"
 "HalloSuma\n\n"
 "* The controller for that object is popped to the top of the stack in the "
-"controllers notebook, and the crosshair information in the controller gets "
+"controllers notebook, and the cross-hair information in the controller gets "
 "updated.\n\n"
 "* Other open SUMA controllers are made to jump to the corresponding "
 "locations. Use the SUMA controller (:ref:`Ctrl+u<LC_Ctrl+u>`) to setup "
@@ -2084,11 +2084,11 @@ char * SUMA_help_message_Info(TFORM targ)
 "Picking behavior depends on the object being selected as follows:\n\n"
 "1- Node picking on surfaces: Selection of a node on the surface involves "
 "finding intersected triangles, identifying the closest intersected triangle, "
-"and then indentifying the closest node within it. The crosshair is centered "
+"and then identifying the closest node within it. The cross-hair is centered "
 "at the location of intersection and marked with a yellow sphere. The closest "
 "node in the triangle is marked with a small (tiny some say) blue sphere, and "
 "the triangle is highlighted with a gray line contour. Highlighting can be "
-"toggled with :ref:`F3 for crosshair<F3>`, :ref:`F4 for selected node<F4>`, "
+"toggled with :ref:`F3 for cross-hair<F3>`, :ref:`F4 for selected node<F4>`, "
 "and :ref:`F5 for the triangle<F5>`\n\n"
 ":SPX:"
 ".. figure:: media/surface_selection.jpg\n"
@@ -2106,7 +2106,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "Note that you can also select from the 3D rendered volume and when 3D rendering"
 " is turned on. In that case, no slice highlighting is done.\n\n"
 "3- Edge/cell selection in graphs: Right click on an edge, matrix cell, "
-"or bundle reprenting the edge and the connection is rendered white. Because "
+"or bundle representing the edge and the connection is rendered white. Because "
 "the graphs can be bidirectional, clicking on an edge between [n1, n2] with the "
 "click location closest to n1 would select edge n1-->n2, while clicking closer "
 "to n2 gets you edge n2-->n1. This also happens when you click on a bundle "
@@ -2133,7 +2133,7 @@ char * SUMA_help_message_Info(TFORM targ)
                   "Continuous Selection:\n"
                   ":SPX:"
 "You can select and drag and sweep through numerous locations. The main thing "
-"to keep in mind is that when you have a multitute of object types, such as "
+"to keep in mind is that when you have a multitude of object types, such as "
 "tracts, voxels, surfaces, etc. SUMA locks the selection to the object type "
 "selected at the beginning of the sweep. So, if you begin the selection on a "
 "surface and drag, then the selections during the sweep are restricted to "
@@ -2254,14 +2254,14 @@ char * SUMA_help_message_Info(TFORM targ)
    }
 
    SS = SUMA_StringAppend (SS,
-"Enter clipping plane mode with Ctrl-C.` "
-"There can be up to 6 clipping planes, numbered [1-6].  Each has a` "
-"separate color, being in order R G B C M Y.  So, plane 1 can be viewed` "
-"in Red, plane 4 in Cyan, etc.  The clipping plane may be viewed, as a`"
-" rectangle, with shift-C which toggles the rectangle on and off.\n\n"
+"Enter clipping plane mode with Shift-Ctrl-C. "
+"There can be up to 6 clipping planes numbered [1-6].  Each has a "
+"separate color being in order R G B C M Y.  So plane 1 can be viewed "
+"in Red, plane 4 in Cyan, etc.  The clipping planes may be viewed, as"
+" squares, with shift-C which toggles the squares on and off.\n\n"
 
-"Below, \"a number\" can be in range [1-6].  \"active\" means a`"
-" clipping plane is clipping, not just visible.  The \"selected\"`"
+"Below, \"a number\" can be in range [1-6].  \"active\" means a"
+" clipping plane is clipping, not just visible.  The \"selected\""
 " plane is controlled with the action keys.\n\n"
 
 "Key+mouse behavior\n"
@@ -2284,10 +2284,10 @@ char * SUMA_help_message_Info(TFORM targ)
         SUMA_hkf("alt/cmd/opt-[a number]", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Successively add new clipping planes which are\n"
-      "        active as they appear. (You might not see them to\n"
-      "        start, just their clipping effect).\n\n", SUMA_hkf("7", targ));
+      "        active as they appear. (Initially, you might not see \n"
+      "        them, just their clipping effect).\n\n", SUMA_hkf("7", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Successively add new clipping planes, which are\n"
+      "   %s: Successively add new clipping planes which are\n"
       "        active as they appear. (Initially, you might not see \n"
       "        them; just their clipping effect).\n\n", SUMA_hkf("0", targ));
    SS = SUMA_StringAppend_va (SS,
@@ -2298,7 +2298,7 @@ char * SUMA_help_message_Info(TFORM targ)
         SUMA_hkf("Shift+C", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Translate a clipping plane in space.\n\n",
-        SUMA_hkf("Alt/Cmd/Opt+[scrollwheel]", targ));
+        SUMA_hkf("Alt/Cmd/Opt+[scroll-wheel]", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Scroll clipping plane inwards.\n\n",
         SUMA_hkf("s", targ));
