@@ -8,6 +8,12 @@ extern int SUMAg_N_DOv;
 
 static int BuildMethod = SUMA_OFFSETS2_NO_REC;
 
+/* local protos */
+static int SUMA_nstat_mean(SUMA_DSET *din, int icol, float *fin_orig,
+                           byte *nmask, byte strict_mask, int nnode,
+                           SUMA_OFFSET_STRUCT *OffS_out, float rhood,
+                           SUMA_DSET *dout, float * fout);
+
 void SUMA_SurfClust_Set_Method(int m)
 {
    BuildMethod = m;
@@ -1886,7 +1892,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(
                N_Node    /* Number of nodes allocated for */
                ); /* DO NOT free dset, it is store in DsetList */
                            
-	/* form the dataset */
+   /* form the dataset */
    SUMA_LH("Adding NodeDef column ...");
    if (!SUMA_AddDsetNelCol (   
                            dset,  
@@ -2519,50 +2525,12 @@ SUMA_DSET *SUMA_CalculateLocalStats(
          /* Now I have the data column, nice and solid , do the stats */
          switch (code[ic]) {
             case NSTAT_MEAN:
-               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
-               lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
-               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
-                                        (void *)fout, NULL ,1)) {
-                  SUMA_S_Crit("Failed to add dset column");
+               if( SUMA_nstat_mean(din, icols[k], fin_orig,
+                           nmask, strict_mask, SO->N_Node,
+                           OffS_out, rhood, dout, fout) )
                   SUMA_RETURN(NULL);
-               }
-               if (!nmask) {
-                  SUMA_LH("No mask");
-                  for (n=0; n < SO->N_Node; ++n) {
-                     fp = fin_orig[n];
-                     nval = 1;
-                     for (j=0; j<OffS_out[n].N_Neighb; ++j) {
-                        nj = OffS_out[n].Neighb_ind[j];
-                        if (OffS_out[n].Neighb_dist[j] <= rhood) { 
-                           fp += fin_orig[nj]; ++nval; }
-                     }/* for j*/
-                        fout[n] = fp/(float)(nval);
-                        SUMA_WORLD_STATS_NODE_DBG;
-                  } /* for n */
-               } else {
-                  SUMA_LH("Have mask");
-                  for (n=0; n < SO->N_Node; ++n) {
-                     if (nmask[n]) {
-                        fp = fin_orig[n];
-                        nval = 1;
-                        for (j=0; j<OffS_out[n].N_Neighb; ++j) {
-                           nj = OffS_out[n].Neighb_ind[j];
-                           if (nmask[nj] || !strict_mask) {
-                              if (OffS_out[n].Neighb_dist[j] <= rhood) { 
-                                 fp += fin_orig[nj]; ++nval; }
-                           } 
-                        }/* for j*/
-                        fout[n] = fp/(float)nval;
-                        SUMA_WORLD_STATS_NODE_DBG;
-                     } else {
-                        fout[n] = fin_orig[n];
-                     }
-                  } /* for n */
-               } 
-               SUMA_free(lblcp); lblcp = NULL;
-               break;
-            
             case -666: /* used to be NSTAT_FWHMx: */
+            {
                lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
                lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
                if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
@@ -2685,8 +2653,9 @@ SUMA_DSET *SUMA_CalculateLocalStats(
                SUMA_free(fwhm_mask); fwhm_mask = NULL;
                SUMA_free(lblcp); lblcp = NULL;
                break;
-               
+            }
             case NSTAT_FWHMx:
+            {
                lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); 
                lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
                if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, 
@@ -2766,10 +2735,13 @@ SUMA_DSET *SUMA_CalculateLocalStats(
                SUMA_free(fwhm_mask); fwhm_mask = NULL;
                SUMA_free(lblcp); lblcp = NULL;
                break;
+            }
             default:
+            {
                SUMA_S_Errv("Should not be here, not ready to deal with this stat (%d)\n", code[ic]);
                SUMA_RETURN(NULL);
                break;
+            }
          }
          
          /* add this column to the output dset */
@@ -2790,3 +2762,71 @@ SUMA_DSET *SUMA_CalculateLocalStats(
    
    SUMA_RETURN(dout);
 } 
+
+
+static int SUMA_nstat_mean(SUMA_DSET *din, int icol, float *fin_orig,
+                           byte *nmask, byte strict_mask, int nnode,
+                           SUMA_OFFSET_STRUCT *OffS_out, float rhood,
+                           SUMA_DSET *dout, float * fout)
+{
+   static char   FuncName[]={"SUMA_nstat_mean"};
+   char         *lblcp=NULL;
+   int           node, bind, bnode; /* node index, neighb index, neighb node */
+   int           fp=-1, nval=0;     /* float value, num values */
+   SUMA_Boolean  LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+      
+   /* verify that we have the expected inputs */
+   if( !din || !dout || !OffS_out || !fout ) {
+      SUMA_S_Errv("Bad nstat_mean data inputs: din=%p, dout=%p, "
+                  "OffS_out=%p, fout=%p\n",
+                  din, dout, OffS_out, fout);
+      SUMA_RETURN(1);
+   }
+
+   if( icol < 0 || rhood < 0.0f || nnode < 0 ) {
+      SUMA_S_Errv("Bad nstat_mean val inputs: icol=%d, rhood=%f, nnode=%d\n",
+                  icol, rhood, nnode);
+      SUMA_RETURN(1);
+   }
+
+   lblcp = SUMA_DsetColLabelCopy(din, icol, 1); 
+   lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
+   if (!SUMA_AddDsetNelCol(dout, lblcp, SUMA_NODE_FLOAT, 
+                           (void *)fout, NULL ,1)) {
+      SUMA_S_Crit("Failed to add dset column");
+      SUMA_RETURN(1);
+   }
+
+   if (nmask)  SUMA_LH("Have mask");
+   else        SUMA_LH("No mask");
+
+   for (node=0; node < N_Node; ++node) {
+      /* skip node (pass on value) if we are not in mask */
+      if( nmask && !nmask[node] ) {
+         fout[node] = fin_orig[node];
+         continue;
+      }
+
+      fp = fin_orig[node];
+      nval = 1;
+      for (bind=0; bind<OffS_out[node].N_Neighb; ++bind) {
+         bnode = OffS_out[node].Neighb_ind[bind];
+
+         /* if strict mask, skip neighbors not in mask */
+         if ( strict_mask && nmask && !nmask[bnode] )
+            continue;
+         if (OffS_out[node].Neighb_dist[bind] <= rhood) { 
+            fp += fin_orig[bnode]; ++nval; }
+      }/* for bind*/
+
+      fout[node] = fp/(float)nval;
+      SUMA_WORLD_STATS_NODE_DBG;
+
+   } /* for node */
+   SUMA_free(lblcp); lblcp = NULL;
+
+   SUMA_RETURN(0);
+}
+
