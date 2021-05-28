@@ -71,12 +71,20 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 /****/
 
-#define DEFAULT_TBEST     5
-#define DEFAULT_MICHO_MI  0.2
-#define DEFAULT_MICHO_NMI 0.2
-#define DEFAULT_MICHO_CRA 0.4
-#define DEFAULT_MICHO_HEL 0.4
-#define DEFAULT_MICHO_OV  0.4
+#define DEFAULT_TBEST           5
+#define DEFAULT_TBEST_LPA      17   /* 27 May 2021 */
+
+#define DEFAULT_MICHO_LPC_MI  0.2
+#define DEFAULT_MICHO_LPC_NMI 0.2
+#define DEFAULT_MICHO_LPC_CRA 0.4
+#define DEFAULT_MICHO_LPC_HEL 0.4
+#define DEFAULT_MICHO_LPC_OV  0.4
+
+#define DEFAULT_MICHO_LPA_MI  0.0   /* 27 May 2021 */
+#define DEFAULT_MICHO_LPA_NMI 0.2
+#define DEFAULT_MICHO_LPA_CRA 0.4
+#define DEFAULT_MICHO_LPA_HEL 1.0
+#define DEFAULT_MICHO_LPA_OV  0.0
 
 /****/
 
@@ -182,6 +190,14 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
                                mmm == GA_MATCH_LPC_MICHO_SCALAR || \
                                mmm == GA_MATCH_LPA_MICHO_SCALAR || \
                                mmm == GA_MATCH_PEARSON_LOCALA       )
+
+#undef  METH_IS_LPA
+#define METH_IS_LPA(mmm)     ( mmm == GA_MATCH_LPA_MICHO_SCALAR || \
+                               mmm == GA_MATCH_PEARSON_LOCALA       )
+
+#undef  METH_IS_LPC
+#define METH_IS_LPC(mmm)     ( mmm == GA_MATCH_LPC_MICHO_SCALAR || \
+                               mmm == GA_MATCH_PEARSON_LOCALS       )
 
 /*---------------------------------------------------------------------------*/
 /* For the bilinear warp method -- this is obsolete IMHO [RWC] */
@@ -1570,7 +1586,14 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
               " * [28 Nov 2018]\n"
               "   All of the above now applies to the 'lpa+' cost functional,\n"
               "   which can be used as a robust method for like-to-like alignment.\n"
-             , DEFAULT_MICHO_HEL , DEFAULT_MICHO_CRA , DEFAULT_MICHO_NMI , DEFAULT_MICHO_MI , DEFAULT_MICHO_OV
+              "   For example, aligning 3T and 7T T1-weighted datasets from the same person.\n"
+              " * [28 May 2021]\n"
+              "   However, the default multiplier constants for cost 'lpa+' are now\n"
+              "   different from the 'lpc+' multipliers -- to make 'lpa+' more\n"
+              "   robust. The new default for 'lpa+' is\n"
+              "     lpa + hel*%.1f + crA*%.1f + nmi*%.1f + mi*%.1f + ov*%.1f\n"
+             , DEFAULT_MICHO_LPC_HEL, DEFAULT_MICHO_LPC_CRA, DEFAULT_MICHO_LPC_NMI, DEFAULT_MICHO_LPC_MI, DEFAULT_MICHO_LPC_OV
+             , DEFAULT_MICHO_LPA_HEL, DEFAULT_MICHO_LPA_CRA, DEFAULT_MICHO_LPA_NMI, DEFAULT_MICHO_LPA_MI, DEFAULT_MICHO_LPA_OV
              ) ;
 
        printf("\n"
@@ -2097,13 +2120,13 @@ int main( int argc , char *argv[] )
    char *nwarp_save_prefix     = NULL ;          /* 10 Dec 2010 */
    int   nwarp_meth_code       = 0 ;             /* 15 Dec 2010 */
 
-   int    micho_zfinal         = 0 ;                  /* 24 Feb 2010 */
-   double micho_mi             = DEFAULT_MICHO_MI  ;  /* -lpc+ stuff */
-   double micho_nmi            = DEFAULT_MICHO_NMI ;
-   double micho_crA            = DEFAULT_MICHO_CRA ;
-   double micho_hel            = DEFAULT_MICHO_HEL ;
-   double micho_ov             = DEFAULT_MICHO_OV  ;  /* 02 Mar 2010 */
-   int    micho_fallthru       = 0 ;                  /* 19 Nov 2016 */
+   int    micho_zfinal         = 0 ;                      /* 24 Feb 2010 */
+   double micho_mi             = DEFAULT_MICHO_LPC_MI  ;  /* -lpc+ stuff */
+   double micho_nmi            = DEFAULT_MICHO_LPC_NMI ;
+   double micho_crA            = DEFAULT_MICHO_LPC_CRA ;
+   double micho_hel            = DEFAULT_MICHO_LPC_HEL ;
+   double micho_ov             = DEFAULT_MICHO_LPC_OV  ;  /* 02 Mar 2010 */
+   int    micho_fallthru       = 0 ;                      /* 19 Nov 2016 */
 
    int do_zclip                = 0 ;             /* 29 Oct 2010 */
 
@@ -2701,11 +2724,22 @@ int main( int argc , char *argv[] )
            (   strncasecmp(argv[iarg],"-lpc+",5) == 0
             || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
-       if( strcasestr(argv[iarg],"lpc") != NULL )
+       if( strcasestr(argv[iarg],"lpc") != NULL ){
          meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
-       else if( strcasestr(argv[iarg],"lpa") != NULL )
+         micho_mi  = DEFAULT_MICHO_LPC_MI  ;
+         micho_nmi = DEFAULT_MICHO_LPC_NMI ;
+         micho_crA = DEFAULT_MICHO_LPC_CRA ;
+         micho_hel = DEFAULT_MICHO_LPC_HEL ;
+         micho_ov  = DEFAULT_MICHO_LPC_OV  ;
+       } else if( strcasestr(argv[iarg],"lpa") != NULL ){
+         int do_old = ( strcasestr(argv[iarg],"+OLD") != NULL ) ;
          meth_code = GA_MATCH_LPA_MICHO_SCALAR ;
-       else {
+         micho_mi  = (do_old) ? DEFAULT_MICHO_LPC_MI  : DEFAULT_MICHO_LPA_MI  ;   /* 27 May 2021 */
+         micho_nmi = (do_old) ? DEFAULT_MICHO_LPC_NMI : DEFAULT_MICHO_LPA_NMI ;
+         micho_crA = (do_old) ? DEFAULT_MICHO_LPC_CRA : DEFAULT_MICHO_LPA_CRA ;
+         micho_hel = (do_old) ? DEFAULT_MICHO_LPC_HEL : DEFAULT_MICHO_LPA_HEL ;
+         micho_ov  = (do_old) ? DEFAULT_MICHO_LPC_OV  : DEFAULT_MICHO_LPA_OV  ;
+       } else {
          WARNING_message("How did this happen? argv[%d] = %s",iarg,argv[iarg]) ;
          meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        }
@@ -4939,6 +4973,10 @@ STATUS("zeropad weight dataset") ;
          meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
+   /* lpa method gets more twobest checks [27 May 2021] */
+
+   if( METH_IS_LPA(meth_code) && tbest < DEFAULT_TBEST_LPA ) tbest = DEFAULT_TBEST_LPA ;
+
    /*------ process the target dataset volumes, one at a time ------*/
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
@@ -5184,7 +5222,9 @@ STATUS("zeropad weight dataset") ;
 
          powell_set_mfac( 1.0f , 3.0f ) ;  /* 07 Jun 2011 - for some speedup */
 
-         nrand = 17 + 4*tbest ; nrand = MAX(nrand,31) ; /* num random param setups to try */
+         nrand = 17 + 4*tbest ;
+         if( METH_USES_BLOKS(meth_code) ) nrand += 2*tbest ;  /* 27 May 2021 */
+         nrand = MAX(nrand,31) ; /* num random param setups to try */
 
          mri_genalign_scalar_ransetup( &stup , nrand ) ;  /**** the initial search! ****/
 
@@ -5382,10 +5422,10 @@ STATUS("zeropad weight dataset") ;
      }
 
      switch( tfdone ){                  /* initial param radius for optimizer */
-        case 0: rad = 0.0345 ; break ;  /* this is size of initial trust region */
+        case 0: rad = 0.0666 ; break ;  /* this is size of initial trust region */
         case 1:                         /* -- in the unitless [-1..1] space */
-        case 2: rad = 0.0266 ; break ;
-       default: rad = 0.0166 ; break ;
+        case 2: rad = 0.0333 ; break ;
+       default: rad = 0.0222 ; break ;
      }
      if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
 
@@ -5498,7 +5538,7 @@ STATUS("zeropad weight dataset") ;
            ININFO_message("- Intrmed  cost = %f ; %d funcs",cost,nfunc) ;
          }
          if( nfunc < 333 ){
-           rad *= 0.246f ; if( rad < 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
+           rad *= 0.456f ; if( rad < 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
          }
        }
 
@@ -5532,9 +5572,9 @@ STATUS("zeropad weight dataset") ;
          if( verb > 1 )
            ININFO_message(" - Set %s parameters back to purity before Final iterations",
                           meth_shortname[meth_code-1] ) ;
-         rad *= 1.666f ;
+         rad *= 6.666f ;
        } else {
-         rad *= 0.666f ;
+         rad *= 3.666f ;
        }
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
        nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
@@ -5548,6 +5588,23 @@ STATUS("zeropad weight dataset") ;
 
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
+
+     /* Check if some parameter is near the edge of the allowable [27 May 2021] */
+
+     { float pmin , pmax , pdif , pval ;
+       for( jj=0 ; jj < 12 ; jj++ ){
+         if( stup.wfunc_param[jj].fixed ) continue ;  /* not change-able */
+         pmin = stup.wfunc_param[jj].min ;
+         pmax = stup.wfunc_param[jj].max ;
+         pdif = 0.0101f * fabsf(pmax-pmin) ; if( pdif <= 0.0f ) continue ;
+         pval = stup.wfunc_param[jj].val_out ;
+         if( fabsf(pval-pmin) <= pdif || fabsf(pval-pmax) <= pdif ){  /* within 1% of edge */
+           WARNING_message("Parameter %s = %9.5f is close to edge of its search range %9.5f .. %9.5f" ,
+                           stup.wfunc_param[jj].name , pval , pmin , pmax ) ;
+         }
+       }
+     }
+
      if( verb > 1 ) ININFO_message("- Fine net CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
      if( save_hist != NULL ) SAVEHIST("final",1) ;
@@ -6028,7 +6085,7 @@ STATUS("zeropad weight dataset") ;
              aval[jj][mm+1] = stup.wfunc_param[jj].val_out ;
          }
 
-         /* compute distance between 2 output parameter sets */
+         /* compute max fractional distance between 2 output parameter sets */
 
          jtop = MIN( 9 , stup.wfunc_numpar ) ; jmax = 0 ;
          for( dmax=0.0f,jj=0 ; jj < jtop ; jj++ ){
@@ -6039,16 +6096,18 @@ STATUS("zeropad weight dataset") ;
            }
          }
 
-         if( dmax > 20.0*conv_rad )
+#define CHECK_TOL 50.0
+
+         if( dmax > CHECK_TOL*conv_rad )
            WARNING_message(
              "Check vs %s (%s): max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
-             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 100.0*CHECK_TOL*conv_rad ) ;
          else
            ININFO_message(
              "INFO:   Check vs %s (%s): max parameter discrepancy=%.4f%% tolerance=%.4f%%",
-             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 100.0*CHECK_TOL**conv_rad ) ;
          PAROUT("Check fit") ;
-         if( verb > 1 )
+         if( verb > 2 )
            ININFO_message("- Check net CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
                           COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
          if( do_allcost != 0 ){
@@ -6077,7 +6136,7 @@ STATUS("zeropad weight dataset") ;
          fprintf(stderr," + Median of Parameters =") ;
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) fprintf(stderr," %.6f",pval[jj]) ;
          fprintf(stderr,"\n") ;
-         if( meth_median_replace ){  /* replace final results with median! */
+         if( meth_median_replace ){  /* replace final results with median! NOT GOOD */
            ININFO_message("Replacing Final parameters with Median") ;
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_out = pval[jj] ;
@@ -6408,7 +6467,7 @@ mri_genalign_set_pgmat(1) ;
          meth_code == GA_MATCH_PEARSON_LOCALA   ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
          meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) &&
-        auto_weight != 1                              ){
+        (auto_weight != 1) && (dset_weig != NULL)      ){
       INFO_message("###########################################################");
       INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
       INFO_message("#   If your results are not good, please try again.       #");

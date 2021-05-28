@@ -1541,7 +1541,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
    double *wpar, *spar , val , vbest , *bpar , *qpar,*cpar , dist ;
    int ii , qq , twof , ss , nfr , icod , nt=0 , ngood ;
-#define NKEEP (2*PARAM_MAXTRIAL+1)
+#define NKEEP (3*PARAM_MAXTRIAL+1)
    double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
    int nk,kk,jj, ngrid,ngtot ;
    int ival[NKEEP] , rval[NKEEP] ; float fval[NKEEP] ;
@@ -1605,9 +1605,11 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
      if( ii < ngtot ){                     /* regular grid points */
+       double kp ;
        val = 0.5/(ngrid+1.0) ; ss = ii ;   /* in parameter space */
        for( qq=0 ; qq < nfr ; qq++ ){      /* ss = number in base ngrid */
-         kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
+         kk = ss % ngrid; ss = ss / ngrid;
+         kp = (kk==0) ? 0.5 : (kk+1.0) ; wpar[qq] = 0.5+kp*val;
        }
      } else {                              /* pseudo-random */
        if( mverb && ii == ngtot ) fprintf(stderr,"$") ;
