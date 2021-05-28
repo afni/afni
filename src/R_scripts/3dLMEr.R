@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.0, April 11, 2021
+Version 0.1.1, May 27, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1200,14 +1200,14 @@ if(lop$TRR) { # test-retest analysis
          stopCluster(cl)
       }
       # convert to 4D
-      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
       # remove the trailers (padded 0s)
       Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
    } else { # volumetric data
       Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) {
          for (kk in 1:dimz) {
-            if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+            if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
                DM=lop$dataStr, tag=0), c(2,3,1)) else
             Stat[,,kk,1] <- apply(inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
@@ -1219,7 +1219,7 @@ if(lop$TRR) { # test-retest analysis
          clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
-            if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+            if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
                DM=lop$dataStr, tag=0), c(2,3,1)) else
             Stat[,,kk,1] <- parApply(cl, inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
