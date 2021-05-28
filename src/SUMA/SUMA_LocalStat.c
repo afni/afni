@@ -17,10 +17,16 @@ static int SUMA_nstat_num (SUMA_DSET *din, int icol, float *fin_orig,
                            byte *nmask, byte strict_mask, int nnode,
                            SUMA_OFFSET_STRUCT *OffS_out, float rhood,
                            SUMA_DSET *dout, float * fout, int ndbg);
+static int SUMA_nstat_mode(SUMA_DSET *din, int icol, float *fin_orig,
+                           byte *nmask, byte strict_mask, int nnode,
+                           SUMA_OFFSET_STRUCT *OffS_out, float rhood,
+                           SUMA_DSET *dout, float * fout, int ndbg);
 static int SUMA_world_stats_node_dbg_f(SUMA_OFFSET_STRUCT * OffS_out,
                int node, int nval, int nnodes, char * lblcp,
                byte * nmask, byte strict_mask,
                float  rhood, float * fin_orig, float * fout);
+static int float_list_comp_mode( float_list *f, float *mode, int *nvals,
+                                 int *index );
 
 void SUMA_SurfClust_Set_Method(int m)
 {
@@ -2603,6 +2609,14 @@ SUMA_DSET *SUMA_CalculateLocalStats(
                   SUMA_RETURN(NULL);
                break;
             }
+            case NSTAT_MODE:
+            {
+               if( SUMA_nstat_mode(din, icols[k], fin_orig,
+                           nmask, strict_mask, SO->N_Node,
+                           OffS_out, rhood, dout, fout, ndbg) )
+                  SUMA_RETURN(NULL);
+               break;
+            }
             case NSTAT_NUM:
             {
                if( SUMA_nstat_num(din, icols[k], fin_orig,
@@ -2990,3 +3004,137 @@ static int SUMA_nstat_num( SUMA_DSET *din, int icol, float *fin_orig,
    SUMA_RETURN(0);
 }
 
+
+/* if strict mask, skip neighbors not in mask (generally 1) */
+static int SUMA_nstat_mode(SUMA_DSET *din, int icol, float *fin_orig,
+                           byte *nmask, byte strict_mask, int nnode,
+                           SUMA_OFFSET_STRUCT *OffS_out, float rhood,
+                           SUMA_DSET *dout, float * fout, int ndbg)
+{
+   static char   FuncName[]={"SUMA_nstat_mean"};
+   float_list    flist;
+   char         *lblcp=NULL;
+   int           node, bind, bnode; /* node index, neighb index, neighb node */
+   int           nvals, index;
+   
+   SUMA_ENTRY;
+      
+   /* verify that we have the expected inputs */
+   if( !din || !dout || !OffS_out || !fout ) {
+      SUMA_S_Errv("Bad nstat_mean data inputs: din=%p, dout=%p, "
+                  "OffS_out=%p, fout=%p\n",
+                  din, dout, OffS_out, fout);
+      SUMA_RETURN(1);
+   }
+
+   if( icol < 0 || rhood < 0.0f || nnode < 0 ) {
+      SUMA_S_Errv("Bad nstat_mean val inputs: icol=%d, rhood=%f, nnode=%d\n",
+                  icol, rhood, nnode);
+      SUMA_RETURN(1);
+   }
+
+   lblcp = SUMA_DsetColLabelCopy(din, icol, 1); 
+   lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
+   if (!SUMA_AddDsetNelCol(dout, lblcp, SUMA_NODE_FLOAT, 
+                           (void *)fout, NULL ,1)) {
+      SUMA_S_Crit("Failed to add dset column");
+      SUMA_RETURN(1);
+   }
+
+   /* prepare float list for mode, size can be modified later */
+   init_float_list(&flist, 256);
+
+   /* SUMA_LH ends in '}', so skip ';' or enclose in {} */
+   if (nmask) { SUMA_LH("Have mask"); }
+   else       { SUMA_LH("No mask"); }
+
+   for (node=0; node < nnode; ++node) {
+      /* skip node (pass on value) if we are not in mask */
+      if( nmask && !nmask[node] ) {
+         fout[node] = fin_orig[node];
+         continue;
+      }
+
+      /* make list of values, sort, find most common */
+      clear_float_list(&flist);
+
+      add_to_float_list(&flist, fin_orig[node], 256);
+      for (bind=0; bind<OffS_out[node].N_Neighb; ++bind) {
+         bnode = OffS_out[node].Neighb_ind[bind];
+
+         /* if strict mask, skip neighbors not in mask */
+         if ( strict_mask && nmask && !nmask[bnode] )
+            continue;
+         if (OffS_out[node].Neighb_dist[bind] <= rhood) { 
+            add_to_float_list(&flist, fin_orig[bnode], 256);
+         }
+      }/* for bind*/
+
+      float_list_comp_mode( &flist, fout+node, &nvals, &index );
+
+      if (node == ndbg ) {
+         SUMA_world_stats_node_dbg_f(OffS_out, node, fout[node], nnode, lblcp,
+                  nmask, strict_mask, rhood, fin_orig, fout);
+         fprintf(SUMA_STDERR, "++ dnode %d: mode %f, nvals %d, index %d\n",
+                 node, fout[node], nvals, index);
+      }
+
+   } /* for node */
+   SUMA_free(lblcp); lblcp = NULL;
+
+   SUMA_RETURN(0);
+}
+
+/*----------------------------------------------------------------------
+ * float_list_comp_mode         - sort list and compute mode
+ *
+ * return  0 : on success
+ *        -1 : on error
+ *----------------------------------------------------------------------
+*/
+static int float_list_comp_mode( float_list *f, float *mode, int *nvals,
+                                 int *index )
+{
+    static char FuncName[]={"float_list_comp_mode"};
+    float       fcur;
+    int         ncur, c;
+
+SUMA_ENTRY;
+
+    if( f->num <= 0 ) SUMA_RETURN(0);
+
+    /* start by sorting the list */
+    if( f->num > 1 ) qsort_float(f->num, f->list);
+
+    /* init default results */
+    *nvals = ncur = 1;
+    *mode  = fcur = f->list[0];
+    *index = 0;
+
+    for ( c = 1; c < f->num; c++ )
+    {
+        if ( f->list[c] == fcur )
+            ncur ++;
+        else                        /* found a new entry to count   */
+        {
+            if ( ncur > *nvals )     /* keep track of any new winner */
+            {
+                *mode  = fcur;
+                *nvals = ncur;
+                *index = c - ncur;   /* note first occurrence */
+            }
+
+            fcur = f->list[c];
+            ncur = 1;
+        }
+    }
+
+    if ( ncur > *nvals )     /* keep track of any new winner */
+    {
+        *mode  = fcur;
+        *nvals = ncur;
+        *index = c - ncur;   /* note first occurrence */
+    }
+
+    SUMA_RETURN(0);
+}

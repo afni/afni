@@ -131,6 +131,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
          else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
          else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
+         else if( strcasecmp(cpt,"mode")  == 0 ) code[ncode++] = NSTAT_MODE  ;
          else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
          else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
          else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
@@ -140,7 +141,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          else if( strcasecmp(cpt,"ALL")   == 0 ){
             code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
             code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
-            code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
+            code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MODE  ;
+            code[ncode++] = NSTAT_MAD   ;
             code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
             code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
             code[ncode++] = NSTAT_FWHMx ; 
