@@ -55,12 +55,6 @@ float getObjectMinMaxForAxes(float objectMinMax[][2]){
             if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
         }
     }
-
-    // Debug
-    fprintf(stderr, "Num. existing objects: %d\n", SUMAg_N_DOv);
-    for (int i=0; i<3; ++i){
-        fprintf(stderr, "Min/Max(%d) = %f/%f\n", i, objectMinMax[i][0], objectMinMax[i][1]);
-    }
 }
 
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
@@ -84,13 +78,6 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
         }
     }
 
-    /*
-    // Debug
-    for (int i=0; i<3; ++i){
-        fprintf(stderr, "Max[%d] = %f, Min[%d] = %f\n", i, SO->MaxDims[i], i, SO->MinDims[i]);
-    }
-    */
-
     // Update overall min and max
     for (int i=0; i<3; ++i){
         if (SO->MaxDims[i]<SO->MinDims[i]){
@@ -104,6 +91,20 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
         SO->aMaxDims = MIN(100.0, SO->aMaxDims);
         SO->aMinDims = MAX(-100.0, SO->aMinDims);
     }
+}
+
+void determineCornersOfSquare(SUMA_SurfaceObject *SO){
+    /*!< The maximum along each of the XYZ dimensions */
+    SO->MaxDims[0] = objectAxesRanges[0][1];
+    SO->MaxDims[1] = objectAxesRanges[1][1];
+    SO->MaxDims[2] = objectAxesRanges[2][1];
+    SO->MinDims[0] = objectAxesRanges[0][0];
+    SO->MinDims[1] = objectAxesRanges[1][0];
+    SO->MinDims[2] = objectAxesRanges[2][0];
+    SO->aMinDims = (SO->MinDims[0]<SO->MinDims[1])? MIN(SO->MinDims[0], SO->MinDims[2]) :
+        MIN(SO->MinDims[1], SO->MinDims[2]);
+    SO->aMaxDims = (SO->MaxDims[0]>SO->MaxDims[1])? MAX(SO->MaxDims[0], SO->MaxDims[2]) :
+        MIN(SO->MaxDims[1], SO->MaxDims[2]);
 }
 
 #define DARK_COLOR 0.4
@@ -170,7 +171,6 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     fprintf(stderr, "clipIdentificationPlane[5].Overlays = %p\n", clipIdentificationPlane[5]->Overlays);
     fprintf(stderr, "clipIdentificationPlane[0].Overlays[0] = %p\n", clipIdentificationPlane[0]->Overlays[0]);
     fprintf(stderr, "clipIdentificationPlane[5].Overlays[0] = %p\n", clipIdentificationPlane[5]->Overlays[0]);
-
 
     // Debug
     if (clipIdentificationPlane[0]){
@@ -312,7 +312,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SO->do_type = SO_type;
     SO->SurfCont = NULL;
 
-    dimensionsInscribeThoseOfPreviousSurfaceObjects(SO);
+    // dimensionsInscribeThoseOfPreviousSurfaceObjects(SO);
+    determineCornersOfSquare(SO);
 
     // SO->EmbedDim = 2;
     SO->Side = SUMA_GuessSide (SO);
@@ -707,9 +708,6 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     // Get bitangent which is the cross product of the tangent and the normal
     crossProduct(tangent, normal, bitangent);
 
-    // Add mean, of each axis, to plane origin
-    // for (int i=0; i<3; ++i) planeOrigin[i] -= (axisMinMax[i][0]*tangent[i] + axisMinMax[i][1]*bitangent[i])/2;
-
     // Get points from tangent and bitangent
     float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
     for (int i=0; i<3; ++i){
@@ -717,17 +715,6 @@ void getSquareOnPlane(float *plane, float points[4][3]){
         points[1][i]=planeOrigin[i]+overallMax*tangent[i]+overallMax*bitangent[i];
         points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
         points[3][i]=planeOrigin[i]-overallMax*tangent[i]-overallMax*bitangent[i];
-#if 0
-        points[0][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]-axisMinMax[i][0]*bitangent[i];
-        points[1][i]=planeOrigin[i]+axisMinMax[i][1]*tangent[i]+axisMinMax[i][1]*bitangent[i];
-        points[2][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]+axisMinMax[i][1]*bitangent[i];
-        points[3][i]=planeOrigin[i]-axisMinMax[i][0]*tangent[i]-axisMinMax[i][0]*bitangent[i];
-        fprintf(stderr, "Points[%d] = (%f, %f, %f, %f)\n", i, points[0][i], points[1][i], points[2][i], points[3][i]);
-        points[0][i]=planeOrigin[i]+100.0*(tangent[i]-bitangent[i]);
-        points[1][i]=planeOrigin[i]+100.0*(tangent[i]+bitangent[i]);
-        points[2][i]=planeOrigin[i]+100.0*(-tangent[i]+bitangent[i]);
-        points[3][i]=planeOrigin[i]+100.0*(-tangent[i]-bitangent[i]);
-#endif
     }
 }
 
@@ -868,14 +855,19 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
 
     // Set up normal offset loactions s.t. clipping planes just enclose existing objects
     if (firstCall)  {
+        // Get ranges of orthogonal axes
         getObjectMinMaxForAxes(objectMinMax);
 
+        // These ranges determine
         planeD[0] = -objectMinMax[2][0];
         planeD[3] = objectMinMax[2][1];
         planeD[1] = objectMinMax[1][1];
         planeD[4] = -objectMinMax[1][0];
         planeD[2] = -objectMinMax[0][0];
         planeD[5] = objectMinMax[0][1];
+
+        // Store previous object axes ranges as gloabl for clipping plane functions
+        memcpy(objectAxesRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
     }
 
@@ -996,6 +988,7 @@ void crossProduct(float input1[], float input2[], float output[]){
 }
 
 void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax){
+/**/
     objectMinMax[0] = 1000.0;
     objectMinMax[1] = -1000.0;
 
@@ -1015,6 +1008,8 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
             }
         }
     }
+    /**/
+    // memcpy(axisMinMax, objectAxesRanges, 6*sizeof(float));
 
     // Account for possibility of no valid surface objects
     if (objectMinMax[0] > objectMinMax[1]){
@@ -5527,7 +5522,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                 for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                     if (clipPlaneIdentificationMode){
-                        clipIdentificationPlane[planeIndex]->Show = 1;
+                        if (active[planeIndex]) clipIdentificationPlane[planeIndex]->Show = 1;
                     } else {
                         clipIdentificationPlane[planeIndex]->Show = 0;
                     }
