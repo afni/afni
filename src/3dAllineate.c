@@ -6105,7 +6105,7 @@ STATUS("zeropad weight dataset") ;
          else
            ININFO_message(
              "INFO:   Check vs %s (%s): max parameter discrepancy=%.4f%% tolerance=%.4f%%",
-             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 100.0*CHECK_TOL**conv_rad ) ;
+             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 100.0*CHECK_TOL*conv_rad ) ;
          PAROUT("Check fit") ;
          if( verb > 2 )
            ININFO_message("- Check net CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
