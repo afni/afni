@@ -880,6 +880,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "               starting point, and the identity transformation is\n"
      "               used as the starting point.  [Default=%d; min=0 max=%d]\n"
      "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
+     "               Setting bb = 'MAX' will make it be the max allowed value.\n"
      "\n"
      " -fineblur x = Set the blurring radius to use in the fine resolution\n"
      "               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
@@ -1118,7 +1119,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
-       "                 [Default=1.2=image can go up or down 20%% in size]\n"
+       "                 [Default=1.4=image can go up or down 40%% in size]\n"
      "\n"
        " -maxshr dd    = Allow maximum shearing factor to be 'dd'. Equivalent\n"
        "                 to '-parang 10 -dd dd -parang 11 -dd dd -parang 12 -dd dd'\n"
@@ -2860,6 +2861,8 @@ int main( int argc , char *argv[] )
        if( tbest < 0 ){
          WARNING_message("-twobest %d is illegal: replacing with 0",tbest) ;
          tbest = 0 ;
+       } else if( strncasecmp(argv[iarg],"MAX",3) == 0 ){  /* 28 May 2021 */
+         tbest = PARAM_MAXTRIAL ;
        } else if( tbest > PARAM_MAXTRIAL ){
          INFO_message("-twobest %d is too big: replaced with %d",tbest,PARAM_MAXTRIAL) ;
          tbest = PARAM_MAXTRIAL ;
@@ -3178,7 +3181,7 @@ int main( int argc , char *argv[] )
        if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options :-(") ;
        vv = (float)strtod(argv[iarg],&cpt) ;
        if( *cpt == '%' ) vv = 1.0f + 0.01*vv ;
-       if( vv == 1.0f || vv > 2.0f || vv < 0.5f )
+       if( vv == 1.0f || vv > 2.5f || vv < 0.4f )
          ERROR_exit("-maxscl %f is illegal :-(",vv) ;
        if( vv > 1.0f ){ vvi = 1.0f/vv; }
        else           { vvi = vv ; vv = 1.0f/vvi ; }
@@ -4489,7 +4492,7 @@ STATUS("zeropad weight dataset") ;
 
      /* scales = the next 3 */
 
-     rval = (do_small) ? 0.9f : 0.833f ; sval = 1.0f / rval ;
+     rval = (do_small) ? 0.85f : 0.711f ; sval = 1.0f / rval ;
      DEFPAR( 6, "x-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /* identity */
      DEFPAR( 7, "y-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
      DEFPAR( 8, "z-scale" , rval , sval , 1.0 , 0.0 , 0.0 ) ;
@@ -6096,7 +6099,7 @@ STATUS("zeropad weight dataset") ;
            }
          }
 
-#define CHECK_TOL 50.0
+#define CHECK_TOL 99.0
 
          if( dmax > CHECK_TOL*conv_rad )
            WARNING_message(
