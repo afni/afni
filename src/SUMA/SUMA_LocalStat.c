@@ -3011,7 +3011,7 @@ static int SUMA_nstat_mode(SUMA_DSET *din, int icol, float *fin_orig,
                            SUMA_OFFSET_STRUCT *OffS_out, float rhood,
                            SUMA_DSET *dout, float * fout, int ndbg)
 {
-   static char   FuncName[]={"SUMA_nstat_mean"};
+   static char   FuncName[]={"SUMA_nstat_mode"};
    float_list    flist;
    char         *lblcp=NULL;
    int           node, bind, bnode; /* node index, neighb index, neighb node */

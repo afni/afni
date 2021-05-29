@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, May, 2021, RCR, "SurfLocalstat", MICRO, TYPE_NEW_OPT,
+   "add 'mode' stat modal smoothing",
+   NULL
+ } ,
+
  { 19, May, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix volreg TSNR computation in surface analysis (TSNR still in volume)",
    NULL
