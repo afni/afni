@@ -7911,9 +7911,9 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     # add commands to move or copy results out of awpy directory
 
     # resulting files under awpy:
-    #    PREFIX.aw.nii           : final NL-warped anat
-    #    anat.un.aff.qw_WARP.nii : final NL warp
-    #    anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
+    #    PREFIX.aw.nii*           : final NL-warped anat
+    #    anat.un.aff.qw_WARP.nii* : final NL warp
+    #    anat.un.aff.Xat.1D       : @auto_tlrc warp (not -ONELINE)
     # and copy back to results dir in AFNI format?
     #    - use 3dbucket to "rename" anat result, preserving history
     #    - move the warp files out of awpy
@@ -7921,9 +7921,10 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
 
     proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
 
+    # [PT: May 30, 2021] auto_warp.py to work in *.nii.gz now
     # if no unifize, xmat strings will not have .un
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
-    proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
+    proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii.gz' % uxstr
 
     proc.anat_warps.append(proc.nlw_aff_mat)
     proc.anat_warps.append(proc.nlw_NL_mat)
