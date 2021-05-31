@@ -12,6 +12,12 @@
 #    @clip_volume  @global_parse  @parse_afni_name  afni  cat_matvec  ccalc
 # ---------------------------------------------------------------------------
 
+# [PT: May 30, 2021] add new opt '-use_gz'.  This allows final dset to be
+#                    gzipped even when using '-suffix ..'.  This is needed
+#                    for auto_warp.py to be able to be used happily, because
+#                    now it will use *.nii.gz volumes, instead of *.nii
+#                    because of current AFNI_COMPRESSOR behavior (gzips *.nii)
+
 
 PARSE: 
    #exit status
@@ -98,7 +104,7 @@ PARSE:
          set OneWarp = 0
          set donext = 0   
       endif
-      
+
       if ($donext && "$argv[$cnt]" == "-init_xform") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -371,16 +377,26 @@ PARSE:
          set KeepTmp = 1      
          set donext = 0      
       endif
+
       if ($donext && "$argv[$cnt]" == "-rigid_equiv") then
          set acpciate = 1      
          set donext = 0      
       endif
+
       if ($donext && "$argv[$cnt]" == "-clean") then
          echo 'Cleanup...'
          set Ret_Clean = END
          goto CLEANUP      
          set donext = 0      
       endif
+
+      # [PT: May 30, 2021] need this to be able to use gzipped
+      # datasets when we use "-suffix ..", instead of "-prefix .."
+      if ($donext && "$argv[$cnt]" == "-use_gz") then
+         set gz = ".gz"
+         set donext = 0      
+      endif
+
       if ($donext && "$argv[$cnt]" == "-3dAllineate") then
          set warpdrive_method = "3dAllineate"      
          set donext = 0
@@ -1858,6 +1874,10 @@ echo "                           You can use ./ for COPY_PREFIX if you"
 echo "                           want the copy to have the same name as the"
 echo "                           template."
 echo "   -base_list     : List the full path of the base dataset"
+echo "   -use_gz        : When using '-suffix ..', behave as if you had"
+echo "                    provided a prefix with '*.gz' at the end."
+echo "                    Useful if your '-suffix'-specified output will"
+echo "                    be NIFTI, and you want it zipped"
 echo "   -verb          :  Yakiti yak yak" 
 echo ""
 echo ""

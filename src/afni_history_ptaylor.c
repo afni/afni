@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
+   "Tweak db_mod.py: prep for auto_warp.py to now always use *.nii.gz.",
+   "Just mv *.nii.gz files, rather than *.nii, from auto_warp output dir.\n"
+},
+
+{ 30, May , 2021 , PT , "auto_warp.py" , MINOR , TYPE_GENERAL,
+   "Use *.nii.gz, not *.nii, because of current AFNI_COMPRESSOR = GZIP.",
+   "With current AFNI_COMPRESSOR = GZIP, get problems; now, no more.\n"
+},
+
+{ 30, May , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
+   "New opt '-use_gz' to output gzipped NIFTI even with '-suffix ..'.",
+   "Part of updating auto_warp.py to use *.nii.gz, not *.nii.\n"
+},
+
 { 24, May , 2021 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
    "Several small updates for convenience and organization: help updated...",
    "more QC images; split intermediate text desc; new cmd_log.\n"
