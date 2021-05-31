@@ -1911,12 +1911,21 @@ static char *gby[] = {
 
      "I always advise people never to give advice"                                     ,
 
+     /* Ben Franklin (sort of) [30 May 2021] */
+
+     "He that falls in love with himself will have no rivals"                          ,
+     "Data well gathered is better than data well cleaned up"                          ,
+     "Never confuse beautiful abstractions with hard reality"                          ,
+     "Never mistake a beautiful brain map with the truth of the brain's operation"     ,
+
      /* Misc */
 
     "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
 
     "\n  It is not enough to be in the right place at the right time.\n"
     "    You should also have an open mind at the right time"                               ,  /* 12 May 2021 */
+
+    "The mountains are calling, and I must go"                                              ,  /* 30 May 2021 */
 
     /* Keep this one last */
 

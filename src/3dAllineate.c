@@ -2081,6 +2081,7 @@ int main( int argc , char *argv[] )
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
    int    do_cmass             = 0 ;            /* 30 Jul 2007 */
+   int    big_cmass            = 0 ;            /* 29 May 2021 */
    int    do_refinal           = 1 ;            /* 14 Nov 2007 */
    int    use_realaxes         = 0 ;            /* 10 Oct 2014 */
 
@@ -2863,6 +2864,8 @@ int main( int argc , char *argv[] )
          tbest = 0 ;
        } else if( strncasecmp(argv[iarg],"MAX",3) == 0 ){  /* 28 May 2021 */
          tbest = PARAM_MAXTRIAL ;
+         if( verb > 1 )
+           INFO_message("-twobest MAX ==> %d",PARAM_MAXTRIAL) ;
        } else if( tbest > PARAM_MAXTRIAL ){
          INFO_message("-twobest %d is too big: replaced with %d",tbest,PARAM_MAXTRIAL) ;
          tbest = PARAM_MAXTRIAL ;
@@ -3870,6 +3873,17 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
+   if( twopass && tbest < PARAM_MAXTRIAL ){  /* 29 May 2021 */
+     float vol_targ , vol_base ;
+     vol_targ = (nx_targ*dx_targ)*(ny_targ*dy_targ)*(nz_targ*dz_targ) ;
+     vol_base = (nx_base*dx_base)*(ny_base*dy_base)*(nz_base*dz_base) ;
+     if( vol_targ > 1.3f*vol_base || big_cmass ){
+       tbest = PARAM_MAXTRIAL ;
+       if( verb > 1 )
+         INFO_message("largeness ==> set -twobest %d",PARAM_MAXTRIAL) ;
+     }
+   }
+
    /* 2D image registration? */
 
    doing_2D = (nz_base == 1) ;          /* 28 Apr 2020 */
@@ -3879,7 +3893,7 @@ int main( int argc , char *argv[] )
    if( !APPLYING ){                     /* 13 Mar 2017 */
      nnz = mri_nonzero_count(im_base) ;
      if( nnz < 100 )
-       ERROR_exit("3dAllineate fails :: base image has %d nonzero voxel%s (< 100)",
+       ERROR_exit("3dAllineate fails :: base image has only %d nonzero voxel%s (< 100)",
                   nnz , (nnz==1) ? "\0" : "s" ) ;
    }
 
@@ -4434,11 +4448,15 @@ STATUS("zeropad weight dataset") ;
 
    /* WARNING message if unused cmass shifts are large compared to search range */
 
-   if( ! do_cmass ){         /* 26 Feb 2020 */
+   if( 1 ){                 /* 29 May 2021 */
      float rrr ;
      rrr = fabsf(xxc)/xxx ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
      rrr = fabsf(yyc)/yyy ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
      rrr = fabsf(zzc)/zzz ; CMbad += (rrr < 0.20f) ? 0 : (rrr < 0.5f) ? 1 : 100 ;
+     big_cmass = (CMbad > 2) ;
+   }
+
+   if( !do_cmass ){         /* 26 Feb 2020 */
      if( CMbad > 0 && CMbad < 100 ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
        WARNING_message("  - at least one is more than 20%% of search range") ;
@@ -5575,10 +5593,8 @@ STATUS("zeropad weight dataset") ;
          if( verb > 1 )
            ININFO_message(" - Set %s parameters back to purity before Final iterations",
                           meth_shortname[meth_code-1] ) ;
-         rad *= 6.666f ;
-       } else {
-         rad *= 3.666f ;
        }
+       rad *= 7.777f ;
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
        nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
        powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
