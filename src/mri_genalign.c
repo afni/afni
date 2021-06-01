@@ -1671,12 +1671,12 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
    if( mverb ) fprintf(stderr," + - A little optimization:") ;
-   maxstep = 11*nfr+17 ; if( maxstep < 99 ) maxstep = 99 ;
+   maxstep = 11*nfr+17 ; /** if( maxstep < 99 ) maxstep = 99 ; **/
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      RAND_ROUND ;
      neval[kk] = powell_newuoa( nfr , kpar[kk] ,
-                                0.05 , 0.005 , maxstep , GA_scalar_fitter ) ;
+                                0.05 , 0.001 , maxstep , GA_scalar_fitter ) ;
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
      if( mverb ) fprintf(stderr,".") ;

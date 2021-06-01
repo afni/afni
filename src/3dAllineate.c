@@ -5306,7 +5306,7 @@ STATUS("zeropad weight dataset") ;
 
              /* optimize a little */
 
-             nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 111 ) ;
+             nfunc += mri_genalign_scalar_optim( &stup, rad, 0.01*rad, 99 ) ;
 
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save optimized params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
@@ -5368,7 +5368,7 @@ STATUS("zeropad weight dataset") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          powell_set_mfac( 2.0f , 1.0f ) ;  /* 07 Jun 2011 */
          /* optimize pass 1 */
-         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 444 ) ;
+         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.001 , 444 ) ;
          if( verb > 2 ) PAROUT("--(a)") ;
          /* optimize pass 2 */
          stup.npt_match = ntask / 7 ;
@@ -5376,13 +5376,13 @@ STATUS("zeropad weight dataset") ;
          stup.smooth_radius_base *= 0.456 ;
          stup.smooth_radius_targ *= 0.456 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-         nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.00333 , 444 ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.001 , 444 ) ;
          if( verb > 2 ) PAROUT("--(b)") ;
          /* optimize pass 2 */
          stup.smooth_radius_base *= 0.456 ;
          stup.smooth_radius_targ *= 0.456 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-         nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.00166 , 444 ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.001 , 444 ) ;
          if( verb > 2 ) PAROUT("--(c)") ;
          if( verb > 1 ) ININFO_message("- Coarse net CPU time = %.1f s; %d funcs",
                                        COX_cpu_time()-ctim,nfunc) ;
@@ -5489,7 +5489,7 @@ STATUS("zeropad weight dataset") ;
          for( ib=0 ; ib < tfdone ; ib++ ){
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-           nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0222*rad,
+           nfunc = mri_genalign_scalar_optim( &stup, rad, 0.01*rad,
                                               (ib==tfdone-1) ? 2*num_rtb : num_rtb );
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )       /* save refined */
              ffparm[ib][jj] = stup.wfunc_param[jj].val_out ; /* parameters */
@@ -5540,7 +5540,7 @@ STATUS("zeropad weight dataset") ;
        if( verb > 1 ) ININFO_message("- start Intermediate optimization") ;
        /*** if( verb > 2 ) GA_do_params(1) ; ***/
 
-       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 333 );
+       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.01*rad, 333 );
 
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
@@ -5597,7 +5597,7 @@ STATUS("zeropad weight dataset") ;
            ININFO_message(" - Set %s parameters back to purity before Final iterations",
                           meth_shortname[meth_code-1] ) ;
        }
-       rad = 0.0666 ;
+       rad = 0.0666 ;  /* start with a wide trust region */
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
        nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
        powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
