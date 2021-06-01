@@ -458,8 +458,10 @@ L100:
     if (dnorm < half * rho) {
 	knew = -1;
 	delta = tenth * delta;
+fprintf(stderr,"  delta/10") ;
 	ratio = -1.;
 	if (delta <= rho * 1.5) {
+fprintf(stderr,"  delta=rho") ;
 	    delta = rho;
 	}
 fprintf(stderr,"  delta=%.14g",delta) ;
@@ -787,17 +789,21 @@ fprintf(stderr,"  fopt=%.14g",fopt) ;
     }
     ratio = (f - fsave) / vquad;
     if (ratio <= tenth) {
+fprintf(stderr,"  delta=dnorm/2") ;
 	delta = half * dnorm;
     } else if (ratio <= .7) {
 /* Computing MAX */
+fprintf(stderr,"  delta=max(delta/2,dnorm)") ;
 	d__1 = half * delta;
 	delta = AFmax(d__1,dnorm);
     } else {
 /* Computing MAX */
 	d__1 = half * delta, d__2 = dnorm + dnorm;
 	delta = AFmax(d__1,d__2);
+fprintf(stderr,"  delta=max(delta/2,dnorm*2)") ;
     }
     if (delta <= rho * 1.5) {
+fprintf(stderr,"  delta=RHO") ;
 	delta = rho;
     }
 fprintf(stderr,"  delta=%.14g",delta) ;
@@ -1053,9 +1059,12 @@ L490:
 	ratio = rho / *rhoend;
 	if (ratio <= 16.) {
 	    rho = *rhoend;
+fprintf(stderr,"  ratio<16") ;
 	} else if (ratio <= 250.) {
+fprintf(stderr,"  ratio<250") ;
 	    rho = sqrt(ratio) * *rhoend;
 	} else {
+fprintf(stderr,"  ratio=other") ;
 	    rho = tenth * rho;
 	}
 	delta = AFmax(delta,rho);
