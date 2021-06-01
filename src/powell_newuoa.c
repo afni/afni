@@ -359,11 +359,11 @@ L70:
     if (nf == 1) {
 	fbeg = f;
 	fopt = f;
-fprintf(stderr,"\nInitialize fopt=%g ;\n",fopt) ;
+fprintf(stderr,"\nInitialize fopt=%.14g ;\n",fopt) ;
 	kopt = 1;
     } else if (f < fopt) {
 	fopt = f;
-fprintf(stderr,"  fopt=%g",fopt) ;
+fprintf(stderr,"  fopt=%.14g",fopt) ;
 	kopt = nf;
     }
 
@@ -418,6 +418,7 @@ s and*/
 
     rho = *rhobeg;
     delta = rho;
+fprintf(stderr,"  rho=delta=%.14g",delta) ;
     idz = 1;
     diffa = zero;
     diffb = zero;
@@ -461,6 +462,7 @@ L100:
 	if (delta <= rho * 1.5) {
 	    delta = rho;
 	}
+fprintf(stderr,"  delta=%.14g",delta) ;
 	if (nf <= nfsav + 2) {
 	    goto L460;
 	}
@@ -758,7 +760,7 @@ e*/
     fsave = fopt;
     if (f < fopt) {
 	fopt = f;
-fprintf(stderr,"  fopt=%g",fopt) ;
+fprintf(stderr,"  fopt=%.14g",fopt) ;
 	xoptsq = zero;
 	i__1 = *n;
 	for (i__ = 1; i__ <= i__1; ++i__) {
@@ -798,6 +800,7 @@ fprintf(stderr,"  fopt=%g",fopt) ;
     if (delta <= rho * 1.5) {
 	delta = rho;
     }
+fprintf(stderr,"  delta=%.14g",delta) ;
 
 /*    Set KNEW to the index of the next interpolation point to be deleted.
 */
@@ -1056,6 +1059,7 @@ L490:
 	    rho = tenth * rho;
 	}
 	delta = AFmax(delta,rho);
+fprintf(stderr,"  rho=%.14g delta=%.14g",rho,delta) ;
 /* CC          IF (IPRINT .GE. 2) THEN */
 /* CC              IF (IPRINT .GE. 3) PRINT 500 */
 /* CC  500         FORMAT (5X) */
@@ -1084,7 +1088,7 @@ L530:
 	    x[i__] = xbase[i__] + xopt[i__];
 	}
 	f = fopt;
-fprintf(stderr," ; final set f=%g",f) ;
+fprintf(stderr," ; final set f=%.14g",f) ;
     }
 /* CC      IF (IPRINT .GE. 1) THEN */
 /* CC          PRINT 550, NF */
@@ -1095,7 +1099,7 @@ fprintf(stderr," ; final set f=%g",f) ;
     if (*icode == 0) {
 	*icode = nf;
     }
-fprintf(stderr," ; return f=%g\n",f) ;
+fprintf(stderr," ; return f=%.14g\n",f) ;
     return 0;
 } /* newuob_ */
 
