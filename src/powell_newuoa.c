@@ -17,6 +17,7 @@
 #define STATIC /*static*/   /*** disable use of static internal variables ***/
                             /*** all local variables instead init to =0   ***/
 
+#include <stdio.h>
 #include "f2c.h"
 
 /* CC      SUBROUTINE NEWUOA (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,W) */
@@ -358,9 +359,11 @@ L70:
     if (nf == 1) {
 	fbeg = f;
 	fopt = f;
+fprintf(stderr,"\nInitialize fopt=%g ;\n",fopt) ;
 	kopt = 1;
     } else if (f < fopt) {
 	fopt = f;
+fprintf(stderr,"  fopt=%g",fopt) ;
 	kopt = nf;
     }
 
@@ -755,6 +758,7 @@ e*/
     fsave = fopt;
     if (f < fopt) {
 	fopt = f;
+fprintf(stderr,"  fopt=%g",fopt) ;
 	xoptsq = zero;
 	i__1 = *n;
 	for (i__ = 1; i__ <= i__1; ++i__) {
@@ -1080,6 +1084,7 @@ L530:
 	    x[i__] = xbase[i__] + xopt[i__];
 	}
 	f = fopt;
+fprintf(stderr," ; final set f=%g",f) ;
     }
 /* CC      IF (IPRINT .GE. 1) THEN */
 /* CC          PRINT 550, NF */
@@ -1090,6 +1095,7 @@ L530:
     if (*icode == 0) {
 	*icode = nf;
     }
+fprintf(stderr," ; return f=%g\n",f) ;
     return 0;
 } /* newuob_ */
 
