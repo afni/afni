@@ -354,7 +354,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SUMA_BLANK_NEW_SPEC_SURF*/
     sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
     SO->State = SUMA_copy_string(sid);
-    sprintf(sid, "surf_%d", Opt->obj_type);
+    sprintf(sid, "clippingPlaneIdentificationSquare_%d", Opt->obj_type);
     SO->Label = SUMA_copy_string(sid);
     SO->EmbedDim = 3;
     SO->AnatCorrect = NOPE;
@@ -1008,8 +1008,6 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
             }
         }
     }
-    /**/
-    // memcpy(axisMinMax, objectAxesRanges, 6*sizeof(float));
 
     // Account for possibility of no valid surface objects
     if (objectMinMax[0] > objectMinMax[1]){
@@ -7327,6 +7325,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
       switch (rButton) { /* switch type of button Press */
+      fprintf(stderr, "R button pressed\n");
          case Button3:
             if (LocalHead)
                fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName);
@@ -10224,6 +10223,11 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   if (strstr(SO->Label, "clippingPlaneIdentificationSquare_")){
+    fprintf(stderr, "Clipping plane identification squares may not be selected.\n");
+    return (0);
+   }
 
    // fprintf(stderr, "%s\n", FuncName);
 
