@@ -95,12 +95,12 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO){
     /*!< The maximum along each of the XYZ dimensions */
-    SO->MaxDims[0] = objectAxesRanges[0][1];
-    SO->MaxDims[1] = objectAxesRanges[1][1];
-    SO->MaxDims[2] = objectAxesRanges[2][1];
-    SO->MinDims[0] = objectAxesRanges[0][0];
-    SO->MinDims[1] = objectAxesRanges[1][0];
-    SO->MinDims[2] = objectAxesRanges[2][0];
+    SO->MaxDims[0] = clippingPlaneAxisRanges[0][1];
+    SO->MaxDims[1] = clippingPlaneAxisRanges[1][1];
+    SO->MaxDims[2] = clippingPlaneAxisRanges[2][1];
+    SO->MinDims[0] = clippingPlaneAxisRanges[0][0];
+    SO->MinDims[1] = clippingPlaneAxisRanges[1][0];
+    SO->MinDims[2] = clippingPlaneAxisRanges[2][0];
     SO->aMinDims = (SO->MinDims[0]<SO->MinDims[1])? MIN(SO->MinDims[0], SO->MinDims[2]) :
         MIN(SO->MinDims[1], SO->MinDims[2]);
     SO->aMaxDims = (SO->MaxDims[0]>SO->MaxDims[1])? MAX(SO->MaxDims[0], SO->MaxDims[2]) :
@@ -867,7 +867,7 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
         planeD[5] = objectMinMax[0][1];
 
         // Store previous object axes ranges as gloabl for clipping plane functions
-        memcpy(objectAxesRanges, objectMinMax, 6*sizeof(float));
+        memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
     }
 

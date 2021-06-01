@@ -206,7 +206,7 @@ static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
-static float objectAxesRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
+static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
 float getObjectMinMaxForAxes(float objectMinMax[][2]);
