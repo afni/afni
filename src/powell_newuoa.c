@@ -141,9 +141,9 @@ ion.*/
 	doublereal *vlag, doublereal *w, integer *icode)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
-	    zmat_offset, i__1, i__2, i__3;
-    doublereal d__1, d__2, d__3;
+    integer xpt_dim1=0, xpt_offset=0, bmat_dim1=0, bmat_offset=0, zmat_dim1=0,
+	    zmat_offset=0, i__1=0, i__2=0, i__3=0;
+    doublereal d__1=0, d__2=0, d__3=0;
 
     /* Builtin functions */
     double sqrt(doublereal);
@@ -1099,8 +1099,8 @@ L530:
 	doublereal *hd, doublereal *hs, doublereal *crvmin)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, i__1, i__2;
-    doublereal d__1, d__2;
+    integer xpt_dim1=0, xpt_offset=0, i__1=0, i__2=0;
+    doublereal d__1=0, d__2=0;
 
     /* Builtin functions */
     double atan(doublereal), sqrt(doublereal), cos(doublereal), sin(
@@ -1453,8 +1453,8 @@ L170:
 	doublereal *beta, integer *knew, doublereal *w)
 {
     /* System generated locals */
-    integer bmat_dim1, bmat_offset, zmat_dim1, zmat_offset, i__1, i__2;
-    doublereal d__1, d__2;
+    integer bmat_dim1=0, bmat_offset=0, zmat_dim1=0, zmat_offset=0, i__1=0, i__2=0;
+    doublereal d__1=0, d__2=0;
 
     /* Builtin functions */
     double sqrt(doublereal);
@@ -1651,10 +1651,10 @@ er.*/
 	doublereal *wvec, doublereal *prod)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
-	    zmat_offset, wvec_dim1, wvec_offset, prod_dim1, prod_offset, i__1,
-	     i__2;
-    doublereal d__1;
+    integer xpt_dim1=0, xpt_offset=0, bmat_dim1=0, bmat_offset=0, zmat_dim1=0,
+	    zmat_offset=0, wvec_dim1=0, wvec_offset=0, prod_dim1=0, prod_offset=0, i__1=0,
+	     i__2=0;
+    doublereal d__1=0;
 
     /* Builtin functions */
     double atan(doublereal), sqrt(doublereal), cos(doublereal), sin(
@@ -2184,9 +2184,9 @@ L340:
 	doublereal *s, doublereal *w)
 {
     /* System generated locals */
-    integer xpt_dim1, xpt_offset, bmat_dim1, bmat_offset, zmat_dim1,
-	    zmat_offset, i__1, i__2;
-    doublereal d__1;
+    integer xpt_dim1=0, xpt_offset=0, bmat_dim1=0, bmat_offset=0, zmat_dim1=0,
+	    zmat_offset=0, i__1=0, i__2=0;
+    doublereal d__1=0;
 
     /* Builtin functions */
     double atan(doublereal), sqrt(doublereal), cos(doublereal), sin(

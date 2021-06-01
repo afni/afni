@@ -1543,7 +1543,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
    int ii , qq , twof , ss , nfr , icod , nt=0 , ngood ;
 #define NKEEP (3*PARAM_MAXTRIAL+1)
    double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
-   int nk,kk,jj, ngrid,ngtot ;
+   int nk,kk,jj, ngrid,ngtot , maxstep ;
    int ival[NKEEP] , rval[NKEEP] ; float fval[NKEEP] ;
    char mrk[6]="*o+-." ;
 
@@ -1671,11 +1671,12 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
    if( mverb ) fprintf(stderr," + - A little optimization:") ;
+   maxstep = 11*nfr+17 ; if( maxstep < 99 ) maxstep = 99 ;
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      RAND_ROUND ;
      (void)powell_newuoa( nfr , kpar[kk] ,
-                          0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
+                          0.05 , 0.005 , maxstep , GA_scalar_fitter ) ;
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
      if( mverb ) fprintf(stderr,".") ;

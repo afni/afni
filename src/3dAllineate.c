@@ -2396,9 +2396,12 @@ int main( int argc , char *argv[] )
        } else {
          do_cmass = 7 ;  /* all coords */
        }
+       if( verb ) INFO_message("Option '%s' enables center-of-mass code = %d",argv[iarg],do_cmass) ;
        iarg++ ; continue ;
      }
+
      if( strcmp(argv[iarg],"-nocmass") == 0 ){
+       if( verb ) INFO_message("Option '%s' disables center-of-mass usage",argv[iarg]) ;
        do_cmass = 0 ; iarg++ ; continue ;
      }
 
@@ -2489,6 +2492,7 @@ int main( int argc , char *argv[] )
        powell_aa = (float)strtod(argv[iarg++],NULL) ;
        if( powell_mm < 1.0f ) powell_mm = 1.0f ;
        if( powell_aa < 1.0f ) powell_aa = 1.0f ;
+       if( verb ) INFO_message("Set Powell iteration factors to m=%.1f a=%.1f",powell_mm,powell_aa) ;
        continue ;
      }
 
@@ -5302,7 +5306,7 @@ STATUS("zeropad weight dataset") ;
 
              /* optimize a little */
 
-             nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 99 ) ;
+             nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 111 ) ;
 
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save optimized params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
@@ -5445,10 +5449,10 @@ STATUS("zeropad weight dataset") ;
      switch( tfdone ){                  /* initial param radius for optimizer */
         case 0: rad = 0.0666 ; break ;  /* this is size of initial trust region */
         case 1:                         /* -- in the unitless [-1..1] space */
-        case 2: rad = 0.0333 ; break ;
-       default: rad = 0.0222 ; break ;
+        case 2: rad = 0.0444 ; break ;
+       default: rad = 0.0333 ; break ;
      }
-     if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
+     if( rad < 22.2*conv_rad ) rad = 22.2*conv_rad ;  /* unlikely */
 
      /*-- choose initial parameters, based on interp_code cost functional --*/
 
@@ -5456,7 +5460,6 @@ STATUS("zeropad weight dataset") ;
 
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
-
 
        if( verb > 1 )
          INFO_message("Picking best parameter set out of %d cases",tfdone) ;
@@ -5486,7 +5489,7 @@ STATUS("zeropad weight dataset") ;
          for( ib=0 ; ib < tfdone ; ib++ ){
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-           nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0777*rad,
+           nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0222*rad,
                                               (ib==tfdone-1) ? 2*num_rtb : num_rtb );
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )       /* save refined */
              ffparm[ib][jj] = stup.wfunc_param[jj].val_out ; /* parameters */
@@ -5559,7 +5562,7 @@ STATUS("zeropad weight dataset") ;
            ININFO_message("- Intrmed  cost = %f ; %d funcs",cost,nfunc) ;
          }
          if( nfunc < 333 ){
-           rad *= 0.456f ; if( rad < 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
+           rad *= 0.456 ; if( rad < 9.99*conv_rad ) rad = 9.99*conv_rad ;
          }
        }
 
@@ -5594,7 +5597,7 @@ STATUS("zeropad weight dataset") ;
            ININFO_message(" - Set %s parameters back to purity before Final iterations",
                           meth_shortname[meth_code-1] ) ;
        }
-       rad *= 7.777f ;
+       rad = 0.0666 ;
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
        nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
        powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
@@ -6495,7 +6498,7 @@ mri_genalign_set_pgmat(1) ;
    if( verb ){
       INFO_message("###########################################################");
    }
-   if( CMbad > 0 ){          /* 26 Feb 2020 */
+   if( !do_cmass && CMbad > 0 ){ /* 26 Feb 2020 */
      ININFO_message (" ") ;
      INFO_message   ("***********************************************************") ;
      WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
