@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI_COMPRESSOR no longer affects NIFTI (seems AFNI_AUTOGZIP never did)",
+   NULL
+ } ,
+
  { 29, May, 2021, RCR, "SurfLocalstat", MICRO, TYPE_NEW_OPT,
    "add 'mode' stat modal smoothing",
    NULL

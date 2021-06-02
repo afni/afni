@@ -114,8 +114,9 @@ int EDIT_dset_items( THD_3dim_dataset *dset , ... )
 
    int new_ijk_to_dicom = 0; mat44 ijk_to_dicom ;
 
-   /* 14 July 2006 */
-   int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
+   /* 14 July 2006   - check compression mode for NIFTI separately */
+   /*  1 June 2021   - never auto-compress NIFTI [rickr]           */
+   /* int cmode = COMPRESS_NOFILE;                                 */
     
    int new_smode=STORAGE_UNDEFINED; /* ZSS Feb 2012 */
 
@@ -569,38 +570,19 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( nprefix != NULL && ( STRING_HAS_SUFFIX(nprefix,".nii") ||
                                STRING_HAS_SUFFIX(nprefix,".nii.gz") ) ){
         char *fname = dset->dblk->diskptr->brick_name ;
-        int  ll = strlen(fname) ;
-        STRING_DEVIEW_DEEXT_BRICK(fname);
-        if( STRING_HAS_SUFFIX(nprefix,".nii") ) {  /* 22 Jun 2006 mod drg */
+        int   gzpre = STRING_HAS_SUFFIX(nprefix,".nii.gz") ;
+        int   ll = strlen(fname) ; /* for DEVIEW macro */
+        STRING_DEVIEW_DEEXT_BRICK(fname) ;
 
-          cmode = THD_get_write_compression() ; 
-                           /* check env. variable for compression*/
-          if(cmode==0) { /* have to compress this NIFTI data, 
-                            add .gz to prefix */
-             sprintf(DSET_PREFIX(dset),"%s.gz",nprefix); 
-                           /* add .gz on to prefix initialized in */
-                           /* THD_init_diskptr_names just above */
-             if(STRING_HAS_SUFFIX(fname,".nii")) {
-                                       /* if filename ends with .nii */
-               strcat(fname,".gz") ;   /* add the .gz extension */
-             } else {
-               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) { 
-                                       /* compressed NIFTI extension*/
-                 strcat(fname,".nii.gz") ;
-               }
-             }
-          } else {
-             if(!(STRING_HAS_SUFFIX(fname,".nii"))) { 
-                                        /* if filename doesn't end with .nii */
-               strcat(fname,".nii") ;   /* add the .nii extension */
-             }
-          }
-        } else {
-           if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) {
-                                       /* compressed NIFTI extension*/
-             strcat(fname,".nii.gz") ;
-           }
-        }
+        /* make sure brick_name suffix matches that of prefix      */
+        /* if gzpre, include .nii.gz, else include .nii            */
+        /* no automatic compression for NIFTI   1 Jun 2021 [rickr] */
+
+        if ( gzpre && ! STRING_HAS_SUFFIX(fname,".nii.gz") )
+            strcat(fname,".nii.gz") ;
+        else if ( ! gzpre && ! STRING_HAS_SUFFIX(fname,".nii") )
+            strcat(fname,".nii");
+
         if (dset->dblk->diskptr->header_name) { /* ZSS: April 26 2012 */
             /* header_name should be just like brick_name */
             strcpy(dset->dblk->diskptr->header_name, fname);
