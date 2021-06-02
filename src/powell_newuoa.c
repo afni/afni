@@ -6,6 +6,8 @@
 #define AFmax(a,b) (((a)<(b)) ? (b) : (a))
 #define AFmin(a,b) (((a)>(b)) ? (b) : (a))
 
+#define DEBUG 0
+
 /*---------------------------------------------------------------------------*/
 
 /* powell_newuoa.f -- translated by f2c (version 19961017).
@@ -359,11 +361,11 @@ L70:
     if (nf == 1) {
 	fbeg = f;
 	fopt = f;
-fprintf(stderr,"\nInitialize fopt=%.14g ;\n",fopt) ;
+if(DEBUG) fprintf(stderr,"\nInitialize fopt=%.14g ;\n",fopt) ;
 	kopt = 1;
     } else if (f < fopt) {
 	fopt = f;
-fprintf(stderr,"  fopt=%.14g",fopt) ;
+if(DEBUG) fprintf(stderr,"  fopt=%.14g\n",fopt) ;
 	kopt = nf;
     }
 
@@ -418,7 +420,7 @@ s and*/
 
     rho = *rhobeg;
     delta = rho;
-fprintf(stderr,"  rho=delta=%.14g",delta) ;
+if(DEBUG) fprintf(stderr,"  rho=delta=%.14g\n",delta) ;
     idz = 1;
     diffa = zero;
     diffb = zero;
@@ -454,17 +456,18 @@ L100:
     }
 /* Computing MIN */
     d__1 = delta, d__2 = sqrt(dsq);
+if(DEBUG) fprintf(stderr,"  sqrt(dsq=%.14g)=%.14g\n",dsq,d__2) ;
     dnorm = AFmin(d__1,d__2);
     if (dnorm < half * rho) {
 	knew = -1;
 	delta = tenth * delta;
-fprintf(stderr,"  delta/10") ;
+if(DEBUG) fprintf(stderr,"  delta/10") ;
 	ratio = -1.;
 	if (delta <= rho * 1.5) {
-fprintf(stderr,"  delta=rho") ;
+if(DEBUG) fprintf(stderr,"  delta=rho") ;
 	    delta = rho;
 	}
-fprintf(stderr,"  delta=%.14g",delta) ;
+if(DEBUG) fprintf(stderr,"  delta=%.14g\n",delta) ;
 	if (nf <= nfsav + 2) {
 	    goto L460;
 	}
@@ -762,7 +765,7 @@ e*/
     fsave = fopt;
     if (f < fopt) {
 	fopt = f;
-fprintf(stderr,"  fopt=%.14g",fopt) ;
+if(DEBUG) fprintf(stderr,"  fopt=%.14g\n",fopt) ;
 	xoptsq = zero;
 	i__1 = *n;
 	for (i__ = 1; i__ <= i__1; ++i__) {
@@ -789,24 +792,24 @@ fprintf(stderr,"  fopt=%.14g",fopt) ;
     }
     ratio = (f - fsave) / vquad;
     if (ratio <= tenth) {
-fprintf(stderr,"  delta=dnorm/2") ;
+if(DEBUG) fprintf(stderr,"  delta=dnorm/2") ;
 	delta = half * dnorm;
     } else if (ratio <= .7) {
 /* Computing MAX */
-fprintf(stderr,"  delta=max(delta/2,dnorm)") ;
+if(DEBUG) fprintf(stderr,"  delta=max(delta/2,dnorm)") ;
 	d__1 = half * delta;
 	delta = AFmax(d__1,dnorm);
     } else {
 /* Computing MAX */
 	d__1 = half * delta, d__2 = dnorm + dnorm;
 	delta = AFmax(d__1,d__2);
-fprintf(stderr,"  delta=max(delta/2,dnorm*2)") ;
+if(DEBUG) fprintf(stderr,"  delta=max(delta/2,dnorm*2)") ;
     }
     if (delta <= rho * 1.5) {
-fprintf(stderr,"  delta=RHO") ;
+if(DEBUG) fprintf(stderr,"  delta=RHO") ;
 	delta = rho;
     }
-fprintf(stderr,"  delta=%.14g",delta) ;
+if(DEBUG) fprintf(stderr,"  delta=%.14g\n",delta) ;
 
 /*    Set KNEW to the index of the next interpolation point to be deleted.
 */
@@ -1037,6 +1040,7 @@ L460:
 /* Computing MAX */
 /* Computing MIN */
 	d__2 = tenth * sqrt(distsq), d__3 = half * delta;
+if(DEBUG) fprintf(stderr,"  sqrt(distsq=%.14g)=%.14g\n",distsq,d__2) ;
 	d__1 = AFmin(d__2,d__3);
 	dstep = AFmax(d__1,rho);
 	dsq = dstep * dstep;
@@ -1059,16 +1063,16 @@ L490:
 	ratio = rho / *rhoend;
 	if (ratio <= 16.) {
 	    rho = *rhoend;
-fprintf(stderr,"  ratio<16") ;
+if(DEBUG) fprintf(stderr,"  ratio<16") ;
 	} else if (ratio <= 250.) {
-fprintf(stderr,"  ratio<250") ;
+if(DEBUG) fprintf(stderr,"  ratio<250") ;
 	    rho = sqrt(ratio) * *rhoend;
 	} else {
-fprintf(stderr,"  ratio=other") ;
+if(DEBUG) fprintf(stderr,"  ratio=other") ;
 	    rho = tenth * rho;
 	}
 	delta = AFmax(delta,rho);
-fprintf(stderr,"  rho=%.14g delta=%.14g",rho,delta) ;
+if(DEBUG) fprintf(stderr,"  rho=%.14g delta=%.14g\n",rho,delta) ;
 /* CC          IF (IPRINT .GE. 2) THEN */
 /* CC              IF (IPRINT .GE. 3) PRINT 500 */
 /* CC  500         FORMAT (5X) */
@@ -1097,7 +1101,7 @@ L530:
 	    x[i__] = xbase[i__] + xopt[i__];
 	}
 	f = fopt;
-fprintf(stderr," ; final set f=%.14g",f) ;
+if(DEBUG) fprintf(stderr," ; final set f=%.14g\n",f) ;
     }
 /* CC      IF (IPRINT .GE. 1) THEN */
 /* CC          PRINT 550, NF */
@@ -1108,7 +1112,7 @@ fprintf(stderr," ; final set f=%.14g",f) ;
     if (*icode == 0) {
 	*icode = nf;
     }
-fprintf(stderr," ; return f=%.14g\n",f) ;
+if(DEBUG) fprintf(stderr," ; return f=%.14g\n",f) ;
     return 0;
 } /* newuob_ */
 
@@ -1763,7 +1767,11 @@ rge*/
     quart = .25;
     two = 2.;
     zero = 0.;
+#if 0
     twopi = atan(one) * 8.;
+#else
+    twopi = 3.14159265358979323846 * 2.0 ;
+#endif
     nptm = *npt - *n - 1;
 
 /*     Store the first NPT elements of the KNEW-th column of H in W(N+1)
@@ -2056,6 +2064,7 @@ L70:
 	angle = (doublereal) i__ * temp;
 	par[1] = cos(angle);
 	par[2] = sin(angle);
+if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
 	for (j = 4; j <= 8; j += 2) {
 	    par[j - 1] = par[1] * par[j - 3] - par[2] * par[j - 2];
 /* L230: */
@@ -2096,6 +2105,7 @@ L70:
 
     par[1] = cos(angle);
     par[2] = sin(angle);
+if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
     for (j = 4; j <= 8; j += 2) {
 	par[j - 1] = par[1] * par[j - 3] - par[2] * par[j - 2];
 /* L260: */
@@ -2451,6 +2461,7 @@ ix.*/
 	angle = (doublereal) i__ * temp;
 	cth = cos(angle);
 	sth = sin(angle);
+if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
 	tau = cf1 + (cf2 + cf4 * cth) * cth + (cf3 + cf5 * cth) * sth;
 	if (abs(tau) > abs(taumax)) {
 	    taumax = tau;
@@ -2480,6 +2491,7 @@ ix.*/
 
     cth = cos(angle);
     sth = sin(angle);
+if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
     tau = cf1 + (cf2 + cf4 * cth) * cth + (cf3 + cf5 * cth) * sth;
     i__2 = *n;
     for (i__ = 1; i__ <= i__2; ++i__) {
