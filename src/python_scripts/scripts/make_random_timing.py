@@ -4107,9 +4107,13 @@ class RandTiming:
              print("++ scaling mean up from %s to %s (by %s)" \
                    % (remain, tot_mean, 1/mean_scalar))
 
-       # possibly warn on rest reduction
-       if abs(mean_scalar-1) > 0.05 or tot_mean - remain > 10:
+       # possibly warn on rest reduction/expansion
+       if mean_scalar-1 < -0.05 or tot_mean - remain > 10:
           print('** warning: insufficient time for mean rest\n'
+                '            avail = %g, mean rest time = %g' \
+                % (remain, tot_mean))
+       elif mean_scalar-1 > 0.05:
+          print('** warning: extra time above that needed for mean rest\n'
                 '            avail = %g, mean rest time = %g' \
                 % (remain, tot_mean))
 
