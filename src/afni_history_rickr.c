@@ -73,7 +73,7 @@ afni_history_struct rickr_history[] = {
    "Thanks to the all-seeing S Torrisi for noting the problem."
  } ,
 
- {  6, Apr, 2021, RCR, "ap_qc_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
+ {  6, Apr, 2021, RCR, "ap_run_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
    "run a quick afni_proc.py resting state analysis for QC",
    NULL
  } ,
