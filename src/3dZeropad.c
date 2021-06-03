@@ -2,7 +2,9 @@
 void usage_3dZeropad(int detail)
 {
          printf("Usage: 3dZeropad [options] dataset\n"
- "Adds planes of zeros to a dataset (i.e., pads it out).\n"
+ "** Adds planes of zeros to a dataset (i.e., pads it out).\n"
+ "** A negative 'add' count means to cut a dataset down in size.\n"
+ "   [Remember 3rd grade arithmetic, please.]\n"
  "\n"
  "Options:\n"
  "  -I n = adds 'n' planes of zero at the Inferior edge\n"
