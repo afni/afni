@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jun, 2021, RCR, "dcm2niix_afni", MINOR, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20210317",
+   "Thanks to C Rorden for suggesting the update."
+ } ,
+
  {  1, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "AFNI_COMPRESSOR no longer affects NIFTI (seems AFNI_AUTOGZIP never did)",
    NULL
