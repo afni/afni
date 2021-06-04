@@ -2105,6 +2105,7 @@ extern void mri_genalign_affine( int, float *,
                                       float *, float *, float * ) ;
 extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
 extern void mri_genalign_verbose(int) ;
+extern void mri_genalign_round(int v) ; /* 04 Jun 2021 */
 extern void mri_genalign_mat44( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;

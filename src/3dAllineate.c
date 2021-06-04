@@ -2677,6 +2677,13 @@ int main( int argc , char *argv[] )
        verb=0 ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-round") == 0 ){  /* 04 Jun 2021 */
+       mri_genalign_round(1) ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-noround") == 0 ){
+       mri_genalign_round(0) ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
        usetemp = 1 ; iarg++ ; continue ;
      }
