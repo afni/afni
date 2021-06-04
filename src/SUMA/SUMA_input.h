@@ -195,18 +195,19 @@ void SUMA_SetRotCenter (char *s, void *data);
 
 // PDL
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane,
-    Bool toggleOffOn);
+    Bool toggleOffOn, Bool reset);
 void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget w,
     SUMA_SurfaceViewer *sv, int isv);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
-
-// static int clipPlaneIndex;
 static Bool clipPlaneIdentificationMode, previousClipPlaneIdentificationMode=1, clippingPlaneMode;
 static SUMA_SurfaceObject* clipIdentificationPlane[6];
 static float activeClipPlane[4];
 static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
+static SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
+static int  planeIndex;
+static Bool resetClippingPlanes=0;
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
 float getObjectMinMaxForAxes(float objectMinMax[][2]);
@@ -235,13 +236,13 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 void lightenActiveClipPlaneSquare(int activePlane);
 void darkenClipPlaneSquare(int planeIndex);
 void darkenInactiveClipPlaneSquares(int activePlane);
-void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
-    int activePlane, Bool toggleOffOn);
 void getPlanePtClosestToViewerOrigin(float *plane, float *point);
 void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point);
 void crossProduct(float input1[], float input2[], float output[]);
 void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
+void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
+        float *planeB, float *planeC);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke

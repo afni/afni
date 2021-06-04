@@ -437,7 +437,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         SUMA_S_Err("NULL Overlays pointer.");
         SO->N_Overlays = 0;
     }
-    if ((int)(SO->Overlays) == 1){
+    if ((intptr_t)(SO->Overlays) == 1){
         SUMA_S_Err("Invalid Overlays pointer: 0x1.");
         SO->N_Overlays = 0;
     }
@@ -477,6 +477,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
        SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
     }
 
+    clippingPlaneIDDisplayableObjects[planeIndex] = SO;
     return SO;
 }
 
@@ -738,6 +739,9 @@ void updateClipSquare(int planeIndex){
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
 
+    // Clipping plane identification object already exists?
+    if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
+
     // Test values for plane
     for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
     plane[3] += 1;
@@ -828,12 +832,50 @@ void darkenInactiveClipPlaneSquares(int activePlane){
     }
 }
 
+void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
+    float *planeB, float *planeC){
+    char chrTmp[64];
+    int isv;
+    SUMA_SurfaceViewer *sv;
+    Widget w;
+
+    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
+
+    // Reset clipping plane parameters
+    for (int i=0; i<6; ++i){
+         active[i] = 0;
+         previouslyActive[i] = 0;
+         planeTheta[i] = planePhi[i] = planeA[i] =  planeB[i] = 0.0f;
+         if (clippingPlaneIDDisplayableObjects[i]) clippingPlaneIDDisplayableObjects[i]->Show = 0;
+         planeC[i] = 1.0f;
+    }
+    planeTheta[1] = 90.0f;
+    planeTheta[3] = 180.0f;
+    planeTheta[4] = 270.0f;
+    planeTheta[5] = 180.0f;
+
+    planePhi[2] = 90.0f;
+    planePhi[5] = 270.0f;
+    planeA[2] = 1.0f;
+    planeB[1] = -1.0f;
+
+    // Deactivate all clipping planes
+    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+        active[i] = 0;
+        sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[i], planeA[i], planeB[i],
+            planeC[i], 99999999);
+
+        SUMA_SetObjectClip(chrTmp, sv);
+    }
+
+    previousClipPlaneIdentificationMode=1;
+    clippingPlaneMode=0;
+}
 
 void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip,
-    int activePlane, Bool toggleOffOn){
-    static int  planeIndex;
-    static int  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
-    static int  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
+    int activePlane, Bool toggleOffOn, Bool reset){
+    static float  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
+    static float  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
     static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
     static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,-1.0,0.0,0.0,0.0,0.0};
     static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
@@ -845,6 +887,22 @@ void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip
     SUMA_SurfaceViewer *sv;
     Widget w;
     static SUMA_Boolean    firstCall = 1;
+
+    if (reset){
+        fprintf(stderr, "Reset\n");
+        planeIndex = 0;
+        // These ranges determine
+        planeD[0] = -objectMinMax[2][0];
+        planeD[3] = objectMinMax[2][1];
+        planeD[1] = objectMinMax[1][1];
+        planeD[4] = -objectMinMax[1][0];
+        planeD[2] = -objectMinMax[0][0];
+        planeD[5] = objectMinMax[0][1];
+
+        resetClippingPlaneParameters(planeTheta, planePhi, planeA,
+            planeB, planeC);
+        activePlane = 0;
+    }
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
@@ -4259,7 +4317,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(1, 0, 0, 0, -1, 0);
+                clipPlaneTransform(1, 0, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
                /* Posterior view ctrl+shift+up*/
@@ -4385,7 +4443,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(-1, 0, 0, 0, -1, 0);
+                clipPlaneTransform(-1, 0, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
                /* Posterior view ctrl+shift+down*/
@@ -4506,7 +4564,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, -1, 0, 0, -1, 0);
+                clipPlaneTransform(0, -1, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -4619,7 +4677,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 1, 0, 0, -1, 0);
+                clipPlaneTransform(0, 1, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -5275,13 +5333,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (clippingPlaneMode){
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
-                        clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
                     }
                 } else {
                     for (int i=0; i<6; ++i){
                         previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
                         active[i] = 1;                      // Turn clipping plane on so it will be toggled off
-                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
                     }
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -5432,25 +5490,25 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                         for (int planeIndex=0; planeIndex<6; ++planeIndex){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         }
                     } else if (SUMAg_CF->N_ClipPlanes>=6){
                         fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
                     } else {
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
                         }
 
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
 
                         // Quick fic for qrongly placed new planes when incremented
                         active[SUMAg_CF->N_ClipPlanes-1] = 0;
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1, 0);
                     }
                     activeClipPlanes = activeClippingPlanes();
                 }
@@ -5463,11 +5521,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 SUMA_UpdateViewerTitle(sv);
 
                if (clippingPlaneMode){
+                    if (resetClippingPlanes){
+                        SUMAg_CF->N_ClipPlanes = 0;
+                        resetClippingPlanes=0;
+                    }
                     // Make sure there is at least one clipping plane with its colored square
                     if (SUMAg_CF->N_ClipPlanes < 1){
                         clippingPlaneMode = 1;
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         clipPlaneIdentificationMode = 1;    // Start with colored squares on
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
@@ -5476,14 +5538,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                     } else if (!activeClipPlanes){  // Toggle plane 1 on
-                        clipPlaneTransform(0,0,0,0,0, 1);
+                        clipPlaneTransform(0,0,0,0,0, 1, 0);
                         previouslyActive[0] = active[0];
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
                     // Turn on clipping planes and their colored squares
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
-                        clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
 
                         // Display clip plane identification mode if required
                         if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
@@ -5505,7 +5567,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             clipIdentificationPlane[planeIndex]->Show = 0;
                         /*
                         active[i] = 1;                      // Turn clipping plane on so it will be toggled off
-                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1);   // Toggle activation state
+                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
                         */
                     }
                 }
@@ -5671,7 +5733,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_f:
             if (clippingPlaneMode && (Kev.state & ControlMask) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0,0,0,1,-1, 0);  // PDL: Flip clipping plane
+                clipPlaneTransform(0,0,0,1,-1, 0, 0);  // PDL: Flip clipping plane
             } else {
                 /* Show/hide the foreground */
                 if (!list) list = SUMA_CreateList();
@@ -5819,13 +5881,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                     for (int planeIndex=0; planeIndex<6; ++planeIndex){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                     }
                 } else if (SUMAg_CF->N_ClipPlanes>=6){
                     fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
                 } else {
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                     if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                         fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                         exit(1);
@@ -5833,11 +5895,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                     // For some reason, this appears necessary to place planes, or their squares, in the right position
                     //  if thet are planes 4-6
-                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
 
                     // Quick fic for qrongly placed new planes when incremented
                     active[SUMAg_CF->N_ClipPlanes-1] = 0;
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1);
+                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1, 0);
                 }
                 activeClipPlanes = activeClippingPlanes();
             } else if (Kev.state & ControlMask){
@@ -5931,7 +5993,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_S:
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -1, 0,-1, 0); // Scroll outward
+                clipPlaneTransform(0, 0, -1, 0,-1, 0, 0); // Scroll outward
             } else if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv,
@@ -5949,25 +6011,29 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_s:
+         fprintf(stderr, "XK_s 0\n");
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, 1, 0,-1, 0);   // Scroll inward
-               } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
-               if (!list) list = SUMA_CreateList();
-               ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
-               if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                          SEF_ip, sv->X->TOPLEVEL,
-                                          SES_Suma, (void *)sv, NOPE,
-                                          SEI_Head, NULL)) {
-                  fprintf (SUMA_STDERR,
-                           "Error %s: Failed to register command.\n", FuncName);
-               }
-               if (!SUMA_Engine (&list)) {
-                     fprintf( SUMA_STDERR,
-                              "Error %s: SUMA_Engine call failed.\n",
-                              FuncName);
-               }
+                fprintf(stderr, "XK_s 1\n");
+                clipPlaneTransform(0, 0, 1, 0,-1, 0, 0);   // Scroll inward
+               } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){    // alt-ctrl-s
+                fprintf(stderr, "XK_s 2\n");
+                   if (!list) list = SUMA_CreateList();
+                   ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
+                   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                              SEF_ip, sv->X->TOPLEVEL,
+                                              SES_Suma, (void *)sv, NOPE,
+                                              SEI_Head, NULL)) {
+                      fprintf (SUMA_STDERR,
+                               "Error %s: Failed to register command.\n", FuncName);
+                   }
+                   if (!SUMA_Engine (&list)) {
+                         fprintf( SUMA_STDERR,
+                                  "Error %s: SUMA_Engine call failed.\n",
+                                  FuncName);
+                   }
 
             } else if (SUMA_ALTHELL){
+                            fprintf(stderr, "XK_s 3\n");
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
@@ -5979,6 +6045,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            FuncName);
                }
             } else if (SUMAg_CF->Dev) {
+            fprintf(stderr, "XK_s 4\n");
                #if 0
                /** Feb 03/03 No longer in use.*/
                for (ii=0; ii< sv->N_DO; ++ii) {
@@ -6071,9 +6138,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_1:
             if (clippingPlaneMode){
                 if (SUMA_ALTHELL){
-                    clipPlaneTransform(0,0,0,0,0, 0);     // Select clipping plane 1
+                    clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                 } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
-                    clipPlaneTransform(0,0,0,0,0, 1);
+                    clipPlaneTransform(0,0,0,0,0, 1, 0);
                     previouslyActive[0] = active[0];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6084,7 +6151,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (SUMAg_CF->N_ClipPlanes<2){
                     for (int i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
@@ -6093,9 +6160,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     if (! SUMA_ALTHELL) active[1] = 0;  // Toggle plane off so it will be toggled on
                 }
                 if (SUMA_ALTHELL){    // Select clipping plane 2
-                    clipPlaneTransform(0,0,0,0,1, 0);
+                    clipPlaneTransform(0,0,0,0,1, 0, 0);
                 } else {        // Toggle plane 2 off/on
-                    clipPlaneTransform(0,0,0,0,1, 1);
+                    clipPlaneTransform(0,0,0,0,1, 1, 0);
                     previouslyActive[1] = active[1];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6106,22 +6173,22 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (SUMAg_CF->N_ClipPlanes<3){
                     for (int i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
                         }
                         if (i != 2){   // Disable new, unselected planes
                             active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
                     if (! SUMA_ALTHELL) active[2] = 0;  // Toggle plane off so it will be toggled on
                 }
                 if (SUMA_ALTHELL){    // Select clipping plane 3
-                    clipPlaneTransform(0,0,0,0,2, 0);
+                    clipPlaneTransform(0,0,0,0,2, 0, 0);
                 } else {        // Toggle plane 3 off/on
-                    clipPlaneTransform(0,0,0,0,2, 1);
+                    clipPlaneTransform(0,0,0,0,2, 1, 0);
                     previouslyActive[2] = active[2];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6132,7 +6199,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
                     for (int i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
@@ -6140,18 +6207,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                         if (i != 3){   // Disable new, unselected planes
                             active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
                     if (! SUMA_ALTHELL) active[3] = 0;  // Toggle plane off so it will be toggled on
                 }
                 if (SUMA_ALTHELL){
-                    clipPlaneTransform(0,0,0,0,3, 0);
+                    clipPlaneTransform(0,0,0,0,3, 0, 0);
                 } else {        // Toggle plane 4 off/on
-                    clipPlaneTransform(0,0,0,0,3, 1);
+                    clipPlaneTransform(0,0,0,0,3, 1, 0);
                     previouslyActive[3] = active[3];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6162,7 +6229,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (SUMAg_CF->N_ClipPlanes<5){
                     for (int i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
@@ -6170,18 +6237,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                         if (i != 4){   // Disable new, unselected planes
                             active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
                     if (! SUMA_ALTHELL) active[4] = 0;  // Toggle plane off so it will be toggled on
                 }
                 if (SUMA_ALTHELL){    // Select clipping plane 5
-                    clipPlaneTransform(0,0,0,0,4, 0);
+                    clipPlaneTransform(0,0,0,0,4, 0, 0);
                 } else {        // Toggle plane 4 off/on
-                    clipPlaneTransform(0,0,0,0,4, 1);
+                    clipPlaneTransform(0,0,0,0,4, 1, 0);
                     previouslyActive[4] = active[4];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6192,7 +6259,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (SUMAg_CF->N_ClipPlanes<6){
                     for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
@@ -6200,18 +6267,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                         if (i != 5){   // Disable new, unselected planes
                             active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
                     if (! SUMA_ALTHELL) active[5] = 0;  // Toggle plane off so it will be toggled on
                 }
                 if (SUMA_ALTHELL){    // Select clipping plane 6
-                    clipPlaneTransform(0,0,0,0,5, 0);
+                    clipPlaneTransform(0,0,0,0,5, 0, 0);
                 } else {        // Toggle plane 6 off/on
-                    clipPlaneTransform(0,0,0,0,5, 1);
+                    clipPlaneTransform(0,0,0,0,5, 1, 0);
                     previouslyActive[5] = active[5];
                 }
                 activeClipPlanes = activeClippingPlanes();
@@ -6226,8 +6293,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         // Toggle all active clippping planes
                         if (active[i]){
                             previouslyActive[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1);
-                        } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
+                        } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                     activeClipPlanes = activeClippingPlanes();
                 }
@@ -6240,13 +6307,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         previouslyActive[i] = active[i];
                         active[i] = 1;          // Turn plane on so it will be toggled off
-                        clipPlaneTransform(0,0,0,0,i, 1);
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                 } else {                        // Turn all planes on
                     if (SUMAg_CF->N_ClipPlanes<6){  // Make sure all planes are available
                         for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                             if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                                 fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                                 exit(1);
@@ -6254,13 +6321,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                             // For some reason, this appears necessary to place planes, or their squares, in the right position
                             //  if thet are planes 4-6
-                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                         }
                     }
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         previouslyActive[i] = active[i];
                         active[i] = 0;          // Turn plane off so it will be toggled on
-                        clipPlaneTransform(0,0,0,0,i, 1);
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                 }
             } else
@@ -6288,24 +6355,29 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_0: // Zero key
             if (clippingPlaneMode){
-                if (activeClipPlanes){ // Turn off all clip planes if any on
+                if (activeClipPlanes){ // Reset all clip planes if any on
+                    clipPlaneTransform(0,0,0,0,0, 0, 1);
+                #if 0
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         // previouslyActive[i] = active[i];
                         active[i] = 1;          // Turn plane on so it will be toggled off
-                        clipPlaneTransform(0,0,0,0,i, 1);
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
+                #endif
                     activeClipPlanes = False;
+                    resetClippingPlanes = 1;
+                    // SUMAg_CF->N_ClipPlanes = 0;
                     // clippingPlaneMode = False;
                 } else {    // Turn on all clip planes if none on
                     activeClipPlanes = True;
                     for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = 0;          // Turn plane off so it will be toggled on
                         fprintf(stderr, "0: active[%d] = %d\n", i, active[i]);
-                        clipPlaneTransform(0,0,0,0,i, 1);
+                        clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                     for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
@@ -6313,7 +6385,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                         // For some reason, this appears necessary to place planes, or their squares, in the right position
                         //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0);
+                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                     }
                 }
             }
@@ -6807,7 +6879,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
             if (clippingPlaneMode && pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -1, 0,-1, 0);
+                clipPlaneTransform(0, 0, -1, 0,-1, 0, 0);
             } else {
 
                 if (pButton==6 || Bev.state & ShiftMask) {
@@ -6908,7 +6980,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
             if (clippingPlaneMode && pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, 1, 0,-1, 0);
+                clipPlaneTransform(0, 0, 1, 0,-1, 0, 0);
            } else {
 
                 if (pButton==7 || Bev.state & ShiftMask) {
@@ -7325,7 +7397,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
       switch (rButton) { /* switch type of button Press */
-      fprintf(stderr, "R button pressed\n");
          case Button3:
             if (LocalHead)
                fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName);
