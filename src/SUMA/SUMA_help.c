@@ -2268,7 +2268,8 @@ char * SUMA_help_message_Info(TFORM targ)
 "------------------\n\n"
 );
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Toggles in and out of clipping plane mode.\n\n", SUMA_hkf("Shift-Ctrl-C", targ));
+      "   %s: Toggles in and out of clipping plane mode.\n\n",
+      SUMA_hkf("Shift-Ctrl-C", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Successively add new clipping planes which are\n"
       "        active as they appear. (Initially, you might not see \n"
@@ -2283,13 +2284,10 @@ char * SUMA_help_message_Info(TFORM targ)
       "       planes are added up to the specified number.\n\n",
         SUMA_hkf("alt/cmd/opt-[a number]", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Successively add new clipping planes which are\n"
-      "        active as they appear. (Initially, you might not see \n"
-      "        them, just their clipping effect).\n\n", SUMA_hkf("7", targ));
+      "   %s: Toggle all active clipping planes on or off.\n\n",
+               SUMA_hkf("7", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Successively add new clipping planes which are\n"
-      "        active as they appear. (Initially, you might not see \n"
-      "        them; just their clipping effect).\n\n", SUMA_hkf("0", targ));
+      "   %s: Reset all clipping planes.\n\n", SUMA_hkf("0", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Flip clipping direction of selected plane.\n\n",
         SUMA_hkf("ctrl-f", targ));

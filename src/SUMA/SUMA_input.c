@@ -6678,6 +6678,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (Kev.state & ShiftMask) {
+                fprintf(stderr, "Shift Left\n");
                if (!SUMA_Left_Key(sv, "shift+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
