@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , JUN , 2021 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "Modify to make it work with 2D images again" ,
+   "Had to fix THD_fillin_once to allow for special case of nz==1" } ,
+
  { 6 , MAY , 2021 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
    "Make -zskip work with -paired" ,
    "Rejecting any value pairs where either setA or setB is 0." } ,
