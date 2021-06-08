@@ -69,6 +69,56 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
+   "Tweak db_mod.py: prep for auto_warp.py to now always use *.nii.gz.",
+   "Just mv *.nii.gz files, rather than *.nii, from auto_warp output dir.\n"
+},
+
+{ 30, May , 2021 , PT , "auto_warp.py" , MINOR , TYPE_GENERAL,
+   "Use *.nii.gz, not *.nii, because of current AFNI_COMPRESSOR = GZIP.",
+   "With current AFNI_COMPRESSOR = GZIP, get problems; now, no more.\n"
+},
+
+{ 30, May , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
+   "New opt '-use_gz' to output gzipped NIFTI even with '-suffix ..'.",
+   "Part of updating auto_warp.py to use *.nii.gz, not *.nii.\n"
+},
+
+{ 24, May , 2021 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Several small updates for convenience and organization: help updated...",
+   "more QC images; split intermediate text desc; new cmd_log.\n"
+},
+
+{ 20, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Clean up exiting from help and version checking.",
+   "Doesn't go via the verbose GOOD_EXIT route anymore, which it shouldn't.\n"
+},
+
+{ 12, May , 2021 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+   "Remove old/unnecessary comment from help of -NIFTI opt.",
+   "Referred to earlier misconcept (need even mat dims for anatomical dset).\n"
+},
+
+{ 11, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Set env var to turn off NIFTI warnings.",
+   "That is, AFNI_NIFTI_TYPE_WARN -> NO.\n"
+},
+
+{ 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved for backward compatability to Python 2.7.",
+   "So, for task FMRI, individual stim label plots work again in Py2.7.\n"
+},
+
+{ 11, May , 2021 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Replace str.isnumeric() with str.isdigit(), for backward compatability.",
+   "Python 2.7 didn't have that method for str type.\n"
+},
+
+{ 10, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "New opt: '-set_xhair_gap ..', to allow setting crosshair gap.",
+   "Default value is -1.\n"
+},
+
 { 3, May , 2021 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
    "Add bracket to meta-text above table in case of abs value in table.",
    "Thanks, watchful AFNI user YurBoiRene.\n"

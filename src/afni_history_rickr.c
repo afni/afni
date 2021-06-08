@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI_COMPRESSOR no longer affects NIFTI (seems AFNI_AUTOGZIP never did)",
+   NULL
+ } ,
+
+ { 29, May, 2021, RCR, "SurfLocalstat", MICRO, TYPE_NEW_OPT,
+   "add 'mode' stat modal smoothing",
+   NULL
+ } ,
+
+ { 19, May, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix volreg TSNR computation in surface analysis (TSNR still in volume)",
+   NULL
+ } ,
+
  {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
    "Thanks to the all-seeing S Torrisi for noting the problem."

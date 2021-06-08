@@ -3,20 +3,36 @@
 void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_SurfLocalStat"};
-      char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
-      int i;
-      s = SUMA_help_basics();
-      sio  = SUMA_help_IO_Args(ps);
+      char      * s = NULL;
+      int         i;
+
       printf ( "\n"
-               "Usage: A testing program for computing local statistics.\n"
+      "SurfLocalStat - compute local statistics on a surface\n\n"
+      "     Local statistics are those computed over the neighborhood of\n"
+      "     each node, possibly restricted to a mask.\n"
+      "\n"
+      "     Neighborhoods and distances are defined on a trangulated surface\n"
+      "     mesh.  They will differ between smoothwm and pial, for example.\n"
+      "     The neighborhood of a given node is defined by nodes within a\n"
+      "     specified distance of the given node (along the surface).\n"
+      "\n"
+      "     For each node's neighborhood, statistics are computed from data\n"
+      "     values associated with those nodes, such as MRI intensities,\n"
+      "     beta weights or ROI index values.\n"
+      "\n"
+      "usage:.\n"
+      "\n"
       " -hood R     = Neighborhood of node n consists of nodes within R \n"
       " -nbhd_rad R = distance from n as measured by the shortest \n"
       "               distance along the mesh.\n"
+      "               (-hood and -nbhd_rad are equivalent)\n"
       " -prefix PREFIX = Prefix of output data set.\n"
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
       "               * mean   = average of the values\n"
-      /* "               * stdev  = standard deviation\n" 
+      "               * mode   = most common value\n"
+/* **** uncomment these as they become ready ****
+      "               * stdev  = standard deviation\n" 
       "               * var    = variance (stdev*stdev)\n"
       "               * cvar   = coefficient of variation = stdev/fabs(mean)\n"
       "               * median = median of the values\n"
@@ -24,13 +40,14 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       "               * min    = minimum\n"
       "               * max    = maximum\n"
       "               * absmax = maximum of the absolute values\n"
+** **** */
       "               * num    = number of the values in the region:\n"
       "                          with the use of -mask or -automask,\n"
       "                          the size of the region around any given\n"
       "                          voxel will vary; this option lets you\n"
       "                          map that size.  It may be useful if you\n"
       "                          plan to compute a t-statistic (say) from\n"
-      "                          the mean and stdev outputs.\n"*/
+      "                          the mean and stdev outputs.\n"
       "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
       "                          inside each voxel's neighborhood.  Results\n"
       "                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHM.\n"
@@ -40,12 +57,57 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       "               * ALL    = all of the above, in that order\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
-               " \n"
-               "%s"
-               "%s"
-               "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
-      SUMA_free(sio); sio = NULL;       
+      "\n");
+
+      printf("------------------------------------------------------------\n");
+      printf("examples:\n\n");
+      
+      printf(
+      "1. count the number of nodes in each node's local neighborhood\n"
+      "   (the -input data will not matter in this case)\n"
+      "\n"
+      "      SurfLocalstat -hood 5 -stat num                         \\\n"
+      "                    -i_gii std.141.lh.smoothwm.gii            \\\n"
+      "                    -input std.141.lh.thickness.niml.dset     \\\n"
+      "                    -prefix std.141.lh.local_nnode.niml.dset\n"
+      "\n"
+      "2. smooth locally, output the mean over each neighbornood\n"
+      "\n"
+      "      SurfLocalstat -hood 5 -stat mean                        \\\n"
+      "                    -i_gii std.141.lh.smoothwm.gii            \\\n"
+      "                    -input std.141.lh.thickness.niml.dset     \\\n"
+      "                    -prefix std.141.lh.local_mean_5.niml.dset\n"
+      "\n"
+      "3. perform modal smoothing on a FreeSurfer parcellation dataset\n"
+      "   - smooth in small neighborhoods of 'radius' 2mm\n"
+      "   - use 3dRank to first convert to a more usable form (can improve)\n"
+      "   - include suma commands to compare input vs output\n"
+      "\n"
+      "      3dRank -prefix std.141.lh.aparc.a2009s_RANK.niml.dset \\\n"
+      "             -input std.141.lh.aparc.a2009s.annot.niml.dset\n"
+      "\n"
+      "      SurfLocalstat -hood 2 -stat mode                       \\\n"
+      "           -i_gii std.141.lh.smoothwm.gii                    \\\n"
+      "           -input std.141.lh.aparc.a2009s_RANK.niml.dset     \\\n"
+      "           -prefix std.141.lh.aparc.RANK_smooth_2.niml.dset\n"
+      "\n"
+      "      suma -spec std.141.FT_lh.spec -sv FT_SurfVol.nii       \\\n"
+      "           -input std.141.lh.aparc.a2009s_RANK.niml.dset &\n"
+      "\n"
+      "      suma -spec std.141.FT_lh.spec -sv FT_SurfVol.nii       \\\n"
+      "           -input std.141.lh.aparc.RANK_smooth_2.niml.dset &\n"
+      "\n");
+
+      s = SUMA_help_basics();
+      printf("------------------------------------------------------------\n");
+      printf("general and global options:\n%s", s);
+      SUMA_free(s);
+
+      s  = SUMA_help_IO_Args(ps);
+      printf("------------------------------------------------------------\n");
+      printf("surface input/output options:\n%s", s);
+      SUMA_free(s);
+
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
@@ -131,6 +193,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
          else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
          else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
+         else if( strcasecmp(cpt,"mode")  == 0 ) code[ncode++] = NSTAT_MODE  ;
          else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
          else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
          else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
@@ -140,7 +203,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          else if( strcasecmp(cpt,"ALL")   == 0 ){
             code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
             code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
-            code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
+            code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MODE  ;
+            code[ncode++] = NSTAT_MAD   ;
             code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
             code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
             code[ncode++] = NSTAT_FWHMx ; 

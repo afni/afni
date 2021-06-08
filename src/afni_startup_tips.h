@@ -1926,6 +1926,13 @@ static char *gby[] = {
 
      "I always advise people never to give advice"                                     ,
 
+     /* Ben Franklin (sort of) [30 May 2021] */
+
+     "He that falls in love with himself will have no rivals"                          ,
+     "Data well gathered is better than data well cleaned up"                          ,
+     "Never confuse beautiful abstractions with hard reality"                          ,
+     "Never mistake a beautiful brain map with the truth of the brain's operation"     ,
+
      /* Misc */
 
     "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
@@ -1938,6 +1945,8 @@ static char *gby[] = {
     "Better than the Gold standard for FMRI -- I'm the Bitcoin standard"                    ,  /* 21 May 2021 */
 
     "When you discover that you are riding a dead horse, the best strategy is to dismount"  ,  /* 21 May 2021 */
+
+    "The mountains are calling, and I must go"                                              ,  /* 30 May 2021 */
 
     /* Keep this one last */
 
