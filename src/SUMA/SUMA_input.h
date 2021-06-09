@@ -208,6 +208,8 @@ static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f
 static SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 static int  planeIndex;
 static Bool resetClippingPlanes=0;
+static float  scrollInc = 1.0;
+static float  tiltInc = 1.0;
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
 float getObjectMinMaxForAxes(float objectMinMax[][2]);

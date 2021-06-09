@@ -4317,8 +4317,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(increment, 0, 0, 0, -1, 0, 0);
+                clipPlaneTransform(tiltInc, 0, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
                /* Posterior view ctrl+shift+up*/
@@ -4444,8 +4443,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(-increment, 0, 0, 0, -1, 0, 0);
+                clipPlaneTransform(-tiltInc, 0, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
                /* Posterior view ctrl+shift+down*/
@@ -4566,8 +4564,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Left:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (SUMA_CTRL_KEY(key))? 0.5 : (SUMA_SHIFT_KEY(key)? 2.0 : 1.0f);
-                clipPlaneTransform(0, -increment, 0, 0, -1, 0, 0);
+                clipPlaneTransform(0, -tiltInc, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -4680,8 +4677,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
       case XK_Right:
             // PDL: Rotate clipping plane if available and ctrl key down
             if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(0, increment, 0, 0, -1, 0, 0);
+                clipPlaneTransform(0, tiltInc, 0, 0, -1, 0, 0);
             } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
@@ -5616,7 +5612,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          case XK_c:
             {
-                fprintf(stderr, "c key down\n");
                SUMA_SurfaceObject *SO=NULL;
                if ((SO = SUMA_SV_Focus_SO(sv))) {
                   if (!list) list = SUMA_CreateList();
@@ -5725,7 +5720,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_F:
-            fprintf(stderr, "XK_F pressed\n");  // DEBUG
             /* flip light position */
             if (!list) list = SUMA_CreateList();
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FlipLight0Pos,
@@ -5999,8 +5993,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_S:
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (Kev.state & ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(0, 0, -increment, 0,-1, 0, 0); // Scroll outward
+                clipPlaneTransform(0, 0, -scrollInc, 0,-1, 0, 0); // Scroll outward
             } else if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv,
@@ -6018,12 +6011,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_s:
-         fprintf(stderr, "XK_s 0\n");
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (Kev.state & ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(0, 0, increment, 0,-1, 0, 0);   // Scroll inward
+                clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward
                } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){    // alt-ctrl-s
-                fprintf(stderr, "XK_s 2\n");
                    if (!list) list = SUMA_CreateList();
                    ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
                    if (!SUMA_RegisterEngineListCommand (  list, ED,
@@ -6040,7 +6030,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                    }
 
             } else if (SUMA_ALTHELL){
-                            fprintf(stderr, "XK_s 3\n");
                /* swap buttons 1 and 3 */
                SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
                if (SUMAg_CF->SwapButtons_1_3) {
@@ -6052,7 +6041,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            FuncName);
                }
             } else if (SUMAg_CF->Dev) {
-            fprintf(stderr, "XK_s 4\n");
                #if 0
                /** Feb 03/03 No longer in use.*/
                for (ii=0; ii< sv->N_DO; ++ii) {
@@ -6677,38 +6665,31 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
-        case XK_Control_L:
-        case XK_Control_R:
-            switch(Kev.type){
-                case KeyPress:
-                fprintf(stdout,"Ctrl Press\n");
-                break;
-                case KeyRelease:
-                fprintf(stdout,"Ctrl Release\n");
-                break;
-            }
+        case XK_plus:
+                scrollInc *= 2.0;
+                tiltInc *= 2.0;
             break;
 
-        case XK_Alt_L:
-        case XK_Alt_R:
-            fprintf(stderr, "Alt key down\n");
+        case XK_minus:
+                scrollInc /= 2.0;
+                tiltInc /= 2.0;
+            break;
+
+        case XK_equal:
+                scrollInc = 1.0;
+                tiltInc = 1.0;
             break;
 
          case XK_Left:   /*KEY_LEFT:*/
          {
-            fprintf(stdout,"Left Key\n");
             if (clippingPlaneMode && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                fprintf(stdout,"ShiftMask = %d\n", ShiftMask);
-                float increment = (Kev.state & ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                fprintf(stderr, "increment = %f\n", increment);
-                clipPlaneTransform(0, -increment, 0, 0, -1, 0, 0);
+                clipPlaneTransform(0, -tiltInc, 0, 0, -1, 0, 0);
             } else if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Left_Key(sv, "ctrl+shift+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }
             }else if (Kev.state & ShiftMask) {
-                fprintf(stderr, "Shift Left\n");
                if (!SUMA_Left_Key(sv, "shift+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -6841,15 +6822,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    break;
   case KeyRelease:
   {
-    fprintf(stdout,"Key Release\n");
-    if (( Kev.state & ControlMask)){
-            fprintf(stdout,"Ctrl Release 1\n");
-    }
-    fprintf(stderr, "keysym = %d\n", keysym);
     switch (keysym) { /* keysym */
         case XK_Control_L:
         case XK_Control_R:
-            fprintf(stdout,"Ctrl Release 2\n");
             break;
     }   // keysym
   }
@@ -6937,8 +6912,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             // PDL: Ctrl-scroll forward
             if (clippingPlaneMode && pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (Kev.state & ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(0, 0, -increment, 0,-1, 0, 0);
+                clipPlaneTransform(0, 0, -scrollInc, 0,-1, 0, 0);
             } else {
 
                 if (pButton==6 || Bev.state & ShiftMask) {
@@ -7039,8 +7013,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             // PDL: Ctrl-scroll backward
             if (clippingPlaneMode && pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                float increment = (Kev.state & ControlMask)? 0.5 : (ShiftMask? 2.0 : 1.0f);
-                clipPlaneTransform(0, 0, increment, 0,-1, 0, 0);
+                clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);
            } else {
 
                 if (pButton==7 || Bev.state & ShiftMask) {
