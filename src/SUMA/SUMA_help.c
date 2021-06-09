@@ -2264,6 +2264,13 @@ char * SUMA_help_message_Info(TFORM targ)
 " clipping plane is clipping, not just visible.  The \"selected\""
 " plane is controlled with the action keys.\n\n"
 
+"Clipping planes can be scrolled along their normals and/or rotated"
+" around their tangent or cotangent axis. Currently, the increment of "
+" one is also the increment of the others.  The default increment is 1.0 "
+" where the tilt increment is in degrees. The minus (-) key halves the "
+" increment. The + key doubles the increment. The '=' key resets the "
+" increment to 1.0.\n\n"
+
 "Key+mouse behavior\n"
 "------------------\n\n"
 );
@@ -2295,9 +2302,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "   %s: Toggle view of all active clipping planes on/off.\n\n",
         SUMA_hkf("Shift+C", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Translate a clipping plane in space.\n"
-      "       Default increment is 1.0. Control key halves the \n"
-      "       increment. Shift key doubles the increment. \n\n",
+      "   %s: Translate a clipping plane in space.\n\n",
         SUMA_hkf("Alt/Cmd/Opt+[scroll-wheel]", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Scroll clipping plane inwards.\n\n",
