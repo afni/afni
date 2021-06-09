@@ -49,6 +49,24 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
+   "Changes to make T1-T1 alignment with lpa+ZZ more reliable" ,
+   "Problem - aligning whole head volume to MNI template (top of head only)\n"
+   "- alignment sometimes fails badly. This problem is much less common if\n"
+   "source and base image coverage are compatible. If users will not zero\n"
+   "out or chop off the sub-brainstem part of the head, then the following\n"
+   "changes made to 3dAllineate will help:\n"
+   "  a) carry out a larger search in the coarse pass (more trials)\n"
+   "  b) eliminate 'ov' and 'mi' from lpa+ as these caused problems\n"
+   "     NOTE: 'ov' and 'mi' are still in lpc+\n"
+   "Also investigated why linux and macos results differ. Tracking optimizer\n"
+   "leads to hypothesis that differences in roundoff error slowly\n"
+   "accumulate, and then at some point powell_newuoa makes a step decision\n"
+   "that can alter the optimizing trajectory significantly. There doesn't\n"
+   "seem to be a good way to avoid this. However, with the chanes above,\n"
+   "both macos and linux versions work reasonably well, and differ at most\n"
+   "in about 2 mm (and that only in one case out of 38 whole head tests)." } ,
+
  { 8 , JUN , 2021 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "Modify to make it work with 2D images again" ,
    "Had to fix THD_fillin_once to allow for special case of nz==1" } ,

@@ -712,11 +712,17 @@ ENTRY("GA_scalar_fitter") ;
     /* that is, between 2^20 and 2^21, which is to say a 21 bit integer;     */
     /* so we scale it back down by VBASE to make it between 0.5 and 1 again. */
 
+    vvv = round( VBASE * frexp(val,&eee) ) / VBASE ;
+
     /* And then we reassemble it back to a floating point number with the    */
     /* exponent in eee, using the scalbn() function -- see how easy it is!?  */
 
-    vvv = round( VBASE * frexp(val,&eee) ) / VBASE ;
     val = scalbn(vvv,eee) ;
+
+    /** Why this rigmarole? To test if keeping a few bits less precision
+        would make the results on different systems more similar, since
+        the effects of round-off error in the costfun evaluation would
+        be reduced. However, this test failed -- rounding didn't help :( **/
   }
 #undef VBASE
 #endif
