@@ -49,6 +49,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUN , 2021 , RWC , "3dUndump" , MICRO , TYPE_NEW_OPT ,
+   "Add -allow_NaN option" ,
+   "To allow some DERANGED AFNI user whose name will not be mentioned to\n"
+   "create a dataset containing NaN (Not A Number) floating point values." } ,
+
  { 9 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
    "Changes to make T1-T1 alignment with lpa+ZZ more reliable" ,
    "Problem - aligning whole head volume to MNI template (top of head only)\n"
