@@ -194,8 +194,8 @@ void SUMA_SetNumFinalSmoothing (char *s, void *data);
 void SUMA_SetRotCenter (char *s, void *data);
 
 // PDL
-void clipPlaneTransform(int deltaTheta, int deltaPhi, int deltaPlaneD, Bool flip, int activePlane,
-    Bool toggleOffOn, Bool reset);
+void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
+    int activePlane, Bool toggleOffOn, Bool reset);
 void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget w,
     SUMA_SurfaceViewer *sv, int isv);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);

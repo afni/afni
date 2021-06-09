@@ -2295,7 +2295,9 @@ char * SUMA_help_message_Info(TFORM targ)
       "   %s: Toggle view of all active clipping planes on/off.\n\n",
         SUMA_hkf("Shift+C", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Translate a clipping plane in space.\n\n",
+      "   %s: Translate a clipping plane in space.\n",
+      "       Default increment is 1.0. Control key halves the \n"
+      "       increment. Shift key doubles the increment. \n"
         SUMA_hkf("Alt/Cmd/Opt+[scroll-wheel]", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Scroll clipping plane inwards.\n\n",
