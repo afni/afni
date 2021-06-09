@@ -181,14 +181,16 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ; /* values here */
    clip  = MAX(clip,clip2) ;
    if( Hverb > 1 ) ININFO_message("  (blurred) bot clip=%g",clip) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
-   /* get biggest cluster, erode it, re-cluster that */
-   THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
-   THD_mask_clust( nx,ny,nz, mmm ) ;
-   /* kill anyone not in the surviving cluster */
-   for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
-   free((void *)mmm) ;  /* free the mask */
+   if( nz > 2 ){
+     for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
+     /* get biggest cluster, erode it, re-cluster that */
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     /* kill anyone not in the surviving cluster */
+     for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
+     free((void *)mmm) ;  /* free the mask */
+   }
 
    /*-- convert weight to 0..1 range [10 Sep 2007] --*/
 
