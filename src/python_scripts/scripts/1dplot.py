@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+  
 # translating AFNI's existing 1dplot technology to Python
 
 author    = "PA Taylor (NIMH, NIH)"
