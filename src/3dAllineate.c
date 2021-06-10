@@ -433,6 +433,13 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "    ***** was, can be relied upon 100%% of the time, and anyone  *****\n"
      "    ***** who tells you otherwise is a madman or is a liar!!!!  *****\n"
      "    *****                                                       *****\n"
+     "    ***** In particular, if you are aligning two datasets with  *****\n"
+     "    ***** significantly different spatial coverage (e.g.,       *****\n"
+     "    ***** -source = whole head T1w and -base = MNI template),   *****\n"
+     "    ***** the be careful to check the results. In such a case,  *****\n"
+     "    ***** using '-twobest MAX' should increase the chance of    *****\n"
+     "    ***** getting a good alignment (at the cost of CPU time).   *****\n"
+     "    *****                                                       *****\n"
      "    ***** Furthermore, don't EVER think that \"I have so much    *****\n"
      "    ***** data that a few errors will not matter\"!!!!           *****\n"
      "--------------------------------------------------------------------------\n"
@@ -1593,6 +1600,8 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
               "   different from the 'lpc+' multipliers -- to make 'lpa+' more\n"
               "   robust. The new default for 'lpa+' is\n"
               "     lpa + hel*%.1f + crA*%.1f + nmi*%.1f + mi*%.1f + ov*%.1f\n"
+              " *** Note that in trial runs, we have found that lpc+ZZ and lpa+ZZ are more     ***\n"
+              " *** robust than lpc+ and lpa+ -- which is why the '+ZZ' amendment was created. ***\n"
              , DEFAULT_MICHO_LPC_HEL, DEFAULT_MICHO_LPC_CRA, DEFAULT_MICHO_LPC_NMI, DEFAULT_MICHO_LPC_MI, DEFAULT_MICHO_LPC_OV
              , DEFAULT_MICHO_LPA_HEL, DEFAULT_MICHO_LPA_CRA, DEFAULT_MICHO_LPA_NMI, DEFAULT_MICHO_LPA_MI, DEFAULT_MICHO_LPA_OV
              ) ;
@@ -2675,6 +2684,13 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-quiet") == 0 ){  /* 10 Oct 2006 */
        verb=0 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-round") == 0 ){  /* 04 Jun 2021 [HIDDEN] */
+       mri_genalign_round(1) ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-noround") == 0 ){
+       mri_genalign_round(0) ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
@@ -6483,16 +6499,17 @@ mri_genalign_set_pgmat(1) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
    if( verb && apply_1D == NULL && prefix != NULL ){
     INFO_message(  "###########################################################");
-    INFO_message(  "#   Please check results visually for alignment quality   #");
+    INFO_message(  "#   PLEASE check results VISUALLY for alignment quality   #");
 
     if( (meth_code == GA_MATCH_PEARSON_LOCALS   ||
          meth_code == GA_MATCH_PEARSON_LOCALA   ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
          meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) &&
-        (auto_weight != 1) && (dset_weig != NULL)      ){
+        (!wtspecified)                                 ){
       INFO_message("###########################################################");
-      INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
-      INFO_message("#   If your results are not good, please try again.       #");
+      INFO_message("#     '-autoweight' or some other voxelwise weighting     #");
+      INFO_message("#     method is recommended when using -lpc or -lpa       #");
+      INFO_message("#     If your results are not good, please try again.     #");
      }
    }
    if( verb ){
@@ -6502,7 +6519,7 @@ mri_genalign_set_pgmat(1) ;
      ININFO_message (" ") ;
      INFO_message   ("***********************************************************") ;
      WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
-     ININFO_message ("          please check your results - PLEASE PLEASE PLEASE" ) ;
+     ININFO_message ("          Please check your results - PLEASE PLEASE PLEASE" ) ;
      INFO_message   ("***********************************************************") ;
    }
 

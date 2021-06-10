@@ -12220,6 +12220,8 @@ ENTRY("ISQ_getoverlay") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
+   if( tim->kind == MRI_float ) thd_floatscan(tim->nvox,MRI_FLOAT_PTR(tim)) ;
+
    /*--- cut out cropped region, if any ---*/
 
    if( seq->cropit ){
@@ -12253,6 +12255,8 @@ ENTRY("ISQ_getimage") ;
 #endif
 
    if( tim == NULL ) RETURN(NULL) ;
+
+   if( tim->kind == MRI_float ) thd_floatscan(tim->nvox,MRI_FLOAT_PTR(tim)) ;
 
    if( seq->cropit ){
 

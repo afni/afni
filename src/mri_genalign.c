@@ -31,6 +31,9 @@ static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 static int mverb = 0 , mpr = 0 ;
 void mri_genalign_verbose(int v){ mverb = v ; }
 
+static int mround = 0 ;
+void mri_genalign_round(int v){ mround = v ; } /* 04 Jun 2021 */
+
 /*---------------------------------------------------------------------------*/
 /* 27 Aug 2008: replace use of drand48 with myunif, for inter-system control */
 
@@ -697,6 +700,32 @@ ENTRY("GA_scalar_fitter") ;
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
   free((void *)avm) ;    /* toss the trash */
+
+#if 1
+#define VBASE 2097152.0   /* 2^21 = keep 21 bits of precision in val */
+  if( mround && val != 0.0 && isfinite(val) ){
+    double vvv ; int eee ;
+
+    /* x=frexp(val,&e) return x,e such that 0.5 <= x < 1 and val = x * 2^e;  */
+    /* so 0.5*VASE <= x*VBASE < VBASE;                                       */
+    /* so round() will be the nearest integer between 0.5*VBASE and VBASE;   */
+    /* that is, between 2^20 and 2^21, which is to say a 21 bit integer;     */
+    /* so we scale it back down by VBASE to make it between 0.5 and 1 again. */
+
+    vvv = round( VBASE * frexp(val,&eee) ) / VBASE ;
+
+    /* And then we reassemble it back to a floating point number with the    */
+    /* exponent in eee, using the scalbn() function -- see how easy it is!?  */
+
+    val = scalbn(vvv,eee) ;
+
+    /** Why this rigmarole? To test if keeping a few bits less precision
+        would make the results on different systems more similar, since
+        the effects of round-off error in the costfun evaluation would
+        be reduced. However, this test failed -- rounding didn't help :( **/
+  }
+#undef VBASE
+#endif
 
 #if 1
   if( mverb > 1 ){

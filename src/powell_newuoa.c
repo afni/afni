@@ -456,7 +456,7 @@ L100:
     }
 /* Computing MIN */
     d__1 = delta, d__2 = sqrt(dsq);
-if(DEBUG) fprintf(stderr,"  sqrt(dsq=%.14g)=%.14g\n",dsq,d__2) ;
+if(0&&DEBUG) fprintf(stderr,"  sqrt(dsq=%.14g)=%.14g\n",dsq,d__2) ;
     dnorm = AFmin(d__1,d__2);
     if (dnorm < half * rho) {
 	knew = -1;
@@ -1040,7 +1040,7 @@ L460:
 /* Computing MAX */
 /* Computing MIN */
 	d__2 = tenth * sqrt(distsq), d__3 = half * delta;
-if(DEBUG) fprintf(stderr,"  sqrt(distsq=%.14g)=%.14g\n",distsq,d__2) ;
+if(0&&DEBUG) fprintf(stderr,"  sqrt(distsq=%.14g)=%.14g\n",distsq,d__2*10.0) ;
 	d__1 = AFmin(d__2,d__3);
 	dstep = AFmax(d__1,rho);
 	dsq = dstep * dstep;
@@ -1112,7 +1112,7 @@ if(DEBUG) fprintf(stderr," ; final set f=%.14g\n",f) ;
     if (*icode == 0) {
 	*icode = nf;
     }
-if(DEBUG) fprintf(stderr," ; return f=%.14g\n",f) ;
+if(DEBUG) fprintf(stderr," ; return f=%.14g with rho=%.14g\n",f,rho) ;
     return 0;
 } /* newuob_ */
 
@@ -2064,7 +2064,7 @@ L70:
 	angle = (doublereal) i__ * temp;
 	par[1] = cos(angle);
 	par[2] = sin(angle);
-if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
+if(0&&DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
 	for (j = 4; j <= 8; j += 2) {
 	    par[j - 1] = par[1] * par[j - 3] - par[2] * par[j - 2];
 /* L230: */
@@ -2105,7 +2105,7 @@ if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],p
 
     par[1] = cos(angle);
     par[2] = sin(angle);
-if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
+if(0&&DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,par[1],par[2]) ;
     for (j = 4; j <= 8; j += 2) {
 	par[j - 1] = par[1] * par[j - 3] - par[2] * par[j - 2];
 /* L260: */
@@ -2461,7 +2461,7 @@ ix.*/
 	angle = (doublereal) i__ * temp;
 	cth = cos(angle);
 	sth = sin(angle);
-if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
+if(0&&DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
 	tau = cf1 + (cf2 + cf4 * cth) * cth + (cf3 + cf5 * cth) * sth;
 	if (abs(tau) > abs(taumax)) {
 	    taumax = tau;
@@ -2491,7 +2491,7 @@ if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth)
 
     cth = cos(angle);
     sth = sin(angle);
-if(DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
+if(0&&DEBUG) fprintf(stderr,"  cos(angle=%.14g)=%.14g sin()=%.14g\n",angle,cth,sth) ;
     tau = cf1 + (cf2 + cf4 * cth) * cth + (cf3 + cf5 * cth) * sth;
     i__2 = *n;
     for (i__ = 1; i__ <= i__2; ++i__) {

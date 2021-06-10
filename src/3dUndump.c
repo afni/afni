@@ -224,6 +224,29 @@ void Syntax(int detail)
     "  a warning message is printed.  AFNI programs do not like with NaN\n"
     "  floating point values!\n"
     "\n"
+    "* [09 Jun 2021] The new option '-allow_NaN' will let NaN (not-a-number)\n"
+    "  values be entered. This option must be used before any input values\n"
+    "  are given (e.g., via '-dval').\n"
+    "  ++ NaN is a floating point concept. If you input (say) -dval as NaN,\n"
+    "     but then use it in creating a short-valued dataset, you will get\n"
+    "     the same as '-dval 0' -- there is no equivalent to Not-a-Number\n"
+    "     in the 2's complement world of integer representations.\n"
+    "  ++ IN OTHER WORDS: use '-datum float' if you use '-allow_Nan',\n"
+    "                     OR you will end up mystified.\n"
+    "  ++ Please note that AFNI programs will convert NaN values to 0 on input,\n"
+    "     from files stored in NIfTI and some other more obscure formats.\n"
+    "  ++ And: .BRIK files will be similarly scanned/fixed on input if\n"
+    "          environment variable AFNI_FLOATSCAN is set to YES.\n"
+    "  ++ And: the AFNI GUI will not like you at some point if you are\n"
+    "          trying to view a file containing NaNs.\n"
+    "  ++ In other words:\n"
+    "          The only reason for '-allow_NaN' is to create files for testing.\n"
+    "          And only for the semi-deranged amongst us. (You know who I mean.)\n"
+    "  ++ Sample command line:\n"
+    "       echo '0 0 0' | 3dUndump -allow_NaN -datum float -dimen 50 50 50 -prefix Ubad -dval NaN -\n"
+    "       float_scan Ubad+orig.BRIK\n"
+    "     Program float_scan should tell you that Ubad+orig.BRIK has 1 bad value in it.\n"
+    "\n"
     "-- RWCox -- October 2000\n"
    ) ;
 
@@ -263,6 +286,9 @@ int main( int argc , char * argv[] )
    short ROInum , *ROIsss=NULL ;
    int nfill=0 ;
 
+   int allow_NaN=0 ;  /* 09 Jun 2021 */
+#define MAYBE_SCAN(a,b) ( (allow_NaN) ? (0) : thd_floatscan((a),(b)) )
+
    /*-- help? --*/
 
 
@@ -283,6 +309,7 @@ int main( int argc , char * argv[] )
    do_head_only = 0 ;
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
       if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
             Syntax(strlen(argv[iarg])>3 ? 2:1) ;
@@ -291,6 +318,10 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-") == 0 ){    /* a single - is an input filename */
          break ;
+      }
+
+      if( strcmp(argv[iarg],"-allow_NaN") == 0 ){  /* 09 Jun 2021 */
+        allow_NaN = 1 ; iarg++ ; continue ;
       }
 
       /*-----*/
@@ -407,7 +438,7 @@ int main( int argc , char * argv[] )
 
         srad = strtod( argv[++iarg] , NULL ) ;
         if( srad <= 0.0 || thd_floatscan(1,&srad) ){
-          WARNING_message("-srad value of %g is ignored!",srad);
+          WARNING_message("-srad '%s' is ignored!",argv[iarg]);
           srad = 0.0 ;
         }
         have_srad++ ; iarg++ ; continue ;
@@ -427,10 +458,15 @@ int main( int argc , char * argv[] )
             ERROR_exit("-dval: no argument follows!?") ;
 
          dval_float = strtod( argv[++iarg] , NULL ) ;
-         if( thd_floatscan(1,&dval_float) )
-           ERROR_exit("Illegal value entered for -dval!") ;
-         dval_short = (short) rint(dval_float) ;
-         dval_byte  = (byte)  dval_short ;
+         if( MAYBE_SCAN(1,&dval_float) )
+           ERROR_exit("Illegal value '%s'entered for -dval!",argv[iarg]) ;
+         if( isnan(dval_float) ){
+           WARNING_message("NaN value being used for -dval") ;
+           dval_short = 0 ; dval_byte = 0 ;
+         } else {
+           dval_short = (short) rintf(dval_float) ;
+           dval_byte  = (byte)  dval_short ;
+         }
          have_dval++ ; iarg++ ; continue ;
       }
 
@@ -441,10 +477,15 @@ int main( int argc , char * argv[] )
             ERROR_exit("-fval: no argument follows!?") ;
 
          fval_float = strtod( argv[++iarg] , NULL ) ;
-         if( thd_floatscan(1,&fval_float) )
-           ERROR_exit("Illegal value entered for -fval!") ;
-         fval_short = SHORTIZE(fval_float) ;
-         fval_byte  = BYTEIZE(fval_short) ;
+         if( MAYBE_SCAN(1,&fval_float) )
+           ERROR_exit("Illegal value '%s'entered for -fval!",argv[iarg]) ;
+         if( isnan(fval_float) ){
+           WARNING_message("NaN value being used for -fval") ;
+           fval_short = 0 ; fval_byte = 0 ;
+         } else {
+           fval_short = (short) rintf(fval_float) ;
+           fval_byte  = (byte)  dval_short ;
+         }
          iarg++ ; continue ;
       }
 
@@ -718,6 +759,8 @@ int main( int argc , char * argv[] )
          /* scan line for data */
 
          vv   = dval_float ;   /* if not scanned in below, use the default value */
+         sv   = dval_short ;
+         bv   = dval_byte  ;
          vrad = srad ;         /* 19 Feb 2004: default sphere radius */
          nn   = sscanf(linbuf+ii , "%f%f%f%f%f" , &xx,&yy,&zz,&vv,&vrad ) ;
          if( nn < 3 && ROImask == NULL ){
@@ -725,9 +768,13 @@ int main( int argc , char * argv[] )
            continue ;
          }
          if( nn > 3 ){
-           if( thd_floatscan(1,&vv) ){
+           if( MAYBE_SCAN(1,&vv) ){
              WARNING_message("File %s line %d: replaced illegal value with 0",
                              argv[iarg],ll ) ;
+           } else if( isnan(vv) ){
+             WARNING_message("File %s line %d: keeping value NaN",argv[iarg],ll) ;
+           } else {
+             sv = SHORTIZE(vv) ; bv = BYTEIZE(vv) ;
            }
            if( thd_floatscan(1,&vrad) ){
              WARNING_message("File %s line %d: replaced illegal radius with 0",
@@ -814,33 +861,21 @@ int main( int argc , char * argv[] )
             case MRI_float:{
               if( fbr[ijk] == fval_float) nfill++ ;
               if( fbr[ijk] != fval_float && fbr[ijk] != vv )
-                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
+                WARNING_message("Overwrite float voxel %d %d %d",ii,jj,kk) ;
               fbr[ijk] = vv ;
             }
             break ;
             case MRI_short:{
-              static int first=1 ;
-              sv = SHORTIZE(vv) ;
-              if( first && vv != (float)sv ){
-                WARNING_message("Truncating non-short data values to 16-bit integers!") ;
-                first = 0 ;
-              }
               if( sbr[ijk] == fval_short ) nfill++ ;
               if( sbr[ijk] != fval_short && sbr[ijk] != sv )
-                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
+                WARNING_message("Overwrite short voxel %d %d %d",ii,jj,kk) ;
               sbr[ijk] = sv ;
             }
             break ;
             case MRI_byte:{
-              static int first=1 ;
-              bv = BYTEIZE(vv) ;
-              if( first && vv != (float)bv ){
-                WARNING_message("Truncating non-byte data values to 8-bit integers!") ;
-                first = 0 ;
-              }
               if( bbr[ijk] == fval_byte ) nfill++ ;
               if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
-                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
+                WARNING_message("Overwrite byte voxel %d %d %d",ii,jj,kk) ;
               bbr[ijk] = bv ;
             }
             break ;
@@ -901,7 +936,7 @@ int main( int argc , char * argv[] )
 
    } /*--- end of loop over input files ---*/
 
-   dset_floatscan(dset) ;
+   if( !allow_NaN ) dset_floatscan(dset) ;
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
    INFO_message("Total number of voxels filled = %d",nfill) ;
    DSET_write(dset) ;
