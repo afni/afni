@@ -286,8 +286,12 @@
 #set version   = "6.22"; set rev_dat   = "May 11, 2021"
 # [PT] NIFTI warnings off
 #
-set version   = "6.23"; set rev_dat   = "May 20, 2021"
+#set version   = "6.23"; set rev_dat   = "May 20, 2021"
 # [PT] clean up exiting from help and ver
+#
+set version   = "6.24"; set rev_dat   = "June 10, 2021"
+# [PT] set echo opt
+#    + print version numbers near the top
 #
 # =====================================================================
 
@@ -456,8 +460,11 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
     # required
-    if ( "$argv[$ac]" == "-ulay" ) then
+    else if ( "$argv[$ac]" == "-ulay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set ulay = "$argv[$ac]"
@@ -954,6 +961,10 @@ endif
 
 echo "++ My command:"
 echo "   @chauffeur_afni $argv"
+echo ""
+echo "++ Using AFNI ver : `afni -vnum`"
+echo "++ chauffeur ver  : ${version}"
+
 
 # -------------------------------------------------------------------
 # ------------------ check about auxiliary progs --------------------
@@ -2675,6 +2686,8 @@ COMMAND OPTIONS ~1~
                     of copied/intermediate files. (As of July 8, 2019,
                     this is the new default behavior.  Thus, this opt
                     is only here for backwards compatability).
+
+-echo              :run script verbosely (with 'set echo' executed)
 
 # ========================================================================
 
