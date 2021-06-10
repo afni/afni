@@ -1,6 +1,6 @@
 #include "niml.h"
 #include "afni.h"
-#include "../suma_suma.h"
+#include "SUMA_X_objs.h"
 
 /* can't modify that poor niccc anymore */
 
