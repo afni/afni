@@ -5226,7 +5226,7 @@ char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf)
 
    SS = SUMA_StringAppend_va(SS," Number of Clip Planes: %d\n", cf->N_ClipPlanes);
    for (i=0; i<cf->N_ClipPlanes; ++i) {
-      SS = SUMA_StringAppend_va(SS," %d: Clip plane >>%s<< of type %s. Eq: %.2fX + %.2fY + %.2fZ + %.2f = 0\n",
+      SS = SUMA_StringAppend_va(SS," %d: Clip plane >>%s<< of type %s. Eq: %.4fX + %.4fY + %.4fZ + %.4f = 0\n",
                      i, cf->ClipPlanesLabels[i], SUMA_Clip_Type_to_Clip_Name(cf->ClipPlaneType[i]),
                      (float)cf->ClipPlanes[4*i], (float)cf->ClipPlanes[4*i+1], (float)cf->ClipPlanes[4*i+2], (float)cf->ClipPlanes[4*i+3]);
    }
@@ -6004,7 +6004,12 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    if (sv->GVS[sv->StdView].ApplyMomentum) SS = SUMA_StringAppend_va(SS,":M");
 
    SUMA_LH("ClippingPlane");
-   if (sv->GVS[sv->StdView].ClippingPlane) SS = SUMA_StringAppend_va(SS,":C");
+   // if (sv->GVS[sv->StdView].ClippingPlane) SS = SUMA_StringAppend_va(SS,":C");
+   if (sv->GVS[sv->StdView].ClippingPlane){
+    char strTmp[32];
+    sprintf(strTmp, ":C:Inc=%.4f", sv->clippingPlaneIncrement);
+    SS = SUMA_StringAppend_va(SS,strTmp);
+   }
 
    SUMA_LH("Surf List");
    N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);

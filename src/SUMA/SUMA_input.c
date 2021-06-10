@@ -1011,7 +1011,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     }
 
     // Activate/update clip plane
-    sprintf(chrTmp, "%s: %f,%f,%f,%f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
+    sprintf(chrTmp, "%s: %.4f,%.4f,%.4f,%.4f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
 
     SUMA_SetObjectClip(chrTmp, sv);
@@ -5519,6 +5519,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 //Update title bar
                 sv->GVS[sv->StdView].ClippingPlane =
                                      !sv->GVS[sv->StdView].ClippingPlane;
+                if (sv->GVS[sv->StdView].ClippingPlane)
+                    sv->clippingPlaneIncrement = scrollInc;
                 SUMA_UpdateViewerTitle(sv);
 
                if (clippingPlaneMode){
@@ -6666,18 +6668,30 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
         case XK_plus:
+            if (clippingPlaneMode){
                 scrollInc *= 2.0;
                 tiltInc *= 2.0;
+                sv->clippingPlaneIncrement = scrollInc;
+                SUMA_UpdateViewerTitle(sv);
+            }
             break;
 
         case XK_minus:
+            if (clippingPlaneMode){
                 scrollInc /= 2.0;
                 tiltInc /= 2.0;
+                sv->clippingPlaneIncrement = scrollInc;
+                SUMA_UpdateViewerTitle(sv);
+            }
             break;
 
         case XK_equal:
+            if (clippingPlaneMode){
                 scrollInc = 1.0;
                 tiltInc = 1.0;
+                sv->clippingPlaneIncrement = scrollInc;
+                SUMA_UpdateViewerTitle(sv);
+            }
             break;
 
          case XK_Left:   /*KEY_LEFT:*/

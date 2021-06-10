@@ -2268,8 +2268,8 @@ char * SUMA_help_message_Info(TFORM targ)
 " around their tangent or cotangent axis. Currently, the increment of "
 " one is also the increment of the others.  The default increment is 1.0 "
 " where the tilt increment is in degrees. The minus (-) key halves the "
-" increment. The + key doubles the increment. The '=' key resets the "
-" increment to 1.0.\n\n"
+" increment from its current value. The + key doubles the increment from "
+" its current value. The '=' key resets the increment to 1.0.\n\n"
 
 "Key+mouse behavior\n"
 "------------------\n\n"
