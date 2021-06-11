@@ -6013,7 +6013,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_s:
+         fprintf(stderr, "XK_x\n");
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+            fprintf(stderr, "clipPlaneTransform\n");
                 clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward
                } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){    // alt-ctrl-s
                    if (!list) list = SUMA_CreateList();
@@ -6668,7 +6670,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
         case XK_plus:
-            if (clippingPlaneMode){
+            if (clippingPlaneMode && scrollInc < 999999){
                 scrollInc *= 2.0;
                 tiltInc *= 2.0;
                 sv->clippingPlaneIncrement = scrollInc;

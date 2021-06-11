@@ -6667,7 +6667,9 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
                    i+1, pi.page_widget,
                    XtName(pi.page_widget));
 
-      for (j=0; j<SUMAg_N_DOv; ++j) {
+      for (j=0; j<SUMAg_N_DOv; ++j)
+        if (!(strstr(((SUMA_SurfaceObject *)(SUMAg_DOv[j].OP))->Label,
+            "clippingPlaneIdentificationSquare_"))) {
          if (SUMAg_DOv[j].ObjectType == SO_type ||
              SUMAg_DOv[j].ObjectType == GDSET_type ||
              SUMAg_DOv[j].ObjectType == TRACT_type ||
@@ -6744,8 +6746,13 @@ SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_ALL_DO *ado)
       DOv = SUMA_DOsInSurfContNotebook(SUMAg_CF->X->SC_Notebook);
       i = 0;
       while (DOv[i]) {
-         SurfCont = SUMA_ADO_Cont(DOv[i]);
-         SurfCont->Open=Open;
+      /*
+        if (!(strstr(((SUMA_SurfaceObject *)(DOv[i]))->Label,
+            "clippingPlaneIdentificationSquare_"))) {
+            */
+             SurfCont = SUMA_ADO_Cont(DOv[i]);
+             SurfCont->Open=Open;
+        // }
          ++i;
       }
    } else {
