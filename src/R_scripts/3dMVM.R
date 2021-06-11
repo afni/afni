@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.7,  Feb 23, 2021
+Version 4.0.8,  June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1913,10 +1913,10 @@ if (lop$nNodes>1) {
 #}
 
 # avoid overflow
-Top <- 100
+#Top <- 100
 out[is.nan(out)] <- 0
-out[out > Top] <- Top
-out[out < (-Top)] <- -Top
+#out[out > Top] <- Top
+#out[out < (-Top)] <- -Top
 
 ###############################
 
@@ -1937,12 +1937,12 @@ if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))
 
 write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
-   overwrite=lop$overwrite)
+   com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
+   scale=FALSE, overwrite=lop$overwrite)
 
 if(!is.null(lop$resid))
    write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
-      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
