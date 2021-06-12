@@ -494,8 +494,8 @@ def raise_error_for_debug_mode(tests_dir, kwargs, docker_kwargs):
         `# issues with file permissions`                                            \
         -e CONTAINER_UID=$(id -u)                                                   \
         -e CONTAINER_GID=$(id -g)                                                   \
-        `#Pass git credentials into container for more pleasant interaction `       \
-        `#with the source git repository`                                           \
+        `# Pass git credentials into container for more pleasant interaction `      \
+        `# with the source git repository`                                          \
         -e GIT_AUTHOR_NAME={docker_kwargs['environment']['GIT_AUTHOR_NAME']}        \
         -e GIT_AUTHOR_EMAIL={docker_kwargs['environment']['GIT_AUTHOR_EMAIL']}      \
         `# Delete the container upon exit`                                          \
