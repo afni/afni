@@ -2934,7 +2934,7 @@ class SubjProcSream:
                             % (self.regecho_var[1:], self.reg_echo))
 
         self.write_text('# create results and stimuli directories\n')
-        self.write_text('mkdir %s\nmkdir %s/stimuli\n%s\n' \
+        self.write_text('mkdir -p %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
