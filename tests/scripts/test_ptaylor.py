@@ -441,7 +441,9 @@ def test_3dClusterize_new(data, ptaylor_env):
     """
     # > {opref}_REP.txt
     cmd = " ".join(cmd.split())
-    differ = tools.OutputDiffer(data, cmd)
+    differ = tools.OutputDiffer(
+        data, cmd, kwargs_log={"append_to_ignored": "Mean and SEM based"}
+    )
     differ.run()
 
 
