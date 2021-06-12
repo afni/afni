@@ -380,6 +380,7 @@ add_library(
 )
 target_link_libraries(thd_objs 
 PUBLIC libheaders
+PRIVATE $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>
 )
 
 add_library(
