@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, Feb 23, 2021
+Version 0.1.7, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1017,17 +1017,13 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
    }
 }  
 
-Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
-
 outLabel <- c("ICC", "ICC F")
 statsym <- NULL
 statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))

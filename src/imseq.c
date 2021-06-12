@@ -12220,7 +12220,7 @@ ENTRY("ISQ_getoverlay") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
-   if( tim->kind == MRI_float ) thd_floatscan(tim->nvox,MRI_FLOAT_PTR(tim)) ;
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
 
    /*--- cut out cropped region, if any ---*/
 
@@ -12256,7 +12256,7 @@ ENTRY("ISQ_getimage") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
-   if( tim->kind == MRI_float ) thd_floatscan(tim->nvox,MRI_FLOAT_PTR(tim)) ;
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
 
    if( seq->cropit ){
 

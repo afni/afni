@@ -182,6 +182,7 @@ ENTRY("mri_get_nbhd") ;
          kk = aa + bb*nx + cc*nxy ;
          if( INMASK(kk) ) rr[nout++] = vv[kk] ;
        }
+       thd_floatscan( nout , rr ) ; /* 10 Jun 2021 */
      }
      break ;
 
@@ -194,6 +195,7 @@ ENTRY("mri_get_nbhd") ;
          kk = aa + bb*nx + cc*nxy ;
          if( INMASK(kk) ) rr[nout++] = vv[kk] ;
        }
+       thd_complexscan( nout , rr ) ; /* 10 Jun 2021 */
      }
      break ;
 
@@ -252,6 +254,8 @@ static int mri_get_nbhd_array_float( MRI_IMAGE *inim , byte *mask ,
      kk = aa + bb*nx + cc*nxy ;
      if( INMASK(kk) ) nar[nout++] = brick[kk] ;
    }
+
+   thd_floatscan( nout , nar ) ; /* 10 Jun 2021 */
 
    return(nout) ;
 }
@@ -417,6 +421,7 @@ ENTRY("mri_get_indexed_nbhd") ;
          kk = aa + bb*nx + cc*nxy ;
          if( INMASK(kk) ){ jar[nout] = kk; rr[nout++] = vv[kk]; }
        }
+       thd_floatscan(nout,rr) ; /* 10 Jun 2021 */
      }
      break ;
 
@@ -429,6 +434,7 @@ ENTRY("mri_get_indexed_nbhd") ;
          kk = aa + bb*nx + cc*nxy ;
          if( INMASK(kk) ){ jar[nout] = kk; rr[nout++] = vv[kk]; }
        }
+       thd_complexscan(nout,rr) ; /* 10 Jun 2021 */
      }
      break ;
 

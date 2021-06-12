@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.1, May 27, 2021
+Version 0.1.2, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1230,10 +1230,10 @@ if(lop$TRR) { # test-retest analysis
    } # if (lop$nNodes>1)
 } # LME modeling
 
-Top <- 100
+#Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top
-Stat[Stat < (-Top)] <- -Top
+#Stat[Stat > Top] <- Top
+#Stat[Stat < (-Top)] <- -Top
 
 if(lop$TRR) {
    brickNames <- c(c(rbind(rownames(summary(fm)$coefficients), 
@@ -1263,11 +1263,11 @@ if(lop$TRR) {
 }
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 if(!is.null(lop$resid))
    write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
-      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 

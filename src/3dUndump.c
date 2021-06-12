@@ -545,6 +545,12 @@ int main( int argc , char * argv[] )
       ERROR_exit("No input files on command line!?") ;
 #endif
 
+   if( datum != MRI_float && allow_NaN ){  /* 10 Jun 2021 */
+     WARNING_message("'-allow_NaN' without '-datum float' is meaningless!") ;
+     if( isnan(fval_float) ){ fval_byte = 0; fval_short = 0; fval_float = 0.0f; }
+     if( isnan(dval_float) ){ dval_byte = 0; dval_short = 0; dval_float = 0.0f; }
+   }
+
    if( ROImask != NULL &&
        ( have_dimen || have_master || have_mask || have_dval   ||
          have_ijk   || have_xyz    || have_srad || have_orient ||

@@ -1024,7 +1024,7 @@ static char *gby[] = {
      "Statistics are no substitute for judgment"                     ,
      "There's never enough time to do all the nothing you want"      ,
      "When life gives you lemons, throw them right back at it"       ,
-     "Happiness isn't good enough for me; I demand euphoria"         ,
+     "Happiness isn't good enough for me; I demand EUPHORIA"         ,
      "Judge a person by her questions, rather than her answers"      ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
@@ -1923,13 +1923,19 @@ static char *gby[] = {
     "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
 
     "\n  It is not enough to be in the right place at the right time.\n"
-    "    You should also have an open mind at the right time"                               ,  /* 12 May 2021 */
+    "    You should also have an open mind at the right time"                               ,
 
     "The mountains are calling, and I must go"                                              ,  /* 30 May 2021 */
 
-    /* Keep this one last */
+    "Despite what they tell you, there are simply no moral absolutes in a complex world"             ,  /* 10 Jun 2021 */
+    "The trouble with having an open mind is that people keep coming along and sticking ideas in it" ,
+    "Somehow it is always right now until suddenly it's later"                                       ,
+    "Visualizing the conceptualization process is always the hardest part of a project"              ,
+    "I have faced all the reality I need to face for today"                                          ,
 
-    "You are very lucky - this is the last-in-list AFNI goodbye message"
+    /**** Keep this one last ****/
+
+    "You are very lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
 
 } ;
 
