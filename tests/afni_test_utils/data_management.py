@@ -387,11 +387,6 @@ def try_data_download(file_fetch_list, test_data_dir, logger):
         return False
 
     finally:
-        # make sure datalad repo wasn't updated to git annex version 8. Not sure why this is happening
-        git_config_file = Path(test_data_dir) / ".git" / "config"
-        git_config_file.write_text(
-            git_config_file.read_text().replace("version = 8", "version = 7")
-        )
         dl_lock.release()
         sleep(random.randint(1, 10))
 
