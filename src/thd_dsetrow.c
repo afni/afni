@@ -108,6 +108,7 @@ ENTRY("THD_get_dset_row") ;
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) rr[ii] = bb[kk+kbot] ;
          else
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) rr[nrow-1-ii] = bb[kk+kbot] ;
+         thd_floatscan(nrow,rr) ; /* 10 Jun 2021 */
       }
       break ;
 
@@ -117,6 +118,7 @@ ENTRY("THD_get_dset_row") ;
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) rr[ii] = bb[kk+kbot] ;
          else
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) rr[nrow-1-ii] = bb[kk+kbot] ;
+         thd_complexscan(nrow,rr) ; /* 10 Jun 2021 */
       }
       break ;
 
@@ -276,6 +278,7 @@ ENTRY("THD_put_dset_row") ;
 
       case MRI_complex:{
          complex *rr = (complex *)row , *bb = (complex *)brick ;
+         thd_complexscan(nrow,rr) ; /* 10 Jun 2021 */
          if( dcode > 0 )
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) bb[kk+kbot] = rr[ii] ;
          else
@@ -285,6 +288,7 @@ ENTRY("THD_put_dset_row") ;
 
       case MRI_float:{
          float *rr = (float *)row , *bb = (float *)brick ;
+         thd_floatscan(nrow,rr) ; /* 10 Jun 2021 */
          if( dcode > 0 )
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) bb[kk+kbot] = rr[ii] ;
          else

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New opt '-echo', for odd-behavior-on-other-systems-investigtion-purposes.",
+   "Also print AFNI and program version numbers at top.\n"
+},
+
 { 2, June , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
    "Undo previous tweak to db_mod.py (for auto_warp.py); back to using *.nii.",
    "Reverting, because AFNI_COMPRESSOR has been updated.\n"

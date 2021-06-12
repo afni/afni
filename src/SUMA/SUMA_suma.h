@@ -8,7 +8,7 @@
    This more basic suma_suma.h is used by other C files in the SUMA directory,
    so name changes should be repeated in SUMA_niprobe.c and SUMA_expval.c.   
 */
-#include "../suma_suma.h"
+#include "SUMA_X_objs.h"
 #include "SUMA_DataSets.h"
 #include "TrackIO.h"
 

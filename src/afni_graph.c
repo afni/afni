@@ -1179,6 +1179,8 @@ MRI_IMAGE * GRA_getseries( MCW_grapher *grapher , int index )
    if( tsim == NULL ) return NULL;
    if( tsim->nx < 1 ){ mri_free(tsim); return NULL; }
 
+   MRI_floatscan(tsim) ;  /* 10 Jun 2021 */
+
    if( tsim->kind == MRI_complex ){
      MRI_IMAGE *qim ;
      char *eee = my_getenv("AFNI_GRAPH_CX2R") ;
@@ -1225,6 +1227,8 @@ ENTRY("GRA_getseries_xax") ;
    if( tsim == NULL ) RETURN(NULL) ;
 
    if( tsim->nx < 1 ){ mri_free(tsim); RETURN(NULL); }
+
+   MRI_floatscan(tsim) ; /* 10 Jun 2021 */
 
    if( tsim->kind == MRI_complex ){
      MRI_IMAGE *qim ;
@@ -7642,7 +7646,7 @@ void AFNI_XDrawLines( Display *display, Drawable d,
    for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].x ;
    UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;
    for( ii=0 ; ii < new_npoints ; ii++ ) new_points[ii].x = new_xy[ii] ;
- 
+
    /* upsample the y coordinates */
    for( ii=0 ; ii < npoints ; ii++ ) old_xy[ii] = points[ii].y ;
    UPSAMPLE( nupsam , npoints , old_xy , new_xy ) ;

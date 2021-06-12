@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jun, 2021, RCR, "SurfLocalstat", MINOR, TYPE_NEW_PROG,
+   "add Ziad's program to the default build",
+   "This is to allow use of the 'mode' stat."
+ } ,
+
+ { 10, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "rename src/suma_suma.h to src/SUMA/SUMA_X_objs.h",
+   "This is to avoid glorious case-insensitive name conflicts on Macs.\n"
+   "As suggested by the merciful D Glen."
+ } ,
+
  {  3, Jun, 2021, RCR, "dcm2niix_afni", MINOR, TYPE_ENHANCE,
    "sync crorden/dcm2niix_console with repo, version v1.0.20210317",
    "Thanks to C Rorden for suggesting the update."
