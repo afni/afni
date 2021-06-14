@@ -5314,6 +5314,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          /* avoid double call in case SUMAg_CF->Echo_KeyPress called already */
          xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
       }
+      // fprintf(stderr, "***** keysym = %ld\n", keysym);
       /* XK_* are found in keysymdef.h */
       switch (keysym) { /* keysym */
          case XK_bracketleft: /* The left bracket */
@@ -6013,7 +6014,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_s:
-         fprintf(stderr, "XK_x\n");
+         fprintf(stderr, "XK_s\n");
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
             fprintf(stderr, "clipPlaneTransform\n");
                 clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward

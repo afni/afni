@@ -1511,7 +1511,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
             }
          } else ContY[0] = -1.0;
 
-         fprintf(stderr, "%s\n", FuncName);
          if (ContX[0] >= 0 && ContY[0] >= 0 &&
              (SurfCont = SUMA_ADO_Cont(ado))&&
              SUMA_viewSurfaceCont(NULL, ado, csv)) {
@@ -6565,7 +6564,6 @@ int SUMA_OpenSurfCont_if_other(Widget w,
       SUMA_LHv("Window map_state: %d\n", winattr.map_state);
    }
 
-   fprintf(stderr, "%s\n", FuncName);
    if (!SUMA_viewSurfaceCont(w, ado, sv)) {
       SUMA_S_Err("Failed to view surface cont");
       SUMA_RETURN(0);
@@ -6592,7 +6590,6 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 
    if (w) {
       SUMA_LH("nism");
-      fprintf(stderr, "%s\n", FuncName);
       SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
    } else {
       if (!sv) {
@@ -6604,10 +6601,8 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       }
       if (!SUMA_isADO_Cont_Created(ado)) {
         SUMA_LH("Creationism");
-        fprintf(stderr, "%s\n", FuncName);
         SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
       } else {
-        fprintf(stderr, "%s\n", FuncName);
         /* must have been closed, open it */
         if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, ado, sv)) {
            SUMA_S_Err("Failed to open surf cont anew");
@@ -6672,7 +6667,13 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
                    i+1, pi.page_widget,
                    XtName(pi.page_widget));
 
-      for (j=0; j<SUMAg_N_DOv; ++j) {
+      for (j=0; j<SUMAg_N_DOv; ++j)
+         if (!(strstr(((SUMA_SurfaceObject *)(SUMAg_DOv[j].OP))->Label,
+            "clippingPlaneIdentificationSquare")))  {
+            /*
+            fprintf(stderr, "((SUMA_SurfaceObject *)(SUMAg_DOv[j].OP))->Label = %s\n",
+                ((SUMA_SurfaceObject *)(SUMAg_DOv[j].OP))->Label);
+                */
          if (SUMAg_DOv[j].ObjectType == SO_type ||
              SUMAg_DOv[j].ObjectType == GDSET_type ||
              SUMAg_DOv[j].ObjectType == TRACT_type ||
@@ -6749,8 +6750,13 @@ SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_ALL_DO *ado)
       DOv = SUMA_DOsInSurfContNotebook(SUMAg_CF->X->SC_Notebook);
       i = 0;
       while (DOv[i]) {
-         SurfCont = SUMA_ADO_Cont(DOv[i]);
-         SurfCont->Open=Open;
+      /*
+        if (!(strstr(((SUMA_SurfaceObject *)(DOv[i]))->Label,
+            "clippingPlaneIdentificationSquare_"))) {
+            */
+             SurfCont = SUMA_ADO_Cont(DOv[i]);
+             SurfCont->Open=Open;
+        // }
          ++i;
       }
    } else {
@@ -6869,7 +6875,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
 
       if (LocalHead)
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
-         fprintf(stderr, "%s\n", FuncName);
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
    } else {
@@ -6975,20 +6980,11 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
    if (sv->Focus_DO_ID >= 0) {
     ado = (SUMA_ALL_DO *)SUMAg_DOv[sv->Focus_DO_ID].OP;
-    if ((strstr(((SUMA_SurfaceObject *)(ado))->Label,
-            "clippingPlaneIdentificationSquare_"))){
-                fprintf(stderr, "Clipping plane identification squares");
-                fprintf(stderr, " not handled by Surface Controller\n");
-            SUMA_RETURNe;
-        }
-    fprintf(stderr, "Surface = %s\n",
-        ((SUMA_SurfaceObject *)(ado))->Label);
    }else {
       fprintf (SUMA_STDERR,"%s: No displayable objects in focus.\n", FuncName);
       SUMA_RETURNe;
    }
 
-   fprintf(stderr, "%s\n", FuncName);
    if (!SUMA_viewSurfaceCont(w, ado, sv)) {
       SUMA_S_Err("Failed in SUMA_viewSurfaceCont ADO %s", ADO_LABEL(ado));
       SUMA_RETURNe;
@@ -7630,7 +7626,6 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("Creating controller for %s", ADO_LABEL(ado));
    switch (ado->do_type) {
       case SO_type:
-        fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
          break;
       case CDOM_type:
@@ -7646,19 +7641,15 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_GLDO(w, (XtPointer)ado,  callData);
          break; }
       case TRACT_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_TDO(w, (XtPointer)ado,  callData);
          break; }
       case MASK_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_MDO(w, (XtPointer)ado,  callData);
          break; }
       case VO_type: {
-         fprintf(stderr, "%s\n", FuncName);
          SUMA_cb_createSurfaceCont_VO(w, (XtPointer)ado,  callData);
          break; }
       default:
@@ -7858,7 +7849,6 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       sss = "font8";
    }
 
-   fprintf(stderr, "slabel = %s\n", slabel);
    SUMA_LH("Creating dialog shell.");
    if (!SUMAg_CF->X->UseSameSurfCont ||
        !SUMAg_CF->X->CommonSurfContTLW) { /* need a new one */
@@ -7899,7 +7889,6 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -8762,7 +8751,6 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -9712,7 +9700,6 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -10545,7 +10532,6 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       if (SUMAg_CF->X->UseSameSurfCont) {
          Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
-         fprintf(stderr, "%s\n", FuncName);
          SUMAg_CF->X->SC_Notebook =
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
                              SUMAg_CF->X->CommonSurfContTLW,
@@ -14731,7 +14717,6 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
                                        ZSS Snowed in, Feb. 2015 */
    XSync( XtDisplay(w) , False ) ; /* Be nice and tidy up before plunge
                                       We will drop all remaining events later*/
-    fprintf(stderr, "%s\n", FuncName);
    for (ido=0; ido<SUMAg_N_DOv; ++ido) {
       ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
       if (SUMA_ADO_Cont(ado) && !SUMA_isADO_Cont_Realized(ado)) {
