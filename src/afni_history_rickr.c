@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
+   "turn of local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
  { 10, Jun, 2021, RCR, "SurfLocalstat", MINOR, TYPE_NEW_PROG,
    "add Ziad's program to the default build",
    "This is to allow use of the 'mode' stat."
