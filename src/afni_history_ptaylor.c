@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Space before 'then' in if-cond; also remove all exclamations in comments.",
+   "The space miiight resolve weird opt parsing on old tcsh???\n"
+},
+
 { 10, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "New opt '-echo', for odd-behavior-on-other-systems-investigtion-purposes.",
    "Also print AFNI and program version numbers at top.\n"

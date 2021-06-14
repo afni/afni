@@ -1,9 +1,9 @@
 #!/bin/tcsh
 
 # for olay, default will be "show all"-- update fatcats to call for
-# 98%iles of non-zeros!
+# 98%iles of non-zeros
 
-# update fatcats for ulays, as well!
+# update fatcats for ulays, as well
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -69,7 +69,7 @@
 #     + [PT] start helpifying
 #
 #set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
-#     + [PT] improve/correct slice-width selection (thanks, J. Lee!)
+#     + [PT] improve/correct slice-width selection (thanks, J. Lee)
 #
 #set version   = "3.2";   set rev_dat   = "Feb 21, 2018"
 #     + [PT] add in p-to-stat capability for thresholding, via 
@@ -85,7 +85,7 @@
 #     + [PT] mode_4d opts seem to be working now, at least some...
 #        
 #set version   = "3.5";   set rev_dat   = "July 13, 2018"
-#     + [PT] need to require sidedness of test for -thr_olay_p2stat!
+#     + [PT] need to require sidedness of test for -thr_olay_p2stat
 #     + [PT] also switch to use p2dsetstat internally for getting that
 #       threshold
 #        
@@ -101,7 +101,7 @@
 #       non-zero values as before.  This should better match AFNI GUI
 #       behavior, and lead masks to not have a range [1,1]
 #     + [PT] now including the new drivability with: SET_ULAY_RANGE
-#       (Thanks, Emperor Zhark!)
+#       (Thanks, Emperor Zhark)
 #        
 #set version   = "3.8";   set rev_dat   = "July 23, 2018"
 #     + [PT] updating olays for 4d and thresholding
@@ -131,7 +131,7 @@
 #
 #set version   = "4.3";   set rev_dat   = "Oct 21, 2018"
 #     + [PT] add colorbar save capability, which is new to AFNI, courtesy
-#       of RWC-- thanks!
+#       of RWC-- thanks
 #     + [PT] when outputting the pbar, a text file also gets made, with the
 #       max value of the cbar and the threshold for the olay, to help
 #       scripting
@@ -160,7 +160,7 @@
 #
 #set version   = "4.7";   set rev_dat   = "Nov 27, 2018"
 #     + [PT] fixed delta_slices problem (were ignored)
-#            --> Grazie, S. Torrisi!
+#            --> Grazie, S. Torrisi
 #
 #set version   = "4.71";   set rev_dat   = "Dec 5, 2018"
 #     + [PT] fewer dependencies actually needed than listed-- at the
@@ -193,7 +193,7 @@
 #
 #set version   = "5.3";   set rev_dat   = "Apr 30, 2019"
 #     + [PT] for the -set_subbricks option, one can now input string
-#            labels -- thanks for the suggestion, Rasmus!
+#            labels -- thanks for the suggestion, Rasmus
 #
 #set version   = "5.4";   set rev_dat   = "May 8, 2019"
 #     + [PT] for cbar output, output a file that can be json-ized.
@@ -240,7 +240,7 @@
 #set version   = "5.9"; set rev_dat   = "Aug 30, 2019"
 #   + [PT] finish obliquity cases, and include refbox considerations
 #   + [PT] add '-edge_enhance_ulay EE' opt, to enhance edges of ulay
-#          with 3dedge3 info-- nice idea, D. Glen!
+#          with 3dedge3 info-- nice idea, D. Glen
 #
 #set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
 #   + [PT] add in resampling opts for obliquity transform
@@ -270,7 +270,7 @@
 #
 #set version   = "6.1"; set rev_dat   = "Feb 22, 2021"
 # [PT] add '-pbar_comm_gen ..' opt, for TSNR QC
-#    + set AFNI_IMSAVE_WARNINGS if ftype != MPEG; stops annoying warning
+#    + set AFNI_IMSAVE_WARNINGS if not(ftype == MPEG); stops annoying warning
 #
 #set version   = "6.11"; set rev_dat   = "Mar 6, 2021"
 # [PT] run GUI more quietly, and disable some warning messages
@@ -289,9 +289,15 @@
 #set version   = "6.23"; set rev_dat   = "May 20, 2021"
 # [PT] clean up exiting from help and ver
 #
-set version   = "6.24"; set rev_dat   = "June 10, 2021"
+#set version   = "6.24"; set rev_dat   = "June 10, 2021"
 # [PT] set echo opt
 #    + print version numbers near the top
+#
+set version   = "6.25"; set rev_dat   = "June 14, 2021"
+# [PT] obey paranoia about tcsh subtleties:
+#    + remove every exclamation point from a comment
+#    + ensure space between parenthesis and 'then' (which might have been
+#      a suuuuuper subtle issue on older tcsh)
 #
 # =====================================================================
 
@@ -309,7 +315,7 @@ setenv AFNI_SPLASH_MELT       NO
 setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
-setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
+setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob
 setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
 setenv AFNI_AGIF_DELAY        30         # [PT: Feb 22, 2020] 
 setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
@@ -406,7 +412,7 @@ set umax = ''
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
 set olay_boxed      = "No"         # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
-#set alpha_floor  = ""            # !! Gone now [Nov 5, 2018]
+#set alpha_floor  = ""             #  Gone now [Nov 5, 2018]
 
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
@@ -607,7 +613,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
 
-        if ( "$argv[$ac]" == "EMPTY" )then
+        if ( "$argv[$ac]" == "EMPTY" ) then
             set topval = ""
         else
             set topval = "$argv[$ac]"
@@ -981,12 +987,12 @@ set errm = "** ERROR:"
 set plist = ( Xvfb  )
 foreach pppp ( $plist )
   set wwww = `which $pppp`
-  if( $status != 0 )then
+  if( $status != 0 ) then
     @ nerr++
     set errm = "$errm $pppp"
   endif
 end
-if( $nerr > 0 )then
+if( $nerr > 0 ) then
   echo "$errm -- not found in path -- program fails"
   goto BAD_EXIT
 endif
@@ -1069,7 +1075,7 @@ endif
 # [PT: Aug 23, 2019] Set this here, because we miiiight edgeify the
 # ulay; and just in case we do, we want the original ulay to be used
 # for refbox-ing; if neither of those situations is happening, this
-# should have no affect-- fine!
+# should have no affect-- fine
 # ---> will have to be updated if applying obliquity
 set ulay_refbox = "${ulay}"
 
@@ -1328,7 +1334,7 @@ if ( $MODE_4D == 1 ) then
 else
 
     # p-to-stat calc *cannot* be done for MODE_4D, because the
-    # conversion might not be constant across slices!
+    # conversion might not be constant across slices
 
     # --------------------- p-to-stat thr capability -----------------
 
@@ -1477,7 +1483,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
             set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
 
             if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
-                # percentages!
+                # percentages
 
                 set pmin  = "$umin"
 
@@ -1541,7 +1547,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 else
                     # [PT: July 27, 2018] need to use subbb[1] brick
                     # selector for olay percentile if user has entered
-                    # it!!
+                    # it
                     if ( `echo " ${subbb[1]} > -1 " | bc` ) then
                         set amin  = `3dBrickStat $ulay_nz \
                                         -percentile ${pmin} 1 ${pmin} \
@@ -1616,7 +1622,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         goto BAD_EXIT
     endif
 
-    # always determine dim from ulay, because that's how montaging works!
+    # always determine dim from ulay, because that's how montaging works
     set Dim  = `3dinfo -n4 "$ulay"`
 
     # IF we don't want to see the olay, then set it to be the ulay, for
@@ -1680,7 +1686,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 
                 # [PT: July 27, 2018] need to use subbb[2] brick
                 # selector for olay percentile if user has entered
-                # it!!
+                # it
                 if ( `echo " ${subbb[2]} > -1 " | bc` ) then
                     set vvv = `3dBrickStat  $olay_nz          \
                                -percentile ${frange_perc} 1 ${frange_perc} \
@@ -1737,7 +1743,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
     ## -----------------------------------------------------------------
 
     # [PT: Nov 6, 2018] we only want this set here for 3D; for 4D,
-    # this was set above to be 1 1 1!
+    # this was set above to be 1 1 1
     if ( $MODE_4D == 0 ) then
 
         if ( $USER_GAPORD == 0 ) then
@@ -1885,7 +1891,7 @@ EOF
 
     # allow user to set extra options, such as "-nolisten inet6", in
     # case IPv6 is not configured; consider a test like:
-    #     if -d /proc/net && ! -f /proc/net/if_inet6
+    #     if -d /proc/net && [insert exclamation point] -f /proc/net/if_inet6
     #        then add: -nolisten inet6
     #     or maybe if -d /proc/sys/net/ipv6
     if ( $?AFNI_DRIVE_OPTS_XVFB ) then
@@ -1926,7 +1932,7 @@ EOF
     endif
 
     # -------------------------------------------------------------------
-    # ---------------- The actual, driven command! ----------------------
+    # ---------------- The actual, driven command ----------------------
 
     if ( $MODE_4D ) then
 
@@ -1979,7 +1985,7 @@ echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC!
+# before values are calc'ed for ranges---thanks, RWC
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
@@ -2011,7 +2017,7 @@ endif
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC!
+# before values are calc'ed for ranges---thanks, RWC
         afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu         \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
@@ -2087,7 +2093,7 @@ echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC!
+# before values are calc'ed for ranges---thanks, RWC
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
@@ -2128,7 +2134,7 @@ endif
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
-# before values are calc'ed for ranges---thanks, RWC!
+# before values are calc'ed for ranges---thanks, RWC
 afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
