@@ -69,6 +69,56 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@global_parse" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@get.afni.version" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_glue_imgs_vert" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ROI_decluster" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@1dDiffMag" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
 { 14, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Space before 'then' in if-cond; also remove all exclamations in comments.",
    "The space miiight resolve weird opt parsing on old tcsh???\n"

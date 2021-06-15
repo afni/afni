@@ -2,13 +2,13 @@
 
 set hhh = 0
 
-if( $#argv < 1 ) set hhh = 1
+if ( $#argv < 1 ) set hhh = 1
 
-if( $hhh == 0 )then
-  if( $argv[1] == "-help" ) set hhh = 1
+if ( $hhh == 0 ) then
+  if ( $argv[1] == "-help" ) set hhh = 1
 endif
 
-if( $hhh == 1 )then
+if ( $hhh == 1 ) then
   echo
   echo "This script downloads the source code for a particular AFNI version."
   echo

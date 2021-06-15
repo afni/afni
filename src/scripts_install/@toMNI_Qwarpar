@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-if( $#argv > 0 ) then
+if ( $#argv > 0 ) then
   echo " "
   echo "** This script is similar to @toMNI_Qwarp -- but it spawns **"
   echo "** jobs in parallel (on the same system).  To use it, you  **"
@@ -52,7 +52,7 @@ set basename = MNI152_1mm_uni+tlrc
 ##### Find the A level template
 
 set tpath = `@FindAfniDsetPath $basename`
-if( $tpath == '' ) then
+if ( $tpath == '' ) then
   echo "** @toMNI_Qwarp: Failed to find template $basename -- cannot continue"
   exit 1
 endif
@@ -63,14 +63,14 @@ set AAbasename = ${tpath}/${basename}
 
 set dlist = ( *_uni+tlrc.HEAD )
 
-if( $#dlist < 9 ) then
+if ( $#dlist < 9 ) then
   echo "** @toMNI_Qwarp: Not enough input datasets (need at least 9) -- cannot continue"
   exit 1
 endif
 
 ##### A level (affine) #####
 
-if( -f Qwarp_meanA+tlrc.HEAD ) then
+if ( -f Qwarp_meanA+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanA =========="
   echo " "
@@ -87,7 +87,7 @@ AAA_done:
 
 ##### B level (coarsest scale nonlinear) #####
 
-if( -f Qwarp_meanB+tlrc.HEAD ) then
+if ( -f Qwarp_meanB+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanB =========="
   echo " "
@@ -104,14 +104,14 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if( ! -e ${bbb}_uniB_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniB_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
 end
-if( $#qlist == 0 ) then
+if ( $#qlist == 0 ) then
   echo "=== All B warps computed -- skipping to averaging step ==="
   goto BBB_domean
 endif
 set qjob = $numjob
-if( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -160,7 +160,7 @@ end
 while(1)
   sleep 60
   set fdone = ( BBwarp_* )
-  if( $#fdone == $qplus ) break
+  if ( $#fdone == $qplus ) break
 end
 
 # remove the script and the markers
@@ -176,7 +176,7 @@ BBB_done:
 
 ##### C level (finer level nonlinear) #####
 
-if( -f Qwarp_meanC+tlrc.HEAD ) then
+if ( -f Qwarp_meanC+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanC =========="
   echo " "
@@ -193,14 +193,14 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if( ! -e ${bbb}_uniC_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniC_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
 end
-if( $#qlist == 0 ) then
+if ( $#qlist == 0 ) then
   echo "=== All C warps computed -- skipping to averaging step ==="
   goto CCC_domean
 endif
 set qjob = $numjob
-if( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -240,7 +240,7 @@ end
 while(1)
   sleep 60
   set fdone = ( CCwarp_* )
-  if( $#fdone == $qplus ) break
+  if ( $#fdone == $qplus ) break
 end
 
 \rm CCwarp_*
@@ -252,7 +252,7 @@ CCC_done:
 
 ##### D level (even finer nonlinear) #####
 
-if( -f Qwarp_meanD+tlrc.HEAD ) then
+if ( -f Qwarp_meanD+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanD =========="
   echo " "
@@ -269,14 +269,14 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if( ! -e ${bbb}_uniD_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniD_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
 end
-if( $#qlist == 0 ) then
+if ( $#qlist == 0 ) then
   echo "=== All D warps computed -- skipping to averaging step ==="
   goto DDD_domean
 endif
 set qjob = $numjob
-if( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -316,7 +316,7 @@ end
 while(1)
   sleep 60
   set fdone = ( DDwarp_* )
-  if( $#fdone == $qplus ) break
+  if ( $#fdone == $qplus ) break
 end
 
 \rm DDwarp_*
@@ -328,7 +328,7 @@ DDD_done:
 
 ##### E level (even finer nonlinear) #####
 
-if( -f Qwarp_meanE+tlrc.HEAD ) then
+if ( -f Qwarp_meanE+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanE =========="
   echo " "
@@ -341,14 +341,14 @@ endif
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if( ! -e ${bbb}_uniE_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniE_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
 end
-if( $#qlist == 0 ) then
+if ( $#qlist == 0 ) then
   echo "=== All E warps computed -- skipping to averaging step ==="
   goto EEE_domean
 endif
 set qjob = $numjob
-if( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -392,7 +392,7 @@ end
 while(1)
   sleep 60
   set fdone = ( EEwarp_* )
-  if( $#fdone == $qplus ) break
+  if ( $#fdone == $qplus ) break
 end
 
 \rm EEwarp_*
@@ -400,7 +400,7 @@ end
 EEE_domean:
 nice 3dNwarpAdjust -nwarp *_uniE_WARP+tlrc.HEAD -source $dlist -prefix Qwarp_meanE
 
-if( $doFFF != 'YES' )then
+if ( $doFFF != 'YES' ) then
   foreach fred ( $dlist )
     set bbb = `basename $fred _uni+tlrc.HEAD`
     3dNwarpApply -nwarp ${bbb}_uniE_WARP+tlrc.HEAD \
@@ -412,9 +412,9 @@ EEE_done:
 
 ##### F level (optional) #####
 
-if( $doFFF != 'YES' ) goto FFF_done
+if ( $doFFF != 'YES' ) goto FFF_done
 
-if( -f Qwarp_meanF+tlrc.HEAD ) then
+if ( -f Qwarp_meanF+tlrc.HEAD ) then
   echo " "
   echo "========== @toMNI_Qwarp: skipping Qwarp_meanF =========="
   echo " "
@@ -428,14 +428,14 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if( ! -e ${bbb}_uniF_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniF_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
 end
-if( $#qlist == 0 ) then
+if ( $#qlist == 0 ) then
   echo "=== All F warps computed -- skipping to averaging step ==="
   goto FFF_domean
 endif
 set qjob = $numjob
-if( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -475,7 +475,7 @@ end
 while(1)
   sleep 60
   set fdone = ( FFwarp_* )
-  if( $#fdone == $qplus ) break
+  if ( $#fdone == $qplus ) break
 end
 
 \rm FFwarp_*
