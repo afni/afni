@@ -462,7 +462,13 @@ if ( $do_clust == 'yes' ) then
          echo -n "warning   "
       else
          echo -n "FAILURE   "
-         if ( $thr == 0 ) set $thr = $thr_list[$index]
+         ### [PT: Jun 15, 2021] make this a multiline if condition, to
+         ### avoid possible badness on older tcsh versions; also, fix
+         ### a likely mistake: 'set $thr = ...' -> 'set thr = ...'
+         #if ( $thr == 0 ) set $thr = $thr_list[$index]
+         if ( $thr == 0 ) then
+            set thr = $thr_list[$index]
+         endif
       endif
 
       echo "$inset ($thr_list[$index] / $frac_list[$index])"
