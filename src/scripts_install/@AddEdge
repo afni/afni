@@ -428,7 +428,9 @@ endif
 
 # read the listlog file that contains only the names of the input datasets
 # in a single row
-if ("$olist" == "") set olist = (`cat ${listlog}`)
+if ("$olist" == "") then
+    set olist = (`cat ${listlog}`)
+endif
 #trim what is not desired from list
 # testing required removing some datasets from consideration
 if ($remove_SPM == 1) then
@@ -686,7 +688,9 @@ while ($cnt < $#olist)
    if ($nx >= 1) then
       set cnt = `ccalc -form int $nx\*2`
    endif
-   if ($cnt > $#olist) set cnt = 2 
+   if ($cnt > $#olist) then
+      set cnt = 2 
+   endif
    echo "Opening "`@GetAfniPrefix $olist[$cnt]`" results"
 end
 

@@ -85,9 +85,15 @@ else
       else
          set fsp = $bin:h
          #peel off a couple of layers
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
          if ( ! -f $fsp/${fsdb}) then
             echo "Cannot find LUT"
             goto END

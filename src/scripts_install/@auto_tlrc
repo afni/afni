@@ -612,7 +612,9 @@ PARSE:
    set tt_pref = ${anat_pref}${suf}
    
    if ("$isNIFTI" == 1) then
-      if ($suf == '') set suf = '_at'
+      if ($suf == '') then
+        set suf = '_at'
+      endif
       set out_pref = ${NIpref}${suf}
       if ( -f ${out_pref}.nii && $over == 0) then
          echo "ERROR: ${out_pref}.nii exists already"

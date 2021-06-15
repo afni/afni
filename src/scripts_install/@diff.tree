@@ -52,7 +52,9 @@ while ( $narg <= $amax )
     else if ( "$argv[$narg]" == "-verb" ) then
         @ narg ++
         set verb = $argv[$narg]
-        if ( $verb > 2 ) set echo
+        if ( $verb > 2 ) then
+            set echo
+        endif
     else if ( "$argv[$narg]" == "-xxdiff" ) then
         set xxdiff    = 1
         set showdiffs = 1
@@ -80,7 +82,9 @@ endif
 # default to pdf output, but use ps if ps2pdf is not there
 set useps = 0
 which ps2pdf >& /dev/null
-if ( $status ) set useps = 1
+if ( $status ) then
+    set useps = 1
+endif
 
 # if ignore_list, make compund grep expression
 set iglist = ( )

@@ -50,7 +50,9 @@ if ($ltdset != '') then
 endif
 
 if ($showlabels) then
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    if ($KeysLabel != '') then
       niccc -quiet '-#' -stdout file:$labeltable \
          | \grep $gopt $KeysLabel \
@@ -66,7 +68,9 @@ if ($showlabels) then
 endif
 
 if ($showkeys) then
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    if ($KeysLabel != '') then
       niccc -quiet '-#' -stdout file:$labeltable \
          | \grep $gopt $KeysLabel \
@@ -100,7 +104,9 @@ if ($KeysLabel != '') then
    endif
 
    #get the numbers
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    set keys = `niccc -quiet '-#' -stdout file:$labeltable \
       | \grep $gopt $KeysLabel \
       | \sed 's/^ //g' | \sed 's/"//g' \

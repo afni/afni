@@ -150,8 +150,12 @@ L_PARSE_COMMAND:
 		@ count ++
 		set debug = $argv[$count]
 
-		if ( "$debug" > 2 ) set debug = 2
-		if ( "$debug" < 0 ) set debug = 0
+		if ( "$debug" > 2 ) then
+        set debug = 2
+      endif
+		if ( "$debug" < 0 ) then
+        set debug = 0
+       endif
 
 	    breaksw
 

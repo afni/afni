@@ -69,6 +69,101 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "@2dwarper.Allin" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ExamineGenFeatDists" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_InstaCorr_Demo" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_SF" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ScaleVolume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@clip_volume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@compute_gcor" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@fix_FSsphere" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@move.to.series.dirs" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@update.afni.binaries" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
 { 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
    "Clean up some spacing; avoid single line 'if' conds; use unaliased rm.",
    "To avoid badness in some (older?) tcsh versions.\n"

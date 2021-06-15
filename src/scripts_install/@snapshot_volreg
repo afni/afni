@@ -312,7 +312,9 @@ set anatNN = `3dinfo -nijk $cdset`
 
 set astep = `ccalc -int "cbrt($anatNN)/6.111"`
 
-if ( $astep < 2 ) set astep = 2
+if ( $astep < 2 ) then
+    set astep = 2
+endif
 
 # [PT] NB: at some point, it may become necessary to adjust this line:
 ##     -com "SET_PBAR_ALL +99 1 Plasma"                            \
