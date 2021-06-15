@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Clean up some spacing; avoid single line 'if' conds; use unaliased rm.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
 { 15, June , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
    "Put spaces in if-conditions after 'if'.",
    "To avoid badness in some (older?) tcsh versions.\n"
