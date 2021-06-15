@@ -438,7 +438,9 @@ if ($remove_SPM == 1) then
    set olist = ()
    foreach ll ($qlist)
       if (  "$ll" !~ *SPM*norm* &&  \
-            "$ll" !~ *SPM*seg* ) set olist = ($olist $ll)
+            "$ll" !~ *SPM*seg* ) then
+          set olist = ($olist $ll)
+      endif
    end
 endif
 #Number of elements must be odd

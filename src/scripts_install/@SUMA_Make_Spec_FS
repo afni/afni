@@ -532,10 +532,14 @@ L_PARSE_COMMAND:
     # to input other dsets from surf/ dir
     set fsdsets = (thickness curv sulc $fsdsets_extra ) 
 
-    if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
+    if ($#inflates == 0 && $neuro_ori == -1) then
+        set inflates = ($inflates 200) 
+    endif
 
     if ( $debug ) echo "-- usage okay"
-    if ( $debug > 1 ) set echo
+    if ( $debug > 1 ) then
+        set echo
+    endif
     if ( $#ldu ) then
         set ldlist = ($ldu)
     endif

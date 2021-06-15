@@ -104,14 +104,18 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if ( ! -e ${bbb}_uniB_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniB_WARP+tlrc.HEAD ) then
+    set qlist = ( $qlist $fred )
+  endif
 end
 if ( $#qlist == 0 ) then
   echo "=== All B warps computed -- skipping to averaging step ==="
   goto BBB_domean
 endif
 set qjob = $numjob
-if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) then
+  set qjob = $#qlist
+endif
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -193,14 +197,18 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if ( ! -e ${bbb}_uniC_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniC_WARP+tlrc.HEAD ) then
+    set qlist = ( $qlist $fred )
+  endif
 end
 if ( $#qlist == 0 ) then
   echo "=== All C warps computed -- skipping to averaging step ==="
   goto CCC_domean
 endif
 set qjob = $numjob
-if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) then
+  set qjob = $#qlist
+endif
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -269,14 +277,18 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if ( ! -e ${bbb}_uniD_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniD_WARP+tlrc.HEAD ) then
+    set qlist = ( $qlist $fred )
+  endif
 end
 if ( $#qlist == 0 ) then
   echo "=== All D warps computed -- skipping to averaging step ==="
   goto DDD_domean
 endif
 set qjob = $numjob
-if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) then
+  set qjob = $#qlist
+endif
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -341,14 +353,18 @@ endif
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if ( ! -e ${bbb}_uniE_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniE_WARP+tlrc.HEAD ) then
+    set qlist = ( $qlist $fred )
+  endif
 end
 if ( $#qlist == 0 ) then
   echo "=== All E warps computed -- skipping to averaging step ==="
   goto EEE_domean
 endif
 set qjob = $numjob
-if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) then
+  set qjob = $#qlist
+endif
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
@@ -428,14 +444,18 @@ echo " "
 set qlist = ( )
 foreach fred ( $dlist )
   set bbb  = `basename $fred _uni+tlrc.HEAD`
-  if ( ! -e ${bbb}_uniF_WARP+tlrc.HEAD ) set qlist = ( $qlist $fred )
+  if ( ! -e ${bbb}_uniF_WARP+tlrc.HEAD ) then
+    set qlist = ( $qlist $fred )
+  endif
 end
 if ( $#qlist == 0 ) then
   echo "=== All F warps computed -- skipping to averaging step ==="
   goto FFF_domean
 endif
 set qjob = $numjob
-if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) set qjob = $#qlist
+if ( `@ tmp = ( $#qlist < $qjob ) ; echo $tmp` ) then
+  set qjob = $#qlist
+endif
 @ qper  = $#qlist / $qjob
 @ qext  = $#qlist % $qjob
 @ qcpu  = $numcpu / $qjob
