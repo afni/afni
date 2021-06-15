@@ -267,7 +267,7 @@ if ( "$out_ff" == "" ) then
 endif
 
 # make a temporary output directory
-if( -d "$tmpdir" ) then
+if ( -d "$tmpdir" ) then
     echo "++ Directory '$tmpdir' exists already."
 else
     echo "++ Making the temporary directory '$tmpdir' for the files."

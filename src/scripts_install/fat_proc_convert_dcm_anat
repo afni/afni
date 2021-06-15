@@ -407,7 +407,7 @@ endif
 
 if ( "$DO_VIEWER" == "1" ) then
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_anat
     else
         set vpref0 = ${qc_prefix}_qc_anat

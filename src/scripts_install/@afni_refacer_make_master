@@ -167,7 +167,7 @@ endif
 
 # Convert to shorts (from floats) to create the final output dataset
 
-if( -f afni_refacer_shell.nii.gz ) \rm afni_refacer_shell.nii.gz
+if ( -f afni_refacer_shell.nii.gz ) \rm afni_refacer_shell.nii.gz
 3dcalc -a $qqq.afni_refacer5.nii -expr a -datum short -nscale -prefix afni_refacer_shell.nii
 gzip -9v afni_refacer_shell.nii
 

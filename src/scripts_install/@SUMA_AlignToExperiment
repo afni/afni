@@ -500,7 +500,7 @@ DOWNSAMPLE:
       if ($Skip == 0) then
          echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
          adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-         if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
+         if (!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
             goto NO_DOWNGOOD_BADBAD
          endif
          

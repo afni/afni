@@ -63,7 +63,7 @@ endif
 
 # if dataset is not already an atlas, make it so
 if ("$flab" != "IS_ATLAS") then
-   if($lncol) then
+   if ($lncol) then
       set lnarg = "-longnames $lncol"
    else
       set lnarg = ""

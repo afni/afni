@@ -618,7 +618,7 @@ PARSE:
          echo "ERROR: ${out_pref}.nii exists already"
          goto BEND
       endif
-      if($RemoveSkull != 1) then
+      if ($RemoveSkull != 1) then
          # if intput and output are identical, do not run   19 Feb 2020 [rickr]
          # (avoid confusing FATAL ERROR: already exists, e.g. Robin on MB)
          if ( "`@GetAfniPrefix $anat_in`" != ${ns_pref} ) then
@@ -949,7 +949,7 @@ AUTO_TLRC_MODE:
       endif
 
       
-      if($warpdrive_method == "3dAllineate") then
+      if ($warpdrive_method == "3dAllineate") then
          # 3dAllineate matches base dataset as master 
          if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${ref_view}` != 2) then
             echo "Error: Failed in $warpdrive_method "
@@ -1175,7 +1175,7 @@ AUTO_TLRC_MODE:
       goto APPLY_MASK
       BMW:
       #copy fields
-         if($warpdrive_method == "3dWarpDrive") then
+         if ($warpdrive_method == "3dWarpDrive") then
             set FromVol = ${tt_prefpad}.skl${anat_view}
             set ToVol = ${tt_prefpad}${anat_view}
             set RET_copy_fields = BM
@@ -1198,7 +1198,7 @@ AUTO_TLRC_MODE:
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
                -prefix ./${tt_prefupad} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-   if($warpdrive_method == "3dWarpDrive") then   
+   if ($warpdrive_method == "3dWarpDrive") then   
       set FromVol = ${tt_prefpad}${anat_view}
       set ToVol = ${tt_prefupad}${anat_view}
       set RET_copy_fields = UP
@@ -1221,7 +1221,7 @@ AUTO_TLRC_MODE:
       endif
       3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
       if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
-        if($warpdrive_method == "3dWarpDrive") then   
+        if ($warpdrive_method == "3dWarpDrive") then   
            #Now add a 3drefit line to specify the warp parent
            echo "Setting parent with 3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}"
            3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
@@ -1414,14 +1414,14 @@ APAR_MODE:
       # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
       #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-      if($warpdrive_method == "3dWarpDrive") then   
+      if ($warpdrive_method == "3dWarpDrive") then   
          set FromVol = ${ref_nopad}
          set ToVol = ${tmp_out_pref}${anat_view}
          set RET_copy_fields = APCW
          goto COPY_FIELDS
       endif
          APCW:    
-      if($warpdrive_method == "3dWarpDrive") then   
+      if ($warpdrive_method == "3dWarpDrive") then   
          3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
       endif
    endif
@@ -2020,7 +2020,7 @@ APPLY_MASK:
 #            ${tmppref}_reg_braintlrcstep${anat_view}    
 
 #   3drename ${OW} ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
-   if($isNIFTI == 1 && $warpnii == 1) then
+   if ($isNIFTI == 1 && $warpnii == 1) then
        mv $headset $skl_outprefix
 #      3dcopy ${OW} $headset ${ttvolpref}${nomskpref}
    3dcalc   ${OW} -a "${tmppref}_reg_braintlrcmask${anat_view}" \

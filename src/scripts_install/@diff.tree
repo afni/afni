@@ -144,7 +144,7 @@ endif
 # (if user wants it, but it is not appropriate, let them know why)
 if ( $showlcomp ) then
    if ( $identical ) then
-      if( $verb > 1 ) echo "-- showcomp: lists are identical"
+      if ( $verb > 1 ) echo "-- showcomp: lists are identical"
       exit 0
    else if ( $#new_files != $#old_files ) then
       echo "-- showcomp: no pairwise list difference"
@@ -251,7 +251,7 @@ foreach file ( $new_files )
       set dfile = `echo $file | sed 's/\//./g'`
       diff $diffopts $ndir/$file $odir/$file > diffs/t.$dfile.txt
 
-      if( $useps ) then
+      if ( $useps ) then
           diff -bB $odir/$file $ndir/$file | diffpp $odir/$file \
                    | enscript -Ge -p diffs/d.$dfile.ps
           if ( $status ) then

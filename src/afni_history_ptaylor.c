@@ -69,6 +69,146 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Awarp" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_in2out" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_erosion_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_bb_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_slice_space" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.files" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_ClustScat_Demo" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@GradFlipTest" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FindAfniDsetPath" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Atlasize" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
 { 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
    "Put spaces in if-conditions after 'if' and before 'then'.",
    "To avoid badness in some (older?) tcsh versions.\n"

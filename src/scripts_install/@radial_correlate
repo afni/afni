@@ -208,7 +208,7 @@ endif
 # ----------------------------------------------------------------------
 # copy inputs (minus pre-ss trs) to results dir
 
-if( $do_corr == 'yes' ) then
+if ( $do_corr == 'yes' ) then
    set rind = 1
    set dind = 1
    foreach index ( `count -digits 1 1 $#dset_list` )

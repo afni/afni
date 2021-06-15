@@ -249,7 +249,7 @@ foreach ana ($analist)
    else
       # want data in AFNI format here
       set afni_type = `@CheckForAfniDset $ana`
-      if($afni_type == 3) then
+      if ($afni_type == 3) then
          echo "Copying dataset to AFNI format"
          3dcopy $ana $anapref
       endif
@@ -387,12 +387,12 @@ foreach anain ($analist)
                -inset ${epipref}_${anatpref}_e+orig 
    set olist = (  $olist \
                   ${ooo}+orig.HEAD)               
-   if($rm_ae_temp == 1) then
+   if ($rm_ae_temp == 1) then
      rm -f ${anatpref}_e+orig* ${epipref}_${anatpref}_e+orig* 
    endif
 end
 
-if($rm_ae_temp == 1) then
+if ($rm_ae_temp == 1) then
    rm -f ${prs}*
    rm -f ${prs}epi_sc* >& /dev/null
    rm -f tmp_box+orig* tmp_avg+orig*

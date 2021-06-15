@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-if( $#argv < 2 ) then
+if ( $#argv < 2 ) then
   echo " "
   echo "Script to take a collection of datasets and transform them"
   echo "to 1x1x1 mm MNI space with an affine transformation."
@@ -26,7 +26,7 @@ set numjob   = 7
 ## check if output directory is already there
 
 set dname = $argv[1]
-if( -e $dname ) then
+if ( -e $dname ) then
   echo "***** @toMNI_Awarp: Directory $dname already exists -- cannot continue"
   exit 1
 endif
@@ -34,7 +34,7 @@ endif
 ## find the base template
 
 set tpath = `@FindAfniDsetPath $basename`
-if( $tpath == '' ) then
+if ( $tpath == '' ) then
   echo "***** @toMNI_Awarp: Failed to find template $basename -- cannot continue"
   exit 1
 endif
@@ -45,13 +45,13 @@ set dlist = ( )
 set nerr  = 0
 foreach nnn ( `count -dig 1 2 $#argv` )
   set dlist = ( $dlist $argv[$nnn] )
-  if( ! -f $argv[$nnn] ) then
+  if ( ! -f $argv[$nnn] ) then
     echo "  *** @toMNI_Awarp: Dataset file $argv[$nnn] does not exist"
     @ nerr++
   endif
 end
 
-if( $nerr > 0 ) then
+if ( $nerr > 0 ) then
   echo "***** @toMNI_Awarp: Cannot continue after such flagrant problems"
   exit 1
 endif
@@ -59,7 +59,7 @@ endif
 ## create the output directory
 
 \mkdir -pv $dname
-if( ! -d $dname ) then
+if ( ! -d $dname ) then
   echo "***** @toMNI_Awarp: Failed to create directory $dname -- cannot continue"
   exit 1
 endif
@@ -74,7 +74,7 @@ echo " "
 foreach nnn ( `count -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $dlist[$nnn]`
   set isn = `3dinfo -is_nifti $dlist[$nnn]`
-  if( $isn ) then
+  if ( $isn ) then
     set nip = `echo $pan[2] | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
     3dcopy $dlist[$nnn] $dname/$nip
     set fname = `echo $dname/${nip}+????.HEAD`
@@ -103,7 +103,7 @@ foreach nnn ( `count -dig 1 1 $ndset` )
   nice 3dUnifize -prefix ${pre}_uni -GM -input ${pre}${vvv}.HEAD &
   cd ..
   @ rrr = $nnn % $numjob
-  if( $rrr == 0 ) wait
+  if ( $rrr == 0 ) wait
 end
 unsetenv OMP_NUM_THREADS
 wait
@@ -123,7 +123,7 @@ foreach nnn ( `count -dig 1 1 $ndset` )
                   -rmode quintic                   &
   cd ..
   @ rrr = $nnn % $numjob
-  if( $rrr == 0 ) wait
+  if ( $rrr == 0 ) wait
 end
 wait
 mv Temp*/*_uni+tlrc.* .

@@ -197,7 +197,7 @@ foreach file ( $files )
         if ( $savediffs ) then 
             set dfile = `echo $file | sed 's/\//./g'`
             diff $diffopts $file $odir/$file > diffs/$dfile.txt
-            if( $useps ) then
+            if ( $useps ) then
                 diff -bB $odir/$file $file | diffpp $odir/$file \
                          | enscript -Ge -p diffs/$dfile.ps
             else
