@@ -1903,25 +1903,15 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #define METRIC_AGDV  7
 extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
-/*--------------------------------------------------------------------*/
-/** July 2006: stuff for generic alignment functions: mri_genalign.c **/
+/*--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+/* July 2006: for generic alignment functions: mri_genalign.c (3dAllineate) */
 
 #ifndef MRILIB_MINI
 
 #include "mri_warpfield.h"
 
-  /* definition of various convex neighborhoods */
-
-#define GA_BLOK_BALL 1  /* sphere */
-#define GA_BLOK_CUBE 2  /* cube */
-#define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
-#define GA_BLOK_TOHD 4  /* truncated octahedron */
-
-#define GA_BLOK_STRING(b)  ( ((b)==GA_BLOK_BALL) ? "BALL" :          \
-                             ((b)==GA_BLOK_CUBE) ? "CUBE" :          \
-                             ((b)==GA_BLOK_RHDD) ? "RHDD" :          \
-                             ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
-                                                            "UNKNOWN" )
+#define ALLOW_NWARP   /* for the 3dAllineate -nwarp option */
 
  /* method codes for matching scalar-valued images */
 
@@ -1968,9 +1958,24 @@ typedef void GA_warpfunc( int, float *,
 
 typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
+/* codes for how the 2D histogram is constructed (thd_correlate.c) */
+
 #define GA_HIST_EQWIDE 1
 #define GA_HIST_EQHIGH 2
 #define GA_HIST_CLEQWD 3
+
+/* definition of various convex neighborhoods (BLOKs) for LPC */
+
+#define GA_BLOK_BALL 1  /* sphere */
+#define GA_BLOK_CUBE 2  /* cube */
+#define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
+#define GA_BLOK_TOHD 4  /* truncated octahedron */
+
+#define GA_BLOK_STRING(b)  ( ((b)==GA_BLOK_BALL) ? "BALL" :          \
+                             ((b)==GA_BLOK_CUBE) ? "CUBE" :          \
+                             ((b)==GA_BLOK_RHDD) ? "RHDD" :          \
+                             ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
+                                                            "UNKNOWN" )
 
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
@@ -2004,7 +2009,7 @@ extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
 extern float total_rotation_degrees( float ax, float ay, float az ) ; /* 02 Jan 2019 */
 
- /* struct to control mri_genalign.c optimization */
+/* struct to control mri_genalign.c optimization -- gets named 'stup' in places */
 
 typedef struct {
   int match_code  ;             /* set by user */
@@ -2068,12 +2073,13 @@ typedef struct {
   float        vbest ;
 } GA_setup ;
 
-
-/** compute correlations in each blok **/
+/** compute correlations in each blok, using the alignment setup **/
 
 extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
 extern MRI_IMAGE * GA_pearson_image( GA_setup *stup , floatvec *pv ) ;            /* Biden day 3 */
 extern MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm ) ; /* Biden day 6 */
+
+/* free if it isn't null */
 
 #undef  IFREE
 #define IFREE(x) do{ if((x)!=NULL)free(x); (x)=NULL; }while(0)
@@ -2111,6 +2117,7 @@ extern void mri_genalign_mat44( int, float *,
                                      float *, float *, float * ) ;
 extern void mri_genalign_set_pgmat( int ) ;
 
+#ifdef ALLOW_NWARP
 extern void mri_genalign_bilinear( int, float *,
                                    int, float *, float *, float *,
                                         float *, float *, float * ) ;
@@ -2130,6 +2137,7 @@ extern void mri_genalign_nonic( int, float *,
 
 extern int    GA_polywarp_coordcode( int pnum ) ; /* 06 Dec 2010 */
 extern char * GA_polywarp_funcname ( int pnum ) ; /* 09 Dec 2010 */
+#endif
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */
@@ -2207,6 +2215,8 @@ extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
 
 #endif /* MRILIB_MINI */
+
+/*--------------------------------------------------------------------*/
 
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
 extern void FHWM_1dif_dontcheckplus( int ) ;
