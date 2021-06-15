@@ -354,7 +354,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     SUMA_BLANK_NEW_SPEC_SURF*/
     sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
     SO->State = SUMA_copy_string(sid);
-    sprintf(sid, "clippingPlaneIdentificationSquare_%d", Opt->obj_type);
+    sprintf(sid, "clippingPlaneIdentificationSquare_%d", SUMAg_CF->N_ClipPlanes-1);
     SO->Label = SUMA_copy_string(sid);
     SO->EmbedDim = 3;
     SO->AnatCorrect = NOPE;
@@ -6108,11 +6108,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_w:
-            if (!SUMA_W_Key(sv, "w", "interactive")) {
+            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
+              char stmp[100];
+               sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
+               SUMAg_CF->X->N_ForeSmooth_prmpt =
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
+                                       "Foreground smoothing iterations",
+                                       stmp,
+                                       sv->X->TOPLEVEL, YUP,
+                                       SUMA_APPLY_BUTTON,
+                                       SUMA_SetNumForeSmoothing, (void *)sv,
+                                       NULL, NULL,
+                                       NULL, NULL,
+                                       SUMA_CleanNumString, (void*)1,
+                                       SUMAg_CF->X->N_ForeSmooth_prmpt);
+                // TODO: Add code to write clipping plane info. to file
+            } else if (!SUMA_W_Key(sv, "w", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            break;
-
             break;
 
          case XK_Z:

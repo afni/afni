@@ -2245,7 +2245,9 @@ char * SUMA_help_message_Info(TFORM targ)
    // Clipping plane mode
    if (targ == TXT) {
       SS = SUMA_StringAppend (SS,
-            "Clipping Plane Mode:\n");
+            "====================\n"
+            "Clipping Plane Mode:\n"
+            "====================\n");
    } else if (targ == SPX) {
       SS = SUMA_StringAppend (SS,
             ".. _Help_Menu:\n\n"

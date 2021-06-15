@@ -6975,14 +6975,25 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
    if (sv->Focus_DO_ID >= 0) {
     ado = (SUMA_ALL_DO *)SUMAg_DOv[sv->Focus_DO_ID].OP;
+    // If selected object is a clipping plane identification square, try to
+    //  find a different object that is not
     if ((strstr(((SUMA_SurfaceObject *)(ado))->Label,
             "clippingPlaneIdentificationSquare_"))){
+            for (int i=0; i<SUMAg_N_DOv; ++i){
+                ado = (SUMA_ALL_DO *)SUMAg_DOv[i].OP;
+                if (!(strstr(((SUMA_SurfaceObject *)(ado))->Label,
+                    "clippingPlaneIdentificationSquare_")) &&
+                    SUMA_viewSurfaceCont(w, ado, sv)) break;
+            }
+            if ((strstr(((SUMA_SurfaceObject *)(ado))->Label,
+                "clippingPlaneIdentificationSquare_"))){
                 fprintf(stderr, "Clipping plane identification squares");
                 fprintf(stderr, " not handled by Surface Controller\n");
-            SUMA_RETURNe;
+                SUMA_RETURNe;
+                }
         }
-    fprintf(stderr, "Surface = %s\n",
-        ((SUMA_SurfaceObject *)(ado))->Label);
+        fprintf(stderr, "Surface = %s\n",
+            ((SUMA_SurfaceObject *)(ado))->Label);
    }else {
       fprintf (SUMA_STDERR,"%s: No displayable objects in focus.\n", FuncName);
       SUMA_RETURNe;
@@ -7858,7 +7869,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       sss = "font8";
    }
 
-   fprintf(stderr, "slabel = %s\n", slabel);
+   // fprintf(stderr, "slabel = %s\n", slabel);
    SUMA_LH("Creating dialog shell.");
    if (!SUMAg_CF->X->UseSameSurfCont ||
        !SUMAg_CF->X->CommonSurfContTLW) { /* need a new one */
@@ -14731,10 +14742,13 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
                                        ZSS Snowed in, Feb. 2015 */
    XSync( XtDisplay(w) , False ) ; /* Be nice and tidy up before plunge
                                       We will drop all remaining events later*/
-    fprintf(stderr, "%s\n", FuncName);
+    // Load surace object list with surface objects that are not clipping plane
+    //  identification squares
    for (ido=0; ido<SUMAg_N_DOv; ++ido) {
       ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
-      if (SUMA_ADO_Cont(ado) && !SUMA_isADO_Cont_Realized(ado)) {
+      if (!(strstr(((SUMA_SurfaceObject *)(ado))->Label,
+                    "clippingPlaneIdentificationSquare_")) &&
+                    SUMA_ADO_Cont(ado) && !SUMA_isADO_Cont_Realized(ado)) {
          ++new;
          SUMA_viewSurfaceCont(NULL, ado, NULL);
       }
