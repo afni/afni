@@ -87,7 +87,9 @@ endif
 # (** temporary change to ps output - ps2pdf is crashing **)
 set useps = 0
 which ps2pdf >& /dev/null
-if ( $status ) set useps = 1
+if ( $status ) then
+    set useps = 1
+endif
 
 @ last = $#argv - 1
 

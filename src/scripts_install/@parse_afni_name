@@ -14,14 +14,20 @@ endif
 
 set anat_in = `echo "$1" | cut -d \[ -f1`
 set bling = `echo "$1" | cut -d \[ -f2 | cut -d \] -f1`
-if ("$bling" == "$1") set bling = ""
+if ("$bling" == "$1") then
+    set bling = ""
+endif
 
 set anat_path = $anat_in:h
-if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+if ( "$anat_path" == "${anat_in}" ) then
+    set anat_path = "."
+endif
 
 set ana_pref = `@GetAfniPrefix ${anat_in}`
 set ana_view = `@GetAfniView ${anat_in}`
-if ("$ana_view" == '' && "$bling" != '') set ana_view = "----"
+if ("$ana_view" == '' && "$bling" != '') then
+    set ana_view = "----"
+endif
 echo "$anat_path $ana_pref $ana_view $bling"
 
 END:

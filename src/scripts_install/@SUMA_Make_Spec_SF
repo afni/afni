@@ -178,7 +178,9 @@ L_PARSE_COMMAND:
     endif
 
     if ( $debug ) echo "-- usage okay"
-    if ( $debug > 1 ) set echo
+    if ( $debug > 1 ) then
+        set echo
+    endif
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
