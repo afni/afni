@@ -12,14 +12,14 @@ include(CMakeDependentOption)
 if( (NOT DEFINED ENV{CC}) )
   if(DEFINED CMAKE_TOOLCHAIN_FILE)
     # Toolchain file defines the correct compiler settings for MacOS
-    option(AFNI_COMPILER_CHECK "Check that GCC and GXX are set as expected" OFF)
+    option(AFNI_COMPILER_CHECK "Check that CC and CXX are set as expected" OFF)
   else()
-    option(AFNI_COMPILER_CHECK "Check that GCC and GXX are set as expected" ON)
+    option(AFNI_COMPILER_CHECK "Check that CC and CXX are set as expected" ON)
   endif()
   if (AFNI_COMPILER_CHECK)
     message(FATAL_ERROR "
-      Set the compilers for the build by setting the environment variables GCC and GXX...
-      Hint 1: export CC=$(which gcc);export CXX=$(which GXX)
+    Set the compilers for the build by setting the environment variables CC and CXX...
+      Hint 1: export CC=$(which gcc);export CXX=$(which g++)
       Hint 2: If the above, or indeed this failure, is not useful you can consider passing -DAFNI_COMPILER_CHECK=OFF to cmake
       "
       )
