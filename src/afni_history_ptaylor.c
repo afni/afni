@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "@clean_help_dir" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@RetinoProc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
 { 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
    "Avoid single line 'if' conds.",
    "To avoid badness in some (older?) tcsh versions.\n"
