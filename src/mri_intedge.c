@@ -152,6 +152,7 @@ STATUS("call Extract_Gradient_Maxima_3D") ;
      ININFO_message("   mri_interior_edgeize: longjmp from signal handler :(") ;
      signal( SIGSEGV , old_handler ) ;  /* restore old signal handler */
      if( cropped ) mri_free(cim) ;
+     mri_free(outim) ;
      RETURN(-666) ;
    }
 
