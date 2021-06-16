@@ -86,6 +86,8 @@ STATUS("make new image") ;
       break;
    }
 
+   (void)thd_floatscan( nvox , var ) ; /* 10 Jun 2021 */
+
    fac = DSET_BRICK_FACTOR(dset,iv) ; if( fac == 0.0f ) fac = 1.0f ;
    if( fac != 1.0f ){ for( ii=0 ; ii < nvox ; ii++ ) var[ii] *= fac ; }
 

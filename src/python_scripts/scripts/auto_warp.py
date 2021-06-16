@@ -2,12 +2,16 @@
 
 # python3 status: started
 
+
 # --------------------------------------------------------------------------
 # [PT: May 30, 2021] update to use all *.nii.gz all the time 
 #                  + so that "AFNI_COMPRESSOR = GZIP" in present functioning
 #                    doesn't cause probs (though the above will soon not 
 #                    affect *.nii?)
+# [PT: June 2, 2020] ... rolled back to use all *.nii, because RCR fixed how 
+#                    AFNI_COMPRESSOR works with NIFTI (-> now ignores them)
 # --------------------------------------------------------------------------
+
 
 import sys, os
 import copy
@@ -48,7 +52,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "0.05" # software version (update for changes)
+      self.align_version = "0.06" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -612,24 +616,24 @@ class RegWrap:
    
    # prepare input    
    def prepare_input(self, use_ss='3dSkullStrip'):
-      prefix = "%s/anat.ns.nii.gz" % (ps.output_dir)
+      prefix = "%s/anat.ns.nii" % (ps.output_dir)
       if (ps.skullstrip_input): 
          skullstrip_o = self.skullstrip_data(self.input, use_ss, ps.skullstrip_opt, prefix)
       else:
-         skullstrip_o = self.copy_dset (self.input, prefix="%s/anat.nii.gz" % (ps.output_dir))
+         skullstrip_o = self.copy_dset (self.input, prefix="%s/anat.nii" % (ps.output_dir))
       if (ps.unifize_input):
-         prefix = "%s/anat.un.nii.gz" % (ps.output_dir)
+         prefix = "%s/anat.un.nii" % (ps.output_dir)
          skullstrip_o = self.unifize_data(skullstrip_o, prefix)
          
       return skullstrip_o
 
    # do the preprocessing of the anatomical data
    def prepare_base(self, use_ss='3dSkullStrip'):
-      prefix = "%s/base.ns.nii.gz" % (ps.output_dir)
+      prefix = "%s/base.ns.nii" % (ps.output_dir)
       if (ps.skullstrip_base): 
          skullstrip_o = self.skullstrip_data( self.base, use_ss, ps.skullstrip_opt, prefix)
       else:
-         skullstrip_o = self.copy_dset (self.base, prefix="%s/base.nii.gz" % (ps.output_dir))
+         skullstrip_o = self.copy_dset (self.base, prefix="%s/base.nii" % (ps.output_dir))
          
       return skullstrip_o 
 
@@ -663,8 +667,8 @@ class RegWrap:
    def match_resolutions(self, a, b, suf, dxyz=0.0, m=None):
       if (dxyz != 0.0):
          print("%f" % (dxyz))
-         ar = self.resample(a,prefix="anat%s.nii.gz" % suf, dxyz=dxyz, m=m)
-         br = self.resample(b,prefix="base%s.nii.gz" % suf, dxyz=dxyz, m=m)
+         ar = self.resample(a,prefix="anat%s.nii" % suf, dxyz=dxyz, m=m)
+         br = self.resample(b,prefix="base%s.nii" % suf, dxyz=dxyz, m=m)
       else:
          ar = a
          br = b
@@ -672,15 +676,15 @@ class RegWrap:
          dxb = self.min_dim_dset(b)
          print("%f %f" % (dxa, dxb))
          if (dxb < dxa):
-            br = self.resample(b,prefix="base%s.nii.gz" % suf, dxyz=dxa, m=m)    
+            br = self.resample(b,prefix="base%s.nii" % suf, dxyz=dxa, m=m)    
          if (dxa > dxb):
-            ar = self.resample(a,prefix="anat%s.nii.gz" % suf, dxyz=dxb, m=m)   
+            ar = self.resample(a,prefix="anat%s.nii" % suf, dxyz=dxb, m=m)   
       
       com = shell_com(\
                "3dinfo -same_grid %s %s" % (ar.input(), br.input()), ps.oexec, capture=1)
       com.run()
       if (len(com.so) and int(com.so[0]) == 0):
-         ar = self.resample(ar,prefix="anat%sb.nii.gz" % suf ,m=br)
+         ar = self.resample(ar,prefix="anat%sb.nii" % suf ,m=br)
 
       return ar,br
 
@@ -693,18 +697,14 @@ class RegWrap:
       self.info_msg( "Aligning %s data to %s data" % \
            (b.input(), a.input() ))
       n = a.new(new_pref="%s%s" % (a.prefix, suf), parse_pref=1)
-
       if (not n.exist() or ps.rewrite or ps.dry_run()):
          n.delete(ps.oexec)
          if (xmat==None):
-            # [PT: May 30, 2021] use new opt here, so final NIFTI is
-            # *.nii.gz
             com = shell_com(  \
                    "@auto_tlrc -base  %s "      \
                    "          -input  %s "      \
                    "          -suffix %s "      \
-                   "          -use_gz "         \
-                   "          -no_ss -no_pre "  \
+                   "          -no_ss -no_pre"   \
                    "          -init_xform CENTER %s" \
                    % ( b.input(), a.input(), suf, at_opt ), \
                      ps.oexec)
@@ -762,7 +762,7 @@ class RegWrap:
       self.info_msg( "Applying warps to %s" % \
            ( a.input() ))
       if (prefix==None):
-         prefix = "./%s.aw.nii.gz" % a.prefix   
+         prefix = "./%s.aw.nii" % a.prefix   
       n = afni_name(prefix)
       n.new_path("./")
       if (not n.exist() or ps.rewrite or ps.dry_run()):

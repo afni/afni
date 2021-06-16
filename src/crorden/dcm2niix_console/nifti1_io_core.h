@@ -6,7 +6,11 @@
 
 #ifdef USING_R
 #define STRICT_R_HEADERS
+#include <stdint.h>
 #include "RNifti.h"
+#else
+#include "nifti1.h"
+#include <stdint.h>
 #endif
 
 #ifdef  __cplusplus
@@ -52,7 +56,10 @@ float dotProduct(vec3 u, vec3 v);
 float nifti_mat33_determ( mat33 R ) ;
 int isSameFloat (float a, float b) ;
 int isSameDouble (double a, double b) ;
+bool littleEndianPlatform ();
 
+
+vec3 nifti_mat33_eig3(double bxx, double bxy, double bxz, double byy, double byz, double bzz);
 mat33 nifti_mat33_inverse( mat33 R );
 mat33 nifti_mat33_mul( mat33 A , mat33 B );
 mat33 nifti_mat33_transpose( mat33 A ) ;
@@ -61,10 +68,15 @@ mat44 nifti_mat44_inverse( mat44 R );
 mat44 nifti_mat44_mul( mat44 A , mat44 B );
 vec3 crossProduct(vec3 u, vec3 v);
 vec3 nifti_vect33_norm (vec3 v);
+vec4 nifti_vect44_norm (vec4 v);
 vec3 nifti_vect33mat33_mul(vec3 v, mat33 m );
 ivec3 setiVec3(int x, int y, int z);
 vec3 setVec3(float x, float y, float z);
 vec4 setVec4(float x, float y, float z);
+#ifndef USING_R
+// This declaration differs from the equivalent function in the current nifti1_io.h, so avoid the clash
+void  swap_nifti_header ( struct nifti_1_header *h) ;
+#endif
 vec4 nifti_vect44mat44_mul(vec4 v, mat44 m );
 void nifti_swap_2bytes( size_t n , void *ar );    // 2 bytes at a time
 void nifti_swap_4bytes( size_t n , void *ar );    // 4 bytes at a time

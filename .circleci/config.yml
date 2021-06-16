@@ -558,6 +558,6 @@ workflows:
               test_data_cache_version: ["5"]
           filters:
             tags:
-              only: /AFNI_\d\d.\d.\d\d/
+              ignore: /.*/
             branches:
-              only: /.*/
+              ignore: /.*/

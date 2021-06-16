@@ -124,7 +124,9 @@ endif
 
 # demean?
 set polopt = ''
-if ( $demean ) set polopt = '-polort 0'
+if ( $demean ) then
+    set polopt = '-polort 0'
+endif
 
 # ----------------------------------------------------------------------
 # if 1D input, just run 1d_tool.py
@@ -162,7 +164,9 @@ endif
 # ----------------------------------------------------------------------
 # get global mean of unit time series
 set mopt = ''
-if ( $mset != "" ) set mopt = ( -mask $mset )
+if ( $mset != "" ) then
+    set mopt = ( -mask $mset )
+endif
 
 # this time, take care with redirection
 set cmd = ( 3dmaskave -quiet $mopt $tmpunit$view )

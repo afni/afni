@@ -511,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.0, Sept 12, 2020
+Version 1.1.1, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -573,16 +573,12 @@ Usage:
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
- https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/mema.html
+ https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 
  Notice:  When comparing two groups, option "-groups groupA groupB" has to be
  present, and the output includes the difference of groupB - groupA, which is
  consistent with most AFNI convention except for 3dttest++ where groupA - groupB is
- rendered.
-
- Convenience note: Please consider using the AFNI program gen_group_command.py
- to build your 3dMEMA command.  It should greatly help simplify the syntax of
- constructing the command.'
+ rendered.'
    
    ex1 <- 
 "
@@ -2136,7 +2132,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
 
 tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
-tTop <- 100   # upper bound for t-statistic
+#tTop <- 100   # upper bound for t-statistic
 
 #options(show.error.messages = FALSE)  # suppress error message when running with single processor
 
@@ -2601,14 +2597,15 @@ tTop <- 100   # upper bound for t-statistic
    }
 
    #rm(comArr)
-   outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
-   outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   #outArr[outArr > tTop] <- tTop  # Avoid outflow!!!!
+   #outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   outArr[is.nan(outArr)] <- 0
      
    if (lop$verb) 
       cat ( 'outLabel', outLabel,'\n', 
             'Writing results to', lop$outFN, '\n');
    #write.AFNI(lop$outFN, outArr[,,,1:nBrick0],
-   write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), outLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   write.AFNI(lop$outFN, subBRKarray(brk=outArr, sel=1:nBrick0), outLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
                   #outLabel, note=lop$myNote, origin=lop$myOrig, 
                   #delta=lop$myDelta, idcode=newid.AFNI(), addFDR=1,
                   #verb=lop$verb, meth=lop$iometh, statsym=statsym,
@@ -2624,14 +2621,14 @@ tTop <- 100   # upper bound for t-statistic
    if(lop$resZout==1) {
       #write.AFNI(lop$icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel,
       write.AFNI(lop$icc_FN, 
-                 subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, addFDR=1, type='MRI_short')
+                 subBRKarray(outArr, seq((nBrick0+1), nBrick, by=2)), iccLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, addFDR=1, type='MRI_float', scale=FALSE)
                  #note=lop$myNote, origin=lop$myOrig, delta=lop$myDelta, 
                  #idcode=newid.AFNI(),
                  #verb=lop$verb, meth=lop$iometh, view=dataView,
                  #orient=dataOrient, com_hist=lop$com_history)
       #write.AFNI(lop$resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)],
       write.AFNI(lop$resZ_FN, 
-                 subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), resZLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsymResZ, addFDR=1, type='MRI_short')
+                 subBRKarray(outArr, seq((nBrick0+2), nBrick, by=2)), resZLabel, defhead=lop$head, idcode=newid.AFNI(), com_hist=lop$com_history, statsym=statsymResZ, addFDR=1, type='MRI_float', scale=FALSE)
                  #resZLabel, note=lop$myNote, origin=lop$myOrig, 
                  #delta=lop$myDelta, idcode=newid.AFNI(),
                  #verb=lop$verb, meth=lop$iometh, statsym=statsymResZ,

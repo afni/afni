@@ -2845,7 +2845,7 @@ endif
 # ------------------------------ Clean up ----------------------------
 
 # get rid of temporary warped datasets
-if( "${keep_temp}" != "1") then
+if ( "${keep_temp}" != "1") then
    \rm -rf "${awpy_dir}/"
    \rm -f `\ls __tmp*`
    \rm -f tempfollow.nii*
@@ -3664,13 +3664,13 @@ endif
 
 if ( "${foll_type}" == "atlas" ) then
     goto ABBREV_CREATION_END_ATLAS
-else if( "${foll_type}" == "template" ) then
+else if ( "${foll_type}" == "template" ) then
     goto ABBREV_CREATION_END_TEMPLATE
-else if( "${foll_type}" == "seg" ) then
+else if ( "${foll_type}" == "seg" ) then
     goto ABBREV_CREATION_END_SEG
-else if( "${foll_type}" == "dset" ) then
+else if ( "${foll_type}" == "dset" ) then
     goto ABBREV_CREATION_END_DSET
-else if( "${foll_type}" == "roidset" ) then
+else if ( "${foll_type}" == "roidset" ) then
     goto ABBREV_CREATION_END_ROIDSET
 else
     echo "** Someone forgot to code a new type here"

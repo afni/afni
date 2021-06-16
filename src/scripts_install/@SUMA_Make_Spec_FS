@@ -373,8 +373,12 @@ L_PARSE_COMMAND:
                 @ count ++
                 set debug = $argv[$count]
 
-                if ( "$debug" > 2 ) set debug = 2
-                if ( "$debug" < 0 ) set debug = 0
+                if ( "$debug" > 2 ) then
+                    set debug = 2
+                endif
+                if ( "$debug" < 0 ) then
+                    set debug = 0
+                endif
 
             breaksw
 
@@ -390,9 +394,13 @@ L_PARSE_COMMAND:
                 @ count ++
                 set ff = 0
                 foreach inf ($inflates)
-                    if ($inf == "$argv[$count]") set ff = 1
+                    if ($inf == "$argv[$count]") then
+                        set ff = 1
+                    endif
                 end
-                if ($ff == 0) set inflates = ($inflates $argv[$count])
+                if ($ff == 0) then
+                    set inflates = ($inflates $argv[$count])
+                endif
 
             breaksw
 
@@ -524,11 +532,17 @@ L_PARSE_COMMAND:
     # to input other dsets from surf/ dir
     set fsdsets = (thickness curv sulc $fsdsets_extra ) 
 
-    if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
+    if ($#inflates == 0 && $neuro_ori == -1) then
+        set inflates = ($inflates 200) 
+    endif
 
     if ( $debug ) echo "-- usage okay"
-    if ( $debug > 1 ) set echo
-    if ( $#ldu ) set ldlist = ($ldu)
+    if ( $debug > 1 ) then
+        set echo
+    endif
+    if ( $#ldu ) then
+        set ldlist = ($ldu)
+    endif
     if ($#ldpref == 0 && $#ldlist != 0) then
         set ldpref = ()
         foreach lldd ($ldlist)
@@ -803,8 +817,12 @@ L_LOOK_FOR_SURF:
     set list_rh = "X"
 
     foreach attrib ( $surf_attribs )
-        if ( -f lh.$attrib ) set list_lh = ( $list_lh lh.$attrib )
-        if ( -f rh.$attrib ) set list_rh = ( $list_rh rh.$attrib )
+        if ( -f lh.$attrib ) then
+            set list_lh = ( $list_lh lh.$attrib )
+        endif
+        if ( -f rh.$attrib ) then
+            set list_rh = ( $list_rh rh.$attrib )
+        endif
     end
 
     set list_lh = ( $list_lh[2-] )   # now remove the leading "X"

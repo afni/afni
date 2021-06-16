@@ -2,8 +2,19 @@
 
 
 if ($#argv) then
-   set na = $#argv; if ($na>10) set na=10; 
-   @global_parse `basename $0` "$argv[1-$na]" ; if ($status) exit 0 ; 
+   ### [PT: June 15, 2021] separating these single lines into multiple
+   ### ones, to avoid possible misinterp on older systems
+   #set na = $#argv; if ($na>10) set na=10; 
+   #@global_parse `basename $0` "$argv[1-$na]" ; if ($status) exit 0 ; 
+   set na = $#argv
+   if ( $na > 10 ) then
+      set na = 10
+   endif
+
+   @global_parse `basename $0` "$argv[1-$na]" 
+   if ( $status ) then
+      exit 0 
+   endif
 endif
 
 set stat = 0
@@ -129,7 +140,9 @@ COPY_EPI_RUNS:
                1dcat "$u_runs_orts[$i]" > $rdir/$tp.`printf %02d $i`.ort.1D
             endif
          endif
-         if ("$FirstEpi" == "") set FirstEpi = $pndset+orig.HEAD
+         if ("$FirstEpi" == "") then
+            set FirstEpi = $pndset+orig.HEAD
+         endif
          @ i ++
       end
    end
@@ -317,7 +330,9 @@ SET_POLORT:
    set nts_max = 0
    foreach s ($vrsets)
       set kk = `3dnvals $s`
-      if ($kk > $nts_max) set nts_max = $kk
+      if ($kk > $nts_max) then
+        set nts_max = $kk
+      endif
    end
    set polort = `ccalc -form fint -eval "1 + $TR*$nts_max/150"`
    set ort_adjust = $polort
@@ -329,7 +344,9 @@ DETREND:
    foreach s ($vrsets)
       @ i ++
       set p = `@GetAfniPrefix $s`
-      if ($noVR == 0) set p = $p:r
+      if ($noVR == 0) then
+        set p = $p:r
+      endif
       if ( ! -f ${p}.b01+orig.HEAD ) then
          echo "Detrending $s to create ${p}.b01"
          if ($noVR == 1) then
@@ -349,7 +366,9 @@ DETREND:
       endif
       
       set nvr = 0
-      if ( -f ${p}.vr.1D ) set nvr = `3dinfo -nv ${p}.vr.1D` 
+      if ( -f ${p}.vr.1D ) then
+        set nvr = `3dinfo -nv ${p}.vr.1D` 
+      endif
       if ( $#dortsets != 0 ) then
          set nplus = `3dinfo -nv $dortsets[$i]`
          set nvr = `ccalc -i $nvr + $nplus`
@@ -522,7 +541,9 @@ foreach sd ($sides)
                   set kbl = 0
                   if ($on > 0) then
                      set com = "waver -TR $TR -GAM -numout $nvals -inline "
-                     if ($pre > 0) set com = "$com $pre@0.0"
+                     if ($pre > 0) then
+                        set com = "$com $pre@0.0"
+                     endif
                      while ($kbl < $nblk)
                         set com = "$com $on@1.0 $off@0.0 "
                         @ kbl ++
@@ -574,7 +595,9 @@ foreach sd ($sides)
          else if ($#cls == 1) then
             #One direction only
             set sg = '+'
-            if ($cc == 'ccw' || $cc == 'con') set sg = '-'
+            if ($cc == 'ccw' || $cc == 'con') then
+                set sg = '-'
+            endif
             if ( ! -f $ec${sss}.$sd.pol$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
                3dRetinoPhase  $eu -$cc $cls[1]  \
@@ -617,7 +640,9 @@ foreach sd ($sides)
          else if ($#cls == 1) then
             #One direction only
             set sg = '+'
-            if ($cc == 'ccw' || $cc == 'con') set sg = '-'
+            if ($cc == 'ccw' || $cc == 'con') then
+                set sg = '-'
+            endif
             if ( ! -f $ec${sss}.$sd.ecc$sg.niml.dset) then
                echo "Estimating ${cc} hemodynamic angle from one direction"
                3dRetinoPhase  $eu -$cc $cls[1]  \
@@ -1171,7 +1196,9 @@ PARSE:
       if (  "$argv[$cnt]" == "-on_ecc" || \
             "$argv[$cnt]" == "-var_on_ecc" ) then
          set do4 = 0
-         if ("$argv[$cnt]" == "-var_on_ecc" ) set do4  = 1
+         if ("$argv[$cnt]" == "-var_on_ecc" ) then
+            set do4  = 1
+         endif
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need 2 numbers  after -on_ecc, 4 after -var_on_ecc"
@@ -1211,7 +1238,9 @@ PARSE:
       if ( "$argv[$cnt]" == "-on_pol" || \
             "$argv[$cnt]" == "-var_on_pol" ) then
          set do4 = 0
-         if ("$argv[$cnt]" == "-var_on_pol" ) set do4  = 1
+         if ("$argv[$cnt]" == "-var_on_pol" ) then
+            set do4  = 1
+         endif
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
 				echo "Need 2 numbers  after -on_pol, 4 after -var_on_pol"
@@ -1556,11 +1585,19 @@ PARSE:
    endif
 
    #Make on_ecc and on_pol be fully formed  [#block  on_min on_max on_step]
-   if ($on_ecc[3] == 0) set on_ecc[3] = $on_ecc[2]
-   if ($on_ecc[4] == 0) set on_ecc[4] = $TR
+   if ($on_ecc[3] == 0) then
+       set on_ecc[3] = $on_ecc[2]
+   endif
+   if ($on_ecc[4] == 0) then
+       set on_ecc[4] = $TR
+   endif
 
-   if ($on_pol[3] == 0) set on_pol[3] = $on_pol[2]
-   if ($on_pol[4] == 0) set on_pol[4] = $TR
+   if ($on_pol[3] == 0) then
+      set on_pol[3] = $on_pol[2]
+   endif
+   if ($on_pol[4] == 0) then
+      set on_pol[4] = $TR
+   endif
 
    if ($#dorts != 0) then
       if ($#u_runs_ccw_orts != 0 ||\
@@ -1644,7 +1681,9 @@ SANITY:
    endif
    
    
-   if ($u_AVolAtEpi == 'IID') set u_AVolAtEpi = $u_AVol
+   if ($u_AVolAtEpi == 'IID') then
+      set u_AVolAtEpi = $u_AVol
+   endif
    
    goto RET_SANITY
   
