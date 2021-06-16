@@ -31,6 +31,9 @@ static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 static int mverb = 0 , mpr = 0 ;
 void mri_genalign_verbose(int v){ mverb = v ; }
 
+static int mround = 0 ;
+void mri_genalign_round(int v){ mround = v ; } /* 04 Jun 2021 */
+
 /*---------------------------------------------------------------------------*/
 /* 27 Aug 2008: replace use of drand48 with myunif, for inter-system control */
 
@@ -697,6 +700,32 @@ ENTRY("GA_scalar_fitter") ;
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
   free((void *)avm) ;    /* toss the trash */
+
+#if 1
+#define VBASE 2097152.0   /* 2^21 = keep 21 bits of precision in val */
+  if( mround && val != 0.0 && isfinite(val) ){
+    double vvv ; int eee ;
+
+    /* x=frexp(val,&e) return x,e such that 0.5 <= x < 1 and val = x * 2^e;  */
+    /* so 0.5*VASE <= x*VBASE < VBASE;                                       */
+    /* so round() will be the nearest integer between 0.5*VBASE and VBASE;   */
+    /* that is, between 2^20 and 2^21, which is to say a 21 bit integer;     */
+    /* so we scale it back down by VBASE to make it between 0.5 and 1 again. */
+
+    vvv = round( VBASE * frexp(val,&eee) ) / VBASE ;
+
+    /* And then we reassemble it back to a floating point number with the    */
+    /* exponent in eee, using the scalbn() function -- see how easy it is!?  */
+
+    val = scalbn(vvv,eee) ;
+
+    /** Why this rigmarole? To test if keeping a few bits less precision
+        would make the results on different systems more similar, since
+        the effects of round-off error in the costfun evaluation would
+        be reduced. However, this test failed -- rounding didn't help :( **/
+  }
+#undef VBASE
+#endif
 
 #if 1
   if( mverb > 1 ){
@@ -1541,10 +1570,10 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
    double *wpar, *spar , val , vbest , *bpar , *qpar,*cpar , dist ;
    int ii , qq , twof , ss , nfr , icod , nt=0 , ngood ;
-#define NKEEP (2*PARAM_MAXTRIAL+1)
+#define NKEEP (3*PARAM_MAXTRIAL+1)
    double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
-   int nk,kk,jj, ngrid,ngtot ;
-   int ival[NKEEP] , rval[NKEEP] ; float fval[NKEEP] ;
+   int nk,kk,jj, ngrid,ngtot , maxstep ;
+   int ival[NKEEP] , rval[NKEEP] , neval[NKEEP] ; float fval[NKEEP] ;
    char mrk[6]="*o+-." ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
@@ -1605,9 +1634,11 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
      if( ii < ngtot ){                     /* regular grid points */
+       double kp ;
        val = 0.5/(ngrid+1.0) ; ss = ii ;   /* in parameter space */
        for( qq=0 ; qq < nfr ; qq++ ){      /* ss = number in base ngrid */
-         kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
+         kk = ss % ngrid; ss = ss / ngrid;
+         kp = (kk==0) ? 0.5 : (kk+1.0) ; wpar[qq] = 0.5+kp*val;
        }
      } else {                              /* pseudo-random */
        if( mverb && ii == ngtot ) fprintf(stderr,"$") ;
@@ -1669,11 +1700,12 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
    if( mverb ) fprintf(stderr," + - A little optimization:") ;
+   maxstep = 11*nfr+17 ; /** if( maxstep < 99 ) maxstep = 99 ; **/
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      RAND_ROUND ;
-     (void)powell_newuoa( nfr , kpar[kk] ,
-                          0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
+     neval[kk] = powell_newuoa( nfr , kpar[kk] ,
+                                0.05 , 0.001 , maxstep , GA_scalar_fitter ) ;
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
      if( mverb ) fprintf(stderr,".") ;
@@ -1701,6 +1733,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        }
       }
       fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
+      fprintf(stderr,"  [%d]" , neval[kk] ) ; /* 01 Jun 2021 */
       fprintf(stderr,"\n") ;
      }
    }

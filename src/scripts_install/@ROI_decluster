@@ -131,7 +131,7 @@ if ($dset == "") then
     exit 1
 endif
 
-if (("${nvox_thresh}" == "") && "${frac_thresh}" == "")then
+if (("${nvox_thresh}" == "") && "${frac_thresh}" == "") then
     echo "Must select either -nvox_thres or -frac_thresh option"
     exit 1
 endif

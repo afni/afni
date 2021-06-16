@@ -976,7 +976,7 @@ void AFNI_syntax(void)
      "\n"
      "   -env         Print the environment variables for AFNI, which a user\n"
      "                might set in their ~/.afnirc file (wait, you *do*\n"
-     "                have one on your computer, right??).\n"
+     "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
      "\n"

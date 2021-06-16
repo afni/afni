@@ -87,7 +87,9 @@ if ( $inp == "" ) then
 endif
 
 # if no prefix, base it on the input
-if ( $pfx == "" ) set pfx = $inp
+if ( $pfx == "" ) then
+    set pfx = $inp
+endif
 
 #NEED TO ADD: base option
 

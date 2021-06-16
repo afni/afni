@@ -89,7 +89,7 @@ if ( "$dir" != "$ref_in" ) then
        endif 
     endif
     if ( "$result" == 2 || "$result" == 3 ) then
-        if($append_file == 0) then
+        if ($append_file == 0) then
            echo $dir
         else
            echo ${dir}/${ref_file}
@@ -152,7 +152,7 @@ foreach dir ( ${dataset_path} )
         endif
         # remove last character if "/"
         set out = `echo $dir | sed 's/\/$//'`
-        if($append_file == 0) then
+        if ($append_file == 0) then
            echo $out
         else
            echo ${out}/${ref_file}
@@ -176,7 +176,7 @@ if ( "$ref_path" == "$wa" ) then
    exit 1
 endif
 if ( `@CheckForAfniDset ${ref_path}/${ref_in}` ) then
-    if($append_file == 0) then
+    if ($append_file == 0) then
        echo $ref_path
     else
        echo ${ref_path}/${ref_file}

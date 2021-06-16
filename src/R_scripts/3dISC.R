@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.9, Feb 23, 2021
+Version 1.0.0, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1162,10 +1162,7 @@ if(dimy==1 & dimz==1) { # 1D data
 } # if(dimy==1 & dimz==1) else
 
 # runLME(inData[30,30,30,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
-Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
 
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
@@ -1174,7 +1171,7 @@ for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fit
 
 #write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 

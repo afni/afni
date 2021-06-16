@@ -13,7 +13,7 @@
 #include "niml.h"
 #include "../niml/niml_private.h"
 #include "xutil.h"
-#include "../suma_suma.h"
+#include "SUMA_X_objs.h"
 #include "SUMA_suma.h"
 
 

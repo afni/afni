@@ -13,7 +13,9 @@ set anat_in = `echo "$1" | cut -d \[ -f1`
 set bling = `echo "$1" | cut -d \[ -f2 | cut -d \] -f1`
 
 set anat_path = $anat_in:h
-if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+if ( "$anat_path" == "${anat_in}" ) then
+    set anat_path = "."
+endif
 
 set ana_name = $1:t
 set ana_pref = $ana_name:r

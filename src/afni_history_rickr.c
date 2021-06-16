@@ -53,12 +53,48 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
+   "turn of local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
+ { 10, Jun, 2021, RCR, "SurfLocalstat", MINOR, TYPE_NEW_PROG,
+   "add Ziad's program to the default build",
+   "This is to allow use of the 'mode' stat."
+ } ,
+
+ { 10, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "rename src/suma_suma.h to src/SUMA/SUMA_X_objs.h",
+   "This is to avoid glorious case-insensitive name conflicts on Macs.\n"
+   "As suggested by the merciful D Glen."
+ } ,
+
+ {  3, Jun, 2021, RCR, "dcm2niix_afni", MINOR, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20210317",
+   "Thanks to C Rorden for suggesting the update."
+ } ,
+
+ {  1, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI_COMPRESSOR no longer affects NIFTI (seems AFNI_AUTOGZIP never did)",
+   NULL
+ } ,
+
+ { 29, May, 2021, RCR, "SurfLocalstat", MICRO, TYPE_NEW_OPT,
+   "add 'mode' stat modal smoothing",
+   NULL
+ } ,
+
+ { 19, May, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix volreg TSNR computation in surface analysis (TSNR still in volume)",
+   NULL
+ } ,
+
  {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
    "Thanks to the all-seeing S Torrisi for noting the problem."
  } ,
 
- {  6, Apr, 2021, RCR, "ap_qc_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
+ {  6, Apr, 2021, RCR, "ap_run_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
    "run a quick afni_proc.py resting state analysis for QC",
    NULL
  } ,

@@ -84,7 +84,9 @@ SCALEIT:
       set meq = 'step(c)'
    endif
    set med = `3dBrickStat -non-zero -median -mask $mm T1+orig.`
-   if ($unmasked_output == 1) set meq = '1'
+   if ($unmasked_output == 1) then
+      set meq = '1'
+   endif
    
    if ( ! -f T1.uni+orig.HEAD) then
       3dcalc   -a T1+orig. -b PD.ls+orig'[perc:75.00]' \

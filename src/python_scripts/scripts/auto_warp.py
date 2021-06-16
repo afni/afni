@@ -2,6 +2,17 @@
 
 # python3 status: started
 
+
+# --------------------------------------------------------------------------
+# [PT: May 30, 2021] update to use all *.nii.gz all the time 
+#                  + so that "AFNI_COMPRESSOR = GZIP" in present functioning
+#                    doesn't cause probs (though the above will soon not 
+#                    affect *.nii?)
+# [PT: June 2, 2020] ... rolled back to use all *.nii, because RCR fixed how 
+#                    AFNI_COMPRESSOR works with NIFTI (-> now ignores them)
+# --------------------------------------------------------------------------
+
+
 import sys, os
 import copy
 from time import asctime
@@ -41,7 +52,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "0.04" # software version (update for changes)
+      self.align_version = "0.06" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -690,7 +701,7 @@ class RegWrap:
          n.delete(ps.oexec)
          if (xmat==None):
             com = shell_com(  \
-                   "@auto_tlrc -base   %s "      \
+                   "@auto_tlrc -base  %s "      \
                    "          -input  %s "      \
                    "          -suffix %s "      \
                    "          -no_ss -no_pre"   \

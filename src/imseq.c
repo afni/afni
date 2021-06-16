@@ -12220,6 +12220,8 @@ ENTRY("ISQ_getoverlay") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
+
    /*--- cut out cropped region, if any ---*/
 
    if( seq->cropit ){
@@ -12253,6 +12255,8 @@ ENTRY("ISQ_getimage") ;
 #endif
 
    if( tim == NULL ) RETURN(NULL) ;
+
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
 
    if( seq->cropit ){
 

@@ -198,12 +198,19 @@ ENTRY("THD_write_3dim_dataset") ;
 
 
 #ifdef HAVE_ZLIB                                            /* 21 Sep 2005 */
-     cmode = THD_get_write_compression() ; /* check env. variable for compression*/
 
-/*     AFNI_yesenv("AFNI_AUTOGZIP")    */ /* changed to compress base on AFNI_COMPRESSOR instead */
+/*     AFNI_yesenv("AFNI_AUTOGZIP")    */
+/* changed to compress base on AFNI_COMPRESSOR instead */
+/* do not auto-compress NIFTI, ever, as that alters the NIFTI file name
+ * (and this is not actually where AFNI_COMPRESSOR modifies the file name).
+ *                                                       1 Jun 2021 [rickr] */
+#if 0
+    /* check env. variable for compression*/
+     cmode = THD_get_write_compression() ;
      if( (cmode==COMPRESS_GZIP) &&
          STRING_HAS_SUFFIX(options.infile_name,".nii")   )
        strcat(options.infile_name,".gz") ;
+#endif
 #else
      if( STRING_HAS_SUFFIX(options.infile_name,".nii.gz") ){
        WARNING_message("Can't write compressed file '%s'; writing '.nii' instead") ;

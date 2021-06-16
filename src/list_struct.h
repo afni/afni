@@ -53,6 +53,7 @@ int free_int_list    ( int_list    * d_list );
 int free_short_list  ( short_list  * d_list );
 int free_string_list ( string_list * d_list );
 
+int clear_float_list ( float_list  * d_list );
 int clear_int_list   ( int_list    * d_list );
 int clear_string_list( string_list * d_list );
 
