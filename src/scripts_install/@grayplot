@@ -3,11 +3,15 @@
 # Help the pitiful luser?
 
 set do_help = 0
-if( $#argv == 0 ) set do_help = 1
-if( $do_help == 0 )then
-  if( "$argv[1]" == "-help" ) set do_help = 1
+if ( $#argv == 0 ) then
+    set do_help = 1
 endif
-if( $do_help )then
+if ( $do_help == 0 ) then
+  if ( "$argv[1]" == "-help" ) then
+    set do_help = 1
+  endif
+endif
+if ( $do_help ) then
   echo "Usage: @grayplot [OPTIONS] dirname"
   echo
   echo "Script to read files from an afni_proc.py results directory"
@@ -119,7 +123,7 @@ endif
 # check for pnmtopng
 
 which pnmtopng > /dev/null
-if( $status != 0 )then
+if ( $status != 0 ) then
   echo "** ERROR: program pnmtopng not found - to use @grayplot you need the NETPBM package"
   exit 1
 endif
@@ -133,26 +137,26 @@ set osuff_list = ( "IJKORDER.png" )
 
 # check command line args
 
-if( $#argv > 0 )then
+if ( $#argv > 0 ) then
   set iarg = 1
-  if( "$argv[$iarg]" == "-peelorder" )then
+  if ( "$argv[$iarg]" == "-peelorder" ) then
     set order_list = ( "-peelorder"    )
     set osuff_list = ( "PEELORDER.png" )
     @ iarg ++
-  else if( "$argv[$iarg]" == "-pvorder" )then
+  else if ( "$argv[$iarg]" == "-pvorder" ) then
     set order_list = ( "-pvorder"    )
     set osuff_list = ( "PVORDER.png" )
     @ iarg ++
-  else if( "$argv[$iarg]" == "-ijkorder" )then
+  else if ( "$argv[$iarg]" == "-ijkorder" ) then
     set order_list = ( "-ijkorder"    )
     set osuff_list = ( "IJKORDER.png" )
     @ iarg ++
-  else if( "$argv[$iarg]" == "-ALLorder" )then
+  else if ( "$argv[$iarg]" == "-ALLorder" ) then
     set order_list = ( "-ijkorder"    "-peelorder"    "-pvorder"    )
     set osuff_list = ( "IJKORDER.png" "PEELORDER.png" "PVORDER.png" )
     @ iarg ++
   endif
-  if( $#argv >= $iarg )then
+  if ( $#argv >= $iarg ) then
     set ddir = $argv[$iarg] ; @ iarg ++
   endif
 endif
@@ -171,20 +175,20 @@ pushd $ddir
 
 set spac = "NADA"
 set aa   = ( `find . -name anat_final.\*+tlrc.HEAD` )
-if( $#aa == 1 )then
+if ( $#aa == 1 ) then
   echo "++ Found anatomical dataset $aa[1]"
   set subj = `basename $aa[1] | sed -e 's/+tlrc.HEAD//' -e 's/anat_final.//'`
   set spac = tlrc
 else
   set aa = ( `find . -name anat_final.\*+orig.HEAD` )
-  if( $#aa == 1 )then
+  if ( $#aa == 1 ) then
     echo "++ Found anatomical dataset $aa[1]"
     set subj = `basename $aa[1] | sed -e 's/+orig.HEAD//' -e 's/anat_final.//'`
     set spac = orig
   endif
 endif
 
-if( $spac == "NADA" )then
+if ( $spac == "NADA" ) then
   echo "** ERROR @grayplot: Can't find anat_final.*+{tlrc|orig}.HEAD" ; exit 1
 endif
 
@@ -193,9 +197,9 @@ echo "++ Subject ID = $subj    Processing +$spac datasets"
 # find EPI mask file
 
 set dmask = mask_epi_anat.${subj}+${spac}.HEAD
-if( ! -f $dmask )then
+if ( ! -f $dmask ) then
   set dmask = full_mask.${subj}+${spac}.HEAD
-  if( ! -f $dmask )then
+  if ( ! -f $dmask ) then
     echo "** ERROR @grayplot: Can't find EPI mask :(" ; exit 1
   endif
 endif
@@ -204,12 +208,12 @@ endif
 
 set dlist = ( dfile.r*.1D )
 set nrun  = $#dlist
-if( $nrun == 0 )then
+if ( $nrun == 0 ) then
   echo "** ERROR @grayplot: Can't find motion parameters files" ; exit 1
 endif
 
 foreach ddd ( $dlist )
-  if( -f enorm.$ddd ) \rm enorm.$ddd
+  if ( -f enorm.$ddd ) \rm enorm.$ddd
   1d_tool.py -infile $ddd -derivative -collapse_cols euclidean_norm \
              -write enorm.$ddd
 end
@@ -222,11 +226,11 @@ cat enorm.dfile.r*.1D > enorm.dfile.allU.1D
 # find the censoring file
 
 set ccc = censor_${subj}_combined_2.1D
-if( ! -f $ccc )then
+if ( ! -f $ccc ) then
   set ccc = motion_${subj}_censor.1D
-  if( ! -f $ccc )then
+  if ( ! -f $ccc ) then
     set ccc = outcount_${subj}_censor.1D
-    if( ! -f $ccc )then
+    if ( ! -f $ccc ) then
       unset ccc
     endif
   endif
@@ -241,14 +245,14 @@ set    Cfile                = $Ufile
 
 # censored version
 
-if( $?ccc )then
+if ( $?ccc ) then
   1deval -a $Ufile -b $ccc -expr 'a*b' > enorm.dfile.allC.1D
   set Cfile = enorm.dfile.allC.1D
 endif
 
 # plotting command
 
-if( $?ccc )then
+if ( $?ccc ) then
   set Gplot = \
    "1dplot -nopush -naked -pnms 1800 Gplot.ppm -aspect 10 -censor_RGB $cencol -censor $ccc"
 else
@@ -266,26 +270,26 @@ set Cstrin = `ccalc -form '%.2f' $Crange`
 
 # make a mask of GM, WM, and CSF (in that order), if needed
 
-if( -f Classes+${spac}.HEAD )then
+if ( -f Classes+${spac}.HEAD ) then
   echo "----- Using existing segmentation"
 else
   echo "----- Segmenting $aa[1]"
   3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
-  if( -f Segsy/Classes+${spac}.HEAD ) mv Segsy/Classes+${spac}.* .
-  if( -d Segsy ) \rm -rf Segsy
+  if ( -f Segsy/Classes+${spac}.HEAD ) mv Segsy/Classes+${spac}.* .
+  if ( -d Segsy ) \rm -rf Segsy
 endif
 
-if( -f Classes+${spac}.HEAD )then
+if ( -f Classes+${spac}.HEAD ) then
 # convert CSF=1 to CSF=4 (so GM=2 WM=3 CSF=4 is the grayplot order)
-  if( -f GmaskA.nii ) \rm GmaskA.nii
+  if ( -f GmaskA.nii ) \rm GmaskA.nii
   3dcalc -a Classes+${spac}.HEAD -expr 'ifelse(equals(a,1),4,a)' \
          -datum byte -nscale -prefix GmaskA.nii
 # convert from anat resolution to EPI resolution
-  if( -f GmaskB.nii ) \rm GmaskB.nii
+  if ( -f GmaskB.nii ) \rm GmaskB.nii
   3dfractionize -template $dmask \
                 -input GmaskA.nii -prefix GmaskB.nii -vote
 # intersect with EPI mask
-  if( -f GmaskC.nii ) \rm GmaskC.nii
+  if ( -f GmaskC.nii ) \rm GmaskC.nii
   3dcalc -a GmaskB.nii -b $dmask -expr 'a*b' -prefix GmaskC.nii
   set ggg = GmaskC.nii
   \rm -rf GmaskA.nii GmaskB.nii
@@ -303,7 +307,7 @@ foreach iii ( `count -dig 1 1 $num_order` )
   set osuff = $osuff_list[$iii]
 
   foreach eee ( $elist )
-    if( -f $eee )then
+    if ( -f $eee ) then
       echo "----- Grayplot $eee"
       set ppp = `basename $eee +${spac}.HEAD`
       set fff = Grayplot.${ppp}.${osuff}
@@ -335,7 +339,7 @@ foreach iii ( `count -dig 1 1 $num_order` )
   set osuff = $osuff_list[$iii]
 
   foreach eee ( all_runs.*+${spac}.HEAD )
-    if( -f $eee )then
+    if ( -f $eee ) then
       echo "----- Grayplot $eee"
       set ppp = `basename $eee +${spac}.HEAD`
       set fff = Grayplot.${ppp}.${osuff}
@@ -361,6 +365,6 @@ end
 # remove the trash
 
 \rm enorm.dfile.all*
-if( -f GmaskC.nii ) \rm GmaskC.nii
+if ( -f GmaskC.nii ) \rm GmaskC.nii
 
 exit 0

@@ -120,9 +120,14 @@
 #   + [PT] more QC along the processing: 2 new init*jpg files
 #        + add "-echo" as an opt
 #
-set version   = "2.5"; set rev_dat   = "Feb 10, 2020"
+#set version   = "2.5"; set rev_dat   = "Feb 10, 2020"
 #   + [PT] allow input mask
 #        + try Strategy 1 of just replacing 3dSkullStrip with it
+#
+set version   = "2.51"; set rev_dat   = "June 15, 2021"
+#   + [PT] minor, minor replacements to avoid errors on old tcsh:
+#        + "if(" -> "if ("
+#        + ")then" -> ") then"
 #
 # ----------------------------------------------------------------
 
@@ -382,13 +387,13 @@ endif
 
 if ( ! -f "$Adataset" ) then
   set chad = `@CheckForAfniDset "$Adataset"`
-  if( "$chad" == "0" || "$chad" == "1" )then
+  if ( "$chad" == "0" || "$chad" == "1" ) then
     echo "***** ${this_prog} -- Not finding dset $Adataset -- exiting :(("
     goto BAD_EXIT
   endif
 endif
 
-if( "$SubID" == "" )then
+if ( "$SubID" == "" ) then
   echo "***** ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
 endif
@@ -458,7 +463,7 @@ if ( -e "$Basedset" ) then
     set tpath = `dirname "$Basedset"`
 else
     set tpath = `@FindAfniDsetPath "$Basedset"`
-    if( "$tpath" == '' ) then
+    if ( "$tpath" == '' ) then
         echo "** ERROR: ${this_prog} -- Failed to find template $Basedset"
         echo "   -- exiting :("
         goto BAD_EXIT
@@ -554,7 +559,7 @@ echo "++ SSW Step 1"
 
 # [PT: Feb 11, 2019] now allows for option *not* to unifize
 # [PT: Feb 21, 2019] use Urad=30 when unifizing (better for final output)
-if( ! -f $odir/anatU."${SubID}".nii ) then
+if ( ! -f $odir/anatU."${SubID}".nii ) then
     if ( ${DO_UNIFIZE} ) then
         3dUnifize                             \
             -GM                               \
@@ -577,7 +582,7 @@ endif
 
 
 # [PT: Feb 11, 2019] now allows for option *not* to anismoothize
-if( ! -f $odir/anatUA."${SubID}".nii ) then
+if ( ! -f $odir/anatUA."${SubID}".nii ) then
     if ( ${DO_ANISO} ) then
         3danisosmooth                           \
             -iters 1                            \
@@ -601,7 +606,7 @@ endif
 
 # [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
 # 98%ile of non-zero vox
-if( ! -f $odir/anatUAC."${SubID}".nii ) then
+if ( ! -f $odir/anatUAC."${SubID}".nii ) then
     if ( ${DO_CEIL} ) then
         set vvv = `3dBrickStat                  \
                     -percentile 98 1 98         \
@@ -631,7 +636,7 @@ endif
 echo "++ SSW Step 2"
 
 # [PT: Feb 11, 2019] now allows for option *not* to skullstrip 
-if( ! -f $odir/anatS."${SubID}".nii ) then
+if ( ! -f $odir/anatS."${SubID}".nii ) then
     if ( ${DO_SKULLST} ) then
         3dSkullStrip \
             -input  $odir/anatUAC."$SubID".nii \
@@ -818,7 +823,7 @@ endif
 
 # don't do any more if skipping the final (precision) warp
 
-if( $skipwarp ) goto CLEANUP
+if ( $skipwarp ) goto CLEANUP
 
 ## Step #6: affine transform that result to template space
 echo "++ SSW Step 6"
@@ -912,7 +917,7 @@ if ( ${status} ) then
     goto BAD_EXIT
 endif
 
-if( $minp > 13 )then
+if ( $minp > 13 ) then
   # Final piece for coarse final patch size
   echo "++ SSW Step 6 ... piece 3"
   3dQwarp -echo_edu      ${saveall}        \
@@ -1413,7 +1418,7 @@ USING SSW WITH AFNI_PROC.PY ~1~
 
   |  set btemplate = MNI152_2009_template_SSW.nii.gz
   |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
-  |  if( "$tpath" == "" ) exit 1
+  |  if ( "$tpath" == "" ) exit 1
   |
   |  afni_proc.py                                                  \
   |    [...other stuff here: processing blocks, options...]        \

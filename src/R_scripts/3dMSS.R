@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, April 18, 2021
+Version 0.0.9, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -935,10 +935,10 @@ if(dimy==1 & dimz==1) { # 1D data
    # runMSS(inData[30,30,30,], lop$mrr, lop$dataStr, lop$glt, nF, 0)
 }
 
-Top <- 100
+#Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top
-Stat[Stat < (-Top)] <- -Top
+#Stat[Stat > Top] <- Top
+#Stat[Stat < (-Top)] <- -Top
 Stat[is.na(Stat)] <- 0
 
 if(!is.null(lop$mrr))
@@ -969,7 +969,7 @@ if(!is.null(lop$lme)) {
 }
 
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations: 3dMSS mission has been accomplished with an output %s", lop$outFN))
 ##############  END  ############

@@ -249,7 +249,7 @@ foreach ana ($analist)
    else
       # want data in AFNI format here
       set afni_type = `@CheckForAfniDset $ana`
-      if($afni_type == 3) then
+      if ($afni_type == 3) then
          echo "Copying dataset to AFNI format"
          3dcopy $ana $anapref
       endif
@@ -387,12 +387,12 @@ foreach anain ($analist)
                -inset ${epipref}_${anatpref}_e+orig 
    set olist = (  $olist \
                   ${ooo}+orig.HEAD)               
-   if($rm_ae_temp == 1) then
+   if ($rm_ae_temp == 1) then
      rm -f ${anatpref}_e+orig* ${epipref}_${anatpref}_e+orig* 
    endif
 end
 
-if($rm_ae_temp == 1) then
+if ($rm_ae_temp == 1) then
    rm -f ${prs}*
    rm -f ${prs}epi_sc* >& /dev/null
    rm -f tmp_box+orig* tmp_avg+orig*
@@ -428,7 +428,9 @@ endif
 
 # read the listlog file that contains only the names of the input datasets
 # in a single row
-if ("$olist" == "") set olist = (`cat ${listlog}`)
+if ("$olist" == "") then
+    set olist = (`cat ${listlog}`)
+endif
 #trim what is not desired from list
 # testing required removing some datasets from consideration
 if ($remove_SPM == 1) then
@@ -436,7 +438,9 @@ if ($remove_SPM == 1) then
    set olist = ()
    foreach ll ($qlist)
       if (  "$ll" !~ *SPM*norm* &&  \
-            "$ll" !~ *SPM*seg* ) set olist = ($olist $ll)
+            "$ll" !~ *SPM*seg* ) then
+          set olist = ($olist $ll)
+      endif
    end
 endif
 #Number of elements must be odd
@@ -686,7 +690,9 @@ while ($cnt < $#olist)
    if ($nx >= 1) then
       set cnt = `ccalc -form int $nx\*2`
    endif
-   if ($cnt > $#olist) set cnt = 2 
+   if ($cnt > $#olist) then
+      set cnt = 2 
+   endif
    echo "Opening "`@GetAfniPrefix $olist[$cnt]`" results"
 end
 

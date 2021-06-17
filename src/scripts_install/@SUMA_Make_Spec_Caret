@@ -187,8 +187,12 @@ L_PARSE_COMMAND:
 		@ count ++
 		set debug = $argv[$count]
 
-		if ( "$debug" > 2 ) set debug = 2
-		if ( "$debug" < 0 ) set debug = 0
+		if ( "$debug" > 2 ) then
+        set debug = 2
+      endif
+		if ( "$debug" < 0 ) then
+        set debug = 0
+      endif
 
 	    breaksw
 	    
@@ -219,7 +223,9 @@ L_PARSE_COMMAND:
     endif
 
     if ( $debug ) echo "-- usage okay"
-    if ( $debug > 1 ) set echo
+    if ( $debug > 1 ) then
+        set echo
+    endif
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
@@ -611,9 +617,15 @@ L_LOOK_FOR_VOLPARAMS:
    set Vol_Param_lrh = ()
    
    set SideList = ()
-   if ($#list_lh > 0) set SideList = ($SideList L)
-   if ($#list_rh > 0) set SideList = ($SideList R)
-   if ($#list_lrh > 0) set SideList = ($SideList LR)
+   if ($#list_lh > 0) then
+        set SideList = ($SideList L)
+   endif
+   if ($#list_rh > 0) then
+        set SideList = ($SideList R)
+   endif
+   if ($#list_lrh > 0) then
+        set SideList = ($SideList LR)
+   endif
 	
    foreach Side ($SideList)
       set candidate = `ls -t *.$Side.*.params`
@@ -845,9 +857,15 @@ goto L_CREATE_SPEC_DONE
 L_TEST_SURF_VOL:
 
     set l = ()
-    if ( -f ${subj_id}_lh.spec) set l = ($l ${subj_id}_lh.spec)
-    if ( -f ${subj_id}_rh.spec) set l = ($l ${subj_id}_rh.spec)
-    if ( -f ${subj_id}_lrh.spec) set l = ($l ${subj_id}_lrh.spec)
+    if ( -f ${subj_id}_lh.spec) then
+        set l = ($l ${subj_id}_lh.spec)
+    endif
+    if ( -f ${subj_id}_rh.spec) then
+        set l = ($l ${subj_id}_rh.spec)
+    endif
+    if ( -f ${subj_id}_lrh.spec) then
+        set l = ($l ${subj_id}_lrh.spec)
+    endif
     if ($#l < 1) then
       set endstr = "Found no spec files!"
       echo "It is your fault Sarah"

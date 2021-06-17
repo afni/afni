@@ -344,7 +344,7 @@ endif
 
 # put original dataset into output directory with specific name 
 #  this is easier and allows for mask range selectors, sub-brick selectors, and NIFTI
-if("$fs_dir" == "") then
+if ("$fs_dir" == "") then
    3dTcat -prefix $thickdir/maskset.nii.gz -overwrite $maskset
 endif
 
@@ -437,7 +437,7 @@ end
 
 # do some surface stuff if we have a surface to work with
 #  could make one with IsoSurface, but if it's already done, we can use that instead
-if($surfset != "") then
+if ($surfset != "") then
    quickspec -tn gii anat.gii -spec quick.spec
    # look inside to find the maximum of the minimum distances
    # because the distance should be somewhat consistent through

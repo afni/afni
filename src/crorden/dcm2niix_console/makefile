@@ -21,7 +21,9 @@ ifneq ($(OS),Windows_NT)
  	ifeq "$(OS)" "Darwin"
 		#CFLAGS=-dead_strip -O3
 		#CFLAGS= -O3
-		CFLAGS=-O3 -sectcreate __TEXT __info_plist Info.plist
+		# CFLAGS=-O3 -sectcreate __TEXT __info_plist Info.plist
+		# rickr - ponder -sectcreate later
+		CFLAGS=-O3
 		#Apple notarization requires a Info.plist
 		# For .app bundles, the Info.plist is a separate file, for executables it is appended as a section
 		#you can check that the Info.plist section has been inserted with either of these commands

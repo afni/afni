@@ -2,7 +2,7 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-# !!!!!?   Why use f00*, f01*, f02*, etc.? is iidx instead?
+# Why use f00*, f01*, f02*, etc.? is iidx instead?
 
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
@@ -527,7 +527,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix $vedge              \
         -input  $odir/$ot1w
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_t2w_t1wE
         set vpref1 = ${opref}_qc_t2w_t1w
     else

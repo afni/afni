@@ -144,7 +144,9 @@ endif
       
 set ps = `ccalc -i  -expr "($p1 - $p0)"` 
 set ipref = `@GetAfniPrefix $invol`
-if ($opref == "") set opref = $ipref.sc
+if ($opref == "") then
+   set opref = $ipref.sc
+endif
 if ($invol == "") then
    echo "Error: No input volume"
    echo ""

@@ -14,7 +14,9 @@ set help        = 0
 set workdir     = "reorder.work.dir"
 
 # if no args, plan to show help
-if ( $#argv == 0 ) set help = 1
+if ( $#argv == 0 ) then
+    set help = 1
+endif
 
 set ac = 1
 while ( $ac <= $#argv )

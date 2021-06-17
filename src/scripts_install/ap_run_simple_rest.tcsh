@@ -138,7 +138,9 @@ while ( $ac <= $narg )
       endif
 
       # on very verbose, turn on echo
-      if ( $verb > 2 ) set echo
+      if ( $verb > 2 ) then
+         set echo
+      endif
 
    # bad things, man
    else

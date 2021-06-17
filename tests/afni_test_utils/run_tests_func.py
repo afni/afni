@@ -58,7 +58,7 @@ def run_tests(tests_dir, **args_dict):
 
         # apparently there is a security issue here, must investigate
         # cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
-        # sys.exit(1)
+        sys.exit(1)
 
     print(f"Executing: {cmd}")
     res = subprocess.run(cmd, shell=True, env=os.environ.copy())

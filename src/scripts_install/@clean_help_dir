@@ -221,7 +221,9 @@ PARSE:
       @ cnt ++
    end
    
-   if ("$uhdir" != '') set hdir = $uhdir
+   if ("$uhdir" != '') then
+      set hdir = $uhdir
+   endif
       
    if ( ! -d $hdir ) then
       echo "Could not find home directory $hdir"

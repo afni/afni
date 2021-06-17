@@ -99,9 +99,9 @@ end
 # echo "++ Dimensions (xyzt): $Dim"
 
 foreach i ( `seq 1 1 3` )
-    if( $gapord[$order[$i]] <= 0 ) then
+    if ( $gapord[$order[$i]] <= 0 ) then
         @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
-        if( $gapord[$order[$i]] <= 0 ) then
+        if ( $gapord[$order[$i]] <= 0 ) then
             @ gapord[$order[$i]] = 1
         endif
     endif

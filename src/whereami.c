@@ -1579,8 +1579,10 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
          /* for each atlas */
          for (k=0; k < N_atlas_names; ++k) {
             if (!(atlas = Atlas_With_Trimming(atlas_names[k], 0, atlas_alist))) {
-               fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", 
+               if(wami_verb()) {
+                  fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", 
                                atlas_names[k]);
+               }
                continue;
             }
             

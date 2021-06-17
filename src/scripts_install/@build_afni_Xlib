@@ -56,7 +56,9 @@ set extra_opts = ( )
 
 # show help on no arguments, as well as via -help
 set show_help = 0
-if ( $#argv == 0 ) set show_help = 1
+if ( $#argv == 0 ) then
+    set show_help = 1
+endif
 
 set ac = 1
 while ( $ac <= $#argv )
