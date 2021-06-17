@@ -1953,6 +1953,13 @@ static char *gby[] = {
     "Somehow it is always right now until suddenly it's later"                                       ,
     "Visualizing the conceptualization process is always the hardest part of a project"              ,
     "I have faced all the reality I need to face for today"                                          ,
+    "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
+    "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
+    "\n  I'd be more interested in thinking outside the box if I could\n"
+    "    figure out thinking inside the box first"                                                   ,
+    "Real stupidity beats artificial intelligence, every time"                                       ,
+    "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
+    "You can shut your eyes but you can't shut your brain"                                           ,
 
     /**** Keep this one last ****/
 
