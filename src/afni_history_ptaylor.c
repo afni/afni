@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, June , 2021 , PT , "@Install_SURFLAYERS_DEMO1" , MINOR , TYPE_GENERAL,
+   "Created by Sam Torrisi.  Help added, temp placeholder data now in place.",
+   "Will add full demo data soon...\n"
+},
+
 { 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_BUG_FIX,
    "Minor bug fix (never hit?), and avoid single line 'if' conds.",
    "Latter to avoid badness in some (older?) tcsh versions.\n"
