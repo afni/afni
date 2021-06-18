@@ -69,7 +69,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 15, June , 2021 , PT , "@Install_SURFLAYERS_DEMO1" , MINOR , TYPE_GENERAL,
+{ 18, June , 2021 , PT , "@Install_AP_MULTI_DEMO1" , MINOR , TYPE_GENERAL,
+   "Adding install script for afni_proc.py multi-echo FMRI demo (OHBM, 2021).",
+   "Demo authors: RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor.\n"
+},
+
+{ 18, June , 2021 , PT , "@Install_SURFLAYERS_DEMO1" , MINOR , TYPE_GENERAL,
    "Created by Sam Torrisi.  Help added, temp placeholder data now in place.",
    "Will add full demo data soon...\n"
 },
