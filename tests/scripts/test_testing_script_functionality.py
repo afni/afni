@@ -712,7 +712,7 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "coverage": True,
                 "build_dir": tempfile.mkdtemp(),
             },
-            #" echo ======= REFUSING TO GO TO codecov.io ======== "
+            # " echo ======= REFUSING TO GO TO codecov.io ======== ; "
             # there may be a security issue with getting the script this way:
             # apparently there is a security issue with codecov, we must
             # investigate; however, this currently is NOT be being run in
@@ -725,7 +725,7 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
                 "ninja pytest;"
                 " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
-                " echo ======= CAREFUL GOING TO codecov.io ======== "
+                " echo ======= CAREFUL GOING TO codecov.io ======== ; "
                 " bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
