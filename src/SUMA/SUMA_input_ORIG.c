@@ -1,1128 +1,6 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-#include "GL/glcorearb.h"
-
-int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
-                     SUMA_PICK_RESULT **PRi)
-{
-   static char FuncName[]={"colorPlanes"};
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_PICK_RESULT *PR;
-   SUMA_Boolean LocalHead = NOPE;
-
-   SUMA_ENTRY;
-
-   if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
-
-   // Mark intersection Facsets
-   ado = (SUMA_ALL_DO *)SO;
-
-   PR = *PRi;   // Keep local copy
-   // Store the PR in ado, hide it from return potential
-   SUMA_ADO_StorePickResult(ado, PRi);
-
-   sv->Focus_DO_ID = ADO_iDO(ado);
-   SUMA_UpdateViewerTitle(sv);
-
-   SUMA_LH("Returning");
-   SUMA_RETURN (1); /* OK */
-}/* determine intersection */
-
-Boolean activeClippingPlanes(){
-    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-        if (active[i]) return True;
-
-    return False;
-}
-
-float getObjectMinMaxForAxes(float objectMinMax[][2]){
-    int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
-    int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
-
-    // Itialise
-    for (int i=0; i<3; ++i){
-        objectMinMax[i][0] = 10000.0;
-        objectMinMax[i][1] = -10000.0;
-    }
-
-    // Update min and max for each axis
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
-        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        // fprintf(stderr, "soOld->SUMA_VolPar_Aligned = %d\n", soOld->SUMA_VolPar_Aligned);
-        if (soOld->Show==1) for (int i=0; i<3; ++i){
-            if (soOld->MaxDims[i]<= allowableMax) objectMinMax[i][1] = MAX(objectMinMax[i][1], soOld->MaxDims[i]);
-            if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
-        }
-    }
-}
-
-void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
-    int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
-    int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
-
-    // Initialize
-    for (int i=0; i<3; ++i){
-        SO->MaxDims[i] = -1000.0;
-        SO->MinDims[i] = 1000.0;
-    }
-    SO->aMaxDims = -1000.0;
-    SO->aMinDims = 1000.0;
-
-    // Update min and max for each axis
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
-        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        for (int i=0; i<3; ++i){
-            if (soOld->MaxDims[i]<= allowableMax)SO->MaxDims[i] = MAX(SO->MaxDims[i], soOld->MaxDims[i]);
-            if (soOld->MinDims[i]>= allowableMin)SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
-        }
-    }
-
-    // Update overall min and max
-    for (int i=0; i<3; ++i){
-        if (SO->MaxDims[i]<SO->MinDims[i]){
-            SO->MaxDims[i] = 100.0;
-            SO->MinDims[i] = -100.0;
-        }
-        SO->aMaxDims = MAX(SO->MaxDims[i], SO->aMaxDims);
-        SO->aMinDims = MIN(SO->MinDims[i], SO->aMinDims);
-    }
-    if (SO->aMaxDims - SO->aMinDims > SUMA_TESSCON_DIFF_FLAG){
-        SO->aMaxDims = MIN(100.0, SO->aMaxDims);
-        SO->aMinDims = MAX(-100.0, SO->aMinDims);
-    }
-}
-
-void determineCornersOfSquare(SUMA_SurfaceObject *SO){
-    /*!< The maximum along each of the XYZ dimensions */
-    SO->MaxDims[0] = clippingPlaneAxisRanges[0][1];
-    SO->MaxDims[1] = clippingPlaneAxisRanges[1][1];
-    SO->MaxDims[2] = clippingPlaneAxisRanges[2][1];
-    SO->MinDims[0] = clippingPlaneAxisRanges[0][0];
-    SO->MinDims[1] = clippingPlaneAxisRanges[1][0];
-    SO->MinDims[2] = clippingPlaneAxisRanges[2][0];
-    SO->aMinDims = (SO->MinDims[0]<SO->MinDims[1])? MIN(SO->MinDims[0], SO->MinDims[2]) :
-        MIN(SO->MinDims[1], SO->MinDims[2]);
-    SO->aMaxDims = (SO->MaxDims[0]>SO->MaxDims[1])? MAX(SO->MaxDims[0], SO->MaxDims[2]) :
-        MIN(SO->MaxDims[1], SO->MaxDims[2]);
-}
-
-#define DARK_COLOR 0.4
-#define DARK_BACKGROUND 0.1
-
-void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
-    fprintf(stderr, "makeCommonNodesOfRectangleDarkRed\n");
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
-
-        fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "SO->Overlays[0]->ColVec =                         ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-}
-
-void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
-    fprintf(stderr, "makeCommonNodesOfRectangleDarkGreen\n");
-    fprintf(stderr, "SO = %p\n", SO);
-    fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
-    fprintf(stderr, "clipIdentificationPlane[1] = %p\n", clipIdentificationPlane[1]);
-
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
-}
-
-void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO){
-    fprintf(stderr, "makeCommonNodesOfRectangleDarkBlue\n");
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-
-    SO->Overlays[0]->ColVec[2] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[8] = DARK_COLOR;
-}
-
-void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[2] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[8] = DARK_COLOR;
-}
-
-void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[2] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[8] = DARK_COLOR;
-}
-
-void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
-    fprintf(stderr, "makeCommonNodesOfRectangleDarkYellow\n");
-    fprintf(stderr, "SO = %p\n", SO);
-    fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
-    fprintf(stderr, "clipIdentificationPlane[5] = %p\n", clipIdentificationPlane[5]);
-    fprintf(stderr, "clipIdentificationPlane[0].Overlays = %p\n", clipIdentificationPlane[0]->Overlays);
-    fprintf(stderr, "clipIdentificationPlane[5].Overlays = %p\n", clipIdentificationPlane[5]->Overlays);
-    fprintf(stderr, "clipIdentificationPlane[0].Overlays[0] = %p\n", clipIdentificationPlane[0]->Overlays[0]);
-    fprintf(stderr, "clipIdentificationPlane[5].Overlays[0] = %p\n", clipIdentificationPlane[5]->Overlays[0]);
-
-    // Debug
-    if (clipIdentificationPlane[0]){
-        fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "clipIdentificationPlane[5]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-    }
-
-    SO->Overlays[0]->ColVec[0] = DARK_BACKGROUND;
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
-/*
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
-*/
-    // Debug
-    if (SO){
-        fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "clipIdentificationPlane[5]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-    }
-}
-
-
-void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[0] = 1.0;
-    SO->Overlays[0]->ColVec[3] = 1.0;
-    SO->Overlays[0]->ColVec[6] = 1.0;
-    SO->Overlays[0]->ColVec[9] = 1.0;
-    /*
-    SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] =
-        SO->Overlays[0]->ColVec[5] = SO->Overlays[0]->ColVec[7] = 0.0;
-        */
-}
-
-void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[1] = 1.0;
-    SO->Overlays[0]->ColVec[4] = 1.0;
-    SO->Overlays[0]->ColVec[7] = 1.0;
-    SO->Overlays[0]->ColVec[10] = 1.0;
-    /*
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] =
-    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 0.0;
-    */
-}
-
-void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[2] = 1.0;
-    SO->Overlays[0]->ColVec[5] = 1.0;
-    SO->Overlays[0]->ColVec[8] = 1.0;
-    SO->Overlays[0]->ColVec[11] = 1.0;
-    /*
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] =
-    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 0.0;
-    */
-}
-
-void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = 1.0;
-    SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
-    SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = 1.0;
-    SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = 1.0;
-    // SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[6] = 0.0;
-}
-
-void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 1.0;
-    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
-    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = 1.0;
-    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = 1.0;
-    // SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[7] = 0.0;
-}
-
-void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
-
-    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] = 1.0;
-    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
-    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = 1.0;
-    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = 1.0;
-    // SO->Overlays[0]->ColVec[2] = SO->Overlays[0]->ColVec[8] = 0.0;
-}
-
-SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
-
-    // Set global variables
-    char *FuncName = "drawPlaneFromNodeAndFaceSetList";
-    SUMA_DO *dov = SUMAg_DOv;
-    int N_dov = SUMAg_N_DOv-1;
-    SUMA_ALL_DO *ado;
-    ado = SUMA_SV_Focus_ADO(sv);
-    SUMA_OVERLAYS *NewColPlane=NULL;
-    static int squareIndex = 0;
-
-    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
-    SO->N_Node = FS.N_Node;
-    // Save the pointers to NodeList and FaceSetList and
-    //  clear what is left of FS structure at the end
-    SO->NodeList = FS.NodeList;
-    SO->FaceSetList = FS.FaceSetList;
-
-    SO->N_FaceSet = FS.N_FaceSet;
-    SO->FaceSetDim = 3; //This must also be automated
-
-    SO->SUMA_VolPar_Aligned = NOPE;
-    SO->normdir = 1; // normals point out
-
-    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-        SUMA_SetSphereParams(SO, -0.1);
-    }  // sets the spheriosity parameters
-
-    // Miscelaneous fields
-    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
-        SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
-    }
-    SO->do_type = SO_type;
-    SO->SurfCont = NULL;
-
-    // dimensionsInscribeThoseOfPreviousSurfaceObjects(SO);
-    determineCornersOfSquare(SO);
-
-    // SO->EmbedDim = 2;
-    SO->Side = SUMA_GuessSide (SO);
-    SO->AnatCorrect = NOPE;
-
-    SO->FileType = SUMA_FREE_SURFER;
-    SO->Name.Path = NULL;
-    SO->Name.FileName = NULL;
-    switch (planeIndex){
-        case 0: SO->idcode_str = "ClipSquare1"; break;
-        case 1: SO->idcode_str = "ClipSquare2"; break;
-        case 2: SO->idcode_str = "ClipSquare3"; break;
-        case 3: SO->idcode_str = "ClipSquare4"; break;
-        case 4: SO->idcode_str = "ClipSquare5"; break;
-        case 5: SO->idcode_str = "ClipSquare6"; break;
-    }
-
-    SUMA_AutoLoad_SO_Dsets(SO);
-
-    /* set its MappingRef id to NULL if none is specified */
-    // make sure that specified Mapping ref had been loaded
-    SO->LocalDomainParentID = (char *)calloc( strlen(SO->idcode_str)+1,
-                        sizeof(char));
-    sprintf(SO->idcode_str, "%s", SO->idcode_str);
-    if (SO->LocalDomainParentID == NULL) {
-        fprintf(stderr,
-        "Error SUMA_display_one: Failed to allocate for "
-        "SO->LocalDomainParentID. \n"
-        "That is pretty bad.\n");
-        return NULL;
-    }
-
-    char sid[100];
-    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
-        SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
-    SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
-    /* change this in sync with string in macro
-    SUMA_BLANK_NEW_SPEC_SURF*/
-    sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
-    SO->State = SUMA_copy_string(sid);
-    sprintf(sid, "clippingPlaneIdentificationSquare_%d", SUMAg_CF->N_ClipPlanes-1);
-    SO->Label = SUMA_copy_string(sid);
-    SO->EmbedDim = 3;
-    SO->AnatCorrect = NOPE;
-
-    // make this surface friendly for suma
-    if (!SUMA_PrepSO_GeomProp_GL(SO)) {
-       SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
-    }
-
-    /* Add this surface to SUMA's displayable objects */
-    if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
-       SUMA_S_Err("Failed to add mappable SOs ");
-    }
-
-    if (!SO->Group || !SO->State || !SO->Label) {
-        fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
-        return NULL;
-    }
-
-    /* Non Mappable surfaces */
-    /* if the surface is loaded OK,
-    and it has not been loaded previously, register it */
-    SO->MeshAxis = NULL;
-    SO->NodeDim = 3;
-
-    /* Change the defaults of Mesh axis to fit standard  */
-    SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
-
-    /*turn off the viewing for the axis */
-    SO->ShowMeshAxis = clipPlaneIdentificationMode;
-
-    /* Create a Mesh Axis for the surface */
-    SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
-        if (SO->MeshAxis == NULL) {
-        fprintf( SUMA_STDERR,
-        "Error %s: Error Allocating axis\n", FuncName);
-        return NULL;
-    }
-
-    // Store it into dov
-    SO->patchNodeMask = NULL;
-    sprintf(SO->Group, "DefGroup");
-    SO->SphereRadius = -1.0;
-    SO->SphereCenter[0] = -1.0;
-    SO->SphereCenter[1] = -1.0;
-    SO->SphereCenter[2] = -1.0;
-    SO->LocalDomainParent = "SAME";
-    if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
-        fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
-        return NULL;
-    }
-
-    N_dov = SUMAg_N_DOv-1;
-
-     /* register DO with viewer */
-    if (!SUMA_RegisterDO(N_dov, sv)) {
-       fprintf(SUMA_STDERR,
-                "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
-       return NULL;
-    }
-
-    // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
-    SO->LocalDomainParentID = NULL;
-    SO->Saux = SUMA_ADO_Saux(ado);
-
-   SO->Show = clipPlaneIdentificationMode;    // *** Most important part.  The plane is not shown if this value is zero
-   SO->NodeList_swp = NULL;
-
-   // Colors
-   SO->N_Overlays = 1;
-   SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
-   // Note that ado remains the same and second argument may not be >0
-   // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
-   SUMA_OVERLAYS *tempOverlay = SUMA_ADO_Overlay(ado, 0);
-   SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
-   memcpy((void *)(SO->Overlays[0]),(void *)(tempOverlay),sizeof(SUMA_OVERLAYS));
-   SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
-
-    if (!(SO->Overlays)){
-        SUMA_S_Err("NULL Overlays pointer.");
-        SO->N_Overlays = 0;
-    }
-    if ((intptr_t)(SO->Overlays) == 1){
-        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
-        SO->N_Overlays = 0;
-    }
-    SO->Overlays[0]->GlobalOpacity = 1.0;
-    // SO->Overlays[0]->GlobalOpacity = 0.7;
-
-    // Make common nodes of rectangle the RGBCMY color for the particular plane
-    switch(planeIndex){
-        case 0: makeCommonNodesOfRectangleRed(SO); break;
-        case 1: makeCommonNodesOfRectangleGreen(SO); break;
-        case 2: makeCommonNodesOfRectangleBlue(SO); break;
-        case 3: makeCommonNodesOfRectangleCyan(SO); break;
-        case 4: makeCommonNodesOfRectangleMagenta(SO); break;
-        case 5: makeCommonNodesOfRectangleYellow(SO); break;
-    }
-
-    // NBB: This block is vitally important in preventing the clipping plane surface from being gray
-    //   for some surface objects.  Not common but it happens.
-    {
-        SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
-        SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
-
-       // switch to the recently loaded  cmap
-        SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-         SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
-        }
-
-        SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-        colorPlanes(sv, SO,&PR);
-    }
-
-    // Reduce opacity of current surface object (clipping plane square)
-    for (int i=0; i<2; ++i){
-       SUMA_Set_ADO_TransMode(SUMA_SV_Focus_ADO(sv), sv->TransMode,
-                              SUMAg_CF->TransModeStep, 1);
-       SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
-    }
-
-    clippingPlaneIDDisplayableObjects[planeIndex] = SO;
-    return SO;
-}
-
-void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2){
-    fprintf(stderr, "Beginning surface comparison\n");
-
-    fprintf(stderr, "do_type (1) = %d\n", SO1->do_type);
-    fprintf(stderr, "do_type (2) = %d\n", SO2->do_type);
-    fprintf(stderr, "idcode_str (1) = %s\n", SO1->idcode_str);
-    fprintf(stderr, "idcode_str (2) = %s\n", SO2->idcode_str);
-    fprintf(stderr, "Label (1) = %s\n", SO1->Label);
-    fprintf(stderr, "Label (2) = %s\n", SO2->Label);
-    fprintf(stderr, "N_Node (1) = %d\n", SO1->N_Node);
-    fprintf(stderr, "N_Node (2) = %d\n", SO2->N_Node);
-    fprintf(stderr, "NodeDim (1) = %d\n", SO1->NodeDim);
-    fprintf(stderr, "NodeDim (2) = %d\n", SO2->NodeDim);
-    fprintf(stderr, "EmbedDim (1) = %d\n", SO1->EmbedDim);
-    fprintf(stderr, "EmbedDim (2) = %d\n", SO2->EmbedDim);
-    fprintf(stderr, "NodeList (1) = %p\n", SO1->NodeList);
-    fprintf(stderr, "NodeList (2) = %p\n", SO2->NodeList);
-    fprintf(stderr, "N_FaceSet (1) = %d\n", SO1->N_FaceSet);
-    fprintf(stderr, "N_FaceSet (2) = %d\n", SO2->N_FaceSet);
-    fprintf(stderr, "FaceSetDim (1) = %d\n", SO1->FaceSetDim);
-    fprintf(stderr, "FaceSetDim (2) = %d\n", SO2->FaceSetDim);
-    fprintf(stderr, "FaceSetList (1) = %p\n", SO1->FaceSetList);
-    fprintf(stderr, "FaceSetList (2) = %p\n", SO2->FaceSetList);
-    fprintf(stderr, "aSO (1) = %p\n", SO1->aSO);
-    fprintf(stderr, "aSO (2) = %p\n", SO2->aSO);
-    fprintf(stderr, "FileType (1) = %d\n", SO1->FileType);
-    fprintf(stderr, "FileType (2) = %d\n", SO2->FileType);
-    fprintf(stderr, "FileFormat (1) = %d\n", SO1->FileFormat);
-    fprintf(stderr, "FileFormat (2) = %d\n", SO2->FileFormat);
-    /*
-    fprintf(stderr, "Name (1) = %s, %s\n", SO1->Name.Path, SO1->Name.FileName);
-    fprintf(stderr, "Name (2) = %s, %s\n", SO2->Name.Path, SO2->Name.FileName);
-    fprintf(stderr, "Name_coord (1) = %s, %s\n", SO1->Name_coord.Path, SO1->Name_coord.FileName);
-    fprintf(stderr, "Name_coord (2) = %s, %s\n", SO2->Name_coord.Path, SO2->Name_coord.FileName);
-    fprintf(stderr, "Name_topo (1) = %s, %s\n", SO1->Name_topo.Path, SO1->Name_topo.FileName);
-    fprintf(stderr, "Name_topo (2) = %s, %s\n", SO2->Name_topo.Path, SO2->Name_topo.FileName);
-    fprintf(stderr, "SpecFile (1) = %s, %s\n", SO1->SpecFile.Path, SO1->SpecFile.FileName);
-    fprintf(stderr, "SpecFile (2) = %s, %s\n", SO2->SpecFile.Path, SO2->SpecFile.FileName);
-    */
-    fprintf(stderr, "parent_vol_idcode_str (1) = %s\n", SO1->parent_vol_idcode_str);
-    fprintf(stderr, "parent_vol_idcode_str (2) = %s\n", SO2->parent_vol_idcode_str);
-    fprintf(stderr, "facesetlist_idcode_str (1) = %s\n", SO1->facesetlist_idcode_str);
-    fprintf(stderr, "facesetlist_idcode_str (2) = %s\n", SO2->facesetlist_idcode_str);
-    fprintf(stderr, "nodelist_idcode_str (1) = %s\n", SO1->nodelist_idcode_str);
-    fprintf(stderr, "nodelist_idcode_str (2) = %s\n", SO2->nodelist_idcode_str);
-    fprintf(stderr, "facenormals_idcode_str (1) = %s\n", SO1->facenormals_idcode_str);
-    fprintf(stderr, "facenormals_idcode_str (2) = %s\n", SO2->facenormals_idcode_str);
-    fprintf(stderr, "polyarea_idcode_str (1) = %s\n", SO1->polyarea_idcode_str);
-    fprintf(stderr, "polyarea_idcode_str (2) = %s\n", SO2->polyarea_idcode_str);
-    fprintf(stderr, "Name_NodeParent (1) = %s\n", SO1->Name_NodeParent);
-    fprintf(stderr, "Name_NodeParent (2) = %s\n", SO2->Name_NodeParent);
-    fprintf(stderr, "Group_idcode_str (1) = %s\n", SO1->Group_idcode_str);
-    fprintf(stderr, "Group_idcode_str (2) = %s\n", SO2->Group_idcode_str);
-    fprintf(stderr, "Group (1) = %s\n", SO1->Group);
-    fprintf(stderr, "Group (2) = %s\n", SO2->Group);
-    fprintf(stderr, "State (1) = %s\n", SO1->State);
-    fprintf(stderr, "State (2) = %s\n", SO2->State);
-    fprintf(stderr, "Side (1) = %d\n", SO1->Side);
-    fprintf(stderr, "Side (2) = %d\n", SO2->Side);
-    fprintf(stderr, "isSphere (1) = %d\n", SO1->isSphere);
-    fprintf(stderr, "isSphere (2) = %d\n", SO2->isSphere);
-    fprintf(stderr, "SphereRadius (1) = %f\n", SO1->SphereRadius);
-    fprintf(stderr, "SphereRadius (2) = %f\n", SO2->SphereRadius);
-    fprintf(stderr, "SphereCenter (1) = %f, %f, %f\n", SO1->SphereCenter[0], SO1->SphereCenter[1], SO1->SphereCenter[2]);
-    fprintf(stderr, "SphereCenter (2) = %f, %f, %f\n", SO2->SphereCenter[0], SO2->SphereCenter[1], SO2->SphereCenter[2]);
-    fprintf(stderr, "AnatCorrect (1) = %d\n", SO1->AnatCorrect);
-    fprintf(stderr, "AnatCorrect (2) = %d\n", SO2->AnatCorrect);
-    fprintf(stderr, "DomainGrandParentID (1) = %s\n", SO1->DomainGrandParentID);
-    fprintf(stderr, "DomainGrandParentID (2) = %s\n", SO2->DomainGrandParentID);
-    fprintf(stderr, "OriginatorID (1) = %s\n", SO1->OriginatorID);
-    fprintf(stderr, "OriginatorID (2) = %s\n", SO2->OriginatorID);
-    fprintf(stderr, "OriginatorLabel (1) = %s\n", SO1->OriginatorLabel);
-    fprintf(stderr, "OriginatorLabel (2) = %s\n", SO2->OriginatorLabel);
-    fprintf(stderr, "LocalCurvatureParent (1) = %s\n", SO1->LocalCurvatureParent);
-    fprintf(stderr, "LocalCurvatureParent (2) = %s\n", SO2->LocalCurvatureParent);
-    fprintf(stderr, "LocalCurvatureParentID (1) = %s\n", SO1->LocalCurvatureParentID);
-    fprintf(stderr, "LocalCurvatureParentID (2) = %s\n", SO2->LocalCurvatureParentID);
-    fprintf(stderr, "LocalDomainParent (1) = %s\n", SO1->LocalDomainParent);
-    fprintf(stderr, "LocalDomainParent (2) = %s\n", SO2->LocalDomainParent);
-    fprintf(stderr, "LocalDomainParentID (1) = %s\n", SO1->LocalDomainParentID);
-    fprintf(stderr, "LocalDomainParentID (2) = %s\n", SO2->LocalDomainParentID);
-    fprintf(stderr, "SUMA_VolPar_Aligned (1) = %d\n", SO1->SUMA_VolPar_Aligned);
-    fprintf(stderr, "SUMA_VolPar_Aligned (2) = %d\n", SO2->SUMA_VolPar_Aligned);
-    fprintf(stderr, "APPLIED_A2Exp_XFORM (1) = %d\n", SO1->APPLIED_A2Exp_XFORM);
-    fprintf(stderr, "APPLIED_A2Exp_XFORM (2) = %d\n", SO2->APPLIED_A2Exp_XFORM);
-    fprintf(stderr, "Saux (1) = %p\n", SO1->Saux);
-    fprintf(stderr, "Saux (2) = %p\n", SO2->Saux);
-    fprintf(stderr, "SentToAfni (1) = %d\n", SO1->SentToAfni);
-    fprintf(stderr, "SentToAfni (2) = %d\n", SO2->SentToAfni);
-    fprintf(stderr, "Show (1) = %d\n", SO1->Show);
-    fprintf(stderr, "Show (2) = %d\n", SO2->Show);
-    fprintf(stderr, "PolyMode (1) = %d\n", SO1->PolyMode);
-    fprintf(stderr, "PolyMode (2) = %d\n", SO2->PolyMode);
-    fprintf(stderr, "TransMode (1) = %d\n", SO1->TransMode);
-    fprintf(stderr, "TransMode (2) = %d\n", SO2->TransMode);
-    fprintf(stderr, "NodeNormList (1) = %p\n", SO1->NodeNormList);
-    fprintf(stderr, "NodeNormList (2) = %p\n", SO2->NodeNormList);
-    fprintf(stderr, "FaceNormList (1) = %p\n", SO1->FaceNormList);
-    fprintf(stderr, "FaceNormList (2) = %p\n", SO2->FaceNormList);
-    fprintf(stderr, "normdir (1) = %d\n", SO1->normdir);
-    fprintf(stderr, "normdir (2) = %d\n", SO2->normdir);
-    fprintf(stderr, "Center (1) = %f, %f, %f\n", SO1->Center[0], SO1->Center[1], SO1->Center[2]);
-    fprintf(stderr, "Center (2) = %f, %f, %f\n", SO2->Center[0], SO2->Center[1], SO2->Center[2]);
-    fprintf(stderr, "MaxDims (1) = %f, %f, %f\n", SO1->MaxDims[0], SO1->MaxDims[1], SO1->MaxDims[2]);
-    fprintf(stderr, "MaxDims (2) = %f, %f, %f\n", SO2->MaxDims[0], SO2->MaxDims[1], SO2->MaxDims[2]);
-    fprintf(stderr, "MinDims (1) = %f, %f, %f\n", SO1->MinDims[0], SO1->MinDims[1], SO1->MinDims[2]);
-    fprintf(stderr, "MinDims (2) = %f, %f, %f\n", SO2->MinDims[0], SO2->MinDims[1], SO2->MinDims[2]);
-    fprintf(stderr, "patchCenter (1) = %f, %f, %f\n", SO1->patchCenter[0], SO1->patchCenter[1], SO1->patchCenter[2]);
-    fprintf(stderr, "patchCenter (2) = %f, %f, %f\n", SO2->patchCenter[0], SO2->patchCenter[1], SO2->patchCenter[2]);
-    fprintf(stderr, "patchMaxDims (1) = %f, %f, %f\n", SO1->patchMaxDims[0], SO1->patchMaxDims[1], SO1->patchMaxDims[2]);
-    fprintf(stderr, "patchMaxDims (2) = %f, %f, %f\n", SO2->patchMaxDims[0], SO2->patchMaxDims[1], SO2->patchMaxDims[2]);
-    fprintf(stderr, "patchMinDims (1) = %f, %f, %f\n", SO1->patchMinDims[0], SO1->patchMinDims[1], SO1->patchMinDims[2]);
-    fprintf(stderr, "patchMinDims (2) = %f, %f, %f\n", SO2->patchMinDims[0], SO2->patchMinDims[1], SO2->patchMinDims[2]);
-    fprintf(stderr, "aMinDims (1) = %f\n", SO1->aMinDims);
-    fprintf(stderr, "aMinDims (2) = %f\n", SO2->aMinDims);
-    fprintf(stderr, "aMaxDims (1) = %f\n", SO1->aMaxDims);
-    fprintf(stderr, "aMaxDims (2) = %f\n", SO2->aMaxDims);
-    fprintf(stderr, "MaxCentDist (1) = %f\n", SO1->MaxCentDist);
-    fprintf(stderr, "MaxCentDist (2) = %f\n", SO2->MaxCentDist);
-    fprintf(stderr, "MaxCentDistNode (1) = %d\n", SO1->MaxCentDistNode);
-    fprintf(stderr, "MaxCentDistNode (2) = %d\n", SO2->MaxCentDistNode);
-    fprintf(stderr, "MinCentDist (1) = %f\n", SO1->MinCentDist);
-    fprintf(stderr, "MinCentDist (2) = %f\n", SO2->MinCentDist);
-    fprintf(stderr, "MinCentDistNode (1) = %d\n", SO1->MinCentDistNode);
-    fprintf(stderr, "MinCentDistNode (2) = %d\n", SO2->MinCentDistNode);
-    fprintf(stderr, "N_patchNode (1) = %d\n", SO1->N_patchNode);
-    fprintf(stderr, "N_patchNode (2) = %d\n", SO2->N_patchNode);
-    fprintf(stderr, "patchNodeMask (1) = %p\n", SO1->patchNodeMask);
-    fprintf(stderr, "patchNodeMask (2) = %p\n", SO2->patchNodeMask);
-    fprintf(stderr, "patchaMinDims (1) = %f\n", SO1->patchaMinDims);
-    fprintf(stderr, "patchaMinDims (2) = %f\n", SO2->patchaMinDims);
-    fprintf(stderr, "patchaMaxDims (1) = %f\n", SO1->patchaMaxDims);
-    fprintf(stderr, "patchaMaxDims (2) = %f\n", SO2->patchaMaxDims);
-    fprintf(stderr, "RotationWeight (1) = %d\n", SO1->RotationWeight);
-    fprintf(stderr, "RotationWeight (2) = %d\n", SO2->RotationWeight);
-    fprintf(stderr, "ViewCenterWeight (1) = %d\n", SO1->ViewCenterWeight);
-    fprintf(stderr, "ViewCenterWeight (2) = %d\n", SO2->ViewCenterWeight);
-    fprintf(stderr, "glar_NodeList (1) = %p\n", SO1->glar_NodeList);
-    fprintf(stderr, "glar_NodeList (2) = %p\n", SO2->glar_NodeList);
-    fprintf(stderr, "glar_FaceSetList (1) = %p\n", SO1->glar_FaceSetList);
-    fprintf(stderr, "glar_FaceSetList (2) = %p\n", SO2->glar_FaceSetList);
-    fprintf(stderr, "glar_FaceNormList (1) = %p\n", SO1->glar_FaceNormList);
-    fprintf(stderr, "glar_FaceNormList (2) = %p\n", SO2->glar_FaceNormList);
-    fprintf(stderr, "PermCol (1) = %p\n", SO1->PermCol);
-    fprintf(stderr, "PermCol (2) = %p\n", SO2->PermCol);
-    fprintf(stderr, "glar_NodeNormList (1) = %p\n", SO1->glar_NodeNormList);
-    fprintf(stderr, "glar_NodeNormList (2) = %p\n", SO2->glar_NodeNormList);
-    fprintf(stderr, "ShowMeshAxis (1) = %d\n", SO1->ShowMeshAxis);
-    fprintf(stderr, "ShowMeshAxis (2) = %d\n", SO2->ShowMeshAxis);
-    fprintf(stderr, "MeshAxis (1) = %p\n", SO1->MeshAxis);
-    fprintf(stderr, "MeshAxis (2) = %p\n", SO2->MeshAxis);
-    fprintf(stderr, "MF (1) = %p\n", SO1->MF);
-    fprintf(stderr, "MF (2) = %p\n", SO2->MF);
-    fprintf(stderr, "FN (1) = %p\n", SO1->FN);
-    fprintf(stderr, "FN (2) = %p\n", SO2->FN);
-    fprintf(stderr, "EL (1) = %p\n", SO1->EL);
-    fprintf(stderr, "EL (2) = %p\n", SO2->EL);
-    fprintf(stderr, "PolyArea (1) = %p\n", SO1->PolyArea);
-    fprintf(stderr, "PolyArea (2) = %p\n", SO2->PolyArea);
-    fprintf(stderr, "SC (1) = %p\n", SO1->SC);
-    fprintf(stderr, "SC (2) = %p\n", SO2->SC);
-    fprintf(stderr, "SelectedNode (1) = %d\n", SO1->SelectedNode);
-    fprintf(stderr, "SelectedNode (2) = %d\n", SO2->SelectedNode);
-    fprintf(stderr, "NodeMarker (1) = %p\n", SO1->NodeMarker);
-    fprintf(stderr, "NodeMarker (2) = %p\n", SO2->NodeMarker);
-    fprintf(stderr, "SelectedFaceSet (1) = %d\n", SO1->SelectedFaceSet);
-    fprintf(stderr, "SelectedFaceSet (2) = %d\n", SO2->SelectedFaceSet);
-    fprintf(stderr, "FaceSetMarker (1) = %p\n", SO1->FaceSetMarker);
-    fprintf(stderr, "FaceSetMarker (2) = %p\n", SO2->FaceSetMarker);
-    fprintf(stderr, "VolPar (1) = %p\n", SO1->VolPar);
-    fprintf(stderr, "VolPar (2) = %p\n", SO2->VolPar);
-    fprintf(stderr, "Overlays (1) = %p\n", SO1->Overlays);
-    fprintf(stderr, "Overlays (2) = %p\n", SO2->Overlays);
-    fprintf(stderr, "N_Overlays (1) = %d\n", SO1->N_Overlays);
-    fprintf(stderr, "N_Overlays (2) = %d\n", SO2->N_Overlays);
-    fprintf(stderr, "SurfCont (1) = %p\n", SO1->SurfCont);
-    fprintf(stderr, "SurfCont (2) = %p\n", SO2->SurfCont);
-    fprintf(stderr, "CommonNodeObject (1) = %p\n", SO1->CommonNodeObject);
-    fprintf(stderr, "CommonNodeObject (2) = %p\n", SO2->CommonNodeObject);
-    fprintf(stderr, "NodeObjects (1) = %p\n", SO1->NodeObjects);
-    fprintf(stderr, "NodeObjects (2) = %p\n", SO2->NodeObjects);
-    fprintf(stderr, "NodeNIDOObjects (1) = %p\n", SO1->NodeNIDOObjects);
-    fprintf(stderr, "NodeNIDOObjects (2) = %p\n", SO2->NodeNIDOObjects);
-    fprintf(stderr, "NodeAreas (1) = %p\n", SO1->NodeAreas);
-    fprintf(stderr, "NodeAreas (2) = %p\n", SO2->NodeAreas);
-    fprintf(stderr, "VisX0 (1) = %p, %d, %p\n", SO1->VisX0.Xchain, SO1->VisX0.Applied, SO1->VisX0.XformedCoords);
-    fprintf(stderr, "VisX0 (2) = %p, %d, %p\n", SO2->VisX0.Xchain, SO2->VisX0.Applied, SO2->VisX0.XformedCoords);
-    fprintf(stderr, "VisX (1) = %p, %d, %p\n", SO1->VisX.Xchain, SO1->VisX.Applied, SO1->VisX.XformedCoords);
-    fprintf(stderr, "VisX (2) = %p, %d, %p\n", SO2->VisX.Xchain, SO2->VisX.Applied, SO2->VisX.XformedCoords);
-    fprintf(stderr, "NodeList_swp (1) = %p\n", SO1->NodeList_swp);
-    fprintf(stderr, "NodeList_swp (2) = %p\n", SO2->NodeList_swp);
-    fprintf(stderr, "PointSize (1) = %f\n", SO1->PointSize);
-    fprintf(stderr, "PointSize (2) = %f\n", SO2->PointSize);
-    fprintf(stderr, "DW (1) = %p\n", SO1->DW);
-    fprintf(stderr, "DW (2) = %p\n", SO2->DW);
-
-    fprintf(stderr, "Ending surface comparison\n");
-}
-
-void getSquareOnPlane(float *plane, float points[4][3]){
-
-    float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
-    float   divisor;
-    float objectMinMax[2], axisMinMax[3][2];
-
-    getOveralMinAndMaxOfCurrentSurfaceObjects(axisMinMax, objectMinMax);
-
-    // Get plane point closest to view origin
-    getPlanePtClosestToViewerOrigin(plane, planeOrigin);
-
-    // Get other point on plane.  Adjust x and determine y to setisfy Ax+By+Cz=D
-    float otherViewerPt[3] = {10.0, 10.0, 10.0};
-    getPlanePtClosestToViewerPoint(plane, otherViewerPt, otherPoint);
-
-    // Get normal vector of plane
-    divisor = sqrt((plane[0]*plane[0]) + (plane[1]*plane[1]) + (plane[2]*plane[2]));
-    for (int i=0; i<3; ++i ) normal[i] = plane[i]/divisor;
-
-    // Get unnormalized tangent of plane
-    for (int i=0; i<3; ++i ) tangent[i] = otherPoint[i] - planeOrigin[i];
-
-    // Normalize tangent
-    divisor = sqrt((tangent[0]*tangent[0]) + (tangent[1]*tangent[1]) + (tangent[2]*tangent[2]));
-    for (int i=0; i<3; ++i ) tangent[i] = tangent[i]/divisor;
-
-    // Get bitangent which is the cross product of the tangent and the normal
-    crossProduct(tangent, normal, bitangent);
-
-    // Get points from tangent and bitangent
-    float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
-    for (int i=0; i<3; ++i){
-        points[0][i]=planeOrigin[i]+overallMax*tangent[i]-overallMax*bitangent[i];
-        points[1][i]=planeOrigin[i]+overallMax*tangent[i]+overallMax*bitangent[i];
-        points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
-        points[3][i]=planeOrigin[i]-overallMax*tangent[i]-overallMax*bitangent[i];
-    }
-}
-
-void updateClipSquare(int planeIndex){
-    float plane[4], points[4][3];
-
-    // Test values for plane
-    for (int i=0; i<3; ++i) plane[i]=activeClipPlane[i];
-    plane[3] = -activeClipPlane[3];
-    plane[3] += 1;
-
-
-    getSquareOnPlane(plane, points);
-
-    int inc=0;
-    for (int i=0; i<4; ++i)
-        for (int j=0; j<3; ++j)
-            clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
-}
-
-Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
-    float plane[4], points[4][3];
-
-    // Clipping plane identification object already exists?
-    if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
-
-    // Test values for plane
-    for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
-    plane[3] += 1;
-
-    getSquareOnPlane(plane, points);
-
-    static SUMA_FreeSurfer_struct FS;
-
-    FS.N_Node = 4;
-    FS.N_FaceSet = 3;
-
-    FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
-    int inc=0;
-    for (int i=0; i<4; ++i)
-        for (int j=0; j<3; ++j)
-            FS.NodeList[inc++] = points[i][j];
-
-    FS.FaceSetList = (int *)malloc(FS.N_FaceSet*3*sizeof(int));
-    inc = 0;
-    FS.FaceSetList[inc++] = 0;
-    FS.FaceSetList[inc++] = 1;
-    FS.FaceSetList[inc++] = 2;
-    FS.FaceSetList[inc++] = 1;
-    FS.FaceSetList[inc++] = 2;
-    FS.FaceSetList[inc++] = 3;
-    FS.FaceSetList[inc++] = 3;
-    FS.FaceSetList[inc++] = 0;
-    FS.FaceSetList[inc++] = 1;
-
-    SUMA_SurfaceObject *SO = drawPlaneFromNodeAndFaceSetList(sv, FS, planeIndex);
-    if (!SO){
-        fprintf(stderr, "Error makeClipIdentificationPlane: Error drawing clipping plane rectangle.\n");
-        return False;
-    }
-    clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
-
-    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-
-    return TRUE;
-}
-
-void lightenActiveClipPlaneSquare(int activePlane){
-
-    fprintf(stderr, "lightenActiveClipPlaneSquare\n");
-    fprintf(stderr, "activePlane=%d\n", activePlane);
-
-    SUMA_SurfaceObject* SO = clipIdentificationPlane[activePlane];
-
-    switch(activePlane){
-        case 0: makeCommonNodesOfRectangleRed(SO); break;
-        case 1: makeCommonNodesOfRectangleGreen(SO); break;
-        case 2: makeCommonNodesOfRectangleBlue(SO); break;
-        case 3: makeCommonNodesOfRectangleCyan(SO); break;
-        case 4: makeCommonNodesOfRectangleMagenta(SO); break;
-        case 5: makeCommonNodesOfRectangleYellow(SO); break;
-    }
-
-        fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "SO->Overlays[0]->ColVec =                         ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
-        fprintf(stderr, "\n");
-}
-
- void darkenClipPlaneSquare(int planeIndex){
-    SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
-
-    fprintf(stderr, "darkenClipPlaneSquare\n");
-    fprintf(stderr, "SO->N_Overlays=%d\n", SO->N_Overlays);
-
-    switch(planeIndex){
-        case 0: makeCommonNodesOfRectangleDarkRed(SO); break;
-        case 1: makeCommonNodesOfRectangleDarkGreen(SO); break;
-        case 2: makeCommonNodesOfRectangleDarkBlue(SO); break;
-        case 3: makeCommonNodesOfRectangleDarkCyan(SO); break;
-        case 4: makeCommonNodesOfRectangleDarkMagenta(SO); break;
-        case 5: makeCommonNodesOfRectangleDarkYellow(SO); break;
-    }
-}
-
-void darkenInactiveClipPlaneSquares(int activePlane){
-
-    fprintf(stderr, "darkenInactiveClipPlaneSquares\n");
-    for (int p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
-        fprintf(stderr, "p=%d\n", p);
-        darkenClipPlaneSquare(p);
-    }
-}
-
-void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
-    float *planeB, float *planeC){
-    char chrTmp[64];
-    int isv;
-    SUMA_SurfaceViewer *sv;
-    Widget w;
-
-    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-
-    // Reset clipping plane parameters
-    for (int i=1; i<6; ++i){
-         active[i] = 0;
-         previouslyActive[i] = 0;
-         planeTheta[i] = planePhi[i] = planeA[i] =  planeB[i] = 0.0f;
-         if (clippingPlaneIDDisplayableObjects[i]) clippingPlaneIDDisplayableObjects[i]->Show = 0;
-         planeC[i] = 1.0f;
-    }
-    planeTheta[1] = 90.0f;
-    planeTheta[3] = 180.0f;
-    planeTheta[4] = 270.0f;
-    planeTheta[5] = 180.0f;
-
-    planePhi[2] = 90.0f;
-    planePhi[5] = 270.0f;
-    planeA[2] = 1.0f;
-    planeB[1] = -1.0f;
-
-    // Deactivate all clipping planes
-    for (int i=1; i<SUMAg_CF->N_ClipPlanes; ++i){
-        active[i] = 0;
-        sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[i], planeA[i], planeB[i],
-            planeC[i], 99999999);
-
-        SUMA_SetObjectClip(chrTmp, sv);
-    }
-
-    previousClipPlaneIdentificationMode=1;
-    // clippingPlaneMode=0;
-}
-
-void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
-    int activePlane, Bool toggleOffOn, Bool reset){
-    static float  planeTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
-    static float  planePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
-    static float  planeA[SUMA_MAX_N_CLIP_PLANES]={0.0,0.0,1.0,0.0,0.0,0.0};
-    static float  planeB[SUMA_MAX_N_CLIP_PLANES]={0.0,-1.0,0.0,0.0,0.0,0.0};
-    static float  planeC[SUMA_MAX_N_CLIP_PLANES]={1.0,1.0,1.0,1.0,1.0,1.0};
-    static float  planeD[SUMA_MAX_N_CLIP_PLANES]={0,0,0,50,50,50};
-    static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
-    static float objectMinMax[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
-    char chrTmp[64];
-    int isv;
-    SUMA_SurfaceViewer *sv;
-    Widget w;
-    static SUMA_Boolean    firstCall = 1;
-
-    if (reset){
-        fprintf(stderr, "Reset\n");
-        planeIndex = 0;
-        // These ranges determine
-        planeD[0] = -objectMinMax[2][0];
-        planeD[3] = objectMinMax[2][1];
-        planeD[1] = objectMinMax[1][1];
-        planeD[4] = -objectMinMax[1][0];
-        planeD[2] = -objectMinMax[0][0];
-        planeD[5] = objectMinMax[0][1];
-
-        resetClippingPlaneParameters(planeTheta, planePhi, planeA,
-            planeB, planeC);
-        activePlane = 0;
-    }
-
-    // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
-    //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
-    if (activePlane >=0 ){
-        if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
-        else  planeIndex = SUMAg_CF->N_ClipPlanes;
-    }
-
-    // Set up normal offset loactions s.t. clipping planes just enclose existing objects
-    if (firstCall)  {
-        // Get ranges of orthogonal axes
-        getObjectMinMaxForAxes(objectMinMax);
-
-        // These ranges determine
-        planeD[0] = -objectMinMax[2][0];
-        planeD[3] = objectMinMax[2][1];
-        planeD[1] = objectMinMax[1][1];
-        planeD[4] = -objectMinMax[1][0];
-        planeD[2] = -objectMinMax[0][0];
-        planeD[5] = objectMinMax[0][1];
-
-        // Store previous object axes ranges as gloabl for clipping plane functions
-        memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
-        firstCall = 0;
-    }
-
-    // Turn clipping plane on or off as required
-    if (toggleOffOn){
-        active[planeIndex] = !(active[planeIndex]);
-        clipIdentificationPlane[planeIndex]->Show = (clipPlaneIdentificationMode && active[planeIndex]);
-    }
-
-    if (flip){
-        planeA[planeIndex] = -planeA[planeIndex];
-        planeB[planeIndex] = -planeB[planeIndex];
-        planeC[planeIndex] = -planeC[planeIndex];
-        planeD[planeIndex] = -planeD[planeIndex];
-        planeTheta[planeIndex] = (int)(asin(-planeB[planeIndex])*rad2degrees+0.5);
-        planePhi[planeIndex] = (int)(acos(planeC[planeIndex]/cos(planeTheta[planeIndex]*degrees2rad))*rad2degrees+0.5);
-    } else {
-        // Update rotation and (normal) translation parameters
-        planeTheta[planeIndex] += deltaTheta;
-        planePhi[planeIndex] += deltaPhi;
-        planeD[planeIndex] += deltaPlaneD;
-
-        // Rotate around x-axis
-        planeB[planeIndex] = -sin(planeTheta[planeIndex]*degrees2rad);
-        planeC[planeIndex] = cos(planeTheta[planeIndex]*degrees2rad);
-
-        // Rotate arount y axis
-        float oldPlaneA = planeA[planeIndex];
-        planeA[planeIndex] = planeC[planeIndex]*sin(planePhi[planeIndex]*degrees2rad);
-        if (oldPlaneA*planeA[planeIndex] < 0.1) planeA[planeIndex] = -planeA[planeIndex];
-        planeC[planeIndex] = planeC[planeIndex]*cos(planePhi[planeIndex]*degrees2rad);
-    }
-
-    // Apply rotational, and translational, parameters to selected clipping plane
-    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-
-    // Record active clip plane as global variable
-    activeClipPlane[0] = planeA[planeIndex];
-    activeClipPlane[1] = planeB[planeIndex];
-    activeClipPlane[2] = planeC[planeIndex];
-    activeClipPlane[3] = planeD[planeIndex];
-
-    // Show user which clip plane is active
-    if (clipPlaneIdentificationMode){
-        if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
-
-#if 0   // Darken inactive clip planes
-        if (clipIdentificationPlane[planeIndex]) lightenActiveClipPlaneSquare(planeIndex);
-        darkenInactiveClipPlaneSquares(planeIndex);
-#endif
-
-        SUMA_postRedisplay(w, NULL, NULL);  // Refresh window.  (Not sure this is necessary or helps)
-    #if 0   // Turn off recoloration
-       // Get clip plane paramaters.  NBB. Simplify by assuming first plane
-        int offset = 4*planeIndex;
-        float  A = planeA[planeIndex];
-        float  B = planeB[planeIndex];
-        float  C = planeC[planeIndex];
-        float  D = planeD[planeIndex];
-
-        // Determine location of point source
-        // float location[3] = {D*A, D*B, D*C};
-        float location[3] = {-100*A, -100*B, -100*C};
-        // float location[3] = {0, 0, 0};
-
-        // Set up point source
-        // for (int i=0; i<4; ++i) sv->light1_position[i]=location[i];
-        for (int i=0; i<3; ++i) sv->light0_position[i]=location[i]*2;
-
-        #if 0
-        fprintf(stderr, "position=%f,%f,%f\n", sv->light0_position[0],
-            sv->light0_position[1], sv->light0_position[2]);
-        #endif
-
-        glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-        for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
-        // sv->lmodel_ambient[1]=0.2;
-        sv->lmodel_ambient[1]=0.2;
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
-
-        drawClipPlane(A, B, C, D, w, sv, isv);
-#endif
-    }
-
-    // Activate/update clip plane
-    sprintf(chrTmp, "%s: %.4f,%.4f,%.4f,%.4f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
-        planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
-
-    SUMA_SetObjectClip(chrTmp, sv);
-}
-
- void getPlanePtClosestToViewerOrigin(float *plane, float *point){
-    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
-    point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
-    k = D/(A^2 + B^2 + C^2)
-    */
-
-    float k = plane[3]/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
-
-    for (int i=0; i<3; ++i) point[i] = k*plane[i];
-}
-
- void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point){
-    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
-    point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
-    k = D/(A^2 + B^2 + C^2)
-    */
-
-    float k = (plane[3]-(plane[0]*viewerPt[0])-(plane[1]*viewerPt[1])-(plane[2]*viewerPt[2]))/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
-
-    for (int i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
-}
-
-void crossProduct(float input1[], float input2[], float output[]){
-    output[0] = (input1[1]*input2[2]) - (input1[2]*input2[1]);
-    output[1] = (input1[2]*input2[0]) - (input1[0]*input2[2]);
-    output[2] = (input1[0]*input2[1]) - (input1[1]*input2[0]);
-}
-
-void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax){
-/**/
-    objectMinMax[0] = 1000.0;
-    objectMinMax[1] = -1000.0;
-
-    for (int i=0; i<3; ++i){
-        axisMinMax[i][0] = 1000.0;
-        axisMinMax[i][1] = -1000.0;
-    }
-
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
-        SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        if (soOld->N_Node>0 && soOld->NodeDim==3){
-            objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
-            objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
-            for (int i=0; i<3; ++i){
-                axisMinMax[i][0] = MIN(axisMinMax[i][0], soOld->MaxDims[i]);
-                axisMinMax[i][1] = MAX(axisMinMax[i][1], soOld->MaxDims[i]);
-            }
-        }
-    }
-
-    // Account for possibility of no valid surface objects
-    if (objectMinMax[0] > objectMinMax[1]){
-        objectMinMax[0] = -100.0;
-        objectMinMax[1] = 100.0;
-        for (int i=0; i<3; ++i){
-            axisMinMax[i][0] = -100.0;
-            axisMinMax[i][1] = 100.0;
-        }
-    }
-}
-
-void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
-
-    float divisor=plane[0]+plane[1]+plane[2];
-    float D = plane[3] + ((plane[3]>0)? - 1 : 1);
-
-    float x=-plane[0]*D/divisor;
-    float y=-plane[1]*D/divisor;
-    float z=-plane[2]*D/divisor;
-
-    // First point
-    points[0][0]=x;
-    points[0][1]=y;
-    points[0][2]=z;
-
-    // Second point
-    x+=50;
-    y=D-x-z;
-    points[1][0]=x;
-    points[1][1]=y;
-    points[1][2]=z;
-
-    // Third point
-    x-=50;
-    y=-plane[1]*D/divisor+50;
-    z=D-x-y;
-    points[2][0]=x;
-    points[2][1]=y;
-    points[2][2]=z;
-
-    // Fourth point
-    y-=50;
-    z=-plane[2]*D/divisor+50;
-    x=D-z-y;
-    points[3][0]=x;
-    points[3][1]=y;
-    points[3][2]=z;
-
-    /* // Debug
-    for (int i=0; i<4; ++i){
-        fprintf(stderr, "point %d = (%f, %f, %f)\n", i,
-            points[i][0], points[i][1], points[i][2]);
-    }
-    */
-}
-
 /*!
    Return the code for the key that is specified in keyin
 */
@@ -1135,8 +13,6 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (keynameback) keynameback[0]='\0';
    keyname[0]='\0';
@@ -1353,8 +229,6 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -1401,8 +275,6 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1452,8 +324,6 @@ int SUMA_space_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
 
    SUMA_KEY_COMMON;
@@ -1557,8 +427,6 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    origState = sv->iState;
@@ -1654,8 +522,6 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1753,8 +619,6 @@ int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -1780,8 +644,6 @@ int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1828,8 +690,6 @@ int SUMA_F3_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -1863,8 +723,6 @@ int SUMA_F4_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1900,8 +758,6 @@ int SUMA_F5_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -1935,8 +791,6 @@ int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -1973,8 +827,6 @@ int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2024,8 +876,6 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -2073,8 +923,6 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -2116,8 +964,6 @@ int SUMA_F10_Key(SUMA_SurfaceViewer *sv,char *key, char *callmode, char *strgval
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2165,8 +1011,6 @@ int SUMA_F11_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2220,8 +1064,6 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2331,8 +1173,6 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -2387,8 +1227,6 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2495,8 +1333,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -2865,8 +1701,6 @@ int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    if (!(ado = SUMA_SV_Focus_ADO(sv))) {
@@ -2937,8 +1771,6 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3065,8 +1897,6 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
    if (strgval) {
@@ -3255,8 +2085,6 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3391,8 +2219,6 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3465,8 +2291,6 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3542,8 +2366,6 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3605,8 +2427,6 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -3873,8 +2693,6 @@ int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3934,8 +2752,6 @@ int SUMA_U_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3987,8 +2803,6 @@ int SUMA_Add_to_SaveList(DList **SLp, char *type,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!SLp || !type || !identifier || !prefix) SUMA_RETURN(0);
    SL = *SLp;
@@ -4044,8 +2858,6 @@ void SUMA_Show_SaveList(DList *SL, char *head)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!out) out = stderr;
    if (head) { fprintf(out, "%s", head); }
    if (!SL) { fprintf(out,"NULL SaveList\n"); SUMA_RETURNe; }
@@ -4073,8 +2885,6 @@ int SUMA_SaveSaveListElement(SUMA_SAVE_LIST_EL *sel)
    char *oname=NULL, *idtype=NULL;
    int nid=0;
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sel || !sel->identifier || !sel->prefix || !sel->type) SUMA_RETURN(0);
 
@@ -4144,8 +2954,6 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_KEY_COMMON;
 
@@ -4238,8 +3046,6 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -4249,7 +3055,7 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          if (sv->FOV[sv->iState] < FOV_MIN) {
             SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN;
          }
-
+         /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
          /* Now update the zoom compensation variable */
          if (sv->ZoomCompensate) {
             sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_auto_fov(sv);
@@ -4305,8 +3111,6 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    SUMA_KEY_SWITCH;
@@ -4314,11 +3118,8 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
-      // PDL: Rotate clipping plane if available and ctrl key down
       case XK_Up:
-            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(tiltInc, 0, 0, 0, -1, 0, 0);
-            } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3];
                /* Posterior view ctrl+shift+up*/
                /* From top view, rotate by 90 degrees about x axis */
@@ -4403,6 +3204,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                sv->GVS[sv->StdView].spinDeltaY =
                                     2.0*ArrowDeltaRot*sv->X->aHEIGHT;
                SUMA_postRedisplay(w, NULL, NULL);
+
             }
 
             break;
@@ -4430,8 +3232,6 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    SUMA_KEY_SWITCH;
@@ -4440,11 +3240,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    /* do the work */
    switch (k) {
       case XK_Down:
-            // PDL: Rotate clipping plane if available and ctrl key down
-      case XK_Up:
-            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(-tiltInc, 0, 0, 0, -1, 0, 0);
-            } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4], dQ[4];
                /* Posterior view ctrl+shift+down*/
                /* From top view, first rotate by 90 degrees about x axis */
@@ -4552,8 +3348,6 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    SUMA_KEY_SWITCH;
@@ -4562,10 +3356,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    /* do the work */
    switch (k) {
       case XK_Left:
-            // PDL: Rotate clipping plane if available and ctrl key down
-            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, -tiltInc, 0, 0, -1, 0, 0);
-            } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
                a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
@@ -4665,8 +3456,6 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_KEY_COMMON;
 
    SUMA_KEY_SWITCH;
@@ -4675,10 +3464,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    /* do the work */
    switch (k) {
       case XK_Right:
-            // PDL: Rotate clipping plane if available and ctrl key down
-            if (clippingPlaneMode && SUMA_ALT_KEY(key) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, tiltInc, 0, 0, -1, 0, 0);
-            } else if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
                float a[3], cQ[4];
                /* rotate about Z axis CCW  */
                a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
@@ -4821,8 +3607,6 @@ void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre)
    FILE *out = stderr;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SS = SUMA_StringAppend(NULL, NULL);
 
@@ -5000,8 +3784,6 @@ SUMA_EVENT *SUMA_RecordEvent( XEvent *event,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!event) {
       SUMA_S_Err("Null event");
@@ -5238,7 +4020,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
-   static Boolean activeClipPlanes = True;
+
    SUMA_ENTRY;
 
    /* get the callData pointer */
@@ -5309,12 +4091,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
   switch (Kev.type) { /* switch event type */
   case KeyPress:
-  {
       if (xls < 0) {
          /* avoid double call in case SUMAg_CF->Echo_KeyPress called already */
          xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
       }
-      // fprintf(stderr, "***** keysym = %ld\n", keysym);
       /* XK_* are found in keysymdef.h */
       switch (keysym) { /* keysym */
          case XK_bracketleft: /* The left bracket */
@@ -5326,25 +4106,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_bracketright: /* The right bracket */
             if (!SUMA_bracketright_Key(sv, "]", "interactive")) {
                SUMA_S_Err("Failed in key func.");
-            }
-            break;
-
-         case XK_slash:
-            if (SUMA_ALTHELL){
-                clippingPlaneMode = !clippingPlaneMode;
-                if (clippingPlaneMode){
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-                    }
-                } else {
-                    for (int i=0; i<6; ++i){
-                        previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
-                        active[i] = 1;                      // Turn clipping plane on so it will be toggled off
-                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-                    }
-                }
-                activeClipPlanes = activeClippingPlanes();
             }
             break;
 
@@ -5480,125 +4241,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_C:
+            if (SUMAg_CF->Dev && (SUMA_ALTHELL)){
+               SUMAg_CF->X->ClipObj_prmpt =
+                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
+                              "Enter object clip plane parameters (a,b,c,d)",
+                              "A: 0,0,1,0",
+                              sv->X->TOPLEVEL, YUP,
+                              SUMA_APPLY_BUTTON,
+                              SUMA_SetObjectClip, (void *)sv,
+                              NULL, NULL,
+                              NULL, NULL,
+                              NULL, NULL,
+                              SUMAg_CF->X->ClipObj_prmpt);
 
-            if ((SUMA_ALTHELL)){
-
-                if (clippingPlaneMode){
-
-                    if (resetClippingPlanes){
-                        SUMAg_CF->N_ClipPlanes = 1;
-                        resetClippingPlanes=0;
-                    }
-                    // This sets up a new clip plane (independent of the dialog box.  If called with
-                    //  the dialog box, two clipping planes result.)  The new plane is automatically
-                    //  assigned a label which is its 1-based index
-                    if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
-
-                        for (int planeIndex=0; planeIndex<6; ++planeIndex){
-                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        }
-                    } else if (SUMAg_CF->N_ClipPlanes>=6){
-                        fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
-                    } else {
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                                exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-
-                        // Quick fic for qrongly placed new planes when incremented
-                        active[SUMAg_CF->N_ClipPlanes-1] = 0;
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1, 0);
-                    }
-                    activeClipPlanes = activeClippingPlanes();
-                }
-            } else if ((Kev.state & ControlMask)){
-                clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
-
-                //Update title bar
-                sv->GVS[sv->StdView].ClippingPlane =
-                                     !sv->GVS[sv->StdView].ClippingPlane;
-                if (sv->GVS[sv->StdView].ClippingPlane)
-                    sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-
-               if (clippingPlaneMode){
-                    if (resetClippingPlanes){
-                        SUMAg_CF->N_ClipPlanes = 1;
-                        resetClippingPlanes=0;
-                    }
-                    // Make sure there is at least one clipping plane with its colored square
-                    if (SUMAg_CF->N_ClipPlanes < 1){
-                        clippingPlaneMode = 1;
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                        active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                    } else if (!activeClipPlanes){  // Toggle plane 1 on
-                        clipPlaneTransform(0,0,0,0,0, 1, 0);
-                        previouslyActive[0] = active[0];
-                    } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
-
-                    // Turn on clipping planes and their colored squares
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-
-                        // Display clip plane identification mode if required
-                        if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
-                    }
-                    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);    // Refresh
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-
-                    // Squares only displayed for active clipping planes
-                    for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
-                        clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
-                } else {
-                    previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
-                    for (int i=0; i<6; ++i){
-                        previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
-                        clipPlaneIdentificationMode = 0;
-
-                        // Turn off display of clip plane identification squares
-                        for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
-                            clipIdentificationPlane[planeIndex]->Show = 0;
-                        /*
-                        active[i] = 1;                      // Turn clipping plane on so it will be toggled off
-                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-                        */
-                    }
-                }
-
-                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-            }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-
-                // Toggle clip plane identification mode
-                clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
-
-                for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
-                    if (clipPlaneIdentificationMode){
-                        if (active[planeIndex]) clipIdentificationPlane[planeIndex]->Show = 1;
-                    } else {
-                        clipIdentificationPlane[planeIndex]->Show = 0;
-                    }
-                }
-
-                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-            }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
-
+               SUMAg_CF->X->ClipObj_prmpt =
+                  SUMA_CreatePromptDialog(
+                     "Enter object clip plane parameters (a,b,c,d)",
+                     SUMAg_CF->X->ClipObj_prmpt);
+            } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
                SUMAg_CF->X->Clip_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
                      "Enter screen clip plane parameters (a,b,c,d)",
@@ -5615,7 +4275,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_CreatePromptDialog(
                      "Enter screen clip plane parameters (a,b,c,d)",
                      SUMAg_CF->X->Clip_prmpt);
-           }
+            }
             break;
          case XK_c:
             {
@@ -5739,18 +4399,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_f:
-            if (clippingPlaneMode && (Kev.state & ControlMask) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0,0,0,1,-1, 0, 0);  // PDL: Flip clipping plane
-            } else {
-                /* Show/hide the foreground */
-                if (!list) list = SUMA_CreateList();
-                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground,
-                                                    SES_Suma, sv);
-                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            /* Show/hide the foreground */
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground,
+                                                SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
-                if (!SUMA_Engine (&list)) {
-                   fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-                }
+            if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
             }
             break;
 
@@ -5879,41 +4535,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
              break;
 
          case XK_n:
-               if (clippingPlaneMode){
-                if (resetClippingPlanes){
-                    SUMAg_CF->N_ClipPlanes = 1;
-                    resetClippingPlanes = 0;
-                }
-
-                // This sets up a new clip plane (independent of the dialog box.  If called with
-                //  the dialog box, two clipping planes result.)  The new plane is automatically
-                //  assigned a label which is its 1-based index
-                if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
-
-                    for (int planeIndex=0; planeIndex<6; ++planeIndex){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                    }
-                } else if (SUMAg_CF->N_ClipPlanes>=6){
-                    fprintf(stderr, "Clip plane quota of 6 has been reached.\n");
-                } else {
-                    sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                    if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                        fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                        exit(1);
-                    }
-
-                    // For some reason, this appears necessary to place planes, or their squares, in the right position
-                    //  if thet are planes 4-6
-                    if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-
-                    // Quick fix for qrongly placed new planes when incremented
-                    active[SUMAg_CF->N_ClipPlanes-1] = 0;
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 1, 0);
-                }
-                activeClipPlanes = activeClippingPlanes();
-            } else if (Kev.state & ControlMask){
+               if (Kev.state & ControlMask){
                   SUMA_LH("Going to N_Key");
                   if (!SUMA_N_Key(sv, "ctrl+n", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
@@ -6003,9 +4625,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_S:
-            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -scrollInc, 0,-1, 0, 0); // Scroll outward
-            } else if (SUMAg_CF->Dev) {
+            if (SUMAg_CF->Dev) {
                int *do_id, n_do_id;
                do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv,
                                        SO_type, &n_do_id);
@@ -6018,29 +4638,25 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   SUMA_free(do_id);
                }
+               break;
             }
-            break;
 
          case XK_s:
-         fprintf(stderr, "XK_s\n");
-            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-            fprintf(stderr, "clipPlaneTransform\n");
-                clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward
-               } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){    // alt-ctrl-s
-                   if (!list) list = SUMA_CreateList();
-                   ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
-                   if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                              SEF_ip, sv->X->TOPLEVEL,
-                                              SES_Suma, (void *)sv, NOPE,
-                                              SEI_Head, NULL)) {
-                      fprintf (SUMA_STDERR,
-                               "Error %s: Failed to register command.\n", FuncName);
-                   }
-                   if (!SUMA_Engine (&list)) {
-                         fprintf( SUMA_STDERR,
-                                  "Error %s: SUMA_Engine call failed.\n",
-                                  FuncName);
-                   }
+            if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
+               if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, sv->X->TOPLEVEL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Failed to register command.\n", FuncName);
+               }
+               if (!SUMA_Engine (&list)) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: SUMA_Engine call failed.\n",
+                              FuncName);
+               }
 
             } else if (SUMA_ALTHELL){
                /* swap buttons 1 and 3 */
@@ -6116,37 +4732,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_w:
-            if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
-                // Save clipping planes to file
-               char stmp[100];
-               char cwd[PATH_MAX], outputFileName[PATH_MAX+200];
-               if ((getcwd(cwd, sizeof(cwd)))) {
-                   perror("Error getting current working directory");
-                   SUMA_RETURN(0);
-               }
-                sprintf(outputFileName, "%s/%s", cwd, "clippingPlaneFileName");
-                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
-                sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialogStruct(
-                                     SUMA_OK_APPLY_CLEAR_CANCEL,
-                                "Please select output filename:\n"
-                                "(default is shown)):",
-                                     "VSG",
-                                     sv->X->TOPLEVEL, YUP,
-                                     SUMA_APPLY_BUTTON,
-                                     SUMA_SV_SetRenderOrder, (void *)sv,
-                                     NULL, NULL,
-                                     NULL, NULL,
-                                     SUMA_VerifyRenderOrder, NULL,
-                                     sv->X->SetRenderOrder_prmpt);
-
-                sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialog(
-                                  sv->X->Title, sv->X->SetRenderOrder_prmpt);
-                fprintf(stderr, "SUMAg_CF->X->N_ForeSmooth_prmpt = %p\n",
-                    SUMAg_CF->X->N_ForeSmooth_prmpt);
-                // TODO: Add code to write clipping plane info. to file
-            } else if (!SUMA_W_Key(sv, "w", "interactive")) {
+            if (!SUMA_W_Key(sv, "w", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
+            break;
+
             break;
 
          case XK_Z:
@@ -6167,205 +4757,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             SUMA_S_Notev("!!!!!!!!!!!!!!%d!!!!!!!\n", sv->Do_3Drender);
             break;
          #endif
-
-         // alt-<number> keys, where number in [1,6] select the clipping plane by index
-         case XK_1:
-            if (clippingPlaneMode){
-                if (SUMA_ALTHELL){
-                    clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-                } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
-                    clipPlaneTransform(0,0,0,0,0, 1, 0);
-                    previouslyActive[0] = active[0];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_2:
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<2){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[1] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){    // Select clipping plane 2
-                    clipPlaneTransform(0,0,0,0,1, 0, 0);
-                } else {        // Toggle plane 2 off/on
-                    clipPlaneTransform(0,0,0,0,1, 1, 0);
-                    previouslyActive[1] = active[1];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_3:
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<3){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                        if (i != 2){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[2] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){    // Select clipping plane 3
-                    clipPlaneTransform(0,0,0,0,2, 0, 0);
-                } else {        // Toggle plane 3 off/on
-                    clipPlaneTransform(0,0,0,0,2, 1, 0);
-                    previouslyActive[2] = active[2];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_4:
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 3){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[3] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){
-                    clipPlaneTransform(0,0,0,0,3, 0, 0);
-                } else {        // Toggle plane 4 off/on
-                    clipPlaneTransform(0,0,0,0,3, 1, 0);
-                    previouslyActive[3] = active[3];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_5:
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<5){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 4){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[4] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){    // Select clipping plane 5
-                    clipPlaneTransform(0,0,0,0,4, 0, 0);
-                } else {        // Toggle plane 4 off/on
-                    clipPlaneTransform(0,0,0,0,4, 1, 0);
-                    previouslyActive[4] = active[4];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_6:
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<6){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 5){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[5] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){    // Select clipping plane 6
-                    clipPlaneTransform(0,0,0,0,5, 0, 0);
-                } else {        // Toggle plane 6 off/on
-                    clipPlaneTransform(0,0,0,0,5, 1, 0);
-                    previouslyActive[5] = active[5];
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-         case XK_7:
-            if (clippingPlaneMode){
-                if (Kev.state & ControlMask){
-                    // Place-holder for ctrl-7
-                } else {
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        // Toggle all active clippping planes
-                        if (active[i]){
-                            previouslyActive[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1, 0);
-                    }
-                    activeClipPlanes = activeClippingPlanes();
-                }
-            }
-            break;
          case XK_8:
-         #if 0
-            if (clippingPlaneMode){
-                if (Kev.state & ControlMask){   // Turn all planes off
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        previouslyActive[i] = active[i];
-                        active[i] = 1;          // Turn plane on so it will be toggled off
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);
-                    }
-                } else {                        // Turn all planes on
-                    if (SUMAg_CF->N_ClipPlanes<6){  // Make sure all planes are available
-                        for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
-                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                                exit(1);
-                            }
-
-                            // For some reason, this appears necessary to place planes, or their squares, in the right position
-                            //  if thet are planes 4-6
-                            if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        }
-                    }
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        previouslyActive[i] = active[i];
-                        active[i] = 0;          // Turn plane off so it will be toggled on
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);
-                    }
-                }
-            } else
-            #endif
             {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
@@ -6384,23 +4776,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMAg_CF->X->N_ForeSmooth_prmpt =
                      SUMA_CreatePromptDialog("Foreground smoothing iterations",
                                              SUMAg_CF->X->N_ForeSmooth_prmpt);
-            }
-            break;
-
-         case XK_0: // Zero key
-            if (clippingPlaneMode){
-                    clipPlaneTransform(0,0,0,0,0, 0, 1);
-                    resetClippingPlanes = 1;
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        active[i] = (i>0);
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);
-                    }
-                    // SUMAg_CF->N_ClipPlanes = 1;
-                    /*
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                    */
-                    // SUMAg_CF->N_ClipPlanes = 0;
-                    // clippingPlaneMode = False;
             }
             break;
 
@@ -6683,38 +5058,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
-        case XK_plus:
-            if (clippingPlaneMode && scrollInc < 999999){
-                scrollInc *= 2.0;
-                tiltInc *= 2.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            break;
-
-        case XK_minus:
-            if (clippingPlaneMode){
-                scrollInc /= 2.0;
-                tiltInc /= 2.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            break;
-
-        case XK_equal:
-            if (clippingPlaneMode){
-                scrollInc = 1.0;
-                tiltInc = 1.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            break;
-
          case XK_Left:   /*KEY_LEFT:*/
-         {
-            if (clippingPlaneMode && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, -tiltInc, 0, 0, -1, 0, 0);
-            } else if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
+            /*fprintf(stdout,"Left Key\n");*/
+            if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Left_Key(sv, "ctrl+shift+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -6730,18 +5076,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }else if (SUMA_ALTHELL) {
-               if ((Kev.state & ControlMask)) {
-                   if (!SUMA_Left_Key(sv, "alt+ctrl+left", "interactive")) {
-                      SUMA_S_Err("Error in key func.");
-                      break;
-                   }
-               } else if ((Kev.state & ShiftMask)) {
-                   if (!SUMA_Left_Key(sv, "alt+shift+left", "interactive")) {
-                      SUMA_S_Err("Error in key func.");
-                      break;
-                   }
-               }
-               else if (!SUMA_Left_Key(sv, "alt+left", "interactive")) {
+               if (!SUMA_Left_Key(sv, "alt+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
                }
@@ -6751,7 +5086,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
             }
-        }
+
             break;
 
          case XK_Right:   /*KEY_RIGHT: */
@@ -6786,7 +5121,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_Down:   /*KEY_DOWN*/
             /*printf("Down Key\n");*/
-           if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
+            if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Down_Key(sv, "ctrl+shift+down", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;
@@ -6848,21 +5183,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
       } /* keysym */
-  } // KeyPress
    break;
-  case KeyRelease:
-  {
-    switch (keysym) { /* keysym */
-        case XK_Control_L:
-        case XK_Control_R:
-            break;
-    }   // keysym
-  }
-  break;
 
    case ButtonPress:
       SUMAg_CF->X->ButtonDown=1;
-      pButton = Bev.button; // PDL: Has value 4 if scrollwheel scrolled forward and value 5 if scrollwheel scrolled back
+      pButton = Bev.button;
       SUMA_LHv("In ButtonPress Button %d, %d @ x,y=%d,%d\n",
                               pButton, SUMAg_CF->X->ButtonDown, Bev.x, Bev.y);
       if (  SUMAg_CF->SwapButtons_1_3 ||
@@ -6940,200 +5265,188 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
-            // PDL: Ctrl-scroll forward
-            if (clippingPlaneMode && pButton==4 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, -scrollInc, 0,-1, 0, 0);
+            if (pButton==6 || Bev.state & ShiftMask) {
+               SUMA_ALL_DO *ado=NULL;
+               char variant[2];
+               #if 0
+               int ii;
+               SUMA_VolumeObject *VO=NULL;
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isVO(SUMAg_DOv[ii])) {
+                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                     if (VO->SelectedCutPlane >= 0) {
+                        SUMA_LHv("Moving cut plane %d\n",
+                                       VO->SelectedCutPlane);
+                        if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, 1.0)) {
+                           SUMA_SLP_Err("Bad");
+                        }
+                     }
+		     /* JB: only allow cutplane from 1st volume object,
+                  otherwise remove 'break' */
+		     break;
+                  }
+               }
+               SUMA_postRedisplay(w, NULL, NULL);
+               #else
+               if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                  switch (ado->do_type) {
+                     case VO_type: {
+                        float incr = 1.0;
+                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                        if (VSaux && VSaux->PR) {
+                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
+                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                          0, variant, NULL)   >=0 ){
+                              SUMA_set_slice(ado, variant, &incr,
+                                             "increment", 0);
+                           }
+                        }
+                        SUMA_postRedisplay(w, NULL, NULL);
+                        break; }
+                     default:
+                        SUMA_LH("Nothing here for types %s\n",
+                              ADO_TNAME(ado));
+                        break;
+                  }
+               }
+               #endif
+            } else if (pButton==6 || Bev.state & ControlMask) {
+               SUMA_ALL_DO *ado=NULL;
+               SUMA_X_SurfCont *SurfCont;
+               if (MASK_MANIP_MODE(sv)) {
+                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                  if (ado && ado->do_type == MASK_type) {
+                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                     float fv[3];
+                     int irow=-1;
+                     {
+                        fv[0] = mdo->hdim[0]-(0.2*mdo->init_hdim[0]);
+                        fv[1] = mdo->hdim[1]-(0.2*mdo->init_hdim[1]);
+                        fv[2] = mdo->hdim[2]-(0.2*mdo->init_hdim[2]);
+                        if (fv[0] < 0 || fv[1] < 0 || fv[2] < 0) {
+                           SUMA_BEEP;
+                           break;
+                        }
+                        SUMA_MDO_New_Dim(mdo, fv);
+                     }
+                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
+                                                 ADO_ID(ado));
+                        if (irow >= 0) {
+                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                        }
+                     }
+                     SUMA_NEW_MASKSTATE();
+                     /* enough for now */
+                     goto REDISP;
+                  }
+               } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
+                           ado->do_type == GRAPH_LINK_type &&
+                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                  SUMA_OVERLAYS *Sover = NULL;
+                  SUMA_LH("Going forward one sub-brick");
+                  Sover = SUMA_ADO_CurColPlane(ado);
+                  SUMA_SwitchColPlaneIntensity( ado, Sover,
+                                                SUMA_FORWARD_ONE_SUBBRICK, 1);
+                  /* redisplay done in function above ... */
+                  SUMA_RETURNe;
+               }
             } else {
-
-                if (pButton==6 || Bev.state & ShiftMask) {
-                   SUMA_ALL_DO *ado=NULL;
-                   char variant[2];
-                   #if 0
-                   int ii;
-                   SUMA_VolumeObject *VO=NULL;
-                   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-                      if (SUMA_isVO(SUMAg_DOv[ii])) {
-                         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
-                         if (VO->SelectedCutPlane >= 0) {
-                            SUMA_LHv("Moving cut plane %d\n",
-                                           VO->SelectedCutPlane);
-                            if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, 1.0)) {
-                               SUMA_SLP_Err("Bad");
-                            }
-                         }
-                 /* JB: only allow cutplane from 1st volume object,
-                      otherwise remove 'break' */
-                 break;
-                      }
-                   }
-                   SUMA_postRedisplay(w, NULL, NULL);
-                   #else
-                   if ((ado = SUMA_SV_Focus_ADO(sv))) {
-                      switch (ado->do_type) {
-                         case VO_type: {
-                            float incr = 1.0;
-                            SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
-                            SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-                            if (VSaux && VSaux->PR) {
-                               if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
-                                              VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
-                                              0, variant, NULL)   >=0 ){
-                                  SUMA_set_slice(ado, variant, &incr,
-                                                 "increment", 0);
-                               }
-                            }
-                            SUMA_postRedisplay(w, NULL, NULL);
-                            break; }
-                         default:
-                            SUMA_LH("Nothing here for types %s\n",
-                                  ADO_TNAME(ado));
-                            break;
-                      }
-                   }
-                   #endif
-                } else if (pButton==6 || Bev.state & ControlMask) {
-                   SUMA_ALL_DO *ado=NULL;
-                   SUMA_X_SurfCont *SurfCont;
-                   if (MASK_MANIP_MODE(sv)) {
-                      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
-                      if (ado && ado->do_type == MASK_type) {
-                         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
-                         float fv[3];
-                         int irow=-1;
-                         {
-                            fv[0] = mdo->hdim[0]-(0.2*mdo->init_hdim[0]);
-                            fv[1] = mdo->hdim[1]-(0.2*mdo->init_hdim[1]);
-                            fv[2] = mdo->hdim[2]-(0.2*mdo->init_hdim[2]);
-                            if (fv[0] < 0 || fv[1] < 0 || fv[2] < 0) {
-                               SUMA_BEEP;
-                               break;
-                            }
-                            SUMA_MDO_New_Dim(mdo, fv);
-                         }
-                         if ((SurfCont=SUMA_ADO_Cont(ado))) {
-                            irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
-                                                     ADO_ID(ado));
-                            if (irow >= 0) {
-                               SUMA_InitMasksTable_row(SurfCont,mdo, irow);
-                            }
-                         }
-                         SUMA_NEW_MASKSTATE();
-                         /* enough for now */
-                         goto REDISP;
-                      }
-                   } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
-                               ado->do_type == GRAPH_LINK_type &&
-                               !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
-                      SUMA_OVERLAYS *Sover = NULL;
-                      SUMA_LH("Going forward one sub-brick");
-                      Sover = SUMA_ADO_CurColPlane(ado);
-                      SUMA_SwitchColPlaneIntensity( ado, Sover,
-                                                    SUMA_FORWARD_ONE_SUBBRICK, 1);
-                      /* redisplay done in function above ... */
-                      SUMA_RETURNe;
-                   }
-                } else {
-                   if (!SUMA_Z_Key(sv, "z", "interactive")) {
-                      SUMA_S_Err("Failed in key func.");
-                   }
-                }
+               if (!SUMA_Z_Key(sv, "z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
-            // PDL: Ctrl-scroll backward
-            if (clippingPlaneMode && pButton==5 && SUMA_ALTHELL && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);
-           } else {
-
-                if (pButton==7 || Bev.state & ShiftMask) {
-                   SUMA_ALL_DO *ado=NULL;
-                   char variant[2];
-                   #if 0
-                   int ii;
-                   SUMA_VolumeObject *VO=NULL;
-                   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-                      if (SUMA_isVO(SUMAg_DOv[ii])) {
-                         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
-                         if (VO->SelectedCutPlane >= 0) {
-                            SUMA_LHv("Moving cut plane %d\n",
-                                           VO->SelectedCutPlane);
-                            if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, -1.0)) {
-                               SUMA_SLP_Err("Bad");
-                            }
-                         }
-                 /* JB: only allow cutplane from 1st volume object,
-                      otherwise remove 'break' */
-                 break;
-                      }
-                   }
-                   SUMA_postRedisplay(w, NULL, NULL);
-                   #else
-                   if ((ado = SUMA_SV_Focus_ADO(sv))) {
-                      switch (ado->do_type) {
-                         case VO_type: {
-                            float incr = -1.0;
-                            SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
-                            SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
-                            if (VSaux && VSaux->PR) {
-                               if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
-                                              VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
-                                              0, variant, NULL)   >=0 ){
-                                  SUMA_set_slice(ado, variant, &incr,
-                                                 "increment", 0);
-                               }
-                            }
-                            SUMA_postRedisplay(w, NULL, NULL);
-                            break; }
-                         default:
-                            SUMA_LH("Nothing here for types %s\n",
-                                  ADO_TNAME(ado));
-                            break;
-                      }
-                   }
-                   #endif
-                } else if (pButton==7 || Bev.state & ControlMask) {
-                   SUMA_ALL_DO *ado=NULL;
-                   SUMA_X_SurfCont *SurfCont;
-                   if (MASK_MANIP_MODE(sv)) {
-                      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
-                      if (ado && ado->do_type == MASK_type) {
-                         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
-                         float fv[3];
-                         int irow=-1;
-                         {
-                            fv[0] = mdo->hdim[0]+(0.2*mdo->init_hdim[0]);
-                            fv[1] = mdo->hdim[1]+(0.2*mdo->init_hdim[1]);
-                            fv[2] = mdo->hdim[2]+(0.2*mdo->init_hdim[2]);
-                            SUMA_MDO_New_Dim(mdo, fv);
-                         }
-                         if ((SurfCont=SUMA_ADO_Cont(ado))) {
-                            irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
-                                                     ADO_ID(ado));
-                            if (irow >= 0) {
-                               SUMA_InitMasksTable_row(SurfCont,mdo, irow);
-                            }
-                         }
-                         SUMA_NEW_MASKSTATE();
-                         /* enough for now */
-                         goto REDISP;
-                      }
-                   } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
-                               ado->do_type == GRAPH_LINK_type &&
-                               !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
-                      SUMA_OVERLAYS *Sover = NULL;
-                      SUMA_LH("Switching overlay back one");
-                      Sover = SUMA_ADO_CurColPlane(ado);
-                      SUMA_SwitchColPlaneIntensity( ado, Sover,
-                                                    SUMA_BACK_ONE_SUBBRICK, 1);
-                      /* redisplay done in function above ... */
-                      SUMA_RETURNe;
-                   }
-                } else {
-                   if (!SUMA_Z_Key(sv, "Z", "interactive")) {
-                      SUMA_S_Err("Failed in key func.");
-                   }
-                }
+            if (pButton==7 || Bev.state & ShiftMask) {
+               SUMA_ALL_DO *ado=NULL;
+               char variant[2];
+               #if 0
+               int ii;
+               SUMA_VolumeObject *VO=NULL;
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isVO(SUMAg_DOv[ii])) {
+                     VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+                     if (VO->SelectedCutPlane >= 0) {
+                        SUMA_LHv("Moving cut plane %d\n",
+                                       VO->SelectedCutPlane);
+                        if (!SUMA_MoveCutplane(VO, VO->SelectedCutPlane, -1.0)) {
+                           SUMA_SLP_Err("Bad");
+                        }
+                     }
+		     /* JB: only allow cutplane from 1st volume object,
+                  otherwise remove 'break' */
+		     break;
+                  }
+               }
+               SUMA_postRedisplay(w, NULL, NULL);
+               #else
+               if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                  switch (ado->do_type) {
+                     case VO_type: {
+                        float incr = -1.0;
+                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                        if (VSaux && VSaux->PR) {
+                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
+                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                          0, variant, NULL)   >=0 ){
+                              SUMA_set_slice(ado, variant, &incr,
+                                             "increment", 0);
+                           }
+                        }
+                        SUMA_postRedisplay(w, NULL, NULL);
+                        break; }
+                     default:
+                        SUMA_LH("Nothing here for types %s\n",
+                              ADO_TNAME(ado));
+                        break;
+                  }
+               }
+               #endif
+            } else if (pButton==7 || Bev.state & ControlMask) {
+               SUMA_ALL_DO *ado=NULL;
+               SUMA_X_SurfCont *SurfCont;
+               if (MASK_MANIP_MODE(sv)) {
+                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                  if (ado && ado->do_type == MASK_type) {
+                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                     float fv[3];
+                     int irow=-1;
+                     {
+                        fv[0] = mdo->hdim[0]+(0.2*mdo->init_hdim[0]);
+                        fv[1] = mdo->hdim[1]+(0.2*mdo->init_hdim[1]);
+                        fv[2] = mdo->hdim[2]+(0.2*mdo->init_hdim[2]);
+                        SUMA_MDO_New_Dim(mdo, fv);
+                     }
+                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable,
+                                                 ADO_ID(ado));
+                        if (irow >= 0) {
+                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                        }
+                     }
+                     SUMA_NEW_MASKSTATE();
+                     /* enough for now */
+                     goto REDISP;
+                  }
+               } else if ((ado = SUMA_SV_Focus_ADO(sv)) &&
+                           ado->do_type == GRAPH_LINK_type &&
+                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                  SUMA_OVERLAYS *Sover = NULL;
+                  SUMA_LH("Switching overlay back one");
+                  Sover = SUMA_ADO_CurColPlane(ado);
+                  SUMA_SwitchColPlaneIntensity( ado, Sover,
+                                                SUMA_BACK_ONE_SUBBRICK, 1);
+                  /* redisplay done in function above ... */
+                  SUMA_RETURNe;
+               }
+            } else {
+               if (!SUMA_Z_Key(sv, "Z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             }
             break;
 
@@ -7271,7 +5584,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("No mask hit, and no selection needs ignoring");
                }
 
-              if (!DoubleClick) {
+               if (!DoubleClick) {
                   /* you do not want to waist time doing double calculations if
                      the user clicks twice by mistake */
                   /* make sure no viewer, other than the one clicked in is in
@@ -7290,7 +5603,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }
 
-                 #if 0
+                  #if 0
                   /* Try this if you are having OpenGLStateReset problems at
                      node selection time. It is inefficient, but helps point
                      to the problem.
@@ -7309,7 +5622,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
 
 
-                 if (1) {
+                  if (1) {
                      hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
                      if ( (Kev.state & ShiftMask) &&
                          !(Kev.state & ControlMask) &&
@@ -7361,16 +5674,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                   SUMA_LH("Checking on registered surfaces");
                   SwasHit = 0;
-
                   ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
-
                   if (ii == 0) { /* no surfaces, break */
                      SUMA_LH("No registrants");
-
                   } else {
                      /* have surfaces, find hits */
-                     hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv, 0, NULL);
-
+                     hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv,
+                                                             0, NULL);
                      if (hit < 0) {
                        SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
                      } else if (hit > 0) SwasHit = 1;
@@ -7397,13 +5707,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                ASSESS:
                SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
-               SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
-               if (!(SUMA_ADO_Saux(ado))){
-                    SUMA_S_Err("NULL Saux!!!, don't let that happen");
-                    SUMA_RETURNe;
-               }
                if (dlist_size(sv->SelAdo)) {
-                 if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
+                  if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
                      SUMA_S_Err("Failed to process selected ados");
                      goto OUT;
                   }
@@ -8015,9 +6320,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
       break;
-  }
-
-  /* switch event type */
+  }/* switch event type */
 
    SUMA_RETURNe;
 }
@@ -8036,8 +6339,6 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    SUMA_SurfaceViewer *sv;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* the widget is passed as client data */
    w = (Widget)clientData;
@@ -8108,9 +6409,7 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
-  if (!InViewer && !OnDisk) {
+   if (!InViewer && !OnDisk) {
       SUMA_S_Err("Nothing to do here");
       SUMA_RETURN(NOPE);
    }
@@ -8224,8 +6523,6 @@ SUMA_Boolean SUMA_GetColidInPickBuffer4(GLubyte *pix, int Ni, int Nj,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!pix || !ii || !ji || *ii <0 || *ii >= Ni || *ji<0 || *ji>Nj) {
       SUMA_S_Err("Bad input");
       SUMA_RETURN(NOPE);
@@ -8281,8 +6578,6 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv) {
       SUMA_S_Err("Null sv!");
@@ -8341,8 +6636,6 @@ SUMA_Boolean SUMA_ADO_Flush_Pick_Buffer(SUMA_ALL_DO *ado, SUMA_SurfaceViewer *sv
    int ii;
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!ado) SUMA_RETURN(NOPE);
    if (sv) {
       if (SUMA_ADO_isRegistered(sv, ado)) {
@@ -8380,8 +6673,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv ) {
       SUMA_S_Err("NULL input");
@@ -8623,8 +6914,6 @@ SUMA_Boolean SUMA_Bundle_Pick_Intersect(void *p, char ptype, int Tmask,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (tmin) *tmin = -1;
    if (pmin) *pmin = -1;
    if (frmin) *frmin = -1.0;
@@ -8749,8 +7038,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (ucodf) *ucodf=codf;
    PR = SUMA_New_Pick_Result(PR);
@@ -9240,8 +7527,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
 SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR)
 {
    static char FuncName[]={"SUMA_New_Pick_Result"};
-
-   // fprintf(stderr, "%s\n", FuncName);
    int i;
    if (!PR) {
       PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -9264,8 +7549,6 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
 {
    static char FuncName[]={"SUMA_free_PickResult"};
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    if (!PR) SUMA_RETURN(PR);
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
@@ -9281,18 +7564,11 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!PRP || !*PRP) SUMA_RETURN(NOPE);
 
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
-         if (!Saux){
-            SUMA_S_Err("NULL Saux!!!, don't let that happen");
-            SUMA_RETURN(NOPE);
-         }
-        // fprintf(stderr, "Saux = %p\n", Saux);
          SUMA_free_PickResult(Saux->PR);
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);
@@ -9379,8 +7655,6 @@ SUMA_PICK_RESULT * SUMA_ADO_GetPickResult(SUMA_ALL_DO *ado, char *primitive)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!ado) SUMA_RETURN(NULL);
    if (!primitive) primitive = "none";
 
@@ -9434,8 +7708,6 @@ void SUMA_Show_Pick_Colid_List(DList *pick_colid_list, FILE *fout)
    char *s = NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    if (!fout) fout = SUMA_STDOUT;
 
    s = SUMA_Pick_Colid_List_Info(pick_colid_list);
@@ -9459,8 +7731,6 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
    SUMA_COLID_OFFSET_DATUM *cod=NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SS = SUMA_StringAppend(NULL, NULL);
 
@@ -9494,7 +7764,7 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
                break;
             case ANY_DSET_type:
-            case GDSET_type:
+	    case GDSET_type:
                dset = (SUMA_DSET *)vv;
                SS = SUMA_StringAppend_va(SS,
                         "     Reference object is a %s dataset labeled %s "
@@ -9565,8 +7835,6 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    int ans;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore."
                "Go via SUMA_ComputeLineDOsIntersect. "
                "This is left here for testing purposes");
@@ -9602,8 +7870,6 @@ int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv || !dov) SUMA_RETURN(-1);
 
@@ -9714,8 +7980,6 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_LH("Here");
    if (!sv || !ado || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
@@ -9954,8 +8218,6 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!sv || !PR || !*PR) {
       SUMA_S_Err("NULL input %p %p %p", sv, PR, *PR);
       SUMA_DUMP_TRACE("PR application");
@@ -10034,8 +8296,6 @@ int SUMA_MarkLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    int ans;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
    ans = SUMA_ComputeLineMaskIntersect(sv, dov, IgnoreSameNode, &ado);
    if (ans <= 0) {
@@ -10064,8 +8324,6 @@ int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -10187,8 +8445,6 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    int ans;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore."
                "Go via SUMA_ComputeLineSurfaceIntersect. "
                "This is left here for testing purposes");
@@ -10239,8 +8495,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
    P0f[2] = sv->Pick0[2];
@@ -10251,7 +8505,6 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist, 0);
    imin = -1;
    dmin = 10000000.0;
-
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
       if (LocalHead)
             fprintf (SUMA_STDERR,
@@ -10308,6 +8561,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
         }
       }
       SUMA_VisX_Pointers4Display(SO, 0); /* put things back young man */
+
     }
 
    if (LocalHead)
@@ -10328,8 +8582,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       PR->ignore_same_datum = IgnoreSameNode;
       PR->iAltSel[SUMA_SURF_TRI] = MTI->ifacemin;
       SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
-      /* Add selection result to stack.  NB.  This increments sv->SelAdo->size
-        PR has the surface details.  */
+      /* Add selection result to stack */
       if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
          SUMA_S_Err("Failed to add selected ado");
          SUMA_RETURN(-1);
@@ -10359,13 +8612,6 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   if (strstr(SO->Label, "clippingPlaneIdentificationSquare_")){
-    fprintf(stderr, "Clipping plane identification squares may not be selected.\n");
-    return (0);
-   }
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
@@ -10589,8 +8835,6 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -10820,8 +9064,6 @@ int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    int ans;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
    SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
    ans = SUMA_ComputeLineVOslicesIntersect(sv, dov, IgnoreSameNode, &ado);
    if (ans <= 0) {
@@ -10846,9 +9088,7 @@ byte SUMA_Val_Meets_Thresh(float val, double *ThreshRange,
                            SUMA_THRESH_MODE ThrMode)
 {
    static char FuncName[]={"SUMA_Val_Meets_Thresh"};
-
-   // fprintf(stderr, "%s\n", FuncName);
-  switch(ThrMode){
+   switch(ThrMode){
       case SUMA_LESS_THAN:
          return((val >= ThreshRange[0]));
          break;
@@ -10907,8 +9147,6 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -11104,8 +9342,6 @@ int SUMA_ComputeLineVOvrIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
    P0f[2] = sv->Pick0[2];
@@ -11283,8 +9519,6 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_LH("Here");
    if (!sv || !VO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
@@ -11456,8 +9690,6 @@ void SUMA_ShowBrushStroke (SUMA_SurfaceViewer *sv, FILE *out)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!out) out = SUMA_STDERR;
 
    if (!sv->BS) {
@@ -11509,8 +9741,6 @@ void  SUMA_ClearBrushStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    /* THE NEW VERSION */
    if (sv->BS) {
       SUMA_EmptyDestroyList(sv->BS);
@@ -11537,8 +9767,6 @@ SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    /* New Version */
    if (sv->BS) {  /* bad news, this should be NULL to begin with */
       SUMA_RegisterMessage (SUMAg_CF->MessageList,
@@ -11559,8 +9787,6 @@ SUMA_BRUSH_STROKE_DATUM * SUMA_CreateBSDatum(void)
    SUMA_BRUSH_STROKE_DATUM *bsd = NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    bsd = (SUMA_BRUSH_STROKE_DATUM *)
             SUMA_calloc(1,sizeof(SUMA_BRUSH_STROKE_DATUM));
@@ -11589,8 +9815,6 @@ void SUMA_FreeBSDatum (void *bsd)
    static char FuncName[]={"SUMA_FreeBSDatum"};
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    /* nothing is allocated for inside bsd */
    if (bsd) SUMA_free(bsd);
@@ -11621,8 +9845,6 @@ SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdou
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    /* New version */
    bsd = SUMA_CreateBSDatum();
    bsd->x = (float)x;
@@ -11647,15 +9869,13 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    #ifdef DARWIN
       SUMA_S_Warn("Calling this function from OS X seems to cause trouble");
    #endif
 
    /* using sv->X->CMAP instead of
-            DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
-      is useless */
+	         DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
+		is useless */
    if (!XAllocNamedColor (sv->X->DPY,
                DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA)),
                Color, &col, &unused)) {
@@ -11675,12 +9895,12 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    \param incremental (SUMA_Boolean) YUP: draw a line between the last two points
                                      NOPE: draw the whole thing
 
-   - NB: This function used to crash when run on SGI if display is not
+	- NB: This function used to crash when run on SGI if display is not
    in TrueColor mode.
-   This happens even though the visual chosen by SUMA does not change.
-   To put the SGI in true color mode, you need to add to /var/X11/xdm/Xservers
-   the following:  -class TrueColor -depth 24
-   and then restart X or the system.
+	This happens even though the visual chosen by SUMA does not change.
+	To put the SGI in true color mode, you need to add to /var/X11/xdm/Xservers
+	the following:  -class TrueColor -depth 24
+	and then restart X or the system.
    The bug was that the graphics context (sv->X->gc) was created using the
    Screen's root window and not the GLX visual's window.
 */
@@ -11693,9 +9913,7 @@ void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean incr)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
-   if (!sv->BS) SUMA_RETURNe;
+	if (!sv->BS) SUMA_RETURNe;
 
    N = dlist_size(sv->BS);
    if (N < 2) SUMA_RETURNe;
@@ -11751,8 +9969,6 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke
    SUMA_Boolean Shaded = NOPE, LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SO = SUMA_SV_Focus_SO(sv);
 
@@ -12198,8 +10414,6 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No surface in focus");
       SUMA_RETURN(NOPE);
@@ -12555,8 +10769,6 @@ SUMA_ROI_DATUM *SUMA_LinkThisNodeToNodeInStroke (SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
       SUMA_RETURN(NULL);
@@ -12600,8 +10812,6 @@ SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke ( SUMA_SurfaceViewer *sv,
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
@@ -12651,8 +10861,6 @@ SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv)
    SUMA_BRUSH_STROKE_DATUM *bsd=NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!(SO = SUMA_SV_Focus_SO(sv))) {
       SUMA_S_Err("No SO in focus");
@@ -12742,8 +10950,6 @@ DListElmt * SUMA_PushActionStack (DList *ActionStack, DListElmt *StackPos,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    /* execute action */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Executing Action.\n", FuncName);
    ActionResult = ActionFunction (ActionData, SAP_Do);
@@ -12798,8 +11004,6 @@ DListElmt * SUMA_RedoAction (DList *ActionStack, DListElmt *StackPos)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!StackPos) {
       if (LocalHead) fprintf (SUMA_STDERR, "%s: At bottom of stack. Working up.\n", FuncName);
       StackPos = dlist_head(ActionStack);
@@ -12846,8 +11050,6 @@ DListElmt * SUMA_UndoAction (DList *ActionStack, DListElmt *StackPos)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!StackPos) {
       SUMA_SLP_Err("At bottom of stack.");
       SUMA_RETURN(StackPos);
@@ -12891,8 +11093,6 @@ SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -12974,8 +11174,6 @@ SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
    switch (Pol) {
@@ -13020,8 +11218,6 @@ SUMA_ACTION_RESULT SUMA_AddToTailJunctionROIDatum (void *data,
    void *eldata=NULL;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
@@ -13075,8 +11271,6 @@ SUMA_ACTION_RESULT SUMA_AddToTailROIDatum (void *data, SUMA_ACTION_POLARITY Pol)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
    switch (Pol) {
@@ -13115,8 +11309,6 @@ void SUMA_DestroyROIActionData (void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    ROIA = (SUMA_ROI_ACTION_STRUCT *)data;
 
    if (!ROIA) SUMA_RETURNe;
@@ -13148,8 +11340,6 @@ void SUMA_SetLight0 (char *s, void *data)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -13196,8 +11386,6 @@ void SUMA_SetNumForeSmoothing (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -13241,8 +11429,6 @@ void SUMA_SetNumFinalSmoothing (char *s, void *data)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -13307,8 +11493,6 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) {
       SUMA_Show_Clip_Planes(SUMAg_CF, NULL);
@@ -13407,8 +11591,6 @@ void SUMA_SetRotCenter (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    sv = (SUMA_SurfaceViewer *)data;
    if (!sv) {
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);
@@ -13457,8 +11639,6 @@ void SUMA_LookAtCoordinates (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -13494,8 +11674,6 @@ void SUMA_SV_SetRenderOrder(char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -13518,8 +11696,6 @@ void SUMA_JumpIndex (char *s, void *data)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 
@@ -13586,8 +11762,6 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv || !SO) SUMA_RETURNe;
 
@@ -13754,8 +11928,6 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s || !sv) SUMA_RETURNe;
 
    /* parse s */
@@ -13881,8 +12053,6 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv || !tdo || !tdo->net) SUMA_RETURNe;
 
@@ -14053,8 +12223,6 @@ void SUMA_JumpIndex_CO (char *s, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_LH("Called");
 
    SUMA_S_Err("Not implemented, see SUMA_JumpIndex_VO and SUMA_JumpIndex_SO "
@@ -14081,8 +12249,6 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-   // fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
    if (!s || !sv || !vo ||
@@ -14261,8 +12427,6 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s || !sv) SUMA_RETURNe;
 
    SUMA_S_Err("Not ready for action");
@@ -14439,8 +12603,6 @@ void SUMA_JumpXYZ (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -14544,8 +12706,6 @@ void SUMA_JumpFocusNode (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -14638,8 +12798,6 @@ void SUMA_JumpFocusFace (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -14697,8 +12855,6 @@ void SUMA_HighlightBox (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
@@ -14729,291 +12885,5 @@ void SUMA_HighlightBox (char *s, void *data)
 
 
    SUMA_RETURNe;
-
-}
-
-
-/*** Begin - Drawing colored line ***
-
-void Line(Vector3 start, Vector3 end) {
-
-        Vector3 startPoint = start;
-        Vector3 endPoint = end;
-        Vector3 lineColor = {1.0, 1.0, 1.0};
-
-        const char *vertexShaderSource = "#version 330 core\n"
-            "layout (location = 0) in vec3 aPos;\n"
-            "uniform mat4 MVP;\n"
-            "void main()\n"
-            "{\n"
-            "   gl_Position = MVP * vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-            "}\0";
-        const char *fragmentShaderSource = "#version 330 core\n"
-            "out vec4 FragColor;\n"
-            "uniform vec3 color;\n"
-            "void main()\n"
-            "{\n"
-            "   FragColor = vec4(color, 1.0f);\n"
-            "}\n\0";
-
-        // vertex shader
-        int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glCompileShader(vertexShader);
-        // check for shader compile errors
-
-        // fragment shader
-        int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(fragmentShader);
-        // check for shader compile errors
-
-        // link shaders
-        shaderProgram = glCreateProgram();
-        glAttachShader(shaderProgram, vertexShader);
-        glAttachShader(shaderProgram, fragmentShader);
-        glLinkProgram(shaderProgram);
-        // check for linking errors
-
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-
-        vertices = {
-             start.x, start.y, start.z,
-             end.x, end.y, end.z,
-
-        };
-
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-
-    }
-
-    int setMVP(mat4 mvp) {
-        MVP = mvp;
-    }
-
-    int setColor(vec3 color) {
-        lineColor = color;
-    }
-
-    int draw() {
-        glUseProgram(shaderProgram);
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "MVP"), 1, GL_FALSE, &MVP[0][0]);
-        glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, &lineColor[0]);
-
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_LINES, 0, 2);
-        return 0;
-    }
-
-    ~Line() {
-
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteProgram(shaderProgram);
-    }
-
-
-*** End - Drawing colored line ***/
-
-void DrawCube(Display *dpy, Window  win){
-
-    float vertCoords[] = {
-        0.5f, 0.5f, 0.5f,       //V0
-        -0.5f, 0.5f, 0.5f,       //V1
-        -0.5f, -0.5f, 0.5f,       //V2
-        0.5f, -0.5f, 0.5f,       //V3
-        0.5f, -0.5f, -0.5f,       //V4
-        0.5f, 0.5f, -0.5f,       //V5
-        -0.5f, 0.5f, -0.5f,       //V6
-        -0.5f, -0.5f, -0.5f        //V7
-    };
-
-    GLubyte indices[] = {
-        0, 1, 2, 3,             // Front face
-        5, 0, 3, 4,             // Right face
-        5, 6, 7, 4,             // Back face
-        5, 6, 1, 0,             // Upper face
-        1, 6, 7, 2,             // Left face
-        7, 4, 3, 2             // Bottom face
-    };
-
-    GLubyte colors[] = {
-        255, 0, 0,              //V0
-        0, 255, 0,              //V1
-        0, 0, 255,              //V2
-        255, 255, 0,              //V3
-        0, 255, 255,              //V4
-        255, 0, 255,              //V5
-        255, 255, 255,              //V6
-        0, 0, 0,              //V7
-    };
-    static int angle = 0;
-    XWindowAttributes  winattr;
-    XGetWindowAttributes( dpy, win, &winattr);
-    glViewport(0,0,winattr.width, winattr.height);
-
-    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glColor3f(0.0f, 0.9f, 1.0f);
-
-    glPushMatrix();
-        glRotatef(angle, 0.5, 1.0, 0.0);
-
-#if 0
-        glBegin(GL_TRIANGLES);
-            glVertex3f(0.0, -0.2f, 0.5f);
-            glVertex3f(-0.5, 0.3, 0.5f);
-            glVertex3f(0.5, 0.6f, 0.5f);
-        glEnd();
-#endif
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-        glColorPointer(3,GL_UNSIGNED_BYTE,0,colors);
-        glVertexPointer(3,GL_FLOAT,0,vertCoords);
-
-        glDrawElements(GL_QUADS,24,GL_UNSIGNED_BYTE, indices);
-
-    glPopMatrix();
-
-    glXSwapBuffers(dpy, win);
-
-    usleep(5000);
-
-    angle += 1;
-}
-
-void makeCube(){
-/*
-    Display *dpy;
-    static int     screen;
-    Window  win, root_win;
-    XEvent  event;
-
-    // unsigned int    depth;
-    XSetWindowAttributes    attrs;
-
-    XWindowAttributes  winattr;
-
-    // GLX vars
-    GLint att[] = {GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None};
-    XVisualInfo *visual;
-    GLXContext glc;
-
-    if (!(dpy = XOpenDisplay(NULL))){
-        fprintf(stderr, "Cannot open display\n");
-        exit(1);
-    }
-
-    screen = DefaultScreen(dpy);
-
-    int depth = DefaultDepth(dpy, screen);
-
-    root_win = RootWindow(dpy, screen); // Program crashes
-
-    visual = glXChooseVisual(dpy, screen, att);
-
-    attrs.border_pixel = BlackPixel(dpy, screen);
-    attrs.background_pixel = WhitePixel(dpy, screen);
-    attrs.override_redirect = True;
-
-    // attrs.colormap = CopyFromParent;
-    attrs.colormap = XCreateColormap(dpy, root_win, visual->visual, AllocNone);
-    attrs.event_mask = ExposureMask | KeyPressMask | PointerMotionMask | ButtonPress;
-    // Note the PointerMotionMask is necessary for the MotionNotify event
-    //  to be seen
-
-    // Parent window
-    win = XCreateWindow(dpy, root_win,
-            200, 200, 500, 300,
-            0, visual->depth, InputOutput, visual->visual,
-            CWBackPixel | CWColormap | CWBorderPixel |
-            CWEventMask, &attrs);
-
-    XMapWindow(dpy, win);
-
-    // Get current window
-    Display * currentDisplay = glXGetCurrentDisplay();
-    GLXContext currentContext = glXGetCurrentContext();
-    Window focused;
-    int revert_to;
-    XGetInputFocus(currentDisplay, &focused, &revert_to);
-
-    glc = glXCreateContext(dpy, visual, NULL, GL_TRUE);
-
-    // glXMakeCurrent(dpy, win, glc);
-    glXMakeCurrent(currentDisplay, focused, currentContext);
-
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_LINE_SMOOTH);    // fOR LINE formatting (Makes line thicker)
-
-    glEnable(GL_LINE_STIPPLE);
-
-    for (int i=0; i<5; ++i)
-        DrawCube(currentDisplay, focused);
-        // DrawCube(dpy, win);
-        */
-    static int     screen;
-    Window  win, root_win;
-
-    // GLX vars
-    GLint att[] = {GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None};
-    XVisualInfo *visual;
-    GLXContext glc;
-
-    // For pointer position
-    Window  root_return, child_return;
-    int     root_x_return, root_y_return;
-    int     win_x_return, win_y_return;
-    unsigned int    mask_return;
-    XSetWindowAttributes    attrs;
-
-    // Get current window
-    Display * currentDisplay = glXGetCurrentDisplay();
-    GLXContext currentContext = glXGetCurrentContext();
-    Window focused;
-    int revert_to;
-    XGetInputFocus(currentDisplay, &focused, &revert_to);
-
-    screen = DefaultScreen(currentDisplay);
-
-    int depth = DefaultDepth(currentDisplay, screen);
-
-    root_win = RootWindow(currentDisplay, screen); // Program crashes
-
-    visual = glXChooseVisual(currentDisplay, screen, att);
-
-    attrs.border_pixel = BlackPixel(currentDisplay, screen);
-    attrs.background_pixel = WhitePixel(currentDisplay, screen);
-    attrs.override_redirect = True;
-    attrs.colormap = XCreateColormap(currentDisplay, root_win, visual->visual, AllocNone);
-    attrs.event_mask = ExposureMask | KeyPressMask | PointerMotionMask | ButtonPress;
-
-    glc = glXCreateContext(currentDisplay, visual, NULL, GL_TRUE);
-
-    // glXMakeCurrent(dpy, win, glc);
-    glXMakeCurrent(currentDisplay, focused, currentContext);
-
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_LINE_SMOOTH);    // fOR LINE formatting (Makes line thicker)
-
-    glEnable(GL_LINE_STIPPLE);
-
-    for (int i=0; i<5; ++i)
-        DrawCube(currentDisplay, focused);
-
 
 }
