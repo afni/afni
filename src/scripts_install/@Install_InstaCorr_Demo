@@ -43,7 +43,9 @@ if ("$trgdir" == "") then
 endif
 
 #Still undecided ?
-if ("$trgdir" == "") set trgdir = AFNI_InstaCorrDemo
+if ("$trgdir" == "") then
+    set trgdir = AFNI_InstaCorrDemo
+endif
 
 if ( -f ${trgdir}/srf/rest_sub99965.STL_rh_SM.niml.dset.1D.smrec ) then
    echo "Subject single surf processed"

@@ -77,15 +77,21 @@ DOAC:
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
    set parts = 0
-   if ($nall > $mxstep) set parts = 1
+   if ($nall > $mxstep) then
+      set parts = 1
+   endif
    set istart = 1
    set part = 0
    set pp = ''
    while ($istart <= $#alljpg)
       set iend = `ccalc -i $istart + $mxstep -1`
-      if ( $iend >= $#alljpg) set iend = $#alljpg
+      if ( $iend >= $#alljpg) then
+          set iend = $#alljpg
+      endif
       echo "Images ${istart}-${iend}"
-      if ($parts) set pp = ".`printf %02d $part`"
+      if ($parts) then
+         set pp = ".`printf %02d $part`"
+      endif
       2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
@@ -163,15 +169,21 @@ DOEC:
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
    set parts = 0
-   if ($nall > $mxstep) set parts = 1
+   if ($nall > $mxstep) then
+      set parts = 1
+   endif
    set istart = 1
    set part = 0
    set pp = ''
    while ($istart <= $#alljpg)
       set iend = `ccalc -i $istart + $mxstep -1`
-      if ( $iend >= $#alljpg) set iend = $#alljpg
+      if ( $iend >= $#alljpg) then
+          set iend = $#alljpg
+      endif
       echo "Images ${istart}-${iend}"
-      if ($parts) set pp = ".`printf %02d $part`"
+      if ($parts) then
+          set pp = ".`printf %02d $part`"
+      endif
       2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL_COND.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \

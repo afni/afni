@@ -454,7 +454,7 @@ endif
 
 # do some surface stuff if we have a surface to work with
 #  could make one with IsoSurface, but if it's already done, we can use that instead
-if($surfset != "") then
+if ($surfset != "") then
    quickspec -tn gii anat.gii -spec quick.spec
    # try some surface-volume interaction methods also to extract the cortical thickness
    # one way is to look for the mean just a little on the interior

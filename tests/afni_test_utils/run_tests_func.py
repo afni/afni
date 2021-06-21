@@ -56,9 +56,14 @@ def run_tests(tests_dir, **args_dict):
         cmd += f"; gcovr -s --xml -o {tests_dir}/gcovr_output.xml -r {args_dict['build_dir']}/src"
         # append command for compiling and uploading codecov report
 
-        # apparently there is a security issue here, must investigate
-        # cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
-        # sys.exit(1)
+        # apparently there is a security issue with codecov, we must
+        # investigate; however, this should NOT be being run in the
+        # current CircleCI tests (but it needs to be uncommented for
+        # CircleCI tests not to fail, apparently)---it probably should
+        # not be used, either, until the codecov security issues are
+        # checked out.
+        cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
+        #sys.exit(1)
 
     print(f"Executing: {cmd}")
     res = subprocess.run(cmd, shell=True, env=os.environ.copy())

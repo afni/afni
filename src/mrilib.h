@@ -1903,25 +1903,15 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #define METRIC_AGDV  7
 extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
-/*--------------------------------------------------------------------*/
-/** July 2006: stuff for generic alignment functions: mri_genalign.c **/
+/*--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+/* July 2006: for generic alignment functions: mri_genalign.c (3dAllineate) */
 
 #ifndef MRILIB_MINI
 
 #include "mri_warpfield.h"
 
-  /* definition of various convex neighborhoods */
-
-#define GA_BLOK_BALL 1  /* sphere */
-#define GA_BLOK_CUBE 2  /* cube */
-#define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
-#define GA_BLOK_TOHD 4  /* truncated octahedron */
-
-#define GA_BLOK_STRING(b)  ( ((b)==GA_BLOK_BALL) ? "BALL" :          \
-                             ((b)==GA_BLOK_CUBE) ? "CUBE" :          \
-                             ((b)==GA_BLOK_RHDD) ? "RHDD" :          \
-                             ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
-                                                            "UNKNOWN" )
+#define ALLOW_NWARP   /* for the 3dAllineate -nwarp option */
 
  /* method codes for matching scalar-valued images */
 
@@ -1968,9 +1958,24 @@ typedef void GA_warpfunc( int, float *,
 
 typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
+/* codes for how the 2D histogram is constructed (thd_correlate.c) */
+
 #define GA_HIST_EQWIDE 1
 #define GA_HIST_EQHIGH 2
 #define GA_HIST_CLEQWD 3
+
+/* definition of various convex neighborhoods (BLOKs) for LPC */
+
+#define GA_BLOK_BALL 1  /* sphere */
+#define GA_BLOK_CUBE 2  /* cube */
+#define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
+#define GA_BLOK_TOHD 4  /* truncated octahedron */
+
+#define GA_BLOK_STRING(b)  ( ((b)==GA_BLOK_BALL) ? "BALL" :          \
+                             ((b)==GA_BLOK_CUBE) ? "CUBE" :          \
+                             ((b)==GA_BLOK_RHDD) ? "RHDD" :          \
+                             ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
+                                                            "UNKNOWN" )
 
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
@@ -2004,7 +2009,7 @@ extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
 extern float total_rotation_degrees( float ax, float ay, float az ) ; /* 02 Jan 2019 */
 
- /* struct to control mri_genalign.c optimization */
+/* struct to control mri_genalign.c optimization -- gets named 'stup' in places */
 
 typedef struct {
   int match_code  ;             /* set by user */
@@ -2068,12 +2073,13 @@ typedef struct {
   float        vbest ;
 } GA_setup ;
 
-
-/** compute correlations in each blok **/
+/** compute correlations in each blok, using the alignment setup **/
 
 extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
 extern MRI_IMAGE * GA_pearson_image( GA_setup *stup , floatvec *pv ) ;            /* Biden day 3 */
 extern MRI_IMAGE * mri_genalign_map_pearson_local( GA_setup *stup , float *parm ) ; /* Biden day 6 */
+
+/* free if it isn't null */
 
 #undef  IFREE
 #define IFREE(x) do{ if((x)!=NULL)free(x); (x)=NULL; }while(0)
@@ -2105,11 +2111,13 @@ extern void mri_genalign_affine( int, float *,
                                       float *, float *, float * ) ;
 extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
 extern void mri_genalign_verbose(int) ;
+extern void mri_genalign_round(int v) ; /* 04 Jun 2021 */
 extern void mri_genalign_mat44( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
 extern void mri_genalign_set_pgmat( int ) ;
 
+#ifdef ALLOW_NWARP
 extern void mri_genalign_bilinear( int, float *,
                                    int, float *, float *, float *,
                                         float *, float *, float * ) ;
@@ -2129,6 +2137,7 @@ extern void mri_genalign_nonic( int, float *,
 
 extern int    GA_polywarp_coordcode( int pnum ) ; /* 06 Dec 2010 */
 extern char * GA_polywarp_funcname ( int pnum ) ; /* 09 Dec 2010 */
+#endif
 
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 void mri_genalign_set_basemask( MRI_IMAGE *, GA_setup * ) ; /* 25 Feb 2010 */
@@ -2206,6 +2215,8 @@ extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
 
 #endif /* MRILIB_MINI */
+
+/*--------------------------------------------------------------------*/
 
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
 extern void FHWM_1dif_dontcheckplus( int ) ;
@@ -2406,138 +2417,7 @@ extern int mri_principal_vectors( MRI_IMARR *imar, int nvec, float *sval, float 
 #endif
 
 /*----------------------------------------------------------------------------*/
-/* for mri_nwarp.c */
-
-typedef struct {
-  int    nx ,  ny ,  nz ;
-  float *xd , *yd , *zd , *hv , *je , *se ;
-  int   use_es ;
-  float es_xd_xp, es_xd_xm, es_xd_yp, es_xd_ym, es_xd_zp, es_xd_zm,
-        es_yd_xp, es_yd_xm, es_yd_yp, es_yd_ym, es_yd_zp, es_yd_zm,
-        es_zd_xp, es_zd_xm, es_zd_yp, es_zd_ym, es_zd_zp, es_zd_zm ;
-   /* stuff below here is for conversion to/from 3D dataset format */
-  mat44 cmat , imat ;      /* cmat: i->x ; imat: x->i */
-  char *geomstring ;
-  int view ;
-} IndexWarp3D ;
-
-typedef struct {
-  int nwarp ;
-  IndexWarp3D **warp ;
-} IndexWarp3DArray ;
-
-typedef struct {
-  MRI_IMAGE *im ;
-  IndexWarp3D *warp ;
-} Image_plus_Warp ;
-
-typedef struct {
-  IndexWarp3D *fwarp ;
-  IndexWarp3D *iwarp ;
-} IndexWarp3D_pair ;
-
-typedef struct {
-  mat44 fwarp ;
-  mat44 iwarp ;
-} mat44_pair ;
-
-typedef struct { /* 17 Oct 2014 */
-  int   nmar ;
-  char  fname[128] ;
-  mat44 *mar ;
-} mat44_vec ;
-
-#define M44V_mat(mmm,iii) ( ((iii) < (mmm)->nmar) ? (mmm)->mar[iii]             \
-                                                  : (mmm)->mar[(mmm)->nmar-1] )
-
-#define DESTROY_mat44_vec(mv)                  \
- do{ if( (mv)->mar != NULL ) free((mv)->mar) ; \
-     free(mv) ;                                \
- } while(0) ;
-
-#ifndef MRILIB_MINI
-typedef struct { /* 17 Oct 2014 */
-  int ncat , nvar , flags ;
-  THD_3dim_dataset **nwarp ;
-  mat44_vec        **awarp ;
-  char              *actual_geomstring ;
-  char              *master_geomstring ;
-  mat44              actual_cmat , actual_imat ;
-  int              xpad  ,ypad  ,zpad ;
-  float            xshift,yshift,zshift ;
-} Nwarp_catlist ;
-
-#define NWC_INVERT_MASK 1  /* for flags field */
-
-#define NWC_nwarp(nnn,iii) ( ((nnn)->nwarp != NULL) ? (nnn)->nwarp[iii] : NULL )
-#define NWC_awarp(nnn,iii) ( ((nnn)->awarp != NULL) ? (nnn)->awarp[iii] : NULL )
-#define NWC_null(nnn,iii)  ( NWC_nwarp(nnn,iii)==NULL && NWC_awarp(nnn,iii)==NULL )
-
-extern THD_3dim_dataset * IW3D_from_nwarp_catlist( Nwarp_catlist * , int ) ;
-extern void IW3D_destroy_nwarp_catlist( Nwarp_catlist * ) ;
-extern int IW3D_reduce_nwarp_catlist( Nwarp_catlist * ) ;
-extern Nwarp_catlist * IW3D_read_nwarp_catlist( char * ) ;
-extern void THD_set_nwarp_apply_prefix( char *ppp ) ; /* 15 Mar 2021 */
-
-extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
-extern void IW3D_destroy( IndexWarp3D *AA ) ;
-extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-extern float IW3D_normL2  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-extern float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB ) ;
-extern int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr ) ; /* 18 Mar 2021 */
-extern IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA ) ;
-extern IndexWarp3D * IW3D_copy( IndexWarp3D *AA , float fac ) ;
-extern IndexWarp3D * IW3D_sum( IndexWarp3D *AA, float Afac, IndexWarp3D *BB, float Bfac ) ;
-extern void IW3D_scale( IndexWarp3D *AA , float fac ) ;
-extern IndexWarp3D * IW3D_from_dataset( THD_3dim_dataset *dset , int empty , int ivs ) ;
-extern THD_3dim_dataset * IW3D_to_dataset( IndexWarp3D *AA , char *prefix ) ;
-extern float IW3D_load_hexvol( IndexWarp3D *AA , float *hv ) ;
-extern float IW3D_load_energy( IndexWarp3D *AA ) ;
-extern void IW3D_load_bsv( IndexWarp3D *AA , float,float,float, float *bb , float *ss , float *vv ) ;
-extern IndexWarp3D * IW3D_compose( IndexWarp3D *AA , IndexWarp3D *BB     , int icode ) ;
-extern IndexWarp3D * IW3D_invert ( IndexWarp3D *AA , IndexWarp3D *BBinit , int icode ) ;
-extern IndexWarp3D * IW3D_sqrtinv( IndexWarp3D *AA , int icode ) ;
-extern IndexWarp3D * IW3D_sqrt   ( IndexWarp3D *AA , int icode ) ;
-extern IndexWarp3D * IW3D_from_poly( int npar, float *par, IndexWarp3D *WW ) ;
-extern THD_3dim_dataset * NwarpCalcRPN( char *expr, char *prefix, int icode, int acode ) ;
-extern void NwarpCalcRPN_verb(int i) ;
-
-extern void THD_interp_floatim( MRI_IMAGE *fim ,
-                                int np , float *ip , float *jp , float *kp ,
-                                int code, float *outar ) ;
-extern void THD_interp_complexim( MRI_IMAGE *fim ,
-                                  int np , float *ip , float *jp , float *kp ,
-                                  int code, complex *outar ) ; /* 27 Mar 2018 */
-extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
-                                    int use_amat    , mat44 amat ,
-                                    mat44 cmat_bim  ,
-                                    int incode      , float wfac ,
-                                    mat44 cmat_src  ,
-                                    mat44 cmat_out  ,
-                                    int nx_out      , int ny_out , int nz_out  ) ;
-extern THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
-                                             THD_3dim_dataset *dset_src  ,
-                                             THD_3dim_dataset *dset_mast ,
-                                             char *prefix , int wincode , int dincode ,
-                                             float dxyz_mast , float wfac , int nvlim ,
-                                             MRI_IMAGE *amatim ) ;
-
-extern THD_3dim_dataset * THD_nwarp_dataset_NEW( Nwarp_catlist    *nwc       ,
-                                                 THD_3dim_dataset *dset_src  ,
-                                                 THD_3dim_dataset *dset_mast ,
-                                                 char *prefix, int wincode, int dincode,
-                                                 float dxyz_mast, float wfac, int nvlim ) ;
-
-extern int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
-                                  float dfac , int npt ,
-                                  float *xin , float *yin , float *zin ,
-                                  float *xut , float *yut , float *zut  ) ;
-
-extern int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
-                                  float dfac , int npt ,
-                                  float *xin , float *yin , float *zin ,
-                                  float *xut , float *yut , float *zut  ) ;
-#endif /* MRILIB_MINI */
+#include "mri_nwarp.h"
 /*----------------------------------------------------------------------------*/
 /* Aug 2018 - sound stuff - cs_playsound.c */
 

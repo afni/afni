@@ -46,7 +46,7 @@ EOF
 EOF
       endif
       exit 0
-   else if ("$1" == `basename $0`)then
+   else if ("$1" == `basename $0`) then
       echo "What?"
       exit 1
    else

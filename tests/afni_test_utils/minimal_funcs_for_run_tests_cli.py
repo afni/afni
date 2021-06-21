@@ -786,7 +786,7 @@ def modify_path_and_env_if_not_using_cmake(**args_dict):
                 "Usage of cmake build for testing was "
                 "inferred from the usage of --build-dir. "
                 "Currently afnipy is not importable... you should be install it "
-                "into the current python interpreter. "
+                "into the current python interpreter. (something like pip install -e ../src/python_scripts)"
             )
         return
     elif test_bin_path:

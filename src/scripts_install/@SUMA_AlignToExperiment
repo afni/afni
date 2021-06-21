@@ -435,7 +435,7 @@ PARSE_COMMAND:
          set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
          set SurfAnatView = `@GetAfniView $SA_in` 
          set SurfAnatPath = $SA_in:h
-         if ($SurfAnatPath == $SA_in:t) then 
+         if ( $SurfAnatPath == $SA_in:t ) then 
             #no path given
             set SurfAnatPath = .
          endif
@@ -500,7 +500,7 @@ DOWNSAMPLE:
       if ($Skip == 0) then
          echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
          adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-         if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
+         if (!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
             goto NO_DOWNGOOD_BADBAD
          endif
          
@@ -647,7 +647,7 @@ RESAMPLE:
    if ($Skip == 0) then
       set tmpref = '___tmp__rs'"$ExpAnat_ResampPrefix"
       if ($clpbelow != '') then
-         rm -rf ${tmpref}*.???? >& /dev/null
+         \rm -rf ${tmpref}*.???? >& /dev/null
          @clip_volume -below $clpbelow -input $ExpAnat -prefix $tmpref
          set nxt = "$tmpref""$ExpAnatView"
          if (!(-f $nxt.BRIK || -f $nxt.BRIK.gz || -f $nxt.BRIK.Z || -f $nxt.BRIK.bz2)) then 
@@ -664,7 +664,7 @@ RESAMPLE:
               -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
          goto NO_RESAMP
       endif
-      rm -rf ${tmpref}*.???? >& /dev/null
+      \rm -rf ${tmpref}*.???? >& /dev/null
    endif
    set ExpAnatPrefix = $ExpAnat_ResampPrefix
    set ExpAnat = $ExpAnat_Resamp
@@ -700,7 +700,9 @@ REGISTER:
       echo "         -rotcom -verbose -base $ExpAnat \"
       echo "         -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
       echo ""
-      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
+      if ( -f ${VolRegPrefix}.A2E.1D) then
+        \rm -f ${VolRegPrefix}.A2E.1D 
+      endif
       3dvolreg -wtrim -clipit -twopass \
                -twodup -zpad 8 -rotcom \
                -verbose -base $ExpAnat \
@@ -730,18 +732,27 @@ REGISTER:
       endif
    else if ($UseWarp == 1) then      
       set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
-      rm -rf ${tmpref}*.???? >& /dev/null
+      \rm -rf ${tmpref}*.???? >& /dev/null
       set pd = 8
       
-      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
-      echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
-      echo ""
+      #echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
+      #echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
+      #echo ""
+cat <<EOF
+3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
+
+EOF
       
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                   -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                   -mm -prefix ./${tmpref}_refpad $ExpAnat
-      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
+
+      if ( -f ${VolRegPrefix}.A2E.1D) then
+        \rm -f ${VolRegPrefix}.A2E.1D 
+      endif
+
       3dWarpDrive $cropt -twopass -verb -affine_general \
                   -cubic -final quintic \
                   -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
@@ -791,22 +802,30 @@ REGISTER:
          goto NO_WARPDRIVE
       endif
       if ($cleanup == 1) then
-         rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
+         \rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
       endif
    else
       set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
-      rm -rf ${tmpref}*.???? >& /dev/null
+      \rm -rf ${tmpref}*.???? >& /dev/null
       set pd = 8
       
-      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
-      echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
-      echo ""
+      #echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
+      #echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
+      #echo ""
+cat <<EOF
+3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
+EOF
       
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                   -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
                   -mm -prefix ./${tmpref}_refpad $ExpAnat
-      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
+
+      if ( -f ${VolRegPrefix}.A2E.1D) then
+        \rm -f ${VolRegPrefix}.A2E.1D 
+      endif
+
       3dAllineate -twopass -verb -warp affine_general \
                   -cubic -final quintic \
                   -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
@@ -852,7 +871,7 @@ REGISTER:
          goto NO_WARPDRIVE
       endif
       if ($cleanup == 1) then
-         rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
+         \rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
       endif   
    endif
    

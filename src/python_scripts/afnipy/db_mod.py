@@ -3116,7 +3116,7 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            "# --------------------------------------\n" \
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
-           name_qual='.vreg.r01',detrend=1)
+           name_qual='.vreg.r01',detrend=1, oksurf=0)
 
 # --------------- combine block ---------------
 
@@ -6728,7 +6728,7 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
 
 # compute temporal signal to noise after the regression
 def db_cmd_tsnr(proc, comment, signal, noise, view,
-                        mask='', name_qual='', detrend=0):
+                        mask='', name_qual='', detrend=0, oksurf=1):
     """return a string for computing temporal signal to noise
          comment:   leading comment string
          signal:    prefix for mean dset
@@ -6737,6 +6737,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
          mask:      (optional) prefix for mask dset
          name_qual: (optional) qualifier for name, such as '.r01'
          detrend:   (optional) if > 0,
+         oksurf:    (optional) flag to allow surf analysis
     """
     if not signal or not noise or not view:
         print('** compute TSNR: missing input')
@@ -6749,7 +6750,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
        cstr = ''
        estr = 'a/b'
 
-    if proc.surf_anat:
+    if proc.surf_anat and oksurf:
         feh_str = 'foreach %s ( %s )\n' \
                   % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
         feh_end = 'end\n'
@@ -7910,7 +7911,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     # add commands to move or copy results out of awpy directory
 
     # resulting files under awpy:
-    #    PREFIX.aw.nii           : final NL-warped anat
+    #    PREFIX.aw.nii*          : final NL-warped anat
     #    anat.un.aff.qw_WARP.nii : final NL warp
     #    anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
     # and copy back to results dir in AFNI format?
@@ -7920,6 +7921,9 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
 
     proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
 
+    # [PT: May 30, 2021] auto_warp.py to work in *.nii.gz now
+    # [PT: June 2, 2021] ... and just as quickly, rolled back to take *.nii,
+    #                    since RCR updated AFNI_COMPRESSOR behavior, instead.
     # if no unifize, xmat strings will not have .un
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr

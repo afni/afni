@@ -2,43 +2,40 @@
 
 #undef MANUAL_ORIENT
 
-/*-------------------------------------------------------------------------*/
-/*! Create an empty dataset with geometry given by a string. Examples:
-     - "tlrc"
-     - "RAI:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz"
-     - "RAI:D:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz" if xorg, yorg, zorg are DICOM
-     - "MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34):nx,ny,nz"
-*//*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------*/
+/* returns a new string, which can be free()-ed later if you like */
+/*----------------------------------------------------------------*/
 
-THD_3dim_dataset * EDIT_geometry_constructor( char *gstr , char *prefix )
+char * EDIT_convert_to_geometry_string( char *str )
 {
-   THD_3dim_dataset *dset = NULL ;
-   THD_ivec3 orixyz , nxyz ;
-   THD_fvec3 dxyz , orgxyz ;
-   mat44 ijk_to_dicom44 ; THD_mat33 R ;
-   int view=VIEW_ORIGINAL_TYPE ;
-   float dx,dy,dz , xorg,yorg,zorg ;
-   int   nx,ny,nz , ii, dicomorigin = 0;
-   char *lstr , *cpt ;
+   char *lstr=NULL , *cpt ;
    float a11,a12,a13,a14 ;
    float a21,a22,a23,a24 ;
    float a31,a32,a33,a34 ;
-   float orgx,orgy,orgz ;
+   float dx,dy,dz , xorg,yorg,zorg ;
+   int   nx,ny,nz , ii, dicomorigin = 0;
 
-ENTRY("EDIT_geometry_constructor") ;
+ENTRY("EDIT_convert_to_geometry_string") ;
 
-   if( gstr == NULL || strlen(gstr) < 4 ) RETURN(NULL) ;
-   lstr = strdup(gstr) ;
+   if( str == NULL || strlen(str) < 4 ) RETURN(NULL) ;
 
-   /*--- convert to MATRIX() type of string ---*/
+   lstr = strdup(str) ;  /* copy input */
 
-   if( strncasecmp(lstr,"TLRC",4) == 0 ){
+   if( ISVALID_GEOMETRY_STRING(lstr) ) RETURN(lstr) ; /* that was easy */
+
+   /*--- convert lstr to MATRIX() type of string ---*/
+
+   if( strncasecmp(lstr,"TLRC",4) == 0 ){  /* for very old types of data */
 
      free(lstr) ;
      lstr = strdup("MATRIX(1,0,0,-80 , 0,1,0,-80 , 0,0,1,-65):161,191,151") ;
-     view = VIEW_TALAIRACH_TYPE ;
 
-   } else if( lstr[3] == ':' ){
+   } else if ( strncasecmp(lstr,"MNI2009",7) == 0 ){
+
+     free(lstr) ;
+     lstr = strdup("MATRIX(-1,0,0,96,0,-1,0,132,0,0,1,-78):193,229,193") ;
+
+   } else if( lstr[3] == ':' ){  /* "XYZ:" where XYZ are some coordinate order */
 
      THD_coorder cord ;
 
@@ -48,7 +45,8 @@ ENTRY("EDIT_geometry_constructor") ;
 
      for( cpt=lstr ; *cpt != '\0' ; cpt++ ) if( *cpt == ',' ) *cpt = ' ' ;
      nx = ny = nz = -1; dx = dy = dz = -1.0f; xorg = yorg = zorg = 0.0f ;
-     if (!strncmp(lstr+4,"D:",2)) {
+
+     if (!strncmp(lstr+4,"D:",2)) {  /* scan for 9 values (DICOM) */
        dicomorigin = 1;
        ii = sscanf(lstr+6,"%d%f%f%d%f%f%d%f%f",
                    &nx,&xorg,&dx , &ny,&yorg,&dy , &nz,&zorg,&dz ) ;
@@ -58,7 +56,9 @@ ENTRY("EDIT_geometry_constructor") ;
             ERROR_message("Negative or 0 voxel counts or voxel sizes");
             free(lstr); RETURN(NULL);
          }
-     } else {
+
+     } else {     /* scan for 9 values (not DICOM) */
+
        dicomorigin = 0;
        ii = sscanf(lstr+4,"%d%f%f%d%f%f%d%f%f",
                    &nx,&xorg,&dx , &ny,&yorg,&dy , &nz,&zorg,&dz ) ;
@@ -86,9 +86,51 @@ ENTRY("EDIT_geometry_constructor") ;
 
      free(lstr) ; lstr = cpt ;
 
+   } else {
+
+     free(lstr) ; lstr = NULL ;
+
    }
 
-   if( !ISVALID_GEOMETRY_STRING(lstr) ){ free(lstr); RETURN(NULL); }
+   RETURN(lstr) ;
+}
+
+
+/*-------------------------------------------------------------------------*/
+/*! Create an empty dataset with geometry given by a string. Examples:
+     - "tlrc"
+     - "MNI2009"
+     - "RAI:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz"
+     - "RAI:D:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz" if xorg, yorg, zorg are DICOM
+     - "MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34):nx,ny,nz"
+*//*-----------------------------------------------------------------------*/
+
+THD_3dim_dataset * EDIT_geometry_constructor( char *gstr , char *prefix )
+{
+   THD_3dim_dataset *dset = NULL ;
+   THD_ivec3 orixyz , nxyz ;
+   THD_fvec3 dxyz , orgxyz ;
+   mat44 ijk_to_dicom44 ; THD_mat33 R ;
+   int view=VIEW_ORIGINAL_TYPE ;
+   float dx,dy,dz , xorg,yorg,zorg ;
+   int   nx,ny,nz , ii, dicomorigin = 0;
+   char *lstr , *cpt ;
+   float a11,a12,a13,a14 ;
+   float a21,a22,a23,a24 ;
+   float a31,a32,a33,a34 ;
+   float orgx,orgy,orgz ;
+
+ENTRY("EDIT_geometry_constructor") ;
+
+   lstr = EDIT_convert_to_geometry_string(gstr) ;
+
+   if( !ISVALID_GEOMETRY_STRING(lstr) ){
+     if( lstr != NULL ) free(lstr) ;
+     RETURN(NULL) ;
+   }
+
+   if( strncasecmp(gstr,"TLRC",4) == 0 ||
+       strncasecmp(gstr,"MNI" ,3) == 0   ) view = VIEW_TALAIRACH_TYPE ;
 
    /*--- decode MATRIX geometry string ---*/
 
@@ -96,12 +138,17 @@ ENTRY("EDIT_geometry_constructor") ;
 INFO_message("EDIT_geometry_constructor: string = %s",lstr) ;
 #endif
 
+   /* convert commas to blanks */
+
    for( cpt=lstr ; *cpt != '\0' ; cpt++ ) if( *cpt == ',' ) *cpt = ' ' ;
+
+   /* scan after the 'MATRIX:' part to get the geometry values */
+
    ii = sscanf(lstr+7,"%f%f%f%f%f%f%f%f%f%f%f%f):%d%d%d",
                &a11,&a12,&a13,&a14 ,
                &a21,&a22,&a23,&a24 , &a31,&a32,&a33,&a34 , &nx,&ny,&nz ) ;
    free(lstr) ;
-   if( ii < 15 ) RETURN(NULL) ;
+   if( ii < 15 ) RETURN(NULL) ;  /* didn't get 15 values from string :( */
 
    /*--- create dataset and put stuff into it ---*/
 
@@ -159,7 +206,7 @@ INFO_message("EDIT_geometry_constructor: orientation codes = %d %d %d",orixyz.ij
    dset->idcode.str[1] = 'E' ;
    dset->idcode.str[2] = 'O' ;
 
-   if( !THD_filename_ok(prefix) ) prefix = "gggeom" ;
+   if( !THD_filename_ok(prefix) ) prefix = "gggeom" ; /* loser user */
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
@@ -196,7 +243,7 @@ THD_3dim_dataset * jRandomDataset( int nx, int ny, int nz, int nt )
      EDIT_dset_items( dset ,
                         ADN_ntt    , nt ,
                         ADN_ttdel  , 1.0f ,
-                       ADN_none ) ;
+                      ADN_none ) ;
    }
 
    nvox = nx*ny*nz ;
@@ -424,19 +471,60 @@ ENTRY("EDIT_geomstring_from_collection") ;
    for( ii=0 ; ii < nstr ; ii++ ){
      gs = gsin[ii] ; qset = EDIT_geometry_constructor(gs,"Junk") ;
      THD_set_dicom_box(qset->daxes) ;
+     /* get the DICOM min/max values of coords */
      xxmin = qset->daxes->dicom_xxmin ; yymin = qset->daxes->dicom_yymin ; zzmin = qset->daxes->dicom_zzmin ;
      xxmax = qset->daxes->dicom_xxmax ; yymax = qset->daxes->dicom_yymax ; zzmax = qset->daxes->dicom_zzmax ;
+     /* get the bot/top values of DICOM coords seen thus far */
      if( xxmin < xxbot ) xxbot = xxmin; if( yymin < yybot ) yybot = yymin; if( zzmin < zzbot ) zzbot = zzmin;
      if( xxmax > xxtop ) xxtop = xxmax; if( yymax > yytop ) yytop = yymax; if( zzmax > zztop ) zztop = zzmax;
+     /* get the grid spacings */
      xxmin = fabsf(DSET_DX(qset)); yymin = fabsf(DSET_DY(qset)); zzmin = fabsf(DSET_DY(qset));
+     /* get the smallest grid spacing seen thus far */
      if( xxmin < dxyzbot ) dxyzbot = xxmin; if( yymin < dxyzbot ) dxyzbot = yymin; if( zzmin < dxyzbot ) dxyzbot = zzmin;
    }
-   nxnew = 1 + (int)((xxtop-xxbot)/dxyzbot) ;
+   nxnew = 1 + (int)((xxtop-xxbot)/dxyzbot) ;  /* we use the smallest grid spacing */
    nynew = 1 + (int)((yytop-yybot)/dxyzbot) ;
    nznew = 1 + (int)((zztop-zzbot)/dxyzbot) ;
    LOAD_MAT44(cmat , dxyzbot , 0.0f    , 0.0f    , xxbot ,
                      0.0f    , dxyzbot , 0.0f    , yybot ,
                      0.0f    , 0.0f    , dxyzbot , zzbot  ) ;
+   gs = EDIT_imat_to_geometry_string( cmat , nxnew,nynew,nznew ) ;
+
+   RETURN(gs) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* Return a geomstring that includes the DICOM corner points given. */
+
+char * EDIT_geomstring_from_corners( float xxbot, float xxtop ,
+                                     float yybot, float yytop ,
+                                     float zzbot, float zztop ,
+                                     float dx, float dy, float dz )
+{
+   char *gs ; mat44 cmat ; int nxnew,nynew,nznew ; float ttt ;
+
+ENTRY("EDIT_geomstring_from_corners") ;
+
+   if( dx == 0.0f || dy == 0.0f || dz == 0.0f ) RETURN(NULL ) ;
+
+   if( yybot > yytop ){ ttt = yybot ; yybot = yytop ; yytop = ttt ; }
+   if( zzbot > zztop ){ ttt = zzbot ; zzbot = zztop ; zztop = ttt ; }
+
+   if( xxbot > xxtop ){ ttt = xxbot ; xxbot = xxtop ; xxtop = ttt ; }
+   nxnew = (dx > 0.0f) ? 1 + (int)((xxtop-xxbot)/dx)
+                       : 1 + (int)((xxbot-xxtop)/dx) ;
+
+   if( yybot > yytop ){ ttt = yybot ; yybot = yytop ; yytop = ttt ; }
+   nynew = (dy > 0.0f) ? 1 + (int)((yytop-yybot)/dy)
+                       : 1 + (int)((yybot-yytop)/dy) ;
+
+   if( zzbot > zztop ){ ttt = zzbot ; zzbot = zztop ; zztop = ttt ; }
+   nznew = (dz > 0.0f) ? 1 + (int)((zztop-zzbot)/dz)
+                       : 1 + (int)((zzbot-zztop)/dz) ;
+
+   LOAD_MAT44(cmat , dx   , 0.0f , 0.0f , xxbot ,
+                     0.0f , dy   , 0.0f , yybot ,
+                     0.0f , 0.0f , dz   , zzbot  ) ;
    gs = EDIT_imat_to_geometry_string( cmat , nxnew,nynew,nznew ) ;
 
    RETURN(gs) ;

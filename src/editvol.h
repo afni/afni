@@ -455,6 +455,11 @@ extern char * EDIT_geometry_string_pad( char *gsin , int npad ) ; /* Halloween 2
 extern char * EDIT_geomstring_from_collection( int nstr , char **gsin ) ;
 extern float_triple EDIT_geometry_string_to_delxyz( char *gstr ) ;
 
+extern char * EDIT_geomstring_from_corners( float xxbot, float xxtop ,  /* 17 May 2021 */
+                                            float yybot, float yytop ,
+                                            float zzbot, float zztop ,
+                                            float dx, float dy, float dz ) ;
+
 extern THD_3dim_dataset * jRandomDataset(int,int,int,int) ; /* 16 Mar 2016 */
 extern MRI_IMAGE *        jRandom1D(int,int) ;              /* 17 Mar 2016 */
 

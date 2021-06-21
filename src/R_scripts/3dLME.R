@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.5, Feb 25, 2021
+Version 2.0.6, June 11, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1920,14 +1920,15 @@ if(lop$ICC) {  # ICC part
          stopCluster(cl)
       }
    }
-   tTop <- 100
-   if(lop$logLik) {
-      Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] > tTop] <- tTop  # Avoid outflow!!!!
-      Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   } else {
-      Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
-      Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   }
+   #tTop <- 100
+   #if(lop$logLik) {
+   #   Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] > tTop] <- tTop  # Avoid outflow!!!!
+   #   Stat[1:(lop$NoBrick-1)][Stat[1:(lop$NoBrick-1)] < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   #} else {
+   #   Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
+   #   Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   #}
+   Stat[is.nan(Stat)] <- 0
    outLabel <- paste(rownames(anova(fm))[lop$Fseq], " F")
    if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
       outLabel <- append(outLabel, rownames(summary(fm)$tTable)[n])
@@ -1971,24 +1972,24 @@ if(lop$ICC) {  # ICC part
 
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick, drop=FALSE], outLabel, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 if(lop$LOGIT) {
    write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/cutoff_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
-      cutoff, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      cutoff, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
    write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/acc_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
-      acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 }
 
 if(!is.null(lop$REprefix)) {
    RElabel <- vector()
    for(ii in 1:length(lop$RE)) RElabel <- c(RElabel, paste0(lop$RE[ii], '-', levels(lop$dataStr$Subj)))
    write.AFNI(lop$REprefix, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$REprefix))*nlevels(lop$dataStr$Subj)*length(lop$RE)), drop=FALSE],
-      label=RElabel, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=RElabel, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 }
 
 if(!is.null(lop$resid))
    write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
-      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))

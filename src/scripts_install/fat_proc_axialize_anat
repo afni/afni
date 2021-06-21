@@ -502,7 +502,7 @@ else if ( "$DO_SS" == "1" ) then
 
     if ( $DO_VIEWER ) then
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vpref_ss = ${opref}_qc_inss
         else
             set vpref_ss = ${qc_prefix}_qc_inss
@@ -939,7 +939,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref1 = ${opref}_qc_xlzd
         set vpref2 = ${opref}_qc_ref_in
     else

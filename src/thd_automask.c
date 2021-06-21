@@ -434,6 +434,7 @@ ENTRY("THD_mask_fillin_once") ;
          /* check in +x direction, then -x if +x hits */
 
          switch( nsx ){
+           case 0: break ;
            case 1:
              if( mmm[iv+1] && mmm[iv-1] ) FILLVOX;
            break ;
@@ -487,6 +488,7 @@ ENTRY("THD_mask_fillin_once") ;
          /* check in +y direction, then -y if +y hits */
 
          switch( nsy ){
+           case 0: break ;
            case 1:
              if( mmm[iv+nx] && mmm[iv-nx] ) FILLVOX;
            break ;
@@ -526,6 +528,7 @@ ENTRY("THD_mask_fillin_once") ;
          /* check in +z direction, then -z if +z hits */
 
          switch( nsz ){
+           case 0: break ;
            case 1:
              if( mmm[iv+nxy] && mmm[iv-nxy] ) FILLVOX;
            break ;

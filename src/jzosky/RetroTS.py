@@ -259,22 +259,33 @@ def retro_ts(
         for k in phys_meta['Columns']:
             phys_dat[k] = array(phys_dat[k])
             if k.lower() == 'respiratory':
-                if not main_info['phys_fs']:
-                    respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                respiration_peak, error = peak_finder(respiration_info, v=phys_dat[k])
-                if error:
-                    print("Died in respiratory PeakFinder")
-                    return
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["respiration_out"] or main_info["rvt_out"]:
+                   if not main_info['phys_fs']:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   respiration_peak, error = peak_finder(respiration_info,
+                                                         v=phys_dat[k])
+                   if error:
+                       print("Died in respiratory PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   respiration_peak = {}
             elif k.lower() == 'cardiac':
-                if not main_info['phys_fs']:
-                    cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                cardiac_peak, error = peak_finder(cardiac_info, v=phys_dat[k])
-                if error:
-                    print("Died in cardiac PeakFinder")
-                    return
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["cardiac_out"] != 0:
+                   if not main_info['phys_fs']:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
+                   if error:
+                       print("Died in cardiac PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   cardiac_peak = {}
             else:
-                Warning('phys data contains a {s} column, but RetroTS will'
-                        ' only handle cardiac or reipiratory data.')
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or reipiratory data" % k)
     else:
         if respiration_file:
             respiration_peak, error = peak_finder(respiration_info, respiration_file)

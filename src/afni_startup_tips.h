@@ -892,6 +892,7 @@ static char *gby[] = {
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- Man but walks in a vain shadow"                    ,
      "Remember -- The laws of physics always win"                    ,
      "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
@@ -1024,7 +1025,7 @@ static char *gby[] = {
      "Statistics are no substitute for judgment"                     ,
      "There's never enough time to do all the nothing you want"      ,
      "When life gives you lemons, throw them right back at it"       ,
-     "Happiness isn't good enough for me; I demand euphoria"         ,
+     "Happiness isn't good enough for me; I demand EUPHORIA"         ,
      "Judge a person by her questions, rather than her answers"      ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
@@ -1240,6 +1241,16 @@ static char *gby[] = {
      "  And then there shall be a fire that knows the naming of you, and in the\n"
      "  presence of the strangling fruit, its dark flame shall acquire every\n"
      "  part of you that remains"                                                     ,
+
+     "Some questions will ruin you if you are denied the answer long enough"          ,  /* 20 May 2021 */
+
+     "A brain map is a form of misdirection, for what is a map but a way\n"
+     "     of emphasizing some things and making other things invisible?"             ,  /* 20 May 2021 */
+
+     "When you are too close to the center of a mystery there is no way\n"
+     "     pull back and see the shape of it entire"                                  ,  /* 20 May 2021 */
+
+     "What can you do when your five senses are not enough?"                          ,  /* 20 May 2021 */
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1544,6 +1555,7 @@ static char *gby[] = {
 
      "Many are stubborn in pursuit of the path they have chosen; few in pursuit of the goal" ,
      "Idleness is the beginning of all psychology - is psychology is a vice?"                ,
+     "Good judgment comes from experience; experience comes from bad judgment"               ,
 
      /* Grateful Dead (mostly) */
 
@@ -1680,7 +1692,7 @@ static char *gby[] = {
 
      // Eliot
      "                           Not fare well,\n"
-     "But fare forward, voyagers."                                                            ,
+     "But fare forward, voyagers"                                                             ,
 
      // Lem
      "\n"
@@ -1768,6 +1780,10 @@ static char *gby[] = {
      "  S. Holmes:   The past and the present are within the field of my inquiry,\n"
      "               but what a man may do in the future is a hard question to answer.\n"
      "  Free Energy: Fokker-Planck equation to the rescue" ,
+
+     "\n"
+     "  Humor can be dissected, as a frog can, but the thing dies in the\n"
+     "  process and the innards are discouraging to any but the pure scientific mind" ,
 
      /* from Quentin Crisp */
 
@@ -1908,7 +1924,46 @@ static char *gby[] = {
      "One of the drawbacks to life is that it contains moments when\n"
      "   one is compelled to tell the truth"                                           ,
 
-     "I always advise people never to give advice"
+     "I always advise people never to give advice"                                     ,
+
+     /* Ben Franklin (sort of) [30 May 2021] */
+
+     "He that falls in love with himself will have no rivals"                          ,
+     "Data well gathered is better than data well cleaned up"                          ,
+     "Never confuse beautiful abstractions with hard reality"                          ,
+     "Never mistake a beautiful brain map with the truth of the brain's operation"     ,
+
+     /* Misc */
+
+    "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
+
+    "\n  It is not enough to be in the right place at the right time.\n"
+    "    You should also have an open mind at the right time"                               ,
+
+    "Sometimes the Bluebird of Happiness is in your own back yard"                          ,  /* 12 May 2021 */
+
+    "Better than the Gold standard for FMRI -- I'm the Bitcoin standard"                    ,  /* 21 May 2021 */
+
+    "When you discover that you are riding a dead horse, the best strategy is to dismount"  ,  /* 21 May 2021 */
+
+    "The mountains are calling, and I must go"                                              ,  /* 30 May 2021 */
+
+    "Despite what they tell you, there are simply no moral absolutes in a complex world"             ,  /* 10 Jun 2021 */
+    "The trouble with having an open mind is that people keep coming along and sticking ideas in it" ,
+    "Somehow it is always right now until suddenly it's later"                                       ,
+    "Visualizing the conceptualization process is always the hardest part of a project"              ,
+    "I have faced all the reality I need to face for today"                                          ,
+    "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
+    "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
+    "\n  I'd be more interested in thinking outside the box if I could\n"
+    "    figure out thinking inside the box first"                                                   ,
+    "Real stupidity beats artificial intelligence, every time"                                       ,
+    "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
+    "You can shut your eyes but you can't shut your brain"                                           ,
+
+    /**** Keep this one last ****/
+
+    "You are very lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
 
 } ;
 
