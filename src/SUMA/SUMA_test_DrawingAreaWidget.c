@@ -27,7 +27,6 @@
 
 #endif
 
-
 #ifdef SUMA_MOTIF_GLXAREA
    #include <GL/GLwMDrawA.h>
 #else

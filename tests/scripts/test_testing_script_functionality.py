@@ -712,15 +712,21 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "coverage": True,
                 "build_dir": tempfile.mkdtemp(),
             },
+            # " echo ======= REFUSING TO GO TO codecov.io ======== ; "
+            # there may be a security issue with getting the script this way:
+            # apparently there is a security issue with codecov, we must
+            # investigate; however, this currently is NOT be being run in
+            # the CircleCI tests ---it probably should not be used, either,
+            # but we should hold a static version of the script that is
+            # reliable (which would required occasional checks for updates)
             "expected_call_template": (
                 "cd {params['args_in']['build_dir']};"
                 "cmake -GNinja {TESTS_DIR.parent};"
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
                 "ninja pytest;"
                 " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
-                " echo ======= REFUSING TO GO TO codecov.io ======== "
-                # there may be a security issue with getting the script this way
-                # " bash -c 'bash <(curl -s https://codecov.io/bash)'"
+                "echo ======= CAREFUL GOING TO codecov.io ======== ; "
+                "bash -c 'bash <(curl -s https://codecov.io/bash)'"
             ),
         },
     ],

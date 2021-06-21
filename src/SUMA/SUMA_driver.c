@@ -241,7 +241,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "        -mobile_do NIML_DO_STRING: Mobile version of -fixed_do\n"
 "        -Mobile_do NIML_DO_STRING: Mobile version of -Fixed_do\n"
    , uDS_show_surf, uDS_node_xyz );
-if (detail > 1) { 
+if (detail > 1) {
    printf(
 "\n"
 " ---------------------------------------------\n"
@@ -319,7 +319,7 @@ if (detail > 1) {
 "                           you'd set with env: SUMA_NumForeSmoothing\n"
 "        -N_final_smooth n: Number of final color smoothing iterations\n"
 "                           Same as suma's interactive '*' key or what\n"
-"                           you'd set with env: SUMA_NumForeSmoothing\n" 
+"                           you'd set with env: SUMA_NumForeSmoothing\n"
 "     + Example viewer_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
 "        - a series of commands that should be obvious.\n"
@@ -334,7 +334,7 @@ if (detail > 1) {
 "                      DUP's default is set by the value of AFNI_ANIM_DUP\n"
 "                      environment variable. \n"
 "                      To set DUP back to its default value,\n"
-"                      use -anim_dup 0.\n" 
+"                      use -anim_dup 0.\n"
 "       -save_as PREFIX.EXT: Save image(s) in recorder\n"
 "                             in the format determined by\n"
 "                             extension EXT.\n"
@@ -355,13 +355,13 @@ if (detail > 1) {
 "       currently open from SUMA.\n"
 "       -------------------------------------\n"
 "%s"
-"\n"                            
+"\n"
 " o object_cont: Apply settings to object controller.\n"
 " o surf_cont: Apply settings to surface controller.\n"
 "     Note that for most cases, the use of object_cont and surf_cont is\n"
 "     interchangeable.\n"
 "     + Optional parameters for action surf_cont:\n"
-"       (Parameter names reflect GUI labels.)\n"  
+"       (Parameter names reflect GUI labels.)\n"
 "       -surf_label S_LABEL: A label to identify the target surface\n"
 "       -load_dset DSET: Load a dataset\n"
 "           ! NOTE: When using -load_dset you can follow it\n"
@@ -400,7 +400,7 @@ if (detail > 1) {
 "       -I_range IR0 IR1: set intensity range from IR0 to IR1.\n"
 "                         If only one number is given, the range\n"
 "                         is symmetric from -|IR0| to |IR0|.\n"
-"       -shw_0 y/n      or \n" 
+"       -shw_0 y/n      or \n"
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
 "       -Dsp MODE: Set the viewing mode of the current DSET.\n"
 "                  MODE is one of XXX, Con, Col, or 'C&C' \n"
@@ -425,7 +425,7 @@ if (detail > 1) {
 "       -UseClst y/n: Turn on/off clustering\n"
 "       -setSUMAenv \"'ENVname=ENVvalue'\": Set an ENV in SUMA. Note that\n"
 "                      most SUMA env need to be set at SUMA's launch time. \n"
-"                      Setting the env from DriveSuma may not achieve what \n" 
+"                      Setting the env from DriveSuma may not achieve what \n"
 "                      you want, so consider using suma's -setenv instead.\n"
 "       -write_surf_cont_help FILE.txt: Write help output for surface \n"
 "                      controller uses into file FILE.txt (in append mode)\n"
@@ -529,13 +529,13 @@ if (detail > 1) {
 "%s"
 "%s"
 "\n"
-               , uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, 
+               , uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont,
                  uDS_tract_cont,
-      (detail> 1) ? sio:"use -help for I/O detail\n",  
+      (detail> 1) ? sio:"use -help for I/O detail\n",
       (detail> 1) ? s:"use -help for misc. help basics\n");
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;
       if (snido) SUMA_free(snido); snido=NULL;
-      /* s = SUMA_New_Additions(0, 1); 
+      /* s = SUMA_New_Additions(0, 1);
          printf("%s\n", s);SUMA_free(s); s = NULL; */
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -553,23 +553,23 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
    SUMA_SO_File_Type tp = SUMA_FT_NOT_SPECIFIED;
    SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!com) { SUMA_S_Err("NULL command"); SUMA_RETURN(NOPE); }
    SUMA_LHv("Called with %s\n", com);
    SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
    act = NULL;
    SUMA_COPY_TO_STRING(com, pos, act); com = pos;
    if (!act) { SUMA_S_Err("No action found"); SUMA_RETURN(NOPE); }
-   
+
    ans = YUP;
    SUMA_TO_LOWER(act);
    if (strcmp((act), "show_surf") == 0) {
       SO = SUMA_ShowSurfComToSO(com);
       SUMA_LHv("Sending Surface %s\n", SO->Label); /* send the surface */
       SUMA_SendSumaNewSurface(SO, cs);
-      if (EchoNel) 
+      if (EchoNel)
          SUMA_S_Warn("Sorry, no echo for show_surf. Complain to author.");
    } else if (strcmp((act), "node_xyz") == 0) {
       SO = SUMA_NodeXYZComToSO(com);
@@ -577,11 +577,11 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
-      if (EchoNel) 
+      if (EchoNel)
          SUMA_S_Warn("Sorry, no echo for node_xyz. Complain to author.");
    } else if (strcmp((act), "load_dset") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending LoadDset to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
@@ -591,7 +591,7 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "load_col") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending LoadCol to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
@@ -601,37 +601,37 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending SetSurfCont to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
-      NI_free_element(ngr); ngr = NULL; 
+      NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "object_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending SetObjectCont to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
-      NI_free_element(ngr); ngr = NULL; 
+      NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "viewer_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending SetViewerCont to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
-      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);      
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "recorder_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending SetRecorderCont to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
@@ -645,10 +645,10 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       int argtc = 0;
 
       /* change com to a bunch of arguments */
-      argt = SUMA_com2argv(com, &argtc); 
+      argt = SUMA_com2argv(com, &argtc);
 
       if (argtc != 2) {
-         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n", 
+         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n",
                         argtc-1, argt[1]);
          ans = NOPE;
       }
@@ -656,13 +656,13 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       SUMA_drive_set_outstream(outplug);
    } else if (strcmp((act), "get_label") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending get_label to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
-      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);      
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
   } else if (strcmp((act), "sleep") == 0) {
       double slp;
@@ -670,10 +670,10 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       int argtc = 0;
 
       /* change com to a bunch of arguments */
-      argt = SUMA_com2argv(com, &argtc); 
+      argt = SUMA_com2argv(com, &argtc);
 
       if (argtc != 2) {
-         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n", 
+         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n",
                         argtc-1, argt[1]);
          ans = NOPE;
       }
@@ -685,11 +685,11 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       char **argt=NULL, *msg=NULL;
       int argtc = 0;
       /* change com to a bunch of arguments */
-      argt = SUMA_com2argv(com, &argtc); 
+      argt = SUMA_com2argv(com, &argtc);
       if (argtc < 2) {
          SUMA_PAUSE_PROMPT("Pausing DriveSuma.\nDo something to proceed.\n");
       } else {
-        for (i=1; i<argtc; ++i) 
+        for (i=1; i<argtc; ++i)
             msg = SUMA_append_replace_string(msg, argt[i], " ", 1);
         SUMA_PAUSE_PROMPT(msg);
       }
@@ -697,19 +697,19 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       argt = SUMA_free_com_argv(argt, &argtc);
    } else if (strcmp((act), "kill_suma") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
-         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending kill_suma to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
-      
+
       if (cs) {
          if (1) {
-            /* go bad anyway without waiting for stream to go bad 
+            /* go bad anyway without waiting for stream to go bad
             because suma will be dying. No point in waiting if
-            if there was a communication error. 
+            if there was a communication error.
                   Added per Yaroslav Halchenko's request     Sept 2013 */
             cs->GoneBad = YUP;
          } else {
@@ -717,13 +717,13 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
          }
       }
       NI_free_element(ngr); ngr = NULL;
-      ans = -1; 
+      ans = -1;
    } else {
-      fprintf(SUMA_STDERR, 
+      fprintf(SUMA_STDERR,
                "Error %s: Action '%s' not supported.\n", FuncName, act);
       ans = NOPE;
    }
-   
+
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (act) SUMA_free(act);
    SUMA_RETURN(ans);
@@ -732,14 +732,14 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
                   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_DriveSuma_ParseInput"}; 
+   static char FuncName[]={"SUMA_DriveSuma_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->com = NULL;
    Opt->N_com = 0;
@@ -779,13 +779,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
             Opt->s = SUMA_copy_string("stderr:");
          } else {
             Opt->s = SUMA_append_replace_string("file:",argv[kar],"",0);
-         }         
+         }
          brk = YUP;
       }
-      
+
       if (strcmp(argv[kar], "-help_nido") == 0) {
          char *s = SUMA_NIDO_Info();
-         fprintf (SUMA_STDOUT,"%s\n", s); 
+         fprintf (SUMA_STDOUT,"%s\n", s);
          SUMA_free(s); s = NULL;
          exit (0);
       }
@@ -797,17 +797,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-C_demo") == 0))
       {
          Opt->b1 = 1;
-         brk = YUP;  
+         brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argv[kar], "-examples") == 0) ) ) {
          fprintf(SUMA_STDOUT,"#Example commands for running DriveSuma\n\n");
          fprintf(SUMA_STDOUT,"#show_surf action\n%s\n", uDS_show_surf);
@@ -816,7 +816,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
          fprintf(SUMA_STDOUT,"#recorder_cont action\n%s\n", uDS_recorder_cont);
          fprintf(SUMA_STDOUT,"#surf_cont action\n%s\n", uDS_surf_cont);
          fprintf(SUMA_STDOUT,"#Adieu\n%s\n", uDS_kill_suma);
-         exit(0);          
+         exit(0);
       }
 
       if (!brk && (strcmp(argv[kar], "-com") == 0))
@@ -826,15 +826,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
             fprintf (SUMA_STDERR, "need love after -com \n");
             exit (1);
          }
-         
-         Opt->com = (char **)SUMA_realloc(Opt->com, 
+
+         Opt->com = (char **)SUMA_realloc(Opt->com,
                                  sizeof(char *)*(Opt->N_com+1));
          Opt->com[Opt->N_com] = NULL;
          ++kar;
-         do { 
+         do {
             SUMA_LH("Now getting %d/%d: %s", kar, argc, argv[kar]);
-            Opt->com[Opt->N_com] = 
-               SUMA_append_replace_string (Opt->com[Opt->N_com], 
+            Opt->com[Opt->N_com] =
+               SUMA_append_replace_string (Opt->com[Opt->N_com],
                                            argv[kar], " ", 1);
             ++kar;
             brk = NOPE;
@@ -846,25 +846,25 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
          ++Opt->N_com;
          brk = YUP;
       }
-      
-      
+
+
       if (!brk && (!ps || !ps->arg_checked[kar])) {
 			SUMA_S_Errv("Option %s not valid, or requires preceding -com option\n"
                      "Try -help for usage\n", argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
 			if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-         SUMA_RETURN(NULL); 
-		} else {	
+         SUMA_RETURN(NULL);
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
-SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, 
-                                    float *Key_pause, int *Key_redis, 
+SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
+                                    float *Key_pause, int *Key_redis,
                                     char **strgvalp)
 {
    static char FuncName[]={"SUMA_ParseKeyModifiers"};
@@ -873,18 +873,18 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
    double dv;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
-   
+
    *Key_mult = 1;
    *Key_pause = 0.0;
    *Key_redis = 0;
    if (!strgvalp || *strgvalp) {
       SUMA_S_Err("strgvalp is NULL or point to not NULL");
-   }  
+   }
    if (!keyopt || strncmp(keyopt,"-key", 4)) {
       SUMA_S_Errv("NULL or bad keyopt %s", SUMA_CHECK_NULL_STR(keyopt));
       SUMA_RETURN(NOPE);
    }
-   Found = 1; 
+   Found = 1;
    SUMA_LHv("keyopt=%s\n", keyopt);
    cccp = keyopt;
    do {
@@ -896,8 +896,8 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
             case 'r':
                SUMA_ADVANCE_PAST_INT(cccp, v, Found);
                if (!Found) {
-                  fprintf (SUMA_STDERR, 
-                           "Failed to parse number after :r in %s\n", 
+                  fprintf (SUMA_STDERR,
+                           "Failed to parse number after :r in %s\n",
                            keyopt);
                   SUMA_RETURN(NOPE);
                }
@@ -911,8 +911,8 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
                ++cccp;  /* touchy for floats*/
                SUMA_ADVANCE_PAST_NUM(cccp, dv, Found);
                if (!Found) {
-                  fprintf (SUMA_STDERR, 
-                           "Failed to parse number after :s in %s\n", 
+                  fprintf (SUMA_STDERR,
+                           "Failed to parse number after :s in %s\n",
                            keyopt);
                   SUMA_RETURN(NOPE);
                }
@@ -936,7 +936,7 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
       }
    } while (cccp && cccp[0] && Found);
 
-   SUMA_RETURN(YUP);   
+   SUMA_RETURN(YUP);
 }
 /*
 A function for parsing command command options.
@@ -953,27 +953,27 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    /* parse 'em */
    kar = 1;
    brk = NOPE;
 	if (LocalHead) {
-      fprintf(SUMA_STDERR, 
+      fprintf(SUMA_STDERR,
                "%s verbose: Parsing command line...\n"
-               "Have %d entries with argt[0]='%s'", 
+               "Have %d entries with argt[0]='%s'",
                FuncName, argtc, argt[0]);
 	}
    while (kar < argtc) { /* loop accross command ine options */
-      SUMA_LHv("Now processing argt[%d]=%s\n", 
+      SUMA_LHv("Now processing argt[%d]=%s\n",
                kar, SUMA_CHECK_NULL_STR(argt[kar]));
       if (!argt[kar]) {
-         SUMA_S_Errv("Null entry!: argt[%d]=%s\n", 
+         SUMA_S_Errv("Null entry!: argt[%d]=%s\n",
                      kar, SUMA_CHECK_NULL_STR(argt[kar]));
          SUMA_RETURN(NOPE);
       }
-      
-      if (!brk && (  (strcmp(argt[kar], "-label") == 0) || 
-                     (strcmp(argt[kar], "-surf_label") == 0) || 
+
+      if (!brk && (  (strcmp(argt[kar], "-label") == 0) ||
+                     (strcmp(argt[kar], "-surf_label") == 0) ||
                      (strcmp(argt[kar], "-so_label") == 0)))
       {
          if (kar+1 >= argtc)
@@ -982,23 +982,23 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
-         if (!NI_get_attribute(ngr, "SO_label")) 
+         if (!NI_get_attribute(ngr, "SO_label"))
             NI_set_attribute(ngr, "SO_label", argt[++kar]);
-         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { 
-            SUMA_S_Err("Two options setting different  surface labels"); 
-            SUMA_RETURN(0); 
+         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) {
+            SUMA_S_Err("Two options setting different  surface labels");
+            SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (  (strcmp(argt[kar], "-setSUMAenv") == 0) ))
       {
          int ienv = 0, closed = 0;
          char attr[32]={""}, *aval=NULL;
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
 "need a string with 'NAME = VALUE' after -setSUMAenv (obey quotes and spaces) %d %d\n", kar, argtc);
             SUMA_RETURN(0);
          }
@@ -1014,26 +1014,26 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
                         "Have open %s\n", argt[kar]);
             SUMA_RETURN(0);
-         } 
-         
+         }
+
          aval = SUMA_copy_quoted(argt[kar],NULL,'\0','\0', 1, 0, &closed);
-         
+
          if (!aval) {
             SUMA_S_Err("Failed to get env value");
             SUMA_RETURN(0);
          }
-         SUMA_LHv("Adding >>%s<< %d \n", aval, closed); 
+         SUMA_LHv("Adding >>%s<< %d \n", aval, closed);
          if (!closed) {
             SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
                         "Have unterminated %s\n", aval);
             SUMA_RETURN(0);
-         } 
+         }
          NI_set_attribute(ngr, attr, aval);
          SUMA_free(aval); aval=NULL;
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-switch_surf") == 0) ))
       {
          if (kar+1 >= argtc)
@@ -1042,17 +1042,17 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
-         if (!NI_get_attribute(ngr, "SO_label")) 
+         if (!NI_get_attribute(ngr, "SO_label"))
             NI_set_attribute(ngr, "SO_label", argt[++kar]);
-         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { 
-            SUMA_S_Err("Two options setting different  surface labels"); 
-            SUMA_RETURN(0); 
+         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) {
+            SUMA_S_Err("Two options setting different  surface labels");
+            SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "switch_surf", argt[kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-switch_cmap") == 0) ))
       {
          if (kar+1 >= argtc)
@@ -1065,12 +1065,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-switch_cmode") == 0) ))
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "need a color mapping mode after -switch_cmode \n");
             SUMA_RETURN(0);
          }
@@ -1080,15 +1080,15 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
              strcasecmp(argt[kar],"dir") &&
              strcasecmp(argt[kar],"int")) {
             fprintf(SUMA_STDERR,
-                  "CMODE %s not allowed. Choose from 'NN', 'Dir', or 'Int'\n", 
-                  argt[kar]);   
+                  "CMODE %s not allowed. Choose from 'NN', 'Dir', or 'Int'\n",
+                  argt[kar]);
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "switch_cmode", argt[kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-load_cmap") == 0) ))
       {
          if (kar+1 >= argtc)
@@ -1101,7 +1101,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-dset_label") == 0) ))
       {
          if (kar+1 >= argtc)
@@ -1114,7 +1114,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-switch_dset") == 0) ))
       {
          if (kar+1 >= argtc)
@@ -1128,7 +1128,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-load_dset") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1136,7 +1136,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a dset file after -load_dset \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          fn = SUMA_ParseFname(argt[++kar], SUMAg_CF->cwd);
          /* SUMA_ShowParsedFname(fn, NULL); */
@@ -1145,7 +1145,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-load_col") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1153,7 +1153,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a color file after -load_col \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          fn = SUMA_ParseFname(argt[++kar], SUMAg_CF->cwd);
          /* SUMA_ShowParsedFname(fn, NULL); */
@@ -1162,7 +1162,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-I_sb") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1170,13 +1170,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need an index after -I_sb \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "I_sb", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-I_range") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1184,11 +1184,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need at least one value after -I_range \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (  kar < argtc && 
-                  argt[kar] && 
+         while (  kar < argtc &&
+                  argt[kar] &&
                   SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
@@ -1204,11 +1204,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }else {
             if (nv == 1) { dv3[0] = -SUMA_ABS(dv3[0]); dv3[1] = -dv3[0]; }
-            else if (dv3[0] > dv3[1]) { 
-               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
+            else if (dv3[0] > dv3[1]) {
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd;
             }
             /* have range, set it please */
-            SUMA_free(stmp); stmp = NULL; 
+            SUMA_free(stmp); stmp = NULL;
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
             NI_set_attribute(ngr, "I_range", stmp);
@@ -1217,7 +1217,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-bkg_col") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1225,11 +1225,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need at least 3 values after -bkg_col \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (  kar < argtc && 
-                  argt[kar] && 
+         while (  kar < argtc &&
+                  argt[kar] &&
                   SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
@@ -1248,7 +1248,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }else {
             /* have range, set it please */
-            SUMA_free(stmp); stmp = NULL; 
+            SUMA_free(stmp); stmp = NULL;
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f, %f, %f", dv12[0], dv12[1], dv12[2], dv12[3]);
             NI_set_attribute(ngr, "bkg_col", stmp);
@@ -1257,7 +1257,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-autorecord") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1265,7 +1265,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a prefix after -autorecord\n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "autorecord", argt[++kar]);
          argt[kar][0] = '\0';
@@ -1279,7 +1279,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need XXX, Col, Con, or C&C after -Dsp \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "Dsp", argt[++kar]);
          argt[kar][0] = '\0';
@@ -1293,13 +1293,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need an index after -B_sb \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "B_sb", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-B_range") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1307,11 +1307,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need at least one value after -B_range \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (  kar < argtc && 
-                  argt[kar] && 
+         while (  kar < argtc &&
+                  argt[kar] &&
                   SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
@@ -1327,11 +1327,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }else {
             if (nv == 1) { dv3[0] = -SUMA_ABS(dv3[0]); dv3[1] = -dv3[0]; }
-            else if (dv3[0] > dv3[1]) { 
-               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
+            else if (dv3[0] > dv3[1]) {
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd;
             }
             /* have range, set it please */
-            SUMA_free(stmp); stmp = NULL; 
+            SUMA_free(stmp); stmp = NULL;
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
             NI_set_attribute(ngr, "B_range", stmp);
@@ -1340,7 +1340,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-B_scale") == 0) ) )
       {
          if (kar+2 >= argtc)
@@ -1348,11 +1348,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need two values after -B_scale \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (  kar < argtc && 
-                  argt[kar] && 
+         while (  kar < argtc &&
+                  argt[kar] &&
                   SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
@@ -1367,11 +1367,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_S_Err("Bad scale string.");
             SUMA_RETURN(0);
          }else {
-            if (dv3[0] > dv3[1]) { 
-               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
+            if (dv3[0] > dv3[1]) {
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd;
             }
             /* have scale, set it please */
-            SUMA_free(stmp); stmp = NULL; 
+            SUMA_free(stmp); stmp = NULL;
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
             NI_set_attribute(ngr, "B_scale", stmp);
@@ -1380,7 +1380,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-T_sb") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1388,13 +1388,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need an index after -T_sb \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "T_sb", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-T_val") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1402,13 +1402,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a value after -T_val \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "T_val", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-Dim") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1416,13 +1416,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a value after -Dim \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "Dim", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-Opa") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -1430,13 +1430,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a value after -Opa \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "Opa", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-Clst") == 0) ||
                     (strcmp(argt[kar], "-Clust") == 0) ) )
       {
@@ -1445,11 +1445,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need two values after -Clust \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (  kar < argtc && 
-                  argt[kar] && 
+         while (  kar < argtc &&
+                  argt[kar] &&
                   SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
@@ -1465,7 +1465,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }else {
             /* have range, set it please */
-            SUMA_free(stmp); stmp = NULL; 
+            SUMA_free(stmp); stmp = NULL;
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
             NI_set_attribute(ngr, "Clst", stmp);
@@ -1474,7 +1474,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
-      
+
       if (!brk && (  (strcmp(argt[kar], "-UseClst") == 0) ||
                      (strcmp(argt[kar], "-UseClust") == 0) ) )
       {
@@ -1485,9 +1485,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "UseClst", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "UseClst", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -UseClust \n");
@@ -1496,23 +1496,23 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-   
-      
+
+
       if (!brk && (strcmp(argt[kar], "-viewer") == 0))
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "need a viewer (A-F) or (0-5) after -viewer \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "SV_id", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-1_only") == 0))
       {
          if (kar+1 >= argtc)
@@ -1522,9 +1522,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "1_only", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "1_only", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -1_only \n");
@@ -1544,9 +1544,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "shw_0", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "shw_0", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -show_0 \n");
@@ -1555,8 +1555,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
-      
+
+
       if (!brk && (strcmp(argt[kar], "-view_dset") == 0))
       {
          if (kar+1 >= argtc)
@@ -1566,9 +1566,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "view_dset", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "view_dset", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_dset \n");
@@ -1577,7 +1577,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-view_surf") == 0))
       {
          if (kar+1 >= argtc)
@@ -1587,9 +1587,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "view_surf", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "view_surf", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
@@ -1598,7 +1598,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-RenderMode") == 0))
       {
          if (kar+1 >= argtc)
@@ -1608,15 +1608,15 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')  
+         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')
             NI_set_attribute(ngr, "view_surf", "Viewer");
-         else if (argt[kar][0] == 'F' || argt[kar][0] == 'f')  
+         else if (argt[kar][0] == 'F' || argt[kar][0] == 'f')
             NI_set_attribute(ngr, "view_surf", "Fill");
-         else if (argt[kar][0] == 'L' || argt[kar][0] == 'l')  
+         else if (argt[kar][0] == 'L' || argt[kar][0] == 'l')
             NI_set_attribute(ngr, "view_surf", "Line");
-         else if (argt[kar][0] == 'P' || argt[kar][0] == 'p')  
+         else if (argt[kar][0] == 'P' || argt[kar][0] == 'p')
             NI_set_attribute(ngr, "view_surf", "Points");
-         else if (argt[kar][0] == 'H' || argt[kar][0] == 'h')  
+         else if (argt[kar][0] == 'H' || argt[kar][0] == 'h')
             NI_set_attribute(ngr, "view_surf", "Hide");
          else {
             fprintf (SUMA_STDERR, "need a valid string after -view_surf \n");
@@ -1625,18 +1625,18 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-TransMode") == 0))
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "need a valid string/value after -TransMode \n");
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')  
+         if (argt[kar][0] == 'V' || argt[kar][0] == 'v')
             NI_set_attribute(ngr, "trans_surf", "Viewer");
          else if (strstr(argt[kar],"%")) {
             char stmp[32]={""};
@@ -1646,7 +1646,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             stmp[N]='\0';
             N = (int)strtol(stmp, NULL,10);
             if (N < 0 || N > 100) {
-               fprintf (SUMA_STDERR, 
+               fprintf (SUMA_STDERR,
                         "Tansparency percentage should be between 0 and 100\n"
                         "have %d from %s\n", N, argt[kar]);
                SUMA_RETURN(0);
@@ -1656,38 +1656,38 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          } else { /* read an int, should be between 0 and 16 */
             N = (int)strtol(argt[kar], NULL,10);
             if (N < 0 || N > 100) {
-               fprintf (SUMA_STDERR, 
+               fprintf (SUMA_STDERR,
                         "Tansparency index should be between 0 and 16\n"
                         "have %d from %s\n", N, argt[kar]);
                SUMA_RETURN(0);
             }
             NI_SET_INT(ngr, "trans_surf", N);
-         } 
+         }
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-masks") == 0))
       {
          NI_set_attribute(ngr, "Masks", "Click!");
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-2xmasks") == 0))
       {
          NI_set_attribute(ngr, "2xMasks", "Click!");
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-delete_all_masks") == 0))
       {
          NI_set_attribute(ngr, "Delete_All_Masks", "Click!");
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-load_masks") == 0))
       {
          if (kar+1 >= argtc)
@@ -1701,7 +1701,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-save_masks") == 0))
       {
          if (kar+1 >= argtc)
@@ -1715,7 +1715,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ((strcmp(argt[kar], "-view_surf_cont") == 0) ||
                    (strcmp(argt[kar], "-view_object_cont") == 0)) )
       {
@@ -1726,9 +1726,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "View_Surf_Cont", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "View_Surf_Cont", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf_cont \n");
@@ -1737,7 +1737,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_suma_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1748,11 +1748,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Suma_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_suma_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1763,11 +1763,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Suma_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_suma_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1778,7 +1778,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Suma_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
@@ -1792,11 +1792,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Surf_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_surf_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1807,11 +1807,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Surf_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_surf_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1822,11 +1822,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Surf_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_tract_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1837,11 +1837,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Tract_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_tract_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1852,11 +1852,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Tract_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_tract_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1867,11 +1867,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Tract_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_mask_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1882,11 +1882,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mask_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_mask_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1897,11 +1897,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Mask_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_mask_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1912,11 +1912,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mask_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_vol_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1927,11 +1927,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Vol_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_vol_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1942,11 +1942,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Vol_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_vol_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1957,11 +1957,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Vol_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_graph_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1972,11 +1972,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Graph_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_graph_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -1987,11 +1987,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_Graph_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_graph_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2002,11 +2002,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Graph_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_roi_cont_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2017,11 +2017,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_ROI_Cont_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-snap_roi_cont_widgets") == 0))
       {
          if (kar+1 >= argtc)
@@ -2032,11 +2032,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Snap_ROI_Cont_Widgets", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_roi_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2047,12 +2047,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_ROI_Cont_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
-      
+
+
       if (!brk && (strcmp(argt[kar], "-write_mouse_keyb_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2063,11 +2063,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mouse_Keyb_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_mouse_keyb_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2078,11 +2078,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mouse_Keyb_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_mouse_cmap_keyb_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2093,11 +2093,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mouse_Cmap_Keyb_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-write_mouse_cmap_keyb_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -2108,40 +2108,40 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mouse_Cmap_Keyb_Sphinx_Help", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
-      
-      
+
+
+
       if (!brk && (strncmp(argt[kar], "-key", 4) == 0))
       {
          int N_Key = 0, Key_mult = 1, Key_redis= 0;
          char *Key_strval=NULL;
          char stmp[100];
          float Key_pause = 0;
-         
+
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a key after -key \n");
             SUMA_RETURN(0);
          }
-         
-         if (!SUMA_ParseKeyModifiers(argt[kar], 
-                                    &Key_mult, 
-                                    &Key_pause, 
-                                    &Key_redis, 
+
+         if (!SUMA_ParseKeyModifiers(argt[kar],
+                                    &Key_mult,
+                                    &Key_pause,
+                                    &Key_redis,
                                     &Key_strval)) {
             SUMA_S_Errv("Failed in parsing %s\n", argt[kar]);
             SUMA_RETURN(0);
-         } 
+         }
 
-         
+
          argt[kar][0] = '\0';
          ++kar;
          if (!NI_get_attribute(ngr,"N_Key")) NI_SET_INT(ngr,"N_Key", 0);
-         NI_GET_INT(ngr, "N_Key", N_Key); 
+         NI_GET_INT(ngr, "N_Key", N_Key);
          sprintf(stmp, "Key_%d", N_Key);
          NI_SET_STR(ngr, stmp, argt[kar]);
          sprintf(stmp, "Key_rep_%d", N_Key);
@@ -2160,7 +2160,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          NI_SET_INT(ngr,"N_Key", N_Key);
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-load_view") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2168,13 +2168,13 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a .vvs file after -load_view \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "VVS_FileName", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-N_foreg_smooth") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2182,7 +2182,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need an integer after -N_foreg_smooth \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; nums = (int)strtol(argt[kar], NULL,10);
          if (nums < 0 || nums > 500) {
@@ -2194,7 +2194,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-N_final_smooth") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2202,7 +2202,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need an integer after -N_final_smooth \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar; nums = (int)strtol(argt[kar], NULL,10);
          if (nums < 0 || nums > 500) {
@@ -2214,7 +2214,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-inout_notify") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2222,12 +2222,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a value after -inout_notify\n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')
             NI_set_attribute(ngr, "inout_notify", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')
             NI_set_attribute(ngr, "inout_notify", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
@@ -2235,17 +2235,18 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          brk = YUP;
-         
+
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-load_do") == 0) ) )
       {
+        fprintf(SUMA_STDERR, "Processing .do file\n");
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a .do file after -load_do \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "DO_FileName", argt[++kar]);
          argt[kar][0] = '\0';
@@ -2264,7 +2265,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          if (argt[kar][1] == 'F' || argt[kar][1] == 'M') showit=1;
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "need a string after -fixed_do (or -mobile_do)\n");
             SUMA_RETURN(0);
          }
@@ -2289,7 +2290,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_S_Errv("Could not find niml element starting at %s\n",
                         argt[kar]);
          } else {
-            /* check that the new element is OK, that function reads 
+            /* check that the new element is OK, that function reads
                just one element*/
             if (!(nel=NI_read_element_fromstring(qar))) {
                SUMA_S_Errv("Could not parse -fixed_do %s\n"
@@ -2298,17 +2299,17 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                exit(1);
             }
             if (showit) SUMA_ShowNel(nel);
-            if (nel) NI_free_element(nel); nel=NULL;   
+            if (nel) NI_free_element(nel); nel=NULL;
             sbuf = SUMA_append_replace_string(sbuf, qar,"",1);
             SUMA_free(qar); qar=NULL;
          }
-         
+
          NI_set_attribute(ngr, "DO_FileName", sbuf);
          SUMA_free(sbuf); sbuf=NULL;
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-anim_dup") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2316,19 +2317,19 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a positive integer after -anim_dup \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
-         
+
          if (atoi(argt[kar]) < 0) {
             fprintf (SUMA_STDERR, "need a positive integer after -anim_dup \n");
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "Anim_Dup", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-save_as") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -2336,11 +2337,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a PREFIX.EXT  after -save_as \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
-         
+
          NI_set_attribute(ngr, "Save_As", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
@@ -2351,7 +2352,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need 2 numbers after -save_from \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
          NI_SET_INT(ngr, "Save_From", atoi(argt[kar]));
          argt[kar][0] = '\0';++kar;
@@ -2359,41 +2360,41 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-save_last") == 0) ) )
       {
-         
+
          NI_SET_INT(ngr, "Save_From", -1);
          NI_SET_INT(ngr, "Save_To", 0);
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+
       if (!brk && ( (strcmp(argt[kar], "-save_index") == 0) ) )
       {
-         
+
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a number after -save_index \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
          NI_SET_INT(ngr, "Save_From", atoi(argt[kar]));
          NI_SET_INT(ngr, "Save_To", atoi(argt[kar]));
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
       if (!brk && ( (strcmp(argt[kar], "-save_last_n") == 0) ) )
       {
-         
+
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a number after -save_last_n \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) <= 0) {
             fprintf (SUMA_STDERR, "need a number > 0 after -save_last_n\n");
@@ -2401,21 +2402,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          NI_SET_INT(ngr, "Save_From", -atoi(argt[kar]));
          NI_SET_INT(ngr, "Save_To", 0);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
       if (!brk && ( (strcmp(argt[kar], "-save_all") == 0) ) )
       {
-         
+
          NI_SET_INT(ngr, "Save_From", 0);
          NI_SET_INT(ngr, "Save_To", 0);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      if (  !brk && 
-            (  (strcmp(argt[kar], "-caller_working_dir") == 0) || 
+      if (  !brk &&
+            (  (strcmp(argt[kar], "-caller_working_dir") == 0) ||
                (strcmp(argt[kar], "-cwd") == 0)) )
       {
          if (kar+1 >= argtc)
@@ -2423,16 +2424,16 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need a path after -caller_working_dir \n");
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
-         
+
          NI_set_attribute(ngr, "Caller_Working_Dir", argt[kar]);
-         
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
-      if (  !brk && 
+
+      if (  !brk &&
             (  (strcmp(argt[kar], "-viewer_width") == 0) ||
                (strcmp(argt[kar], "-width") == 0) ) )
       {
@@ -2441,23 +2442,23 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             fprintf (SUMA_STDERR, "need 1 number after %s \n", argt[kar]);
             SUMA_RETURN(0);
          }
-         
+
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 2000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for width in pixels! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindWidth", argt[kar]);
-         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
-                                                      need to setup viewer, 
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating
+                                                      need to setup viewer,
                                                       a la vvs */
-        
+
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
-      if (  !brk && 
+
+      if (  !brk &&
             (  (strcmp(argt[kar], "-viewer_height") == 0) ||
                (strcmp(argt[kar], "-height") == 0) ) )
       {
@@ -2468,18 +2469,18 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 2000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for height in pixels! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindHeight", argt[kar]);
-         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
-                                                      need to setup viewer, 
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating
+                                                      need to setup viewer,
                                                       a la vvs */
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      if (  !brk && 
+      if (  !brk &&
             (  (strcmp(argt[kar], "-viewer_size") == 0)  ) )
       {
          if (kar+2 >= argtc)
@@ -2489,25 +2490,25 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 2000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for width in pixels! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindWidth", argt[kar]);
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 2000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for height in pixels! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindHeight", argt[kar]);
-         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
-                                                      need to setup viewer, 
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating
+                                                      need to setup viewer,
                                                       a la vvs */
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      if (  !brk && 
+      if (  !brk &&
             (  (strcmp(argt[kar], "-viewer_position") == 0)  ) )
       {
          if (kar+2 >= argtc)
@@ -2517,25 +2518,25 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for X in pixels. Range [0 4000].! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindX", argt[kar]);
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for Y in pixels!  Range [0 4000].\n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindY", argt[kar]);
-         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
-                                                      need to setup viewer, 
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating
+                                                      need to setup viewer,
                                                       a la vvs */
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      if (  !brk && 
+      if (  !brk &&
             (  (strcmp(argt[kar], "-controller_position") == 0)  ) )
       {
          if (kar+2 >= argtc)
@@ -2545,20 +2546,20 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for X in pixels. Range [0 4000].! \n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "ContX", argt[kar]);
          argt[kar][0] = '\0';++kar;
          if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "Have %d for Y in pixels!  Range [0 4000].\n", atoi(argt[kar]));
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "ContY", argt[kar]);
-         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
-                                                      need to setup viewer, 
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating
+                                                      need to setup viewer,
                                                       a la vvs */
          argt[kar][0] = '\0';
          brk = YUP;
@@ -2569,7 +2570,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                   "Option %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
          SUMA_RETURN(0);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -2586,14 +2587,14 @@ char ** SUMA_free_com_argv(char **argt, int *argtc)
 {
    static char FuncName[]={"SUMA_free_com_argv"};
    int i;
-   
+
    SUMA_ENTRY;
-   
+
    if (argt) {
-      for (i=0; i<*argtc; ++i) if (argt[i]) SUMA_free(argt[i]); 
+      for (i=0; i<*argtc; ++i) if (argt[i]) SUMA_free(argt[i]);
       SUMA_free(argt); argt = NULL;
    }
-   
+
    *argtc = -1;
    SUMA_RETURN(NULL);
 }
@@ -2603,17 +2604,17 @@ char ** SUMA_free_com_argv(char **argt, int *argtc)
    Turn a command into an argv, argc duo
    Free argv with SUMA_free_com_argv
 */
-char ** SUMA_com2argv(char *com, int *argtcp) 
+char ** SUMA_com2argv(char *com, int *argtcp)
 {
    static char FuncName[]={"SUMA_com2argv"};
    char **argt=NULL, *pos, *tp=NULL;
    int argtc = 0;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    *argtcp = -1;
-   
+
    /* change com to a bunch of arguments */
    /* get the type */
    SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
@@ -2624,7 +2625,7 @@ char ** SUMA_com2argv(char *com, int *argtcp)
    }
    SUMA_LHv("Adding >>>%s<<<\n", tp);
    argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+2)); {
-      argt[argtc] = SUMA_copy_string("drivesumacom"); ++argtc; 
+      argt[argtc] = SUMA_copy_string("drivesumacom"); ++argtc;
       argt[argtc] = tp; tp = NULL; ++argtc;
    }
    /* get whatever else follows */
@@ -2633,12 +2634,12 @@ char ** SUMA_com2argv(char *com, int *argtcp)
       tp=NULL;SUMA_COPY_TO_STRING(com, pos, tp); com = pos;
       SUMA_LHv("Adding other >>>%s<<<\n", tp);
       if (tp) {
-         argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); 
-         argt[argtc] = tp; tp = NULL; 
+         argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1));
+         argt[argtc] = tp; tp = NULL;
          ++argtc;
       }
    }
-   
+
    *argtcp = argtc;
    SUMA_RETURN(argt);
 }
@@ -2655,17 +2656,17 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    int  i = -1, ii, jj, kk, il, N_Spec=0, kar=0;
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    /* change com to a bunch of arguments */
-   argt = SUMA_com2argv(com, &argtc); 
+   argt = SUMA_com2argv(com, &argtc);
 
    /* now parse these fake options */
    pst = SUMA_Parse_IO_Args(argtc, argt, "-i;-t;-spec;-sv;");
    if (LocalHead) SUMA_Show_IO_args(pst);
-   
-   
+
+
    if (pst->s_N_surfnames + pst->i_N_surfnames + pst->t_N_surfnames != 1) {
       SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
       exit(1);
@@ -2689,7 +2690,7 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
+
    }
 
    /* now search for some extra options */
@@ -2704,14 +2705,14 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
             fprintf (SUMA_STDERR, "need a label after -surf_label \n");
             exit (1);
          }
-         
+
          if (SO->Label) SUMA_free(SO->Label);
          SO->Label = SUMA_copy_string(argt[++kar]);
          brk = YUP;
       }
-      
-      if (!brk && (  (strcmp(argt[kar], "-group") == 0) || 
-                     (strcmp(argt[kar], "-surf_group") == 0) || 
+
+      if (!brk && (  (strcmp(argt[kar], "-group") == 0) ||
+                     (strcmp(argt[kar], "-surf_group") == 0) ||
                      (strcmp(argt[kar], "-so_group") == 0)))
       {
          if (kar+1 >= argtc)
@@ -2719,14 +2720,14 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
             fprintf (SUMA_STDERR, "need a label after -surf_group \n");
             exit (1);
          }
-         
+
          if (SO->Group) SUMA_free(SO->Group);
          SO->Group = SUMA_copy_string(argt[++kar]);
          brk = YUP;
       }
-      
-      if (!brk && (  (strcmp(argt[kar], "-state") == 0) || 
-                     (strcmp(argt[kar], "-surf_state") == 0) || 
+
+      if (!brk && (  (strcmp(argt[kar], "-state") == 0) ||
+                     (strcmp(argt[kar], "-surf_state") == 0) ||
                      (strcmp(argt[kar], "-so_state") == 0)))
       {
          if (kar+1 >= argtc)
@@ -2734,48 +2735,48 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
             fprintf (SUMA_STDERR, "need a label after -surf_state \n");
             exit (1);
          }
-         
+
          if (SO->State) SUMA_free(SO->State);
          SO->State = SUMA_copy_string(argt[++kar]);
          brk = YUP;
       }
-      
-      if (!brk && (  (strcmp(argt[kar], "-norm_dir") == 0) || 
-                     (strcmp(argt[kar], "-surf_winding") == 0) )) 
+
+      if (!brk && (  (strcmp(argt[kar], "-norm_dir") == 0) ||
+                     (strcmp(argt[kar], "-surf_winding") == 0) ))
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "need a direction (cw or ccw) after -surf_winding \n");
             exit (1);
          }
          ++kar;
          if (  SUMA_iswordsame_ci("cw", argt[kar]) == 1 ||
-               SUMA_iswordsame_ci("in", argt[kar]) == 1 || 
+               SUMA_iswordsame_ci("in", argt[kar]) == 1 ||
                SUMA_iswordsame_ci("-1", argt[kar]) == 1 ) {
             SO->normdir = -1;
-         } else if ( SUMA_iswordsame_ci("ccw", argt[kar]) == 1 || 
-                     SUMA_iswordsame_ci("out", argt[kar]) == 1 || 
+         } else if ( SUMA_iswordsame_ci("ccw", argt[kar]) == 1 ||
+                     SUMA_iswordsame_ci("out", argt[kar]) == 1 ||
                      SUMA_iswordsame_ci("1", argt[kar]) == 1) {
             SO->normdir = 1;
          } else {
             fprintf (SUMA_STDERR,
                      "Error %s:\n"
                      "value %s not valid with -surf_winding "
-                     "(cw or ccw only acceptable)\n", 
+                     "(cw or ccw only acceptable)\n",
                                     FuncName, argt[kar]);
             exit(1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && !pst->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
                   "Error %s:\n"
                   "Option %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -2785,8 +2786,8 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
    if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }
    if (!SO->Label) {SO->Label = SUMA_copy_string("Benedictus"); }
-   if (SO->Label) { 
-      if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+   if (SO->Label) {
+      if (SO->idcode_str) SUMA_free(SO->idcode_str);
       SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); }
 
    if (LocalHead) {
@@ -2794,16 +2795,16 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    }
    /* clean up */
    argt = SUMA_free_com_argv(argt, &argtc);
-   
+
    if (pst) SUMA_FreeGenericArgParse(pst); pst = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
-   
+
    SUMA_RETURN(SO);
 }
 
@@ -2823,26 +2824,26 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    float *far = NULL;
    int ncol, nrow;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    /* change com to a bunch of arguments */
-   argt = SUMA_com2argv(com, &argtc); 
-   
+   argt = SUMA_com2argv(com, &argtc);
+
    /* now parse these fake options (have to do it, in case you need it later)*/
    pst = SUMA_Parse_IO_Args(argtc, argt, "-i;-t;-spec;-sv;");
    if (LocalHead) SUMA_Show_IO_args(pst);
 
    /* a necessary receptacle */
-   SO = SUMA_Alloc_SurfObject_Struct(1);  
-   
+   SO = SUMA_Alloc_SurfObject_Struct(1);
+
    /* parse 'em */
    kar = 1;
    brk = NOPE;
 	while (kar < argtc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-      if (!brk && (  (strcmp(argt[kar], "-label") == 0) || 
-                     (strcmp(argt[kar], "-surf_label") == 0) || 
+      if (!brk && (  (strcmp(argt[kar], "-label") == 0) ||
+                     (strcmp(argt[kar], "-surf_label") == 0) ||
                      (strcmp(argt[kar], "-so_label") == 0)) )
       {
          if (kar+1 >= argtc)
@@ -2850,12 +2851,12 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
             fprintf (SUMA_STDERR, "need a label after -label \n");
             exit (1);
          }
-         
+
          if (SO->Label) SUMA_free(SO->Label);
          SO->Label = SUMA_copy_string(argt[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argt[kar], "-xyz_1D") == 0))
       {
          if (kar+1 >= argtc)
@@ -2863,7 +2864,7 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
             fprintf (SUMA_STDERR, "need a 1D file after -xyz_1D \n");
             exit (1);
          }
-         
+
          far=SUMA_Load1D_s(argt[++kar], &ncol, &nrow, 1, 0);
          SO->N_Node = nrow;
          SO->NodeDim = ncol;
@@ -2872,17 +2873,17 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
          free(far); far = NULL;
          brk = YUP;
       }
-      
+
       if (!brk && !pst->arg_checked[kar]) {
 			SUMA_S_Err("Option %s not understood. Try -help for usage\n",
                     argt[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    if (!SO->NodeList) {
       SUMA_SurfaceObject *SOu=NULL;
 
@@ -2911,19 +2912,19 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
       SO->NodeList = SOu->NodeList; SOu->NodeList = NULL;
       SUMA_Free_Surface_Object(SOu); SOu = NULL;
    }
-   
+
    if (!SO->NodeList) {
       SUMA_S_Err("Have no XYZ coords! Did you use -node_xyz or -i, -spec, etc.");
       exit (1);
    }
-   
+
    /* fix the trimmings */
    if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
    if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }
    if (!SO->Label) {SO->Label = SUMA_copy_string("Benedictus"); }
-   if (SO->Label) { 
-      if (SO->idcode_str) SUMA_free(SO->idcode_str); 
-      SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); 
+   if (SO->Label) {
+      if (SO->idcode_str) SUMA_free(SO->idcode_str);
+      SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label);
    }
 
    if (LocalHead) {
@@ -2933,13 +2934,13 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    argt = SUMA_free_com_argv(argt, &argtc);
    if (pst) SUMA_FreeGenericArgParse(pst); pst = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
-   
+
    SUMA_RETURN(SO);
 }
 
@@ -2947,26 +2948,26 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
 NI_group *SUMA_ComToNgr(char *com, char *command)
 {
    static char FuncName[]={"SUMA_ComToNgr"};
-   NI_group *ngr = NULL;   
+   NI_group *ngr = NULL;
    char **argt=NULL, *pos, *tp=NULL;
    int argtc = 0, kar = 0;
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!com || !command) {
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NULL);
    }
    SUMA_LHv("Called with >%s<\n", com);
    /* change com to a bunch of arguments */
-   argt = SUMA_com2argv(com, &argtc); 
-   
+   argt = SUMA_com2argv(com, &argtc);
+
    ngr = NI_new_group_element();
    NI_rename_group(ngr, "EngineCommand");
    NI_set_attribute(ngr, "Command", command);
-   
+
    if (argtc > 0) {
       if (!SUMA_DriveSuma_ParseCommon(ngr, argtc, argt)) {
          SUMA_S_Err("Failed to parse common options.\n");
@@ -2974,14 +2975,14 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
          SUMA_RETURN(ngr);
       }
    }
-   
+
    /* parse left overs */
    kar = 1;
    brk = NOPE;
 	while (kar < argtc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (argt[kar][0] == '\0') { brk = YUP; } /* been take care of */
-      
+
       if (!brk) {
 			fprintf (SUMA_STDERR,
                   "Error %s:\n"
@@ -2990,7 +2991,7 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
                FuncName, argt[kar], NI_get_attribute(ngr, "Command"));
 			NI_free_element(ngr); ngr = NULL;
          SUMA_RETURN(ngr);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -3003,10 +3004,10 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
          NEL_WRITE_TX(ngr, "stderr:", suc);
       }
    }
-   
+
    /* clean up */
    argt = SUMA_free_com_argv(argt, &argtc);
-   
+
 
    SUMA_RETURN(ngr);
 }

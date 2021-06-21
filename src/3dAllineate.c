@@ -32,6 +32,8 @@
 #endif
 #endif
 
+#undef USE_OLD_BLOK_DEFAULTS  /* 21 Jul 2021 */
+
 #define MAXPAR   999    /* max number of parameters to optimize */
 #define PARC_FIX 1
 #define PARC_INI 2
@@ -44,7 +46,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define WARP_SHIFT    1   /* shift only */
 #define WARP_ROTATE   2   /* shift + rotate */
 #define WARP_SCALE    3   /* + xyz scaling */
-#define WARP_AFFINE   4   /* + shifts */
+#define WARP_AFFINE   4   /* + shears */
 
 /* for -1Dapply options */
 
@@ -1420,18 +1422,39 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
         "                   spheres or cubes or rhombic dodecahedra or\n"
         "                   truncated octahedra\n"
         "                 where 'r' is the size parameter in mm.\n"
+#ifdef USE_OLD_BLOK_DEFAULTS
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
         "               * Changing the 'blok' definition/radius should only be\n"
         "                 needed if the resolution of the base dataset is\n"
         "                 radically different from the common 1 mm.\n"
+#else
+        "                 [Default is 'TOHD(r)' = truncated octahedron]\n"
+        "                 [with 'radius' r chosen to include about 500]\n"
+        "                 [voxels in the base dataset 3D grid.        ]\n"
+        "               * Changing the 'blok' definition/radius should only be\n"
+        "                 needed in unusual situations, as when you are trying\n"
+        "                 to have fun fun fun.\n"
+        "               * You can change the blok shape but leave the program\n"
+        "                 to set the radius, using (say) 'RHDD(0)'.\n"
+        "               * The old default blok shape/size was 'RHDD(6.54321)',\n"
+        "                 so if you want to maintain backward compatibility,\n"
+        "                 you should use option '-blok \"RHDD(6.54321)\"'\n"
+#endif
+        "                 * Only voxels in the weight mask will be used\n"
+        "                   inside a blok.\n"
         "               * HISTORICAL NOTES:\n"
         "                 * CUBE, RHDD, and TOHD are space filling polyhedra.\n"
+        "                   That is, they are shapes that fit together without\n"
+        "                   overlaps or gaps to fill up 3D space.\n"
         "                 * To even approximately fill space, BALLs must overlap,\n"
         "                   unlike the other blok shapes. Which means that BALL\n"
-        "                   bloks will use some voxels twice.\n"
+        "                   bloks will use some voxels more than once.\n"
+        "                 * Kepler discovered/invented the RHDD (honeybees also did).\n"
         "                 * The TOHD is the 'most compact' or 'most ball-like'\n"
         "                   of the known convex space filling polyhedra.\n"
-        "                 * Kepler discovered/invented the RHDD (honeybees also did).\n"
+#ifndef USE_OLD_BLOK_DEFAULTS
+        "                   [Which is why TOHD is the default blok shape.]\n"
+#endif
         "\n"
         " -PearSave sss = Save the final local Pearson correlations into a dataset\n"
         "   *OR*          with prefix 'sss'. These are the correlations from\n"
@@ -2053,7 +2076,7 @@ int main( int argc , char *argv[] )
    /*----- input parameters, to be filled in from the options -----*/
 
    THD_3dim_dataset *dset_base = NULL ;
-   THD_3dim_dataset *dset_targ = NULL ;
+   THD_3dim_dataset *dset_targ = NULL ;         /* target == source */
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
    int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
@@ -2129,8 +2152,13 @@ int main( int argc , char *argv[] )
    char *auto_tstring          = NULL ;
    int fill_source_mask        = 0 ;
 
+#ifdef USE_OLD_BLOK_DEFAULTS
    int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
    float blokrad               = 6.54321f ;
+#else
+   int bloktype                = GA_BLOK_TOHD ; /* 21 Jul 2021 */
+   float blokrad               = -1.0f ;
+#endif
    int blokmin                 = 0 ;
 
    int do_allcost              = 0 ;            /* 19 Sep 2007 */
@@ -2432,11 +2460,11 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-cmass",6) == 0 ){
        if( argv[iarg][6] == '+' ){
          if (strchr(argv[iarg]+6,'a')) {
-            do_cmass = -1; /* ZSS */
+            do_cmass = -1; /* ZSS -- automatic determination */
          } else {
-            do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)
-                      + 2*(strchr(argv[iarg]+6,'y') != NULL)
-                      + 4*(strchr(argv[iarg]+6,'z') != NULL) ;
+            do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)   /* does string */
+                      + 2*(strchr(argv[iarg]+6,'y') != NULL)   /* contain x, */
+                      + 4*(strchr(argv[iarg]+6,'z') != NULL) ; /* y, or z?  */
          }
          if( do_cmass == 0 )
            ERROR_exit("Don't understand coordinates in '%s :-(",argv[iarg]) ;
@@ -4388,10 +4416,19 @@ STATUS("zeropad weight dataset") ;
 
    stup.blokset = NULL ;
    if( METH_USES_BLOKS(meth_code) || do_allcost || do_save_pearson_map ){
+#ifdef USE_OLD_BLOK_DEFAULTS
      float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
                          +MAT44_COLNORM(stup.base_cmat,1)
                          +MAT44_COLNORM(stup.base_cmat,2) ) ;
      if( blokrad < mr ) blokrad = mr ;
+#else
+     float idel = MAT44_COLNORM(stup.base_cmat,0) ; /* length of step in i */
+     float jdel = MAT44_COLNORM(stup.base_cmat,1) ; /* length of step in j */
+     float kdel = MAT44_COLNORM(stup.base_cmat,2) ; /* length of step in k */
+     float vvv  = idel*jdel*kdel ;                  /* volume of base voxel */
+     /** compute blokrad so that 555 base voxels are contained in one blok **/
+     blokrad = cbrtf( 555.0f * vvv / GA_BLOK_VOLFAC(bloktype) ) ;
+#endif
      stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
      if( verb ) INFO_message("Local correlation: blok type = '%s(%g)'",
                              GA_BLOK_STRING(bloktype) , blokrad        ) ;

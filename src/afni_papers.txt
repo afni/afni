@@ -358,3 +358,18 @@ DR Glen, PA Taylor, BR Buchsbaum, RW Cox, and RC Reynolds.
   * https://doi.org/10.3389/fninf.2020.00018
   * https://www.medrxiv.org/content/10.1101/19009787v4
 ----------------------------------------------------------------------------
+V Roopchansingh, JJ French Jr, DM Nielson, RC Reynolds, DR Glen, P D’Souza,
+  PA Taylor, RW Cox, AE Thurm.
+  EPI Distortion Correction is Easy and Useful, and You Should Use It:
+  A case study with toddler data.
+
+  * https://www.biorxiv.org/content/10.1101/2020.09.28.306787v1
+----------------------------------------------------------------------------
+G Chen, TA Nash, KM Cole, PD Kohn, S-M Wei, MD Gregory, DP Eisenberg,
+  RW Cox, KF Berman, JS Kippenham.
+  Beyond linearity in neuroimaging: Capturing nonlinear relationships with
+  application to longitudinal studies.
+
+  * https://doi.org/10.1016/j.neuroimage.2021.117891
+  * https://pubmed.ncbi.nlm.nih.gov/33667672/
+----------------------------------------------------------------------------

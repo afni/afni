@@ -49,6 +49,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_MODIFY ,
+   "Change default blok type and radius for the lpc/lpa methods" ,
+   "Old default was -blok 'RHDD(6.54321)'.\n"
+   "New default is  -blok 'TOHD(0)' where the 0 radius means to compute the\n"
+   "blok radius so as to give the blok a volume of 555 times the volume of a\n"
+   "base dataset voxel. For 1x1x1 voxels, such as the MNI template, this\n"
+   "results in 'TOHD(5.18)'. If users want the old setup, they'll have to\n"
+   "use the old blok definition explicitly." } ,
+
  { 9 , JUN , 2021 , RWC , "3dUndump" , MICRO , TYPE_NEW_OPT ,
    "Add -allow_NaN option" ,
    "To allow some DERANGED AFNI user whose name will not be mentioned to\n"
