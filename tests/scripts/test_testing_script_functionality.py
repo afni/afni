@@ -718,7 +718,18 @@ def test_run_tests_container_subparsers_works(monkeypatch, argslist, mocked_scri
                 "ARGS='{DEFAULT_ARGS} {PYTEST_COV_FLAGS}' "
                 "ninja pytest;"
                 " gcovr -s --xml -o {TESTS_DIR}/gcovr_output.xml -r {params['args_in']['build_dir']}/src;"
+
+                #" echo ======= REFUSING TO GO TO codecov.io ======== "
+                " echo ======= CAREFUL GOING TO codecov.io ======== "
+                # there may be a security issue with getting the script this way:
+                # apparently there is a security issue with codecov, we must
+                # investigate; however, this should NOT be being run in the
+                # current CircleCI tests (but it needs to be uncommented for
+                # CircleCI tests not to fail, apparently)---it probably should
+                # not be used, either, until the codecov security issues are
+                # checked out.
                 " bash -c 'bash <(curl -s https://codecov.io/bash)'"
+
             ),
         },
     ],
