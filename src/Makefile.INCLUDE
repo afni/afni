@@ -204,7 +204,7 @@ PROGRAMS_NOPLUG =                                                             \
         3dToyProg nifti1_tool gifti_tool cifti_tool images_equal uniq_images  \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
-        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD distanceField           \
+        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 							   \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)

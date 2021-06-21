@@ -264,6 +264,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
                   "     use -help for more detail on communication ports\n");
 
    if (detail > 1) { printf(
+"-help_clipping_planes: Clipping planes to view 3D region of interest.\n"
 "-help_interactive: Write the help for interactive usage into file\n"
 "                   Mouse_Keyboard_Controls.txt\n"
 "-help_sphinx_interactive HOUT: Write the help for interactive usage into \n"
@@ -305,7 +306,8 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    if (detail) {
       SUMA_Version(NULL);
       printf ("\n"
-            "\n    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\n");
+            "\n    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov"
+            "\n    Peter D. Lauren SSCC/NIMH/NIH laurenpd@mail.nih.gov \n\n");
    }
           return;
   }/*Usage*/
@@ -689,6 +691,10 @@ int main (int argc,char *argv[])
       }
       if (strcmp(argv[kar], "-test_help_string_edit_web") == 0) {
          SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT, 1);
+         exit(0);
+      }
+      if (strcmp(argv[kar], "-help_clipping_planes") == 0) {
+         SUMA_Clipping_Planes_Help(SUMA_STDOUT, 1); // in src/suma_string_manip.c
          exit(0);
       }
 
