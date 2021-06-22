@@ -6962,6 +6962,7 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    int isv, widtype;
    static char FuncName[] = {"SUMA_cb_viewSurfaceCont"};
    SUMA_Boolean LocalHead = NOPE;
+   int i;
 
    SUMA_ENTRY;
 
@@ -6979,7 +6980,7 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
     //  find a different object that is not
     if ((strstr(((SUMA_SurfaceObject *)(ado))->Label,
             "clippingPlaneIdentificationSquare_"))){
-            for (int i=0; i<SUMAg_N_DOv; ++i){
+            for (i=0; i<SUMAg_N_DOv; ++i){
                 ado = (SUMA_ALL_DO *)SUMAg_DOv[i].OP;
                 if (!(strstr(((SUMA_SurfaceObject *)(ado))->Label,
                     "clippingPlaneIdentificationSquare_")) &&
