@@ -1977,6 +1977,15 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
                              ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
                                                             "UNKNOWN" )
 
+
+/* volume is this factor, times blokrad^3 */
+
+#define GA_BLOK_VOLFAC(b)  ( ((b)==GA_BLOK_BALL) ? 4.188f :          \
+                             ((b)==GA_BLOK_CUBE) ? 8.0f   :          \
+                             ((b)==GA_BLOK_RHDD) ? 2.0f   :          \
+                             ((b)==GA_BLOK_TOHD) ? 4.0f   :          \
+                                                            0.0f      )
+
 /***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
 
 typedef struct { int num , *nelm , **elm;
@@ -2262,7 +2271,7 @@ extern void mri_blur3D_inmask_NN( MRI_IMAGE *im, byte *mask, int  ) ;
 extern void mri_blur3D_getfac ( float, float, float, float,
                                 int *, float *, float *, float * ) ;
 extern void mri_blur3D_getfac3( float fwhmx, float fwhmy, float fhwmz ,  /* 24 Mar 2021 */
-                                float dx   , float dy   , float dz    , 
+                                float dx   , float dy   , float dz    ,
                                 int *nrep , float *fx , float *fy , float *fz ) ;
 extern void mri_blur3D_addfwhm3( MRI_IMAGE *im , byte *mask ,
                                  float fwhmx,float fwhmy,float fwhmz ) ;
