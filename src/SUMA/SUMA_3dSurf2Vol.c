@@ -136,9 +136,12 @@ static char g_history[] =
  "\n"
  "3.9  September 13, 2018  [rickr]\n"
  "  - return 0 on terminal options\n"
+ "\n"
+ "3.10 June 22, 2021  [rickr]\n"
+ "  - default -datum now based on map func (usually float)\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "version  3.9 (September 13, 2018)"
+#define VERSION "version  3.10 (June 22, 2021)"
 
 
 /*----------------------------------------------------------------------
@@ -3284,11 +3287,16 @@ ENTRY("usage");
             "    -datum DTYPE           : set data type in output dataset\n"
             "\n"
             "        e.g. -datum short\n"
-            "        default: same as that of grid parent\n"
+            "        default: based on the map function\n"
+            "                 (was grid_parent, but that made little sense)\n"
             "\n"
-            "        This option specifies the data type for the output AFNI\n"
-            "        dataset.  Valid choices are byte, short and float, which\n"
+            "        This option specifies the data type for the output data\n"
+            "        volume.  Valid choices are byte, short and float, which\n"
             "        are 1, 2 and 4 bytes for each data point, respectively.\n"
+            "\n"
+            "        The default is based on the map function, generally\n"
+            "        implying float, unless using mask or mask2 (byte), or\n"
+            "        count (short).\n"
             "\n"
             "    -debug LEVEL           : verbose output\n"
             "\n"
@@ -3315,7 +3323,7 @@ ENTRY("usage");
             "\n"
             "        This option requests additional debug output for the\n"
             "        given volume voxel.  This 1-D index is with respect to\n"
-            "        the output AFNI dataset.  One good way to find a voxel\n"
+            "        the output data volume.  One good way to find a voxel\n"
             "        index to supply is from output via the '-dnode' option.\n"
             "\n"
             "        This will have no effect without the '-debug' option.\n"
