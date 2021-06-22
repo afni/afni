@@ -413,10 +413,17 @@ ENTRY("s2v_nodes2volume");
         if ( MRI_IS_INT_TYPE( sopt->datum ) && !sopt->noscale )
         {
             float amax = MCW_vol_amax( nvox, 1, 1, MRI_double, ddata );
+            int   have_ints = integral_doubles( ddata, nvox );
 
-            if ( amax > MRI_TYPE_maxval[sopt->datum] )      /* we must scale */
+            if ( amax > MRI_TYPE_maxval[sopt->datum] ) {    /* we must scale */
                 fac = MRI_TYPE_maxval[sopt->datum]/amax;
-            else if ( integral_doubles( ddata, nvox ) )  /* don't need scale */
+                /* warn user if integral output exceeds datum */
+                if ( have_ints && sopt->debug > 0 )
+                   fprintf(stderr,"** integral output exceeds max datum val\n"
+                                  "   %g > %g\n", 
+                                      amax, MRI_TYPE_maxval[sopt->datum]);
+            }
+            else if ( have_ints )                        /* don't need scale */
                 fac = 0.0;
             else if ( amax != 0.0 )
                 fac = MRI_TYPE_maxval[sopt->datum]/amax;
@@ -805,6 +812,40 @@ int is_aggregate_type(int map_func)
     }
 
     return 0;
+}
+
+/* return a default datum based on the map function
+ *
+ * default is basically float, unless we have reason to chose another
+   (currently just MASK and COUNT functions) */
+int default_map_datum( int map_func )
+{
+    switch( map_func ) {
+       default:               return MRI_float;
+
+       /* mask types */
+       case E_SMAP_MASK:
+       case E_SMAP_MASK2:     return MRI_byte;
+
+       /* expected float */
+       case E_SMAP_AVE:
+       case E_SMAP_NZ_AVE:
+       case E_SMAP_MEDIAN:
+       case E_SMAP_NZ_MEDIAN: return MRI_float;
+      
+       /* expected int */
+       case E_SMAP_COUNT:     return MRI_short;
+      
+       /* output is same as input */
+       case E_SMAP_MIN:
+       case E_SMAP_MAX:
+       case E_SMAP_MAX_ABS:
+       case E_SMAP_MODE:
+       case E_SMAP_NZ_MODE:   return MRI_float;
+    }
+
+    /* unreachable, but hey */
+    return MRI_float;
 }
 
 
@@ -1468,7 +1509,10 @@ ENTRY("set_smap_opts");
     if ( (sopt->map = check_map_func( opts->map_str )) == E_SMAP_INVALID )
         RETURN(-1);
 
-    sopt->datum = check_datum_type(opts->datum_str, DSET_BRICK_TYPE(p->gpar,0));
+    /* default came from DSET_BRICK_TYPE, but now base on map func */
+    /* (requested by D Glen)                   22 Jun 2021 [rickr] */
+    sopt->datum = check_datum_type(opts->datum_str,
+                                   default_map_datum(sopt->map));
     if (sopt->datum < 0)
         RETURN(-1);
 
