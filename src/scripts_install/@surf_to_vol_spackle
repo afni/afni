@@ -25,6 +25,8 @@ set surfB = ""
 set stat = "nzmedian"
 # surface volume defaults to mask volume below
 set svset = ""
+# datum type
+set datum_opt = ""
 
 # help
 if ($# < 1) then
@@ -64,6 +66,8 @@ echo "                           (default is to remove them)"
 echo "   -maxiters nn            maximum number of smoothing and filling iterations"
 echo "                           (default is 4)"
 echo "   -mode                   use mode instead of non-zero median (appropriate for ROIs)"
+echo "   -datum cccc             set datum type to byte, short or float"
+echo "                           instead of maskset type. mode triggers -datum short"
 echo "   -ignore_unknown_options ignore additional options that are not needed"
 echo
 echo " Example usage:"
@@ -155,6 +159,20 @@ while ( $ac <= $#argv )
         @ ac ++; continue;
     else if ( "$argv[$ac]" == "-mode" ) then
         set stat = "mode"
+        # mode should almost always require short integers
+        # byte grid dataset will limit bit resolution for larger
+        # than 256!
+        if ("$datum_opt" != "") then
+           set datum_opt = "-datum short"
+        endif 
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-datum" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-datum'"
+            exit 1
+        endif
+        set  datum_opt = "-datum $argv[$ac]"
         @ ac ++; continue;
     else if ( "$argv[$ac]" == "-sv" ) then
         @ ac ++
@@ -225,7 +243,7 @@ endif
 3dSurf2Vol -spec $spec $surfB_arg -surf_A $surfA $f_inout_frac \
    -grid_parent $maskset -sdata $surfset  -stop_gap \
    -map_func $stat -prefix temp_${outpref}_f00.nii.gz $sv_arg \
-   -f_steps $nsteps -stop_gap -overwrite
+   -f_steps $nsteps -stop_gap -overwrite $datum_opt
 
 # resulting dataset has holes
 # iteratively smooth each dataset to replace holes
