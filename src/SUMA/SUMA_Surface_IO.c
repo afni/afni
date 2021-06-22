@@ -2868,8 +2868,6 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
          ex = fscanf(fs_file, "%f %f %f %f", &(FS->NodeList[id]), &(FS->NodeList[id+1]),&(FS->NodeList[id+2]), &jnkf);
          ++cnt;
       }
-      for (int node=0, inc=0; node<cnt; ++node)
-            fprintf(stdout, "Node %d: %f, %f, %f\n", node, FS->NodeList[inc++], FS->NodeList[inc++], FS->NodeList[inc++]);
       if (cnt != FS->N_Node) {
          fprintf(SUMA_STDERR,"Error %s: File %s; Expected %d nodes, %d read.\n", FuncName, f_name, FS->N_Node, cnt);
          SUMA_RETURN (NOPE);
@@ -2882,10 +2880,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
          ex = fscanf(fs_file, "%d %d %d %d", &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]), &jnki);
          ++cnt;
       }
-      #if 0
-      for (int node=0, inc=0; node<cnt; ++node)
-            fprintf(stdout, "Face set %d: %d, %d, %d\n", node, FS->FaceSetList[inc++], FS->FaceSetList[inc++], FS->FaceSetList[inc++]);
-      #endif
+
       if (cnt != FS->N_FaceSet) {
          fprintf(SUMA_STDERR,"Error %s: File %s; expected %d FaceSets, %d read.\n", FuncName, f_name, FS->N_FaceSet, cnt);
          SUMA_RETURN (NOPE);
