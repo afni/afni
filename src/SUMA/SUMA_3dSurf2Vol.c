@@ -820,31 +820,31 @@ int is_aggregate_type(int map_func)
 /* return a default datum based on the map function
  *
  * default is basically float, unless we have reason to chose another
-   (currently just MASK and COUNT functions) */
+   (currently just MASK, COUNT and MODE functions) */
 int default_map_datum( int map_func )
 {
     switch( map_func ) {
        default:               return MRI_float;
 
-       /* mask types */
+       /* expected byte: mask types */
        case E_SMAP_MASK:
        case E_SMAP_MASK2:     return MRI_byte;
 
-       /* expected float */
+       /* expected float: non-integral output */
        case E_SMAP_AVE:
        case E_SMAP_NZ_AVE:
        case E_SMAP_MEDIAN:
        case E_SMAP_NZ_MEDIAN: return MRI_float;
       
-       /* expected int */
-       case E_SMAP_COUNT:     return MRI_short;
+       /* expected short: likely for MODE, but does not need to be */
+       case E_SMAP_COUNT:
+       case E_SMAP_MODE:
+       case E_SMAP_NZ_MODE:   return MRI_short;
       
-       /* output is same as input */
+       /* output is same as input, just assume float */
        case E_SMAP_MIN:
        case E_SMAP_MAX:
-       case E_SMAP_MAX_ABS:
-       case E_SMAP_MODE:
-       case E_SMAP_NZ_MODE:   return MRI_float;
+       case E_SMAP_MAX_ABS:   return MRI_float;
     }
 
     /* unreachable, but hey */
@@ -3296,7 +3296,7 @@ ENTRY("usage");
             "\n"
             "        The default is based on the map function, generally\n"
             "        implying float, unless using mask or mask2 (byte), or\n"
-            "        count (short).\n"
+            "        count or mode (short).\n"
             "\n"
             "    -debug LEVEL           : verbose output\n"
             "\n"
