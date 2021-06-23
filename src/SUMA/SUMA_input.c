@@ -1,7 +1,14 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
+<<<<<<< HEAD
 // #include "GL/glcorearb.h"
+=======
+/* GL/glcorearb.h is restricted to newer style functionality,
+ * and we are dependend on the old.  Hopefully it is not needed.
+ *                                           [23 Jun 2021 rickr] */
+/* #include "GL/glcorearb.h"                                     */
+>>>>>>> 2cb4adb8436b4baad6a87e12fb5bd57542318715
 
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi)
@@ -38,7 +45,7 @@ Boolean activeClippingPlanes(){
     return False;
 }
 
-float getObjectMinMaxForAxes(float objectMinMax[][2]){
+void getObjectMinMaxForAxes(float objectMinMax[][2]){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
@@ -6141,7 +6148,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                char cwd[PATH_MAX], outputFileName[PATH_MAX+200];
                if ((getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
-                   SUMA_RETURN(0);
+                   SUMA_RETURNe;
                }
                 sprintf(outputFileName, "%s/%s", cwd, "clippingPlaneFileName");
                 sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);

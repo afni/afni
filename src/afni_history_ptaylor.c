@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, June , 2021 , PT , "3dNwarpCalc" , MINOR , TYPE_GENERAL,
+   "Put in std includes to be able to build on Mac with Clang.",
+   "Though this program isn't even built...\n"
+},
+
+{ 22, June , 2021 , PT , "SurfLayers" , MINOR , TYPE_GENERAL,
+   "Capture verbose output from ConvertSurface.",
+   "Also add -no_clean opt.\n"
+},
+
 { 18, June , 2021 , PT , "@Install_AP_MULTI_DEMO1" , MINOR , TYPE_GENERAL,
    "Adding install script for afni_proc.py multi-echo FMRI demo (OHBM, 2021).",
    "Demo authors: RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor.\n"

@@ -5806,6 +5806,10 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          case SUMA_LR:
             specname = SUMA_append_replace_string(specname,"_both.spec",spref,1);
             break;
+         default:
+            SUMA_S_Errv("illegal spec file 'side' == %d\n", side);
+            specname = SUMA_append_replace_string(specname,"_BAD.spec",spref,1);
+            break;
       }
       ss = find_afni_file(specname, 0, NULL);
       if (ss[0] == '\0') {
@@ -6433,8 +6437,9 @@ SUMA_Boolean SUMA_LoadCIFTIDO (char *fname,
    SUMA_ENTRY;
 
    if (!fname) SUMA_RETURN(NOPE);
+   /* same value, but SUMA_WORLD should prob be _UNIT  [22 Jun 2021 rickr] */
    if (coord_type != SUMA_NORM_SCREEN_UNIT &&
-       coord_type != SUMA_WORLD) coord_type = SUMA_WORLD;
+       coord_type != SUMA_WORLD_UNIT) coord_type = SUMA_WORLD_UNIT;
 
    if (!(cdset = SUMA_LoadDset_eng( fname, &tff, 1 ))) {
       SUMA_S_Errv("Failed to open %s\n", fname);
@@ -6860,7 +6865,9 @@ SUMA_CIFTI_DO * SUMA_CIFTI_DO_from_dset(SUMA_DSET *cdset)
                         "  autocrop at loading option. See AFNI convenience\n"
                         "  function: THD_autobbox()\n The smaller the grid \n"
 			"  the faster the volume rendering.\n");
-            if (SUMA_LoadVolDO(cdset->Aux->doms[k]->Source, SUMA_WORLD, &VO, 1)){
+            /* again, SUMA_WORLD should prob be _UNIT  [22 Jun 2021 rickr] */
+            if (SUMA_LoadVolDO(cdset->Aux->doms[k]->Source,
+                               SUMA_WORLD_UNIT, &VO, 1)){
 	       ado = (SUMA_ALL_DO *)VO;
                /* Change the state of the volume so that it is no longer
 	       of the default ANY_ANATOMICAL state. (See comment for string
@@ -6994,6 +7001,10 @@ SUMA_CIFTI_DO *SUMA_find_CIFTI_subdom_container(char *SD_id, int *ksubdom,
 
    for (i=0; i<N_dov; ++i) {
       switch (dov[i].ObjectType) {
+      	 default:
+            SUMA_S_Err("invalid ObjectType in container");
+            SUMA_RETURN(NULL);
+	    break;
       	 case CDOM_type:
 	    CO = (SUMA_CIFTI_DO *)dov[i].OP;
 	    for (k=0; k<CO->N_subdoms; ++k) {

@@ -234,6 +234,7 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are
     short * shortImg;
     float   *floatImg, ad3[3];
     int *vol;
+    int i;
 
     if ((nvox < 1) || (nx < 2) || (ny < 2) || (nz < 1)) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -246,11 +247,11 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are
     switch(brickType){
         case MRI_byte:
             byteImg = DSET_ARRAY(din, 0);
-            for (int i=0; i<nvox; ++i) inputImg[i] = byteImg[i];
+            for (i=0; i<nvox; ++i) inputImg[i] = byteImg[i];
             break;
         case MRI_short:
             shortImg = DSET_ARRAY(din, 0);
-            for (int i=0; i<nvox; ++i) inputImg[i] = shortImg[i];
+            for (i=0; i<nvox; ++i) inputImg[i] = shortImg[i];
             break;
         case MRI_int:
             free(inputImg);
@@ -258,11 +259,12 @@ int afni_edt(THD_3dim_dataset * din, float *outImg, bool do_sqrt, bool edges_are
             break;
         case MRI_float:
             floatImg = DSET_ARRAY(din, 0);
-            for (int i=0; i<nvox; ++i) inputImg[i] = (int)(floatImg[i]+0.5);
+            for (i=0; i<nvox; ++i) inputImg[i] = (int)(floatImg[i]+0.5);
             break;
     }
 
 if (debugMode){
+    int x, y, z;
     // DEBUG: Make test volume
     // make a test image: a map of various ROIs
     debugNz = nz = 80;
@@ -282,82 +284,82 @@ if (debugMode){
 
     int planesize=nx*ny;
 
-    for (int z=4; z<18; ++z){
+    for (z=4; z<18; ++z){
         int zOffset=z*planesize;
-        for (int y=2; y<8; ++y){
+        for (y=2; y<8; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=4; x<8; ++x){
+            for (x=4; x<8; ++x){
                 vol[yOffset+x] = 1;
             }
         }
     }
 
-    for (int z=2; z<8; ++z){
+    for (z=2; z<8; ++z){
         int zOffset=z*planesize;
-        for (int y=4; y<18; ++y){
+        for (y=4; y<18; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=4; x<8; ++x){
+            for (x=4; x<8; ++x){
                 vol[yOffset+x] = 4;
             }
         }
     }
 
-    for (int z=21; z<30; ++z){
+    for (z=21; z<30; ++z){
         int zOffset=z*planesize;
-        for (int y=0; y<10; ++y){
+        for (y=0; y<10; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=11; x<14; ++x){
+            for (x=11; x<14; ++x){
                 vol[yOffset+x] = 7;
             }
         }
     }
 
-    for (int z=0; z<nz; ++z){
+    for (z=0; z<nz; ++z){
         int zOffset=z*planesize;
-        for (int y=0; y<ny; ++y){
+        for (y=0; y<ny; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=0; x<nx; ++x){
+            for (x=0; x<nx; ++x){
                 if (pow((15-x),2.0) + pow((25-y),2.0) + pow((10-z),2.0)< 31)
                     vol[yOffset+x] = 1;
             }
         }
     }
 
-    for (int z=17; z<19; ++z){
+    for (z=17; z<19; ++z){
         int zOffset=z*planesize;
-        for (int y=0; y<ny; ++y){
+        for (y=0; y<ny; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=3; x<6; ++x){
+            for (x=3; x<6; ++x){
                 vol[yOffset+x] = 1;
             }
         }
     }
 
-    for (int z=0; z<nz; ++z){
+    for (z=0; z<nz; ++z){
         int zOffset=z*planesize;
-        for (int y=19; y<21; ++y){
+        for (y=19; y<21; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=3; x<6; ++x){
+            for (x=3; x<6; ++x){
                 vol[yOffset+x] = 10;
             }
         }
     }
 
-    for (int z=60; z<70; ++z){
+    for (z=60; z<70; ++z){
         int zOffset=z*planesize;
-        for (int y=28; y<36; ++y){
+        for (y=28; y<36; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=14; x<19; ++x){
+            for (x=14; x<19; ++x){
                 vol[yOffset+x] = 17;
             }
         }
     }
 
-    for (int z=0; z<nz; ++z){
+    for (z=0; z<nz; ++z){
         int zOffset=z*planesize;
-        for (int y=0; y<ny; ++y){
+        for (y=0; y<ny; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=0; x<nx; ++x){
+            for (x=0; x<nx; ++x){
                 if ((pow((65-x),2.0) + pow((10-y),2.0) + pow((10-z),2.0)< 75) &&
                     !(pow((60-x),2.0) + pow((7-y),2.0) + pow((10-z),2.0)< 31))
                     vol[yOffset+x] = 2;
@@ -365,11 +367,11 @@ if (debugMode){
         }
     }
 
-    for (int z=40; z<56; ++z){
+    for (z=40; z<56; ++z){
         int zOffset=z*planesize;
-        for (int y=25; y<33; ++y){
+        for (y=25; y<33; ++y){
             int yOffset = zOffset + y*nx;
-            for (int x=4; x<8; ++x){
+            for (x=4; x<8; ++x){
                 vol[yOffset+x] = 5;
             }
         }
@@ -384,13 +386,13 @@ if (debugMode){
     }
 
     // Process each index
-    for (int i=0; i<numIndices; ++i){
+    for (i=0; i<numIndices; ++i){
         if ((errorNumber=processIndex(indices[i], inputImg, &addend, din))!=ERROR_NONE){
             free(inputImg);
             free(indices);
             return errorNumber;
         }
-        for (int j=0; j<nvox; ++j) outImg[j]+=addend[j];
+        for (j=0; j<nvox; ++j) outImg[j]+=addend[j];
     }
 
     free(indices);
@@ -420,16 +422,17 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
 
     int nvox = nx*ny*nz;           // number of voxels
     int planeSize = nx*ny;
+    int i, z, y, x;
 
     // initialize the "output" or answer array
-    // for (int i=0; i<nvox; ++i) odt[i] = (im[i]>0)? BIG : 0;
-    for (int i=0; i<nvox; ++i) odt[i] = BIG;
+    // for (i=0; i<nvox; ++i) odt[i] = (im[i]>0)? BIG : 0;
+    for (i=0; i<nvox; ++i) odt[i] = BIG;
 
     // first pass: start with all BIGs (along x-axes)
     int *inRow = im;
     float *outRow = odt;
-    for (int z = 0; z <nz; ++z){
-        for (int y = 0; y < ny; ++y){
+    for (z = 0; z <nz; ++z){
+        for (y = 0; y < ny; ++y){
             // Calc with it, and save results
             // [PT: Jan 5, 2020] fix which index goes here
             run_EDTD_per_line( inRow, outRow, nx, ad3[0], edges_are_zero_for_nz) ;
@@ -445,12 +448,12 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
         free(inRow);
         return ERROR_MEMORY_ALLOCATION;
     }
-    for (int z = 0; z < nz; ++z){
+    for (z = 0; z < nz; ++z){
         int *inPlane = im + (z*planeSize);
         float *outPlane = odt + (z*planeSize);
-        for (int x = 0; x < nx; ++x){
+        for (x = 0; x < nx; ++x){
             // get a line...
-            for (int y=0; y<ny; ++y){
+            for (y=0; y<ny; ++y){
                 int offset = (y*nx) + x;
                 inRow[y] = inPlane[offset ];
                 outRow[y] = outPlane[offset ];
@@ -460,7 +463,7 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
             run_EDTD_per_line( inRow, outRow, ny, ad3[1], edges_are_zero_for_nz) ;
 
             // Record new output row
-            for (int y=0; y<ny; ++y){
+            for (y=0; y<ny; ++y){
                 int offset = (y*nx) + x;
                 outPlane[offset] = outRow[y];
             }
@@ -477,11 +480,11 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
         free(inRow);
         return ERROR_MEMORY_ALLOCATION;
     }
-    for (int y = 0; y < ny; ++y){
-        for (int x = 0; x < nx; ++x){
+    for (y = 0; y < ny; ++y){
+        for (x = 0; x < nx; ++x){
             int planeOffset = (y*nx) + x;
             // get a line...
-            for (int z=0; z<nz; ++z){
+            for (z=0; z<nz; ++z){
                 int offset = planeOffset + (z*planeSize);
                 inRow[z] = im[offset] ;
                 outRow[z] = odt[offset] ;
@@ -492,7 +495,7 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
             run_EDTD_per_line( inRow, outRow, nz, ad3[2], edges_are_zero_for_nz) ;
 
             // Record new output row
-            for (int z=0; z<nz; ++z) {
+            for (z=0; z<nz; ++z) {
                 int offset = planeOffset + (z*planeSize);
                 odt[offset] = outRow[z];
             }
@@ -502,7 +505,7 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
     free(inRow);
 
     if (do_sqrt)
-        for (int i=0; i<nvox; ++i) odt[i] = sqrt(odt[i]);
+        for (i=0; i<nvox; ++i) odt[i] = sqrt(odt[i]);
 
     return ERROR_NONE;
 }
@@ -510,7 +513,7 @@ ERROR_NUMBER img3d_Euclidean_DT(int *im, int nx, int ny, int nz,
 ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
                        float delta, bool edges_are_zero_for_nz) {
     int  idx = 0;
-    int  n;
+    int  m, n, i;
     float   *line_out;
 
     size_t  rowLengthInBytes = Na*sizeof(float);
@@ -542,7 +545,7 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
             inc = 1;
         }
         // put actual values from dist**2 field...
-        for (int m=idx; m<=n; ++m){
+        for (m=idx; m<=n; ++m){
             //paddedLine[inc++] = dist2_line[m];
             paddedLine[inc++] = dist2_line[m];
         }
@@ -569,7 +572,7 @@ ERROR_NUMBER run_EDTD_per_line(int *roi_line, float *dist2_line, int Na,
     }
 
     // DEBUG
-    for (int i=0; i<Na; ++i) if (line_out[i]==0){
+    for (i=0; i<Na; ++i) if (line_out[i]==0){
         fprintf(stderr, "Zero valued distance\n");
     }
 
@@ -599,6 +602,7 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
 
     int *v, k = 0;
     float *z, *Df;
+    int q, r;
 
     if (!(v=(int *)calloc(n, sizeof(int))) ||
         !(z=(float *)calloc(n+1, sizeof(float)))){
@@ -608,7 +612,7 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
     z[0] = -BIG;
     z[1] =  BIG;
 
-    for (int q = 1; q<n; ++q) {
+    for (q = 1; q<n; ++q) {
         float s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
         s/= 2. * delta * (q - v[k]);
         while (s <= z[k]){
@@ -628,7 +632,7 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
         free(z);
         return NULL;
     }
-    for (int q=0; q<n; ++q){
+    for (q=0; q<n; ++q){
         while (z[k+1] < q * delta) k+= 1;
         Df[q] = pow(delta*(q - v[k]), 2.0) + f[v[k]];
     }
@@ -641,13 +645,16 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
 
 ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din){
     // Get dimensions in voxels
-    int nz = DSET_NZ(din);
-    int ny = DSET_NY(din);
-    int nx = DSET_NX(din);
-    int nvox = nx*ny*nz;
+    int    nz = DSET_NZ(din);
+    int    ny = DSET_NY(din);
+    int    nx = DSET_NX(din);
+    int    nvox = nx*ny*nz;
+    int    r, v, x, y, z;
 
-    int nVol = 1;
-    int nvox3D = nx * ny * MAX(nz, 1);
+    int    nVol = 1;
+    int    nvox3D = nx * ny * MAX(nz, 1);
+    size_t si;
+
     nVol = nvox / nvox3D;
     if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -661,30 +668,30 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 
     if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
 
-    for (size_t i = 0; i < nvox; i++ ) {
-        if (inputImg[i] == index)
-            (*outImg)[i] = BIG;
+    for (si = 0; si < nvox; si++ ) {
+        if (inputImg[si] == index)
+            (*outImg)[si] = BIG;
     }
     size_t nRow = ny*nz;
 
     //EDT in left-right direction
-    for (int r = 0; r < nRow; r++ ) {
+    for (r = 0; r < nRow; r++ ) {
         flt * imgRow = (*outImg) + (r * nx);
         edt_local(xDim, imgRow, nx);
     }
 
     //EDT in anterior-posterior direction
     nRow = nx * nz; //transpose XYZ to YXZ and blur Y columns with XZ Rows
-    for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
+    for (v = 0; v < nVol; v++ ) { //transpose each volume separately
         flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
 
         //transpose data
         size_t vo = v * nvox3D; //volume offset
-        for (int z = 0; z < nz; z++ ) {
+        for (z = 0; z < nz; z++ ) {
             int zo = z * nx * ny;
-            for (int y = 0; y < ny; y++ ) {
+            for (y = 0; y < ny; y++ ) {
                 int xo = 0;
-                for (int x = 0; x < nx; x++ ) {
+                for (x = 0; x < nx; x++ ) {
                     img3D[zo+xo+y] = (*outImg)[vo]/yDimSqrd;
                     vo += 1;
                     xo += ny;
@@ -692,17 +699,17 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
             }
         }
         //perform EDT for all rows
-        for (int r = 0; r < nRow; r++ ) {
+        for (r = 0; r < nRow; r++ ) {
             flt * imgRow = img3D + (r * ny);
             edt_local(yDim, imgRow, ny);
         }
         //transpose data back
         vo = v * nvox3D; //volume offset
-        for (int z = 0; z < nz; z++ ) {
+        for (z = 0; z < nz; z++ ) {
             int zo = z * nx * ny;
-            for (int y = 0; y < ny; y++ ) {
+            for (y = 0; y < ny; y++ ) {
                 int xo = 0;
-                for (int x = 0; x < nx; x++ ) {
+                for (x = 0; x < nx; x++ ) {
                     (*outImg)[vo] = img3D[zo+xo+y];
                     vo += 1;
                     xo += ny;
@@ -714,15 +721,15 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 
     //EDT in head-foot direction
     nRow = nx * ny; //transpose XYZ to ZXY and blur Z columns with XY Rows
-    for (int v = 0; v < nVol; v++ ) { //transpose each volume separately
+    for (v = 0; v < nVol; v++ ) { //transpose each volume separately
         flt * img3D = (flt *)calloc(nvox3D*sizeof(flt), 64); //alloc for each volume to allow openmp
         //transpose data
         size_t vo = v * nvox3D; //volume offset
-        for (int z = 0; z < nz; z++ ) {
-            for (int y = 0; y < ny; y++ ) {
+        for (z = 0; z < nz; z++ ) {
+            for (y = 0; y < ny; y++ ) {
                 int yo = y * nz * nx;
                 int xo = 0;
-                for (int x = 0; x < nx; x++ ) {
+                for (x = 0; x < nx; x++ ) {
                     img3D[z+xo+yo] = (*outImg)[vo]/zDimSqrd;
                     vo += 1;
                     xo += nz;
@@ -730,17 +737,17 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
             }
         }
         //perform EDT for all "rows"
-        for (int r = 0; r < nRow; r++ ) {
+        for (r = 0; r < nRow; r++ ) {
             flt * imgRow = img3D + (r * nz);
             edt_local(zDim, imgRow, nz);
         }
         //transpose data back
         vo = v * nvox3D; //volume offset
-        for (int z = 0; z < nz; z++ ) {
-            for (int y = 0; y < ny; y++ ) {
+        for (z = 0; z < nz; z++ ) {
+            for (y = 0; y < ny; y++ ) {
                 int yo = y * nz * nx;
                 int xo = 0;
-                for (int x = 0; x < nx; x++ ) {
+                for (x = 0; x < nx; x++ ) {
                     (*outImg)[vo] = img3D[z+xo+yo];
                     vo += 1;
                     xo += nz;

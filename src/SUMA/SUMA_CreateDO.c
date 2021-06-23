@@ -10173,7 +10173,8 @@ int SUMA_GDSET_GMATRIX_CellPixSize(SUMA_DSET *dset, SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
 
-   if (!dset || !Sz || !sv) SUMA_RETURN(0);
+   /* Sz -> Szc   [22 Jun 2021 rickr] */
+   if (!dset || !Szc || !sv) SUMA_RETURN(0);
 
    GSaux = SDSET_GSAUX(dset);
    if (!GSaux || !GSaux->FrameSO) {
