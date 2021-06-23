@@ -1,7 +1,10 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-#include "GL/glcorearb.h"
+/* GL/glcorearb.h is restricted to newer style functionality,
+ * and we are dependend on the old.  Hopefully it is not needed.
+ *                                           [23 Jun 2021 rickr] */
+/* #include "GL/glcorearb.h"                                     */
 
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi)
