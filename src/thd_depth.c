@@ -645,14 +645,16 @@ float * Euclidean_DT_delta(float *f, int n, float delta){
 
 ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dataset *din){
     // Get dimensions in voxels
-    int nz = DSET_NZ(din);
-    int ny = DSET_NY(din);
-    int nx = DSET_NX(din);
-    int nvox = nx*ny*nz;
-    int r, v, x, y, z;
+    int    nz = DSET_NZ(din);
+    int    ny = DSET_NY(din);
+    int    nx = DSET_NX(din);
+    int    nvox = nx*ny*nz;
+    int    r, v, x, y, z;
 
-    int nVol = 1;
-    int nvox3D = nx * ny * MAX(nz, 1);
+    int    nVol = 1;
+    int    nvox3D = nx * ny * MAX(nz, 1);
+    size_t si;
+
     nVol = nvox / nvox3D;
     if ((nvox3D * nVol) != nvox) return ERROR_DIFFERENT_DIMENSIONS;
 
@@ -666,9 +668,9 @@ ERROR_NUMBER processIndex(int index, int *inputImg, float **outImg, THD_3dim_dat
 
     if (!(*outImg=(float *)calloc(nvox, sizeof(float)))) return ERROR_MEMORY_ALLOCATION;
 
-    for (size_t i = 0; i < nvox; i++ ) {
-        if (inputImg[i] == index)
-            (*outImg)[i] = BIG;
+    for (si = 0; si < nvox; si++ ) {
+        if (inputImg[si] == index)
+            (*outImg)[si] = BIG;
     }
     size_t nRow = ny*nz;
 
