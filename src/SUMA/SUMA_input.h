@@ -212,7 +212,7 @@ static float  scrollInc = 1.0;
 static float  tiltInc = 1.0;
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
-float getObjectMinMaxForAxes(float objectMinMax[][2]);
+void getObjectMinMaxForAxes(float objectMinMax[][2]);
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi);
 Boolean activeClippingPlanes();
