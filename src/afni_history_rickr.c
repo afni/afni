@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jun, 2021, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
+   "without -datum, the output now depends on the map func, not the BRIK",
+   "Done to appease the mysterious D Glen.\n"
+ } ,
+
  { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
    "turn of local signing in crorden/dcm2niix_console/makefile",
    NULL

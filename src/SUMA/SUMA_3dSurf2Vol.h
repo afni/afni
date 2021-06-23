@@ -143,6 +143,7 @@ THD_3dim_dataset * s2v_nodes2volume(node_list_t *N,param_t *p,s2v_opts_t *sopt);
 int adjust_endpts     ( s2v_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn );
 int check_datum_type  ( char * datum_str, int default_type );
 int check_map_func    ( char * map_str );
+int default_map_datum ( int map_func );
 int disp_node_list_t  ( char * info, node_list_t * d );
 int disp_opts_t       ( char * info, opts_t * opts );
 int disp_param_t      ( char * info, param_t * p );
