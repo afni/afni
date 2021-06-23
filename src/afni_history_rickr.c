@@ -58,6 +58,11 @@ afni_history_struct rickr_history[] = {
    "Done to appease the mysterious D Glen.\n"
  } ,
 
+ { 22, Jun, 2021, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
+   "calm those grumpy compilers",
+   "Issues noted by P Taylor.\n"
+ } ,
+
  { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
    "turn of local signing in crorden/dcm2niix_console/makefile",
    NULL
