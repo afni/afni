@@ -1,7 +1,7 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-#include "GL/glcorearb.h"
+// #include "GL/glcorearb.h"
 
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi)
