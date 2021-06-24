@@ -665,6 +665,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
      if( ngr->part_typ[ii] != NI_ELEMENT_TYPE ) continue ;
      nel = (NI_element *) ngr->part[ii] ;
      if( strcmp(nel->name,"AFNI_atr") != 0 )    continue ;
+
+     /* to make this effective, change AFNI_name -> atr_name */
      rhs = NI_get_attribute( nel , "AFNI_name" ) ;
      if( rhs == NULL )                          continue ;
 
