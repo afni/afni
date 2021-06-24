@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, June , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "Silence 3drefit warns if changing space of dsets (might confuse users).",
+   "Unnecessary warning for these temp dsets within the script.\n"
+},
+
 { 22, June , 2021 , PT , "3dNwarpCalc" , MINOR , TYPE_GENERAL,
    "Put in std includes to be able to build on Mac with Clang.",
    "Though this program isn't even built...\n"
