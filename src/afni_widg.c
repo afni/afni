@@ -7858,14 +7858,15 @@ char *AFNI_smallest_intpbar(THD_3dim_dataset *dset)
 
    mxset = THD_dset_max(dset, 1);
 
-   // [PT: June 25, 2021] these should each cover [0, 31], not [0, 32], etc.
-   if (mxset < 32) {
+   // [PT: June 25, 2021] resetting previous change; sticking with
+   // "<=" here, indeed.
+   if (mxset <= 32) {
       return("ROI_i32" ) ;
-   } else if (mxset < 64) {
+   } else if (mxset <= 64) {
       return("ROI_i64" ) ;
-   } else if (mxset < 128) {
+   } else if (mxset <= 128) {
       return("ROI_i128" ) ;
-   } else if (mxset < 256) {
+   } else if (mxset <= 256) {
       return("ROI_i256" ) ;
    }
       /* max is high - use the ROI_i256 colorbar -
