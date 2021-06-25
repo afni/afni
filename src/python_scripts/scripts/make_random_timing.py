@@ -1155,6 +1155,37 @@ Advanced usage (make_random_timing.py) ~1~
             -write_event_list events.adv.4                       \\
             -seed 31415 -prefix stimes.adv.4 -verb 2
 
+   -------------------------------------------------------
+   Advanced Example 5: partition one class into multiple sub-classes ~3~
+
+     - Initialize timing for classical houses/faces/donuts experiments.
+     - After that is done, partition the 'donuts' class into 3 sub-classes,
+       per run (this can be done per-run or across runs).
+            partition: 24 donuts events (per run)
+            into     :  8 events of each: choc, glazed, sprinkle
+     - So the 24 donut events per run will be randomly partitioned into
+       8 of each of the other classes.
+     - The output will have no donut events, but it will have choc, glazed
+       and sprinkle.
+     - If partitioning is across runs, then each run will not necessarily
+       have 8 events of each sub-type.  But the total will still be 16
+       (because there are 2 runs).
+
+         make_random_timing.py -num_runs 2 -run_time 160    \\
+            -add_timing_class stim 1                        \\
+            -add_timing_class rest 0 -1 -1                  \\
+            -pre_stim_rest 10 -post_stim_rest 10            \\
+            -add_stim_class houses 24 stim rest             \\
+            -add_stim_class donuts 24 stim rest             \\
+            -add_stim_class faces  24 stim rest             \\
+            -show_timing_stats                              \\
+            -seed 12345                                     \\
+            -write_event_list events.$suffix.txt            \\
+            -save_3dd_cmd 3dd.$suffix.txt                   \\
+            -prefix stimes.$suffix                          \\
+            -rand_post_elist_partition donuts per_run       \\
+                                       choc glaze sprinkle
+
 ---------------------------------------------------------------------
 options (specific to the advanced usage): ~2~
 
@@ -1468,9 +1499,10 @@ g_history = """
     3.5  Aug  9, 2019: format text output for better python consistency
     3.6  Dec 20, 2019: add more advanced usage help
     3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
+    3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
 """
 
-g_version = "version 3.7 January 27, 2020"
+g_version = "version 3.8 June 25, 2021"
 
 g_todo = """
    - specify basis function in stim class (can now do it in timing class)
@@ -1552,6 +1584,8 @@ class RandTiming:
 
         # advanced options
         self.rand_post_stim_rest = 1    # include random rest from last event?
+        self.rand_post_elist_part= []   # partition each elist into multi
+                                        # [ [OCLASS, TYPE, NCLASS, NCLASS,...] ]
         self.show_rest_events = 0       # show stats and rest events
 
         # pre- and post-rest timing classes
@@ -1654,6 +1688,8 @@ class RandTiming:
                         helpstr='stim class: name nreps stiming rtiming')
 
         # new optional arguments
+        self.valid_opts.add_opt('-rand_post_elist_partition', -4, [], req=0,
+                        helpstr='rand partition stim elist into multiple')
         self.valid_opts.add_opt('-rand_post_stim_rest', 1, [], req=0,
                         acplist=['no','yes'],
                         helpstr='include random rest after final stimulus? y/n')
@@ -1814,6 +1850,8 @@ class RandTiming:
                if self.apply_opt_timing_class(opt):
                   return 1
 
+           # ------------------------------------------------------------
+           # stim classes
            olist = self.user_opts.find_all_opts('-add_stim_class')
            if len(olist) == 0:
                print('** ADV STYLE: missing option -add_stim_class')
@@ -1822,16 +1860,23 @@ class RandTiming:
                if self.apply_opt_stim_class(opt):
                   return 1
 
+           # and set some of the old-style parameters
+           self.num_stim = len(olist)
+           self.labels = [scl.name for scl in self.sclasses]
+           # end stim classes
+           # ------------------------------------------------------------
+
+           # rand_post_elist_partition
+           olist = self.user_opts.find_all_opts('-rand_post_elist_partition')
+           for opt in olist:
+              self.rand_post_elist_part.append(opt.parlist)
+
            # default to including post-stim rest
            if self.user_opts.have_no_opt('-rand_post_stim_rest'):
               self.rand_post_stim_rest = 0
 
            if self.user_opts.find_opt('-show_rest_events'):
               self.show_rest_events = 1
-
-           # and set some of the old-style parameters
-           self.num_stim = len(olist)
-           self.labels = [scl.name for scl in self.sclasses]
 
         # OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
         elif self.has_any_opts(g_style_opts_old):
@@ -2268,6 +2313,16 @@ class RandTiming:
               return cc
 
         return None
+
+    def get_stim_class_index(self, name):
+        """given name, return the index of the instance from sclasses
+           if not found, return -1
+        """
+        for cind, cc in enumerate(self.sclasses):
+           if cc.name == name:
+              return cind
+
+        return -1
 
     def labels_to_indices(self, labels, print_err=1, onebased=1):
         """convert the labels list into an index list
@@ -3845,11 +3900,223 @@ class RandTiming:
        if self.adv_create_full_event_list():
           return 1
 
+       # TEST: do labels still match stim classes?
+       if self.verb >= 0:
+          if len(self.labels) != len(self.sclasses):
+             print("** ACAL check: have %d labels but %d sclasses" \
+                   % (len(self.labels), len(self.sclasses)))
+             return 1
+          for lind, lab in enumerate(self.labels):
+             if self.sclasses[lind].name != lab:
+                print("** ACAL check: ind %d: label %s, but class %s" \
+                      % (lind, lab, self.sclasses[lind].name))
+                return 1
+
+       # possibly partition stim event lists into multiple sub-classes
+       # - modify and add to sclasses while modifying full_event_list
+       for plist in self.rand_post_elist_part:
+          if self.apply_rand_post_elist_part(plist):
+             return 1
+
        # convert to AfniData instances
        if self.adv_create_adata_list():
           return 1
 
        return 0
+
+    def apply_rand_post_elist_part(self, plist):
+       """For each rand_post_elist_part, break that stim class into multiple,
+          and then randomly partition the full_event_list events for that
+          class into ones for the multiple events.
+          For example, break 120 'food' events into 60 events of both 'carrot'
+          and 'pizza'.
+          This can be per run or across all runs at once.
+
+          plist should be of the form:
+
+            [ old_class method new_class1, new_class2, ... ]
+
+          where 'method' is either 'per_run' or 'across_runs'
+
+          modifies:
+            full_event_list     - change 1 class events to others
+            sclasses            - modify 1 and add the others to the end
+            labels              - modify 1 and add the others to the end
+            num_stim            - length of labels/sclasses
+
+          return 0 on success
+       """
+       # -----------------------------------------------------------------
+       # first check the format of plist
+       if len(plist) < 4:
+          print("** rand_post_elist_part has invalid form\n"              \
+                "   - should be : OLD_SCLASS STYLE NEW_SC1 NEW_SC2 ...\n" \
+                "   - have      : %s\n"                                   \
+                % ' '.join(plist))
+          return 1
+
+       # extract the args and continue checking
+       oclass   = plist[0]
+       method   = plist[1]
+       nclasses = plist[2:]
+
+       nnewc    = len(nclasses)         # num part classes
+       ncstart  = len(self.sclasses)    # index of first additional class
+       ocindex  = -1        # just a reminder, compute soon
+       nnewe    = -1        # num new events per class
+       osc      = None      # reminder
+
+       if oclass not in self.labels:
+          print("** rand_post_elist_part has invalid form\n"        \
+                "   - first arg '%s' is not an existing class\n"    \
+                "   - classes: %s\n" % (oclass, ' '.join(self.labels)))
+          return 1
+
+       valid_meths = ['per_run', 'across_runs']
+       if method not in valid_meths:
+          print("** rand_post_elist_part has invalid form\n"        \
+                "   - method '%s' not one of %s\n"                  \
+                % (method, ' '.join(valid_meths)))
+          return 1
+
+       for nclass in nclasses:
+          if nclass in self.labels:
+             print("** rand_post_elist_part has invalid form\n"        \
+                   "   - new stim class '%s' already defined\n" % nclass)
+             return 1
+
+       # since oclass is in labels, it shoud be at same point in sclasses
+       ocindex = self.get_stim_class_index(oclass)
+       if ocindex < 0:
+          print("** rand_post_elist_part: failed to find class %s"%oclass)
+          return 1
+
+       if self.verb > 2:
+          print("-- orig labs:    %s" % ', '.join(self.labels))
+          print("-- orig classse: %s" \
+                % ', '.join([c.name for c in self.sclasses]))
+          print("-- ocindex:     %d" % ocindex)
+
+       # get instance
+       osc = self.sclasses[ocindex]
+
+       # now with ocindex, verify number of events, either across or per run
+       ttreps = osc.nreps
+       if method == 'across_runs':
+          ttreps *= self.num_runs
+       if (ttreps % nnewc) != 0:
+          print("** rand_post_elist_part: cannot partition event list\n"
+                "   '%s' has %d events but a partition of %d classes" \
+                % (oclass, ttreps, nnewc))
+
+       if self.verb > 1:
+          print("++ partitioning %d '%s' events into %d new classes:\n" \
+                "   %s" % (osc.nreps, osc.name, nnewc, ', '.join(nclasses)))
+
+       # -----------------------------------------------------------------
+       # start easy, modify old label and add the other new ones
+       self.labels[ocindex] = nclasses[0]
+       self.labels.extend(nclasses[1:])
+
+       # -----------------------------------------------------------------
+       # do the same for the stims (modify first, copy and append others)
+
+       # just change the name of the first one
+       self.sclasses[ocindex].name = nclasses[0]
+       # for each new one, copy first and rename (forget duration list)
+       for nclass in nclasses[1:]:
+          ncinst = self.sclasses[ocindex].copy()
+          ncinst.name = nclass
+          self.sclasses.append(ncinst)
+       self.num_stim = len(self.labels)
+
+       if self.verb > 2:
+          print("-- new labs:    %s" % ', '.join(self.labels))
+          print("-- new classse: %s" \
+                % ', '.join([c.name for c in self.sclasses]))
+
+       # -----------------------------------------------------------------
+       # now the real work, modifiy events in full_event_list
+
+       # for convenience, and note the form:
+       # [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
+       #   [ [sind sdur rdur stime] [sind sdur rdur stime] ... ] ]
+       FEL = self.full_event_list
+
+       # - make an index list of all relevant events, randomize, then
+       #   give each new class the next N/n events
+
+       # eind_list : should be created across all runs, and shuffled either
+       #             across all runs, or per run
+       #      form : [ [run_ind, event_ind], [r, e] ... ]
+       #
+       # Run and event indexes desribe all oclass events (to be changed).
+       # Then the list can be appropriately shuffled, and assigned in equally
+       # sized sets to the new clases.
+       nnewe = (osc.nreps * self.num_runs) // nnewc
+       eind_list = []
+
+       # across runs: make full eind_list and shuffle
+       if method == 'across_runs':
+          for rind, RL in enumerate(FEL):
+             for eind, event in enumerate(RL):
+                if event[0] == ocindex:
+                    eind_list.append([rind, eind])
+          # randomize the order across all runs
+          UTIL.shuffle(eind_list)
+
+       # per run: make run list, shuffle and store in one list per new class
+       #        : so each class gets the same number per run
+       else:    # per run
+          # init empty class lists [ [], [], []...]
+          eind_class = [[] for ci in range(nnewc)]
+
+          # create single run shuffled event list
+          # this will be of length osc.nreps (required: multiple of nnewc)
+          for rind, RL in enumerate(FEL):
+             eind_run = []
+             for eind, event in enumerate(RL):
+                if event[0] == ocindex:
+                    eind_run.append([rind, eind])
+             # randomize just this run
+             UTIL.shuffle(eind_run)
+
+             # append its per-run reps share to each class list
+             cfirst = 0
+             nperrun = osc.nreps//nnewc
+             for ci in range(nnewc):
+                eind_class[ci].extend(eind_run[cfirst:cfirst+nperrun])
+                cfirst += nperrun
+
+          # and now catenate to form the full eind_list
+          for ci in range(nnewc):
+             eind_list.extend(eind_class[ci])
+          
+       # and finally reinsert (first ocindex, then starting with ncstart)
+       # - for each new class, modify its fraction of the old class
+       posn = 0
+       self.mod_FEL_events(FEL, eind_list, posn, ocindex, nnewe)
+       for i in range(nnewc-1):
+          # starting from eind_list[posn], set events to sind == (first+i)
+          posn += nnewe
+          self.mod_FEL_events(FEL, eind_list, posn, ncstart+i, nnewe)
+
+       return 0
+
+    def mod_FEL_events(self, FEV, eind_list, first_ind, new_sind, nmod):
+       """for each of nmod events in eind_list, starting at index first_ind,
+          change the FEV stim event (first element) sind to new_sind
+
+          eind_list = [ [run_a, eind_a], [run_b, eind_b], ... ]
+       """
+       if self.verb > 2:
+          print("++ modifying %d events to (%d) %s" \
+                % (nmod, new_sind, self.labels[new_sind]))
+
+       for offset in range(nmod):
+           rind = eind_list[first_ind+offset][0]
+           eind = eind_list[first_ind+offset][1]
+           FEV[rind][eind][0] = new_sind
 
     def adv_create_adata_list(self):
        """convert full_event_list to AfniData objects
@@ -3869,6 +4136,8 @@ class RandTiming:
              srun = [event for event in erun if event[0] == sind]
              mrun = [[se[3]+offset, [], se[1]] for se in srun]
              sc.mdata.append(mrun)
+
+       for sind, sc in enumerate(self.sclasses):
           sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
           sc.adata.name = sc.name
 
