@@ -4011,26 +4011,64 @@ class RandTiming:
 
        # - make an index list of all relevant events, randomize, then
        #   give each new class the next N/n events
+
+       # eind_list : should be created across all runs, and shuffled either
+       #             across all runs, or per run
+       #      form : [ [run_ind, event_ind], [r, e] ... ]
+       #
+       # Run and event indexes desribe all oclass events (to be changed).
+       # Then the list can be appropriately shuffled, and assigned in equally
+       # sized sets to the new clases.
+       nnewe = (osc.nreps * self.num_runs) // nnewc
+       eind_list = []
+
+       # across runs: make full eind_list and shuffle
        if method == 'across_runs':
-          nnewe = (osc.nreps * self.num_runs) // nnewc
-          eind_list = []
           for rind, RL in enumerate(FEL):
              for eind, event in enumerate(RL):
                 if event[0] == ocindex:
                     eind_list.append([rind, eind])
-
-          # randomize the order
-          import random
-          random.random()
+          # randomize the order across all runs
           UTIL.shuffle(eind_list)
 
-          # and reinsert (first ocindex, then starting with ncstart)
-          posn = 0
-          self.mod_FEL_events(FEL, eind_list, posn, ocindex, nnewe)
-          for i in range(nnewc-1):
-             # starting from eind_list[posn], set events to sind == (first+i)
-             posn += nnewe
-             self.mod_FEL_events(FEL, eind_list, posn, ncstart+i, nnewe)
+       # per run: make run list, shuffle and store in one list per new class
+       #        : so each class gets the same number per run
+       else:    # per run
+          # init empty class lists [ [], [], []...]
+          eind_class = [[] for ci in range(nnewc)]
+
+          # create single run shuffled event list
+          # this will be of length osc.nreps (required: multiple of nnewc)
+          for rind, RL in enumerate(FEL):
+             eind_run = []
+             for eind, event in enumerate(RL):
+                if event[0] == ocindex:
+                    eind_run.append([rind, eind])
+             # randomize just this run
+             UTIL.shuffle(eind_run)
+
+             # append its per-run reps share to each class list
+             cfirst = 0
+             nperrun = osc.nreps//nnewc
+             for ci in range(nnewc):
+                eind_class[ci].extend(eind_run[cfirst:cfirst+nperrun])
+                print("== extending %d from %d by %d, newlen %d"\
+                      %(ci,cfirst,nperrun,len(eind_class[ci])))
+                cfirst += nperrun
+
+          # and now catenate to form the full eind_list
+          for ci in range(nnewc):
+             print("-- len[%d] = %d" % (ci,len(eind_class[ci])))
+             eind_list.extend(eind_class[ci])
+          
+       # and finally reinsert (first ocindex, then starting with ncstart)
+       # - for each new class, modify its fraction of the old class
+       posn = 0
+       self.mod_FEL_events(FEL, eind_list, posn, ocindex, nnewe)
+       for i in range(nnewc-1):
+          # starting from eind_list[posn], set events to sind == (first+i)
+          posn += nnewe
+          self.mod_FEL_events(FEL, eind_list, posn, ncstart+i, nnewe)
 
        return 0
 
