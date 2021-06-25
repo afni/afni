@@ -8084,10 +8084,12 @@ void IW3D_signal_quit(int sig)
 
 /*---------------------------------------------*/
 /* Function to engage the signal handler above */
+/* [Called from 3dQwarp.c] */
+/*---------------------------------------------*/
 
 void IW3D_setup_signal_quit(void){
-  signal(SIGQUIT,IW3D_signal_quit);
-  signal(SIGALRM,IW3D_signal_quit);  /* 21 Apr 2021 */
+  signal(SIGQUIT,IW3D_signal_quit);  /* user sent QUIT signal */
+  signal(SIGALRM,IW3D_signal_quit);  /* 21 Apr 2021 -- timeout */
   return;
 }
 
@@ -10814,9 +10816,22 @@ ENTRY("IW3D_improve_warp") ;
 
    /******* do it babee!! ***********************************/
 
-   /* note use of setjmp() here to allow the optimizer to
+   /* Note use of setjmp() here to allow the optimizer to
       get broken out of by the QUIT or ALRM signal, which
-      can be necessary if OpenMP gets into some race condition */
+      can be necessary if OpenMP gets into some race condition
+
+      How setjmp/longjmp works:
+       1) The initial call below to setjmp() will return 0,
+          so the "normal" code will be executed after the if().
+       2) If the ALRM or QUIT signal happen, the signal
+          handler IW3D_signal_quit() is invoked.
+       3) That handler will call longjmp() which will set
+          things up so that it looks like setjmp() return
+          a nonzero value, and at that point the "bad news"
+          branch of the if() will be taken.
+       4) If the signal handler is not invoked, then the
+          program continues normally.
+      Also see https://en.wikipedia.org/wiki/Setjmp.h for more explanation */
 
    Hquitting_do_jump = 666 ; /* indication that setjmp() is invoked */
 
@@ -10835,25 +10850,29 @@ ENTRY("IW3D_improve_warp") ;
                          /* signal handler IW3D_signal_quit() was */
                          /* setup for ALRM and QUIT in 3dQwarp.c */
 
+     /***** HERE IS THE OPTIMIZATION!!! *****/
+
      iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                                prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
-     (void)alarm(0) ;   /* cancel alarm signal if we succeeded! */
+     (void)alarm(0) ;   /* cancel alarm signal if we succeeded/returned ! */
 
-   } else {  /* if we get to here, it was from the signal handler */
-             /* using longjmp() to break from optimizer == failure */
+   } else {  /*----- if we get to here, it was from the signal handler  -----*/
+             /*----- using longjmp() to break from optimizer == failure -----*/
 
-     INFO_message("longjmp out of IW3D_improve_warp due to %s signal" ,
-                  (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
-                 :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout) :("
-                                           : "unknown" ) ;
+     WARNING_message("longjmp out of IW3D_improve_warp due to %s signal\n"
+                     "               -- warp optimization ends now"       ,
+                     (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
+                    :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout) :("
+                                              : "unknown" ) ;
 
      Hquitting_do_jump = 0 ;    /* turn off longjmp() in signal handler */
      RETURN(0) ;                /* failure return */
    }
+   Hquitting_do_jump = 0 ;
    if( Hquitting ) RETURN(0) ;  /* this code probably redundantly pleonastic */
 
-   /******* iter = number of iterations actually used *******/
+   /******* iter = number of iterations actually used in this patch *******/
 
    if( iter > Hnparmap ) Hnpar_sum += Hnparmap ; /* number of parameters used so far */
 
@@ -11954,6 +11973,7 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Improve one patch, the plusminus way */
 
 int IW3D_improve_warp_plusminus( int warp_code ,
                                  int ibot, int itop,
@@ -12011,6 +12031,16 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    /*-- setup the basis functions for Hwarping --*/
 
    switch( warp_code ){
+
+     case MRI_SINCC:                                              /* Nov 2018 */
+       Hbasis_code   = MRI_SINCC ;
+       Hbasis_parmax = 0.1666*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.2345*Hfactor ;
+       Hnpar         = 3 ;                 /* number of params for local warp */
+       prad          = 0.333 ;                       /* NEWUOA initial radius */
+       HSCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;     /* setup HCwarp_load */
+     break ;
+
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
@@ -12179,8 +12209,50 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
 
-   iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
-                             prad,0.009*prad , itmax , IW3D_scalar_costfun_plusminus ) ;
+   /******* do it babee!! ***********************************/
+
+   /* note use of setjmp() here to allow the optimizer to
+      get broken out of by the QUIT or ALRM signal, which
+      can be necessary if OpenMP gets into some race condition */
+
+   Hquitting_do_jump = 666 ; /* indication that setjmp() is invoked */
+
+   if( setjmp(Hquitting_jmp_buf) == 0 ){  /* optimization of Hwarp parameters */
+
+     int asec ;
+     asec = (int)rintf(0.0000002f*Hnval*Hnpar*itmax/nthmax) ;
+          if( asec <    9 ) asec =    9 ;  /* min num seconds to wait */
+     else if( asec > 1888 ) asec = 1888 ;  /* max num seconds to wait */
+     (void)alarm(asec) ; /* ALRM signal if optimizer takes too long. */
+                         /* The reason for this folderol is that gcc OpenMP */
+                         /* sometimes (rarely) freezes in a race condition. */
+
+                         /* Also, the QUIT signal might come from user */
+
+                         /* signal handler IW3D_signal_quit() was */
+                         /* setup for ALRM and QUIT in 3dQwarp.c */
+
+     /***** HERE IS THE OPTIMIZATION!!! *****/
+
+     iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
+                               prad,0.009*prad , itmax , IW3D_scalar_costfun_plusminus ) ;
+
+     (void)alarm(0) ;   /* cancel alarm signal if we succeeded/returned ! */
+
+   } else {  /*----- if we get to here, it was from the signal handler  -----*/
+             /*----- using longjmp() to break from optimizer == failure -----*/
+
+     WARNING_message("longjmp out of IW3D_improve_warp_plusminus due to %s signal\n"
+                     "               -- warp optimization ends now"       ,
+                     (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
+                    :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout) :("
+                                              : "unknown" ) ;
+
+     Hquitting_do_jump = 0 ;    /* turn off longjmp() in signal handler */
+     RETURN(0) ;                /* failure return */
+   }
+   Hquitting_do_jump = 0 ;
+   if( Hquitting ) RETURN(0) ;  /* this code probably redundantly pleonastic */
 
    if( iter > 0 ) Hnpar_sum += Hnparmap ;
 
@@ -12555,7 +12627,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* cubic then quintic - somewhat different than 'normal' warping */
      BOXOPT ;
+#if 0  /* doesn't work at this time! */
      (void)IW3D_improve_warp_plusminus( MRI_SINCC       , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
+#endif
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC_LITE  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      BALLOPT ;

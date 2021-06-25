@@ -2053,6 +2053,7 @@ int main( int argc , char *argv[] )
    float ffparm[PARAM_MAXTRIAL+2][MAXPAR];  /* not really used yet */
    float tfcost[PARAM_MAXTRIAL+2] ;
    int   tfindx[PARAM_MAXTRIAL+2] ;
+   int   tfiorg[PARAM_MAXTRIAL+2] , ffiorg[PARAM_MAXTRIAL+2] ; /* 24 Jun 2021 */
    int skip_first=0 , didtwo , targ_kind, skipped=0 , nptwo=6 ;
    int targ_was_vector=0, targ_vector_kind=-1 ; MRI_IMAGE *im_targ_vector=NULL ;
    double ctim=0.0,dtim , rad , conv_rad ;
@@ -4356,7 +4357,7 @@ STATUS("zeropad weight dataset") ;
    /*----------------------------------------------------------*/
    /*---------- setup alignment structure parameters ----------*/
    /*- the stup struct controls much of the alignment process -*/
-   /*-- see 3ddata.h for definition of this masterful struct --*/
+   /*-- see mrilib.h for definition of this masterful struct --*/
    /*----------------------------------------------------------*/
 
    memset(&stup,0,sizeof(GA_setup)) ;  /* NULL out */
@@ -4469,7 +4470,7 @@ STATUS("zeropad weight dataset") ;
 
    mri_genalign_affine_setup( matorder , dcode , smat ) ;
 
-   stup.wfunc       = mri_genalign_affine ;  /* warping function */
+   stup.wfunc       = mri_genalign_affine ;  /* warping function in mri_genalign.c */
    stup.wfunc_param = (GA_param *)calloc(12,sizeof(GA_param)) ;
 
 #ifdef ALLOW_NWARP /*********************************************************/
@@ -5473,14 +5474,18 @@ STATUS("zeropad weight dataset") ;
 
          /*- copy the trial parameters out into tfparm -*/
 
-         for( ib=0 ; ib < tb ; ib++ )
-           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         for( ib=0 ; ib < tb ; ib++ ){
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
+           }
+           tfiorg[ib] = stup.wfunc_param[0].idx_trial[ib] ;  /* 24 Jun 2021 */
+         }
 
          /*- add identity transform to set, for comparisons (and insurance) -*/
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            tfparm[tb][jj] = stup.wfunc_param[jj].val_pinit ;
+         tfiorg[tb] = -1 ;
 
          tfdone = tb+1 ;  /* number of parameter sets now saved in tfparm */
 
@@ -5488,7 +5493,7 @@ STATUS("zeropad weight dataset") ;
 
          nrefine = (int)AFNI_numenv("AFNI_TWOPASS_REFINE") ;
          if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;  /* number of refinement passes */
-         rad = 0.0444 ;  /* initial search radius in parameter space */
+         rad = 0.0555 ;  /* initial search radius in parameter space */
                          /* recall that each scaled parameter search range is 0..1 */
                          /* see powell_int.c for details on how this is implemented */
 
@@ -5525,7 +5530,7 @@ STATUS("zeropad weight dataset") ;
 
              tfcost[ib] = stup.vbest ; tfindx[ib] = ib ;  /* save cost */
              if( verb > 1 )
-               ININFO_message("- param set #%d has cost=%f",ib+1,stup.vbest) ;
+               ININFO_message("- param set #%d has cost=%f [o=%d]",ib+1,stup.vbest,tfiorg[ib]) ;
              if( verb > 2 ) PAROUT("--") ;
            }
 
@@ -5535,12 +5540,15 @@ STATUS("zeropad weight dataset") ;
              int jb,ncast=0 ; float pdist ;
 
              if( verb > 1 ) ININFO_message("- sorting parameter sets by cost") ;
-             for( ib=0 ; ib < tfdone ; ib++ )       /* copy tfparm into ffparm */
+             for( ib=0 ; ib < tfdone ; ib++ ){      /* copy tfparm into ffparm */
                memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar );
+               ffiorg[ib] = tfiorg[ib] ;                        /* 24 Jun 2021 */
+             }
              qsort_floatint( tfdone , tfcost , tfindx ) ;      /* sort by cost */
              for( ib=0 ; ib < tfdone ; ib++ ){        /* copy back into tfparm */
                jb = tfindx[ib] ;      /* jb = index in unsorted copy in ffparm */
                memcpy( tfparm[ib], ffparm[jb], sizeof(float)*stup.wfunc_numpar );
+               tfiorg[ib] = ffiorg[jb] ;
              }
 
              /* now cast out parameter sets that are very close to the best one */
@@ -5553,8 +5561,10 @@ STATUS("zeropad weight dataset") ;
                if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g %s" ,
                                              ib+1, pdist, (pdist<CTHRESH)?"XXX":"" ) ;
                if( tfdone > 2 && pdist < CTHRESH ){
-                 for( jb=ib+1 ; jb < tfdone ; jb++ )  /* copy those above down */
+                 for( jb=ib+1 ; jb < tfdone ; jb++ ){  /* copy those above down */
                    memcpy( tfparm[jb-1], tfparm[jb], sizeof(float)*stup.wfunc_numpar );
+                   tfiorg[jb-1] = tfiorg[jb] ;
+                 }
                  ncast++ ; tfdone-- ;
                }
              }
@@ -5603,6 +5613,8 @@ STATUS("zeropad weight dataset") ;
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
            tfparm[0][jj] = stup.wfunc_param[jj].val_out ;
+
+         tfiorg[0] = 0 ;
          tfdone = 1 ;  /* number of parameter sets saved in tfparm */
 
        } /* end of '-twobest 0' */
@@ -5612,6 +5624,7 @@ STATUS("zeropad weight dataset") ;
 
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          tfparm[tfdone][jj] = stup.wfunc_param[jj].val_pinit ;
+       tfiorg[tfdone] = -2 ;
        tfdone++ ;
 
        didtwo = 1 ;   /* mark that we did the first pass */
@@ -5685,8 +5698,8 @@ STATUS("zeropad weight dataset") ;
          INFO_message("Picking best parameter set out of %d cases",tfdone) ;
        for( ib=0 ; ib < tfdone ; ib++ ){
          cost = mri_genalign_scalar_cost( &stup , tfparm[ib] ) ;
-         if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
-                                       ib+1,cost,(cost<cbest)?'*':' ');
+         if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c [o=%d]",
+                                       ib+1,cost,(cost<cbest)?'*':' ',tfiorg[ib]);
          if( verb > 2 ) PARVEC("--",tfparm[ib]) ;
          if( cost < cbest ){ cbest=cost ; kb=ib ; }  /* save best case */
        }
@@ -5714,12 +5727,12 @@ STATUS("zeropad weight dataset") ;
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )       /* save refined */
              ffparm[ib][jj] = stup.wfunc_param[jj].val_out ; /* parameters */
            cost = stup.vbest ;
-           if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
-                                         ib+1,cost,(cost<cbest)?'*':' ' );
+           if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c [o=%d]",
+                                         ib+1,cost,(cost<cbest)?'*':' ',tfiorg[ib] );
            if( verb > 2 ) PAROUT("--") ;
            if( cost < cbest ){ cbest=cost ; kb=ib ; }  /* save best case */
          }
-         if( verb > 1 ) ININFO_message("- case #%d is now the best",kb+1) ;
+         if( verb > 1 ) ININFO_message("- case #%d [o=%d] is now the best",kb+1,tfiorg[kb]) ;
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            stup.wfunc_param[jj].val_init = ffparm[kb][jj] ;
        }

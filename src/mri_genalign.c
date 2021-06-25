@@ -19,12 +19,12 @@
 #undef  SMAGIC
 #define SMAGIC 208921148  /* Zip+4 Code for AFNI Group at NIMH */
 
-/* global access to setup parameters [see 3ddata.h for GA_setup typedef] */
+/*--- global access to setup parameters [see 3ddata.h for GA_setup typedef] ---*/
 
-static GA_setup *gstup = NULL ;
+static GA_setup *gstup = NULL ;     /* this struct is critically important */
 static GA_setup *gstup_bk = NULL ;
 
-float GA_get_warped_overlap_fraction(void) ; /* prototype */
+float GA_get_warped_overlap_fraction(void) ; /* prototype for 'ov' */
 
 /* codes indicating the order of operations used to create affine warp */
 
@@ -33,7 +33,9 @@ static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 
 /*---------------------------------------------------------------------------*/
 static int mverb = 0 , mpr = 0 ;
-void mri_genalign_verbose(int v){ mverb = v ; }
+void mri_genalign_verbose(int v){ mverb = v ; }  /* set internal verbosity */
+
+/* for rounding the cost functional -- experimental! */
 
 static int mround = 0 ;
 void mri_genalign_round(int v){ mround = v ; } /* 04 Jun 2021 - don't use */
@@ -41,6 +43,7 @@ void mri_genalign_round(int v){ mround = v ; } /* 04 Jun 2021 - don't use */
 /*---------------------------------------------------------------------------*/
 /* 27 Aug 2008: replace use of drand48 with myunif, for inter-system control */
 /*              that is, we'll use identical 64 bit arithmetic for this      */
+/*           see https://en.wikipedia.org/wiki/Linear_congruential_generator */
 
 static const unsigned long long MYa=62003 ;     /* multiplicand */
 static const unsigned long long MYb=15485863 ;  /* addend */
@@ -52,7 +55,7 @@ static INLINE float myunif(void)  /* return value is in 0..1 range */
   return ( ((unsigned int)MYx) / 4294967296.0f ) ;
 }
 
-/* reset the seed */
+/* reset the seed == change starting point for 'random' numbers */
 
 static void myunif_reset(unsigned long long x){ MYx = x; return; }
 
@@ -204,7 +207,7 @@ ENTRY("GA_get_warped_values") ;
          GA_interp_cubic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
-       case MRI_VARP1:
+       case MRI_VARP1:  /* don't use this! */
          clip = 1 ;
          GA_interp_varp1( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
@@ -381,7 +384,7 @@ ENTRY("GA_setup_2Dhistogram") ;
 /*---------------------------------------------------------------------------*/
 
 #undef  CMAX
-#define CMAX 0.9999f
+#define CMAX 0.9999f  /* max correlation to allow */
 
 static int lpczz = 0 ;
 void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
@@ -400,16 +403,19 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 
 ENTRY("GA_pearson_local") ;
 
-   /* set up the geometric structure for the BLOKs we use */
+   /*-------------------------------------------------------------------------*/
+   /*-- if not already present, set up geometric structure for BLOKs we use --*/
 
    if( gstup->blokset == NULL ){
      float rad=gstup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
+     /* increment blok 'radius' to allow for smoothing radius */
      if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
        rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
+     /* minimum blok 'radius' */
      mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
      rad  = MAX(rad,mrad) ;
      if( gstup->im != NULL ) ima = gstup->im->ar ;  /* 19 Feb 2010: oopsie */
-     if( gstup->jm != NULL ) jma = gstup->jm->ar ;
+     if( gstup->jm != NULL ) jma = gstup->jm->ar ;  /* points to include */
      if( gstup->km != NULL ) kma = gstup->km->ar ;
      gstup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
                             gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
@@ -417,8 +423,9 @@ ENTRY("GA_pearson_local") ;
                             gstup->npt_match , ima,jma,kma ,
                             gstup->bloktype , rad , gstup->blokmin , 1.0f,mverb ) ;
      if( gstup->blokset == NULL )
-       ERROR_exit("Can't create GA_BLOK_set?!?") ;
+       ERROR_exit("Can't create GA_BLOK_set?!?") ;  /* should not happen */
    }
+   /*-------------------------------------------------------------------------*/
 
    gbs   = gstup->blokset ;
    nblok = gbs->num ;
@@ -433,22 +440,23 @@ ENTRY("GA_pearson_local") ;
    /*--- loop over blocks, compute local correlations ---*/
 
    for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
-     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;  /* skip this blok */
-     elm = gbs->elm[dd] ;
+     nelm = gbs->nelm[dd] ;     /* number of points inside this blok */
+     if( nelm < 9 ) continue ;  /* too few? skip this blok */
+     elm = gbs->elm[dd] ;       /* list of 1D index to points for this blok */
 
      RAND_ROUND ; /* 26 Feb 2020 */
 
      if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
        for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
+         jj = elm[ii] ;                  /* index of ii-th point in blok */
          xm += avm[jj] ; ym += bvm[jj] ;
        }
-       xm /= nelm ; ym /= nelm ;
+       xm /= nelm ; ym /= nelm ;         /* mean of x and y inside blok */
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
          vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
-         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
+         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ; /* sums needed */
        }
 
      } else {             /*** weighted correlation ***/
@@ -458,7 +466,7 @@ ENTRY("GA_pearson_local") ;
          wt = wvm[jj] ; ws += wt ;
          xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
        }
-       xm /= ws ; ym /= ws ;
+       xm /= ws ; ym /= ws ;            /* weighted averages */
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
          wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
@@ -472,12 +480,12 @@ ENTRY("GA_pearson_local") ;
 
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
-          if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
+          if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range (avoid bad juju) */
      else if( pcor < -CMAX ) pcor = -CMAX ;
-     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() = stretch */
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() = stretch large values */
      pabs = MYfabsf(pcor) ;
      if( use_ppow ) pabs = powf(pabs,ppow) ;        /* 28 Jan 2021 */
-     psum += ws * pcor * pabs ;                     /* emphasize large values */
+     psum += ws * pcor * pabs ;                     /* emphasize large values even more */
      if( !wsold ) wss += ws ;                       /* moved here 02 Mar 2010 */
    }
 
@@ -1611,6 +1619,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
    double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
    int nk,kk,jj, ngrid,ngtot , maxstep ;
    int ival[NKEEP] , rval[NKEEP] , neval[NKEEP] ; float fval[NKEEP] ;
+   int idx[NKEEP] ;
    char mrk[6]="*o+-." ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
@@ -1717,13 +1726,14 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* PRED01(x) is periodic reduction of x to inteval [0,1] */
    for( kk=0 ; kk < ngood ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
+     idx[kk] = kk ;      /* index in inital search results [24 Jun 2021] */
    }
 
    if( mverb ){                    /* print table of results? */
      if( mpr > 0 ) fprintf(stderr,"\n") ;
      fprintf(stderr," + - best %d costs found:\n",ngood) ;
      for(kk=0;kk<ngood;kk++){
-      fprintf(stderr,"   %2d v=% 9.6f:",kk,kval[kk]);
+      fprintf(stderr,"   o=%2d v=% 9.6f:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1745,10 +1755,12 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      RAND_ROUND ;
+     /* here is the "little optimization" of kpar[] */
      neval[kk] = powell_newuoa( nfr , kpar[kk] ,
                                 0.05 , 0.001 , maxstep , GA_scalar_fitter ) ;
+     /* cost functional at result */
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
-     if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
+     if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }  /* jj = "best" */
      if( mverb ) fprintf(stderr,".") ;
    }
    if( mverb ) fprintf(stderr,"\n") ;
@@ -1760,6 +1772,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* 23 Feb 2010: cast out the bad overlap (coincidence count) guys */
    /* [I think that part of the code was excised???] */
 
+   /* copy into qval */
+
    for( kk=0 ; kk < ngood ; kk++ ) qval[kk] = kval[kk] ;
 
    /* at this point, smallest error is vbest and best index in kpar is jj */
@@ -1767,7 +1781,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( mverb ){                    /* print out optimized results? */
      fprintf(stderr," + - costs of the above after a little optimization:\n") ;
      for( kk=0 ; kk < ngood ; kk++ ){
-      fprintf(stderr,"  %c%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,qval[kk]);
+      fprintf(stderr,"  %co=%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,qval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1775,7 +1789,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        }
       }
       fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
-      fprintf(stderr,"  [%d]" , neval[kk] ) ; /* 01 Jun 2021 */
+      fprintf(stderr,"  [f=%d]" , neval[kk] ) ; /* 01 Jun 2021 */
       fprintf(stderr,"\n") ;
      }
    }
@@ -1797,15 +1811,23 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
 #undef  DTHRESH
 #define DTHRESH 0.05
+
+   /* copy into fval, with index in orig list in ival */
+
    for( ii=0 ; ii < ngood ; ii++ ){ fval[ii] = kval[ii]; ival[ii] = ii; }
+
    qsort_floatint( ngood , fval , ival ) ; /* sort on fval, carrying ival along */
+
    for( qq=0 ; qq < stup->wfunc_numpar ; qq++ ){ /** save best into trial #0 **/
      if( !stup->wfunc_param[qq].fixed )
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_init ;
      else
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_fixed ;
+     stup->wfunc_param[qq].idx_trial[0] = ival[0] ;
    }
-   if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[0]) ;
+
+   if( mverb > 1 ) ININFO_message("- saving #%2d for use with twobest",ival[0]) ;
+
    nt = 1 ;
    for( jj=1 ; jj < ngood && nt < PARAM_MAXTRIAL ; jj++ ){
      qpar = kpar[ival[jj]] ;                 /* the jj-th best param set */
@@ -1821,7 +1843,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          goto NEXT_jj ;
        }
      }
-     if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[jj]) ;
+     if( mverb > 1 ) ININFO_message("- saving #%2d for use with twobest",ival[jj]) ;
      for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
          stup->wfunc_param[qq].val_trial[nt] = stup->wfunc_param[qq].min
@@ -1831,6 +1853,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        } else {
          stup->wfunc_param[qq].val_trial[nt] = stup->wfunc_param[qq].val_fixed ;
        }
+       stup->wfunc_param[qq].idx_trial[nt] = ival[jj] ;
      }
      nt++ ; /* 1 more trial set saved */
    NEXT_jj: ; /* end of loop over jj = list of trial parameter sets */

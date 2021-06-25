@@ -5754,6 +5754,7 @@ typedef struct {
   float val_init , val_out , val_fixed , val_pinit ;
   int fixed ;
   float val_trial[PARAM_MAXTRIAL] ;
+  int   idx_trial[PARAM_MAXTRIAL] ; /* 24 Jun 2021 */
   char name[32] ;
 } MRI_warp3D_param_def ;
 
