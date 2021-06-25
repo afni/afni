@@ -882,7 +882,8 @@ ENTRY("PBAR_bigmap_finalize") ;
    /* If colormap is meant for ROI data, set range
      parameters automatically          ZSS Feb 15 2010 */
    // [PT, RWC: Jun 25, 2021] set func_range_nval be appropriate for N
-   // rois by having max val being N-1
+   // rois by having max val being N-1; extend to include Glasbey
+   // cbars, as well.
    if( pbar->parent != NULL ){
      if (strstr(pbar->bigname,"i32")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(31.0f, fmax));
@@ -892,9 +893,16 @@ ENTRY("PBAR_bigmap_finalize") ;
         AFNI_set_func_range_nval(pbar->parent, MAX(127.0f, fmax));
      } else if (strstr(pbar->bigname,"i255")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(255.0f, fmax));
-     } else if (strstr(pbar->bigname,"i256")) {
+     } else if (strstr(pbar->bigname,"i256") || \
+                strstr(pbar->bigname,"_256")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(255.0f, fmax));
-     }
+     } else if (strstr(pbar->bigname,"_512")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(511.0f, fmax));
+     } else if (strstr(pbar->bigname,"_1024")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(1023.0f, fmax));
+     } else if (strstr(pbar->bigname,"_2048")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(2047.0f, fmax));
+     } 
    }
 
    pbar->bigmap_index = ind ;
