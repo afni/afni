@@ -898,10 +898,7 @@ ENTRY("PBAR_bigmap_finalize") ;
       (2, 3] : C
       (3, 4] : D
 
-      ... and in reality, anything > 3 will have color D.  Because of
-      this, color A does *not* get shown for integer-valued dsets.
-      This might seem a little funny, but the oddity comes with zero
-      being special and never shown. */
+      ... and in reality, anything > 3 will have color D. */
    if( pbar->parent != NULL ){
      if (strstr(pbar->bigname,"i32")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(32.0f, fmax));
