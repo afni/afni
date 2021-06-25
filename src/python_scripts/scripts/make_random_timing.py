@@ -3942,6 +3942,7 @@ class RandTiming:
             full_event_list     - change 1 class events to others
             sclasses            - modify 1 and add the others to the end
             labels              - modify 1 and add the others to the end
+            num_stim            - length of labels/sclasses
 
           return 0 on success
        """
@@ -4027,6 +4028,7 @@ class RandTiming:
           ncinst = self.sclasses[ocindex].copy()
           ncinst.name = nclass
           self.sclasses.append(ncinst)
+       self.num_stim = len(self.labels)
 
        if self.verb > 2:
           print("-- new labs:    %s" % ', '.join(self.labels))
