@@ -1155,6 +1155,37 @@ Advanced usage (make_random_timing.py) ~1~
             -write_event_list events.adv.4                       \\
             -seed 31415 -prefix stimes.adv.4 -verb 2
 
+   -------------------------------------------------------
+   Advanced Example 5: partition one class into multiple sub-classes ~3~
+
+     - Initialize timing for classical houses/faces/donuts experiments.
+     - After that is done, partition the 'donuts' class into 3 sub-classes,
+       per run (this can be done per-run or across runs).
+            partition: 24 donuts events (per run)
+            into     :  8 events of each: choc, glazed, sprinkle
+     - So the 24 donut events per run will be randomly partitioned into
+       8 of each of the other classes.
+     - The output will have no donut events, but it will have choc, glazed
+       and sprinkle.
+     - If partitioning is across runs, then each run will not necessarily
+       have 8 events of each sub-type.  But the total will still be 16
+       (because there are 2 runs).
+
+         make_random_timing.py -num_runs 2 -run_time 160    \\
+            -add_timing_class stim 1                        \\
+            -add_timing_class rest 0 -1 -1                  \\
+            -pre_stim_rest 10 -post_stim_rest 10            \\
+            -add_stim_class houses 24 stim rest             \\
+            -add_stim_class donuts 24 stim rest             \\
+            -add_stim_class faces  24 stim rest             \\
+            -show_timing_stats                              \\
+            -seed 12345                                     \\
+            -write_event_list events.$suffix.txt            \\
+            -save_3dd_cmd 3dd.$suffix.txt                   \\
+            -prefix stimes.$suffix                          \\
+            -rand_post_elist_partition donuts per_run       \\
+                                       choc glaze sprinkle
+
 ---------------------------------------------------------------------
 options (specific to the advanced usage): ~2~
 
@@ -1468,9 +1499,10 @@ g_history = """
     3.5  Aug  9, 2019: format text output for better python consistency
     3.6  Dec 20, 2019: add more advanced usage help
     3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
+    3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
 """
 
-g_version = "version 3.7 January 27, 2020"
+g_version = "version 3.8 June 25, 2021"
 
 g_todo = """
    - specify basis function in stim class (can now do it in timing class)
@@ -4052,13 +4084,10 @@ class RandTiming:
              nperrun = osc.nreps//nnewc
              for ci in range(nnewc):
                 eind_class[ci].extend(eind_run[cfirst:cfirst+nperrun])
-                print("== extending %d from %d by %d, newlen %d"\
-                      %(ci,cfirst,nperrun,len(eind_class[ci])))
                 cfirst += nperrun
 
           # and now catenate to form the full eind_list
           for ci in range(nnewc):
-             print("-- len[%d] = %d" % (ci,len(eind_class[ci])))
              eind_list.extend(eind_class[ci])
           
        # and finally reinsert (first ocindex, then starting with ncstart)
