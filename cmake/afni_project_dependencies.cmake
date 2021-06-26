@@ -21,8 +21,18 @@ if("${CMAKE_COMPILER_ID}" STREQUAL Intel OR "$ENV{CC}" MATCHES "icc$")
   endif()
 endif()
 
+if(NOT DEFINED USE_OMP OR USE_OMP)
+  find_package(OpenMP COMPONENTS C)
+endif()
 
-find_package(OpenMP COMPONENTS C)
+# By default USE_OMP will be set based on whether omp is found.
+if(OpenMP_FOUND)
+  set_if_not_defined(USE_OMP ON)
+else()
+  set_if_not_defined(USE_OMP OFF)
+endif()
+mark_as_advanced(USE_OMP)
+
 # Fail if USE_OMP has been explicitly set and OMP was not found
 if(USE_OMP AND NOT OpenMP_FOUND)
   message(FATAL_ERROR "
