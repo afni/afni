@@ -924,11 +924,12 @@ char * NI_type_name( int code )
     before calling this function.
 --------------------------------------------------------------------------*/
 
-int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
+int64_t NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 {
    char *wbuf , *att=NULL , *qtt , *btt ;
-   int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) , ntot=0,nout ;
+   int  nwbuf , ii,jj,row,col , tt=NI_element_type(nini) ;
    int  att_len , kk , otmode=tmode ;
+   int64_t ntot=0 , nout ;             /* 28 Jun 2021 */
 
    char *bbuf , *cbuf ;  /* base64 stuff */
    int   bb=0 ,  cc=0 ;
@@ -974,7 +975,7 @@ NI_dpr("ENTER NI_write_element\n") ;
 
 #undef  AF
 #define AF      
-#define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s\n",q);return -1;} else ntot+=nout
+#define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s nout=%lld\n",q,nout);return -1;} else ntot+=nout
 
    if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
 
@@ -1388,7 +1389,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       if( !header_only ){
         nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
                                      nel->vec_len, nel->vec    , tmode ) ;
-        ADDOUT("P") ;
+        ADDOUT("DATA") ;
       }
 #ifdef NIML_DEBUG
       else NI_dpr("NI_write_element: header_only case\n") ;
@@ -1415,9 +1416,9 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 /*! Write an element (data or group) to a file.  [07 Mar 2007]
 --------------------------------------------------------------------------*/
 
-int NI_write_element_tofile( char *fname , void *nini , int tmode )
+int64_t NI_write_element_tofile( char *fname , void *nini , int tmode )
 {
-   NI_stream_type *ns ; char *nsname ; int vv ;
+   NI_stream_type *ns ; char *nsname ; int64_t vv ;
 
    if( fname == NULL || *fname == '\0' || nini == NULL ) return -1 ;
 

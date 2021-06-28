@@ -49,6 +49,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , JUN , 2021 , RWC , "NIML" , MINOR , TYPE_BUG_FIX ,
+   "Change byte count output for NI_write_element to int64_t" ,
+   "And a few other functions as well. Reason: someone tried to create a 2.8\n"
+   "GB .niml.dset file, which caused a problem when counting up the bytes\n"
+   "output using a 32 bit int. Users -- what can you do with them?" } ,
+
  { 28 , JUN , 2021 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add Linear back to Alpha fading, as well as default Quadratic" ,
    "Drive-able. Menu item under 'Thr' popup." } ,
