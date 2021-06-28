@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , JUN , 2021 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Linear back to Alpha fading, as well as default Quadratic" ,
+   "Drive-able. Menu item under 'Thr' popup." } ,
+
  { 24 , JUN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Add tracking thru optimization of original points" ,
    "That is, with -verb, print out the original index [o=X] as the stages of\n"

@@ -8057,7 +8057,7 @@ static float save_H_zero = 0 ;
 
 /*----------------------------------------------------------------------------*/
 /* Process the QUIT signal, as in 'kill -s QUIT <processID>' */
-/* And now the ALRM signal [21 Apr 2021] */
+/* And now the ALRM signal -- for OpenMP freezes [21 Apr 2021] */
 /* This signal handler will longjmp() back into the "it failed" branch
    of the setjmp() conditional where the optimizer/OpenMP sometimes
    freezes up -- if Hquitting_do_jump is set. Otherwise, it just
@@ -8070,11 +8070,15 @@ void IW3D_signal_quit(int sig)
 {
    static volatile int fff=0 ;
    if( fff ) _exit(1) ; else fff = 1 ;   /* stop recursion (shouldn't happen) */
+#ifdef USE_OMP
    (void)alarm(0) ;                      /* disable ALRM signal */
+#endif
    Hquitting = 1 ; Hquitting_sig = sig ; /* set external variables */
    fprintf(stderr,"\n** %s signal received -- trying to die gracefully **\n" ,
                   (sig==SIGQUIT) ? "QUIT"
                  :(sig==SIGALRM) ? "ALRM"
+                 :(sig==SIGSEGV) ? "SEGV"
+                 :(sig==SIGBUS ) ? "BUS"
                                  : "unknown" ) ;
    /* lonjmp() out if ordered to do so */
    if( Hquitting_do_jump ){ Hquitting_do_jump = 0 ; longjmp(Hquitting_jmp_buf,666) ; }
@@ -8089,7 +8093,9 @@ void IW3D_signal_quit(int sig)
 
 void IW3D_setup_signal_quit(void){
   signal(SIGQUIT,IW3D_signal_quit);  /* user sent QUIT signal */
+#ifdef USE_OMP
   signal(SIGALRM,IW3D_signal_quit);  /* 21 Apr 2021 -- timeout */
+#endif
   return;
 }
 
@@ -10837,9 +10843,10 @@ ENTRY("IW3D_improve_warp") ;
 
    if( setjmp(Hquitting_jmp_buf) == 0 ){  /* optimization of Hwarp parameters */
 
+#ifdef USE_OMP
      int asec ;
      asec = (int)rintf(0.0000002f*Hnval*Hnpar*itmax/nthmax) ;
-          if( asec <    9 ) asec =    9 ;  /* min num seconds to wait */
+          if( asec <   99 ) asec =   99 ;  /* min num seconds to wait */
      else if( asec > 1888 ) asec = 1888 ;  /* max num seconds to wait */
      (void)alarm(asec) ; /* ALRM signal if optimizer takes too long. */
                          /* The reason for this folderol is that gcc OpenMP */
@@ -10849,13 +10856,16 @@ ENTRY("IW3D_improve_warp") ;
 
                          /* signal handler IW3D_signal_quit() was */
                          /* setup for ALRM and QUIT in 3dQwarp.c */
+#endif
 
      /***** HERE IS THE OPTIMIZATION!!! *****/
 
      iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                                prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
+#ifdef USE_OMP
      (void)alarm(0) ;   /* cancel alarm signal if we succeeded/returned ! */
+#endif
 
    } else {  /*----- if we get to here, it was from the signal handler  -----*/
              /*----- using longjmp() to break from optimizer == failure -----*/
@@ -10863,8 +10873,15 @@ ENTRY("IW3D_improve_warp") ;
      WARNING_message("longjmp out of IW3D_improve_warp due to %s signal\n"
                      "               -- warp optimization ends now"       ,
                      (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
-                    :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout) :("
+                    :(Hquitting_sig==SIGALRM) ? "ALRM (from internal timeout) :("
                                               : "unknown" ) ;
+     if( Hquitting_sig == SIGALRM )
+       WARNING_message("  ALRM signal is usually due to a multi-threaded 'race'\n"
+                       "            condition in GCC OpenMP implementation\n"
+                       "         -- which is to say, a compilation bug\n"
+                       "            that arises quasi-randomly\n"
+                       "         -- you can try running this job again and\n"
+                       "            with luck, it will work out OK next time"  ) ;
 
      Hquitting_do_jump = 0 ;    /* turn off longjmp() in signal handler */
      RETURN(0) ;                /* failure return */
@@ -12219,9 +12236,10 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    if( setjmp(Hquitting_jmp_buf) == 0 ){  /* optimization of Hwarp parameters */
 
+#ifdef USE_OMP
      int asec ;
      asec = (int)rintf(0.0000002f*Hnval*Hnpar*itmax/nthmax) ;
-          if( asec <    9 ) asec =    9 ;  /* min num seconds to wait */
+          if( asec <   99 ) asec =   99 ;  /* min num seconds to wait */
      else if( asec > 1888 ) asec = 1888 ;  /* max num seconds to wait */
      (void)alarm(asec) ; /* ALRM signal if optimizer takes too long. */
                          /* The reason for this folderol is that gcc OpenMP */
@@ -12231,13 +12249,16 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
                          /* signal handler IW3D_signal_quit() was */
                          /* setup for ALRM and QUIT in 3dQwarp.c */
+#endif
 
      /***** HERE IS THE OPTIMIZATION!!! *****/
 
      iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                                prad,0.009*prad , itmax , IW3D_scalar_costfun_plusminus ) ;
 
+#ifdef USE_OMP
      (void)alarm(0) ;   /* cancel alarm signal if we succeeded/returned ! */
+#endif
 
    } else {  /*----- if we get to here, it was from the signal handler  -----*/
              /*----- using longjmp() to break from optimizer == failure -----*/
@@ -12245,8 +12266,15 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      WARNING_message("longjmp out of IW3D_improve_warp_plusminus due to %s signal\n"
                      "               -- warp optimization ends now"       ,
                      (Hquitting_sig==SIGQUIT) ? "QUIT (from user)"
-                    :(Hquitting_sig==SIGALRM) ? "ALRM (from timeout) :("
+                    :(Hquitting_sig==SIGALRM) ? "ALRM (from internal timeout) :("
                                               : "unknown" ) ;
+     if( Hquitting_sig == SIGALRM )
+       WARNING_message("  ALRM signal is usually due to a multi-threaded 'race'\n"
+                       "            condition in GCC OpenMP implementation\n"
+                       "         -- which is to say, a compilation bug\n"
+                       "            that arises quasi-randomly\n"
+                       "         -- you can try running this job again and\n"
+                       "            with luck, it will work out OK next time"  ) ;
 
      Hquitting_do_jump = 0 ;    /* turn off longjmp() in signal handler */
      RETURN(0) ;                /* failure return */

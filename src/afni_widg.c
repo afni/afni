@@ -3187,33 +3187,33 @@ STATUS("making func->rowcol") ;
                             "show Positives, Negatives, or Both?" ) ;
     }
 
-#if 0 /* disabled 02 Nov 2018 */
+#if 1 /* disabled 02 Nov 2018 */   /* re-enabled 28 Jun 2021 */
    /* Threshold use alpha arrowval [08 Dec 2014] */
 
-   { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
-     char *cpt = getenv("AFNI_FUNC_ALPHA") ; int mm=0 ;
-          if( cpt != NULL && strcasecmp(cpt,"Linear")    == 0 ) mm = 1 ;
-     else if( cpt != NULL && strcasecmp(cpt,"Quadratic") == 0 ) mm = 2 ;
-     im3d->vinfo->thr_use_alpha = mm ;  /* default = "Off" */
+   { static char *thr_alpha_label[2] = { "Linear" , "Quadratic"} ;
+     char *cpt = getenv("AFNI_FUNC_ALPHA") ; int mm=2 ;
+     if( cpt != NULL && toupper(*cpt) == 'L' ) mm = 1 ;
      func->thr_alpha_av =
         new_MCW_arrowval(
            func->thr_menu ,             /* parent */
            "Alpha" ,                    /* label */
            AVOPT_STYLE ,                /* arrow directions */
            0  ,                         /* min value */
-           2  ,                         /* max value */
-           im3d->vinfo->thr_use_alpha , /* init value */
+           1  ,                         /* max value */
+           mm             ,             /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
            AFNI_func_alpha_CB ,         /* routine to call after click */
-           (XtPointer)im3d ,            /* data to pass */
+           (XtPointer) im3d ,           /* data to pass (viewer) */
            MCW_av_substring_CB ,        /* text creation routine */
            thr_alpha_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_alpha_av->wrowcol ,
-                            "Fade colors below threshold? [Off in Clusterize or discrete color bar]" ) ;
+                            "'A' color fading method"    ) ;
     }
+#endif
 
+#if 0  /* disabled 02 Nov 2018 */
    /* Threshold alpha floor arrowval [09 Dec 2014] */
 
    { static char *thr_floor_label[5] = { " 0.0 " , " 0.2 " , " 0.4 " , " 0.6 " , " 0.8 " } ;

@@ -135,7 +135,7 @@ typedef struct { char *nam; dfunc *fun; } AFNI_driver_pair ;
      /* note the string compare below checks only the beginning of string
         matches command - so SET_XHAIRS_GAP can match SET_XHAIRS_GAP
         and SET_XHAIRS. The order of comparison then matters.
-        Either change here or set the order in command list or 
+        Either change here or set the order in command list or
         make sure name is unique */
 
 static AFNI_driver_pair dpair[] = {
@@ -329,7 +329,7 @@ ENTRY("AFNI_driver") ;
      /* note the string compare below checks only the beginning of string
         matches command - so SET_XHAIRS_GAP can match SET_XHAIRS_GAP
         and SET_XHAIRS. The order of comparison then matters.
-        Either change here or set the order in command list or 
+        Either change here or set the order in command list or
         make sure name is unique */
      if( clen >= dlen                         &&
          strncmp(cmd,dpair[dd].nam,dlen) == 0   ){  /* found it */
@@ -1096,7 +1096,7 @@ ENTRY("AFNI_drive_open_window") ;
         if( cpt == NULL ) cpt = strcasestr(ccc,"butpress:") ;
         if( cpt != NULL ){
           int qq ;
-          
+
           cpt += 9 ;                           /* skip "butpress=" */
           if( *cpt == '\'' || *cpt == '\"' ) cpt++ ; /* skip quote */
 
@@ -2646,11 +2646,15 @@ ENTRY("AFNI_set_func_resam") ;
 /*-------------------------------------------------------------------------*/
 /*! SET_FUNC_ALPHA [c.]mode
    "SET_FUNC_ALPHA A.Yes"
+   "SET_FUNC_ALPHA A.No"
+   "SET_FUNC_ALPHA A.Linear"     [Added 28 Jun 2021]
+   "SET_FUNC_ALPHA A.Quadratic"
 ---------------------------------------------------------------------------*/
 
 static int AFNI_set_func_alpha( char *cmd )  /* 10 Dec 2014 */
 {
-   int ic , dadd=2 , mode=0 ; char *cpt ;
+   int ic , dadd=2 , mode_onoff=0 , mode_type=1 ; char *cpt ;
+   int               old_onoff    , old_type ;
    Three_D_View *im3d ;
 
 ENTRY("AFNI_set_func_alpha") ;
@@ -2666,10 +2670,27 @@ ENTRY("AFNI_set_func_alpha") ;
    for( cpt=cmd+dadd ; isspace(*cpt) ; cpt++ ) ; /*skip whitespace*/
    if( *cpt == '\0' ) RETURN(-1) ;
 
-   mode = !( toupper(*cpt) == 'N' || strcasestr(cpt,"off") != NULL ) ;
+   /* Turn alpha on or off */
 
-   if( im3d->vinfo->thr_use_alpha != mode ){
+   old_onoff  = im3d->vinfo->thr_use_alpha ;
+   mode_onoff = !( toupper(*cpt) == 'N' || strcasestr(cpt,"off") != NULL ) ;
+
+   /* Linear (0) or Quadratic (0) fading mode */
+
+   old_type   = im3d->vwid->func->thr_alpha_av->ival ;
+   mode_type  =  ( toupper(*cpt) == 'L' ) ? 0
+                :( toupper(*cpt) == 'Q' ) ? 1
+                :                          old_type ;
+
+   if( mode_type != old_type )
+     AV_assign_ival( im3d->vwid->func->thr_alpha_av , mode_type ) ;
+
+   /* if something changed, do something */
+
+   if( old_onoff != mode_onoff ){      /*--- simulate pressing 'A' button ---*/
      AFNI_func_thrtop_CB( im3d->vwid->func->thrtop_alpha_pb, im3d, NULL ) ;
+   } else if( old_type != mode_type ){ /*--- simulate changing arrowval   ---*/
+     AFNI_func_alpha_CB( im3d->vwid->func->thr_alpha_av , (XtPointer)im3d ) ;
    }
 
    RETURN(0) ;
