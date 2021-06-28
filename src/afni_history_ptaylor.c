@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Well, OK, not *really* a new opt---new values accepted for existing opt.",
+   "The '-olay_alpha ..' can now take Linear or Quadratic (grazie, Bob).\n"
+},
+
 { 24, June , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
    "Silence 3drefit warns if changing space of dsets (might confuse users).",
    "Unnecessary warning for these temp dsets within the script.\n"

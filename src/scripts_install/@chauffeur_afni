@@ -293,11 +293,15 @@
 # [PT] set echo opt
 #    + print version numbers near the top
 #
-set version   = "6.25"; set rev_dat   = "June 14, 2021"
+#set version   = "6.25"; set rev_dat   = "June 14, 2021"
 # [PT] obey paranoia about tcsh subtleties:
 #    + remove every exclamation point from a comment
 #    + ensure space between parenthesis and 'then' (which might have been
 #      a suuuuuper subtle issue on older tcsh)
+#
+set version   = "6.26"; set rev_dat   = "June 28, 2021"
+# [PT] add in "-olay_alpha .." opt vals: Linear, Quadratic
+#    + Bob added Linear back in, so can specify
 #
 # =====================================================================
 
@@ -741,6 +745,18 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set olay_alpha = "$argv[$ac]"
+
+        # [PT: June 28, 2021] Added to utilize Return of the
+        # AlphaJedi---can specify fadability.  Thanks go to The Bob.
+        if ( ( "$olay_alpha" == "Yes" ) || \
+             ( "$olay_alpha" == "No" ) || \
+             ( "$olay_alpha" == "Quadratic" ) || \
+             ( "$olay_alpha" == "Linear") ) then
+            echo "++ olay_alpha has known value: $olay_alpha"
+        else
+            echo "** ERROR: unknown olay_alpha value: $olay_alpha"
+            goto BAD_EXIT
+        endif
         
     else if ( "$argv[$ac]" == "-olay_boxed" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -2623,13 +2639,22 @@ COMMAND OPTIONS ~1~
                     "mont=PxQ:R" additional option ":G:C"; basically,
                     MC is the 'C' value).
 
--olay_alpha {Yes|No} :In addition to representing olay values as colors
+-olay_alpha {No|Yes|Linear|Quadratic} 
+                   :In addition to representing olay values as colors
                     with a threshold, one also apply opacity
                     information to 'soften' the effect of
                     thresholding; see DR: SET_FUNC_ALPHA for a
                     description of this behavior (def: "No", which is
                     just standard thresholding stuff).
--olay_boxed {Yes|No} :a partner parameter for the fancy alpha-based olay
+                    Prodigal functionality returned: one can now
+                    specify whether fading is "Quadratic" (= "Yes",
+                    too, since this is default fading) or "Linear":
+                    that is, how quickly opacity drops off, with the
+                    former being much faster.  At present, a possible
+                    rule of thumb: try Quadratic for individual
+                    results and Linear for group results.
+
+-olay_boxed {No|Yes} :a partner parameter for the fancy alpha-based olay
                     viewing; put a box around supra-threshold
                     voxels/clusters. Default value is "No".  (see DR:
                     SET_FUNC_BOXED)
