@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUN , 2021 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "-log2 and -log10 options" ,
+   "To convert statistics to minus the logarithm of p-value." } ,
+
  { 28 , JUN , 2021 , RWC , "NIML" , MINOR , TYPE_BUG_FIX ,
    "Change byte count output for NI_write_element to int64_t" ,
    "And a few other functions as well. Reason: someone tried to create a 2.8\n"
