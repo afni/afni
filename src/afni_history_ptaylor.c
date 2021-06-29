@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Reformat report*.1D tables a bit: match key and col names.",
+   "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
+},
+
 { 28, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Well, OK, not *really* a new opt---new values accepted for existing opt.",
    "The '-olay_alpha ..' can now take Linear or Quadratic (grazie, Bob).\n"
