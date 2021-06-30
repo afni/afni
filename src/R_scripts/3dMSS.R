@@ -584,7 +584,7 @@ runMSS <- function(myData, DM, tag) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
 	 pp <- summary(fm)$s.table[,'p-value'] # smooths
-         pp <- replace(pp, pp<1e-8, 1e-8) # prevent 0 p-value in the output, causing NANs in chi-sq 
+         pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq 
          if(is.null(lop$vt)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
             try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
