@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Tweak column names *again*.",
+   "Add in extra check that 3D vols are specified (e.g., with selectors).\n"
+},
+
 { 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
    "Reformat report*.1D tables a bit: match key and col names.",
    "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
