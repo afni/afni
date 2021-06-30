@@ -1,7 +1,10 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-#include "GL/glcorearb.h"
+/* GL/glcorearb.h is restricted to newer style functionality,
+ * and we are dependend on the old.  Hopefully it is not needed.
+ *                                           [23 Jun 2021 rickr] */
+/* #include "GL/glcorearb.h"                                     */
 
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi)
@@ -30,27 +33,30 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 }/* determine intersection */
 
 Boolean activeClippingPlanes(){
-    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+    int i;
+
+    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
         if (active[i]) return True;
 
     return False;
 }
 
-float getObjectMinMaxForAxes(float objectMinMax[][2]){
+void getObjectMinMaxForAxes(float objectMinMax[][2]){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
+    int i, dov_ID;
 
     // Itialise
-    for (int i=0; i<3; ++i){
+    for (i=0; i<3; ++i){
         objectMinMax[i][0] = 10000.0;
         objectMinMax[i][1] = -10000.0;
     }
 
     // Update min and max for each axis
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+    for (dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
         // fprintf(stderr, "soOld->SUMA_VolPar_Aligned = %d\n", soOld->SUMA_VolPar_Aligned);
-        if (soOld->Show==1) for (int i=0; i<3; ++i){
+        if (soOld->Show==1) for (i=0; i<3; ++i){
             if (soOld->MaxDims[i]<= allowableMax) objectMinMax[i][1] = MAX(objectMinMax[i][1], soOld->MaxDims[i]);
             if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
         }
@@ -60,9 +66,10 @@ float getObjectMinMaxForAxes(float objectMinMax[][2]){
 void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
+    int i, dov_ID;
 
     // Initialize
-    for (int i=0; i<3; ++i){
+    for (i=0; i<3; ++i){
         SO->MaxDims[i] = -1000.0;
         SO->MinDims[i] = 1000.0;
     }
@@ -70,16 +77,16 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     SO->aMinDims = 1000.0;
 
     // Update min and max for each axis
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+    for (dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-        for (int i=0; i<3; ++i){
+        for (i=0; i<3; ++i){
             if (soOld->MaxDims[i]<= allowableMax)SO->MaxDims[i] = MAX(SO->MaxDims[i], soOld->MaxDims[i]);
             if (soOld->MinDims[i]>= allowableMin)SO->MinDims[i] = MIN(SO->MinDims[i], soOld->MinDims[i]);
         }
     }
 
     // Update overall min and max
-    for (int i=0; i<3; ++i){
+    for (i=0; i<3; ++i){
         if (SO->MaxDims[i]<SO->MinDims[i]){
             SO->MaxDims[i] = 100.0;
             SO->MinDims[i] = -100.0;
@@ -111,41 +118,44 @@ void determineCornersOfSquare(SUMA_SurfaceObject *SO){
 #define DARK_BACKGROUND 0.1
 
 void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
-    fprintf(stderr, "makeCommonNodesOfRectangleDarkRed\n");
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    int i;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
     SO->Overlays[0]->ColVec[0] = DARK_COLOR;
     SO->Overlays[0]->ColVec[6] = DARK_COLOR;
 
         fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "SO->Overlays[0]->ColVec =                         ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
 }
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
+    int i;
     fprintf(stderr, "makeCommonNodesOfRectangleDarkGreen\n");
     fprintf(stderr, "SO = %p\n", SO);
     fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
     fprintf(stderr, "clipIdentificationPlane[1] = %p\n", clipIdentificationPlane[1]);
 
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[1] = DARK_COLOR;
     SO->Overlays[0]->ColVec[7] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO){
+    int i;
     fprintf(stderr, "makeCommonNodesOfRectangleDarkBlue\n");
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[2] = DARK_COLOR;
     SO->Overlays[0]->ColVec[8] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    int i;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[1] = DARK_COLOR;
     SO->Overlays[0]->ColVec[2] = DARK_COLOR;
@@ -154,7 +164,8 @@ void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    int i;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[0] = DARK_COLOR;
     SO->Overlays[0]->ColVec[2] = DARK_COLOR;
@@ -163,6 +174,7 @@ void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
+    int i;
     fprintf(stderr, "makeCommonNodesOfRectangleDarkYellow\n");
     fprintf(stderr, "SO = %p\n", SO);
     fprintf(stderr, "clipIdentificationPlane[0] = %p\n", clipIdentificationPlane[0]);
@@ -175,15 +187,15 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     // Debug
     if (clipIdentificationPlane[0]){
         fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "clipIdentificationPlane[5]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
     }
 
     SO->Overlays[0]->ColVec[0] = DARK_BACKGROUND;
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 /*
     SO->Overlays[0]->ColVec[0] = DARK_COLOR;
     SO->Overlays[0]->ColVec[1] = DARK_COLOR;
@@ -193,18 +205,19 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     // Debug
     if (SO){
         fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "clipIdentificationPlane[5]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[5]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
     }
 }
 
 
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = 1.0;
     SO->Overlays[0]->ColVec[3] = 1.0;
@@ -217,8 +230,9 @@ void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[1] = 1.0;
     SO->Overlays[0]->ColVec[4] = 1.0;
@@ -231,8 +245,9 @@ void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[5] = 1.0;
@@ -245,8 +260,9 @@ void makeCommonNodesOfRectangleBlue(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = 1.0;
@@ -256,8 +272,9 @@ void makeCommonNodesOfRectangleCyan(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = 1.0;
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
@@ -267,8 +284,9 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
 }
 
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
-    // for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
-    for (int i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
+    int i;
+    // for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.5;
+    for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] = 1.0;
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = 1.0;
@@ -278,6 +296,7 @@ void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
 }
 
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
+    int i;
 
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
@@ -471,7 +490,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     }
 
     // Reduce opacity of current surface object (clipping plane square)
-    for (int i=0; i<2; ++i){
+    for (i=0; i<2; ++i){
        SUMA_Set_ADO_TransMode(SUMA_SV_Focus_ADO(sv), sv->TransMode,
                               SUMAg_CF->TransModeStep, 1);
        SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -685,6 +704,7 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     float planeOrigin[3], otherPoint[3], normal[3], tangent[3], bitangent[3];
     float   divisor;
     float objectMinMax[2], axisMinMax[3][2];
+    int i;
 
     getOveralMinAndMaxOfCurrentSurfaceObjects(axisMinMax, objectMinMax);
 
@@ -697,21 +717,21 @@ void getSquareOnPlane(float *plane, float points[4][3]){
 
     // Get normal vector of plane
     divisor = sqrt((plane[0]*plane[0]) + (plane[1]*plane[1]) + (plane[2]*plane[2]));
-    for (int i=0; i<3; ++i ) normal[i] = plane[i]/divisor;
+    for (i=0; i<3; ++i ) normal[i] = plane[i]/divisor;
 
     // Get unnormalized tangent of plane
-    for (int i=0; i<3; ++i ) tangent[i] = otherPoint[i] - planeOrigin[i];
+    for (i=0; i<3; ++i ) tangent[i] = otherPoint[i] - planeOrigin[i];
 
     // Normalize tangent
     divisor = sqrt((tangent[0]*tangent[0]) + (tangent[1]*tangent[1]) + (tangent[2]*tangent[2]));
-    for (int i=0; i<3; ++i ) tangent[i] = tangent[i]/divisor;
+    for (i=0; i<3; ++i ) tangent[i] = tangent[i]/divisor;
 
     // Get bitangent which is the cross product of the tangent and the normal
     crossProduct(tangent, normal, bitangent);
 
     // Get points from tangent and bitangent
     float overallMax = MAX (SUMA_ABS(objectMinMax[0]), SUMA_ABS(objectMinMax[1]));
-    for (int i=0; i<3; ++i){
+    for (i=0; i<3; ++i){
         points[0][i]=planeOrigin[i]+overallMax*tangent[i]-overallMax*bitangent[i];
         points[1][i]=planeOrigin[i]+overallMax*tangent[i]+overallMax*bitangent[i];
         points[2][i]=planeOrigin[i]-overallMax*tangent[i]+overallMax*bitangent[i];
@@ -721,9 +741,10 @@ void getSquareOnPlane(float *plane, float points[4][3]){
 
 void updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
+    int i, j;
 
     // Test values for plane
-    for (int i=0; i<3; ++i) plane[i]=activeClipPlane[i];
+    for (i=0; i<3; ++i) plane[i]=activeClipPlane[i];
     plane[3] = -activeClipPlane[3];
     plane[3] += 1;
 
@@ -731,19 +752,20 @@ void updateClipSquare(int planeIndex){
     getSquareOnPlane(plane, points);
 
     int inc=0;
-    for (int i=0; i<4; ++i)
-        for (int j=0; j<3; ++j)
+    for (i=0; i<4; ++i)
+        for (j=0; j<3; ++j)
             clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
 }
 
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
+    int i, j;
 
     // Clipping plane identification object already exists?
     if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
 
     // Test values for plane
-    for (int i=0; i<4; ++i) plane[i]=activeClipPlane[i];
+    for (i=0; i<4; ++i) plane[i]=activeClipPlane[i];
     plane[3] += 1;
 
     getSquareOnPlane(plane, points);
@@ -755,8 +777,8 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 
     FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
     int inc=0;
-    for (int i=0; i<4; ++i)
-        for (int j=0; j<3; ++j)
+    for (i=0; i<4; ++i)
+        for (j=0; j<3; ++j)
             FS.NodeList[inc++] = points[i][j];
 
     FS.FaceSetList = (int *)malloc(FS.N_FaceSet*3*sizeof(int));
@@ -784,6 +806,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
 }
 
 void lightenActiveClipPlaneSquare(int activePlane){
+    int i;
 
     fprintf(stderr, "lightenActiveClipPlaneSquare\n");
     fprintf(stderr, "activePlane=%d\n", activePlane);
@@ -800,10 +823,10 @@ void lightenActiveClipPlaneSquare(int activePlane){
     }
 
         fprintf(stderr, "clipIdentificationPlane[0]->Overlays[0]->ColVec = ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", clipIdentificationPlane[0]->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
         fprintf(stderr, "SO->Overlays[0]->ColVec =                         ");
-        for (int i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
+        for (i=0; i<16; ++i) fprintf(stderr, "%f, ", SO->Overlays[0]->ColVec[i]);
         fprintf(stderr, "\n");
 }
 
@@ -824,9 +847,10 @@ void lightenActiveClipPlaneSquare(int activePlane){
 }
 
 void darkenInactiveClipPlaneSquares(int activePlane){
+    int p;
 
     fprintf(stderr, "darkenInactiveClipPlaneSquares\n");
-    for (int p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
+    for (p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
         fprintf(stderr, "p=%d\n", p);
         darkenClipPlaneSquare(p);
     }
@@ -838,11 +862,12 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
     int isv;
     SUMA_SurfaceViewer *sv;
     Widget w;
+    int i;
 
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
     // Reset clipping plane parameters
-    for (int i=1; i<6; ++i){
+    for (i=1; i<6; ++i){
          active[i] = 0;
          previouslyActive[i] = 0;
          planeTheta[i] = planePhi[i] = planeA[i] =  planeB[i] = 0.0f;
@@ -860,7 +885,7 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
     planeB[1] = -1.0f;
 
     // Deactivate all clipping planes
-    for (int i=1; i<SUMAg_CF->N_ClipPlanes; ++i){
+    for (i=1; i<SUMAg_CF->N_ClipPlanes; ++i){
         active[i] = 0;
         sprintf(chrTmp, "%s: %f,%f,%f,%d", SUMAg_CF->ClipPlanesLabels[i], planeA[i], planeB[i],
             planeC[i], 99999999);
@@ -992,8 +1017,8 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         // float location[3] = {0, 0, 0};
 
         // Set up point source
-        // for (int i=0; i<4; ++i) sv->light1_position[i]=location[i];
-        for (int i=0; i<3; ++i) sv->light0_position[i]=location[i]*2;
+        // for (i=0; i<4; ++i) sv->light1_position[i]=location[i];
+        for (i=0; i<3; ++i) sv->light0_position[i]=location[i]*2;
 
         #if 0
         fprintf(stderr, "position=%f,%f,%f\n", sv->light0_position[0],
@@ -1001,7 +1026,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         #endif
 
         glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-        for (int i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
+        for (i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
         // sv->lmodel_ambient[1]=0.2;
         sv->lmodel_ambient[1]=0.2;
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
@@ -1018,6 +1043,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
 }
 
  void getPlanePtClosestToViewerOrigin(float *plane, float *point){
+    int i;
     /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
     k = D/(A^2 + B^2 + C^2)
@@ -1025,18 +1051,19 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
 
     float k = plane[3]/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
-    for (int i=0; i<3; ++i) point[i] = k*plane[i];
+    for (i=0; i<3; ++i) point[i] = k*plane[i];
 }
 
  void getPlanePtClosestToViewerPoint(float *plane, float *viewerPt, float *point){
-    /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
+     int i;
+   /* Returns the point, on the plane, closest to the viewer origin <0,0,0>.  This
     point is given by P = k<A,B,C> s.t. k(A^2 + B^2 + C^2) = D is satisfied.  I.e.
     k = D/(A^2 + B^2 + C^2)
     */
 
     float k = (plane[3]-(plane[0]*viewerPt[0])-(plane[1]*viewerPt[1])-(plane[2]*viewerPt[2]))/((plane[0]*plane[0])+(plane[1]*plane[1])+(plane[2]*plane[2]));
 
-    for (int i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
+    for (i=0; i<3; ++i) point[i] = viewerPt[i] + k*plane[i];
 }
 
 void crossProduct(float input1[], float input2[], float output[]){
@@ -1046,21 +1073,22 @@ void crossProduct(float input1[], float input2[], float output[]){
 }
 
 void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *objectMinMax){
-/**/
+    int i, dov_ID;
+
     objectMinMax[0] = 1000.0;
     objectMinMax[1] = -1000.0;
 
-    for (int i=0; i<3; ++i){
+    for (i=0; i<3; ++i){
         axisMinMax[i][0] = 1000.0;
         axisMinMax[i][1] = -1000.0;
     }
 
-    for (int dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
+    for (dov_ID=0; dov_ID<SUMAg_N_DOv; ++dov_ID){
         SUMA_SurfaceObject *soOld = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
         if (soOld->N_Node>0 && soOld->NodeDim==3){
             objectMinMax[0] = MIN(objectMinMax[0], soOld->aMinDims);
             objectMinMax[1] = MAX(objectMinMax[1], soOld->aMaxDims);
-            for (int i=0; i<3; ++i){
+            for (i=0; i<3; ++i){
                 axisMinMax[i][0] = MIN(axisMinMax[i][0], soOld->MaxDims[i]);
                 axisMinMax[i][1] = MAX(axisMinMax[i][1], soOld->MaxDims[i]);
             }
@@ -1071,7 +1099,7 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
     if (objectMinMax[0] > objectMinMax[1]){
         objectMinMax[0] = -100.0;
         objectMinMax[1] = 100.0;
-        for (int i=0; i<3; ++i){
+        for (i=0; i<3; ++i){
             axisMinMax[i][0] = -100.0;
             axisMinMax[i][1] = 100.0;
         }
@@ -1114,13 +1142,6 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]){
     points[3][0]=x;
     points[3][1]=y;
     points[3][2]=z;
-
-    /* // Debug
-    for (int i=0; i<4; ++i){
-        fprintf(stderr, "point %d = (%f, %f, %f)\n", i,
-            points[i][0], points[i][1], points[i][2]);
-    }
-    */
 }
 
 /*!
@@ -5239,6 +5260,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
    static Boolean activeClipPlanes = True;
+   int  i;
    SUMA_ENTRY;
 
    /* get the callData pointer */
@@ -5333,12 +5355,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (SUMA_ALTHELL){
                 clippingPlaneMode = !clippingPlaneMode;
                 if (clippingPlaneMode){
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
                     }
                 } else {
-                    for (int i=0; i<6; ++i){
+                    for (i=0; i<6; ++i){
                         previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
                         active[i] = 1;                      // Turn clipping plane on so it will be toggled off
                         if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
@@ -5494,7 +5516,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     //  assigned a label which is its 1-based index
                     if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
 
-                        for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                        for (planeIndex=0; planeIndex<6; ++planeIndex){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                             clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         }
@@ -5551,7 +5573,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
                     // Turn on clipping planes and their colored squares
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
                         clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
 
@@ -5562,16 +5584,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
                     // Squares only displayed for active clipping planes
-                    for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
+                    for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
                         clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
                 } else {
                     previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
-                    for (int i=0; i<6; ++i){
+                    for (i=0; i<6; ++i){
                         previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
                         clipPlaneIdentificationMode = 0;
 
                         // Turn off display of clip plane identification squares
-                        for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
+                        for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
                             clipIdentificationPlane[planeIndex]->Show = 0;
                         /*
                         active[i] = 1;                      // Turn clipping plane on so it will be toggled off
@@ -5588,7 +5610,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 // Toggle clip plane identification mode
                 clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
 
-                for (int planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
+                for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                     if (clipPlaneIdentificationMode){
                         if (active[planeIndex]) clipIdentificationPlane[planeIndex]->Show = 1;
                     } else {
@@ -5890,7 +5912,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 //  assigned a label which is its 1-based index
                 if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
 
-                    for (int planeIndex=0; planeIndex<6; ++planeIndex){
+                    for (planeIndex=0; planeIndex<6; ++planeIndex){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                     }
@@ -6122,7 +6144,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                char cwd[PATH_MAX], outputFileName[PATH_MAX+200];
                if ((getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
-                   SUMA_RETURN(0);
+                   SUMA_RETURNe;
                }
                 sprintf(outputFileName, "%s/%s", cwd, "clippingPlaneFileName");
                 sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
@@ -6183,7 +6205,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_2:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<2){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6205,7 +6227,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_3:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<3){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6231,7 +6253,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_4:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6261,7 +6283,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_5:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<5){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6291,7 +6313,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_6:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<6){
-                    for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6323,7 +6345,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 if (Kev.state & ControlMask){
                     // Place-holder for ctrl-7
                 } else {
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         // Toggle all active clippping planes
                         if (active[i]){
                             previouslyActive[i] = 1;
@@ -6338,14 +6360,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          #if 0
             if (clippingPlaneMode){
                 if (Kev.state & ControlMask){   // Turn all planes off
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         previouslyActive[i] = active[i];
                         active[i] = 1;          // Turn plane on so it will be toggled off
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                 } else {                        // Turn all planes on
                     if (SUMAg_CF->N_ClipPlanes<6){  // Make sure all planes are available
-                        for (int i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
+                        for (i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                             sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                             clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
                             if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
@@ -6358,7 +6380,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
                         }
                     }
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         previouslyActive[i] = active[i];
                         active[i] = 0;          // Turn plane off so it will be toggled on
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
@@ -6391,7 +6413,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode){
                     clipPlaneTransform(0,0,0,0,0, 0, 1);
                     resetClippingPlanes = 1;
-                    for (int i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = (i>0);
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
@@ -14895,6 +14917,7 @@ void DrawCube(Display *dpy, Window  win){
 }
 
 void makeCube(){
+    int i;
 /*
     Display *dpy;
     static int     screen;
@@ -14961,7 +14984,7 @@ void makeCube(){
 
     glEnable(GL_LINE_STIPPLE);
 
-    for (int i=0; i<5; ++i)
+    for (i=0; i<5; ++i)
         DrawCube(currentDisplay, focused);
         // DrawCube(dpy, win);
         */
@@ -15012,7 +15035,7 @@ void makeCube(){
 
     glEnable(GL_LINE_STIPPLE);
 
-    for (int i=0; i<5; ++i)
+    for (i=0; i<5; ++i)
         DrawCube(currentDisplay, focused);
 
 

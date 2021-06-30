@@ -69,6 +69,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+   "Reformat report*.1D tables a bit: match key and col names.",
+   "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
+},
+
+{ 28, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Well, OK, not *really* a new opt---new values accepted for existing opt.",
+   "The '-olay_alpha ..' can now take Linear or Quadratic (grazie, Bob).\n"
+},
+
+{ 24, June , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "Silence 3drefit warns if changing space of dsets (might confuse users).",
+   "Unnecessary warning for these temp dsets within the script.\n"
+},
+
+{ 22, June , 2021 , PT , "3dNwarpCalc" , MINOR , TYPE_GENERAL,
+   "Put in std includes to be able to build on Mac with Clang.",
+   "Though this program isn't even built...\n"
+},
+
+{ 22, June , 2021 , PT , "SurfLayers" , MINOR , TYPE_GENERAL,
+   "Capture verbose output from ConvertSurface.",
+   "Also add -no_clean opt.\n"
+},
+
 { 18, June , 2021 , PT , "@Install_AP_MULTI_DEMO1" , MINOR , TYPE_GENERAL,
    "Adding install script for afni_proc.py multi-echo FMRI demo (OHBM, 2021).",
    "Demo authors: RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor.\n"

@@ -53,6 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Jun, 2021, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add -rand_post_elist_partition",
+   "This will partition an already defined stim class into new ones.\n"
+   "Added on the authority of S Haller."
+ } ,
+
+ { 22, Jun, 2021, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
+   "without -datum, the output now depends on the map func, not the BRIK",
+   "Done to appease the mysterious D Glen.\n"
+ } ,
+
+ { 22, Jun, 2021, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
+   "calm those grumpy compilers",
+   "Issues noted by P Taylor.\n"
+ } ,
+
  { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
    "turn of local signing in crorden/dcm2niix_console/makefile",
    NULL

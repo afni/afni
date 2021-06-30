@@ -8278,13 +8278,6 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          }
       }
 
-   // fprintf(stderr, "%s\n", FuncName);
-#if 0
-    if ( Over->ColVec) for (int i=0; i<16; ++i){
-        fprintf(stderr, " Over->ColVec[%d] = %f\n", i,  Over->ColVec[i]);
-    }
-#endif
-
       if (ColEVec != Over->ColVec) SUMA_ifree(ColEVec);
       if (LocalEOpacity != Over->LocalOpacity) SUMA_ifree(LocalEOpacity);
       if (NodeEDef != COLP_NODEDEF(Over)) SUMA_ifree(NodeEDef);

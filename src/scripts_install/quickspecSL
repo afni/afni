@@ -114,7 +114,7 @@ if ($surf[1] == "" || $surf[2] == "" ) then
 endif
 
 # check if contralateral input surfaces exist
-set allgiis = `ls *.gii`
+set allgiis = `\ls *.gii`
 if ($both_lr) then
     foreach checkall ( $allgiis )
         set lhshere = ($lhshere `echo $checkall | grep lh\?.`)

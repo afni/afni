@@ -2277,7 +2277,9 @@ char * SUMA_help_message_Info(TFORM targ)
 "------------------\n\n"
 );
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Toggles in and out of clipping plane mode.\n\n",
+      "   %s: Toggles in and out of clipping plane mode.\n"
+      "        A \"C\" will be visible in the viewer title \n"
+      "        bar when this mode is active.\n\n",
       SUMA_hkf("Shift-Ctrl-C", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Successively add new clipping planes which are\n"
@@ -2318,6 +2320,15 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va (SS,
       "   %s: Rotate clipping plane around y-axis.\n\n",
         SUMA_hkf("Alt/Cmd/Opt+[left-right arrow key]", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Double the increment for rotation and scrolling.\n\n",
+        SUMA_hkf("+", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Halve the increment for rotation and scrolling.\n\n",
+        SUMA_hkf("-", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Reset the increment for rotation and scrolling.\n\n",
+        SUMA_hkf("=", targ));
 
    /* Environment variables */
    if (targ == TXT) {

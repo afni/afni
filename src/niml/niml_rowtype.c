@@ -1062,11 +1062,11 @@ int NI_has_String( NI_rowtype *rt )
 
 /*------------------------------------------------------------------------*/
 /*! Write one column of structs to the output stream.  Now superseded
-    by NI_write_columns().
+    by NI_write_columns(). This function is not used anywhere (I think).
 --------------------------------------------------------------------------*/
 
-int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
-                      int ndat , void *dat , int tmode )
+int64_t NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
+                          int ndat , void *dat , int tmode )
 {
    void *dpt = dat ;
    if( rt == NULL ) return -1 ;
@@ -1099,11 +1099,12 @@ int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
    This function is adapted from the 1st edition of NI_write_element().
 --------------------------------------------------------------------------*/
 
-int NI_write_columns( NI_stream_type *ns,
-                      int col_num , int   *col_typ ,
-                      int col_len , void **col_dpt , int tmode )
+int64_t NI_write_columns( NI_stream_type *ns,
+                          int col_num , int   *col_typ ,
+                          int col_len , void **col_dpt , int tmode )
 {
-   int ii,jj , row , dim , ntot,nout , col ;
+   int ii,jj , row , dim , col ;
+   int64_t ntot , nout ;                     /* 28 Jul 2021 */
    char *ptr , **col_dat=(char **)col_dpt ;
    int  nwbuf,bb=0,cc=0;
    char *wbuf=NULL ; /* write buffer */

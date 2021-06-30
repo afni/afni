@@ -8,8 +8,11 @@
 #set version   = "0.2";  set rev_dat   = "Oct 19"
 # [PT] include deobliqued version
 #
-set version   = "0.3";  set rev_dat   = "Mar 16, 2021"
+#set version   = "0.3";  set rev_dat   = "Mar 16, 2021"
 # [PT] AFNI_COMPRESSOR -> NONE
+#
+set version   = "0.4";  set rev_dat   = "June 24, 2021, 2021"
+# [PT] run '3drefit -space ...' quietly
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -289,7 +292,9 @@ set fout = "${tpref}_${idx}_cp_olay.nii"
 cd ${wdir}  # jump to workdir
 
 # need to make sure the space is the same, to be able to overlay
-3drefit -space `3dinfo -space "${fout}"` "${uout}"
+set newsp = `3dinfo -space "${fout}"`
+echo "++ Quietly run: 3drefit -space ${newsp} ${uout}"
+3drefit -space ${newsp} "${uout}" >& /dev/null
 
 # take image, from the workdir
 @chauffeur_afni                             \

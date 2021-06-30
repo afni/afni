@@ -1657,7 +1657,9 @@ void SUMA_Clipping_Planes_Help(FILE *fout, int forweb)
 "value. The '=' key resets the increment to 1.0.\n\n"
 "Key+mouse behavior\n"
 "------------------\n\n"
-"\tShift-Ctrl-C: Toggles in and out of clipping plane mode.\n\n"
+"\tShift-Ctrl-C: Toggles in and out of clipping plane mode.\n"
+"\t\tA \"C\" will be visible in the viewer title\n"
+"\t\tbar when this mode is active.\n\n"
 "\tn: Successively add new clipping planes which are\n"
 "\t\tactive as they appear. (Initially, you might not see\n"
 "\t\tthem; just their clipping effect).\n\n"
@@ -1675,6 +1677,9 @@ void SUMA_Clipping_Planes_Help(FILE *fout, int forweb)
 "\tShift-S: Scroll clipping plane outwards.\n\n"
 "\tAlt/Cmd/Opt+[up-down arrow key]: Rotate clipping plane around x-axis.\n\n"
 "\tAlt/Cmd/Opt+[left-right arrow key]: Rotate clipping plane around y-axis.\n\n"
+"\t+: Double the increment for rotation and scrolling.\n\n"
+"\t-: Halve the increment for rotation and scrolling.\n\n"
+"\t=: Reset the increment for rotation and scrolling.\n\n"
 "\n"
 };
 

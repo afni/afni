@@ -1918,6 +1918,7 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId *id )
 }
 
 /*------------------------------------------------------------------------*/
+/* Assign the integer value, but do not call the callback */
 
 void AV_assign_ival( MCW_arrowval *av , int nval )
 {

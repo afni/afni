@@ -1,4 +1,6 @@
 #if 1 /*######################################################################*/
+#include <stdlib.h>
+#include <stdio.h>
 
 int main( int argc , char *argv[] )  /* Obituary: 27 Apr 2021 */
 {

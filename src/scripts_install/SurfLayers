@@ -69,8 +69,12 @@
 #set ver = 0.18
 # [PT]  run quickspecSL
 #
-set ver = 0.19
+#set ver = 0.19
 # [PT]  update var names, and work with quickspecSL name updates
+#
+set ver = 0.20
+# [PT]  redirect ConvertSurface "Nodes ..." text into temporary text files
+#    +  add a "-no_clean" option, too, to get at intermed files, if necessary
 #
 # ========================================================================
 
@@ -87,6 +91,8 @@ set s00        = run_00_sl_suma.tcsh     # script for suma
 set prog_name  = $0:t
 set surf_imed_pref  = "isurf"
 set specstem   = ( "" )
+
+set DO_CLEAN   = 1
 
 # ------------------------ process user options --------------------------
 
@@ -161,6 +167,9 @@ while ($ac <= $#argv)
             echo "** need two states to specify inner and outer surfaces"
             goto BAD_EXIT
         endif
+
+    else if ("$argv[$ac]" == "-no_clean") then
+        set DO_CLEAN = 0
 
     # ---------- fin ------------------
 
@@ -332,8 +341,8 @@ foreach hemi ( $hemis ) #(lh rh)
     end
 
     # get coordinates of GIFTI surfaces 
-    ConvertSurface -i $surf[1] -o_fs temp_insidesurf${hemi}.asc
-    ConvertSurface -i $surf[2] -o_fs temp_outsidesurf${hemi}.asc
+    ConvertSurface -i $surf[1] -o_fs temp_insidesurf${hemi}.asc   > tmp_cs1.txt
+    ConvertSurface -i $surf[2] -o_fs temp_outsidesurf${hemi}.asc  > tmp_cs2.txt
 
     # grab number of nodes in this surface (not the same for each hemisphere)
     set numnodes = `cat temp_insidesurf${hemi}.asc | \
@@ -391,11 +400,13 @@ foreach hemi ( $hemis ) #(lh rh)
         cat TAILwm${hemi}.asc >> HEAD${hemi}${numnewsurfs}.asc
 
         if ( -e ${surf_imed_pref}${hemi}${numnewsurfs}.gii ) then 
-           \rm ${surf_imed_pref}${hemi}${numnewsurfs}.gii
+            if ( ${DO_CLEAN} ) then
+                \rm ${surf_imed_pref}${hemi}${numnewsurfs}.gii
+            endif
         endif
 
         ConvertSurface -i_fs HEAD${hemi}${numnewsurfs}.asc \
-          -o_gii ${surf_imed_pref}.${hemi}.${numnewsurfs}
+          -o_gii ${surf_imed_pref}.${hemi}.${numnewsurfs} > tmp_cs3.txt
     end
 
     # need this for echo strings to quickspecSL only
@@ -407,9 +418,13 @@ foreach hemi ( $hemis ) #(lh rh)
 end
 
 ## clean up
-\rm xyzwm*h.1D xyzpial*h.1D TAILwm*h.asc wmx*h.1D wmy*h.1D wmz*h.1D 
-\rm HEAD*.asc pialx*h.1D pialy*h.1D pialz*h.1D
-\rm zeros*h.1D distance*x.1D distance*y.1D distance*z.1D interp*.1D temp_*.asc
+if ( ${DO_CLEAN} ) then
+    \rm tmp_cs?.txt
+    \rm xyzwm*h.1D xyzpial*h.1D TAILwm*h.asc wmx*h.1D wmy*h.1D wmz*h.1D 
+    \rm HEAD*.asc pialx*h.1D pialy*h.1D pialz*h.1D
+    \rm zeros*h.1D distance*x.1D distance*y.1D distance*z.1D 
+    \rm interp*.1D temp_*.asc
+endif
 
 # i believe after a full lh rh loop, "rh" remains in the surf?
 # variable, so only looking for that in file name:
@@ -535,10 +550,12 @@ Options ~1~
 
   -surf_B      SA      :outer boundary surface by filename (e.g. pial.gii)
 
--surf_intermed_pref SIP :name for interpolated surfaces 
+  -surf_intermed_pref SIP  :name for interpolated surfaces 
                         (default: ${surf_imed_pref})
   
-  -echo                :run script with 'set echo' (i.e., verbosely).
+  -echo                :run script with 'set echo' (i.e., verbosely)
+
+  -no_clean            :do not remove temp files (probably just for testing)
 
 Notes ~1~
 

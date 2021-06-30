@@ -1955,11 +1955,12 @@ static char *gby[] = {
     "I have faced all the reality I need to face for today"                                          ,
     "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
     "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
-    "\n  I'd be more interested in thinking outside the box if I could\n"
-    "    figure out thinking inside the box first"                                                   ,
+    "\n  I'd be more interested in thinking outside the box\n"
+    "    if I could figure out thinking INSIDE the box first"                                        ,
     "Real stupidity beats artificial intelligence, every time"                                       ,
     "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
     "You can shut your eyes but you can't shut your brain"                                           ,
+    "Having a wonderful time. Please send more grant money"                                          , /* 22 Jun 2021 */
 
     /**** Keep this one last ****/
 

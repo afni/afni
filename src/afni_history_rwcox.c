@@ -49,6 +49,31 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUN , 2021 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "-log2 and -log10 options" ,
+   "To convert statistics to minus the logarithm of p-value." } ,
+
+ { 28 , JUN , 2021 , RWC , "NIML" , MINOR , TYPE_BUG_FIX ,
+   "Change byte count output for NI_write_element to int64_t" ,
+   "And a few other functions as well. Reason: someone tried to create a 2.8\n"
+   "GB .niml.dset file, which caused a problem when counting up the bytes\n"
+   "output using a 32 bit int. Users -- what can you do with them?" } ,
+
+ { 28 , JUN , 2021 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Linear back to Alpha fading, as well as default Quadratic" ,
+   "Drive-able. Menu item under 'Thr' popup." } ,
+
+ { 24 , JUN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Add tracking thru optimization of original points" ,
+   "That is, with -verb, print out the original index [o=X] as the stages of\n"
+   "optimization proceed. This helps determine if the larger number of\n"
+   "initial coarse trial candidates parameter sets actually produces viable\n"
+   "contenders for the championship." } ,
+
+ { 23 , JUN , 2021 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Add the setjmp/longjmp escape mechanism to plusminus warping" ,
+   "To gracefully end the program if the OpenMP race condition arises." } ,
+
  { 21 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_MODIFY ,
    "Change default blok type and radius for the lpc/lpa methods" ,
    "Old default was -blok 'RHDD(6.54321)'.\n"
