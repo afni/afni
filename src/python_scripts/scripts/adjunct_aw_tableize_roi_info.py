@@ -41,15 +41,18 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 # [PT] have to just use comma-separated list for ROI-value selector that
 #      goes inside <>
 #
-VERSION   = "1.6" ; VER_DATE  = "June 1, 2020"
+#VERSION   = "1.6" ; VER_DATE  = "June 1, 2020"
 # [PT] new table format
 #    + {U,W} --> {A,B}
 #    + put in a KEY section, defining cols
 #    + remove a couple (once useful, but now annoying) print statements
 #
-VERSION   = "1.61" ; VER_DATE  = "June 28, 2021"
+#VERSION   = "1.61" ; VER_DATE  = "June 28, 2021"
 # [PT] fix table misnomer---thanks, Adam Messinger!
 #    + also change/simplify report col head names 4 clrty
+#
+VERSION   = "1.62" ; VER_DATE  = "June 30, 2021"
+# [PT] more key term tweaks
 #
 # =================================================================
 
@@ -118,6 +121,35 @@ def get_arg(aa):
 
 # -------------------------------------------------------------
 
+def afni_3dinfo_is_single_vol( fname1, verb=0 ) :
+    '''Has one volume been specified (either a 3D vol, or a 4D, with
+    subbrick selectors)?
+
+    Returns True or False
+
+    '''
+
+    fname1.replace("[", "'[") ; fname1.replace("]", "]'")
+
+    cmd = '''3dinfo            \
+                -nv            \
+                {dset1}        \
+    '''.format( dset1=fname1 )
+
+    status, so, se = BASE.simple_shell_exec(cmd, capture=1)
+    
+    SINGLE_VOL = int(so.split()[0]) == 1
+
+    if verb > 0 :
+        print("++ Is this a single volume?\n"
+              "     {}\n"
+              "   --> {}"
+              "".format( fname1, SINGLE_VOL ))
+
+    return SINGLE_VOL
+
+# -------------------------------------------------------------
+
 def afni_3dinfo_same_grid( fname1, fname2 ) :
     '''Are 2 dsets on the same grid? 
 
@@ -141,7 +173,7 @@ def afni_3dinfo_same_grid( fname1, fname2 ) :
     print("++ Are these dsets on same grid?\n"
           "     {}\n     {}\n"
           "   --> {}"
-          "".format(fname1, fname2, SAME_GRID ))
+          "".format( fname1, fname2, SAME_GRID ))
 
     return SAME_GRID
 
@@ -495,20 +527,29 @@ if __name__=="__main__":
       modesmoo ) = get_arg(sys.argv[1:])
 
     # check if inp atl+mask are on same grid;  check same for ref 
-    inp_samegrid = afni_3dinfo_same_grid( atl_inp, mask_inp )
-    ref_samegrid = afni_3dinfo_same_grid( atl_ref, mask_ref )
+    inp_samegrid  = afni_3dinfo_same_grid( atl_inp, mask_inp )
+    ref_samegrid  = afni_3dinfo_same_grid( atl_ref, mask_ref )
     if not(inp_samegrid) :
         print("\n** ERROR: need input dsets on same grid;\n"
-              "     these do not match:\n"
-              "   {}\n   {}"
+              "   these do not match:\n"
+              "     {}\n     {}"
               "".format(atl_inp, mask_inp))
         sys.exit(7)
     if not(ref_samegrid) :
         print("\n** ERROR: need input dsets on same grid;\n"
-              "     these do not match:\n"
-              "   {}\n   {}"
+              "   these do not match:\n"
+              "     {}\n     {}"
               "".format(atl_ref, mask_ref))
         sys.exit(7)
+
+    FOUND_BAD = ''
+    for fff in [atl_inp, mask_inp, atl_ref, mask_ref]:
+        if not( afni_3dinfo_is_single_vol( fff ) ) :
+            FOUND_BAD+= "     {}\n".format(fff)
+    if FOUND_BAD :
+        print("\n** ERROR: need to specify single vol for these inputs:\n"
+              "{}".format(FOUND_BAD))
+        sys.exit(8)
 
     # get Nvox count masks for inp and ref
     inp_mask_size = afni_3dBrickStat_nz_count( mask_inp )
@@ -578,24 +619,24 @@ if __name__=="__main__":
     #     'ref'    --> 'Unwarped', 'U', 'B'
 
     hh = []
-    hh.append( ' A atlas dset           : {}'.format(atl_inp) )
-    hh.append( ' A mask dset            : {}'.format(mask_inp) )
-    hh.append( ' B atlas dset           : {}'.format(atl_ref) )
-    hh.append( ' B mask dset            : {}'.format(mask_ref) )
-    hh.append( 'Mode_smooth size (nvox) : {}'.format(modesmoo) )
+    hh.append( ' A atlas dset            : {}'.format(atl_inp) )
+    hh.append( ' A mask dset             : {}'.format(mask_inp) )
+    hh.append( ' B atlas dset            : {}'.format(atl_ref) )
+    hh.append( ' B mask dset             : {}'.format(mask_ref) )
+    hh.append( ' Mode_smooth size (nvox) : {}'.format(modesmoo) )
  
-    hh.append( ' A vox size (mm)        : {}'.format(inp_voxdims_str)) 
-    hh.append( ' B vox size (mm)        : {}'.format(ref_voxdims_str))
-    hh.append( ' A mask Nvox            : {:>9}'.format(inp_mask_size) )
-    hh.append( ' B mask Nvox            : {:>9}'.format(ref_mask_size) )
-    hh.append( ' A mask volume (mm^3)   : {:>13.3f}'.format(inp_mask_vol) )
-    hh.append( ' B mask volume (mm^3)   : {:>13.3f}'.format(ref_mask_vol) )
-    hh.append( ' MaskVol_A / MaskVol_B  : {:>13.3f}'.format(rat_mask_vol) )
-    hh.append( ' A atlas Nroi           : {:>9}'.format(Nroi_inp) )
-    hh.append( ' B atlas Nroi           : {:>9}'.format(Nroi_ref) )
-    hh.append( ' Nroi difference        : {:>9}'.format(Nroi_diff) )
+    hh.append( ' A vox dims (mm)         : {}'.format(inp_voxdims_str)) 
+    hh.append( ' B vox dims (mm)         : {}'.format(ref_voxdims_str))
+    hh.append( ' A mask Nvox             : {:>9}'.format(inp_mask_size) )
+    hh.append( ' B mask Nvox             : {:>9}'.format(ref_mask_size) )
+    hh.append( ' A mask volume (mm^3)    : {:>13.3f}'.format(inp_mask_vol) )
+    hh.append( ' B mask volume (mm^3)    : {:>13.3f}'.format(ref_mask_vol) )
+    hh.append( ' MaskVol_A / MaskVol_B   : {:>13.3f}'.format(rat_mask_vol) )
+    hh.append( ' A atlas Nroi            : {:>9}'.format(Nroi_inp) )
+    hh.append( ' B atlas Nroi            : {:>9}'.format(Nroi_ref) )
+    hh.append( ' Nroi difference         : {:>9}'.format(Nroi_diff) )
     if Nroi_diff :
-        hh.append( 'Selector of lost ROI values : {:}'.format(all_lost_vals_comma) )
+        hh.append( 'Selector of lost ROIs    : {:}'.format(all_lost_vals_comma))
         hh.append( '(And see list of lost ROIs at bottom of file.)') 
     hh.append( ' ' )
 
@@ -605,10 +646,10 @@ if __name__=="__main__":
                   'Nvox_B', 
                   'Vol_A' , 
                   'Vol_B',  
-                  'RatVol_A2B',
+                  'RelVol_A2B',
                   'Frac_A', 
                   'Frac_B',
-                  'RatFrac_A2B', 
+                  'RelFrac_A2B', 
                   'Label_str'     ]
     col_labs   = ['{:>12s}'.format(x) for x in cl]
     Ncol       = len(cl)
@@ -622,10 +663,10 @@ if __name__=="__main__":
     Nvox_B        = number of voxels in ROI in dset B
     Vol_A         = ROI volume in dset A (mm^3)
     Vol_B         = ROI volume in dset B (mm^3)
-    RatVol_A2B    = ratio of ROI volumes, Vol_A / Vol_B
+    RelVol_A2B    = relative ROI volume, Vol_A / Vol_B
     Frac_A        = ROI mask fraction, Vol_A / MaskVol_A
     Frac_B        = ROI mask fraction, Vol_B / MaskVol_B
-    RatFrac_A2B   = ratio of ROI mask fractions, Frac_A / Frac_B
+    RelFrac_A2B   = relative ROI mask fraction, Frac_A / Frac_B
     Label_str     = string label of ROI (if present) 
     '''
     hh.append( table_div2 )
