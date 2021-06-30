@@ -8,6 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
+set last_lncol = ""
 set centertype = "-Icent" # internal center - default (DRG - 03/06/2020)
 set centermask = "" # BTJ - 09/15/2020
 set iL = 2
@@ -930,6 +931,17 @@ PARSE:
          goto CONTINUE
       endif
 
+      if ("$argv[$cnt]" == "-last_longname_col") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need to specify column index after -last_longname_col"
+            goto BEND
+         endif
+         @ cnt ++
+         set last_lncol = `ccalc -i $argv[$cnt]+1`
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -1049,10 +1061,13 @@ PARSE_LABEL_FILE:
 	#          sed 's/^ *//g' | sed 's/ *$//g' | \
 	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
 	# new way gets all columns after longname column to handle extra spaces
-	       awk -v N=$lncol \
-	          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
-	          > TMPLIST_${RNS}_ln_
-	        set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+	#       awk -F "$delim" -v N=$lncol \
+	#          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
+	#          > TMPLIST_${RNS}_ln_
+    # new new way - simpler with cut command and works with other delimiters and comma
+    # also supports last column selector
+           cat $flab | cut -d${delim} -f3-$last_lncol > TMPLIST_${RNS}_ln_
+	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
 	    endif
 
 	    set llistmax = ($llistmin)
@@ -1131,7 +1146,8 @@ HELP:
    echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
    echo "                names for regions, e.g. amygdala for AMY"
    echo "                cLONGNAME is the starting column for the longname continuing"
-   echo "                to the last name of the output"
+   echo "                to the last name of the output (0-based column index)"
+   echo "   -last_longname_col cLASTLONGNAME: limit longnames to nth column"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
 #   echo "   -dset_autolab DSET SUFFIX: Create a labeltable from the unique"
