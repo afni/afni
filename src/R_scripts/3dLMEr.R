@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.2, June 11, 2021
+Version 0.1.3, July 1, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -1017,8 +1017,8 @@ if(!is.na(lop$maskFN)) {
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
   xinit <- dimx%/%3
-  if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-  if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+  if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+  if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
   ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1118,9 +1118,9 @@ if(lop$TRR) { # test-retest analysis
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg
       # pad with extra 0s
-      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
-      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      dim(inData) <- c(dimx_n, nSeg, nF)
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
       if (lop$nNodes==1) for(kk in 1:nSeg) {
          for(kk in 1:nSeg) {
@@ -1176,9 +1176,9 @@ if(lop$TRR) { # test-retest analysis
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg
       # pad with extra 0s
-      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
-      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      dim(inData) <- c(dimx_n, nSeg, nF)
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) for(kk in 1:nSeg) {
          for(kk in 1:nSeg) {
