@@ -386,10 +386,12 @@ MAKE_ATLAS_TABLE:
                               >> $labeltable
             # remove tabs, carriage returns, line feeds
             # these show up here if no long name
-            set lln[3] =  `echo $lln[3] | \tr -d \"|tr -d '\011\012\015'`
-            set ln_len = `echo $lln[3] |wc -c`
-            if ("$ln_len" != "1") then
-               printf ' LONGNAME="%s"\n' "$lln[3-]"  >> $labeltable
+#            set lln[3] =  `echo $lln[3-] | \tr -d \"|tr -d '\011\012\015'`
+#            set ln_len = `echo $lln[3-] |wc -c`
+            set lname = ( "${lln[3-]}")
+            set clname = `echo "$lname" |tr -d \"`
+            if (("$lname" != "") && (${%clname} != 0) && ($#lname >= 1)) then
+               echo ' LONGNAME='\""$clname"\"  >> $labeltable
             endif
          else
             # remove any trailing spaces from the short structure name
