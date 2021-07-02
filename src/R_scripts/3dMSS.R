@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.10, June 30, 2021
+Version 0.0.11, July 2, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -783,8 +783,8 @@ if(!is.na(lop$maskFN)) {
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
   xinit <- dimx%/%3
-  if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-  if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+  if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+  if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
   ii <- xinit; jj <- yinit; kk <- zinit
 }
 
