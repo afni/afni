@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.8,  June 11, 2021
+Version 4.0.9,  July 2, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1558,8 +1558,8 @@ if(!is.na(lop$maskFN)) {
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
-   if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
-   if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
+   if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%2
+   if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%2
    ii <- xinit; jj <- yinit; kk <- zinit
 }
 
