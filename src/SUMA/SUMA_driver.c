@@ -556,6 +556,8 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "%s\n", FuncName);
+
    if (!com) { SUMA_S_Err("NULL command"); SUMA_RETURN(NOPE); }
    SUMA_LHv("Called with %s\n", com);
    SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
@@ -953,6 +955,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+
+   fprintf(stderr, "%s\n", FuncName);
 
    /* parse 'em */
    kar = 1;
@@ -2953,6 +2957,8 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
    int argtc = 0, kar = 0;
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
+
+   fprintf(stderr, "%s\n", FuncName);
 
    SUMA_ENTRY;
 
