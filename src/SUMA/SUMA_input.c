@@ -1,14 +1,11 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
-<<<<<<< HEAD
 // #include "GL/glcorearb.h"
-=======
 /* GL/glcorearb.h is restricted to newer style functionality,
  * and we are dependend on the old.  Hopefully it is not needed.
  *                                           [23 Jun 2021 rickr] */
 /* #include "GL/glcorearb.h"                                     */
->>>>>>> 2cb4adb8436b4baad6a87e12fb5bd57542318715
 
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                      SUMA_PICK_RESULT **PRi)
@@ -743,9 +740,14 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     }
 }
 
-void updateClipSquare(int planeIndex){
+Boolean updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
     int i, j;
+
+    if (!(clipIdentificationPlane[planeIndex])){
+        fprintf(stderr, "ERROR: Index %d exceeds number of clip planes\n", planeIndex);
+        return 0;
+    }
 
     // Test values for plane
     for (i=0; i<3; ++i) plane[i]=activeClipPlane[i];
@@ -759,6 +761,8 @@ void updateClipSquare(int planeIndex){
     for (i=0; i<4; ++i)
         for (j=0; j<3; ++j)
             clipIdentificationPlane[planeIndex]->NodeList[inc++] = points[i][j];
+
+    return 0;
 }
 
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
@@ -913,6 +917,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     static float objectMinMax[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
     char chrTmp[64];
     int isv;
+    static int planeIndex = 0;
     SUMA_SurfaceViewer *sv;
     Widget w;
     static SUMA_Boolean    firstCall = 1;
@@ -5264,7 +5269,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                              that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
    static Boolean activeClipPlanes = True;
-   int  i;
+   int  i, planeIndex;
    SUMA_ENTRY;
 
    /* get the callData pointer */
@@ -5571,6 +5576,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                     } else if (!activeClipPlanes){  // Toggle plane 1 on
                         clipPlaneTransform(0,0,0,0,0, 1, 0);
                         previouslyActive[0] = active[0];
@@ -6048,7 +6054,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_s:
-         fprintf(stderr, "XK_s\n");
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
             fprintf(stderr, "clipPlaneTransform\n");
                 clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward
@@ -6146,30 +6151,35 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 // Save clipping planes to file
                char stmp[100];
                char cwd[PATH_MAX], outputFileName[PATH_MAX+200];
-               if ((getcwd(cwd, sizeof(cwd)))) {
+                time_t t = time(NULL);
+                struct tm tm = *localtime(&t);
+              if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
                    SUMA_RETURNe;
                }
-                sprintf(outputFileName, "%s/%s", cwd, "clippingPlaneFileName");
-                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
+                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.txt",
+                    cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                    tm.tm_hour, tm.tm_min);
+                sprintf(stmp, "%s", outputFileName);
+                sv->X->SetRenderOrder_prmpt = NULL;
                 sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialogStruct(
                                      SUMA_OK_APPLY_CLEAR_CANCEL,
                                 "Please select output filename:\n"
                                 "(default is shown)):",
-                                     "VSG",
+                                     stmp,
                                      sv->X->TOPLEVEL, YUP,
                                      SUMA_APPLY_BUTTON,
-                                     SUMA_SV_SetRenderOrder, (void *)sv,
+                                     writeClippingPlanes, (void *)sv,
                                      NULL, NULL,
                                      NULL, NULL,
-                                     SUMA_VerifyRenderOrder, NULL,
+                                     SUMA_VerifyRenderOrder, (void *)outputFileName,
                                      sv->X->SetRenderOrder_prmpt);
 
+                sv->X->SetRenderOrder_prmpt->VerifyFunction = NULL;
                 sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialog(
                                   sv->X->Title, sv->X->SetRenderOrder_prmpt);
-                fprintf(stderr, "SUMAg_CF->X->N_ForeSmooth_prmpt = %p\n",
-                    SUMAg_CF->X->N_ForeSmooth_prmpt);
-                // TODO: Add code to write clipping plane info. to file
+
+                sv->X->SetRenderOrder_prmpt = NULL;
             } else if (!SUMA_W_Key(sv, "w", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
@@ -6421,6 +6431,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         active[i] = (i>0);
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
+                    clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                     // SUMAg_CF->N_ClipPlanes = 1;
                     /*
                     clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
@@ -14545,6 +14556,41 @@ void SUMA_JumpXYZ (char *s, void *data)
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
    SUMA_RETURNe;
+}
+
+void writeClippingPlanes (char *s, void *data){
+    SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
+    FILE *outFile;
+    int     i, j, parameterInc=0;
+
+     fprintf(stderr, "s = %s\n", s);
+
+
+     // Open output file
+    if (!(outFile = fopen(s, "w"))){
+        perror("Error opening output file");
+        return;
+    }
+    
+    // Write opening tag
+     fprintf(outFile, "# <Viewer_Visual_Setting\n");
+
+     // Write clip planes to output file
+     fprintf(outFile, "Numer of clip planes: %d\n", SUMAg_CF->N_ClipPlanes);
+     fprintf(outFile, "Rotation Increment: %f\n", sv->ArrowRotationAngle);
+     fprintf(outFile, "Scroll Increment: %f\n", scrollInc);
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+     {
+        fprintf(outFile, "%s", SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes]);
+        for (j=0; j<4; ++j) fprintf(outFile, ",%f", SUMAg_CF->ClipPlanes[parameterInc++]);
+        fprintf(outFile, ",%d\n", active[i]);
+     }
+    
+    // Write closing tag
+     fprintf(outFile, "# />\n");
+
+     // Close output file
+     fclose(outFile);
 }
 
 /*!

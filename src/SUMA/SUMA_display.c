@@ -20929,6 +20929,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (
       SUMA_LH ("New prompt structure");
       prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)
                   SUMA_calloc(1,sizeof(SUMA_PROMPT_DIALOG_STRUCT));
+
       if (!prmpt) {
          SUMA_SLP_Crit("Failed to allocate for prmpt");
          SUMA_RETURN(prmpt);
@@ -21388,6 +21389,7 @@ void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata)
    SUMA_LH("Read %s\n", prmpt->selection);
 
    /* verify the input */
+   // fprintf(stderr, "prmpt->selection = %s\n", prmpt->selection);
    if (prmpt->VerifyFunction) {
       if (!prmpt->VerifyFunction(prmpt->selection, prmpt->VerifyData)) {
          SUMA_SLP_Err("Gibberish! try again.\n"
