@@ -21,10 +21,10 @@ static float Upbot = 70.0f ;  /* percentile bottom and top */
 static float Uptop = 80.0f ;
 static float Uprad = 18.3f ;  /* sphere radius */
 
-#define PKVAL 1000.0f
-#define PKMID  666.0f
-#define WMCUT 1300.0f         /* 30 Jan 2019 */
-#define WMSCL  200.0f
+#define PKVAL 1000.0f         /* peak value for WM */
+#define PKMID  666.0f         /* middle value for GM */
+#define WMCUT 1300.0f         /* level for WM squashing */
+#define WMSCL  200.0f         /* scale for WM squashing */
 
 static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
 static char     *sspref = NULL ;
@@ -769,6 +769,7 @@ int main( int argc , char *argv[] )
        "                   I = contrast inversion              [cf the -T2 option]\n"
        "                   M = compute median volume           [for the -EPI option]\n"
        "                   E = compute scaled EPI datasets     [for the -EPI option]\n"
+       "                   [sXXX] = XXX voxel values were 'squashed' [cf. -nosquash]\n"
        "               ++ 'Duplo down' means to scale the input volume to be half the\n"
        "                  grid size in each direction for speed when computing the\n"
        "                  voxel-wise histograms.  The sub-sampling is done using the\n"
@@ -847,7 +848,9 @@ int main( int argc , char *argv[] )
        "               (or so I was told, by people doing pig brain imaging).\n"
        "               This option will turn off the squashing step. [04 May 2020]\n"
        "                 (I thought of calling it '-oink', but that would be)\n"
-       "                 (absurd, and as you know, Obi-Want hates absurdity.)\n"
+       "                 (absurd, and as you know, Obi-Wan hates absurdity.)\n"
+       "               ++ If you want to know HOW the squashing is computed,\n"
+       "                  you know what Obi-Wan says: 'Trust in the Source, Luke'.\n"
        "\n"
        "-- Feb 2013 - by Obi-Wan Unifobi\n"
        "            - can always be found at the Everest Bakery in Namche Bazaar,\n"
