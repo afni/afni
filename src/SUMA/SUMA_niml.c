@@ -568,8 +568,16 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             }
 
          Wait_tot = 0;
+         /*
+         fprintf(stderr, "nn = %d\n", nn);
+         fprintf(stderr, "SUMA_WriteCheckWaitMax = %d\n", SUMA_WriteCheckWaitMax);
+         */
          while(Wait_tot < SUMA_WriteCheckWaitMax){
             nn = NI_stream_writecheck( cf->ns_v[si] , SUMA_WriteCheckWait) ;
+            /*
+             fprintf(stderr, "Wait_tot = %d, nn = %d, SUMA_WriteCheckWait=%d,
+                cf->ns_v[si]=%p\r", Wait_tot, nn, SUMA_WriteCheckWait, cf->ns_v[si]);
+                */
             if( nn == 1 ){
                fprintf(stderr,"\n") ;
                cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
@@ -586,8 +594,10 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             Wait_tot += SUMA_WriteCheckWait;
             fprintf(SUMA_STDERR,".") ;
          }
+         // fprintf(stderr, "\n");
 
          /* make sure you did not exit because of time out */
+         // SUMA_S_Errv("nn = %d\n", nn);
          if (nn!=1) {
             cf->Connected_v[si] = !cf->Connected_v[si];
             cf->ns_v[si] = NULL;
