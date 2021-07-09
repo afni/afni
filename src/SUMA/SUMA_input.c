@@ -5567,6 +5567,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMAg_CF->N_ClipPlanes = 1;
                         resetClippingPlanes=0;
                     }
+#if 0
                     // Make sure there is at least one clipping plane with its colored square
                     if (SUMAg_CF->N_ClipPlanes < 1){
                         clippingPlaneMode = 1;
@@ -5576,6 +5577,22 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                             fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                             exit(1);
+                        }
+                        active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
+                        clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+#endif
+                    // Make sure there are all six clipping plane with their colored squares but only first active
+                    if (SUMAg_CF->N_ClipPlanes < 6){
+                        clippingPlaneMode = 1;
+                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
+                        for (i=0; i<6; ++i){
+                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
+                            if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                                fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                                exit(1);
+                            }
                         }
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
