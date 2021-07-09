@@ -206,7 +206,7 @@ static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
 static SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
-// static int  planeIndex;
+int  selectedPlane;
 static Bool resetClippingPlanes=0;
 static float  scrollInc = 1.0;
 static float  tiltInc = 1.0;

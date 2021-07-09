@@ -1047,6 +1047,9 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     // Activate/update clip plane
     sprintf(chrTmp, "%s: %.4f,%.4f,%.4f,%.4f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
+     
+     // Record selected clipping plane index for saving to file
+     selectedPlane = planeIndex;
 
     SUMA_SetObjectClip(chrTmp, sv);
 }
@@ -6150,14 +6153,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes > 0){
                 // Save clipping planes to file
                char stmp[100];
-               char cwd[PATH_MAX], outputFileName[PATH_MAX+200];
+               char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
                 time_t t = time(NULL);
                 struct tm tm = *localtime(&t);
               if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
                    SUMA_RETURNe;
                }
-                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.txt",
+                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.clip",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min);
                 sprintf(stmp, "%s", outputFileName);
@@ -14571,19 +14574,21 @@ void writeClippingPlanes (char *s, void *data){
         perror("Error opening output file");
         return;
     }
-    
+  
     // Write opening tag
      fprintf(outFile, "# <Viewer_Visual_Setting\n");
-
-     // Write clip planes to output file
-     fprintf(outFile, "Numer of clip planes: %d\n", SUMAg_CF->N_ClipPlanes);
-     fprintf(outFile, "Rotation Increment: %f\n", sv->ArrowRotationAngle);
-     fprintf(outFile, "Scroll Increment: %f\n", scrollInc);
+     
+     // Write global settings
+     fprintf(outFile, "# sel_plane_num  = \"%d\"\n", selectedPlane);
+     fprintf(outFile, "# tilt_inc  = \"%f\"\n", tiltInc);
+     fprintf(outFile, "# scroll_inc  = \"%f\"\n", scrollInc);
+     
      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
      {
-        fprintf(outFile, "%s", SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes]);
-        for (j=0; j<4; ++j) fprintf(outFile, ",%f", SUMAg_CF->ClipPlanes[parameterInc++]);
-        fprintf(outFile, ",%d\n", active[i]);
+        fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[0]);
+        fprintf(outFile, "# plane_%d_eq   = \"", i+1);
+        for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
+        fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);
      }
     
     // Write closing tag
