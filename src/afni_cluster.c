@@ -415,6 +415,12 @@ static int scrolling      =  1 ;
      (iq)->vwid->func->cwid != NULL     )                          \
    ? MCW_val_bbox((iq)->vwid->func->cwid->clu_see_bbox[qq]) : 0 )
 
+#undef  CLUST_TOGGLE         /* 12 Jul 2021 */
+#define CLUST_TOGGLE(iq,qq)                                              \
+ do{ int vv = ! MCW_val_bbox((iq)->vwid->func->cwid->clu_see_bbox[qq]) ; \
+     MCW_set_bbox( (iq)->vwid->func->cwid->clu_see_bbox[qq] , vv ) ;     \
+ } while(0)
+
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
 
@@ -1307,7 +1313,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    for( ii=0 ; ii < num ; ii++ ){
      MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
-                           "See or Hide this cluster" ) ;
+                           "See or Hide this cluster [+Shift or +Ctrl]" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
                         "Coordinates of cluster (Peak or CMass or ICent)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
@@ -2801,6 +2807,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
 
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar=im3d->vwid->func->clu_list ; int kk ;
+       XmAnyCallbackStruct *acbs = (XmAnyCallbackStruct *)cbs ;
+         /* was the Shift or Ctrl key pressed when the button was toggled? */
+       int shifted = ( ((XButtonEvent *)(acbs->event))->state & ShiftMask ) != 0 ;
        STATUS("toggling") ;
        if( ISVALID_DSET(fset) ){
          im3d->vedset.ival     = im3d->vinfo->fim_index ;
@@ -2817,23 +2826,18 @@ printf("wrote cluster table to %s\n", lb_fnam);
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
          MRI_IMAGE *vm = fset->dblk->vedim ;
+         if( shifted ){  /* toggle all those below #ii [12 Jul 2021] */
+           for( kk=ii+1 ; kk < nclu ; kk++ ){ CLUST_TOGGLE(im3d,kk) ; }
+         }
          im3d->vedskip = 1 ;
-         for( kk=0 ; kk < nclu ; kk++ ){
-           if( !CLUST_SEE(im3d,kk) ){
+         for( kk=0 ; kk < nclu ; kk++ ){  /* extract out and zero data */
+           if( !CLUST_SEE(im3d,kk) ){     /* from all unseen clusters */
              MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                                 vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
            }
          }
          AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
          im3d->vedskip = 0 ;
-#if 0
-         for( kk=0 ; kk < nclu ; kk++ ){
-           if( !CLUST_SEE(im3d,kk) ){
-             MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
-                                vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
-           }
-         }
-#endif
        }
 
        EXRETURN ;  /* end of see/hide */
