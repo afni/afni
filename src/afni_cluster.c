@@ -281,7 +281,7 @@ ENTRY("AFNI_clu_CB") ;
 
      if( im3d->vedset.code == VEDIT_CLUST ){
        nnlev = -im3d->vedset.param[2];
-       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 40 ;
+       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 1 ) ccsiz = 40 ;
      }
      MCW_choose_stuff( im3d->vwid->func->thr_label ,
                         "------ Set Clusterize Parameters ------\n"
@@ -290,7 +290,7 @@ ENTRY("AFNI_clu_CB") ;
                         "       2 : faces or edges touch\n"
                         "       3 : faces or edges or corners\n"
                         "* Voxels   => minimum cluster size that\n"
-                        "              will be kept [at least 2]\n"
+                        "              will be kept [at least 1]\n"
                         "* Bi-sided => positively and negatively\n"
                         "              thresholded voxels get\n"
                         "              clustered separately\n"
