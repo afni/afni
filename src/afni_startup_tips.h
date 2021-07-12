@@ -1735,7 +1735,8 @@ static char *gby[] = {
      "     0.08  = Very suggestive\n"
      "     0.09  = Significant at the p < 0.1 level (send more funding)\n"
      "     > 0.1 = Hey! Look at this interesting subgroup analysis\n"
-     "     > 0.2 = Significant in an alternate reality"                     ,
+     "     > 0.2 = Significant in an alternate reality\n"
+     "  sqrt(-1) = It was significant in my dream last night"  ,
 
      "\n Possible answers to a binary question:\n"
      "     Yes\n"
@@ -1753,7 +1754,7 @@ static char *gby[] = {
      "     Please repeat the question more slowly\n"
      "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
-     "     From which branch of reality would you like the answer?\n"
+     "     From which branch manifold of reality would you like the answer?\n"
      "     That depends on the truth of the Riemann Hypothesis\n"
      "     Is there an odd perfect number?\n"
      "     Forty seven\n"

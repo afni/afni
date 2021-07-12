@@ -2857,22 +2857,39 @@ printf("wrote cluster table to %s\n", lb_fnam);
                             (im3d->vednomask) ? NULL : im3d->vwid->func->clu_mask ) ;
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
+#define NFLASH 3
          double tz , tt ; int ss ;
          MRI_IMAGE *vm = fset->dblk->vedim ;
          im3d->vedskip = 1 ; tz = PLUTO_elapsed_time() ;
-         for( jj=0 ; jj < 3 ; jj++ ){
+         for( jj=0 ; jj < NFLASH ; jj++ ){
+             /* also flash the pushbutton widget */
            MCW_invert_widget(w) ;
+
+             /* extract data in the ii'th cluster's voxels
+                and store the values the cluster struct, leaving
+                zeros behind -- this turns the cluster "off" in the images */
            MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
+             /* REDISPLAY_FLASH code means that other actions that
+                might happen during image viewer redisplay are turned off */
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
+
+             /* this timing stuff (in ms) is to avoid flashing too fast
+                -- no more than 1 image display per 66 milliseconds
+                   = 4 frames in a 60 Hz display                          */
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
            if( ss > 0 ) NI_sleep(ss) ;
+
            MCW_invert_widget(w) ;
+
+             /* shove the data values stored above in the cluster struct
+                back into the volume, which turns the cluster back "on"  */
            MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
+
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
-           if( ss > 0 ) NI_sleep(ss) ;
+           if( ss > 0 && jj < NFLASH-1 ) NI_sleep(ss) ;
          }
          im3d->vedskip = 0 ;
        }

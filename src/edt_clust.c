@@ -261,6 +261,7 @@ ENTRY("MCW_cluster_to_vol") ;
 /* Put the values from the dataset at the cluster locations into
    the 'mag' component of the cluster, and zero out the dataset
    at those location.  Can use MCW_cluster_to_vol() to restore later.
+   This pair of functions is used in Clusterize for Flash-ing.
 ---------------------------------------------------------------------*/
 
 void MCW_vol_to_cluster( int nx , int ny , int nz ,
