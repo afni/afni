@@ -1313,7 +1313,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    for( ii=0 ; ii < num ; ii++ ){
      MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
-                           "See or Hide this cluster [+Shift or +Ctrl]" ) ;
+                           "See or Hide this cluster [+Shift for all below]" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
                         "Coordinates of cluster (Peak or CMass or ICent)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
