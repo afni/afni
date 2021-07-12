@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , JUL , 2021 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Make min cluster size = 1 (from 2) for DR Glen." ,
+   NULL } ,
+
  { 29 , JUN , 2021 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
    "-log2 and -log10 options" ,
    "To convert statistics to minus the logarithm of p-value." } ,
