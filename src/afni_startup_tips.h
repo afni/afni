@@ -1961,6 +1961,21 @@ static char *gby[] = {
     "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
     "You can shut your eyes but you can't shut your brain"                                           ,
     "Having a wonderful time. Please send more grant money"                                          , /* 22 Jun 2021 */
+    "I don't mind being this old. I just thought it would take longer to get here"                   , /* 08 Jul 2021 */
+
+    "\n"
+    " Substitutions to understand yourself better:\n"
+    "   Obsessive  => Passionate\n"
+    "   Rigid      => Structured\n"
+    "   Fussy      => Specific\n"
+    "   Demanding  => Self-Protective\n"
+    "   Dramatic   => Sensitive\n"
+    "   Childish   => Youthful\n"
+    "   Unsociable => Independent\n"
+    "   Weird      => Unique\n"
+    "   Lazy       => Out of Energy\n"
+    "   Stubborn   => Consistent\n"
+    " And remember, AFNI is ALL of these things at the same time"                                    , /* 12 Jul 2021 */
 
     /**** Keep this one last ****/
 

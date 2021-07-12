@@ -554,7 +554,7 @@ ENTRY("mri_WMunifize") ;
 
    /* create image of local high-intensity value */
 
-   if( do_double == 1 ) do_double = (fim->nvox > 1000000) ;
+   if( do_double ) do_double = (fim->nvox > 1000000) ;  /* duplo? */
 #if 0
    INFO_message("do_double = %d",do_double) ;
 #endif
@@ -759,17 +759,17 @@ int main( int argc , char *argv[] )
        "                  otherwise useless.\n"
        "\n"
        "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
-       "               ++ For the curious, the codes used are:\n"
+       "               ++ For the curious, the codes used during this printout are:\n"
        "                   A = Automask\n"
        "                   D = Duplo down (process a half-size volume)\n"
        "                   V = Voxel-wise histograms to get local scale factors\n"
        "                   U = duplo Up (convert local scale factors to full-size volume)\n"
        "                   W = multiply by White matter factors\n"
-       "                   G = multiply by Gray matter factors [cf the -GM option]\n"
-       "                   I = contrast inversion              [cf the -T2 option]\n"
-       "                   M = compute median volume           [for the -EPI option]\n"
-       "                   E = compute scaled EPI datasets     [for the -EPI option]\n"
-       "                   [sXXX] = XXX voxel values were 'squashed' [cf. -nosquash]\n"
+       "                   G = multiply by Gray matter factors      [cf -GM option]\n"
+       "                   I = contrast inversion                   [cf -T2 option]\n"
+       "                   M = compute median volume               [cf -EPI option]\n"
+       "                   E = compute scaled EPI datasets         [cf -EPI option]\n"
+       "                   [sXXX] = XXX voxel values were 'squashed' [cf -nosquash]\n"
        "               ++ 'Duplo down' means to scale the input volume to be half the\n"
        "                  grid size in each direction for speed when computing the\n"
        "                  voxel-wise histograms.  The sub-sampling is done using the\n"
@@ -778,7 +778,7 @@ int main( int argc , char *argv[] )
        "  -noduplo   = Do NOT use the 'duplo down' step; this can be useful for lower\n"
        "               resolution datasets.\n"
        "               ++ If a dataset has less than 1 million voxels in a 3D volume,\n"
-       "                  'duplo down' will not be used.\n"
+       "                  'duplo down' will not be used in any case.\n"
        "\n"
        "  -EPI       = Assume the input dataset is a T2 (or T2*) weighted EPI time\n"
        "               series. After computing the scaling, apply it to ALL volumes\n"
