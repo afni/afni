@@ -206,11 +206,13 @@ static Bool active[6] = {1,1,1,1,1,1};
 static Bool previouslyActive[6] = {0,0,0,0,0,0};
 static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
 static SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
-static int  planeIndex;
+// static int  planeIndex;
 static Bool resetClippingPlanes=0;
 static float  scrollInc = 1.0;
 static float  tiltInc = 1.0;
+static Boolean justEnteredClippingPlaneMode;
 
+void writeClippingPlanes (char *s, void *data);
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
 void getObjectMinMaxForAxes(float objectMinMax[][2]);
 int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
@@ -233,7 +235,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_FreeSurfer_struct FS, int planeIndex);
 void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 void getSquareOnPlane(float *plane, float points[4][3]);
-void updateClipSquare(int planeIndex);
+Boolean updateClipSquare(int planeIndex);
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv);
 void lightenActiveClipPlaneSquare(int activePlane);
 void darkenClipPlaneSquare(int planeIndex);

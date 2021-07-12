@@ -2750,6 +2750,7 @@ typedef struct {
    int PryAx;             /* Prying axis. 3 == Z axis, 2 == Y axis */
 
    float clippingPlaneIncrement; // PDL
+   // char *clippingPlaneFile;   // PDL
 
 } SUMA_SurfaceViewer;
 

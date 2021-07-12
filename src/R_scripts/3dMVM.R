@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.9,  July 2, 2021
+Version 4.0.10,  July 9, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1936,13 +1936,21 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))
 
-write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
-   scale=FALSE, overwrite=lop$overwrite)
+#write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
+#   com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
+#   scale=FALSE, overwrite=lop$overwrite)
 
-if(!is.null(lop$resid))
+if(!is.null(lop$resid)) { # with residuals
+   write.AFNI(lop$outFN, out[,,,1:NoBrick, drop=FALSE],
+      brickNames, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history,
+      statsym=statsym, addFDR=2, type='MRI_float', scale=FALSE)
    write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
       label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
+} else { # residuals are not requested
+   write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
+      com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
+      scale=FALSE, overwrite=lop$overwrite)
+}
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
