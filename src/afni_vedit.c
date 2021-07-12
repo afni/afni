@@ -10,6 +10,9 @@
 /*---------------------------------------------------------------------------*/
 /*! Volume edit on demand: produce a new volume for display based on the
     parameters stored in dset->dblk->vedset.  [05 Sep 2006]
+
+    At one time, I thought there would be more than one "edit on demand"
+    option, but 15 years out, there is still only the clustering. [Jul 2021]
 -----------------------------------------------------------------------------*/
 
 int AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew , byte *mask )

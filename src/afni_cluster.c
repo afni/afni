@@ -299,9 +299,10 @@ ENTRY("AFNI_clu_CB") ;
                         "* Click on the 'Rpt' button to open\n"
                         "  a complete cluster report panel.\n"     ,
 
+             /* min cluster size dropped to 1 (from 2) for DRG [12 Jul 2021] */
                       AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
-                        MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
+                        MSTUF_INT     , "Voxels   " , 1 , 99999 , ccsiz ,
                         MSTUF_STRLIST , "Bi-sided?" , 2 , bisid , yesno ,
                       MSTUF_END ) ;
      EXRETURN ;
@@ -3090,9 +3091,9 @@ ENTRY("AFNI_clus_3dclust") ;
             if( rmm >= -1.0f ) rmm = 1.01f ;
        else if( rmm >= -2.0f ) rmm = 1.44f ;
        else                    rmm = 1.75f ;
-       if( vmul < 2.0f ) vmul = 2.0f ;
+       if( vmul < 1.0f ) vmul = 1.0f ;
      } else {
-       float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
+       float vmin=DSET_VOXVOL(im3d->fim_now) ;
        vmul = MAX(vmin,vmul) ;
      }
 
