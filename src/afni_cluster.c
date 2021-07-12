@@ -421,6 +421,10 @@ static int scrolling      =  1 ;
      MCW_set_bbox( (iq)->vwid->func->cwid->clu_see_bbox[qq] , vv ) ;     \
  } while(0)
 
+#undef  CLUST_SET
+#define CLUST_SET(iq,qq,val) \
+  MCW_set_bbox( (iq)->vwid->func->cwid->clu_see_bbox[qq] , (val) ) ;
+
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
 
@@ -2826,8 +2830,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
          MRI_IMAGE *vm = fset->dblk->vedim ;
-         if( shifted ){  /* toggle all those below #ii [12 Jul 2021] */
-           for( kk=ii+1 ; kk < nclu ; kk++ ){ CLUST_TOGGLE(im3d,kk) ; }
+         if( shifted ){  /* turn all below #ii to same state [12 Jul 2021] */
+           int sss = CLUST_SEE(im3d,ii) ;
+           for( kk=ii+1 ; kk < nclu ; kk++ ){ CLUST_SET(im3d,kk,sss) ; }
          }
          im3d->vedskip = 1 ;
          for( kk=0 ; kk < nclu ; kk++ ){  /* extract out and zero data */
