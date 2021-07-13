@@ -121,7 +121,7 @@ process options:
          e.g. -separator whitespace
 
       Use this option to specify the separation character or string between
-      the labels and values.
+      the labels and values of the input files.
 
    -showlabs            : display counts of all labels found, with parents
 
@@ -259,9 +259,10 @@ g_history = """
         - added -report_outliers_fill_style (for Paul)
         - added -write_outliers
         - added -write_table to replace -tablefile (though it still works)
+   1.3  Jul 13, 2021   - fixed "-separator whitespace" for empty lines
 """
 
-g_version = "gen_ss_review_table.py version 1.2, March 7, 2019"
+g_version = "gen_ss_review_table.py version 1.3, July 13, 2021"
 
 
 class MyInterface:
@@ -658,6 +659,8 @@ class MyInterface:
       # either split whole line (for whitespace) or go after specific separator
       if self.separator == 'ws':
          fields = line.split()
+         if len(fields) == 0:
+            return 0, '', []
          label = fields.pop(0)
          vals = fields
          if label == '': return 0, '', []

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jul, 2021, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
+   "fix '-separator whitespace' in the case of blank lines",
+   "Thanks to P Taylor for noting the problem."
+ } ,
+
  { 25, Jun, 2021, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "add -rand_post_elist_partition",
    "This will partition an already defined stim class into new ones.\n"
