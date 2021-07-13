@@ -2281,10 +2281,12 @@ char * SUMA_help_message_Info(TFORM targ)
       "        A \"C\" will be visible in the viewer title \n"
       "        bar when this mode is active.\n\n",
       SUMA_hkf("Shift-Ctrl-C", targ));
+      /*
    SS = SUMA_StringAppend_va (SS,
       "   %s: Successively add new clipping planes which are\n"
       "        active as they appear. (Initially, you might not see \n"
       "        them; just their clipping effect).\n\n", SUMA_hkf("n", targ));
+      */
    SS = SUMA_StringAppend_va (SS,
       "   %s: Toggle the clipping behavior of numbered plane on/off\n\n",
         SUMA_hkf("[a number]", targ));
