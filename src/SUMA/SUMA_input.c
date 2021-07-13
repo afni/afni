@@ -5273,6 +5273,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
    static Boolean activeClipPlanes = True;
    int  i, planeIndex;
+   static int locallySelectedPlane = 0;
    SUMA_ENTRY;
 
    /* get the callData pointer */
@@ -5596,7 +5597,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                         active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
                         previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+                        // clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+                        locallySelectedPlane = 0;
                     } else if (!activeClipPlanes){  // Toggle plane 1 on
                         clipPlaneTransform(0,0,0,0,0, 1, 0);
                         previouslyActive[0] = active[0];
@@ -5616,6 +5618,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     // Squares only displayed for active clipping planes
                     for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
                         clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
+                        
+                    clipPlaneTransform(0,0,0,0,locallySelectedPlane, 0, 0);     // Ensurecorrect plane selected
                 } else {
                     previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
                     for (i=0; i<6; ++i){
@@ -6234,6 +6238,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[0] = active[0];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 0;
             }
             break;
          case XK_2:
@@ -6256,6 +6261,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[1] = active[1];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 1;
             }
             break;
          case XK_3:
@@ -6282,6 +6288,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[2] = active[2];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 2;
             }
             break;
          case XK_4:
@@ -6312,6 +6319,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[3] = active[3];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 3;
             }
             break;
          case XK_5:
@@ -6342,6 +6350,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[4] = active[4];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 4;
             }
             break;
          case XK_6:
@@ -6372,6 +6381,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     previouslyActive[5] = active[5];
                 }
                 activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 5;
             }
             break;
          case XK_7:
