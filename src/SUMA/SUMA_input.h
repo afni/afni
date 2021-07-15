@@ -247,6 +247,7 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
         float *planeB, float *planeC);
+Boolean loadSavedClippingPlanes(char *clippingPlaneFile);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke

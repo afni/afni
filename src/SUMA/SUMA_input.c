@@ -1,5 +1,90 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
+/*
+#define SUMA_S2FV_ATTR(m_nel, m_attr, m_fv, m_n, m_fail) {\
+   char *m_atmp = NULL; \
+   int m_nr = 0; \
+   m_fail = 0; \
+   m_atmp = NI_get_attribute(m_nel, m_attr); \
+   if (!m_atmp) {   \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
+      m_fail = 1; \
+   }  \
+   m_nr = SUMA_StringToNum(m_atmp, (void*)m_fv, m_n,1);  \
+   if (m_nr != m_n) {  \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nBad attribute (%s) length.\n"\
+                  "Expected %d, found %d\n",   \
+                           FuncName, m_attr, m_n, m_nr);  \
+      m_fail = 2; \
+   }  \
+}
+*/
+Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
+    int feyl, selectedPlane, planeIndex;
+    Boolean isActive;
+    float   tilt_inc, scroll_inc, equation[4];
+    char    attribute[16];
+    NI_stream nstdin;
+    NI_element *nel = NULL;
+
+    // Make sure correct form of filename supplied
+    if (!clippingPlaneFile){
+        fprintf(stderr, "Clipping plane file not supplied.\n");
+        return 0;
+    }
+    if (!strstr(clippingPlaneFile, ".niml.clip")){
+        fprintf(stderr, "Invalid clipping plane file name.\n");
+        return 0;
+    }
+
+    // Open NIML stream
+    if (!(nstdin = NI_stream_open( clippingPlaneFile,"r"))){
+        perror("Error opening clipping plane file.");
+        return 0;
+    }
+
+    // Read NIML element
+    if (!(nel = NI_read_element (nstdin, 1))) {
+        perror("Failed to read nel.");
+        SUMA_RETURNe;
+    }
+/*
+    // Read NIML entries for clipping planes
+    SUMA_S2FV_ATTR(nel, "sel_plane_num", selectedPlane, 1, feyl);
+      if (!feyl) {
+         clipPlaneTransform(0,0,0,0,selectedPlane-1, 0, 0);
+      }
+    SUMA_S2FV_ATTR(nel, "tilt_inc", tilt_inc, 1, feyl);
+      if (!feyl) {
+         tiltInc = tilt_inc;
+      }
+    SUMA_S2FV_ATTR(nel, "scroll_inc", scroll_inc, 1, feyl);
+      if (!feyl) {
+         scrollInc = scroll_inc;
+      }
+    for (planeIndex=1; planeIndex<=6; ++planeIndex){
+        sprintf(attribute, "plane_%d_act", planeIndex);
+        SUMA_S2FV_ATTR(nel, attribute, isActive, 1, feyl);
+          if (!feyl) {
+             active[planeIndex-1] = isActive;
+          }
+    }
+    for (planeIndex=1; planeIndex<=6; ++planeIndex){
+        sprintf(attribute, "plane_%d_eq", planeIndex);
+        SUMA_S2FV_ATTR(nel, attribute, equation, 4, feyl);
+          if (!feyl) {
+             active[planeIndex-1] = isActive;
+          }
+    }
+*/
+    NI_free_element(nel); nel = NULL;
+    NI_stream_close(nstdin);
+    return 1;
+}
 
 // #include "GL/glcorearb.h"
 /* GL/glcorearb.h is restricted to newer style functionality,
@@ -1047,7 +1132,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     // Activate/update clip plane
     sprintf(chrTmp, "%s: %.4f,%.4f,%.4f,%.4f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
         planeC[planeIndex], (active[planeIndex])? planeD[planeIndex]:99999999);
-     
+
      // Record selected clipping plane index for saving to file
      selectedPlane = planeIndex;
 
@@ -5571,21 +5656,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         SUMAg_CF->N_ClipPlanes = 1;
                         resetClippingPlanes=0;
                     }
-#if 0
-                    // Make sure there is at least one clipping plane with its colored square
-                    if (SUMAg_CF->N_ClipPlanes < 1){
-                        clippingPlaneMode = 1;
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        clipPlaneIdentificationMode = 1;    // Start with colored squares on
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                        active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
-                        clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-#endif
+
                     // Make sure there are all six clipping plane with their colored squares but only first active
                     if (SUMAg_CF->N_ClipPlanes < 6){
                         clippingPlaneMode = 1;
@@ -5607,6 +5678,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         previouslyActive[0] = active[0];
                     } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
 
+                    // Load saved clipping planes is available
+                    if (clippingPlaneFile){
+                        loadSavedClippingPlanes(clippingPlaneFile);
+                    }
+
+                    fprintf(stderr, "shift-ctrl-C: clippingPlaneFile = %s\n", clippingPlaneFile);
+
                     // Turn on clipping planes and their colored squares
                     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
                         active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
@@ -5621,7 +5699,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     // Squares only displayed for active clipping planes
                     for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
                         clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
-                        
+
                     clipPlaneTransform(0,0,0,0,locallySelectedPlane, 0, 0);     // Ensurecorrect plane selected
                 } else {
                     previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
@@ -5939,7 +6017,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_n:
             // if (clippingPlaneMode){
-            if (0){  // Disable "n" key for clipping plane mode 
+            if (0){  // Disable "n" key for clipping plane mode
                 if (resetClippingPlanes){
                     SUMAg_CF->N_ClipPlanes = 1;
                     resetClippingPlanes = 0;
@@ -14605,15 +14683,15 @@ void writeClippingPlanes (char *s, void *data){
         perror("Error opening output file");
         return;
     }
-  
+
     // Write opening tag
      fprintf(outFile, "# <Viewer_Visual_Setting\n");
-     
+
      // Write global settings
      fprintf(outFile, "# sel_plane_num  = \"%d\"\n", selectedPlane);
      fprintf(outFile, "# tilt_inc  = \"%f\"\n", tiltInc);
      fprintf(outFile, "# scroll_inc  = \"%f\"\n", scrollInc);
-     
+
      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
      {
         fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[0]);
@@ -14621,7 +14699,7 @@ void writeClippingPlanes (char *s, void *data){
         for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
         fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);
      }
-    
+
     // Write closing tag
      fprintf(outFile, "# />\n");
 

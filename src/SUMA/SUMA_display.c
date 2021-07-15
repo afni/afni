@@ -1183,6 +1183,20 @@ void SUMA_LoadSegDO (char *s, void *csvp )
 */
 static int shutup;
 
+#define SUMA_getStringFromNiml(m_nel, m_attr, m_fv, m_n, m_fail) {\
+   char *m_atmp = NULL; \
+   int m_nr = 0; \
+   m_fail = 0; \
+   m_atmp = NI_get_attribute(m_nel, m_attr); \
+   if (!m_atmp) {   \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
+      m_fail = 1; \
+   }  \
+   m_fv = m_atmp;    \
+}
+
 #define SUMA_S2FV_ATTR(m_nel, m_attr, m_fv, m_n, m_fail) {\
    char *m_atmp = NULL; \
    int m_nr = 0; \
@@ -1424,6 +1438,7 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    Dimension ScrW, ScrH;
    char *atmp;
    SUMA_Boolean LocalHead = NOPE;
+   char * strbuf;
 
    SUMA_ENTRY;
 
@@ -1432,7 +1447,15 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       SUMA_RETURN(0);
    }
 
+   fprintf(stderr, "*** Reading from VVS file\n");
+
    /* don't crash if you fail here and there, try your best ...*/
+   SUMA_getStringFromNiml(nel, "clippingPlaneFile", strbuf, 16, feyl);
+      if (!feyl) {
+        clippingPlaneFile = (char *)calloc(strlen(strbuf)+8, sizeof(char));
+        sprintf(clippingPlaneFile, "%s", strbuf);
+        fprintf(stderr, "Clipping file name = %s\n", clippingPlaneFile);
+      } else clippingPlaneFile = NULL;
    SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl);
       if (!feyl) {
          SUMA_COPY_VEC( quat, csv->GVS[csv->StdView].currentQuat, 4,
@@ -1526,7 +1549,8 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    }
 
 
-
+/*
+*/
    SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl);
       if (!feyl) {
          SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
@@ -4165,6 +4189,10 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
    char slabel[20]="\0", *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
+
+   fprintf(stderr, "*** Initialise clippingPlaneFile to NULL before .vss file possibly read\n");
+   // Initialise to NULL before .vss file possibly read
+   clippingPlaneFile = NULL;
 
    SUMA_ENTRY;
    /* Step 1. */
