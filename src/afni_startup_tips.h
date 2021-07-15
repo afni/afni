@@ -1605,10 +1605,10 @@ static char *gby[] = {
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
-     "\n  We shall not cease from exploration\n"
-     "  And the end of all our exploring\n"
-     "  Will be to arrive where we started\n"
-     "  And know the place for the first time"                                                ,
+     "\n We shall not cease from exploration\n"
+     "   And the end of all our exploring\n"
+     "   Will be to arrive where we started\n"
+     "   And know the place for the first time"                                               ,
 
      "Remember --\n"
      "  To argue with those who have renounced the use and authority\n"
@@ -1977,6 +1977,14 @@ static char *gby[] = {
     "   Lazy       => Out of Energy\n"
     "   Stubborn   => Consistent\n"
     " And remember, AFNI is ALL of these things at the same time"                                    , /* 12 Jul 2021 */
+
+    "Be Warned:\n"
+    "  Any observed statistical regularity will tend to collapse\n"
+    "  once pressure is placed upon it for control purposes"                                         , /* 13 Jul 2021 */
+
+    "Tell me, what is it you plan to do with your one wild and precious life?"                       ,
+    "Anything which can be used can be misused; anything which can be misused will be"               ,
+    "It's hard to accept the truth when the lies were exactly what you wanted to hear"               ,
 
     /**** Keep this one last ****/
 

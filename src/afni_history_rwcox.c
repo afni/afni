@@ -49,6 +49,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUL , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change image overlay label plotting to allow for multiline strings" ,
+   "Per DRG: multiline strings, being centered along the y-axis about their\n"
+   "point of origin, would be pushed off the top of the image. Fixed by\n"
+   "setting the y-coord of the origin point to include a factor for the\n"
+   "number of lines." } ,
+
  { 12 , JUL , 2021 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
    "Make min cluster size = 1 (from 2) for DR Glen." ,
    NULL } ,

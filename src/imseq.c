@@ -3570,23 +3570,36 @@ ENTRY("ISQ_make_image") ;
 
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
-   MEM_plotdata *mp ; int ww ; float asp , dd ;
+   MEM_plotdata *mp ; int ww , nlin ; float asp , dd ;
    static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
    static float th[5] = { 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
    char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f ;
 
 ENTRY("ISQ_plot_label") ;
 
-   if( !ISQ_REALZ(seq) || lab  == NULL ) RETURN(NULL) ;
+   if( !ISQ_REALZ(seq) || lab == NULL || lab[0] == '\0' ) RETURN(NULL) ;
 
-   asp = 1.0 ;
+   asp = 1.0 ;  /* aspect ratio of plot */
+
+   /** In the following, all coordinates are in the 'units'
+       where the plot window runs over (x,y) = [0..1,0..asp] */
 
    /* set character size (units = 0.001 of plot width) */
 
    ww = sz[seq->wbar_labsz_av->ival] ;
    if( asp > 1.0 ) ww = (int)(ww/asp+0.5) ;
 
-   dd = 0.0007*ww ;  /* offset from edge */
+   /* find number of lines in label [15 Jul 2021] */
+
+   nlin = 1 ;
+   for( eee=lab ; *eee != '\0' ; eee++ ){
+     if( *eee == '\n' ) nlin++ ;
+   }
+
+   dd = 0.0007*ww*nlin ;  /* offset from edge */
+
+   /* create a blank plot to be drawn into;
+      this plot will be merged with other overlay plots later */
 
    create_memplot_surely( "Ilabelplot" , asp ) ;
 
@@ -3600,7 +3613,7 @@ ENTRY("ISQ_plot_label") ;
    if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
    set_color_memplot(rr,gg,bb) ;
 
-   /* get the setback */
+   /* get the setback [default = 0.003 * plot width] */
 
    eee = getenv("AFNI_IMAGE_LABEL_SETBACK") ;
    if( eee != NULL ){
@@ -3610,24 +3623,52 @@ ENTRY("ISQ_plot_label") ;
 
    /* plot the label */
 
+   /** Arguments to plotpak_pwritf(xx,yy,ch,isiz,ior,icent):
+         xx    = x coordinate of string start
+         yy    = y coordinate of string start
+         ch    = character string
+         isiz  = size of characters in units of 0.001 * plot width
+         ior   = orientation in degrees (0 = horizontal text)
+         icent = centering code (assuming ior==0==horizontal text)):
+                 First, the size of the box that contains the string
+                   is computed, running from (xbot..xtop,ybot..ytop)
+                   Note that xbot is usually 0, but ybot might be negative
+                   due to descenders (e.g., 'y').
+                 Second, the origin of box is moved to (xorg,yorg)
+                   icent == -1 ==> xorg = xx+xbot           yorg = yy+(ybot+ytop)/2
+                               ==> text centered in the y direction about yy
+                                   text starts at xx (left justified)
+                   icent ==  0 ==> xorg = xx+(xbot+xtop)/2  yorg = yy+(ybot+ytop)/2
+                                   text is centered in x and y directions about (xx,yy)
+                   icent ==  1 ==> xorg = xx+xtop           yorg = yy+(ybot+ytop)/2
+                               ==> text centered in the y direction about yy
+                                   text ends at xx (right justified)
+                   icent == -3 ==> xorg = xx+max(xbot,0)    yorg = yy+max(ybot,0)
+                               ==> text lower left corner starts at (xx,yy)
+       Why is this so intricate and non-intuitive?
+       It's a hangover from the original NCAR graphics code,
+       which was code for driving pen plotters, and this library was
+       written by the pre-Zhark RWC to emulate NCAR graphics for non-pen devices.
+       Which also explains why these are line-drawn characters, not from fonts :( */
+
    switch( seq->wbar_label_av->ival ){
       default:
-      case ISQ_LABEL_UPLF:
+      case ISQ_LABEL_UPLF:   /* upper left */
          plotpak_pwritf( sb,1.0-dd-sb , lab , ww , 0 , -1 ) ; break ;
 
-      case ISQ_LABEL_UPRT:
+      case ISQ_LABEL_UPRT:   /* upper right */
          plotpak_pwritf( asp-sb,1.0-dd-sb , lab , ww , 0 ,  1 ) ; break ;
 
-      case ISQ_LABEL_DNLF:
+      case ISQ_LABEL_DNLF:   /* lower left */
          plotpak_pwritf( sb,dd+sb , lab , ww , 0 , -1 ) ; break ;
 
-      case ISQ_LABEL_DNRT:
+      case ISQ_LABEL_DNRT:   /* lower right */
          plotpak_pwritf( asp-sb,dd+sb , lab , ww , 0 ,  1 ) ; break ;
 
-      case ISQ_LABEL_UPMD:
+      case ISQ_LABEL_UPMD:   /* upper middle */
          plotpak_pwritf( 0.5*asp,1.0-dd-sb , lab , ww , 0 , 0 ) ; break ;
 
-      case ISQ_LABEL_DNMD:
+      case ISQ_LABEL_DNMD:   /* lower middle */
          plotpak_pwritf( 0.5*asp,dd+sb , lab , ww , 0 , 0 ) ; break ;
    }
 

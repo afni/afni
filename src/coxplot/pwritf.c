@@ -7,7 +7,7 @@
 
 /* Common Block Declarations */
 
-extern struct {
+struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
@@ -18,7 +18,7 @@ extern struct {
 
 #define zzzplt_1 zzzplt_
 
-extern struct {
+struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
@@ -171,8 +171,8 @@ L20:
 	xorg = zzzplt_1.xtop;
 	yorg = (zzzplt_1.ybot + zzzplt_1.ytop) * .5f;
     } else if (*icent == -3) {
-	xorg = 0.f;
-	yorg = 0.f;
+	xorg = dmax(zzzplt_1.xbot,0.f);
+	yorg = dmax(zzzplt_1.ybot,0.f);
     } else {
 	xorg = zzzplt_1.xbot;
 	yorg = zzzplt_1.ybot;
@@ -1044,7 +1044,7 @@ L100:
 
     } else if (ich == 10) {
 	xcur = 0.f;
-	ycur += -1.1f;
+	ycur += -1.3f;
 /* ...................................................................
 .. */
 /*  Otherwise, this is a real character with real strokes */
