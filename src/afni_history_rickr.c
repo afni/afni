@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Jul, 2021, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -empty_is_outlier, to treat empty fields as outliers",
+   "The default reporting of blank outlier test vals is now as non-outliers.\n"
+   "Use this option to report as outliers.\n"
+   "Added for the mighty P Taylor."
+ } ,
+
  { 13, Jul, 2021, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
    "fix '-separator whitespace' in the case of blank lines",
    "Thanks to P Taylor for noting the problem."
