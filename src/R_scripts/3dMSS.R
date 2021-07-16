@@ -1,4 +1,4 @@
-#!/usr/bin/env AFNI_Batch_R
+!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.11, July 2, 2021
+Version 0.0.12, July 9, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -568,31 +568,66 @@ process.MSS.opts <- function (lop, verb = 0) {
 #################################################################################
 
 # MSS: multilevel smoothing splines using gam() in mgcv
+#runMSS <- function(myData, DM, tag) {
+#   #browser()
+#   Stat <- rep(0, lop$nBrk)
+#   if(!all(myData == 0)) {
+#      #DM$yy <- myData
+#      fm <- NULL
+#      options(warn=-1)
+#      lop$mm$mf$yy <- myData
+#      lop$mm$y    <- myData
+#      #try(fm <- gam(lop$mrr, data=DM, method='REML'), silent=TRUE)
+#      #try(fm <- gam(lop$mrr, data=DM), silent=TRUE)
+#      try(fm <- gam(G=lop$mm), silent=TRUE)
+#      if(!is.null(fm)) { # model successful
+#         tmp <- NULL;
+#	 ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
+#	 pp <- summary(fm)$s.table[,'p-value'] # smooths
+#         pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq 
+#         if(is.null(lop$vt)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
+#            try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
+#         if(!is.null(tmp)) { # prediction successful
+#            if(is.null(lop$vt)) { 
+#               #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+#               Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+#            } else
+#            #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
+#            Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+#                      tmp$se.fit[1:lop$nr])))
+#         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq)
+#         #Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
+#      }
+#   }
+#   return(Stat)
+#}
+# runMSS(inData[30,30,30,], lop$dataStr, 0)
+
 runMSS <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$nBrk)
    if(!all(myData == 0)) {
-      #DM$yy <- myData
+      DM$yy <- myData
       fm <- NULL
       options(warn=-1)
-      lop$mm$mf$yy <- myData
-      lop$mm$y    <- myData
-      #try(fm <- gam(lop$mrr, data=DM, method='REML'), silent=TRUE)
+      #lop$mm$mf$yy <- myData
+      #lop$mm$y    <- myData
+      try(fm <- gam(lop$mrr, data=DM, method='REML'), silent=TRUE)
       #try(fm <- gam(lop$mrr, data=DM), silent=TRUE)
-      try(fm <- gam(G=lop$mm), silent=TRUE)
+      #try(fm <- gam(G=lop$mm), silent=TRUE)
       if(!is.null(fm)) { # model successful
          tmp <- NULL;
-	 ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
-	 pp <- summary(fm)$s.table[,'p-value'] # smooths
-         pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq 
+         ll <- c(t(summary(fm)$p.table[,c('Estimate', 't value')])) # parameters
+         pp <- summary(fm)$s.table[,'p-value'] # smooths
+         pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq
          if(is.null(lop$vt)) try(tmp <- predict(fm, lop$Pred, se.fit = T), silent=TRUE) else
             try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
-            if(is.null(lop$vt)) { 
+            if(is.null(lop$vt)) {
                #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
                Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
             } else
-            #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr], 
+            #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
             Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
                       tmp$se.fit[1:lop$nr])))
          } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq)
