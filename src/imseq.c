@@ -3593,7 +3593,7 @@ ENTRY("ISQ_plot_label") ;
 
    nlin = 1 ;
    for( eee=lab ; *eee != '\0' ; eee++ ){
-     if( *eee == '\n' ) nlin++ ;
+     if( *eee == '\n' || strncmp(eee,"\\newline",8) == 0 ) nlin++ ;
    }
 
    dd = 0.0007*ww*nlin ;  /* offset from edge */

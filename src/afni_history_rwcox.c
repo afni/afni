@@ -49,6 +49,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUL , 2021 , RWC , "AFNI driver and GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in overlay_label='xxx' driver" ,
+   "Someone put the terminating NUL byte in wrong place. (Whoever did that\n"
+   "should be beaten.)\n"
+   "Also added the '\\newline' escape as a way to add a line break to the\n"
+   "overlay label string from the driver -- since control characters aren't\n"
+   "really allowed." } ,
+
  { 15 , JUL , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
    "Change image overlay label plotting to allow for multiline strings" ,
    "Per DRG: multiline strings, being centered along the y-axis about their\n"

@@ -1037,7 +1037,7 @@ ENTRY("AFNI_drive_open_window") ;
           cbs.reason = mcwCR_string ;
           cbs.cval   = malloc(sizeof(char)*(nqq+8)) ;
           for( qq=0 ; qq < nqq ; qq++ ) cbs.cval[qq] = cpt[ans.i+qq] ;
-          cbs.cval[ans.i+nqq] = '\0' ;
+          cbs.cval[qq] = '\0' ;
           ISQ_overlay_label_CB( NULL , (XtPointer)isq , &cbs ) ;
           free(cbs.cval) ;
         }
