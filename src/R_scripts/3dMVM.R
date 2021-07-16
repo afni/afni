@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.10,  July 9, 2021
+Version 4.0.11,  July 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1019,13 +1019,14 @@ process.MVM.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
-   if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN))
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 # process.MVM.opts(lop, verb = lop$verb)
@@ -1516,6 +1517,8 @@ if(any(!is.null(lop$vVars))) {
 
 if (!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)),
       dim=c(dimx,dimy,dimz,lop$NoFile+(!is.na(lop$vQV[1]))*lop$nSubj))
 }
