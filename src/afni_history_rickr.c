@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Jul, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "unindent EOF command terminator in example",
+   "Thanks to I Berteletti for noting the problem."
+ } ,
+
  { 15, Jul, 2021, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
    "add -empty_is_outlier, to treat empty fields as outliers",
    "The default reporting of blank outlier test vals is now as non-outliers.\n"

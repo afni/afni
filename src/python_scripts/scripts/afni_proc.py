@@ -691,9 +691,10 @@ g_history = """
        - fixed niml.dset suffix in case of -regress_compute_fitts on surface
          (thanks to S Torrisi for noting the problem)
     7.16 May 19, 2021: fixed volreg TSNR in surface case (still in volume)
+    7.17 Mul 16, 2021: unindent EOF
 """
 
-g_version = "version 7.16, May 19, 2021"
+g_version = "version 7.17, July 16, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
