@@ -952,7 +952,7 @@ class MyInterface:
       # VARY and NE are basically identical, except for with non-existent data,
       # in which case VARY is always a straight comparison
       if comp == 'NE' or comp == 'VARY':
-         if scomp:       return 0 # equal strings, this is an outlier
+         if scomp:       return 0 # equal strings, not an outlier
          # use float result (-2 or -3 is also NE, if strings differ)
          # float result
          if fcomp == 0:  return 0
