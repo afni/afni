@@ -2150,14 +2150,14 @@ NI_dpr("NI_stream_reopen: closing old stream\n") ;
       - Also clears the stream buffer.
 -------------------------------------------------------------------------*/
 
-void NI_stream_seek( NI_stream_type *ns , int offset , int whence )
+void NI_stream_seek( NI_stream_type *ns , int64_t offset , int whence )
 {
    if( ns          == NULL             ||
        ns->bad     == MARKED_FOR_DEATH ||
        ns->type    != NI_FILE_TYPE     ||
        ns->fp      == NULL               ) return ;
 
-   fseek( ns->fp , offset , whence ) ;   /* seek file */
+   fseeko( ns->fp , offset , whence ) ;   /* seek file */
    ns->nbuf = ns->npos = 0 ;             /* clear buffer */
 }
 
