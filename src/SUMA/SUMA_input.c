@@ -1,35 +1,131 @@
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
-/*
+
+#define SUMA_getStringFromNiml(m_nel, m_attr, m_fv, m_n, m_fail) {\
+   char *m_atmp = NULL; \
+   int m_nr = 0; \
+   m_fail = 0; \
+   m_atmp = NI_get_attribute(m_nel, m_attr); \
+   if (!m_atmp) {   \
+      m_fail = 1; \
+   }  \
+   m_fv = m_atmp;    \
+}
+
 #define SUMA_S2FV_ATTR(m_nel, m_attr, m_fv, m_n, m_fail) {\
    char *m_atmp = NULL; \
    int m_nr = 0; \
    m_fail = 0; \
    m_atmp = NI_get_attribute(m_nel, m_attr); \
    if (!m_atmp) {   \
-      if (LocalHead) \
-         fprintf( SUMA_STDERR,\
-                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
       m_fail = 1; \
    }  \
    m_nr = SUMA_StringToNum(m_atmp, (void*)m_fv, m_n,1);  \
    if (m_nr != m_n) {  \
-      if (LocalHead) \
-         fprintf( SUMA_STDERR,\
-                  "Error %s:\nBad attribute (%s) length.\n"\
-                  "Expected %d, found %d\n",   \
-                           FuncName, m_attr, m_n, m_nr);  \
       m_fail = 2; \
    }  \
 }
-*/
+
+Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
+    int planeIndex, float *deltaTheta, float *deltaPhi){
+
+    // Determine additional rotations based on plane index
+    switch (planeIndex){
+    case 0:
+        *deltaTheta = theta;
+        *deltaPhi = phi;
+        break;
+    case 1:
+        *deltaTheta = theta - 90.0;
+        *deltaPhi = phi;
+        break;
+    case 2:
+        *deltaTheta = theta;
+        *deltaPhi = phi - 90.0;
+        break;
+    case 3:
+        *deltaTheta = theta - 180.0;
+        *deltaPhi = phi;
+        break;
+    case 4:
+        *deltaTheta = theta - 270.0;
+        *deltaPhi = phi;
+        break;
+    case 5:
+        *deltaTheta = theta - 180.0;
+        *deltaPhi = phi - 270.0;
+        break;
+    }
+
+    return 1;
+}
+
+Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi){
+    static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
+
+    if (equation[2] == 1.0){
+        *theta = 0.0;
+        *phi = 0.0;
+    } else if (equation[2] == -1.0){
+        *theta = 180.0;
+        *phi = 0.0;
+    } else if (fabs(equation[2]) < 0.000001f){
+        if (fabs(equation[0]) < 0.000001f){
+            *theta = 90.0;
+            *phi = 0.0;
+        } else if (fabs(equation[1]) < 0.000001f) {
+            *theta = 0.0;
+            *phi = 90.0;
+        } else {
+            *theta = atan(equation[1]/equation[0])*rad2degrees;
+            *phi = atan(equation[0]/equation[1])*rad2degrees;
+        }
+    } else {
+        *theta = atan(equation[1]/equation[2])*rad2degrees;
+        *phi = atan(equation[0]/equation[2])*rad2degrees;
+    }
+
+    return 1;
+}
+
+Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD){
+
+    *deltaD = requiredD - SUMAg_CF->ClipPlanes[4*planeIndex + 3];
+
+    return 1;
+}
+
+Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
+    float theta, phi, deltaTheta, deltaPhi, deltaD;
+    int     i;
+
+    // Determine rotation angles from equation
+    determineRotationAnglesFromEquation(equation, &theta, &phi);
+
+    // Determine additional rotations from required and existing rotations
+    determineAdditionalRotationsFromRequiredAndExistingRotations(theta, phi,
+        planeIndex, &deltaTheta, &deltaPhi);
+
+    // Determine delta D from existing D and required D
+    determineDeltaDFromExistingDAndRequiredD(equation[3], planeIndex, &deltaD);
+
+    fprintf(stderr, "Required D = %f\n", equation[3]);
+    fprintf(stderr, "Delta D = %f\n", deltaD);
+
+    // Apply rotations and delta Ds
+    clipPlaneTransform(deltaTheta, deltaPhi, deltaD, 0, planeIndex, 0, 0);
+
+    return 1;
+}
+
 Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
-    int feyl, selectedPlane, planeIndex;
+    int feyl, selectedPlane, planeIndex, i;
     Boolean isActive;
-    float   tilt_inc, scroll_inc, equation[4];
+    float   equation[4], floatBuf[4];
     char    attribute[16];
     NI_stream nstdin;
     NI_element *nel = NULL;
+    char *strbuf;
 
     // Make sure correct form of filename supplied
     if (!clippingPlaneFile){
@@ -41,49 +137,81 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
         return 0;
     }
 
-    // Open NIML stream
-    if (!(nstdin = NI_stream_open( clippingPlaneFile,"r"))){
-        perror("Error opening clipping plane file.");
+    // Allocate memory to filename buffer
+    if (!(strbuf=(char *)malloc(strlen(clippingPlaneFile)*sizeof(char)))){
+        fprintf(stderr, "Error allocating memory to clipping plane file string\n");
         return 0;
     }
+
+    // Open NIML stream
+    sprintf(strbuf, "file:%s", clippingPlaneFile);
+    if (!(nstdin = NI_stream_open( strbuf,"r"))){
+        perror("Error opening clipping plane file.");
+        free(strbuf);
+        return 0;
+    }
+    free(strbuf);
 
     // Read NIML element
     if (!(nel = NI_read_element (nstdin, 1))) {
         perror("Failed to read nel.");
         SUMA_RETURNe;
     }
-/*
+
     // Read NIML entries for clipping planes
-    SUMA_S2FV_ATTR(nel, "sel_plane_num", selectedPlane, 1, feyl);
+    SUMA_S2FV_ATTR(nel, "sel_plane_num", floatBuf, 1, feyl);
       if (!feyl) {
-         clipPlaneTransform(0,0,0,0,selectedPlane-1, 0, 0);
+        selectedPlane = (int)(floatBuf[0]+0.5);
+        clipPlaneTransform(0,0,0,0,selectedPlane-1, 0, 0);
       }
-    SUMA_S2FV_ATTR(nel, "tilt_inc", tilt_inc, 1, feyl);
+    SUMA_S2FV_ATTR(nel, "tilt_inc", floatBuf, 1, feyl);
       if (!feyl) {
-         tiltInc = tilt_inc;
+         tiltInc = floatBuf[0];
+        fprintf(stderr, "tiltInc= %f\n", tiltInc);
       }
-    SUMA_S2FV_ATTR(nel, "scroll_inc", scroll_inc, 1, feyl);
+    SUMA_S2FV_ATTR(nel, "scroll_inc", floatBuf, 1, feyl);
       if (!feyl) {
-         scrollInc = scroll_inc;
+         scrollInc = floatBuf[0];
+        fprintf(stderr, "scrollInc= %f\n", scrollInc);
       }
     for (planeIndex=1; planeIndex<=6; ++planeIndex){
         sprintf(attribute, "plane_%d_act", planeIndex);
-        SUMA_S2FV_ATTR(nel, attribute, isActive, 1, feyl);
+        SUMA_S2FV_ATTR(nel, attribute, floatBuf, 1, feyl);
           if (!feyl) {
-             active[planeIndex-1] = isActive;
+            isActive = (int)(floatBuf[0]+0.5);
+             previouslyActive[planeIndex-1] = isActive;
           }
     }
-    for (planeIndex=1; planeIndex<=6; ++planeIndex){
-        sprintf(attribute, "plane_%d_eq", planeIndex);
-        SUMA_S2FV_ATTR(nel, attribute, equation, 4, feyl);
-          if (!feyl) {
-             active[planeIndex-1] = isActive;
-          }
+
+    for (planeIndex=0; planeIndex<6; ++planeIndex)
+        if (previouslyActive[planeIndex]){
+        sprintf(attribute, "plane_%d_eq", planeIndex+1);
+        if (getEquationForClippingPlane(nel, attribute, equation)){
+            applyEquationToClippingPlane(equation, planeIndex);
+        }
     }
-*/
-    NI_free_element(nel); nel = NULL;
+
     NI_stream_close(nstdin);
+    NI_free_element(nel); nel = NULL;
     return 1;
+}
+
+Boolean getEquationForClippingPlane(NI_element *nel, char attribute[16], float equation[4]){
+    char *strbuf, *eqnBuffer;
+    int feyl, i;
+
+    SUMA_getStringFromNiml(nel, attribute, eqnBuffer, 1, feyl);
+    fprintf(stderr, "eqnBuffer = %s\n", eqnBuffer);
+      if (!feyl) {
+        equation[0] = atof(strtok(eqnBuffer, "+"));
+        for (i=1; i<=3; ++i){
+            equation[i] = atof(strtok(NULL, "+"));
+        }
+
+        return 1;
+      }
+
+      return 0;
 }
 
 // #include "GL/glcorearb.h"
@@ -14694,7 +14822,7 @@ void writeClippingPlanes (char *s, void *data){
 
      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
      {
-        fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[0]);
+        fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[i]);
         fprintf(outFile, "# plane_%d_eq   = \"", i+1);
         for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
         fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);

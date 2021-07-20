@@ -248,6 +248,12 @@ void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
         float *planeB, float *planeC);
 Boolean loadSavedClippingPlanes(char *clippingPlaneFile);
+Boolean applyEquationToClippingPlane(float *equation, int planeIndex);
+Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi);
+Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
+    int planeIndex, float *deltaTheta, float *deltaPhi);
+Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD);
+Boolean getEquationForClippingPlane(NI_element *nel, char attribute[16], float equation[4]);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke

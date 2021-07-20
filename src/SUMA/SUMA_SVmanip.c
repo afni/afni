@@ -5182,11 +5182,11 @@ void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out)
    SUMA_ENTRY;
 
    s = SUMA_Show_Clip_Planes_Info (cf);
-   
-/*  Don't output number of planes or their equations
+
+/**/    //Don't output number of planes or their equations
    if (!out) fprintf(SUMA_STDERR,"%s", s);
    else fprintf(out,"%s", s);
-*/
+/**/
    SUMA_free(s);
 
    SUMA_RETURNe;
