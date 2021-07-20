@@ -2591,7 +2591,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
       /** file: ==> check current file position and length of file **/
 
       case NI_FILE_TYPE:{
-         long f_len , f_pos ;
+         int64_t f_len , f_pos ;
 
          if( ns->fp == NULL                ||
              ns->io_mode == NI_OUTPUT_MODE   ) return -1 ; /* never? */
@@ -2599,7 +2599,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
          f_len = ns->fsize ;               /* length of file      */
          if( f_len < 0 ) return -1 ;       /* file not found (?)  */
 
-         f_pos = ftell( ns->fp ) ;         /* where are we now?   */
+         f_pos = ftello( ns->fp ) ;        /* where are we now?   */
          if( f_pos < 0 ) return -1 ;       /* should never happen */
 
          return (f_pos < f_len) ? 1 : -1 ; /* is good or bad, but */
@@ -2911,7 +2911,17 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    int nn , ii=0 , ntot=0 , ngood=0 , mwait=0 ;
    int start_msec = NI_clock_time() ;
 
-   if( NI_stream_goodcheck(ns,0) < 0 ) return -1 ;   /* bad input */
+#ifdef NIML_DEBUG
+   NI_dpr("   ENTER NI_stream_fillbuf(%s,%d,%d)\n" , ns->orig_name , minread , msec ) ;
+   NI_dpr("         nbuf = %d  bufsize = %d" , ns->nbuf , ns->bufsize ) ;
+#endif
+
+   if( NI_stream_goodcheck(ns,0) < 0 ){
+#ifdef NIML_DEBUG
+   NI_dpr("        goodcheck fails immediately :(") ;
+#endif
+     return -1 ;   /* bad input */
+   }
 
    if( ns->type == NI_STRING_TYPE ) return -1 ;      /* goofy input */
    if( ns->type == NI_REMOTE_TYPE ) return -1 ;      /* goofy input */
@@ -2925,18 +2935,25 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    while(1){
 
       ngood = NI_stream_readcheck(ns,mwait); /* check if data can be read */
-
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf gets readcheck = %d",ngood) ;
+#endif
       if( ngood < 0 ) break ;                /* data stream gone bad, so exit */
 
       ii = 0 ;
       if( ngood > 0 ){                       /* we can read ==> */
                                              /* try to fill buffer completely */
-
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf trying to read data") ;
+#endif
          ii = NI_stream_read( ns, ns->buf+ns->nbuf, ns->bufsize-ns->nbuf ) ;
 
          if( ii > 0 ){                 /* we got data! */
             ns->nbuf += ii ;           /* buffer is now longer */
             ntot     += ii ;           /* total bytes read here so far */
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf got %d bytes") ;
+#endif
 
             /* if buffer is full,
                or we have all the data that was asked for, then exit */
@@ -2944,6 +2961,9 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
             if( ns->nbuf >= ns->bufsize || ntot >= minread ) break ;
 
          } else if( ii < 0 ){          /* stream suddenly died horribly? */
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf stream died horribly") ;
+#endif
             ngood = -1 ; break ;
          }
       }

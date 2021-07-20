@@ -365,7 +365,7 @@ typedef struct {
    int sd ;          /*!< TCP only: socket descriptor */
 
    FILE *fp ;        /*!< FILE only: pointer to open file */
-   int fsize ;       /*!< FILE only: length of file for input */
+   int64_t fsize ;   /*!< FILE only: length of file for input */
 
    char name[256] ;  /*!< Hostname or filename */
 
@@ -586,7 +586,7 @@ extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern char * NI_strdup( char * ) ;
 extern char * NI_strdup_len( char *, int ) ;
 extern int    NI_strlen( char * ) ;
-extern long   NI_filesize( char * ) ;
+extern int64_t NI_filesize( char * ) ;  /* changed to int64_t 20 Jul 2021 */
 extern int    NI_is_fifo( char * ) ;            /* 27 Aug 2019 */
 extern int    NI_clock_time(void) ;
 extern int    NI_byteorder(void) ;

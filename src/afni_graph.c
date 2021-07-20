@@ -7658,8 +7658,11 @@ void AFNI_XDrawLines( Display *display, Drawable d,
    free(new_xy) ; free(old_xy) ; free(new_points) ; return ;
 }
 
-/*--------------------------------------------------------------------------*/
-/* Similar code for drawing a smooted filled polygon (for pmplot) */
+/*----------------------------------------------------------------------------*/
+/* Similar code for drawing a smooted (smoothed?) filled polygon (for pmplot) */
+/* https://en.wikipedia.org/wiki/Reed_Smoot                                   */
+/* https://en.wikipedia.org/wiki/Oliver_R._Smoot                              */
+/*----------------------------------------------------------------------------*/
 
 void AFNI_XFillPolygon( Display *display, Drawable d,
                         GC gc, XPoint *points, int npoints, int shape ,

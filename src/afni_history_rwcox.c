@@ -49,6 +49,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , JUL , 2021 , RWC , "NIML library" , MAJOR , TYPE_BUG_FIX ,
+   "NIML file: input failed if file over 2BG in size" ,
+   "Due to storing filesize in int/long. Fix was to make it stored in\n"
+   "int64_t, and fixing a few other places." } ,
+
  { 16 , JUL , 2021 , RWC , "AFNI driver and GUI" , MICRO , TYPE_BUG_FIX ,
    "Fix bug in overlay_label='xxx' driver" ,
    "Someone put the terminating NUL byte in wrong place. (Whoever did that\n"

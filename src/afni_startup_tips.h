@@ -784,6 +784,7 @@ static char *gby[] = {
      "No time for pleasantries, Kyle; we have a Level 5 emergency!"  ,
      "Digitize me, Fred"                                             ,
      "Well, nobody's perfect"                                        ,
+     "Well, pobody's nerfect"                                        ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
