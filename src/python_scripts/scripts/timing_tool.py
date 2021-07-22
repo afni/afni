@@ -460,6 +460,23 @@ examples: ~1~
 
       Consider "-show_events" to view event list.
 
+   Example 20.  set event durations based on next events ~2~
+
+      Suppose one has timing files for conditions Pre, BPress and Post,
+      and one wants to set the duration for each Pre condition based on
+      whatever comes next (usually a BPress, but if that does not happen,
+      Post is the limit).
+
+      Suppose the inputs are 3 timing files stim.Pre.txt, stim.BPress.txt and 
+      stim.Post.txt, and we want to create stim.Pre_DM.txt to be the same as
+      stim.Pre.txt, but with that variable duration attached.  Then use the
+      -multi_durations_from_offsets option as follows, providing the old
+      label (file name) and the new file name for the class to change.
+
+         timing_tool.py                                                 \\
+            -multi_timing stim.Pre.txt stim.BPress.txt stim.Post.txt    \\
+            -multi_durations_from_offsets stim.Pre.txt stim.Pre_DM.txt
+
 --------------------------------------------------------------------------
 Notes: ~1~
 
@@ -662,6 +679,11 @@ action options (apply to single timing element, only): ~1~
 
             Consider '-write_timing' and '-show_duration_stats'.
             Consider example 16.
+
+        Update: this method (while still available) can be applied via the
+                newer -multi_durations_from_offsets option.
+
+        See also, -multi_durations_from_offsets.
 
    -add_rows NEW_FILE           : append these timing rows to main element ~2~
 
@@ -959,6 +981,33 @@ action options (apply to single timing element, only): ~1~
 
 ------------------------------------------
 action options (apply to multi timing elements, only): ~1~
+
+   -multi_durations_from_offsets OLD NEW : set durations from next events ~2~
+
+        e.g. -multi_durations_from_offsets stim.Pre.txt stim.Pre_DM.txt
+
+        Given a set of timing files input via -multi_timing, set the durations
+        for the events in one file to be based on when the next even happens.
+        For example, the 'Pre' condition could be ended at the next button
+        press event (or any other event that follows).
+
+        Specify the OLD input to modify and the name of the NEW timing file to
+        write.
+
+        NEW will be the same as OLD, except for each event duration.
+
+        This option is similar to -apply_end_times_as_durations, except That
+        -apply_end_times_as_durations requires 2 inputs to be exactly matched,
+        one event following the other.  The newer -multi_durations_from_offsets
+        option allows for any follower event, and makes the older option
+        unnecessary.
+
+        If the condition to modify comes as the last event in a run, the
+        program will whine and set that duration to 0.
+
+           Consider example 20.
+
+        See also -apply_end_times_as_durations.
 
    -multi_timing_to_events FILE : create event list from stimulus timing ~2~
 
@@ -1416,9 +1465,10 @@ g_history = """
         - dur stats: show file/condition with stats
         - match output between python2 and python3
    3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
+   3.14 Jul 22, 2021 - added -multi_durations_from_offsets
 """
 
-g_version = "timing_tool.py version 3.13, December 26, 2019"
+g_version = "timing_tool.py version 3.14, July 22, 2021"
 
 
 
@@ -1790,6 +1840,8 @@ class ATInterface:
                          helpstr='convert stim_times event file')
       self.valid_opts.add_opt('-multi_timing_to_event_pair', 2, [], 
                          helpstr='convert stim_times event/isi files')
+      self.valid_opts.add_opt('-multi_durations_from_offsets', 2, [], 
+                         helpstr='set durations for class from next events')
       self.valid_opts.add_opt('-multi_timing_to_event_list', 2, [], 
                          helpstr='convert to event list (style, filename)')
       self.valid_opts.add_opt('-write_multi_timing', 1, [], 
@@ -2162,6 +2214,15 @@ class ATInterface:
                return 1
             if self.timing.show_duration_stats(): return 1
 
+         elif opt.name == '-multi_durations_from_offsets':
+            if len(self.m_timing) <= 0:
+               print("** '%s' requires -multi_timing" % opt.name)
+               return 1
+            val, err = uopts.get_string_list('', opt=opt)
+            if val != None and err: return 1
+
+            self.multi_durations_from_offsets(val[0], ofile=val[1])
+
          elif opt.name == '-multi_show_duration_stats':
             if len(self.m_timing) <= 0:
                print("** '%s' requires -timing or -multi_timing" % opt.name)
@@ -2317,6 +2378,123 @@ class ATInterface:
             return 1
 
       return 0
+
+   def multi_durations_from_offsets(self, cname, ofile='-'):
+      """akin to -apply_end_times_as_durations, but set duration based on
+         any next events
+
+         cname  : the name of the condition to set durations for
+                  (currently required to match some timing.fname)
+         ofile  : output file to write new timing to
+
+         Build a new mdata for self.m_timing[cindex] and write it out.
+         Put the old one back in place.
+      """
+
+      # which m_timing class does this apply to?
+      cindex = self.tindex_from_fname(cname)
+      if cindex < 0:
+         print("** multi_durations_from_offsets: cannot find fname %s" % cname)
+         return 1
+      elif self.verb > 1:
+         print("-- MDFO: using index %d for class %s" % (cindex,cname))
+
+      # get complete list of events (get 0-based class_index values)
+      allevents = self.complete_event_list(self.m_timing, nbased=0)
+
+      # format: [ [ [time, [amp mods], dur, class_index], ... ] ... ]
+
+      # build a new mdata
+      mdata = []
+      for irun, erun in enumerate(allevents):
+         mrun = []
+         maxind = len(erun)-1
+         for ievent, event in enumerate(erun):
+            if event[3] == cindex:
+               # what to do if last event?
+               if ievent < maxind:
+                  dur = erun[ievent+1][0] - event[0]
+               else:
+                  if self.verb > 0:
+                     print("** MDFO: event %s is last in run %d"%(cname,irun))
+                  dur = 0
+               # add event
+               mrun.append([event[0], event[1], dur])
+               if self.verb > 3:
+                  print("== event @ %7.2f, old dur %5.2f, new dur %5.2f" \
+                        % (event[0],event[2],dur))
+         mdata.append(mrun)
+
+      # make a new timing instance to write from married data, and write
+      timing = self.m_timing[cindex].copy()
+      timing.init_from_mdata(mdata)
+    
+      timing.write_times(ofile, nplaces=self.nplaces,
+                 mplaces=self.mplaces, force_married=1)
+
+      # delete created instance
+      del(timing)
+
+      return 0
+
+   def tindex_from_fname(self, fname):
+      """return index of fname into m_timing
+         return -1 on error
+      """
+      for tind, timing in enumerate(self.m_timing):
+         if timing.fname == fname:
+            return tind
+      if self.verb > 1:
+         print("** tindex_from_fname: cannot find fname %s" % fname)
+      return -1
+
+   def complete_event_list(self, tlist, nbased=1):
+      """return all events across all runs
+
+         tlist:  probably self.m_timing
+         nbased: 0 or 1, for 0-based or 1-based
+
+         return [
+                  [ [time, [amp mods], dur, class_index] ... ],
+                  [ [time, [amp mods], dur, class_index] ... ],
+                  ... more runs
+                  [ [time, [amp mods], dur, class_index] ... ]
+                ]
+      """
+
+      # from timing list, set number of conditions and number of runs
+
+      if nbased not in [0,1]:
+         print("** complete_event_list: bad nbased %d" % nbased)
+         return []
+
+      ncond = len(tlist)
+      if ncond < 1:
+         if self.verb > 1: print("** complete_event_list, no conditions")
+         return []
+
+      nruns = len(tlist[0].mdata)
+      if nruns < 1:
+         if self.verb > 1: print("** complete_event_list, no runs")
+         return []
+
+      # get all events per run
+
+      allruns = []
+      for rind in range(nruns):
+         runevents = [] # complete event list for current run
+         for index, timing in enumerate(tlist):
+             md = copy.deepcopy(timing.mdata[rind])
+             for event in md:
+                 # nbased should be 0 or 1
+                 event.append(index+nbased)
+             # now events are: [time, [amp mods], dur, class_index]
+             runevents.extend(md)
+
+         runevents.sort() # sort by times, which are the first elements
+         allruns.append(runevents)
+
+      return allruns
 
    def multi_timing_to_event_list(self, fname='stdout', style='index'):
       """convert multi-stim_times to 1..N sorted event list

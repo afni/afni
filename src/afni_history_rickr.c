@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -multi_durations_from_offsets",
+   "Added on the authority of W-L Tseng."
+ } ,
+
  { 16, Jul, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "unindent EOF command terminator in example",
    "Thanks to I Berteletti for noting the problem."
