@@ -460,6 +460,23 @@ examples: ~1~
 
       Consider "-show_events" to view event list.
 
+   Example 20.  set event durations based on next events ~2~
+
+      Suppose one has timing files for conditions Pre, BPress and Post,
+      and one wants to set the duration for each Pre condition based on
+      whatever comes next (usually a BPress, but if that does not happen,
+      Post is the limit).
+
+      Suppose the inputs are 3 timing files stim.Pre.txt, stim.BPress.txt and 
+      stim.Post.txt, and we want to create stim.Pre_DM.txt to be the same as
+      stim.Pre.txt, but with that variable duration attached.  Then use the
+      -multi_durations_from_offsets option as follows, providing the old
+      label (file name) and the new file name for the class to change.
+
+         timing_tool.py                                                 \\
+            -multi_timing stim.Pre.txt stim.BPress.txt stim.Post.txt    \\
+            -multi_durations_from_offsets stim.Pre.txt stim.Pre_DM.txt
+
 --------------------------------------------------------------------------
 Notes: ~1~
 
@@ -662,6 +679,11 @@ action options (apply to single timing element, only): ~1~
 
             Consider '-write_timing' and '-show_duration_stats'.
             Consider example 16.
+
+        Update: this method (while still available) can be applied via the
+                newer -multi_durations_from_offsets option.
+
+        See also, -multi_durations_from_offsets.
 
    -add_rows NEW_FILE           : append these timing rows to main element ~2~
 
@@ -959,6 +981,33 @@ action options (apply to single timing element, only): ~1~
 
 ------------------------------------------
 action options (apply to multi timing elements, only): ~1~
+
+   -multi_durations_from_offsets OLD NEW : set durations from next events ~2~
+
+        e.g. -multi_durations_from_offsets stim.Pre.txt stim.Pre_DM.txt
+
+        Given a set of timing files input via -multi_timing, set the durations
+        for the events in one file to be based on when the next even happens.
+        For example, the 'Pre' condition could be ended at the next button
+        press event (or any other event that follows).
+
+        Specify the OLD input to modify and the name of the NEW timing file to
+        write.
+
+        NEW will be the same as OLD, except for each event duration.
+
+        This option is similar to -apply_end_times_as_durations, except That
+        -apply_end_times_as_durations requires 2 inputs to be exactly matched,
+        one event following the other.  The newer -multi_durations_from_offsets
+        option allows for any follower event, and makes the older option
+        unnecessary.
+
+        If the condition to modify comes as the last event in a run, the
+        program will whine and set that duration to 0.
+
+           Consider example 20.
+
+        See also -apply_end_times_as_durations.
 
    -multi_timing_to_events FILE : create event list from stimulus timing ~2~
 
@@ -1416,9 +1465,10 @@ g_history = """
         - dur stats: show file/condition with stats
         - match output between python2 and python3
    3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
+   3.14 Jul 22, 2021 - added -multi_durations_from_offsets
 """
 
-g_version = "timing_tool.py version 3.13, December 26, 2019"
+g_version = "timing_tool.py version 3.14, July 22, 2021"
 
 
 
