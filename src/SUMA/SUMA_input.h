@@ -211,6 +211,8 @@ static Bool resetClippingPlanes=0;
 static float  scrollInc = 1.0;
 static float  tiltInc = 1.0;
 static Boolean justEnteredClippingPlaneMode;
+static float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
+static float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
 
 void writeClippingPlanes (char *s, void *data);
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
@@ -254,6 +256,8 @@ Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta
     int planeIndex, float *deltaTheta, float *deltaPhi);
 Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD);
 Boolean getEquationForClippingPlane(NI_element *nel, char attribute[16], float equation[4]);
+Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *parameters);
+Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, float *phi, float *offset);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke

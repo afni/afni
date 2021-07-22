@@ -83,6 +83,11 @@ Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float
     } else {
         *theta = atan(equation[1]/equation[2])*rad2degrees;
         *phi = atan(equation[0]/equation[2])*rad2degrees;
+
+        if (equation[2] < 0){
+            *theta = 180.0 - *theta;
+            *phi = 180.0 - *phi;
+        }
     }
 
     return 1;
@@ -91,6 +96,23 @@ Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float
 Boolean determineDeltaDFromExistingDAndRequiredD(float requiredD, int planeIndex, float *deltaD){
 
     *deltaD = requiredD - SUMAg_CF->ClipPlanes[4*planeIndex + 3];
+
+    return 1;
+}
+
+Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, float *phi, float *offset){
+    float deltaTheta, deltaPhi, deltaD;
+    int     i;
+
+    // Determine additional rotations from required and existing rotations
+    determineAdditionalRotationsFromRequiredAndExistingRotations(theta[planeIndex], phi[planeIndex],
+        planeIndex, &deltaTheta, &deltaPhi);
+
+    // Determine delta D from existing D and required D
+    determineDeltaDFromExistingDAndRequiredD(offset[planeIndex], planeIndex, &deltaD);
+
+    // Apply rotations and delta Ds
+    clipPlaneTransform(deltaTheta, deltaPhi, deltaD, 0, planeIndex, 0, 0);
 
     return 1;
 }
@@ -109,9 +131,6 @@ Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
     // Determine delta D from existing D and required D
     determineDeltaDFromExistingDAndRequiredD(equation[3], planeIndex, &deltaD);
 
-    fprintf(stderr, "Required D = %f\n", equation[3]);
-    fprintf(stderr, "Delta D = %f\n", deltaD);
-
     // Apply rotations and delta Ds
     clipPlaneTransform(deltaTheta, deltaPhi, deltaD, 0, planeIndex, 0, 0);
 
@@ -122,10 +141,11 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
     int feyl, selectedPlane, planeIndex, i;
     Boolean isActive;
     float   equation[4], floatBuf[4];
-    char    attribute[16];
+    char    attribute[32];
     NI_stream nstdin;
     NI_element *nel = NULL;
     char *strbuf;
+    float   theta[SUMA_MAX_N_CLIP_PLANES], phi[SUMA_MAX_N_CLIP_PLANES], offset[SUMA_MAX_N_CLIP_PLANES];
 
     // Make sure correct form of filename supplied
     if (!clippingPlaneFile){
@@ -138,10 +158,11 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
     }
 
     // Allocate memory to filename buffer
-    if (!(strbuf=(char *)malloc(strlen(clippingPlaneFile)*sizeof(char)))){
+    if (!(strbuf=(char *)malloc((strlen(clippingPlaneFile) + 8)*sizeof(char)))){
         fprintf(stderr, "Error allocating memory to clipping plane file string\n");
         return 0;
     }
+
 
     // Open NIML stream
     sprintf(strbuf, "file:%s", clippingPlaneFile);
@@ -183,20 +204,42 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
           }
     }
 
+    // Apply equation parameters to active clipping planes
+    getClippingEquationParameters(nel, "x_axis_rotations", theta);
+    getClippingEquationParameters(nel, "y_axis_rotations", phi);
+    getClippingEquationParameters(nel, "normal_offsets", offset);
+
     for (planeIndex=0; planeIndex<6; ++planeIndex)
         if (previouslyActive[planeIndex]){
-        sprintf(attribute, "plane_%d_eq", planeIndex+1);
-        if (getEquationForClippingPlane(nel, attribute, equation)){
-            applyEquationToClippingPlane(equation, planeIndex);
-        }
+            applyEquationParametersToClippingPlane(planeIndex, theta, phi, offset);
     }
 
     NI_stream_close(nstdin);
     NI_free_element(nel); nel = NULL;
+
+    fprintf(stderr, "End of loadSavedClippingPlanes\n");
     return 1;
 }
 
-Boolean getEquationForClippingPlane(NI_element *nel, char attribute[16], float equation[4]){
+Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *parameters){
+    char *strbuffer;
+    int feyl, i;
+
+    SUMA_getStringFromNiml(nel, attribute, strbuffer, 1, feyl);
+    fprintf(stderr, "strbuffer = %s\n", strbuffer);
+      if (!feyl) {
+        parameters[0] = atof(strtok(strbuffer, ","));
+        for (i=1; i<SUMA_MAX_N_CLIP_PLANES; ++i){
+            parameters[i] = atof(strtok(NULL, ","));
+        }
+
+        return 1;
+      }
+
+      return 0;
+}
+
+Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float equation[4]){
     char *strbuf, *eqnBuffer;
     int feyl, i;
 
@@ -1256,6 +1299,10 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         drawClipPlane(A, B, C, D, w, sv, isv);
 #endif
     }
+
+    // Record rotation angles
+    clippingPlaneTheta[planeIndex] = planeTheta[planeIndex];
+    clippingPlanePhi[planeIndex] = planePhi[planeIndex];
 
     // Activate/update clip plane
     sprintf(chrTmp, "%s: %.4f,%.4f,%.4f,%.4f", SUMAg_CF->ClipPlanesLabels[planeIndex], planeA[planeIndex], planeB[planeIndex],
@@ -14801,7 +14848,7 @@ void SUMA_JumpXYZ (char *s, void *data)
 void writeClippingPlanes (char *s, void *data){
     SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
     FILE *outFile;
-    int     i, j, parameterInc=0;
+    int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
 
      fprintf(stderr, "s = %s\n", s);
 
@@ -14819,13 +14866,24 @@ void writeClippingPlanes (char *s, void *data){
      fprintf(outFile, "# sel_plane_num  = \"%d\"\n", selectedPlane);
      fprintf(outFile, "# tilt_inc  = \"%f\"\n", tiltInc);
      fprintf(outFile, "# scroll_inc  = \"%f\"\n", scrollInc);
+     fprintf(outFile, "# x_axis_rotations  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", clippingPlaneTheta[i], (i<lastPlane)? "," : "\"\n");
+     fprintf(outFile, "# y_axis_rotations  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", clippingPlanePhi[i], (i<lastPlane)? "," : "\"\n");
+     fprintf(outFile, "# normal_offsets  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", SUMAg_CF->ClipPlanes[i*4 +3], (i<lastPlane)? "," : "\"\n");
 
      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
      {
         fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[i]);
+        /*
         fprintf(outFile, "# plane_%d_eq   = \"", i+1);
         for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
         fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);
+        */
      }
 
     // Write closing tag
