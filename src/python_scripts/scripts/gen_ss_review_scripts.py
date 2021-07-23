@@ -251,6 +251,8 @@ def update_field_help():
    add_field_help('final anatomy dset', 'copy of anat aligned with EPI results')
    add_field_help('final stats dset',
       'stats dataset output from linear regression')
+   add_field_help('orig voxel counts', 'num voxels (i,j,k) of EPI input')
+   add_field_help('orig voxel resolution', 'voxel grid size of EPI input')
    add_field_help('final voxel resolution', 'voxel grid size of EPI results')
 
    add_field_help('motion limit','limit for enorm/motion censoring, if applied')
@@ -909,9 +911,11 @@ g_history = """
    1.17 Jul 18, 2019: accept multi-echo data in find_tcat
    1.18 Nov  1, 2019: track mask_anat_templ_corr_dset
    1.19 Dec 31, 2019: do not require out_limit (if unset, no uvar)
+   1.20 Jul 23, 2021: added to basic script:
+                      'orig voxel resolution', 'orig voxel counts'
 """
 
-g_version = "gen_ss_review_scripts.py version 1.19, December 31, 2019"
+g_version = "gen_ss_review_scripts.py version 1.20, July 23, 2021"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2673,6 +2677,14 @@ class MyInterface:
             and self.uvars.val('num_stim') == 0:
          sstr += 'echo "final errts dset          : $errts_dset"\n'
          if resvar == '': resvar = '$errts_dset'
+
+      if self.uvars.is_not_empty('tcat_dset'):
+         vcount_opts = '-ni -nj -nk'
+         sstr += \
+           'if ( -f $tcat_dset ) then\n'                                      \
+           '   echo "orig voxel counts         : `3dinfo %s $tcat_dset`"\n'   \
+           '   echo "orig voxel resolution     : `3dinfo -ad3 $tcat_dset`"\n' \
+           'endif\n'% vcount_opts
 
       if resvar != '': 
          sstr += 'echo "final voxel resolution    : `3dinfo -ad3 %s`"\n'%resvar
