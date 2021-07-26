@@ -8,6 +8,7 @@
 
 int print_classic_label2index(THD_3dim_dataset * dset, char * labelname);
 int print_classic_info       (THD_3dim_dataset * dset, char * dname, int verb);
+int validate_field_struct(int verb);
 
 int Syntax(TFORM targ, int detail)
 {
@@ -340,7 +341,8 @@ typedef enum {
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
    {"exten"}, {"smode"},
-   {"atlas?"}, {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"},
+   {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
+   {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
    {"Ni_Nj_Nk_Nv"},
@@ -711,6 +713,9 @@ int main( int argc , char *argv[] )
    }
 
    if (sing[iis] == CLASSIC) PRINT_VERSION("3dinfo") ;
+
+   /* be sure field struct matches enum     [26 Jul 2021 rickr] */
+   validate_field_struct(verbose);
 
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
@@ -1320,6 +1325,44 @@ int main( int argc , char *argv[] )
    if( classic_labelName ) free(classic_labelName);
 
    exit(0) ;
+}
+
+/* validate Field_Names against INFO_FIELDS enum    [26 Jul 2021 rickr] */
+int validate_field_struct(int verb)
+{
+   INFO_FIELDS   nfields = N_FIELDS;
+   int           nfcount=-1, nfsize=-1, mismatch;
+
+   ENTRY("validate_field_struct");
+
+   if( verb < 0 )
+      RETURN(0);
+
+   /* compute nf by size, given that these are 32 char strings */
+   /* (subtract 1 for the final empty string)                  */
+   nfsize = (int)(sizeof(Field_Names)/sizeof(char[32])) - 1;
+
+
+   for( nfcount = 0; Field_Names[nfcount][0]; nfcount++ )
+      ;
+
+   /* note mismatch before continuing */
+   mismatch = nfields != nfcount || nfields != nfsize;
+
+   /* possibly be verbose */
+   if ( verb > 0 || mismatch ) {
+      printf("++ checking INFO_FIELDS against Field_Names\n");
+      printf("   N_FIELDS     = %d\n", nfields);
+      printf("   nfcount      = %d\n", nfcount);
+      printf("   nfsize       = %d\n", nfsize);
+   }
+
+   if( mismatch ) {
+      fprintf(stderr,"** warning: INFO_FIELDS/Field_Names mismatch\n");
+      RETURN(1);
+   }
+
+   RETURN(0);
 }
 
 /* try to print the index of the specified label */
