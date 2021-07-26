@@ -322,7 +322,7 @@ typedef enum {
    DI, DJ, DK, D3,
    OI, OJ, OK, O3,
    ADI, ADJ, ADK, AD3,
-   CX, CY, CZ, C3,
+   DCX, DCY, DCZ, DC3,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
    SLICE_TIMING,
    FAC, DATUM, LABEL,
@@ -347,7 +347,7 @@ char Field_Names[][32]={
    {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
    {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
    {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
-   {"Cx"}, {"Cy"}, {"Cz"}, {"Cx_Cy_Cz"},
+   {"DCx"}, {"DCy"}, {"DCz"}, {"DCx_DCy_DCz"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"},
    {"slice_timing"},
    {"factor"}, {"datum"}, {"label"},
@@ -591,16 +591,16 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = ADJ;
          sing[N_sing++] = ADK; iarg++;
          continue;
-      } else if( strcasecmp(argv[iarg],"-cx") == 0) {
-         sing[N_sing++] = CX; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-cy") == 0) {
-         sing[N_sing++] = CY; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-cz") == 0) {
-         sing[N_sing++] = CZ; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-center") == 0) {
-         sing[N_sing++] = CX;
-         sing[N_sing++] = CY;
-         sing[N_sing++] = CZ; iarg++;
+      } else if( strcasecmp(argv[iarg],"-dcx") == 0) {
+         sing[N_sing++] = DCX; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dcy") == 0) {
+         sing[N_sing++] = DCY; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dcz") == 0) {
+         sing[N_sing++] = DCZ; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dicom_center") == 0) {
+         sing[N_sing++] = DCX;
+         sing[N_sing++] = DCY;
+         sing[N_sing++] = DCZ; iarg++;
          continue;
       } else if( strcasecmp(argv[iarg],"-voxvol") == 0) {
          sing[N_sing++] = VOXVOL; iarg++; continue;
@@ -1079,17 +1079,17 @@ int main( int argc , char *argv[] )
          case ADI:
             fprintf(stdout,"%f", fabs(DSET_DX(dset)));
             break;
-         case CX:
+         case DCX:
             /* modular but inefficient, get C? each time */
             fv = THD_dataset_center(dset);
             fprintf(stdout,"%f", fv.xyz[0]);
             break;
-         case CY:
+         case DCY:
             /* modular but inefficient, get C? each time */
             fv = THD_dataset_center(dset);
             fprintf(stdout,"%f", fv.xyz[1]);
             break;
-         case CZ:
+         case DCZ:
             /* modular but inefficient, get C? each time */
             fv = THD_dataset_center(dset);
             fprintf(stdout,"%f", fv.xyz[2]);
