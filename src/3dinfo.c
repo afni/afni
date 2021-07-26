@@ -8,6 +8,7 @@
 
 int print_classic_label2index(THD_3dim_dataset * dset, char * labelname);
 int print_classic_info       (THD_3dim_dataset * dset, char * dname, int verb);
+int validate_field_struct(int verb);
 
 int Syntax(TFORM targ, int detail)
 {
@@ -106,6 +107,10 @@ int Syntax(TFORM targ, int detail)
 "   -oj: Volume origin along the j direction\n"
 "   -ok: Volume origin along the k direction\n"
 "   -o3: same as -oi -oj -ok\n"
+"   -dcx: volumetric center in x direction (DICOM coordinates)\n"
+"   -dcy: volumetric center in y direction (DICOM coordinates)\n"
+"   -dcz: volumetric center in z direction (DICOM coordinates)\n"
+"   -dc3: same as -dcx -dcy -dcz\n"
 "   -tr: The TR value in seconds.\n"
 "   -dmin: The dataset's minimum value, scaled by fac\n"
 "   -dmax: The dataset's maximum value, scaled by fac\n"
@@ -322,6 +327,7 @@ typedef enum {
    DI, DJ, DK, D3,
    OI, OJ, OK, O3,
    ADI, ADJ, ADK, AD3,
+   DCX, DCY, DCZ, DC3,
    LTABLE, LTABLE_AS_ATLAS_POINT_LIST, ATLAS_POINTS,
    SLICE_TIMING,
    FAC, DATUM, LABEL,
@@ -339,13 +345,17 @@ typedef enum {
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
    {"exten"}, {"smode"},
-   {"atlas?"}, {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"},
+   {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
+   {"aformr"}, {"aformr_line"}, {"aformr_refit"},
+   {"aformr_orth?"}, {"aform_orth"}, {"perm2ori"},
+   {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
    {"Ni_Nj_Nk_Nv"},
    {"Di"}, {"Dj"}, {"Dk"}, {"Di_Dj_Dk"},
    {"Oi"}, {"Oj"}, {"Ok"}, {"Oi_Oj_Ok"},
    {"ADi"}, {"ADj"}, {"ADk"}, {"ADi_ADj_ADk"},
+   {"DCx"}, {"DCy"}, {"DCz"}, {"DCx_DCy_DCz"},
    {"label_table"}, {"LT_as_atlas_point_list"}, {"atlas_point_list"},
    {"slice_timing"},
    {"factor"}, {"datum"}, {"label"},
@@ -403,6 +413,7 @@ int main( int argc , char *argv[] )
    int classic_niml_hdr = 0;    /* classic: show niml header */
    int classic_subb_info = 0;   /* classic: show sub-brick info */
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
+   THD_fvec3 fv = {{-666.0, -666.0, -666.0}};
    char *tempstr = NULL;
    int extinit = 0;
    float RL_AP_IS[6];
@@ -588,6 +599,17 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = ADJ;
          sing[N_sing++] = ADK; iarg++;
          continue;
+      } else if( strcasecmp(argv[iarg],"-dcx") == 0) {
+         sing[N_sing++] = DCX; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dcy") == 0) {
+         sing[N_sing++] = DCY; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dcz") == 0) {
+         sing[N_sing++] = DCZ; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dc3") == 0) {
+         sing[N_sing++] = DCX;
+         sing[N_sing++] = DCY;
+         sing[N_sing++] = DCZ; iarg++;
+         continue;
       } else if( strcasecmp(argv[iarg],"-voxvol") == 0) {
          sing[N_sing++] = VOXVOL; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-iname") == 0) {
@@ -697,6 +719,9 @@ int main( int argc , char *argv[] )
    }
 
    if (sing[iis] == CLASSIC) PRINT_VERSION("3dinfo") ;
+
+   /* be sure field struct matches enum     [26 Jul 2021 rickr] */
+   (void)validate_field_struct(verbose);
 
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
@@ -1065,6 +1090,21 @@ int main( int argc , char *argv[] )
          case ADI:
             fprintf(stdout,"%f", fabs(DSET_DX(dset)));
             break;
+         case DCX:
+            /* modular but inefficient, get C? each time */
+            fv = THD_dataset_center(dset);
+            fprintf(stdout,"%f", fv.xyz[0]);
+            break;
+         case DCY:
+            /* modular but inefficient, get C? each time */
+            fv = THD_dataset_center(dset);
+            fprintf(stdout,"%f", fv.xyz[1]);
+            break;
+         case DCZ:
+            /* modular but inefficient, get C? each time */
+            fv = THD_dataset_center(dset);
+            fprintf(stdout,"%f", fv.xyz[2]);
+            break;
          case EXTENT_R:
          case EXTENT_L:
          case EXTENT_A:
@@ -1291,6 +1331,45 @@ int main( int argc , char *argv[] )
    if( classic_labelName ) free(classic_labelName);
 
    exit(0) ;
+}
+
+/* validate Field_Names against INFO_FIELDS enum    [26 Jul 2021 rickr] */
+int validate_field_struct(int verb)
+{
+   INFO_FIELDS   nfields = N_FIELDS;
+   int           nfcount=-1, nfsize=-1, mismatch;
+
+   ENTRY("validate_field_struct");
+
+   /* only validate and warn in verbose mode, which defaults to -1 */
+   if( verb < 0 )
+      RETURN(0);
+
+   /* compute nf by size, given that these are 32 char strings */
+   /* (subtract 1 for the final empty string)                  */
+   nfsize = (int)(sizeof(Field_Names)/sizeof(char[32])) - 1;
+
+
+   for( nfcount = 0; Field_Names[nfcount][0]; nfcount++ )
+      ;
+
+   /* note mismatch before continuing */
+   mismatch = nfields != nfcount || nfields != nfsize;
+
+   /* possibly be verbose */
+   if ( verb > 0 || mismatch ) {
+      printf("++ checking INFO_FIELDS against Field_Names\n");
+      printf("   N_FIELDS     = %d\n", nfields);
+      printf("   nfcount      = %d\n", nfcount);
+      printf("   nfsize       = %d\n", nfsize);
+   }
+
+   if( mismatch ) {
+      fprintf(stderr,"** warning: INFO_FIELDS/Field_Names mismatch\n");
+      RETURN(1);
+   }
+
+   RETURN(0);
 }
 
 /* try to print the index of the specified label */

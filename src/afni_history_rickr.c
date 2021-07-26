@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add options -dcx, -dcy, -dcz, dc3",
+   "This provides the center of the volumetric grid, in DICOM coords."
+ } ,
+
  { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -multi_durations_from_offsets",
    "Added on the authority of W-L Tseng."
