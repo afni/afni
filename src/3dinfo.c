@@ -107,6 +107,10 @@ int Syntax(TFORM targ, int detail)
 "   -oj: Volume origin along the j direction\n"
 "   -ok: Volume origin along the k direction\n"
 "   -o3: same as -oi -oj -ok\n"
+"   -dcx: volumetric center in x direction (DICOM coordinates)\n"
+"   -dcy: volumetric center in y direction (DICOM coordinates)\n"
+"   -dcz: volumetric center in z direction (DICOM coordinates)\n"
+"   -dc3: same as -dcx -dcy -dcz\n"
 "   -tr: The TR value in seconds.\n"
 "   -dmin: The dataset's minimum value, scaled by fac\n"
 "   -dmax: The dataset's maximum value, scaled by fac\n"
@@ -342,6 +346,8 @@ char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
    {"exten"}, {"smode"},
    {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
+   {"aformr"}, {"aformr_line"}, {"aformr_refit"},
+   {"aformr_orth?"}, {"aform_orth"}, {"perm2ori"},
    {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
@@ -599,7 +605,7 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = DCY; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-dcz") == 0) {
          sing[N_sing++] = DCZ; iarg++; continue;
-      } else if( strcasecmp(argv[iarg],"-dicom_center") == 0) {
+      } else if( strcasecmp(argv[iarg],"-dc3") == 0) {
          sing[N_sing++] = DCX;
          sing[N_sing++] = DCY;
          sing[N_sing++] = DCZ; iarg++;
