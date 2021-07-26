@@ -721,7 +721,7 @@ int main( int argc , char *argv[] )
    if (sing[iis] == CLASSIC) PRINT_VERSION("3dinfo") ;
 
    /* be sure field struct matches enum     [26 Jul 2021 rickr] */
-   validate_field_struct(verbose);
+   (void)validate_field_struct(verbose);
 
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
@@ -1341,6 +1341,7 @@ int validate_field_struct(int verb)
 
    ENTRY("validate_field_struct");
 
+   /* only validate and warn in verbose mode, which defaults to -1 */
    if( verb < 0 )
       RETURN(0);
 
