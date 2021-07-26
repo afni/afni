@@ -8008,6 +8008,7 @@ afni_history_struct rwcox_history[] = {
 
   { 16,JAN,2001, RWC, "AFNI-general", SUPERDUPER, TYPE_GENERAL, "Older History stuff",
    "  ===========================================================\n"
+   " == This was the day I (RWC) started working at the NIH! :) ==\n"
    " == All changes from this date onwards were made at the NIH ==\n"
    "  ===========================================================\n"
    },

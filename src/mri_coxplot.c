@@ -5,8 +5,10 @@
 
 /*--------------------------------------------------------------------------
   Routines to render a memplot into an MRI_rgb image.
-  The assumption is that the plot is over the region [0,1]x[0,1],
-  which is rendered into the image [0..nx-1]x[0..ny-1].
+  The assumption is that the plot is over the "object" region [0,1]x[0,1],
+  which is rendered into the actual image [0..nx-1]x[0..ny-1].
+  The actual rendering is done by functions in mri_drawing.c,
+  which were lifted from the PPM library, with some light edits.
 ----------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
@@ -35,7 +37,8 @@ void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Actually do the rendering of a memplot into an RGB image.
+/*! Actually do the rendering of a memplot into an existing RGB image.
+  - That is, we are drawing on top of whatever is there already.
   - Plotting will start with line #start and go to #end-1.
   - If end <= start, will do from #start to the last one in the plot.
   - To do all lines, set start=end=0.
@@ -123,7 +126,7 @@ ININFO_message("Changing color to %f->%d %f->%d %f->%d\n",rr,(int)rrr,gg,(int)gg
 
       new_thick = MEMPLOT_TH(mp,ii) ;
       if( new_thick < 0.0 ){               /* special negative thickness codes */
-         int thc = (int)(-new_thick) ;
+         int thc = (int)(-new_thick) ;     /* mean special drawing actions */
          switch( thc ){
             case THCODE_FRECT:
             case THCODE_RECT:{        /* rectangle */
@@ -180,7 +183,7 @@ ININFO_message("set thick %f",sthick) ;
 
       }
 
-      /* scale coords to ints (also see zzphph.f) */
+      /* scale line endpoint coords to ints (also see zzphph.f) */
 
       if( !skip ){
         float a1 = MEMPLOT_X1(mp,ii) ;
@@ -188,6 +191,7 @@ ININFO_message("set thick %f",sthick) ;
         float b1 = (1.0f - MEMPLOT_Y1(mp,ii)) ;
         float b2 = (1.0f - MEMPLOT_Y2(mp,ii)) ;
 
+        /* scale from objective coords to pixels */
         x1 = (int)( xoff + xscal * a1 ) ; x2 = (int)( xoff + xscal * a2 ) ;
         y1 = (int)( yoff + yscal * b1 ) ; y2 = (int)( yoff + yscal * b2 ) ;
 
@@ -197,15 +201,23 @@ ININFO_message("drawline x1=%d y1=%d  x2=%d y2=%d rrr=%d ggg=%d bbb=%d",x1,y1,x2
 #endif
         mri_drawline( im , x1,y1 , x2,y2 , rrr,ggg,bbb ) ;
 
+        /* the following code "cheats" to draw thick lines,
+           by drawing multiple 1-pixel lines around the central line */
+
         if( do_thick && sthick >= 1.0f && (x1 != x2 || y1 != y2) ){  /* 06 Dec 2007 */
           float da=a2-a1 , db=b2-b1 , dl=new_thick/sqrtf(da*da+db*db) ;
           float c1,c2 , d1,d2 ;
-          int jj , ss=(int)(3.5f*sthick) ;
+          int jj , ss=(int)(4.44f*sthick+0.444f) ; /* ss = num parallel lines */
+
+          /* spacing for the parallel lines (in objective space) */
 
           dl /= (2*ss) ; da *= dl ; db *= dl ; ss = MAX(ss,2) ;
 #if 1
+          /* this code draws filled circles at the endpoints, to
+             minimize possible gaps where thick lines meet at a sharp corner */
+
           if( sthick >= 2.0f && sthick == sthick_old ){  /* 01 May 2012 */
-            int rad = (int)(0.505f*sthick+0.001f) ;
+            int rad = (int)(0.505f*sthick+0.444f) ;
             if( x1 == x2_old && y1 == y2_old ){
               mri_drawcircle( im , x1,y1 , rad, rrr,ggg,bbb , 1 ) ;
             }
@@ -215,10 +227,11 @@ ININFO_message("drawline x1=%d y1=%d  x2=%d y2=%d rrr=%d ggg=%d bbb=%d",x1,y1,x2
           }
           x1_old = x1; x2_old = x2; y1_old = y1; y2_old = y2; sthick_old = sthick;
 #endif
-          for( jj=-ss ; jj <= ss ; jj++ ){
-            if( jj == 0 ) continue ;
-            c1 = a1 + jj*db ; c2 = a2 + jj*db ;
-            d1 = b1 - jj*da ; d2 = b2 - jj*da ;
+          for( jj=-ss ; jj <= ss ; jj++ ){  /* multiple parallel line segments: */
+            if( jj == 0 ) continue ;        /* cheap, but it works, so there!! */
+            c1 = a1 + jj*db ; c2 = a2 + jj*db ;  /* offsets in x direction */
+            d1 = b1 - jj*da ; d2 = b2 - jj*da ;  /* offsets in y direction */
+            /* scale from objective coords to pixels */
             x1 = (int)( xoff + xscal * c1 ) ; x2 = (int)( xoff + xscal * c2 ) ;
             y1 = (int)( yoff + yscal * d1 ) ; y2 = (int)( yoff + yscal * d2 ) ;
             mri_drawline( im , x1,y1 , x2,y2 , rrr,ggg,bbb ) ;
@@ -244,9 +257,13 @@ ININFO_message("----- EXIT -----") ;
 # undef  BIr
 # undef  BIg
 # undef  BIb
-# define BIr(i,j) ((unsigned int)bin [3*((i)+(j)*nxin )+0])
-# define BIg(i,j) ((unsigned int)bin [3*((i)+(j)*nxin )+1])
-# define BIb(i,j) ((unsigned int)bin [3*((i)+(j)*nxin )+2])
+# define BIr(i,j) ((unsigned int)bin[3*((i)+(j)*nxin)+0])
+# define BIg(i,j) ((unsigned int)bin[3*((i)+(j)*nxin)+1])
+# define BIb(i,j) ((unsigned int)bin[3*((i)+(j)*nxin)+2])
+
+/* this func is used to scale down RGB image size
+   by factor of 2, which in turn is used to anti-alias the line drawing;
+   the algorithm used is simple averaging over each output pixel's 2x2 region */
 
 MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
 {
@@ -262,8 +279,8 @@ MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
    bout  = MRI_RGB_PTR(imout) ;
    bin   = MRI_RGB_PTR(imin) ;
 
-   for( jj=0 ; jj < nyout ; jj++ ){
-     j2 = 2*jj ;
+   for( jj=0 ; jj < nyout ; jj++ ){  /* loop over output pixels */
+     j2 = 2*jj ;                     /* input pixel index = double output index */
      for( ii=0 ; ii < nxout ; ii++ ){
        i2 = 2*ii ;
        val = BIr(i2,j2)+BIr(i2+1,j2)+BIr(i2,j2+1)+BIr(i2+1,j2+1)+1; BOr(ii,jj) = (byte)(val >> 2);
@@ -284,8 +301,10 @@ MRI_IMAGE * mri_downsize_by2( MRI_IMAGE *imin )
 
 /*-----------------------------------------------------------------------*/
 
-#undef  IMSIZ
-#define IMSIZ 1024
+#undef  IMSIZ_DEF
+#define IMSIZ_DEF 1024
+#undef  IMSIZ_MAX
+#define IMSIZ_MAX 8192
 
 static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
@@ -295,28 +314,39 @@ static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
 
    if( mp == NULL || MEMPLOT_NLINE(mp) < 1 ) return NULL ;
 
-   imsiz = (int)AFNI_numenv("AFNI_1DPLOT_IMSIZE") ;
-   if( imsiz < 100 || imsiz > 9999 ) imsiz = IMSIZ ;
+   /* set image dimensions */
+
+   imsiz = (int)AFNI_numenv("AFNI_1DPLOT_IMSIZE") ;  /* might be 0 */
+        if( imsiz <       128 ) imsiz = IMSIZ_DEF ;
+   else if( imsiz > IMSIZ_MAX ) imsiz = IMSIZ_MAX ;
 
    if( mp->aspect > 1.0f ){
      nx = imsiz ; ny = nx / mp->aspect ;
    } else {
      nx = imsiz * mp->aspect ; ny = imsiz ;
    }
+
+   /* for smaller output images, make image twice the size,
+      render lines into it, then scale down == anti-aliasing == looks better */
+
    if( imsiz <= 2048 ){ nx *=2 ; ny *=2 ; did_dup = 1 ; }
-   im = mri_new( nx , ny , MRI_rgb ) ;
-   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize */
+
+   im = mri_new( nx , ny , MRI_rgb ) ;            /* full of 0s = blacked out */
+   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize image */
    set_memplot_RGB_box(0,0,0,0) ;
-   do_thick = 1 ;
-   memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;
+   do_thick = 1 ;   /* allow thick lines */
+   memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;         /* the actual drawing! */
    do_thick = 0 ;
-   if( did_dup ){
+
+   if( did_dup ){                          /* scale image down to output size */
      MRI_IMAGE *qim = mri_downsize_by2(im) ; mri_free(im) ; im = qim ;
    }
+
    return im ;
 }
 
 /*-----------------------------------------------------------------------*/
+/* Functions to write memplot to image files */
 
 void memplot_to_jpg( char *fname , MEM_plotdata *mp )  /* 05 Dec 2007 */
 {

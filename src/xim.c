@@ -1049,6 +1049,10 @@ static XGCValues     cur_gcv ;
 
 void memplot_to_X11_set_DC( MCW_DC *dc ){ cur_dc = dc ; return ; }
 
+/* function to plot a coxplot MEM_plotdata struct (set of lines)
+   directly into an X11 window -- probably is not used anywhere?
+   -- OK, it actually IS used, via macro X11_SET_NEW_PLOT, in several codes */
+
 void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
                                int start , int end , int mask )
 {
