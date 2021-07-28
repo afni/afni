@@ -213,6 +213,7 @@ static float  tiltInc = 1.0;
 static Boolean justEnteredClippingPlaneMode;
 static float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
 static float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
+static Boolean activeClipPlanes = True;
 
 void writeClippingPlanes (char *s, void *data);
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
