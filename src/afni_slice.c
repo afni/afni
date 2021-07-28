@@ -2154,7 +2154,7 @@ STATUS("beginning NN outer loop") ;
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,
