@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Thanks to P Taylor for diagnosing the problem."
+ } ,
+
  { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "add options -dcx, -dcy, -dcz, dc3",
    "This provides the center of the volumetric grid, in DICOM coords."

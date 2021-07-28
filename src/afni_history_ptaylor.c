@@ -69,17 +69,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Copying Rick's fix. Thanks to user 'ymao' for raising this issue on the MB."
+ } ,
+
 { 9, July , 2021 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
    "New: '-aff_move_opt ..' to use more than just giant_move in aff step.",
    "Also bug fix for when no followers were entered.\n"
 },
 
-{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
    "Tweak column names *again*.",
    "Add in extra check that 3D vols are specified (e.g., with selectors).\n"
 },
 
-{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
    "Reformat report*.1D tables a bit: match key and col names.",
    "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
 },
