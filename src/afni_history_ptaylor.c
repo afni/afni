@@ -69,7 +69,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
+{ 29, July , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
+   "Add in @chauffeur_afni functionality:  -edgy_ulay.",
+   NULL
+},
+
+{ 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
    "Copying Rick's fix. Thanks to user 'ymao' for raising this issue on the MB."
  } ,
