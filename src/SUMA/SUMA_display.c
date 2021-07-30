@@ -1658,6 +1658,7 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
    NI_free_element(nel); nel = NULL;
    NI_stream_close(nstdin);
 
+   /* Will probably be deleted
    // Initiate clipping plane mode if required
    if (clippingPlaneMode){
     int isv, locallySelectedPlane = 0;
@@ -1667,6 +1668,7 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
     SUMA_GLXAREA_WIDGET2SV(w, csv, isv);
     toggleClippingPlaneMode(csv, w, &locallySelectedPlane);
    }
+   */
 
    SUMA_RETURNe;
 }
