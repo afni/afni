@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Thanks to P Taylor for diagnosing the problem."
+ } ,
+
+ { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add options -dcx, -dcy, -dcz, dc3",
+   "This provides the center of the volumetric grid, in DICOM coords."
+ } ,
+
  { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -multi_durations_from_offsets",
    "Added on the authority of W-L Tseng."
