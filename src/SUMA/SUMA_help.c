@@ -2273,6 +2273,16 @@ char * SUMA_help_message_Info(TFORM targ)
 " increment from its current value. The + key doubles the increment from "
 " its current value. The '=' key resets the increment to 1.0.\n\n"
 
+"The current clipping planes can be written out to a file by clicking "
+"the 'w' key in clipping plane mode.  A menu appears with the default "
+"output filename which is \"clippingPlane[current date and time].niml.vvs\".  "
+"The user can replace the default name with any name that ends in .niml.vvs."
+"  If the user subsequently adds the filename to a vvs file, along with the "
+"clippingPlaneFile key, and the vvs file is used as the argument of "
+"-com viewer_cont -load_view, the saved clipping planes are loaded when "
+"suma goes into clipping plane mode.  DriveSuma puts suma in clipping "
+"plane mode if 'Shift+Ctrl+C' is used as the argument to -key.\n\n"
+
 "Key+mouse behavior\n"
 "------------------\n\n"
 );
@@ -2331,6 +2341,10 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va (SS,
       "   %s: Reset the increment for rotation and scrolling.\n\n",
         SUMA_hkf("=", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Write clipping planes, and their environment \n",
+      "       variables, to file.\n\n",
+        SUMA_hkf("w", targ));
 
    /* Environment variables */
    if (targ == TXT) {

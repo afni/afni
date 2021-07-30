@@ -71,6 +71,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         // Load saved clipping planes is available
         if (clippingPlaneFile){
             loadSavedClippingPlanes(clippingPlaneFile);
+            sv->clippingPlaneIncrement = scrollInc;
         }
 
         // Turn on clipping planes and their colored squares
@@ -105,6 +106,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         }
     }
 
+    SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 }
 
@@ -234,7 +236,7 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
         fprintf(stderr, "Clipping plane file not supplied.\n");
         return 0;
     }
-    if (!strstr(clippingPlaneFile, ".niml.clip")){
+    if (!strstr(clippingPlaneFile, ".niml.vvs")){
         fprintf(stderr, "Invalid clipping plane file name.\n");
         return 0;
     }
@@ -299,7 +301,6 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
     NI_stream_close(nstdin);
     NI_free_element(nel); nel = NULL;
 
-    fprintf(stderr, "End of loadSavedClippingPlanes\n");
     return 1;
 }
 
@@ -6536,7 +6537,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                    perror("Error getting current working directory");
                    SUMA_RETURNe;
                }
-                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.clip",
+                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min);
                 sprintf(stmp, "%s", outputFileName);
