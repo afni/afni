@@ -2287,16 +2287,29 @@ char * SUMA_help_message_Info(TFORM targ)
 "------------------\n\n"
 );
    SS = SUMA_StringAppend_va (SS,
+      "   %s: Toggle Cartesian axes on/off.\n\n",
+        SUMA_hkf("a", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Toggle view of all active clipping planes on/off.\n\n",
+        SUMA_hkf("Shift+C", targ));
+   SS = SUMA_StringAppend_va (SS,
       "   %s: Toggles in and out of clipping plane mode.\n"
       "        A \"C\" will be visible in the viewer title \n"
       "        bar when this mode is active.\n\n",
       SUMA_hkf("Shift-Ctrl-C", targ));
-      /*
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Successively add new clipping planes which are\n"
-      "        active as they appear. (Initially, you might not see \n"
-      "        them; just their clipping effect).\n\n", SUMA_hkf("n", targ));
-      */
+      "   %s: Flip clipping direction of selected plane.\n\n",
+        SUMA_hkf("ctrl-f", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Scroll clipping plane inwards.\n\n",
+        SUMA_hkf("s", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Scroll clipping plane outwards.\n\n",
+        SUMA_hkf("Shift-S", targ));
+   SS = SUMA_StringAppend_va (SS,
+      "   %s: Write clipping planes, and their environment \n"
+      "        variables, to file.\n\n",
+        SUMA_hkf("w", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Toggle the clipping behavior of numbered plane on/off\n\n",
         SUMA_hkf("[a number]", targ));
@@ -2307,25 +2320,14 @@ char * SUMA_help_message_Info(TFORM targ)
       "       planes are added up to the specified number.\n\n",
         SUMA_hkf("alt/cmd/opt-[a number]", targ));
    SS = SUMA_StringAppend_va (SS,
+      "   %s: Reset all clipping planes.\n\n",
+      SUMA_hkf("0", targ));
+   SS = SUMA_StringAppend_va (SS,
       "   %s: Toggle all active clipping planes on or off.\n\n",
                SUMA_hkf("7", targ));
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Reset all clipping planes.\n\n", SUMA_hkf("0", targ));
-   SS = SUMA_StringAppend_va (SS,
-      "   %s: Flip clipping direction of selected plane.\n\n",
-        SUMA_hkf("ctrl-f", targ));
-   SS = SUMA_StringAppend_va (SS,
-      "   %s: Toggle view of all active clipping planes on/off.\n\n",
-        SUMA_hkf("Shift+C", targ));
-   SS = SUMA_StringAppend_va (SS,
       "   %s: Translate a clipping plane in space.\n\n",
         SUMA_hkf("Alt/Cmd/Opt+[scroll-wheel]", targ));
-   SS = SUMA_StringAppend_va (SS,
-      "   %s: Scroll clipping plane inwards.\n\n",
-        SUMA_hkf("s", targ));
-   SS = SUMA_StringAppend_va (SS,
-      "   %s: Scroll clipping plane outwards.\n\n",
-        SUMA_hkf("Shift-S", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Rotate clipping plane around x-axis.\n\n",
         SUMA_hkf("Alt/Cmd/Opt+[up-down arrow key]", targ));
@@ -2341,10 +2343,6 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va (SS,
       "   %s: Reset the increment for rotation and scrolling.\n\n",
         SUMA_hkf("=", targ));
-   SS = SUMA_StringAppend_va (SS,
-      "   %s: Write clipping planes, and their environment \n",
-      "       variables, to file.\n\n",
-        SUMA_hkf("w", targ));
 
    /* Environment variables */
    if (targ == TXT) {
