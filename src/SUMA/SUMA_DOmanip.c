@@ -657,22 +657,24 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                           begin to load surfaces interactively, not from
                           the initial startup */
             /* check to see if dov_id exists */
+
             if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
                                          cSV->RegistDO+cSV->N_DO,
-                                         dov_id) >= 0) { /* found, do nothing */
+                                         dov_id) >= 0) { // found, do nothing
                goto NEXT_CSV;
             }
-            /* Not yet registered so add it */
+
+            // Not yet registered so add it
             cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
             sid = iDO_idcode(dov_id);
             strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
             cSV->N_DO += 1;
 
-            /* Now add the ColorList, if DO is a surface object */
+            // Now add the ColorList, if DO is a surface object
             if (SUMA_isSO(SUMAg_DOv[dov_id])) {
                if (LocalHead)
                   fprintf (SUMA_STDERR,"%s: Adding color list...\n", FuncName);
-               /* add the ColorList */
+               // add the ColorList
                if (!SUMA_FillColorList (cSV,
                               (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
                   fprintf(SUMA_STDERR,
@@ -682,6 +684,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
             }
             SUMA_LHv("Back from SUMA_FillColorList. (%s/%d).\n",
                    cSV->ColList[0]->idcode_str, cSV->N_ColList);
+
             break;
          case GRAPH_LINK_type:
             {

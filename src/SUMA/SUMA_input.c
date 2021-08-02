@@ -742,8 +742,8 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     /* Change the defaults of Mesh axis to fit standard  */
     SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
 
-    /*turn off the viewing for the axis */
-    SO->ShowMeshAxis = clipPlaneIdentificationMode;
+    /* toggle the viewing for the cartesian axes */
+    // DEBUG SO->ShowMeshAxis = clipPlaneIdentificationMode;
 
     /* Create a Mesh Axis for the surface */
     SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
@@ -768,7 +768,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
     N_dov = SUMAg_N_DOv-1;
 
-     /* register DO with viewer */
+     // register DO with viewer
     if (!SUMA_RegisterDO(N_dov, sv)) {
        fprintf(SUMA_STDERR,
                 "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
@@ -837,6 +837,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
     }
 
     clippingPlaneIDDisplayableObjects[planeIndex] = SO;
+
     return SO;
 }
 
@@ -5943,10 +5944,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_a:
-            if (!SUMA_A_Key(sv, "a", "interactive")) {
-               SUMA_S_Err("Failed in key func.");
-            }
-            break;
+               if (clippingPlaneMode){
+                    clipIdentificationPlane[0]->ShowMeshAxis =
+                        !(clipIdentificationPlane[0]->ShowMeshAxis);
+                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+               } else if (!SUMA_A_Key(sv, "a", "interactive")) {
+                    SUMA_S_Err("Failed in key func.");
+               }
+                break;
 
          case XK_B:
                if (( Kev.state & ControlMask)){
