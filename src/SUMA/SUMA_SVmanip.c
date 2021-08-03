@@ -5183,10 +5183,11 @@ void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out)
 
    s = SUMA_Show_Clip_Planes_Info (cf);
 
-/**/    //Don't output number of planes or their equations
+/*    //Don't output number of planes or their equations
    if (!out) fprintf(SUMA_STDERR,"%s", s);
    else fprintf(out,"%s", s);
-/**/
+*/
+
    SUMA_free(s);
 
    SUMA_RETURNe;
@@ -5223,7 +5224,6 @@ char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf)
       s = SS->s; SUMA_free(SS); SS= NULL;
       SUMA_RETURN(s);
    }
-
 
    SS = SUMA_StringAppend_va(SS," Number of Clip Planes: %d\n", cf->N_ClipPlanes);
    for (i=0; i<cf->N_ClipPlanes; ++i) {
