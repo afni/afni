@@ -63,7 +63,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
             previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
             *locallySelectedPlane = 0;
-            SUMAg_CF->N_ClipPlanes = 6;
+            // SUMAg_CF->N_ClipPlanes = 6;
         } else if (!activeClipPlanes){  // Toggle plane 1 on
             clipPlaneTransform(0,0,0,0,0, 1, 0);
             previouslyActive[0] = active[0];
@@ -98,7 +98,6 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
 
         // Darken inactive clip planes
         darkenInactiveClipPlaneSquares(0);
-        // lightenActiveClipPlaneSquare(0);
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
@@ -506,12 +505,15 @@ void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
 
 void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     int i;
+
+        fprintf(stderr, "makeCommonNodesOfRectangleDarkYellow\n");
+
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR/2;
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR/2;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR/2;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR/2;
+    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
 }
 
 
@@ -568,11 +570,12 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
     SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = 1.0;
     SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = 1.0;
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = 1.0;
-    // SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[7] = 0.0;
 }
 
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
     int i;
+
+    fprintf(stderr, "makeCommonNodesOfRectangleYellow\n");
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -768,9 +771,11 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        /*
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
          SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
         }
+        */
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         colorPlanes(sv, SO,&PR);
@@ -1107,8 +1112,6 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     Widget w;
     int isv;
 
-    fprintf(stderr, "lightenActiveClipPlaneSquare\n");
-
     switch(planeIndex){
         case 0: makeCommonNodesOfRectangleRed(SO); break;
         case 1: makeCommonNodesOfRectangleGreen(SO); break;
@@ -1120,17 +1123,19 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
     // This block is necessary for the color changes to be applied to the square object
     {
-        SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
+        // SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
         SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
         SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
         SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        /**/
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
         fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
         return;
         }
+        /**/
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         colorPlanes(sv, SO,&PR);
@@ -1162,8 +1167,8 @@ void lightenActiveClipPlaneSquare(int planeIndex){
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-        fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-        return;
+            fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
+            return;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -1174,12 +1179,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 void darkenInactiveClipPlaneSquares(int activePlane){
     int p, i;
 
-    /*
-    fprintf(stderr, "darkenInactiveClipPlaneSquares\n");
-    fprintf(stderr, "activePlane = %d\n\n", activePlane);
-    */
     for (p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
-        // fprintf(stderr, "p=%d\n", p);
         darkenClipPlaneSquare(p);
     }
 
@@ -6694,11 +6694,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
                 if (SUMA_ALTHELL){    // Select clipping plane 5
                     clipPlaneTransform(0,0,0,0,4, 0, 0);
+                    lightenActiveClipPlaneSquare(4);
+                    darkenInactiveClipPlaneSquares(4);
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,4, 1, 0);
                     previouslyActive[4] = active[4];
-                    lightenActiveClipPlaneSquare(4);
-                    darkenInactiveClipPlaneSquares(4);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 4;
