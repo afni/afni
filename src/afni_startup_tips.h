@@ -1987,9 +1987,26 @@ static char *gby[] = {
     "Anything which can be used can be misused; anything which can be misused will be"               ,
     "It's hard to accept the truth when the lies were exactly what you wanted to hear"               ,
 
+    "\n"
+    " The problem with connections is that the right ones are necessary,\n"
+    "   but there are too many possible wrong ones out there.\n" 
+    "    Oh well, I guess that's what evolution and experience are for"                              , /* 30 Jul 2021 */
+
+    "\n"
+    " What I tell you three times is true:\n"
+    "   p < 0.05 is arbitrary and confusing;\n"
+    "     p < 0.05 is arbitrary and confusing;\n"
+    "       p < 0.05 is arbitrary and confusing!!\n"
+    "   Life can only be understood after it is Lived;\n"
+    "     Life can only be understood after it is Lived;\n"
+    "       Lived is it after understood be only can Life!!\n"
+    "   The brain is not a computer and it is not running software;\n"
+    "     The brain is not a computer and it is not running software;\n"
+    "       The brain is not a computer and it is not running software!"                             ,
+
     /**** Keep this one last ****/
 
-    "You are very lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
+    "You are VERY lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
 
 } ;
 

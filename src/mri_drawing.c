@@ -139,7 +139,7 @@ void ppmd_line( byte *pixels, int cols, int rows,
 
 	/* Check again for zero-length lines. */
 	if ( cx0 == cx1 && cy0 == cy1 ){ ASSPIX(pixels,cx0,cy0,r,g,b) ; return; }
-    } /* end of clip *e
+    } /* end of clip */
 
     /* Draw, using a simple DDA. */
 

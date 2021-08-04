@@ -38,7 +38,9 @@ int main( int argc , char *argv[] )
 
    float vthresh=0.0f ; /* 18 May 2010 */
 
-   intvec *lasso_ivec = NULL ;  /* 11 Mar 2011 */
+   intvec *lasso_ivec = NULL ;     /* 11 Mar 2011 */
+   int     lasso_invert_ivec=0 ;   /* 04 Aug 2021 */
+   int     lasso_zerobase_ivec=0 ; /* 04 Aug 2021 */
    float lasso_flam = 8.0f ;
 
    /*------------------ help the pitifully ignorant user? ------------------*/
@@ -358,20 +360,39 @@ int main( int argc , char *argv[] )
       "                 and see if that works well for you.\n"
       "              ++ Or you can use the Square Root LASSO option (next), which\n"
       "                 (in theory) does not need to know sigma when setting lam.\n"
+      "              ++ If you do not provide lam, or give a value of 0, then a\n"
+      "                 default value will be used.\n"
       "             * Optionally, you can supply a list of parameter indexes\n"
       "               (after 'lam') that should NOT be penalized in the\n"
       "               the fitting process (e.g., traditionally, the mean value\n"
       "               is not included in the L1 penalty.)  Indexes start at 1,\n"
       "               as in 'consign' (below).\n"
+      "              ++ If this un-penalized integer list has long stretches of\n"
+      "                 contiguous entries, you can specify ranges of integers,\n"
+      "                 as in '1:9' instead of '1 2 3 4 5 6 7 8 9'.\n"
+      "        **-->>++ If you want to supply the list of indexes that GET a\n"
+      "                 L1 penalty, instead of the list that does NOT, you can\n"
+      "                 put an 'X' character first, as in\n"
+      "                   -LASSO 0 X 12:41\n"
+      "                 to indicate that variables 12..41 (inclusive) get the\n"
+      "                 penalty applied, and the other variables do not. This\n"
+      "                 inversion might be more useful to you in some cases.\n"
+      "              ++ If you also want the indexes to have 1 added to them and\n"
+      "                 be inverted -- because they came from a 0-based program -- \n"
+      "                 then use 'X1', as in '-LASSO 0 X1 12:41'.\n"
+      "              ++ If you want the indexes to have 1 added to them but NOT\n"
+      "                 to be inverted, use 'Y1', as in '-LASSO 0 Y1 13:42'.\n"
+      "              ++ Note that if you supply an integer list, you MUST supply\n"
+      "                 a value for lam first, even if that value is 0.\n"
       "              ++ In deconvolution ('-FALTUNG'), all baseline parameters\n"
       "                 (from '-LHS' and/or '-polort') are automatically non-penalized,\n"
-      "                 so there is no point to using this un-penalizing feature.\n"
+      "                 so there is usually no point to using this un-penalizing feature.\n"
       "              ++ If you are NOT doing deconvolution, then you'll need this\n"
-      "                 option to un-penalize the '-polort' parameters (if desired).\n"
+      "                 option to un-penalize any '-polort' parameters (if desired).\n"
       "            ** LASSO-ing herein should be considered experimental, and its\n"
-      "               implementation is subject to change!  You should definitely\n"
+      "               implementation is subject to change! You should definitely\n"
       "               play with different 'lam' values to see how well they work\n"
-      "               for your particular types of problems.  Algorithm is here:\n"
+      "               for your particular types of problems. Algorithm is here:\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
       "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
@@ -387,14 +408,15 @@ int main( int argc , char *argv[] )
       "              ++ A Belloni, V Chernozhukov, and L Wang.\n"
       "                 Square-root LASSO: Pivotal recovery of sparse signals via\n"
       "                 conic programming (2010).  http://arxiv.org/abs/1009.5689\n"
-      "              ++ A coordinate descent algorithm is also used for this optimization.\n"
+      "              ++ A coordinate descent algorithm is also used for this optimization\n"
+      "                 (unlike in the paper above).\n"
       "            ** A reasonable range of 'lam' to use is from 1 to 10 (or so);\n"
       "               I suggest you start with 2 and see how well that works.\n"
       "              ++ Unlike the pure LASSO option above, you do not need to give\n"
       "                 give a negative value for lam here -- there is no need for\n"
-      "                 scaling by sigma.\n"
+      "                 scaling by sigma -- or so they say.\n"
       "             * The theoretical advantange of Square Root LASSO over\n"
-      "               standard LASSO is that a good choice of 'lam' doesn't\n"
+      "               standard LASSO is that a good choice of 'lam' does not\n"
       "               depend on knowing the noise level in the data (that is\n"
       "               what 'Pivotal' means in the paper's title).\n"
       "             * '-SQRTLASSO' is a synonym for this option.\n"
@@ -940,10 +962,48 @@ int main( int argc , char *argv[] )
        }
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
-       if( ii == 0 ){
+
+       if( iarg < argc-2 && argv[iarg+1][0] == 'X' ){ /* Invert? [04 Aug 2021] */
+         lasso_invert_ivec = 1 ;
+         lasso_zerobase_ivec = (argv[iarg+1][1] == '1') ;
+         iarg++ ;
+       } else if( iarg < argc-2 && isalpha(argv[iarg+1][0]) ){
+         lasso_invert_ivec = 0 ;
+         lasso_zerobase_ivec = (argv[iarg+1][1] == '1') ;
+         iarg++ ;
+       }
+
+       if( ii == 0 ){  /* flag to scan for index selection */
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
            MAKE_intvec(lasso_ivec,0) ;
+
+#if 1  /* new method that allows for integer lists like 1:17 22:29  [ 04 Aug 2021] */
+       /* instead of scanning integers here, use an AFNI library function */
+
+           char istr[16000] ; int *ilist ;
+           istr[0] = '\0' ;
+           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+             strcat( istr , argv[iarg] ) ;
+             if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+           }
+/** INFO_message("constructed LASSO intlist string = '%s'",istr) ; **/
+           ilist = MCW_get_intlist( 999999 , istr ) ;
+           if( ilist != NULL ){
+             if( ilist[0] < 1 ){
+               WARNING_message("illegal LASSO index list :(") ;
+             } else {
+               RESIZE_intvec(lasso_ivec,ilist[0]) ;
+/** ININFO_message("Decodes to have %d values:",ilist[0]) ; **/
+               for( jj=1 ; jj <= ilist[0] ; jj++ ){
+                 lasso_ivec->ar[jj-1] = ilist[jj] + lasso_zerobase_ivec ;
+/** fprintf(stderr," %d",ilist[jj]) ; **/
+               }
+/** fprintf(stderr,"\n") ; **/
+             }
+             free(ilist) ;
+           }
+#else
            for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
              jj = (int)strtod(argv[iarg],NULL) ;
              if( jj > 0 ){
@@ -953,10 +1013,11 @@ int main( int argc , char *argv[] )
                WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
              }
            }
+#endif
            if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
-       continue ;
+       continue ;  /* iarg was already incremented above */
      }
 
      /*-----*/
@@ -977,6 +1038,29 @@ int main( int argc , char *argv[] )
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
            MAKE_intvec(lasso_ivec,0) ;
+
+#if 1  /* new method that allows for integer lists like 1:17 22:29  [ 04 Aug 2021] */
+       /* instead of scanning integers here, use an AFNI library function */
+
+           char istr[16000] ; int *ilist ;
+           istr[0] = '\0' ;
+           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
+             strcat( istr , argv[iarg] ) ;
+             if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+           }
+           ilist = MCW_get_intlist( 999999 , istr ) ;
+           if( ilist != NULL ){
+             if( ilist[0] < 1 ){
+               WARNING_message("illegal LASSO index list :(") ;
+             } else {
+               RESIZE_intvec(lasso_ivec,ilist[0]) ;
+               for( jj=1 ; jj <= ilist[0] ; jj++ ){
+                 lasso_ivec->ar[jj-1] = ilist[jj] ;
+               }
+             }
+             free(ilist) ;
+           }
+#else
            for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
              jj = (int)strtod(argv[iarg],NULL) ;
              if( jj > 0 ){
@@ -986,6 +1070,7 @@ int main( int argc , char *argv[] )
                WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
              }
            }
+#endif
            if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
@@ -1268,6 +1353,35 @@ int main( int argc , char *argv[] )
      for( jj=0 ; jj < ntime ; jj++ ) /* create empty bricks to be filled below */
        EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
    }
+
+   /*-- Invert LASSO index selection? [04 Aug 2021] --*/
+
+   if( lasso_ivec != NULL && lasso_invert_ivec ){  /* 04 Aug 2021 */
+     intvec *tmp_ivec , *new_ivec=NULL ;
+
+/** DUMP_intvec(lasso_ivec,"LASSO - to be inverted") ; **/
+
+     MAKE_intvec( tmp_ivec , nvar ) ;
+     for( jj=0 ; jj < nvar ; jj++ ) tmp_ivec->ar[jj] = jj+1 ;
+
+     for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){
+       ii = lasso_ivec->ar[jj] ;
+       if( ii > 0 && ii <= nvar ) tmp_ivec->ar[ii-1] = 0 ; /* un-use it */
+     }
+
+     for( ii=jj=0 ; jj < nvar ; jj++ ){
+       if( tmp_ivec->ar[jj] > 0 ) ii++ ;
+     }
+     if( ii > 0 ){  /* copy survivors (if any) */
+       MAKE_intvec( new_ivec , ii ) ;
+       for( ii=jj=0 ; jj < nvar ; jj++ ){
+         if( tmp_ivec->ar[jj] > 0 ) new_ivec->ar[ii++] = tmp_ivec->ar[jj] ;
+       }
+     }
+     KILL_intvec(tmp_ivec) ; KILL_intvec(lasso_ivec) ; lasso_ivec = new_ivec ;
+   }
+
+/** if( lasso_ivec != NULL ) DUMP_intvec(lasso_ivec,"final LASSO un-penalized indexes") ; **/
 
    /*-- finalize LASSO setup? --*/
 
