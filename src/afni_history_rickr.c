@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
-   "Thanks to P Taylor for diagnosing the problem."
+   "Done with P Taylor."
  } ,
 
  { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
@@ -181,9 +181,9 @@ afni_history_struct rickr_history[] = {
  {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
    "fix surprising slowness",
    "This would previously unload/mallocize/reload every time point,\n"
-   "possibly to free completed data.\n"
-   "Now, NIFTI input would be re-read every time point (why the change?).\n"
-   "Just mallocize in the first place, not per time point.\n"
+   "possibly to free completed data.  Then NIFTI input would be re-read\n"
+   "every time point (this might have changed due to something else).\n"
+   "Instead, mallocize in the first place, not per time point.\n"
    "Also, avoid scaling floats by 1.0.\n"
    "Thanks to C Craddock for reporting the problem."
  } ,
