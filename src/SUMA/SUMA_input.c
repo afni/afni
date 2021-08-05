@@ -461,7 +461,9 @@ void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
     int i;
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
     SO->Overlays[0]->ColVec[0] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[3] = DARK_COLOR;
     SO->Overlays[0]->ColVec[6] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[9] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
@@ -480,40 +482,40 @@ void makeCommonNodesOfRectangleDarkBlue(SUMA_SurfaceObject *SO){
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
     SO->Overlays[0]->ColVec[2] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[5] = DARK_COLOR;
     SO->Overlays[0]->ColVec[8] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[11] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkCyan(SUMA_SurfaceObject *SO){
     int i;
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[2] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[8] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[1] = SO->Overlays[0]->ColVec[2] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[7] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[4] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[10] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkMagenta(SUMA_SurfaceObject *SO){
     int i;
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[2] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[8] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[2] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[8] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[5] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[11] = DARK_COLOR;
 }
 
 void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
     int i;
 
-        fprintf(stderr, "makeCommonNodesOfRectangleDarkYellow\n");
-
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
-    SO->Overlays[0]->ColVec[0] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[1] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[6] = DARK_COLOR;
-    SO->Overlays[0]->ColVec[7] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[0] = SO->Overlays[0]->ColVec[1] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[6] = SO->Overlays[0]->ColVec[7] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[3] = SO->Overlays[0]->ColVec[4] = DARK_COLOR;
+    SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = DARK_COLOR;
 }
 
 
@@ -574,8 +576,6 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO){
 
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
     int i;
-
-    fprintf(stderr, "makeCommonNodesOfRectangleYellow\n");
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
@@ -1130,12 +1130,10 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        /**/
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
         fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
         return;
         }
-        /**/
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         colorPlanes(sv, SO,&PR);
@@ -1146,7 +1144,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
         SUMA_SurfaceViewer *sv;
         Widget w;
-        int isv;
+        int isv, i;
 
     switch(planeIndex){
         case 0: makeCommonNodesOfRectangleDarkRed(SO); break;
@@ -1158,8 +1156,13 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     }
 
     // This block is necessary for the color changes to be applied to the square object
+    // PDL: Not clear why two iterations are necessary to the last two planes.  Hopefully,
+    //  this will become clear with further analysis of the code duirng the addition of
+    //  added functionality.
+    int iterations = (planeIndex > 3)? 2 : 1;
+    for (i = 0; i < iterations; ++i)
     {
-        SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
+        // SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
         SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
         SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
         SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -1167,8 +1170,8 @@ void lightenActiveClipPlaneSquare(int planeIndex){
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-            fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-            return;
+        fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
+        return;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
