@@ -67,7 +67,9 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         } else if (!activeClipPlanes){  // Toggle plane 1 on
             clipPlaneTransform(0,0,0,0,0, 1, 0);
             previouslyActive[0] = active[0];
-        } else clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
+        } else {
+            clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
+        }
 
         // Load saved clipping planes is available
         if (clippingPlaneFile){
@@ -97,7 +99,8 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         clipPlaneTransform(0,0,0,0,*locallySelectedPlane, 0, 0);     // Ensure correct plane selected
 
         // Darken inactive clip planes
-        darkenInactiveClipPlaneSquares(0);
+        darkenInactiveClipPlaneSquares(*locallySelectedPlane);
+        lightenActiveClipPlaneSquare(*locallySelectedPlane);
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
