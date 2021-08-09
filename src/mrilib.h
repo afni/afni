@@ -1579,6 +1579,13 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
       }                                                                   \
   } while(0)
 
+/* 06 Aug 2021 */
+#define COPY_intvec(nv,ov)                              \
+  do{ int qq ;                                          \
+      MAKE_intvec(nv,ov->nar) ;                         \
+      memcpy( nv->ar , ov->ar , sizeof(int)*ov->nar ) ; \
+  } while(0) ;
+
 /*--------------------------------------------------*/  /* 20 Jan 2016 */
 
 typedef struct { int nar ; int64_t *ar ; } int64vec ;

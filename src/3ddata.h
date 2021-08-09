@@ -5307,6 +5307,7 @@ extern floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                        int nref   , float *ref[] ,
                                        float *lam , float *ccon   ) ;
 
+extern void THD_lasso_add_median_block( intvec *mb ) ; /* 06 Aug 2021 */
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 

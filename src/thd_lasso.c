@@ -82,6 +82,81 @@ ENTRY("THD_lasso_setparvec") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Median blocks = indexes over which the shrinkage is toward the median
+                   parameter (over the block) rather than toward 0.
+   Each median block must have at least 3 entries.
+   NOTES: If the caller is an idiot, stupid things will happen; for example:
+            * If any of the entries of mb->ar[] are out of
+              the index range of the parameters (0..nref-1)
+            * If multiple median blocks are used and share some indexes
+            * If an un-penalized index (mylam[i]==0) is provided
+          My suggestion is to avoid being an idiot.  [Aug 2021 - RWCox]
+*//*--------------------------------------------------------------------------*/
+
+static int medblok_num  = 0 ;
+static intvec **medblok = NULL ;
+
+void THD_lasso_add_median_block( intvec *mb )
+{
+ENTRY("THD_lasso_add_median_block") ;
+
+   if( mb == NULL ){  /* signal to clear all median blocks */
+     int ii ;
+     if( medblok != NULL ){
+       for( ii=0 ; ii < medblok_num ; ii++ ){ KILL_intvec( medblok[ii] ) ; }
+       free(medblok) ;
+     }
+     EXRETURN ;
+   }
+
+   if( mb->nar < 3 || mb->ar == NULL ) EXRETURN ;
+
+   medblok = (intvec **)realloc( medblok, sizeof(intvec *)*(medblok_num+1) ) ;
+
+   COPY_intvec( medblok[medblok_num] , mb ) ;
+   medblok_num++ ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* load block medians, if any; med[] entries not in a block are unchanged */
+
+static void load_block_medians( int nref , float *ppar , float *med )
+{
+   int bb , ii , kk, nkk ;
+   float *bpar , mval ;
+
+ENTRY("load_block_medians") ;
+
+   if( nref < 3 || ppar == NULL || med == NULL || medblok_num < 1 ) EXRETURN ;
+
+   bpar = (float *)malloc(sizeof(float)*nref) ;
+
+   /* loop over blocks [note subtract 1 from indexes in the intvecs */
+
+   for( bb=0 ; bb < medblok_num ; bb++ ){
+
+     if( medblok[bb]->nar < 3 ) continue ;          /* should be unpossible */
+
+     for( nkk=ii=0 ; ii < medblok[bb]->nar ; ii++ ){ /* extract params */
+       kk = medblok[bb]->ar[ii]-1 ;                  /* for this block */
+       if( kk >= 0 && kk < nref ) bpar[ii] = ppar[kk++] ;
+     }
+
+     mval = qmed_float( nkk , bpar ) ;               /* median of block */
+
+     for( ii=0 ; ii < medblok[bb]->nar ; ii++ ){     /* load med[] */
+       kk = medblok[bb]->ar[ii]-1 ;                  /* for this block */
+       if( kk >= 0 && kk < nref ) med[kk] = mval ;
+     }
+
+   }
+
+   free(bpar) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 static float estimate_sigma( int npt , float *far )
 {
@@ -286,6 +361,7 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
    int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx,ll ;
    floatvec *qfit ; byte *fr ;
+   float *med , mval , pv , mv ;  /* for median blocks [06 Aug 2021] */
 
 ENTRY("THD_lasso_L2fit") ;
 
@@ -303,10 +379,12 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- space for parameter iterates, etc (initialized to zero) ---*/
 
 #pragma omp critical (MALLOC)
-   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ;   /* parameters = output */
-     resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
-     rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
-     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; } /* free list */
+   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ; /* parameters = output */
+     resd = (float *)calloc(sizeof(float),npt ) ; /* residuals */
+     rsq  = (float *)calloc(sizeof(float),nref) ; /* sums of squares */
+     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; /* free list */
+     med  = (float *)calloc(sizeof(float),nref) ; /* block medians */
+   }
 
    /*--- Save 1/(sum of squares) of each ref column ---*/
 
@@ -370,6 +448,10 @@ ENTRY("THD_lasso_L2fit") ;
    dsumx = dsum = 1.0f ;
    for( nite=0 ; nite < nimax && dsum+dsumx > deps ; nite++ ){
 
+     /*--- load block medians [06 Aug 2021] ---*/
+
+     load_block_medians( nref , ppar , med ) ;
+
      /*-- cyclic inner loop over parameters --*/
 
      dsumx = dsum ;
@@ -382,7 +464,9 @@ ENTRY("THD_lasso_L2fit") ;
        if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
        rj = ref[jj] ;                   /* j-th reference column */
        pj = ppar[jj] ;                  /* current value of j-th parameter */
-       ll = mylam[jj] ;
+       ll = mylam[jj] ;                 /* lambda for this param */
+       mv = med[jj] ;                   /* shrinkage target (e.g., 0) */
+       pv = pj - mv ;                   /* param diff from shrinkage target */
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
        /*            = direction we want to step in                    */
@@ -401,12 +485,14 @@ ENTRY("THD_lasso_L2fit") ;
          /* Merge this with dg, change ppar[jj], then see if we stepped thru */
          /* zero (or hit a constraint) -- if so, stop ppar[jj] at zero.     */
 
-         if( pj > 0.0f || (pj == 0.0f && dg > ll) ){         /* on the + side */
-           dg -= ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink - way */
-           if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
-         } else if( pj < 0.0f || (pj == 0.0f && dg < -ll) ){ /* on the - side */
+         if( pv > 0.0f || (pv == 0.0f && dg > ll) ){    /* on the + side */
+           dg -= ll ; ppar[jj] += dg*rsq[jj] ;          /* shrink - way */
+           if( ppar[jj] < mv ) ppar[jj] = mv ;          /* went too far down? */
+           if( CON(jj)       ) ppar[jj] = 0.0f ;        /* violate constraint? */
+         } else if( pv < 0.0f || (pv == 0.0f && dg < -ll) ){ /* on the - side */
            dg += ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink + way */
-           if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+           if( ppar[jj] > mv ) ppar[jj] = mv ;               /* too far up? */
+           if( CON(jj)       ) ppar[jj] = 0.0f ;             /* constraint? */
          }
 
        }
@@ -456,7 +542,7 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- Loading up the truck and heading to Beverlee ---*/
 
 #pragma omp critical (MALLOC)
-   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
+   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; free(med) ; }
 
    RETURN(qfit) ;
 }

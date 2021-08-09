@@ -4,10 +4,51 @@
 
 #include "mrilib.h"
 
+static int    ARGC ;  /* global copies */
+static char **ARGV ;
+
 static void vstep_print(void) ; /* prototype */
 static float lhs_legendre( float x, float bot, float top, float n ) ;
 
 #define IC_POLORT 66666
+
+/*------------------------------------------------------------*/
+/* get an integer list from the args, starting at ARGV[*iarg] */
+
+static int * get_ilist_from_args( int *iarg )
+{
+   char istr[16000] ; int *ilist=NULL , iaa=*iarg ;
+ENTRY("get_ilist_from_args") ;
+   istr[0] = '\0' ;
+   for( ; iaa < ARGC && isdigit(ARGV[iaa][0]) ; iaa++ ){
+     strcat( istr , ARGV[iaa] ) ;
+     if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+   }
+   ilist = MCW_get_intlist( 999999 , istr ) ;
+   *iarg = iaa ;
+   RETURN(ilist) ;
+}
+
+/*------------------------------------------------------------*/
+
+static intvec * get_intvec_from_args( int *iarg )
+{
+   int *ilist ;
+   intvec *ivec=NULL ;
+   int jj ;
+
+   ilist = get_ilist_from_args( iarg ) ;
+   if( ilist != NULL && ilist[0] > 0 ){
+     MAKE_intvec(ivec,ilist[0]) ;
+     for( jj=1 ; jj <= ilist[0] ; jj++ ){
+       ivec->ar[jj-1] = ilist[jj] ;
+     }
+   }
+   free(ilist) ;
+   return ivec ;
+}
+
+/*------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -44,6 +85,9 @@ int main( int argc , char *argv[] )
    float lasso_flam = 8.0f ;
 
    /*------------------ help the pitifully ignorant user? ------------------*/
+
+   ARGC = argc ; /* 06 Aug 2016 */
+   ARGV = argv ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -946,13 +990,28 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcasecmp(argv[iarg],"-lasso_median_block") == 0 ||
+         strcasecmp(argv[iarg],"-LMB")                == 0   ){  /* 06 Aug 2021 */
+       intvec *mblok ;
+       iarg++ ;
+       mblok = get_intvec_from_args( &iarg ) ;
+       if( mblok == NULL ){
+         WARNING_message("bad -lassoblock :(") ;
+       } else {
+         THD_lasso_add_median_block( mblok ) ;
+       }
+       continue ; /* iarg was updated in the function above */
+     }
+
+     /*-----*/
+
 #undef  ISAL
 #define ISAL(s) (isalpha(s[0]) || isalpha(s[1]))
 #undef  DFAL
 #define DFAL 3.1415926536f
 
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
-         strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
+         strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){
        meth = -2 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = -DFAL ; ii = 1 ;
@@ -976,45 +1035,10 @@ int main( int argc , char *argv[] )
        if( ii == 0 ){  /* flag to scan for index selection */
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-           MAKE_intvec(lasso_ivec,0) ;
-
-#if 1  /* new method that allows for integer lists like 1:17 22:29  [ 04 Aug 2021] */
-       /* instead of scanning integers here, use an AFNI library function */
-
-           char istr[16000] ; int *ilist ;
-           istr[0] = '\0' ;
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             strcat( istr , argv[iarg] ) ;
-             if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+           lasso_ivec = get_intvec_from_args( &iarg ) ;
+           if( lasso_ivec == NULL ){
+             WARNING_message("illegal LASSO index list :(") ;
            }
-/** INFO_message("constructed LASSO intlist string = '%s'",istr) ; **/
-           ilist = MCW_get_intlist( 999999 , istr ) ;
-           if( ilist != NULL ){
-             if( ilist[0] < 1 ){
-               WARNING_message("illegal LASSO index list :(") ;
-             } else {
-               RESIZE_intvec(lasso_ivec,ilist[0]) ;
-/** ININFO_message("Decodes to have %d values:",ilist[0]) ; **/
-               for( jj=1 ; jj <= ilist[0] ; jj++ ){
-                 lasso_ivec->ar[jj-1] = ilist[jj] + lasso_zerobase_ivec ;
-/** fprintf(stderr," %d",ilist[jj]) ; **/
-               }
-/** fprintf(stderr,"\n") ; **/
-             }
-             free(ilist) ;
-           }
-#else
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             jj = (int)strtod(argv[iarg],NULL) ;
-             if( jj > 0 ){
-               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-               lasso_ivec->ar[kk] = jj ;
-             } else {
-               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
-             }
-           }
-#endif
-           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
        continue ;  /* iarg was already incremented above */
@@ -1024,7 +1048,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0 ||
-         strcasecmp(argv[iarg],"-LASSOSQRT"  ) == 0   ){
+         strcasecmp(argv[iarg],"-LASSOSQRT"  ) == 0   ){ /* EXPERIMENTAL */
        meth = -1 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = DFAL ; ii = 1 ;
@@ -1037,41 +1061,10 @@ int main( int argc , char *argv[] )
        if( ii == 0 ){
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-           MAKE_intvec(lasso_ivec,0) ;
-
-#if 1  /* new method that allows for integer lists like 1:17 22:29  [ 04 Aug 2021] */
-       /* instead of scanning integers here, use an AFNI library function */
-
-           char istr[16000] ; int *ilist ;
-           istr[0] = '\0' ;
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             strcat( istr , argv[iarg] ) ;
-             if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+           lasso_ivec = get_intvec_from_args( &iarg ) ;
+           if( lasso_ivec == NULL ){
+             WARNING_message("illegal LASSO index list :(") ;
            }
-           ilist = MCW_get_intlist( 999999 , istr ) ;
-           if( ilist != NULL ){
-             if( ilist[0] < 1 ){
-               WARNING_message("illegal LASSO index list :(") ;
-             } else {
-               RESIZE_intvec(lasso_ivec,ilist[0]) ;
-               for( jj=1 ; jj <= ilist[0] ; jj++ ){
-                 lasso_ivec->ar[jj-1] = ilist[jj] ;
-               }
-             }
-             free(ilist) ;
-           }
-#else
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             jj = (int)strtod(argv[iarg],NULL) ;
-             if( jj > 0 ){
-               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-               lasso_ivec->ar[kk] = jj ;
-             } else {
-               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
-             }
-           }
-#endif
-           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
        continue ;
