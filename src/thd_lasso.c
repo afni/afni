@@ -6,6 +6,8 @@
    /*** Then some internal (static) functions for common necessities. ***/
    /*-------------------------------------------------------------------*/
 
+static int lasso_verb = 0 ;
+
 /*----------------------------------------------------------------------------*/
 
 /** set the fixed value of lambda (flam);
@@ -19,7 +21,7 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 /** set the convergence parameter (deps) **/
 
-static float deps = 0.0000654321f ;
+static float deps = 0.0000321111f ;
 
 void THD_lasso_setdeps( float x ){
   deps = ( x >= 0.0000003f && x <= 0.1f ) ? x : 0.0000654321f ;
@@ -82,71 +84,86 @@ ENTRY("THD_lasso_setparvec") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Median blocks = indexes over which the shrinkage is toward the median
+/* Centro blocks = indexes over which the shrinkage is toward the centromean
                    parameter (over the block) rather than toward 0.
-   Each median block must have at least 3 entries.
+   Each centro block must have at least 3 entries.
    NOTES: If the caller is an idiot, stupid things will happen; for example:
             * If any of the entries of mb->ar[] are out of
               the index range of the parameters (0..nref-1)
-            * If multiple median blocks are used and share some indexes
+            * If multiple centro blocks are used and share some indexes
             * If an un-penalized index (mylam[i]==0) is provided
           My suggestion is to avoid being an idiot.  [Aug 2021 - RWCox]
 *//*--------------------------------------------------------------------------*/
 
-static int medblok_num  = 0 ;
-static intvec **medblok = NULL ;
+static int cenblok_num  = 0 ;
+static intvec **cenblok = NULL ;
 
-void THD_lasso_add_median_block( intvec *mb )
+void THD_lasso_add_centro_block( intvec *mb )
 {
-ENTRY("THD_lasso_add_median_block") ;
+ENTRY("THD_lasso_add_centro_block") ;
 
-   if( mb == NULL ){  /* signal to clear all median blocks */
+   if( mb == NULL ){  /* signal to clear all centro blocks */
      int ii ;
-     if( medblok != NULL ){
-       for( ii=0 ; ii < medblok_num ; ii++ ){ KILL_intvec( medblok[ii] ) ; }
-       free(medblok) ;
+     if( cenblok != NULL ){
+       for( ii=0 ; ii < cenblok_num ; ii++ ){ KILL_intvec( cenblok[ii] ) ; }
+       free(cenblok) ;
      }
      EXRETURN ;
    }
 
    if( mb->nar < 3 || mb->ar == NULL ) EXRETURN ;
 
-   medblok = (intvec **)realloc( medblok, sizeof(intvec *)*(medblok_num+1) ) ;
+   cenblok = (intvec **)realloc( cenblok, sizeof(intvec *)*(cenblok_num+1) ) ;
 
-   COPY_intvec( medblok[medblok_num] , mb ) ;
-   medblok_num++ ;
+   COPY_intvec( cenblok[cenblok_num] , mb ) ;
+   cenblok_num++ ;
    EXRETURN ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* load block medians, if any; med[] entries not in a block are unchanged */
+/* load block centros, if any; med[] entries not in a block are unchanged */
 
-static void load_block_medians( int nref , float *ppar , float *med )
+static void load_block_centros( int nref , float *ppar , float *med )
 {
-   int bb , ii , kk, nkk ;
+   int bb , ii , kk, njj ;
    float *bpar , mval ;
 
-ENTRY("load_block_medians") ;
+ENTRY("load_block_centros") ;
 
-   if( nref < 3 || ppar == NULL || med == NULL || medblok_num < 1 ) EXRETURN ;
+   if( nref < 3 || ppar == NULL || med == NULL ) EXRETURN ;
+
+   AAmemset( med , 0 , nref*sizeof(float) ) ;
+
+   if( cenblok_num < 1 ) EXRETURN ;
 
    bpar = (float *)malloc(sizeof(float)*nref) ;
 
    /* loop over blocks [note subtract 1 from indexes in the intvecs */
 
-   for( bb=0 ; bb < medblok_num ; bb++ ){
+   for( bb=0 ; bb < cenblok_num ; bb++ ){
 
-     if( medblok[bb]->nar < 3 ) continue ;          /* should be unpossible */
+     if( cenblok[bb]->nar < 3 ) continue ;          /* should be unpossible */
 
-     for( nkk=ii=0 ; ii < medblok[bb]->nar ; ii++ ){ /* extract params */
-       kk = medblok[bb]->ar[ii]-1 ;                  /* for this block */
-       if( kk >= 0 && kk < nref ) bpar[ii] = ppar[kk++] ;
+     for( njj=ii=0 ; ii < cenblok[bb]->nar ; ii++ ){ /* extract params */
+       kk = cenblok[bb]->ar[ii]-1 ;                  /* for this block */
+       if( kk >= 0 && kk < nref ) bpar[njj++] = ppar[kk] ;
      }
 
-     mval = qmed_float( nkk , bpar ) ;               /* median of block */
+     mval = centromean_float( njj , bpar ) ;  /* in cs_qmed.c */
 
-     for( ii=0 ; ii < medblok[bb]->nar ; ii++ ){     /* load med[] */
-       kk = medblok[bb]->ar[ii]-1 ;                  /* for this block */
+#if 0
+     if( lasso_verb && mval != 0.0f ){
+       char str[2048] ;
+       str[0] = '\0' ;
+       for( ii=0 ; ii < cenblok[bb]->nar ; ii++ ){
+        sprintf(str+strlen(str)," %d:%g",cenblok[bb]->ar[ii],bpar[ii]) ;
+       }
+       INFO_message("LASSO: LMB[%d] =%s => %g  njj=%d",bb,str,mval,njj) ;
+    }
+#endif
+
+     for( ii=0 ; ii < cenblok[bb]->nar ; ii++ ){     /* load med[] */
+       kk = cenblok[bb]->ar[ii]-1 ;                  /* for this block */
        if( kk >= 0 && kk < nref ) med[kk] = mval ;
      }
 
@@ -361,7 +378,7 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
    int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx,ll ;
    floatvec *qfit ; byte *fr ;
-   float *med , mval , pv , mv ;  /* for median blocks [06 Aug 2021] */
+   float *med , mval , pv , mv ;  /* for centro blocks [06 Aug 2021] */
 
 ENTRY("THD_lasso_L2fit") ;
 
@@ -383,7 +400,7 @@ ENTRY("THD_lasso_L2fit") ;
      resd = (float *)calloc(sizeof(float),npt ) ; /* residuals */
      rsq  = (float *)calloc(sizeof(float),nref) ; /* sums of squares */
      fr   = (byte  *)calloc(sizeof(byte) ,nref) ; /* free list */
-     med  = (float *)calloc(sizeof(float),nref) ; /* block medians */
+     med  = (float *)calloc(sizeof(float),nref) ; /* block centros */
    }
 
    /*--- Save 1/(sum of squares) of each ref column ---*/
@@ -444,13 +461,21 @@ ENTRY("THD_lasso_L2fit") ;
 #undef  CONN    /* CONN(j) is true if ppar[j] is supposed to be <= 0 */
 #define CONN(j) (ccon != NULL && ccon[j] < 0.0f)
 
+   { static int ncall=0 ;
+     lasso_verb = ( ncall < 2 || ncall%10000 == 1 ) ;
+     ncall++ ;
+   }
+
    ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
    dsumx = dsum = 1.0f ;
+#if 0
+   if( lasso_verb && cenblok_num > 0 ) INFO_message("LASSO => start iterations") ;
+#endif
    for( nite=0 ; nite < nimax && dsum+dsumx > deps ; nite++ ){
 
-     /*--- load block medians [06 Aug 2021] ---*/
+     /*--- load block centros [06 Aug 2021] ---*/
 
-     load_block_medians( nref , ppar , med ) ;
+     if( nite % 5 == 4 ) load_block_centros( nref , ppar , med ) ;
 
      /*-- cyclic inner loop over parameters --*/
 
@@ -465,7 +490,11 @@ ENTRY("THD_lasso_L2fit") ;
        rj = ref[jj] ;                   /* j-th reference column */
        pj = ppar[jj] ;                  /* current value of j-th parameter */
        ll = mylam[jj] ;                 /* lambda for this param */
+#if 1
        mv = med[jj] ;                   /* shrinkage target (e.g., 0) */
+#else
+       mv = 0.0f ;
+#endif
        pv = pj - mv ;                   /* param diff from shrinkage target */
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
@@ -518,12 +547,10 @@ ENTRY("THD_lasso_L2fit") ;
    } /*---- end of outer iteration loop ----*/
 
 #if 1
-   { static int ncall=0 ;
-     if( ncall < 2 || ncall%10000 == 1 ){
+   { if( lasso_verb ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
-       INFO_message("LASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       INFO_message("\nLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
      }
-     ncall++ ;
    }
 #endif
 
@@ -749,7 +776,7 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    { static int ncall=0 ;
      if( ncall < 2 || ncall%10000 == 1 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
-       INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       INFO_message("SQRTLASSO %d: nite=%d dsum=%g dsumx=%g nfree=%d/%d",ncall,nite,dsum,dsumx,nfree,nref) ;
      }
      ncall++ ;
    }

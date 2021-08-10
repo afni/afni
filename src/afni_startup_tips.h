@@ -2004,6 +2004,18 @@ static char *gby[] = {
     "     The brain is not a computer and it is not running software;\n"
     "       The brain is not a computer and it is not running software!"                             ,
 
+    "\n"
+    "  When I was 20, I thought a lot about what other people thought of me;
+    "    When I was 40, I found I didn't think so much about what they thought of me;
+    "      When I was 60, I figured out that they didn't spend much effort thinking about me"        , /* 09 Aug 2021 */
+
+    "\n"
+    "  When the airless wind shall sing,\n"
+    "   When the broken circle mends,\n"
+    "    When the brightest day dawns without light,\n"
+    "     And the brittle night comes softly without darkness\n"
+    "      -- I shall yet remember."                                                                 , /* 10 Aug 2021 */
+
     /**** Keep this one last ****/
 
     "You are VERY lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"

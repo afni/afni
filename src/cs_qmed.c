@@ -366,17 +366,18 @@ void qmedmadmeanad_float( int n, float *ar, float *med, float *mad , float *mean
 
 float centromean_float( int n , float *ar )  /* 01 Nov 2010 */
 {
-   int ibot, itop, ii ; float sum=0.0f ;
+   int ii ; float sum=0.0f ;
 
    if( n <= 0 || ar == NULL ){
     ; /* nada */
-   } else if( n < 6 ){
+   } else if( n < 4 ){
      for( ii=0 ; ii < n ; ii++ ) sum += ar[ii] ;
      sum /= n ;
    } else {
+     int ibot , itop ;
      qsort_float( n , ar ) ;
-     ibot = (int)(0.25f*n+0.49f) ;
-     itop = (int)(0.75f*n+0.49f) ;
+     ibot = (int)(0.25f*n+0.49) ; /* bottom of sum range */
+     itop = n - ibot - 1 ;        /* top = symmetric */
      for( ii=ibot ; ii <= itop ; ii++ ) sum += ar[ii] ;
      sum /= (itop-ibot+1) ;
    }

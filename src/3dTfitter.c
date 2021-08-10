@@ -443,6 +443,26 @@ int main( int argc , char *argv[] )
       "                 http://arxiv.org/abs/0803.3876\n"
       "             * '-LASSO' is a synonym for this option.\n"
       "\n"
+      "  -lasso_centro_block i j k ...\n"
+      "             = Defines a block of coefficients that will be penalized together\n"
+      "               with ABS( beta[i] - centromean( beta[i], beta[j] , ... ) )\n"
+      "               where the centromean(a,b,...) is computed by sorting the\n"
+      "               arguments (a,b,...) and then averaging the middle 50%%.\n"
+      "              * The goal is to use LASSO to shrink these coefficients towards\n"
+      "                a common value to suppress outliers, rather than the default\n"
+      "                of shrinking coefficients towards 0.\n"
+      "              * For example:\n"
+      "                  -lasso_centro_block 12:26 -lasso_centro_block 27:41\n"
+      "                These options define two blocks of coefficients, presumably\n"
+      "                from two different FMRI tasks, where the input -LHS matrix was\n"
+      "                defined using 'IM' regression from 3dDeconvolve.\n"
+      "              * If you have more than one block, do NOT let them overlap,\n"
+      "                because the program doesn't check for this kind of stoopidity\n"
+      "                and then peculiar/bad things will probably happen!\n"
+      "              * This option can be abbreviated as '-LCB' :-)\n"
+      "              * This option is NOT implemented for -l2sqrtlasso\n"
+      "              * [New option - 10 Aug 2021 - RWCox]\n"
+      "\n"
       "  -l2sqrtlasso lam [i j k ...]\n"
       "            = Similar to above option, but uses 'Square Root LASSO' instead:\n"
       "             * Approximately speaking, LASSO minimizes E = Q2+lam*L1,\n"
@@ -990,15 +1010,15 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcasecmp(argv[iarg],"-lasso_median_block") == 0 ||
-         strcasecmp(argv[iarg],"-LMB")                == 0   ){  /* 06 Aug 2021 */
+     if( strcasecmp(argv[iarg],"-lasso_centro_block") == 0 ||
+         strcasecmp(argv[iarg],"-LCB")                == 0   ){  /* 06 Aug 2021 */
        intvec *mblok ;
        iarg++ ;
        mblok = get_intvec_from_args( &iarg ) ;
        if( mblok == NULL ){
          WARNING_message("bad -lassoblock :(") ;
        } else {
-         THD_lasso_add_median_block( mblok ) ;
+         THD_lasso_add_centro_block( mblok ) ;
        }
        continue ; /* iarg was updated in the function above */
      }

@@ -49,6 +49,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_NEW_PROG ,
+   "Add -LCB option for block-wise LASSO penalties" ,
+   "LCB = LASSO Centro Block\n"
+   "The penalty in a block is\n"
+   "  sum{ ABS[ beta[i] - centromean(beta[i],...) ] }\n"
+   "which is intendend to make all the beta[i] in a block shrink towards a\n"
+   "common value, rather than towards 0. The intent is to use this with IM\n"
+   "regression models from 3dDeconvolve, to reduce outliers in the\n"
+   "stimulus-wise beta estimates." } ,
+
  { 20 , JUL , 2021 , RWC , "NIML library" , MAJOR , TYPE_BUG_FIX ,
    "NIML file: input failed if file over 2BG in size" ,
    "Due to storing filesize in int/long. Fix was to make it stored in\n"
