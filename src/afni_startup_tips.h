@@ -2005,8 +2005,8 @@ static char *gby[] = {
     "       The brain is not a computer and it is not running software!"                             ,
 
     "\n"
-    "  When I was 20, I thought a lot about what other people thought of me;
-    "    When I was 40, I found I didn't think so much about what they thought of me;
+    "  When I was 20, I thought a lot about what other people thought of me;\n"
+    "    When I was 40, I found I didn't think so much about what they thought of me;\n"
     "      When I was 60, I figured out that they didn't spend much effort thinking about me"        , /* 09 Aug 2021 */
 
     "\n"
