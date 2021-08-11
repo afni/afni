@@ -71,7 +71,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 10, Aug , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
    "No longer worry about even/odd slice output (and remove '-no_fs_prep').",
-   "Dealt with an old non-issue. \n"
+   "Dealt with an old non-issue.\n"
 },
 
 { 29, July , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
