@@ -4756,96 +4756,112 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               break;
                            case XK_a:
                            case XK_A:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'A';
                               if (!SUMA_A_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_b:
                            case XK_B:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'B';
                               if (!SUMA_B_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_c:
                            case XK_C:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'C';
                               if (!SUMA_C_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_d:
                            case XK_D:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'D';
                               if (!SUMA_D_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_g:
                            case XK_G:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'G';
                               if (!SUMA_G_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_j:
                            case XK_J:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'J';
                               if (!SUMA_J_Key(sv, stmp, "drivesuma", strgval)) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_l:
                            case XK_L:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'L';
                               if (!SUMA_L_Key(sv, stmp, "drivesuma", strgval)) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_m:
                            case XK_M:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'M';
                               if (!SUMA_M_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_n:
                            case XK_N:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'N';
                               if (!SUMA_N_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_o:
                            case XK_O:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'O';
                               if (!SUMA_O_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_p:
                            case XK_P:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'P';
                               if (!SUMA_P_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_r:
                            case XK_R:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'R';
                               if (!SUMA_R_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_t:
                            case XK_T:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'T';
                               if (!SUMA_T_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_u:
                            case XK_U:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'U';
                               if (!SUMA_U_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_w:
                            case XK_W:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'W';
                               if (!SUMA_W_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
                            case XK_z:
                            case XK_Z:
+                              if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'Z';
                               if (!SUMA_Z_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }

@@ -2850,6 +2850,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_C:
+        fprintf(stderr, "XK_C\n");
             if ((SUMA_ALTHELL)){
 
                 if (clippingPlaneMode){
@@ -2909,6 +2910,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
            }
          break;
       case XK_c:
+        fprintf(stderr, "XK_c\n");
             {
                SUMA_SurfaceObject *SO=NULL;
                if ((SO = SUMA_SV_Focus_SO(sv))) {
