@@ -475,7 +475,7 @@ ENTRY("THD_lasso_L2fit") ;
 
      /*--- load block centros [06 Aug 2021] ---*/
 
-     if( nite % 5 == 4 ) load_block_centros( nref , ppar , med ) ;
+     if( nite > 3 ) load_block_centros( nref , ppar , med ) ;
 
      /*-- cyclic inner loop over parameters --*/
 

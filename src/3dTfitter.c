@@ -447,20 +447,43 @@ int main( int argc , char *argv[] )
       "             = Defines a block of coefficients that will be penalized together\n"
       "               with ABS( beta[i] - centromean( beta[i], beta[j] , ... ) )\n"
       "               where the centromean(a,b,...) is computed by sorting the\n"
-      "               arguments (a,b,...) and then averaging the middle 50%%.\n"
+      "               arguments (a,b,...) and then averaging the central 50%% values.\n"
       "              * The goal is to use LASSO to shrink these coefficients towards\n"
       "                a common value to suppress outliers, rather than the default\n"
-      "                of shrinking coefficients towards 0.\n"
+      "                LASSO method of shrinking coefficients towards 0, where the\n"
+      "                penalty on coefficient beta[i] is just ABS( beta[i] ).\n"
       "              * For example:\n"
       "                  -lasso_centro_block 12:26 -lasso_centro_block 27:41\n"
-      "                These options define two blocks of coefficients, presumably\n"
-      "                from two different FMRI tasks, where the input -LHS matrix was\n"
-      "                defined using 'IM' regression from 3dDeconvolve.\n"
+      "                These options define two blocks of coefficients.\n"
+      "          -->>*** The intended application of this option is to regularize\n"
+      "                  (reduce fluctuations) in the 'IM' regression method from\n"
+      "                  3dDeconvolve, where each task instance gets a separate\n"
+      "                  beta fit parameter.\n"
+      "              *** That is, the idea is that you run 3dTfitter to get the\n"
+      "                  'IM' betas as an alternative to 3dDeconvolve or 3dREMLfit,\n"
+      "                  since the centromean regularization will damp down wild\n"
+      "                  fluctuations in the individual task betas.\n"
+      "              *** In this example, the two blocks of coefficients correspond\n"
+      "                  to the beta values for each of two separate tasks.\n"
+      "              *** The input '-LHS' matrix is available from 3dDeconvolve's\n"
+      "                  '-x1D' option.\n"
+      "              *** Further details on 'blocks' can be found in this Google Doc\n"
+      "                     https://shorturl.at/boxU9\n"
+      "                  including shell commands on how to extract the block indexes\n"
+      "                  from the header of the matrix file.\n"
+      "              *** A 'lam' value for the '-LASSO' option that makes sense is a value\n"
+      "                  between -1 and -2, but as usual, you'll have to experiment with\n"
+      "                  your particular data and application.\n"
       "              * If you have more than one block, do NOT let them overlap,\n"
       "                because the program doesn't check for this kind of stoopidity\n"
       "                and then peculiar/bad things will probably happen!\n"
-      "              * This option can be abbreviated as '-LCB' :-)\n"
-      "              * This option is NOT implemented for -l2sqrtlasso\n"
+      "              * A block defined here must have at least 5 entries.\n"
+      "                In practice, I would recommend at least 12 entries for a\n"
+      "                block, or the whole idea of 'shrinking to the centromean'\n"
+      "                is silly.\n"
+      "              * This option can be abbreviated as '-LCB', since typing\n"
+      "                '-lasso_centro_block' correctly is a nontrivial challenge :-)\n"
+      "              * This option is NOT implemented for -l2sqrtlasso :-(\n"
       "              * [New option - 10 Aug 2021 - RWCox]\n"
       "\n"
       "  -l2sqrtlasso lam [i j k ...]\n"
@@ -1016,7 +1039,9 @@ int main( int argc , char *argv[] )
        iarg++ ;
        mblok = get_intvec_from_args( &iarg ) ;
        if( mblok == NULL ){
-         WARNING_message("bad -lassoblock :(") ;
+         WARNING_message("bad -lasso_centro_block (LCB): can't get integer list :(") ;
+       } else if( mblok->nar < 5 ){
+         ERROR_message("bad -lasso_centro_block (LCB): not enough entries :(") ;
        } else {
          THD_lasso_add_centro_block( mblok ) ;
        }
