@@ -45,7 +45,7 @@ clean:
 
 .c.o:
 	$(RM) $@
-	$(CC) -c $*.c -I. -I.. $(IFLAGS)
+	$(CC) -c $*.c -I. -I.. -I../f2c $(IFLAGS)
 
 # dependencies
 

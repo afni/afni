@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Aug, 2021, RCR, "coxplot", MICRO, TYPE_BUG_FIX,
+   "remove duplicate symbols zzzplt_ and zzpltr_",
+   "Done at the behest of D Glen."
+ } ,
+
  { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
    "Done with P Taylor."
