@@ -206,7 +206,7 @@ int detrend_linear_cnsrs(float *data, LABELS *labels, char *errorString)
     }
   }
 
-  free(data_cnsrs);
+  IFree(data_cnsrs);
 
   RETURN(0);
 }
@@ -365,7 +365,7 @@ void printArgv(char **myargv, int *myargc)
   ENTRY("printArgv");
 
   INFO_message("%s \\\n", myargv[0]);
-  for( i=1; i<*myargc; ++i) printf("\t%s \\\n", myargv[i]);
+  for( i=1; i<*myargc; ++i) printf("\t_%s_\\\n", myargv[i]);
   INFO_message("\n");
 
   EXRETURN;
@@ -404,9 +404,10 @@ void freeArgv( char **myargv, int myargc )
 
   ENTRY("freeArgv");
 
-  for( i=0; i<myargc; i++ ) {
+  for( i=0; i<myargc; i++ ) 
+  {
     myargv[i]='\0';
-    free(myargv[i]);
+    IFree(myargv[i]);
   }
 
   EXRETURN;
@@ -805,11 +806,18 @@ void free2d(double **x, long index1)
   long i;
 
   ENTRY("free2d");
-  
-  for(i = 0; i < index1; i++) {
-    free(x[i]);
+ 
+  if( x != NULL )
+  { 
+      for(i = 0; i < index1; i++) 
+      {
+          if( x[i] != NULL )
+              IFree(x[i]);
+          x[i]=NULL;
+      }
+      IFree(x);
+      x=NULL;
   }
-  free(x);
 
   EXRETURN;
 }
@@ -862,10 +870,14 @@ void free2f(float **x, long index1)
 
   ENTRY("free2f");
   
-  for(i = 0; i < index1; i++) {
-    free(x[i]);
+  if( x != NULL )
+  { 
+      for(i = 0; i < index1; i++) 
+      {
+          IFree(x[i]);
+      }
+      IFree(x);
   }
-  free(x);
 
   EXRETURN;
 }
@@ -918,10 +930,13 @@ void free2DT(DatasetType **x, long index1)
 
   ENTRY("free2DT");
 
-  for(i = 0; i < index1; i++) {
-    free(x[i]);
+  if( x != NULL )
+  {
+      for(i = 0; i < index1; i++) {
+          IFree(x[i]);
+      }
+      IFree(x);
   }
-  free(x);
   
   EXRETURN;
 }
@@ -983,8 +998,14 @@ void free2c(char **x, long index1)
 
   ENTRY("free2c");
 
-  for(i=0; i<index1; i++) free(x[i]);
-  free(x);
+  if( x != NULL )
+  { 
+      for(i = 0; i < index1; i++) 
+      {
+          IFree(x[i]);
+      }
+      IFree(x);
+  }
 
   EXRETURN;
 }
@@ -1029,9 +1050,16 @@ void freeDOCs(DOC *docs, long ndocsTime)
      have to make a deep copy of 'model'. */
   /* deep_copy_of_model=copy_model(model); */
 
-  for( i=0; i < ndocsTime; ++i ) free(docs[i].words);
-
-  free(docs);
+  if( docs != NULL )
+  {
+    for( i=0; i < ndocsTime; ++i )
+    {
+      if (docs[i].words != NULL) IFree(docs[i].words);
+      docs[i].words = NULL;
+    }
+    IFree(docs);
+    docs = NULL;
+  }
 
   EXRETURN;
 }
@@ -1078,7 +1106,8 @@ int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect,
     
     /* free and return */
     free2f(tmp_mcdist, n_classComb);
-    free(tmp_classCorrect);
+    if( tmp_classCorrect != NULL ) IFree(tmp_classCorrect);
+    tmp_classCorrect = NULL;
     RETURN(1);
   }
 
@@ -1088,8 +1117,8 @@ int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect,
     
     /* free and return */
     free2f(tmp_mcdist, n_classComb);
-    free(tmp_classCorrect);
-    free(tmp_classIncorrect);
+    IFree(tmp_classCorrect);
+    IFree(tmp_classIncorrect);
     RETURN(1);
   }
 
@@ -1099,9 +1128,9 @@ int allocateMultiClassArrays( float ***multiclass_dist, float **classCorrect,
     
     /* free and return */
     free2f(tmp_mcdist, n_classComb);
-    free(tmp_classCorrect);
-    free(tmp_classIncorrect);
-    free(tmp_classVote);
+    IFree(tmp_classCorrect);
+    IFree(tmp_classIncorrect);
+    IFree(tmp_classVote);
     RETURN(1);
   }
 
@@ -1123,10 +1152,10 @@ void freeMultiClassArrays( float **multiclass_dist, float *classCorrect,
   ENTRY("freeMultiClassArryas");
 
   free2f(multiclass_dist, n_classComb);
-  free(classCorrect);
-  free(classIncorrect);
-  free(classVote);
-  free(classList);
+  IFree(classCorrect);
+  IFree(classIncorrect);
+  IFree(classVote);
+  IFree(classList);
 
   EXRETURN;
 }
@@ -1223,7 +1252,7 @@ MaskType* getAllocateMaskArray( THD_3dim_dataset *dset, char *errorString )
           "Sorry, datum-type MRI_rgb (%d) is not supported!", datum);
 
       /* free end return */
-      free(maskArray);
+      IFree(maskArray);
       RETURN(NULL);
       break;
 
@@ -1232,7 +1261,7 @@ MaskType* getAllocateMaskArray( THD_3dim_dataset *dset, char *errorString )
           "Sorry, datum-type MRI_complex (%d) is not supported!", datum);
 
       /* free end return */
-      free(maskArray);
+      IFree(maskArray);
       RETURN(NULL);
       break;
 
@@ -1241,7 +1270,7 @@ MaskType* getAllocateMaskArray( THD_3dim_dataset *dset, char *errorString )
           "Unknown datum-type (%d)", datum);
 
       /* free end return */
-      free(maskArray);
+      IFree(maskArray);
       RETURN(NULL);
       break;
   }
@@ -1475,12 +1504,12 @@ int allocateModel( MODEL *model, AFNI_MODEL *afni_model, char *errorString )
           "Memory allocation for model->alpha failed!");
 
     /* free and return */
-    free(model->supvec);
+    IFree(model->supvec);
     for( sv=1; sv<nsv; ++sv ) { 
-      free( (model->supvec[sv])->words );
-      free(model->supvec[sv]);
+      IFree( (model->supvec[sv])->words );
+      IFree(model->supvec[sv]);
     }
-    free(model->supvec);
+    IFree(model->supvec);
     
     RETURN(1);
   }
@@ -1492,12 +1521,12 @@ int allocateModel( MODEL *model, AFNI_MODEL *afni_model, char *errorString )
           "Memory allocation for model->lin_weights failed!");
 
       /* free and return */
-      free(model->supvec);
+      IFree(model->supvec);
       for( sv=1; sv<nsv; ++sv ) { 
-        free( (model->supvec[sv])->words );
-        free(model->supvec[sv]);
+        IFree( (model->supvec[sv])->words );
+        IFree(model->supvec[sv]);
       }
-      free(model->supvec);
+      IFree(model->supvec);
     
       RETURN(1);
     }
@@ -1539,21 +1568,21 @@ void freeModel( MODEL *model, AFNI_MODEL *afni_model, enum modes mode )
     /* free the model throughly, we don't have other references to the
        original training data */
     for( sv=1; sv<nsv; ++sv) {
-      free( (model->supvec[sv])->words );
-      free(model->supvec[sv]);    
+      IFree( (model->supvec[sv])->words );
+      IFree(model->supvec[sv]);    
     }
-    free(model->supvec);
-    free(model->alpha);
+    IFree(model->supvec);
+    IFree(model->alpha);
   }
   else if( mode == TRAIN) {
     /* model->supvec are freed by freeing the DOCs in freeDOCs */
 
-    free(model->supvec);
-    free(model->alpha);
-    free(model->index);
+    IFree(model->supvec);
+    IFree(model->alpha);
+    IFree(model->index);
   }
 
-  /* if(model->kernel_parm.kernel_type == LINEAR ) free(model->lin_weights); */
+  /* if(model->kernel_parm.kernel_type == LINEAR ) IFree(model->lin_weights); */
 
   EXRETURN;
 }
@@ -1648,7 +1677,9 @@ void freeModelArrays( DatasetType** dsetModelArray,
 
   ENTRY("freeModelArrays");
 
-  if( mask_used == MASK_YES ) free(dsetMaskArray);
+  /* CC if( mask_used == MASK_YES ) IFree(dsetMaskArray); */
+  if( dsetMaskArray != NULL ) IFree(dsetMaskArray);
+  dsetMaskArray=NULL;
   free2DT(dsetModelArray, nt_model );
 
 
@@ -1864,7 +1895,7 @@ int getAllocateModelArrays(THD_3dim_dataset *dsetModel,
   }
 
   /* -- free temporary memory */
-  free(tmp_dsetArray);
+  IFree(tmp_dsetArray);
 
   *dsetMaskArray =  tmp_dsetMaskArray;
   *dsetModelArray = tmp_dsetModelArray;
@@ -2085,7 +2116,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for combName failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       RETURN(1);
     }
     Clear2c(afniModel->combName, max_comb);
@@ -2095,7 +2126,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for kernel_custom failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       RETURN(1);
     }
@@ -2128,7 +2159,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "file failed");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
       RETURN(1);
@@ -2143,7 +2174,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
             "Number does not match expected: '%d'", afniModel->combinations);
         
         /* free and return */
-        free(p);
+        IFree(p);
         free2c(afniModel->combName, max_comb);
         free2c(afniModel->kernel_custom, max_comb);
         RETURN(1);
@@ -2156,7 +2187,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for kernel_type failed!"); 
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
       RETURN(1);
@@ -2175,10 +2206,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
 
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
+      IFree(afniModel->kernel_type);
       RETURN(1);
     }
     for( i=1; i<afniModel->combinations; ++i ) {
@@ -2190,10 +2221,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
             "combinations does not match expected:'%d'", afniModel->combinations);
 
         /* free and return */
-        free(p);
+        IFree(p);
         free2c(afniModel->combName, max_comb);
         free2c(afniModel->kernel_custom, max_comb);
-        free(afniModel->kernel_type);
+        IFree(afniModel->kernel_type);
         RETURN(1);
       }
     }
@@ -2204,10 +2235,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for rbf_gamma failed!"); 
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
+      IFree(afniModel->kernel_type);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -2220,11 +2251,11 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for linear_coefficient failed!");
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -2237,12 +2268,12 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for constant_coefficient failed!");
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -2255,13 +2286,13 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_masked_features failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -2274,14 +2305,14 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_samples failed!");
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -2294,15 +2325,15 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_support_vectors failed!");
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -2315,16 +2346,16 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for b failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -2336,17 +2367,17 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       snprintf(errorString, LONG_STRING, "readAllocateAfniModel: "
           "Memory allocation for polynomial_degree failed!");
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -2373,18 +2404,18 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for alphas failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       RETURN(1);
     }
 
@@ -2396,7 +2427,6 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
       }
     }
 
-
     /* JL Nov 2009: new parameters: */
     atr_float = THD_find_float_atr( dsetModel->dblk, "3DSVM_SVM_C" );
     if( (afniModel->svm_c = (float *)malloc( atr_float->nfl * sizeof(float))) == NULL ) {
@@ -2404,18 +2434,18 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_c failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
       RETURN(1);
     }
@@ -2429,20 +2459,20 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for eps failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
+      IFree(afniModel->svm_c);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2455,21 +2485,21 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for biased_hyperplane failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2482,22 +2512,22 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for skip_final_opt_check failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2510,23 +2540,23 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_maxqpsize failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2539,24 +2569,24 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_newvarsinqp failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2570,25 +2600,25 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
 
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2601,26 +2631,26 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for transduction_posratio failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
       RETURN(1);
       
     }
@@ -2634,27 +2664,27 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_costratio failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2667,28 +2697,28 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_costratio_unlab failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2701,29 +2731,29 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for svm_unlabbound failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2736,29 +2766,29 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for epsilon_a failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2771,30 +2801,30 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for epsilon_crit failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
-      free(afniModel->epsilon_a);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
+      IFree(afniModel->epsilon_a);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2807,31 +2837,31 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for compute_loo failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
-      free(afniModel->epsilon_a);
-      free(afniModel->epsilon_crit);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
+      IFree(afniModel->epsilon_a);
+      IFree(afniModel->epsilon_crit);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2844,32 +2874,32 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for rho!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
-      free(afniModel->epsilon_a);
-      free(afniModel->epsilon_crit);
-      free(afniModel->compute_loo);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
+      IFree(afniModel->epsilon_a);
+      IFree(afniModel->epsilon_crit);
+      IFree(afniModel->compute_loo);
       RETURN(1);
     }
     for (i=0; i < afniModel->combinations; ++i ) {
@@ -2882,33 +2912,33 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for xa_depth failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples); 
-      free(afniModel->total_support_vectors); 
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples); 
+      IFree(afniModel->total_support_vectors); 
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       free2f(afniModel->alphas, afniModel->combinations);
-      free(afniModel->svm_c);
-      free(afniModel->eps);
-      free(afniModel->biased_hyperplane);
-      free(afniModel->skip_final_opt_check);
-      free(afniModel->svm_maxqpsize);
-      free(afniModel->svm_newvarsinqp);
-      free(afniModel->svm_iter_to_shrink);
-      free(afniModel->transduction_posratio);
-      free(afniModel->svm_costratio);
-      free(afniModel->svm_costratio_unlab);
-      free(afniModel->epsilon_a);
-      free(afniModel->epsilon_crit);
-      free(afniModel->compute_loo);
-      free(afniModel->rho);
+      IFree(afniModel->svm_c);
+      IFree(afniModel->eps);
+      IFree(afniModel->biased_hyperplane);
+      IFree(afniModel->skip_final_opt_check);
+      IFree(afniModel->svm_maxqpsize);
+      IFree(afniModel->svm_newvarsinqp);
+      IFree(afniModel->svm_iter_to_shrink);
+      IFree(afniModel->transduction_posratio);
+      IFree(afniModel->svm_costratio);
+      IFree(afniModel->svm_costratio_unlab);
+      IFree(afniModel->epsilon_a);
+      IFree(afniModel->epsilon_crit);
+      IFree(afniModel->compute_loo);
+      IFree(afniModel->rho);
       RETURN(1);
     }
     for( i=0; i<afniModel->combinations; ++i ) {
@@ -2938,7 +2968,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for combName failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       RETURN(1);
     }
     Clear2c(afniModel->combName, max_comb);
@@ -2948,7 +2978,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for kernel_custom failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       RETURN(1);
     }
@@ -2968,7 +2998,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Reading model combinations in header file failed");
 
       /*  free and return  */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
       RETURN(1);
@@ -2982,7 +3012,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
             "Number does not match expected(%d)", afniModel->combinations);
      
         /*  free and return  */
-        free(p);
+        IFree(p);
         free2c(afniModel->combName, max_comb);
         free2c(afniModel->kernel_custom, max_comb);
         RETURN(1);
@@ -3001,7 +3031,7 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for kernel_type failed!"); 
 
         /*  free and return  */
-        free(p);
+        IFree(p);
         free2c(afniModel->combName, max_comb);
         free2c(afniModel->kernel_custom, max_comb);
         RETURN(1);
@@ -3025,10 +3055,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
               "Reading model file failed. Can't find KERNEL_CUSTOM");
 
           /* free and return */
-          free(p);
+          IFree(p);
           free2c(afniModel->combName, max_comb);
           free2c(afniModel->kernel_custom, max_comb); 
-          free(afniModel->kernel_type);
+          IFree(afniModel->kernel_type);
           RETURN(1);
         }
 
@@ -3041,10 +3071,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
                 afniModel->combinations);
 
             /* free and return */
-            free(p);
+            IFree(p);
             free2c(afniModel->combName, max_comb);
             free2c(afniModel->kernel_custom, max_comb); 
-            free(afniModel->kernel_type);
+            IFree(afniModel->kernel_type);
             RETURN(1);
           }
         }
@@ -3061,10 +3091,10 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for rbf_gamma failed!");
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
+      IFree(afniModel->kernel_type);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -3078,11 +3108,11 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for linear_coefficient failed!"); 
       
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -3095,12 +3125,12 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for constant_coefficient failed!");
 
       /* free and return */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -3113,13 +3143,13 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_masked_features failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -3132,14 +3162,14 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_samples failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -3152,15 +3182,15 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for total_support_vectors failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -3173,16 +3203,16 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for b failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples);
-      free(afniModel->total_support_vectors);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples);
+      IFree(afniModel->total_support_vectors);
       RETURN(1);
     }
     for( i=0 ; i<atr_float->nfl ; ++i ) {
@@ -3195,17 +3225,17 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for polynomial_degree failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples);
-      free(afniModel->total_support_vectors);
-      free(afniModel->b);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples);
+      IFree(afniModel->total_support_vectors);
+      IFree(afniModel->b);
       RETURN(1);
     }
     for( i=0 ; i<atr_int->nin ; ++i ) {
@@ -3219,18 +3249,18 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
           "Memory allocation for alphas failed!");
 
       /* -- free and return -- */
-      free(p);
+      IFree(p);
       free2c(afniModel->combName, max_comb);
       free2c(afniModel->kernel_custom, max_comb);
-      free(afniModel->kernel_type);
-      free(afniModel->rbf_gamma);
-      free(afniModel->linear_coefficient);
-      free(afniModel->constant_coefficient);
-      free(afniModel->total_masked_features);
-      free(afniModel->total_samples);
-      free(afniModel->total_support_vectors);
-      free(afniModel->b);
-      free(afniModel->polynomial_degree);
+      IFree(afniModel->kernel_type);
+      IFree(afniModel->rbf_gamma);
+      IFree(afniModel->linear_coefficient);
+      IFree(afniModel->constant_coefficient);
+      IFree(afniModel->total_masked_features);
+      IFree(afniModel->total_samples);
+      IFree(afniModel->total_support_vectors);
+      IFree(afniModel->b);
+      IFree(afniModel->polynomial_degree);
       RETURN(1);
     }
      
@@ -3246,24 +3276,24 @@ int readAllocateAfniModel( THD_3dim_dataset *dsetModel, AFNI_MODEL *afniModel, c
     snprintf(errorString, LONG_STRING, 
           "Could not read model header. Version V%3.2f unknown!", afniModel->version);
     /* -- free and return -- */
-    free(p);
+    IFree(p);
     free2c(afniModel->combName, max_comb);
     free2c(afniModel->kernel_custom, max_comb);
-    free(afniModel->kernel_type);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
-    free(afniModel->polynomial_degree);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
+    IFree(afniModel->polynomial_degree);
     free2f(afniModel->alphas, afniModel->combinations);
     RETURN(1);
   }
     
   /* --- free p string used for strtok ---*/
-  free(p);
+  IFree(p);
 
   RETURN(0);
 }
@@ -3588,7 +3618,7 @@ int writeModelMap_bucket( MODEL_MAPS *maps, MaskType *dsetMaskArray,
     WARNING_message("Can not copy command-line into bucket header!");
   }
   else tross_Append_History (dsetModelMapBucket, commandline);
-  free(commandline);
+  IFree(commandline);
 
  /* --- scale and write maps into bucket --- */
   for (iMap=0; iMap<maps->nmaps; ++iMap) {
@@ -3652,7 +3682,7 @@ int writeModelMap_bucket( MODEL_MAPS *maps, MaskType *dsetMaskArray,
   THD_write_3dim_dataset( "./", fileName, dsetModelMapBucket, True );
  
   /* --- deallocate memory --- */
-  free(scaled_map);
+  IFree(scaled_map);
   
   RETURN(0);
 }
@@ -3897,7 +3927,7 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
           "Memory allocation for csv_kernelCustom failed!"); 
     
     DSET_unload(dsetModel); 
-    free(csv_combName);
+    IFree(csv_combName);
     RETURN(1);
   }
 
@@ -3907,7 +3937,7 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
     WARNING_message("Can not copy command-line into model header!");
   }
   else tross_Append_History (dsetModel, commandline);
-  free(commandline);
+  IFree(commandline);
 
   /* -- write model header -- */
   strncpy(csv_combName, afniModel->combName[0], csv_string_size);
@@ -4008,8 +4038,8 @@ int writeModelBrik(AFNI_MODEL *afniModel, THD_3dim_dataset* dsetTrain,
   THD_write_3dim_dataset( "./", fileName, dsetModel, True );
 
   /* --- free memory ---*/
-  free(csv_combName);
-  free(csv_kernelCustom);
+  IFree(csv_combName);
+  IFree(csv_kernelCustom);
 
   RETURN(0);
 }
@@ -4426,43 +4456,45 @@ void freeAfniModel(AFNI_MODEL *afniModel)
 
   ENTRY("freeAfniModel");
   
-  free( afniModel->kernel_type );
-  free( afniModel->polynomial_degree );
-  free( afniModel->rbf_gamma );
-  free( afniModel->linear_coefficient );
-  free( afniModel->constant_coefficient );
-  free( afniModel->total_masked_features );
-  free( afniModel->total_samples );
-  free( afniModel->total_support_vectors );
-  free( afniModel->b );
-  free2f(afniModel->alphas,  (long) afniModel->combinations);
-  free2c(afniModel->combName, max_comb);
-
-  /* Oct. 2008: */
-  if( afniModel->version >= 0.80 ) {
-    free2c(afniModel->kernel_custom, max_comb);
+  if( afniModel != NULL )
+  { 
+      IFree( afniModel->kernel_type );
+      IFree( afniModel->polynomial_degree );
+      IFree( afniModel->rbf_gamma );
+      IFree( afniModel->linear_coefficient );
+      IFree( afniModel->constant_coefficient );
+      IFree( afniModel->total_masked_features );
+      IFree( afniModel->total_samples );
+      IFree( afniModel->total_support_vectors );
+      IFree( afniModel->b );
+      free2f(afniModel->alphas,  (long) afniModel->combinations);
+      free2c(afniModel->combName, max_comb);
+    
+      /* Oct. 2008: */
+      if( afniModel->version >= 0.80 ) {
+        free2c(afniModel->kernel_custom, max_comb);
+      }
+      
+      /* JL Nov 2009: */
+      if( afniModel->version >= 1.10 ) {
+        IFree( afniModel->eps );
+        IFree( afniModel->svm_c );
+        IFree( afniModel->biased_hyperplane );
+        IFree( afniModel->skip_final_opt_check );
+        IFree( afniModel->svm_maxqpsize );
+        IFree( afniModel->svm_newvarsinqp );
+        IFree( afniModel->svm_iter_to_shrink );
+        IFree( afniModel->transduction_posratio );
+        IFree( afniModel->svm_costratio );
+        IFree( afniModel->svm_costratio_unlab );
+        IFree( afniModel->svm_unlabbound );
+        IFree( afniModel->epsilon_a );
+        IFree( afniModel->epsilon_crit );
+        IFree( afniModel->compute_loo );
+        IFree( afniModel->rho );
+        IFree( afniModel->xa_depth );
+      }
   }
-  
-  /* JL Nov 2009: */
-  if( afniModel->version >= 1.10 ) {
-    free( afniModel->eps );
-    free( afniModel->svm_c );
-    free( afniModel->biased_hyperplane );
-    free( afniModel->skip_final_opt_check );
-    free( afniModel->svm_maxqpsize );
-    free( afniModel->svm_newvarsinqp );
-    free( afniModel->svm_iter_to_shrink );
-    free( afniModel->transduction_posratio );
-    free( afniModel->svm_costratio );
-    free( afniModel->svm_costratio_unlab );
-    free( afniModel->svm_unlabbound );
-    free( afniModel->epsilon_a );
-    free( afniModel->epsilon_crit );
-    free( afniModel->compute_loo );
-    free( afniModel->rho );
-    free( afniModel->xa_depth );
-  }
-
   EXRETURN;
 }
 
@@ -4514,7 +4546,7 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for polynomial_degree failed!");
  
     /* free and return */
-    free(afniModel->kernel_type);
+    IFree(afniModel->kernel_type);
     RETURN(1);
   }
 
@@ -4522,8 +4554,8 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for rbf_gamma failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
     RETURN(1);
   }
 
@@ -4531,9 +4563,9 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for linear_coefficient failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
     RETURN(1);
   }
 
@@ -4542,10 +4574,10 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for constant_coefficient failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
     RETURN(1);
   }
 
@@ -4553,11 +4585,11 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_masked_features failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
     RETURN(1);
   }
 
@@ -4565,12 +4597,12 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_samples failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
     RETURN(1);
   }
 
@@ -4578,13 +4610,13 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for total_support_vectors failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
     RETURN(1);
   }
 
@@ -4592,14 +4624,14 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for b failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
     RETURN(1);
   }
 
@@ -4607,17 +4639,18 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for alphas failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     RETURN(1);
   }
+
 
 
   /* JL Nov 2009: Added model parameters */
@@ -4625,15 +4658,15 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for eps failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
     RETURN(1);
   }
@@ -4642,17 +4675,17 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_c!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
+    IFree(afniModel->eps);
     RETURN(1);
   }
 
@@ -4660,18 +4693,18 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for biased_hyperplane failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
     RETURN(1);
   }
 
@@ -4679,19 +4712,19 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for skip_final_opt_check failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
     RETURN(1);
   }
 
@@ -4699,20 +4732,20 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_maxqpsize failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
     RETURN(1);
   }
 
@@ -4720,21 +4753,21 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_newvarsinqp failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
     RETURN(1);
   }
 
@@ -4742,22 +4775,22 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_iter_to_shrink failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
     RETURN(1);
   }
 
@@ -4765,23 +4798,23 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for transduction_posratio failed!");
 
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
     RETURN(1);
   }
 
@@ -4789,24 +4822,24 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_costratio failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
     RETURN(1);
   }
 
@@ -4814,25 +4847,25 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_costratio_unlab failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
     RETURN(1);
   }
 
@@ -4840,26 +4873,26 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for svm_unlabbound failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
     RETURN(1);
   }
 
@@ -4867,27 +4900,27 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for epsilon_a failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
     RETURN(1);
   }
 
@@ -4895,28 +4928,28 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for epsilon_crit failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
     RETURN(1);
   }
 
@@ -4924,29 +4957,29 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for compute_loo failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
-    free(afniModel->epsilon_crit);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
+    IFree(afniModel->epsilon_crit);
     RETURN(1);
   }
 
@@ -4954,30 +4987,30 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for rho failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
-    free(afniModel->epsilon_crit);
-    free(afniModel->compute_loo);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
+    IFree(afniModel->epsilon_crit);
+    IFree(afniModel->compute_loo);
     RETURN(1);
   }
 
@@ -4985,31 +5018,31 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for xa_depth failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
-    free(afniModel->epsilon_crit);
-    free(afniModel->compute_loo);
-    free(afniModel->rho);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
+    IFree(afniModel->epsilon_crit);
+    IFree(afniModel->compute_loo);
+    IFree(afniModel->rho);
     RETURN(1);
   }
 
@@ -5018,32 +5051,32 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for combName failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
-    free(afniModel->epsilon_crit);
-    free(afniModel->compute_loo);
-    free(afniModel->rho);
-    free(afniModel->xa_depth);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
+    IFree(afniModel->epsilon_crit);
+    IFree(afniModel->compute_loo);
+    IFree(afniModel->rho);
+    IFree(afniModel->xa_depth);
     RETURN(1);
   }
   Clear2c(afniModel->combName, max_comb);
@@ -5052,32 +5085,32 @@ int allocateAfniModel(AFNI_MODEL *afniModel, LABELS *labels,
     snprintf(errorString, LONG_STRING, "allocateAfniModel: Memory allocation for kernel_custom failed!");
     
     /* free and return */
-    free(afniModel->kernel_type);
-    free(afniModel->polynomial_degree);
-    free(afniModel->rbf_gamma);
-    free(afniModel->linear_coefficient);
-    free(afniModel->constant_coefficient);
-    free(afniModel->total_masked_features);
-    free(afniModel->total_samples);
-    free(afniModel->total_support_vectors);
-    free(afniModel->b);
+    IFree(afniModel->kernel_type);
+    IFree(afniModel->polynomial_degree);
+    IFree(afniModel->rbf_gamma);
+    IFree(afniModel->linear_coefficient);
+    IFree(afniModel->constant_coefficient);
+    IFree(afniModel->total_masked_features);
+    IFree(afniModel->total_samples);
+    IFree(afniModel->total_support_vectors);
+    IFree(afniModel->b);
     free2f(afniModel->alphas, (long) afniModel->combinations);
-    free(afniModel->eps);
-    free(afniModel->svm_c);
-    free(afniModel->biased_hyperplane);
-    free(afniModel->skip_final_opt_check);
-    free(afniModel->svm_maxqpsize);
-    free(afniModel->svm_newvarsinqp);
-    free(afniModel->svm_iter_to_shrink);
-    free(afniModel->transduction_posratio);
-    free(afniModel->svm_costratio);
-    free(afniModel->svm_costratio_unlab);
-    free(afniModel->svm_unlabbound);
-    free(afniModel->epsilon_a);
-    free(afniModel->epsilon_crit);
-    free(afniModel->compute_loo);
-    free(afniModel->rho);
-    free(afniModel->xa_depth);
+    IFree(afniModel->eps);
+    IFree(afniModel->svm_c);
+    IFree(afniModel->biased_hyperplane);
+    IFree(afniModel->skip_final_opt_check);
+    IFree(afniModel->svm_maxqpsize);
+    IFree(afniModel->svm_newvarsinqp);
+    IFree(afniModel->svm_iter_to_shrink);
+    IFree(afniModel->transduction_posratio);
+    IFree(afniModel->svm_costratio);
+    IFree(afniModel->svm_costratio_unlab);
+    IFree(afniModel->svm_unlabbound);
+    IFree(afniModel->epsilon_a);
+    IFree(afniModel->epsilon_crit);
+    IFree(afniModel->compute_loo);
+    IFree(afniModel->rho);
+    IFree(afniModel->xa_depth);
     free2c(afniModel->combName, max_comb);
     RETURN(1);
   }
@@ -5092,7 +5125,14 @@ void freeAfniModelAndArrays(AFNI_MODEL *afniModel,
 {
   ENTRY("freeAfniModelAndArrays");
 
-  freeModelArrays(dsetModelArray, dsetMaskArray, nt_model, afniModel->mask_used);
+  if( afniModel != NULL )
+  {
+      freeModelArrays(dsetModelArray, dsetMaskArray, nt_model, afniModel->mask_used);
+  }
+  else
+  {
+      freeModelArrays(dsetModelArray, dsetMaskArray, nt_model, 1);
+  }
   freeAfniModel(afniModel);
 
   EXRETURN;
@@ -5211,11 +5251,11 @@ void freeClassificationLabels(LABELS *labels) {
 
   ENTRY("freeClasssificationLabels");
 
-  free(labels->lbls);
-  free(labels->cnsrs);
-  free(labels->lbls_cont);
-  free(labels->class_list);
-  free(labels->lbls_count);
+  IFree(labels->lbls);
+  IFree(labels->cnsrs);
+  IFree(labels->lbls_cont);
+  IFree(labels->class_list);
+  IFree(labels->lbls_count);
   
   EXRETURN;
 }
@@ -5277,7 +5317,7 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
 
     /* free and return */
     fclose(fp);
-    free(labels->lbls);
+    IFree(labels->lbls);
     RETURN(1);
   }
 
@@ -5287,8 +5327,8 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
 
     /* free and return */
     fclose(fp);
-    free(labels->lbls);
-    free(labels->lbls_cont);
+    IFree(labels->lbls);
+    IFree(labels->lbls_cont);
     RETURN(1);
   }
   
@@ -5299,12 +5339,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
 
     /* free and return */
     fclose(fp);
-    free(labels->lbls);
-    free(labels->lbls_cont);
-    free(labels->class_list);
+    IFree(labels->lbls);
+    IFree(labels->lbls_cont);
+    IFree(labels->class_list);
     RETURN(1);
   }
-
 
   /* --- read labels from file and do some error checking --- */
   for( i=0; i<labels->n; i++ ) {
@@ -5317,10 +5356,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
       
       /* free and return */
       fclose(fp);
-      free(labels->lbls);
-      free(labels->lbls_cont);
-      free(labels->class_list);
-      free(labels->lbls_count);
+
+      IFree(labels->lbls);
+      IFree(labels->lbls_cont);
+      IFree(labels->class_list);
+      IFree(labels->lbls_count);
       RETURN(1);
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
@@ -5331,10 +5371,10 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
           "entry in line %ld! ", labelFile, i+1);
       /* free and return */
       fclose(fp);
-      free(labels->lbls);
-      free(labels->lbls_cont);
-      free(labels->class_list);
-      free(labels->lbls_count);
+      IFree(labels->lbls);
+      IFree(labels->lbls_cont);
+      IFree(labels->class_list);
+      IFree(labels->lbls_count);
       RETURN(1);
     }
   }
@@ -5346,11 +5386,10 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
         "Could not allocate censors!");
 
     /* free and return */
-    free(labels->lbls);
-    free(labels->lbls_cont);
-    free(labels->class_list);
-    free(labels->lbls_count);
-
+    IFree(labels->lbls);
+    IFree(labels->lbls_cont);
+    IFree(labels->class_list);
+    IFree(labels->lbls_count);
     RETURN(1);
   }
 
@@ -5365,11 +5404,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
           censorFile);
      
       /* free and return */
-      free(labels->lbls);
-      free(labels->lbls_cont);
-      free(labels->class_list);
-      free(labels->lbls_count);
-      free(labels->cnsrs);
+      IFree(labels->lbls);
+      IFree(labels->lbls_cont);
+      IFree(labels->class_list);
+      IFree(labels->lbls_count);
+      IFree(labels->cnsrs);
       RETURN(1);
     }
     /* -- check if size of labelfile matches size of censorfile -- */
@@ -5379,11 +5418,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
           labelFile, labels->n, censorFile, getFileSize(censorFile));
 
       /* free and return */
-      free(labels->lbls);
-      free(labels->lbls_cont);
-      free(labels->class_list);
-      free(labels->lbls_count);
-      free(labels->cnsrs);
+      IFree(labels->lbls);
+      IFree(labels->lbls_cont);
+      IFree(labels->class_list);
+      IFree(labels->lbls_count);
+      IFree(labels->cnsrs);
       fclose(fp);
       RETURN(1);
     }
@@ -5398,11 +5437,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
             "empty!", censorFile, i+1);
 
         /* free and return */
-        free(labels->lbls);
-        free(labels->lbls_cont);
-        free(labels->class_list);
-        free(labels->lbls_count);
-        free(labels->cnsrs);
+        IFree(labels->lbls);
+        IFree(labels->lbls_cont);
+        IFree(labels->class_list);
+        IFree(labels->lbls_count);
+        IFree(labels->cnsrs);
         fclose(fp);
         RETURN(1);
       }
@@ -5417,11 +5456,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
             censorFile, i+1, labelString);
         
         /* free and return */
-        free(labels->lbls);
-        free(labels->lbls_cont);
-        free(labels->class_list);
-        free(labels->lbls_count);
-        free(labels->cnsrs);
+        IFree(labels->lbls);
+        IFree(labels->lbls_cont);
+        IFree(labels->class_list);
+        IFree(labels->lbls_count);
+        IFree(labels->cnsrs);
         fclose(fp);
         RETURN(1);
       }
@@ -5504,11 +5543,11 @@ int getAllocateClassificationLabels( LABELS *labels, char *labelFile,
           "Complain to the authors if you need more.", CLASS_MAX-1);
 
     /* free and return */
-    free(labels->lbls);
-    free(labels->lbls_cont);
-    free(labels->class_list);
-    free(labels->lbls_count);
-    free(labels->cnsrs);
+    IFree(labels->lbls);
+    IFree(labels->lbls_cont);
+    IFree(labels->class_list);
+    IFree(labels->lbls_count);
+    IFree(labels->cnsrs);
     RETURN(1);
    }
 
@@ -5576,7 +5615,7 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
 
     /* free and return */
     fclose(fp);
-    free(labels->lbls);
+    IFree(labels->lbls);
     RETURN(1);
 
   }
@@ -5595,8 +5634,8 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
 
       /* free and return */
       fclose(fp);
-      free(labels->lbls);
-      free(labels->class_list);
+      IFree(labels->lbls);
+      IFree(labels->class_list);
       RETURN(1);
     }
     else labels->lbls[i] = (LabelType) atof(labelString);
@@ -5609,8 +5648,8 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
         "Memory allocation for labels->cnsrs failed!");
 
     /* free and return */
-    free(labels->lbls);
-    free(labels->class_list);
+    IFree(labels->lbls);
+    IFree(labels->class_list);
     RETURN(1);
   }
 
@@ -5624,9 +5663,9 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
           "Could not open .1D censor file: %s", censorFile);
 
       /* free and return */
-      free(labels->lbls);
-      free(labels->class_list);
-      free(labels->cnsrs);
+      IFree(labels->lbls);
+      IFree(labels->class_list);
+      IFree(labels->cnsrs);
       RETURN(1);
     }
 
@@ -5637,9 +5676,9 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
            getFileSize(censorFile));
 
       /* free and return */
-      free(labels->lbls);
-      free(labels->class_list);
-      free(labels->cnsrs);
+      IFree(labels->lbls);
+      IFree(labels->class_list);
+      IFree(labels->cnsrs);
       fclose(fp);
       RETURN(1);
     }
@@ -5663,9 +5702,9 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
             "Only 0 or 1 is allowed!", censorFile, i+1, labelString); 
         
         /* free and return */ 
-        free(labels->lbls);
-        free(labels->class_list);
-        free(labels->cnsrs);
+        IFree(labels->lbls);
+        IFree(labels->class_list);
+        IFree(labels->cnsrs);
         fclose(fp);
         RETURN(1);
       }
@@ -5680,9 +5719,9 @@ int getAllocateRegressionLabelsAndTarget(LABELS *labels, LabelType **target,
         "Memory allocation for target failed!");
 
     /* free and return */ 
-    free(labels->lbls);
-    free(labels->class_list);
-    free(labels->cnsrs);
+    IFree(labels->lbls);
+    IFree(labels->class_list);
+    IFree(labels->cnsrs);
     RETURN(1);
   }
 
@@ -5718,10 +5757,10 @@ void freeRegressionLabelsAndTarget(LABELS *labels, LabelType *target)
 
   ENTRY("freeRegressionLabelsAndTarget");
 
-  free(labels->lbls);
-  free(labels->cnsrs);
-  free(labels->class_list);
-  free(target);
+  IFree(labels->lbls);
+  IFree(labels->cnsrs);
+  IFree(labels->class_list);
+  IFree(target);
   
   EXRETURN;
 }
@@ -5877,7 +5916,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     /* free and return */
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     RETURN(1);
   }
  
@@ -5893,7 +5932,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     RETURN(1);
   }
 
@@ -5919,7 +5958,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     RETURN(1);
   }
   
@@ -5935,7 +5974,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     freeDOCs(docsTest, nt);
     RETURN(1);
   }
@@ -5948,7 +5987,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     freeDOCs(docsTest, nt);
     freeModel(model, afniModel, TEST);
     RETURN(1);
@@ -5964,7 +6003,7 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     freeDOCs(docsTest, nt);
     freeModel(model, afniModel, TEST);
     RETURN(1);
@@ -5982,10 +6021,10 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
     freeDsetArray(dsetTest, dsetTestArray);
     DSET_unload(dsetTest);
     if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-    if( options->testLabelFile[0] ) free(censoredTargets);
+    if( options->testLabelFile[0] ) IFree(censoredTargets);
     freeDOCs(docsTest, nt);
     freeModel(model, afniModel, TEST);
-    free(dist);
+    IFree(dist);
     if( afniModel->class_count > 2 ) {
       freeMultiClassArrays(multiclass_dist, classCorrect, 
           classIncorrect,  classVote, classList,
@@ -6005,10 +6044,10 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
       freeDsetArray(dsetTest, dsetTestArray);
       DSET_unload(dsetTest);
       if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-      if( options->testLabelFile[0] ) free(censoredTargets);
+      if( options->testLabelFile[0] ) IFree(censoredTargets);
       freeDOCs(docsTest, nt);
       freeModel(model, afniModel, TEST);
-      free(dist);
+      IFree(dist);
       RETURN(1);
     }
 
@@ -6049,16 +6088,16 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
         freeDsetArray(dsetTest, dsetTestArray);
         DSET_unload(dsetTest);
         freeClassificationLabels(&testLabels);
-        free(censoredTargets);
+        IFree(censoredTargets);
         freeDOCs(docsTest, nt);
         freeModel(model, afniModel, TEST);
-        free(dist);
+        IFree(dist);
         if( afniModel->class_count > 2 ) {
           freeMultiClassArrays(multiclass_dist, classCorrect, 
             classIncorrect, classVote, classList,
             (long) afniModel->combinations);
         }
-        free(p);
+        IFree(p);
         RETURN(1);
       }
      
@@ -6084,16 +6123,16 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
       freeDsetArray(dsetTest, dsetTestArray);
       DSET_unload(dsetTest);
       if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-      if( options->testLabelFile[0] ) free(censoredTargets);
+      if( options->testLabelFile[0] ) IFree(censoredTargets);
       freeDOCs(docsTest, nt);
       freeModel(model, afniModel, TEST);
-      free(dist);
+      IFree(dist);
       if( afniModel->class_count > 2 ) {
         freeMultiClassArrays(multiclass_dist, classCorrect, 
           classIncorrect,  classVote, classList,
           (long) afniModel->combinations);
       }
-      free(p);
+      IFree(p);
       RETURN(1);
     }
 
@@ -6124,16 +6163,16 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
         freeDsetArray(dsetTest, dsetTestArray);
         DSET_unload(dsetTest);
         if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-        if( options->testLabelFile[0] ) free(censoredTargets);
+        if( options->testLabelFile[0] ) IFree(censoredTargets);
         freeDOCs(docsTest, nt);
         freeModel(model, afniModel, TEST);
-        free(dist);
+        IFree(dist);
         if( afniModel->class_count > 2 ) {
           freeMultiClassArrays(multiclass_dist, classCorrect, 
             classIncorrect, classVote, classList,
             (long) afniModel->combinations);
         }
-        free(p);
+        IFree(p);
         RETURN(1);
       }
     }
@@ -6351,14 +6390,14 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
         freeDsetArray(dsetTest, dsetTestArray);
         DSET_unload(dsetTest);
         if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-        if( options->testLabelFile[0] ) free(censoredTargets);
+        if( options->testLabelFile[0] ) IFree(censoredTargets);
         freeDOCs(docsTest, nt);
         freeModel(model, afniModel, TEST);
-        free(dist);
+        IFree(dist);
         freeMultiClassArrays(multiclass_dist, classCorrect, 
           classIncorrect,  classVote, classList,
           (long) afniModel->combinations);
-        free(p);
+        IFree(p);
         RETURN(1);
       }
 
@@ -6490,12 +6529,12 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 
   /* free */
   if( options->testLabelFile[0] ) freeClassificationLabels(&testLabels);
-  if( options->testLabelFile[0] ) free(censoredTargets);
+  if( options->testLabelFile[0] ) IFree(censoredTargets);
   freeDOCs(docsTest, nt);
   freeModel(model, afniModel, TEST);
-  free(dist);
+  IFree(dist);
    
-  free(p);
+  IFree(p);
   freeDsetArray(dsetTest, dsetTestArray);
   DSET_unload(dsetTest);
 
@@ -6680,7 +6719,7 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
     freeDsetArray(dsetTest, dsetTestArray);
     freeDOCs(docsTest, nt);
     freeModel(model, afniModel, TEST);
-    free(dist);
+    IFree(dist);
     RETURN(1);
   }
 
@@ -6740,7 +6779,7 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   freeDsetArray(dsetTest, dsetTestArray);
   freeDOCs(docsTest, nt);
   freeModel(model, afniModel, TEST);
-  free(dist);
+  IFree(dist);
 
   RETURN(0);
 }
@@ -6929,7 +6968,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      free(dsetMaskArrayPtr);
+      IFree(dsetMaskArrayPtr);
       RETURN(1); 
     }
   }
@@ -6955,7 +6994,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     RETURN(1);
   }
 
@@ -6967,7 +7006,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -6982,7 +7021,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -6993,7 +7032,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     RETURN(1);
   }
@@ -7006,7 +7045,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     freeAfniModel(&afniModel);
     RETURN(1);
@@ -7021,10 +7060,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeClassificationLabels(&labels);
     freeAfniModel(&afniModel);
-    free(censoredTarget);
+    IFree(censoredTarget);
     RETURN(1);
     }
   }
@@ -7048,10 +7087,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray);
         DSET_unload(dsetTrain);
-        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+        if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
         freeClassificationLabels(&labels);
         freeAfniModel(&afniModel);
-        free(censoredTarget);
+        IFree(censoredTarget);
         if( options->modelWeightFile[0] ) freeModelMaps(&maps);
         RETURN(1);
      }
@@ -7066,10 +7105,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+        if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
-        free(censoredTarget);
+        IFree(censoredTarget);
         if( options->modelWeightFile[0] ) freeModelMaps(&maps);
         RETURN(1);
       }
@@ -7081,10 +7120,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+        if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
-        free(censoredTarget);
+        IFree(censoredTarget);
         if( options->modelWeightFile[0] ) freeModelMaps(&maps);
         freeDOCs(docsClassTrain, sampleCount);
         RETURN(1);
@@ -7097,13 +7136,13 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+        if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
-        free(censoredTarget);
+        IFree(censoredTarget);
         if( options->modelWeightFile[0] ) freeModelMaps(&maps);
         freeDOCs(docsClassTrain, sampleCount);
-        free(classTarget);
+        IFree(classTarget);
         RETURN(1);
       }
 
@@ -7115,13 +7154,13 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
         /* free and return */
         freeDsetArray(dsetTrain, dsetTrainArray); 
         DSET_unload(dsetTrain); 
-        if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+        if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
         freeClassificationLabels(&labels); 
         freeAfniModel(&afniModel); 
-        free(censoredTarget);
+        IFree(censoredTarget);
         if( options->modelWeightFile[0] ) freeModelMaps(&maps);
         freeDOCs(docsClassTrain, sampleCount);
-        free(classTarget);
+        IFree(classTarget);
         RETURN(1);
       }
  
@@ -7191,7 +7230,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       if( !options->docFileOnly[0] ) freeModel(model, &afniModel, TRAIN);
       freeDOCs(docsClassTrain, sampleCount);
       free2DT(dsetClassTrainArray, sampleCount);
-      free(classTarget);
+      IFree(classTarget);
     }
   }
 
@@ -7205,10 +7244,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray); 
       DSET_unload(dsetTrain); 
-      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+      if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
       freeClassificationLabels(&labels); 
       freeAfniModel(&afniModel); 
-      free(censoredTarget);
+      IFree(censoredTarget);
       if( options->modelWeightFile[0] ) freeModelMaps(&maps);
       RETURN(1);
     }
@@ -7222,10 +7261,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray); 
       DSET_unload(dsetTrain); 
-      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+      if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
       freeClassificationLabels(&labels);
       freeAfniModel(&afniModel); 
-      free(censoredTarget);
+      IFree(censoredTarget);
       freeModelMaps(&maps);
       RETURN(1);
     }
@@ -7234,10 +7273,10 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
   /* free memory */
   freeDsetArray(dsetTrain, dsetTrainArray); 
   DSET_unload(dsetTrain); 
-  if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+  if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
   freeClassificationLabels(&labels); 
   freeAfniModel(&afniModel); 
-  free(censoredTarget);
+  IFree(censoredTarget);
   if( options->modelWeightFile[0] ) freeModelMaps(&maps);
 
   RETURN(0);
@@ -7400,7 +7439,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     RETURN(1);
   }
     
@@ -7412,7 +7451,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
@@ -7424,7 +7463,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     
     /* free and return */
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
@@ -7439,7 +7478,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
   }
@@ -7450,7 +7489,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
     freeRegressionLabelsAndTarget(&labels, target);
     RETURN(1);
@@ -7465,7 +7504,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) free(dsetMaskArrayPtr); 
+      if( options->maskFile[0] ) IFree(dsetMaskArrayPtr); 
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeAfniModel(&afniModel);
@@ -7481,7 +7520,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
     /* free and return */
     freeDsetArray(dsetTrain, dsetTrainArray);
     DSET_unload(dsetTrain);
-    if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+    if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
     freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
     freeRegressionLabelsAndTarget(&labels, target);
     freeAfniModel(&afniModel);
@@ -7540,7 +7579,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+      if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeModel(model, &afniModel, TRAIN);
@@ -7560,7 +7599,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
       /* free and return */
       freeDsetArray(dsetTrain, dsetTrainArray);
       DSET_unload(dsetTrain);
-      if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+      if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
       freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
       freeRegressionLabelsAndTarget(&labels, target);
       freeModel(model, &afniModel, TRAIN);
@@ -7581,7 +7620,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   /*----- FREE MEMORY -----*/
   freeDsetArray(dsetTrain, dsetTrainArray);
   DSET_unload(dsetTrain);
-  if( options->maskFile[0] ) free(dsetMaskArrayPtr);
+  if( options->maskFile[0] ) IFree(dsetMaskArrayPtr);
   freeCensoredRegressionArray(dsetTrainArrayCensored, &labels);
   freeRegressionLabelsAndTarget(&labels, target);
   if (!options->docFileOnly[0]) freeModel(model, &afniModel, TRAIN);
@@ -7593,21 +7632,34 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   RETURN(0);
 }
 
+/* Cameron - modified this function because it wasn't correctly
+             identifying missing arguements. Is this a OSX vs 
+             linux thing? */
 /* JL Sep. 2009: Error checking for options with argument. 
  * Avoid out of bound error if last option and no argument
  * ppi = ++i */
-int ppi (int argc, int i, char *optionString)
+int ppi (int argc, int i, char **argv)
 {
   
   ENTRY("ppi");
 
-  if ( optionString[strlen(optionString)+1] == '-' ) {
-    ERROR_exit("Argument for %s must not start with '-'!\n", optionString);
+  if( i >= argc-1 )
+  {
+      ERROR_exit("No argument after %s!", argv[i]);
   }
-  else if ( i<argc-1 ) RETURN(++i);
-  else ERROR_exit("No argument after %s!", optionString);
 
-  RETURN(++i);
+  /* fprintf(stderr, "finding arg for _%s_ [_%s_] %d (%d)\n",
+      argv[i], argv[i+1],
+      i, argc); */
+  i++;
+
+  /* CC added the strtod so we can use negative numbers */
+  if (( argv[i][0] == '-' ) && ( strtod( argv[i], (char**)NULL ) >=0 )) 
+  {
+      ERROR_exit("Argument for %s must not start with '-'!\n", argv[i-1]);
+  }
+
+  RETURN(i);
 }
 
 
@@ -7700,123 +7752,123 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
         "Option %s must start with '-'!", argv[i]); RETURN(1); }
 
     /* svm-light options: */
-    if( !strcmp(argv[i],"-z") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-z") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   strncpy(type,argv[i], 200); zFlag=1; }
-    if( !strcmp(argv[i],"-v") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-v") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   (*main_verbosity)=atol(argv[i]); verbosity = *main_verbosity; }
-    if( !strcmp(argv[i],"-b") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-b") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->biased_hyperplane=atol(argv[i]); }
-    if( !strcmp(argv[i],"-i") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-i") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->remove_inconsistent=atol(argv[i]); }
-    if( !strcmp(argv[i],"-f") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-f") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->skip_final_opt_check=!atol(argv[i]); }
-    if( !strcmp(argv[i],"-q") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-q") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->svm_maxqpsize=atol(argv[i]); }
-    if( !strcmp(argv[i],"-n") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-n") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->svm_newvarsinqp=atol(argv[i]); }
-    if( !strcmp(argv[i],"-h") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-h") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->svm_iter_to_shrink=atol(argv[i]); }
-    if( !strcmp(argv[i],"-m") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-m") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   (*kernel_cache_size)=atol(argv[i]); }
-    if( !strcmp(argv[i],"-c") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-c") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->svm_c=atof(argv[i]); }
-    if( !strcmp(argv[i],"-w") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-w") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->eps=atof(argv[i]); }
-    if( !strcmp(argv[i],"-p") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-p") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->transduction_posratio=atof(argv[i]); }
-    if( !strcmp(argv[i],"-j") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-j") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->svm_costratio=atof(argv[i]); }
-    if( !strcmp(argv[i],"-e") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-e") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->epsilon_crit=atof(argv[i]); }
-    if( !strcmp(argv[i],"-o") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-o") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->rho=atof(argv[i]); }
-    if( !strcmp(argv[i],"-k") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-k") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->xa_depth=atol(argv[i]); }
-    if( !strcmp(argv[i],"-x") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-x") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->compute_loo=atol(argv[i]); }
-    if( !strcmp(argv[i],"-t") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-t") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   kernel_parm->kernel_type=atol(argv[i]); tFlag=1; }
-    if( !strcmp(argv[i],"-d") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-d") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   kernel_parm->poly_degree=atol(argv[i]); }
-    if( !strcmp(argv[i],"-g") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-g") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   kernel_parm->rbf_gamma=atof(argv[i]); }
-    if( !strcmp(argv[i],"-s") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-s") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   kernel_parm->coef_lin=atof(argv[i]); }
-    if( !strcmp(argv[i],"-r") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-r") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   kernel_parm->coef_const=atof(argv[i]); }
-    if( !strcmp(argv[i],"-u") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-u") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   strncpy(kernel_parm->custom,argv[i], CSV_STRING); }
-    if( !strcmp(argv[i],"-l") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-l") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   strncpy(learn_parm->predfile,argv[i], 200); }
     
     /* JL July 2011: Added maximum number of iterations. Thanks CC */
-    if( !strcmp(argv[i],"-max_iterations") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-max_iterations") ) { parseFlag=1; i=ppi(argc,i,argv); 
                                   learn_parm->max_iterations=atol(argv[i]); }
-    /* if( !strcmp(argv[i],"-a") ) { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    /* if( !strcmp(argv[i],"-a") ) { parseFlag=1; i=ppi(argc,i,argv); 
      *                               strcpy(learn_parm->alphafile,argv[i]); }
      *
      * as an easy solution, we are fixing the svmLight's output file name and 
      * letting 3dsvm write out the desired file */
          
     /* 3dsvm options with arguments: */
-    if( !strcmp(argv[i],"-type") )          { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-type") )          { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->svmType,
                                               argv[i],  LONG_STRING); typeFlag=1; }
-    if( !strcmp(argv[i],"-a") )             { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-a") )             { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->modelAlphaFile,
                                               argv[i], LONG_STRING); aFlag=1;}
-    if( !strcmp(argv[i],"-alpha") )         { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-alpha") )         { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->modelAlphaFile,
                                               argv[i], LONG_STRING); alphaFlag=1;}
-    if( !strcmp(argv[i],"-trainvol") )      { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-trainvol") )      { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->trainFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-testvol") )       { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-testvol") )       { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->testFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-multiclass") )    { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-multiclass") )    { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->multiclass,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-trainlabels") )   { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-trainlabels") )   { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->labelFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-censor") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-censor") )        { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->censorFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-mask") )          { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-mask") )          { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->maskFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-model") )         { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-model") )         { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->modelFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-bucket") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-bucket") )        { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->modelWeightFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-testlabels") )    { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-testlabels") )    { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->testLabelFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-predictions") )   { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-predictions") )   { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->predFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-pred") )          { parseFlag=1; i=ppi(argc,i,argv[i]);
+    if( !strcmp(argv[i],"-pred") )          { parseFlag=1; i=ppi(argc,i,argv);
                                               strncpy(optionsData->predFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-docout") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-docout") )        { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->docFile,
                                               argv[i], LONG_STRING); }
-    if( !strcmp(argv[i],"-doconly") )       { parseFlag=1; i=ppi(argc,i,argv[i]);
+    if( !strcmp(argv[i],"-doconly") )       { parseFlag=1; i=ppi(argc,i,argv);
                                                strncpy(optionsData->docFileOnly,
                                                argv[i], LONG_STRING); }
     /* for kernel below, using svm-light options for kernel parameters */
-    if( !strcmp(argv[i],"-kernel") )        { parseFlag=1; i=ppi(argc,i,argv[i]); 
+    if( !strcmp(argv[i],"-kernel") )        { parseFlag=1; i=ppi(argc,i,argv); 
                                               strncpy(optionsData->kernelName,
                                               argv[i], LONG_STRING); }
 
-    if( !strcmp(argv[i],"-stim_ip") )        { parseFlag=1; i=ppi(argc,i,argv[i]);
+    if( !strcmp(argv[i],"-stim_ip") )        { parseFlag=1; i=ppi(argc,i,argv);
                                               strncpy(optionsData->rtIP,
                                               argv[i], LONG_STRING); }
 
-    if( !strcmp(argv[i],"-stim_port") )      { parseFlag=1; i=ppi(argc,i,argv[i]);
+    if( !strcmp(argv[i],"-stim_port") )      { parseFlag=1; i=ppi(argc,i,argv);
                                              optionsData->rtPort=atoi(argv[i]);}
 
     /* AFNI, 3dsvm options without arguments: */
@@ -7841,6 +7893,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
     if( !strcmp(argv[i],"-HELP") )          { printf("%s", advanced_helpstring); RETURN(0); }
     if( !strcmp(argv[i],"-rt_train") )      { parseFlag = 1; optionsData->rtTrain = 1; }
     if( !strcmp(argv[i],"-rt_test") )       { parseFlag = 1; optionsData->rtTest = 1;  }
+
     if( !strcmp(argv[i],"-help") )
     {  
       printf("%s", cl_helpstring); 
@@ -7994,9 +8047,10 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   }
   else if( optionsData->rtTest ) {
     *mode = RT_TEST;
-    if( !optionsData->modelFile[0] ) {
+    /* Cameron Craddock modified to support testing from the bucket */
+    if( !optionsData->modelFile[0] && !optionsData->modelWeightFile[0] ) {
       snprintf(errorString, LONG_STRING,
-          "Must specify a  model file for testing in real-time!");
+          "Must specify a model file or a bucket file for testing in real-time!");
       RETURN(1);
     }
 
