@@ -72,7 +72,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
 
         // Load saved clipping planes is available
         if (clippingPlaneFile){
-            loadSavedClippingPlanes(clippingPlaneFile);
+            loadSavedClippingPlanes(clippingPlaneFile, locallySelectedPlane);
             sv->clippingPlaneIncrement = scrollInc;
         }
 
@@ -227,8 +227,8 @@ Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
     return 1;
 }
 
-Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
-    int feyl, selectedPlane, planeIndex, i;
+Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPlane){
+    int feyl, planeIndex, i;
     Boolean isActive;
     float   equation[4], floatBuf[4];
     char    attribute[32];
@@ -272,8 +272,8 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile){
     // Read NIML entries for clipping planes
     SUMA_S2FV_ATTR(nel, "sel_plane_num", floatBuf, 1, feyl);
       if (!feyl) {
-        selectedPlane = (int)(floatBuf[0]+0.5);
-        clipPlaneTransform(0,0,0,0,selectedPlane-1, 0, 0);
+        *locallySelectedPlane = (int)(floatBuf[0]+0.5);
+        clipPlaneTransform(0,0,0,0,*locallySelectedPlane, 0, 0);
       }
     SUMA_S2FV_ATTR(nel, "tilt_inc", floatBuf, 1, feyl);
       if (!feyl) {
@@ -1267,7 +1267,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
-    if (activePlane >=0 ){
+    if (activePlane >=0 && !toggleOffOn){
         if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
@@ -1292,8 +1292,8 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
 
     // Turn clipping plane on or off as required
     if (toggleOffOn){
-        active[planeIndex] = !(active[planeIndex]);
-        clipIdentificationPlane[planeIndex]->Show = (clipPlaneIdentificationMode && active[planeIndex]);
+        active[activePlane] = !(active[activePlane]);
+        clipIdentificationPlane[activePlane]->Show = (clipPlaneIdentificationMode && active[activePlane]);
     }
 
     if (flip){
@@ -1334,36 +1334,6 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window.  (Not sure this is necessary or helps)
-    #if 0   // Turn off recoloration
-       // Get clip plane paramaters.  NBB. Simplify by assuming first plane
-        int offset = 4*planeIndex;
-        float  A = planeA[planeIndex];
-        float  B = planeB[planeIndex];
-        float  C = planeC[planeIndex];
-        float  D = planeD[planeIndex];
-
-        // Determine location of point source
-        // float location[3] = {D*A, D*B, D*C};
-        float location[3] = {-100*A, -100*B, -100*C};
-        // float location[3] = {0, 0, 0};
-
-        // Set up point source
-        // for (i=0; i<4; ++i) sv->light1_position[i]=location[i];
-        for (i=0; i<3; ++i) sv->light0_position[i]=location[i]*2;
-
-        #if 0
-        fprintf(stderr, "position=%f,%f,%f\n", sv->light0_position[0],
-            sv->light0_position[1], sv->light0_position[2]);
-        #endif
-
-        glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-        for (i=0; i<3; ++i) sv->lmodel_ambient[i]=0;
-        // sv->lmodel_ambient[1]=0.2;
-        sv->lmodel_ambient[1]=0.2;
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
-
-        drawClipPlane(A, B, C, D, w, sv, isv);
-#endif
     }
 
     // Record rotation angles
@@ -1378,6 +1348,54 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
      selectedPlane = planeIndex;
 
     SUMA_SetObjectClip(chrTmp, sv);
+}
+
+void writeClippingPlanes (char *s, void *data){
+    SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
+    FILE *outFile;
+    int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
+
+     fprintf(stderr, "s = %s\n", s);
+
+
+     // Open output file
+    if (!(outFile = fopen(s, "w"))){
+        perror("Error opening output file");
+        return;
+    }
+
+    // Write opening tag
+     fprintf(outFile, "# <Viewer_Visual_Setting\n");
+
+     // Write global settings
+     fprintf(outFile, "# sel_plane_num  = \"%d\"\n", selectedPlane);
+     fprintf(outFile, "# tilt_inc  = \"%f\"\n", tiltInc);
+     fprintf(outFile, "# scroll_inc  = \"%f\"\n", scrollInc);
+     fprintf(outFile, "# x_axis_rotations  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", clippingPlaneTheta[i], (i<lastPlane)? "," : "\"\n");
+     fprintf(outFile, "# y_axis_rotations  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", clippingPlanePhi[i], (i<lastPlane)? "," : "\"\n");
+     fprintf(outFile, "# normal_offsets  = \"");
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+        fprintf(outFile, "%f%s", SUMAg_CF->ClipPlanes[i*4 +3], (i<lastPlane)? "," : "\"\n");
+
+     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
+     {
+        fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[i]);
+        /*
+        fprintf(outFile, "# plane_%d_eq   = \"", i+1);
+        for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
+        fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);
+        */
+     }
+
+    // Write closing tag
+     fprintf(outFile, "# />\n");
+
+     // Close output file
+     fclose(outFile);
 }
 
  void getPlanePtClosestToViewerOrigin(float *plane, float *point){

@@ -56,7 +56,7 @@ void getOveralMinAndMaxOfCurrentSurfaceObjects(float axisMinMax[3][2], float *ob
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
 void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *planeA,
         float *planeB, float *planeC);
-Boolean loadSavedClippingPlanes(char *clippingPlaneFile);
+Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPlane);
 Boolean applyEquationToClippingPlane(float *equation, int planeIndex);
 Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi);
 Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,

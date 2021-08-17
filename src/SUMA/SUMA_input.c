@@ -5138,8 +5138,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 1;
             }
-
-        // SUMA_SurfaceObject* SO =clipIdentificationPlane[1];
             break;
          case XK_3:
             if (clippingPlaneMode){
@@ -13471,54 +13469,6 @@ void SUMA_JumpXYZ (char *s, void *data)
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
    SUMA_RETURNe;
-}
-
-void writeClippingPlanes (char *s, void *data){
-    SUMA_SurfaceViewer *sv = (SUMA_SurfaceViewer *)data;
-    FILE *outFile;
-    int     i, j, parameterInc=0, lastPlane = SUMAg_CF->N_ClipPlanes-1;
-
-     fprintf(stderr, "s = %s\n", s);
-
-
-     // Open output file
-    if (!(outFile = fopen(s, "w"))){
-        perror("Error opening output file");
-        return;
-    }
-
-    // Write opening tag
-     fprintf(outFile, "# <Viewer_Visual_Setting\n");
-
-     // Write global settings
-     fprintf(outFile, "# sel_plane_num  = \"%d\"\n", selectedPlane);
-     fprintf(outFile, "# tilt_inc  = \"%f\"\n", tiltInc);
-     fprintf(outFile, "# scroll_inc  = \"%f\"\n", scrollInc);
-     fprintf(outFile, "# x_axis_rotations  = \"");
-     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-        fprintf(outFile, "%f%s", clippingPlaneTheta[i], (i<lastPlane)? "," : "\"\n");
-     fprintf(outFile, "# y_axis_rotations  = \"");
-     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-        fprintf(outFile, "%f%s", clippingPlanePhi[i], (i<lastPlane)? "," : "\"\n");
-     fprintf(outFile, "# normal_offsets  = \"");
-     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-        fprintf(outFile, "%f%s", SUMAg_CF->ClipPlanes[i*4 +3], (i<lastPlane)? "," : "\"\n");
-
-     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
-     {
-        fprintf(outFile, "# plane_%d_act   = \"%d\"\n", i+1, active[i]);
-        /*
-        fprintf(outFile, "# plane_%d_eq   = \"", i+1);
-        for (j=0; j<3; ++j) fprintf(outFile, "%f + ", SUMAg_CF->ClipPlanes[parameterInc++]);
-        fprintf(outFile, "%f\"\n", SUMAg_CF->ClipPlanes[parameterInc++]);
-        */
-     }
-
-    // Write closing tag
-     fprintf(outFile, "# />\n");
-
-     // Close output file
-     fclose(outFile);
 }
 
 /*!
