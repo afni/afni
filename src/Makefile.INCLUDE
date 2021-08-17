@@ -761,9 +761,9 @@ dsetdup:dsetdup.o
 	$(CC) -o 3dTstat 3dTstat.o parser.o parser_int.o $(LFLAGS) \
           $(LLIBS)
 
-3dTfitter:3dTfitter.o thd_fitter.o thd_lasso.o
-	$(RM) $@
-	$(CC) -o 3dTfitter 3dTfitter.o $(LFLAGS) $(LLIBS)
+# 3dTfitter:3dTfitter.o thd_fitter.o thd_lasso.o
+# 	$(RM) $@
+# 	$(CC) -o 3dTfitter 3dTfitter.o $(LFLAGS) $(LLIBS)
 
 3dTsort:3dTsort.o
 	$(RM) $@
@@ -1402,6 +1402,14 @@ qqqOMP.o: qqqOMP.c
 qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o qqqOMP qqqOMP.o $(LFLAGS) $(LLIBS)
+
+3dTfitter.o:3dTfitter.c thd_fitter.c thd_lasso.c
+	$(RM) $@
+	$(CCOMP) -c 3dTfitter.c $(INFLAGS)
+
+3dTfitter:3dTfitter.o
+	$(RM) $@
+	$(CCOMP) -o 3dTfitter 3dTfitter.o $(LFLAGS) $(LLIBS)
 
 3dBlurToFWHM.o: 3dBlurToFWHM.c mri_fwhm.c
 	$(RM) $@

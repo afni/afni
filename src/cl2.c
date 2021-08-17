@@ -238,9 +238,9 @@ static INLINE real diff_(real *x, real *y)
 #line 1 "cl2.f"
 /* Table of constant values */
 
-static integer c__1 = 1;
-static integer c__2 = 2;
-static integer c__0 = 0;
+static const integer c__1 = 1;
+static const integer c__2 = 2;
+static const integer c__0 = 0;
 
 /*     ALGORITHM 587, COLLECTED ALGORITHMS FROM ACM. */
 /*     ALGORITHM APPEARED IN ACM-TRANS. MATH. SOFTWARE, VOL. 8, NO. 3, */
@@ -255,13 +255,13 @@ static /* Subroutine */ int lsei_(real *w, integer *mdw, integer *me, integer *m
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real srelpr = 0.f;
-    static real half = .5f;
-    static real one = 1.f;
+    static const real zero = 0.f;
+    static const real half = .5f;
+    static const real one = 1.f;
+    real srelpr = 0.f;
 
     /* Format strings */
-    static char fmt_90[] = "";
+    char fmt_90[] = "";
 
     /* System generated locals */
     integer w_dim1, w_offset, i__1, i__2, i__3;
@@ -271,29 +271,29 @@ static /* Subroutine */ int lsei_(real *w, integer *mdw, integer *me, integer *m
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, l, m;
-    static real t;
-    static integer n1, n2;
-    static integer ii;
-    static real rb;
-    static integer kk, jj;
-    static real uj, rn, sn, vj, up;
-    static integer jp1, np1;
-    static real gam;
-    static logical cov;
-    static real tau;
-    static integer key, mep1, lchk, mend, link, imax, last, nerr;
-    static real size;
-    static integer iopt, next, nopt, igo990;
-    static integer mdeqc;
-    static integer nlink;
-    static real enorm, fnorm, rnmax, snmax;
-    static real xnrme;
-    static real xnorm;
-    static integer mapke1, kranke, ntimes;
+    integer i__, j, k, l, m;
+    real t;
+    integer n1, n2;
+    integer ii;
+    real rb;
+    integer kk, jj;
+    real uj, rn, sn, vj, up;
+    integer jp1, np1;
+    real gam;
+    logical cov;
+    real tau;
+    integer key, mep1, lchk, mend, link, imax, last, nerr;
+    real size;
+    integer iopt, next, nopt, igo990;
+    integer mdeqc;
+    integer nlink;
+    real enorm, fnorm, rnmax, snmax;
+    real xnrme;
+    real xnorm;
+    integer mapke1, kranke, ntimes;
 
     /* Assigned format variables */
-    static char *igo990_fmt;
+    char *igo990_fmt;
 
 
 /*     DIMENSION W(MDW,N+1),PRGOPT(*),X(N), */
@@ -1809,14 +1809,14 @@ static /* Subroutine */ int lsi_(real *w, integer *mdw, integer *ma, integer *mg
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real srelpr = 0.f;
-    static real one = 1.f;
-    static real half = .5f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
+    static const real half = .5f;
+    real srelpr = 0.f;
 
     /* Format strings */
-    static char fmt_40[] = "";
-    static char fmt_60[] = "";
+    char fmt_40[] = "";
+    char fmt_60[] = "";
 
     /* System generated locals */
     integer w_dim1, w_offset, i__1, i__2, i__3, i__4;
@@ -1826,25 +1826,25 @@ static /* Subroutine */ int lsi_(real *w, integer *mdw, integer *ma, integer *mg
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, l, m, n1, n2, n3;
-    static integer ii;
-    static real rb;
-    static integer il, im1, ip1, np1;
-    static real fac, gam, tau;
-    static logical cov;
-    static integer key;
-    static real tol;
-    static integer map1, krm1, krp1;
-    static integer link;
-    static integer last;
-    static integer next, igo990, igo994;
-    static integer krank;
-    static real anorm;
-    static real xnorm;
-    static integer minman, mdlpdp;
+    integer i__, j, k, l, m, n1, n2, n3;
+    integer ii;
+    real rb;
+    integer il, im1, ip1, np1;
+    real fac, gam, tau;
+    logical cov;
+    integer key;
+    real tol;
+    integer map1, krm1, krp1;
+    integer link;
+    integer last;
+    integer next, igo990, igo994;
+    integer krank;
+    real anorm;
+    real xnorm;
+    integer minman, mdlpdp;
 
     /* Assigned format variables */
-    static char *igo994_fmt, *igo990_fmt;
+    char *igo994_fmt, *igo990_fmt;
 
 
 /*     THE EDITING REQUIRED TO CONVERT THIS SUBROUTINE FROM SINGLE TO */
@@ -2903,20 +2903,20 @@ static /* Subroutine */ int lpdp_(real *a, integer *mda, integer *m, integer *n1
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real one = 1.f;
-    static real fac = .1f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
+    static const real fac = .1f;
 
     /* System generated locals */
     integer a_dim1, a_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, l, n;
-    static real sc;
-    static integer iw, ix, np1;
-    static integer modew;
-    static real rnorm;
-    static real ynorm;
+    integer i__, j, l, n;
+    real sc;
+    integer iw, ix, np1;
+    integer modew;
+    real rnorm;
+    real ynorm;
 
 
 /*     THE EDITING REQUIRED TO CONVERT THIS SUBROUTINE FROM SINGLE TO */
@@ -3417,7 +3417,7 @@ static /* Subroutine */ int wnnls_fort(real *w, integer *mdw, integer *me, integ
     integer w_dim1, w_offset;
 
     /* Local variables */
-    static integer l1, l2, l3, l4, l5, lw, liw, nerr, iopt;
+    integer l1, l2, l3, l4, l5, lw, liw, nerr, iopt;
 
 
 /*     DIMENSION W(MDW,N+1),PRGOPT(*),X(N),IWORK(M+N),WORK(M+5*N) */
@@ -3877,27 +3877,27 @@ static /* Subroutine */ int wnlsm_(real *w, integer *mdw, integer *mme, integer 
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real one = 1.f;
-    static real two = 2.f;
-    static real srelpr = 0.f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
+    static const real two = 2.f;
+    real srelpr = 0.f;
 
     /* Format strings */
-    static char fmt_10[] = "";
-    static char fmt_20[] = "";
-    static char fmt_30[] = "";
-    static char fmt_40[] = "";
-    static char fmt_60[] = "";
-    static char fmt_90[] = "";
-    static char fmt_220[] = "";
-    static char fmt_310[] = "";
-    static char fmt_460[] = "";
-    static char fmt_480[] = "";
-    static char fmt_500[] = "";
-    static char fmt_520[] = "";
-    static char fmt_880[] = "";
-    static char fmt_900[] = "";
-    static char fmt_1010[] = "";
+    char fmt_10[] = "";
+    char fmt_20[] = "";
+    char fmt_30[] = "";
+    char fmt_40[] = "";
+    char fmt_60[] = "";
+    char fmt_90[] = "";
+    char fmt_220[] = "";
+    char fmt_310[] = "";
+    char fmt_460[] = "";
+    char fmt_480[] = "";
+    char fmt_500[] = "";
+    char fmt_520[] = "";
+    char fmt_880[] = "";
+    char fmt_900[] = "";
+    char fmt_1010[] = "";
 
     /* System generated locals */
     integer w_dim1, w_offset, i__1, i__2;
@@ -3907,43 +3907,43 @@ static /* Subroutine */ int wnlsm_(real *w, integer *mdw, integer *mme, integer 
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, m;
-    static real t;
-    static integer l1;
-    static real z2;
-    static integer me, jj, jp;
-    static real sm, zz;
-    static integer jm1, nm1, lp1, np1;
-    static real fac;
-    static integer key;
-    static real tau;
-    static integer niv;
-    static logical pos;
-    static integer mep1, krp1, niv1, nsp1;
-    static logical done;
-    static real amax, dope[4];
-    static integer jcon, link, imax;
-    static real alsq;
-    static integer last, iter, nerr, isol, iopt;
-    static real wmax;
-    static integer next, nopt, igo980, igo991, igo983, igo938, igo958, igo995,
+    integer i__, j, m;
+    real t;
+    integer l1;
+    real z2;
+    integer me, jj, jp;
+    real sm, zz;
+    integer jm1, nm1, lp1, np1;
+    real fac;
+    integer key;
+    real tau;
+    integer niv;
+    logical pos;
+    integer mep1, krp1, niv1, nsp1;
+    logical done;
+    real amax, dope[4];
+    integer jcon, link, imax;
+    real alsq;
+    integer last, iter, nerr, isol, iopt;
+    real wmax;
+    integer next, nopt, igo980, igo991, igo983, igo938, igo958, igo995,
 	     igo986, igo977, igo998, igo897;
-    static real alpha;
-    static integer idope[8];
-    static integer krank, nlink;
-    static real bnorm;
-    static integer itemp, itmax, iwmax;
-    static integer nsoln;
-    static real alamda;
-    static logical feasbl;
-    static real eanorm;
-    static real sparam[5];
-    static logical hitcon;
-    static integer ntimes;
-    static real blowup;
+    real alpha;
+    integer idope[8];
+    integer krank, nlink;
+    real bnorm;
+    integer itemp, itmax, iwmax;
+    integer nsoln;
+    real alamda;
+    logical feasbl;
+    real eanorm;
+    real sparam[5];
+    logical hitcon;
+    integer ntimes;
+    real blowup;
 
     /* Assigned format variables */
-    static char *igo998_fmt, *igo995_fmt, *igo991_fmt, *igo986_fmt, *
+    char *igo998_fmt, *igo995_fmt, *igo991_fmt, *igo986_fmt, *
 	    igo983_fmt, *igo980_fmt, *igo977_fmt, *igo958_fmt, *igo938_fmt, *
 	    igo897_fmt;
 
@@ -6103,20 +6103,20 @@ static /* Subroutine */ int wnlit_(real *w, integer *mdw, integer *m, integer *n
 {
     /* Initialized data */
 
-    static real tenm3 = .001f;
-    static real zero = 0.f;
-    static real one = 1.f;
+    static const real tenm3 = .001f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
 
     /* Format strings */
-    static char fmt_20[] = "";
-    static char fmt_30[] = "";
-    static char fmt_40[] = "";
-    static char fmt_120[] = "";
-    static char fmt_190[] = "";
-    static char fmt_200[] = "";
-    static char fmt_240[] = "";
-    static char fmt_320[] = "";
-    static char fmt_330[] = "";
+    char fmt_20[] = "";
+    char fmt_30[] = "";
+    char fmt_40[] = "";
+    char fmt_120[] = "";
+    char fmt_190[] = "";
+    char fmt_200[] = "";
+    char fmt_240[] = "";
+    char fmt_320[] = "";
+    char fmt_330[] = "";
 
     /* System generated locals */
     integer w_dim1, w_offset, i__1, i__2;
@@ -6126,26 +6126,26 @@ static /* Subroutine */ int wnlit_(real *w, integer *mdw, integer *m, integer *n
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k;
-    static real t;
-    static integer i1, j1, l1;
-    static integer ic, lb, me, jj, kk, jp, ir;
-    static real rn, sn;
-    static integer jm1, ip1, lp1, np1, max__;
-    static real tau;
-    static integer niv, mep1, irp1, krp1, niv1;
-    static real hbar;
-    static integer lend, mend;
-    static real alsq;
-    static integer igo990, igo993, igo996;
-    static logical indep;
-    static integer krank, itemp, nsoln;
-    static logical recalc;
-    static real factor, eanorm;
-    static real sparam[5];
+    integer i__, j, k;
+    real t;
+    integer i1, j1, l1;
+    integer ic, lb, me, jj, kk, jp, ir;
+    real rn, sn;
+    integer jm1, ip1, lp1, np1, max__;
+    real tau;
+    integer niv, mep1, irp1, krp1, niv1;
+    real hbar;
+    integer lend, mend;
+    real alsq;
+    integer igo990, igo993, igo996;
+    logical indep;
+    integer krank, itemp, nsoln;
+    logical recalc;
+    real factor, eanorm;
+    real sparam[5];
 
     /* Assigned format variables */
-    static char *igo996_fmt, *igo993_fmt, *igo990_fmt;
+    char *igo996_fmt, *igo993_fmt, *igo990_fmt;
 
 
 /*     THE EDITING REQUIRED TO CONVERT THIS SUBROUTINE FROM SINGLE TO */
@@ -7420,17 +7420,17 @@ static /* Subroutine */ int hfti_(real *a, integer *mda, integer *m, integer *n,
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, l;
-    static integer jb, ii, jj;
-    static real sm;
-    static integer ip1, kp1;
-    static real sm1, tmp;
-    static integer jcol;
-    static real hmax;
-    static integer lmax, nerr, iopt;
-    static real zero;
-    static integer ldiag;
-    static real factor;
+    integer i__, j, k, l;
+    integer jb, ii, jj;
+    real sm;
+    integer ip1, kp1;
+    real sm1, tmp;
+    integer jcol;
+    real hmax;
+    integer lmax, nerr, iopt;
+    real zero;
+    integer ldiag;
+    real factor;
 
 
 /*     THE EDITING REQUIRED TO CONVERT THIS SUBROUTINE FROM SINGLE TO */
@@ -8162,15 +8162,15 @@ static /* Subroutine */ int h12_(integer *mode, integer *lpivot, integer *l1,
     double sqrt(doublereal);
 
     /* Local variables */
-    static real b;
-    static integer i__, j, i2, i3, i4;
-    static real cl, sm;
-    static integer kl1, kl2, l1m1;
-    static real one;
-    static integer klp, incr;
-    static real ul1m1;
-    static integer mml1p2;
-    static real clinv;
+    real b;
+    integer i__, j, i2, i3, i4;
+    real cl, sm;
+    integer kl1, kl2, l1m1;
+    real one;
+    integer klp, incr;
+    real ul1m1;
+    integer mml1p2;
+    real clinv;
 
 
 /*     THE EDITING REQUIRED TO CONVERT THIS SUBROUTINE FROM SINGLE TO */
@@ -8564,31 +8564,31 @@ static /* Subroutine */ int srotmg_(real *sd1, real *sd2, real *sx1, real *sy1, 
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real one = 1.f;
-    static real two = 2.f;
-    static integer iflag = 1;
-    static real gam = 4096.f;
-    static real gamsq = 1.678e7f;
-    static real rgam = 2.441e-4f;
-    static real rgamsq = 5.96e-8f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
+    static const real two = 2.f;
+    integer iflag = 1;
+    real gam = 4096.f;
+    real gamsq = 1.678e7f;
+    real rgam = 2.441e-4f;
+    real rgamsq = 5.96e-8f;
 
     /* Format strings */
-    static char fmt_120[] = "";
-    static char fmt_150[] = "";
-    static char fmt_180[] = "";
-    static char fmt_210[] = "";
+    char fmt_120[] = "";
+    char fmt_150[] = "";
+    char fmt_180[] = "";
+    char fmt_210[] = "";
 
     /* System generated locals */
     real r__1;
 
     /* Local variables */
-    static real su, sp1, sp2, sq2, sq1, sh11, sh21, sh12, sh22;
-    static integer igo;
-    static real sflag, stemp;
+    real su, sp1, sp2, sq2, sq1, sh11=0.0f, sh21=0.0f, sh12=0.0f, sh22=0.0f;
+    integer igo;
+    real sflag, stemp;
 
     /* Assigned format variables */
-    static char *igo_fmt;
+    char *igo_fmt;
 
 
 /*     CONSTRUCT THE MODIFIED GIVENS TRANSFORMATION MATRIX H WHICH ZEROS */
@@ -9127,7 +9127,7 @@ static /* Subroutine */ int scopy_(integer *n, real *sx, integer *incx, real *sy
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, m, ix, iy, ns, mp1;
+    integer i__, m, ix, iy, ns, mp1;
 
 
 /*     COPY SINGLE PRECISION SX TO SINGLE PRECISION SY. */
@@ -9337,8 +9337,8 @@ static /* Subroutine */ int sswap_(integer *n, real *sx, integer *incx, real *sy
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, m, ix, iy, ns, mp1;
-    static real stemp1, stemp2, stemp3;
+    integer i__, m, ix, iy, ns, mp1;
+    real stemp1, stemp2, stemp3;
 
 
 /*     INTERCHANGE SINGLE PRECISION SX AND SINGLE PRECISION SY. */
@@ -9569,16 +9569,16 @@ static real snrm2_(integer *n, real *sx, integer *incx)
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real one = 1.f;
-    static real cutlo = 4.441e-16f;
-    static real cuthi = 1.304e19f;
+    static const real zero = 0.f;
+    static const real one = 1.f;
+    static const real cutlo = 4.441e-16f;
+    static const real cuthi = 1.304e19f;
 
     /* Format strings */
-    static char fmt_30[] = "";
-    static char fmt_50[] = "";
-    static char fmt_70[] = "";
-    static char fmt_110[] = "";
+    char fmt_30[] = "";
+    char fmt_50[] = "";
+    char fmt_70[] = "";
+    char fmt_110[] = "";
 
     /* System generated locals */
     integer i__1, i__2;
@@ -9588,13 +9588,13 @@ static real snrm2_(integer *n, real *sx, integer *incx)
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, nn;
-    static real sum, xmax;
-    static integer next;
-    static real hitest;
+    integer i__, j, nn;
+    real sum, xmax;
+    integer next;
+    real hitest;
 
     /* Assigned format variables */
-    static char *next_fmt;
+    char *next_fmt;
 
 /*<       INTEGER          NEXT >*/
 /*<       REAL   SX(1),  CUTLO, CUTHI, HITEST, SUM, XMAX, ZERO, ONE >*/
@@ -9908,7 +9908,7 @@ static real sasum_(integer *n, real *sx, integer *incx)
     real ret_val, r__1, r__2, r__3, r__4, r__5, r__6;
 
     /* Local variables */
-    static integer i__, m, ns, mp1;
+    integer i__, m, ns, mp1;
 
 
 /*     RETURNS SUM OF MAGNITUDES OF SINGLE PRECISION SX. */
@@ -10040,7 +10040,7 @@ static /* Subroutine */ int sscal_(integer *n, real *sa, real *sx, integer *incx
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, m, ns, mp1;
+    integer i__, m, ns, mp1;
 
 
 /*     REPLACE SINGLE PRECISION SX BY SINGLE PRECISION SA*SX. */
@@ -10179,8 +10179,8 @@ static integer isamax_(integer *n, real *sx, integer *incx)
     real r__1;
 
     /* Local variables */
-    static integer i__, ii, ns;
-    static real xmag, smax;
+    integer i__, ii, ns;
+    real xmag, smax;
 
 
 /*     FIND SMALLEST INDEX OF MAXIMUM MAGNITUDE OF SINGLE PRECISION SX. */
@@ -10324,7 +10324,7 @@ static real sdot_(integer *n, real *sx, integer *incx, real *sy, integer *incy)
     real ret_val;
 
     /* Local variables */
-    static integer i__, m, ix, iy, ns, mp1;
+    integer i__, m, ix, iy, ns, mp1;
 
 
 /*     RETURNS THE DOT PRODUCT OF SINGLE PRECISION SX AND SY. */
@@ -10519,7 +10519,7 @@ static /* Subroutine */ int saxpy_(integer *n, real *sa, real *sx, integer *incx
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__, m, ix, iy, ns, mp1;
+    integer i__, m, ix, iy, ns, mp1;
 
 
 /*     OVERWRITE SINGLE PRECISION SY WITH SINGLE PRECISION SA*SX +SY. */
@@ -10716,18 +10716,18 @@ static /* Subroutine */ int srotm_(integer *n, real *sx, integer *incx, real *sy
 {
     /* Initialized data */
 
-    static real zero = 0.f;
-    static real two = 2.f;
+    static const real zero = 0.f;
+    static const real two = 2.f;
 
     /* System generated locals */
     integer i__1, i__2;
 
     /* Local variables */
-    static integer i__;
-    static real w, z__;
-    static integer kx, ky;
-    static real sh11, sh12, sh21, sh22, sflag;
-    static integer nsteps;
+    integer i__;
+    real w, z__;
+    integer kx, ky;
+    real sh11, sh12, sh21, sh22, sflag;
+    integer nsteps;
 
 
 /*     APPLY THE MODIFIED GIVENS TRANSFORMATION, H, TO THE 2 BY N MATRIX */

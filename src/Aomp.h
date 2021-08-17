@@ -102,22 +102,56 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "   across multiple CPUs/cores on the same shared memory computer.\n"          \
     "* However, the source code is modified for OpenMP, and can be compiled\n"     \
     "   with an OpenMP-capable compiler, such as gcc 4.2+, Intel's icc, and\n"     \
-    "   Sun Studio.\n"                                                             \
+    "   Oracle Developer Studio.\n"                                                \
     "* If you wish to compile this program with OpenMP, see the man page for\n"    \
     "   your C compiler, and (if needed) consult the AFNI message board, and\n"    \
-    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
+    "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                 \
     , (pnam)                                                                       \
   )
 #endif
 
 /*----------------------------------------------------------------------------*/
-/* Some macros for allocating workspace arrays, per thread */
+/* Some macros for allocating staticworkspace arrays, per thread.
+   These are to aid in OpenMP-izing existing codes that use static variables.
+   The macros also have non-OpenMP versions, which don't create thread-wise
+   arrays.
+
+   The 'DEFINE' macros declare the static arrays (one element per thread),
+   then the AO_VALUE macro is used to get the particular component for
+   the current thread.
+*//*--------------------------------------------------------------------------*/
 
 #ifdef USE_OMP
 
-#define AOth omp_get_thread_num()
+#define AOth   omp_get_thread_num()
+#define AO_nth omp_get_num_threads()
 
 #define AO_NTH_MAX 99
+
+/*............................................................................*/
+/* The macro below defines a scalar with name 'nam' of type 'typ'.
+   For example
+
+      AO_DEFINE_SCALAR(int,ncall) ;  // can be inside a function or global
+      ...
+      if( AO_VALUE(ncall) == 0 ){
+        // do something special
+        AO_VALUE(ncall)++ ;
+      }
+
+   The above would replace the non-thread safe code
+
+      static int ncall ;
+      ...
+      if( ncall == 0 ){
+        // something
+       ncall++ ;
+      }
+
+   Similar 'DEFINE' macros are available for defining and manipulating
+   per-thread arrays. The AO_VALUE macro can be used to extract the
+   pointer to the array data.
+*//*..........................................................................*/
 
 #define AO_DEFINE_SCALAR(typ,nam)   static typ  AO##nam[AO_NTH_MAX]
 
@@ -179,6 +213,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #else  /* not USE_OMP */
 
 #define AOth       0
+#define AO_nth     1
 #define AO_NTH_MAX 1
 
 #define AO_DEFINE_SCALAR(typ,nam)   static typ AO##nam

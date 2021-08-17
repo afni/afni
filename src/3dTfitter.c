@@ -5,12 +5,18 @@
 #include "mrilib.h"
 
 static int    ARGC ;  /* global copies */
-static char **ARGV ;
+static char **ARGV ;  /* for use in get_ilist_from_args() below */
 
-static void vstep_print(void) ; /* prototype */
+static void vstep_print(void) ; /* prototypes for later funcs */
 static float lhs_legendre( float x, float bot, float top, float n ) ;
 
 #define IC_POLORT 66666
+
+#ifdef USE_OMP      /* 16 Aug 2021 */
+#include <omp.h>
+#include "thd_fitter.c"
+#include "thd_lasso.c"
+#endif
 
 /*------------------------------------------------------------*/
 /* get an integer list from the args, starting at ARGV[*iarg] */
@@ -30,6 +36,7 @@ ENTRY("get_ilist_from_args") ;
 }
 
 /*------------------------------------------------------------*/
+/* Get an integer vector from the args */
 
 static intvec * get_intvec_from_args( int *iarg )
 {
@@ -48,48 +55,10 @@ static intvec * get_intvec_from_args( int *iarg )
    return ivec ;
 }
 
-/*------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
-int main( int argc , char *argv[] )
+static void Tfitter_help(void)
 {
-   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
-   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
-   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
-   THD_3dim_dataset *fset=NULL ;
-   RwcPointer_array *dsar ;
-   int ntime , nvar=0 , polort=-1,npol=0 ;
-   char *prefix="Tfitter" ;
-   int meth=2 , nbad=0,ngood=0,nskip=0 ;
-   intvec *convec=NULL , *kvec=NULL ;
-   byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
-   floatvec *bfit ;
-   float *dvec , **rvec=NULL , *cvec=NULL , *evec ;
-   char **lab=NULL ; int nlab=0 ;
-   int verb=1 ;
-
-   THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
-   char *fal_pre=NULL ; int fal_pencod=3, fal_klen=0 , fal_dcon=0 ;
-   float *fal_kern=NULL , fal_penfac=0.0f ;
-   THD_3dim_dataset *defal_set=NULL ;
-   int nvoff=0 ;
-
-   char *fitts_prefix=NULL; THD_3dim_dataset *fitts_set=NULL;
-   char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
-   int do_fitts=0 ;
-
-   float vthresh=0.0f ; /* 18 May 2010 */
-
-   intvec *lasso_ivec = NULL ;     /* 11 Mar 2011 */
-   int     lasso_invert_ivec=0 ;   /* 04 Aug 2021 */
-   int     lasso_zerobase_ivec=0 ; /* 04 Aug 2021 */
-   float lasso_flam = 8.0f ;
-
-   /*------------------ help the pitifully ignorant user? ------------------*/
-
-   ARGC = argc ; /* 06 Aug 2016 */
-   ARGV = argv ;
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dTfitter [options]\n"
       "\n"
@@ -665,7 +634,7 @@ int main( int argc , char *argv[] )
       "  ++ You could generate some baseline 1D files using 1deval, perhaps.\n"
       "* There is no option to constrain the range of the output parameters,\n"
       "  except the semi-infinite ranges provided by '-consign' and/or '-consFAL'.\n"
-      "* This program is NOT parallelized via OpenMP :-(\n"
+      "* This program is NOW parallelized via OpenMP :-)\n"
       "\n"
       "------------------\n"
       "Contrived Example:\n"
@@ -819,14 +788,62 @@ int main( int argc , char *argv[] )
       "** But might be useful for some other well-meaning souls out there     **\n"
       "*************************************************************************\n"
      ) ;
+
+     PRINT_AFNI_OMP_USAGE("3dTfitter",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+}
+
+/*---------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
+   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
+   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
+   THD_3dim_dataset *fset=NULL ;
+   RwcPointer_array *dsar ;
+   int ntime , nvar=0 , polort=-1,npol=0 ;
+   char *prefix="Tfitter" ;
+   int meth=2 , nbad=0,ngood=0,nskip=0 ;
+   intvec *convec=NULL , *kvec=NULL ;
+   byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
+   float **rvec=NULL , *cvec=NULL ;
+   char **lab=NULL ; int nlab=0 ;
+   int verb=1 ;
+
+   THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
+   char *fal_pre=NULL ; int fal_pencod=3, fal_klen=0 , fal_dcon=0 ;
+   float *fal_kern=NULL , fal_penfac=0.0f ;
+   THD_3dim_dataset *defal_set=NULL ;
+   int nvoff=0 ;
+
+   char *fitts_prefix=NULL; THD_3dim_dataset *fitts_set=NULL;
+   char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
+   int do_fitts=0 ;
+
+   float vthresh=0.0f ; /* 18 May 2010 */
+
+   intvec *lasso_ivec = NULL ;     /* 11 Mar 2011 */
+   int     lasso_invert_ivec=0 ;   /* 04 Aug 2021 */
+   int     lasso_zerobase_ivec=0 ; /* 04 Aug 2021 */
+   float lasso_flam = 8.0f ;
+
+   /*------------------ help the pitifully ignorant user? ------------------*/
+
+   ARGC = argc ; /* 06 Aug 2016 */
+   ARGV = argv ;
+
+   /* help function does not return */
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Tfitter_help() ;
 
    /*------- official startup for the history books -------*/
 
    mainENTRY("3dTfitter"); machdep();
    PRINT_VERSION("3dTfitter"); AUTHOR("RWCox") ;
    AFNI_logger("3dTfitter",argc,argv);
+   AFNI_SETUP_OMP(0) ;
+   (void)COX_clock_time() ;
 
    /*------------ read command line args ------------*/
 
@@ -1232,8 +1249,6 @@ int main( int argc , char *argv[] )
      ERROR_exit("no -LHS or -polort option given?!") ;
    }
 
-   dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
-   evec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
    if( nvar > 0 )
      rvec = (float **)malloc(sizeof(float *)*nvar ) ;  /* LHS vectors */
 
@@ -1450,6 +1465,70 @@ int main( int argc , char *argv[] )
    THD_fitter_do_fitts   ( do_fitts ) ;  /* 05 Mar 2008 */
    THD_fitter_set_vthresh( vthresh  ) ;  /* 18 May 2010 */
 
+
+AFNI_OMP_START ;
+#pragma omp parallel if( nvox > 1 )
+ { /* per-thread variables declared here */
+   int ii , jj , kk ;
+   float *dvec , *evec , **rrqvec=rvec , *falq_kern=fal_kern ;
+   THD_3dim_dataset *lset ;
+   floatvec *bfit ;
+
+#ifdef USE_OMP
+#pragma omp master
+ { int nthr = omp_get_num_threads() ;
+   if( nthr > 1 ) fprintf(stderr,"[%d OpenMP threads]%s",nthr,(vstep>0)?" ":"\n") ;
+ }
+#endif
+
+   /* allocate thread-specific arrays for voxel-dependent data */
+
+#pragma omp critical
+  { dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+    evec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+
+    /* This next suff is a little complicated:
+       rvec   =  LHS vectors, which are partly pre-loaded earlier
+                  (from .1D files and from -polort basis functions),
+                  and partly need to be loaded for each voxel from
+                  the LHS datasets (if any)
+       Problem:  With OpenMP, the voxelwise loading vectors need
+                  to be distinct to prevent inter-thread clobbers
+       Solution: Make rrqvec[ii] the same pointer as rvec[ii]
+                  for ii that does NOT come from a LHS dataset
+                  (that is, where rvec[ii] is pre-loaded with data)
+                  and make a new rrqvec[ii] to be loaded from a
+                  LHS dataset when that is necessary
+       Comment:  This is ugly, but the easiest way to retrofit for OpenMP */
+
+    if( nlset > 0 && AO_nth > 1 ){ /* have at least one LHS dataset */
+                                   /* and have more than 1 thread */
+      rrqvec = (float **)malloc(sizeof(float *)*nvar ) ;
+
+      for( ii=0 ; ii < nvar ; ii++ ){  /* copy all vectors */
+        rrqvec[ii] = rvec[ii] ;
+      }
+      for( ii=0 ; ii < nlhs ; ii++ ){  /* then overwrite a few of them */
+        kk = kvec->ar[ii] ;
+        if( kk >= 0 ){
+          lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
+          jj   = DSET_NVALS(lset) ;
+          rrqvec[kk] = (float *)malloc(sizeof(float)*(jj+1)) ;
+        }
+      }
+    }
+
+    /* Similarly, if the deconvolution kernel comes
+       from a dataset, we need a per-voxel kernel vector.
+       However, since there is only 1 deconvolution kernel
+       (unlike having multiple LHS vectors), this is simpler. */
+
+     if( fal_klen > 0 && fal_set != NULL )
+       falq_kern = (float *)malloc(sizeof(float)*fal_klen) ;
+
+  }
+
+#pragma omp for
    for( ii=0 ; ii < nvox ; ii++ ){
 
      if( vstep > 0 && ii%vstep==vstep-1 ) vstep_print() ;
@@ -1459,7 +1538,11 @@ int main( int argc , char *argv[] )
      THD_extract_array( ii , rhset , 0 , dvec ) ;   /* get RHS data vector */
 
      for( jj=0 ; jj < ntime && dvec[jj]==0.0f ; jj++ ) ; /*nada*/
-     if( jj == ntime ){ nskip++; continue; }   /*** skip all zero vector ***/
+     if( jj == ntime ){   /*** skip all zero vector ***/
+#pragma omp atomic /* ensure nskip ain't updated simultaneously in 2 threads */
+       nskip++;
+       continue;
+     }
 
      for( jj=0 ; jj < ntime ; jj++ ) evec[jj] = dvec[jj] ;  /* copy vector */
 
@@ -1469,7 +1552,7 @@ int main( int argc , char *argv[] )
        if( XTARR_IC(dsar,jj) == IC_DSET ){         /* out of LHS datasets  */
          lset = (THD_3dim_dataset *)XTARR_XT(dsar,jj) ;
          kk = kvec->ar[jj] ;
-         THD_extract_array( ii , lset , 0 , rvec[kk] ) ;
+         THD_extract_array( ii , lset , 0 , rrqvec[kk] ) ;
        }
      }
 
@@ -1478,16 +1561,16 @@ int main( int argc , char *argv[] )
      if( fal_klen > 0 ){      /*-- deconvolution --*/
 
        if( fal_set != NULL )  /* get decon kernel if from a 3D+time dataset */
-         THD_extract_array( ii , fal_set , 0 , fal_kern ) ;
+         THD_extract_array( ii , fal_set , 0 , falq_kern ) ;
 
        bfit = THD_deconvolve( ntime , dvec ,
-                              0 , fal_klen-1 , fal_kern ,
-                              nvar , rvec , meth , cvec , fal_dcon ,
+                              0 , fal_klen-1 , falq_kern ,
+                              nvar , rrqvec , meth , cvec , fal_dcon ,
                               fal_pencod , fal_penfac               ) ;
 
      } else {                 /*-- simple fitting --*/
 
-       bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
+       bfit = THD_fitter( ntime , dvec , nvar , rrqvec , meth , cvec ) ;
 
      }
 
@@ -1519,6 +1602,11 @@ int main( int argc , char *argv[] )
 
    } /* end of loop over voxels */
 
+   /* If I was feeling kindly, I'd free the per-thread malloc-ed stuff now. */
+   /* However, at this moment my kindliness coefficient has drizzled away. */
+ }
+AFNI_OMP_END ;
+
    if( vstep > 0 ) fprintf(stderr," Done!\n") ;
    if( nskip > 0 ) WARNING_message("Skipped %d voxels for being all zero",nskip) ;
 
@@ -1549,7 +1637,8 @@ int main( int argc , char *argv[] )
      DSET_write(ersum_set); DSET_unload(ersum_set);
    }
 
-   if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
+   if( verb )
+     INFO_message("3dTfitter: CPU time = %.1f s  Elapsed = %.1f s",COX_cpu_time(),COX_clock_time()) ;
    exit(0);
 }
 
@@ -1565,6 +1654,7 @@ static void vstep_print(void)
 }
 
 /*---------------------------------------------------------------------------*/
+/* LHS Legendre polynomial */
 
 static float lhs_legendre( float x, float bot, float top, float n )
 {

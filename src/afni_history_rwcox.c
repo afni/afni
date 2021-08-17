@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_ENHANCE ,
+   "Modified to use OpenMP" ,
+   "3dTfitter.c, thd_fitter.c, and thd_lasso.c" } ,
+
  { 10 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_NEW_PROG ,
    "Add -LCB option for block-wise LASSO penalties" ,
    "LCB = LASSO Centro Block\n"

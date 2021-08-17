@@ -10863,6 +10863,11 @@ ENTRY("IW3D_improve_warp") ;
      iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                                prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
+     if( iter == -1 ){ /* failure in newuoa() code - try one more time */
+       iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
+                                 prad,0.09*prad , itmax , IW3D_scalar_costfun ) ;
+     }
+
 #ifdef USE_OMP
      (void)alarm(0) ;   /* cancel alarm signal if we succeeded/returned ! */
 #endif
