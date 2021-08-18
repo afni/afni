@@ -265,6 +265,8 @@ static char SUMA_SCR_LIST_WIDGET_TRANSLATIONS[] =
       <Btn5Down>: ListNextItem() ";
 
 
+extern Bool clippingPlaneMode;
+
 
 /*!
 
