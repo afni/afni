@@ -4830,7 +4830,7 @@ STATUS("drawing crosshairs") ;
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0) {
-            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
+            AFNI_get_dset_val_label_maybeCR(dset,    /* Dec 7 2011 ZSS/DRG 2021 */
                                     dval, labstra);
          }
          dset = Get_UO_Dset(br, 'O', 1, &ival);
@@ -4838,8 +4838,9 @@ STATUS("drawing crosshairs") ;
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0) {
-            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
+            AFNI_get_dset_val_label_maybeCR(dset,    /* Dec 7 2011 ZSS/DRG 2021 */
                                     dval, labstrf);
+
          }
 
          if (labstrf[0] != '\0' || labstra[0] != '\0') {
