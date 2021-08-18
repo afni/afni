@@ -2030,7 +2030,7 @@ STATUS("creation: widgets created") ;
      static char *alabel[7] = { "Off", "UpperLeft", "UpperRight",
                                        "LowerLeft", "LowerRight",
                                        "UpperMid" , "LowerMid"   } ;
-     static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
+     static char *slabel[6] = { "Tiny" , "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
      static char *mlabel[3] = { "Slice", "Volume", "Dataset" };
 
      char *eee ; int iii ;
@@ -2115,17 +2115,17 @@ STATUS("creation: widgets created") ;
                         ) ;
      MCW_reghint_children(newseq->wbar_label_av->wrowcol,"Show coordinate label") ;
 
-     iii = 1 ;
+     iii = 2 ;
      eee = getenv("AFNI_IMAGE_LABEL_SIZE") ;
      if( eee != NULL ){
-        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 4 ) iii = 2 ;
+        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 5 ) iii = 2 ;
      }
      newseq->wbar_labsz_av =
         new_MCW_arrowval( newseq->wbar_menu ,
                           "Size " ,
                           MCW_AV_optmenu ,      /* option menu style */
                           0 ,                   /* first option */
-                          4 ,                   /* last option */
+                          5 ,                   /* last option */
                           iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
@@ -3571,8 +3571,8 @@ ENTRY("ISQ_make_image") ;
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww , nlin ; float asp , dd ;
-   static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
-   static float th[5] = { 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
+   static int   sz[5] = { 12     , 20    , 28    , 40    , 56    , 80     } ;
+   static float th[5] = { 0.001f , 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
    char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f ;
 
 ENTRY("ISQ_plot_label") ;
@@ -8206,7 +8206,7 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
          if( dd < 0 ){
             INVERT_manage( seq->wbar_label_av->wrowcol ) ;
             INVERT_manage( seq->wbar_labsz_av->wrowcol ) ;
-         } else if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 4 ){
+         } else if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 5 ){
            AV_assign_ival( seq->wbar_label_av , dd ) ;
            ISQ_redisplay( seq , -1 , isqDR_display ) ;
          }

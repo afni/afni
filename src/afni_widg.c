@@ -4743,7 +4743,7 @@ STATUS("making func->rowcol") ;
 
    func->bkgd_lab =
       XtVaCreateWidget(
-         "font8" , xmLabelWidgetClass , func->options_rowcol ,
+         "font7" , xmLabelWidgetClass , func->options_rowcol ,
             XmNrecomputeSize , False ,
             XmNlabelString , xstr ,
             XmNmarginHeight, 0 ,
