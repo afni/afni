@@ -53,8 +53,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.30"
-#define VERSION_DATE_3DSVM "11/21/17"
+#define VERSION_3DSVM "V1.31"
+#define VERSION_DATE_3DSVM "08/16/2021"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -82,6 +82,8 @@
 #define SVM_HOST_NCTRY  3       /* max number of attempts to connect to SVM host
                                    (relevant for real-time action */
 
+#define IFree(x) do{ if( (x)!=NULL ){ free(x) ; (x)=NULL ; } } while(0)
+ 
 /* JL: Used to define the kernel type. CUSTOM stands for custom kernel.
  * LINEAR 0
  * POLY 1 
@@ -92,6 +94,7 @@
 enum calling_fcn { ASL_PLUGIN, ASL_COMMAND_LINE };
 enum modes { NOTHING, TRAIN, TEST, TRAIN_AND_TEST,
               RT_TRAIN, RT_TEST   /* JL. Sep 2010 */ };
+
 typedef struct ASLoptions{
   /* initialize at instantiation */
   char labelFile[LONG_STRING];  /* training class (label) file */
@@ -137,8 +140,8 @@ typedef struct ASLoptions{
   int linearWmap;               /* JL May 2011: flag signifying that user has 
                                    specified -wout flag: Write sum of weighted 
                                    linear sv into bucket file. This is currently 
-                                   the only activation map that is implemented. */
-}ASLoptions;
+                                   the only activation map that is implemeted. */
+} ASLoptions;
 
 typedef struct labels {
   LabelType* lbls; 		/* the class labels indicating the stimulus
@@ -263,6 +266,19 @@ typedef struct rt_svm_vars {
   LEARN_PARM  *  learn_parm;      /* svm-light learn parameters */ 
   long           kernel_cache_size; /* svm-light kernel parameter */
 
+  /* Added by Cameron to test for new data */
+  long           nt_processed;    /* number of volumes processed */ 
+
+  /* Cameron Craddock added to support prediction from bucket */ 
+  int             bucket_predict;     /* flag to predict from bucket */ 
+  int             n_wvec;          /* number of weight vectors in bueckt */
+  float *         bias_value;         /* SVM model bias value (b) */
+
+  int             initialized;       /* flag to indicate whether initializations
+                                        from the BEGIN phase of the callback 
+                                        have occured */
+  /* End CC additions */
+  
  } RT_SVM_VARS; 
 
 /* --- advanced user command line help-string --- */
@@ -912,6 +928,11 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
+"V1.31 (08/16/2021)\n"
+"  1) Real-time: Cameron Craddock's general improvements and fast\n"
+"     linear predictions using weight vector (option: -bucket) instead\n"
+"     of full SVM-light model (option: -model).\n"
+"\n"    
 "V1.30 (11/21/17)\n"
 "  1) Write prediction and alpha output files using four significant digits,\n"
 "     since Lagrange multipliers (alphas) are currently written/read using\n"
@@ -1113,6 +1134,6 @@ int           train_classification( MODEL *, LEARN_PARM *, KERNEL_PARM *, long *
 int           train_regression( MODEL *, LEARN_PARM *, KERNEL_PARM *, long *, 
               ASLoptions *, THD_3dim_dataset *, THD_3dim_dataset *, MaskType *,
                   int, char **, char * );
-int           ppi (int , int , char *);
+int           ppi (int , int , char **);
 int           input_parse(int , char **, long *, long *, LEARN_PARM *, 
               KERNEL_PARM *, ASLoptions*, enum modes *, int *, char *);

@@ -13,13 +13,15 @@ static int lasso_verb = 0 ;
 /** set the fixed value of lambda (flam);
     note that flam will always be positive (never 0) **/
 
+/* this is set once-and-for-all so doesn't need to be thread-ized */
+
 static float flam = 0.666f ;
 
 void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 /*............................................................................*/
 
-/** set the convergence parameter (deps) **/
+/** set the convergence parameter (deps) [function not used at this time] **/
 
 static float deps = 0.0000321111f ;
 
@@ -29,7 +31,7 @@ void THD_lasso_setdeps( float x ){
 
 /*............................................................................*/
 
-/** set this to 1 to do 'post-LASSO' re-regression **/
+/** set this to 1 to do 'post-LASSO' re-regression [not used at this time] **/
 
 static int do_post = 0 ;
 
@@ -38,6 +40,8 @@ void THD_lasso_dopost( int x ){ do_post = x ; }
 /*............................................................................*/
 
 /** set this to 1 to scale LASSO lambda by estimated sigma **/
+
+/* this is set once-and-for-all so doesn't need to be thread-ized */
 
 static int do_sigest = 0 ;
 
@@ -48,6 +52,8 @@ void THD_lasso_dosigest( int x ){ do_sigest = x ; }
 /** set the entire lambda vector **/
 
 static floatvec *vlam = NULL ;
+
+/* this is set once-and-for-all so doesn't need to be thread-ized */
 
 void THD_lasso_setlamvec( int nref , float *lam )
 {
@@ -67,18 +73,23 @@ ENTRY("THD_lasso_setlamvec") ;
 
 /** set initial parameters estimates **/
 
+/* not used at this time, but is thread-ized for safety */
+
+AO_DEFINE_SCALAR(floatvec*,vpar) ;
+#if 0
 static floatvec *vpar = NULL ;
+#endif
 
 void THD_lasso_setparvec( int nref , float *par )
 {
    register int ii ;
 ENTRY("THD_lasso_setparvec") ;
 #pragma omp critical (MALLOC)
-   { KILL_floatvec(vpar) ; }
+   { KILL_floatvec(AO_VALUE(vpar)) ; }
    if( nref > 0 && par != NULL ){
 #pragma omp critical (MALLOC)
-     { MAKE_floatvec(vpar,nref) ; }
-     for( ii=0 ; ii < nref ; ii++ ) vpar->ar[ii] = par[ii] ;
+     { MAKE_floatvec(AO_VALUE(vpar),nref) ; }
+     for( ii=0 ; ii < nref ; ii++ ) AO_VALUE(vpar)->ar[ii] = par[ii] ;
    }
    EXRETURN ;
 }
@@ -94,6 +105,8 @@ ENTRY("THD_lasso_setparvec") ;
             * If an un-penalized index (mylam[i]==0) is provided
           My suggestion is to avoid being an idiot.  [Aug 2021 - RWCox]
 *//*--------------------------------------------------------------------------*/
+
+/* set once-and-for-all so doesn't need to be thread-ized */
 
 static int cenblok_num  = 0 ;
 static intvec **cenblok = NULL ;
@@ -425,10 +438,10 @@ ENTRY("THD_lasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   if( vpar == NULL || vpar->nar < nref ){
+   if( AO_VALUE(vpar) == NULL || AO_VALUE(vpar)->nar < nref ){
      /* compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ; */
    } else {
-     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = AO_VALUE(vpar)->ar[ii] ;
    }
 
    /*--- initialize residuals ---*/
@@ -461,9 +474,9 @@ ENTRY("THD_lasso_L2fit") ;
 #undef  CONN    /* CONN(j) is true if ppar[j] is supposed to be <= 0 */
 #define CONN(j) (ccon != NULL && ccon[j] < 0.0f)
 
-   { static int ncall=0 ;
-     lasso_verb = ( ncall < 2 || ncall%10000 == 1 ) ;
-     ncall++ ;
+   { AO_DEFINE_SCALAR(int,ncall) ;
+     lasso_verb = ( AO_VALUE(ncall) < 2 || AO_VALUE(ncall)%10000 == 1 ) ;
+     AO_VALUE(ncall)++ ;
    }
 
    ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
@@ -673,10 +686,10 @@ ENTRY("THD_sqrtlasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   if( vpar == NULL || vpar->nar < nref ){
+   if( AO_VALUE(vpar) == NULL || AO_VALUE(vpar)->nar < nref ){
      /* compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ; */
    } else {
-     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = AO_VALUE(vpar)->ar[ii] ;
    }
 
    /*--- initialize residuals ---*/
@@ -773,12 +786,12 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    } /*---- end of outer iteration loop ----*/
 
 #if 1
-   { static int ncall=0 ;
-     if( ncall < 2 || ncall%10000 == 1 ){
+   { AO_DEFINE_SCALAR(int,ncall) ;
+     if( AO_VALUE(ncall) < 2 || AO_VALUE(ncall)%10000 == 1 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
-       INFO_message("SQRTLASSO %d: nite=%d dsum=%g dsumx=%g nfree=%d/%d",ncall,nite,dsum,dsumx,nfree,nref) ;
+       INFO_message("SQRTLASSO %d: nite=%d dsum=%g dsumx=%g nfree=%d/%d",AO_VALUE(ncall),nite,dsum,dsumx,nfree,nref) ;
      }
-     ncall++ ;
+     AO_VALUE(ncall)++ ;
    }
 #endif
 
