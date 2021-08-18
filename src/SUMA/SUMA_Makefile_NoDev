@@ -8,42 +8,18 @@ else
 SUMALIB = libSUMA.a
 endif
 
-# for compiling directly from this Makefile instead of SUMA_Makefile or AFNI's Makefile
-# where the CPU_TYPE should be set; otherwise get errors on ARM M1 like this:
-#config.status: creating test/coarsen/Makefile
-#sed: 24: ./confstatWn4LFR/subs-2.sed: unescaped newline inside substitute pattern
-# check against environment variable for cpu type for default settings
-ifeq ($(CPUTYPE), arm64)
-   CPU_TYPE ?= ARM_M1
-else
 # set default CPU_TYPE if not set already
-   CPU_TYPE ?= x86_64
-endif
-
-# these are needed to run directly from this file 
-# should be safe because they only get assigned if not set already
-RANLIB ?= ranlib
-CP ?= cp
+CPU_TYPE ?= x86_64
 
 # and possibly init CFLAGS based on CPU_TYPE
-# updated glib to 2.68.1 from previous 2.66 directory
-# then switched to pkg-config figuring this out
-# pkg-config --cflags --libs glib-2.0
-#   -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0 -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include \
-#   -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/Cellar/pcre/8.44/include \
-#   -L/opt/homebrew/Cellar/glib/2.68.1/lib -L/opt/homebrew/opt/gettext/lib -lglib-2.0 -lintl
-
 ifeq ($(CPU_TYPE), ARM_M1)
-GLIBCFLAGS = `pkg-config --cflags --libs glib-2.0`
 CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre                               \
          -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
-         -Wmissing-prototypes -Wmissing-declarations                       \
-         $(GLIBCFLAGS)
-# previous manually found includes - update versions
-#         -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0             \
-#         -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include         \
-#         -I/opt/homebrew/opt/gettext/include                                     \
-#        -I/opt/homebrew/Cellar/pcre/8.44/include
+         -Wmissing-prototypes -Wmissing-declarations                     \
+         -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0             \
+         -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include         \
+         -I/opt/homebrew/opt/gettext/include                             \
+         -I/opt/homebrew/Cellar/pcre/8.44/include
 endif
 
 SUMASLIB = libSUMAseg.a
@@ -57,7 +33,7 @@ GLWLIB = libGLws.a
 
 SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr -IGLUT -I../f2c -I.. -I../niml -I../coxplot -I../ptaylor
 
-SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
+SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_clippingPlanes.c \
 		 SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c SUMA_SurfNorm.c SUMA_DOmanip.c \
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c \
@@ -143,7 +119,7 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
-SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
+SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_clippingPlanes.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
 		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
 		 SUMA_DataSets.h SUMA_Homer.h
 
