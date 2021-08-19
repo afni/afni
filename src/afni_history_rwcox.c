@@ -49,6 +49,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , AUG , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change top-of-image drawn label to resize font if drawn too large" ,
+   NULL } ,
+
  { 17 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_ENHANCE ,
    "Modified to use OpenMP" ,
    "3dTfitter.c, thd_fitter.c, and thd_lasso.c" } ,

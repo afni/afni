@@ -269,6 +269,8 @@ extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
 extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
                                 int start , int end , int freee    ) ;
 
+extern float_quad memplot_bbox( MEM_plotdata *mp ) ;    /* 19 Aug 2021 */
+
 extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
 extern void memplot_to_png( char * , MEM_plotdata * ) ;
 extern void memplot_to_pnm( char * , MEM_plotdata * ) ; /* 06 Jan 2015 */

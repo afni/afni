@@ -3571,15 +3571,15 @@ ENTRY("ISQ_make_image") ;
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww , nlin ; float asp , dd ;
-   static int   sz[5] = { 12     , 20    , 28    , 40    , 56    , 80     } ;
-   static float th[5] = { 0.001f , 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
-   char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f ;
+   static int   sz[6] = { 12     , 20    , 28    , 40    , 56    , 80     } ;
+   static float th[6] = { 0.001f , 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
+   char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f , thk ;
 
 ENTRY("ISQ_plot_label") ;
 
    if( !ISQ_REALZ(seq) || lab == NULL || lab[0] == '\0' ) RETURN(NULL) ;
 
-   asp = 1.0 ;  /* aspect ratio of plot */
+   asp = 1.0f ;  /* aspect ratio of plot */
 
    /** In the following, all coordinates are in the 'units'
        where the plot window runs over (x,y) = [0..1,0..asp] */
@@ -3587,7 +3587,9 @@ ENTRY("ISQ_plot_label") ;
    /* set character size (units = 0.001 of plot width) */
 
    ww = sz[seq->wbar_labsz_av->ival] ;
-   if( asp > 1.0 ) ww = (int)(ww/asp+0.5) ;
+   if( asp > 1.0f ) ww = (int)(ww/asp+0.5f) ;
+
+   thk = th[seq->wbar_labsz_av->ival] ;  /* line thickness */
 
    /* find number of lines in label [15 Jul 2021] */
 
@@ -3596,30 +3598,53 @@ ENTRY("ISQ_plot_label") ;
      if( *eee == '\n' || strncmp(eee,"\\newline",8) == 0 ) nlin++ ;
    }
 
-   dd = 0.0007*ww*nlin ;  /* offset from edge */
-
-   /* create a blank plot to be drawn into;
-      this plot will be merged with other overlay plots later */
-
-   create_memplot_surely( "Ilabelplot" , asp ) ;
-
-   set_thick_memplot(th[seq->wbar_labsz_av->ival]) ; /* 09 Dec 2011 */
-   set_opacity_memplot(1.0f) ;                       /* 21 Mar 2017 */
-
-   /* get the color to plot with */
-   /* colors in coxplot are RGB triples, values from 0.0 to 1.0 */
-
-   eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
-   if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
-   set_color_memplot(rr,gg,bb) ;
-
-   /* get the setback [default = 0.003 * plot width] */
+   /* get the setback from edge in x direction [default = 0.003 * plot width] */
 
    eee = getenv("AFNI_IMAGE_LABEL_SETBACK") ;
    if( eee != NULL ){
       float ss = strtod(eee,NULL) ;
       if( ss >= 0.0 && ss < 0.5 ) sb = ss ;
    }
+
+   /* If string is 'long':
+       create a temporary memplot to draw string into to get it bounding box;
+       then use that box to change the drawing scale if the box is too wide. */
+
+#define TSIZ 4  /* smallest font size pwritf will take is 4 */
+   if( strlen(lab) > 9 ){                    /* 19 Aug 2021 */
+     float_quad bbox ; float xsiz,ysiz,test ;
+     create_memplot_surely( "JunkPlot" , asp ) ;
+     plotpak_pwritf( 0.01,0.5 , lab , TSIZ , 0 , -1 ) ;
+     mp = get_active_memplot() ;
+     bbox = memplot_bbox( mp ) ;  /* min and max x,y coords */
+     delete_memplot( mp ) ;
+     xsiz = bbox.b - bbox.a ; ysiz = bbox.d - bbox.c ;
+     test = (ww*xsiz)/TSIZ ;
+     if( test > 0.97f ){
+       int wwnew = (int)(TSIZ/xsiz+0.49f) ;
+       if( wwnew < ww     ) ww   = wwnew ;
+       if( ww    < 8      ) ww   = 8 ;
+       if( test  > 1.333f ) thk /= test ;
+     }
+   }
+
+   dd = 0.0007f*ww*(nlin+0.111f) ;  /* offset from edge in y direction */
+
+   /* create a blank plot to be drawn into (the output from this func);
+      this plot will be merged with other overlay plots at a later date */
+
+   create_memplot_surely( "Ilabelplot" , asp ) ;
+
+   set_thick_memplot(thk) ;
+   set_opacity_memplot(1.0f) ;
+
+   /* get the [initial] color to plot with */
+   /* colors in coxplot are RGB triples, values from 0.0 to 1.0 */
+   /* [note: the string might contain color changing commands!] */
+
+   eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
+   if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
+   set_color_memplot(rr,gg,bb) ;
 
    /* plot the label */
 
