@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Aug, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_tsv_cols_of_interest",
+   NULL
+ } ,
+
  { 14, Aug, 2021, RCR, "coxplot", MICRO, TYPE_BUG_FIX,
    "remove duplicate symbols zzzplt_ and zzpltr_",
    "Done at the behest of D Glen."

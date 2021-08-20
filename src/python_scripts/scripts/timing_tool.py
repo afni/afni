@@ -969,6 +969,17 @@ action options (apply to single timing element, only): ~1~
         of a basis function).  Use -write_as_married to include any constant
         duration as a modulator.
 
+   -write_tsv_cols_of_interest NEW_FILE : write cols of interest ~2~
+
+        e.g. -write_tsv_cols_of_interest cols_of_interest.tsv
+
+        This is an esoteric function that goes with -multi_timing_3col_tsv.
+        Since the input TSV files often have many columns that make viewing
+        difficult, this option can be used to extract only the relevant
+        columns and write them to a new TSV file.
+
+            Consider '-multi_timing_3col_tsv'.
+
    -write_timing NEW_FILE       : write the current timing to a new file ~2~
 
         e.g. -write_timing new_times.1D
@@ -1466,9 +1477,10 @@ g_history = """
         - match output between python2 and python3
    3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
    3.14 Jul 22, 2021 - added -multi_durations_from_offsets
+   3.15 Aug 20, 2021 - added -write_tsv_cols_of_interest
 """
 
-g_version = "timing_tool.py version 3.14, July 22, 2021"
+g_version = "timing_tool.py version 3.15, August 22, 2021"
 
 
 
@@ -1503,6 +1515,7 @@ class ATInterface:
       self.tsv_labels      = None       # labels to convert TSV to timing with
       self.tsv_def_dur_lab = None       # label for dur col if n/a
       self.tsv_show_details= 0          # show the TSV label info
+      self.tsv_int         = None       # file to write TSV cols of int to
 
       # user options - multi var
       self.m_timing        = []
@@ -1635,7 +1648,8 @@ class ATInterface:
 
       rv, timing_list = LT.read_multi_3col_tsv(flist, hlabels=self.tsv_labels,
                              def_dur_lab=self.tsv_def_dur_lab,
-                             show_only=self.tsv_show_details, verb=self.verb)
+                             show_only=self.tsv_show_details,
+                             tsv_int=self.tsv_int, verb=self.verb)
       if rv: return 1
 
       self.m_timing = timing_list
@@ -1865,6 +1879,8 @@ class ATInterface:
                          helpstr='show fractional TR stats timing files')
       self.valid_opts.add_opt('-show_tsv_label_details', 0, [], 
                          helpstr='show column labels from TSV file')
+      self.valid_opts.add_opt('-write_tsv_cols_of_interest', 1, [], 
+                         helpstr='write applied TSV columns to new file')
       self.valid_opts.add_opt('-warn_tr_stats', 0, [], 
                          helpstr='warn about bad fractional TR stats')
       self.valid_opts.add_opt('-tr', 1, [], 
@@ -2057,6 +2073,13 @@ class ATInterface:
                print("** -show_tsv_label_details with -write_multi_timing" \
                      " is not valid")
                return 1
+
+         # allow for writing TSV cols of interest
+         if uopts.find_opt('-write_tsv_cols_of_interest'):
+            val, err = uopts.get_string_opt('-write_tsv_cols_of_interest')
+            if val and not err:
+               self.tsv_int = val
+
          val, err = uopts.get_string_list('-multi_timing_3col_tsv')
          if type(val) == type([]) and not err:
             if self.multi_timing_from_3col_tsv(val): return 1
@@ -2335,6 +2358,10 @@ class ATInterface:
             self.timing.show()
 
          elif opt.name == '-show_tsv_label_details':
+            # already processed
+            pass
+
+         elif opt.name == '-write_tsv_cols_of_interest':
             # already processed
             pass
 
