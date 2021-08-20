@@ -3620,11 +3620,11 @@ ENTRY("ISQ_plot_label") ;
      delete_memplot( mp ) ;
      xsiz = bbox.b - bbox.a ; ysiz = bbox.d - bbox.c ;
      test = (ww*xsiz)/TSIZ ;
-     if( test > 0.97f ){
-       int wwnew = (int)(TSIZ/xsiz+0.49f) ;
-       if( wwnew < ww     ) ww   = wwnew ;
-       if( ww    < 8      ) ww   = 8 ;
-       if( test  > 1.333f ) thk /= test ;
+     if( test > 0.9777f ){
+       int wwnew = (int)(TSIZ/xsiz+0.888f) ;
+       if( wwnew < ww     ) ww   = wwnew ;    /* don't go up */
+       if( ww    < 8      ) ww   = 8 ;      /* smallest font */
+       if( test  > 1.333f ) thk /= test ; /* thinner strokes */
      }
    }
 

@@ -4818,7 +4818,7 @@ STATUS("drawing crosshairs") ;
           RETURN(NULL) ;   /* should never happen */
         }
 
-        sprintf(str,"%6.2f",fabs(cc)) ;
+        sprintf(str,"%3.2f",fabs(cc)) ;
         for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
         if( str[ii] == '.' ) str[ii] = '\0' ;
         strcat(str, dd) ;
