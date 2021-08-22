@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Aug , 2021 , PT , "lib_afni1D.py" , MICRO , TYPE_BUG_FIX,
+   "Afni1D.uncensor_from_vector() had a syntax error in one print call').",
+   "Was missing a %, now fixed.\n"
+},
+
 { 10, Aug , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
    "No longer worry about even/odd slice output (and remove '-no_fs_prep').",
    "Dealt with an old non-issue.\n"
