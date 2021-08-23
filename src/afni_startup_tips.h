@@ -1957,13 +1957,14 @@ static char *gby[] = {
     "I have faced all the reality I need to face for today"                                          ,
     "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
     "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
+
     "\n  I'd be more interested in thinking outside the box\n"
-    "    if I could figure out thinking INSIDE the box first"                                        ,
-    "Real stupidity beats artificial intelligence, every time"                                       ,
-    "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
-    "You can shut your eyes but you can't shut your brain"                                           ,
-    "Having a wonderful time. Please send more grant money"                                          , /* 22 Jun 2021 */
-    "I don't mind being this old. I just thought it would take longer to get here"                   , /* 08 Jul 2021 */
+    "    if I could figure out thinking INSIDE the box first"                        ,
+    "Real stupidity beats artificial intelligence, every time"                       ,
+    "Sometimes it's better to light a flamethrower than curse the darkness"          ,
+    "You can shut your eyes but you can't shut your brain"                           ,
+    "Having a wonderful time. Please send more grant money"                          , /* 22 Jun 2021 */
+    "I don't mind being this old. I just thought it would take longer to get here"   , /* 08 Jul 2021 */
 
     "\n"
     " Substitutions to understand yourself better:\n"
@@ -1977,20 +1978,20 @@ static char *gby[] = {
     "   Weird      => Unique\n"
     "   Lazy       => Out of Energy\n"
     "   Stubborn   => Consistent\n"
-    " And remember, AFNI is ALL of these things at the same time"                                    , /* 12 Jul 2021 */
+    " And remember, AFNI is ALL of these things at the same time"                      , /* 12 Jul 2021 */
 
     "Be Warned:\n"
     "  Any observed statistical regularity will tend to collapse\n"
-    "  once pressure is placed upon it for control purposes"                                         , /* 13 Jul 2021 */
+    "  once pressure is placed upon it for control purposes"                           , /* 13 Jul 2021 */
 
-    "Tell me, what is it you plan to do with your one wild and precious life?"                       ,
-    "Anything which can be used can be misused; anything which can be misused will be"               ,
-    "It's hard to accept the truth when the lies were exactly what you wanted to hear"               ,
+    "Tell me, what is it you plan to do with your one wild and precious life?"         ,
+    "Anything which can be used can be misused; anything which can be misused will be" ,
+    "It's hard to accept the truth when the lies were exactly what you wanted to hear" ,
 
     "\n"
     " The problem with connections is that the right ones are necessary,\n"
     "   but there are too many possible wrong ones out there.\n" 
-    "    Oh well, I guess that's what evolution and experience are for"                              , /* 30 Jul 2021 */
+    "    Oh well, I guess that's what evolution and experience are for"                , /* 30 Jul 2021 */
 
     "\n"
     " What I tell you three times is true:\n"
@@ -2002,19 +2003,21 @@ static char *gby[] = {
     "       Lived is it after understood be only can Life!!\n"
     "   The brain is not a computer and it is not running software;\n"
     "     The brain is not a computer and it is not running software;\n"
-    "       The brain is not a computer and it is not running software!"                             ,
+    "       The brain is not a computer and it is not running software!"               ,
 
     "\n"
     "  When I was 20, I thought a lot about what other people thought of me;\n"
-    "    When I was 40, I found I didn't think so much about what they thought of me;\n"
-    "      When I was 60, I figured out that they didn't spend much effort thinking about me"        , /* 09 Aug 2021 */
+    "   When I was 40, I found I didn't think so much about what they thought of me;\n"
+    "    When I was 60, I figured out that they didn't spend much effort thinking about me" , /* 09 Aug 2021 */
 
     "\n"
     "  When the airless wind shall sing,\n"
     "   When the broken circle mends,\n"
     "    When the brightest day dawns without light,\n"
     "     And the brittle night comes softly without darkness\n"
-    "      -- I shall yet remember."                                                                 , /* 10 Aug 2021 */
+    "      -- I shall yet remember"                                 , /* 10 Aug 2021 */
+
+    "Remember: He who wills the ends, wills the means"              , /* 23 Aug 2021 */
 
     /**** Keep this one last ****/
 
