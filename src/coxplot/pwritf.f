@@ -820,7 +820,7 @@ C  Check if this is a newline character
 C
          ELSEIF( ICH .EQ. 10 )THEN
             XCUR = 0.0
-            YCUR = YCUR - 1.30
+            YCUR = YCUR - 1.36
 C.....................................................................
 C  Otherwise, this is a real character with real strokes
 C

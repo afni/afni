@@ -3618,17 +3618,17 @@ ENTRY("ISQ_plot_label") ;
      mp = get_active_memplot() ;
      bbox = memplot_bbox( mp ) ;  /* min and max x,y coords */
      delete_memplot( mp ) ;
-     xsiz = bbox.b - bbox.a ; ysiz = bbox.d - bbox.c ;
+     xsiz = bbox.b - bbox.a ; /* ysiz = bbox.d - bbox.c ; */
      test = (ww*xsiz)/TSIZ ;
-     if( test > 0.99f ){
-       int wwnew = (int)(TSIZ/xsiz+0.888f) ;
+     if( test > 0.97f ){         /* too wide ==> shrink font */
+       int wwnew = (int)(TSIZ/xsiz) ;
        if( wwnew < ww     ) ww   = wwnew ;    /* don't go up */
        if( ww    < 8      ) ww   = 8 ;      /* smallest font */
-       if( test  > 1.333f ) thk /= test ; /* thinner strokes */
+       if( test  > 1.444f ) thk /= test ; /* thinner strokes */
      }
    }
 
-   dd = 0.0007f*ww*(nlin+0.111f) ;  /* offset from edge in y direction */
+   dd = 0.0007f*ww*(nlin+0.123f) ;  /* offset from edge in y direction */
 
    /* create a blank plot to be drawn into (the output from this func);
       this plot will be merged with other overlay plots at a later date */

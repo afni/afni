@@ -1044,7 +1044,7 @@ L100:
 
     } else if (ich == 10) {
 	xcur = 0.f;
-	ycur += -1.3f;
+	ycur += -1.36f;
 /* ...................................................................
 .. */
 /*  Otherwise, this is a real character with real strokes */

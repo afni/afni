@@ -387,13 +387,14 @@ void memplot_to_pnm( char *fname , MEM_plotdata *mp )  /* 06 Jan 2015 */
 
 /*-----------------------------------------------------------------------*/
 /* Find the min/max coordinates used in a plot structure
-   (abstract coords, not scaled to actual plotting) -- 19 Aug 2021
+   (abstract coords in range 0..1, not yet scaled to actual plotting).
+   Error return has out.a >= out.b and/or out.c >= out.d -- 19 Aug 2021
 *//*---------------------------------------------------------------------*/
 
 float_quad memplot_bbox( MEM_plotdata *mp )
 {
    float_quad out = {0.0f,0.0f,0.0f,0.f} ;
-   float xbot=0.0f,xtop=0.0f , ybot=0.0f,ytop=0.0f ;
+   float xbot,xtop , ybot,ytop ;
    float x1,y1,x2,y2 , new_thick ;
    int ii , nline ;
 
@@ -401,11 +402,15 @@ float_quad memplot_bbox( MEM_plotdata *mp )
 
    nline = MEMPLOT_NLINE(mp) ; if( nline < 1 ) return out ;
 
-#define SORD(a,b)  do{ if( a > b ){ float t=a ; a=b ; b=t ; } } while(0)
+/* swap to make them ordered */
+#define SORD(a,b)  if( a > b ){ float t=a; a=b; b=t; } else {}
+
+   xbot = ybot =  666.0f ;
+   ytop = xtop = -666.0f ;
 
    for( ii=0 ; ii < nline ; ii++ ){
 
-      new_thick = MEMPLOT_TH(mp,ii) ;
+      new_thick = MEMPLOT_TH(mp,ii) ;      /* thickness of line segment */
 
       if( new_thick < 0.0f ){              /* special negative thickness codes */
          int thc = (int)(-new_thick) ;     /* mean special drawing actions */
@@ -421,17 +426,19 @@ float_quad memplot_bbox( MEM_plotdata *mp )
 
             case THCODE_BALL:
             case THCODE_CIRC:{
-               int xcor,ycor , xcen,ycen , rad ; float xrad,yrad ;
+               int xcen,ycen , rad ; float xrad,yrad ;
                unsigned int ww, hh ;
                xcen = MEMPLOT_X1(mp,ii) ;
                ycen = MEMPLOT_Y1(mp,ii) ;
-               rad  = MEMPLOT_X2(mp,ii) ;
-               x1 = xcen - rad ; x2 = xcen + rad ;
-               y1 = ycen - rad ; y2 = ycen + rad ;
+               rad  = fabsf(MEMPLOT_X2(mp,ii)) ;
+               x1   = xcen - rad ; x2 = xcen + rad ;
+               y1   = ycen - rad ; y2 = ycen + rad ;
                xbot = MIN(xbot,x1) ; xtop = MAX(xtop,x2) ;
                ybot = MIN(ybot,y1) ; ytop = MAX(ytop,y2) ;
             }
             break ;
+
+            /* other special codes don't actually cause drawing */
          }
 
       } else { /* normal line segment */
