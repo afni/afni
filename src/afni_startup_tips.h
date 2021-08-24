@@ -2019,9 +2019,12 @@ static char *gby[] = {
 
     "Remember: He who wills the ends, wills the means"              , /* 23 Aug 2021 */
 
+    "Just because you're paranoid doesn't mean THEY aren't out to get you" , /* 24 Aug 2021 */
+    "Your destiny is decades away, until suddenly it is NOW"               ,
+
     /**** Keep this one last ****/
 
-    "You are VERY lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
+    "You are VERY lucky - this is the ultimate AFNI goodbye message - Adieu mon cher!"
 
 } ;
 

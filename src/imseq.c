@@ -3624,7 +3624,7 @@ ENTRY("ISQ_plot_label") ;
        int wwnew = (int)(TSIZ/xsiz) ;
        if( wwnew < ww     ) ww   = wwnew ;    /* don't go up */
        if( ww    < 8      ) ww   = 8 ;      /* smallest font */
-       if( test  > 1.444f ) thk /= test ; /* thinner strokes */
+       if( test  > 1.111f ) thk /= test ; /* thinner strokes */
      }
    }
 
