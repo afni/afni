@@ -1990,7 +1990,7 @@ static char *gby[] = {
 
     "\n"
     " The problem with connections is that the right ones are necessary,\n"
-    "   but there are too many possible wrong ones out there.\n" 
+    "   but there are too many possible wrong ones out there.\n"
     "    Oh well, I guess that's what evolution and experience are for"                , /* 30 Jul 2021 */
 
     "\n"
@@ -2021,6 +2021,16 @@ static char *gby[] = {
 
     "Just because you're paranoid doesn't mean THEY aren't out to get you" , /* 24 Aug 2021 */
     "Your destiny is decades away, until suddenly it is NOW"               ,
+
+    "Do not wear yourself out to get a smaller p-value; do not trust your own cleverness" , /* 25 Aug 2021 */
+    "Remember: Do not speak to fools" ,
+    "I always have a quotation for everything -- it saves original thinking" ,
+    "Program glitches are like cows: if you stare at them long enough, they go away" ,
+    "It's good to do things neatly and properly, even stupid things" ,
+    "I'm not just sure of my results, I'm abso-bally-lutely positive" ,
+    "Remember: Trouble shared is trouble halved" ,
+    "Good news: Your problem is fixed -- Bad News: You can now rush ahead to the NEXT problem" ,
+    "No important change comes calmly over the world" ,
 
     /**** Keep this one last ****/
 

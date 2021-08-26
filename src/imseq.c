@@ -3572,7 +3572,7 @@ MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww , nlin ; float asp , dd ;
    static int   sz[6] = { 12     , 20    , 28    , 40    , 56    , 80     } ;
-   static float th[6] = { 0.001f , 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
+   static float th[6] = { 0.001f , 0.002f, 0.003f, 0.004f, 0.005f, 0.007f } ;
    char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f , thk ;
 
 ENTRY("ISQ_plot_label") ;
@@ -4486,7 +4486,9 @@ ENTRY("ISQ_saver_CB") ;
          if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb ){
            if( dbg ) fprintf(stderr,"  overlay geometry stuff\n") ;
            /* mri_draw_force_opaque(1) ; */
+           memplot_to_mri_set_dothick(1) ;
            memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+           memplot_to_mri_set_dothick(0) ;
            /* mri_draw_force_opaque(0) ; */
          }
 
@@ -4786,7 +4788,9 @@ ENTRY("ISQ_saver_CB") ;
              MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
              if( mp != NULL ){
                /* mri_draw_force_opaque(1) ; */
+               memplot_to_mri_set_dothick(1) ;
                memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+               memplot_to_mri_set_dothick(0) ;
                /* mri_draw_force_opaque(0) ; */
                delete_memplot(mp) ;
              }
@@ -13962,7 +13966,9 @@ ENTRY("ISQ_save_image") ;
 
    if( seq->mplot != NULL ){
      /* mri_draw_force_opaque(1) ; */
+     memplot_to_mri_set_dothick(1) ;
      memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+     memplot_to_mri_set_dothick(0) ;
      /* mri_draw_force_opaque(0) ; */
    }
 
@@ -14323,7 +14329,9 @@ ENTRY("ISQ_save_anim") ;
           MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
           if( mp != NULL ){
             /* mri_draw_force_opaque(1) ; */
+            memplot_to_mri_set_dothick(1) ;
             memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+            memplot_to_mri_set_dothick(0) ;
             /* mri_draw_force_opaque(0) ; */
             delete_memplot(mp) ;
           }
