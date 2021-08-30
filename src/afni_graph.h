@@ -426,15 +426,6 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0,0 } ;  /* Oct 1999 */
 
 #define XUPSAM(www,npt) ( (int)( 0.499f + 0.3456f*(www) / ((npt)+0.5f) ) )
 
-/* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
-void AFNI_XDrawLines( Display *display, Drawable d, GC gc,
-                      XPoint *points, int npoints, int mode, int nupsam ) ;
-
-/* Replacement for XFillPolygon, with champagne truffles [01 Jun 2020] */
-void AFNI_XFillPolygon( Display *display, Drawable d,
-                        GC gc, XPoint *points, int npoints, int shape,
-                        int mode, int nupsam ) ;
-
 /** 01 Aug 1998: redefine _POINTS and add _LINES **/
 
 #define FG_POINTS(gr)     ((gr)->points_index[0] != 0)

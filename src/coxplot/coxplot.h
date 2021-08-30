@@ -242,6 +242,9 @@ extern X11_colordef * get_X11_colordef( Display * , Window ) ;
 #define MEMPLOT_FREE_ASPECT 1  /* masks for memplot_to_X11_sef() */
 #define MEMPLOT_ERASE       2
 
+void memplot_XDrawLines_set_substitute( void (*msf)() ) ;  /* 30 Aug 2021 */
+void * memplot_XDrawLines_get_substitute(void) ;
+
 extern void memplot_to_X11_sef( Display * , Window ,
                                 MEM_plotdata * , int,int,int ) ;
 

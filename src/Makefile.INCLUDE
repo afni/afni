@@ -39,7 +39,7 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o \
-          suma_help.o
+          suma_help.o xdraw.o
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \

@@ -283,6 +283,20 @@ extern void AFNI_startup_sound(int nnn) ;               /* 17 Aug 2018 */
 
 extern void MCW_melt_widget( Widget w ) ;
 
+/* The next two funcs are now in xdraw.c [30 Aug 2021] */
+
+/* Replacement for XDrawLines, now with chocolate sprinkles [28 May 2020] */
+void AFNI_XDrawLines( Display *display, Drawable d, GC gc,
+                      XPoint *points, int npoints, int mode, int nupsam ) ;
+
+/* Replacement for XFillPolygon, with champagne truffles [01 Jun 2020] */
+void AFNI_XFillPolygon( Display *display, Drawable d,
+                        GC gc, XPoint *points, int npoints, int shape,
+                        int mode, int nupsam ) ;
+
+#define AFNI_REPLACE_XDRAWLINES memplot_XDrawLines_set_substitute(AFNI_XDrawLines)
+#define AFNI_RESTORE_XDRAWLINES memplot_XDrawLines_set_substitute(NULL)
+
 #ifdef  __cplusplus
 }
 #endif

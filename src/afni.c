@@ -3253,6 +3253,8 @@ STATUS("start startup timeout") ;
             "\n++ NOTICE: AFNI_ENFORCE_ASPECT no longer has any effect!\n") ;
         }
 
+        /* X11_SET_NEW_PLOT ; */
+
 STATUS("exit call 14") ;
 
       }

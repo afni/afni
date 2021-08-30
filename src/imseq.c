@@ -3606,6 +3606,8 @@ ENTRY("ISQ_plot_label") ;
       if( ss >= 0.0 && ss < 0.5 ) sb = ss ;
    }
 
+   /** AFNI_REPLACE_XDRAWLINES ; **/
+
    /* If string is 'long':
        create a temporary memplot to draw string into to get it bounding box;
        then use that box to change the drawing scale if the box is too wide. */
@@ -3696,6 +3698,8 @@ ENTRY("ISQ_plot_label") ;
       case ISQ_LABEL_DNMD:   /* lower middle */
          plotpak_pwritf( 0.5*asp,dd+sb , lab , ww , 0 , 0 ) ; break ;
    }
+
+   /** AFNI_RESTORE_XDRAWLINES ; **/
 
    mp = get_active_memplot() ; RETURN(mp) ;
 }
@@ -5838,6 +5842,7 @@ INFO_message("ISQ_show_image(seq=%p) %d x %d",
       if( empt == NULL ){
          STATUS("create EMPTY IMAGE plot") ;
          create_memplot_surely("EmptyImagePlot",1.0) ;
+         /** AFNI_REPLACE_XDRAWLINES ; **/
          empt = get_active_memplot() ;
          set_color_memplot(1.0,1.0,1.0) ;
          set_thick_memplot(0.009) ;
@@ -5853,6 +5858,7 @@ INFO_message("ISQ_show_image(seq=%p) %d x %d",
          plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
          plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
          set_thick_memplot(0.0) ;
+         /** AFNI_RESTORE_XDRAWLINES ; **/
       }
       STATUS("display EMPTY IMAGE plot") ;
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
