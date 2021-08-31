@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Aug , 2021 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-all_roi_zeros' and '-automask_off'.",
+   "Basically, N ROIs can have NxN mat, even if ROI ave is all zeros.\n"
+},
+
 { 22, Aug , 2021 , PT , "lib_afni1D.py" , MICRO , TYPE_BUG_FIX,
    "Afni1D.uncensor_from_vector() had a syntax error in one print call').",
    "Was missing a %, now fixed.\n"
