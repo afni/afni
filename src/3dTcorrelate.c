@@ -404,7 +404,7 @@ int main( int argc , char *argv[] )
       case YCOEF:    strcpy(blab,"Ycoef"      ) ; break ;
    }
    if( do_atanh ){
-     sprintf(alab,"atanh(%s)",blab) ;
+     sprintf(alab,"atanh_%s",blab) ;
    } else {
      strcpy(alab,blab) ;
    }

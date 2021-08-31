@@ -138,7 +138,7 @@ ENTRY("THD_Tcorr1D");
      EDIT_BRICK_FACTOR(cset,kk,cfac) ;         /* set brick factor */
      sprintf(blab,fmt,kk) ;                    /* manufacture label */
      if( do_atanh ){
-       sprintf(alab,"atanh(%s)",blab) ;
+       sprintf(alab,"atanh_%s",blab) ;
      } else {
        strcpy(alab,blab) ;
      }
