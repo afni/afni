@@ -33,8 +33,11 @@
 #set version   = "2.12"; set rev_dat   = "Jan 29, 2020"
 #   + [PT] new opt: can choose cost func
 #
-set version   = "2.2"; set rev_dat   = "Feb 3, 2020"
+#set version   = "2.2"; set rev_dat   = "Feb 3, 2020"
 #   + [PT] new opt: -anonymize_output (pretty self-explanatory)
+#
+set version   = "2.3"; set rev_dat   = "Aug 31, 2021"
+#   + [PT] change default cost to 'lpa' (was 'ls'?)
 #
 # ============================================================================
 
@@ -50,7 +53,7 @@ set owrite     = ""
 
 set DO_ANON    = 0             # opt: anonymize the output dsets
 
-set cost_allin = "ls"          # cost function used; this was orig def
+set cost_allin = "lpa"          # cost function used; this was orig def
 
 # ------------------------ read in + interpret cmd line opts -----------------
 
@@ -651,7 +654,7 @@ where:
                 for example.
 
  -cost CC     : (opt) can specify any cost function that is allowed by 
-                3dAllineate (def: ls)
+                3dAllineate (def: ${cost_allin})
 
  -no_clean    : (opt) don't delete temp working dir (def: remove working
                 dir)

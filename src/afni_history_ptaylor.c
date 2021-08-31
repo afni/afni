@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, Aug , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Change default cost function to 'lpa', from 'ls'.",
+   "Should be better? There is an opt to change, as necessary.\n"
+},
+
 { 30, Aug , 2021 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "New opts: '-all_roi_zeros' and '-automask_off'.",
    "Basically, N ROIs can have NxN mat, even if ROI ave is all zeros.\n"
