@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Aug, 2021, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add option -gert_chan_digits, to specify num digits for channel in name",
+   NULL
+ } ,
+
  { 20, Aug, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -write_tsv_cols_of_interest",
    NULL
