@@ -49,6 +49,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , AUG , 2021 , RWC , "3dTcorr1D/3dTcorrelate" , MINOR , TYPE_BUG_FIX ,
+   "Change labels and statcode for -Fisher option" ,
+   "Sir Paul pointed out that these programs didn't have the correct\n"
+   "statcode when the Fisher transform was ordered, and also that the labels\n"
+   "were confusing. Fixed it so if -Fisher was used, the statcode is FIZT vs\n"
+   "FICO, and the labels have 'atanh()'" } ,
+
  { 19 , AUG , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
    "Change top-of-image drawn label to resize font if drawn too large" ,
    NULL } ,

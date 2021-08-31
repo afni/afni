@@ -39,15 +39,16 @@ void usage_3dTcorrelate(int detail)
 "                the Pearson correlation without scaling by the product\n"
 "                of the standard deviations.\n"
 "  -partial z   = Partial Pearson's Correlation of X & Y, adjusting for Z \n"
-"                Supply dataset z to be taken into account. *EXPERIMENTAL* \n"
+"                Supply dataset z to be taken into account after '-partial'.\n"
+"                ** EXPERIMENTAL **\n"
 "  -ycoef      = Least squares coefficient that best fits y(t) to x(t),\n"
 "                after detrending.  That is, if yd(t) is the detrended\n"
 "                y(t) and xd(t) is the detrended x(t), then the ycoef\n"
 "                value is from the OLSQ fit to xd(t) = ycoef * y(t) + error.\n"
 "\n"
-"  -Fisher     = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
-"                to (correlation) results.\n"
-"                ++ It does not make sense to use this with '-ktaub', but if\n"
+"  -Fisher     = Apply the 'Fisher' (inverse hyperbolic tangent = arctanh)\n"
+"                transformation to (correlation) results.\n"
+"                ++ It does NOT make sense to use this with '-ktaub', but if\n"
 "                    you want to do it, the program will not stop you.\n"
 "                ++ This option does not apply to '-covariance' or '-ycoef'.\n"
 "\n"
@@ -145,6 +146,7 @@ int main( int argc , char *argv[] )
 
    int do_zcens=0 , nzcens=0 , ngood , *zcens=NULL ;  /* 12 Dec 2019 */
    float *xcens=NULL , *ycens=NULL , *pcens=NULL ;
+   char blab[128] , alab[192] ;                       /* 31 Aug 2021 */
 
    /*----*/
 
@@ -157,12 +159,12 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if (strcmp(argv[nopt], "-h") == 0 || strcmp(argv[nopt], "-help") == 0) {
+      if (strcasecmp(argv[nopt], "-h") == 0 || strcasecmp(argv[nopt], "-help") == 0) {
         usage_3dTcorrelate(strlen(argv[nopt]) > 3 ? 2:1);
         exit(0);
       }
 
-      if( strcmp(argv[nopt],"-zcensor") == 0 ){       /* 12 Dec 2019 */
+      if( strcasecmp(argv[nopt],"-zcensor") == 0 ){       /* 12 Dec 2019 */
         do_zcens = 1 ;
         if( polort >= 0 ){
           INFO_message("-zcensor sets polort = -1") ; polort = -1 ;
@@ -170,7 +172,7 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-ort") == 0 ){           /* 13 Mar 2003 */
+      if( strcasecmp(argv[nopt],"-ort") == 0 ){           /* 13 Mar 2003 */
         if( im_ort != NULL ){
           ERROR_exit("Can't have multiple -ort options!") ;
         }
@@ -186,8 +188,8 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-autoclip") == 0 ||
-          strcmp(argv[nopt],"-automask") == 0   ){
+      if( strcasecmp(argv[nopt],"-autoclip") == 0 ||
+          strcasecmp(argv[nopt],"-automask") == 0   ){
 
          do_autoclip = 1 ; nopt++ ; continue ;
       }
@@ -234,7 +236,7 @@ int main( int argc , char *argv[] )
          do_atanh = 1 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-prefix") == 0 ){
+      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
          prefix = argv[++nopt] ;
          if( !THD_filename_ok(prefix) ){
             ERROR_exit("Illegal value after -prefix") ;
@@ -242,7 +244,7 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-polort") == 0 ){
+      if( strcasecmp(argv[nopt],"-polort") == 0 ){
          char *cpt ;
          int val = strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 9 ){
@@ -384,17 +386,29 @@ int main( int argc , char *argv[] )
    EDIT_BRICK_FACTOR(cset,0,0.0) ;                     /* to be safe  */
 
    switch( method ){                                   /* looks nice  */
-      default:
-      case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ;
-          EDIT_BRICK_TO_FICO(cset,0,ngood,1,polort+1+nort) ;  /* stat params */
-                                                               break ;
-      case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr."  ) ; break ;
-      case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr."  ) ; break ;
-      case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr."  ) ; break ;
-      case COVAR:    EDIT_BRICK_LABEL(cset,0,"Covariance"  ) ; break ;
-      case YCOEF:    EDIT_BRICK_LABEL(cset,0,"Ycoef"       ) ; break ;
-      case PARTIAL:  EDIT_BRICK_LABEL(cset,0,"Partial.Corr") ; break ;
+      default:                                         /* to have labels */
+      case PEARSON:
+        strcpy(blab,"PearCorr") ;
+        if( do_atanh ){                                /* 31 Aug 2021 */
+          EDIT_BRICK_TO_FIZT(cset,0) ;         /* Fisher makes r ~ N(0,1) ? */
+        } else {
+          EDIT_BRICK_TO_FICO(cset,0,ngood,1,polort+1+nort) ; /* stat params */
+        }
+      break ;
+
+      case SPEARMAN: strcpy(blab,"SpmnCorr"   ) ; break ;
+      case QUADRANT: strcpy(blab,"QuadCorr"   ) ; break ;
+      case KTAUB:    strcpy(blab,"TaubCorr"   ) ; break ;
+      case PARTIAL:  strcpy(blab,"PartialCorr") ; break ;
+      case COVAR:    strcpy(blab,"Covariance" ) ; break ;
+      case YCOEF:    strcpy(blab,"Ycoef"      ) ; break ;
    }
+   if( do_atanh ){
+     sprintf(alab,"atanh(%s)",blab) ;
+   } else {
+     strcpy(alab,blab) ;
+   }
+   EDIT_BRICK_LABEL(cset,0,alab) ;
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
    car = DSET_ARRAY(cset,0) ;                             /* get array   */
@@ -438,6 +452,7 @@ int main( int argc , char *argv[] )
         xcens = xsar ; ycens = ysar ; pcens = psar ;
       }
 
+/* DAT = Do Arc Tanh = Sir Ronald Aylmer Fisher's transformation */
 #undef  DAT
 #define DAT if(do_atanh)car[ii]=MYatanh(car[ii])
 
