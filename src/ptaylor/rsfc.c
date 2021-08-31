@@ -298,6 +298,7 @@ int WB_netw_corr(int Do_r,
    THD_3dim_dataset *OUT_Z_MAP=NULL;
    float *zscores=NULL;
    int Nvox;
+   float par[2];
 
    char *ftype=NULL;   // default, BRIK/HEAD: can be ".nii.gz"
    char roilab[300];  // will be either int or char str
@@ -361,13 +362,24 @@ int WB_netw_corr(int Do_r,
 
                sprintf(OUT_indivZ,"%s/WB_Z_ROI_%s%s",
                        OUT_indiv0, roilab, ftype);
-            
+
+               par[0] = FUNC_ZT_TYPE ;
+               par[1] = 0 ;
+
+               /* [PT: Aug 30, 2021] plan to uncomment the 2 lines
+                  below in EDIT_dset_items(), so the stataux code and
+                  label reflect the Fisher-Z transform here
+                  */
                OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
                EDIT_dset_items( OUT_Z_MAP,
                                 ADN_nvals, 1,
-                                ADN_datum_all , MRI_float , 
+                                ADN_datum_all , MRI_float ,
+                                //ADN_brick_label_one+0, "FisherZ#0",
+                                //ADN_brick_stataux_one+0, par ,
                                 ADN_prefix    , OUT_indivZ,
                                 ADN_none ) ;
+               
+
                if( !THD_ok_overwrite() && 
                    THD_is_ondisk(DSET_HEADNAME(OUT_Z_MAP)) )
                   ERROR_exit("Can't overwrite existing dataset '%s'",
@@ -393,6 +405,8 @@ int WB_netw_corr(int Do_r,
                EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
                zscores=NULL;
 
+               /* [PT: Aug 30, 2021] Z map should not have stats like this--
+                it is not a Pearson R, but a Z */
                THD_load_statistics(OUT_Z_MAP);
                tross_Copy_History(insetTIME, OUT_Z_MAP);
                tross_Make_History("3dNetcorr", argc, argv, OUT_Z_MAP);
