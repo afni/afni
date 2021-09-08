@@ -28,6 +28,24 @@
 }
 
 Bool clippingPlaneMode;
+SUMA_SurfaceObject* clipIdentificationPlane[6];
+SUMA_SurfaceObject* axisObject = NULL;
+
+Bool clipPlaneIdentificationMode, previousClipPlaneIdentificationMode=1;
+float activeClipPlane[4];
+Bool active[6] = {1,1,1,1,1,1};
+Bool previouslyActive[6] = {0,0,0,0,0,0};
+float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
+SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
+int  selectedPlane;
+Bool resetClippingPlanes=0;
+float  scrollInc = 1.0;
+float  tiltInc = 1.0;
+Boolean justEnteredClippingPlaneMode;
+float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
+float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
+Boolean activeClipPlanes = True;
+
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
@@ -587,6 +605,193 @@ void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO){
     SO->Overlays[0]->ColVec[9] = SO->Overlays[0]->ColVec[10] = 1.0;
 }
 
+SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
+    SUMA_FreeSurfer_struct FS){
+    int i;
+
+    // Set global variables
+    char *FuncName = "makeAxisPlaneFromNodeAndFaceSetList";
+    SUMA_DO *dov = SUMAg_DOv;
+    int N_dov = SUMAg_N_DOv-1;
+    SUMA_ALL_DO *ado;
+    ado = SUMA_SV_Focus_ADO(sv);
+    SUMA_OVERLAYS *NewColPlane=NULL;
+    static int squareIndex = 0;
+
+    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
+    SO->N_Node = FS.N_Node;
+    // Save the pointers to NodeList and FaceSetList and
+    //  clear what is left of FS structure at the end
+    SO->NodeList = FS.NodeList;
+    SO->FaceSetList = FS.FaceSetList;
+
+    SO->N_FaceSet = FS.N_FaceSet;
+    SO->FaceSetDim = 3; //This must also be automated
+
+    SO->SUMA_VolPar_Aligned = NOPE;
+    SO->normdir = 1; // normals point out
+
+    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+        SUMA_SetSphereParams(SO, -0.1);
+    }  // sets the spheriosity parameters
+
+    // Miscelaneous fields
+    if (SO->isSphere == SUMA_GEOM_NOT_SET) {
+        SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
+    }
+    SO->do_type = SO_type;
+    SO->SurfCont = NULL;
+
+    // dimensionsInscribeThoseOfPreviousSurfaceObjects(SO);
+    determineCornersOfSquare(SO);
+    SO->aMaxDims = SO->aMinDims = 0;
+
+    // SO->EmbedDim = 2;
+    SO->Side = SUMA_GuessSide (SO);
+    SO->AnatCorrect = NOPE;
+
+    SO->FileType = SUMA_FREE_SURFER;
+    SO->Name.Path = NULL;
+    SO->Name.FileName = NULL;
+    SO->idcode_str = "axisObject";
+
+    SUMA_AutoLoad_SO_Dsets(SO);
+
+    /* set its MappingRef id to NULL if none is specified */
+    // make sure that specified Mapping ref had been loaded
+    SO->LocalDomainParentID = (char *)calloc( strlen(SO->idcode_str)+1,
+                        sizeof(char));
+    sprintf(SO->idcode_str, "%s", SO->idcode_str);
+    if (SO->LocalDomainParentID == NULL) {
+        fprintf(stderr,
+        "Error SUMA_display_one: Failed to allocate for "
+        "SO->LocalDomainParentID. \n"
+        "That is pretty bad.\n");
+        return NULL;
+    }
+
+    char sid[100];
+    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
+        SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+    SO->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME);
+    /* change this in sync with string in macro
+    SUMA_BLANK_NEW_SPEC_SURF*/
+    sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
+    SO->State = SUMA_copy_string(sid);
+    sprintf(sid, "clippingPlaneIdentificationSquare_%d", SUMAg_CF->N_ClipPlanes-1);
+    SO->Label = SUMA_copy_string(sid);
+    SO->EmbedDim = 3;
+    SO->AnatCorrect = NOPE;
+
+    // make this surface friendly for suma
+    if (!SUMA_PrepSO_GeomProp_GL(SO)) {
+       SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+    }
+
+    /* Add this surface to SUMA's displayable objects */
+    if (SO->Overlays && !SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+       SUMA_S_Err("Failed to add mappable SOs ");
+    }
+
+    if (!SO->Group || !SO->State || !SO->Label) {
+        fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
+        return NULL;
+    }
+
+    /* Non Mappable surfaces */
+    /* if the surface is loaded OK,
+    and it has not been loaded previously, register it */
+    SO->MeshAxis = NULL;
+    SO->NodeDim = 3;
+
+    /* Change the defaults of Mesh axis to fit standard  */
+    SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
+
+    /* toggle the viewing for the cartesian axes */
+    // DEBUG SO->ShowMeshAxis = clipPlaneIdentificationMode;
+
+    /* Create a Mesh Axis for the surface */
+    SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
+        if (SO->MeshAxis == NULL) {
+        fprintf( SUMA_STDERR,
+        "Error %s: Error Allocating axis\n", FuncName);
+        return NULL;
+    }
+
+    // Store it into dov
+    SO->patchNodeMask = NULL;
+    sprintf(SO->Group, "DefGroup");
+    SO->SphereRadius = -1.0;
+    SO->SphereCenter[0] = -1.0;
+    SO->SphereCenter[1] = -1.0;
+    SO->SphereCenter[2] = -1.0;
+    SO->LocalDomainParent = "SAME";
+    if (!SUMA_AddDO(dov, &SUMAg_N_DOv, (void *)SO,  SO_type, SUMA_WORLD)) {
+        fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+        return NULL;
+    }
+
+    N_dov = SUMAg_N_DOv-1;
+
+     // register DO with viewer
+    if (!SUMA_RegisterDO(N_dov, sv)) {
+       fprintf(SUMA_STDERR,
+                "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+       return NULL;
+    }
+
+    // SO->LocalDomainParentID = ((SUMA_SurfaceObject *)(dov[N_dov-1].OP))->LocalDomainParentID;
+    SO->LocalDomainParentID = NULL;
+    SO->Saux = SUMA_ADO_Saux(ado);
+
+   SO->Show = 1;    // *** The axis is not shown if this value is zero
+   SO->NodeList_swp = NULL;
+
+   // Colors
+   SO->N_Overlays = 0;
+   // SO->Overlays = (SUMA_OVERLAYS **)calloc(1, sizeof(SUMA_OVERLAYS *));
+   // Note that ado remains the same and second argument may not be >0
+   // SO->Overlays[0] = SUMA_ADO_Overlay(ado, 0);
+   // SUMA_OVERLAYS *tempOverlay = SUMA_ADO_Overlay(ado, 0);
+   // SO->Overlays[0] = (SUMA_OVERLAYS *)calloc(1, sizeof(SUMA_OVERLAYS));
+   // memcpy((void *)(SO->Overlays[0]),(void *)(tempOverlay),sizeof(SUMA_OVERLAYS));
+   // SO->Overlays[0]->ColVec = (float *)calloc(16, sizeof(float));
+/*
+    if (!(SO->Overlays)){
+        SUMA_S_Err("NULL Overlays pointer.");
+        SO->N_Overlays = 0;
+    }
+    if ((intptr_t)(SO->Overlays) == 1){
+        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+        SO->N_Overlays = 0;
+    }
+    SO->Overlays[0]->GlobalOpacity = 0.0;
+*/
+    // NBB: This block is vitally important in preventing the clipping plane surface from being gray
+    //   for some surface objects.  Not common but it happens.
+    {
+        SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
+        SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
+
+       // switch to the recently loaded  cmap
+        SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+
+        SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
+        colorPlanes(sv, SO,&PR);
+    }
+
+    // Reduce opacity of current surface object (clipping plane square)
+    for (i=0; i<2; ++i){
+       SUMA_Set_ADO_TransMode(SUMA_SV_Focus_ADO(sv), sv->TransMode,
+                              SUMAg_CF->TransModeStep, 1);
+       SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+    }
+
+    axisObject = SO;
+
+    return SO;
+    }
+
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
     int i;
 
@@ -1059,16 +1264,63 @@ Boolean updateClipSquare(int planeIndex){
     return 0;
 }
 
+Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
+
+    float plane[4], points[4][3];
+    int i, j;
+
+    // Axis plane object already exists?
+    if (axisObject) return 1;
+
+    // Test values for plane
+    for (i=0; i<4; ++i) plane[i]=activeClipPlane[i];
+    plane[3] += 1999;   // Send object rectangle into space so it won't be seen
+
+    getSquareOnPlane(plane, points);
+
+    static SUMA_FreeSurfer_struct FS;
+
+    FS.N_Node = 4;
+    FS.N_FaceSet = 3;
+
+    FS.NodeList = (float *)malloc(FS.N_Node*3*sizeof(float));
+    int inc=0;
+    for (i=0; i<4; ++i)
+        for (j=0; j<3; ++j)
+            FS.NodeList[inc++] = points[i][j];
+
+    FS.FaceSetList = (int *)malloc(FS.N_FaceSet*3*sizeof(int));
+    inc = 0;
+    FS.FaceSetList[inc++] = 0;
+    FS.FaceSetList[inc++] = 1;
+    FS.FaceSetList[inc++] = 2;
+    FS.FaceSetList[inc++] = 1;
+    FS.FaceSetList[inc++] = 2;
+    FS.FaceSetList[inc++] = 3;
+    FS.FaceSetList[inc++] = 3;
+    FS.FaceSetList[inc++] = 0;
+    FS.FaceSetList[inc++] = 1;
+
+    SUMA_SurfaceObject *SO = makeAxisPlaneFromNodeAndFaceSetList(sv, FS);
+    if (!SO){
+        fprintf(stderr, "Error makeAxisObject: Error drawing clipping plane rectangle.\n");
+        return False;
+    }
+    axisObject = SO;   // Record pointer to clip identification plane object
+
+    axisObject-> ShowMeshAxis = FALSE;  // Display of mesh axis initialized to false
+
+    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
+    return TRUE;
+}
+
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
 
     // Clipping plane identification object already exists?
     if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
-
-    // Test values for plane
-    for (i=0; i<4; ++i) plane[i]=activeClipPlane[i];
-    plane[3] += 1;
 
     getSquareOnPlane(plane, points);
 

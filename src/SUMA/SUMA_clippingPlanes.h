@@ -1,26 +1,23 @@
 
+// Clipping plane variables
+extern Bool clippingPlaneMode;
+extern SUMA_SurfaceObject* clipIdentificationPlane[6];
+extern SUMA_SurfaceObject* axisObject;
+extern Bool clipPlaneIdentificationMode;
+extern Bool active[6];
+extern Bool previouslyActive[6];
+extern int  selectedPlane;
+extern Bool resetClippingPlanes;
+extern float  scrollInc;
+extern float  tiltInc;
+extern Boolean activeClipPlanes;
+
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane);
 void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
     int activePlane, Bool toggleOffOn, Bool reset);
 void drawClipPlane(float planeA, float planeB, float planeC, float planeD, Widget w,
     SUMA_SurfaceViewer *sv, int isv);
 void getFourCoordsJustInsideClipPlane(float *plane, float points[4][3]);
-static Bool clipPlaneIdentificationMode, previousClipPlaneIdentificationMode=1;
-static SUMA_SurfaceObject* clipIdentificationPlane[6];
-static float activeClipPlane[4];
-static Bool active[6] = {1,1,1,1,1,1};
-static Bool previouslyActive[6] = {0,0,0,0,0,0};
-static float clippingPlaneAxisRanges[3][2] = {{0.0f,0.0f},{0.0f,0.0f},{0.0f,0.0f}};
-static SUMA_SurfaceObject * clippingPlaneIDDisplayableObjects[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
-int  selectedPlane;
-static Bool resetClippingPlanes=0;
-static float  scrollInc = 1.0;
-static float  tiltInc = 1.0;
-static Boolean justEnteredClippingPlaneMode;
-static float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
-static float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
-static Boolean activeClipPlanes = True;
-
 void writeClippingPlanes (char *s, void *data);
 void determineCornersOfSquare(SUMA_SurfaceObject *SO);
 void getObjectMinMaxForAxes(float objectMinMax[][2]);
@@ -42,10 +39,13 @@ void makeCommonNodesOfRectangleMagenta(SUMA_SurfaceObject *SO);
 void makeCommonNodesOfRectangleYellow(SUMA_SurfaceObject *SO);
 SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_FreeSurfer_struct FS, int planeIndex);
+SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
+    SUMA_FreeSurfer_struct FS);
 void compareSurfaces(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 void getSquareOnPlane(float *plane, float points[4][3]);
 Boolean updateClipSquare(int planeIndex);
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv);
+Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv);
 void lightenActiveClipPlaneSquare(int activePlane);
 void darkenClipPlaneSquare(int planeIndex);
 void darkenInactiveClipPlaneSquares(int activePlane);

@@ -6,8 +6,6 @@
                        (Kev.state & Mod2Mask) ||  \
                        (Kev.state & SUMA_APPLE_AltOptMask) )
 
-extern Bool clippingPlaneMode;
-
 /*!
    Return the code for the key that is specified in keyin
 */
@@ -4455,9 +4453,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_a:
                if (clippingPlaneMode){
-                    clipIdentificationPlane[0]->ShowMeshAxis =
+                if (!axisObject) makeAxisObject(w, sv);
+                axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
+                /*
+                clipIdentificationPlane[0]->ShowMeshAxis =
                         !(clipIdentificationPlane[0]->ShowMeshAxis);
-                    SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+                        */
+                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                } else if (!SUMA_A_Key(sv, "a", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
@@ -5134,6 +5136,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {        // Toggle plane 2 off/on
                     clipPlaneTransform(0,0,0,0,1, 1, 0);
                     previouslyActive[1] = active[1];
+                    clipPlaneTransform(0,0,0,0,1, 0, 0);
+                    lightenActiveClipPlaneSquare(1);
+                    darkenInactiveClipPlaneSquares(1);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 1;
@@ -5163,6 +5168,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {        // Toggle plane 3 off/on
                     clipPlaneTransform(0,0,0,0,2, 1, 0);
                     previouslyActive[2] = active[2];
+                    clipPlaneTransform(0,0,0,0,2, 0, 0);
+                    lightenActiveClipPlaneSquare(2);
+                    darkenInactiveClipPlaneSquares(2);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 2;
@@ -5196,6 +5204,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,3, 1, 0);
                     previouslyActive[3] = active[3];
+                    clipPlaneTransform(0,0,0,0,3, 0, 0);
+                    lightenActiveClipPlaneSquare(3);
+                    darkenInactiveClipPlaneSquares(3);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 3;
@@ -5229,6 +5240,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,4, 1, 0);
                     previouslyActive[4] = active[4];
+                    clipPlaneTransform(0,0,0,0,4, 0, 0);
+                    lightenActiveClipPlaneSquare(4);
+                    darkenInactiveClipPlaneSquares(4);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 4;
@@ -5262,6 +5276,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 } else {        // Toggle plane 6 off/on
                     clipPlaneTransform(0,0,0,0,5, 1, 0);
                     previouslyActive[5] = active[5];
+                    clipPlaneTransform(0,0,0,0,5, 0, 0);
+                    lightenActiveClipPlaneSquare(5);
+                    darkenInactiveClipPlaneSquares(5);
                 }
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 5;
