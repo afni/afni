@@ -69,6 +69,46 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Sep , 2021 , PT , "@4Daverage" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@FindAfniDsetPath" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@Purify_1D" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@RenamePanga" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_glue_imgs_vert" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_anonymize" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
 { 31, Aug , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
    "Change default cost function to 'lpa', from 'ls'.",
    "Should be better? There is an opt to change, as necessary.\n"
