@@ -1287,7 +1287,7 @@ static mday holiday[] = {
    {SEP, 6, "Celebrate National Rice Month" } ,
    {SEP, 7, "National Acorn Squash Day" } ,
    {SEP, 8, "National Date Nut Bread Day" } ,
-   {SEP, 9, "National Weiner schnitzel Day" } ,
+   {SEP, 9, "National Wiener Schnitzel Day" } ,
    {SEP, 10, "National TV dinner Day" } ,
    {SEP, 11, "National Hot Cross Bun Day" } ,
    {SEP, 12, "National Chocolate Milkshake Day" } ,
