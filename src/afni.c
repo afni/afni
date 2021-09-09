@@ -976,7 +976,7 @@ void AFNI_syntax(void)
      "\n"
      "   -env         Print the environment variables for AFNI, which a user\n"
      "                might set in their ~/.afnirc file (wait, you *do*\n"
-     "                have one on your computer, right??).\n"
+     "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
      "\n"
@@ -2209,6 +2209,7 @@ int main( int argc , char *argv[] )
    if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
 
    if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+     printf("\n") ;
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){ /* 30 Jan 2018 */
        AFNI_sigfunc_alrm(-666666) ;
      } else {
@@ -3251,6 +3252,8 @@ STATUS("start startup timeout") ;
           REPORT_PROGRESS(
             "\n++ NOTICE: AFNI_ENFORCE_ASPECT no longer has any effect!\n") ;
         }
+
+        /* X11_SET_NEW_PLOT ; */
 
 STATUS("exit call 14") ;
 
@@ -4817,7 +4820,7 @@ STATUS("drawing crosshairs") ;
           RETURN(NULL) ;   /* should never happen */
         }
 
-        sprintf(str,"%6.2f",fabs(cc)) ;
+        sprintf(str,"%3.2f",fabs(cc)) ;
         for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
         if( str[ii] == '.' ) str[ii] = '\0' ;
         strcat(str, dd) ;
@@ -4829,7 +4832,7 @@ STATUS("drawing crosshairs") ;
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0) {
-            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
+            AFNI_get_dset_val_label_maybeCR(dset,    /* Dec 7 2011 ZSS/DRG 2021 */
                                     dval, labstra);
          }
          dset = Get_UO_Dset(br, 'O', 1, &ival);
@@ -4837,8 +4840,9 @@ STATUS("drawing crosshairs") ;
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
                               im3d->vinfo->zk, ival))>0.0) {
-            AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
+            AFNI_get_dset_val_label_maybeCR(dset,    /* Dec 7 2011 ZSS/DRG 2021 */
                                     dval, labstrf);
+
          }
 
          if (labstrf[0] != '\0' || labstra[0] != '\0') {
@@ -6787,7 +6791,7 @@ STATUS("reading timeseries files") ;
       REFRESH ;
       if( GLOBAL_library.timeseries == NULL )     /* empty but not NULL */
          INIT_IMARR(GLOBAL_library.timeseries) ;
-      sprintf( str , "\n Time series   = %d files read" ,
+      sprintf( str , "\n Timeseries.1D = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
       REPORT_PROGRESS(str) ;
 
@@ -6961,7 +6965,7 @@ STATUS("reading timeseries files") ;
 
       FREE_IMARR(webtsar) ;
 
-      sprintf( str , "\n Time series   = %d files read" ,
+      sprintf( str , "\n Timeseries.1D = %d files read" ,
                IMARR_COUNT(GLOBAL_library.timeseries) ) ;
       REPORT_PROGRESS(str) ;
 

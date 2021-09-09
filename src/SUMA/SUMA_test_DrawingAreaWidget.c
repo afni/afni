@@ -23,10 +23,9 @@
          make SUMA_test_DrawingAreaWidget
     * ----------------------------------------------------------------- */
 
-   #include "../suma_suma.h"
+   #include "SUMA_X_objs.h"
 
 #endif
-
 
 #ifdef SUMA_MOTIF_GLXAREA
    #include <GL/GLwMDrawA.h>

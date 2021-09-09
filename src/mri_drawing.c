@@ -142,42 +142,45 @@ void ppmd_line( byte *pixels, int cols, int rows,
     } /* end of clip */
 
     /* Draw, using a simple DDA. */
-    if ( abs( cx1 - cx0 ) > abs( cy1 - cy0 ) ) { /* Loop over X domain. */
-	register long dy, srow;
-	register int dx, col, row, prevrow;
 
-	if ( cx1 > cx0 ) dx =  1;
-	else             dx = -1;
-	dy = ( cy1 - cy0 ) * DDA_SCALE / abs( cx1 - cx0 );
-	prevrow = row = cy0;
-	srow = row * DDA_SCALE + DDA_SCALE / 2;
-	col = cx0;
-	for ( ; ; ) {
-            ASSPIX(pixels,col,row,r,g,b) ;
+   if ( abs( cx1 - cx0 ) > abs( cy1 - cy0 ) ) { /* Loop over X domain. */
+	 register long dy, srow;
+	 register int dx, col, row ;
+
+	 if ( cx1 > cx0 ) dx =  1;
+	 else             dx = -1;
+	 dy = ( cy1 - cy0 ) * DDA_SCALE / abs( cx1 - cx0 );
+	 row  = cy0;
+	 srow = row * DDA_SCALE + DDA_SCALE / 2;
+	 col  = cx0;
+	 for ( ; ; ) {
+       ASSPIX(pixels,col,row,r,g,b) ;
 	    if ( col == cx1 ) break;
 	    srow += dy; row = srow / DDA_SCALE; col += dx;
-        }
-    } else { /* Loop over Y domain. */
-	register long dx, scol;
-	register int dy, col, row, prevcol;
+    }
+   } else { /* Loop over Y domain. */
+	 register long dx, scol;
+	 register int dy, col, row ;
 
-	if ( cy1 > cy0 ) dy =  1;
-	else             dy = -1;
-	dx = ( cx1 - cx0 ) * DDA_SCALE / abs( cy1 - cy0 );
-	row = cy0;
-	prevcol = col = cx0;
-	scol = col * DDA_SCALE + DDA_SCALE / 2;
-	for ( ; ; ) {
-            ASSPIX(pixels,col,row,r,g,b) ;
+	 if ( cy1 > cy0 ) dy =  1;
+	 else             dy = -1;
+	 dx = ( cx1 - cx0 ) * DDA_SCALE / abs( cy1 - cy0 );
+	 row  = cy0;
+	 col  = cx0;
+	 scol = col * DDA_SCALE + DDA_SCALE / 2;
+	 for ( ; ; ) {
+       ASSPIX(pixels,col,row,r,g,b) ;
 	    if ( row == cy1 ) break;
 	    row += dy; scol += dx; col = scol / DDA_SCALE;
-        }
     }
+   }
+
+   return ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-#if 0   /* NOT USED AT THIS TIME */
+#if 0   /*-------------------- NOT USED AT THIS TIME -----------------------*/
 #define SPLINE_THRESH 3
 
 /*! Draw a spline between 3 points, using recursion and lines. */
@@ -204,11 +207,11 @@ void ppmd_spline3( byte *pixels, int cols, int rows,
     else
 	ppmd_line( pixels, cols, rows, xb, yb, x2, y2, r,g,b ) ;
 }
-#endif
+#endif  /*-------------------- spline drawing ------------------------------*/
 
 /*----------------------------------------------------------------------------*/
 
-#if 0   /* NOT USED AT THIS TIME */
+#if 0   /*-------------------- NOT USED AT THIS TIME -----------------------*/
 /*! Draw a spline between a bunch of points. */
 
 static
@@ -226,7 +229,7 @@ void ppmd_polyspline( byte *pixels, int cols, int rows,
     }
     ppmd_spline3( pixels, cols, rows, x, y, xc[nc - 1], yc[nc - 1], x1, y1, r,g,b ) ;
 }
-#endif
+#endif  /*-------------------- spline drawing ------------------------------*/
 
 /*----------------------------------------------------------------------------*/
 
@@ -247,15 +250,15 @@ void ppmd_circle( byte *pixels, int cols, int rows,
     ASSPIX(pixels,x+cx,y+cy,r,g,b) ;
     nopointsyet = 1;
     do {
-	prevx = x; prevy = y;
-	sx += e * sy / DDA_SCALE;
-	sy -= e * sx / DDA_SCALE;
-	x = sx / DDA_SCALE;
-	y = sy / DDA_SCALE;
-	if ( x != prevx || y != prevy ) {
+	  prevx = x; prevy = y;
+	  sx += e * sy / DDA_SCALE;
+	  sy -= e * sx / DDA_SCALE;
+	  x   = sx / DDA_SCALE;
+	  y   = sy / DDA_SCALE;
+	  if ( x != prevx || y != prevy ) {
             nopointsyet = 0;
             ASSPIX(pixels,x+cx,y+cy,r,g,b) ;
-        }
+     }
     } while ( nopointsyet || x != x0 || y != y0 );
 }
 

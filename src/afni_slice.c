@@ -827,7 +827,7 @@ if(PRINT_TRACING){
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [PT: 27 Jul 2021] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,
@@ -1484,7 +1484,7 @@ STATUS("beginning NN outer loop") ;
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [PT: 27 Jul 2021] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,
@@ -2154,7 +2154,7 @@ STATUS("beginning NN outer loop") ;
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [27 Jul 2021 rickr] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,

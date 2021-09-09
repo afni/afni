@@ -55,10 +55,14 @@ def run_tests(tests_dir, **args_dict):
         # append gcovr to assemble coverage report for C code
         cmd += f"; gcovr -s --xml -o {tests_dir}/gcovr_output.xml -r {args_dict['build_dir']}/src"
         # append command for compiling and uploading codecov report
+        #
+        # apparently there is a security issue with codecov, we must
+        # investigate; however, this currently is NOT be being run in
+        # the CircleCI tests ---it probably should not be used, either,
+        # but we should hold a static version of the script that is
+        # reliable (which would required occasional checks for updates)
 
-        # apparently there is a security issue here, must investigate
-        # cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
-        # sys.exit(1)
+        cmd += "; bash -c 'bash <(curl -s https://codecov.io/bash)'"
 
     print(f"Executing: {cmd}")
     res = subprocess.run(cmd, shell=True, env=os.environ.copy())

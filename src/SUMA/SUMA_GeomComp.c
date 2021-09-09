@@ -9770,7 +9770,9 @@ SUMA_Boolean SUMA_DotNormals(SUMA_SurfaceObject *SO, float *dir, float **dots)
    
    SUMA_ENTRY;
       
-   if (!SO || !SO->NodeNormList || !SO->Center || !dots) {
+   /* could do test SO->Center -> NO->NodeNormList, but not positive */
+   /* just omit Center for now                   [22 Jun 2021 rickr] */
+   if (!SO || !SO->NodeNormList || !dots) {
       SUMA_SL_Err("Null or no input");
       SUMA_RETURN(NOPE);
    }

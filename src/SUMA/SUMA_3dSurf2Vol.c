@@ -136,9 +136,12 @@ static char g_history[] =
  "\n"
  "3.9  September 13, 2018  [rickr]\n"
  "  - return 0 on terminal options\n"
+ "\n"
+ "3.10 June 22, 2021  [rickr]\n"
+ "  - default -datum now based on map func (usually float)\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "version  3.9 (September 13, 2018)"
+#define VERSION "version  3.10 (June 22, 2021)"
 
 
 /*----------------------------------------------------------------------
@@ -413,10 +416,17 @@ ENTRY("s2v_nodes2volume");
         if ( MRI_IS_INT_TYPE( sopt->datum ) && !sopt->noscale )
         {
             float amax = MCW_vol_amax( nvox, 1, 1, MRI_double, ddata );
+            int   have_ints = integral_doubles( ddata, nvox );
 
-            if ( amax > MRI_TYPE_maxval[sopt->datum] )      /* we must scale */
+            if ( amax > MRI_TYPE_maxval[sopt->datum] ) {    /* we must scale */
                 fac = MRI_TYPE_maxval[sopt->datum]/amax;
-            else if ( integral_doubles( ddata, nvox ) )  /* don't need scale */
+                /* warn user if integral output exceeds datum */
+                if ( have_ints && sopt->debug > 0 )
+                   fprintf(stderr,"** integral output exceeds max datum val\n"
+                                  "   %g > %g\n", 
+                                      amax, MRI_TYPE_maxval[sopt->datum]);
+            }
+            else if ( have_ints )                        /* don't need scale */
                 fac = 0.0;
             else if ( amax != 0.0 )
                 fac = MRI_TYPE_maxval[sopt->datum]/amax;
@@ -805,6 +815,40 @@ int is_aggregate_type(int map_func)
     }
 
     return 0;
+}
+
+/* return a default datum based on the map function
+ *
+ * default is basically float, unless we have reason to chose another
+   (currently just MASK, COUNT and MODE functions) */
+int default_map_datum( int map_func )
+{
+    switch( map_func ) {
+       default:               return MRI_float;
+
+       /* expected byte: mask types */
+       case E_SMAP_MASK:
+       case E_SMAP_MASK2:     return MRI_byte;
+
+       /* expected float: non-integral output */
+       case E_SMAP_AVE:
+       case E_SMAP_NZ_AVE:
+       case E_SMAP_MEDIAN:
+       case E_SMAP_NZ_MEDIAN: return MRI_float;
+      
+       /* expected short: likely for MODE, but does not need to be */
+       case E_SMAP_COUNT:
+       case E_SMAP_MODE:
+       case E_SMAP_NZ_MODE:   return MRI_short;
+      
+       /* output is same as input, just assume float */
+       case E_SMAP_MIN:
+       case E_SMAP_MAX:
+       case E_SMAP_MAX_ABS:   return MRI_float;
+    }
+
+    /* unreachable, but hey */
+    return MRI_float;
 }
 
 
@@ -1468,7 +1512,10 @@ ENTRY("set_smap_opts");
     if ( (sopt->map = check_map_func( opts->map_str )) == E_SMAP_INVALID )
         RETURN(-1);
 
-    sopt->datum = check_datum_type(opts->datum_str, DSET_BRICK_TYPE(p->gpar,0));
+    /* default came from DSET_BRICK_TYPE, but now base on map func */
+    /* (requested by D Glen)                   22 Jun 2021 [rickr] */
+    sopt->datum = check_datum_type(opts->datum_str,
+                                   default_map_datum(sopt->map));
     if (sopt->datum < 0)
         RETURN(-1);
 
@@ -3240,11 +3287,16 @@ ENTRY("usage");
             "    -datum DTYPE           : set data type in output dataset\n"
             "\n"
             "        e.g. -datum short\n"
-            "        default: same as that of grid parent\n"
+            "        default: based on the map function\n"
+            "                 (was grid_parent, but that made little sense)\n"
             "\n"
-            "        This option specifies the data type for the output AFNI\n"
-            "        dataset.  Valid choices are byte, short and float, which\n"
+            "        This option specifies the data type for the output data\n"
+            "        volume.  Valid choices are byte, short and float, which\n"
             "        are 1, 2 and 4 bytes for each data point, respectively.\n"
+            "\n"
+            "        The default is based on the map function, generally\n"
+            "        implying float, unless using mask or mask2 (byte), or\n"
+            "        count or mode (short).\n"
             "\n"
             "    -debug LEVEL           : verbose output\n"
             "\n"
@@ -3271,7 +3323,7 @@ ENTRY("usage");
             "\n"
             "        This option requests additional debug output for the\n"
             "        given volume voxel.  This 1-D index is with respect to\n"
-            "        the output AFNI dataset.  One good way to find a voxel\n"
+            "        the output data volume.  One good way to find a voxel\n"
             "        index to supply is from output via the '-dnode' option.\n"
             "\n"
             "        This will have no effect without the '-debug' option.\n"

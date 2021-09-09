@@ -7,6 +7,11 @@
 ## system libraries
 import sys, os, glob, subprocess, csv, re, argparse, signal, textwrap, json
 from afnipy import afni_base, abids_lib
+from platform import python_version_tuple
+
+
+## determine if captured subprocess encoding is needed; requiring after 3.6.0
+ENCODING_REQUIRED = python_version_tuple() >= ('3', '6', '0')
 
 
 ########################################################################
@@ -128,7 +133,12 @@ for i in range(0,len(dset_list)):
 
     ## get some info
     afni_cmd = ("3dinfo -exists -ni -nj -nk -TR "+dset.rppv())
-    check_info = subprocess.check_output(afni_cmd,shell=True).split()
+    if ENCODING_REQUIRED:
+        check_info = subprocess.check_output(
+            afni_cmd,shell=True,encoding="ascii"
+        ).split()
+    else:
+        check_info = subprocess.check_output(afni_cmd,shell=True).split()
 
     ## is the input dataset there?
     if check_info[0] == "0":

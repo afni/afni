@@ -103,7 +103,9 @@ endif
 
 # default to wget, else use curl
 set get_prog = ( wget )
-if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
+if ( $use_curl || $missing_wget ) then
+    set get_prog = ( curl -O -f )
+endif
 
 
 # ======================================================================

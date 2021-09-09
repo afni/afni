@@ -53,6 +53,85 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Aug, 2021, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add option -gert_chan_digits, to specify num digits for channel in name",
+   NULL
+ } ,
+
+ { 20, Aug, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_tsv_cols_of_interest",
+   NULL
+ } ,
+
+ { 14, Aug, 2021, RCR, "coxplot", MICRO, TYPE_BUG_FIX,
+   "remove duplicate symbols zzzplt_ and zzpltr_",
+   "Done at the behest of D Glen."
+ } ,
+
+ { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Done with P Taylor."
+ } ,
+
+ { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add options -dcx, -dcy, -dcz, dc3",
+   "This provides the center of the volumetric grid, in DICOM coords."
+ } ,
+
+ { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -multi_durations_from_offsets",
+   "Added on the authority of W-L Tseng."
+ } ,
+
+ { 16, Jul, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "unindent EOF command terminator in example",
+   "Thanks to I Berteletti for noting the problem."
+ } ,
+
+ { 15, Jul, 2021, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -empty_is_outlier, to treat empty fields as outliers",
+   "The default reporting of blank outlier test vals is now as non-outliers.\n"
+   "Use this option to report as outliers.\n"
+   "Added for the mighty P Taylor."
+ } ,
+
+ { 13, Jul, 2021, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
+   "fix '-separator whitespace' in the case of blank lines",
+   "Thanks to P Taylor for noting the problem."
+ } ,
+
+ { 25, Jun, 2021, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add -rand_post_elist_partition",
+   "This will partition an already defined stim class into new ones.\n"
+   "Added on the authority of S Haller."
+ } ,
+
+ { 22, Jun, 2021, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
+   "without -datum, the output now depends on the map func, not the BRIK",
+   "Done to appease the mysterious D Glen.\n"
+ } ,
+
+ { 22, Jun, 2021, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
+   "calm those grumpy compilers",
+   "Issues noted by P Taylor.\n"
+ } ,
+
+ { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
+   "turn of local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
+ { 10, Jun, 2021, RCR, "SurfLocalstat", MINOR, TYPE_NEW_PROG,
+   "add Ziad's program to the default build",
+   "This is to allow use of the 'mode' stat."
+ } ,
+
+ { 10, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "rename src/suma_suma.h to src/SUMA/SUMA_X_objs.h",
+   "This is to avoid glorious case-insensitive name conflicts on Macs.\n"
+   "As suggested by the merciful D Glen."
+ } ,
+
  {  3, Jun, 2021, RCR, "dcm2niix_afni", MINOR, TYPE_ENHANCE,
    "sync crorden/dcm2niix_console with repo, version v1.0.20210317",
    "Thanks to C Rorden for suggesting the update."
@@ -117,9 +196,9 @@ afni_history_struct rickr_history[] = {
  {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
    "fix surprising slowness",
    "This would previously unload/mallocize/reload every time point,\n"
-   "possibly to free completed data.\n"
-   "Now, NIFTI input would be re-read every time point (why the change?).\n"
-   "Just mallocize in the first place, not per time point.\n"
+   "possibly to free completed data.  Then NIFTI input would be re-read\n"
+   "every time point (this might have changed due to something else).\n"
+   "Instead, mallocize in the first place, not per time point.\n"
    "Also, avoid scaling floats by 1.0.\n"
    "Thanks to C Craddock for reporting the problem."
  } ,

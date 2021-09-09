@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.1, May 27, 2021
+Version 0.1.4, July 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -739,13 +739,14 @@ process.LME.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
-   if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN))
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 # process.LME.opts(lop, 0)
@@ -955,6 +956,8 @@ cat('Reading input files for effect estimates: Done!\n\n')
 # masking
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
@@ -1017,8 +1020,8 @@ if(!is.na(lop$maskFN)) {
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
   xinit <- dimx%/%3
-  if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-  if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+  if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+  if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
   ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1118,9 +1121,9 @@ if(lop$TRR) { # test-retest analysis
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg
       # pad with extra 0s
-      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
-      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      dim(inData) <- c(dimx_n, nSeg, nF)
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
       if (lop$nNodes==1) for(kk in 1:nSeg) {
          for(kk in 1:nSeg) {
@@ -1176,9 +1179,9 @@ if(lop$TRR) { # test-retest analysis
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg
       # pad with extra 0s
-      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
-      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      dim(inData) <- c(dimx_n, nSeg, nF)
       Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) for(kk in 1:nSeg) {
          for(kk in 1:nSeg) {
@@ -1230,10 +1233,10 @@ if(lop$TRR) { # test-retest analysis
    } # if (lop$nNodes>1)
 } # LME modeling
 
-Top <- 100
+#Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top
-Stat[Stat < (-Top)] <- -Top
+#Stat[Stat > Top] <- Top
+#Stat[Stat < (-Top)] <- -Top
 
 if(lop$TRR) {
    brickNames <- c(c(rbind(rownames(summary(fm)$coefficients), 
@@ -1263,11 +1266,11 @@ if(lop$TRR) {
 }
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 if(!is.null(lop$resid))
    write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
-      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 

@@ -131,7 +131,9 @@ foreach series ( $slist )
    endif
 
    set sdir = series.$series
-   if ( $dprefix != '' ) set sdir = $dprefix/$sdir
+   if ( $dprefix != '' ) then
+      set sdir = $dprefix/$sdir
+   endif
 
    if ( -d $sdir ) then
       echo "** already have series dir 'series.$series', failing"

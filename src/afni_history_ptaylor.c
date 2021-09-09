@@ -69,6 +69,526 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Sep , 2021 , PT , "@4Daverage" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@FindAfniDsetPath" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@Purify_1D" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@RenamePanga" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_glue_imgs_vert" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_anonymize" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 31, Aug , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Change default cost function to 'lpa', from 'ls'.",
+   "Should be better? There is an opt to change, as necessary.\n"
+},
+
+{ 30, Aug , 2021 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-all_roi_zeros' and '-automask_off'.",
+   "Basically, N ROIs can have NxN mat, even if ROI ave is all zeros.\n"
+},
+
+{ 22, Aug , 2021 , PT , "lib_afni1D.py" , MICRO , TYPE_BUG_FIX,
+   "Afni1D.uncensor_from_vector() had a syntax error in one print call').",
+   "Was missing a %, now fixed.\n"
+},
+
+{ 10, Aug , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
+   "No longer worry about even/odd slice output (and remove '-no_fs_prep').",
+   "Dealt with an old non-issue.\n"
+},
+
+{ 29, July , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
+   "Add in @chauffeur_afni functionality:  -edgy_ulay.",
+   NULL
+},
+
+{ 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Copying Rick's fix. Thanks to user 'ymao' for raising this issue on the MB."
+ } ,
+
+{ 9, July , 2021 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "New: '-aff_move_opt ..' to use more than just giant_move in aff step.",
+   "Also bug fix for when no followers were entered.\n"
+},
+
+{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
+   "Tweak column names *again*.",
+   "Add in extra check that 3D vols are specified (e.g., with selectors).\n"
+},
+
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
+   "Reformat report*.1D tables a bit: match key and col names.",
+   "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
+},
+
+{ 28, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Well, OK, not *really* a new opt---new values accepted for existing opt.",
+   "The '-olay_alpha ..' can now take Linear or Quadratic (grazie, Bob).\n"
+},
+
+{ 24, June , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "Silence 3drefit warns if changing space of dsets (might confuse users).",
+   "Unnecessary warning for these temp dsets within the script.\n"
+},
+
+{ 22, June , 2021 , PT , "3dNwarpCalc" , MINOR , TYPE_GENERAL,
+   "Put in std includes to be able to build on Mac with Clang.",
+   "Though this program isn't even built...\n"
+},
+
+{ 22, June , 2021 , PT , "SurfLayers" , MINOR , TYPE_GENERAL,
+   "Capture verbose output from ConvertSurface.",
+   "Also add -no_clean opt.\n"
+},
+
+{ 18, June , 2021 , PT , "@Install_AP_MULTI_DEMO1" , MINOR , TYPE_GENERAL,
+   "Adding install script for afni_proc.py multi-echo FMRI demo (OHBM, 2021).",
+   "Demo authors: RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor.\n"
+},
+
+{ 18, June , 2021 , PT , "@Install_SURFLAYERS_DEMO1" , MINOR , TYPE_GENERAL,
+   "Created by Sam Torrisi.  Help added, temp placeholder data now in place.",
+   "Will add full demo data soon...\n"
+},
+
+{ 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_BUG_FIX,
+   "Minor bug fix (never hit?), and avoid single line 'if' conds.",
+   "Latter to avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@clean_help_dir" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@RetinoProc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_Caret" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@build_afni_Xlib" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@fix_FSsphere" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "ap_run_simple_rest.tcsh" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Reorder" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_SF" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@T1scale" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni.run.me" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.files" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@get.afni.version" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@parse_afni_name" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@parse_name" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@simulate_motion" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@update.afni.binaries" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@2dwarper.Allin" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ExamineGenFeatDists" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_InstaCorr_Demo" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_SF" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ScaleVolume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@clip_volume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@compute_gcor" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@fix_FSsphere" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@move.to.series.dirs" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@update.afni.binaries" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Clean up some spacing; avoid single line 'if' conds; use unaliased rm.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Awarp" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_in2out" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_erosion_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_bb_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_slice_space" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.files" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_ClustScat_Demo" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@GradFlipTest" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FindAfniDsetPath" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Atlasize" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@global_parse" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@get.afni.version" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_glue_imgs_vert" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ROI_decluster" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@1dDiffMag" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 14, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Space before 'then' in if-cond; also remove all exclamations in comments.",
+   "Resolved *very* weird opt parsing on *some* old tcsh.\n"
+},
+
+{ 10, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New opt '-echo', for odd-behavior-on-other-systems-investigtion-purposes.",
+   "Also print AFNI and program version numbers at top.\n"
+},
+
 { 2, June , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
    "Undo previous tweak to db_mod.py (for auto_warp.py); back to using *.nii.",
    "Reverting, because AFNI_COMPRESSOR has been updated.\n"

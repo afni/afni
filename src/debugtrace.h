@@ -341,7 +341,7 @@ extern void clock_time_atexit(void) ;
   do{ if(TRACK_TRACING){                                                             \
         char sbuf[2048] ;                                                            \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                            \
-        sprintf(sbuf,"%*.*s%s -- %s {%d ms}",DBG_num,DBG_num," ",                    \
+        sprintf(sbuf,"%*.*s%s -- %.1666s {%d ms}",DBG_num,DBG_num," ",               \
                 DBROUT,(str),NI_clock_time());                                       \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK; }  \
         DBG_set_hist_status(sbuf) ;                                                  \
@@ -351,8 +351,8 @@ extern void clock_time_atexit(void) ;
 
 #define STATUSp(str,p)                                                              \
   do{ char qss[2048] ;                                                              \
-      sprintf(qss,"%s ptr=%p",(str),(p)) ;                                          \
-      if( MCW_MALLOC_enabled )                                                    \
+      sprintf(qss,"%.1666s ptr=%p",(str),(p)) ;                                     \
+      if( MCW_MALLOC_enabled )                                                      \
         strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                       \
       if( TRACK_TRACING ){                                                          \
         char sbuf[2048] ;                                                           \
@@ -366,7 +366,20 @@ extern void clock_time_atexit(void) ;
 
 #define STATUSi(str,i)                                                              \
   do{ char qss[2048] ;                                                              \
-      sprintf(qss,"%s int=%d",(str),(i)) ;                                          \
+      sprintf(qss,"%.1666s int=%d",(str),(i)) ;                                     \
+      if( TRACK_TRACING ){                                                          \
+        char sbuf[2048] ;                                                           \
+        if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
+        sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
+        if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \
+        DBG_set_hist_status(sbuf) ;                                                 \
+      }                                                                             \
+      if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
+  } while(0)
+
+#define STATUSs(str,s)                                                              \
+  do{ char qss[2048] ;                                                              \
+      sprintf(qss,"%.666s s=%.999s",(str),(s)) ;                                    \
       if( TRACK_TRACING ){                                                          \
         char sbuf[2048] ;                                                           \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                           \

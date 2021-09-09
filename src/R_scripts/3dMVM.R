@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.7,  Feb 23, 2021
+Version 4.0.11,  July 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1019,13 +1019,14 @@ process.MVM.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
-   if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN))
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 # process.MVM.opts(lop, verb = lop$verb)
@@ -1516,6 +1517,8 @@ if(any(!is.null(lop$vVars))) {
 
 if (!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)),
       dim=c(dimx,dimy,dimz,lop$NoFile+(!is.na(lop$vQV[1]))*lop$nSubj))
 }
@@ -1558,8 +1561,8 @@ if(!is.na(lop$maskFN)) {
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
-   if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
-   if(dimz==1) zinit <- 1 else zinit <- dimz%/%2
+   if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%2
+   if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%2
    ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1913,10 +1916,10 @@ if (lop$nNodes>1) {
 #}
 
 # avoid overflow
-Top <- 100
+#Top <- 100
 out[is.nan(out)] <- 0
-out[out > Top] <- Top
-out[out < (-Top)] <- -Top
+#out[out > Top] <- Top
+#out[out < (-Top)] <- -Top
 
 ###############################
 
@@ -1936,13 +1939,21 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 if(lop$num_glf>0) for(ii in 1:lop$num_glf)
    statsym <- c(statsym, list(list(sb=lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))
 
-write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
-   overwrite=lop$overwrite)
+#write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
+#   com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
+#   scale=FALSE, overwrite=lop$overwrite)
 
-if(!is.null(lop$resid))
+if(!is.null(lop$resid)) { # with residuals
+   write.AFNI(lop$outFN, out[,,,1:NoBrick, drop=FALSE],
+      brickNames, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history,
+      statsym=statsym, addFDR=2, type='MRI_float', scale=FALSE)
    write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
-      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
+} else { # residuals are not requested
+   write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
+      com_hist=lop$com_history, statsym=statsym, addFDR=2, type='MRI_float',
+      scale=FALSE, overwrite=lop$overwrite)
+}
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 

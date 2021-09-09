@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -8,8 +8,14 @@
 #set version   = "0.2";  set rev_dat   = "Oct 19"
 # [PT] include deobliqued version
 #
-set version   = "0.3";  set rev_dat   = "Mar 16, 2021"
+#set version   = "0.3";  set rev_dat   = "Mar 16, 2021"
 # [PT] AFNI_COMPRESSOR -> NONE
+#
+#set version   = "0.4";  set rev_dat   = "June 24, 2021"
+# [PT] run '3drefit -space ...' quietly
+#
+set version   = "0.41";  set rev_dat   = "July 29, 2021"
+# [PT] new opt: -edgy_ulay
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -55,7 +61,7 @@ set label_mode     = 1
 set DO_USE_REFBOX    = 0
 set ulay_interp      = "" 
 
-set DO_MASK_EDGES    = 0                 # this now OFF by def
+set edgy_ulay        = ""
 
 set Nx_cat         = 3                   # for 2dcat
 set Ny_cat         = 1                   
@@ -176,8 +182,8 @@ while ( $ac <= $#argv )
         set label_mode = "$argv[$ac]"
 
     # [PT: May 26, 2020] 
-    else if ( "$argv[$ac]" == "-mask_olay_edges" ) then
-        set DO_MASK_EDGES = 1
+    else if ( "$argv[$ac]" == "-edgy_ulay" ) then
+        set edgy_ulay = "-edgy_ulay"
 
     # [PT: Dec 30, 2019] can place coord loc
     else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
@@ -289,7 +295,9 @@ set fout = "${tpref}_${idx}_cp_olay.nii"
 cd ${wdir}  # jump to workdir
 
 # need to make sure the space is the same, to be able to overlay
-3drefit -space `3dinfo -space "${fout}"` "${uout}"
+set newsp = `3dinfo -space "${fout}"`
+echo "++ Quietly run: 3drefit -space ${newsp} ${uout}"
+3drefit -space ${newsp} "${uout}" >& /dev/null
 
 # take image, from the workdir
 @chauffeur_afni                             \
@@ -311,7 +319,7 @@ cd ${wdir}  # jump to workdir
     -set_xhairs OFF                         \
     -label_mode ${label_mode} -label_size 3 \
     $allclean                               \
-    ${user_coors}
+    ${user_coors} ${edgy_ulay}
 
 # ... and the concatenated version to output
 2dcat                                  \
@@ -350,7 +358,7 @@ if ( ${obl_ulay[1]} || ${obl_olay[1]} ) then
         -set_xhairs OFF                         \
         -label_mode ${label_mode} -label_size 3 \
         $allclean                               \
-        ${user_coors}
+        ${user_coors} ${edgy_ulay}
 
     # ... and the concatenated version to output
     2dcat                                  \
@@ -451,7 +459,7 @@ COMMAND OPTIONS ~1~
 -monty_cat         MY2
 -label_mode        LM
 -pbar_posonly_off
--mask_olay_edges
+-edgy_ulay
 -set_dicom_xyz_off
 -no_clean
 

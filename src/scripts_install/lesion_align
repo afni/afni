@@ -300,7 +300,7 @@ else
 endif
 
    # guess good side and bad side based on lesion mask
-   if($lesion_mask != "") then
+   if ($lesion_mask != "") then
       set CMdset = `3dCM $dset`
       set CMlesion = `3dCM $lesion_mask`
       set sidechoice = `ccalc -int -expr "step($CMdset[1]-$CMlesion[1])"`
@@ -312,7 +312,7 @@ endif
       echo "Good side choice by lesion mask: $lesion_goodside"
       echo "Good side choice by lesion mask: $lesion_goodside" \
         >> ${lesion_outs}
-      if($goodside == "") then
+      if ($goodside == "") then
          set goodside = $lesion_goodside
          echo "Good side matches lesion mask: $goodside" >> ${lesion_outs}
       else
@@ -323,7 +323,7 @@ endif
          endif
       endif
    else
-      if($goodside == "") then
+      if ($goodside == "") then
          set goodside = "both"
       endif
    endif
@@ -373,7 +373,7 @@ endif
    if ($lesion_mask != "") then
        # Move center of lesion mask with same 1D shift as original dataset.
        # option has '_inv', but that appears to be correct!
-       if(($ok_to_exist == "1") && (-f ${lesion_prefix}_shft.nii.gz)) then
+       if (($ok_to_exist == "1") && (-f ${lesion_prefix}_shft.nii.gz)) then
           echo "reusing shifted lesion mask dataset"
        else
           @Align_Centers -base $base -dset $lesion_mask -overwrite \
@@ -488,7 +488,7 @@ endif
    endif
 
    # apply the concatenated warp to lesion mask too
-   if($lesion_mask != "") then
+   if ($lesion_mask != "") then
      set outprefix = "${lesion_prefix}_nl.nii.gz"
      if (($ok_to_exist == "1") && (-f $outprefix )) then
        echo "reusing nonlinear aligned lesion mask $outprefix"

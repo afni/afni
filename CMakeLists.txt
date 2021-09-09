@@ -9,6 +9,23 @@ include(get_git_repo_version)
 include(get_build_macros_and_functions)
 include(CMakeDependentOption)
 
+if( (NOT DEFINED ENV{CC}) )
+  if(DEFINED CMAKE_TOOLCHAIN_FILE)
+    # Toolchain file defines the correct compiler settings for MacOS
+    option(AFNI_COMPILER_CHECK "Check that CC and CXX are set as expected" OFF)
+  else()
+    option(AFNI_COMPILER_CHECK "Check that CC and CXX are set as expected" ON)
+  endif()
+  if (AFNI_COMPILER_CHECK)
+    message(FATAL_ERROR "
+    Set the compilers for the build by setting the environment variables CC and CXX...
+      Hint 1: export CC=$(which gcc);export CXX=$(which g++)
+      Hint 2: If the above, or indeed this failure, is not useful you can consider passing -DAFNI_COMPILER_CHECK=OFF to cmake
+      "
+      )
+  endif()
+endif()
+
 # ##### Project info
 project(
   AFNI
@@ -21,8 +38,8 @@ set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
 if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
-    # This should never happen, compiler should be gcc or clang
-    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}")
+    # This should never happen, compiler should be gcc or clang.
+    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}. Please check to see if clang or gcc are installed and functioning")
 endif()
 # set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 include(afni_cmake_build_options)

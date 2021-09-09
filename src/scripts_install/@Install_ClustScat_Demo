@@ -40,7 +40,7 @@ else
    tar xvzf AFNI_ClustScatDemo.tgz
 endif
 
-if( ! -f AFNI_ClustScatDemo/AAA_README.txt ) then
+if ( ! -f AFNI_ClustScatDemo/AAA_README.txt ) then
    echo "** ERROR **"
    echo "  Installation failed :-("
    goto BEND

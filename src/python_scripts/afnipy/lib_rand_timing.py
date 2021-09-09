@@ -3,6 +3,7 @@
 # python3 status: started
 
 import sys, random, os, math
+import copy
 from afnipy import afni_util as UTIL
 from afnipy import lib_afni1D as LD
 
@@ -581,7 +582,7 @@ class StimClass:
 
       self.verb         = verb
 
-      self.durlist      = []            # durations per run
+      self.durlist      = []            # list of durations per run
       self.sdata        = None          # AfniData instance
       self.max_consec   = 0             # positive means apply limit
 
@@ -601,6 +602,10 @@ class StimClass:
          self.rclass.show('rest class for %s'%self.name)
 
       print('')
+
+   def copy(self):
+      """return a deepcopy of the instance"""
+      return copy.deepcopy(self)
 
    def basis_function(self):
       return self.sclass.basis

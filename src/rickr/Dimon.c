@@ -157,10 +157,11 @@ static char * g_history[] =
     "      - add -p option to mkdir\n"
     " 4.25 Feb  5, 2019 [rickr]: -infile_list implies -no_wait\n"
     " 4.26 Feb  3, 2020 [rickr]: show CSA header on high debug (4)\n"
+    " 4.27 Aug 31, 2021 [rickr]: add -gert_chan_digits\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.26 (February 3, 2020)"
+#define DIMON_VERSION "version 4.27 (August 31, 2021)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2710,6 +2711,7 @@ static int init_param_t( param_t * p )
    p->opts.ep = IFM_EPSILON;           /* allow user to override     */
    p->opts.max_images = IFM_MAX_VOL_SLICES;   /* allow user override */
    p->opts.sleep_frac = 1.1;           /* fraction of TR to sleep    */
+   p->opts.chan_digits = 3;            /* # digits for chan in dset  */
    p->opts.te_list = NULL;
 
    init_string_list( &p->opts.drive_list, 0, 0 );   /* no allocation */
@@ -2849,6 +2851,21 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
         {
             p->opts.gert_reco = 1;      /* output script at the end */
+        }
+        else if ( ! strcmp( argv[ac], "-gert_chan_digits") )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -gert_chan_digits N_DIG\n", stderr );
+                return -1;
+            }
+
+            p->opts.chan_digits = atoi(argv[ac]);
+            if ( p->opts.chan_digits <= 0 ) {
+                fprintf(stderr, "** -gert_chan_digits must be > 0, have %s\n",
+                        argv[ac]);
+                return -1;
+            }
         }
         else if ( ! strncmp( argv[ac], "-gert_chan_prefix", 14 ) )
         {
@@ -4328,6 +4345,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
             "   gert_prefix        = %s\n"
+            "   chan_digits        = %d\n"
             "   chan_prefix        = %s\n"
             "   gert_nz            = %d\n"
             "   gert_format        = %d\n"
@@ -4367,6 +4385,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->ushort2float, opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
+            opt->chan_digits,
             CHECK_NULL_STR(opt->chan_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
@@ -5728,6 +5747,14 @@ printf(
     "      * Caution: this option should only be used when the output\n"
     "        is for a single run.\n"
     "\n"
+    "    -gert_chan_digits N_DIG : use N_DIG digits for channel numbr\n"
+    "\n"
+    "        e.g. -gert_chan_digits 1\n"
+    "\n"
+    "        When creating a GERT_Reco script that calls 'to3d' in the case\n"
+    "        of multi-channel (or echo) data, use this option to specify the\n"
+    "        number of digits in the channe/echo part of the prefix.\n"
+    "\n"
     "    -gert_chan_prefix PREFIX : use PREFIX instead of _chan_ in dsets\n"
     "\n"
     "        e.g. -gert_chan_prefix _echo_\n"
@@ -6049,8 +6076,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         if( opts->num_chan > 1 ) {
            indent = 4;
            fprintf(fp, "# process %d channels/echoes\n"
-                       "foreach chan ( `count -digits 3 1 %d` )\n",
-                       opts->num_chan, opts->num_chan);
+                       "foreach chan ( `count -digits %d 1 %d` )\n",
+                       opts->num_chan, opts->chan_digits, opts->num_chan);
         }
 
         /* if gert_format = 1, write as NIfTI */
@@ -6171,7 +6198,8 @@ int create_dimon_file_lists(param_t *p, char *ret_fname, stats_t *ST, int rind)
    for( cind = 0; cind < nchan; cind++ ) {
 
       /* maybe adjust name */
-      if( nchan > 1 ) sprintf(fname+fbase_len, ".chan.%03d", cind+1);
+      if( nchan > 1 ) sprintf(fname+fbase_len, ".chan.%0*d",
+                              p->opts.chan_digits, cind+1);
 
       /* open file, write names, close */
 

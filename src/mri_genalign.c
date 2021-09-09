@@ -1,11 +1,13 @@
 #include "mrilib.h"
 
+/**** Also see file mri_genalign_util.c ****/
+
 #ifdef USE_OMP
 #include <omp.h>
 #endif
 
 #undef  BIGVAL
-#define BIGVAL 1.e+38
+#define BIGVAL 1.e+38   /* this is a big value */
 
 /* is a voxel 'good' to use? */
 
@@ -17,38 +19,53 @@
 #undef  SMAGIC
 #define SMAGIC 208921148  /* Zip+4 Code for AFNI Group at NIMH */
 
-/* global access to setup parameters */
+/*--- global access to setup parameters [see 3ddata.h for GA_setup typedef] ---*/
 
-static GA_setup *gstup = NULL ;
+static GA_setup *gstup = NULL ;     /* this struct is critically important */
 static GA_setup *gstup_bk = NULL ;
 
-float GA_get_warped_overlap_fraction(void) ; /* prototype */
+float GA_get_warped_overlap_fraction(void) ; /* prototype for 'ov' */
+
+/* codes indicating the order of operations used to create affine warp */
 
 static int   aff_use_before=0 , aff_use_after=0 ;
 static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 
 /*---------------------------------------------------------------------------*/
 static int mverb = 0 , mpr = 0 ;
-void mri_genalign_verbose(int v){ mverb = v ; }
+void mri_genalign_verbose(int v){ mverb = v ; }  /* set internal verbosity */
+
+/* for rounding the cost functional -- experimental! */
+
+static int mround = 0 ;
+void mri_genalign_round(int v){ mround = v ; } /* 04 Jun 2021 - don't use */
 
 /*---------------------------------------------------------------------------*/
 /* 27 Aug 2008: replace use of drand48 with myunif, for inter-system control */
+/*              that is, we'll use identical 64 bit arithmetic for this      */
+/*           see https://en.wikipedia.org/wiki/Linear_congruential_generator */
 
-static const unsigned long long MYa=62003 ;
-static const unsigned long long MYb=15485863 ;
-static       unsigned long long MYx=15482917 ;
-static INLINE float myunif(void)
+static const unsigned long long MYa=62003 ;     /* multiplicand */
+static const unsigned long long MYb=15485863 ;  /* addend */
+static       unsigned long long MYx=15482917 ;  /* seed */
+
+static INLINE float myunif(void)  /* return value is in 0..1 range */
 {
   MYx = MYa * MYx + MYb ;
   return ( ((unsigned int)MYx) / 4294967296.0f ) ;
 }
+
+/* reset the seed == change starting point for 'random' numbers */
+
 static void myunif_reset(unsigned long long x){ MYx = x; return; }
 
 /*---------------------------------------------------------------------------*/
 
 /* Macro to periodically reduce a variable into the range 0..1:
-   for example: PRED01(1.2) == 0.8, PRED01(1.8) == 0.2, et cetera;
-   graphically
+   for example: PRED01(1.2) == 0.8, PRED01(1.8) == 0.2, et cetera.
+   This capability is used in powell_int to restrict parameter
+   search to a bounded domain.
+   Graphically
                PRED01(x)|
                         | /\      /\      /\      /\      /\
                         |/  \    /  \    /  \    /  \    /
@@ -64,7 +81,7 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 #undef  PRED01
 #define PRED01(x) MYfabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
 
-/* Max number of points to warp at a time */
+/*--- Max number of points to warp at a time ---*/
 
 #undef  NPER
 #define NPER 262144  /* 1 Mbyte per float array */
@@ -77,7 +94,7 @@ void GA_set_nperval( int i ){ nperval = (i > 666) ? i : 16777216 ; }
     - Results go into avm, which must be pre-allocated.
     - If mpar==NULL, then warp parameters are all taken from gstup and
       the results are calculated at ALL points in the base image.
-----------------------------------------------------------------------*/
+*//*------------------------------------------------------------------*/
 
 void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
@@ -190,7 +207,7 @@ ENTRY("GA_get_warped_values") ;
          GA_interp_cubic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
-       case MRI_VARP1:
+       case MRI_VARP1:  /* don't use this! */
          clip = 1 ;
          GA_interp_varp1( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
@@ -231,12 +248,12 @@ ENTRY("GA_get_warped_values") ;
    EXRETURN ;
 }
 
-#if 0
+#if 0  /* debugging-tracking stuff */
 /*---------------------------------------------------------------------------*/
 /* Stuff for calling a user-supplied function every time the cost
    function is smaller than the previous minimal value (vbest).
    GA_fitter_dotter() is a simple example.
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 static float fit_vbest = BIGVAL ;
 static void (*fit_callback)(int,double *) = NULL ;
@@ -285,9 +302,13 @@ void GA_fitter_params( int n , double *mpar )
 void GA_do_params( int x ){
    GA_reset_fit_callback( (x)?GA_fitter_params:NULL );
 }
-#endif
+#endif  /* debugging-tracking stuff */
+/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
+/* This function sets up parameters in thd_correlate.c,
+   for how to compute the 2D histogram betwixt base and target.
+*//*-------------------------------------------------------------------------*/
 
 void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
 {
@@ -363,13 +384,15 @@ ENTRY("GA_setup_2Dhistogram") ;
 /*---------------------------------------------------------------------------*/
 
 #undef  CMAX
-#define CMAX 0.9999f
+#define CMAX 0.9999f  /* max correlation to allow */
 
 static int lpczz = 0 ;
 void GA_pearson_ignore_zero_voxels(int z){ lpczz = z; }  /* 23 Feb 2010 */
 
 /*---------------------------------------------------------------------*/
 /*! LPC = Local Pearson Correlation, as described in the famous paper. */
+/*  [if you never heard of that paper, please back away from the file] */
+/*---------------------------------------------------------------------*/
 
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
@@ -380,14 +403,19 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 
 ENTRY("GA_pearson_local") ;
 
+   /*-------------------------------------------------------------------------*/
+   /*-- if not already present, set up geometric structure for BLOKs we use --*/
+
    if( gstup->blokset == NULL ){
      float rad=gstup->blokrad , mrad ; float *ima=NULL,*jma=NULL,*kma=NULL ;
+     /* increment blok 'radius' to allow for smoothing radius */
      if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
        rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
+     /* minimum blok 'radius' */
      mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
      rad  = MAX(rad,mrad) ;
      if( gstup->im != NULL ) ima = gstup->im->ar ;  /* 19 Feb 2010: oopsie */
-     if( gstup->jm != NULL ) jma = gstup->jm->ar ;
+     if( gstup->jm != NULL ) jma = gstup->jm->ar ;  /* points to include */
      if( gstup->km != NULL ) kma = gstup->km->ar ;
      gstup->blokset = create_GA_BLOK_set(  /* cf. mri_genalign_util.c */
                             gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
@@ -395,8 +423,9 @@ ENTRY("GA_pearson_local") ;
                             gstup->npt_match , ima,jma,kma ,
                             gstup->bloktype , rad , gstup->blokmin , 1.0f,mverb ) ;
      if( gstup->blokset == NULL )
-       ERROR_exit("Can't create GA_BLOK_set?!?") ;
+       ERROR_exit("Can't create GA_BLOK_set?!?") ;  /* should not happen */
    }
+   /*-------------------------------------------------------------------------*/
 
    gbs   = gstup->blokset ;
    nblok = gbs->num ;
@@ -408,23 +437,26 @@ ENTRY("GA_pearson_local") ;
      wsold = AFNI_yesenv("AFNI_LPC_OLDWSUM") ;   /* 02 Mar 2010 */
    }
 
+   /*--- loop over blocks, compute local correlations ---*/
+
    for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
-     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;  /* skip this blok */
-     elm = gbs->elm[dd] ;
+     nelm = gbs->nelm[dd] ;     /* number of points inside this blok */
+     if( nelm < 9 ) continue ;  /* too few? skip this blok */
+     elm = gbs->elm[dd] ;       /* list of 1D index to points for this blok */
 
      RAND_ROUND ; /* 26 Feb 2020 */
 
      if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
        for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
+         jj = elm[ii] ;                  /* index of ii-th point in blok */
          xm += avm[jj] ; ym += bvm[jj] ;
        }
-       xm /= nelm ; ym /= nelm ;
+       xm /= nelm ; ym /= nelm ;         /* mean of x and y inside blok */
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
          vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
-         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
+         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ; /* sums needed */
        }
 
      } else {             /*** weighted correlation ***/
@@ -434,7 +466,7 @@ ENTRY("GA_pearson_local") ;
          wt = wvm[jj] ; ws += wt ;
          xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
        }
-       xm /= ws ; ym /= ws ;
+       xm /= ws ; ym /= ws ;            /* weighted averages */
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
          wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
@@ -448,12 +480,12 @@ ENTRY("GA_pearson_local") ;
 
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
-          if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range */
+          if( pcor >  CMAX ) pcor =  CMAX ;         /* limit the range (avoid bad juju) */
      else if( pcor < -CMAX ) pcor = -CMAX ;
-     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() = stretch large values */
      pabs = MYfabsf(pcor) ;
      if( use_ppow ) pabs = powf(pabs,ppow) ;        /* 28 Jan 2021 */
-     psum += ws * pcor * pabs ;                     /* emphasize large values */
+     psum += ws * pcor * pabs ;                     /* emphasize large values even more */
      if( !wsold ) wss += ws ;                       /* moved here 02 Mar 2010 */
    }
 
@@ -462,6 +494,8 @@ ENTRY("GA_pearson_local") ;
 
 /*------------------------------------------------------------*/
 /*! LSC = Local Spearman Correlation (not described anywhere) */
+/** And this is very slow, so it not recommended!!!          **/
+/*------------------------------------------------------------*/
 
 float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
 {
@@ -515,7 +549,10 @@ float GA_spearman_local( int npt , float *avm, float *bvm, float *wvm )
    return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
 }                                /* [0.25 to compensate for the 2*arctanh()] */
 
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* Set the lpc+ parameters, where
+   MICHO = Mutual Information : Correlation ratio : Hellinger metric : Overlap
+*//*--------------------------------------------------------------------------*/
 
 static double micho_mi  = 0.1 ;  /* 24 Feb 2010 */
 static double micho_nmi = 0.1 ;
@@ -530,10 +567,11 @@ void GA_setup_micho( double a, double b, double c, double d, double e )
 
 /*---------------------------------------------------------------------------*/
 /*! Compute a particular fit cost function
-    - avm = target image values warped to base
-    - bvm = base image values
-    - wvm = weight image values
------------------------------------------------------------------------------*/
+     - avm = target image values warped to base
+     - bvm = base image values
+     - wvm = weight image values
+    If you ever invent a new cost function for 3dAllineate, it MUST go here!
+*//*-------------------------------------------------------------------------*/
 
 double GA_scalar_costfun( int meth , int npt ,
                           float *avm , float *bvm , float *wvm )
@@ -676,8 +714,9 @@ ENTRY("GA_scalar_costfun") ;
 
 /*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.
-    (Smaller is a better match.)  For use as a NEWUOA optimization function.
------------------------------------------------------------------------------*/
+    (Smaller is a better match.)
+    For use as a NEWUOA optimization function.
+*//*-------------------------------------------------------------------------*/
 
 double GA_scalar_fitter( int npar , double *mpar )
 {
@@ -694,12 +733,42 @@ ENTRY("GA_scalar_fitter") ;
 
   if( gstup->need_hist_setup ) GA_setup_2Dhistogram( avm , bvm ) ;
 
+  /* evaluate the cost function! */
+
   val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
 
   free((void *)avm) ;    /* toss the trash */
 
+  /** the code below implements the -round option of 3dAllineate **/
+
 #if 1
-  if( mverb > 1 ){
+#define VBASE 2097152.0   /* 2^21 = keep 21 bits of precision in val */
+  if( mround && val != 0.0 && isfinite(val) ){
+    double vvv ; int eee ;
+
+    /* x=frexp(val,&e) return x,e such that 0.5 <= x < 1 and val = x * 2^e;  */
+    /* so 0.5*VASE <= x*VBASE < VBASE;                                       */
+    /* so round() will be the nearest integer between 0.5*VBASE and VBASE;   */
+    /* that is, between 2^20 and 2^21, which is to say a 21 bit integer;     */
+    /* so we scale it back down by VBASE to make it between 0.5 and 1 again. */
+
+    vvv = round( VBASE * frexp(val,&eee) ) / VBASE ;
+
+    /* And then we reassemble it back to a floating point number with the    */
+    /* exponent in eee, using the scalbn() function -- see how easy it is!?  */
+
+    val = scalbn(vvv,eee) ;
+
+    /** Why this rigmarole? To test if keeping a few bits less precision
+        would make the results on different systems more similar, since
+        the effects of round-off error in the costfun evaluation would
+        be reduced. However, this test failed -- rounding didn't help :( **/
+  }
+#undef VBASE
+#endif
+
+#if 1
+  if( mverb > 1 ){ /* print stuff out at each evaluation [masochistic] */
     static double vsmall=1.e+37 ; static int ncall=0 ;
     if( vsmall > val ){
       if( ncall > 0 ){
@@ -719,6 +788,7 @@ ENTRY("GA_scalar_fitter") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Clear the weight */
 
 void mri_genalign_scalar_clrwght( GA_setup *stup )  /* 18 Oct 2006 */
 {
@@ -747,7 +817,7 @@ ENTRY("mri_genalign_scalar_clrwght") ;
       with modified parameters (e.g., smoothing method/radius), then image
       copies are already stored in stup and don't need to be resupplied.
     - cf. 3dAllineate.c for use of this function!
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *wghtim ,
                                 MRI_IMAGE *targim , GA_setup  *stup    )
@@ -807,6 +877,7 @@ STATUS("copy basim") ;
      if( stup->bsim->dy <= 0.0f ) stup->bsim->dy = 1.0f ;
      if( stup->bsim->dz <= 0.0f ) stup->bsim->dz = 1.0f ;
 
+     /* and set the index-to-coordinate matrix cmat */
      if( !ISVALID_MAT44(stup->base_cmat) ){
        LOAD_DIAG_MAT44( stup->base_cmat ,
                         stup->bsim->dx , stup->bsim->dy , stup->bsim->dz ) ;
@@ -852,6 +923,8 @@ STATUS("copy targim") ;
        WARNING_message("mri_genalign_scalar_setup: target image/mask mismatch") ;
        mri_free(stup->ajmask) ; stup->ajmask = NULL ;
      }
+
+     /* if filling the outside of the target mask with random junk */
 
      if( stup->ajmask != NULL && stup->ajmask_ranfill ){ /* set aj_u??? variables for mask noise */
        float *af, *qf ; byte *mmm ; float_pair quam ; float ubot,usiz , u1,u2;
@@ -1029,7 +1102,7 @@ STATUS("load weight and mask") ;
    if( stup->im == NULL || stup->im->nar != nmatch || stup->npt_match != nmatch )
      need_pts = 1 ;
 
-   if( need_pts ){
+   if( need_pts ){      /* extract points from base image? */
      MRI_IMAGE *bim ;
 
      stup->npt_match = nmatch ;
@@ -1241,7 +1314,7 @@ ENTRY("mri_genalign_set_basemask") ;
 
 /*---------------------------------------------------------------------------*/
 /*! Setup parameters for optimizing.
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 void GA_param_setup( GA_setup *stup )
 {
@@ -1285,7 +1358,7 @@ ENTRY("GA_param_setup") ;
 /*! Optimize warping parameters, after doing setup.
     Return value is number of optimization functional calls
     (if it reaches nstep, then final accuracy of rend was not reached).
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 int mri_genalign_scalar_optim( GA_setup *stup ,
                                double rstart, double rend, int nstep )
@@ -1535,7 +1608,8 @@ fprintf(stderr,"\n") ; **/
 
 /*---------------------------------------------------------------------------*/
 /*! Test some random starting points.  Sets val_init values in stup.
------------------------------------------------------------------------------*/
+    This is the first stage of the 3dAllineate coarse alignment phase.
+*//*-------------------------------------------------------------------------*/
 
 void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
@@ -1545,6 +1619,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
    double *kpar[NKEEP] , kval[NKEEP] , qval[NKEEP] ;
    int nk,kk,jj, ngrid,ngtot , maxstep ;
    int ival[NKEEP] , rval[NKEEP] , neval[NKEEP] ; float fval[NKEEP] ;
+   int idx[NKEEP] ;
    char mrk[6]="*o+-." ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
@@ -1582,16 +1657,16 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    for( kk=0 ; kk < NKEEP ; kk++ )                     /* keep best NKEEP */
      kpar[kk] = (double *)calloc(sizeof(double),nfr) ; /* parameters sets */
 
-   /* try the middle of the allowed parameter range, and save it */
+   /* evaluate the middle of the allowed parameter range, and save it */
    RAND_ROUND ;
    for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5 ;
    mpr = 0 ;
-   val = GA_scalar_fitter( nfr , wpar ) ;
-   memcpy(kpar[0],wpar,sizeof(double)*nfr) ;           /* saved parameters */
-   kval[0]  = val ;                                    /* saved cost function */
-   rval[0]  = 0 ;                                      /* not random */
+   val = GA_scalar_fitter( nfr , wpar ) ;           /* eval cost functional */
+   memcpy(kpar[0],wpar,sizeof(double)*nfr) ;        /* saved parameters */
+   kval[0]  = val ;                                 /* saved cost functional */
+   rval[0]  = 0 ;                                   /* not random */
    for( kk=1 ; kk < NKEEP ; kk++ ){
-     rval[kk] = 0 ; kval[kk] = BIGVAL ;                /* all these are worse */
+     rval[kk] = 0 ; kval[kk] = BIGVAL ;             /* all these are worse */
    }
 
    /* try some random places, keep the best NKEEP of them */
@@ -1601,6 +1676,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( mverb > 1 ) ININFO_message("- number of free params = %d",nfr) ;
    if( mverb )     fprintf(stderr," + - Test (%d+%d)*%d params [top5=%s]:#",ngtot,nrand,twof,mrk) ;
 
+   /* this ensures that the same random trials will be used on all systems */
    myunif_reset(3456789) ;  /* 27 Aug 2008 */
 
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
@@ -1616,8 +1692,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*myunif()) ;
      }
 
-     for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
-       for( qq=0 ; qq < nfr ; qq++ )
+     for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections about */
+       for( qq=0 ; qq < nfr ; qq++ )   /* centre of [0,1] in all nfr axes */
          spar[qq] = (ss & (1<<qq)) ? 1.0-wpar[qq] : wpar[qq] ;
 
        val = GA_scalar_fitter( nfr , spar ) ;       /* get cost functional */
@@ -1647,15 +1723,17 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      EXRETURN ;
    }
 
+   /* PRED01(x) is periodic reduction of x to inteval [0,1] */
    for( kk=0 ; kk < ngood ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
+     idx[kk] = kk ;      /* index in inital search results [24 Jun 2021] */
    }
 
    if( mverb ){                    /* print table of results? */
      if( mpr > 0 ) fprintf(stderr,"\n") ;
      fprintf(stderr," + - best %d costs found:\n",ngood) ;
      for(kk=0;kk<ngood;kk++){
-      fprintf(stderr,"   %2d v=% 9.6f:",kk,kval[kk]);
+      fprintf(stderr,"   o=%2d v=% 9.6f:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1669,16 +1747,20 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    /* try a little optimization on each of these parameter sets */
 
+   /** POTENTIAL CHANGE: free the fixed parameters before this step? **/
+
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
    if( mverb ) fprintf(stderr," + - A little optimization:") ;
-   maxstep = 11*nfr+17 ; /** if( maxstep < 99 ) maxstep = 99 ; **/
+   maxstep = 11*nfr+17 ;
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      RAND_ROUND ;
+     /* here is the "little optimization" of kpar[] */
      neval[kk] = powell_newuoa( nfr , kpar[kk] ,
                                 0.05 , 0.001 , maxstep , GA_scalar_fitter ) ;
+     /* cost functional at result */
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
-     if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
+     if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }  /* jj = "best" */
      if( mverb ) fprintf(stderr,".") ;
    }
    if( mverb ) fprintf(stderr,"\n") ;
@@ -1688,6 +1770,9 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
 
    /* 23 Feb 2010: cast out the bad overlap (coincidence count) guys */
+   /* [I think that part of the code was excised???] */
+
+   /* copy into qval */
 
    for( kk=0 ; kk < ngood ; kk++ ) qval[kk] = kval[kk] ;
 
@@ -1696,7 +1781,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( mverb ){                    /* print out optimized results? */
      fprintf(stderr," + - costs of the above after a little optimization:\n") ;
      for( kk=0 ; kk < ngood ; kk++ ){
-      fprintf(stderr,"  %c%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,qval[kk]);
+      fprintf(stderr,"  %co=%2d v=% 9.6f:",(kk==jj)?'*':' ',kk,qval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1704,12 +1789,12 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        }
       }
       fprintf(stderr,"  [%s]" , rval[kk] ? "rand" : "grid" ) ;
-      fprintf(stderr,"  [%d]" , neval[kk] ) ; /* 01 Jun 2021 */
+      fprintf(stderr,"  [f=%d]" , neval[kk] ) ; /* 01 Jun 2021 */
       fprintf(stderr,"\n") ;
      }
    }
 
-   /* save best result in the parameter structure */
+   /* save best result in the stup (setup) parameter structure */
 
    bpar = kpar[jj] ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
@@ -1722,25 +1807,33 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
 
    /* sort kval, then store a bunch of the best parameters,
-      which are not too close to the absolute best set we just saved */
+      which are not too close to their betters (in cost)   */
 
 #undef  DTHRESH
 #define DTHRESH 0.05
+
+   /* copy into fval, with index in orig list in ival */
+
    for( ii=0 ; ii < ngood ; ii++ ){ fval[ii] = kval[ii]; ival[ii] = ii; }
-   qsort_floatint( ngood , fval , ival ) ;
+
+   qsort_floatint( ngood , fval , ival ) ; /* sort on fval, carrying ival along */
+
    for( qq=0 ; qq < stup->wfunc_numpar ; qq++ ){ /** save best into trial #0 **/
      if( !stup->wfunc_param[qq].fixed )
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_init ;
      else
        stup->wfunc_param[qq].val_trial[0] = stup->wfunc_param[qq].val_fixed ;
+     stup->wfunc_param[qq].idx_trial[0] = ival[0] ;
    }
-   if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[0]) ;
+
+   if( mverb > 1 ) ININFO_message("- saving #%2d for use with twobest",ival[0]) ;
+
    nt = 1 ;
    for( jj=1 ; jj < ngood && nt < PARAM_MAXTRIAL ; jj++ ){
      qpar = kpar[ival[jj]] ;                 /* the jj-th best param set */
      for( kk=0 ; kk < jj ; kk++ ){   /* loop over the previous best ones */
        cpar =  kpar[ival[kk]] ;
-       for( dist=0.0,ii=0 ; ii < nfr ; ii++ ){ /* compute dist from previous best */
+       for( dist=0.0,ii=0 ; ii < nfr ; ii++ ){ /* compute dist from previous best [jj] */
          val = fabs(qpar[ii]-cpar[ii]) ; dist = MAX(dist,val) ;
        }
        if( dist < DTHRESH ){  /* too close to cpar ==> skip */
@@ -1750,7 +1843,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          goto NEXT_jj ;
        }
      }
-     if( mverb > 1 ) ININFO_message("- save #%2d for possible use in twobest",ival[jj]) ;
+     if( mverb > 1 ) ININFO_message("- saving #%2d for use with twobest",ival[jj]) ;
      for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
          stup->wfunc_param[qq].val_trial[nt] = stup->wfunc_param[qq].min
@@ -1760,9 +1853,10 @@ ENTRY("mri_genalign_scalar_ransetup") ;
        } else {
          stup->wfunc_param[qq].val_trial[nt] = stup->wfunc_param[qq].val_fixed ;
        }
+       stup->wfunc_param[qq].idx_trial[nt] = ival[jj] ;
      }
      nt++ ; /* 1 more trial set saved */
-   NEXT_jj: ;
+   NEXT_jj: ; /* end of loop over jj = list of trial parameter sets */
    }
    stup->wfunc_ntrial = nt ;
 
@@ -1776,7 +1870,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
 /*---------------------------------------------------------------------------*/
 /*! Warp the entire target image to base coords.  Will be in float format.
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup *stup )
 {
@@ -1813,7 +1907,7 @@ ENTRY("mri_genalign_scalar_warpim") ;
      - The interpolation method is in icode.
      - Output is in float format, no matter what input data format was.
      - Generalized from GA_get_warped_values() -- RWCox - 26 Sep 2006.
----------------------------------------------------------------------------*/
+*//*-----------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfunc,
                                          MRI_IMAGE *imtarg ,
@@ -1832,7 +1926,8 @@ ENTRY("mri_genalign_scalar_warpone") ;
 
    if( wfunc == NULL || imtarg == NULL ) RETURN(NULL) ;
 
-   /** allow for 'vector' images (for example, RGB) [12 May 2020] **/
+   /** allow for 'vector' images (for example, RGB) [12 May 2020]       **/
+   /** see mrilib.h for use of recursion via CALLME and VECTORME macros **/
 
 #undef  CALLME
 #define CALLME(inp,out) (out) = mri_genalign_scalar_warpone(                  \
@@ -1959,6 +2054,7 @@ ENTRY("mri_genalign_scalar_warpone") ;
    RETURN(wim) ;
 }
 
+#ifdef ALLOW_NWARP /*********************************************************/
 #ifndef HAVE_HEXVOL
 #define HAVE_HEXVOL
 /*----------------------------------------------------------------------------*/
@@ -2168,6 +2264,7 @@ ENTRY("mri_genalign_scalar_xyzwarp") ;
    if( zim != NULL ) ADDTO_IMARR(imar,zim) ;
    RETURN(imar) ;
 }
+#endif /* ALLOW_NWARP */ /**************************************************/
 
 /*--------------------------------------------------------------------------*/
 /*! - Find the 8 corners of the input dataset (voxel edges, not centers).
@@ -2203,9 +2300,9 @@ static void mri_genalign_warped_bbox( THD_3dim_dataset *inset,
 }
 #endif
 
-
 /*==========================================================================*/
 /*****------------------------ Warping functions -----------------------*****/
+/*****--- Functions that define the spatial transform from parameters --*****/
 /*--------------------------------------------------------------------------*/
 
 #include "vecmat.h"
@@ -2282,7 +2379,7 @@ void mri_genalign_affine_use_befafter( int bb , int aa )
 /*--------------------------------------------------------------------------*/
 /*! Compute a rotation matrix specified by 3 angles:
       Q = R3 R2 R1, where Ri is rotation about axis axi by angle thi.
-----------------------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 static mat44 rot_matrix( int ax1, double th1,
                          int ax2, double th2, int ax3, double th3  )
@@ -2486,7 +2583,7 @@ void mri_genalign_affine( int npar, float *wpar ,
     directly, with no physical interpretations such as angles, etc.
   * That is, this is the index-to-index matrix, not the coord-to-coord
     matrix (befafter stuff doesn't apply here, unlike mri_genalign_affine).
-----------------------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 void mri_genalign_mat44( int npar, float *wpar,
                          int npt , float *xi, float *yi, float *zi ,
@@ -2519,6 +2616,7 @@ void mri_genalign_mat44( int npar, float *wpar,
    return ;
 }
 
+#ifdef ALLOW_NWARP /*********************************************************/
 /*--------------------------------------------------------------------------*/
 /*! A wfunc function for bilinear warp alignment. */
 
@@ -4325,6 +4423,7 @@ PUSE_LOOP:
 
    EXRETURN ;
 }
+#endif /* ALLOW_NWARP */ /**************************************************/
 
 #if 0
 /****************************************************************************/

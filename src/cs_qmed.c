@@ -363,23 +363,25 @@ void qmedmadmeanad_float( int n, float *ar, float *med, float *mad , float *mean
 }
 
 /*---------------------------------------------------------------*/
+/* mean of central 50% (or so) of array;
+   the actual number averaged is m = n-2*floor(n/4)
+   -- edited 11 Aug 2021 by RWC to change m a little
+   -- note that the sorting operation reorders array ar[],
+      so if this is not good, you'll have to supply a copy
+*//*-------------------------------------------------------------*/
 
 float centromean_float( int n , float *ar )  /* 01 Nov 2010 */
 {
-   int ibot, itop, ii ; float sum=0.0f ;
+   int ii ; float sum=0.0f ;
+   int ibot , itop , m ;
 
-   if( n <= 0 || ar == NULL ){
-    ; /* nada */
-   } else if( n < 6 ){
-     for( ii=0 ; ii < n ; ii++ ) sum += ar[ii] ;
-     sum /= n ;
-   } else {
-     qsort_float( n , ar ) ;
-     ibot = (int)(0.25f*n+0.49f) ;
-     itop = (int)(0.75f*n+0.49f) ;
-     for( ii=ibot ; ii <= itop ; ii++ ) sum += ar[ii] ;
-     sum /= (itop-ibot+1) ;
-   }
+   if( n <= 0 || ar == NULL ) return 0.0f ; /* bad inputs */
+
+   qsort_float( n , ar ) ;
+   ibot = n / 4 ;               /* bottom of sum range */
+   itop = n - ibot - 1 ;        /* top = symmetric */
+   for( ii=ibot ; ii <= itop ; ii++ ) sum += ar[ii] ;
+   sum /= (itop-ibot+1) ;
    return sum ;
 }
 

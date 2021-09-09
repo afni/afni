@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, Feb 23, 2021
+Version 0.1.9, July 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -538,13 +538,14 @@ process.ICC.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
-   if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN)) 
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 
@@ -753,6 +754,8 @@ if(!is.na(lop$tStat)) {
 
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
    if(!is.na(lop$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
@@ -821,8 +824,8 @@ if(!is.na(lop$maskFN)) {
    ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
-   if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-   if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+   if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+   if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
    ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1017,17 +1020,13 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
    }
 }  
 
-Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
-
 outLabel <- c("ICC", "ICC F")
 statsym <- NULL
 statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))

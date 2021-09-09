@@ -5011,7 +5011,7 @@ extern THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz);
 THD_fvec3 THD_Dcent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz);
-double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im , 
+double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im ,
    double xcm, double ycm, double zcm);
 
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
@@ -5307,6 +5307,7 @@ extern floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                        int nref   , float *ref[] ,
                                        float *lam , float *ccon   ) ;
 
+extern void THD_lasso_add_centro_block( intvec *mb ) ; /* 06 Aug 2021 */
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
@@ -5374,6 +5375,13 @@ extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 20
 
 extern size_t thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
 extern size_t thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
+
+#undef  MRI_floatscan
+#define MRI_floatscan(imm)                                                                       \
+ do{ if( (imm) != NULL ){                                                                        \
+           if( (imm)->kind== MRI_float   ) thd_floatscan  ((imm)->nvox,MRI_FLOAT_PTR  ((imm))) ; \
+      else if( (imm)->kind== MRI_complex ) thd_complexscan((imm)->nvox,MRI_COMPLEX_PTR((imm))) ; \
+   }} while(0)
 
 #undef floatfix
 #ifdef isfinite
@@ -5592,9 +5600,9 @@ extern void  THD_orient_to_int_rlpais( char ochar[4], int oint[3] );
 extern void  THD_int_to_orient_rlpais( int oint[3], char ochar[4] );
 extern mat33 THD_char_reorient_perm_mat33( char *ocharA, char *ocharB );
 extern mat33 THD_int_reorient_perm_mat33( int *ointA, int *ointB );
-extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA, 
+extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA,
                                            char *ocharB );
-extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA, 
+extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
                                                  char *ocharB );
 extern mat44 nifti_orthogonalize_mat44( mat44 Min);
 extern int is_mat44_orthogonal(mat44 A);
@@ -5747,6 +5755,7 @@ typedef struct {
   float val_init , val_out , val_fixed , val_pinit ;
   int fixed ;
   float val_trial[PARAM_MAXTRIAL] ;
+  int   idx_trial[PARAM_MAXTRIAL] ; /* 24 Jun 2021 */
   char name[32] ;
 } MRI_warp3D_param_def ;
 

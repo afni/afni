@@ -377,7 +377,7 @@ endif
    -mask $maskset -input erosion_thick.nii.gz
 
 # map the thickness to a surface if we have one
-if($surfset != "") then
+if ($surfset != "") then
    quickspec -tn gii anat.gii -spec quick.spec
    # how many steps along normal vector for surface mapping
    set norm_step_size = `ccalc -int "1.5*$depthsearch/$voxsize"`

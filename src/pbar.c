@@ -881,6 +881,24 @@ ENTRY("PBAR_bigmap_finalize") ;
 
    /* If colormap is meant for ROI data, set range
      parameters automatically          ZSS Feb 15 2010 */
+   // [PT, RWC: Jun 25, 2021] set func_range_nval be appropriate for N
+   // rois by having max val being N-1; extend to include Glasbey
+   // cbars, as well. 
+   /* [PT: Jun 25, 2021] Oops, resetting the colorbar upper range to
+      how it was before.  A longer note on how the ROI-like pbar
+      ranges appear to work.  Note that an overlay value of 0 is never
+      shown.
+
+      Consider a pbar of length 4, with colors: A, B, C, D.  By
+      default, the pbar's func range will go from 0 to (4-1), and the
+      colors will be allocated:
+
+      (0, 1] : A
+      (1, 2] : B
+      (2, 3] : C
+      (3, 4] : D
+
+      ... and in reality, anything > 3 will have color D. */
    if( pbar->parent != NULL ){
      if (strstr(pbar->bigname,"i32")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(32.0f, fmax));
@@ -890,9 +908,16 @@ ENTRY("PBAR_bigmap_finalize") ;
         AFNI_set_func_range_nval(pbar->parent, MAX(128.0f, fmax));
      } else if (strstr(pbar->bigname,"i255")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(255.0f, fmax));
-     } else if (strstr(pbar->bigname,"i256")) {
+     } else if (strstr(pbar->bigname,"i256") || \
+                strstr(pbar->bigname,"_256")) {
         AFNI_set_func_range_nval(pbar->parent, MAX(256.0f, fmax));
-     }
+     } else if (strstr(pbar->bigname,"_512")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(512.0f, fmax));
+     } else if (strstr(pbar->bigname,"_1024")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(1024.0f, fmax));
+     } else if (strstr(pbar->bigname,"_2048")) {
+        AFNI_set_func_range_nval(pbar->parent, MAX(2048.0f, fmax));
+     } 
    }
 
    pbar->bigmap_index = ind ;

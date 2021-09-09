@@ -2030,7 +2030,7 @@ STATUS("creation: widgets created") ;
      static char *alabel[7] = { "Off", "UpperLeft", "UpperRight",
                                        "LowerLeft", "LowerRight",
                                        "UpperMid" , "LowerMid"   } ;
-     static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
+     static char *slabel[6] = { "Tiny" , "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
      static char *mlabel[3] = { "Slice", "Volume", "Dataset" };
 
      char *eee ; int iii ;
@@ -2115,17 +2115,17 @@ STATUS("creation: widgets created") ;
                         ) ;
      MCW_reghint_children(newseq->wbar_label_av->wrowcol,"Show coordinate label") ;
 
-     iii = 1 ;
+     iii = 2 ;
      eee = getenv("AFNI_IMAGE_LABEL_SIZE") ;
      if( eee != NULL ){
-        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 4 ) iii = 2 ;
+        iii = strtol(eee,NULL,10) ; if( iii < 0 || iii > 5 ) iii = 2 ;
      }
      newseq->wbar_labsz_av =
         new_MCW_arrowval( newseq->wbar_menu ,
                           "Size " ,
                           MCW_AV_optmenu ,      /* option menu style */
                           0 ,                   /* first option */
-                          4 ,                   /* last option */
+                          5 ,                   /* last option */
                           iii ,                 /* initial selection */
                           MCW_AV_readtext ,     /* ignored but needed */
                           0 ,                   /* ditto */
@@ -3570,37 +3570,35 @@ ENTRY("ISQ_make_image") ;
 
 MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
-   MEM_plotdata *mp ; int ww ; float asp , dd ;
-   static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
-   static float th[5] = { 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
-   char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f ;
+   MEM_plotdata *mp ; int ww , nlin ; float asp , dd ;
+   static int   sz[6] = { 12     , 20    , 28    , 40    , 56    , 80     } ;
+   static float th[6] = { 0.001f , 0.002f, 0.003f, 0.004f, 0.005f, 0.007f } ;
+   char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f , thk ;
 
 ENTRY("ISQ_plot_label") ;
 
-   if( !ISQ_REALZ(seq) || lab  == NULL ) RETURN(NULL) ;
+   if( !ISQ_REALZ(seq) || lab == NULL || lab[0] == '\0' ) RETURN(NULL) ;
 
-   asp = 1.0 ;
+   asp = 1.0f ;  /* aspect ratio of plot */
+
+   /** In the following, all coordinates are in the 'units'
+       where the plot window runs over (x,y) = [0..1,0..asp] */
 
    /* set character size (units = 0.001 of plot width) */
 
    ww = sz[seq->wbar_labsz_av->ival] ;
-   if( asp > 1.0 ) ww = (int)(ww/asp+0.5) ;
+   if( asp > 1.0f ) ww = (int)(ww/asp+0.5f) ;
 
-   dd = 0.0007*ww ;  /* offset from edge */
+   thk = th[seq->wbar_labsz_av->ival] ;  /* line thickness */
 
-   create_memplot_surely( "Ilabelplot" , asp ) ;
+   /* find number of lines in label [15 Jul 2021] */
 
-   set_thick_memplot(th[seq->wbar_labsz_av->ival]) ; /* 09 Dec 2011 */
-   set_opacity_memplot(1.0f) ;                       /* 21 Mar 2017 */
+   nlin = 1 ;
+   for( eee=lab ; *eee != '\0' ; eee++ ){
+     if( *eee == '\n' || strncmp(eee,"\\newline",8) == 0 ) nlin++ ;
+   }
 
-   /* get the color to plot with */
-   /* colors in coxplot are RGB triples, values from 0.0 to 1.0 */
-
-   eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
-   if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
-   set_color_memplot(rr,gg,bb) ;
-
-   /* get the setback */
+   /* get the setback from edge in x direction [default = 0.003 * plot width] */
 
    eee = getenv("AFNI_IMAGE_LABEL_SETBACK") ;
    if( eee != NULL ){
@@ -3608,28 +3606,100 @@ ENTRY("ISQ_plot_label") ;
       if( ss >= 0.0 && ss < 0.5 ) sb = ss ;
    }
 
+   /** AFNI_REPLACE_XDRAWLINES ; **/
+
+   /* If string is 'long':
+       create a temporary memplot to draw string into to get it bounding box;
+       then use that box to change the drawing scale if the box is too wide. */
+
+#define TSIZ 4  /* smallest font size pwritf will take is 4 */
+   if( strlen(lab) > 9 ){                    /* 19 Aug 2021 */
+     float_quad bbox ; float xsiz,ysiz,test ;
+     create_memplot_surely( "JunkPlot" , asp ) ;
+     plotpak_pwritf( 0.01,0.5 , lab , TSIZ , 0 , -1 ) ;
+     mp = get_active_memplot() ;
+     bbox = memplot_bbox( mp ) ;  /* min and max x,y coords */
+     delete_memplot( mp ) ;
+     xsiz = bbox.b - bbox.a ; /* ysiz = bbox.d - bbox.c ; */
+     test = (ww*xsiz)/TSIZ ;
+     if( test > 0.97f ){         /* too wide ==> shrink font */
+       int wwnew = (int)(TSIZ/xsiz) ;
+       if( wwnew < ww     ) ww   = wwnew ;    /* don't go up */
+       if( ww    < 8      ) ww   = 8 ;      /* smallest font */
+       if( test  > 1.111f ) thk /= test ; /* thinner strokes */
+     }
+   }
+
+   dd = 0.0007f*ww*(nlin+0.123f) ;  /* offset from edge in y direction */
+
+   /* create a blank plot to be drawn into (the output from this func);
+      this plot will be merged with other overlay plots at a later date */
+
+   create_memplot_surely( "Ilabelplot" , asp ) ;
+
+   set_thick_memplot(thk) ;
+   set_opacity_memplot(1.0f) ;
+
+   /* get the [initial] color to plot with */
+   /* colors in coxplot are RGB triples, values from 0.0 to 1.0 */
+   /* [note: the string might contain color changing commands!] */
+
+   eee = getenv("AFNI_IMAGE_LABEL_COLOR") ;
+   if( eee != NULL ) DC_parse_color( seq->dc , eee , &rr,&gg,&bb ) ;
+   set_color_memplot(rr,gg,bb) ;
+
    /* plot the label */
+
+   /** Arguments to plotpak_pwritf(xx,yy,ch,isiz,ior,icent):
+         xx    = x coordinate of string start
+         yy    = y coordinate of string start
+         ch    = character string
+         isiz  = size of characters in units of 0.001 * plot width
+         ior   = orientation in degrees (0 = horizontal text)
+         icent = centering code (assuming ior==0==horizontal text)):
+                 First, the size of the box that contains the string
+                   is computed, running from (xbot..xtop,ybot..ytop)
+                   Note that xbot is usually 0, but ybot might be negative
+                   due to descenders (e.g., 'y').
+                 Second, the origin of box is moved to (xorg,yorg)
+                   icent == -1 ==> xorg = xx+xbot           yorg = yy+(ybot+ytop)/2
+                               ==> text centered in the y direction about yy
+                                   text starts at xx (left justified)
+                   icent ==  0 ==> xorg = xx+(xbot+xtop)/2  yorg = yy+(ybot+ytop)/2
+                                   text is centered in x and y directions about (xx,yy)
+                   icent ==  1 ==> xorg = xx+xtop           yorg = yy+(ybot+ytop)/2
+                               ==> text centered in the y direction about yy
+                                   text ends at xx (right justified)
+                   icent == -3 ==> xorg = xx+max(xbot,0)    yorg = yy+max(ybot,0)
+                               ==> text lower left corner starts at (xx,yy)
+       Why is this so intricate and non-intuitive?
+       It's a hangover from the original NCAR graphics code,
+       which was code for driving pen plotters, and this library was
+       written by the pre-Zhark RWC to emulate NCAR graphics for non-pen devices.
+       Which also explains why these are line-drawn characters, not from fonts :( */
 
    switch( seq->wbar_label_av->ival ){
       default:
-      case ISQ_LABEL_UPLF:
+      case ISQ_LABEL_UPLF:   /* upper left */
          plotpak_pwritf( sb,1.0-dd-sb , lab , ww , 0 , -1 ) ; break ;
 
-      case ISQ_LABEL_UPRT:
+      case ISQ_LABEL_UPRT:   /* upper right */
          plotpak_pwritf( asp-sb,1.0-dd-sb , lab , ww , 0 ,  1 ) ; break ;
 
-      case ISQ_LABEL_DNLF:
+      case ISQ_LABEL_DNLF:   /* lower left */
          plotpak_pwritf( sb,dd+sb , lab , ww , 0 , -1 ) ; break ;
 
-      case ISQ_LABEL_DNRT:
+      case ISQ_LABEL_DNRT:   /* lower right */
          plotpak_pwritf( asp-sb,dd+sb , lab , ww , 0 ,  1 ) ; break ;
 
-      case ISQ_LABEL_UPMD:
+      case ISQ_LABEL_UPMD:   /* upper middle */
          plotpak_pwritf( 0.5*asp,1.0-dd-sb , lab , ww , 0 , 0 ) ; break ;
 
-      case ISQ_LABEL_DNMD:
+      case ISQ_LABEL_DNMD:   /* lower middle */
          plotpak_pwritf( 0.5*asp,dd+sb , lab , ww , 0 , 0 ) ; break ;
    }
+
+   /** AFNI_RESTORE_XDRAWLINES ; **/
 
    mp = get_active_memplot() ; RETURN(mp) ;
 }
@@ -4420,7 +4490,9 @@ ENTRY("ISQ_saver_CB") ;
          if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb ){
            if( dbg ) fprintf(stderr,"  overlay geometry stuff\n") ;
            /* mri_draw_force_opaque(1) ; */
+           memplot_to_mri_set_dothick(1) ;
            memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+           memplot_to_mri_set_dothick(0) ;
            /* mri_draw_force_opaque(0) ; */
          }
 
@@ -4720,7 +4792,9 @@ ENTRY("ISQ_saver_CB") ;
              MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
              if( mp != NULL ){
                /* mri_draw_force_opaque(1) ; */
+               memplot_to_mri_set_dothick(1) ;
                memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+               memplot_to_mri_set_dothick(0) ;
                /* mri_draw_force_opaque(0) ; */
                delete_memplot(mp) ;
              }
@@ -5768,6 +5842,7 @@ INFO_message("ISQ_show_image(seq=%p) %d x %d",
       if( empt == NULL ){
          STATUS("create EMPTY IMAGE plot") ;
          create_memplot_surely("EmptyImagePlot",1.0) ;
+         /** AFNI_REPLACE_XDRAWLINES ; **/
          empt = get_active_memplot() ;
          set_color_memplot(1.0,1.0,1.0) ;
          set_thick_memplot(0.009) ;
@@ -5783,6 +5858,7 @@ INFO_message("ISQ_show_image(seq=%p) %d x %d",
          plotpak_line( 0.99,0.99 , 0.01,0.99 ) ;
          plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
          set_thick_memplot(0.0) ;
+         /** AFNI_RESTORE_XDRAWLINES ; **/
       }
       STATUS("display EMPTY IMAGE plot") ;
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
@@ -8165,7 +8241,7 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
          if( dd < 0 ){
             INVERT_manage( seq->wbar_label_av->wrowcol ) ;
             INVERT_manage( seq->wbar_labsz_av->wrowcol ) ;
-         } else if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 4 ){
+         } else if( dd != seq->wbar_label_av->ival && dd >= 0 && dd <= 5 ){
            AV_assign_ival( seq->wbar_label_av , dd ) ;
            ISQ_redisplay( seq , -1 , isqDR_display ) ;
          }
@@ -12220,6 +12296,8 @@ ENTRY("ISQ_getoverlay") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
+
    /*--- cut out cropped region, if any ---*/
 
    if( seq->cropit ){
@@ -12253,6 +12331,8 @@ ENTRY("ISQ_getimage") ;
 #endif
 
    if( tim == NULL ) RETURN(NULL) ;
+
+   MRI_floatscan(tim) ; /* 10 Jun 2021 */
 
    if( seq->cropit ){
 
@@ -13892,7 +13972,9 @@ ENTRY("ISQ_save_image") ;
 
    if( seq->mplot != NULL ){
      /* mri_draw_force_opaque(1) ; */
+     memplot_to_mri_set_dothick(1) ;
      memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+     memplot_to_mri_set_dothick(0) ;
      /* mri_draw_force_opaque(0) ; */
    }
 
@@ -14253,7 +14335,9 @@ ENTRY("ISQ_save_anim") ;
           MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
           if( mp != NULL ){
             /* mri_draw_force_opaque(1) ; */
+            memplot_to_mri_set_dothick(1) ;
             memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+            memplot_to_mri_set_dothick(0) ;
             /* mri_draw_force_opaque(0) ; */
             delete_memplot(mp) ;
           }

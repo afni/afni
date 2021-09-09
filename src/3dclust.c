@@ -141,6 +141,9 @@ int main( int argc , char * argv[] )
       printf ("\n");
       printf(
   "3dclust - performs simple-minded cluster detection in 3D datasets       \n"
+  "\n"
+  "         *** PLEASE NOTE THAT THE NEWER PROGRAM 3dClusterize ***\n"
+  "         *** IS BETTER AND YOU SHOULD USE THAT FROM NOW ON!! ***\n"
   "                                                                        \n"
   "     This program can be used to find clusters of 'active' voxels and   \n"
   "     print out a report about them.                                     \n"
@@ -409,6 +412,7 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dclust main"); machdep(); AFNI_logger("3dclust",argc,argv);
    PRINT_VERSION("3dclust") ; AUTHOR(PROGRAM_AUTHOR) ;
+   INFO_message("*** Consider using program 3dClusterize instead of 3dclust ***") ;
 
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord ) ; /* July 1997 */
    CL_read_opts( argc , argv ) ;

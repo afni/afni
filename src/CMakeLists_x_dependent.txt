@@ -15,6 +15,7 @@ add_afni_library(
   LiteClue.c
   pbar_color_defs.c
   suma_help.c
+  xdraw.c
   xim.c
   xutil.c
   xutil_webber.c

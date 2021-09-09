@@ -42,6 +42,7 @@ static int *bperm = NULL ;                             /* best permutation */
 static THD_3dim_dataset *permset=NULL , *ortset=NULL ; /* output datasets */
 
 #undef DO_DESPIKE  /* at this time, despiking of inputs is disabled */
+                   /* (expect that user will have done this already) */
 
 /*----------------------------------------------------------------------------*/
 
@@ -195,6 +196,7 @@ void BSY_help_the_pitiful_user(void)  /* HELP ME IF YOU CAN, I'M FEELING DOWN */
    "    normF(A) = sum_{ij} A_{ij}^2 = trace(AA') = trace(A'A).\n"
    "        NOTE: This norm is different from the matrix L2 norm.\n"
    "        NOTE: A' denotes the transpose of A.\n"
+   "        NOTE: trace(A) = sum of diagonal element of square matrix A.\n"
    "        https://en.wikipedia.org/wiki/Matrix_norm\n"
    "\n"
    "* The expansion below shows why the matrix BC' is crucial to the analysis:\n"

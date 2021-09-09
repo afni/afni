@@ -1106,8 +1106,10 @@ ENTRY("GA_interp_quintic") ;
 
 /*===========================================================================*/
 /*--- Stuff for storing sub-BLOKs of data points for localized cost funcs ---*/
+/*--- such as lpc and lpa                                                 ---*/
+/*---------------------------------------------------------------------------*/
 
-/* Test: is abs(a) <= s ?? */
+/* FAS Test: is abs(a) <= s ?? */
 
 #undef  FAS
 #define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
@@ -1115,20 +1117,21 @@ ENTRY("GA_interp_quintic") ;
 /**** Macros to test if a point is inside a given BLOK type ****/
 
 /** define inside of a ball; is point (a,b,c) inside?  **/
-/** volume of ball = 4*PI/3 * siz**3 = 4.1888 * siz**3 **/
+/** volume of ball = 4*PI/3 * rad**3 = 4.1888 * rad**3 **/
+/** In this test below, siz = rad^2                    **/
 
 #define GA_BLOK_inside_ball(a,b,c,siz) \
   ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
 
 /** define inside of a cube **/
-/** volume of cube = 8 * siz**3 **/
+/** volume of cube = 8 * siz**3, with siz = rad **/
 /** lattice vectors = [2*siz,0,0]  [0,2*siz,0]  [0,0,2*siz] **/
 
 #define GA_BLOK_inside_cube(a,b,c,siz) \
   ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz)) )
 
 /** define inside of a rhombic dodecahedron (RHDD) **/
-/** volume of RHDD = 2 * siz**3 **/
+/** volume of RHDD = 2 * siz**3, with siz = rad  **/
 /** lattice vectors = [siz,siz,0]  [0,siz,siz]  [siz,0,siz] **/
 
 #define GA_BLOK_inside_rhdd(a,b,c,siz)              \
@@ -1137,7 +1140,7 @@ ENTRY("GA_interp_quintic") ;
     FAS((b)+(c),(siz)) && FAS((b)-(c),(siz))   )
 
 /** define inside of a truncated octahedron (TOHD) **/
-/** volume of TOHD = 4 * siz**3 **/
+/** volume of TOHD = 4 * siz**, with siz = rad3 **/
 /** lattice vectors = [-siz,siz,siz]  [siz,-siz,siz]  [siz,siz,-siz] **/
 
 #define GA_BLOK_inside_tohd(a,b,c,siz)                              \
@@ -1208,8 +1211,8 @@ ENTRY("create_GA_BLOK_set") ;
 
    /* check for badness */
 
-   if( nx < 3 || ny < 3 || nz < 1 ) RETURN(NULL) ;
-   if( dx <= 0.0f ) dx = 1.0f ;
+   if( nx < 3 || ny < 3 || nz < 1 ) RETURN(NULL) ;  /* nonsense */
+   if( dx <= 0.0f ) dx = 1.0f ;                     /* fixes */
    if( dy <= 0.0f ) dy = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
 
@@ -1225,12 +1228,13 @@ ENTRY("create_GA_BLOK_set") ;
      im = jm = km = NULL ; npt = 0 ;
    }
 
-   /*-- Mark type of blok being stored --*/
+   /*------------ Mark type of blok being stored ------------*/
 
    /* Create lattice vectors (dxp,dyp,dzp) etc, to generate translated bloks:
       The (p,q,r)-th blok - for integral p,q,r - is centered at (x,y,z) offset
         (dxp,dyp,dzp)*p + (dxq,dyq,dzq)*q + (dxr,dyr,dzr)*r
-      Also set the 'siz' parameter for the blok, to test for inclusion. */
+      Also set the 'siz' parameter for the blok, to test for inclusion;
+      what 'siz' is with respect to blokrad depends on the blok shape in use */
 
    switch( bloktype ){
 
@@ -1286,7 +1290,7 @@ ENTRY("create_GA_BLOK_set") ;
      }
      break ;
 
-     default:  RETURN(NULL) ;  /** should not happen! **/
+     default:  RETURN(NULL) ;  /** should not happen == stupid caller! **/
    }
 
    /*** find range of (p,q,r) indexes needed to cover volume,
@@ -1294,6 +1298,7 @@ ENTRY("create_GA_BLOK_set") ;
 
    /* latmat = lattice matrix
              = 3x3 matrix that takes (p,q,r) to blok center (x,y,z)
+             = set from d[xyz][pqr] values set above for each blok type.
       So invlatmat is a 3x3 matrix that takes (x,y,z) to (p,q,r).
       We apply invlatmat to each corner of the 3D volume, and
       find the smallest and largest (p,q,r) values that happen.
@@ -1304,47 +1309,47 @@ ENTRY("create_GA_BLOK_set") ;
                      dyp , dyq , dyr ,
                      dzp , dzq , dzr  ) ; invlatmat = MAT_INV(latmat) ;
 
-   /* corner 0 */
-   xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ;
+   /*----- corner 0 -----*/
+   xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ; /* xyz top values */
    pb = pt = qb = qt = rb = rt = 0 ;  /* initialize (p,q,r) bot, top values */
 
-   /* corner 1 */
+   /*----- corner 1 -----*/
    LOAD_FVEC3(xyz , xt,0.0f,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 2 */
+   /*----- corner 2 -----*/
    LOAD_FVEC3(xyz , xt,yt,0.0f )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 3 */
+   /*----- corner 3 -----*/
    LOAD_FVEC3(xyz , xt,0.0f,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 4 */
+   /*----- corner 4 -----*/
    LOAD_FVEC3(xyz , xt,yt,zt )    ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 5 */
+   /*----- corner 5 -----*/
    LOAD_FVEC3(xyz , 0.0f,yt,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 6 */
+   /*----- corner 6 -----*/
    LOAD_FVEC3(xyz , 0.0f,0.0f,zt ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
    rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
 
-   /* corner 7 */
+   /*----- corner 7 -----*/
    LOAD_FVEC3(xyz , 0.0f,yt,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
    qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
@@ -1358,9 +1363,9 @@ ENTRY("create_GA_BLOK_set") ;
    nblok = npq*nr ;              /* total number of bloks to consider */
                                  /* not all of them will actually get used */
 
-   /* Now have list of bloks, so put points into each blok list */
+   /*----- Now have list of bloks, so put points into each blok list -----*/
 
-   /* create empty lists of points */
+   /* create empty lists of points (calloc == all contents are zero/NULL) */
 
    nelm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # pts in each blok */
    nalm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # malloc-ed in each blok */
@@ -1368,37 +1373,49 @@ ENTRY("create_GA_BLOK_set") ;
 
    nxy = nx*ny ; if( npt == 0 ) npt = nxy*nz ;   /* npt = all of 3D space?? */
 
-   /* loop over points to put into bloks */
+   /*--- loop over dataset control points to put them into bloks ---*/
 
    for( ndup=ntot=ii=0 ; ii < npt ; ii++ ){
 
      if( im != NULL ){  /* 3D index of point #ii comes from arrays */
+
        pp = (int)im[ii]; qq = (int)jm[ii]; rr = (int)km[ii]; /* xyz indexes */
+
      } else {           /* 3D index is computed from ii, as we use all points */
+
        pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ;
+
      }
-     ss = ii ; /* index in 1D array of points to be matched*/
+
+     ss = ii ; /* index in 1D array of points to be matched */
                /* this is NOT the index in the dataset, unless im==NULL */
                /* it is the index into the point list given by (im,jm,km) */
                /* so the index in the 3D dataset is pp+qq*nx+rr*nxy */
 
-     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* xyz spatial coordinates */
-     LOAD_FVEC3( xyz , xx,yy,zz ) ;
-     pqr = MATVEC( invlatmat , xyz ) ;      /* float lattice coordinates */
-     pp = (int)floorf(pqr.xyz[0]+.499f) ;   /* integer lattice coords */
-     qq = (int)floorf(pqr.xyz[1]+.499f) ;
-     rr = (int)floorf(pqr.xyz[2]+.499f) ;
-     nsav = 0 ; /* nsav = num times this point is saved to a blok */
-     for( cc=rr-1 ; cc <= rr+1 ; cc++ ){    /* search nearby bloks */
-       if( cc < rb || cc > rt ) continue ;  /* for inclusion of (xx,yy,zz) */
-       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){  /* into that blok */
-         if( bb < qb || bb > qt ) continue ;  /* a point might end up in */
-         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){  /* more than 1 blok (not common) */
+     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* xyz spatial coordinates inside */
+     LOAD_FVEC3( xyz , xx,yy,zz ) ;         /* grid of index (pp,qq,rr) */
+
+     pqr = MATVEC( invlatmat , xyz ) ;    /* float lattice coordinates */
+     pp = (int)floorf(pqr.xyz[0]+.499f) ; /* round to integer lattice coords */
+     qq = (int)floorf(pqr.xyz[1]+.499f) ; /* [note pp,qq,rr have changed from] */
+     rr = (int)floorf(pqr.xyz[2]+.499f) ; /* [grid indexes to lattice indexes] */
+
+     nsav = 0 ; /* nsav = num times point #ii at (xx,yy,zz) is saved to a blok */
+
+     /* searching bloks surrounding (pp,qq,rr) for inclusion of (xx,yy,zz) */
+     /* a point MIGHT be in more than one blok (not common if shfac >= 1) */
+
+     for( cc=rr-1 ; cc <= rr+1 ; cc++ ){      /* cc is near rr */
+       if( cc < rb || cc > rt ) continue ;      /* out of range */
+       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){    /* bb is near qq */
+         if( bb < qb || bb > qt ) continue ;
+         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){  /* aa is near pp */
            if( aa < pb || aa > pt ) continue ;
+
            LOAD_FVEC3( pqr , aa,bb,cc ) ;  /* compute center of this */
            xyz = MATVEC( latmat , pqr ) ;  /* blok into xyz vector  */
-           uu = xx - xyz.xyz[0] ;    /* xyz coords of point #ii */
-           vv = yy - xyz.xyz[1] ;    /* relative to blok center */
+           uu = xx - xyz.xyz[0] ;    /* xyz coords of point #ii (xx,yy,zz) */
+           vv = yy - xyz.xyz[1] ;    /* relative to blok center (xyz vector) */
            ww = zz - xyz.xyz[2] ;
            if( GA_BLOK_inside( bloktype , uu,vv,ww , siz ) ){ /* add to blok */
              dd = (aa-pb) + (bb-qb)*np + (cc-rb)*npq ;        /* blok index */
@@ -1409,35 +1426,36 @@ ENTRY("create_GA_BLOK_set") ;
          }
        }
      }
-     if( nsav > 1 ) ndup++ ;  /* count of duplicat saves */
+     if( nsav > 1 ) ndup++ ;  /* count of points that had duplicate saves */
    }
 
-   /** compute minimum number of points saved per blok? **/
+   /**----- compute minimum number of points saved per blok? -----**/
 
    if( minel < 9 ){
      for( minel=dd=0 ; dd < nblok ; dd++ ) minel = MAX(minel,nelm[dd]) ;
      minel = (int)(0.456*minel)+1 ;
    }
 
-   /** now cast out bloks that have too few points,
-       and truncate those arrays that pass the threshold **/
+   /**----- now cast out bloks that have too few points,
+            and truncate those arrays that pass the threshold;
+            nsav will now be the number of saved bloks        -----**/
 
    for( nsav=dd=0 ; dd < nblok ; dd++ ){
-     if( nelm[dd] < minel ){     /* destroy blok */
+     if( nelm[dd] < minel ){          /* too empty == destroy blok */
        if( elm[dd] != NULL ){ free(elm[dd]); elm[dd] = NULL; }
        nelm[dd] = 0 ;
-     } else {                    /* clip back to used array size */
+     } else {           /* clip point list back to used array size */
        GA_BLOK_CLIP_intar( nelm[dd] , nalm[dd] , elm[dd] ) ; nsav++ ;
      }
    }
-   free(nalm) ;  /* allocated space per blok -- no longer needed */
+   free(nalm) ;  /* counts of allocated space per blok -- no longer needed */
 
    if( nsav == 0 ){  /* didn't find any blok arrays to keep!? */
-     ERROR_message("create_GA_BLOK_set can't get bloks with %d elements",minel);
+     ERROR_message("create_GA_BLOK_set can't get bloks with at least %d elements",minel);
      free(nelm) ; free(elm) ; RETURN(NULL) ;
    }
 
-   /* create output struct from all of the above */
+   /*----- create output struct from all of the above -----*/
 
    gbs = (GA_BLOK_set *)malloc(sizeof(GA_BLOK_set)) ;
    gbs->num  = nsav ;
@@ -1451,15 +1469,17 @@ ENTRY("create_GA_BLOK_set") ;
    }
    free(nelm) ; free(elm) ;
 
+   /*--- set some other parameters in the blok set ---*/
+
    gbs->ppow = AFNI_numenv("AFNI_LPC_POWER") ;   /* 28 Jan 2021 */
    if( gbs->ppow <= 0.0f || gbs->ppow > 2.0f ) gbs->ppow = 1.0f ;
 
    gbs->nx = nx ; gbs->ny = ny ; gbs->nz = nz ;  /* Biden Day 3 */
    gbs->dx = dx ; gbs->dy = dy ; gbs->dz = dz ;
 
-   if( verb > 1 )
-     ININFO_message("%d total points stored in %d '%s(%g)' bloks",
-                    ntot , gbs->num , GA_BLOK_STRING(bloktype) , blokrad ) ;
+   if( verb )
+     ININFO_message("%d total points stored in %d '%s(%g)' bloks (%d duplicates)",
+                    ntot , gbs->num , GA_BLOK_STRING(bloktype) , blokrad , ndup ) ;
 
    RETURN(gbs) ;
 }
@@ -1468,7 +1488,7 @@ ENTRY("create_GA_BLOK_set") ;
 /*! Return the vector of individual blok correlations, for further analysis.
     Each value in the returned vector corresponds to one blok in gbs.  Note
     that the number of points in the 'vm' arrays isn't needed as an input,
-    since that is implicitly encoded in gbs.
+    since that is implicitly encoded in gbs.  This is for Paul Taylor.
 *//*-------------------------------------------------------------------------*/
 
 floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
@@ -1530,6 +1550,7 @@ floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
 /*---------------------------------------------------------------------------*/
 /*! Return a volume from the pearson vector showing with the
     voxel populated with 'their' blok's pearson correlation. [Biden day 3]
+    This is for Paul Taylor.
 *//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * GA_pearson_image( GA_setup *stup , floatvec *pv )

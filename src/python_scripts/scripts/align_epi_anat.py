@@ -863,7 +863,7 @@ class RegWrap:
                  "Transformations computed from that will be combined\n"
                  "with the anat to epi transformations and epi to anat\n"
                  "(and volreg) transformations\n"
-                 "0nly one of the -tlrc_apar, -tlrc_epar or the \n"
+                 "Only one of the -tlrc_apar, -tlrc_epar or the \n"
                  "-auto_tlrc options may be used\n")
       # child epi datasets
       self.valid_opts.add_opt('-child_epi', -1,[],\

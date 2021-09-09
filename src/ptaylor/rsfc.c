@@ -277,6 +277,7 @@ int WB_netw_corr(int Do_r,
                  int NIFTI_OUT,
                  int *NROI_REF,
                  int *Dim,
+                 int **ROI_COUNTnz,
                  double ***ROI_AVE_TS,
                  int **ROI_LABELS_REF,
                  char ***ROI_STR_LABELS,
@@ -297,6 +298,7 @@ int WB_netw_corr(int Do_r,
    THD_3dim_dataset *OUT_Z_MAP=NULL;
    float *zscores=NULL;
    int Nvox;
+   float par[2];
 
    char *ftype=NULL;   // default, BRIK/HEAD: can be ".nii.gz"
    char roilab[300];  // will be either int or char str
@@ -325,86 +327,108 @@ int WB_netw_corr(int Do_r,
       sprintf(OUT_indiv0,"%s_%03d_INDIV", prefix, k);
       mkdir(OUT_indiv0, 0777);
       for( i=0 ; i<NROI_REF[k] ; i++ ) {
-         fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
-         for( j=0 ; j<Dim[3] ; j++)
-            AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
+         if ( ROI_COUNTnz[k][i] ) {
+            fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
+            for( j=0 ; j<Dim[3] ; j++)
+               AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
 
-         // use either ROI int value or labeltable value for output name
-         if( DO_STRLABEL ) 
-            sprintf(roilab, "%s", ROI_STR_LABELS[k][i+1]);
-         else
-            sprintf(roilab, "%03d", ROI_LABELS_REF[k][i+1]);
+            // use either ROI int value or labeltable value for output name
+            if( DO_STRLABEL ) 
+               sprintf(roilab, "%s", ROI_STR_LABELS[k][i+1]);
+            else
+               sprintf(roilab, "%03d", ROI_LABELS_REF[k][i+1]);
 
-         sprintf(OUT_indiv,"%s/WB_CORR_ROI_%s%s",
-                 OUT_indiv0, roilab, ftype);
-
-         mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
-         // [PT: Jan 12, 2018] updated to follow rw cox
-         OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
-                                    mri,
-                                    "pearson", OUT_indiv, 0,0);
-         if(Do_r){
-            THD_load_statistics(OUT_CORR_MAP);
-            tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
-            tross_Make_History( "3dNetcorr", argc, argv, OUT_CORR_MAP );
-            if( !THD_ok_overwrite() && 
-                THD_is_ondisk(DSET_HEADNAME(OUT_CORR_MAP)) )
-               ERROR_exit("Can't overwrite existing dataset '%s'",
-                          DSET_HEADNAME(OUT_CORR_MAP));
-            THD_write_3dim_dataset(NULL, NULL, OUT_CORR_MAP, True);
-            INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_CORR_MAP));
-
-         }
-         if(Do_Z){
-
-            sprintf(OUT_indivZ,"%s/WB_Z_ROI_%s%s",
+            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%s%s",
                     OUT_indiv0, roilab, ftype);
-            
-            OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
-            EDIT_dset_items( OUT_Z_MAP,
-                             ADN_nvals, 1,
-                             ADN_datum_all , MRI_float , 
-                             ADN_prefix    , OUT_indivZ,
-                             ADN_none ) ;
-            if( !THD_ok_overwrite() && 
-                THD_is_ondisk(DSET_HEADNAME(OUT_Z_MAP)) )
-               ERROR_exit("Can't overwrite existing dataset '%s'",
-                          DSET_HEADNAME(OUT_Z_MAP));
 
-            zscores = (float *)calloc(Nvox,sizeof(float)); 
-            if( zscores == NULL ) {
-               fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
-               exit(123);
+            mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
+            // [PT: Jan 12, 2018] updated to follow rw cox
+            OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
+                                       mri,
+                                       "pearson", OUT_indiv, 0,0);
+            if(Do_r){
+               THD_load_statistics(OUT_CORR_MAP);
+               tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
+               tross_Make_History( "3dNetcorr", argc, argv, OUT_CORR_MAP );
+               if( !THD_ok_overwrite() && 
+                   THD_is_ondisk(DSET_HEADNAME(OUT_CORR_MAP)) )
+                  ERROR_exit("Can't overwrite existing dataset '%s'",
+                             DSET_HEADNAME(OUT_CORR_MAP));
+               THD_write_3dim_dataset(NULL, NULL, OUT_CORR_MAP, True);
+               INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_CORR_MAP));
+
+            }
+            if(Do_Z){
+
+               sprintf(OUT_indivZ,"%s/WB_Z_ROI_%s%s",
+                       OUT_indiv0, roilab, ftype);
+
+               par[0] = FUNC_ZT_TYPE ;
+               par[1] = 0 ;
+
+               /* [PT: Aug 30, 2021] plan to uncomment the 2 lines
+                  below in EDIT_dset_items(), so the stataux code and
+                  label reflect the Fisher-Z transform here
+                  */
+               OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
+               EDIT_dset_items( OUT_Z_MAP,
+                                ADN_nvals, 1,
+                                ADN_datum_all , MRI_float ,
+                                //ADN_brick_label_one+0, "FisherZ#0",
+                                //ADN_brick_stataux_one+0, par ,
+                                ADN_prefix    , OUT_indivZ,
+                                ADN_none ) ;
+               
+
+               if( !THD_ok_overwrite() && 
+                   THD_is_ondisk(DSET_HEADNAME(OUT_Z_MAP)) )
+                  ERROR_exit("Can't overwrite existing dataset '%s'",
+                             DSET_HEADNAME(OUT_Z_MAP));
+
+               zscores = (float *)calloc(Nvox,sizeof(float)); 
+               if( zscores == NULL ) {
+                  fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
+                  exit(123);
+               }
+
+               for( j=0 ; j<Nvox ; j++ )
+                  if( mskd2[j] ) // control for r ==1
+                     zscores[j] = BOBatanhf(THD_get_voxel(OUT_CORR_MAP, j, 0));
+               /*
+              if( THD_get_voxel(OUT_CORR_MAP, j, 0) > MAX_R )
+              zscores[j] = (float) atanh(MAX_R);
+              else if ( THD_get_voxel(OUT_CORR_MAP, j, 0) < -MAX_R )
+              zscores[j] =  (float) atanh(-MAX_R);
+              else
+              zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));*/
+            
+               EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
+               zscores=NULL;
+
+               /* [PT: Aug 30, 2021] Z map should not have stats like this--
+                it is not a Pearson R, but a Z */
+               THD_load_statistics(OUT_Z_MAP);
+               tross_Copy_History(insetTIME, OUT_Z_MAP);
+               tross_Make_History("3dNetcorr", argc, argv, OUT_Z_MAP);
+               THD_write_3dim_dataset(NULL, NULL, OUT_Z_MAP, True);
+               INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_Z_MAP));
+
+               DSET_delete(OUT_Z_MAP);
+               free(OUT_Z_MAP);
+               OUT_Z_MAP=NULL;
             }
 
-            for( j=0 ; j<Nvox ; j++ )
-              if( mskd2[j] ) // control for r ==1
-                 zscores[j] = BOBatanhf( THD_get_voxel(OUT_CORR_MAP, j, 0) );
-                 /*
-                 if( THD_get_voxel(OUT_CORR_MAP, j, 0) > MAX_R )
-                   zscores[j] = (float) atanh(MAX_R);
-                 else if ( THD_get_voxel(OUT_CORR_MAP, j, 0) < -MAX_R )
-                   zscores[j] =  (float) atanh(-MAX_R);
-                 else
-                 zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));*/
-            
-            EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
-            zscores=NULL;
-
-            THD_load_statistics(OUT_Z_MAP);
-            tross_Copy_History(insetTIME, OUT_Z_MAP);
-            tross_Make_History("3dNetcorr", argc, argv, OUT_Z_MAP);
-            THD_write_3dim_dataset(NULL, NULL, OUT_Z_MAP, True);
-            INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_Z_MAP));
-
-            DSET_delete(OUT_Z_MAP);
-            free(OUT_Z_MAP);
-            OUT_Z_MAP=NULL;
+            DSET_delete(OUT_CORR_MAP);
+            free(OUT_CORR_MAP);
+            OUT_CORR_MAP=NULL;
          }
+         else{
+            fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
+            fprintf(stderr,"\n\t... *no* volume output because ROI ave time ");
+            fprintf(stderr,"series is all zeros.");
 
-         DSET_delete(OUT_CORR_MAP);
-         free(OUT_CORR_MAP);
-         OUT_CORR_MAP=NULL;
+
+         }
       }
    }
    

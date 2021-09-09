@@ -145,7 +145,7 @@ commands:
           no_output_timeout: 40m
           command: |
             if [[ "$DOCKER_USER" == 'afni' ]]; then
-              docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
               docker push afni/afni_<< parameters.build_type >>:latest
               docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
@@ -558,6 +558,6 @@ workflows:
               test_data_cache_version: ["5"]
           filters:
             tags:
-              only: /AFNI_\d\d.\d.\d\d/
+              ignore: /.*/
             branches:
-              only: /.*/
+              ignore: /.*/
