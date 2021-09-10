@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2021, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
+   "add web formatting to help",
+   NULL
+ } ,
+
  { 31, Aug, 2021, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add option -gert_chan_digits, to specify num digits for channel in name",
    NULL
