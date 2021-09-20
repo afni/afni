@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, Sep , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "apsearchize.",
+   "Make help visible in editor with '@grayplot -hview'.\n"
+},
+
 { 20, Sep , 2021 , PT , "3dGrayplot" , MINOR , TYPE_NEW_OPT,
    "Add '-raw_with_bounds ..' to display raw values in arbitrary interval.",
    "Maybe most useful if data have been scaled.\n"
