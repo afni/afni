@@ -71,6 +71,18 @@ static void grayplot_set_range( float val ){
   grange = MAX(val,0.0f) ;
 }
 
+/*----- grayplot raw_with_bounds range -----*/
+
+static float raw_range_bot =  1.0f ;
+static float raw_range_top = -1.0f ;
+static int   DO_RAW_RANGE  = 0;
+
+static void grayplot_set_raw_range( float bnd_bot, float bnd_top){
+   raw_range_bot = bnd_bot;
+   raw_range_top = bnd_top;
+   DO_RAW_RANGE  = 1;
+}
+
 /*----- percentage? -----*/
 
 static int do_percent = 0 ;
@@ -450,14 +462,22 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
 
    /* find min and max of pre-processed data */
 
-   zbot = 6.66e+33 ; ztop = -zbot ;
-   for( jj=0 ; jj < nss ; jj++ ){
-     qar = VECTIM_PTR(imts,jj) ;
-     for( ii=0 ; ii < ntt ; ii++ ){
-            if( qar[ii] < zbot ) zbot = qar[ii] ;
-       else if( qar[ii] > ztop ) ztop = qar[ii] ;
-     }
+   if ( DO_RAW_RANGE ){
+      zbot = raw_range_bot;
+      ztop = raw_range_top;
+      INFO_message("Do raw range: [%f, %f]", zbot, ztop);
    }
+   else{
+      zbot = 6.66e+33 ; ztop = -zbot ;
+      for( jj=0 ; jj < nss ; jj++ ){
+         qar = VECTIM_PTR(imts,jj) ;
+         for( ii=0 ; ii < ntt ; ii++ ){
+            if( qar[ii] < zbot ) zbot = qar[ii] ;
+            else if( qar[ii] > ztop ) ztop = qar[ii] ;
+         }
+      }
+   }
+
    if( zbot >= ztop ) return NULL ;
    if( grange <= 0.0f ){
      zfac = 255.4f / (ztop-zbot) ; domid = 0 ;

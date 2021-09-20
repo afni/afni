@@ -19,6 +19,8 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nvox=0 ;
    int iarg = 1 ;
    int polort=2 , nxout=0,nyout=0 ; float fwhm=0.0f ;
+   float bnd_bot = 1000000.0, bnd_top = -1000000.0;
+   int DO_PERCENT = 0, DO_RANGE = 0, DO_RAW = 0;
 
    /*----------------------------------------------------------------*/
 
@@ -160,6 +162,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-percent") == 0 ){  /* 30 Jul 2018 */
        grayplot_set_percent() ;
        grayplot_norming_none() ;
+       DO_PERCENT = 1;
        iarg++ ; continue ;
      }
 
@@ -169,9 +172,42 @@ int main( int argc , char *argv[] )
        if( ++iarg < argc && IS_NUMERIC(argv[iarg]) ){
          float val = (float)strtod(argv[iarg],NULL) ;
          if( val > 0.0f ) grayplot_set_range(val) ;
+         DO_RANGE = 1;
          iarg++ ;
        }
        continue ;
+     }
+
+     /*-----*/
+
+     // [PT: Sep 20, 2021] all display of raw data, with user-selected
+     // interval
+     if( strcasecmp(argv[iarg],"-raw_with_bounds") == 0 ){
+        if( ++iarg < argc && IS_NUMERIC(argv[iarg]) ){
+           bnd_bot = (float)strtod(argv[iarg], NULL) ;
+        }       
+        else
+           ERROR_exit("Need first arg after '-raw_with_bounds' to be numeric\n"
+                      "\t-> this doesn't look numeric: %s", argv[iarg]);
+        if( ++iarg < argc && IS_NUMERIC(argv[iarg]) ){
+           bnd_top = (float)strtod(argv[iarg], NULL) ;
+           INFO_message("OK: %s", argv[iarg]);
+        }
+        else
+           ERROR_exit("Need second arg after '-raw_with_bounds' to be numeric\n"
+                      "\t-> this doesn't look numeric: %s", argv[iarg]);
+
+        if( bnd_top > bnd_bot )
+           grayplot_set_raw_range(bnd_bot, bnd_top) ;
+        else
+           ERROR_exit("Prob with '-raw_with_bounds BOT TOP': TOP <= BOT\n"
+                      "\t-> Please check your input again; current range is:\n"
+                      "\t   %.6f %.6f", bnd_bot, bnd_top) ;
+        grayplot_norming_none() ;  // don't scale/transform data
+        DO_RAW = 1;
+
+        iarg++ ;
+        continue ;
      }
 
      /*-----*/
@@ -180,6 +216,11 @@ int main( int argc , char *argv[] )
    }
 
    /*----------------------------------------------------------------*/
+
+   if ( (DO_RAW && DO_PERCENT) || (DO_RAW && DO_RANGE) ){
+      ERROR_exit("Do not combine '-raw_with_bounds ..' with either "
+                 "'-percent' or '-range ..'");
+   }
 
    /*----- no dataset given yet? -----*/
 
@@ -367,6 +408,8 @@ void show_help(void)
       "  ** These options control the scaling from voxel value to gray level **\n"
       "\n"
       " -range X        = Set the range of the data to be plotted to be 'X'.\n"
+      "                   Each time series is first normalized by its values to:\n"
+      "                      Z[i] = (t[i] - mean_t)/stdev_t.\n"
       "                   When this option is used, then:\n"
       "                    * a value of 0 will be plotted as middle-gray\n"
       "                    * a value of +X (or above) will be plotted as white\n"
@@ -398,6 +441,15 @@ void show_help(void)
       "                      By default, that will be quadratic detrending of each\n"
       "                      voxel time series, but that can be changed with the\n"
       "                      '-polort' option.\n"
+      "\n"
+      " -raw_with_bounds A B\n"
+      "                 = Use this option on 'raw' time series datasets, map values\n"
+      "                   <= A to black, those >= B to white, and intermediate values\n"
+      "                   to grays.\n"
+      "                    * Can be used with any kind of dataset, but probably makes\n"
+      "                      most sense to use with scaled ones (errts, fitts or\n"
+      "                      all_runs).\n"
+      "                    * Should NOT be combined with '-range' or '-percent'.\n"
       "\n"
       "** Quick hack for Cesar Caballero-Gaudes, April 2018, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
