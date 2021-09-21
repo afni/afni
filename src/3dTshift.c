@@ -487,11 +487,16 @@ int main( int argc , char *argv[] )
 
    /*- reconfigure the time axis -*/
 
+   printf("++ updating time offset to %g\n",TS_tzero) ;
    EDIT_dset_items( TS_oset ,
                        ADN_ntt    , ntt       ,  /* in case not already set */
                        ADN_ttdel  , TS_TR     ,  /* may have changed */
                        ADN_tunits , TS_tunits ,  /* may have changed */
                        ADN_nsl    , 0         ,  /* will have no offsets when done */
+                       /* set toffset to whatever is applied
+                        * see: https://github.com/afni/afni/issues/297
+                        * 21 Sep 2021 [rickr] */
+                       ADN_ttorg  , TS_tzero  ,  /* the adjusted offset */
 #if 0
                        ADN_ttorg  , 0.0       ,  /* in case not already set */
                        ADN_ttdur  , 0.0       ,  /* in case not already set */
