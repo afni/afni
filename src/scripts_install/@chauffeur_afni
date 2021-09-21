@@ -299,9 +299,14 @@
 #    + ensure space between parenthesis and 'then' (which might have been
 #      a suuuuuper subtle issue on older tcsh)
 #
-set version   = "6.26"; set rev_dat   = "June 28, 2021"
+#set version   = "6.26"; set rev_dat   = "June 28, 2021"
 # [PT] add in "-olay_alpha .." opt vals: Linear, Quadratic
 #    + Bob added Linear back in, so can specify
+#
+set version   = "6.27"; set rev_dat   = "Sep 21, 2021"
+# [PT] new opts: '-no_sag', '-no_cor', '-no_axi', in case user wants
+#      to turn off default 3 view planes for everything.
+#    + we will use this for APQC, to turn of cor images.
 #
 # =====================================================================
 
@@ -393,7 +398,7 @@ set MODE_4D = 0
 set spre4d  = "sli4d"
 set opre4d  = ""
 set upre4d  = ""
-set Nreps   = 1                  # default:  for if we *don't* have -mode_4D
+set all_reps = ( 1 )             # default:  for if we *don't* have -mode_4D
 # this order matches how stuff comes out in MODE_4D
 set ppord   = ( "sagittal" "coronal" "axial" )
 set pord    = ( "sag"      "cor"     "axi"   )
@@ -444,6 +449,10 @@ set BIGNEG = -100000001
 
 set XXX_NPANE = ""               # [PT: May 14, 2019] -XXXnpane functionality
 
+set DO_AXI    = 1                # [PT: Sep 21, 2021] can control output slices
+set DO_SAG    = 1
+set DO_COR    = 1
+
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -486,6 +495,15 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-olay_off" ) then
         set see_olay = "-"
+
+    else if ( "$argv[$ac]" == "-no_cor" ) then
+        set DO_COR = 0
+
+    else if ( "$argv[$ac]" == "-no_axi" ) then
+        set DO_AXI = 0
+
+    else if ( "$argv[$ac]" == "-no_sag" ) then
+        set DO_SAG = 0
 
     # [PT: July 11, 2018] Do some reslicing of dsets and glue
     # together; will require at least one of ulay and olay to be 4D
@@ -1018,6 +1036,12 @@ endif
 
 echo "\n------------------ start of optionizing ------------------\n" 
 
+if ( ${DO_AXI} == 0 && ${DO_COR} == 0 && ${DO_SAG} == 0 ) then
+    echo "** ERROR: need to output at least ONE view plane choice."
+    echo "   Can't turn off all of axi, cor and sag views."
+    goto BAD_EXIT
+endif 
+
 # need more cowbell
 if ( "$ulay" == "" ) then
     echo "** ERROR: need to have an underlay, at least"
@@ -1346,7 +1370,16 @@ if ( $MODE_4D == 1 ) then
         "$m4d_loc[3]" "$m4d_loc[4]"
     echo "++ ... End slicing."
         
-    set Nreps = 3
+    # SAGITTAL is the first item in $ppord and $pord, so is always
+    # done in MODE_4D.  Check and see if user has turned off cor and
+    # axi.  The numbers here for each view come FROM $ppord and $pord
+    if ( ${DO_COR} ) then
+        set all_reps = ( ${all_reps} 2 )
+    endif
+    if ( ${DO_AXI} ) then
+        set all_reps = ( ${all_reps} 3 )
+    endif
+
 else
 
     # p-to-stat calc *cannot* be done for MODE_4D, because the
@@ -1435,7 +1468,7 @@ endif
 # ================== now get serious ============================
 
 # will have 3 loops if in MODE_4D; otherwise, just one
-foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
+foreach rrr ( ${all_reps} )  ### the BIG loop starts
 
     if ( $MODE_4D ) then
 
@@ -2060,6 +2093,20 @@ endif
              "${read_dir}"
     else
 
+    # [PT: Sep 21, 2021] By default, view all planes, but user can turn
+    # some off, too.  This will be useful for the APQC, to populate fewer
+    # images in the QC_${subj}/ output dirs
+    set view_planes = ( )
+    if ( ${DO_AXI} ) then
+        set view_planes = ( ${view_planes:q} -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" )
+    endif
+    if ( ${DO_SAG} ) then
+        set view_planes = ( ${view_planes:q} -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" )
+    endif
+    if ( ${DO_COR} ) then
+        set view_planes = ( ${view_planes:q} -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" )
+    endif
+
 # commenting out for now
 if ( 0 ) then
 set oechocmd = chauffeur_echo.tcsh
@@ -2108,6 +2155,22 @@ echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
 echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
+cat <<EOF >> $oechocmd
+
+set view_planes = ( )
+if ( ${DO_AXI} ) then
+    set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} axialimage    \${odir}/\${impref}.axi blowup=\${bufac}" )
+endif
+if ( ${DO_SAG} ) then
+    set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} sagittalimage \${odir}/\${impref}.sag blowup=\${bufac}" )
+endif
+if ( ${DO_COR} ) then
+    set view_planes = ( \${view_planes:q} -com "SAVE_\${ftype} coronalimage  \${odir}/\${impref}.cor blowup=\${bufac}" )
+endif
+
+EOF
+
+
 # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
 # before values are calc'ed for ranges---thanks, RWC
 echo '# the afni drive command itself' >> $oechocmd
@@ -2137,12 +2200,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
     -com "SET_XHAIRS      ${crossh}"                                 \\\
     -com "SET_XHAIR_GAP   ${xh_gap}"                                 \\\
     -com "$coor_type $coors"                                         \\\
-    -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
-           blowup=${bufac}"                                          \\\
-    -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor          \\\
-           blowup=${bufac}"                                          \\\
-    -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi          \\\
-           blowup=${bufac}"                                          \\\
+    ${view_planes:q}                                                 \\\
     -com "${do_quit}"                                                \\\
     "${read_dir}"' >> $oechocmd
 endif
@@ -2170,9 +2228,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SET_XHAIRS      ${crossh}"                                 \
     -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
     -com "$coor_type $coors"                                         \
-    -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
-    -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
-    -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
+    ${view_planes:q}                                                 \
     -com "${do_quit}"                                                \
     "${read_dir}"
 
@@ -2638,6 +2694,12 @@ COMMAND OPTIONS ~1~
                     the present option (def: 'black').  (See DR:
                     "mont=PxQ:R" additional option ":G:C"; basically,
                     MC is the 'C' value).
+
+-no_cor            :no coronal slice views output (def: this view is shown)
+-no_axi            :no axial slice views output (def: this view is shown)
+-no_sag            :no sagittal slice views output (def: this view is shown)
+                    NB: when '-mode_4D' is on, the sagittal view will ALWAYS
+                    shown; effectively, this opt is then disabled.
 
 -olay_alpha {No|Yes|Linear|Quadratic} 
                    :In addition to representing olay values as colors

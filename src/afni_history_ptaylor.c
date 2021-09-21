@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will in for APQC.\n"
+},
+
 { 20, Sep , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
    "apsearchize.",
    "Make help visible in editor with '@grayplot -hview'.\n"
