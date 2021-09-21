@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Sep, 2021, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
+   "propagate toffset, if not zero",
+   NULL
+ } ,
+
  { 10, Sep, 2021, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
    "add web formatting to help",
    NULL
