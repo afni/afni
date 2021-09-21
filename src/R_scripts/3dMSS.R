@@ -1,4 +1,4 @@
-!/usr/bin/env AFNI_Batch_R
+#!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.13, July 16, 2021
+Version 0.0.14, Sept 21, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -553,9 +553,10 @@ process.MSS.opts <- function (lop, verb = 0) {
       #   lop$maskData <- mm[,,,1]
       #   dim(lop$maskData) <- c(dim(lop$maskData), 1)
       #} else lop$maskData <- mm[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- mm
       if(verb) cat("Done read ", lop$maskFN,'\n')
-      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
+      if(dim(mm)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
    #if(!is.na(lop$maskFN))
    #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
