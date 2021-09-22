@@ -174,8 +174,12 @@ auth = 'PA Taylor'
 # [PT] update TSNR-vreg checks
 #    + give sep names for TSNR images: tsnr_vreg and tsnr_fin
 #
-ver = '3.75' ; date = 'Apr 6, 2021'
+#ver = '3.75' ; date = 'Apr 6, 2021'
 # [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
+#
+ver = '3.76' ; date = 'Sep 21, 2021'
+# [PT] use '-no_cor' to not make coronal plane images
+#    + save nearly 33% of space in QC_${subj} dir
 #
 #########################################################################
 
@@ -1732,6 +1736,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
+    -no_cor
     -do_clean
     '''.format( olay_minval_str, perc_olay_top, '''%ile in vol''' )
 
@@ -1851,6 +1856,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     -ulay              ${final_epi_dset}
     -use_olay_grid     wsinc5
     -ulay_range_nz     "2%" "98%"
+    -no_cor
     -prefix  ${odir_img}/${opref}
     '''
 
@@ -1989,6 +1995,7 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     -ulay    ${final_anat}
     -box_focus_slices ${focus_box}
     -olay    ${main_dset}
+    -no_cor
     -prefix  ${odir_img}/${opref}
     '''
 
@@ -2053,6 +2060,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
+    -no_cor
     -do_clean
     '''.format( cbar='Reds_and_Blues_Inv',
                 pbar_cr='Pearson r',
@@ -2213,6 +2221,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
+    -no_cor
     -do_clean
     '''.format( cbar='Reds_and_Blues_Inv',
                 pbar_cr='Pearson r',
@@ -2533,6 +2542,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
+    -no_cor
     -do_clean
     '''.format( vso.olay_pbar,
                 olay_minval_str, 
@@ -2848,6 +2858,7 @@ def apqc_mot_grayplot( obase, qcb, qci,
     -montx 1 -monty 1  
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
+    -no_cor
     -do_clean
     '''.format( grange, "for normal distr, bounds of 0.001 prob tail" )
 
@@ -3660,6 +3671,7 @@ those might have been flipped.'''
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
     -ulay_range_nz     "2%" "98%"
+    -no_cor
     -prefix            ${odir_img}/${opref_o}
     '''
 #    cmd0 = '''
@@ -3682,6 +3694,7 @@ those might have been flipped.'''
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
     -ulay_range_nz     "2%" "98%"
+    -no_cor
     -prefix            ${odir_img}/${opref_f}
     '''
 #    cmd1 = '''
@@ -3845,6 +3858,7 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         -montcolor 'black'
         -set_xhairs OFF 
         -label_mode 1 -label_size 3  
+        -no_cor
         -do_clean
         '''.format( **chauff_params )
 

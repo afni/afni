@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
 { 21, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
    "Add in new opts to turn off images in particular view planes being made.",
    "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
