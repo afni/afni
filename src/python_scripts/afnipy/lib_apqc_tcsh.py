@@ -177,9 +177,13 @@ auth = 'PA Taylor'
 #ver = '3.75' ; date = 'Apr 6, 2021'
 # [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
 #
-ver = '3.76' ; date = 'Sep 21, 2021'
+#ver = '3.76' ; date = 'Sep 21, 2021'
 # [PT] use '-no_cor' to not make coronal plane images
 #    + save nearly 33% of space in QC_${subj} dir
+#
+ver = '3.77' ; date = 'Sep 21, 2021'
+# [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
+#    + keep applying new opt
 #
 #########################################################################
 
@@ -2686,6 +2690,7 @@ def apqc_regr_tsnr( obase, qcb, qci,
         -olay         ${olay_dset}
         -focus        ${focus_box}  
         -mask         ${mask_dset}
+        -no_cor
         -prefix       ${odir_img}/${opref}
         -prefix_cbar  ${opbarrt}
         '''
@@ -2702,6 +2707,7 @@ def apqc_regr_tsnr( obase, qcb, qci,
         -ulay         ${ulay_dset}
         -olay         ${olay_dset}
         -focus        ${focus_box}  
+        -no_cor
         -prefix       ${odir_img}/${opref}
         -prefix_cbar  ${opbarrt} 
         '''

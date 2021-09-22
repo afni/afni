@@ -176,6 +176,10 @@ ver = '3.76' ; date = 'Sep 21, 2021'
 # [PT] use '-no_cor' to not make coronal plane images
 #    + save nearly 33% of space in QC_${subj} dir
 #
+ver = '3.77' ; date = 'Sep 21, 2021'
+# [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
+#    + keep applying new opt
+#
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
