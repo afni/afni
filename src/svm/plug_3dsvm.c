@@ -1545,7 +1545,8 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
         }
         if( ( atr_float = THD_find_float_atr( bucket->dblk, "3DSVM_B" ) ) == NULL )
         {
-            snprintf( errorString, LONG_STRING, "Error retrieving bias value "
+            /* "Error" is a useful grep string in build output, using "error" */
+            snprintf( errorString, LONG_STRING, "error retrieving bias value "
               "from %s the bucket", options->modelWeightFile );
             free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
             DSET_delete(bucket);
