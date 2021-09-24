@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Sep, 2021, RCR, "3dTshift", MICRO, TYPE_ENHANCE,
+   "update help to connect tzero to stimulus timing in 3dDeconvolve",
+   "Might want to subtract 'tzero' from stimulus event times."
+ } ,
+
  { 21, Sep, 2021, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
    "propagate toffset, if not zero",
    NULL
