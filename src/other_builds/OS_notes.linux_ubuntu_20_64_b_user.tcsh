@@ -40,9 +40,7 @@ echo  'setenv R_LIBS ~/R'     >> ~/.cshrc
 rPkgsInstall -pkgs ALL
 
 # in case R's brms didn't install first time
-cd
-echo "install.packages(c('Rcpp','brms'), dependencies = TRUE, INSTALL_opts = '--no-lock')" > tmp.R
-R CMD BATCH tmp.R
+Rscript -e "install.packages(c('Rcpp','brms'), dependencies = TRUE, INSTALL_opts = '--no-lock')"
 
 set asc  = ~/o.afni_system_check.txt
 echo "++ Run system check, saving to: ${asc}"
