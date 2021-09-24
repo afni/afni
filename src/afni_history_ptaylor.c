@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Sep , 2021 , PT , "@epi_b0_corr.py" , MINOR , TYPE_NEW_OPT,
+   "Had been missing the internal processing of option '-epi_pe_bwpp'.",
+   "... which has now been added in.\n"
+},
+
 { 23, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Can now perform clusterizing, with Alpha+Boxed on, like in GUI.",
    "New opt '-clusterize ..' for some commands; see help/NOTES for full info.\n"
