@@ -872,7 +872,8 @@ typedef struct {
       SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, i))
    #define SDSET_COLTYPE(dset, i)   \
       SUMA_TypeOfDsetColNumb(dset, i)
-   #define SDSET_VECLEN(dset) ( (!dset || !dset->dnel) ? -1:dset->dnel->vec_len)
+   #define SDSET_VECLEN(dset) ( (!dset || !dset->dnel) ? -1:dset->dnel->vec_len )
+   #define SDSET_VECALLOC(dset) MAX(SDSET_VECLEN(dset),0)  /* 24 Sep 2021 - RWC */
    #define SDSET_VEC(dset,iii) dset->dnel->vec[iii]
    #define SDSET_NVOX SDSET_VECLEN
    #define SDSET_IS_VOL SUMA_isVolDataset

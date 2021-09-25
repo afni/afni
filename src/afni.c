@@ -2671,6 +2671,8 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_FIX_SCALE_SIZE"  , "YES" ) ;  /* (from Lucca) */
    PUTENV("AFNI_OPACITY_LOCK"    , "YES" ) ;
 
+   PUTENV("AFNI_INSTACORR_JUMP", "YES" ) ;  /* 24 Sep 2021 */
+
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
    PUTENV("AFNI_IMAGE_LABEL_SIZE","2") ;
@@ -5495,6 +5497,8 @@ if(PRINT_TRACING)
 
       case isqCR_buttonpress:{
          XButtonEvent *xev = (XButtonEvent *)cbs->event ;
+         int doing_icor = ( xev->state&ShiftMask && xev->state&ControlMask ) ;
+         int doing_jump = AFNI_yesenv("AFNI_INSTACORR_JUMP") ;
 
 if(PRINT_TRACING){
  char str[256] ;
@@ -5516,7 +5520,7 @@ if(PRINT_TRACING){
             }
             break ;
 
-            case Button1:{   /* set viewpoint; set InstaCorr? */
+            case Button1:{   /* set viewpoint? set InstaCorr? */
                THD_ivec3 id ;
 
                /* April 1996:  only use this button press if
@@ -5531,6 +5535,8 @@ if(PRINT_TRACING)
                    cbs->yim >= 0 && cbs->yim < br->n2 &&
                    cbs->nim >= 0 && cbs->nim < br->n3   ){
 
+                  /* get index triple in 3D dataset from viewing FD brick */
+
                   id = THD_fdind_to_3dind(
                           br , TEMP_IVEC3(cbs->xim,cbs->yim,cbs->nim) );
 
@@ -5539,23 +5545,27 @@ if(PRINT_TRACING)
   sprintf(str," 3D dataset coordinates %d %d %d",
           id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
 
-                  SAVE_VPT(im3d) ;  /* save current location as jumpback */
+                  /* jump viewpoint (crosshairs) to the selected point */
 
-                  if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+                  if( !doing_icor || (doing_icor && doing_jump) ){
+                    SAVE_VPT(im3d) ;  /* save current location as jumpback */
 
-                    /* 20 Feb 2003: set plane from which viewpoint is controlled */
+                    if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
 
-                    AFNI_view_setter(im3d,seq) ;
-                    AFNI_set_viewpoint(
-                       im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
-                       (im3d->vinfo->crosshair_visible==True) ?
-                       REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+                      /* 20 Feb 2003: set plane from which viewpoint is controlled */
+
+                      AFNI_view_setter(im3d,seq) ;
+                      AFNI_set_viewpoint(
+                         im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
+                         (im3d->vinfo->crosshair_visible==True) ?
+                         REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+                    }
                   }
 
                   /* 08 May 2009: if Shift+Control both pressed, do InstaCorr */
 
-                  if( xev->state&ShiftMask && xev->state&ControlMask ){
-                    int qq = AFNI_icor_setref(im3d) ;
+                  if( doing_icor ){
+                    int qq = AFNI_icor_setref_anatijk(im3d,id.ijk[0],id.ijk[1],id.ijk[2]) ;
                     if( qq > 0 && im3d->giset == NULL ) AFNI_icor_setref_locked(im3d) ; /* 15 May 2009 */
                   }
                }
@@ -11944,7 +11954,7 @@ ENTRY("AFNI_jump_and_seed") ;
 
       /* Note that the locations of the last click should be set
          per im3d, perhaps within function AFNI_icor_setref_anatijk().
-         This current static storage night fail whith multiple
+         This current static storage might fail whith multiple
          controllers.                                               */
       if (ii != iil || jj != jjl || kk != kkl) {
          DONT_TELL_SUMA;
