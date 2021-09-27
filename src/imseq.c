@@ -6120,6 +6120,8 @@ void ISQ_drawing_EV( Widget w , XtPointer client_data ,
    static ISQ_cbs cbs ;
    static int busy=0 ;   /* 23 Jan 2004: prevent recursion */
 
+   static int doing_icor=0 ; /* 27 Sep 2021 */
+
 ENTRY("ISQ_drawing_EV") ;
 
    if( busy ){ STATUS("recursive entry!"); EXRETURN; }  /* bad! */
@@ -6189,6 +6191,12 @@ ENTRY("ISQ_drawing_EV") ;
                   cbs.xim    = imx ;       /* delayed send of Button1 */
                   cbs.yim    = imy ;       /* event to AFNI now       */
                   cbs.nim    = nim ;
+
+                  if( doing_icor ){             /* 27 Sep 2021 */
+                    event->state &= ~ShiftMask ;
+                    event->state &= ~ControlMask ;
+                    doing_icor    = 0 ;
+                  }
 #if 0
                   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
 #else
@@ -6232,6 +6240,7 @@ ENTRY("ISQ_drawing_EV") ;
           cbs.xim    = imx ;       /* delayed send of Button1 */
           cbs.yim    = imy ;       /* event to AFNI now       */
           cbs.nim    = nim ;
+          doing_icor = 1 ;
           SEND(seq,cbs) ; busy=0 ; seq->shft_ctrl_dragged=1 ; EXRETURN ;
         }
 
@@ -6353,6 +6362,7 @@ INFO_message("Expose") ;
 STATUS(" .. KeyPress") ;
 
          ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
+         doing_icor = 0 ;
 
          /* discard if a mouse button is also pressed at this time */
 
@@ -6410,6 +6420,8 @@ fprintf(stderr,"KeySym=%04x nbuf=%d state=%u\n",(unsigned int)ks,nbuf,event->sta
          int bx,by , width,height , but ;
 
 STATUS(" .. ButtonPress") ;
+
+         doing_icor = 0 ;
 
          /* don't allow button presses in a recorder window, or in zoom-pan mode */
 
@@ -6558,7 +6570,7 @@ STATUS("scroll wheel ==> change slice") ;
                 /* else
                    XBell( seq->dc->display , 100 ) ; */
 
-              /* compute the location in the image
+              /* Button1: compute the location in the image
                  where the button event transpired, and send to AFNI */
 
               } else if( w == seq->wimage && seq->status->send_CB != NULL ){
@@ -6570,6 +6582,8 @@ STATUS("scroll wheel ==> change slice") ;
                 cbs.xim    = imx ;
                 cbs.yim    = imy ;
                 cbs.nim    = nim ;
+
+                doing_icor = ( (event->state&ShiftMask) && (event->state&ControlMask) ) ;
 
                 if( but == Button1 &&
                     (event->state & ControlMask) && !(event->state & ShiftMask) ){ /* 18 Oct 2001 */
