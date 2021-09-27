@@ -3430,7 +3430,7 @@ on the AFNI command line with the usual -DAFNI_INSTACORR_SEEDBLUR=YES
 method.
 
 -----------------------------
-Variable: AFNI_INSTACORR_JUMP
+Variable: AFNI_INSTACORR_JUMP (editable)
 -----------------------------
 When using the Shift+Ctrl+Click method to set the InstaCorr seed, the
 usual operation is to jump the crosshairs focus point to the location

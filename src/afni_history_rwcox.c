@@ -49,6 +49,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , SEP , 2021 , RWC , "AFNI GUi" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_INSTACORR_JUMP" ,
+   "If YES (default), Shift+Ctrl+click sets the instacorr seed and jumps the\n"
+   "crosshairs to that location. If NO, sets the instacorr seed but there is\n"
+   "no crosshair jump. (For Phil Kohn)" } ,
+
  { 31 , AUG , 2021 , RWC , "3dTcorr1D/3dTcorrelate" , MINOR , TYPE_BUG_FIX ,
    "Change labels and statcode for -Fisher option" ,
    "Sir Paul pointed out that these programs didn't have the correct\n"

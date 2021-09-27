@@ -11568,7 +11568,11 @@ ENTRY("AFNI_imag_pop_CB") ;
      kk = im3d->vinfo->k3_icor ;
      if( ii >= 0 && jj >= 0 && kk >=0 ){
        SAVE_VPT(im3d) ;
+#if 0  /* OLD */
        AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_OVERLAY ) ;
+#else  /* NEW [27 Sep 2021] */
+       AFNI_jumpto_dicom( im3d, im3d->vinfo->xi_icor,im3d->vinfo->yj_icor,im3d->vinfo->zk_icor) ;
+#endif
      }
    }
 
