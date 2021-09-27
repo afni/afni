@@ -5497,7 +5497,7 @@ if(PRINT_TRACING)
 
       case isqCR_buttonpress:{
          XButtonEvent *xev = (XButtonEvent *)cbs->event ;
-         int doing_icor = ( xev->state&ShiftMask && xev->state&ControlMask ) ;
+         int doing_icor = ( (xev->state&ShiftMask) && (xev->state&ControlMask) ) ;
          int doing_jump = AFNI_yesenv("AFNI_INSTACORR_JUMP") ;
 
 if(PRINT_TRACING){
