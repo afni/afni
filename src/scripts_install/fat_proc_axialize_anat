@@ -94,9 +94,13 @@
 #set version   = "4.2";  set rev_dat   = "July 25, 2018"
 #   + match func_range_nz to updated @chauffeur
 #
-set version   = "4.3";   set rev_dat   = "Feb 12, 2019"
+#set version   = "4.3";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "4.32";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -518,7 +522,7 @@ else if ( "$DO_SS" == "1" ) then
             -opacity 6                            \
             -montx 3 -monty 3                     \
             -set_xhairs MULTI                     \
-            -label_mode 1 -label_size 3           \
+            -label_mode 1 -label_size 4           \
             -do_clean
     endif
 endif
@@ -953,7 +957,7 @@ if ( $DO_VIEWER ) then
                     -prefix "${odirqc_wdir}/$vpref1"       \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
-                    -label_mode 1 -label_size 3     \
+                    -label_mode 1 -label_size 4     \
                     -do_clean                       \
                     $user_frange
 
@@ -975,7 +979,7 @@ if ( $DO_VIEWER ) then
                     -prefix "${odirqc_wdir}/$vpref2" \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
-                    -label_mode 1 -label_size 3     \
+                    -label_mode 1 -label_size 4     \
                     -do_clean
 
 endif

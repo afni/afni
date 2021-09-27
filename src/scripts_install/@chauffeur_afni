@@ -308,11 +308,15 @@
 #      to turn off default 3 view planes for everything.
 #    + we will use this for APQC, to turn of cor images.
 #
-set version   = "6.28"; set rev_dat   = "Sep 21, 2021"
+#set version   = "6.28"; set rev_dat   = "Sep 21, 2021"
 # [PT] new opt: '-clusterize'
 #    + can do clusterizing internally, with Alpha+Boxed on
 #    + the idat and ithr come from '-subbb ....'
 #    + the thresholding comes from, say, -thr_olay_p2stat, -thr_olay_pside
+#
+set version   = "6.29";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level; just changing help examples here
 #
 # =====================================================================
 
@@ -2982,7 +2986,7 @@ EXAMPLES ~1~
         -prefix  PRETTY_PICTURE         \
         -montx 5 -monty 3               \
         -set_xhairs OFF                 \
-        -label_mode 1 -label_size 3     \
+        -label_mode 1 -label_size 4     \
         -do_clean  
 
 
@@ -3000,7 +3004,7 @@ EXAMPLES ~1~
         -prefix   SUBDIR/PRETTY_PICTURE2  \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
 
@@ -3021,7 +3025,7 @@ EXAMPLES ~1~
         -prefix   STAT_MAP                \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
   D) Fun way to enter a colorbar-- note all the '-cbar*' options
@@ -3064,7 +3068,7 @@ EXAMPLES ~1~
         -prefix             img_e                                   \
         -montx 3 -monty 3                                           \
         -set_xhairs OFF                                             \
-        -label_mode 1 -label_size 3                                 \
+        -label_mode 1 -label_size 4                                 \
         -no_clean
 
   E) Included Clusterizing, with Alpha+Boxed on, similar to above, but
@@ -3086,7 +3090,7 @@ EXAMPLES ~1~
         -prefix             img_f                                   \
         -montx 3 -monty 3                                           \
         -set_xhairs OFF                                             \
-        -label_mode 1 -label_size 3                                 \
+        -label_mode 1 -label_size 4                                 \
         -no_clean
 
 

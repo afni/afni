@@ -14,8 +14,12 @@
 #set version   = "0.4";  set rev_dat   = "June 24, 2021"
 # [PT] run '3drefit -space ...' quietly
 #
-set version   = "0.41";  set rev_dat   = "July 29, 2021"
+#set version   = "0.41";  set rev_dat   = "July 29, 2021"
 # [PT] new opt: -edgy_ulay
+#
+set version   = "0.42";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -317,7 +321,7 @@ echo "++ Quietly run: 3drefit -space ${newsp} ${uout}"
     -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
-    -label_mode ${label_mode} -label_size 3 \
+    -label_mode ${label_mode} -label_size 4 \
     $allclean                               \
     ${user_coors} ${edgy_ulay}
 
@@ -356,7 +360,7 @@ if ( ${obl_ulay[1]} || ${obl_olay[1]} ) then
         -montgap $mgap -montcolor $mcolor       \
         -save_ftype JPEG                        \
         -set_xhairs OFF                         \
-        -label_mode ${label_mode} -label_size 3 \
+        -label_mode ${label_mode} -label_size 4 \
         $allclean                               \
         ${user_coors} ${edgy_ulay}
 

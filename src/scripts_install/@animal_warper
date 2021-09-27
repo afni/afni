@@ -305,7 +305,7 @@ set progname = @animal_warper
 #set version = "3.37" ; set date = "May 24, 2021"
 # [PT] lower opacity in overlap check
 #
-set version = "3.38" ; set date = "July 9, 2021"
+#set version = "3.38" ; set date = "July 9, 2021"
 # [PT] Couple useful things:
 #    + new '-aff_move_opt ..' opt: control affine align behavior
 #      - necessary if coords are good and there is a lot of non-brain 
@@ -313,6 +313,10 @@ set version = "3.38" ; set date = "July 9, 2021"
 #      - NB: all aff output dsets will be on BASE grid, too.
 #    + fix bug: if no followers used, no 'surfaces/' dir was created
 #      for orig surface brain.  Now OK.
+#
+set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -1900,7 +1904,7 @@ else
        -opacity 4                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
 endif
 
@@ -2279,7 +2283,7 @@ else
        -opacity 4                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
    # Image   : [ulay] orig dset [olay] mask of orig dset
    set ulay  = ${src_abbrev}.nii.gz
@@ -2302,7 +2306,7 @@ else
        -opacity 3                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
    # clean up a bit
    \rm -f ${imed}/__tmp_orig_mskd.nii.gz
@@ -2630,7 +2634,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                 -opacity 4                             \
                 -montx 5 -monty 3                      \
                 -set_xhairs OFF                        \
-                -label_mode 1 -label_size 3
+                -label_mode 1 -label_size 4
        else
           foreach nn ( `seq 0 1 ${nvi}` )
              set nnn = `printf %02d ${nn}`
@@ -2653,7 +2657,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -opacity 4                             \
                   -montx 5 -monty 3                      \
                   -set_xhairs OFF                        \
-                -label_mode 1 -label_size 3
+                -label_mode 1 -label_size 4
           end
        endif
    endif

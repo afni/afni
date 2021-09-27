@@ -36,8 +36,12 @@
 #set version   = "2.2"; set rev_dat   = "Feb 3, 2020"
 #   + [PT] new opt: -anonymize_output (pretty self-explanatory)
 #
-set version   = "2.3"; set rev_dat   = "Aug 31, 2021"
+#set version   = "2.3"; set rev_dat   = "Aug 31, 2021"
 #   + [PT] change default cost to 'lpa' (was 'ls'?)
+#
+set version   = "2.31";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ============================================================================
 
@@ -415,7 +419,7 @@ if ( "${run_mode}" == "ALL" ) then
                 -montx 5 -monty 3                  \
                 -montgap 3                         \
                 -set_xhairs OFF                    \
-                -label_mode 1 -label_size 3  
+                -label_mode 1 -label_size 4  
 
         endif
     end
@@ -457,7 +461,7 @@ if ( "${run_mode}" == "ALL" ) then
             -montx 5 -monty 3                   \
             -montgap 3                          \
             -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3  
+            -label_mode 1 -label_size 4  
 
         @chauffeur_afni                         \
             -ulay ${dset_orig}                  \
@@ -470,7 +474,7 @@ if ( "${run_mode}" == "ALL" ) then
             -montx 5 -monty 3                   \
             -montgap 3                          \
             -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3  
+            -label_mode 1 -label_size 4  
     endif
 
 else
@@ -496,7 +500,7 @@ else
             -montx 5 -monty 3                   \
             -montgap 3                          \
             -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3  
+            -label_mode 1 -label_size 4  
 
     endif
 
@@ -525,7 +529,7 @@ else
                 -montx 5 -monty 3                   \
                 -montgap 3                          \
                 -set_xhairs OFF                     \
-                -label_mode 1 -label_size 3  
+                -label_mode 1 -label_size 4  
         endif
 
     else if ( "${run_mode}" == "reface_plus" ) then
@@ -552,7 +556,7 @@ else
                 -montx 5 -monty 3                   \
                 -montgap 3                          \
                 -set_xhairs OFF                     \
-                -label_mode 1 -label_size 3  
+                -label_mode 1 -label_size 4  
         endif
     endif
 endif

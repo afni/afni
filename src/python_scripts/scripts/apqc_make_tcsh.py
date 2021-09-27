@@ -172,13 +172,20 @@ auth = 'PA Taylor'
 #ver = '3.75' ; date = 'Apr 6, 2021'
 # [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
 #
-ver = '3.76' ; date = 'Sep 21, 2021'
+#ver = '3.76' ; date = 'Sep 21, 2021'
 # [PT] use '-no_cor' to not make coronal plane images
 #    + save nearly 33% of space in QC_${subj} dir
 #
-ver = '3.77' ; date = 'Sep 21, 2021'
+#ver = '3.77' ; date = 'Sep 21, 2021'
 # [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
 #    + keep applying new opt
+#
+ver = '3.78' ; date = 'Sep 27, 2021'
+# [PT] Due to recent changes (from ~Aug 23) in label_size defaults
+#      in imseq.c, adjust the default labelsize from 3 -> 4.
+#    + this should restore labels to their longrunning size (since Aug
+#      23 they have been one size smaller by default); but the new font
+#      will be bolder than previously, due to those imseq.c changes.
 #
 #########################################################################
 

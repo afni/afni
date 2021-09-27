@@ -27,9 +27,13 @@
 #set version   = "1.1";  set rev_dat   = "April 16, 2021"
 # [PT] add several more @chauffeur_afni opts to pass along. Sigh.
 #
-set version   = "1.2";  set rev_dat   = "Sep 21, 2021"
+#set version   = "1.2";  set rev_dat   = "Sep 21, 2021"
 # [PT] add new @chauff* opts: '-no_cor', '-no_sag', '-no_axi'
 #    + will be useful for APQC (-no_cor)
+#
+set version   = "1.21";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -500,7 +504,7 @@ endif
     -montx    ${Nx}   -monty     ${Ny}                      \
     -montgap  ${mgap} -montcolor ${mcolor}                  \
     -set_xhairs  OFF                                        \
-    -label_mode  ${label_mode}   -label_size 3              \
+    -label_mode  ${label_mode}   -label_size 4              \
     ${views_off}                                            \
     -do_clean                                               \
     ${user_coors}                                           \

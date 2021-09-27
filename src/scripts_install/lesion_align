@@ -30,8 +30,10 @@ set progname = lesion_align
 # center_split option to allow splitting of input for affine alignment
 #set version = 1.07
 # warp lesion mask
-set version = 1.08
+#set version = 1.08
 # unifize option, lesion mask transformation
+set version = 1.09
+# chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
 
 # get parsed and we can still get at script version number
 if ("$#" <  "1") then
@@ -563,7 +565,7 @@ endif
        -opacity 4                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3 
+       -label_mode 1 -label_size 4
 
 # put template into original subject space
 if ( ($ok_to_exist == "1") && \
@@ -875,7 +877,7 @@ if ($segset != "") then
                 -opacity 4                             \
                 -montx 5 -monty 3                      \
                 -set_xhairs OFF                        \
-                -label_mode 1 -label_size 3 
+                -label_mode 1 -label_size 4 
 
        endif
     echo "Atlas/seg, NL-warped to orig : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\

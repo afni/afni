@@ -69,6 +69,97 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 27, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_4d_imager" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@afni_refacer_run" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
 { 23, Sep , 2021 , PT , "@epi_b0_corr.py" , MINOR , TYPE_NEW_OPT,
    "Had been missing the internal processing of option '-epi_pe_bwpp'.",
    "... which has now been added in.\n"

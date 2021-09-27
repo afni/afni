@@ -181,9 +181,16 @@ auth = 'PA Taylor'
 # [PT] use '-no_cor' to not make coronal plane images
 #    + save nearly 33% of space in QC_${subj} dir
 #
-ver = '3.77' ; date = 'Sep 21, 2021'
+#ver = '3.77' ; date = 'Sep 21, 2021'
 # [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
 #    + keep applying new opt
+#
+ver = '3.78' ; date = 'Sep 27, 2021'
+# [PT] Due to recent changes (from ~Aug 23) in label_size defaults
+#      in imseq.c, adjust the default labelsize from 3 -> 4.
+#    + this should restore labels to their longrunning size (since Aug
+#      23 they have been one size smaller by default); but the new font
+#      will be bolder than previously, due to those imseq.c changes.
 #
 #########################################################################
 
@@ -1739,7 +1746,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -montgap 1 
     -montcolor 'black'
     -set_xhairs OFF 
-    -label_mode 1 -label_size 3  
+    -label_mode 1 -label_size 4  
     -no_cor
     -do_clean
     '''.format( olay_minval_str, perc_olay_top, '''%ile in vol''' )
@@ -2063,7 +2070,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     -montgap 1 
     -montcolor 'black'
     -set_xhairs OFF 
-    -label_mode 1 -label_size 3  
+    -label_mode 1 -label_size 4  
     -no_cor
     -do_clean
     '''.format( cbar='Reds_and_Blues_Inv',
@@ -2224,7 +2231,7 @@ def apqc_vstat_seedcorr( obase, qcb, qci,
     -montgap 1 
     -montcolor 'black'
     -set_xhairs OFF 
-    -label_mode 1 -label_size 3  
+    -label_mode 1 -label_size 4  
     -no_cor
     -do_clean
     '''.format( cbar='Reds_and_Blues_Inv',
@@ -2545,7 +2552,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
     -montgap 1 
     -montcolor 'black'
     -set_xhairs OFF 
-    -label_mode 1 -label_size 3  
+    -label_mode 1 -label_size 4  
     -no_cor
     -do_clean
     '''.format( vso.olay_pbar,
@@ -2863,7 +2870,7 @@ def apqc_mot_grayplot( obase, qcb, qci,
     -save_ftype JPEG
     -montx 1 -monty 1  
     -set_xhairs OFF 
-    -label_mode 1 -label_size 3  
+    -label_mode 1 -label_size 4  
     -no_cor
     -do_clean
     '''.format( grange, "for normal distr, bounds of 0.001 prob tail" )
@@ -3863,7 +3870,7 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         -montgap 1 
         -montcolor 'black'
         -set_xhairs OFF 
-        -label_mode 1 -label_size 3  
+        -label_mode 1 -label_size 4  
         -no_cor
         -do_clean
         '''.format( **chauff_params )
