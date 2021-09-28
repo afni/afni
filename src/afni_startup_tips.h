@@ -1194,6 +1194,8 @@ static char *gby[] = {
      "If you don't know where you are sailing, no wind will be favorable"             ,
      "The greatest remedy for anger is delay"                                         ,
      "It is more fitting to laugh at life than to lament over it"                     ,
+     "Remember: There are more things that frighten us than injure us"                ,
+     "Remember: Time heals what reason cannot"                                        ,
 
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
@@ -2031,6 +2033,8 @@ static char *gby[] = {
     "Remember: Trouble shared is trouble halved" ,
     "Good news: Your problem is fixed -- Bad News: You can now rush ahead to the NEXT problem" ,
     "No important change comes calmly over the world" ,
+
+    "One thing that humbles me deeply is to see that human genius has its limits while human stupidity does not" ,
 
     /**** Keep this one last ****/
 
