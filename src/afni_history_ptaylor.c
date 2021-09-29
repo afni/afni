@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Sep , 2021 , PT , "3dAllineate" , MAJOR , TYPE_GENERAL,
+   "3dAllineate: set -lpa+ to re-include 'ov' in its recipe---for stability.",
+   "This makes it closer to historical form (but no 'mi' still).\n"
+},
+
 
 { 29, Sep , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_BUG_FIX,
    "Fix behavior with longnames---just needed a quote around var.",
